@@ -18,12 +18,14 @@ $GLOBALS["SINGLE_DEBUG"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
+if($argv[1]=="--export-table"){export_table();die();}
 if($argv[1]=="--multi-start"){BuildRules();die();}
 if($argv[1]=="--single-debug"){SingleDebug($argv[2]);die();}
 if($argv[1]=="--monit"){build_monit();die();}
 if($argv[1]=="--import"){import($argv[2]);die();}
 if($argv[1]=="--import-file"){import_filename($argv[2]);die();}
 
+if($argv[1]=="--restore"){restore_table($argv[2]);die();}
 
 
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
@@ -59,7 +61,7 @@ function restart($nopid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -76,7 +78,7 @@ function reloadx($nopid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -116,7 +118,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -124,7 +126,7 @@ function start($aspid=false){
 
 	$fetchmail=$unix->find_program("fetchmail");
 	if(!is_file($fetchmail)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
 		return;
 	}
 	
@@ -134,7 +136,7 @@ function start($aspid=false){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 
@@ -151,20 +153,20 @@ function start($aspid=false){
 	
 	
 	if($EnableFetchmail==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} is disabled (EnableFetchmail)...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} is disabled (EnableFetchmail)...\n";}
 		return;
 	}
 	if($EnablePostfixMultiInstance==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} multi-postfix instances enabled `EnablePostfixMultiInstance`, switch to artica-cron.\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} multi-postfix instances enabled `EnablePostfixMultiInstance`, switch to artica-cron.\n";}
 		return;
 	}
 	
 	
 	$version=fetchmail_version();
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} version $version\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} version $version\n";}
 
 	if(!is_file("/etc/fetchmailrc")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} /etc/fetchmailrc no such file, aborting\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} /etc/fetchmailrc no such file, aborting\n";}
 		return;
 	}
 	
@@ -173,13 +175,13 @@ function start($aspid=false){
 	shell_exec("$chmod 600 /etc/fetchmailrc");
 	
 	if(FETCHMAIL_COUNT_SERVER()==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} No pool server set, aborting...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} No pool server set, aborting...\n";}
 		return;
 	}
 
 	$FetchmailDaemonPool=$sock->GET_INFO("FetchmailDaemonPool");
 	if(!is_numeric($FetchmailDaemonPool)){$FetchmailDaemonPool=300;}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Pool: {$FetchmailDaemonPool}Mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Pool: {$FetchmailDaemonPool}Mn\n";}
 	
 	$f[]="$nohup $fetchmail";
 	$f[]="--daemon $FetchmailDaemonPool";
@@ -189,23 +191,23 @@ function start($aspid=false){
 
 
 	$cmd=@implode(" ", $f);
-	//if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $cmd\n";}
+	//if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $cmd\n";}
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);
 
 	for($i=0;$i<4;$i++){
 		$pid=DEFAULT_PID();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/4...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/4...\n";}
 		sleep(1);
 	}
 
 	$pid=DEFAULT_PID();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	}
 }
 //##############################################################################
@@ -216,7 +218,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -226,7 +228,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
 		return;
 	}
 	$pid=DEFAULT_PID();
@@ -234,35 +236,35 @@ function stop($aspid=false){
 	$fetchmail=$unix->find_program("fetchmail");
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
 	shell_exec("$fetchmail -q >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=DEFAULT_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=DEFAULT_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=DEFAULT_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		return;
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
 	}
 }
 
@@ -318,23 +320,23 @@ function BuildRules_schedule(){
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} saving configuration file FAILED\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} saving configuration file FAILED\n";
 			return false;
 		}
 		
 		
 		foreach (glob("/etc/cron.d/fetchmail*") as $filename) {
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} removing $filename..\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} removing $filename..\n";
 			@unlink($filename);
 		}
 		foreach (glob("/etc/fetchmail-rules/*.rc") as $filename) {
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} removing $filename..\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} removing $filename..\n";
 			@unlink($filename);
 		}
 		
 		if(!is_file($fetchmailbin)){return;}
 		
-		echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} building ". mysql_num_rows($results)." rules...\n";	
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} building ". mysql_num_rows($results)." rules...\n";	
 		
 		$fetch=new fetchmail();
 		@mkdir("/etc/fetchmail-rules",0644,true);
@@ -343,7 +345,7 @@ function BuildRules_schedule(){
 			$ID=$ligne["ID"];
 			$schedule=$ligne["schedule"];
 			if($schedule==null){
-				echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} ID $ID has no schedule, set it to each 10mn `0,10,20,30,40,50 * * * *`";
+				echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} ID $ID has no schedule, set it to each 10mn `0,10,20,30,40,50 * * * *`";
 				$schedule="0,10,20,30,40,50 * * * *";
 			}
 			$l=array();
@@ -364,7 +366,7 @@ function BuildRules_schedule(){
 			
 			@file_put_contents($destSchedule, @implode("\n", $t));
 			
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} ID $ID done..\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} ID $ID done..\n";
 		}
 		
 			@chmod("/etc/fetchmail-rules", 0600);
@@ -424,12 +426,12 @@ function build_line($ligne){
 			
 			$ligne["poll"]=trim($ligne["poll"]);
 			if($ligne["poll"]==null){
-				echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} rule {$ligne["ID"]} as no poll, skip it..\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} rule {$ligne["ID"]} as no poll, skip it..\n";
 				return;
 			}
 			if($ligne["proto"]==null){$ligne["proto"]="auto";}
 			if($ligne["uid"]==null){
-				echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} rule {$ligne["ID"]} as no uid, skip it..\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} rule {$ligne["ID"]} as no uid, skip it..\n";
 				return;
 			}
 			writelogs("Building \$user->user({$ligne["uid"]})",__FUNCTION__,__FILE__,__LINE__);
@@ -437,7 +439,7 @@ function build_line($ligne){
 			writelogs("Building $user->mail",__FUNCTION__,__FILE__,__LINE__);
 			if(trim($user->mail)==null){
 				writelogs("Building fetchmail uid has no mail !!!, skip it.. user:{$ligne["uid"]}",__FUNCTION__,__FILE__,__LINE__);
-				echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} uid has no mail !!!, skip it..\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} uid has no mail !!!, skip it..\n";
 				$unix->send_email_events("Fetchmail rule for {$ligne["uid"]}/{$ligne["poll"]} has been skipped", "cannot read email address from LDAP", "mailbox");
 				return;
 			}
@@ -470,7 +472,8 @@ function build_line($ligne){
 			if($ligne["tracepolls"]==1){$tracepolls="\n\ttracepolls";}
 			if($ligne["interval"]>0){$interval="\n\tinterval {$ligne["interval"]}";}		
 			if($ligne["keep"]==1){$keep="\n\tkeep ";}
-			if($ligne["nokeep"]==1){$keep="\n\tnokeep";}
+			if($ligne["keep"]==0){$keep="\n\tnokeep";}
+
 			if($ligne["multidrop"]==1){$ligne["is"]="*";}
 			if($ligne["fetchall"]==1){$fetchall="\n\tfetchall";}
 			if(strlen(trim($ligne["sslfingerprint"]))>10){$sslfingerprint="\n\tsslfingerprint '{$ligne["sslfingerprint"]}'";}
@@ -527,7 +530,7 @@ function build_line($ligne){
 				$smtphost="\n\tsmtphost ".multi_get_smtp_ip($ligne["smtp_host"]);
 			}
 			
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} poll {$ligne["poll"]} - version $MAJOR.$MINOR.$REV\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} poll {$ligne["poll"]} - version $MAJOR.$MINOR.$REV\n";
 			if($MAJOR<7){
 				if($MINOR<4){
 					if($REV<21){
@@ -540,7 +543,7 @@ function build_line($ligne){
 			if($GLOBALS["DEBUG"]){echo "$pattern\n";}
 
 			$GLOBALS["multi_smtp"][$ligne["smtp_host"]][]=$pattern;
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} poll {$ligne["poll"]} -> {$ligne["user"]} limit ". round($ligne["limit"]/1024)/1024 ." Mo\n";	
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} poll {$ligne["poll"]} -> {$ligne["user"]} limit ". round($ligne["limit"]/1024)/1024 ." Mo\n";	
 	
 			return $pattern;
 	
@@ -567,7 +570,7 @@ function BuildRules(){
 		}	
 
 		if($DenyFetchMailWriteConf==1){
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} saving configuration denied (DenyFetchMailWriteConf)\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} saving configuration denied (DenyFetchMailWriteConf)\n";
 			return true;}
 		
 		@file_put_contents("/proc/sys/net/ipv4/tcp_timestamps", "0");
@@ -575,7 +578,7 @@ function BuildRules(){
 		
 		
 		foreach (glob("/etc/cron.d/fetchmail*") as $filename) {
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} removing $filename..\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} removing $filename..\n";
 			@unlink($filename);
 		}		
 		
@@ -592,11 +595,11 @@ function BuildRules(){
 		
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} saving configuration file FAILED\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} saving configuration file FAILED\n";
 			return false;
 		}
 		
-		echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} building ". mysql_num_rows($results)." rules...\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} building ". mysql_num_rows($results)." rules...\n";
 		
 		
 		$array=array();
@@ -608,25 +611,25 @@ function BuildRules(){
 		}
 		
 		if($GLOBALS["SINGLE_DEBUG"]){
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} single-debug, aborting nex step\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} single-debug, aborting nex step\n";
 			return;
 		}
 		
 		if($EnablePostfixMultiInstance==1){
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} postfix multiple instances enabled (".count($GLOBALS["multi_smtp"]).") hostnames\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} postfix multiple instances enabled (".count($GLOBALS["multi_smtp"]).") hostnames\n";
 			@unlink("/etc/artica-postfix/fetchmail.schedules");
 			
 			if(is_array($GLOBALS["multi_smtp"])){
 				if($GLOBALS["DEBUG"]){print_r($GLOBALS["multi_smtp"]);}
 				while (list ($hostname, $rules) = each ($GLOBALS["multi_smtp"])){
-					echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname save rules...\n";
+					echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname save rules...\n";
 					@file_put_contents("/etc/postfix-$hostname/fetchmail.rc",@implode("\n",$rules));
 					@chmod("/etc/postfix-$hostname/fetchmail.rc",0600);
 					$schedule[]=multi_build_schedule($hostname);
 					if(!is_fetchmailset($hostname)){
 						$restart=true;
 					}else{
-						echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname already scheduled...\n";
+						echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname already scheduled...\n";
 					}
 				}
 				if($restart){
@@ -645,13 +648,13 @@ function BuildRules(){
 		
 		if(is_array($l)){
 			$conf=implode("\n",$l);
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} building /etc/fetchmailrc ". count($l)." lines\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} building /etc/fetchmailrc ". count($l)." lines\n";
 		}else{
-			echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} building /etc/fetchmailrc 0 lines\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} building /etc/fetchmailrc 0 lines\n";
 			$conf=null;}
 		@file_put_contents("/etc/fetchmailrc",$conf);
 		shell_exec("/bin/chmod 600 /etc/fetchmailrc");
-		echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} saving /etc/fetchmailrc configuration file done\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} saving /etc/fetchmailrc configuration file done\n";
 		build_monit();
 		if($GLOBALS["RELOAD"]){if($EnablePostfixMultiInstance==0){reload();}}
 			
@@ -668,12 +671,12 @@ function reload(){
 		$pid=$re[1];
 		if(!$unix->process_exists($pid)){continue;}
 		$isrun=true;
-		echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} reload pid $pid\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} reload pid $pid\n";
 		shell_exec("$kill -HUP $pid");
 	}
 	
 	if(!$isrun){
-		echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} is not running, start it\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} is not running, start it\n";
 		start(true);
 	}
 	
@@ -705,7 +708,7 @@ function multi_get_smtp_ip($hostname){
 	if($GLOBALS["SMTP_HOSTS_IP_FETCHMAIL"][$hostname]<>null){return $GLOBALS["SMTP_HOSTS_IP_FETCHMAIL"][$hostname];}
 	$main=new maincf_multi($hostname);
 	$GLOBALS["SMTP_HOSTS_IP_FETCHMAIL"][$hostname]=$main->ip_addr;
-	echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname ($main->ip_addr)\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname ($main->ip_addr)\n";
 	return $main->ip_addr;
 	
 }
@@ -719,7 +722,7 @@ function multi_build_schedule($hostname){
 	if($array[$hostname]["enabled"]<>1){return null;}
 	if($array[$hostname]["schedule"]==null){return null;}
 	if($array[$hostname]["schedule"]<2){return null;}
-	echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname scheduling each {$array[$hostname]["schedule"]}mn\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $hostname scheduling each {$array[$hostname]["schedule"]}mn\n";
 	return "{$array[$hostname]["schedule"]} $fetchmail --nodetach --fetchmailrc /etc/postfix-$hostname/fetchmail.rc >>/var/log/fetchmail.log";
 	
 	
@@ -739,7 +742,7 @@ function build_monit(){
 	
 	
 	if(!$settings->MONIT_INSTALLED){
-		echo "Starting......: $processMonitName Monit is not installed\n";
+		echo "Starting......: ".date("H:i:s")." $processMonitName Monit is not installed\n";
 		return;
 	}
 	
@@ -748,9 +751,9 @@ function build_monit(){
 	$chmod=$unix->find_program("chmod");
 	
 	
-	echo "Starting......: $processMonitName PidFile = `$pidfile`\n";
+	echo "Starting......: ".date("H:i:s")." $processMonitName PidFile = `$pidfile`\n";
 	if($pidfile==null){
-		echo "Starting......: $processMonitName PidFile unable to locate\n";
+		echo "Starting......: ".date("H:i:s")." $processMonitName PidFile unable to locate\n";
 		return ;
 	}
 	
@@ -768,7 +771,7 @@ function build_monit(){
 	if($EnableFetchmailScheduler==1){$MonitConfig["watchdog"]=0;}
 	
 	if($MonitConfig["watchdog"]==0){
-		echo "Starting......: $processMonitName Monit is not enabled ($q->watchdog)\n";
+		echo "Starting......: ".date("H:i:s")." $processMonitName Monit is not enabled ($q->watchdog)\n";
 		
 		while (list ($i, $Tofile) = each ($FilesToCheck)){
 			if(is_file($Tofile)){
@@ -780,10 +783,10 @@ function build_monit(){
 	
 	if($MonitConfig["watchdog"]==1){
 		
-		while (list ($i, $Tofile) = each ($FilesToCheck)){if(!is_file($Tofile)){$reloadmonit=true;break;}echo "Starting......: $processMonitName `$Tofile` Monit file done\n";}
-		if(!$reloadmonit){	echo "Starting......: $processMonitName Monit is already set check pid `$pidfile`\n";return;}
+		while (list ($i, $Tofile) = each ($FilesToCheck)){if(!is_file($Tofile)){$reloadmonit=true;break;}echo "Starting......: ".date("H:i:s")." $processMonitName `$Tofile` Monit file done\n";}
+		if(!$reloadmonit){	echo "Starting......: ".date("H:i:s")." $processMonitName Monit is already set check pid `$pidfile`\n";return;}
 			
-		echo "Starting......: $processMonitName Monit is enabled check pid `$pidfile`\n";
+		echo "Starting......: ".date("H:i:s")." $processMonitName Monit is enabled check pid `$pidfile`\n";
 		$reloadmonit=true;
 		$f[]="check process $processMonitName";
    		$f[]="with pidfile $pidfile";
@@ -796,7 +799,7 @@ function build_monit(){
    			$f[]="if cpu > {$MonitConfig["watchdogCPU"]}% for 5 cycles then alert";
    		}
 	   $f[]="if 5 restarts within 5 cycles then timeout";
-	    echo "Starting......: $processMonitName $monit_file done\n";
+	    echo "Starting......: ".date("H:i:s")." $processMonitName $monit_file done\n";
 	   @file_put_contents($monit_file, @implode("\n", $f));
 	   $f=array();
 	   $f[]="#!/bin/sh";
@@ -804,7 +807,7 @@ function build_monit(){
 	   $f[]="/etc/init.d/fetchmail start";
 	   $f[]="exit 0\n";
  	   @file_put_contents($start_file, @implode("\n", $f));
- 	   echo "Starting......: $processMonitName $start_file done\n"; 
+ 	   echo "Starting......: ".date("H:i:s")." $processMonitName $start_file done\n"; 
  	   shell_exec("$chmod 777 $start_file");
 	   $f=array();
 	   $f[]="#!/bin/sh";
@@ -812,7 +815,7 @@ function build_monit(){
 	   $f[]="/etc/init.d/fetchmail stop";
 	   $f[]="exit 0\n";
  	   @file_put_contents($stop_file, @implode("\n", $f));
- 	   echo "Starting......: $processMonitName $stop_file done\n";
+ 	   echo "Starting......: ".date("H:i:s")." $processMonitName $stop_file done\n";
  	   shell_exec("$chmod 777 $stop_file");	   
 	}
 	
@@ -877,11 +880,74 @@ function import($path){
 		
 		$took=$unix->distanceOfTimeInWords($t,time(),true);
 		echo "Import task finish took:$took $FD failed, $c success\n"; 
+}
+
+function export_table(){
+	$unix=new unix();
+	$target_file="/usr/share/artica-postfix/ressources/logs/fetchmail-export.gz";
+	
+	$mysqldump=$unix->find_program("mysqldump");
+	$bzip2=$unix->find_program("bzip2");
+	$time=time();
+	if(!is_dir(dirname($target_file))){@mkdir(dirname($target_file),0755,true);}
+	@unlink($target_file);
+	$bzip2_cmd="| $bzip2 ";
+	
+	$q=new mysql();
+	$mysql_admin=$q->mysql_admin;
+	$mysql_password=$q->mysql_password;
+	$mysql_server=$q->mysql_server;
+	if( ($mysql_server=="localhost") OR ($mysql_server=="127.0.0.1")){
+		if($q->SocketName==null){$q->SocketName="/var/run/mysqld/mysqld.sock";}
+		if($mysql_password<>null){$mysql_password=" -p$mysql_password";}
+		$Socket=" --protocol=socket -S $q->SocketName -u $mysql_admin$mysql_password";
+		
+	}else{
+		if($mysql_password<>null){$mysql_password=" -p$mysql_password";}
+		$Socket="--port=$q->mysql_port --host=$mysql_server -u $mysql_admin$mysql_password";
+	}
+	
+	
+	
+	
+	$cmd="$mysqldump$Socket --single-transaction --skip-add-drop-table --no-create-db --insert-ignore --skip-add-locks --skip-lock-tables artica_backup  fetchmail_rules $bzip2_cmd> $target_file 2>&1";
+	
+	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
+	shell_exec($cmd);	
+	
+	
+}
+function restore_table($filepath){
+	$unix=new unix();
+	$bzip2=$unix->find_program("bzip2");
+	$tStart=time();
+	$mysql=$unix->find_program("mysql");
+	
+	$q=new mysql();
+	$mysql_admin=$q->mysql_admin;
+	$mysql_password=$q->mysql_password;
+	$mysql_server=$q->mysql_server;
+	if( ($mysql_server=="localhost") OR ($mysql_server=="127.0.0.1")){
+		if($q->SocketName==null){$q->SocketName="/var/run/mysqld/mysqld.sock";}
+		if($mysql_password<>null){$mysql_password=" -p$mysql_password";}
+		$Socket=" --protocol=socket -S $q->SocketName -u $mysql_admin$mysql_password";
+	
+	}else{
+		if($mysql_password<>null){$mysql_password=" -p$mysql_password";}
+		$Socket="--port=$q->mysql_port --host=$mysql_server -u $mysql_admin$mysql_password";
+	}
+	
+	
+	echo "Action: Restoring From $filepath with uncompress..\n";
+	$cmd="$bzip2 -d -c $filepath |$mysql --show-warnings $Socket --batch --debug-info --database=artica_backup 2>&1";
+	echo $cmd."\n";
+	exec($cmd,$results);
+	echo @implode("\n", $results);
+	
 	
 	
 	
 }
-
 
 
 ?>

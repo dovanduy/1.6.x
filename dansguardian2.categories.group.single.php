@@ -82,6 +82,13 @@ $('#flexRT$tt').flexigrid({
 		{display: '', name : 'none2', width : 25, sortable : false, align: 'left'},
 		
 	],
+	
+buttons : [
+	{name: '$OnlyActive', bclass: 'Search', onpress : OnlyActive$t},
+	{name: '$All', bclass: 'Search', onpress : OnlyAll$t},
+	
+		],		
+	
 	searchitems : [
 		{display: '$category', name : 'categorykey'},
 		{display: '$description', name : 'description'},
@@ -99,15 +106,23 @@ $('#flexRT$tt').flexigrid({
 	
 	});   
 });
-
+function OnlyActive$t(){
+	$('#flexRT$tt').flexOptions({url: '$page?blacklist-list=yes&ID=$ID&t=$tt&OnLyActive=1'}).flexReload(); ExecuteByClassName('SearchFunction'); 
+}
+function OnlyAll$t(){
+	$('#flexRT$tt').flexOptions({url: '$page?blacklist-list=yes&ID=$ID&t=$tt&OnLyActive=0'}).flexReload(); ExecuteByClassName('SearchFunction');
+}
 
 
 var xEnableDisableCategoryRule$tt=function(obj){
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
 		$('#flexRT$t').flexReload();
+		if(document.getElementById('WebFilteringMainTableID') ){ $('#'+document.getElementById('WebFilteringMainTableID').value).flexReload(); }
 		$('#flexRT$tt').flexReload();
 		$('#flexRT$tSource').flexReload();
+		
+		
 		ExecuteByClassName('SearchFunction');
 		
     }	  
@@ -119,6 +134,8 @@ function EnableDisableCategoryRule$tt(category){
       XHR.sendAndLoad('$page', 'POST',xEnableDisableCategoryRule$tt);
       
       }
+      
+
 
 
 </script>	";
@@ -149,6 +166,8 @@ function category_group_blacklist_save(){
 	
 }
 
+
+
 function category_group_blacklist(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
@@ -162,6 +181,7 @@ function category_group_blacklist(){
 	$GroupID=$_GET["ID"];
 	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
+	if($_GET["OnLyActive"]==1){$OnLyActive=true;}
 	$page=1;
 	$ORDER="ORDER BY categorykey ASC";
 	$FORCE_FILTER=null;
@@ -186,7 +206,7 @@ function category_group_blacklist(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	$searchstring=string_to_flexquery();
-
+	if($OnLyActive){$limitSql=null;}
 
 	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `webfilters_categories_caches` WHERE 1 $FORCE_FILTER $searchstring";
@@ -220,9 +240,9 @@ function category_group_blacklist(){
 	$compile=$tpl->_ENGINE_parse_body("{compile}");
 	$catz=new mysql_catz();
 
+	
 
-
-
+	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["picture"]==null){$ligne["picture"]="20-categories-personnal.png";}
 		$category_table="category_".$q->category_transform_name($ligne['categorykey']);
@@ -231,9 +251,9 @@ function category_group_blacklist(){
 		$database_items=null;
 		if($category_table_elements>0){
 			$category_table_elements=FormatNumber($category_table_elements);
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."')\"
+			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."',true)\"
 			style='font-size:11px;font-weight:bold;text-decoration:underline'>$category_table_elements</a> $items";
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."')\"
+			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."',true)\"
 			style='font-size:11px;font-weight:bold;text-decoration:underline'>$compile</a>";
 				
 		}
@@ -262,7 +282,8 @@ function category_group_blacklist(){
 		$img="img/{$ligne["picture"]}";
 		$val=0;
 		if($cats[$ligne['categorykey']]){$val=1;}
-		
+		if($OnLyActive){if($val==0){continue;}}
+		$c++;
 
 		$disable=Field_checkbox("cats_{$_GET['RULEID']}_{$_GET['modeblk']}_{$ligne['categorykey']}", 1,$val,"EnableDisableCategoryRule$t('{$ligne['categorykey']}')");
 
@@ -273,6 +294,7 @@ function category_group_blacklist(){
 		);
 	}
 
+	if($OnLyActive){$data['total'] = $c;}
 
 	echo json_encode($data);
 }

@@ -17,6 +17,10 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS
 if(preg_match("#--verb2#",implode(" ",$argv))){$GLOBALS["VERBOSE2"]=true;}
 
 $sock=new sockets();
+$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+if($DisableMessaging==1){die();}
+
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 $GLOBALS["ArticaStatusUsleep"]=$sock->GET_INFO("ArticaStatusUsleep");
 $GLOBALS["ArticaSMTPStatsTimeFrame"]=$sock->GET_INFO("ArticaSMTPStatsTimeFrame");
 $GLOBALS["ArticaSMTPStatsMaxFiles"]=$sock->GET_INFO("ArticaSMTPStatsMaxFiles");
@@ -25,11 +29,18 @@ if(!is_numeric($GLOBALS["ArticaSMTPStatsTimeFrame"])){$GLOBALS["ArticaSMTPStatsT
 if(!is_numeric($GLOBALS["ArticaStatusUsleep"])){$GLOBALS["ArticaStatusUsleep"]=50000;}
 if(!is_numeric($GLOBALS["ArticaSMTPStatsMaxFiles"])){$GLOBALS["ArticaSMTPStatsMaxFiles"]=2400;}
 if(!is_numeric($GLOBALS["EnableArticaSMTPStatistics"])){$GLOBALS["EnableArticaSMTPStatistics"]=1;}
-@mkdir("/var/log/artica-postfix/MGREYSTATS",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/MGREYSTATS",0755,true);
+
 
 
 if($argv[1]=='--cnx-errors'){
 	events("Starting cnx-errors ...");
+	$unix=new unix();
+	$timefile="/etc/artica-postfix/pids/postqueue.cnx-errors.time";
+	$exTime=$unix->file_time_min($timefile);
+	if($exTime<7){die();}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
 	ScanPostFixConnectionsErr();
 	connexion_errors_stats();
 	die();
@@ -43,6 +54,12 @@ if($argv[1]=='--milter'){
 
 if($argv[1]=='--cnx-only'){
 	events("Starting cnx-only ...");
+	$unix=new unix();
+	$timefile="/etc/artica-postfix/pids/postqueue.cnx-only.time";
+	$exTime=$unix->file_time_min($timefile);
+	if($exTime<8){die();}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
 	ScanPostFixConnections();
 	connexion_errors_stats();
 	die();
@@ -65,6 +82,12 @@ if($argv[1]=='--geo'){
 
 if($argv[1]=='--postqueue-clean'){
 	events("Starting postqueue ...");
+	$unix=new unix();
+	$timefile="/etc/artica-postfix/pids/postqueue.clean.time";
+	$exTime=$unix->file_time_min($timefile);
+	if($exTime<5){die();}	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());
 	CleanQueues();
 	postqueue();
 	die();
@@ -109,7 +132,7 @@ if(!is_numeric($GLOBALS["EnableArticaSMTPStatistics"])){$GLOBALS["EnableArticaSM
 
 if($GLOBALS["EnableArticaSMTPStatistics"]==0){
 	events("Statistics generation is disabled");
-	shell_exec("/bin/rm -rf /var/log/artica-postfix/RTM/*");
+	shell_exec("/bin/rm -rf {$GLOBALS["ARTICALOGDIR"]}/RTM/*");
 	die();
 }
 
@@ -120,7 +143,7 @@ if($argv[1]=='--amavis-stats'){
 }
 
 
-@mkdir("/var/log/artica-postfix/IMAP",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/IMAP",0755,true);
 
 if($argv[1]=='--postfix'){
 	events("Starting OnlyPostfix...");
@@ -222,29 +245,24 @@ function OnlyPOstfix(){
 			
 	
 	file_put_contents($pidefile,$pid);
-	$path="/var/log/artica-postfix/RTM";
-	$arrayf=DirListPostfix($path,$GLOBALS["ArticaSMTPStatsMaxFiles"]);
-	$q=new mysql();
-	if(!is_array($arrayf)){return null;}
-	$max=count($arrayf);
-	if($max>$GLOBALS["ArticaSMTPStatsMaxFiles"]){$max=$GLOBALS["ArticaSMTPStatsMaxFiles"];}
-	$count=0;
-	events("Starting analyze $max sql files....",__FILE__);
-	while (list ($num, $file) = each ($arrayf) ){
-		$count++;
-		events("OnlyPOstfix(): parsing $path/$file $count/$max");
-		if(!preg_match("#\.msg$#",$file)){continue;}
-		if($file=="NOQUEUE.msg"){@unlink("$path/$file");continue;}
-		if(!is_file("$path/$file")){continue;}
+	$path="{$GLOBALS["ARTICALOGDIR"]}/RTM";
+	if (!$handle = opendir($path)) { @mkdir($path,0755,true);return;}
+	$countDeFiles=0;
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$path/$filename";
+		$countDeFiles++;
+		if($countDeFiles>$GLOBALS["ArticaSMTPStatsMaxFiles"]){break;}
+		events("OnlyPOstfix(): parsing $targetFile $countDeFiles/{$GLOBALS["ArticaSMTPStatsMaxFiles"]}");
+		if(!preg_match("#\.msg$#",$filename)){continue;}
+		if($filename=="NOQUEUE.msg"){@unlink("$targetFile");continue;}
+		if(!is_file("$targetFile")){continue;}
 		usleep($GLOBALS["ArticaStatusUsleep"]);
-		if($count>$GLOBALS["ArticaSMTPStatsMaxFiles"]){
-			events("OnlyPOstfix():: Analyze Max $count sql files break;",__FILE__);
-			return;
-		}
 		
-		if(PostfixFullProcess("$path/$file",$q)){
-			echo "OnlyPOstfix(): success $path/$file $count/$max\n";
-			@unlink("$path/$file");
+		if(PostfixFullProcess("$targetFile",$q)){
+			echo "OnlyPOstfix(): success $targetFile $countDeFiles/{$GLOBALS["ArticaSMTPStatsMaxFiles"]}\n";
+			@unlink($targetFile);
 		}
 	}
 	//MiltergreyList();	
@@ -253,7 +271,7 @@ function OnlyPOstfix(){
 }
 
 function MiltergreyList(){
-	$WORKDIR="/var/log/artica-postfix/MGREYSTATS";
+	$WORKDIR="{$GLOBALS["ARTICALOGDIR"]}/MGREYSTATS";
 	if (!$handle = opendir($WORKDIR)) { @mkdir($WORKDIR,0755,true);return;}
 	$countDeFiles=0;
 	$array=array();
@@ -321,7 +339,7 @@ function MiltergreyList_inject($array){
 
 
 function ScanPostFixConnections(){
-	$path="/var/log/artica-postfix/smtp-connections";
+	$path="{$GLOBALS["ARTICALOGDIR"]}/smtp-connections";
 	$unix=new unix();
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -346,107 +364,23 @@ function ScanPostFixConnections(){
 	$q=new mysql();
 	$prefix="INSERT IGNORE INTO mail_con (zmd5,zDate,hostname,ipaddr) VALUES";
 	events_cnx(__FUNCTION__."():: -> starting glob in line:".__LINE__);
-	if (!$handle = opendir("/var/log/artica-postfix/smtp-connections")) {
+	if (!$handle = opendir("{$GLOBALS["ARTICALOGDIR"]}/smtp-connections")) {
 		events_cnx(__FUNCTION__."():: -> glob failed in line:".__LINE__);
 		return ;
 	}
 
 	$ArticaSMTPStatsMaxFiles=$GLOBALS["ArticaSMTPStatsMaxFiles"];
 	
-	
-	
-	if(is_file($ipcache_path)){
-		if($unix->file_time_min($ipcache_path)>480){@unlink($ipcache_path);}
-	}
-	
-	if(is_file("/etc/postfix/ip.cache.array.db")){
-		$GLOBALS["HOSTS"]=serialize(@file_get_contents($ipcache_path));
-		events_cnx("ScanPostFixConnections():: ". basename($ipcache_path)." -> IPs Cache ". count($GLOBALS["HOSTS"])." items");
-	}
-	
 	while (false !== ($filename = readdir($handle))) {
-		
-		if(!preg_match("#\.cnx$#",basename($filename))){continue;}
-		$filename="/var/log/artica-postfix/smtp-connections/$filename";
-		
-		if(!is_file($filename)){events_cnx("ScanPostFixConnectionsErr():: $filename no such file");continue;}
-		
-		$array=unserialize(@file_get_contents($filename));
-		
-		if(!is_array($array)){
-			events_cnx("ScanPostFixConnectionsErr():: $filename not an array()\n");
-			@unlink($filename);
-			continue;
-		}
-		
-		$hostname=$array["HOSTNAME"];
-		$IP=$array["IP"];
-		if(($hostname==null) && ($IP==null) && ($array["TIME"]==null)){
-			events_cnx("ScanPostFixConnectionsErr():: $filename no data\n");
-			@unlink($filename);continue;
-		}		
-		$date=date("Y-m-d H:i:s",$array["TIME"]);
-		if($hostname=="unknown"){$hostname=null;}
-		
-		
-		
-		$c++;
-		if(!$GLOBALS["ULIMITED"]){
-			if($c>$ArticaSMTPStatsMaxFiles){events_cnx("ScanPostFixConnections():: Break after $c/$ArticaSMTPStatsMaxFiles events");break;}
-		}
-		
-		
-		if($hostname==null){
-			if(!isset($GLOBALS["HOSTS"][$IP])){$hostname=gethostbyaddr($IP);}else{$hostname=$GLOBALS["HOSTS"][$IP];}
-		}
-		$GLOBALS["HOSTS"][$IP]=$hostname;
-		
-		//echo "$date $IP ($hostname)\n";
-		$md5=md5("$date$IP$hostname");
-		
-		
-		$sq[]="('$md5','$date','$hostname','$IP')";
 		@unlink($filename);
 		
-		if(count($sq)>500){
-			@file_put_contents($ipcache_path,@serialize($GLOBALS["HOSTS"]));
-			$sql=$prefix." ".@implode(",",$sq);
-			events_cnx("ScanPostFixConnections():: write $c events ex: ('$md5','$date','$hostname','$IP') : ". strlen($sql)." bytes line ".__LINE__);
-			events_cnx("ScanPostFixConnections():: IPs Cache ". count($GLOBALS["HOSTS"])." items");
-			unset($sq);
-			$q->QUERY_SQL($sql,"artica_events");
-			if(!$q->ok){
-				events_cnx("ScanPostFixConnections():: $q->mysql_error at line ".__LINE__);
-				@file_put_contents("/var/log/artica-postfix/smtp-connections/".time().".sql",$sql);
-				writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
-			}
-			events_cnx("ScanPostFixConnections():: write $c events DONE line ".__LINE__);
-		}
-		
 	}
-	
-	@file_put_contents($ipcache_path,@serialize($GLOBALS["HOSTS"]));
-	
-	closedir($handle);
-	if(count($sq)>0){
-		events_cnx("ScanPostFixConnections():: Break after ". count($sq)." events");
-		$sql=$prefix." ".@implode(",",$sq);
-		unset($sq);
-		$q->QUERY_SQL($sql,"artica_events");
-		if(!$q->ok){
-			events_cnx("ScanPostFixConnections():: $q->mysql_error at line ".__LINE__);
-			@file_put_contents("/var/log/artica-postfix/smtp-connections/".time()."sql",$sql);
-			writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
-		}		
-	}
-
-	events_cnx(__FUNCTION__."():: -> FINISH:".__LINE__);
 	
 	
 }
 
 function ScanPostFixMysqlErr(){
-	$path="/var/log/artica-postfix/smtp-connections";
+	$path="{$GLOBALS["ARTICALOGDIR"]}/smtp-connections";
 	$c=0;
 	$q=new mysql();
 	
@@ -480,12 +414,12 @@ function ScanPostFixConnectionsErr(){
 	
 	@file_put_contents($pidpath,$pid);
 	
-	$path="/var/log/artica-postfix/smtp-connections";
+	$path="{$GLOBALS["ARTICALOGDIR"]}/smtp-connections";
 	$c=0;
 	$q=new mysql();
 	$prefix="INSERT IGNORE INTO mail_con_err (zmd5,zDate,hostname,ipaddr,smtp_err) VALUES";
 	
-	if (!$handle = opendir("/var/log/artica-postfix/smtp-connections")) {
+	if (!$handle = opendir("{$GLOBALS["ARTICALOGDIR"]}/smtp-connections")) {
 		events_cnx(__FUNCTION__."():: -> glob failed in line:".__LINE__);
 		return ;
 	}	
@@ -494,7 +428,7 @@ function ScanPostFixConnectionsErr(){
 	
 	 while (false !== ($filename = readdir($handle))) {
 	 	if(!preg_match("#\.err$#",basename($filename))){continue;}
-	 	$filename="/var/log/artica-postfix/smtp-connections/$filename";
+	 	$filename="{$GLOBALS["ARTICALOGDIR"]}/smtp-connections/$filename";
 	 	if(!is_file($filename)){events_cnx("ScanPostFixConnectionsErr():: $filename no such file");continue;}
 		$array=unserialize(@file_get_contents($filename));
 		if(!is_array($array)){
@@ -541,7 +475,7 @@ function ScanPostFixConnectionsErr(){
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
 				events_cnx("ScanPostFixConnectionsErr()::$q->mysql_error");
-				@file_put_contents("/var/log/artica-postfix/smtp-connections/".time().".sql",$sql);
+				@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/smtp-connections/".time().".sql",$sql);
 				writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
 			}
 		}
@@ -557,7 +491,7 @@ function ScanPostFixConnectionsErr(){
 		unset($sq);
 		$q->QUERY_SQL($sql,"artica_events");
 		if(!$q->ok){
-			@file_put_contents("/var/log/artica-postfix/smtp-connections/".time()."sql",$sql);
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/smtp-connections/".time()."sql",$sql);
 			writelogs($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);
 		}		
 	}	
@@ -566,7 +500,7 @@ function ScanPostFixConnectionsErr(){
 }
 
 function ScanCyrusConnections($q){
-$path="/var/log/artica-postfix/IMAP";
+$path="{$GLOBALS["ARTICALOGDIR"]}/IMAP";
 	$files=DirListsql($path);
 	$startedAT=date("Y-m-d H:i:s");
 	$count=0;
@@ -585,7 +519,7 @@ $path="/var/log/artica-postfix/IMAP";
 }
 
 function ScanVirusQueue($q){
-$path="/var/log/artica-postfix/infected-queue";
+$path="{$GLOBALS["ARTICALOGDIR"]}/infected-queue";
 	$files=DirListsql($path);
 	$startedAT=date("Y-m-d H:i:s");
 	$count=0;
@@ -608,7 +542,7 @@ function ScanPostfixID($q){
 	$q=new mysql();
 	$unix=new unix();
 	$super=0;
-	$path="var/log/artica-postfix/RTM";
+	$path="{$GLOBALS["ARTICALOGDIR"]}/RTM";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$timesched=$unix->file_time_min($timefile);
 	if($timesched<=$GLOBALS["ArticaSMTPStatsTimeFrame"]){
@@ -619,78 +553,85 @@ function ScanPostfixID($q){
 	
 	
 	if($GLOBALS["VERBOSE"]){echo "Scanning $path...\n";}
-	$files=DirList("/var/log/artica-postfix/RTM");
+	
 	$startedAT=date("Y-m-d H:i:s");
 	$count=0;
-	if(!is_array($files)){events("ScanPostfixID() No files.. Aborting");return null;}
-	events("ScanPostfixID():: Get messages in $path ". count($files));
-   
-   	$max=count($files);
-   	if($max>0){events("ScanPostfixID():: Starting analyze $max sql files....",__FILE__);}
-	if($max>$GLOBALS["ArticaSMTPStatsMaxFiles"]){$max=$GLOBALS["ArticaSMTPStatsMaxFiles"];}
-	if($max>0){
-			while (list ($num, $file) = each ($files) ){
-				$count++;
-				$super++;
-				if(preg_match("#\.id-message$#",$file)){
-					$amavis[]=$file;
-					continue;
-				}
+	if (!$handle = opendir($path)) { @mkdir($path,0755,true);return;}
+   	$countDeFiles=0;
+   	$KILL_THIS_QUEUE=false;
+   	while (false !== ($file = readdir($handle))) {
+   		if($file=="."){continue;}
+   		if($file==".."){continue;}
+   		$targetFile="$path/$file";
+   		$countDeFiles++;
+   		if($countDeFiles>$GLOBALS["ArticaSMTPStatsMaxFiles"]){break;}
+		$count++;
+		$super++;
+		if(preg_match("#\.id-message$#",$file)){$amavis[]=$file;continue;}
+		events("ScanPostfixID():: ($count/{$GLOBALS["ArticaSMTPStatsMaxFiles"]})");
+		events("ScanPostfixID()::  \"$path/$file\"");
+		if(!preg_match("#\.msg$#",$file)){continue;}
 				
-				events("ScanPostfixID():: ($count/$max)");
-				events("ScanPostfixID()::  \"/$path/$file\"");
-				
-				
-				if(!preg_match("#\.msg$#",$file)){continue;}
-				
-				if($file=="NOQUEUE.msg"){
-					events("ScanPostfixID():: Delete /$path/$file");
-					@unlink("/$path/$file");
-					continue;
-				}
-				
-				usleep($GLOBALS["ArticaStatusUsleep"]);
-				if($count>$max){events("ScanPostfixID():: Break...");break;}
-				if(PostfixFullProcess("/$path/$file",$q)){
-					SetStatus("Postfix",$max,$count,$startedAT);
-					unset($files[$num]);
-					events("ScanPostfixID():: ($count/$max) with a sleep of {$GLOBALS["ArticaStatusUsleep"]} microseconds line ".__LINE__);
-				}else{continue;}
-				
-			}
-
-		if(is_array($amavis)){
-			reset($amavis);
-		
-			$max=count($amavis);
-			$count=0;
-			while (list ($num, $file) = each ($amavis) ){
-				$count=$count+1;
-				$super++;
-				if(!preg_match("#\.id-message$#",$file)){continue;}
-				events("ScanPostfixID():amavis_logger(): parsing /$path/$file $count/$max");
-				SetStatus("amavis",$max,$count,$startedAT);
-				amavis_logger("/$path/$file");
-					
-			}	
+		if($file=="NOQUEUE.msg"){
+			events("ScanPostfixID():: Delete /$path/$file");
+			@unlink("$path/$file");
+			continue;
 		}
+		
+		if($KILL_THIS_QUEUE){
+			@unlink("/$path/$file");
+			continue;
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "ArticaStatusUsleep:{$GLOBALS["ArticaStatusUsleep"]}ms\n";}	
+		usleep($GLOBALS["ArticaStatusUsleep"]);
+		if($count>$GLOBALS["ArticaSMTPStatsMaxFiles"]){events("ScanPostfixID():: Break...");break;}
+		if($GLOBALS["VERBOSE"]){echo "PostfixFullProcess -> $targetFile\n";}
+		$t1=time();
+		if(!PostfixFullProcess($targetFile,$q)){continue;}
+		$t2=time();
+		$distanceInSeconds = round(abs($t2 - $t1));
+		if($GLOBALS["VERBOSE"]){echo "PostfixFullProcess -> $distanceInSeconds seconds\n";}
+		if($distanceInSeconds>3){
+			send_email_events("Too many time parsing {$GLOBALS["ARTICALOGDIR"]}/RTM", "Processing file take more than 3s ({$distanceInSeconds}s) the realtime monitor will be kept for this queue..", "postfix");
+			$KILL_THIS_QUEUE=true;
+		}
+		
+		SetStatus("Postfix",$GLOBALS["ArticaSMTPStatsMaxFiles"],$count,$startedAT);
+		events("ScanPostfixID():: ($count/{$GLOBALS["ArticaSMTPStatsMaxFiles"]}) with a sleep of {$GLOBALS["ArticaStatusUsleep"]} microseconds line ".__LINE__);
+   	}		
 	
-	}
-	
-	$files=DirList("/tmp/savemail-infos");
-	$max=count($files);
-	if($GLOBALS["VERBOSE"]){echo "Scanning /tmp/savemail-infos...($max files)\n";}
-   	if($max>0){events("ScanPostfixID():: Starting analyze $max sql files....",__FILE__);}
-	if($max>$GLOBALS["ArticaSMTPStatsMaxFiles"]){$max=$GLOBALS["ArticaSMTPStatsMaxFiles"];}	
-	if(count($files>0)){
+	if(is_array($amavis)){
+		reset($amavis);
+		$max=count($amavis);
 		$count=0;
-		while (list ($num, $file) = each ($files) ){
+		while (list ($num, $file) = each ($amavis) ){
+			$count=$count+1;
 			$super++;
-			events("ScanPostfixID():amavis_logger(): parsing /tmp/savemail-infos/$file $count/$max");
-			amavis_logger("/tmp/savemail-infos/$file");
-		}
-		
+			if(!preg_match("#\.id-message$#",$file)){continue;}
+			events("ScanPostfixID():amavis_logger(): parsing /$path/$file $count/$max");
+			SetStatus("amavis",$max,$count,$startedAT);
+			amavis_logger("$path/$file");
+		}	
 	}
+	
+	
+	
+	
+	$path="/tmp/savemail-infos";
+	if (!$handle = opendir($path)) { @mkdir($path,0755,true);return;}
+	$max=$GLOBALS["ArticaSMTPStatsMaxFiles"];	
+	$count=0;
+	while (false !== ($file = readdir($handle))) {
+   		if($file=="."){continue;}
+   		if($file==".."){continue;}
+   		$targetFile="$path/$file";
+		$super++;
+		events("ScanPostfixID():amavis_logger(): parsing /tmp/savemail-infos/$file $count/$max");
+		amavis_logger("/tmp/savemail-infos/$file");
+	}
+		
+	
 	
 	
 	
@@ -756,6 +697,7 @@ function PostfixFullProcess($file){
 	
 	$file=basename($file);
 	$postfix_id=str_replace(".msg","",$file);
+	if($GLOBALS["VERBOSE"]){echo "PostfixFullProcess()::[$postfix_id] file:$file\n";}
 	events("PostfixFullProcess()::[$postfix_id] file:$file");
 	
 	if(preg_match("#delivery temporarily suspended.+?Local configuration error#",$bounce_error)){$bounce_error="Remote Server error";$delivery_success="no";}
@@ -797,7 +739,13 @@ function PostfixFullProcess($file){
 	if($bounce_error_array[$bounce_error]){$search_postfix_id=false;}
 	
 	if($smtp_sender<>null){
+		$t1=time();
 		$array_geo=GeoIP($smtp_sender);
+		$t2=time();
+		if($GLOBALS["VERBOSE"]){
+			$distanceInSeconds = round(abs($t2 - $t1));
+			echo "GeoIP($smtp_sender) -> $distanceInSeconds seconds\n";
+		}
 		$Country=$array_geo[0];
 		$City=$array_geo[1];
 		$City=addslashes($City);
@@ -806,20 +754,34 @@ function PostfixFullProcess($file){
 	
 	
 	if(preg_match("#,sender_user='(.+?)'#",$mailfrom,$re)){$mailfrom=$re[1];}
-	if($search_postfix_id){$sqlid=getid_from_postfixid($postfix_id,$q);}
+	if($search_postfix_id){
+		$t1=time();
+		$sqlid=getid_from_postfixid($postfix_id,$q);
+		$t2=time();
+		if($GLOBALS["VERBOSE"]){
+			$distanceInSeconds = round(abs($t2 - $t1));
+			echo "getid_from_postfixid($postfix_id -> $distanceInSeconds seconds\n";
+		}
+	}
 	
 	events("PostfixFullProcess():: $time_connect:: message-id=<$message_id> from=<$mailfrom> to=<$mailto> bounce_error=<$bounce_error> old id=$sqlid");
 	
 	if($sqlid==null){
-		$domain_to=addslashes($domain_to);
-		$mailto=addslashes($mailto);
+		$domain_to=mysql_escape_string2($domain_to);
+		$mailto=mysql_escape_string2($mailto);
+		$bounce_error=mysql_escape_string2($bounce_error);
 		$sql="INSERT IGNORE INTO smtp_logs (delivery_id_text,msg_id_text,time_connect,time_sended,delivery_success,sender_user,sender_domain,delivery_user,delivery_domain,bounce_error,smtp_sender,Country  )
 		VALUES('$postfix_id','$message_id','$time_connect','$time_end','$delivery_success','$mailfrom','$domain_from','$mailto','$domain_to','$bounce_error','$smtp_sender','$Country');
 		";
 		if(strlen($message_id)>255){$message_id=md5($message_id);}
 		events_cnx(__FUNCTION__."() ADD:[$message_id] [$smtp_sender] from=<$mailfrom> to=<$mailto> \"$bounce_error\" line:".__LINE__);
+		$t1=time();
 		$q->QUERY_SQL($sql,"artica_events");
-		
+		$t2=time();
+		if($GLOBALS["VERBOSE"]){
+			$distanceInSeconds = round(abs($t2 - $t1));
+			echo "QUERY_SQL -> ADD -> $distanceInSeconds seconds\n";
+		}
 		
 		if($q->ok){
 			events("PostfixFullProcess():: Delete $org_file line:".__LINE__);
@@ -861,7 +823,13 @@ function PostfixFullProcess($file){
 									
 		
 		$sql="UPDATE smtp_logs SET delivery_id_text='$postfix_id'$Settadd WHERE id=$sqlid";
+		$t1=time();
 		$q->QUERY_SQL($sql,"artica_events");
+		$t2=time();
+		if($GLOBALS["VERBOSE"]){
+			$distanceInSeconds = round(abs($t2 - $t1));
+			echo "QUERY_SQL -> UPDATE -> $distanceInSeconds seconds\n";
+		}
 		
 		if($q->ok){
 			@unlink($org_file);
@@ -1059,7 +1027,7 @@ function amavis_logger($fullpath){
 function events($text){
 		$pid=getmypid();
 		$date=date('H:i:s');
-		$logFile="/var/log/artica-postfix/postfix-logger.sql.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.sql.debug";
 		$size=filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -1071,7 +1039,7 @@ function events($text){
 function events_cnx($text){
 		$pid=getmypid();
 		$date=date('H:i:s');
-		$logFile="/var/log/artica-postfix/postfix-logger.cnx.sql.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.cnx.sql.debug";
 		$size=filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -1343,27 +1311,41 @@ function postqueue(){
 			@file_put_contents($pidfile,getmypid());
 		}
 
+		if(system_is_overloaded()){return;}
 		
-		$f=array();
-		foreach (glob("/var/log/artica-postfix/postqueue/*.array") as $filename) {
-			$f[]=$filename;
-			
+		
+		$DirPath="{$GLOBALS["ARTICALOGDIR"]}/postqueue";
+		if (!$handle = opendir($DirPath)) {if($GLOBALS["VERBOSE"]){echo "$DirPath ERROR\n";}return;}
+		$c=0;
+		while (false !== ($file = readdir($handle))) {
+			if ($file == "."){continue;}
+			if ($file == ".."){continue;}
+			if(is_dir("$DirPath/$file")){if($GLOBALS["VERBOSE"]){echo "$DirPath/$file -> DIR\n";} continue;}
+			$filename="$DirPath/$file";
+			$time=$unix->file_time_min($filename);
+			if($time>180){@unlink($filename);continue;}
+			$c++;
 		}
+		if($c==0){return;}
+
+		$q=new mysql();
+		$q->QUERY_SQL("truncate table postqueue","artica_events");
+				
+		if (!$handle = opendir($DirPath)) {if($GLOBALS["VERBOSE"]){echo "$DirPath ERROR\n";}return;}
+		$c=0;
+		while (false !== ($file = readdir($handle))) {
+			if ($file == "."){continue;}
+			if ($file == ".."){continue;}
+			if(is_dir("$DirPath/$file")){if($GLOBALS["VERBOSE"]){echo "$DirPath/$file -> DIR\n";} continue;}
+			$filename="$DirPath/$file";
 			
-		if(count($f)>0){
-			$q=new mysql();
-			$q->QUERY_SQL("truncate table postqueue","artica_events");
-			while (list ($index, $filename) = each ($f)){
-				if(postqueue_parse($filename)){
-					events("postqueue():: Success parsing ".basename($filename));
-					@unlink($filename);
-				}
+			if(postqueue_parse($filename)){
+				events("postqueue():: Success parsing ".basename($filename));
+				@unlink($filename);
 			}
-		
-			
 		}
 		
-shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.watchdog.postfix.queue.php >/dev/null 2>&1 &");		
+	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.watchdog.postfix.queue.php >/dev/null 2>&1 &");		
 		
 }
 function postqueue_parse($filename){
@@ -1540,17 +1522,22 @@ function postqueue_mgid($msgid){
 
 function CleanQueues(){
 	
-		$unix=new unix();
+
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
+		
 		if(!$GLOBALS["FORCE"]){
 			$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 			$oldpid=@file_get_contents($pidfile);
-			if($unix->process_exists($oldpid)){
+			if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid)){
 				echo "CleanQueues() already executed pid $oldpid\n";
 				return;
 			}
 		
 			@file_put_contents($pidfile,getmypid());
 		}
+		
+		
+		
 	
 	
 		$sql="SELECT * FROM postqueue ORDER BY zDate";
@@ -1562,7 +1549,7 @@ function CleanQueues(){
 			if($GLOBALS["VERBOSE"]){echo "No line\n";}
 			return;
 		}	
-		$postcat=$unix->find_program("postcat");
+		$postcat=$GLOBALS["CLASS_UNIX"]->find_program("postcat");
 		$c='';
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$hostname=$ligne["instance"];
@@ -1586,7 +1573,7 @@ function CleanQueues(){
 		if($GLOBALS["VERBOSE"]){echo "$msgid LIVE\n";}
 	}
 	
-	$unix->THREAD_COMMAND_SET(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix.vip.php --queue");
+	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix.vip.php --queue");
 	
 }
 

@@ -8,7 +8,7 @@
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
 	include_once('ressources/class.system.network.inc');
-	
+	if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;}
 	
 	$user=new usersMenus();
 	if($user->AsSquidAdministrator==false){
@@ -40,7 +40,7 @@ function js(){
 	$tpl=new templates();
 	
 	$title=$tpl->_ENGINE_parse_body("{ARTICA_DATABASE_MAINTENANCE}");
-	$html="YahooWin2('700','$page?popup=yes','$title');";
+	$html="YahooWin2('920','$page?popup=yes','$title');";
 	
 	echo $html;
 	
@@ -49,12 +49,25 @@ function js(){
 }
 
 function popup(){
-	
+	$q=new mysql_squid_builder();
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$array["maintenance"]="{maintenance}";
+	
+	if($q->UseStandardMysql){
+		$array["MySQLStandEvents"]="{mysql_events}";
+	}
+	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="MySQLStandEvents"){
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"system.mysql.events.php\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
 		$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+
 	}
 	
 	$id=time();
@@ -126,66 +139,50 @@ function maintenance_settings(){
 	</tr>
 	</table>
 	<div id='maxdayeventsdiv'>
-	<H3 style='font-size:16px;'>{status}</H3>
-	<table style='width:100%'>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>		
 	<tr>
-		<td class=legend style='font-size:14px'>{rows}:</td>
-		<td><strong style='font-size:14px'>$requests</strong></td>
+		<td class=legend style='font-size:16px'>{max_day_events}:</td>
+		<td>". Field_text("squidMaxTableDays","$squidMaxTableDays","font-size:16px;padding:3px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{from}:</td>
-		<td><strong style='font-size:14px'>$first_events_text</strong></td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{to}:</td>
-		<td><strong style='font-size:14px'>$lastevents_text</strong></td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:14px'></td>
-		<td align='right' style='border-top:1px solid #CCCCCC'><strong style='font-size:14px;color:#D40606'>$distanceOfTimeInWords</strong></td>
-	</tr>	
-	</table>
-	<table style='width:99%' class=form>		
-	<tr>
-		<td class=legend>{max_day_events}:</td>
-		<td>". Field_text("squidMaxTableDays","$squidMaxTableDays","font-size:14px;padding:3px;width:90px")."</td>
-	</tr>
-	<tr>
-		<td class=legend>{backup_datas_before_delete}:</td>
+		<td class=legend style='font-size:16px'>{backup_datas_before_delete}:</td>
 		<td>". Field_checkbox("squidMaxTableDaysBackup",1,"$squidMaxTableDaysBackup")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{backup_path}:</td>
-		<td>". Field_text("squidMaxTableDaysBackupPath","$squidMaxTableDaysBackupPath","font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:16px'>{backup_path}:</td>
+		<td>". Field_text("squidMaxTableDaysBackupPath","$squidMaxTableDaysBackupPath","font-size:16px;padding:3px;width:290px")."</td>
 	</tr>
 	<tr>
-		<td colspan=2><div style='font-size:16px;margin-top:10px;margin-bottom:10px'>{external_artica_mysql_statistics_generator}</div><div class=explain>{external_artica_mysql_statistics_generator_explain}</div></td>
+		<td colspan=2>
+		<div class=explain style='font-size:16px'><strong>{external_artica_mysql_statistics_generator}</strong><br>{external_artica_mysql_statistics_generator_explain}</div></td>
 	</tr>
 	<tr>
-		<td class=legend>{use_external_mysql_server}:</td>
+		<td class=legend style='font-size:16px'>{use_external_mysql_server}:</td>
 		<td>". Field_checkbox("squidEnableRemoteStatistics",1,"$squidEnableRemoteStatistics","CheckSquidMysqlForm()")."</td>
 	</tr>	
 		<tr>
-			<td align='right' nowrap class=legend>{mysqlserver}:</strong></td>
-			<td align='left'>" . Field_text('squidRemostatisticsServer',$squidRemostatisticsServer,'width:110px;padding:3px;font-size:14px',null,null,'')."</td>
+			<td align='right' style='font-size:16px' nowrap class=legend>{mysqlserver}:</strong></td>
+			<td align='left'>" . Field_text('squidRemostatisticsServer',$squidRemostatisticsServer,'width:210px;padding:3px;font-size:16px',null,null,'')."</td>
 		</tr>
 		<tr>
-			<td align='right' nowrap class=legend>{listen_port}:</strong></td>
-			<td align='left'>" . Field_text('squidRemostatisticsPort',$squidRemostatisticsPort,'width:110px;padding:3px;font-size:14px',null,null,'')."</td>
+			<td align='right' style='font-size:16px' nowrap class=legend>{listen_port}:</strong></td>
+			<td align='left'>" . Field_text('squidRemostatisticsPort',$squidRemostatisticsPort,'width:110px;padding:3px;font-size:16px',null,null,'')."</td>
 		</tr>				
 		<tr>
-			<td align='right' nowrap class=legend>{mysqlroot}:</strong></td>
-			<td align='left'>" . Field_text('squidRemostatisticsUser',$squidRemostatisticsUser,'width:110px;padding:3px;font-size:14px',null,null)."</td>
+			<td align='right' style='font-size:16px' nowrap class=legend>{mysqlroot}:</strong></td>
+			<td align='left'>" . Field_text('squidRemostatisticsUser',$squidRemostatisticsUser,'width:210px;padding:3px;font-size:16px',null,null)."</td>
 		</tr>
 		<tr>
-			<td align='right' nowrap class=legend>{mysqlpass}:</strong></td>
-			<td align='left'>" . Field_password("squidRemostatisticsPassword",$squidRemostatisticsPassword,"width:110px;padding:3px;font-size:14px")."</td>
+			<td align='right' style='font-size:16px' nowrap class=legend>{mysqlpass}:</strong></td>
+			<td align='left'>" . Field_password("squidRemostatisticsPassword",$squidRemostatisticsPassword,"width:110px;padding:3px;font-size:16px")."</td>
 		</tr>	
 	
 	<tr>
-		<td colspan=2 align='right'>". button("{apply}","SavesquidMaxTableDays()")."</td>
+		<td colspan=2 align='right'>". button("{apply}","SavesquidMaxTableDays()",18)."</td>
 	</tr>
 	</table>
+	</div>
 	</div>
 <script>
 	var x_SavesquidMaxTableDays= function (obj) {
@@ -248,12 +245,12 @@ function squid_mysql_status(){
 	$q=new mysql_squid_builder();
 	$img="ok64.png";
 	$title="{MYSQL_CONNECTION}";
-	$text=date('H:i:s')."<br>".$q->mysql_server.":".$q->mysql_port;
+	$text=date('H:i:s')."<br>".$q->mysql_server.":".$q->mysql_port."<br>$q->SocketPath";
 	
-	if(!$q->TestingConnection()){
+	if(!$q->BD_CONNECT()){
 		$img="danger64.png";
 		$title="{MYSQL_ERROR}";
-		$text=$text."<br>".$q->mysql_error;
+		$text=$text."<br>".$q->mysql_error."<br>$q->SocketPath";
 	}
 	
 	$tpl=new templates();

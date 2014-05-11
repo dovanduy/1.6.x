@@ -13,6 +13,7 @@ class icap{
 	var $IS_31=false;
 	var $IS_32=false;
 	var $IS_33=false;
+	
 	var $ICAP_SERVICES_COUNT=0;
 	var $enable_kavproxy=0;
 	var $enable_cicap=0;
@@ -28,8 +29,11 @@ class icap{
 	var $RemoteApplianceServer=null;
 	var $CicapEnabled=0;
 	var $IcapServerAddress="127.0.0.1";
+	public $icap_lines=array();
+	public $CountDeServices=0;
 	private $AntivirusEnabledCentral=1;
 	private $Kav4ProxyEnabledCentral=0;
+	private $SQUID_VERSION=0;
 	
 	function icap(){
 		$users=new usersMenus();
@@ -71,9 +75,9 @@ class icap{
 		if(posix_getuid()==0){$this->ASROOT=true;}
 		if(isset($GLOBALS["AS_ROOT"])){if($GLOBALS["AS_ROOT"]){$this->ASROOT=true;}}
 		
-		
-		if(preg_match('#^([0-9]+)\.([0-9]+)#',$users->SQUID_VERSION,$re)){
-		if($re[1]==3){
+		$this->SQUID_VERSION=$users->SQUID_VERSION;
+		if(preg_match('#^([0-9]+)\.([0-9]+)#',$this->SQUID_VERSION,$re)){
+		if($re[1]>=3){
 			$this->IS_30=true;
 			if($re[2]==1){$this->IS_31=true;}
 			if($re[2]>=2){$this->IS_32=true;$this->IS_31=true;}
@@ -99,47 +103,180 @@ class icap{
 			$this->EnableKavICAPRemote=$this->Kav4ProxyEnabledCentral;
 			
 			if( ($this->CicapEnabled==1) OR ($this->enable_kavproxy==1)){
-				if($this->ASROOT){echo "Starting......: [ICAP]: Using remote appliance {$this->RemoteApplianceServer} as Web Antivirus engine\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: Using remote appliance {$this->RemoteApplianceServer} as Web Antivirus engine\n";}
 			}
 		}
 
 		
-		if($this->ASROOT){echo "Starting......: [ICAP]: ClamAV in ICAP:$this->EnableClamavInCiCap\n";}
-		if($this->ASROOT){echo "Starting......: [ICAP]: squidGuard in ICAP:$this->EnableSquidGuardInCiCAP\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: ClamAV in ICAP:$this->EnableClamavInCiCap\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: squidGuard in ICAP:$this->EnableSquidGuardInCiCAP\n";}
 		if($this->EnableKavICAPRemote==1){
-			if($this->ASROOT){echo "Starting......: [ICAP]: Remote Kaspersky ICAP Server:$this->EnableKavICAPRemote ($this->KavICAPRemoteAddr:$this->KavICAPRemotePort)\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: Remote Kaspersky ICAP Server:$this->EnableKavICAPRemote ($this->KavICAPRemoteAddr:$this->KavICAPRemotePort)\n";}
 		}
 		
+		$this->icap_lines=array();
 		
-		$this->buildCicapConfig();
 		
 		
 	}
 	
-	private function buildCicapConfig(){
-		if(!$this->IS_30){return null;}
-		if(!$this->IS_31){
-			if($this->ASROOT){echo "Starting......: [ICAP]: building for 3.0.x - > IS_31 = FALSE\n";}
-			writelogs("building for 3.0.x - > IS_31 = FALSE",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$icap[]=$this->C_ICAP_30();
-			$icap[]=$this->KAV_ICAP_30();
-			$icap[]=$this->ICAP_HEADERS();
-			$icap[]="";
-			$icap[]="";
-			$this->icap_final_string=@implode("\n\n",$icap);
-			return;
+	public function build_services(){
+		
+		$sock=new sockets();
+		$CicapEnabled=$sock->GET_INFO("CicapEnabled");
+		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
+		
+		if(preg_match('#^([0-9]+)\.([0-9]+)#',$this->SQUID_VERSION,$re)){
+			if($re[1]>=3){
+				if($re[2]==0){
+					$this->icap_lines[]="# Squid 3.0x ( current $this->SQUID_VERSION ) branch no longer supported [".__LINE__."]";
+					return;
+				}
 			}
+		}
 
-		if($this->ASROOT){echo "Starting......: [ICAP]: building for 3.1.x\n";}
-		$icap[]=$this->C_ICAP_31();
-		$icap[]=$this->KAV_ICAP_31();
-		$icap[]=$this->ADAPTATION_31();	
-		$icap[]=$this->ICAP_HEADERS();
-		$icap[]="";
-		$icap[]="";
-		$this->icap_final_string=@implode("\n\n",$icap);	
+		$q=new mysql_squid_builder();
+		if(!$q->TABLE_EXISTS("c_icap_services")){return;}
+		$sql="SELECT * FROM c_icap_services WHERE `enabled`=1 ORDER BY zOrder";
+		$q=new mysql_squid_builder();
+		$results=$q->QUERY_SQL($sql);
+		if(!$q->ok){
+			$q->mysql_error=str_replace("\n", " ", $q->mysql_error);
+			$this->icap_lines[]="# MySQL error $q->mysql_error [".__LINE__."]";
+			return;
+		}
+		
+		$CountDeServices=mysql_num_rows($results);
+		$this->icap_lines[]="#  **** ICAP ****";
+		$this->icap_lines[]="#";
+		$this->icap_lines[]="# Table c_icap_services report $CountDeServices service(s) [".__LINE__."]";
+		if($CountDeServices==0){return;}
+		$overload["block"]="{block}";
+		$overload["bypass"]="{bypass}";
+		$overload["wait"]="{wait}";
+		$overload["force"]="{force}";
+		
+		// ID,service_name,service_key,respmod,routing,bypass,enabled,zOrder,ipaddr,listenport,icap_server,maxconn,overload
+		//('1','C-ICAP Antivirus - LOCAL','service_antivir','respmod_precache',1,1,0,0,'127.0.0.1',12345,'srv_clamav',100,'bypass')
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$ID=$ligne["ID"];
+			$routing="off";
+			$bypass="off";
+			$on_overload="bypass";
+			$maxconn_text=null;
+			
+			if($ligne["routing"]==1){$routing="on";}
+			if($ligne["bypass"]==1){$bypass="on";}
+			$ipaddr=$ligne["ipaddr"];
+			$this->icap_lines[]="#";
+			$this->icap_lines[]="# Service ID $ID {$ligne["service_name"]} $ipaddr:$port [".__LINE__."]";
+			$port=$ligne["listenport"];
+			$on_overload=$ligne["overload"];
+			if(!isset($overload[$on_overload])){$on_overload="bypass";}
+			$maxconn=$ligne["maxconn"];
+			if($maxconn>0){
+				$maxconn_text="on-overload=$on_overload max-conn=$maxconn ";
+			}
+			
+			$uriAddr="$ipaddr:$port";
+			$icap_server=$ligne["icap_server"];
+			
+			
+			
+			if(($ID==1) OR ($ID==2)){
+				if($CicapEnabled==0){
+					$this->icap_lines[]="# Local Service C-ICAP is disabled (CicapEnabled=$CicapEnabled) [".__LINE__."]";
+					continue;
+				}
+				$icap_server="srv_clamav";
+				$uriAddr=$this->CICAP_URI();
+			}
+			
+			$this->icap_lines[]="icap_service {$ligne["service_key"]} {$ligne["respmod"]} icap://$uriAddr/$icap_server {$maxconn_text}routing=$routing bypass=$bypass";
+			$this->CountDeServices++;
+			$this->icap_classes[$ligne["service_key"]]=$ID;
+		}
+		
+		if($this->CountDeServices==0){return;}
+		$this->icap_lines[]="";
+		$this->icap_lines[]="# ICAP configs [".__LINE__."]";
+		$this->icap_lines[]="icap_enable on";
+		$this->icap_lines[]="icap_preview_size 128";
+		$this->icap_lines[]="icap_service_failure_limit -1";
+		$this->icap_lines[]="icap_preview_enable on";
+		$this->icap_lines[]="icap_send_client_ip on";
+		$this->icap_lines[]="icap_send_client_username on";
+		$this->icap_lines[]="icap_client_username_header X-Authenticated-User";
+		$this->icap_lines[]="icap_client_username_encode on";
+		
+		
+		
+		//   service_antivir respmod_precache routing=on bypass=on 
+		// adaptation_service_set class_antivirus service_antivir
+	//		adaptation_access class_antivirus allow all
+	
+		$this->ADAPTATIONS();
 		
 	}
+	
+	private function ADAPTATIONS(){
+		$sock=new sockets();
+		$SquidDebugPort=intval($sock->GET_INFO("SquidDebugPort"));
+		
+		
+		
+		$this->icap_lines[]="";
+		$this->icap_lines[]="# Adaptations classes [".__LINE__."]";
+		while (list ($servicekey, $ID) = each ($this->icap_classes) ){
+			$ACL_AV=false;
+			$this->icap_lines[]="# Adaptation for service $servicekey/$ID [".__LINE__."]";
+			$this->icap_lines[]="adaptation_service_set class_{$servicekey} $servicekey";
+			if($SquidDebugPort==1){$this->icap_lines[]="adaptation_access class_{$servicekey} deny MyTestPort";}
+			if($ID==1){$ACL_AV=true;}
+			if($ID==2){$ACL_AV=true;}
+			if($ID==3){$ACL_AV=true;}
+			if($ID==4){$ACL_AV=true;}
+			if($ID==5){$ACL_AV=true;}
+			if($ID==6){$ACL_AV=true;}	
+			if($ID==7){$ACL_AV=true;}
+			if($ID==8){$ACL_AV=true;}	
+
+			$this->icap_lines[]="adaptation_access class_{$servicekey} deny ToArticaWWW";
+			
+			if($ACL_AV){
+				if(count($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"])>0){
+					reset($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]);
+					while (list ($index, $line) = each ($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]) ){
+						$this->icap_lines[]="adaptation_access class_{$servicekey} deny $line";
+					}
+				}
+				
+				if(count($GLOBALS["WHITELISTED_MIMETYPE"])>0){
+					$this->icap_lines[]="adaptation_access class_{$servicekey} deny StreamMimeWhite";
+				}
+			
+			}
+			
+			$this->icap_lines[]="adaptation_access class_{$servicekey} allow all";
+			
+		}
+		
+		
+	}
+	
+	
+	private function CICAP_URI(){
+		$sock=new sockets();
+		$CICAPListenAddress=$sock->GET_INFO("CICAPListenAddress");
+		if($CICAPListenAddress==null){$CICAPListenAddress="127.0.0.1";}
+		$NETWORK_ALL_INTERFACES=$GLOBALS["CLASS_UNIX"]->NETWORK_ALL_INTERFACES(true);
+		if(!isset($NETWORK_ALL_INTERFACES[$CICAPListenAddress])){$CICAPListenAddress="127.0.0.1";}
+		return "$CICAPListenAddress:1345";
+	}
+	
+	
+	
+
 	
 
 	
@@ -151,7 +288,7 @@ class icap{
 		}
 		$users=new usersMenus();
 		$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
-		if($this->ASROOT){echo "Starting......: Squid activating C-ICAP 3.0.x\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid activating C-ICAP 3.0.x\n";}
 		
 		if($this->enable_metascanner==1){$this->EnableClamavInCiCap=0;}
 		
@@ -179,22 +316,10 @@ class icap{
 		return implode("\n",$kav_rules);
 	}
 	
-		private function ICAP_HEADERS($kaspersky=0){
-			if($this->ICAP_SERVICES_COUNT==0){return;}
-			$conf[]="icap_enable on";
-			$conf[]="icap_preview_size 128";
-			$conf[]="icap_service_failure_limit -1";
-			$conf[]="icap_preview_enable on";
-			$conf[]="icap_send_client_ip on";
-			$conf[]="icap_send_client_username on";
-			$conf[]="icap_client_username_header X-Authenticated-User";
-			$conf[]="icap_client_username_encode on";
-			return implode("\n",$conf);
-			}	
-	
+
 	private function KAV_ICAP_30(){
 		if($this->enable_kavproxy<>1){
-				if($this->ASROOT){echo "Starting......: Squid Kaspersky ICAP is disabled\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid Kaspersky ICAP is disabled\n";}
 				return;
 			}
 		
@@ -203,7 +328,7 @@ class icap{
 		if($this->EnableKavICAPRemote==0){$kav=new Kav4Proxy();if(preg_match("#(.+?):([0-9]+)#", $kav->main_array["ListenAddress"],$re)){$IpAddrr=$re[1];$port=$re[2];}}
 		
 		$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;			
-		if($this->ASROOT){echo "Starting......: Squid activating Kaspersky ICAP Mode\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid activating Kaspersky ICAP Mode\n";}
 		$kav_rules[]="# --------- icap_service KASPERSKY mode 3.0.x";
 		$kav_rules[]="";
 		$kav_rules[]="icap_service\tis_kav_resp respmod_precache 0 icap://$IpAddrr:$port/av/respmod";
@@ -256,13 +381,13 @@ class icap{
 					reset($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]);
 					while (list ($index, $line) = each ($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]) ){$kav_rules[]="adaptation_access class_antivirus deny $line";}
 				}				
-				if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP, StreamMimeWhite:". count(count($GLOBALS["WHITELISTED_MIMETYPE"]))." exclusion(s)\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP, StreamMimeWhite:". count(count($GLOBALS["WHITELISTED_MIMETYPE"]))." exclusion(s)\n";}
 				if(count($GLOBALS["WHITELISTED_MIMETYPE"])>0){$kav_rules[]="adaptation_access class_antivirus deny StreamMimeWhite";}				
 				
 				$kav_rules[]="adaptation_access class_antivirus allow all";
 			
 		}else{
-			if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP, adaptation_service, skipping\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP, adaptation_service, skipping\n";}
 		}
 
 		if(!$class_url_check){
@@ -337,7 +462,7 @@ class icap{
 				}
 			}
 			
-			if($this->ASROOT){echo "Starting......: [ICAP]: ".count($GLOBALS["WHITELISTED_MIMETYPE"])." exclusion(s)\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: ".count($GLOBALS["WHITELISTED_MIMETYPE"])." exclusion(s)\n";}
 			if(count($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"])>0){
 				reset($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]);
 				while (list ($index, $line) = each ($GLOBALS["ACL_WHITELISTED_FOR_ANTIVIRUS"]) ){$f[]="adaptation_access ANTIVIRUS_CHAINS deny $line";}
@@ -352,7 +477,7 @@ class icap{
 			if(count($acls_deny)>0){
 				while (list ($index, $line) = each ($acls_deny) ){$f[]="adaptation_access ANTIVIRUS_CHAINS deny $line";}
 			}
-
+			
 			
 			
 			
@@ -374,17 +499,17 @@ class icap{
 		if(!is_numeric($this->EnableRemoteStatisticsAppliance)){$this->EnableRemoteStatisticsAppliance=0;}
 		if($this->EnableRemoteStatisticsAppliance==0){
 			if($this->enable_metascanner==1){
-				if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP Metascanner is enabled, skipping\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP Metascanner is enabled, skipping\n";}
 				return;}
 			if($this->EnableClamavInCiCap==0){
-				if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP ClamAV is disabled inside, skipping\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP ClamAV is disabled inside, skipping\n";}
 				return;}
 			if(!$this->C_ICAP_31_is_scanner_exists()){
-				if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP, did not find any scanner, skipping\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP, did not find any scanner, skipping\n";}
 				return;
 			}
 		}
-		if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP OK all parameters done...\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP OK all parameters done...\n";}
 		return true;
 		
 	}
@@ -394,19 +519,19 @@ class icap{
 		$modules_path=$this->LOCATE_C_ICAP_MODULES_DIR();
 		$result=false;
 		if(!is_dir($modules_path)){
-			if($this->ASROOT){echo "Starting......: [ICAP]: library path not found `$modules_path`\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: library path not found `$modules_path`\n";}
 			return false;
 		}
 		if(is_file("$modules_path/srv_clamav.so")){$result=true;}
-		if($this->ASROOT){echo "Starting......: [ICAP]: $modules_path/srv_clamav.so no such file\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: $modules_path/srv_clamav.so no such file\n";}
 		if(is_file("$modules_path/virus_scan.so")){$result=true;}
-		if($this->ASROOT){echo "Starting......: [ICAP]: $modules_path/virus_scan.so no such file\n";}
-		if(!$result){if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP Failed, no library found in `$modules_path`\n";}}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: $modules_path/virus_scan.so no such file\n";}
+		if(!$result){if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP Failed, no library found in `$modules_path`\n";}}
 		if(!$result){
 			if($this->ASROOT){
 				$unix=new unix();
 				$nohup=$unix->find_program("nohup");
-				if($this->ASROOT){echo "\n***************\nStarting......: [ICAP]: Installing C-ICAP application !!!!\n\n***************\n";}
+				if($this->ASROOT){echo "\n***************\nStarting......: ".date("H:i:s")." [ICAP]: Installing C-ICAP application !!!!\n\n***************\n";}
 				shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make APP_C_ICAP >/dev/null 2>&1 &");
 			}
 		}
@@ -419,14 +544,14 @@ class icap{
 		$users=new usersMenus();
 		$class_url_check=FALSE;
 		if($this->enable_cicap==0){
-			if($this->ASROOT){echo "Starting......: [ICAP]: C-ICAP disabled...\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: C-ICAP disabled...\n";}
 			return null;
 		}
 		$sock=new sockets();
 		$DisableCicapDNBSL=$sock->GET_INFO("DisableCicapDNBSL");
 		if(!is_numeric($DisableCicapDNBSL)){$DisableCicapDNBSL=1;}			
 		
-		if($this->ASROOT){echo "Starting......: [ICAP]: Activating C-ICAP\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: Activating C-ICAP\n";}
 		$kav_rules[]="# --------- icap_service C-ICAP mode 3.1.x";
 		
 
@@ -449,7 +574,7 @@ class icap{
 		}
 
 		if($this->EnableClamavInCiCap==0){
-			if($this->ASROOT){echo "Starting......: [ICAP]: EnableClamavInCiCap is disabled\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: EnableClamavInCiCap is disabled\n";}
 		}
 		
 		
@@ -474,11 +599,11 @@ class icap{
 		
 	private function KAV_ICAP_31(){
 		if($this->enable_kavproxy<>1){
-				if($this->ASROOT){echo "Starting......: Squid Kaspersky ICAP is disabled\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid Kaspersky ICAP is disabled\n";}
 				return;
 			}		
 		$this->ICAP_SERVICES_COUNT=$this->ICAP_SERVICES_COUNT+1;
-		if($this->ASROOT){echo "Starting......: Squid adaptation enabled\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid adaptation enabled\n";}
 		
 		$IpAddrr=$this->IcapServerAddress;$port=1344;
 		if($this->EnableKavICAPRemote==1){$IpAddrr=$this->KavICAPRemoteAddr;$port=$this->KavICAPRemotePort;}
@@ -505,16 +630,16 @@ class icap{
 			reset($f);
 			while (list ($a, $filename) = each ($f) ){
 				if(is_file("$dir/$filename")){
-					if($this->ASROOT){echo "Starting......: [ICAP]: $dir/$filename OK Find library `$filename` done...\n";}
+					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: $dir/$filename OK Find library `$filename` done...\n";}
 					return $dir;
 				}
 				if($GLOBALS["VERBOSE"]){
-					if($this->ASROOT){echo "Starting......: [ICAP]: $dir/$filename no such file\n";}
+					if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: $dir/$filename no such file\n";}
 				}
 			}
 		}
 		
-		if($this->ASROOT){echo "Starting......: [ICAP]: Warning, return default C-ICAP folder `/usr/lib/c_icap`\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ICAP]: Warning, return default C-ICAP folder `/usr/lib/c_icap`\n";}
 		return "/usr/lib/c_icap";
 	}	
 	

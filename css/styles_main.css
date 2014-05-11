@@ -6,8 +6,27 @@
 }
 
 
+.TopObjectsOut{
+	cursor:default;
+	background-color:transparent;
+}
+
+.TopObjectsOver{
+	cursor:pointer;
+	background-color:#0C9C86;
+}
+
+#design-right-picture{
+	width:260px;
+	height:260px;
+	margin-right:40px;
+
+}
+.opacityRemove{
+
+}
 html {
-	margin: 0px 20px 0px 20px; 
+	margin: 0px 0px 0px 0px; 
 	padding: 0px 0px 0px 0px; 
 }
 
@@ -17,6 +36,7 @@ body {
 	background: #FFFFFF;
 	font-size: 13px;	 
 	color: #333130;
+	background: url("/img/pattern.png") repeat scroll 0 0 #263849;
 }
 
 * {
@@ -24,7 +44,9 @@ body {
 	margin: 0px;
 }
 
-
+#template-top-menus{
+	 background-color:#005447;
+}
 
 img {
 	margin: 0px 0px 0px 0px; 
@@ -112,6 +134,10 @@ h3 {
 	text-transform:capitalize;
 	color: #005447;
 	font-weight:normal;
+}
+
+h3:first-letter {
+    text-transform: uppercase;
 }
 
 
@@ -344,7 +370,7 @@ div.navig {
 	font-size:11px;
 	background-image:url(/img/help_bg.png);
 	background-repeat:no-repeat;
-	background-position:99% 0%;
+	background-position:99% 50%;
 	padding-right:48px;
 	min-height:50px;
 	
@@ -889,6 +915,11 @@ input.search-query {
   display: none;
 }
 
+li:first-letter {
+    text-transform: uppercase;
+}
+
+
 .form-search label,
 .form-inline label,
 .form-search .btn-group,
@@ -979,4 +1010,71 @@ legend + .control-group {
 
 .form-horizontal .form-actions {
   padding-left: 180px;
+}
+
+#leftBlockMain {
+    width: 207px;
+}
+
+
+/*	New button styles 2014;*/
+
+.Button2014-lg {
+    border-radius: 6px 6px 6px 6px;
+    font-size: 18px;
+    line-height: 1.33;
+    padding: 10px 16px;
+}
+.Button2014-success {
+    background-color: #5CB85C;
+    border-color: #4CAE4C;
+    color: #FFFFFF;
+}
+.Button2014 {
+    -moz-user-select: none;
+    border: 1px solid transparent;
+    border-radius: 4px 4px 4px 4px;
+    cursor: pointer;
+    display: inline-block;
+    font-size: 14px;
+    font-weight: normal;
+    line-height: 1.42857;
+    margin-bottom: 0;
+    padding: 6px 22px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+a.Button2014, a.Button2014:link, a.Button2014:visited, a.Button2014:hover{
+	color: #FFFFFF;
+	text-decoration:none;	
+}
+
+.Button2014-success {
+    background-color: #5CB85C !important;
+    border-color: #4CAE4C !important;
+    color: #FFFFFF !important;
+}
+.Button2014-success:hover, .Button2014-success:focus, .Button2014-success:active, .Button2014-success.active, .open .dropdown-toggle.Button2014-success {
+    background-color: #47A447 !important;
+    border-color: #398439 !important;
+    color: #FFFFFF !important;
+}
+.Button2014-success:active, .Button2014-success.active, .open .dropdown-toggle.Button2014-success {
+    background-image: none;
+}
+.Button2014-success.disabled, .Button2014-success[disabled], fieldset[disabled] .Button2014-success, .Button2014-success.disabled:hover, .Button2014-success[disabled]:hover, fieldset[disabled] .Button2014-success:hover, .Button2014-success.disabled:focus, .Button2014-success[disabled]:focus, fieldset[disabled] .Button2014-success:focus, .Button2014-success.disabled:active, .Button2014-success[disabled]:active, fieldset[disabled] .Button2014-success:active, .Button2014-success.disabled.active, .Button2014-success.active[disabled], fieldset[disabled] .Button2014-success.active {
+    background-color: #5CB85C !important;
+    border-color: #4CAE4C !important;
+}
+
+
+.text-info {
+  color: #3a87ad;
+}
+
+a.text-info:hover,
+a.text-info:focus {
+  color: #2d6987;
 }

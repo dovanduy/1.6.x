@@ -102,7 +102,7 @@ function search_websites(){
 	$boot=new boostrap_form();
 	$ORDER=$boot->TableOrder(array("hits"=>"DESC"));
 	
-	$sql="SELECT *  FROM $table WHERE 1 $searchstring ORDER BY $ORDER LIMIT 0,150";
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring ORDER BY $ORDER LIMIT 0,30";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 
@@ -167,6 +167,7 @@ function BuildDiv($sitename){
 	$generic_categories=$tpl->_ENGINE_parse_body("{categories}");
 	$your_categories=$tpl->_ENGINE_parse_body("{your_categories}");
 	$find=$tpl->_ENGINE_parse_body("{search}");
+	if(!is_array($CATEGORIES_PERSO)){$CATEGORIES_PERSO=array();}
 	$t=time();
 	$ART[]="
 	<center id='animate-$md5'></center>

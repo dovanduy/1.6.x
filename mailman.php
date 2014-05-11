@@ -788,7 +788,7 @@ function popup_list_items(){
 	$delete=imgsimple("delete-32.png",null,"MailManDeleteList$t('$list','$id')");
 	
 	$color="black";
-	if($ligne["delete"]==1){$color="#CCCCCC";}
+	if($ligne["delete"]==1){$color="#8a8a8a";}
 	
 	
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"MailManEditlist$t('$list')\"

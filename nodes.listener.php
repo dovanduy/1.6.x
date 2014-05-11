@@ -25,16 +25,28 @@
 	include_once('ressources/class.mysql.squid.builder.php');		
 	include_once('ressources/class.mysql.dump.inc');
 	include_once('ressources/class.mysql.syslogs.inc');
+	include_once('ressources/class.system.network.inc');
+	include_once('ressources/class.system.nics.inc');
 	
 	
 	writelogs("Request from " .$_SERVER["REMOTE_ADDR"],__FILE__,__FUNCTION__,__LINE__);
 	while (list ($num, $val) = each ($_REQUEST) ){
+		if(strlen($val)>500){$val=strlen($val)." bytes lenght";}
 		writelogs("From: {$_SERVER["REMOTE_ADDR"]} $num = $val",__FILE__,__FUNCTION__,__LINE__);
 	}
+	if(isset($_GET["ucarp"])){ucarp_step1();exit;}
+	if(isset($_GET["ucarp2"])){ucarp_step2();exit;}
+	if(isset($_GET["ucarp3"])){ucarp_step3();exit;}
+	if(isset($_GET["ucarp2-remove"])){UCARP_REMOVE();exit;}
+	
+	if(isset($_POST["UCARP_DOWN"])){UCARP_DOWN();exit;}
+	
+	
 	if(isset($_GET["stats-appliance-compatibility"])){stats_appliance_comptability();exit;}
 	if(isset($_GET["stats-appliance-ports"])){stats_appliance_ports();exit;}
 	if(isset($_GET["stats-perform-connection"])){stats_appliance_privs();exit;}
 	if(isset($_GET["ufdbguardport"])){stats_appliance_remote_port();exit;}
+	if(isset($_REQUEST["SQUID_STATS_CONTAINER"])){stats_appliance_upload();exit;}
 	
 	if(isset($_POST["OPENSYSLOG"])){OPENSYSLOG();exit;}
 	if(isset($_GET["squid-table"])){export_squid_table();exit;}
@@ -441,6 +453,78 @@ function SETTINGS_INC(){
 	
 }
 
+function stats_appliance_upload(){
+	$hostname=$_POST["HOSTNAME"];
+	$sock=new sockets();	
+	$credentials=unserialize(base64_decode($_POST["creds"]));
+	$content_dir=dirname(__FILE__)."/ressources/conf/upload";
+	$FILENAME=$_POST["FILENAME"];
+	$SIZE=$_POST["SIZE"];
+	
+	while (list ($num, $array) = each ($_REQUEST) ){
+		writelogs("stats_appliance_upload:: RECEIVE `$num`",__FUNCTION__,__FILE__,__LINE__);
+	
+	}
+	
+	$ldap=new clladp();
+	$array["DETAILS"][]="Manager: {$credentials["MANAGER"]}";
+	if($ldap->ldap_admin<>$credentials["MANAGER"]){
+		$array["APP_CREDS"]=false;
+		stats_admin_events_mysql(0,"$hostname: Account mismatch..",null,__FUNCTION__,__FILE__,__LINE__);
+		$array["DETAILS"][]="Account mismatch..";
+		
+		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
+		return;
+	}
+	if($ldap->ldap_password<>$credentials["PASSWORD"]){
+		$array["APP_CREDS"]=false;
+		$array["DETAILS"][]="Password mismatch..";
+		stats_admin_events_mysql(0,"$hostname: Password mismatch..",null,__FUNCTION__,__FILE__,__LINE__);
+		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
+		return;
+	}
+	
+
+	$sock->getFrameWork("services.php?folders-security=yes&force=true");
+	@mkdir($content_dir,0755,true);
+	
+	writelogs("SQUID_STATS_CONTAINER = ".strlen($_REQUEST["SQUID_STATS_CONTAINER"])." bytes ",__FUNCTION__,__FILE__,__LINE__);
+	
+	$moved_file=$content_dir . "/$hostname-$FILENAME";
+	@file_put_contents($moved_file, base64_decode($_REQUEST["SQUID_STATS_CONTAINER"]));
+	if(!is_file($moved_file)){
+		stats_admin_events_mysql(0,"$hostname $moved_file no such file",null,__FUNCTION__,__FILE__,__LINE__);
+		writelogs("$hostname $moved_file no such file",__FUNCTION__,__FILE__,__LINE__);
+		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
+		return;
+	}
+	$filesize=@filesize($moved_file);
+	writelogs("$hostname $moved_file {$filesize}bytes",__FUNCTION__,__FILE__,__LINE__);
+	if($filesize<>$SIZE){
+		$diff=intval($filesize-$SIZE);
+		stats_admin_events_mysql(0,"$hostname $moved_file size differ {$diff}Bytes!!!",null,__FUNCTION__,__FILE__,__LINE__);
+		writelogs("$hostname $moved_file size differ {$diff}Bytes!!!",__FUNCTION__,__FILE__,__LINE__);
+		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
+		return;
+	}
+	
+	$moved_filebas=basename($moved_file);
+	$filesize=FormatBytes($filesize/1024);
+	stats_admin_events_mysql(2,"$hostname: Success uploaded $moved_filebas ( $filesize )",null,__FUNCTION__,__FILE__,__LINE__);
+	writelogs("$hostname $moved_file OK!!!",__FUNCTION__,__FILE__,__LINE__);
+	
+	$data=trim($sock->getFrameWork("squidstats.php?move-stats-file=".urlencode($moved_file)));
+	if($data<>"SUCCESS"){
+		stats_admin_events_mysql(2,"$hostname: failed to move uploaded - $data -$moved_filebas ( $filesize )",null,__FUNCTION__,__FILE__,__LINE__);
+		echo "\n\n<RESULTS>FAILED</RESULTS>\n\n";
+		return;
+	}
+	
+	echo "\n\n<RESULTS>SUCCESS</RESULTS>\n\n";
+	
+}
+
+
 function SETTINGS_INC_2(){
 	$ME=$_SERVER["SERVER_ADDR"];
 	$q=new mysql_blackbox();
@@ -833,7 +917,12 @@ function stats_appliance_comptability(){
 	$sock=new sockets();
 	$APP_SQUID_DB=true;
 	$APP_SYSLOG_DB=true;
-	if(!$users->APP_SQUIDDB_INSTALLED){
+	$sock=new sockets();
+	
+	$APP_SQUIDDB_INSTALLED=trim($sock->getFrameWork("squid.php?IS_APP_SQUIDDB_INSTALLED=yes"));
+	if($GLOBALS["VERBOSE"]){echo "<H1>APP_SQUIDDB_INSTALLED = `$APP_SQUIDDB_INSTALLED`</H1>\n";}
+	
+	if($APP_SQUIDDB_INSTALLED<>"TRUE"){
 		$f[]="Token APP_SQUIDDB_INSTALLED return false";
 		$APP_SQUID_DB=false;
 	}
@@ -848,6 +937,33 @@ function stats_appliance_comptability(){
 	}
 	$sock->SET_INFO("DisableArticaProxyStatistics", 0);
 	$array["APP_SQUID_DB"]=$APP_SQUID_DB;
+	
+	
+	if($_GET["AS_DISCONNECTED"]==1){
+		$credentials=unserialize(base64_decode($_GET["creds"]));
+		$ldap=new clladp();
+		$array["DETAILS"][]="Manager: {$credentials["MANAGER"]}";
+		if($ldap->ldap_admin<>$credentials["MANAGER"]){
+			$array["APP_CREDS"]=false;
+			$array["DETAILS"][]="Account mismatch..";
+			echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+			return;
+		}
+		if($ldap->ldap_password<>$credentials["PASSWORD"]){
+			$array["APP_CREDS"]=false;
+			$array["DETAILS"][]="Password mismatch..";
+			echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+			return;
+		}	
+
+		$array["APP_CREDS"]=true;
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+		
+	}
+	
+	
+	
 	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
 	$EnableMySQLSyslogWizard=$sock->GET_INFO("EnableMySQLSyslogWizard");
 	if(!is_numeric($EnableMySQLSyslogWizard)){$EnableMySQLSyslogWizard=0;}
@@ -877,7 +993,7 @@ function stats_appliance_comptability(){
 	$datas["tcpsockets"]=1;
 	$datas["listen_port"]=3977;
 	$sock->SaveConfigFile(base64_encode(serialize($datas)),"ufdbguardConfig");
-	$sock->getFrameWork("cmd.php?reload-squidguard=yes");
+	$sock->getFrameWork("cmd.php?reload-squidguard=yes&restart=yes");
 	
 	
 	$array["APP_SYSLOG_DB"]=$APP_SYSLOG_DB;
@@ -982,3 +1098,214 @@ $sock->getFrameWork("cmd.php?squidnewbee=yes");
 echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";	
 		
 }
+
+function ucarp_step1(){
+	$MyEth=null;
+	$SEND_SETTING=unserialize(base64_decode($_GET["ucarp"]));
+	if(!is_array($SEND_SETTING)){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{corrupted_parameters}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."<br>Not an array()</RESULTS>\n\n";
+		return;
+	}
+	
+	$second_ipaddr=$SEND_SETTING["SLAVE"];
+	$ip=new IP();
+	if(!$ip->isValid($second_ipaddr)){
+		$array["ERROR"]=true;
+		while (list ($a, $b) = each ($SEND_SETTING) ){
+			$f[]="<strong>$a = $b</strong><br>";
+		}
+		
+		$array["ERROR_SHOW"]="{corrupted_parameters}: {ipaddr}: $second_ipaddr<br>".@implode("\n", $f);
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+	}
+	
+	$ip=new networking();
+	
+	while (list ($eth, $cip) = each ($ip->array_TCP) ){
+		if($cip==null){continue;}
+		if($cip==$second_ipaddr){
+			$MyEth=$eth;
+		}
+	}
+	if($MyEth==null){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{corrupted_parameters}: {ipaddr}: $second_ipaddr {cannot_found_interface}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+		
+	}
+	$array["ERROR"]=false;
+	$array["ERROR_SHOW"]="{interface}:$MyEth";
+	echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+}
+function ucarp_step2(){
+	$MyEth=null;
+	$SEND_SETTING=unserialize(base64_decode($_GET["ucarp2"]));
+	if(!is_array($SEND_SETTING)){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{corrupted_parameters}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."<br>Not an array()</RESULTS>\n\n";
+		return;
+	}
+
+	$second_ipaddr=$SEND_SETTING["SLAVE"];
+	$ip=new IP();
+	if(!$ip->isValid($second_ipaddr)){
+		$array["ERROR"]=true;
+		while (list ($a, $b) = each ($SEND_SETTING) ){
+			$f[]="<strong>$a = $b</strong><br>";
+		}
+
+		$array["ERROR_SHOW"]="{corrupted_parameters}: {ipaddr}: $second_ipaddr<br>".@implode("\n", $f);
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+	}
+
+	$ip=new networking();
+
+	while (list ($eth, $cip) = each ($ip->array_TCP) ){
+		if($cip==null){continue;}
+		if($cip==$second_ipaddr){
+			$MyEth=$eth;
+		}
+	}
+	if($MyEth==null){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{corrupted_parameters}: {ipaddr}: $second_ipaddr {cannot_found_interface}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+
+	}
+
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{license_error}: {this_feature_is_disabled_corp_license}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;		
+	}
+	
+	$nic=new system_nic($MyEth);
+	if($nic->IPADDR==null){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{unconfigured_network}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;		
+	}
+	
+	
+	
+	$nic->ucarp_enabled=1;
+	$nic->ucarp_vip=$SEND_SETTING["BALANCE_IP"];
+	$nic->ucarp_vid=$SEND_SETTING["ucarp_vid"];
+	$nic->ucarp_master=0;
+	$nic->NoReboot=true;
+	if(!$nic->SaveNic()){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="Save in Database failed";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;		
+	}
+	$array["ERROR"]=false;
+	$array["ERROR_SHOW"]="{success}";
+	echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";	
+}
+function ucarp_step3(){
+	$sock=new sockets();
+	$sock->getFrameWork("network.php?reconfigure-restart=yes");
+	$array["ERROR"]=false;
+	$array["ERROR_SHOW"]="DONE";
+	echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+	
+}
+
+
+function UCARP_REMOVE(){
+	$sock=new sockets();
+	$SEND_SETTING=unserialize(base64_decode($_GET["ucarp2-remove"]));
+	
+	if(!is_array($SEND_SETTING)){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{corrupted_parameters}";
+		echo "\n\n<RESULTS>".base64_decode(serialize($array))."<br>Not an array()</RESULTS>\n\n";
+		return;
+	}
+	
+	$second_ipaddr=$SEND_SETTING["SLAVE"];
+	$ip=new IP();
+	if(!$ip->isValid($second_ipaddr)){
+		$array["ERROR"]=true;
+		while (list ($a, $b) = each ($SEND_SETTING) ){
+			$f[]="<strong>$a = $b</strong><br>";
+		}
+	
+		$array["ERROR_SHOW"]="{corrupted_parameters}: {ipaddr}: $second_ipaddr<br>".@implode("\n", $f);
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+	}
+	
+	$ip=new networking();
+	
+	while (list ($eth, $cip) = each ($ip->array_TCP) ){
+		if($cip==null){continue;}
+		if($cip==$second_ipaddr){
+			$MyEth=$eth;
+		}
+	}
+	if($MyEth==null){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{corrupted_parameters}: {ipaddr}: $second_ipaddr {cannot_found_interface}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+	
+	}
+	$nic=new system_nic($MyEth);
+	if($nic->IPADDR==null){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="{unconfigured_network}";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+	}
+	
+	$nic->ucarp_enabled=0;
+	$nic->ucarp_vip=null;
+	$nic->ucarp_vid=0;
+	$nic->ucarp_master=0;
+	$nic->NoReboot=true;
+	if(!$nic->SaveNic()){
+		$array["ERROR"]=true;
+		$array["ERROR_SHOW"]="Save in Database failed";
+		echo "\n\n<RESULTS>".base64_encode(serialize($array))."</RESULTS>\n\n";
+		return;
+	}
+	
+	echo "\n<RESULTS>SUCCESS</RESULTS>";
+	$data=base64_decode($sock->getFrameWork("network.php?ucarp-down=$MyEth&master={$_SERVER["REMOTE_ADDR"]}"));
+	$sock->getFrameWork("network.php?reconfigure-restart=yes");
+	
+	
+}
+
+function UCARP_DOWN(){
+	$sock=new sockets();
+	$data=base64_decode($sock->getFrameWork("network.php?ucarp-down={$_POST["UCARP_DOWN"]}&master={$_SERVER["REMOTE_ADDR"]}"));
+	echo "\n<RESULTS>$data</RESULTS>";
+	
+}
+
+function stats_admin_events_mysql($severity, $subject, $text,$function,$file,$line){
+	$zdate=date("Y-m-d H:i:s");
+	$text=mysql_escape_string2($text);
+	$q=new mysql();
+	$subject=mysql_escape_string2($text);
+	$file=basename($file);
+	$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `stats_admin_events`
+			(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
+			('$zdate','$text','$subject','$function','$file','$line','$severity')","artica_events");
+		
+	
+}
+

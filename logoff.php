@@ -10,6 +10,10 @@ session_start();
 
 if(isset($_GET["shutdown-js"])){shutdown_js();exit;}
 if(isset($_POST["defrag"])){defrag();exit;}
+if(isset($_GET["restart-js"])){reboot_js();exit;}
+if(isset($_GET["defrag-js"])){defrag_js();exit;}
+
+
 
 if(isset($_GET["menus"])){
 	echo menus();
@@ -52,6 +56,38 @@ function perform(){
 	}	
 }
 
+
+function reboot_js(){
+	include_once(dirname(__FILE__) . "/class.sockets.inc");
+	include_once('ressources/class.templates.inc');
+	$user=new usersMenus();
+	if(!$user->AsSystemAdministrator){die();}	
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$restart_computer_text=$tpl->javascript_parse_text("{restart_computer_text}");
+	header("content-type: application/x-javascript");
+	$html="
+var x_turnoff$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+	window.location ='logoff.php';
+}
+	
+	
+function turningoff$t(){
+	if(!confirm('$restart_computer_text')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('perform','reboot');
+	XHR.sendAndLoad('$page', 'GET',x_turnoff$t);
+}
+	
+turningoff$t();
+	";
+	echo $html;	
+	
+}
+
 function shutdown_js(){
 	include_once(dirname(__FILE__) . "/ressources/class.sockets.inc");
 	include_once(dirname(__FILE__) . "/ressources/class.users.menus.inc");
@@ -61,6 +97,7 @@ function shutdown_js(){
 	if(!$users->AsSystemAdministrator){die();}
 	$tpl=new templates();
 	$warn=$tpl->javascript_parse_text("{warn_shutdown_computer}");
+	header("content-type: application/x-javascript");
 	$html="
 var x_turnoff= function (obj) {
 				var results=obj.responseText;
@@ -82,6 +119,36 @@ var x_turnoff= function (obj) {
 	turningoff();
 	";
 	echo $html;
+	
+}
+
+function defrag_js(){
+	include_once('ressources/class.templates.inc');
+	$tpl=new templates();
+	$restart_computer_and_defrag_warn=$tpl->javascript_parse_text("{restart_computer_and_defrag_warn}");
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	if(!$users->AsSystemAdministrator){die();}	
+	$t=time();
+	header("content-type: application/x-javascript");
+echo "
+var x_RestartDefragComputer$t=function(obj){
+	var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);}
+    window.location ='$page';
+}	
+	
+	
+function RestartDefragComputer$t(){
+	if(!confirm('$restart_computer_and_defrag_warn')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('defrag','yes');
+	XHR.sendAndLoad('$page', 'POST',x_RestartDefragComputer$t);
+}
+	
+RestartDefragComputer$t();";
+	
+	
 	
 }
 

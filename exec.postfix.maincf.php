@@ -15,7 +15,7 @@ $GLOBALS["RELOAD"]=false;
 $GLOBALS["URGENCY"]=false;
 $GLOBALS["AS_ROOT"]=true;
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--urgency#",implode(" ",$argv))){$GLOBALS["URGENCY"]=true;}
@@ -24,9 +24,9 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 $unix=new unix();
 
 $pidfile="/etc/artica-postfix/".basename(__FILE__)." ". md5(implode("",$argv)).".pid";
-if($unix->process_exists(@file_get_contents($pidfile),basename(__FILE__))){echo "Starting......: Postfix configurator already executed PID ". @file_get_contents($pidfile)."\n";die();}
+if($unix->process_exists(@file_get_contents($pidfile),basename(__FILE__))){echo "Starting......: ".date("H:i:s")." Postfix configurator already executed PID ". @file_get_contents($pidfile)."\n";die();}
 $pid=getmypid();
-echo "Starting......: Postfix configurator running $pid\n";
+echo "Starting......: ".date("H:i:s")." Postfix configurator running $pid\n";
 file_put_contents($pidfile,$pid);
 if($argv[1]=='--wlscreen'){wlscreen();die();}
 
@@ -39,18 +39,22 @@ $GLOBALS["CLASS_USERS_MENUS"]=$users;
 if(!$users->POSTFIX_INSTALLED){echo("Postfix is not installed\n");die();}
 
 
-if(!$unix->IS_OPENLDAP_RUNNING()){echo "Starting......: Postfix openldap is not running, start it\n";system("/etc/init.d/artica-postfix start ldap");}
-if(!$unix->IS_OPENLDAP_RUNNING()){echo "Starting......: Postfix openldap is not running, aborting\n";die();}
+if(!$unix->IS_OPENLDAP_RUNNING()){echo "Starting......: ".date("H:i:s")." Postfix openldap is not running, start it\n";system("/etc/init.d/artica-postfix start ldap");}
+if(!$unix->IS_OPENLDAP_RUNNING()){echo "Starting......: ".date("H:i:s")." Postfix openldap is not running, aborting\n";die();}
 
 $ldap=new clladp();
-if($ldap->ldapFailed){echo "Starting......: Postfix openldap error, aborting\n";die();	}
+if($ldap->ldapFailed){echo "Starting......: ".date("H:i:s")." Postfix openldap error, aborting\n";die();	}
 
-if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){echo "Starting......: Postfix openldap is not ready, aborting\n";die();}
-echo "Starting......: Postfix openldap server success\n";
+if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){$ldap->BuildOrganizationBranch();}
+if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){
+	echo "Starting......: ".date("H:i:s")." dc=organizations,$ldap->suffix Failed to create Branch\n";
+	echo "Starting......: ".date("H:i:s")." dc=organizations,$ldap->suffix no such branch...\n";
+	echo "Starting......: ".date("H:i:s")." Postfix openldap is not ready, aborting\n";die();}
+echo "Starting......: ".date("H:i:s")." Postfix openldap server success\n";
 
 $q=new mysql();
-if(!$q->test_mysql_connection()){echo "Starting......: Postfix mysql is not ready aborting...\n";die();}
-echo "Starting......: Postfix mysql server success\n";
+if(!$q->test_mysql_connection()){echo "Starting......: ".date("H:i:s")." Postfix mysql is not ready aborting...\n";die();}
+echo "Starting......: ".date("H:i:s")." Postfix mysql server success\n";
 
 if($argv[1]=='--notifs-templates-force'){postfix_templates();die();}
 
@@ -60,6 +64,12 @@ $GLOBALS["EnableBlockUsersTroughInternet"]=$sock->GET_INFO("EnableBlockUsersTrou
 $GLOBALS["postconf"]=$unix->find_program("postconf");
 $GLOBALS["postmap"]=$unix->find_program("postmap");
 $GLOBALS["postfix"]=$unix->find_program("postfix");
+echo "Starting......: ".date("H:i:s")." Postfix bin postfix....: {$GLOBALS["postfix"]}\n";
+echo "Starting......: ".date("H:i:s")." Postfix bin postmap....: {$GLOBALS["postmap"]}\n";
+echo "Starting......: ".date("H:i:s")." Postfix bin postconf...: {$GLOBALS["postconf"]}\n";
+
+
+
 if($argv[1]=='--loadbalance'){haproxy_compliance();ReloadPostfix(true);die();}
 if($argv[1]=='--ScanLibexec'){ScanLibexec();die();}
 
@@ -99,6 +109,7 @@ if($argv[1]=='--restricted-domains'){restrict_relay_domains();exit;}
 if($argv[1]=='--debug-peer-list'){debug_peer_list();ReloadPostfix(true);die();}
 if($argv[1]=='--badnettr'){badnettr($argv[2],$argv[3],$argv[4]);ReloadPostfix(true);die();}
 if($argv[1]=='--milters'){smtpd_milters();RestartPostix();die();}
+if($argv[1]=='--cleanup'){CleanUpMainCf();die();}
 
 
 
@@ -126,7 +137,7 @@ if($argv[1]=='--reconfigure'){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: reconfigure2: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: reconfigure2: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
 		die();
 	}
 	
@@ -134,7 +145,7 @@ if($argv[1]=='--reconfigure'){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
 		die();
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -176,19 +187,19 @@ function smtp_cmdline_restrictions(){
 	    if($disable_vrfy_command==1){postconf("disable_vrfy_command","yes");}else{postconf("disable_vrfy_command","no");}
 	
 	
-		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> smtpd_recipient_restrictions() function\n ***\n";}
+		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: ".date("H:i:s")." Postfix -> smtpd_recipient_restrictions() function\n ***\n";}
 		smtpd_recipient_restrictions();
-		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> smtpd_client_restrictions() function\n ***\n";}
+		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: ".date("H:i:s")." Postfix -> smtpd_client_restrictions() function\n ***\n";}
 		smtpd_client_restrictions();
-		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> smtpd_sender_restrictions() function\n ***\n";}
+		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: ".date("H:i:s")." Postfix -> smtpd_sender_restrictions() function\n ***\n";}
 		smtpd_sender_restrictions();
 		
-		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> smtpd_data_restrictions() function\n ***\n";}
+		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions() function\n ***\n";}
 		smtpd_data_restrictions();
-		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> smtpd_end_of_data_restrictions() function\n ***\n";}
+		if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: ".date("H:i:s")." Postfix -> smtpd_end_of_data_restrictions() function\n ***\n";}
 		smtpd_end_of_data_restrictions();
 		if($GLOBALS["RELOAD"]){
-			if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: Postfix -> ReloadPostfix() function\n ***\n";}
+			if($GLOBALS["VERBOSE"]){echo "\n ***\nStarting......: ".date("H:i:s")." Postfix -> ReloadPostfix() function\n ***\n";}
 			ReloadPostfix(true);
 			
 		}	
@@ -199,9 +210,9 @@ function smtp_cmdline_restrictions(){
 function smtpd_data_restrictions(){
 	include_once(dirname(__FILE__)."/ressources/class.smtp_data_restrictions.inc");
 	$smtpd_data_restrictions=new smtpd_data_restrictions("master");
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> smtpd_data_restrictions->compile() function\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions->compile() function\n";}
 	$smtpd_data_restrictions->compile();
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> compiled \"$smtpd_data_restrictions->restriction_final\"\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> compiled \"$smtpd_data_restrictions->restriction_final\"\n";}
 	if($smtpd_data_restrictions->restriction_final<>null){
 		postconf("smtpd_data_restrictions",$smtpd_data_restrictions->restriction_final);
 	}
@@ -216,13 +227,16 @@ function HashTables($start=0){
 
 function _DefaultSettings(){
 if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-null");return;}
+
+	shell_exec("{$GLOBALS["postconf"]} -e 'debug_peer_level = 2' >/dev/null 2>&1");
+
 	$start=5;
-	$functions=array(
+	$functions=array("CleanUpMainCf","debug_peer_list",
 		"cleanMultiplesInstances","SetTLS","inet_interfaces","imap_sockets","MailBoxTransport","mynetworks",
 		"headers_check","mime_header_checks","smtpd_recipient_restrictions","smtpd_client_restrictions_clean",
 		"smtpd_client_restrictions","smtpd_sasl_exceptions_networks","sender_bcc_maps","CleanMyHostname","OthersValues","luser_relay",
 		"smtpd_sender_restrictions"	,"smtpd_end_of_data_restrictions","perso_settings","remove_virtual_mailbox_base","postscreen",
-		"smtp_sasl_security_options","smtp_sasl_auth_enable","SetSALS","BodyChecks","postfix_templates","debug_peer_list","haproxy_compliance","smtpd_milters",
+		"smtp_sasl_security_options","smtp_sasl_auth_enable","SetSALS","BodyChecks","postfix_templates","haproxy_compliance","smtpd_milters",
 		"MasterCFBuilder","ReloadPostfix"
 			
 			
@@ -267,16 +281,16 @@ if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".
 if($argv[1]=='--write-maincf'){
 	$unix=new unix();
 	if($GLOBALS["EnablePostfixMultiInstance"]==1){shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-write-maincf");return;}
-	echo "Starting......: Postfix Postfix Multi Instance disabled, single instance mode\n";
+	echo "Starting......: ".date("H:i:s")." Postfix Postfix Multi Instance disabled, single instance mode\n";
 	$main=new main_cf();
 	$main->save_conf_to_server(1);
 	file_put_contents('/etc/postfix/main.cf',$main->main_cf_datas);
-	echo "Starting......: Postfix Building main.cf ". strlen($main->main_cf_datas). "line ". __LINE__." bytes done\n";
+	echo "Starting......: ".date("H:i:s")." Postfix Building main.cf ". strlen($main->main_cf_datas). "line ". __LINE__." bytes done\n";
 	if(!is_file("/etc/postfix/hash_files/header_checks.cf")){@file_put_contents("/etc/postfix/hash_files/header_checks.cf","#");}
 	_DefaultSettings();
 	perso_settings();
 	if($argv[2]=='no-restart'){appliSecu();die();}
-	echo "Starting......: restarting postfix\n";
+	echo "Starting......: ".date("H:i:s")." restarting postfix\n";
 	$unix->send_email_events("Postfix will be restarted","Line: ". __LINE__."\nIn order to apply new configuration file","postfix");
 	shell_exec("/etc/init.d/artica-postfix restart postfix-single");
 	HashTables();
@@ -307,7 +321,7 @@ function ASSP_LOCALDOMAINS(){
 	while (list ($num, $ligne) = each ($domains) ){
 		$conf=$conf."$ligne\n";
 	}
-	echo "Starting......: ASSP ". count($domains)." local domains\n"; 
+	echo "Starting......: ".date("H:i:s")." ASSP ". count($domains)." local domains\n"; 
 	@file_put_contents("/usr/share/assp/files/localdomains.txt",$conf);
 	HashTables();
 	
@@ -319,11 +333,13 @@ function SetSALS(){
 	$main=new main_cf();
 	if($main->main_array["smtpd_tls_session_cache_timeout"]==null){$main->main_array["smtpd_tls_session_cache_timeout"]='3600s';}
 	if($PostFixSmtpSaslEnable==1){
-		echo "Starting......: SASL authentication is enabled\n";
-		
+		echo "Starting......: ".date("H:i:s")." SASL authentication is enabled\n";
+		$sock=new sockets();
+		$smtpd_sasl_path=$sock->GET_INFO("smtpd_sasl_path");
+		if($smtpd_sasl_path==null){$smtpd_sasl_path="/etc/postfix/sasl/smtpd.conf";}
 		$cmd["smtpd_sasl_auth_enable"]="yes";
 		$cmd["smtpd_use_tls"]="yes";
-		$cmd["smtpd_sasl_path"]="smtpd";
+		$cmd["smtpd_sasl_path"]="$smtpd_sasl_path";
 		$cmd["smtpd_sasl_authenticated_header"]="yes";
 		$cmd["smtpd_tls_session_cache_database"]="btree:\\\$data_directory/smtpd_tls_cache";
 		$cmd["smtpd_tls_key_file"]="/etc/ssl/certs/postfix/ca.key";
@@ -331,14 +347,14 @@ function SetSALS(){
 		$cmd["smtpd_tls_CAfile"]="/etc/ssl/certs/postfix/ca.csr";
 		$cmd["smtpd_delay_reject"]="yes";
 		$cmd["smtpd_tls_session_cache_timeout"]=$main->main_array["smtpd_tls_session_cache_timeout"];
-		echo "Starting......: SASL authentication running ". count($cmd)." commands\n";
+		echo "Starting......: ".date("H:i:s")." SASL authentication running ". count($cmd)." commands\n";
 		while (list ($num, $ligne) = each ($cmd) ){
 			postconf($num,$ligne);
 			
 		}
 		
 	}else{
-		echo "Starting......: SASL authentication is disabled\n";
+		echo "Starting......: ".date("H:i:s")." SASL authentication is disabled\n";
 		postconf("smtpd_sasl_auth_enable","no");
 		postconf("smtpd_sasl_authenticated_header","no");
 		postconf("smtpd_use_tls","no");
@@ -440,7 +456,7 @@ function SetTLS(){
 function mynetworks(){
 	
 	if($GLOBALS["EnablePostfixMultiInstance"]==1){
-		echo "Starting......: Building mynetworks multiple-instances, enabled\n";
+		echo "Starting......: ".date("H:i:s")." Building mynetworks multiple-instances, enabled\n";
 		postconf("mynetworks","127.0.0.0/8");
 		shell_exec(LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.exec.postfix-multi.php --reload-all");
 		return;
@@ -454,7 +470,7 @@ function mynetworks(){
 	
 	
 	if($MynetworksInISPMode==1){
-		echo "Starting......: Building mynetworks ISP Mode enabled\n";
+		echo "Starting......: ".date("H:i:s")." Building mynetworks ISP Mode enabled\n";
 		postconf("mynetworks","127.0.0.0/24, 127.0.0.0/8, 127.0.0.1");
 		return;	
 	}
@@ -484,7 +500,7 @@ function mynetworks(){
 	$inline=@implode(", ",$nets);
 	$inline=str_replace(',,',',',$inline);
 	$config_net=@implode("\n",$nets);
-	echo "Starting......: Postfix Building mynetworks ". count($nets)." Networks ($inline)\n";
+	echo "Starting......: ".date("H:i:s")." Postfix Building mynetworks ". count($nets)." Networks ($inline)\n";
 	@file_put_contents("/etc/artica-postfix/mynetworks",$config_net);
 	postconf("mynetworks",$inline);
 }
@@ -511,7 +527,7 @@ function remove_virtual_mailbox_base(){
 	$found=false;
 	while (list ($num, $line) = each ($f) ){
 		if(preg_match("#virtual_mailbox_base#",$line)){
-			echo "Starting......: Postfix remove virtual_mailbox_base entry\n";
+			echo "Starting......: ".date("H:i:s")." Postfix remove virtual_mailbox_base entry\n";
 			unset($f[$line]);
 			$found=true;
 		}
@@ -567,14 +583,14 @@ function ReloadPostfix($nohastables=false){
 	if($myOrigin==null){$myOrigin="localhost.localdomain";}
 	$postfix=$unix->find_program("postfix");
 	$daemon_directory=$unix->LOCATE_POSTFIX_DAEMON_DIRECTORY();
-	echo "Starting......: Postfix daemon directory \"$daemon_directory\"\n";
+	echo "Starting......: ".date("H:i:s")." Postfix daemon directory \"$daemon_directory\"\n";
 	postconf("daemon_directory",$daemon_directory);
 	
 	
 	if($myOrigin==null){$myOrigin="localhost.localdomain";}
 	
 	if(!$nohastables){
-		echo "Starting......: Postfix launch datases compilation...\n";
+		echo "Starting......: ".date("H:i:s")." Postfix launch datases compilation...\n";
 		buildtables_background();
 	}
 	
@@ -596,12 +612,13 @@ function ReloadPostfix($nohastables=false){
 	
 	postconf_strip_key();
 	
-	echo "Starting......: Postfix Apply securities issues\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix Apply securities issues\n"; 
 	appliSecu();
-	echo "Starting......: Postfix Reloading ASSP\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix Reloading ASSP\n"; 
 	system("/usr/share/artica-postfix/bin/artica-install --reload-assp");
-	echo "Starting......: Postfix reloading postfix master with \"$postfix\"\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading postfix master with \"$postfix\"\n";
 	ScanLibexec();
+	CleanUpMainCf();
 	if(is_file($postfix)){shell_exec("$postfix reload >/dev/null 2>&1");return;}
 	
 	
@@ -611,7 +628,7 @@ function ReloadPostfix($nohastables=false){
 function appliSecu(){
 	$unix=new unix();
 	$chmod=$unix->find_program("chmod");
-	echo "Starting......: Postfix verify permissions...\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix verify permissions...\n"; 
 	if(is_file("/var/lib/postfix/smtpd_tls_session_cache.db")){shell_exec("/bin/chown postfix:postfix /var/lib/postfix/smtpd_tls_session_cache.db");}
 	if(is_file("/var/lib/postfix/master.lock")){@chown("/var/lib/postfix/master.lock","postfix");}
 	if(is_dir("/var/spool/postfix/pid")){@chown("/var/spool/postfix/pid", "root");}
@@ -628,7 +645,7 @@ function appliSecu(){
 	}
 	if(is_dir("/var/spool/postfix/public")){@chgrp("/var/spool/postfix/public", "postdrop");}
 	if(is_dir("/var/spool/postfix/maildrop")){@chgrp("/var/spool/postfix/maildrop", "postdrop");}
-	echo "Starting......: Postfix verify permissions done\n";
+	echo "Starting......: ".date("H:i:s")." Postfix verify permissions done\n";
 	
 	
 	
@@ -637,7 +654,7 @@ function appliSecu(){
 
 function cleanMultiplesInstances(){
 	foreach (glob("/etc/postfix-*",GLOB_ONLYDIR ) as $dirname) {
-	    echo "Starting......: Postfix removing old instance ". basename($dirname)."\n";
+	    echo "Starting......: ".date("H:i:s")." Postfix removing old instance ". basename($dirname)."\n";
 	    shell_exec("/bin/rm -rf $dirname");
 	}
 	postconf("multi_instance_directories",null);
@@ -665,14 +682,14 @@ function BuildDefaultBranchs(){
 
 function imap_sockets(){
 	if(!is_file("/etc/imapd.conf")){
-		echo "Starting......: cyrus transport no available\n";
+		echo "Starting......: ".date("H:i:s")." cyrus transport no available\n";
 		return;
 	}
 	
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus");
 	
 	
-	echo "Starting......: cyrus analyze /etc/imapd.conf\n";
+	echo "Starting......: ".date("H:i:s")." cyrus analyze /etc/imapd.conf\n";
 	$f=explode("\n",@file_get_contents("/etc/imapd.conf"));
 	while (list ($num, $ligne) = each ($f) ){
 		if(preg_match("#lmtpsocket:(.+)#",$ligne,$re)){
@@ -684,7 +701,7 @@ function imap_sockets(){
 	while (list ($num, $ligne) = each ($f) ){
 		if(substr($ligne,0,1)=="#"){continue;}
 		if(preg_match("#lmtpunix\s+(.+)#",$ligne,$re)){
-			echo "Starting......: cyrus lmtpunix: $ligne\n";
+			echo "Starting......: ".date("H:i:s")." cyrus lmtpunix: $ligne\n";
 			$f[$num]="  lmtpunix	cmd=\"lmtpd\" listen=\"$socket\" prefork=1";
 			$write=true;
 		}
@@ -692,14 +709,15 @@ function imap_sockets(){
 	
 	if($write){
 		@file_put_contents("/etc/cyrus.conf",implode("\n",$f));
-		shell_exec("/etc/init.d/artica-postfix restart imap");
+		shell_exec("/etc/init.d/cyrus-imapd restart");
 	}
 	if(!is_file($socket)){
 		if(is_file("$socket=")){$socket="$socket=";}
 	}
 	
-	echo "Starting......: cyrus transport: unix: $socket\n";
+	echo "Starting......: ".date("H:i:s")." cyrus transport: unix:$socket\n";
 	if($socket<>null){
+		echo "Starting......: ".date("H:i:s")." mailbox_transport=lmtp:unix:$socket\n";
 		postconf("mailbox_transport","lmtp:unix:$socket");
 		shell_exec("postfix stop");
 		shell_exec("postfix start");
@@ -714,7 +732,7 @@ function policyd_weight_reconfigure(){
 	$pol=new policydweight();
 	$conf=$pol->buildConf();
 	@file_put_contents("/etc/artica-postfix/settings/Daemons/PolicydWeightConfig",$conf);
-	echo "Starting......: policyd-weight building first config done\n";
+	echo "Starting......: ".date("H:i:s")." policyd-weight building first config done\n";
 }
 
 function mime_header_checks(){
@@ -742,19 +760,19 @@ function mime_header_checks(){
 		}
 
 	}else{
-		echo "Starting......: Blocking extensions trough postfix is disabled\n";
+		echo "Starting......: ".date("H:i:s")." Blocking extensions trough postfix is disabled\n";
 	}
 	
 	
 	if(count($f)==0){
-		echo "Starting......: No extensions blocked\n";
+		echo "Starting......: ".date("H:i:s")." No extensions blocked\n";
 		if($extmime<>null){postconf("mime_header_checks",$extmime);}
 		postconf("mime_header_checks",null);
 		return;
 	}
 	
 	$strings=implode("|",$f);
-	echo "Starting......: ". count($f)." extensions blocked\n";
+	echo "Starting......: ".date("H:i:s")." ". count($f)." extensions blocked\n";
 	$pattern[]="/^\s*Content-(Disposition|Type).*name\s*=\s*\"?(.+\.($strings))\"?\s*$/\tREJECT file attachment types is not allowed. File \"$2\" has the unacceptable extension \"$3\"";
 	$pattern[]="";
 	@file_put_contents("/etc/postfix/mime_header_checks",implode("\n",$pattern));
@@ -766,7 +784,7 @@ function mime_header_checks(){
 function smtp_sasl_auth_enable(){
 	$ldap=new clladp();
 	if($ldap->ldapFailed){
-		echo "Starting......: SMTP SALS connection to ldap failed\n";
+		echo "Starting......: ".date("H:i:s")." SMTP SALS connection to ldap failed\n";
 		return;
 	}
 
@@ -780,7 +798,7 @@ function smtp_sasl_auth_enable(){
 			$count=$hash["count"];
 		}
 	
-	echo "Starting......: SMTP SALS $count account(s)\n"; 	
+	echo "Starting......: ".date("H:i:s")." SMTP SALS $count account(s)\n"; 	
 	if($count>0){
 		postconf("smtp_sasl_auth_enable","yes");
 		postconf("smtp_sender_dependent_authentication","yes");
@@ -858,7 +876,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	
 	
 	if($GLOBALS["VERBOSE"]){
-		echo "Starting......: smtpd_client_restrictions: origin:".@implode(",",$newHash)."\n";
+		echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: origin:".@implode(",",$newHash)."\n";
 	}
 	
 	$main=new maincf_multi("master","master");
@@ -873,14 +891,14 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 				if(preg_match("#hash:(.+)$#",$ligne,$re)){
 					$path=trim($re[1]);
 					if(!is_file($path)){
-						echo "Starting......: smtpd_client_restrictions: bungled \"$ligne\"\n"; 
+						echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: bungled \"$ligne\"\n"; 
 						continue;
 					}
 				}
 				
 				if(preg_match("#reject_rbl_client=(.+?)$#",$ligne,$re)){
 					$rbl=trim($re[1]);
-						echo "Starting......: reject_rbl_client: bungled \"$ligne\" fix it\n"; 
+						echo "Starting......: ".date("H:i:s")." reject_rbl_client: bungled \"$ligne\" fix it\n"; 
 						$num="reject_rbl_client $rbl";
 						continue;
 					}
@@ -899,7 +917,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	if($reject_invalid_hostname==1){$smtpd_client_restrictions[]="reject_invalid_hostname";}
 	
 	if($EnablePostfixAntispamPack==1){
-		echo "Starting......: smtpd_client_restrictions:Anti-spam Pack is enabled\n";
+		echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions:Anti-spam Pack is enabled\n";
 		if(!is_file("/etc/postfix/postfix_allowed_connections")){@file_put_contents("/etc/postfix/postfix_allowed_connections","#");}
 		$smtpd_client_restrictions[]="check_client_access \"hash:/etc/postfix/postfix_allowed_connections\"";
 		$smtpd_client_restrictions[]="reject_non_fqdn_hostname";
@@ -915,14 +933,14 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		array_unshift($smtpd_client_restrictions,"check_policy_service inet:127.0.0.1:54423");
 	}
 
-	echo "Starting......: smtpd_client_restrictions: ". count($smtpd_client_restrictions)." rule(s)\n";
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: ". count($smtpd_client_restrictions)." rule(s)\n";
 	
 	
 	if($EnableAmavisInMasterCF==1){
 		if($EnableAmavisDaemon==1){
 			$count=amavis_internal();
 			if($count>0){
-				echo "Starting......: $count addresses bypassing amavisd new\n";
+				echo "Starting......: ".date("H:i:s")." $count addresses bypassing amavisd new\n";
 				$amavis_internal="check_client_access hash:/etc/postfix/amavis_internal,";
 			}
 		}
@@ -948,12 +966,12 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		
 		if(is_array($smtpd_client_restrictions)){
 			while (list ($num, $ligne) = each ($smtpd_client_restrictions) ){
-				echo "Starting......: smtpd_client_restrictions : $ligne\n";
+				echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions : $ligne\n";
 				$smtpd_client_restrictions[]=trim($ligne);}
 		}
 	   //CLEAN engine ---------------------------------------------------------------------------------------
 	}else{
-		echo "Starting......: smtpd_client_restrictions: Not an array\n";
+		echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: Not an array\n";
 	}	
 	
 	$newval=null;
@@ -966,7 +984,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	}else{
 		
 		if($amavis_internal<>null){
-			echo "Starting......: smtpd_client_restrictions: adding amavis internal\n";
+			echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: adding amavis internal\n";
 			$newval="check_client_access hash:/etc/postfix/amavis_internal";
 		}
 	}
@@ -1030,7 +1048,7 @@ function smtpd_recipient_restrictions(){
 		if(preg_match("#hash:(.+)$#",$ligne,$re)){
 				$path=trim($re[1]);
 				if(!is_file($path)){
-					echo "Starting......: smtpd_recipient_restrictions: bungled \"$ligne\"\n"; 
+					echo "Starting......: ".date("H:i:s")." smtpd_recipient_restrictions: bungled \"$ligne\"\n"; 
 					continue;
 				}
 			}
@@ -1051,7 +1069,7 @@ function smtpd_recipient_restrictions(){
 	if($TrustMyNetwork==0 && $MynetworksInISPMode==1){$TrustMyNetwork=1;}
 	
 	if($TrustMyNetwork==1){$smtpd_recipient_restrictions[]="permit_mynetworks";}else{
-		echo "Starting......: **** TrustMyNetwork is disabled, outgoing messages should be not allowed... **** \n";
+		echo "Starting......: ".date("H:i:s")." **** TrustMyNetwork is disabled, outgoing messages should be not allowed... **** \n";
 		
 	}
 	$smtpd_recipient_restrictions[]="permit_sasl_authenticated";
@@ -1075,22 +1093,22 @@ function smtpd_recipient_restrictions(){
 	$reject_forged_mails=$sock->GET_INFO("reject_forged_mails");
 	if($reject_forged_mails==1){
 		if(smtpd_recipient_restrictions_reject_forged_mails()){
-			echo "Starting......: Reject Forged mails enabled\n"; 	
+			echo "Starting......: ".date("H:i:s")." Reject Forged mails enabled\n"; 	
 			$smtpd_recipient_restrictions[]="check_sender_access hash:/etc/postfix/disallow_my_domain";
 		}
 	}else{
-		echo "Starting......: Reject Forged mails disabled\n"; 			
+		echo "Starting......: ".date("H:i:s")." Reject Forged mails disabled\n"; 			
 	}
 	
 	$EnableGenericrDNSClients=$sock->GET_INFO("EnableGenericrDNSClients");
 	if(!$users->POSTFIX_PCRE_COMPLIANCE){$EnableGenericrDNSClients=0;}
 	
 	if($EnableGenericrDNSClients==1){
-		echo "Starting......: Reject Public ISP reverse DNS patterns enabled\n"; 
+		echo "Starting......: ".date("H:i:s")." Reject Public ISP reverse DNS patterns enabled\n"; 
 		$smtpd_recipient_restrictions[]="check_client_access pcre:/etc/postfix/fqrdns.pcre";
 		shell_exec("/bin/cp /usr/share/artica-postfix/bin/install/postfix/fqrdns.pcre /etc/postfix/fqrdns.pcre");
 	}else{
-		echo "Starting......: Reject Public ISP reverse DNS patterns disabled\n";
+		echo "Starting......: ".date("H:i:s")." Reject Public ISP reverse DNS patterns disabled\n";
 	}
 	
 	
@@ -1106,7 +1124,7 @@ function smtpd_recipient_restrictions(){
 
 
 	if($GLOBALS["EnableBlockUsersTroughInternet"]==1){
-		echo "Starting......: Restricted users are enabled\n"; 	
+		echo "Starting......: ".date("H:i:s")." Restricted users are enabled\n"; 	
 		if(RestrictedForInternet()){
  			postconf("auth_relay","check_recipient_access hash:/etc/postfix/local_domains, reject");
 			 array_unshift($smtpd_recipient_restrictions,"check_sender_access hash:/etc/postfix/unrestricted_senders");
@@ -1165,7 +1183,7 @@ function amavis_bypass_byrecipients(){
 		}
 	}
 	$postmap=$unix->find_program("postmap");
-	echo "Starting......: ". count($f) ." bypass recipient(s) for amavisd new\n"; 	
+	echo "Starting......: ".date("H:i:s")." ". count($f) ." bypass recipient(s) for amavisd new\n"; 	
 	
 	$f[]="";
 	@file_put_contents("/etc/postfix/amavis_bypass_rcpt",@implode("\n",$f));
@@ -1276,7 +1294,7 @@ function smtpd_recipient_restrictions_reject_forged_mails(){
 	
 	if(!is_array($f)){return false;}
 	@file_put_contents("/etc/postfix/disallow_my_domain",@implode("\n",$f));
-	echo "Starting......: compiling domains against forged messages\n";
+	echo "Starting......: ".date("H:i:s")." compiling domains against forged messages\n";
 	shell_exec("$postmap hash:/etc/postfix/disallow_my_domain");
 	return true;
 }
@@ -1286,13 +1304,13 @@ function RestrictedForInternet($reload=false){
 	$unix=new unix();
 	$GLOBALS["postmap"]=$unix->find_program("postmap");
 	$restricted_users=$users=$main->check_sender_access();
-	if(!$reload){echo "Starting......: Restricted users ($restricted_users)\n";}
+	if(!$reload){echo "Starting......: ".date("H:i:s")." Restricted users ($restricted_users)\n";}
 	if($restricted_users>0){
 		@copy("/etc/artica-postfix/settings/Daemons/unrestricted_senders","/etc/postfix/unrestricted_senders");
 		@copy("/etc/artica-postfix/settings/Daemons/unrestricted_senders_domains","/etc/postfix/local_domains");
-		echo "Starting......: Compiling unrestricted users ($restricted_users)\n";
+		echo "Starting......: ".date("H:i:s")." Compiling unrestricted users ($restricted_users)\n";
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/unrestricted_senders");
-		echo "Starting......: Compiling local domains\n";
+		echo "Starting......: ".date("H:i:s")." Compiling local domains\n";
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/local_domains");
 		if($reload){shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");}
 		return true;
@@ -1336,7 +1354,7 @@ function CleanMyHostname(){
 	}
 	
 
-	echo "Starting......: Hostname=$myhostname\n";
+	echo "Starting......: ".date("H:i:s")." Hostname=$myhostname\n";
 	
 	postconf("myhostname",$myhostname);
 	
@@ -1359,11 +1377,11 @@ function smtpd_sasl_exceptions_networks(){
 	
 	if(count($nets)>0){
 		$final_nets=implode(",",$nets);
-		echo "Starting......: SASL exceptions enabled\n";
+		echo "Starting......: ".date("H:i:s")." SASL exceptions enabled\n";
 		postconf("smtpd_sasl_exceptions_networks",$final_nets);
 		
 	}else{
-		echo "Starting......: SASL exceptions disabled\n";
+		echo "Starting......: ".date("H:i:s")." SASL exceptions disabled\n";
 		postconf("smtpd_sasl_exceptions_networks",null);
 		
 	}
@@ -1373,7 +1391,7 @@ function sender_bcc_maps(){
 if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$sender_bcc_maps_path=$sock->GET_INFO("sender_bcc_maps_path");
 	if(is_file($sender_bcc_maps_path)){
-		echo "Starting......: Sender BCC \"$sender_bcc_maps_path\"\n";
+		echo "Starting......: ".date("H:i:s")." Sender BCC \"$sender_bcc_maps_path\"\n";
 		postconf("sender_bcc_maps","hash:$sender_bcc_maps_path");
 		shell_exec("{$GLOBALS["postmap"]} hash:$sender_bcc_maps_path");
 	}
@@ -1386,7 +1404,7 @@ function OthersValues(){
 	$main=new main_cf();
 	$mainmulti=new maincf_multi("master","master");
 	$main->FillDefaults();	
-	echo "Starting......: Fix others settings\n";
+	echo "Starting......: ".date("H:i:s")." Fix others settings\n";
 	
 	$message_size_limit=$sock->GET_INFO("message_size_limit");
 	if(!is_numeric($message_size_limit)){
@@ -1554,25 +1572,25 @@ function OthersValues(){
 	
 	if($main->main_array["header_address_token_limit"]==null){$main->main_array["header_address_token_limit"]=10240;}
 	
-	echo "Starting......: message_size_limit={$main->main_array["message_size_limit"]}\n";
-	echo "Starting......: default_destination_recipient_limit={$main->main_array["default_destination_recipient_limit"]}\n";
-	echo "Starting......: smtpd_recipient_limit={$main->main_array["smtpd_recipient_limit"]}\n";
-	echo "Starting......: *** MIME PROCESSING ***\n";
-	echo "Starting......: mime_nesting_limit=$mime_nesting_limit\n";
-	echo "Starting......: detect_8bit_encoding_header=$detect_8bit_encoding_header\n";
-	echo "Starting......: disable_mime_input_processing=$disable_mime_input_processing\n";
-	echo "Starting......: disable_mime_output_conversion=$disable_mime_output_conversion\n";
+	echo "Starting......: ".date("H:i:s")." message_size_limit={$main->main_array["message_size_limit"]}\n";
+	echo "Starting......: ".date("H:i:s")." default_destination_recipient_limit={$main->main_array["default_destination_recipient_limit"]}\n";
+	echo "Starting......: ".date("H:i:s")." smtpd_recipient_limit={$main->main_array["smtpd_recipient_limit"]}\n";
+	echo "Starting......: ".date("H:i:s")." *** MIME PROCESSING ***\n";
+	echo "Starting......: ".date("H:i:s")." mime_nesting_limit=$mime_nesting_limit\n";
+	echo "Starting......: ".date("H:i:s")." detect_8bit_encoding_header=$detect_8bit_encoding_header\n";
+	echo "Starting......: ".date("H:i:s")." disable_mime_input_processing=$disable_mime_input_processing\n";
+	echo "Starting......: ".date("H:i:s")." disable_mime_output_conversion=$disable_mime_output_conversion\n";
 	
 	
 	
-	echo "Starting......: header_address_token_limit={$main->main_array["header_address_token_limit"]}\n";
-	echo "Starting......: minimal_backoff_time=$minimal_backoff_time\n";
-	echo "Starting......: maximal_backoff_time=$maximal_backoff_time\n";
-	echo "Starting......: maximal_queue_lifetime=$maximal_queue_lifetime\n";
-	echo "Starting......: bounce_queue_lifetime=$bounce_queue_lifetime\n";
-	echo "Starting......: ignore_mx_lookup_error=$ignore_mx_lookup_error\n";
-	echo "Starting......: disable_dns_lookups=$disable_dns_lookups\n";
-	echo "Starting......: smtpd_banner=$smtpd_banner\n";
+	echo "Starting......: ".date("H:i:s")." header_address_token_limit={$main->main_array["header_address_token_limit"]}\n";
+	echo "Starting......: ".date("H:i:s")." minimal_backoff_time=$minimal_backoff_time\n";
+	echo "Starting......: ".date("H:i:s")." maximal_backoff_time=$maximal_backoff_time\n";
+	echo "Starting......: ".date("H:i:s")." maximal_queue_lifetime=$maximal_queue_lifetime\n";
+	echo "Starting......: ".date("H:i:s")." bounce_queue_lifetime=$bounce_queue_lifetime\n";
+	echo "Starting......: ".date("H:i:s")." ignore_mx_lookup_error=$ignore_mx_lookup_error\n";
+	echo "Starting......: ".date("H:i:s")." disable_dns_lookups=$disable_dns_lookups\n";
+	echo "Starting......: ".date("H:i:s")." smtpd_banner=$smtpd_banner\n";
 	
 	
 	
@@ -1586,13 +1604,13 @@ function OthersValues(){
 	if(preg_match("#^([0-9]+)\.([0-9]+)#", $postfix_ver,$re)){$MAJOR=$re[1];$MINOR=$re[2];}
 	if($MAJOR>1){
 		if($MINOR>9){
-			postconf("smtpd_relay_restrictions","permit_mynetworks, reject_unauth_destination");
+			postconf("smtpd_relay_restrictions","permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination");
 		}
 	}
 
 	
 	$address_verify_negative_cache=$mainmulti->YesNo($address_verify_negative_cache);
-
+	echo "Starting......: ".date("H:i:s")." Apply all settings..\n";
 	postconf("smtpd_reject_unlisted_sender","$smtpd_reject_unlisted_sender");
 	postconf("smtpd_reject_unlisted_recipient","$smtpd_reject_unlisted_recipient");
 	postconf("address_verify_map","$address_verify_map");
@@ -1671,8 +1689,9 @@ function OthersValues(){
 	}
 	
 	$hashT=new main_hash_table();
+	echo "Starting......: ".date("H:i:s")." Apply mydestination\n";
 	$hashT->mydestination();	
-	
+	echo "Starting......: ".date("H:i:s")." Apply perso_settings\n";
 	perso_settings();
 }
 
@@ -1706,11 +1725,11 @@ function inet_interfaces(){
 		$val=trim($val);
 		if($val==null){continue;}
 		if($val=="all"){
-			echo "Starting......: Postfix skip $val\n";
+			echo "Starting......: ".date("H:i:s")." Postfix skip $val\n";
 			continue;
 		}
 		if(isset($already[$val])){continue;}
-		echo "Starting......: Postfix checking interface : `$val`\n";
+		echo "Starting......: ".date("H:i:s")." Postfix checking interface : `$val`\n";
 		if($val=="127.0.0.1"){
 			$newarray[]=$val;
 			$already[$val]=true;
@@ -1718,7 +1737,7 @@ function inet_interfaces(){
 		}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $val)){
 			if(!isset($INTERFACE[$val])){
-				echo "Starting......: Postfix $val interface not found\n";
+				echo "Starting......: ".date("H:i:s")." Postfix $val interface not found\n";
 				continue;
 			}
 		}
@@ -1727,7 +1746,7 @@ function inet_interfaces(){
 		if(preg_match("#[a-zA-Z]+[0-9]+#", $val)){
 			$ipsaddrs=LoadIpAddresses($val);
 			while (list ($a, $b) = each ($ipsaddrs) ){
-				echo "Starting......: Postfix found interface '$b'\n";
+				echo "Starting......: ".date("H:i:s")." Postfix found interface '$b'\n";
 				$newarray[]=$b;
 			}
 		continue;
@@ -1735,7 +1754,7 @@ function inet_interfaces(){
 		
 		if($val=="all"){continue;}
 		
-		echo "Starting......: Postfix add $val interface in settings\n";
+		echo "Starting......: ".date("H:i:s")." Postfix add $val interface in settings\n";
 		$newarray[]=$val;
 	}
 	
@@ -1744,7 +1763,7 @@ function inet_interfaces(){
 		$users=new usersMenus();
 		if(($users->roundcube_installed) OR ($users->ZARAFA_INSTALLED)){
 			if(!isset($testinets["127.0.0.1"])){
-				echo "Starting......: Postfix Listen interface Roundcube or Zarafa installed, force to listen 127.0.0.1\n";
+				echo "Starting......: ".date("H:i:s")." Postfix Listen interface Roundcube or Zarafa installed, force to listen 127.0.0.1\n";
 				$newarray[]="127.0.0.1";
 			}
 		}		
@@ -1762,7 +1781,7 @@ function inet_interfaces(){
 		$finale=@implode(",", $INTS);
 	}
 	
-	echo "Starting......: Postfix Listen interface(s) \"$finale\"\n";
+	echo "Starting......: ".date("H:i:s")." Postfix Listen interface(s) \"$finale\"\n";
 	
 	
 	postconf("inet_interfaces",$finale);
@@ -1778,7 +1797,7 @@ function inet_interfaces(){
 	if($PostfixEnableIpv6==null){$PostfixEnableIpv6=0;}
 	if($PostfixEnableIpv6=1){
 		if(trim($smtp_bind_address6)<>null){
-			echo "Starting......: Postfix Listen ipv6 \"$smtp_bind_address6\"\n";
+			echo "Starting......: ".date("H:i:s")." Postfix Listen ipv6 \"$smtp_bind_address6\"\n";
 			postconf("inet_protocols","all");
 			postconf("smtp_bind_address6",$smtp_bind_address6);
 		}
@@ -1793,7 +1812,9 @@ function MailBoxTransport(){
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
 	
+	echo "Starting......: ".date("H:i:s")." Postfix get mailbox transport\n";
 	$mailbox_transport=trim($main->GET("mailbox_transport"));
+	echo "Starting......: ".date("H:i:s")." Postfix get mailbox transport = \"$mailbox_transport\"\n";
 	
 	if($mailbox_transport<>null){
 		postconf("mailbox_transport",$mailbox_transport);
@@ -1805,7 +1826,7 @@ function MailBoxTransport(){
 
 	$default=$main->getMailBoxTransport();
 	postconf("zarafa_destination_recipient_limit",1);
-	echo "Starting......: Postfix mailbox_transport $default\n";
+	echo "Starting......: ".date("H:i:s")." Postfix mailbox_transport=`$default`\n";
 	postconf("mailbox_transport",$default);
 	
 
@@ -1813,11 +1834,11 @@ function MailBoxTransport(){
 	if(preg_match("#lmtp:(.+?):[0-9]+#",$default)){
 		if(!$users->ZARAFA_INSTALLED){
 			if(!$users->cyrus_imapd_installed){
-				echo "Starting......: Postfix None of Zarafa or cyrus imap installed on this server\n";
+				echo "Starting......: ".date("H:i:s")." Postfix None of Zarafa or cyrus imap installed on this server\n";
 				disable_lmtp_sasl();
 				return null;
 			}
-			echo "Starting......: Postfix \"LMTP\" is enabled ($default)\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"LMTP\" is enabled ($default)\n";
 			$ldap=new clladp();
 			$CyrusLMTPListen=trim($sock->GET_INFO("CyrusLMTPListen"));
 			$cyruspass=$ldap->CyrusPassword();
@@ -1838,7 +1859,7 @@ function MailBoxTransport(){
 	}
 	
 function disable_lmtp_sasl(){
-	echo "Starting......: Postfix LMTP is disabled\n";
+	echo "Starting......: ".date("H:i:s")." Postfix LMTP is disabled\n";
 	postconf("lmtp_sasl_auth_enable","no");
 	
 			
@@ -1861,11 +1882,11 @@ function luser_relay(){
 	if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$luser_relay=trim($sock->GET_INFO("luser_relay"));
 	if($luser_relay==null){
-		echo "Starting......: Postfix no Unknown user recipient set\n";
+		echo "Starting......: ".date("H:i:s")." Postfix no Unknown user recipient set\n";
 		system("{$GLOBALS["postconf"]} -e \"luser_relay = \" >/dev/null 2>&1");
 		return;
 	}
-	echo "Starting......: Postfix Unknown user set to $luser_relay\n";
+	echo "Starting......: ".date("H:i:s")." Postfix Unknown user set to $luser_relay\n";
 	postconf("luser_relay",$luser_relay);
 	postconf("local_recipient_maps",null);
 	if($GLOBALS["RELOAD"]){shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");}
@@ -1929,7 +1950,7 @@ function smtpd_end_of_data_restrictions(){
 	if(!is_numeric($ENABLE_POSTFWD2)){$ENABLE_POSTFWD2=0;}
 	
 	if($ENABLE_POSTFWD2==1){
-		echo "Starting......: Postfix Postfwd2 is enabled\n";
+		echo "Starting......: ".date("H:i:s")." Postfix Postfwd2 is enabled\n";
 		$smtpd_end_of_data_restrictions[]="check_policy_service inet:127.0.0.1:10040";
 	}
 	
@@ -1937,7 +1958,7 @@ function smtpd_end_of_data_restrictions(){
 	
 	if($users->CLUEBRINGER_INSTALLED){
 		if($EnableCluebringer==1){
-			echo "Starting......: Postfix ClueBringer is enabled\n";
+			echo "Starting......: ".date("H:i:s")." Postfix ClueBringer is enabled\n";
 			$smtpd_end_of_data_restrictions[]="check_policy_service inet:127.0.0.1:13331";
 		}
 	}
@@ -2010,20 +2031,20 @@ function fix_postdrop_perms(){
 function postscreen($hostname=null){
 	
 	if($GLOBALS["EnablePostfixMultiInstance"]==1){
-		echo "Starting......: PostScreen multiple instances, running for -> $hostname\n";
+		echo "Starting......: ".date("H:i:s")." PostScreen multiple instances, running for -> $hostname\n";
 		shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --postscreen $hostname");
 	}	
 	$permit_mynetworks=null;
 	$user=new usersMenus();
-	if(!$user->POSTSCREEN_INSTALLED){echo "Starting......: PostScreen is not installed, you should upgrade to 2.8 postfix version\n";return;}
+	if(!$user->POSTSCREEN_INSTALLED){echo "Starting......: ".date("H:i:s")." PostScreen is not installed, you should upgrade to 2.8 postfix version\n";return;}
 	$main=new maincf_multi("master","master");
 	$EnablePostScreen=$main->GET("EnablePostScreen");
 	$sock=new sockets();
 	$TrustMyNetwork=$sock->GET_INFO("TrustMyNetwork");
 	if(!is_numeric($TrustMyNetwork)){$TrustMyNetwork=1;}
 	
-	if($EnablePostScreen<>1){echo "Starting......: PostScreen is not enabled\n";return;}
-	echo "Starting......: PostScreen configuring....\n";
+	if($EnablePostScreen<>1){echo "Starting......: ".date("H:i:s")." PostScreen is not enabled\n";return;}
+	echo "Starting......: ".date("H:i:s")." PostScreen configuring....\n";
 	if(!is_file("/etc/postfix/postscreen_access.cidr")){@file_put_contents("/etc/postfix/postscreen_access.cidr","#");}
 	if(!is_file("/etc/postfix/postscreen_access.hosts")){@file_put_contents("/etc/postfix/postscreen_access.hosts"," ");}
 	if($TrustMyNetwork==1){$permit_mynetworks="permit_mynetworks,";}
@@ -2294,6 +2315,7 @@ function debug_peer_list(){
 	$datas=unserialize(base64_decode($main->GET_BIGDATA("debug_peer_list")));
 	
 	if(count($datas)==0){
+		postconf("debug_peer_level",2);
 		postconf("debug_peer_list",null);
 		return;
 	}
@@ -2322,29 +2344,29 @@ function haproxy_compliance(){
 		$minor=intval($re[2]);
 		$binver="{$major}{$minor}";
 		if($EnablePostfixHaProxy==1){
-			if($binver<210){echo "Starting......: HaProxy compliance: require 2.10 minimal.\n";return;}
+			if($binver<210){echo "Starting......: ".date("H:i:s")." HaProxy compliance: require 2.10 minimal.\n";return;}
 		}
 		
 	}
 	
 	if($EnablePostfixHaProxy==0){
-		echo "Starting......: HaProxy compliance: disabled\n";
+		echo "Starting......: ".date("H:i:s")." HaProxy compliance: disabled\n";
 		postconf("postscreen_upstream_proxy_protocol",null);
 		postconf("smtpd_upstream_proxy_protocol",null);
 		return;
 	}
 	
-	echo "Starting......: HaProxy compliance: enabled\n";
+	echo "Starting......: ".date("H:i:s")." HaProxy compliance: enabled\n";
 	$EnablePostScreen=$main->GET("EnablePostScreen");
 	if(!is_numeric($EnablePostScreen)){$EnablePostScreen=0;}	
 	if(!$users->POSTSCREEN_INSTALLED){$EnablePostScreen=0;}
 	
 	if($EnablePostScreen==1){
-		echo "Starting......: HaProxy compliance: enabled + PostScreen\n";
+		echo "Starting......: ".date("H:i:s")." HaProxy compliance: enabled + PostScreen\n";
 		postconf("postscreen_upstream_proxy_protocol","haproxy");
 		postconf("smtpd_upstream_proxy_protocol",null);
 	}else{
-		echo "Starting......: HaProxy compliance: enabled + SMTPD\n";
+		echo "Starting......: ".date("H:i:s")." HaProxy compliance: enabled + SMTPD\n";
 		postconf("postscreen_upstream_proxy_protocol",null);
 		postconf("smtpd_upstream_proxy_protocol","haproxy");
 	}
@@ -2363,7 +2385,7 @@ function ScanLibexec(){
 		if(!is_link("/usr/lib/postfix/$filename")){
 			if(!is_link("/usr/libexec/postfix/$filename")){
 				@unlink("/usr/lib/postfix/$filename");
-				echo "Starting......: linking $filename\n";
+				echo "Starting......: ".date("H:i:s")." linking $filename\n";
 				shell_exec("$ln -sf /usr/libexec/postfix/$filename /usr/lib/postfix/$filename");
 			}
 		}
@@ -2405,13 +2427,13 @@ function MasterCFBuilder($restart_service=false){
 	
 	$ver210=false;
 	$users=new usersMenus();
-	echo "Starting......: Postfix master version: $users->POSTFIX_VERSION\n";
+	echo "Starting......: ".date("H:i:s")." Postfix master version: $users->POSTFIX_VERSION\n";
 	if(preg_match("#^([0-9]+)\.([0-9]+)#", $users->POSTFIX_VERSION,$re)){
 		$major=intval($re[1]);
 		$minor=intval($re[2]);
 		$binver=intval("{$major}{$minor}");
 		if($binver >= 210){
-			echo "Starting......: Postfix master version: 2.10 [$binver] OK\n";
+			echo "Starting......: ".date("H:i:s")." Postfix master version: 2.10 [$binver] OK\n";
 			$ver210=true;}
 	}	
 	
@@ -2446,26 +2468,22 @@ function MasterCFBuilder($restart_service=false){
 
 	
 	if($EnableAmavisInMasterCF==1){
-		$MasterCFAmavisInstancesCount=$sock->GET_INFO("MasterCFAmavisInstancesCount");
-		if(!is_numeric($MasterCFAmavisInstancesCount)){
-				include_once(dirname(__FILE__).'/ressources/class.amavis.inc');
-				$amavisClass=new amavis();
-				$max_servers=$amavisClass->main_array["BEHAVIORS"]["max_servers"];
-				$MasterCFAmavisInstancesCount=$max_servers-1;	
-		}
+		$MasterCFAmavisInstancesCount=intval($sock->GET_INFO("MasterCFAmavisInstancesCount"));
 		if($MasterCFAmavisInstancesCount==0){$MasterCFAmavisInstancesCount="-";}
+		if($MasterCFAmavisInstancesCount<0){$MasterCFAmavisInstancesCount="-";}
 		$ADD_PRECLEANUP=true;
-		echo "Starting......: Amavis is enabled using post-queue mode\n";
-		echo "Starting......: artica-filter enable=$EnableArticaSMTPFilter\n";
+		echo "Starting......: ".date("H:i:s")." Amavis is enabled using post-queue mode\n";
+		echo "Starting......: ".date("H:i:s")." artica-filter enable=$EnableArticaSMTPFilter\n";
 		shell_exec("{$GLOBALS["postconf"]} -e \"content_filter = amavis:[127.0.0.1]:10024\" >/dev/null 2>&1");
 		if($EnableArticaSMTPFilter==1){
 			$artica_filter_amavis_option=" -o content_filter=artica-filter:";
 			$amavis_cleanup_infos  =" -o cleanup_service_name=pre-cleanup";
-			echo "Starting......: Artica-filter max process: $ArticaFilterMaxProc\n";	
+			echo "Starting......: ".date("H:i:s")." Artica-filter max process: $ArticaFilterMaxProc\n";	
 		}
 		if($EnableArticaSMTPFilter==0){$artica_filter_amavis_option=" -o content_filter=";}
 		
-		echo "Starting......: Amavis max process: $MasterCFAmavisInstancesCount\n";	
+		
+		echo "Starting......: ".date("H:i:s")." Amavis max process: $MasterCFAmavisInstancesCount\n";	
 		
 		if(isset($MASTER_CF_DEFINED["amavis"])){unset($MASTER_CF_DEFINED["amavis"]);}
 		
@@ -2512,8 +2530,8 @@ function MasterCFBuilder($restart_service=false){
 		$master_amavis="";
 		if($EnableArticaSMTPFilter==1){
 			$ADD_PRECLEANUP=true;
-			echo "Starting......: Enable Artica-filter globaly\n"; 
-			echo "Starting......: Artica-filter max process: $ArticaFilterMaxProc\n";	
+			echo "Starting......: ".date("H:i:s")." Enable Artica-filter globaly\n"; 
+			echo "Starting......: ".date("H:i:s")." Artica-filter max process: $ArticaFilterMaxProc\n";	
 			shell_exec("{$GLOBALS["postconf"]} -e \"content_filter = artica-filter:\" >/dev/null 2>&1");
 		}else{
 			shell_exec("{$GLOBALS["postconf"]} -e \"content_filter =\" >/dev/null 2>&1");
@@ -2521,7 +2539,7 @@ function MasterCFBuilder($restart_service=false){
 	}		
 	
 	if($ADD_PRECLEANUP){
-		echo "Starting......: Enable pre-cleanup service...\n";
+		echo "Starting......: ".date("H:i:s")." Enable pre-cleanup service...\n";
 		$pre_cleanup_addons=" -o smtp_generic_maps= -o canonical_maps= -o sender_canonical_maps= -o recipient_canonical_maps= -o masquerade_domains= -o recipient_bcc_maps= -o sender_bcc_maps=";
 		$re_cleanup_infos  =" -o cleanup_service_name=pre-cleanup";
 	}	
@@ -2529,7 +2547,7 @@ function MasterCFBuilder($restart_service=false){
 	
 	if($PostfixEnableMasterCfSSL==1){
 		if($TrustMyNetwork==1){$permit_mynetworks="permit_mynetworks,";}
-		echo "Starting......: Enabling SSL (465 port)\n";
+		echo "Starting......: ".date("H:i:s")." Enabling SSL (465 port)\n";
 		SetTLS();
 		$TLSSET=true;
 		if(isset($MASTER_CF_DEFINED["smtps"])){unset($MASTER_CF_DEFINED["smtps"]);}
@@ -2543,11 +2561,11 @@ function MasterCFBuilder($restart_service=false){
 		$SSL_INSTANCE[]=" -o smtpd_recipient_restrictions=permit_sasl_authenticated,reject";		
 		$smtp_ssl=@implode("\n",$SSL_INSTANCE);
 	}else{
-		echo "Starting......: SSL (465 port) Disabled\n";
+		echo "Starting......: ".date("H:i:s")." SSL (465 port) Disabled\n";
 	}
 
 	if($PostfixEnableSubmission==1){
-		echo "Starting......: Enabling submission (587 port)\n";
+		echo "Starting......: ".date("H:i:s")." Enabling submission (587 port)\n";
 		if(isset($MASTER_CF_DEFINED["submission"])){unset($MASTER_CF_DEFINED["submission"]);}
 		if(!$TLSSET){SetTLS();}
 		$TLSSET=true;
@@ -2566,7 +2584,7 @@ function MasterCFBuilder($restart_service=false){
 		$smtp_submission=@implode("\n",$SUBMISSION_INSTANCE);
 		
 	}else{
-		echo "Starting......: submission (587 port) Disabled\n";
+		echo "Starting......: ".date("H:i:s")." submission (587 port) Disabled\n";
 	}
 	
 	if($PostfixBindInterfacePort==25){
@@ -2578,14 +2596,14 @@ function MasterCFBuilder($restart_service=false){
 	}
 	
 	
-	echo "Starting......: Postfix intended to listen SMTP Port $postfix_listen_port\n";
+	echo "Starting......: ".date("H:i:s")." Postfix intended to listen SMTP Port $postfix_listen_port\n";
 	$smtp_in_proto="inet";
 	$smtp_private="n";
 	
 	
 	
 	if($EnableASSP==1){
-		echo "Starting......: ASSP is enabled change postfix listen port to 127.0.0.1:26\n";
+		echo "Starting......: ".date("H:i:s")." ASSP is enabled change postfix listen port to 127.0.0.1:26\n";
 		$postfix_listen_port="127.0.0.1:6000";
 		$postscreen_listen_port="127.0.0.1:6000";
 	}
@@ -2594,7 +2612,7 @@ function MasterCFBuilder($restart_service=false){
 	if($EnablePostScreen==1){
 		if(isset($MASTER_CF_DEFINED["tlsproxy"])){unset($MASTER_CF_DEFINED["tlsproxy"]);}
 		if(isset($MASTER_CF_DEFINED["dnsblog"])){unset($MASTER_CF_DEFINED["dnsblog"]);}
-		echo "Starting......: PostScreen is enabled, users should use 587 port to send mails internally\n"; 
+		echo "Starting......: ".date("H:i:s")." PostScreen is enabled, users should use 587 port to send mails internally\n"; 
 		$smtp_in_proto="pass";
 		$smtp_private="-";
 		if($postfix_listen_port=="smtp"){$postfix_listen_port="smtpd";}
@@ -2602,10 +2620,10 @@ function MasterCFBuilder($restart_service=false){
 		$tlsproxy="tlsproxy\tunix\t-\t-\tn\t-\t0\ttlsproxy";
 		$dnsblog="dnsblog\tunix\t-\t-\tn\t-\t0\tdnsblog";
 		}else{
-			echo "Starting......: PostScreen is disabled\n";
+			echo "Starting......: ".date("H:i:s")." PostScreen is disabled\n";
 		}
 	
-if($GLOBALS["VERBOSE"]){echo "Starting......: run MasterCF_DOMAINS_THROTTLE()\n";}	
+if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." run MasterCF_DOMAINS_THROTTLE()\n";}	
 $smtp_throttle=MasterCF_DOMAINS_THROTTLE();
 
 // http://www.ijs.si/software/amavisd/README.postfix.html	
@@ -2661,9 +2679,14 @@ if(count($MASTER_CF_DEFINED)==0){
 	$conf[]="bsmtp\tunix\t-\tn\tn\t-\t-\tpipe flags=Fq. user=bsmtp argv=/usr/lib/bsmtp/bsmtp -t\$nexthop -f\$sender \$recipient";
 }
 
+if(!isset($MASTER_CF_DEFINED["pre-cleanup"])){
+	$conf[]="pre-cleanup\tunix\tn\t-\tn\t-\t0\tcleanup$pre_cleanup_addons";
+}
+
 while (list ($service, $MFARRY) = each ($MASTER_CF_DEFINED) ){
+	$MFARRY["MAXPROC"]=intval($MFARRY["MAXPROC"]);
 	$conf[]="$service\t{$MFARRY["TYPE"]}\t{$MFARRY["PRIVATE"]}\t{$MFARRY["UNIPRIV"]}\t{$MFARRY["CHROOT"]}\t{$MFARRY["WAKEUP"]}\t{$MFARRY["MAXPROC"]}\t{$MFARRY["COMMAND"]}";
-	echo "Starting......: master.cf adding $service ({$MFARRY["TYPE"]})\n";
+	echo "Starting......: ".date("H:i:s")." master.cf adding $service ({$MFARRY["TYPE"]})\n";
 	
 }
 
@@ -2712,7 +2735,7 @@ $conf[]="	 -o smtpd_upstream_proxy_protocol=";
 $conf[]="";	
 $conf[]="";
 @file_put_contents("/etc/postfix/master.cf",@implode("\n",$conf));
-echo "Starting......: master.cf done\n";
+echo "Starting......: ".date("H:i:s")." master.cf done\n";
 if($GLOBALS["RELOAD"]){shell_exec("/usr/sbin/postfix reload >/dev/null 2>&1");}	
 
 if($restart_service){
@@ -2798,8 +2821,8 @@ function memory(){
 	$PostFixQueueInMemory=$sock->GET_INFO("PostFixQueueInMemory");
 	$directory="/var/spool/postfix";
 	if($PostFixEnableQueueInMemory==1){
-		echo "Starting......: Postfix Queue in memory is enabled for {$PostFixQueueInMemory}M\n";
-		echo "Starting......: Postfix executing exec.postfix-multi.php\n";
+		echo "Starting......: ".date("H:i:s")." Postfix Queue in memory is enabled for {$PostFixQueueInMemory}M\n";
+		echo "Starting......: ".date("H:i:s")." Postfix executing exec.postfix-multi.php\n";
 		shell_exec(LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.postfix-multi.php --instance-memory master $PostFixQueueInMemory$cmd_verbose");
 		return;
 	}else{
@@ -2808,7 +2831,7 @@ function memory(){
 			shell_exec(LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.postfix-multi.php --instance-memory-kill master$cmd_verbose");
 			return;
 		}
-		echo "Starting......: Postfix Queue in memory is not enabled\n"; 
+		echo "Starting......: ".date("H:i:s")." Postfix Queue in memory is not enabled\n"; 
 	}	
 	
 }
@@ -2829,55 +2852,55 @@ function repair_locks(){
 	@file_put_contents($timeFile, time());
 	@file_put_contents($pidFile, getmypid());
 	
-	echo "Starting......: Stopping postfix\n";
+	echo "Starting......: ".date("H:i:s")." Stopping postfix\n";
 	shell_exec("{$GLOBALS["postfix"]} stop");
 	$daemon_directory=$unix->POSTCONF_GET("daemon_directory");
 	$queue_directory=$unix->POSTCONF_GET("queue_directory");
-	echo "Starting......: Daemon directory: $daemon_directory\n";
-	echo "Starting......: Queue directory.: $queue_directory\n";
+	echo "Starting......: ".date("H:i:s")." Daemon directory: $daemon_directory\n";
+	echo "Starting......: ".date("H:i:s")." Queue directory.: $queue_directory\n";
 	$pid=$unix->PIDOF("$daemon_directory/master",true);
-	echo "Starting......: Process \"$daemon_directory/master\" PID:\"$pid\"\n";
+	echo "Starting......: ".date("H:i:s")." Process \"$daemon_directory/master\" PID:\"$pid\"\n";
 	
 	for($i=0;$i<10;$i++){
 		if(is_numeric($pid)){
 			if($pid>5){
-				echo "Starting......: Killing bad pid $pid\n";
+				echo "Starting......: ".date("H:i:s")." Killing bad pid $pid\n";
 				$unix->KILL_PROCESS($pid,9);
 				sleep(1);
 				
 			}
 		}else{
-			echo "Starting......: No $daemon_directory/master ghost process\n";
+			echo "Starting......: ".date("H:i:s")." No $daemon_directory/master ghost process\n";
 			break;
 		}
 		$pid=$unix->PIDOF("$daemon_directory/master");
 		
-		echo "Starting......: Process \"$daemon_directory/master\" PID:\"$pid\"\n";
+		echo "Starting......: ".date("H:i:s")." Process \"$daemon_directory/master\" PID:\"$pid\"\n";
 	}
 	
 	if(file_exists("$daemon_directory/master.lock")){
-		echo "Starting......: Delete $daemon_directory/master.lock\n";
+		echo "Starting......: ".date("H:i:s")." Delete $daemon_directory/master.lock\n";
 		@unlink("$daemon_directory/master.lock");
 	
 	}
 	if(file_exists("$queue_directory/pid/master.pid")){
-		echo "Starting......: Delete $queue_directory/pid/master.pid\n";
+		echo "Starting......: ".date("H:i:s")." Delete $queue_directory/pid/master.pid\n";
 		@unlink("$queue_directory/pid/master.pid");
 	}
 	
 	if(file_exists("$queue_directory/pid/inet.127.0.0.1:33559")){
-		echo "Starting......: $queue_directory/pid/inet.127.0.0.1:33559\n";
+		echo "Starting......: ".date("H:i:s")." $queue_directory/pid/inet.127.0.0.1:33559\n";
 		@unlink("$queue_directory/pid/inet.127.0.0.1:33559");
 	}
 	
 	
-	echo "Starting......: Starting postfix\n";
+	echo "Starting......: ".date("H:i:s")." Starting postfix\n";
 	exec("{$GLOBALS["postfix"]} start -v 2>&1",$results);
-	while (list ($template, $nothing) = each ($results) ){echo "Starting......: Starting postfix $nothing\n";}
+	while (list ($template, $nothing) = each ($results) ){echo "Starting......: ".date("H:i:s")." Starting postfix $nothing\n";}
 }
 
 function postconf($key,$value=null){
-	if($GLOBALS["VERBOSE"]){echo "set key $key = $value\n";}
+	if($GLOBALS["VERBOSE"]){echo "set {$GLOBALS["postconf"]} key $key = $value\n";}
 	shell_exec("{$GLOBALS["postconf"]} -e \"$key = $value\" >/dev/null 2>&1");
 	
 }
@@ -2889,7 +2912,7 @@ function postconf_strip_key(){
 		$line=str_replace("\r", "", $line);
 		$line=str_replace("\n", "", $line);
 		if(trim($line)==null){
-			echo "Starting......: Starting postfix cleaning line $index (unused line)\n";
+			echo "Starting......: ".date("H:i:s")." Starting postfix cleaning line $index (unused line)\n";
 			continue;
 		}
 		
@@ -2899,7 +2922,7 @@ function postconf_strip_key(){
 		}
 		
 		if(preg_match("#^(.*?)=(.*)#", $line,$re)){$value=trim($re[2]);if($value==null){
-			echo "Starting......: Starting postfix cleaning {$re[1]} (unused value `$line`)\n";
+			echo "Starting......: ".date("H:i:s")." Starting postfix cleaning {$re[1]} (unused value `$line`)\n";
 			continue;}}
 			
 		$t[]=$line;
@@ -2910,14 +2933,14 @@ function postconf_strip_key(){
 
 function smtpd_milters(){
 	if($GLOBALS["EnablePostfixMultiInstance"]==1){
-		echo "Starting......: Postfix EnablePostfixMultiInstance is enabled...\n";
+		echo "Starting......: ".date("H:i:s")." Postfix EnablePostfixMultiInstance is enabled...\n";
 		shell_exec(LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.postfix-multi.php --from-main-reconfigure");return;}	
 	
 	$main=new main_cf();
-	echo "Starting......: Postfix building milters...\n";
+	echo "Starting......: ".date("H:i:s")." Postfix building milters...\n";
 	$milter_array=$main->BuildMilters(true);
 	while (list ($key, $value) = each ($milter_array) ){
-		echo "Starting......: Postfix setting key `$key`...\n";
+		echo "Starting......: ".date("H:i:s")." Postfix setting key `$key`...\n";
 		postconf($key,$value);
 	}
 }
@@ -2929,6 +2952,69 @@ function wlscreen(){
 	
 	
 }
+function CleanUpMainCf(){
+	
+	$DBS["mydestination"]=true;
+	$DBS["copy.transport"]=true;
+	$DBS["sender_dependent_relayhost"]=true;
+	$DBS["sender_canonical"]=true;
+	$DBS["sender_bcc"]=true;
+	$DBS["recipient_bcc"]=true;
+	$DBS["smtp_generic_maps"]=true;
+	$DBS["relay_domains"]=true;
+	$DBS["transport"]=true;
+	$DBS["transport.banned"]=true;
+	
 
+	if(!is_file("/etc/postfix/header_checks")){@file_put_contents("/etc/postfix/header_checks", "\n");}
+	
+	while (list ($filename, $none) = each ($DBS) ){
+		if(!is_file("/etc/postfix/$filename")){@file_put_contents("/etc/postfix/$filename", "\n");}
+		
+		if(!is_file("/etc/postfix/$filename.db")){
+			echo "Starting......: ".date("H:i:s")." Postfix compiling $filename database\n";
+			shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/$filename >/dev/null 2>&1");
+		}
+		
+	}
+	
+	$f=explode("\n",@file_get_contents("/etc/postfix/main.cf"));
+	while (list ($index, $line) = each ($f) ){
+		if(preg_match("#^\##", $line)){
+			echo "Starting......: ".date("H:i:s")." Postfix cleaning mark line $line\n";
+			continue;
+		}
+		
+		if(preg_match("#PATH=\/bin#s", $line)){
+			echo "Starting......: ".date("H:i:s")." Postfix cleaning bad parameters $line\n";
+			continue;
+		}
+		
+		if(preg_match("#ddd\s+.*?daemon#is", $line)){
+			echo "Starting......: ".date("H:i:s")." Postfix cleaning bad parameters $line\n";
+			continue;
+		}
+		
+		
+		if(preg_match("#^(.+?)=(.*)#", $line,$re)){
+			if(trim($re[2])==null){
+				echo "Starting......: ".date("H:i:s")." Postfix cleaning unused parameter `{$re[1]}`\n";
+				continue; 
+			}
+		}
+		
+		
+		$r[]=$line;
+		
+	}
+	
+	@file_put_contents("/etc/postfix/main.cf", @implode("\n", $r));
+	echo "Starting......: ".date("H:i:s")." Postfix cleaning /etc/postfix/main.cf done\n";
+	echo "Starting......: ".date("H:i:s")." Postfix Please wait...set permissions..\n";
+	shell_exec("{$GLOBALS["postfix"]} set-permissions >/dev/null 2>&1");
+	echo "Starting......: ".date("H:i:s")." Postfix set permissions done..\n";
+	
+	
+}
 
 ?>

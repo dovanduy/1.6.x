@@ -73,6 +73,17 @@ function save(){
 	$sock->SET_INFO("php5UploadMaxFileSize",$_POST["php5UploadMaxFileSize"]);
 	$sock->SET_INFO("php5PostMaxSize",$_POST["php5PostMaxSize"]);
 	$sock->SET_INFO("php5MemoryLimit",$_POST["php5MemoryLimit"]);
+	$sock->SET_INFO("CleanPHPSessionTime", $_POST["CleanPHPSessionTime"]);
+	
+	$sock->SET_INFO("EnablePHPFPM",$_POST["EnablePHPFPM"]);
+	$sock->SET_INFO("EnablePHPFPMFrameWork",$_POST["EnablePHPFPMFrameWork"]);
+	$sock->SET_INFO("EnableArticaApachePHPFPM",$_POST["EnableArticaApachePHPFPM"]);
+	$sock->SET_INFO("EnablePHPFPMFreeWeb",$_POST["EnablePHPFPMFreeWeb"]);
+	
+
+	
+	$GLOBALS["TIMEZONES"]=$_POST["timezones"];
+	$_SESSION["TIMEZONES"]=$_POST["timezones"];
 	$sock->SET_INFO("timezones",$_POST["timezones"]);
 	$sock->SET_INFO("EnableRRDGraphFunction", $_POST["EnableRRDGraphFunction"]);
 	$sock->getFrameWork("system.php?zoneinfo-set=".base64_encode("{$_POST["timezones"]}"));
@@ -93,24 +104,8 @@ function popup(){
 	}
 	
 	
-	echo "
-	<div id=main_config_phpadv style='width:100%;height:450px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_phpadv').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_config_phpadv");
+
 }
 
 function popup_modules(){
@@ -154,7 +149,7 @@ $('#table-$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $tablesize,
+	width: '99%',
 	height: $tableheight,
 	singleSelect: true
 	
@@ -405,6 +400,18 @@ function popup_options(){
 	if(!is_numeric($EnableRRDGraphFunction)){$EnableRRDGraphFunction=1;}
 	$EnableRRDGraphFunction=Field_checkbox("EnableRRDGraphFunction",1,$EnableRRDGraphFunction,"EnableRRDGraphFunctionCheck()");	
 	
+	$EnablePHPFPM=intval($sock->GET_INFO("EnablePHPFPM"));
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
+	
+	$CleanPHPSessionTime=$sock->GET_INFO("CleanPHPSessionTime");
+	
+	if(!is_numeric($CleanPHPSessionTime)){$CleanPHPSessionTime=2880;}
+	
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
 	
 	
 	if(trim($timezone_def)==null){$timezone_def="Europe/Berlin";}	
@@ -423,79 +430,132 @@ function popup_options(){
 	
 	$html="
 	<div id='php5div'></div>
-	<table width=99% class=form>
+	<div style='width=95%' class=form>
+	<table >
 	<tr>
-		<td valign='top' class=legend nowrap>{php5FuncOverloadSeven}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{CleanPHPSessionTime}:</td>
+		<td valign='top' style='font-size:16px;'>".Field_text("CleanPHPSessionTime$t",$CleanPHPSessionTime,"font-size:16px;padding:3px;width:110px")."&nbsp;{minutes}</td>
+		<td width=1%>". help_icon("{CleanPHPSessionTime_text}")."</td>
+	</tr>	
+	<tr>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5FuncOverloadSeven}:</td>
 		<td valign='top'>$php5FuncOverloadSeven</td>
 		<td width=1%>". help_icon("{php5FuncOverloadSeven_text}")."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend nowrap>{DisableMagicQuotesGpc}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{DisableMagicQuotesGpc}:</td>
 		<td valign='top'>$DisableMagicQuotesGpc</td>
 		<td  width=1%>". help_icon("{DisableMagicQuotesGpc_text}")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend nowrap>{SSLStrictSNIVHostCheck}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{SSLStrictSNIVHostCheck}:</td>
 		<td valign='top'>$SSLStrictSNIVHostCheck</td>
 		<td  width=1%>". help_icon("{SSLStrictSNIVHostCheck_text}")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend nowrap>{EnableRRDGraphFunction}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnableRRDGraphFunction}:</td>
 		<td valign='top'>$EnableRRDGraphFunction</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend nowrap>Default charset:</td>
-		<td valign='top'>".Field_array_Hash(Charsets(),"php5DefaultCharset$t",$php5DefaultCharset,null,null,"style:font-size:14px;padding:3px")."</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>Default charset:</td>
+		<td valign='top'>".Field_array_Hash(Charsets(),"php5DefaultCharset$t",$php5DefaultCharset,null,null,"style:font-size:16px;padding:3px")."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend nowrap>{timezone}:</td>
-		<td valign='top'>".Field_array_Hash($array,"timezones$t",$timezone_def,null,null,"style:font-size:14px;padding:3px")."</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{timezone}:</td>
+		<td valign='top'>".Field_array_Hash($array,"timezones$t",$timezone_def,null,null,"style:font-size:16px;padding:3px")."</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>	
 	
 	<tr>
-		<td valign='top' class=legend nowrap>{php5UploadMaxFileSize}:</td>
-		<td valign='top' style='font-size:14px;'>".Field_text("php5UploadMaxFileSize$t",$php5UploadMaxFileSize,"font-size:14px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5UploadMaxFileSize}:</td>
+		<td valign='top' style='font-size:16px;'>".Field_text("php5UploadMaxFileSize$t",$php5UploadMaxFileSize,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>	
 	
 	
 	
 	<tr>
-		<td valign='top' class=legend nowrap>{php5PostMaxSize}:</td>
-		<td valign='top' style='font-size:14px;'>".Field_text("php5PostMaxSize$t",$php5PostMaxSize,"font-size:14px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5PostMaxSize}:</td>
+		<td valign='top' style='font-size:16px;'>".Field_text("php5PostMaxSize$t",$php5PostMaxSize,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend nowrap>{php5MemoryLimit}:</td>
-		<td valign='top' style='font-size:14px;'>".Field_text("php5MemoryLimit$t",$php5MemoryLimit,"font-size:14px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{php5MemoryLimit}:</td>
+		<td valign='top' style='font-size:16px;'>".Field_text("php5MemoryLimit$t",$php5MemoryLimit,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
 		<td  width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend nowrap>{SessionPathInMemory}:</td>
-		<td valign='top' style='font-size:14px;'>".Field_text("SessionPathInMemory$t",$SessionPathInMemory,"font-size:14px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{SessionPathInMemory}:</td>
+		<td valign='top' style='font-size:16px;'>".Field_text("SessionPathInMemory$t",$SessionPathInMemory,"font-size:16px;padding:3px;width:60px")."&nbsp;MB</td>
 		<td  width=1%>". help_icon("{SessionPathInMemory_explain}")."</td>
-	</tr>			
+	</tr>
+
+		<tr><td colspan=3><span style='font-size:22px'>PHP-FPM</td></tr>
+	<tr>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM}:</td>
+		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnablePHPFPM-$t",1,$EnablePHPFPM,"EnablePHPFPMCheck$t()")."</td>
+		<td  width=1%>&nbsp;</td>
+	</tr>				
+	<tr>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( Framework ):</td>
+		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnablePHPFPMFrameWork-$t",1,$EnablePHPFPMFrameWork)."</td>
+		<td  width=1%>&nbsp;</td>
+	</tr>				
+	<tr>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( Web console ):</td>
+		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnableArticaApachePHPFPM-$t",1,$EnableArticaApachePHPFPM)."</td>
+		<td  width=1%>&nbsp;</td>
+	</tr>					
+	<tr>
+		<td style='font-size:16px;vertical-align:top' class=legend nowrap>{EnablePHPFPM} ( FreeWeb ):</td>
+		<td valign='top' style='font-size:16px;'>".Field_checkbox("EnablePHPFPMFreeWeb-$t",1,$EnablePHPFPMFreeWeb)."</td>
+		<td  width=1%>&nbsp;</td>
+	</tr>				
 	<tr>
 		<td colspan=3 align='right'>
-		<hr>". button('{edit}',"SavePHP5AdvancedSettings$t()",16)."
+		<hr>". button('{apply}',"SavePHP5AdvancedSettings$t()",22)."
 		
 		</td>
 	</tr> 
 	</table>
-	
+	</div>
 	<script>
+	
+	var x_SavePHP5AdvancedSettings$t=function (obj) {
+		var results=obj.responseText;
+		if(results.length>2){alert(results);}
+		RefreshTab('main_config_jsweb');
+		}	
+	
+	
 	function SavePHP5AdvancedSettings$t(){
     	var XHR = new XHRConnection();
     	var php5DisableMagicQuotesGpc='';
     	var SSLStrictSNIVHostCheck='';
     	var EnableRRDGraphFunction=1;
+    	var EnablePHPFPM=0;
+    	var EnablePHPFPMFrameWork=0;
+    	var EnableArticaApachePHPFPM=0;
+    	var EnablePHPFPMFreeWeb=0;
     	if(document.getElementById('php5DisableMagicQuotesGpc$t').checked){php5DisableMagicQuotesGpc=1;}else{php5DisableMagicQuotesGpc=0;}
 		if(document.getElementById('php5FuncOverloadSeven$t').checked){php5FuncOverloadSeven=1;}else{php5FuncOverloadSeven=0;}
 		if(document.getElementById('SSLStrictSNIVHostCheck$t').checked){SSLStrictSNIVHostCheck=1;}else{SSLStrictSNIVHostCheck=0;}
 		if(document.getElementById('EnableRRDGraphFunction').checked){EnableRRDGraphFunction=1;}else{EnableRRDGraphFunction=0;}
+		
+		if(document.getElementById('EnablePHPFPM-$t').checked){EnablePHPFPM=1;}else{EnablePHPFPM=0;}
+		if(document.getElementById('EnablePHPFPMFrameWork-$t').checked){EnablePHPFPMFrameWork=1;}else{EnablePHPFPMFrameWork=0;}
+		if(document.getElementById('EnableArticaApachePHPFPM-$t').checked){EnableArticaApachePHPFPM=1;}else{EnableArticaApachePHPFPM=0;}
+		if(document.getElementById('EnablePHPFPMFreeWeb-$t').checked){EnablePHPFPMFreeWeb=1;}else{EnablePHPFPMFreeWeb=0;}
+		
+		XHR.appendData('EnablePHPFPM',EnablePHPFPM);
+		XHR.appendData('EnablePHPFPMFrameWork',EnablePHPFPMFrameWork);
+		XHR.appendData('EnableArticaApachePHPFPM',EnableArticaApachePHPFPM);
+		XHR.appendData('EnablePHPFPMFreeWeb',EnablePHPFPMFreeWeb);
+		
+		
+		XHR.appendData('CleanPHPSessionTime',document.getElementById('CleanPHPSessionTime$t').value);
 		XHR.appendData('php5DefaultCharset',document.getElementById('php5DefaultCharset$t').value);
 		XHR.appendData('php5UploadMaxFileSize',document.getElementById('php5UploadMaxFileSize$t').value);
 		XHR.appendData('php5PostMaxSize',document.getElementById('php5PostMaxSize$t').value);
@@ -507,8 +567,8 @@ function popup_options(){
 		XHR.appendData('timezones',document.getElementById('timezones$t').value);
 		XHR.appendData('SessionPathInMemory',document.getElementById('SessionPathInMemory$t').value);
 		
-		AnimateDiv('php5div');
-    	XHR.sendAndLoad('$page', 'POST',x_SavePHP5AdvancedSettings);
+		
+    	XHR.sendAndLoad('$page', 'POST',x_SavePHP5AdvancedSettings$t);
 	}
 	
 	var x_EnableRRDGraphFunctionCheck=function (obj) {
@@ -527,7 +587,23 @@ function popup_options(){
 	
 	}
 	
+	function EnablePHPFPMCheck$t(){
+		document.getElementById('EnablePHPFPMFrameWork-$t').disabled=true;
+		document.getElementById('EnableArticaApachePHPFPM-$t').disabled=true;
+		document.getElementById('EnablePHPFPMFreeWeb-$t').disabled=true;
+		
+		
 	
+	
+		if(document.getElementById('EnablePHPFPM-$t').checked){
+			document.getElementById('EnablePHPFPMFrameWork-$t').disabled=false;
+			document.getElementById('EnableArticaApachePHPFPM-$t').disabled=false;
+			document.getElementById('EnablePHPFPMFreeWeb-$t').disabled=false;
+		}
+	
+	}
+	
+	 EnablePHPFPMCheck$t();
 	</script>	
 ";
 	

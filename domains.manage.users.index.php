@@ -20,7 +20,7 @@ if(isset($_GET["SaveLdapUser"])){SaveLdapUser();exit;}
 if(isset($_GET["AddnewMember"])){AddnewMember();exit();}
 if(isset($_GET["DeleteMember"])){DeleteMember();exit;}
 if(isset($_GET["finduser"])){finduser();exit;}
-
+if(isset($_GET["finduser-tab"])){finduser_tab();exit;}
 
 if(isset($_GET["UserAddressSubmitedForm"])){AddressInfosSave();exit;}
 	
@@ -46,7 +46,7 @@ $html="
 <td valign='top'>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'> " . Paragraphe('folder-user-64.jpg','{account}','{manage_account_text}',"javascript:LoadUsersTab(\"$userid\",\"0\")") ."</td>
+		<td valign='top'> " . Paragraphe('user-64.png','{account}','{manage_account_text}',"javascript:LoadUsersTab(\"$userid\",\"0\")") ."</td>
 	</tr>
 	<tr>
 		<td valign='top'> " . Paragraphe('folder-usermailbox-64.jpg','{mailbox}','{manage_mailbox_text}',"javascript:LoadUsersTab(\"$userid\",\"1\")") ."</td>		
@@ -417,7 +417,7 @@ function Cyrus_mailbox_apply_settings(){
     	if(is_array($aliases)){
     		while (list ($num, $ligne) = each ($aliases) ){
     		$html=$html . "<tr>
-    		<td width=1%><img src='img/mailbox_storage.gif'></td>
+    		<td width=1%><img src='img/mailbox.png'></td>
     		<td style='padding:3px;' width=91% nowrap align='left'><code>$ligne</code></td>
     		<td  style='padding:3px;' width=1%>" . imgtootltip('x.gif','{delete aliase}',"TreeUserDeleteAliases('$ligne','$userid')")."</td>
     		</tr>
@@ -622,20 +622,37 @@ function SearchUserNull(){
 	echo $html;	
 }
 
+function finduser_tab(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["finduser"]='{search}::{members}';
+		
+	while (list ($num, $ligne) = each ($array) ){
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=*\"><span>$ligne</span></a></li>\n");
+	
+	}
+	
+	
+	echo build_artica_tabs($html, "find_user_tabs",1050)."<script>LeftDesign('users-search-opac20.png');</script>";
+	
+	
+}
+
 function finduser(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
-	$add=$tpl->_ENGINE_parse_body("{add}");
+	$add=$tpl->_ENGINE_parse_body("{new_member}");
 	$rule=$tpl->_ENGINE_parse_body("{rule}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$email=$tpl->javascript_parse_text("{email}");
+	$ldap_members=$tpl->javascript_parse_text("{ldap_members}");
 	$t=time();		
 	$stringtofind=trim($_GET["finduser"]);
+	if($stringtofind==null){$stringtofind="*";}
 	$html="
-	<div style='margin-left:-10px'>
-		<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
-	</div>
+	<input type='hidden' id='TABLE_SEARCH_USERS' value='table-$t'>
+	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 $(document).ready(function(){
 $('#table-$t').flexigrid({
@@ -643,8 +660,8 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'aclname', width : 77, sortable : true, align: 'center'},
-		{display: '$member', name : 'items', width : 351, sortable : false, align: 'left'},
-		{display: '$email', name : 'none2', width : 363, sortable : true, align: 'left'},
+		{display: '$member', name : 'items', width : 422, sortable : false, align: 'left'},
+		{display: '$email', name : 'none2', width : 422, sortable : true, align: 'left'},
 		
 		
 	],
@@ -657,11 +674,11 @@ buttons : [
 	sortname: 'aclname',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '$ldap_members',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 848,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	
@@ -681,7 +698,7 @@ echo $html;
 	
 function finduser_list(){
 	$keycached="{$_GET["finduser"]}";
-	if(GET_CACHED(__FILE__,__FUNCTION__,$keycached)){return null;}
+	
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
@@ -719,6 +736,9 @@ function finduser_list(){
 		
 		$hash1=$hash_full[0];
 		$hash2=$hash_full[1];
+		if($GLOBALS["OUTPUT_DEBUG"]){echo "Search results ".
+		count($hash1) ." users and ".
+		count($hash2)." contacts<br>";}
 	
 	
 	}else{
@@ -727,10 +747,13 @@ function finduser_list(){
 		$hash_full=$ad->UserSearch(null,$stringtofind,$_POST["rp"]);
 		$hash1=$hash_full[0];
 		$hash2=$hash_full[1];
+		if($GLOBALS["OUTPUT_DEBUG"]){echo "Search results ".
+				count($hash1) ." users and ".
+				count($hash2)." contacts<br>";}
 		
 	}
 	
-	if($GLOBALS["OUTPUT_DEBUG"]){echo "Search results ".count($hash1) ." users and ".count($hash2)." contacts<br>";}
+
 	
 	
 	$hash=array();
@@ -742,6 +765,8 @@ function finduser_list(){
 	$data['rows'] = array();	
 
 	if(is_array($hash1)){
+		if($GLOBALS["OUTPUT_DEBUG"]){echo "<strong>Search results ->HASH1</strong><br>\n";}
+		
 	while (list ($num, $ligne) = each ($hash1) ){
 	
 		
@@ -773,11 +798,14 @@ function finduser_list(){
 		$hash[$count]["dn"]=$ligne["dn"];
 		$count++;
 		
-	}}
+	}}else{
+		if($GLOBALS["OUTPUT_DEBUG"]){echo "<strong>Search results ->HASH1 NOT AN ARRAY</strong><br>\n";}
+	}
 	
 	
 	
 	if(is_array($hash2)){
+		if($GLOBALS["OUTPUT_DEBUG"]){echo "<strong>Search results ->HASH2</strong><br>\n";}
 	while (list ($num, $ligne) = each ($hash2) ){
 		if(isset($ligne["samaccountname"][0])){$ligne["uid"][0]=$ligne["samaccountname"][0];}
 		if(($ligne["uid"][0]==null) && ($ligne["employeenumber"][0]==null)){continue;}
@@ -795,12 +823,16 @@ function finduser_list(){
 		$hash[$count]["dn"]=$ligne["dn"];
 		$count=$count+1;
 		
-	}}	
+	}}else{
+		if($GLOBALS["OUTPUT_DEBUG"]){echo "<strong>Search results ->HASH2 NOT AN ARRAY</strong><br>\n";}
+	}
 	
 	
 	$count=count($hash);
 	$data['total'] = $count;
-	writelogs("Search results $count items" ,__FUNCTION__,__FILE__);
+	if($count==0){json_error_show("no data",1);}
+	if($GLOBALS["OUTPUT_DEBUG"]){echo "<strong>Search results $count items</strong><br>\n";}
+	
 	
 	if(is_array($hash)){
 		

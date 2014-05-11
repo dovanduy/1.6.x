@@ -248,16 +248,11 @@ pid:=PID_NUM();
       if EnableSMARTDisk=0 then begin
             result:=ini.Text;
             ini.free;
-            SYS.MONIT_DELETE('APP_SMARTMONTOOLS');
+
             exit;
       end;
 
-      if SYS.MONIT_CONFIG('APP_SMARTMONTOOLS','/var/run/smartd.pid','smartd') then begin
-        ini.Add('monit=1');
-        result:=ini.Text;
-        ini.free;
-        exit;
-      end;
+
 
       if SYS.PROCESS_EXIST(pid) then ini.Add('running=1') else  ini.Add('running=0');
       ini.Add('application_installed=1');

@@ -27,16 +27,18 @@ if(!$usersmenus->SQUID_INSTALLED && !$usersmenus->KAV4PROXY_INSTALLED && !$users
 	if(isset($_GET["events"])){main_events_page();exit;}
 	if(isset($_GET["Kav4proxyAddkey"])){echo main_license_form_key();exit;}
 	if(isset($_GET["iframe_addkey"])){echo main_license_Addkey_form();exit;}
-	
-	
 	if(isset($_GET["sec2"])){main_rules_switch();exit;}
 
 page();	
 function page(){
-
-
-
 $page=CurrentPageName();
+$sock=new sockets();
+$tpl=new templates();
+$INSTALLED=trim($sock->getFrameWork("squid.php?kaspersky-is-installed=yes"));
+if($INSTALLED<>"TRUE"){
+	echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{not_installed}"));
+	return;
+}
 
 
 
@@ -125,7 +127,7 @@ function Status(){
 
 $page=CurrentPageName();
 $users=new usersMenus();
-if($users->KAV4PROXY_PID==null){$img1="status_critical.gif";}else{$img1="status_ok.gif";}
+if($users->KAV4PROXY_PID==null){$img1="status_critical.png";}else{$img1="status_ok.png";}
 if(preg_match('#([0-9]{1,2})([0-9]{1,2})([0-9]{1,4});([0-9]{1,2})([0-9]{1,2})#',$users->KAV4PROXY_PATTERN,$regs)){
 			$users->KAV4PROXY_PATTERN="".$regs[3]. "/" .$regs[2]. "/" .$regs[1] . " " . $regs[4] . ":" . $regs[5]  . ' (moscow GMT)';}
 $status=RoundedLightGreen("
@@ -143,19 +145,19 @@ $status=RoundedLightGreen("
 </tr>
 
 <tr>
-	<td valign='top' align='center'><img src='img/icon_info.gif'></td>
+	<td valign='top' align='center'><img src='img/16-infos.png'></td>
 	<td align=right valign='top'><strong>{version}:</strong></td>
 	<td valign='top'>$users->KAV4PROXY_VERSION</td>
 </tr>
 <tr>
-<td valign='top' align='center'><img src='img/icon_info.gif'></td>
+<td valign='top' align='center'><img src='img/16-infos.png'></td>
 <td nowrap align=left valign='top'><strong>{pattern_ver}:</strong></td><td></td>
 </tr>
 <tr>
 <td>&nbsp;</td>
 <td colspan=2 nowrap align='right'><strong>$users->KAV4PROXY_PATTERN</strong></td>
 </tr>
-<tr><td colspan=3 align='right'>" . imgtootltip('icon_refresh-20.gif','{refresh}',"LoadAjax('servinfos','$page?Status=yes');")."</td></tr>
+<tr><td colspan=3 align='right'>" . imgtootltip('20-refresh.png','{refresh}',"LoadAjax('servinfos','$page?Status=yes');")."</td></tr>
 </table>");
 $tpl=new templates();
 echo $tpl->_ENGINE_parse_body($status);	
@@ -701,7 +703,7 @@ function Field_deny_skip_checkbox_img($name,$value,$tooltip=null){
 	$tooltip=ParseTooltip($tooltip);
 	if($value==null){$value="no";}
 	if($tooltip<>null){$tooltip="onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
-	if($value=='skip'){$img='img/status_ok.gif';}else{$img='img/status_critical.gif';}
+	if($value=='skip'){$img='img/status_ok.png';}else{$img='img/status_critical.png';}
 	$html="
 	<input type='hidden' name='$name' id='$name' value='$value'><a href=\"javascript:SwitchDenySkip('$name');\"><img src='$img' id='img_$name' $tooltip></a>";
 	return $html;

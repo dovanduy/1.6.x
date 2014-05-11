@@ -15,13 +15,15 @@
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
 	}
-	
+	if(isset($_POST["maillogToMysql"])){maillogToMysqlSave();exit;}
+	if(isset($_GET["popup"])){page();exit;}
 	if(isset($_GET["table-list"])){events_list();exit;}
 	if(isset($_GET["js-zarafa"])){js_zarafa();exit;}
 	if(isset($_GET["js-mgreylist"])){js_mgreylist();exit;}
 	if(isset($_GET["ZoomEvents"])){ZoomEvents();exit;}
+	if(isset($_GET["parameters"])){parameters();exit;}
 	
-page();
+tabs();
 
 function CheckRights(){
 	$user=new usersMenus();
@@ -45,6 +47,119 @@ function js_mgreylist(){
 	$html="YahooWinBrowse('942','$page?miltergrey-filter=yes','$title')";
 	echo $html;
 
+}
+
+function parameters(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$maillogToMysql=$sock->GET_INFO("maillogToMysql");
+	if(!is_numeric($maillogToMysql)){$maillogToMysql=1;}
+	$maillogStoragePath=$sock->GET_INFO("maillogStoragePath");
+	if($maillogStoragePath==null){$maillogStoragePath="/home/postfix/maillog";}
+	$maillogMaxDays=$sock->GET_INFO("maillogMaxDays");
+	if(!is_numeric($maillogMaxDays)){$maillogMaxDays=7;}
+	$t=time();
+	$html="<div style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:16px'>{store_events_to_mysql}:</td>
+		<td>". Field_checkbox("maillogToMysql", 1,$maillogToMysql,"Check$t()")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{storage_directory}:</td>
+		<td>". Field_text("maillogStoragePath", $maillogStoragePath,"font-size:16px;width:300px")."</td>
+		<td width=1% nowrap>". button_browse("maillogStoragePath")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{max_days}:</td>
+		<td style='font-size:16px'>". Field_text("maillogMaxDays", $maillogMaxDays,"font-size:16px;width:90px")."&nbsp;{days}</td>
+		<td>&nbsp;</td>
+	</tr>			
+	<tr>
+		<td colspan=3 align='right'>
+				<hr>". button("{apply}", "Save$t()",18)."
+		</td>
+	</tr>
+	</table>
+	</div>
+<script>
+var xSave$t= function (obj) {
+	var results=trim(obj.responseText);
+	if(results.length>0){alert(results);}
+	RefreshTab('main_postfix_events');
+	}
+		
+function Save$t(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('maillogToMysql').checked){
+		XHR.appendData('maillogToMysql',1);
+	}else{
+		XHR.appendData('maillogToMysql',0);
+	}
+	XHR.appendData('maillogStoragePath',document.getElementById('maillogStoragePath').value);
+	XHR.appendData('maillogMaxDays',document.getElementById('maillogMaxDays').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t,true);				
+}	
+	
+function Check$t(){
+	if(document.getElementById('maillogToMysql').checked){
+		document.getElementById('maillogStoragePath').disabled=true;
+		document.getElementById('maillogMaxDays').disabled=true;
+	}else{
+		document.getElementById('maillogStoragePath').disabled=false;
+		document.getElementById('maillogMaxDays').disabled=false;	
+	}
+
+}
+Check$t();	
+</script>				
+";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	
+}
+
+
+function maillogToMysqlSave(){
+	$sock=new sockets();
+	$sock->SET_INFO("maillogToMysql", $_POST["maillogToMysql"]);
+	$sock->SET_INFO("maillogStoragePath", $_POST["maillogStoragePath"]);
+	$sock->SET_INFO("maillogMaxDays", $_POST["maillogMaxDays"]);
+	
+}
+
+
+function tabs(){
+	
+	$tpl=new templates();
+	
+	$page=CurrentPageName();
+	$array["events"]='{events}';
+	$array["parameters"]='{parameters}';
+
+	
+	$style="style='font-size:18px'";
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="events"){
+			$html[]= "<li $style><a href=\"$page?popup=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+
+	
+	
+		$html[]= "<li $style><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
+	}
+	
+	
+	echo build_artica_tabs($html, "main_postfix_events",950)."<script>LeftDesign('logs-white-256-opac20.png');</script>";	
+	
+	
 }
 
 
@@ -89,10 +204,7 @@ function page(){
 	}
 	
 $html="
-$form
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-</div>
-	
 <script>
 var memid='';
 $(document).ready(function(){
@@ -118,7 +230,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $table_width,
+	width: '99%',
 	height: 600,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]

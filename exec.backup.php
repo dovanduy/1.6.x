@@ -96,14 +96,14 @@ function buildcron(){
 	$files=$unix->DirFiles("/etc/cron.d");
 	while (list ($num, $filename) = each ($files) ){
 		if(preg_match("#artica-backup-([0-9]+)$#",$filename)){
-			echo "Starting......: Backup remove $filename\n";
+			echo "Starting......: ".date("H:i:s")." Backup remove $filename\n";
 			@unlink("$path/$filename");
 		}
 	}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$schedule=$ligne["schedule"];
-		echo "Starting......: Backup $schedule\n";
+		echo "Starting......: ".date("H:i:s")." Backup $schedule\n";
 		$f[]="$schedule  ". LOCATE_PHP5_BIN()." ". __FILE__." {$ligne["ID"]} >/dev/null 2>&1";
 		
 	}
@@ -1001,7 +1001,7 @@ function restorembx($basedContent){
 	}	
 	
 	writelogs(date('m-d H:i:s')." "."restarting imap service",__FUNCTION__,__FILE__,__LINE__);
-	system("/etc/init.d/artica-postfix restart imap");
+	system("/etc/init.d/cyrus-imapd restart");
 	print_r($GLOBALS["events"]);
 	
 }
@@ -1011,6 +1011,7 @@ function restorembx($basedContent){
 function mount_rsync($pattern,$ID,$testwrite=true){
 	$backup=new backup_protocols();
 	$unix=new unix();
+	$tmpdir=$unix->TEMP_DIR();
 	$rsync=$unix->find_program("rsync");
 	
 	if(!is_file($rsync)){
@@ -1074,7 +1075,7 @@ function mount_rsync($pattern,$ID,$testwrite=true){
 	}
 
 	backup_events($ID,"initialization","ERROR, No information has been returned... ".__FUNCTION__);
-	system("/bin/rm -rf /tmp/artica-temp");
+	system("/bin/rm -rf $tmpdir/artica-temp");
 }
 
 function ParseMailboxDirRsync($pattern){
@@ -1124,12 +1125,13 @@ function ParseMailboxDirRsync($pattern){
 function backup_ldap($ID){
 	$unix=new unix();
 	$slapcat=$unix->find_program("slapcat");
+	$tmpdir=$unix->TEMP_DIR();
 	if($slapcat==null){
 		backup_events($ID,"ldap","ERROR, unable to stat slapcat");
 		return false;
 	}
 	backup_events($ID,"ldap","INFO, exporting local database");
-	shell_exec("$slapcat -l /tmp/ldap.ldif");
+	shell_exec("$slapcat -l $tmpdir/ldap.ldif");
 	
 	backup_mkdir("{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup");
 	if(!backup_isdir("{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup")){
@@ -1137,10 +1139,10 @@ function backup_ldap($ID){
 		return false;
 	}
 	
-	$info=backup_copy("/tmp/ldap.ldif","{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup",$ID);
+	$info=backup_copy("$tmpdir/ldap.ldif","{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup",$ID);
 	$ldap=new clladp();
-	@file_put_contents("/tmp/suffix",$ldap->suffix);
-	$info=backup_copy("/tmp/ldap.ldif","{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup",$ID); 
+	@file_put_contents("$tmpdir/suffix",$ldap->suffix);
+	$info=backup_copy("$tmpdir/ldap.ldif","{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup",$ID); 
 }
 
 
@@ -1268,24 +1270,24 @@ function backup_mysql($ID,$instance_id=0){
 		return ;
 	}
 	
+	$BlacklistDatabases["performance_schema"]=true;
+	$BlacklistDatabases["mysql"]=true;
+	$BlacklistDatabases["log"]=true;
+	
 	backup_events($ID,"mysql","INFO,$instancename using $temporarySourceDir for temp backup");
 	
 	while (list ($num, $line) = each ($array)){
 		if(trim($line)==null){continue;}
 		$database_name=trim(basename($line));
+		$database_nameSTR=strtolower($database_name);
 		
-		if(strtolower($database_name)=="log"){
+		if(isset($BlacklistDatabases[$database_nameSTR])){
 			events("{$instancename}skipping database \"$database_name\"",__FUNCTION__,__LINE__);
-			backup_events($ID,"mysql","INFO,$instancename mysqlhotcopy skip log database",__LINE__);
+			backup_events($ID,"mysql","INFO,$instancename mysqlhotcopy skip $database_nameSTR database",__LINE__);
 			continue;
 		}
 		
-		if(strtolower($database_name)=="mysql"){
-			events("{$instancename}skipping database \"$database_name\"",__FUNCTION__,__LINE__);
-			backup_events($ID,"mysql","INFO,$instancename mysqlhotcopy skip mysql database",__LINE__);
-			continue;
-		}
-				
+			
 		backup_events($ID,"mysql","INFO,$instancename mysqlhotcopy database ($database_name) stored in $line -> $temporarySourceDir");
 		
 		$mysqlhotcopy_command="$mysqlhotcopy --addtodest$Socket$user$password $database_name $temporarySourceDir 2>&1";
@@ -1605,6 +1607,17 @@ function backup_cyrus($ID){
 		return true;
 	}
 	
+	
+	$q=new mysql();
+	$sql="SELECT COUNT(ID) as tcount FROM `system_schedules` WHERE `TaskType`=69 AND `enabled`=1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if($ligne["tcount"]>0){
+		backup_events($ID,"cyrus-imap","INFO, Dedicated cyrus-backup was scheduled, aborting",__LINE__);
+		return true;
+	}
+	
+
+	
 	if($GLOBALS["COMMANDLINECOPY"]==null){
 		backup_events($ID,"cyrus-imap","ERROR, COMMANDLINECOPY is null",__LINE__);
 		return false;
@@ -1749,15 +1762,15 @@ function backup_mkdir($path){
 	$unix=new unix();	
 	$mkdir=$unix->find_program("mkdir");	
 	$chmod=$unix->find_program("chmod");
-	
+	$tmpdir=$unix->TEMP_DIR();
 	
 	if($USE_RSYNC){
 		writelogs(date('m-d H:i:s')." "."create directory /tmp/artica-temp/$path",__FUNCTION__,__FILE__,__LINE__);
-		@mkdir("/tmp/artica-temp/$path",0755,true);
-		chdir("/tmp/artica-temp");
-		@file_put_contents("/tmp/artica-temp/$path/.default","#");
+		@mkdir("$tmpdir/artica-temp/$path",0755,true);
+		chdir("$tmpdir/artica-temp");
+		@file_put_contents("$tmpdir/artica-temp/$path/.default","#");
 		writelogs(date('m-d H:i:s')." "." COMMANDLINECOPY={$GLOBALS["COMMANDLINECOPY"]}",__FUNCTION__,__FILE__,__LINE__);
-		$cmd=str_replace("{SRC_PATH}","/tmp/artica-temp/*",$GLOBALS["COMMANDLINECOPY"]);
+		$cmd=str_replace("{SRC_PATH}","$tmpdir/artica-temp/*",$GLOBALS["COMMANDLINECOPY"]);
 		$cmd=str_replace("{NEXT}","",$cmd);
 		
 		if($cmd==null){
@@ -1767,7 +1780,7 @@ function backup_mkdir($path){
 		
 		events($cmd,__LINE__);
 		system($cmd);
-		shell_exec("/bin/rm -rf /tmp/artica-temp/*");
+		shell_exec("/bin/rm -rf $tmpdir/artica-temp/*");
 		chdir("/root");
 		return;
 	}

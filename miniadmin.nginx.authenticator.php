@@ -450,8 +450,9 @@ function tabs(){
 	}
 	
 	$tpl=new templates();
-	$array["{parameters}"]="$page?parameters=yes";
 	$array["{rules}"]="$page?rules-section=yes";
+	$array["{parameters}"]="$page?parameters=yes";
+	
 	echo $error.$boot->build_tab($array);
 }
 function rules_tabs(){

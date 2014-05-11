@@ -35,10 +35,20 @@
 	if(isset($_POST["delete-cache"])){delete_cache();exit;}
 	if(isset($_POST["DisableAnyCache"])){DisableAnyCache();exit;}
 	if(isset($_GET["license-explain"])){license_explain();exit;}
-	if(isset($_POST["XDisableSquidSNMPMode"])){XDisableSquidSNMPMode();exit;}
+	
+	if(isset($_POST["BackTo1CPU"])){BackTo1CPU();exit;}
+	if(isset($_GET["slider-t"])){slider_t();exit;}
+	if(isset($_GET["slider-results"])){slider_results();exit;}
+	if(isset($_GET["Byjs"])){Byjs();exit();}
+	
 	page();
 
-
+function Byjs(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	echo "YahooWin4('900','$page?DisableChecks=yes&uuid={$_GET["uuid"]}','Caches - CPU 1 -')";
+	
+}
 
 function page(){
 		$page=CurrentPageName();
@@ -47,22 +57,21 @@ function page(){
 		$q=new mysql_squid_builder();
 		$sock=new sockets();
 		$users=new usersMenus();
-		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
 		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
 		if($users->CORP_LICENSE){
-			if($DisableSquidSNMPMode==0){
-				$t=time();
-				$html="<div id='$t'></div>
-				<script>
-					LoadAjax('$t','squid.caches.smp.php?uuid={$_GET["uuid"]}');
-				</script>
-				";
-				echo $html;return;
+			if(!isset($_GET["DisableChecks"])){
+				
+					$t=time();
+					$html="<div id='$t'></div>
+					<script>
+						LoadAjax('$t','squid.caches.smp.php?uuid={$_GET["uuid"]}');
+					</script>
+					";
+					echo $html;return;
+					
 				
 			}
-			
 		}
 		
 		
@@ -112,7 +121,19 @@ function page(){
 			<td width=99%><a href=\"javascript:blur();\" 
 			OnClick=\"javascript:VerifyCaches();\" 
 			style='font-size:13px;text-decoration:underline'>{verify_caches}</a></td>
+		</tr>	
+		<tr>
+			<td width=1%><img src='img/reconfigure-32.png'></td>
+			<td width=99%><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.compile.progress.php');\" 
+			style='font-size:13px;text-decoration:underline'>{reconfigure}</a></td>
 		</tr>			
+		
+		
+
+		
+		
+		
 		</table>
 		<div class=explain style='margin-top:10px'>{squid32_caches_explain}</div>";
 		
@@ -129,11 +150,7 @@ function page(){
 	
 	<div id='caches-32-div'>
 		<table style='width:99%' class=form>
-		<tr>
-			<td class=legend>{DisableSquidSNMPMode}:</td>
-			<td>". Field_checkbox("DisableSquidSNMPMode",1,$DisableSquidSNMPMode,"CheckSNMPMode()")."</td>
-		</tr>		
-		
+	
 		<tr>
 			<td class=legend>{DisableAnyCache}:</td>
 			<td>". Field_checkbox("DisableAnyCache",1,$DisableAnyCache,"CheckDisableAnyCache()")."</td>
@@ -179,26 +196,8 @@ function page(){
 		function SaveSquid32Caches(){
 			var cachesDirectoryorg='$cachesDirectory';
 			var XHR = new XHRConnection();
-			var DisableSquidSNMPMode=1;
-			var DisableSquidSNMPModeOrg=$DisableSquidSNMPMode;
-			if(!document.getElementById('DisableSquidSNMPMode').checked){DisableSquidSNMPMode=0;}
-			if( DisableSquidSNMPMode!==DisableSquidSNMPModeOrg ){
-				alert('$warning_change_interface_squid');
-			}
-				
+			
 			XHR.appendData('uuid','$squid->uuid');
-			XHR.appendData('DisableSquidSNMPMode',DisableSquidSNMPMode);
-				
-			if(DisableSquidSNMPMode==1){
-				if(cachesDirectoryorg!==document.getElementById('cachesDirectory').value){
-					if(!confirm('$warning_rebuild_squid_caches')){
-						return;
-					}
-					XHR.appendData('RebuildCachesSave','yes');
-				}
-			}
-				
-				
 			XHR.appendData('cachesDirectory',document.getElementById('cachesDirectory').value);
 			AnimateDiv('caches-32-div');		
 			XHR.sendAndLoad('$page', 'POST',x_SaveSquid32Caches);
@@ -278,16 +277,10 @@ function page(){
 			
 			var CORP=$CORP;
 			if(CORP==0){
-				document.getElementById('DisableSquidSNMPMode').checked=true;
-				document.getElementById('DisableSquidSNMPMode').disabled=true;
 				LoadAjaxTiny('$t-license','$page?license-explain=yes');
 			}
 			
 			
-			if(!document.getElementById('DisableSquidSNMPMode').checked){
-				document.getElementById('cachesDirectory').disabled=false;
-							
-			}
 			checkButtonMode();
 		}
 		
@@ -333,9 +326,6 @@ function smp_js(){
 		return;
 	}
 	
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
-	
 	$uuid=$_GET["uuid"];
 	$t=time();
 	
@@ -345,39 +335,36 @@ function smp_js(){
 		echo "alert('$squid_worker_license_explain')";
 		die();
 	}
-	
-	if($DisableSquidSNMPMode==1){
+	$squid_worker_disable_explain=$tpl->javascript_parse_text("{squid_worker_disable_explain}");
+	header("content-type: application/x-javascript");
 		echo "
 		var x_EnableWorker$t= function (obj) {
-			var results=obj.responseText;
-			if(results.length>3){alert(results);}
-			if(document.getElementById('squid-status')){
-				LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes');
-			}
-			Loadjs('squid.compile.progress.php');
-			Loadjs('$page?smp-js=yes&uuid={$_GET["uuid"]}');
-		}			
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		if(document.getElementById('squid-status')){
+		LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes');
+		}
+		Loadjs('squid.compile.progress.php');
+		YahooWin3Hide();
+		YahooWin2Hide();
+		}
 		
 		
 		function EnableWorker$t(){
-			if(!confirm('$squid_worker_activate_explain')){return;}
-			var XHR = new XHRConnection();
-			var DisableSquidSNMPMode=0;
-			XHR.appendData('XDisableSquidSNMPMode',DisableSquidSNMPMode);
-			XHR.appendData('uuid','$uuid');
-			if(document.getElementById('squid-status')){AnimateDiv('squid-status');}
-			XHR.sendAndLoad('$page', 'POST',x_EnableWorker$t);
+		if(!confirm('$squid_worker_disable_explain')){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('uuid','$uuid');
+		
+		XHR.sendAndLoad('$page', 'POST',x_EnableWorker$t);
 		}
-
-
-		EnableWorker$t();";
-		return;
-	}
+		
+		
+		EnableWorker$t();";		
+		
+		
 	
 	
-	echo "
-	YahooWin3Hide();
-	YahooWin3('892','squid.caches.php?byQuicklinks=yes&uuid=$uuid&smp=yes','SMP (multiple-processors)')";
+	
 	
 }
 
@@ -396,7 +383,7 @@ function license_explain(){
 	$squid_worker_explain=$tpl->_ENGINE_parse_body("{squid_worker_explain}");
 	$squid_worker_license_explain=str_replace("%s","$CPU_NUMBER",$squid_worker_license_explain);
 	$html="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 		<td valign='top' width=1%><img src='img/64-key.png' style='margin:5px'></td>
@@ -471,7 +458,7 @@ function verify_caches(){
 function add_new_disk_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	
+	header("content-type: application/x-javascript");
 	if(!$_SESSION["CORP"]){
 		$tpl=new templates();
 		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
@@ -487,7 +474,7 @@ function add_new_disk_js(){
 		$chdef="&chdef=yes";}
 	
 	
-	$html="YahooWin3('818.6','$page?add-new-disk-popup=yes$chdef','$title')";
+	$html="YahooWin3('950','$page?add-new-disk-popup=yes$chdef','$title')";
 	echo $html;
 }
 
@@ -496,11 +483,10 @@ function button_mode(){
 		$page=CurrentPageName();
 		$tpl=new templates();
 		$sock=new sockets();
-		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+
 		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+
 		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-		if($DisableSquidSNMPMode==0){return null;}
 		if($DisableAnyCache==1){return null;}
 		
 		$js="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?add-new-disk-js=yes');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>";
@@ -711,10 +697,57 @@ function squid_cache_status(){
 	
 }
 
+function slider_t(){
+	header("content-type: application/x-javascript");
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	$html="
+	function slider1$t(){			
+
+		var mdirectory='';
+		var current=document.getElementById('squid-cache-size-$t').value;	
+		mdirectory=encodeURIComponent(document.getElementById('cache_directory-$t').value);	
+		Loadjs('$page?slider-results=yes&dir='+mdirectory+'&t=$t&current='+current);
+			
+	}
+	
+	slider1$t();";
+	
+	echo $html;
+}
+
+function slider_results(){
+	header("content-type: application/x-javascript");
+	if($_GET["dir"]==null){return;}
+	$sock=new sockets();
+	$dir=url_decode_special_tool($_GET["dir"]);
+	$DF=unserialize(base64_decode($sock->getFrameWork("system.php?DF_SATUS_K=".urlencode($dir))));
+	$current=$_GET["current"];
+	$SIZE=round(($DF["SIZE"]/1024)/1024);
+	$maxCacheSize=round(($SIZE*0.9));
+	$color="#009322";
+	$img=null;
+	$pourc=($current/$maxCacheSize)*100;
+	if($pourc>95){$color="#C52B06";$img="<img src=\"img/status_warning.png\" style=\"float:right\">";}
+	
+	$md5=md5($dir);
+	if($maxCacheSize==0){$maxCacheSize=1;}
+	$t=$_GET["t"];
+	$tt=time();
+	echo "
+
+		
+	document.getElementById('$t-value').innerHTML='<span style=\"color:$color\">$img{$current}G/{$maxCacheSize}G</span>';
+	
+	";
+	
+}
+
+
 function squid_cache_save(){
 	$uuid=$_POST["uuid"];
 	$sock=new sockets();
-	$sock->SET_INFO("DisableSquidSNMPMode", $_POST["DisableSquidSNMPMode"]);
+	
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM cachestatus WHERE uuid='$uuid'");
 
@@ -723,21 +756,13 @@ function squid_cache_save(){
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$sock=new sockets();
 	
-	if($_POST["DisableSquidSNMPMode"]==0){
-		if(isset($_GET["RebuildCachesSave"])){
-			$sock->getFrameWork("squid.php?rebuild-caches=yes");
-		}
+	
+	if(isset($_GET["RebuildCachesSave"])){
+		$sock->getFrameWork("squid.php?rebuild-caches=yes");
 	}
+	
 }
 
-function XDisableSquidSNMPMode(){
-	$sock=new sockets();
-	$sock->SET_INFO("DisableSquidSNMPMode", 0);	
-	$q=new mysql_squid_builder();
-	$uuid=$_POST["uuid"];
-	$q->QUERY_SQL("DELETE FROM cachestatus WHERE uuid='$uuid'");	
-	$sock->getFrameWork("squid.php?refresh-caches-infos=yes");
-}
 
 function add_new_disk_popup(){
 	$t=time();
@@ -752,8 +777,9 @@ function add_new_disk_popup(){
 	"aufs","CheckCachesTypes()",null,0,"font-size:16px;padding:3px"));
 	$WARN_OPE_RESTART_SQUID_ASK=$tpl->javascript_parse_text("{WARN_OPE_RESTART_SQUID_ASK}");
 	$currentsize=Calculate_maxcachessize();
-	$maxCacheSizeInt=(250*1000)-$currentsize;
-	$maxCacheSize=$maxCacheSizeInt/1000;
+	$maxCacheSizeInt=0;
+	$maxCacheSize=0;
+	$BUTTON_NAME="{add}";
 	
 	$DefaultmaxCacheSize=round($maxCacheSize/4,1);
 	$NextCache=count($squid->cache_list)+1;
@@ -762,14 +788,22 @@ function add_new_disk_popup(){
 	$cachedirtext="
 		<tr>
 		<td class=legend style='font-size:16px' nowrap>{directory}:</td>
-		<td>" . Field_text("cache_directory-$t",$defaultCachedir,"width:270px;font-size:16px;padding:3px")."</td>
-		<td>". button("{browse}...", "Loadjs('SambaBrowse.php?no-shares=yes&field=cache_directory-$t')",12)."</td>
+		<td>" . Field_text("cache_directory-$t",$defaultCachedir,"width:270px;font-size:16px;padding:3px",null,"Slider$t()")."</td>
+		<td>". button("{browse}...", "Loadjs('SambaBrowse.php?no-shares=yes&field=cache_directory-$t&functionAfter=Slider$t')",12)."</td>
 		</tr>";
 	
-	$SliderDef=10;
+	$SliderDef=1;
 	$cache_dir_level1_def=16;
 	$LockOthers=0;
+	
+	
+	
 	if(isset($_GET["chdef"])){
+		
+		$DF=unserialize(base64_decode($sock->getFrameWork("system.php?DF_SATUS_K=".urlencode($squid->CACHE_PATH))));
+		$BUTTON_NAME="{apply}";
+		$SIZE=round(($DF["SIZE"]/1024)/1024);
+		$maxCacheSize=round(($SIZE*0.9));
 		$cachedirtext="<tr>
 		<td class=legend style='font-size:16px' nowrap>{directory}:</td>
 		<td><strong style='font-size:14px'>$squid->CACHE_PATH</strong>". Field_hidden("cache_directory-$t", $squid->CACHE_PATH)."</td>
@@ -788,8 +822,8 @@ function add_new_disk_popup(){
 	}
 	
 	$html="	<div id='waitcache-$t'></div>
-	<input type='hidden' name='squid-cache-size-$t' id='squid-cache-size-$t' value='10'>
-	<div style='width:95%' class=form>
+	
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 		$cachedirtext
 		<tr>
@@ -799,13 +833,17 @@ function add_new_disk_popup(){
 			<td>&nbsp;</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px' nowrap>{cache_size}:</td>
-			<td style='font-size:16px'><div id='slider$t'></div></td>
-			<td>&nbsp;<strong style='font-size:16px' id='$t-value'>{$DefaultmaxCacheSize}G/{$maxCacheSize}G</strong><input type='hidden' id='$t-mem' value='$SquidBoosterMem'></td>
+			<td class=legend style='font-size:16px;;vertical-align:middle' nowrap>{cache_size}:</td>
+			<td style='font-size:16px;vertical-align:middle' width=1% >". 
+			Field_text("squid-cache-size-$t",$SliderDef,"font-size:16px;width:90px",null,"Slider$t()",null,false,"Slider$t()")."<strong style='font-size:16px'>&nbsp;G&nbsp;</td>
+			<td style='width:1%'><div style='font-size:22px;font-weight:bold;text-align:right;letter-spacing:3px;width:220px' id='$t-value'>{max_size}:{$maxCacheSize}G</div></td>
 			<td>" . help_icon('{cache_size_text}',false,'squid.index.php')."</td>
 		</tr>
 		<tr>
-		<td colspan=4><div class=explain>{warn_calculate_nothdsize}</div></td>		
+		<td colspan=4>
+					
+					<input type='hidden' id='$t-mem' value='$SquidBoosterMem'>
+					<div class=explain style='font-size:13px'>{warn_calculate_nothdsize}</div></td>		
 
 		<tr>
 			<td class=legend nowrap style='font-size:16px'>{cache_dir_level1}:</td>
@@ -827,22 +865,14 @@ function add_new_disk_popup(){
 		</tr>
 		
 		<tr>
-		<td align='right' colspan=4><hr>". button('{apply}',"AddNewCacheSave$t()",14)."</td>
+		<td align='right' colspan=4><hr>". button($BUTTON_NAME,"AddNewCacheSave$t()",18)."</td>
 		</tr>
 	</table>
 	</div>
 <script>
-		$(document).ready(function(){
-			$('#slider$t').slider({ max: $maxCacheSize,step:2,value:$SliderDef,slide: function(e, ui) {ChangeSlideField$t(ui.value)},change: function(e, ui) {ChangeSlideField$t(ui.value);} });
-		});
-		
-		function ChangeSlideField$t(val){
-			var disabled='';
-			if(val==0){disabled='&nbsp;$disabled';}
-			document.getElementById('$t-value').innerHTML=val+'G/{$maxCacheSize}G'+disabled;
-			document.getElementById('squid-cache-size-$t').value=val;
-		}		
 
+		
+		
 
 		function CheckCachesTypes(){
 			cachetypes=document.getElementById('cache_type-$t').value;
@@ -880,7 +910,14 @@ function add_new_disk_popup(){
 			XHR.sendAndLoad('$page', 'POST',x_AddNewCacheSave$t);
 			}
 		}		
+		
+	function Slider$t(){
+		Loadjs('$page?slider-t=yes&t=$t');
+	
+	}
+		
 		CheckCachesTypes();
+		Slider$t();
 </script>";
 echo $tpl->_ENGINE_parse_body($html);	
 	

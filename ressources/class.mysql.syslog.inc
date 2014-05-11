@@ -2,6 +2,8 @@
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 include_once(dirname(__FILE__).'/class.users.menus.inc');
 include_once(dirname(__FILE__).'/class.mysql.inc');
+include_once(dirname(__FILE__).'/class.mount.inc');
+
 class mysql_syslog{
 	var $ClassSQL;
 	var $ok=false;
@@ -116,8 +118,8 @@ class mysql_syslog{
 		$t=$this->syslog_array();
 		$f1[]="  chmod 0755 /etc/init.d/syslog > /dev/null";
 		$f1[]="  /etc/init.d/syslog restart > /dev/null";
-		$f1[]="  /etc/init.d/artica-postfix restart sysloger > /dev/null";
-		$f1[]="  /etc/init.d/artica-postfix restart postfix-logger > /dev/null";
+		$f1[]="  /etc/init.d/artica-syslog restart > /dev/null";
+		$f1[]="  /etc/init.d/postfix-logger restart > /dev/null";
 		$f1[]="  %POSTFIX% reload > /dev/null";
 		$defaultrestart=mysql_escape_string2(@implode("\n", $f1));
 		$f2[]="  chmod 0755 /etc/init.d/syslog > /dev/null";
@@ -126,7 +128,7 @@ class mysql_syslog{
 		$f2[]="  /etc/init.d/artica-postfix restart fetchmail > /dev/null";		
 		$defaultFtechmailrestart=mysql_escape_string2(@implode("\n", $f2));
 		$f[]="('/var/log/fetchmail.log',1,'daily','100',5,'$defaultFtechmailrestart','{APP_FETCHMAIL}',1)";
-		$f[]="('/var/log/squid/*.log',1,'daily','100',5,'%SQUIDBIN% -k rotate\n/etc/init.d/ufdb rotatelog\n/etc/init.d/artica-postfix restart ufdb-tail','{APP_SQUID}',1)";
+		$f[]="('/var/log/squid/*.log',1,'daily','100',5,'$php5 /usr/share/artica-postfix/exec.squid.php --rotate\n/etc/init.d/ufdb rotatelog\n/etc/init.d/artica-postfix restart ufdb-tail','{APP_SQUID}',1)";
 		$f[]="('/var/log/php.log',1,'daily','50',5,'','{APP_PHP5}',1)";
 		$f[]="('/var/log/apache2/*.log',1,'daily','100',5,'%PHP% /usr/share/artica-postfix/exec.freeweb.php --reload','{APP_APACHE}',1)";
 		$f[]="('/var/log/mail-backup/*',1,'daily','100',5,'','Mail statistics',1)";
@@ -179,7 +181,7 @@ class mysql_syslog{
 			  `RotateType` INT(5) NOT NULL,
 			  `RotateFiles` varchar(255) NOT NULL,
 			  `RotateFreq` varchar(40) NOT NULL,
-			  `MaxSize` BIGINT(100) NOT NULL,
+			  `MaxSize` BIGINT UNSIGNED NOT NULL,
 			  `RotateCount` int(5) NOT NULL,
 			  `postrotate` TEXT NOT NULL,
 			  `enabled` smallint(1) NOT NULL,
@@ -202,7 +204,7 @@ class mysql_syslog{
 			$sql="CREATE TABLE IF NOT EXISTS `store` (
 					  `filename` varchar(128) NOT NULL,
 					  `taskid` int(10) NOT NULL,
-					  `filesize` bigint(100) NOT NULL,
+					  `filesize` BIGINT UNSIGNED NOT NULL,
 					  `filedata` longblob NOT NULL,
 					  `filetime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
 					  `SavedInDisk` SMALLINT( 1 ) NOT NULL,

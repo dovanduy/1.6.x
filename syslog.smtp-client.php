@@ -155,7 +155,7 @@ if(is_array($serversList)){
 		
 		
 		
-		if($ActAsASyslogClient<>1){$color="#CCCCCC";}
+		if($ActAsASyslogClient<>1){$color="#8a8a8a";}
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$delete=imgtootltip("delete-32.png","{delete}","SyslogServer{$_GET["t"]}Delete('$server')");
 		$html=$html . "

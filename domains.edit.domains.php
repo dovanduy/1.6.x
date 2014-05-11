@@ -1,5 +1,10 @@
 <?php
-	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',1);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;
+	ini_set('html_errors',1);
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);}
+	if($GLOBALS["VERBOSE"]){echo "- > VERBOSE -> TRUE\n";
+	}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -10,7 +15,9 @@
 	include_once('ressources/class.mysql.inc');
 	include_once('ressources/class.ejabberd.inc');
 	
+	
 	if(!VerifyRights()){
+		if($GLOBALS["VERBOSE"]){echo "- > VerifyRights -> FALSE\n";}
 		$tpl=new templates();
 		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
 		die();exit();
@@ -30,6 +37,9 @@
 	if(isset($_GET["organization-relay-domain-list"])){echo RELAY_DOMAINS_LIST($_GET["organization-relay-domain-list"]);exit;}
 	if(isset($_GET["organization-relay-domain-list-search"])){echo RELAY_DOMAINS_LIST_SEARCH();exit;}
 	
+	if(isset($_GET["AddLocalDomain-Form-js"])){AddNewInternetDomainForm_js();exit;}
+	if(isset($_GET["AddLocalDomain-Form-popup"])){AddNewInternetDomainForm_popup();exit;}
+	
 	
 	
 	
@@ -45,6 +55,7 @@
 	if(isset($_GET["duplicate_local_domain"])){COPY_DOMAINS_SAVE();exit;}
 	
 	if(isset($_GET["js"])){echo js_script();exit;}
+	if(isset($_GET["js-all-localdomains"])){echo js_all_localdomains();exit;}
 	if(isset($_GET["ajax"])){echo js_popup();exit;}
 	
 	if(isset($_GET["round-robin"])){round_robin_js();exit;}
@@ -238,10 +249,73 @@ $list=round_robin_list();
 }
 
 
+function js_all_localdomains(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$title=$tpl->_ENGINE_parse_body("{localdomains}");
+	$datas=file_get_contents("js/edit.localdomain.js");
+	echo "$datas\nYahooWin5(750,'$page?ajax=yes&master-t={$_GET["master-t"]}','$title',true);";
+	
+}
+function AddNewInternetDomainForm_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$title=$tpl->_ENGINE_parse_body("{new_domain}");
+	
+	echo "YahooWin6(600,'$page?AddLocalDomain-Form-popup={$_GET["master-t"]}','$title',true);";	
+	
+}
 
+function AddNewInternetDomainForm_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$tt=time();
+	$ldap=new clladp();
+	$ous=$ldap->hash_get_ou(true);
+	$t=time();
+	$html="
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:16px'>{organization}:</td>
+			<td>". Field_array_Hash($ous, "ou-$t",null,"style:font-size:16px;font-weight:bold")."</td>
+		</tr>		
+		<tr>
+			<td class=legend style='font-size:16px'>{domain}:</td>
+			<td>". Field_text("domain-$t", null,"font-size:16px")."</td>
+		</tr>	
+		<tr>
+			<td colspan=2 align=right><hr>". button("{add}","Save$tt();",22)."</td>
+		</tr>
+		</table>
+					
+<script>
+	var xSave$tt= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		$('#flexRT$t').flexReload();
+		UnlockPage();
+		if(document.getElementById('main_config_dhcpd')){RefreshTab('main_config_dhcpd');}
+	}
+function Save$t(){
+		LockPage();
+		var XHR = new XHRConnection();
+		XHR.appendData('AddNewInternetDomain',document.getElementById('ou-$t').value);
+		XHR.appendData('AddNewInternetDomainDomainName',document.getElementById('domain-$t').value);
+		XHR.sendAndLoad('$page', 'GET',xSave$tt);
+		}
+
+</script>";			
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
 
 
 function js_script(){
+	header("content-type: application/x-javascript");
 	if(isset($_GET["encoded"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 	if($_GET["ou"]==null){$_GET["ou"]=ORGANISTATION_FROM_USER();}
 	$ou=$_GET["ou"];
@@ -262,7 +336,7 @@ function js_script(){
 	$datas
 	
 	function LoadOuDOmainsIndex(){
-		YahooWin0(750,'$page?ajax=yes&ou=$ou_encrypted&master-t={$_GET["master-t"]}','$title');
+		YahooWin0(750,'$page?ajax=yes&ou=$ou_encrypted&master-t={$_GET["master-t"]}','$title',true);
 		
 	}
 	
@@ -283,9 +357,9 @@ function js_popup(){
 	$ou=base64_decode($_GET["ou"]);
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	if($GLOBALS["VERBOSE"]){echo "- > ORGANISTATION_FROM_USER\n";}
 	if($ou==null){$ou=ORGANISTATION_FROM_USER();}
-	if(count($arr)<5){$styleText="style='font-size:14px'";}
-	if(count($arr)<10){$styleText="style='font-size:14px'";}
+	$styleText="style='font-size:14px'";
 	
 	$LOCAL_MDA=false;
 	if($users->cyrus_imapd_installed){$LOCAL_MDA=true;}
@@ -311,17 +385,8 @@ function js_popup(){
 
 	
 	
-	$html ="<div id='organization-domains-tabs' style='width:99%;margin:0px;background-color:white'>
-			<ul>
-				" . implode ( "\n\t", $toolbox ) . "
-			</ul>
-		</div>
-		<script>
-		 $(document).ready(function() {
-			$(\"#organization-domains-tabs\").tabs();});
-		</script>";	
+	echo build_artica_tabs($toolbox, "organization-domains-tabs");
 	
-	echo $html;
 	
 }
 
@@ -411,6 +476,7 @@ echo $tpl->_ENGINE_parse_body($html);
 
 
 function ORGANISTATION_FROM_USER(){
+	if($_SESSION["uid"]==-100){return;}
 	$ldap=new clladp();
 	$hash=$ldap->Hash_Get_ou_from_users($_SESSION["uid"],1);
 	if(!is_array($hash)){header('location:domains.index.php');}
@@ -1007,11 +1073,14 @@ function DOMAINSLIST($ou){
 		$TABLE_HEIGHT=500;
 		$DOMAIN_WITH=365;
 	}
-	
-	
+	$ou=$_GET["organization-local-domain-list"];
+	$addfo="AddLocalDomain_form$t";
+	if(trim($ou)==null){
+		$addfo="AddLocalDomain_form2$t";
+	}
 	$buttons="
 	buttons : [
-	{name: '$add_local_domain', bclass: 'add', onpress : AddLocalDomain_form},
+	{name: '$add_local_domain', bclass: 'add', onpress : $addfo},
 	{name: '$import_smtp_domains', bclass: 'add', onpress : import_smtp_domains},
 	],";		
 		
@@ -1071,7 +1140,7 @@ $('#flexRT$t').flexigrid({
 		return;
 	}
 	
-	var x_AddLocalDomain_form= function (obj) {
+	var x_AddLocalDomain_form$t= function (obj) {
 		document.getElementById('DOMAINLIST-$t').innerHTML='';
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
@@ -1082,8 +1151,13 @@ function import_smtp_domains(){
 	Loadjs('domains.import.domains.php?ou=$ou');
 }
 
+function AddLocalDomain_form2$t(){
+	Loadjs('$page?AddLocalDomain-Form-js=yes&t=$t');
+}
 
-function AddLocalDomain_form(){
+function AddLocalDomain_form$t(){
+	var ou='$ouescape';
+	if(ou.lenth==0){Loadjs('$page?AddLocalDomain-Form-js=yes&t=$t');return;}
 	var InternetDomainsAsOnlySubdomains=$InternetDomainsAsOnlySubdomains;
 	if(InternetDomainsAsOnlySubdomains==1){
 		Loadjs('domains.add.localdomain.restricted.php?ou=$ouescape&t=$t');
@@ -1095,7 +1169,7 @@ function AddLocalDomain_form(){
 		XHR.appendData('AddNewInternetDomain','$ouescape');
 		XHR.appendData('AddNewInternetDomainDomainName',domain);
 		AnimateDiv('DOMAINLIST-$t');		
-		XHR.sendAndLoad('$page', 'GET',x_AddLocalDomain_form);
+		XHR.sendAndLoad('$page', 'GET',x_AddLocalDomain_form$t);
 		}
 	}	
 
@@ -1365,6 +1439,8 @@ function DeleteInternetDomain(){
 	$sql="DELETE FROM postfix_duplicate_maps WHERE pattern='$domain'";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
+	$q->QUERY_SQL("DELETE FROM domains`name`='$domain'","powerdns");
+
 	$jb=new ejabberd($domain);
 	$jb->Delete();
 	ChockServices();

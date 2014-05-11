@@ -316,7 +316,7 @@ class cyrus_maillog{
 		$stime=date('YmdHis');
 		$b_path="$dbfile.bak.$stime";
 		@unlink($dbfile);
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart imap');
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/cyrus-imapd restart');
 		$this->email_events("Warning cyrus db error on $dbfile","cyrus-imap claim: $buffer file will be backuped to",'mailbox');
 		@unlink($file);
 		file_put_contents($file,"#");	
@@ -327,7 +327,7 @@ class cyrus_maillog{
 		if(file_time_min($file)<15){return null;}	
 		$this->events("Cyrus error !! $buffer (cache=$file)");
 		$this->email_events("cyrus-imapd error: $subject","$buffer, Artica will restart cyrus",'mailbox');
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart imap");
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/cyrus-imapd restart");
 		@unlink($file);
 		file_put_contents($file,"#");
 		
@@ -347,8 +347,7 @@ class cyrus_maillog{
 		$file="/etc/artica-postfix/cron.1/".__FUNCTION__;
 		if(file_time_min($file)<15){return null;}	
 		$this->email_events("cyrus-imapd socket error: $socket","Postfix claim \"$buffer\", Artica will restart cyrus",'mailbox');
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart imap');
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/cyrus-imapd restart');
 		@unlink($file);
 		@file_put_contents($file,"#");
 	}	

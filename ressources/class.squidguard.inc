@@ -42,7 +42,7 @@ class squidguard{
 		$this->EnableUfdbGuard=$sock->EnableUfdbGuard();
 		if($this->SquidGuardIPWeb==null){$this->SquidGuardIPWeb="http://$usrs->hostname:9020/exec.squidguard.php";}
 		$this->SquidGuardIPWeb=str_replace('.(none)',"",$this->SquidGuardIPWeb);
-		echo "Starting......: squidGuard verbose mode={$GLOBALS["VERBOSE"]}\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard verbose mode={$GLOBALS["VERBOSE"]}\n";
 		
 		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -118,7 +118,7 @@ class squidguard{
 		$rules=$this->GetRules();
 		$this->loadusers();
 		if(is_array($this->groupsofRule)){
-			echo "Starting......: squidGuard no source rules set\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard no source rules set\n";
 			reset($this->groupsofRule);
 			while (list ($ruleID, $sources) = each ($this->groupsofRule)){
 				while (list ($a, $b) = each ($sources)){
@@ -137,7 +137,7 @@ class squidguard{
 		
 		$whitelisted=$this->WhiteList();
 		$whitelisted[]="\tip 127.0.0.1";
-		echo "Starting......: squidGuard ". count($whitelisted)." whitelisted IP(s)\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard ". count($whitelisted)." whitelisted IP(s)\n";
 		if(is_array($whitelisted)){
 			
 		while (list ($a, $b) = each ($whitelisted)){
@@ -156,7 +156,7 @@ class squidguard{
 		
 		
 		$blacklisted=$this->Blacklist();
-		echo "Starting......: squidGuard ". count($blacklisted)." blacklisted IP(s)\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard ". count($blacklisted)." blacklisted IP(s)\n";
 		if(is_array($blacklisted)){
 			while (list ($a, $b) = each ($blacklisted)){
 					if(trim($b)==null){continue;}
@@ -182,12 +182,12 @@ class squidguard{
 		if(preg_match("#[0-9\.]+\/(.+)#",$b,$re)){
 			$re[1]=trim($re[1]);
 			if(!is_numeric($re[1])){
-				echo "Starting......: squidGuard $value pattern (prefix not a numeric) corrupted\n";
+				echo "Starting......: ".date("H:i:s")." squidGuard $value pattern (prefix not a numeric) corrupted\n";
 				return false;	
 			}
 			
 			if(strlen($re[1])>2){
-				echo "Starting......: squidGuard $value pattern (prefix >2 numbers) corrupted\n";
+				echo "Starting......: ".date("H:i:s")." squidGuard $value pattern (prefix >2 numbers) corrupted\n";
 				return false;
 			}
 		}
@@ -197,7 +197,7 @@ class squidguard{
 	
 	private function BUILD_ACLS(){
 		$rules=$this->GetRules();
-		echo "Starting......: squidGuard Wheitelisting is set to \"$this->EnableSquidFilterWhiteListing\"\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard Wheitelisting is set to \"$this->EnableSquidFilterWhiteListing\"\n";
 		$all="all";
 		if($this->EnableSquidFilterWhiteListing){$all="none";}
 		
@@ -220,11 +220,11 @@ class squidguard{
 					while (list ($a, $b) = each ($categories)){
 						$b=trim($b);
 						if(strpos($b,"/")>0){
-							echo "Starting......: $b refused\n";
+							echo "Starting......: ".date("H:i:s")." $b refused\n";
 							continue;
 						}
 						if(strpos($b,"[")>0){
-							echo "Starting......: $b refused\n";
+							echo "Starting......: ".date("H:i:s")." $b refused\n";
 							continue;
 						}						
 						
@@ -292,7 +292,7 @@ class squidguard{
 		$add_ufdbgard_secu=false;
 		$this->loadusers();
 		if(!is_array($this->DestOfRules)){
-			echo "Starting......: squidGuard no dest rules set\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard no dest rules set\n";
 			return;
 		}
 		
@@ -372,7 +372,7 @@ class squidguard{
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$group_id=$ligne["group_id"];
 			$dngroup=trim($ligne["dngroup"]);
-			echo "Starting......: squidGuard($RuleID) group $group_id \"$dngroup\"\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard($RuleID) group $group_id \"$dngroup\"\n";
 			if($dngroup<>null){$u=$this->BuildUserLists($dngroup);}else{$u=$this->BuildUserLists($ligne["group_id"]);}
 			if(trim($u)<>null){
 				$this->groupsofRule[$RuleID][]=$u;
@@ -393,7 +393,7 @@ class squidguard{
 	private function BuildUserLists($gpid){
 		
 		$group=new groups($gpid);
-		echo "Starting......: squidGuard Group $gpid store ". count($group->members)." users\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard Group $gpid store ". count($group->members)." users\n";
 		if(count($group->members)==0){return null;}
 		if(count($group->members)<21){
 				$imploded=implode(" ",$group->members);
@@ -403,10 +403,10 @@ class squidguard{
 		$conf=implode("\n",$group->members);
 				
 		if($GLOBALS["VERBOSE"]){echo "write {$GLOBALS["guarddb"]}/$gpid\n";}
-		echo "Starting......: squidGuard write {$GLOBALS["guarddb"]}/$gpid user file\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard write {$GLOBALS["guarddb"]}/$gpid user file\n";
 		file_put_contents("{$GLOBALS["guarddb"]}/GroupNumberID$gpid",$conf);
 		if(!is_file("{$GLOBALS["guarddb"]}/GroupNumberID$gpid")){
-			echo "Starting......: squidGuard unable to write {$GLOBALS["guarddb"]}/$gpid file!\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard unable to write {$GLOBALS["guarddb"]}/$gpid file!\n";
 		}
 		return "\tuserlist\tGroupNumberID{$gpid}";
 	}
@@ -539,7 +539,7 @@ class squidguard{
 		}
 
 		$count=count($this->DefaultRules["rule"]);
-		echo "Starting......: squidGuard Default rule: $count categories\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard Default rule: $count categories\n";
 		
 		$sql="SELECT category FROM `dansguardian_personal_categories` WHERE category_type = 'enabled' AND RuleID=1;";
 		$results=$q->QUERY_SQL($sql,"artica_backup");
@@ -553,7 +553,7 @@ class squidguard{
 			$main_path="{$GLOBALS["guarddb"]}/personal-categories/$categoryPrint";
 			@mkdir($main_path,0755,true);
 			
-			echo "Starting......: squidGuard Personal category $category ($categoryPrint) for Default rule\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard Personal category $category ($categoryPrint) for Default rule\n";
 			$this->CategoriesDefinitions["P-$categoryPrint"][]="\tdomainlist personal-categories/$categoryPrint/domains";
 			if($this->EnableUfdbGuard<>1){ $this->CategoriesDefinitions["P-$categoryPrint"][]="\turllist personal-categories/$categoryPrint/urls";}
 			$this->CategoriesDefinitions["P-$categoryPrint"][]="\texpressionlist personal-categories/$categoryPrint/expressions";
@@ -656,7 +656,7 @@ class squidguard{
 				if($GLOBALS["VERBOSE"]){echo "$category:: {$GLOBALS["guarddb"]}/personal-categories/$categoryPrint\n";}
 				$this->compile_personal_category($RuleID,$category,$main_path,$categoryPrint);
 				@mkdir($main_path,0666,true);
-				echo "Starting......: squidGuard Personal category $category ($categoryPrint)\n";
+				echo "Starting......: ".date("H:i:s")." squidGuard Personal category $category ($categoryPrint)\n";
 				$this->CategoriesDefinitions["P-$categoryPrint"][]="\tdomainlist personal-categories/$categoryPrint/domains";
 				$this->CategoriesDefinitions["P-$categoryPrint"][]="\turllist personal-categories/$categoryPrint/urls";
 				$this->CategoriesDefinitions["P-$categoryPrint"][]="\texpressionlist personal-categories/$categoryPrint/expressions";
@@ -686,7 +686,7 @@ class squidguard{
 				if($datas==null){continue;}
 				if(!$this->VerifyDomainCompiledPattern($datas)){
 					$skipped++;
-					echo "Starting......: squidGuard($RuleID) \"$datas\": refused\n";
+					echo "Starting......: ".date("H:i:s")." squidGuard($RuleID) \"$datas\": refused\n";
 					continue;
 				}
 			
@@ -695,7 +695,7 @@ class squidguard{
 			}
 		$unix=new unix();
 		$unix->send_email_events("category W-$RuleID was compiled with $count rows","This category was recompiled from Mysql Database","proxy");
-		echo "Starting......: squidGuard($RuleID) Exception sites: {$this->rules[$RuleID]} $count rows\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard($RuleID) Exception sites: {$this->rules[$RuleID]} $count rows\n";
 		fclose($fh);
 		$this->ufdbGenTable($RuleID,"{$GLOBALS["guarddb"]}/personal-categories/W-$RuleID","W-$RuleID");
 		$GLOBALS["dump_exceptionSites"]["$RuleID"]=true;
@@ -706,8 +706,8 @@ class squidguard{
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		$time=time();
 		$ufdbGenTable=$GLOBALS["CLASS_UNIX"]->find_program("ufdbGenTable");
-		if(!is_file("$ufdbGenTable")){echo "Starting......: ufdbGenTable($RuleID) $categoryPrint:ufdbGenTable is not installed\n";return;}
-		echo "Starting......: ufdbGenTable($RuleID) $categoryPrint: compiling new pattern\n";
+		if(!is_file("$ufdbGenTable")){echo "Starting......: ".date("H:i:s")." ufdbGenTable($RuleID) $categoryPrint:ufdbGenTable is not installed\n";return;}
+		echo "Starting......: ".date("H:i:s")." ufdbGenTable($RuleID) $categoryPrint: compiling new pattern\n";
 		$category_compile=$categoryPrint;
 		if(strlen($category_compile)>15){
 			$category_compile=str_replace("recreation_","recre_",$category_compile);
@@ -732,7 +732,7 @@ class squidguard{
 			if(preg_match("#is not added because it was already matched#",$b)){continue;}
 			if(preg_match("#is stripped for#",$b)){continue;}
 			$log[]=$b;
-			echo "Starting......: ufdbGenTable($RuleID) $categoryPrint: $b\n";}}
+			echo "Starting......: ".date("H:i:s")." ufdbGenTable($RuleID) $categoryPrint: $b\n";}}
 
 		
 		$time=$GLOBALS["CLASS_UNIX"]->distanceOfTimeInWords($time,time());
@@ -760,7 +760,7 @@ class squidguard{
 		
 		if(!is_file("$main_path/urls")){shell_exec("/bin/touch $main_path/urls");}
 		
-		echo "Starting......: squidGuard($RuleID) $category ($categoryPrint) Personal websites store $num websites\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard($RuleID) $category ($categoryPrint) Personal websites store $num websites\n";
 		//$this->ufdbGenTable($RuleID,$main_path,$categoryPrint);
 		$GLOBALS["compile_personal_category"]["$RuleID$main_path"]=true;
 		//ufdbGenTable
@@ -769,7 +769,7 @@ class squidguard{
 	
 	public function VerifyDomainCompiledPattern($pattern){
 		if(!preg_match("#^(.+?)\.(.+)#",$pattern)){
-			echo "Starting......: $pattern is refused\n";
+			echo "Starting......: ".date("H:i:s")." $pattern is refused\n";
 			return false;
 		}
 		
@@ -799,7 +799,7 @@ class squidguard{
 			if($datas==null){continue;}
 			if(!$this->VerifyDomainCompiledPattern($datas)){
 					$skipped++;
-					echo "Starting......: squidGuard($RuleID) $datas: refused\n";
+					echo "Starting......: ".date("H:i:s")." squidGuard($RuleID) $datas: refused\n";
 					continue;
 				}
 				$inserted++;		
@@ -809,7 +809,7 @@ class squidguard{
 		
 		if(!is_file("$main_path/urls")){shell_exec("/bin/touch $main_path/urls");}
 		
-		echo "Starting......: squidGuard($RuleID) $category ($categoryPrint) communities websites store $inserted websites and $skipped websites skipped\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard($RuleID) $category ($categoryPrint) communities websites store $inserted websites and $skipped websites skipped\n";
 		//$this->ufdbGenTable($RuleID,$main_path,$categoryPrint);
 		$GLOBALS["compile_artica_category"]["$RuleID$main_path"]=true;
 		//ufdbGenTable		
@@ -842,7 +842,7 @@ class squidguard{
 		if($GLOBALS["CATEGORIES_SAVED"][$category_name]){return;}
 		$categoryPrint=$this->substrCategory($category_name);
 		
-		//echo "Starting......: squidGuard personal: base path {$GLOBALS["guarddb"]}\n";
+		//echo "Starting......: ".date("H:i:s")." squidGuard personal: base path {$GLOBALS["guarddb"]}\n";
 		@mkdir("{$GLOBALS["guarddb"]}/personal-categories/$categoryPrint",0755,true);
 		$File="{$GLOBALS["guarddb"]}/personal-categories/$categoryPrint/domains";
 		$sql="SELECT pattern FROM `dansguardian_personal_categories` WHERE category_type = 'data' AND category='$category_name';";
@@ -856,7 +856,7 @@ class squidguard{
 			if($datas==null){continue;}
 			if(!$this->VerifyDomainCompiledPattern($datas)){
 					$skipped++;
-					echo "Starting......: squidGuard personal $datas: refused\n";
+					echo "Starting......: ".date("H:i:s")." squidGuard personal $datas: refused\n";
 					continue;
 				}
 			fwrite($fh, $datas."\n");
@@ -864,10 +864,10 @@ class squidguard{
 
 		fclose($fh);
 		if(!is_file($File)){
-			echo "Starting......: squidGuard personal: $category_name ($categoryPrint) failed!\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard personal: $category_name ($categoryPrint) failed!\n";
 			return;
 		}
-		echo "Starting......: squidGuard personal: $category_name $count ($categoryPrint) rows\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard personal: $category_name $count ($categoryPrint) rows\n";
 		$GLOBALS["CATEGORIES_SAVED"][$category_name]=true;
 		
 	}
@@ -890,7 +890,7 @@ class squidguard{
 		
 		
 		if(is_array($f)){
-			echo "Starting......: squidGuard block files: {$this->rules[$RuleID]} $count rows\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard block files: {$this->rules[$RuleID]} $count rows\n";
 			$expression="(/\.)(". implode("|",$f).")$\n";
 			$expression=$expression."(/\.)(". implode("|",$f).")(/\.)(". implode("|",$f).")$";
 			file_put_contents($File,$expression);

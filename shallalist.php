@@ -190,7 +190,7 @@ function savelicense(){
 	$array["lic"]="$license";
 	$array["uuid"]="$uuid";
 	
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("http://www.articatech.net/shalla-orders.php");
 	$curl->parms=$array;
 	if(!$curl->get()){
 			$tpl=new templates();
@@ -214,7 +214,7 @@ function savelicense(){
 }
 
 function request_order(){
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("http://www.articatech.net/shalla-orders.php");
 	$sock=new sockets();
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
 	$sock=new sockets();

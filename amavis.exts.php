@@ -244,7 +244,7 @@ function items_groups(){
 	$groupname=$ligne["groupname"];
 	$delete=imgsimple("delete-24.png",null,"AmavisExtDeleteGroups('$id')");
 	$color="black";
-	if($ligne["enabled"]==0){$color="#B6ACAC";}
+	if($ligne["enabled"]==0){$color="#8a8a8a";}
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?gpid-js=$id&t=$t');\"
 	style='font-size:16px;color:$color;text-decoration:underline'>";
 	
@@ -818,7 +818,7 @@ function rules_items(){
 	
 	
 	$color="black";
-	if($enabled==0){$color="#B6ACAC";}
+	if($enabled==0){$color="#8a8a8a";}
 	$enable=Field_checkbox("$t$id", 1,$enabled,"ExtRuleEnable$ttt('$id','$gpid','$t$id')");
 	
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?ruleid-js=$id&t=$t&tt=$tt&ttt=$ttt');\"

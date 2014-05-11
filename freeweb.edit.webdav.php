@@ -139,7 +139,7 @@ function WebDavMembersList(){
 				$icon="wingroup.png";
 			}else{
 				$text_member=$member;
-				$icon="winuser.png";
+				$icon="user-18.png";
 			}
 			
 			$delete=imgtootltip("delete-32.png","{delete}","WebDavMembersDelete('$member')");

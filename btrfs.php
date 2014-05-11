@@ -11,10 +11,45 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(!$user->AsSystemAdministrator){echo "alert('no privileges');";die();}
 	if(isset($_GET["getlist"])){disk_scan();exit;}
 	if(isset($_GET["uuid"])){subdisk();exit;}
-	page();
-
+	if(isset($_GET["disks"])){disks();exit;}
+	if(isset($_GET["show-devices-js"])){show_devices_js();exit;}
+	tabs();
 	
-function page(){
+	
+
+
+function tabs(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$q=new mysql();
+		$array["hds"]='{disks}';
+		$array["disks"]='{disks} BtrFS';
+		
+		
+	
+	
+		$fontsize=14;
+	
+	
+		while (list ($num, $ligne) = each ($array) ){
+			if($num=="hds"){
+				$tab[]="<li><a href=\"system.internal.disks.php?display2=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+				continue;
+			}
+			$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+				
+		}
+	
+	
+	
+	echo build_artica_tabs($tab, "btrfs-tabs")."<script>LeftDesign('harddrive-white-64-opac20.png');</script>";
+		
+	
+	
+	}	
+function disks(){
 	
 	$t=time();
 	$page=CurrentPageName();
@@ -62,12 +97,12 @@ $('#BRTFS_TABLE1').flexigrid({
 	sortname: 'ID',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$title',
+	title: 'BtrFS',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TABLE_WIDTH,
-	height: 135,
+	width: '99%',
+	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -169,7 +204,7 @@ function disk_scan(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$disks=unserialize(base64_decode($sock->getFrameWork("btrfs.php?btrfs-scan=yes")));
-	
+	$MyPage=CurrentPageName();
 	//print_r($disks);
 	
 	
@@ -185,7 +220,7 @@ function disk_scan(){
 	}
 	
 	$data = array();
-	$data['page'] = $page;
+	$data['page'] = 1;
 	$data['total'] = $total;
 	$data['rows'] = array();	
 	
@@ -198,7 +233,7 @@ function disk_scan(){
 		$MOUNTED=$array["MOUNTED"];
 		$DEVICES=count($array["DEVICES"]);
 		$href="<a href=\"javascript:blur()\" style='font-size:14px;text-decoration:underline'>";
-		$hrefdevices="<a href=\"javascript:blur()\" OnClick=\"javascript:btrfsSubdisk('$uuid');\" style='font-size:18px;text-decoration:underline;font-weight:bold'>";
+		$hrefdevices="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('btrfs.devices.php?show-devices-js=$uuid');\" style='font-size:18px;text-decoration:underline;font-weight:bold'>";
 		$SIZE=$array["DF"]["SIZE"];
 		if($MOUNTED==null){$MOUNTED=$array["DF"]["MOUNTED"];}
 		$c++;
@@ -218,6 +253,7 @@ function disk_scan(){
 	
 	
 	$data['total'] = $c;
+	if($c==0){json_error_show("no data");}
 	echo json_encode($data);		
 	
 }

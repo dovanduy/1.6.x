@@ -23,7 +23,7 @@
 <OPENVPN_SERVER_SETTINGS>Configuration du serveur OpenVPN</OPENVPN_SERVER_SETTINGS>
 <OPENVPN_SERVER_SETTINGS_TEXT>D&eacute;finissez ici les param&egrave;tres du serveur VPN</OPENVPN_SERVER_SETTINGS_TEXT>
 <OPENVPN_WIZARD>D&eacute;marrage des premiers param&egrave;tres</OPENVPN_WIZARD>
-<OPENVPN_WIZARD_TEXT>D&eacute;marrez votre connection VPN rapidement sans connaissances techniques</OPENVPN_WIZARD_TEXT>
+<OPENVPN_WIZARD_TEXT>D&eacute;marrez votre connexion VPN rapidement sans connaissances techniques</OPENVPN_WIZARD_TEXT>
 <PKI>Infrastructure de Clef publique</PKI>
 <public_ip_addr>Adresse IP publique</public_ip_addr>
 <REMOTE_SITES_VPN>Sites distants</REMOTE_SITES_VPN>
@@ -34,7 +34,7 @@ Si vous voulez forcer le client VPN &agrave; communiquer uniquement avec votre r
 <SERVER_MODE_TAP>Cette directive va utiliser l'adresse IP du serveur pour le service OpenVPN.[br]
 L'interface r&eacute;seau sera mise en &quot;pont&quot; avec votre adresse locale.[br]Cela veut dire que si votre adresse est 192.168.31, vous devez indiquer ici 192.168.3.1 dans ce formulaire.</SERVER_MODE_TAP>
 <SERVER_MODE_TUNE>Cette directive va configurer le serveur afin qu'il alloue des adresses aux clients qui s'y connecte[br]Le serveur va prendre la &quot;.1&quot; pour servir de serveur final de l'interface locale.</SERVER_MODE_TUNE>
-<sessions>sessions</sessions>
+<sessions>Sessions</sessions>
 <sessions_text>Voir le status des utilisateurs connect&eacute;s &agrave; votre VPN</sessions_text>
 <site_name>Nom du site</site_name>
 <START_WIZARD>D&eacute;marrer l'assistant</START_WIZARD>

@@ -49,7 +49,7 @@ function flexgrid_artica(){
 	$html="<div id='div-$t'></div>
 	<script>
 		$('#events-table-$t').remove();
-		LoadAjax('div-$t','$page?flexgrid-artica-table=yes');
+		LoadAjax('div-$t','$page?flexgrid-artica-table=yes&filename={$_GET["filename"]}');
 	</script>
 	";
 	echo $html;
@@ -80,8 +80,10 @@ function flexgrid_artica_table(){
 		
 	}
 	
-	$bts[]="{name: '$mysql_events', bclass: 'SSQL', onpress : MySqlSystemEvents},";
-	$bts[]="{name: '$categories', bclass: 'Catz', onpress : MySqlChooseCatz},";
+	if($_GET["filename"]==null){
+		$bts[]="{name: '$mysql_events', bclass: 'SSQL', onpress : MySqlSystemEvents},";
+		$bts[]="{name: '$categories', bclass: 'Catz', onpress : MySqlChooseCatz},";
+	}
 	
 	
 	
@@ -123,7 +125,7 @@ $('#events-table-$t').flexigrid({
 });
 
 function SelectFields$t(){
-	YahooWin2('550','$page?Select-fields=yes&table={$_GET["table"]}&t=$t&taskid={$_GET["taskid"]}','$select');
+	YahooWin6('550','$page?Select-fields=yes&table={$_GET["table"]}&t=$t&taskid={$_GET["taskid"]}','$select');
 
 }
 
@@ -134,7 +136,7 @@ function MySqlSystemEvents(){
 }
 
 function MySqlChooseCatz(){
-	YahooWin('650','$page?flexgrid-artica-catz=yes&t=$t','$categories');
+	YahooWin6('650','$page?flexgrid-artica-catz=yes&t=$t','$categories');
 }
 
 	var x_EmptyTask$t=function (obj) {
@@ -228,7 +230,7 @@ function flexgrid_systems(){
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
-		width: $TB_WIDTH,
+		width: '99%',
 		height: $TB_HEIGHT,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200,500]
@@ -268,14 +270,15 @@ function flexgrid_artica_rows(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$q=new mysql();	
-	$WHERE="category LIKE 'mysql%'";
+	$WHERE=1;
 	$table="system_admin_events";
 	$search='%';
 	$page=1;
 	
+	if(!$q->TABLE_EXISTS($table, "artica_events")){$q->BuildTables();}
+	
 	$category=$_GET["category"];
-	if($category==null){json_error_show("Select a category first",1);}
-	$WHERE="category='$category'";
+	if($category<>null){$WHERE="category='$category'";}
 
 	if($_GET["filename"]<>null){$ADD2=" AND filename='{$_GET["filename"]}'";}
 	if(!is_numeric($_GET["taskid"])){$_GET["taskid"]=0;}
@@ -294,13 +297,21 @@ function flexgrid_artica_rows(){
 	if($searchstring<>null){
 		$sql="SELECT COUNT( * ) AS tcount FROM $table WHERE $WHERE $ADD2$searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
-		if(!$q->ok){echo json_error_show($q->mysql_error,1);}
+		if(!$q->ok){if(strpos($q->mysql_error, "MYD' not found")>0){
+			$q->QUERY_SQL("DROP TABLE `$table`","artica_events");
+			$q->BuildTables();
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}}
+		if(!$q->ok){echo json_error_show(__LINE__." ".$q->mysql_error,1);}
 		$total = $ligne["tcount"];
 		
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $WHERE $ADD2";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
-		if(!$q->ok){echo json_error_show($q->mysql_error,1);}
+		if(!$q->ok){if(strpos($q->mysql_error, "MYD' not found")>0){
+				$q->QUERY_SQL("DROP TABLE $table","artica_events");$q->BuildTables();
+				if(!$q->ok){echo json_error_show(__LINE__." ".$q->mysql_error,1);}
+				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}}
+		if(!$q->ok){echo json_error_show(__LINE__." ".$q->mysql_error,1);}
 		$total = $ligne["TCOUNT"];
 	}
 	
@@ -318,17 +329,20 @@ function flexgrid_artica_rows(){
 	$line=$tpl->_ENGINE_parse_body("{line}");
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_events");
-	if(!$q->ok){echo json_error_show($q->mysql_error,1);}
+	if(!$q->ok){echo json_error_show(__LINE__." ".$q->mysql_error,1);}
 	
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array(date('Y-m-d H:i:s'),$tpl->_ENGINE_parse_body("{no_event}<br>$sql"),"", "",""));}
+	if(mysql_num_rows($results)==0){
+		json_error_show("no data",1);
+	}
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$description=$tpl->_ENGINE_parse_body($description);
 		$description=$ligne["description"];
 		$description=str_replace("\n", "<br>", $description);
 		$description=wordwrap($description,75,"<br>");

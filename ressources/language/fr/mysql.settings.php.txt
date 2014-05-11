@@ -37,7 +37,7 @@ votre syst&egrave;me pourrait commencer &agrave; paginer et de devenir extr&ecir
 <key_buffer_text>Fixez key_buffer &agrave; 5 - 50% de votre RAM en fonction de la quantit&eacute; que vous utilisez pour les tables MyISAM, mais gardez la taille du pool de la m&eacute;moire tampon de key_buffer_size   InnoDB inf&eacute;rieure &agrave; 80% de votre RAM</key_buffer_text>
 <max_allowed_packet>Taille maximal du paquet autoris&eacute;</max_allowed_packet>
 <max_allowed_packet_text>Taille maximum d'un paquet ou de n'importe quelle chaine g&eacute;n&eacute;r&eacute;e/interm&eacute;diaire</max_allowed_packet_text>
-<max_connections>Connections maximum</max_connections>
+<max_connections>Connexions maximum</max_connections>
 <max_connections_text>Le nombre de connexions simultan&eacute;es autoris&eacute;es. Par d&eacute;faut 151</max_connections_text>
 <myisam_sort_buffer_size>Taille de la m&eacute;moire tampon de MyISAM SORT</myisam_sort_buffer_size>
 <myisam_sort_buffer_size_text>La taille tu tampon allou&eacute; lors d'un tri avec des indexes MyISAM pendant une op&eacute;ration &quot;REPAIR TABLE&quot; ou lors de la cr&eacute;ation des indexes avec les commandes &quot;CREATE INDEX ou ALTER TABLE&quot;</myisam_sort_buffer_size_text>

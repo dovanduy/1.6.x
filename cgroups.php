@@ -136,7 +136,7 @@ function cgroups_list(){
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
 	$classtr="oddRow";
 	$color="black";
-	if($cgroupsEnabled==0){$color="#CCCCCC";}
+	if($cgroupsEnabled==0){$color="#8a8a8a";}
 	$memory_structure=1;
 	$family=unserialize(base64_decode($sock->getFrameWork("cgroup.php?get-cgroups-family=yes")));
 	if(!$family["memory"]){$memory_structure=0;}	
@@ -172,7 +172,7 @@ function cgroups_list(){
 		if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$color="black";	
-		if($cgroupsEnabled==0){$color="#CCCCCC";}
+		if($cgroupsEnabled==0){$color="#8a8a8a";}
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$select=imgtootltip("software-task-32.png","{processes}","CgroupsProcesses('{$ligne["ID"]}')");
 		$select2=imgtootltip("32-network-server.png","{edit}","SambaVirtalServer('{$ligne["hostname"]}')");

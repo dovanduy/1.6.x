@@ -35,7 +35,7 @@
 		if($users->AsAnAdministratorGeneric){
 			header("location:admin.index.php");exit;
 		}
-		error_log("Redirect to users.index.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+		error_log("[{$_SESSION["uid"]}]::Redirect to users.index.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 		header("location:users.index.php");exit;
 	}
 
@@ -105,6 +105,7 @@ var x_FillLogonForm=function(obj){
 var x_SendLogonStart=function(obj){
 	 if(document.getElementById('anim')){document.getElementById('anim').innerHTML='';}
 	 if(document.getElementById('YouCanAnimateIt')){document.getElementById('YouCanAnimateIt').innerHTML='';}
+	 UnlockPage();
      var tempvalue=obj.responseText;
 	 var re = new RegExp(/location:(.+)/);
 	 m=re.exec(tempvalue);
@@ -155,6 +156,7 @@ var x_SendLogonStart=function(obj){
 			if(document.getElementById('lang')){XHR.appendData('lang','{$logon_parameters["DEFAULT_LANGUAGE"]}');}
 		}
 		if(document.getElementById('anim')){AnimateDiv('anim');}
+		LockPage();
 		XHR.sendAndLoad('$page', 'POST',x_SendLogonStart);
 		
 	}
@@ -201,22 +203,24 @@ function pagelogon(){
 	$sock=new sockets();
 	$user=new usersMenus();
 	
+
+	
 	if($user->SQUID_INSTALLED){
 		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==0){$user->SQUID_INSTALLED=false;}
 	}
 
-error_log("logon form ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::logon form ". __FILE__. " line ". __LINE__);
 $fixed_template=$sock->GET_INFO('ArticaFixedTemplate');
-error_log("init fixed template=$fixed_template in ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::init fixed template=$fixed_template in ". __FILE__. " line ". __LINE__);
 if(trim($fixed_template)<>null){$_COOKIE["artica-template"]=$fixed_template;}
 $imglogon="img/logon2.png";
 $SambaEnabled=$sock->GET_INFO("SambaEnabled");
 if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
 if($SambaEnabled==0){$user->SAMBA_INSTALLED=false;}
 
-
+if($user->GATEWAY_APPLIANCE){$imglogon="img/artica-nas.png";}
 
 if(!$user->POSTFIX_INSTALLED){
 	if($user->SAMBA_INSTALLED){
@@ -244,7 +248,7 @@ if($user->ZARAFA_APPLIANCE){$imglogon="img/logon-zarafa.png";}
 if($user->OPENVPN_APPLIANCE){$imglogon="img/logo-openvpn.png";}
 if($user->APACHE_APPLIANCE){$imglogon="img/artica-apache.png";}
 if($user->MYCOSI_APPLIANCE){$imglogon="img/my-cosi-3d.png";}
-
+if($user->GATEWAY_APPLIANCE){$imglogon="img/artica-nas.png";}
 
 
 $page=CurrentPageName();
@@ -269,10 +273,10 @@ $newacc="<div style='float:left;margin-left:-180px;width:179px;margin-top:-50px'
 
 ";
 
-error_log("-> buildFrontEnd  ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::-> buildFrontEnd  ". __FILE__. " line ". __LINE__);
 $sock->getFrameWork("cmd.php?buildFrontEnd=yes");
 
-error_log("-> CheckAutousers  ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::-> CheckAutousers  ". __FILE__. " line ". __LINE__);
 if(!CheckAutousers()){$newacc=null;}
 
 	if($user->KASPERSKY_WEB_APPLIANCE){
@@ -406,7 +410,9 @@ function logonForm($ouptut=false){
 	}
 		
 
-$contour_color="#005447";
+	$contour_color="#005447";
+	
+	
 	if($users->KASPERSKY_WEB_APPLIANCE){
 		$template="<input type='hidden' id='template' value='Kav4Proxy'>";
 		
@@ -642,13 +648,7 @@ function logon(){
 	if($_SESSION["uid"]<>null){echo "location:admin.index.php";return;}
 	
 	$socks=new sockets();
-	if(!$socks->TestArticaPort()){
-		if(is_file("ressources/logs/boa.start")){
-			$boa_error=file_get_contents("ressources/logs/boa.start");
-		}
-		echo "Unable to connect to Artica daemon port:$boa_error";
-		exit;
-	}
+	
 	
 	while (list ($index, $value) = each ($_SERVER) ){
 		$notice[]="$index:$value";
@@ -672,7 +672,7 @@ function logon(){
 	if(trim($_POST["artica_username"])==trim($_GLOBAL["ldap_admin"])){
 		if($md5Manager<>$md5submitted){
 			$tpl=new templates();
-			writelogs("Testing logon.... password:{$_POST["artica_password"]}!==\"{$_GLOBAL["ldap_password"]}\"",__FUNCTION__,__FILE__,__LINE__);	
+			//writelogs("Testing logon.... password:{$_POST["artica_password"]}!==\"{$_GLOBAL["ldap_password"]}\"",__FUNCTION__,__FILE__,__LINE__);	
 			artica_mysql_events("Failed to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]}",@implode("\n",$notice),"security","security");
 			echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 			return null;
@@ -709,13 +709,22 @@ function logon(){
 		}
 	}
 	
+	writelogs('This is not Global admin, so test Radius user...',__FUNCTION__,__FILE__,__LINE__);
+	if(Radius_admins($_POST["artica_username"],$md5submitted)){
+		$tpl=new templates();
+		$sock->getFrameWork("squid.php?clean-catz-cache=yes");
+		writelogs("OK it is a global admin -> location:admin.index.php",_FUNCTION__,__FILE__,__LINE__);
+		echo("location:admin.index.php");
+		exit;
+	}
+	
 	
 	writelogs('This is not Global admin, so test user...',__FUNCTION__,__FILE__,__LINE__);
 	$u=new user($_POST["artica_username"]);
 	$userPassword=$u->password;
 	if(trim($u->uidNumber)==null){
 		writelogs('Unable to get user infos abort',__FUNCTION__,__FILE__);
-		echo "Unknown user";
+		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 		return null;
 	}
 	
@@ -752,11 +761,61 @@ function logon(){
 		exit;}else{	
 		writelogs("[{$_POST["artica_username"]}]: The password typed  is not the same in ldap database...",__FUNCTION__,__FILE__);
 		artica_mysql_events("Failed to logon on the management console as user from {$_SERVER["REMOTE_HOST"]} (bad password)",@implode("\n",$notice),"security","security");
-		echo "bad password";
+		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 		return null;
 	}
 	
 
+	
+}
+
+function Radius_admins($username,$MD5password){
+	
+	$q=new mysql();
+	$sql="SELECT `username`,`value`,id FROM radcheck WHERE `username`='$username' AND `attribute`='Cleartext-Password' LIMIT 0,1";
+	writelogs("$username:: Is a RADIUS users \"$sql\"",__FUNCTION__,__FILE__,__LINE__);
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!is_numeric($ligne["id"])){$ligne["id"]=0;}
+	if(!$q->ok){return false;}
+	
+	if($ligne["id"]==0){return false;}
+	
+	writelogs("$username:: $MD5password <> ".md5($ligne["value"]),__FUNCTION__,__FILE__,__LINE__);
+	$checkRadiusPass=false;
+	
+	if(md5($ligne["value"])==$MD5password){
+		writelogs("$username:: RADIUS Password true for no MD5",__FUNCTION__,__FILE__,__LINE__);
+		$checkRadiusPass=true;
+	}
+	if(md5($ligne["value"])==$MD5password){
+		writelogs("$username:: RADIUS Password true for yes MD5",__FUNCTION__,__FILE__,__LINE__);
+		$checkRadiusPass=true;
+	}
+	
+	if(!$checkRadiusPass){return false;}
+		
+		
+	writelogs("$username:: Authenticated as a RADIUS users id={$ligne["id"]}",__FUNCTION__,__FILE__,__LINE__);
+	
+	$_SESSION["uid"]=$username;
+	$_SESSION["RADIUS_ID"]=$ligne["id"];
+	$privs=new privileges($username,null,$ligne["id"]);
+	
+	$privileges_array=$privs->privs;
+	if(count($privileges_array)==0){
+		unset($_SESSION["RADIUS_ID"]);
+		unset($_SESSION["uid"]);
+		return false;
+	}
+	
+	$_SESSION["CORP"]=$users->CORP_LICENSE;
+	$_SESSION["InterfaceType"]="{ARTICA_MINIADM}";
+	setcookie("mem-logon-user", $username, time()+172800);
+	$_SESSION["privileges_array"]=$privs->privs;
+	while (list ($key, $val) = each ($_SESSION["privileges_array"]) ){if(!isset($_SESSION[$key])){$_SESSION[$key]=$val;}}
+	reset($_SESSION["privileges_array"]);
+	BuildSession($username);
+	return true;
 	
 }
 
@@ -976,7 +1035,9 @@ function buildPage(){
 	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	$sock=new sockets();
 	unset($_SESSION);
+	$sslcert=null;
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
 	if($GLOBALS["VERBOSE"]){echo "<H1>articaLang() function line ".__LINE__."</H1>";}
 	$langAutodetect=new articaLang();
@@ -986,7 +1047,7 @@ function buildPage(){
 	$TEMPLATE_INDEX="logon.html";
 	
 	
-	$sock=new sockets();
+	
 	$logo="logo.gif";
 	$logo_bg="bg_header.gif";
 	$bg_color="#005447";
@@ -995,19 +1056,37 @@ function buildPage(){
 	$FixedLanguage=$sock->GET_INFO("FixedLanguage");
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
+	$SSlBumpAllowLogon=intval($sock->GET_INFO("SSlBumpAllowLogon"));
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
-	if($users->KASPERSKY_WEB_APPLIANCE){$template="Kav4Proxy";$logo="logo-kav.gif";}
+	
+	
+	if($users->KASPERSKY_WEB_APPLIANCE){
+		if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": KASPERSKY_WEB_APPLIANCE DETECTED</div>\n";}
+		$template="Kav4Proxy";
+		$logo="logo-kav.gif";
+	}
 	if($users->ZARAFA_APPLIANCE){$template="zarafa";$logo="logo-kav.gif";}	
 	if($users->MYCOSI_APPLIANCE){$logo_bg="bg_header_kavweb.gif";$logo="logo-mycosi.gif";$bg_color="#FFB683";$ProductName="MyCosi";$template="myCosi";}
 	if($users->APACHE_APPLIANCE){$template="Apache";$users->SAMBA_APPLIANCE=false;$logo="logo-kav.gif";}	
 	
 	if($GLOBALS["VERBOSE"]){echo "<H1>template=$template line ".__LINE__."</H1>";}
 	
-	if($users->SQUID_APPLIANCE){$template="Squid";}
+	if($users->SQUID_APPLIANCE){
+		if(!$users->KASPERSKY_WEB_APPLIANCE){
+			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID_APPLIANCE DETECTED</div>\n";}
+			$template="Squid";
+		}
+	}
+	
+	
 	if($users->LOAD_BALANCE_APPLIANCE){$template="LoadBalance";}
 	if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
 	if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
+	if($users->GATEWAY_APPLIANCE){$template="Gateway";$TEMPLATE_INDEX="logon.html";}
+	
+	
+	
 	
 
 
@@ -1088,7 +1167,7 @@ function buildPage(){
 		}
 		
 		
-		$lang2Link="&nbsp;|&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:PopupLogonLang()\" style='color:white'>{language}</a>";
+		$lang2Link="<a href=\"javascript:blur();\" OnClick=\"javascript:PopupLogonLang()\" style='color:white'>{language}</a>";
 		if(trim($FixedLanguage)<>null){$lang2Link=null;}
 		
 		
@@ -1114,7 +1193,9 @@ function buildPage(){
 			$modules=$tpl2->parsePHPModules();
 			$PHPVERSION=null;
 			if(isset($modules["Core"]["PHP Version"])){
-				$PHPVERSION="&nbsp;|&nbsp;PHP {$modules["Core"]["PHP Version"]}";
+				if(preg_match("#([0-9\.]+)#", $modules["Core"]["PHP Version"],$re)){
+					$PHPVERSION="&nbsp;|&nbsp;PHP v.{$re[1]}";
+				}
 			}
 			
 			if(isset($modules["cgi-fcgi"]["php-fpm"])){
@@ -1124,10 +1205,15 @@ function buildPage(){
 		
 		$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
 		$WizardSavedSettingsSend=$sock->GET_INFO("WizardSavedSettingsSend");
+		$UnlockCompanyName=$sock->GET_INFO("UnlockCompanyName");
 		if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
+		
 		$miniadm="<span style='color:white'>&nbsp;|&nbsp;</span><a href='miniadm.logon.php' style='color:white'>End-User WebAccess</a>&nbsp;";
 		if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
 		$company_name=$WizardSavedSettings["company_name"];		
+		if($UnlockCompanyName<>null){$company_name=$UnlockCompanyName;}
+		
+		
 		if($company_name<>null){$company_name="<center style='margin:5px;font-size:14px;padding:5px;border-top:1px solid white;border-bottom:1px solid white'>-&nbsp;$company_name&nbsp;-</center>";}
 		$WEBSEVERV=null;
 		
@@ -1143,13 +1229,40 @@ function buildPage(){
 		}
 		
 		if($users->SQUID_INSTALLED){
+			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID INSTALLED</div>\n";}
 			$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href='squid.access-sql.php' style='color:white'>Proxy requests</a>&nbsp;";
-		}	
+			$EnableSquidUrgencyPublic=$sock->GET_INFO("EnableSquidUrgencyPublic");
+			if(!is_numeric($EnableSquidUrgencyPublic)){$EnableSquidUrgencyPublic=0;}
+			if($EnableSquidUrgencyPublic==1){
+				$urgency_mode=$tpl2->_ENGINE_parse_body("{urgency_mode}");
+				$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php',true);\" style='color:white'>$urgency_mode</a>&nbsp;$userslogs";
+			}
+
+			if($SSlBumpAllowLogon==1){
+				if(is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){
+					$certificate=$tpl2->_ENGINE_parse_body("{certificate}");
+					$sslcert="<span style='color:white'>&nbsp;|&nbsp;</span>
+							<a href='ressources/squid/certificate.der' style='color:white'>
+					$certificate</a>&nbsp;
+							";
+				}
+				
+			}
+			
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID !!NOT!! INSTALLED</div>\n";}
+		}
+		
+		
+		if($users->KAV4PROXY_INSTALLED){
+			$WEBSEVERV="&nbsp;|&nbsp;Kav4Proxy v{$users->KAV4PROXY_VERSION}";
+			
+		}
 		
 		$ARTICAVER=@file_get_contents("VERSION").$WEBSEVERV.$PHPVERSION.$FPM;
 		
-		$tpl=str_replace("{COPYRIGHT}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm.$userslogs,$tpl);
-		$tpl=str_replace("{copy-right}","{$company_name}Copyright 2003 - ". date('Y').$lang2Link.$miniadm.$userslogs,$tpl);
+		$tpl=str_replace("{COPYRIGHT}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.net\" style='color:white'>Artica Tech</a>",$tpl);
+		$tpl=str_replace("{copy-right}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.net\" style='color:white'>Artica Tech</a>",$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
 		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
 		$tpl=str_replace("{SQUID_VERSION}",$users->SQUID_VERSION,$tpl);
@@ -1177,11 +1290,15 @@ function buildPage(){
 			$tpl=str_replace("{TEMPLATE_LANG_LINK}",null,$tpl);
 		}
 		
-		//$tests="<a href=\"javascript:Loadjs('$page?reject-browser=yes');\">TESTS</a>";
+		
 		
 		$tpl=str_replace("{artica_username}",$_GET["MEM_USERNAME"],$tpl);
+		$reject_browser_automation=null;
+		if(isset($_GET["automation"])){$reject_browser_automation="&automation=yes";}
+		
+		
 		$tpl=str_replace("{LOGON_BUTTON}","<span id='YouCanAnimateIt'></span>
-			<script>Loadjs('$page?reject-browser=yes');</script><input type='hidden' id='template' value='$template'>$ProductName".button("{login}", "SendLogonStart()","18px"),$tpl);
+			<script>Loadjs('$page?reject-browser=yes$reject_browser_automation');</script><input type='hidden' id='template' value='$template'>$ProductName".button("{login}", "SendLogonStart()","18px"),$tpl);
 		$tpl=str_replace("{TEMPLATE_TITLE_HEAD}",$title,$tpl);
 		
 			
@@ -1200,7 +1317,7 @@ function buildPage(){
 	
 		
 		if($GLOBALS["VERBOSE"]){echo "Success return form ". strlen($tpl)." bytes lenght<br>\n";}
-		return $tpl2->_ENGINE_parse_body($tpl);
+		return $tpl2->_ENGINE_parse_body($tpl)."<script>//LockPage();</script>";
 		
 	}
 	
@@ -1251,6 +1368,8 @@ $html="<html xmlns='http://www.w3.org/1999/xhtml'>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.cluetip.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.blockUI.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.treeview.min.js\"></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 		<!-- js Artica  -->
 
 
@@ -1376,7 +1495,7 @@ $('#loginform').modal({onOpen: function (dialog) {
 </center>
 <script>
 document.getElementById('loginform').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-Loadjs('logon.php?start=yes');</script>
+Loadjs('logon.php?start=yes',true);</script>
 		<div id=\"SetupControl\" style='width:0;height:0'></div>
 		<div id=\"dialogS\" style='width:0;height:0'></div> 
 		<div id=\"dialogT\" style='width:0;height:0'></div> 
@@ -1409,7 +1528,7 @@ function TEMPLATE_LANG_LINK(){
 	$FileCookyKey=md5($_SERVER["REMOTE_ADDR"].$_SERVER["HTTP_USER_AGENT"]);
 	$FileCookyLang=$sock->GET_INFO($FileCookyKey);
 	$template=null;
-	
+	$page=CurrentPageName();
 	$html=new htmltools_inc();
 	$lang=$html->LanguageArray();
 	$MEM_LANG=$_COOKIE["artica-language"];
@@ -1469,7 +1588,9 @@ $html="
 			Set_Cookie('artica-language', lang, '3600', '/', '', '');
 			var XHR = new XHRConnection();
 			XHR.appendData('Changelang',lang);
-			MEM_PASSWORD=document.getElementById('artica_password').value;
+			if(document.getElementById('artica_password')){
+				MEM_PASSWORD=document.getElementById('artica_password').value;
+			}
 			XHR.sendAndLoad('logon.php', 'POST');		
 			setTimeout('ReloadThisPage()',800);	
 			
@@ -1477,7 +1598,10 @@ $html="
 		}
 		
 		function ReloadThisPage(){
-			MEM_USERNAME=document.getElementById('artica_username').value;
+			var MEM_USERNAME='';
+			if(document.getElementById('artica_username')){
+				MEM_USERNAME=document.getElementById('artica_username').value;
+			}
 			window.location.href='logon.php?MEM_USERNAME='+MEM_USERNAME+'&t=$t';
 		}
 	</script>
@@ -1519,13 +1643,20 @@ function reject_browser(){
 	$countDeNIC=$q->COUNT_ROWS("nics", "artica_backup");
 	if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
 	$company_name=$WizardSavedSettings["company_name"];
+	$UnlockCompanyName=$sock->GET_INFO("UnlockCompanyName");
+	if($UnlockCompanyName<>null){$company_name=$UnlockCompanyName;}
 	
 	
 	
 	writelogs("NICS = $countDeNIC WizardSavedSettingsSend=$WizardSavedSettingsSend count:".count($WizardSavedSettings),__FUNCTION__,__FILE__,__LINE__);
 	
 	if($company_name==null){
-	
+				$link="wizard.install.php?setup-1=yes";
+				if(isset($_GET["automation"])){
+					$link="wizard.install.php?automation=yes";
+				}
+		
+		
 				$wizard="
 						$(\"head\").append($(\"<link rel='stylesheet' href='ressources/templates/default/blurps.css' type='text/css' media='screen' />\"));
 						$(\"head\").append($(\"<link rel='stylesheet' href='ressources/templates/default/styles_forms.css' type='text/css' media='screen' />\"));
@@ -1538,7 +1669,7 @@ function reject_browser(){
 						document.getElementById('content').style.padding='10px';
 						document.getElementById('content').style.borderRadius = '5px';
 						document.getElementById('content').style.MozBorderRadius = '5px';				
-						LoadAjax('content','wizard.install.php?setup-1=yes');";
+						LoadAjax('content','$link');";
 			}
 		
 	
@@ -1559,12 +1690,7 @@ function reject_browser(){
 	}
 	
 	
-	echo "
-	//CountNIC: $countDeNIC WizardSavedSettingsSend=$WizardSavedSettingsSend count:".count($WizardSavedSettings)."
-	
-	
-	
-	
+echo "
 function StartBrowserLoc(){
 	$(document).ready(function(){
 	    $.reject({  

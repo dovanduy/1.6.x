@@ -189,7 +189,6 @@ class kas_dns{
 		writelogs("lines number=" . count($this->array_datas) ,__CLASS__.'/'.__FUNCTION__,__FILE__);
 		if(count($this->array_datas)>0){return null;}
 		$this->array_datas["bl.spamcop.net"]=30;
-		$this->array_datas["list.dsbl.org"]=50;
 		$this->array_datas["dnsbl.njabl.org"]=50;
 		$this->array_datas["relays.ordb.org"]=70;
 		$this->array_datas["xbl-sbl.spamhaus.org"]=50;

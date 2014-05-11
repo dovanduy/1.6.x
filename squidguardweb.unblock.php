@@ -69,7 +69,7 @@ function popup(){
 	$SquidGuardWebAllowUnblockSinglePassContent=$sock->GET_INFO("SquidGuardWebAllowUnblockSinglePassContent");
 	$SquidGuardWebUseLocalDatabase=$sock->GET_INFO("SquidGuardWebUseLocalDatabase");
 	$html="
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{UseAglobalPassword}:</td>

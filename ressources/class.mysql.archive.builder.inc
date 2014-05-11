@@ -214,9 +214,9 @@ class mysql_mailarchive_builder{
 		if(!$this->TABLE_EXISTS("indextables")){		
 			$sql="CREATE TABLE IF NOT EXISTS `indextables` (
 			 `tablename` varchar(80) NOT NULL,
-			 `rowsnum` BIGINT(100) NOT NULL,
+			 `rowsnum` BIGINT UNSIGNED NOT NULL,
 			 `xday`DATE NOT NULL,
-			 `size` BIGINT(100) NOT NULL,
+			 `size` BIGINT UNSIGNED NOT NULL,
 			 PRIMARY KEY (`tablename`),
 			 KEY `rowsnum` (`rowsnum`),
 			 KEY `size` (`size`)

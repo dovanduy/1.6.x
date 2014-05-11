@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__)."/class.tcpip.inc");
 
 class squid_tail{
 	public $error=null;
@@ -14,7 +14,7 @@ class squid_tail{
 		if(!isset($GLOBALS["USERSDB"])){
 				$this->LOADUSERDB();}
 			else{
-				$ttltime=filemtime("/etc/squid3/usersMacs.db");
+				$ttltime=@filemtime("/etc/squid3/usersMacs.db");
 				if($GLOBALS["USERSDBT"]<>$ttltime){
 					$this->LOADUSERDB();
 				}
@@ -24,14 +24,17 @@ class squid_tail{
 			$GLOBALS["EnableRemoteStatisticsAppliance"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableRemoteStatisticsAppliance");
 			if(!is_numeric($GLOBALS["EnableRemoteStatisticsAppliance"])){$GLOBALS["EnableRemoteStatisticsAppliance"]=0;}
 		}
+		if(!isset($GLOBALS["DisableArticaProxyStatistics"])){$GLOBALS["DisableArticaProxyStatistics"]=0;}
+		$GLOBALS["TCP_CLASS"]=new IP();
+		if(!isset($GLOBALS["RTIME"])){$GLOBALS["RTIME"]=array();}
 		
 	}
 	
 	
 	private function LOADUSERDB(){
-		$GLOBALS["USERSDBT"]=filemtime("/etc/squid3/usersMacs.db");
+		$GLOBALS["USERSDBT"]=@filemtime("/etc/squid3/usersMacs.db");
 		$usersMacsDB=@file_get_contents("/etc/squid3/usersMacs.db");
-		$GLOBALS["USERSDB"]=unserialize($usersMacsDB);
+		$GLOBALS["USERSDB"]=@unserialize($usersMacsDB);
 	}
 	
 	private function InjectSize($user,$ip,$mac,$UserAgent,$size,$xtime=0){
@@ -263,7 +266,7 @@ class squid_tail{
 	
 	}
 
-private function CACHEDORNOT($SquidCode){
+public function CACHEDORNOT($SquidCode){
 	
                 switch ($SquidCode) {
 
@@ -346,72 +349,82 @@ private function CACHEDORNOT($SquidCode){
 		
 	}
 	
-	
+	public function errTostring($code){
+		$squid_error["100"]="Continue";
+		$squid_error["101"]="Switching Protocols";
+		$squid_error["102"]="Processing";
+		$squid_error["200"]="Pass";
+		$squid_error["201"]="Created";
+		$squid_error["202"]="Accepted";
+		$squid_error["203"]="Non-Authoritative Information";
+		$squid_error["204"]="No Content";
+		$squid_error["205"]="Reset Content";
+		$squid_error["206"]="Partial Content";
+		$squid_error["207"]="Multi Status";
+		$squid_error["300"]="Multiple Choices";
+		$squid_error["301"]="Moved Permanently";
+		$squid_error["302"]="Moved Temporarily";
+		$squid_error["303"]="See Other";
+		$squid_error["304"]="Not Modified";
+		$squid_error["305"]="Use Proxy";
+		$squid_error["307"]="Temporary Redirect";
+		$squid_error["400"]="Bad Request";
+		$squid_error["401"]="Unauthorized";
+		$squid_error["402"]="Payment Required";
+		$squid_error["403"]="Forbidden";
+		$squid_error["404"]="Not Found";
+		$squid_error["405"]="Method Not Allowed";
+		$squid_error["406"]="Not Acceptable";
+		$squid_error["407"]="Proxy Authentication Required";
+		$squid_error["408"]="Request Timeout";
+		$squid_error["409"]="Conflict";
+		$squid_error["410"]="Gone";
+		$squid_error["411"]="Length Required";
+		$squid_error["412"]="Precondition Failed";
+		$squid_error["413"]="Request Entity Too Large";
+		$squid_error["414"]="Request URI Too Large";
+		$squid_error["415"]="Unsupported Media Type";
+		$squid_error["416"]="Request Range Not Satisfiable";
+		$squid_error["417"]="Expectation Failed";
+		$squid_error["424"]="Locked";
+		$squid_error["424"]="Failed Dependency";
+		$squid_error["433"]="Unprocessable Entity";
+		$squid_error["500"]="Internal Server Error";
+		$squid_error["501"]="Not Implemented";
+		$squid_error["502"]="Bad Gateway";
+		$squid_error["503"]="Service Unavailable";
+		$squid_error["504"]="Gateway Timeout";
+		$squid_error["505"]="HTTP Version Not Supported";
+		$squid_error["507"]="Insufficient Storage";
+		$squid_error["600"]="Squid header parsing error";
+		$squid_error["000"]="Unknown";
+		if(!isset($squid_error[$code])){return null;}
+		return $squid_error[$code];
+	}
 
 
-	private function Builsql($CLIENT,$username=null,$uri,$code_error,$size=0,$time,$cached,$mac=null,$xtime=0){
+	public function Builsql($CLIENT,$username=null,$uri,$code_error,$size=0,$time,$cached,$mac=null,$xtime=0){
 			
 			
 			$hostname=null;
 			if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){
 				$this->events("EnableRemoteStatisticsAppliance: RETURN!!");
 				return;}
-			if($GLOBALS["DisableArticaProxyStatistics"]==1){$this->events("DisableArticaProxyStatistics: RETURN!!");
+				if($GLOBALS["DisableArticaProxyStatistics"]==1){$this->events("DisableArticaProxyStatistics: RETURN!!");
 				return;
 			}
-			$squid_error["100"]="Continue";
-			$squid_error["101"]="Switching Protocols";
-			$squid_error["102"]="Processing";
-			$squid_error["200"]="Pass";
-			$squid_error["201"]="Created";
-			$squid_error["202"]="Accepted";
-			$squid_error["203"]="Non-Authoritative Information";
-			$squid_error["204"]="No Content";
-			$squid_error["205"]="Reset Content";
-			$squid_error["206"]="Partial Content";
-			$squid_error["207"]="Multi Status";
-			$squid_error["300"]="Multiple Choices";
-			$squid_error["301"]="Moved Permanently";
-			$squid_error["302"]="Moved Temporarily";
-			$squid_error["303"]="See Other";
-			$squid_error["304"]="Not Modified";
-			$squid_error["305"]="Use Proxy";
-			$squid_error["307"]="Temporary Redirect";
-			$squid_error["400"]="Bad Request";
-			$squid_error["401"]="Unauthorized";
-			$squid_error["402"]="Payment Required";
-			$squid_error["403"]="Forbidden";
-			$squid_error["404"]="Not Found";
-			$squid_error["405"]="Method Not Allowed";
-			$squid_error["406"]="Not Acceptable";
-			$squid_error["407"]="Proxy Authentication Required";
-			$squid_error["408"]="Request Timeout";
-			$squid_error["409"]="Conflict";
-			$squid_error["410"]="Gone";
-			$squid_error["411"]="Length Required";
-			$squid_error["412"]="Precondition Failed";
-			$squid_error["413"]="Request Entity Too Large";
-			$squid_error["414"]="Request URI Too Large";
-			$squid_error["415"]="Unsupported Media Type";
-			$squid_error["416"]="Request Range Not Satisfiable";
-			$squid_error["417"]="Expectation Failed";
-			$squid_error["424"]="Locked";
-			$squid_error["424"]="Failed Dependency";
-			$squid_error["433"]="Unprocessable Entity";
-			$squid_error["500"]="Internal Server Error";
-			$squid_error["501"]="Not Implemented";
-			$squid_error["502"]="Bad Gateway";
-			$squid_error["503"]="Service Unavailable";
-			$squid_error["504"]="Gateway Timeout";
-			$squid_error["505"]="HTTP Version Not Supported";
-			$squid_error["507"]="Insufficient Storage";
-			$squid_error["600"]="Squid header parsing error";	
 			$searchWords=array();
 	
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	
 	$URLAR=parse_url($uri);
 	if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
+	$TCPIP=new IP();
+	if(!$TCPIP->isValid($CLIENT)){
+		$hostname=$CLIENT;
+	}
+	
+	
 	
 	if($sitename==null){if(preg_match("#^(?:[^/]+://)?([^/:]+)#",$uri,$re)){$sitename=$re[1];}}
 	if(preg_match("#^www\.(.*)#", $sitename,$rz)){$sitename=$rz[1];}
@@ -457,7 +470,7 @@ private function CACHEDORNOT($SquidCode){
 
 
 	
-	$TYPE=$squid_error[$code_error];
+	$TYPE=$this->errTostring($code_error);
 	$REASON=$TYPE;
 	$CLIENT=trim($CLIENT);
 	$date=date('Y-m-d')." ". $time;
@@ -471,7 +484,7 @@ private function CACHEDORNOT($SquidCode){
 	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){$sitename=gethostbyaddr($sitename);}	
 	if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
 	if(!is_dir("/var/log/artica-postfix/dansguardian-stats2/$dateDir")){@mkdir("/var/log/artica-postfix/dansguardian-stats2/$dateDir",600,true);}
-	if(!$this->IsPhysicalAddress($mac)){$mac=null;}
+	if($mac<>null){if(!$this->IsPhysicalAddress($mac)){$mac=null;}}
 	
 		
 	if(trim($mac)<>null){
@@ -510,6 +523,7 @@ private function CACHEDORNOT($SquidCode){
 	$uri=addslashes($uri);
 	$Country=addslashes($Country);
 	$username=addslashes($username);
+	if(is_numeric($username)){$this->events_error("Username is a numeric!\nP:$CLIENT, hostname:$hostname, USER:$username, URI:$uri, REASON:$REASON, SIZE:$size, TIME:$xtime, CACHED:$cached");}
 	
 	$this->GLOBAL_PAGEKEEPER[$sitename]=$sitename;
 
@@ -517,6 +531,17 @@ private function CACHEDORNOT($SquidCode){
 	
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	if(strpos($mac, ":")==0){$mac=null;}
+	if(trim($username)=="-"){$username=null;}
+	
+	
+	if(isset($GLOBALS["SIMULATE"])){
+		if($GLOBALS["SIMULATE"]){
+			echo "IP:$CLIENT, hostname:$hostname, USER:$username, URI:$uri, REASON:$REASON, SIZE:$size, TIME:$xtime, CACHED:$cached\n";
+			unset($this->GLOBAL_PAGEKEEPER);
+			unset($this->GLOBAL_YOUTUBE);
+			return;
+		}
+	}
 	
 	$FINAL_ARRAY["sitename"]=$sitename;
 	$FINAL_ARRAY["uri"]=$uri;
@@ -535,7 +560,7 @@ private function CACHEDORNOT($SquidCode){
 	$FINAL_ARRAY["xtime"]=$xtime;
 	
 	
-	if(trim($username)=="-"){$username=null;}
+	
 
 	if(isset($searchWords["WORDS"])){
 		if(preg_match("#gstatic\.[a-z\.]+$#",$searchWords["SITENAME"])){if(preg_match("#^tbn:.*?#", $searchWords["WORDS"])){unset($searchWords["WORDS"]);}}
@@ -549,6 +574,7 @@ private function CACHEDORNOT($SquidCode){
 		$searchWords["hostname"]=$hostname;
 		$this->GLOBAL_SEARCHWORDS[]=$searchWords;
 	}
+	
 	
 	$this->GLOBAL_QUEUE[]=$FINAL_ARRAY;
 	if(count($GLOBALS["RTIME"])>500){unset($GLOBALS["RTIME"]);}
@@ -714,21 +740,207 @@ public function GetCountry($sitename){
 			
 		
 	}
+	
 
+	
+	
+	private function __IsPhysicalAddress($address){
+	
+		$address=strtoupper(trim($address));
+		if($address=="UNKNOWN"){return null;}
+		if($address=="00:00:00:00:00:00"){return false;}
+		$address=str_replace(":","-",$address);
+	
+		If(strlen($address) > 18){return false;}
+		If($address == ""){return false;}
+		If(!preg_match("#^[0-9A-Z]+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)+(\-[0-9A-Z]+)$#i",$address)){
+	
+			return false;
+		}
+		$Array=explode("-",$address);
+		If(strlen($Array[0]) != 2){return false;}
+		If(strlen($Array[1]) != 2){return false;}
+		If(strlen($Array[2]) != 2){return false;}
+		If(strlen($Array[3]) != 2){return false;}
+		If(strlen($Array[4]) != 2){return false;}
+		If(strlen($Array[5]) != 2){return false;}
+	
+		return true;
+	}	
+	
+	
+	
+	
+	public function ArrayToMysql($FINAL_ARRAY,$time=0){
+		if(!isset($GLOBALS["TCP_CLASS"])){$GLOBALS["TCP_CLASS"]=new IP();}
+		if(!isset($GLOBALS["CLASS_SQUID_TAIL"])){$GLOBALS["CLASS_SQUID_TAIL"]=new squid_tail();}
+		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+		
 
+		if(!is_numeric($time)){$time=time();}
+		if($time==0){$time=time();}
+		$tablehour="squidhour_". date("YmdH",$time);
+	
+		if(is_array($FINAL_ARRAY)){
+			if(!isset($FINAL_ARRAY["xtime"])){$FINAL_ARRAY["xtime"]=0;}
+			if($FINAL_ARRAY["xtime"]>0){$tablehour="squidhour_". date("YmdH",$FINAL_ARRAY["xtime"]);}
+		}
+	
+		if(!is_array($FINAL_ARRAY)){
+			$this->events("ArrayToMysql():: not an array() !!!");
+			return null;
+		}
+		$zMD5=md5(serialize($FINAL_ARRAY));
+	
+	
+	
+		while (list ($key, $val) = each ($FINAL_ARRAY) ){
+			
+			$val=str_replace("'", "`", $val);
+			$val=stripslashes($val);
+			$FINAL_ARRAY[$key]=mysql_escape_string2($val);
+		}
+		
+	
+		$sitename=$FINAL_ARRAY["sitename"];
+		$uri=$FINAL_ARRAY["uri"];
+		$TYPE=$FINAL_ARRAY["TYPE"];
+		$REASON=$FINAL_ARRAY["REASON"];
+		$CLIENT=$FINAL_ARRAY["CLIENT"];
+		$date=$FINAL_ARRAY["date"];
+		$site_IP=$FINAL_ARRAY["site_IP"];
+		$Country=$this->GetCountry($sitename);
+		$size=$FINAL_ARRAY["size"];
+		$username=$FINAL_ARRAY["username"];
+		$username_ORG=$FINAL_ARRAY["username"];
+		$cached=$FINAL_ARRAY["cached"];
+		$mac=$FINAL_ARRAY["mac"];
+		$hostname=$FINAL_ARRAY["hostname"];
+		
+		
+	
+		if(!$this->__IsPhysicalAddress($mac)){$mac=null;}
+		if($mac=="00:00:00:00:00:00"){$mac=null;}
+		if($mac==null){$mac=$this->GetMacFromIP($CLIENT);}
+		if($username=="-"){$username=null;}
+	
+		if($mac<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_MAC($mac);}}
+		if($CLIENT<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_IP($CLIENT);}}
+		if($hostname==null){
+			if($GLOBALS["TCP_CLASS"]->isValid($CLIENT)){
+				$hostname=$GLOBALS["CLASS_SQUID_TAIL"]->GetComputerName($CLIENT);
+			}
+		}
+		
+		
+		if(strlen($username)<3){$username=null;}
+		if($CLIENT<>null){if($username==null){$username=$GLOBALS["Q"]->UID_FROM_IP($CLIENT);}}
+	
+	
+		if(strlen($hostname)<3){
+			$this->events("Fatal: bad hostname `$hostname` client=`$CLIENT`");
+			$hostname=null;
+			$hostname=$this->GetComputerName($CLIENT);
+			$this->events("Fatal: New hostname `$hostname` client=`$CLIENT`");
+				
+		}
+		if(strlen($hostname)<3){$hostname=null;}
+		
+		$username=$this->CACHE_CLIENT($CLIENT,$mac,$hostname,$username);
+
+		
+		if(is_numeric($username)){
+			$this->events_error("ArrayToMysql(): username ($username_ORG) is a numeric-> $username");
+		}
+		
+		if($GLOBALS['FORCE']){
+			echo "$date $sitename {$CLIENT}[$hostname]} $username\n";
+		}
+		
+		$sql="('$sitename','$uri','$TYPE','$REASON','$CLIENT','$date','$zMD5','$site_IP','$Country','$size','$username','$cached','$mac','$hostname')";
+		return array($tablehour,$sql);
+	}	
+
+	private function CACHE_CLIENT($CLIENT,$mac=null,$hostname=null,$username=null){
+		if(!$GLOBALS["TCP_CLASS"]->isValid($CLIENT)){$CLIENT=null;}
+		if(!$GLOBALS["TCP_CLASS"]->IsvalidMAC($mac)){$mac=null;}
+		if($username==null){if($CLIENT==null){if($mac==null){if($hostname<>null){return;}}}}
+		
+		if($username<>null){
+			if($CLIENT<>null){$GLOBALS["USERSCACHE"][$CLIENT]=$username;}
+			if($mac<>null){$GLOBALS["USERSCACHE"][$mac]=$username;}
+			if($hostname<>null){$GLOBALS["USERSCACHE"][$hostname]=$username;}
+			return $username;
+		}
+		if($username==null){
+			
+			if($mac<>null){
+				if(isset($GLOBALS["USERSCACHE"][$mac])){
+					if($GLOBALS["USERSCACHE"][$mac]<>null){$username=$GLOBALS["USERSCACHE"][$mac];}
+					return $username;
+				}
+			}
+			
+			if($hostname<>null){
+				if(isset($GLOBALS["USERSCACHE"][$hostname])){
+					if($GLOBALS["USERSCACHE"][$hostname]<>null){$username=$GLOBALS["USERSCACHE"][$hostname];}
+					return $username;
+				}
+			}
+			
+			
+			if($CLIENT<>null){
+				if(isset($GLOBALS["USERSCACHE"][$CLIENT])){
+					if($GLOBALS["USERSCACHE"][$CLIENT]<>null){$username=$GLOBALS["USERSCACHE"][$CLIENT];}
+					return $username;
+				}
+			}
+			
+		}
+		
+	}
 
 	private function events($text){
 			$pid=@getmypid();
-			$date=@date("h:i:s");
+			$date=@date("H:i:s");
 			$logFile="/var/log/artica-postfix/auth-tail.debug";
 			$size=@filesize($logFile);
 			if($size>1000000){@unlink($logFile);}
 			$f = @fopen($logFile, 'a');
 			@fwrite($f, "$pid ".basename(__FILE__)." $text\n");
 			@fclose($f);	
+	}
+	
+	public function events_error($text){
+		$pid=@getmypid();
+		$date=@date("H:i:s");
+		
+		if(isset($GLOBALS["BUFFER_ANALYZED"])){
+			if(strlen($GLOBALS["BUFFER_ANALYZED"])>5){
+				$text=$text."Buffer\n************************{$GLOBALS["BUFFER_ANALYZED"]}\n";
 			}
+		}
+		
+
+		if(isset($GLOBALS["BUFFER_FILE_ANALYZED"])){
+			if(strlen($GLOBALS["BUFFER_FILE_ANALYZED"])>5){
+				$text=$text."File\n************************{$GLOBALS["BUFFER_FILE_ANALYZED"]}\n";
+			}
+		}		
+		
+		
+		
+		$logFile="/var/log/artica-postfix/squid-parse-error.debug";
+		$size=@filesize($logFile);
+		if($size>9000000){@unlink($logFile);}
+		$f = @fopen($logFile, 'a');
+		@fwrite($f, "$pid ".basename(__FILE__)." $text\n");
+		@fclose($f);		
+		
+	}
 			
 	public function GetComputerName($ip){
+		if(!$GLOBALS["TCP_CLASS"]->isIPAddress($ip)){return;}
 		$this->LoadResolveCache();
 		if(isset($GLOBALS["resvip"][$ip])){
 			if(strlen($GLOBALS["resvip"][$ip])>3){

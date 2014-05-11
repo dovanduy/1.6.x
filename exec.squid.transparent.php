@@ -1,6 +1,7 @@
 <?php
 $GLOBALS["DEBUG_INCLUDES"]=false;
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["EBTABLES"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -10,7 +11,7 @@ include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
-
+include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 
 
 
@@ -19,8 +20,9 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){echo "Starting......: Squid Transparent mode: $oldpid -> DIE\n";die();}
-
+	if($unix->process_exists($oldpid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." Squid Transparent mode: $oldpid -> DIE\n";die();}
+	if($argv[1]=="--iptables"){iptables_rules();exit;}
+	if($argv[1]=="--iptables-delete"){iptables_delete_all();exit;}
 
 $users=new usersMenus();
 if($users->WEBSTATS_APPLIANCE){iptables_delete_all();die();}
@@ -29,11 +31,170 @@ if(!$users->SQUID_INSTALLED){iptables_delete_all();die();}
 $sysctl=$unix->find_program("sysctl");
 
 $sock=new sockets();
+$SquidWCCPEnabled=$sock->GET_INFO("SquidWCCPEnabled");
 $hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
+$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+if(!is_numeric($SquidWCCPEnabled)){$SquidWCCPEnabled=0;}
 if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
-echo "Starting......: Squid Check hasProxyTransparent key ($hasProxyTransparent)...\n";
-if($hasProxyTransparent==1){enable_transparent();return;}
-iptables_delete_all();
+if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
+echo "Starting......: ".date("H:i:s")." Squid Check hasProxyTransparent key ($hasProxyTransparent)...\n";
+echo "Starting......: ".date("H:i:s")." Squid Check SquidWCCPEnabled key ($SquidWCCPEnabled)...\n";
+echo "Starting......: ".date("H:i:s")." Squid Check EnableArticaHotSpot key ($EnableArticaHotSpot)...\n";
+echo "Starting......: ".date("H:i:s")." Squid Check EnableTransparent27 key ($EnableTransparent27)...\n";
+
+if($EnableArticaHotSpot==1){disable_transparent();iptables_wccp_delete_all();return;}
+if($EnableTransparent27==1){disable_transparent();iptables_wccp_delete_all();return;}
+if($SquidWCCPEnabled==1){enable_wccp();}else{iptables_wccp_delete_all();}
+if($hasProxyTransparent==1){enable_transparent();}else{disable_transparent();}
+echo "Starting......: ".date("H:i:s")." Squid running TProxy script...\n";
+shell_exec("/etc/init.d/tproxy start");
+
+
+function enable_wccp(){
+	$unix=new unix();
+	$sock=new sockets();
+	$ipClass=new IP();
+	$ipbin=$unix->find_program("ip");
+	$ifconfig=$unix->find_program("ifconfig");
+	$WCCPHash=unserialize(base64_decode($sock->GET_INFO("WCCPHash")));
+	$WCCPListenPort=$sock->GET_INFO("WCCPListenPort");
+	$SQUID_IP=$WCCPHash["listen_address"];
+	$iptablesBin=$unix->find_program("iptbales");
+	if(!$ipClass->isValid($SQUID_IP)){$SQUID_IP="127.0.0.1";}
+	if($SQUID_IP=="127.0.0.1"){$eth="lo";}
+	
+	$unix=new unix();
+	$INTERFACES=$unix->NETWORK_ALL_INTERFACES();
+	
+	while (list ($interface, $array) = each ($INTERFACES)){
+		$ipaddr=$array["IPADDR"];
+		if($SQUID_IP==$ipaddr){
+			$eth=$interface;
+		}
+		
+	}
+	
+	echo "Starting......: ".date("H:i:s")." Squid Listen $SQUID_IP:$WCCPListenPort - $eth\n";
+	
+	$wccp2_router=array();
+	$wccp2_routers=$this->WCCPHash["wccp2_router"];
+	if(strpos($wccp2_routers, ",")>0){
+		$wccp2_router=explode(",",$wccp2_routers);
+	}else{
+		$wccp2_router[]=$wccp2_routers;
+	}
+		
+	
+	
+	$i=0;
+	while (list ($index, $router) = each ($wccp2_router)){
+		$i++;
+		shell_exec("$ipbin tunnel add wccp{$i} mode gre remote $router local $SQUID_IP dev $eth");
+		shell_exec("$ifconfig wccp{$i} 127.0.{$i}.1 netmask 255.255.255.255 up");
+		shell_exec("$iptablesBin -t nat -A PREROUTING -i wccp{$i} -d 0/0 -p tcp -j DNAT --to-destination $SQUID_IP:$WCCPListenPort -m comment --comment \"ArticaSquidWCCP\"");
+	}
+
+}
+
+function disable_transparent(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sh[]=script_startfile();
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Disabled\"";
+	$sh[]=$php." ".basename(__FILE__)."/exec.squid.transparent.delete.php >/dev/null 2>&1";
+	$sh[]=script_endfile();
+	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+	script_install();
+	shell_exec($php." ".dirname(__FILE__)."/exec.squid.transparent.delete.php");
+	
+}
+
+
+function iptables_wccp_delete_all(){
+	$unix=new unix();
+	$sock=new sockets();
+	$ipClass=new IP();
+	$ipbin=$unix->find_program("ip");	
+	$ifconfig=$unix->find_program("ifconfig");
+	$iptables_save=$unix->find_program("iptables-save");
+	$iptables_restore=$unix->find_program("iptables-restore");
+	exec("$ipbin tunnel show 2>&1",$results);
+	
+	
+	while (list ($index, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(preg_match("#^wccp([0-9]+):\s+gre\/#", $line,$re)){continue;}
+		$ID=$re[1];
+		echo "Starting......: ".date("H:i:s")." Squid Listen removing wccp{$ID}\n";
+		shell_exec("$ipbin tunnel del wccp{$ID}");
+		shell_exec("$ifconfig wccp{$ID} down");
+		
+		
+	}
+	
+	echo "Starting......: ".date("H:i:s")." Squid Check WCCP mode: removing iptables rules...\n";	
+	$unix=new unix();
+	
+	
+	system("$iptables_save > /etc/artica-postfix/iptables.conf");
+	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
+	$datas=explode("\n",$data);
+	$pattern="#.+?ArticaSquidWCCP#";	
+	$d=0;
+	while (list ($num, $ligne) = each ($datas) ){
+			if($ligne==null){continue;}
+			if(preg_match($pattern,$ligne)){$d++;continue;}
+			$conf=$conf . $ligne."\n";
+			}
+	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
+	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
+	echo "Starting......: ".date("H:i:s")." Squid Check Transparent mode: removing $d iptables rule(s) done...\n";	
+	
+	
+}
+
+function ebtables_rules(){
+	$unix=new unix();
+	$ebtables=$unix->find_program("ebtables");
+	$aptget=$unix->find_program("apt-get");
+	if($GLOBALS["VERBOSE"]){echo "EBTABLES: [".__LINE__."] ebtables = $ebtables\n";}
+	$NETWORK_ALL_INTERFACES=$unix->NETWORK_ALL_INTERFACES();
+	$squid=new squidbee();
+	$SSL_BUMP=$squid->SSL_BUMP;
+	if($GLOBALS["VERBOSE"]){echo "EBTABLES: [".__LINE__."] SSL_BUMP = $SSL_BUMP\n";}
+	if(!is_file($ebtables)){ 
+		if($GLOBALS["VERBOSE"]){echo "EBTABLES: [".__LINE__."] NO BINARY apt-get = \"$aptget\"\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ebtables no such binary...\n";}
+		$unix->DEBIAN_INSTALL_PACKAGE("ebtables");
+	}
+	
+	$ebtables=$unix->find_program("ebtables");
+	
+	if(!is_file($ebtables)){return "# ebtables, no such binary"; }
+	
+	$q=new mysql();
+
+	$sql="SELECT `Interface` FROM `nics` WHERE `Bridged`=1";
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] $sql\n";}
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo "$q->mysql_error\n";}
+	$count=mysql_num_rows($results);
+	if($count==0){
+		return "# ebtables, no bridge defined...";
+	}
+	$GLOBALS["EBTABLES"]=true;
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] EBTABLES = TRUE\n";}
+	//iptables -t nat -A PREROUTING -i br0 -p tcp --dport 80 -j REDIRECT --to-port 3128
+	$f[]="# ebtables, $count Interfaces SSL_BUMP = $SSL_BUMP";
+	$f[]="$ebtables -t broute -A BROUTING -p IPv4 --ip-protocol 6 --ip-destination-port 80 -j redirect --redirect-target ACCEPT";
+	if($SSL_BUMP==1){
+		$f[]="$ebtables -t broute -A BROUTING -p IPv4 --ip-protocol 6 --ip-destination-port 443 -j redirect --redirect-target ACCEPT";
+		
+	}
+	return @implode("\n", $f);
+}
 
 
 function enable_transparent(){
@@ -43,7 +204,8 @@ function enable_transparent(){
 	$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
 	if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
 	$UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
-	if(!is_numeric($UseTProxyMode)){$UseTProxyMode=0;}		
+	if(!is_numeric($UseTProxyMode)){$UseTProxyMode=0;}	
+	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
 	$ssl_port=$squid->get_ssl_port();
 	if(!is_numeric($squid->listen_port)){$squid->listen_port=3128;}
 	$listen_ssl_port=$squid->listen_port+1;
@@ -53,20 +215,61 @@ function enable_transparent(){
 	$ips=$unix->ifconfig_interfaces_list();
 	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
 	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
+	if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
+	
+	
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sh[]=script_startfile();
+	
+	if($EnableArticaHotSpot==1){
+		$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: HotSpot system is enabled\"";
+		$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php || true";
+		$sh[]=script_endfile();
+		@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+		script_install();
+		return;
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ebtables...\n";}
+	$sh[]=ebtables_rules();
+	
+	
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT COUNT(*) as tcount FROM transparent_networks WHERE `enabled`=1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+	if($ligne["tcount"]>0){
+		iptables_rules();
+		return;
+	}
+	
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode:Removing Iptables rules\"";
+	$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php || true";
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Patching kernel\"";
+	$sh[]="$sysctl -w net.ipv4.ip_forward=1 2>&1";
+	$sh[]="$sysctl -w net.ipv4.conf.default.send_redirects=$KernelSendRedirects 2>&1";
+	$sh[]="$sysctl -w net.ipv4.conf.all.send_redirects=$KernelSendRedirects 2>&1";
+	if(is_file("/proc/sys/net/ipv4/conf/eth0/send_redirects")){
+		$sh[]="$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1";
+	}
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Enable rules\"";
 	
 	unset($ips["127.0.0.1"]);
 	unset($ips["lo"]);
-	echo "Starting......: Squid Transparent mode: enabled in transparent mode in $squid->listen_port Port (SSL_BUMP=$SSL_BUMP) SSL PORT:$ssl_port\n";
-	echo "Starting......: Squid Transparent mode: enable the gateway mode...\n";
-	echo "Starting......: Squid Transparent mode: KernelSendRedirects = $KernelSendRedirects...\n";
+	
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: enabled in transparent mode in $squid->listen_port Port (SSL_BUMP=$SSL_BUMP) SSL PORT:$ssl_port\"";
+	$sh[]="{$GLOBALS["echobin"]} \"Transparent mode: enable the gateway mode...\"";
+	$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: KernelSendRedirects = $KernelSendRedirects...\"";
 	if($UseTProxyMode==1){
-		echo "Starting......: Squid Transparent mode: Activate TProxy mode...\n";	
+		$sh[]="{$GLOBALS["echobin"]} \"Squid Transparent mode: Activate TProxy mode...\"";	
 	}
 	
 
 	
 	
-	iptables_delete_all();
+	
 	$chilli=$unix->find_program("chilli");
 	$EnableChilli=$sock->GET_INFO("EnableChilli");
 	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
@@ -79,26 +282,16 @@ function enable_transparent(){
 	if($SquidBinIpaddr=="127.0.0.1"){$SquidBinIpaddr=null;}
 	if($SquidBinIpaddr<>null){$ips=array();$ips["eth0"]=$SquidBinIpaddr;}
 	
-	
-
-	
-	shell_exec2("$sysctl -w net.ipv4.ip_forward=1 2>&1");
-	shell_exec2("$sysctl -w net.ipv4.conf.default.send_redirects=$KernelSendRedirects 2>&1");
-	shell_exec2("$sysctl -w net.ipv4.conf.all.send_redirects=$KernelSendRedirects 2>&1");
-	shell_exec2("$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1");	
-	
 	if($UseTProxyMode==1){
-		
-		shell_exec2("$iptables -t mangle -N DIVERT -m comment --comment \"ArticaSquidTransparent\"");
-		shell_exec2("$iptables -t mangle -A DIVERT -j MARK --set-mark 1 -m comment --comment \"ArticaSquidTransparent\"");
-		shell_exec2("$iptables -t mangle -A DIVERT -j ACCEPT -m comment --comment \"ArticaSquidTransparent\"");
-		shell_exec2("$iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT -m comment --comment \"ArticaSquidTransparent\"");
-		shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TPROXY --tproxy-mark 0x1/0x1 --on-port $squid->listen_port -m comment --comment \"ArticaSquidTransparent\"");		
-				
-		
-	//	if($SSL_BUMP){shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport 443 -j TPROXY --on-port $listen_ssl_port --tproxy-mark 0x1/0x1 -m comment --comment \"ArticaSquidTransparent\"");}
+		$sh[]="$iptables -t mangle -N DIVERT -m comment --comment \"ArticaSquidTransparent\" || true";
+		$sh[]="$iptables -t mangle -A DIVERT -j MARK --set-mark 1 -m comment --comment \"ArticaSquidTransparent\" || true";
+		$sh[]="$iptables -t mangle -A DIVERT -j ACCEPT -m comment --comment \"ArticaSquidTransparent\" || true";
+		$sh[]="$iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT -m comment --comment \"ArticaSquidTransparent\" || true";
+		$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TPROXY --tproxy-mark 0x1/0x1 --on-port $squid->listen_port -m comment --comment \"ArticaSquidTransparent\" || true";
 		return;
 	}
+	
+	
 $IPTABLES=$iptables;
 $INPUTINTERFACE="eth0";
 $MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
@@ -107,44 +300,143 @@ $SQUIDPORT=$squid->listen_port;
 	while (list ($interface, $ip) = each ($ips) ){
 		$SQUIDIP=$ip;
 		if(preg_match("#^ham#", $interface)){
-			echo "Starting......: Squid Transparent mode: Squid Transparent mode: skipping $interface interface\n";continue;}
-			echo "Starting......: Squid Transparent Interface:$interface Adding ipTables rules for $ip\n";
-			shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG");
-		
+			$sh[]="{$GLOBALS["echobin"]} \"Starting......: ".date("H:i:s")." Squid Transparent mode: Squid Transparent mode: skipping $interface interface\"";continue;}
+			$sh[]="{$GLOBALS["echobin"]} \"Starting......: ".date("H:i:s")." Squid Transparent Interface:$interface Adding ipTables rules for $ip\"";
+			if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG || true";}
 
-			if($SSL_BUMP==1){
-			 shell_exec2("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG");
+			if(!$GLOBALS["EBTABLES"]){
+				if($SSL_BUMP==1){
+					$sh[]="$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG || true";
+				}
 			}
 		
 	}
 	
-	shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $SQUIDPORT $MARKLOG");
-	if($SSL_BUMP==1){shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port $ssl_port $MARKLOG");}
-	shell_exec2("$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG");
-	shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG");	
-	if($SSL_BUMP==1){
-		shell_exec2("$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP $MARKLOG");	
+	$sh[]="$iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $SQUIDPORT $MARKLOG || true";
+	if($SSL_BUMP==1){$sh[]="$iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port $ssl_port $MARKLOG || true";}
+	if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG || true";}
+	if(!$GLOBALS["EBTABLES"]){$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG || true";}
+	if(!$GLOBALS["EBTABLES"]){
+		if($SSL_BUMP==1){
+			if(!$GLOBALS["EBTABLES"]){
+				$sh[]="$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP $MARKLOG || true";
+			}
+		}
 	}
+	
+	$sh[]=script_endfile();
+	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+	script_install();
+
+		
 
 }
 
 
 
 function shell_exec2($cmd){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Squid Transparent mode: EXECUTE `$cmd`\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Squid Transparent mode: EXECUTE `$cmd`\n";}
 	exec($cmd,$results);
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Squid Transparent mode:". count($results)." rows\n";}
-	while (list ($index, $row) = each ($results) ){if($GLOBALS["VERBOSE"]){echo "Starting......: Squid Transparent mode: \"$row\"\n";}}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Squid Transparent mode:". count($results)." rows\n";}
+	while (list ($index, $row) = each ($results) ){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Squid Transparent mode: \"$row\"\n";}}
 	
 	reset($results);
-	if($GLOBALS["VERBOSE"]){echo "Starting......: OK: `$cmd`\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." OK: `$cmd`\n";}
 	return $results;
 	
 	
 }
 
+function script_install(){
+	
+	
+	@chmod("/etc/init.d/tproxy",0755);
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f tproxy defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add tproxy >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 1234 tproxy on >/dev/null 2>&1");
+	}
+	
+}
+
+function script_endfile(){
+	
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sh[]="{$GLOBALS["echobin"]} \"Transparent proxy done.\"";
+	$sh[]=";;";
+	$sh[]="  stop)";
+	$sh[]="{$GLOBALS["echobin"]} \"Removing Iptables rules\"";
+	$sh[]=$php." ".__FILE__." --iptables-delete >/dev/null 2>&1";
+	$sh[]=";;";
+	$sh[]="  reconfigure)";
+	$sh[]=$php." ".__FILE__." --iptables-delete >/dev/null 2>&1";
+	$sh[]=$php." ".__FILE__." --iptables >/dev/null 2>&1";
+	$sh[]="/etc/init.d/tproxy start";
+	$sh[]=";;";
+	
+	$sh[]="  restart)";
+	$sh[]=$php." ".__FILE__." --iptables-delete >/dev/null 2>&1";
+	$sh[]=$php." ".__FILE__." --iptables >/dev/null 2>&1";
+	$sh[]="/etc/init.d/tproxy start";
+	$sh[]="{$GLOBALS["echobin"]} \"Restarting Iptables rules success\"";
+	$sh[]=";;";
+	
+	
+	$sh[]="*)";
+	$sh[]=" echo \"Usage: $0 {start ,restart,configure or stop only}\"";
+	$sh[]="exit 1";
+	$sh[]=";;";
+	$sh[]="esac";
+	$sh[]="exit 0\n";
+	return @implode("\n", $sh);
+	
+	
+}
+
+function script_startfile(){
+	$unix=new unix();
+	$sock=new sockets();
+	$GLOBALS["echobin"]=$unix->find_program("echo");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sh=array();
+	
+	$SquidWCCPEnabled=$sock->GET_INFO("SquidWCCPEnabled");
+	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
+	if(!is_numeric($SquidWCCPEnabled)){$SquidWCCPEnabled=0;}
+	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
+	if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
+
+	
+	
+	$sh[]="#!/bin/sh -e";
+	$sh[]="### BEGIN INIT INFO";
+	$sh[]="# Builded on ". date("Y-m-d H:i:s");
+	$sh[]="# Provides:          tproxy";
+	$sh[]="# Required-Start:    \$local_fs";
+	$sh[]="# Required-Stop:     \$local_fs";
+	$sh[]="# Should-Start:		";
+	$sh[]="# Should-Stop:		";
+	$sh[]="# Default-Start:     S";
+	$sh[]="# Default-Stop:      0 6";
+	$sh[]="# Short-Description: start and stop the tproxy";
+	$sh[]="# Description:       Artica tproxy service Raise transparent proxy";
+	$sh[]="### END INIT INFO";
+	$sh[]="case \"\$1\" in";
+	$sh[]="start)";	
+	$sh[]="{$GLOBALS["echobin"]} \"Removing Iptables rules\"";
+	$sh[]=$php." ".dirname(__FILE__)."/exec.squid.transparent.delete.php >/dev/null || true";
+	$sh[]="{$GLOBALS["echobin"]} \"hasProxyTransparent key ($hasProxyTransparent)...\"";
+	$sh[]="{$GLOBALS["echobin"]} \"SquidWCCPEnabled key ($SquidWCCPEnabled)...\"";
+	$sh[]="{$GLOBALS["echobin"]} \"EnableArticaHotSpot key ($EnableArticaHotSpot)...\"";
+	return @implode("\n", $sh);
+}
+
 function iptables_delete_all(){
-echo "Starting......: Squid Check Transparent mode: removing iptables rules...\n";	
 $unix=new unix();
 $iptables_save=$unix->find_program("iptables-save");
 $iptables_restore=$unix->find_program("iptables-restore");
@@ -156,14 +448,460 @@ $d=0;
 while (list ($num, $ligne) = each ($datas) ){
 		if($ligne==null){continue;}
 		if(preg_match($pattern,$ligne)){$d++;continue;}
-		if(preg_match("#-A PREROUTING -p tcp -m tcp --dport 80 -j REDIRECT --to-ports [0-9]+#i",$ligne)){$d++;continue;}
-		if(preg_match("#-A PREROUTING -p tcp -m tcp --dport 443 -j REDIRECT --to-ports [0-9]+#i",$ligne)){$d++;continue;}
 		$conf=$conf . $ligne."\n";
 		}
 	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
 	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
-	echo "Starting......: Squid Check Transparent mode: removing $d iptables rule(s) done...\n";	
+	echo "Starting......: ".date("H:i:s")." Squid Check Transparent mode: removing $d iptables rule(s) done...\n";	
 }
+
+
+function iptables_rules(){
+	
+	$squid=new squidbee();
+	$unix=new unix();
+	$sock=new sockets();
+	$SquidBinIpaddr=trim($sock->GET_INFO("SquidBinIpaddr"));
+	if($SquidBinIpaddr==null){$SquidBinIpaddr="0.0.0.0";}
+	$UseTProxyMode=$sock->GET_INFO("UseTProxyMode");
+	if(!is_numeric($UseTProxyMode)){$UseTProxyMode=0;}
+	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
+	$ssl_port=$squid->get_ssl_port();
+	if(!is_numeric($squid->listen_port)){$squid->listen_port=3128;}
+	$listen_ssl_port=$squid->listen_port+1;
+	$SSL_BUMP=$squid->SSL_BUMP;
+	$iptables=$unix->find_program("iptables");
+	$GLOBALS["IPTABLESBIN"]=$iptables;
+	$sysctl=$unix->find_program("sysctl");
+	$ips=$unix->ifconfig_interfaces_list();
+	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
+	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
+	if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}	
+	$php=$unix->LOCATE_PHP5_BIN();
+	$GLOBALS["echobin"]=$unix->find_program("echo");
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	$sh=array();
+	$sh[]=script_startfile();
+	
+	
+	
+	$sh[]="{$GLOBALS["echobin"]} \"Patching kernel\"";
+	$sh[]="$sysctl -w net.ipv4.ip_forward=1 2>&1";
+	$sh[]="$sysctl -w net.ipv4.conf.default.send_redirects=$KernelSendRedirects 2>&1";
+	$sh[]="$sysctl -w net.ipv4.conf.all.send_redirects=$KernelSendRedirects 2>&1";
+	
+	if(is_file("/proc/sys/net/ipv4/conf/eth0/send_redirects")){
+		$sh[]="$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1";
+	}
+	
+	
+	$sh[]="$php /usr/share/artica-postfix/exec.squid.transparent.delete.php || true";
+	$sh[]=ebtables_rules();
+	$sh[]="{$GLOBALS["echobin"]} \"Enable rules\"";
+	$sh[]="$iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT $MARKLOG  || true";
+	
+	
+	
+	if(!$GLOBALS["EBTABLES"]){
+		$sh[]="{$GLOBALS["echobin"]} \"Add internetT dictionary\"";
+		$sh[]="$iptables -t mangle -N internetT $MARKLOG  || true";
+		$sh[]="{$GLOBALS["echobin"]} \"Add internsslT dictionary\"";
+		$sh[]="$iptables -t mangle -N internsslT $MARKLOG  || true";
+		$sh[]="{$GLOBALS["echobin"]} \"Add mangle MARK 97 for internsslT\"";
+		$sh[]="$iptables -t mangle -A internsslT -j MARK --set-mark 97 $MARKLOG  || true";
+		$sh[]="{$GLOBALS["echobin"]} \"Add mangle MARK 96 for internetT\"";
+		$sh[]="$iptables -t mangle -A internetT -j MARK --set-mark 96 $MARKLOG  || true";
+	}
+	
+	$sql="SELECT *  FROM transparent_networks WHERE `enabled`=1 ORDER BY zOrder";
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL($sql);
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$transparent=$ligne["transparent"];
+		$block=$ligne["block"];
+		if($ligne["destination_port"]==0){
+			$ligne["destination_port"]=80;
+			if($ligne["ssl"]==1){$ligne["destination_port"]==443;}
+		}		
+		
+		if($ligne["destination_port"]==443){$ligne["ssl"]=1;}
+		if($ligne["destination_port"]==80){$ligne["ssl"]=0;}
+		if($block==1){$sh[]=pattern_to_www($ligne);continue;}
+		if($transparent==0){$sh[]=pattern_to_direct($ligne);continue;}
+		$sh[]=pattern_to_proxy($ligne,$squid->listen_port,$ssl_port);
+	}
+	$sh[]=script_endfile();
+	@file_put_contents("/etc/init.d/tproxy", @implode("\n", $sh));
+	script_install();
+	
+}
+
+function GetSourcesAndDestinations($ligne){
+	
+	
+	
+	$PortsZ=src_groups($ligne,"port");
+	if($GLOBALS["VERBOSE"]){echo "GetSourcesAndDestinations ID:{$ligne["ID"]} {$ligne["pattern"]} -> {$ligne["destination"]} - {$ligne["eth"]} - {$ligne["destination_port"]} Ports Number=". count($PortsZ)."\n";}
+	
+	if(count($PortsZ)==0){
+		$PortsZ[$ligne["destination_port"]]=$ligne["destination_port"];
+	}
+	
+	while (list ($Destport, $b) = each ($PortsZ) ){
+		$destinations[pattern_item($ligne["destination"],$ligne["eth"],$Destport,1)]=true;
+	}
+	$sources[pattern_item($ligne["pattern"],$ligne["eth"],0,0)]=true;
+	
+	
+	$D=src_groups($ligne,"dst");
+	if(count($D)>0){
+		unset($destinations);
+		while (list ($linZ, $b) = each ($D) ){
+			reset($PortsZ);
+			while (list ($Destport, $b) = each ($PortsZ) ){
+				$destinations[pattern_item($linZ,$ligne["eth"],$Destport,1)]=true;
+			}
+		}
+	}
+	
+	$S=src_groups($ligne,"src");
+	if(count($S)>0){
+		unset($sources);
+		while (list ($linZ, $b) = each ($D) ){
+			$sources[pattern_item($linZ,$ligne["eth"],0,0)]=true;
+		}
+	}
+	
+	$S=src_groups($ligne,"arp");
+	if(count($S)>0){
+		unset($sources);
+		while (list ($linZ, $b) = each ($D) ){
+			$sources[pattern_item($linZ,$ligne["eth"],0,0)]=true;
+		}
+	}
+
+	return array($sources,$destinations);
+	
+}
+
+
+function pattern_to_www($ligne){
+	$FUNCTION=__FUNCTION__;
+	$unix=new unix();
+	$ipClass=new IP();
+	$BLOCK=false;
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	if($ligne["remote_proxy"]=="*"){$ligne["remote_proxy"]=null;}
+	
+	if($ligne["remote_proxy"]<>null){
+		if(!preg_match("#(.+?):([0-9]+)#", $ligne["remote_proxy"],$re)){
+			if($ligne["ssl"]==1){
+				$ligne["remote_proxy"]="{$ligne["remote_proxy"]}:443";}
+			else{
+				$ligne["remote_proxy"]="{$ligne["remote_proxy"]}:80";
+				}
+		}else{
+			if(!$ipClass->isIPAddress($re[1])){
+				$ligne["remote_proxy"]=gethostbyname($re[1]).":{$re[2]}";
+			}
+			
+		}
+		$JREDIRECT="DNAT --to-destination {$ligne["remote_proxy"]}";
+	}else{
+		$BLOCK=true;
+		$JREDIRECT="RETURN";
+		//iptables  -t nat -I POSTROUTING  -d 93.104.193.187 -p tcp --dport 443 -j RETURN
+	}
+	
+	
+	
+	$iptables=$unix->find_program("iptables");
+	$ssl=$ligne["ssl"];
+	$ERROR=null;
+	$internet="internetT";
+	$mark=96;
+	$not=null;
+	$suffixTables=$MARKLOG;
+	if($ssl==1){ $internet="internsslT"; $mark=97; }
+	if($ligne["isnot"]==1){$not=" !";}
+	$f[]="#";
+	
+	
+	$SourcesAndDestinations=GetSourcesAndDestinations($ligne);
+	$SOURCES=$SourcesAndDestinations[0];
+	$DESTINATIONS=$SourcesAndDestinations[1];
+
+	
+	$f[]="{$GLOBALS["echobin"]} \"Rule:{$ligne["ID"]} transfert to web server {$ligne["remote_proxy"]} connection from {$ligne["pattern"]} -> {$ligne["destination"]}:{$ligne["destination_port"]} $ERROR\"";
+	while (list ($source, $none) = each ($SOURCES) ){
+		reset($DESTINATIONS);
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: $FUNCTION SOURCE = \"$source\"\n";}
+		while (list ($destination, $none) = each ($DESTINATIONS) ){	
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: $FUNCTION DESTINATION = \"$destination\"\n";}
+			if(is_numeric($source)){continue;}
+			if(is_numeric($destination)){continue;}
+			if(!$BLOCK){
+				if(!$GLOBALS["EBTABLES"]){
+					$f[]=Output_iptables("$iptables -t mangle -I PREROUTING $not$source-p tcp -m tcp $not$destination $MARKLOG || true");
+				}
+			}
+					
+			if(!$GLOBALS["EBTABLES"]){
+				$f[]=Output_iptables("$iptables -t nat -I PREROUTING $not$source-p tcp -m tcp $not$destination -j $JREDIRECT $MARKLOG || true");
+			}
+			if($BLOCK){$f[]=Output_iptables("$iptables -I FORWARD $not$source-p tcp -m tcp $not$destination -j REJECT $MARKLOG || true");}
+		}
+	}
+	
+	return @implode("\n", $f);
+}
+
+
+
+
+function pattern_to_proxy($ligne,$squid_http_port,$squid_ssl_port){
+	$FUNCTION=__FUNCTION__;
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	if($ligne["remote_proxy"]=="*"){$ligne["remote_proxy"]=null;}
+	$unix=new unix();
+	$iptables=$unix->find_program("iptables");
+	$ssl=$ligne["ssl"];
+	$ERROR=null;
+	$internet="internetT";
+	$mark=96;
+	$not=null;
+	$suffixTables=$MARKLOG;
+	$JREDIRECT="REDIRECT --to-port $squid_http_port";
+	
+	
+	if($ssl==1){
+		$JREDIRECT="REDIRECT --to-port $squid_ssl_port";
+		$squid_port=$squid_ssl_port;
+		$internet="internsslT";
+		$mark=97;
+	}
+	
+	if(preg_match("#^(.+?):(.+)#", $ligne["remote_proxy"])){
+		$JREDIRECT="DNAT --to-destination {$ligne["remote_proxy"]}";
+	}
+	
+	
+	$EXTMARK="-m mark --mark $mark";
+	if($GLOBALS["EBTABLES"]){
+		$internet=null;
+		$EXTMARK=null;
+	}
+	
+	
+
+	if($ligne["isnot"]==1){$not=" !";}
+	$destination=pattern_item($ligne["destination"],$ligne["eth"],$ligne["destination_port"],1);
+	$source=pattern_item($ligne["pattern"],$ligne["eth"],0,0);
+	$f[]="#";
+	
+	$SourcesAndDestinations=GetSourcesAndDestinations($ligne);
+	$SOURCES=$SourcesAndDestinations[0];
+	$DESTINATIONS=$SourcesAndDestinations[1];
+	
+
+	
+	$f[]="{$GLOBALS["echobin"]} \"Rule:{$ligne["ID"]} transfert directly to Internet {$ligne["pattern"]} -> {$ligne["destination"]} $ERROR\"";
+	
+	while (list ($source, $none) = each ($SOURCES) ){
+		reset($DESTINATIONS);
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: $FUNCTION SOURCE = \"$source\"\n";}
+		while (list ($destination, $none) = each ($DESTINATIONS) ){	
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: $FUNCTION DESTINATION = \"$destination\"\n";}
+			if(is_numeric($source)){continue;}
+			if(is_numeric($destination)){continue;}
+			if(!$GLOBALS["EBTABLES"]){$f[]=Output_iptables("$iptables -t mangle -A PREROUTING $not$source-p tcp -m tcp $not$destination -j $internet $MARKLOG || true");}
+			$f[]=Output_iptables("$iptables -t nat -A PREROUTING $not$source-p tcp $EXTMARK -m tcp $not$destination -j $JREDIRECT $MARKLOG || true");
+		}
+	}
+	
+
+	return @implode("\n", $f);	
+	
+}
+
+function Output_iptables($line){
+	$trace=@debug_backtrace();
+	if(isset($trace[1])){
+		$called="in ". basename($trace[1]["file"])." function {$trace[1]["function"]}() line {$trace[1]["line"]}";
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "$line \n";}
+	//echo "$line - $called\n";
+	if(preg_match("#^\##", $line)){return $line;}
+	$lineT=$line;
+	$lineT=str_replace('"', "'", $lineT);
+	return "{$GLOBALS["echobin"]} \"$lineT\"\n$line";
+	
+}
+
+
+function pattern_to_direct($ligne){
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	$unix=new unix();
+	$not=null;
+	$ERROR=null;
+	$iptables=$unix->find_program("iptables");
+	$ssl=$ligne["ssl"];
+	$internet="internetT";
+	$mark=96;
+	$suffixTables=$MARKLOG;
+	
+	if($ssl==1){
+		$internet="internsslT";
+		$mark=97;
+	}
+	
+	
+	$SourcesAndDestinations=GetSourcesAndDestinations($ligne);
+	$SOURCES=$SourcesAndDestinations[0];
+	$DESTINATIONS=$SourcesAndDestinations[1];
+	
+
+	
+	$f[]="{$GLOBALS["echobin"]} \"Rule:{$ligne["ID"]} [".__FUNCTION__."/".__LINE__."] transfert directly to Internet {$ligne["pattern"]} -> {$ligne["destination"]} $ERROR\"";
+	while (list ($source, $none) = each ($SOURCES) ){
+		
+		reset($DESTINATIONS);
+		while (list ($destination, $none) = each ($DESTINATIONS) ){
+			if(is_numeric($source)){continue;}
+			if(is_numeric($destination)){continue;}			
+			if(!$GLOBALS["EBTABLES"]){$f[]=Output_iptables("$iptables -t mangle -I PREROUTING $not$source-p tcp -m tcp $not$destination -j RETURN $MARKLOG || true");}
+			$f[]=Output_iptables("$iptables -t nat -I PREROUTING $not$source-p tcp -m tcp $not$destination -j RETURN $MARKLOG || true");
+			
+		}
+	}
+
+	return @implode("\n", $f);
+	
+}
+
+function pattern_item($destination,$eth=null,$port=0,$destinationProto=0){
+	$nic=new system_nic();
+	$trace=@debug_backtrace();
+	if(isset($trace[1])){
+		$called="in ". basename($trace[1]["file"])." function {$trace[1]["function"]}() line {$trace[1]["line"]}";
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: Destination: $destination eth=$eth port=$port destinationProto=$destinationProto - $called\n";}
+	
+	if(is_numeric($eth)){$eth=null;}
+	if($port>0){
+		$portText="--srcport $port";
+		if($destinationProto==1){
+			$portText=" --dport $port";
+		}
+	}
+	
+	$pdest="-s ";
+	if($eth<>null){
+		if($destinationProto==0){
+			$interface=" -m physdev --physdev-in $eth ";
+		}
+	}
+	
+	if($destinationProto==1){
+		$pdest="-d ";
+	}
+	
+	if($destination=="*"){$destination="0.0.0.0/0";}
+	if(trim($destination)==null){
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: Destination: return *** $interface$portText ***\n";}
+		return "$interface$portText";
+	}
+	
+	if(preg_match("#[0-9\.]+-[0-9\.]+#", $destination)){
+		
+		if($destinationProto==1){
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: Destination: return *** $interface-m iprange --dst-range '$destination'$portText  ***\n";}
+			return "$interface-m iprange --dst-range '$destination'$portText ";
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: Destination: return *** $interface-m iprange --src-range '$destination'$portText   ***\n";}
+		return "$interface-m iprange --src-range '$destination'$portText ";
+		
+	}
+	
+	$ipClass=new IP();
+	
+	if($ipClass->IsvalidMAC($destination)){
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: Destination: return *** $interface-m mac --mac-source $destination$portText   ***\n";}
+		return "$interface-m mac --mac-source $destination$portText ";
+	}	
+	
+	
+	if($ipClass->isIPAddressOrRange($destination)){
+		return "$interface$pdest$destination$portText ";
+	}
+	
+
+	
+}
+
+function src_groups($ligne,$GroupType){
+	
+	//["src"]="{addr}";
+	//["dst"]="{dst}";
+	//["arp"]="{ComputerMacAddress}";
+	
+	$ID=$ligne["ID"];
+	$q=new mysql_squid_builder();
+	$MARKLOG="-m comment --comment \"ArticaSquidTransparent\"";
+	$f=array();
+	if($q->COUNT_ROWS("transparent_networks_groups")==0){return array();}
+	$sql="SELECT transparent_networks_groups.gpid,
+	transparent_networks_groups.zmd5 as mkey,
+	webfilters_sqgroups.* FROM transparent_networks_groups,webfilters_sqgroups
+	WHERE transparent_networks_groups.gpid=webfilters_sqgroups.ID
+	AND transparent_networks_groups.ruleid=$ID
+	AND webfilters_sqgroups.enabled=1
+	AND transparent_networks_groups.enabled=1
+	AND webfilters_sqgroups.GroupType='$GroupType'
+	";
+	$results=$q->QUERY_SQL($sql);	
+	if(mysql_num_rows($results)==0){
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: src_groups:$GroupType No defined group\n";}
+		return array();}
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$items=src_items($ligne["gpid"],$ligne["GroupType"]);
+		if(!is_array($items)){
+			if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: src_groups:{$ligne["gpid"]} No item\n";}
+			continue;}
+		while (list ($a, $b) = each ($items) ){ $f[$a]=true; }
+		
+	} 
+	
+	return $f;
+	
+}
+
+function src_items($gpid,$GroupType){
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$gpid AND enabled=1";
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: src_items:$gpid -> $GroupType Get items.\n";}
+	$results=$q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$pattern=trim($ligne["pattern"]);
+		
+		if($pattern==null){continue;}
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: src_items:$gpid -> $pattern item.\n";}
+		$f[$pattern]=true;
+		}
+	
+	return $f;
+	
+	
+}
+
+
+
 
 
 

@@ -32,7 +32,6 @@ public
     constructor Create(const zSYS:Tsystem);
     function  BIN_PATH():string;
     function  CONFIG_PATH():string;
-    function  VERSION():string;
     function  PID_NUM():string;
     procedure START();
     procedure STOP();
@@ -87,45 +86,6 @@ begin
 result:=BIN_PATH()+' -f '+CONFIG_PATH();
 end;
 //##############################################################################
-
-function tapache_artica.VERSION():string;
-  var
-   RegExpr:TRegExpr;
-   tmpstr:string;
-   l:TstringList;
-   i:integer;
-   path:string;
-begin
- path:=SYS.LOCATE_APACHE_BIN_PATH();
-     if not FileExists(path) then begin
-        logs.Debuglogs('tapache_artica.VERSION():: Apache is not installed');
-        exit;
-     end;
-
-    result:=SYS.GET_CACHE_VERSION('APP_APACHE_ARTICA');
-   if length(result)>0 then exit;
-
-   tmpstr:=logs.FILE_TEMP();
-   fpsystem(path+' -v >'+tmpstr+' 2>&1');
-
-
-     l:=TstringList.Create;
-     RegExpr:=TRegExpr.Create;
-     l.LoadFromFile(tmpstr);
-     RegExpr.Expression:='Server version: Apache/([0-9\.]+)';
-     for i:=0 to l.Count-1 do begin
-         if RegExpr.Exec(l.Strings[i]) then begin
-            result:=RegExpr.Match[1];
-            result:=trim(result);
-            break;
-         end;
-     end;
-l.Free;
-RegExpr.free;
-SYS.SET_CACHE_VERSION('APP_APACHE_ARTICA',result);
-logs.Debuglogs('APP_APACHE_ARTICA:: -> ' + result);
-end;
-//#############################################################################
 procedure tapache_artica.START();
 var
    pid:string;
@@ -617,7 +577,7 @@ pid:=PID_NUM();
       ini.Add('application_installed=1');
       ini.Add('master_pid='+ pid);
       ini.Add('master_memory=' + IntToStr(SYS.PROCESS_MEMORY(pid)));
-      ini.Add('master_version=' + VERSION());
+      ini.Add('master_version=2');
       ini.Add('status='+SYS.PROCESS_STATUS(pid));
       ini.Add('service_name=APP_POLICYD_WEIGHT');
       ini.Add('service_cmd=apache');

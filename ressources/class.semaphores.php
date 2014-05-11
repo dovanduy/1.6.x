@@ -12,7 +12,7 @@ class semaphores{
 		$this->ok=true;
 		$this->bytesmem=$memorybytes;
 		$this->index=$index;
-		if($GLOBALS["LOGON-PAGE"]){error_log("@shm_attach($this->id,$this->bytesmem,0777) ". basename(__FILE__). " line ". __LINE__);}
+		if($GLOBALS["LOGON-PAGE"]){error_log("[{$_SESSION["uid"]}]::@shm_attach($this->id,$this->bytesmem,0777) ". basename(__FILE__). " line ". __LINE__);}
 		$this->shmid=@shm_attach($this->id,$this->bytesmem,0777);
 		if(!$this->shmid){$this->ok=false;}
 		
@@ -43,9 +43,9 @@ class semaphores{
 		$array=$this->MyArray();
 		if(!is_array($array)){$array=array();}
 		$array[$key]=$value;
-		if($GLOBALS["LOGON-PAGE"]){error_log("@shm_put_var($this->shmid,$this->index,$array); ". basename(__FILE__). " line ". __LINE__);}
+		if($GLOBALS["LOGON-PAGE"]){error_log("[{$_SESSION["uid"]}]::@shm_put_var($this->shmid,$this->index,$array); ". basename(__FILE__). " line ". __LINE__);}
 		@shm_put_var($this->shmid,$this->index,$array);
-		if($GLOBALS["LOGON-PAGE"]){error_log("@shm_put_var() OK ". basename(__FILE__). " line ". __LINE__);}
+		if($GLOBALS["LOGON-PAGE"]){error_log("[{$_SESSION["uid"]}]::@shm_put_var() OK ". basename(__FILE__). " line ". __LINE__);}
 		}
 	
 	function CLOSE(){

@@ -1,5 +1,6 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.status.inc');
@@ -8,14 +9,14 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/ressources/class.artica.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
+include_once(dirname(__FILE__).'/framework/class.monit.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
-//server-syncronize-64.png
 $GLOBALS["FORCE"]=false;
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
-
 if($argv[1]=="--start-process"){startprocess($argv[2],$argv[3]);exit;}
-if($argv[1]=="--monit"){monit();die();}
+if($argv[1]=="--monit"){monit();die(0);}
+
+
 if(!$GLOBALS["FORCE"]){
 	if(systemMaxOverloaded()){error_log(basename(__FILE__)."::Fatal: Aborting report, this system is too many overloaded...");die();}
 }
@@ -25,7 +26,6 @@ $GLOBALS["CLASS_UNIX"]=$unix;
 $pidfile="/etc/artica-postfix/".basename(__FILE__)."pid";
 $currentpid=trim(@file_get_contents($pidfile));
 if($unix->process_exists($currentpid)){die();}
-
 @file_put_contents($pidfile,getmypid());
 
 if($argv[1]=="--bandwith"){bandwith();die();}
@@ -580,61 +580,13 @@ function loadavg_table($filepath=null,$lsof=null){
 }
 
 function monit(){
+	$monit=new monit_unix();
+	$monit->WAKEUP();
 	$unix=new unix();
-	if(!is_dir("/etc/monit/conf.d")){return;}
-	$monit_file="/etc/monit/conf.d/articaframework.monitrc";
-	if(is_file($monit_file)){return;}
-	$monit=$unix->find_program("monit");
-	$chmod=$unix->find_program("chmod");
-	if(!is_file($monit)){return;}
-	$sock=new sockets();
-	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("ArticaFrameWorkWatchdogMonitConfig")));
-	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
-	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
-	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}	
-	
-	$stopSHPath="/usr/sbin/artica-framework-monit-stop";
-	$startSHPath="/usr/sbin/artica-framework-monit-start";
-	$shcmdlineStart="/etc/init.d/artica-postfix start framework";
-	$shcmdlineStop="/etc/init.d/artica-postfix stop framework";
-	$pidfile="/var/run/lighttpd/framework.pid";
+	$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
 	
 	
-	echo "Starting......: Monit is enabled check pid `$pidfile`\n";
-	$reloadmonit=true;
-		$f[]="check process artica-framework";
-   		$f[]="with pidfile $pidfile";
-   		$f[]="start program = \"$startSHPath\"";
-   		$f[]="stop program =  \"$stopSHPath\"";
-   		if($MonitConfig["watchdogMEM"]){
-  			$f[]="if totalmem > {$MonitConfig["watchdogMEM"]} MB for 5 cycles then alert";
-   		}
-   		if($MonitConfig["watchdogCPU"]>0){
-   			$f[]="if cpu > {$MonitConfig["watchdogCPU"]}% for 5 cycles then alert";
-   		}
-	   $f[]="if 5 restarts within 5 cycles then timeout";
-	   
-	   @file_put_contents($monit_file, @implode("\n", $f));
-	   $f=array();
-	   $f[]="#!/bin/sh";
-	   $f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-	   $f[]=$shcmdlineStart;
-	   $f[]="exit 0\n";
- 	   @file_put_contents($startSHPath, @implode("\n", $f));
- 	   shell_exec("$chmod 777 $startSHPath");
-	   $f=array();
-	   $f[]="#!/bin/sh";
-	   $f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-	   $f[]=$shcmdlineStop;
-	   $f[]="exit 0\n";
- 	   @file_put_contents($stopSHPath, @implode("\n", $f));
- 	   shell_exec("$chmod 777 $stopSHPath");	   
 	
-	
-	if($reloadmonit){
-		$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-install --monit-check");
-	}	
-
 }
 
 

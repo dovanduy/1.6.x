@@ -198,6 +198,7 @@ class squidnodes{
 	}
 	
 	private function http_port(){
+			
 			$transparent=null;
 			if($this->hasProxyTransparent==1){
 				$transparent=" intercept";
@@ -671,8 +672,8 @@ class squidnodes{
 			}			
 
 
-			$conf[]="http_access allow localhost";
-			$conf[]="http_access allow purge localhost";
+			$conf[]="http_access allow MgRPort MgRClient all";
+			
 			$conf[]="http_access deny purge";			
 			if($GLOBALS["CLASS_SQUIDBEE"]->EnableUserAgentBanAll==1){$conf[]="http_access deny !AllowedBrowsers";}		
 			if(isset($GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"])){$conf[]=$GLOBALS["HTTP_ACCESS"]["BLOCKEDSITES"];}	

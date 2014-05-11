@@ -432,7 +432,7 @@ function rules_list(){
 			$ligne['QuotaName']=utf8_encode($ligne['QuotaName']);
 			$ligne['details']=utf8_encode($ligne['details']);
 			$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule$t('{$ligne['ID']}')");
-			if($ligne["enabled"]==0){$color="#9C9C9C";}
+			if($ligne["enabled"]==0){$color="#8a8a8a";}
 	
 			//$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"]));
 

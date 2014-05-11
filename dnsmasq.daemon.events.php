@@ -55,7 +55,8 @@ function ParseLogs2(){
 	
 	
 	$sock=new sockets();
-	$tbl=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=dnsmasq*")));
+	$sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=dnsmasq*");
+	$tbl=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 	
 	if(is_array($tbl)){
 		$tbl=array_reverse($tbl);

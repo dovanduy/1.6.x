@@ -11,6 +11,7 @@ include_once(dirname(__FILE__) . '/ressources/class.user.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ini.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/ressources/class.iptables-chains.inc');
+include_once(dirname(__FILE__) . '/ressources/class.main_cf.inc');
 include_once(dirname(__FILE__) . '/ressources/class.baseunix.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
@@ -31,6 +32,10 @@ if($argv[1]=='--transfert-white'){ParseResolvMX();die();}
 if($argv[1]=='--upgrade-white'){UpgradeWhiteList();die();}
 if($argv[1]=='--ipdeny'){ipdeny();die();}
 if($argv[1]=='--perso'){perso();die();}
+if($argv[1]=='--nginx'){FW_NGINX_RULES();die();}
+if($argv[1]=='--spamhaus'){FW_SPAMHAUS_RULES();die();}
+
+
 
 if($GLOBALS["VERBOSE"]){echo "Parsing ".@implode(" ", $argv)."\n";}
 
@@ -144,6 +149,49 @@ events("restoring datas iptables-restore < /etc/artica-postfix/iptables.new.conf
 file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
 system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
 }
+function iptables_nginx_delete_all(){
+	$unix=new unix();
+	$iptables_save=$unix->find_program("iptables-save");
+	$iptables_restore=$unix->find_program("iptables-restore");
+	events("Exporting datas iptables-save > /etc/artica-postfix/iptables.conf");
+	system("$iptables_save > /etc/artica-postfix/iptables.conf");
+	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
+	$datas=explode("\n",$data);
+	$pattern="#.+?ArticaInstantNginx#";
+	$c=0;
+	while (list ($num, $ligne) = each ($datas) ){
+		if($ligne==null){continue;}
+		if(preg_match($pattern,$ligne)){$c++;continue;}
+		events("skip rule $ligne from deletion");
+		$conf=$conf . $ligne."\n";
+	}
+	echo "Ban country $c removed rules...\n";
+	events("restoring datas iptables-restore < /etc/artica-postfix/iptables.new.conf");
+	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
+	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
+}
+function iptables_spamhaus_delete_all(){
+	$unix=new unix();
+	$iptables_save=$unix->find_program("iptables-save");
+	$iptables_restore=$unix->find_program("iptables-restore");
+	events("Exporting datas iptables-save > /etc/artica-postfix/iptables.conf");
+	system("$iptables_save > /etc/artica-postfix/iptables.conf");
+	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
+	$datas=explode("\n",$data);
+	$pattern="#.+?SpamHaus#";
+	$c=0;
+	while (list ($num, $ligne) = each ($datas) ){
+		if($ligne==null){continue;}
+		if(preg_match($pattern,$ligne)){$c++;continue;}
+		events("skip rule $ligne from deletion");
+		$conf=$conf . $ligne."\n";
+	}
+	echo "Ban country $c removed rules...\n";
+	events("restoring datas iptables-restore < /etc/artica-postfix/iptables.new.conf");
+	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
+	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");	
+}
+
 
 function perso($NoOtherRules=false){
 	
@@ -254,12 +302,167 @@ function perso($NoOtherRules=false){
 		}
 	}	
 	
-	if(!$NoOtherRules){
-		Compile_rules(true);
-	}
+	if(!$NoOtherRules){Compile_rules(true);}
+	
+
 	
 }
 
+function FW_NGINX_RULES($aspid=false){
+	// --------------------------------------------------------------------------------------------------------
+	
+	$unix=new unix();
+	$commands=array();
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["VERBOSE"]){echo "Already pid $oldpid running since {$time}Mn\n";}
+			return;
+		}
+	}	
+	
+	iptables_nginx_delete_all();
+	$iptables=$unix->find_program("iptables");
+	$iptablesClass=new iptables_chains();
+	$sql="SELECT * FROM iptables WHERE disable=0 AND flux='INPUT' AND allow=0 AND service='ArticaInstantNginx'";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!isset($GLOBALS["IPTABLES_WHITELISTED"])){
+		$GLOBALS["IPTABLES_WHITELISTED"]=$iptablesClass->LoadWhiteLists();
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "FW_NGINX_RULES:".mysql_num_rows($results)." item(s)\n";}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ip=$ligne["serverip"];
+		$ligne["multiples_ports"]=trim($ligne["multiples_ports"]);
+		$port=" --destination-port {$ligne["local_port"]}";
+	
+		if($iptablesClass->isWhiteListed($ip)){
+			if($GLOBALS["VERBOSE"]){echo "$ip is whitelisted...\n";}
+			continue;}
+		
+		if($ligne["local_port"]==-1){
+			if($ligne["multiples_ports"]==null){
+				if($GLOBALS["VERBOSE"]){echo "FW_NGINX_RULES: multiples_ports ???\n";}
+				continue;}
+			$port=" -m multiport --dports {$ligne["multiples_ports"]}";
+		}
+	
+		if($ligne["local_port"]==0){$port=null;}
+		if($GLOBALS["VERBOSE"]){echo "FW_NGINX_RULES: {$ligne["serverip"]} REJECT INBOUND PORT $port\n";}
+		events("LOG {$ligne["serverip"]} REJECT INBOUND PORT $port");
+			
+		$ipsource_cmdline="-s $ip";
+		if(preg_match("#Range:(.+)#", $ip,$re)){$ipsource_cmdline=" -m iprange --src-range {$re[1]}";}
+	
+		if($ligne["log"]==1){
+			$commands[]="$iptables -A INPUT $ipsource_cmdline -p tcp$port -j LOG --log-prefix \"FW_IN DROP: \" -m comment --comment \"ArticaInstantNginx\"";
+		}
+	
+		$iptablerules="$iptables -A INPUT $ipsource_cmdline -p tcp$port -j DROP -m comment --comment \"ArticaInstantNginx\"";
+		if($GLOBALS["VERBOSE"]){echo "FW_NGINX_RULES: $iptablerules\n";}
+		$commands[]=$iptablerules;
+	}
+
+	if($GLOBALS["VERBOSE"]){echo count($commands)." should be performed\n";}
+	
+	if(is_array($commands)){
+		while (list ($index, $line) = each ($commands) ){
+			$results=array();
+			exec($line,$results);
+			if($GLOBALS["VERBOSE"]){echo $line."\n".@implode("\n", $results);}
+		}
+	}
+	
+	if(!$aspid){
+		$cachefile="/etc/artica-postfix/IPTABLES_INPUT";
+		shell_exec("$iptables -L --line-numbers -n >$cachefile 2>&1");
+	}
+	
+	
+}
+function FW_SPAMHAUS_RULES($aspid=false){
+	// --------------------------------------------------------------------------------------------------------
+
+	$unix=new unix();
+	$commands=array();
+	$sock=new sockets();
+	$EnableSpamhausDROPList=$sock->GET_INFO("EnableSpamhausDROPList");
+	if(!is_numeric($EnableSpamhausDROPList)){$EnableSpamhausDROPList=0;}
+
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["VERBOSE"]){echo "Already pid $oldpid running since {$time}Mn\n";}
+			return;
+		}
+	}
+	
+	if($EnableSpamhausDROPList==0){iptables_spamhaus_delete_all();return;}
+
+	iptables_spamhaus_delete_all();
+	$iptables=$unix->find_program("iptables");
+	$iptablesClass=new iptables_chains();
+	$sql="SELECT * FROM iptables WHERE disable=0 AND flux='INPUT' AND allow=0 AND service='SpamHaus'";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	if(!isset($GLOBALS["IPTABLES_WHITELISTED"])){
+		$GLOBALS["IPTABLES_WHITELISTED"]=$iptablesClass->LoadWhiteLists();
+	}
+
+	if($GLOBALS["VERBOSE"]){echo "FW_SPAMHAUS_RULES:".mysql_num_rows($results)." item(s)\n";}
+
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ip=$ligne["serverip"];
+		
+		if($iptablesClass->isWhiteListed($ip)){
+			if($GLOBALS["VERBOSE"]){echo "$ip is whitelisted...\n";}
+			continue;}
+
+			
+			events("LOG {$ligne["serverip"]} REJECT INBOUND $ip");
+				
+			//echo "iptables -A input -s $cidr -d 0/0 -j REJECT\n";
+			//echo "iptables -A output -s 0/0 -d $cidr -j REJECT\n";
+			
+			if($ligne["log"]==1){
+				$commands[]="$iptables -A INPUT -s $ip -j LOG --log-prefix \"FW_IN DROP: \" -m comment --comment \"SpamHaus\"";
+			}
+
+			$iptablerules="$iptables -A INPUT -s $ip -d 0/0 -j REJECT -m comment --comment \"SpamHaus\"";
+			if($GLOBALS["VERBOSE"]){echo "FW_SPAMHAUS_RULES: $iptablerules\n";}
+			$commands[]=$iptablerules;
+			
+			$iptablerules="$iptables -A OUTPUT -s 0/0 -d $ip -j REJECT -m comment --comment \"SpamHaus\"";
+			if($GLOBALS["VERBOSE"]){echo "FW_SPAMHAUS_RULES: $iptablerules\n";}
+			$commands[]=$iptablerules;			
+			
+	}
+
+	if($GLOBALS["VERBOSE"]){echo count($commands)." should be performed\n";}
+
+	if(is_array($commands)){
+		while (list ($index, $line) = each ($commands) ){
+			$results=array();
+			exec($line,$results);
+			if($GLOBALS["VERBOSE"]){echo $line."\n".@implode("\n", $results);}
+		}
+	}
+	
+	
+	if(!$aspid){
+		$cachefile="/etc/artica-postfix/IPTABLES_INPUT";
+		shell_exec("$iptables -L --line-numbers -n >$cachefile 2>&1");
+	}
+
+
+}
 
 
 function ipdeny(){
@@ -384,6 +587,34 @@ function Compile_rules_whitelist(){
 	
 }
 
+function Compile_rules_postfix_limitToNets(){
+	$unix=new unix();
+	$iptables=$unix->find_program("iptables");
+	$main=new main_cf();
+	$sock=new sockets();
+	
+	$PostfixBadNettr=unserialize(base64_decode($sock->GET_INFO("PostfixBadNettr")));
+	
+	$cmd[]="$iptables -A INPUT -s 127.0.0.1 -p tcp --destination-port 25 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
+	
+	while (list ($num, $ipaddrSource) = each ($main->array_mynetworks) ){
+		if(isset($PostfixBadNettr[$ipaddrSource])){continue;}
+		$cmd[]="$iptables -A INPUT -s $ipaddrSource -p tcp --destination-port 25 -j ACCEPT -m comment --comment \"ArticaInstantPostfix\"";
+		
+	}
+	
+	$cmd[]="$iptables -A INPUT -p tcp --destination-port 25 -j LOG --log-prefix \"SMTP DROP: \" -m comment --comment \"ArticaInstantPostfix\"";
+	$cmd[]="$iptables -A INPUT -p tcp --destination-port 25 -j DROP -m comment --comment \"ArticaInstantPostfix\"";
+	
+	if(is_array($cmd)){
+		while (list ($index, $line) = each ($cmd) ){
+			if($GLOBALS["VERBOSE"]){echo $line."\n";}
+			shell_exec($line);
+		}
+	}
+	
+}
+
 
 function Compile_rules($NoPersoRules=false){
 	progress(5,"Cleaning rules");
@@ -391,20 +622,29 @@ function Compile_rules($NoPersoRules=false){
 	iptables_delete_all();
 	$sock=new sockets();
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
+	$PostFixLimitToNets=$sock->GET_INFO("PostFixLimitToNets");
+	if(!is_numeric($PostFixLimitToNets)){$PostFixLimitToNets=0;}
+	
+	
+	
 	$EnablePostfixAutoBlockWhiteListed=$sock->GET_INFO("EnablePostfixAutoBlockWhiteListed");
 	if(!is_numeric($EnablePostfixAutoBlockWhiteListed)){$EnablePostfixAutoBlockWhiteListed=0;}
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
 	$GlobalIptablesEnabled=$sock->GET_INFO("GlobalIptablesEnabled");
 	if(!is_numeric($GlobalIptablesEnabled)){$GlobalIptablesEnabled=1;}
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}		
-	if($GlobalIptablesEnabled<>1){
-		if($GLOBALS["VERBOSE"]){echo "GlobalIptablesEnabled <> 1, aborting...\n";}
-		return;}
-	if(!$NoPersoRules){perso(true);}
+	if($GlobalIptablesEnabled<>1){if($GLOBALS["VERBOSE"]){echo "GlobalIptablesEnabled <> 1, aborting...\n";}return;}
+
 	
+	if(!$NoPersoRules){perso(true);}
+	FW_PERSO_RULES();
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line:".__LINE__."\n";}
-	if($EnablePostfixAutoBlockWhiteListed==1){
-		Compile_rules_whitelist();
+	if($EnablePostfixAutoBlockWhiteListed==1){Compile_rules_whitelist();}
+	if($GLOBALS["VERBOSE"]){echo "FW_NGINX_RULES\n\n";}
+	FW_NGINX_RULES(true);
+	FW_SPAMHAUS_RULES(true);
+	
+	if($PostFixLimitToNets==1){
+		Compile_rules_postfix_limitToNets();
+		return;
 	}
 	
 	$unix=new unix();
@@ -469,26 +709,25 @@ function Compile_rules($NoPersoRules=false){
 		$commands[]=$cmd;
 	}
 	
+	
+	
+	
+	
+	
+	
+	
 	if($GLOBALS["VERBOSE"]){
 		echo count($commands)." should be performed\n";
 		return;
 	}
 	
-	$tf=array();
-	if(is_file("/etc/artica-postfix/FW_PERSO_RULES")){$tF=file("/etc/artica-postfix/FW_PERSO_RULES");}
-	if(count($tF)>0){
-		while (list ($index, $line) = each ($tF) ){
-			if(trim($line==null)){continue;}
-			if(!preg_match("#iptables\s+#", $line)){continue;}
-			shell_exec($line);
-		}
-	}
+	
 	
 	if(is_array($commands)){
 		while (list ($index, $line) = each ($commands) ){
 			shell_exec($line);
 		}
-	}
+	}	
 	
 	$unix->send_email_events("$c banned addresses compiled in the SMTP Firewall",
 	 "$c items has been banned from 25,587,465 ports", "postfix");
@@ -497,6 +736,23 @@ function Compile_rules($NoPersoRules=false){
 	progress(90,"Building rules done...");
 	progress(100,"Building rules done...");
 	
+	$nohup=$unix->find_program("nohup");
+	$cachefile="/etc/artica-postfix/IPTABLES_INPUT";
+	shell_exec("$nohup $iptables -L --line-numbers -n >$cachefile 2>&1 &");
+}
+
+function FW_PERSO_RULES(){
+	$tf=array();
+	if(!is_file("/etc/artica-postfix/FW_PERSO_RULES")){return;}
+	$tF=explode("\n",@file_get_contents("/etc/artica-postfix/FW_PERSO_RULES"));
+	
+	if(count($tF)==0){return;}
+	
+	while (list ($index, $line) = each ($tF) ){
+		if(trim($line==null)){continue;}
+		if(!preg_match("#iptables\s+#", $line)){continue;}
+		shell_exec($line);
+	}
 	
 }
 
@@ -562,7 +818,10 @@ function parsequeue(){
 	$ini=new Bs_IniHandler();
 	$ini->loadFile('/etc/artica-postfix/settings/Daemons/PostfixAutoBlockResults');	
 	
+	if($GLOBALS["VERBOSE"]){echo "Scanning /var/log/artica-postfix/smtp-hack\n";}
+	
 	foreach (glob("/var/log/artica-postfix/smtp-hack/*.hack") as $filename) {
+		if($GLOBALS["VERBOSE"]){echo "Scanning $filename\n";}
 		$basename=basename($filename);
 		$array=unserialize(@file_get_contents($filename));
 		
@@ -582,14 +841,33 @@ function parsequeue(){
 		$iptablesClass->servername=$server_name;
 		$iptablesClass->rule_string=$cmd;
 		$iptablesClass->EventsToAdd=$EVENTS;
+		
+		
 		if($iptablesClass->addPostfix_chain()){
 			if($GLOBALS["VERBOSE"]){echo "Add IP:Addr=<$IP>, servername=<{$server_name}> to mysql\n";}
 			$ini->set($IP,"events",$matches);
 			$ini->set($IP,"iptablerule",$cmd);
-			$ini->set($IP,"hostname",$server_name);	
-			if($GLOBALS["VERBOSE"]){echo "delete $filename\n";}	
+			$ini->set($IP,"hostname",$server_name);
+			if($GLOBALS["VERBOSE"]){echo "delete $filename\n";}
 			@unlink($filename);
-		}
+		}		
+		
+		$cmd="$iptables -A INPUT -s $IP -p tcp --destination-port 587 -j DROP -m comment --comment \"ArticaInstantPostfix\"";
+		$iptablesClass=new iptables_chains(587);
+		$iptablesClass->serverip=$IP;
+		$iptablesClass->servername=$server_name;
+		$iptablesClass->rule_string=$cmd;
+		$iptablesClass->EventsToAdd=$EVENTS;		
+		$iptablesClass->addPostfix_chain();
+		
+		$cmd="$iptables -A INPUT -s $IP -p tcp --destination-port 465 -j DROP -m comment --comment \"ArticaInstantPostfix\"";
+		$iptablesClass=new iptables_chains();
+		$iptablesClass->serverip=$IP;
+		$iptablesClass->servername=$server_name;
+		$iptablesClass->rule_string=$cmd;
+		$iptablesClass->EventsToAdd=$EVENTS;
+		$iptablesClass->addPostfix_chain(465);		
+
 		
 	}
 	

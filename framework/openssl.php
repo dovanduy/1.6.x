@@ -32,6 +32,7 @@ function generate_x509(){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$servername=$_GET["generate-x509"];
+	$servername=str_replace("*", "_ALL_", $servername);
 	$cmd=trim("$php5 /usr/share/artica-postfix/exec.openssl.php --x509 $servername 2>&1");
 	exec($cmd,$results);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);

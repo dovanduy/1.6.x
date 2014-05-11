@@ -35,18 +35,18 @@ function popup(){
 	$licenserror=0;
 	if(!$users->CORP_LICENSE){
 		$licenserror=1;
-		$error_page_js="alert('".$tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}")."');";
+		$error_page_js=$tpl->javascript_parse_text("{this_feature_is_disabled_corp_license}");
 	}
 	
 	$html="
 	<div class=explain style='font-size:14px'>{CICAP_MEM_BOOST_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td valign='top' style='font-size:16px'>{memory}:</td>
-		<td style='font-size:16px'>". Field_text("CiCAPMemBoost",$CiCAPMemBoost,"font-size:16px;width:90px")."&nbsp;M</td>
+		<td style='font-size:24px;vertical-align:top'>{memory}:</td>
+		<td style='font-size:24px'>". Field_text("CiCAPMemBoost",$CiCAPMemBoost,"font-size:24px;width:180px")."&nbsp;M</td>
 	</tr>
 	<tr>
-	<td colspan=2 align='right'><hr>". button("{apply}","SaveTemplateForm$t()","18px")."</td>
+	<td colspan=2 align='right'><hr>". button("{apply}","SaveTemplateForm$t()","24px")."</td>
 	</tr>
 	<script>
 	var x_SaveTemplateForm$t=function(obj){

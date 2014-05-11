@@ -109,7 +109,7 @@ while (list ($num, $ligne) = each ($hash) ){
 			$prepend="group:";
 		}else{
 			$Displayname=$ligne;
-			$img="winuser.png";
+			$img="user-18.png";
 			$prepend="user:";
 		}
 		

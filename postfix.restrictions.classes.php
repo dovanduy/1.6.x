@@ -201,7 +201,7 @@ function LoadTablesStandard_Format($class,$description=null,$class_name=null){
 				<table style='width:100%'>
 					<tr>
 					<td width='99%'><strong style='font-size:12px'>" . texttooltip($class_name,$description,"PostFixAddRestriction('$class');")."</strong></td>
-					<td>" . imgtootltip("add-18.gif",$description,"PostFixAddRestriction('$class');")."</td>
+					<td>" . imgtootltip("add-18.png",$description,"PostFixAddRestriction('$class');")."</td>
 					</tr>
 				</table>
 	
@@ -259,7 +259,7 @@ function LoadTable_data($class_name){
 				";
 				$count=$count+1;
 			}$_restrictions=$_restrictions . "</table>";
-		}else{return "&nbsp;<img src='img/icon_mini_warning.jpg'>&nbsp;&nbsp;<span style='font-size:9px'>{error_no_datas}</span>";}
+		}else{return "&nbsp;<img src='img/status_warning.png'>&nbsp;&nbsp;<span style='font-size:9px'>{error_no_datas}</span>";}
 		$tpl=new templates();
 		return $tpl->_ENGINE_parse_body($_restrictions);	
 	}

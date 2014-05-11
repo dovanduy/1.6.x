@@ -18,25 +18,25 @@ $ini=new Bs_IniHandler();
 $ini->loadString($datas);
 //print_r($ini->_params);
 if($ini->_params["KAV4PROXY"]["application_installed"]<>1){
-	$KAV4PROXY="status_critical.gif";
+	$KAV4PROXY="status_critical.png";
 }else{
-	$KAV4PROXY="status_ok.gif";
+	$KAV4PROXY="status_ok.png";
 }
 if($ini->_params["KAVMILTER"]["application_installed"]<>1){
-	$kav="status_critical.gif";
+	$kav="status_critical.png";
 }else{
-	$kav="status_ok.gif";
+	$kav="status_ok.png";
 }
 if($ini->_params["KAS_MILTER"]["application_installed"]<>1){
-	$kas="status_critical.gif";
+	$kas="status_critical.png";
 }else{
-	$kas="status_ok.gif";
+	$kas="status_ok.png";
 }
 
 if($ini->_params["KAV4SAMBA"]["application_installed"]<>1){
-	$smb="status_critical.gif";
+	$smb="status_critical.png";
 }else{
-	$smb="status_ok.gif";
+	$smb="status_ok.png";
 }
 
 $KAVMILTER_P=trpattern($ini->_params["KAVMILTER"]["pattern_version"]);

@@ -2570,7 +2570,7 @@ function mailman_addresses_list(){
 				$email=$result[$i]["cn"][0];
 				$mailmanrobottype=$result[$i]["mailmanrobottype"][0];
 				$html=$html . "<tr " . CellRollOver() . ">
-				<td width=1%><img src='img/mailbox_storage.gif'></td>
+				<td width=1%><img src='img/mailbox.png'></td>
 				<td style='padding:5px'>
 				<input type='hidden' value='$id' id='{$email}_id'>
 				<input type='hidden' value='$mailmanrobottype' id='{$email}_mailmanrobottype'>

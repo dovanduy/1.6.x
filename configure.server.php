@@ -579,10 +579,7 @@ $page=CurrentPageName();
 }
 
 function scancomputers(){
-	$js="Loadjs('computer-browse.php')";
-	$img="48-win-nic-browse.png";
-	return LocalParagraphe("browse_computers","browse_computers_text",$js,$img);
-	}
+}
 	
 	function sharenfs(){
 	$users=new usersMenus();
@@ -799,22 +796,7 @@ function icon_system(){
 }
 
 function icon_openvpn(){
-	$users=new usersMenus();
-	if($users->KASPERSKY_SMTP_APPLIANCE){return null;}
-	if(!$users->AsAnAdministratorGeneric){return null;}
-	if(!$users->OPENVPN_INSTALLED){return null;}
-	$js="Loadjs('index.openvpn.php')";
-	$img="42-openvpn.png";
-	return LocalParagraphe("APP_OPENVPN","APP_OPENVPN_TEXT",$js,$img);	
-	}
 	
-	function icon_externalports(){
-	$users=new usersMenus();
-	if(!$users->AsArticaAdministrator){return null;}
-	
-	$js="Loadjs('external-ports.php')";
-	$img="48-bind.png";
-	return LocalParagraphe("EXTERNAL_PORTS","EXTERNAL_PORTS_TEXT",$js,$img);	
 	}	
 
 function icon_memory(){

@@ -36,7 +36,7 @@ $html="
 var x_serid='';
 
 function OpenAddUser(){
-	YahooWin5('590','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
+	YahooWin5('650','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
 }
 
 var x_ChangeFormValues= function (obj) {
@@ -50,6 +50,7 @@ var x_ChangeFormValues= function (obj) {
 	if(document.getElementById('internet_domain-$t')){internet_domain=document.getElementById('internet_domain-$t').value;}
 	if(document.getElementById('DomainsUsersFindPopupDiv')){DomainsUsersFindPopupDivRefresh();}
   	 var XHR = new XHRConnection();
+  	 XHR.setLockOff();
      XHR.appendData('ou',ou);
 	 XHR.appendData('ch-domain',internet_domain);
 	 XHR.appendData('t','$t');       	
@@ -83,24 +84,16 @@ var x_ChangeFormValues2= function (obj) {
 
 var x_SaveAddUser= function (obj) {
 	var tempvalue=obj.responseText;
-	if(tempvalue.length>3){
-		alert(tempvalue);
-		document.getElementById('ffform-$t').innerHTML=\"<div style='width:100%;padding:15px'><center><img src='img/identity-add-96.png'></center></div>\";  
-		return false;
-	}
+	if(tempvalue.length>3){ alert(tempvalue); return false; }
 	YahooWin5Hide();
-	ExecuteByClassName('SearchFunction');
 	if(document.getElementById('flexRT$t')){ $('#flexRT$t').flexReload(); }
 	if(document.getElementById('table-$t')){ $('#table-$t').flexReload(); }
-	
+	if(document.getElementById('TABLE_SEARCH_USERS')){  $('#'+document.getElementById('TABLE_SEARCH_USERS').value).flexReload();  }
 	if(document.getElementById('main_config_pptpd')){RefreshTab('main_config_pptpd');}
-	if(document.getElementById('MAIN_PAGE_ORGANIZATION_LIST')){
-		var ppa=document.getElementById('MAIN_PAGE_ORGANIZATION_LIST').value;
-		$('#table-'+ppa).flexReload();
-	}else{
-		if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
-	}
+	if(document.getElementById('MAIN_PAGE_ORGANIZATION_LIST')){ $('#table-'+document.getElementById('MAIN_PAGE_ORGANIZATION_LIST').value).flexReload(); }
+	if(document.getElementById('admin_perso_tabs')){RefreshTab('admin_perso_tabs');}
 	if(document.getElementById('org_main')){RefreshTab('org_main');}
+	ExecuteByClassName('SearchFunction');
 }
 
 function SaveAddUserCheck(e){
@@ -133,8 +126,6 @@ function SaveAddUser(){
      XHR.appendData('password',password);
      XHR.appendData('gpid',gpid);
      XHR.appendData('ByZarafa','{$_GET["ByZarafa"]}');    
-     
-     AnimateDiv('ffform-$t');                                    		      	
      XHR.sendAndLoad('$page', 'POST',x_SaveAddUser);		  
 }
 
@@ -150,6 +141,7 @@ function ChangeFormValues(){
   		if(document.getElementById('groupid-$t')){gpid=document.getElementById('groupid-$t').value;}
   		var XHR = new XHRConnection();
         XHR.appendData('ch-groupid',gpid);
+        XHR.setLockOff();
         XHR.appendData('ou',ou);
         XHR.sendAndLoad('$page', 'GET',x_ChangeFormValues);	
 
@@ -166,7 +158,7 @@ function groups_selected(){
 	$ldap=new clladp();
 	if(is_base64_encoded($_GET["ou"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 	$hash_groups=$ldap->hash_groups($_GET["ou"],1);
-	$groups=Field_array_Hash($hash_groups,"groupid-$t",$_GET["ch-groupid"],null,null,0,"font-size:16px;padding:3px");
+	$groups=Field_array_Hash($hash_groups,"groupid-$t",$_GET["ch-groupid"],null,null,0,"font-size:18px;padding:3px");
 	echo $groups;
 	
 }
@@ -176,7 +168,7 @@ function domain_selected(){
 	$ldap=new clladp();
 	if(is_base64_encoded($_GET["ou"])){$_GET["ou"]=base64_decode($_GET["ou"]);}
 	$hash_domains=$ldap->hash_get_domains_ou($_GET["ou"]);
-	$domains=Field_array_Hash($hash_domains,"internet_domain-$t",$_GET["ch-domain"],null,null,0,"font-size:16px;padding:3px");
+	$domains=Field_array_Hash($hash_domains,"internet_domain-$t",$_GET["ch-domain"],null,null,0,"font-size:18px;padding:3px");
 	echo $domains;
 	
 }
@@ -215,8 +207,8 @@ function formulaire(){
 		$org=$hash[0];
 		$hash_groups=$ldap->hash_groups($org,1);
 		$hash_domains=$ldap->hash_get_domains_ou($org);
-		$groups=Field_array_Hash($hash_groups,"groupid-$t",null,null,null,0,"font-size:16px;padding:3px");
-		$domains=Field_array_Hash($hash_domains,"domain-$t",null,null,null,0,"font-size:16px;padding:3px");
+		$groups=Field_array_Hash($hash_groups,"groupid-$t",null,null,null,0,"font-size:22px;padding:3px");
+		$domains=Field_array_Hash($hash_domains,"domain-$t",null,null,null,0,"font-size:22px;padding:3px");
 	}
 	
 	
@@ -228,45 +220,46 @@ function formulaire(){
 		$ous[$ligne]=$ligne;
 	}
 	
-	$ou=Field_array_Hash($ous,"organization-$t",$_GET["ou"],"ChangeFormValues()",null,0,"font-size:16px;padding:3px");
+	$ou=Field_array_Hash($ous,"organization-$t",$_GET["ou"],"ChangeFormValues()",null,0,"font-size:22px;padding:3px");
 	$form="
 	
 	<input type='hidden' id='EnableVirtualDomainsInMailBoxes-$t' value='$EnableVirtualDomainsInMailBoxes'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:16px'>{organization}:</td>
+			<td class=legend style='font-size:22px'>{organization}:</td>
 			<td>$ou</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{group}:</td>
+			<td class=legend style='font-size:22px'>{group}:</td>
 			<td><span id='select_groups-$t'>$groups</span>
 		</tr>
 		<tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{firstname}:</td>
-			<td>" . Field_text("firstname-$t",null,'width:120px;font-size:16px;padding:3px',null,'ChangeFormValues()')."</td>
+			<td class=legend style='font-size:22px'>{firstname}:</td>
+			<td>" . Field_text("firstname-$t",null,'width:320px;font-size:22px;padding:3px',
+					null,'ChangeFormValues()')."</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:16px'>{lastname}:</td>
-			<td>" . Field_text("lastname-$t",null,'width:120px;font-size:16px;padding:3px',null,"ChangeFormValues()")."</td>
+			<td class=legend style='font-size:22px'>{lastname}:</td>
+			<td>" . Field_text("lastname-$t",null,'width:320px;font-size:22px;padding:3px',null,"ChangeFormValues()")."</td>
 		</tr>		
 			
 		<tr>
-			<td class=legend style='font-size:16px'>{email}:</td>
-			<td>" . Field_text("email-$t",null,'width:120px;font-size:16px;padding:3px',null,"ChangeFormValues()")."@<span id='select_domain-$t'>$domains</span></td>
+			<td class=legend style='font-size:22px'>{email}:</td>
+			<td>" . Field_text("email-$t",null,'width:120px;font-size:22px;padding:3px',null,"ChangeFormValues()")."@<span id='select_domain-$t'>$domains</span></td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{uid}:</td>
-			<td>" . Field_text("login-$t",null,'width:120px;font-size:16px;padding:3px')."</td>
+			<td class=legend style='font-size:22px'>{uid}:</td>
+			<td>" . Field_text("login-$t",null,'width:320px;font-size:22px;padding:3px')."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:16px'>{password}:</td>
-			<td>" .Field_password("password-$t",null,"font-size:16px;padding:3px",null,null,null,false,"SaveAddUserCheck(event)")."</td>
+			<td class=legend style='font-size:22px'>{password}:</td>
+			<td>" .Field_password("password-$t",null,"font-size:22px;padding:3px",null,null,null,false,"SaveAddUserCheck(event)")."</td>
 		</tr>	
 		<tr><td colspan=2>&nbsp;</td></tr>
 		<tr>
-			<td colspan=2 align='right' style='padding:10px'><hr>". button("{add}","SaveAddUser()",18)."
+			<td colspan=2 align='right' style='padding:10px'><hr>". button("{add}","SaveAddUser()",34)."
 				
 			</td>
 		</tr>
@@ -294,66 +287,15 @@ function save(){
 	$tpl=new templates();   
 	$usersmenus=new usersMenus();
 	if($usersmenus->ZARAFA_INSTALLED){$_POST["ByZarafa"]="yes";}
+	$fulldata=urlencode(base64_encode(serialize($_POST)));
+	$sock=new sockets();
 	
 	
-     $users=new user($_POST["login"]);
-     if($users->password<>null){
-     	writelogs("User already exists {$_POST["login"]} ",__FUNCTION__,__FILE__);
-     	echo($tpl->_ENGINE_parse_body('{account_already_exists}'));
-     	exit;
-     }
-     $ou=$_POST["ou"];
-     $password=url_decode_special_tool($_POST["password"]);
-     $_POST["firstname"]=url_decode_special_tool($_POST["firstname"]);
-     $_POST["lastname"]=url_decode_special_tool($_POST["lastname"]);
-     
-     
-     if(trim($_POST["internet_domain"])==null){$_POST["internet_domain"]="localhost.localdomain";}
-     writelogs("Add new user {$_POST["login"]} {$_POST["ou"]} {$_POST["gpid"]}",__FUNCTION__,__FILE__);
-     $users->ou=$_POST["ou"];
-     $users->password=url_decode_special_tool($_POST["password"]);
-     $users->mail="{$_POST["email"]}@{$_POST["internet_domain"]}";    
-     $users->DisplayName="{$_POST["firstname"]} {$_POST["lastname"]}";
-     $users->givenName=$_POST["firstname"];
-     $users->sn=$_POST["lastname"];
-     $users->group_id=$_POST["gpid"];
-     
-     if($_POST["ByZarafa"]=="yes"){
-     	$ldap=new clladp();
-     	$dn="ou={$_POST["ou"]},dc=organizations,$ldap->suffix";
-     	$upd["objectClass"]="zarafa-company";
-     	$upd["cn"]=$_POST["ou"];
-     	if(!$ldap->Ldap_add_mod("$dn",$upd)){echo $ldap->ldap_last_error;return;}
-     }
-     
-     
-     
-	if(is_numeric($_POST["gpid"])){
-		$gp=new groups($_POST["gpid"]);
-		writelogs( "privileges: {$_POST["gpid"]} -> AsComplexPassword = \"{$gp->Privileges_array["AsComplexPassword"]}\"", __FUNCTION__, __FILE__, __LINE__ );
-		if($gp->Privileges_array["AsComplexPassword"]=="yes"){
-			$ldap=new clladp();		
-			$hash=$ldap->OUDatas($ou);	
-			$privs=$ldap->_ParsePrivieleges($hash["ArticaGroupPrivileges"],array(),true);
-			$policiespwd=unserialize(base64_decode($privs["PasswdPolicy"]));
-			if(is_array($policiespwd)){
-				$priv=new privileges();
-				if(!$priv->PolicyPassword($password,$policiespwd)){
-					echo "Need complex password";return;
-				}
-			}
-		}
-	}     
-     
-     
-	if(!$users->add_user()){echo $users->error."\n".$users->ldap_error;return;}
-	if($_POST["ByZarafa"]=="yes"){
-		$sock=new sockets();
-		$sock->getFrameWork("cmd.php?zarafa-hash=yes&rebuild=yes");
-	}
+	
+	echo base64_decode($sock->getFrameWork("system.php?create-user=$fulldata"));
 	
 	
-    
+	
 }
 
 

@@ -130,7 +130,7 @@ $dans=new dansguardian_rules($_GET["hostname"],$rule_main);
 	$rule_id=$ligne["ID"];	
 	$num=$ligne["ID"];
 	if($ligne["enabled"]==1){
-			$onoff=imgtootltip("icon_ok.gif","{disable}","bannedregexpurllist_switch('$hostname','$rule_main','$rule_id','$num','0')",null,"img_{$rule_id}");
+			$onoff=imgtootltip("ok16.png","{disable}","bannedregexpurllist_switch('$hostname','$rule_main','$rule_id','$num','0')",null,"img_{$rule_id}");
 		}else{$onoff=imgtootltip("icon_err.gif","{enable}","bannedregexpurllist_switch('$hostname','$rule_main','$rule_id','$num','1')",null,"img_{$rule_id}");}
 		
 	$js="bannedregexpurllist_form('$hostname','$rule_main','$rule_id','$num')";
@@ -214,7 +214,7 @@ function main_rule_bannedregexpurllist_icon(){
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 
 	if($ligne["enabled"]==1){
-			$onoff=imgtootltip("icon_ok.gif","{disable}","bannedregexpurllist_switch('$hostname','$rule_main','$rule_id','$num','0')",null,"img_{$rule_id}");
+			$onoff=imgtootltip("ok16.png","{disable}","bannedregexpurllist_switch('$hostname','$rule_main','$rule_id','$num','0')",null,"img_{$rule_id}");
 			
 		}else{
 			$onoff=imgtootltip("icon_err.gif","{enable}","bannedregexpurllist_switch('$hostname','$rule_main','$rule_id','$num','1')",null,"img_{$rule_id}");

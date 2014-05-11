@@ -1,179 +1,236 @@
 <?php
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.mysql.inc');
-	include_once('ressources/class.groups.inc');
-	include_once('ressources/class.squid.inc');
+include_once('ressources/class.templates.inc');
+include_once('ressources/class.ldap.inc');
+include_once('ressources/class.users.menus.inc');
+include_once('ressources/class.mysql.inc');
+include_once('ressources/class.ini.inc');
+
+
+
+if(isset($_GET["events-table"])){events_table();exit;}
+if(isset($_GET["ShowID"])){ShowID();exit;}
+if(isset($_GET["ShowID-js"])){ShowID_js();exit;}
+if(isset($_POST["empty-table"])){empty_table();exit;}
+popup();
+
+
+function ShowID_js(){
 	
+	$id=$_GET["ShowID-js"];
+	if(!is_numeric($id)){
+		
+		return;
 	
-$usersmenus=new usersMenus();
-if(!$usersmenus->AsDansGuardianAdministrator){
-	$tpl=new templates();
-	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
-	echo "alert('$alert');";
-	die();	
+	}$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$sql="SELECT subject FROM artica_update_task WHERE ID=$id";
+	$q=new mysql();
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+	
+	$subject=$tpl->javascript_parse_text($ligne["subject"]);
+	echo "YahooWin3('550','$page?ShowID=$id','$subject')";
+	
+}
+function ShowID(){
+
+$tpl=new templates();
+$sql="SELECT content FROM artica_update_task WHERE ID={$_GET["ShowID"]}";
+$q=new mysql();
+$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+
+$content=$tpl->_ENGINE_parse_body($ligne["content"]);
+$content=nl2br($content);
+echo "<p style='font-size:18px'>$content</p>";
 }
 
-if(isset($_GET["EventsZoom"])){EventsZoom();exit;}
-if(isset($_GET["mysql-list-search"])){search();exit;}
-page();
-
-function page(){
-	$tpl=new templates();
-	$page=CurrentPageName();
-	
+function empty_table(){
 	$q=new mysql();
-	$sql="SELECT category FROM update_events GROUP BY category ORDER BY category";
-	$results=$q->QUERY_SQL($sql,"artica_events");	
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$cat[$ligne["category"]]=$ligne["category"];
-	}
-	$cat[null]="{select}";
+	$q->QUERY_SQL("TRUNCATE TABLE artica_update_task","artica_events");
+}
+
+function popup(){
+
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$date=$tpl->_ENGINE_parse_body("{zDate}");
+	$description=$tpl->_ENGINE_parse_body("{description}");
+	$context=$tpl->_ENGINE_parse_body("{context}");
+	$events=$tpl->_ENGINE_parse_body("{events}");
+	$empty=$tpl->_ENGINE_parse_body("{empty}");
+	$daemon=$tpl->_ENGINE_parse_body("{daemon}");
+	$empty_events_text_ask=$tpl->javascript_parse_text("{empty_events_text_ask}");
+	$TB_HEIGHT=450;
+	$TB_WIDTH=927;
+	$TB2_WIDTH=551;
+	$all=$tpl->_ENGINE_parse_body("{all}");
+	$t=time();
+
+	$buttons="
+	buttons : [
+	{name: '$empty', bclass: 'Delz', onpress : EmptyEvents},
+	{name: 'Warn', bclass: 'Warn', onpress :  Warn$t},
+	{name: 'Info', bclass: 'Help', onpress :  info$t},
+	{name: 'Crit.', bclass: 'Err', onpress :  Err$t},
+	{name: '$all', bclass: 'Statok', onpress :  All$t},
 	
+
+	],	";
 	$html="
-	<table style='width:99%' class=form>
-		<tbody>
-			<tr>
-				<td class=legend>{service}:</td>
-				<td>". Field_text("mysql-search",null,"font-size:16px",null,null,null,false,"mysqlSearchEventsCheck(event)")."</td>
-				<td class=legend>{category}:</td>
-				<td>". Field_array_Hash($cat, "mysql-event-category",null,"style:font-size:14px")."</td>
-				<td>". button("{search}","mysqlSearchEvents()")."</td>
-			</tr>
-		</tbody>
-	</table>
-	<div id='mysql-list-table' style='width:100%;height:450px;overflow:auto;background-color:white'></div>
-	
+<table class='events-table-$t' style='display: none' id='events-table-$t' style='width:99%'></table>
 	<script>
-		function mysqlSearchEventsCheck(e){
-			if(checkEnter(e)){mysqlSearchEvents();}
-		}
+
+function BuildTable$t(){
+	$('#events-table-$t').flexigrid({
+		url: '$page?events-table=yes',
+		dataType: 'json',
+		colModel : [
+		{display: '', name : 'severity', width :31, sortable : true, align: 'center'},
+		{display: '$date', name : 'zDate', width :127, sortable : true, align: 'left'},
+		{display: '$events', name : 'subject', width : $TB2_WIDTH, sortable : false, align: 'left'},
+		{display: '$daemon', name : 'filename', width :145, sortable : true, align: 'left'},
+		],
+		$buttons
 	
-		function mysqlSearchEvents(){
-			var se=escape(document.getElementById('mysql-search').value);
-			var cat=escape(document.getElementById('mysql-event-category').value);
-			LoadAjax('mysql-list-table','$page?mysql-list-search=yes&search='+se+'&category='+cat);
-		}
-	
-	mysqlSearchEvents();
-	</script>";
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-	
-	
+		searchitems : [
+		{display: '$events', name : 'subject'},
+		],
+		sortname: 'zDate',
+		sortorder: 'desc',
+		usepager: true,
+		title: '',
+		useRp: true,
+		rp: 50,
+		showTableToggleBtn: false,
+		width: '99%',
+		height: $TB_HEIGHT,
+		singleSelect: true,
+		rpOptions: [10, 20, 30, 50,100,200,500]
+
+	});
 }
-function search(){
-	$page=CurrentPageName();
+
+function articaShowEvent(ID){
+	YahooWin6('750','$page?ShowID='+ID,'$title::'+ID);
+}
+
+var x_EmptyEvents= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	$('#events-table-$t').flexReload();
+	//$('#grid_list').flexOptions({url: 'newurl/'}).flexReload();
+	// $('#fgAllPatients').flexOptions({ query: 'blah=qweqweqwe' }).flexReload();
+
+}
+
+function Warn$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes&critical=1'}).flexReload(); 
+}
+function info$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes&critical=2'}).flexReload(); 
+}
+function Err$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes&critical=0'}).flexReload(); 
+}
+function All$t(){
+	$('#events-table-$t').flexOptions({url: '$page?events-table=yes'}).flexReload(); 
+}
+function EmptyEvents(){
+	if(!confirm('$empty_events_text_ask')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('empty-table','yes');
+	XHR.sendAndLoad('$page', 'POST',x_EmptyEvents);
+}
+setTimeout(\" BuildTable$t()\",800);
+</script>";
+
+echo $html;
+
+}
+
+function events_table(){
 	$tpl=new templates();
+	$MyPage=CurrentPageName();
 	$q=new mysql();
-	$search="*".$_GET["search"]."*";
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("**", "*", $search);
-	$search=str_replace("*", "%", $search);
-	$emailing_campain_linker_delete_confirm=$tpl->javascript_parse_text("{emailing_campain_linker_delete_confirm}");
-	
-	$style="style='font-size:14px;'";
-	if($_GET["category"]<>null){
-		$catsql=" AND `category`='{$_GET["category"]}'";
+
+	$FORCE=1;
+	$search='%';
+	$table="artica_update_task";
+	$page=1;
+	$ORDER="ORDER BY zDate DESC";
+	if(is_numeric($_GET["critical"])){
+		$FORCE="severity={$_GET["critical"]}";
 	}
+
+	$total=0;
+	if($q->COUNT_ROWS($table,"artica_events")==0){json_error_show("no data",1);}
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+
+	$severity[0]="22-red.png";
+	$severity[1]="22-warn.png";
+	$severity[2]="22-infos.png";
+	$currentdate=date("Y-m-d");
+
+	$searchstring=string_to_flexquery();
 	
-	$sql="SELECT * FROM update_events WHERE `description` LIKE '$search' $catsql ORDER BY zDate DESC LIMIT 0,50";
-	
-	$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th>{date}</th>
-		<th>{events}&nbsp;|&nbsp;$search</th>
-		<th>{category}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-	
-		$q=new mysql();
-		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
-		$results=$q->QUERY_SQL($sql,"artica_events");
-		$cs=0;
-		if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+	if($searchstring<>null){
 		
-		$descriptions=explode("\n",$ligne["description"]);
-		if($descriptions[0]<>null){$ligne["description"]=$descriptions[0]."...";}
-		else{
-			if($descriptions[1]<>null){$ligne["description"]=$descriptions[1]."...";}
+		
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+		$total = $ligne["TCOUNT"];
+
+	}else{
+		if(strlen($FORCE)>2){
+			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+			$total = $ligne["TCOUNT"];
+		}else{
+			$total = $q->COUNT_ROWS($table, "artica_events");
 		}
-		
-		$ligne["description"]=htmlentities($ligne["description"]);
-		$ligne["description"]=nl2br($ligne["description"]);
-		$html=$html."
-		<tr class=$classtr>
-			<td width=1% $style nowrap>{$ligne["zDate"]}</td>
-			<td width=99% $style nowrap><a href=\"javascript:blur()\" OnClick=\"EventsZoom('{$ligne["ID"]}');\" style='font-size:14px;text-decoration:underline'>{$ligne["description"]}</a><div style='font-size:11px'>{$ligne["process"]} - {$ligne["function"]}() {line}:{$ligne["line"]}</div></td>
-			<td width=1% $style nowrap>{$ligne["category"]}</td>
-			
-		</tr>
-		";
 	}
-	$html=$html."</tbody></table>
-	
-	<script>
-		function EventsZoom(ID){
-			YahooWin6('790','$page?EventsZoom='+ID,'event -> '+ID);
-		
-		}
-	</script>
-	";
-	echo $tpl->_ENGINE_parse_body($html);
-	
-}
+
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
 
 
-function EventsZoom(){
-	$page=CurrentPageName();
-	$tpl=new templates();	
-	$sql="SELECT description FROM update_events WHERE ID='{$_GET["EventsZoom"]}'";
-	$q=new mysql();
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
-	$lenght=strlen($ligne["description"]);
+
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$descriptions=explode("\n",$ligne["description"]);
+	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){json_error_show($q->mysql_error,1);}
+
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+
+	$CurrentPage=CurrentPageName();
+
 	
-	$html="
-	<div id='zoom' style='width:100%;height:450px;overflow:auto;'>
-	<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th>&nbsp;$lenght Bytes</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";		
-	
-	while (list ($num, $ligne) = each ($descriptions) ){
-		$style="style='font-size:12px;'";
-		if(trim($ligne)==null){continue;}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		if(preg_match("#^E:#", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#unable#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#impossible#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#fatal#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#error#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#failed#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#not configured#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		if(preg_match("#missing#i", trim($ligne))){$style="style='font-size:12px;color:red'";}
-		$ligne=utf8_decode($ligne);
-		$ligne=htmlentities($ligne);
-		$strstr=strlen($ligne);
-		$ligne=wordwrap($ligne,150,"<br>");
+
+	while ($ligne = mysql_fetch_assoc($results)) {
 		
-$html=$html."
-		<tr class=$classtr>
-			<td width=1% $style nowrap>$ligne</td>
-		</tr>
-		";
+		
+		$ligne["zDate"]=str_replace($currentdate, "", $ligne["zDate"]);
+		$severity_icon=$severity[$ligne["severity"]];
+		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$CurrentPage?ShowID-js={$ligne["ID"]}')\" style='text-decoration:underline'>";
+		$text=$link.$tpl->_ENGINE_parse_body($ligne["subject"]."</a><div style='font-size:10px'>{function}:{$ligne["function"]}, {line}:{$ligne["line"]}</div>");
+		
+		
+		$data['rows'][] = array(
+				'id' => $ligne['ID'],
+				'cell' => array(
+						"<img src='img/$severity_icon'>",
+						
+						$ligne["zDate"],$text,$ligne["filename"] )
+		);
 	}
-	$html=$html."</tbody></table></div>";
-	echo $tpl->_ENGINE_parse_body($html);
+
+
+	echo json_encode($data);
+
 }

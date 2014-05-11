@@ -36,7 +36,7 @@ $.unblockUI = function(opts) { remove(window, opts); };
 // convenience method for quick growl-like notifications  (http://www.google.com/search?q=growl)
 $.growlUI = function(title, message, timeout, onClose) {
 	var $m = $('<div class="growlUI"></div>');
-	if (title) $m.append('<h1>'+title+'</h1>');
+	if (title) $m.append('<h1>'+title+'</h1><center style=margin-top:50px><img src=/img/wait_verybig_mini_red.gif></center>');
 	if (message) $m.append('<h2>'+message+'</h2>');
 	if (timeout == undefined) timeout = 3000;
 	$.blockUI({
@@ -70,7 +70,7 @@ $.blockUI.version = 2.31; // 2nd generation blocking at no extra cost!
 // override these in your code to change the default behavior and style
 $.blockUI.defaults = {
 	// message displayed when blocking (use null for no message)
-	message:  '<h1>Please wait...</h1>',
+	message:  '<h1>Please wait...</h1><center style=margin-top:50px><img src=/img/wait_verybig_mini_red.gif></center>',
 
 	title: null,	  // title string; only used when theme == true
 	draggable: true,  // only used when theme == true (requires jquery-ui.js to be loaded)
@@ -131,7 +131,7 @@ $.blockUI.defaults = {
 	forceIframe: false,
 
 	// z-index for the blocking overlay
-	baseZ: 1000,
+	baseZ: 10000,
 
 	// set these to true to have the message automatically centered
 	centerX: true, // <-- only effects element blocking (page block controlled via css above)

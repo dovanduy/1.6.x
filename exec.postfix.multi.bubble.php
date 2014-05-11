@@ -19,12 +19,12 @@ $unix=new unix();
 $sock=new sockets();
 $EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}
-if($EnablePostfixMultiInstance==0){echo "Starting......: Postfix Bubble multiple instance is disabled !\n";iptables_delete_rules();return;}
+if($EnablePostfixMultiInstance==0){echo "Starting......: ".date("H:i:s")." Postfix Bubble multiple instance is disabled !\n";iptables_delete_rules();return;}
 
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-if($unix->process_exists(@file_get_contents($pidfile),basename(__FILE__))){echo "Starting......: Postfix Bubble multiple already executed PID ". @file_get_contents($pidfile)."\n";die();}
+if($unix->process_exists(@file_get_contents($pidfile),basename(__FILE__))){echo "Starting......: ".date("H:i:s")." Postfix Bubble multiple already executed PID ". @file_get_contents($pidfile)."\n";die();}
 $pid=getmypid();
-echo "Starting......: Postfix Bubble multiple running $pid\n";
+echo "Starting......: ".date("H:i:s")." Postfix Bubble multiple running $pid\n";
 file_put_contents($pidfile,$pid);
 
 
@@ -38,7 +38,7 @@ StartBubble();
 
 function StartBubble(){
 		$q=new mysql();
-		if(!$q->test_mysql_connection()){echo "Starting......: Postfix Bubble Mysql is not ready aborting...\n";return;}		
+		if(!$q->test_mysql_connection()){echo "Starting......: ".date("H:i:s")." Postfix Bubble Mysql is not ready aborting...\n";return;}		
 		$ip=new iptables_exec();
 		$ip->buildrules();		
 }

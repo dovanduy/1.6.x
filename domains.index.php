@@ -78,8 +78,43 @@ function popup_inside_tabs(){
 	
 }
 
+function popup_activedirectory(){
+	$users=new usersMenus();
+	$sock=new sockets();
+	$tpl=new templates();
+	$tr[]=Paragraphe("group-64.png", "{active_directory_users}", "{active_directory_users_browse_text}",
+	"javascript:Loadjs('browse-ad-groups.php')"	,null,300	
+			
+	);
+
+	if($users->SQUID_INSTALLED){
+		$tr[]=Paragraphe("database-connect-settings-64.png", "{active_directory_connection}", "{active_directory_connection_parameters}",
+		"javascript:Loadjs('squid.adker.php')",null,300
+		);
+	}
+	
+	
+	$sock->getFrameWork("squid.php?ping-kdc=yes");
+	$datas=unserialize(@file_get_contents("ressources/logs/kinit.array"));
+	
+	if(count($datas)>0){
+		$img="error-64.png";
+		$textcolor="#8A0D0D";
+		$text=$datas["INFO"];
+		if(preg_match("#Authenticated to#is", $text)){$img="ok64.png";$textcolor="black";}
+		if(trim($text)<>null){$text=": $text";}
+		$tr[]=Paragraphe("$img", "{active_directory}", $text, "javascript:Loadjs('squid.adker.php')",null,300 );
+	}
+	
+		
+	echo $tpl->_ENGINE_parse_body(CompileTr2($tr));
+	
+	
+}
+
+
 function popup(){
-	if(GET_CACHED(__FILE__, __FUNCTION__,__FUNCTION__)){return;}
+	
 	$users=new usersMenus();
 	$userClasse=new usersMenus();
 	$page=CurrentPageName();
@@ -87,6 +122,14 @@ function popup(){
 	$sock=new sockets();
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$t=time();
+	
+	
+	$ldap=new clladp();
+	if($ldap->IsKerbAuth()){
+		popup_activedirectory();
+		return;
+	}
+	if(GET_CACHED(__FILE__, __FUNCTION__,__FUNCTION__)){return;}
 	$ZarafaField="{display: '&nbsp;', name : 'Zarafa', width :31, sortable : false, align: 'center'},";
 	$online_help=$tpl->_ENGINE_parse_body("{online_help}");
 	
@@ -160,12 +203,15 @@ function popup(){
 	if($ldap->IsKerbAuth()){
 		$bt_add_new=null;
 		$Totalusers=$tpl->_ENGINE_parse_body("{my_organizations}");
+	}else{
+		$TEXT_TO_CSV=$tpl->_ENGINE_parse_body("{TEXT_TO_CSV}");
+		$CsvToLdap="{name: '<b>$TEXT_TO_CSV</b>', bclass: 'Copy', onpress : TEXT_TO_CSV},";
 	}
 	
 	
 	$buttons="
 	buttons : [
-	$bt_add_new$bt_activedirectory$parametersBT$help
+	$bt_add_new$bt_activedirectory$parametersBT$CsvToLdap$help
 		],";
 	$html="
 	$bb
@@ -199,7 +245,7 @@ $('#table-$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 650,
+	width: '99%',
 	height: 320,
 	singleSelect: true
 	
@@ -211,7 +257,11 @@ function Zhelp$t(){
 }
 
 function ActiveDirectorySquid$t(){
-	Loadjs('squid.adker.php');
+	Loadjs('squid.adker.php',true);
+}
+
+function TEXT_TO_CSV(){
+	Loadjs('csvToLdap.php',true);
 }
 
 	var x_TreeAddNewOrganisation$t= function (obj) {
@@ -419,7 +469,7 @@ function ORGANISATIONS_LIST_ACTIVE_DIRECTORY(){
 
 
 function ORGANISATIONS_LIST(){
-	
+	$tpl=new templates();
 	$ldap=new clladp();
 	if($ldap->IsKerbAuth()){
 		return ORGANISATIONS_LIST_ACTIVE_DIRECTORY();
@@ -430,7 +480,7 @@ function ORGANISATIONS_LIST(){
 	$Mypage=CurrentPageName();	
 	$users=new usersMenus();
 	$sock=new sockets();
-	
+	$ou_nozarafa_explain=$tpl->_ENGINE_parse_body("{ou_nozarafa_explain}");
 	$t=$_GET["t"];
 	$EnableManageUsersTroughActiveDirectory=$sock->GET_INFO("EnableManageUsersTroughActiveDirectory");
 	if(!is_numeric($EnableManageUsersTroughActiveDirectory)){$EnableManageUsersTroughActiveDirectory=0;}	
@@ -461,6 +511,11 @@ function ORGANISATIONS_LIST(){
 	$style="style='font-size:16px;'";
 	$c=0;
 	$ldap2=new clladp();
+	
+	if(count($hash)==0){
+		json_error_show("no data");
+	}
+	
 	while (list ($num, $ligne) = each ($hash) ){
 		$ou=$ligne;
 		$ou_encoded=base64_encode($ou);
@@ -525,23 +580,33 @@ function ORGANISATIONS_LIST(){
 		$searchDomain=imgsimple("loupe-32.png",
 		"$ou<hr><b>{localdomains}</b>:<i>{localdomains_text}</i>",
 		"Loadjs('domains.edit.domains.php?js=yes&ou=$ou&master-t=$t');");
-
+		$NOZARAFA=0;
+		$OuZarafaText=null;
 		if($IsOUUnderActiveDirectory){
 			$delete=imgtootltip("delete-24-grey.png", "", "");
 			$adduser=imgsimple("folder-useradd-32-grey.png");
 			$addgroup=imgsimple("32-folder-group-add-grey.png");
+		}
+		
+		if($_GET["zarafaF"]==1){
+			$info=$ldap->OUDatas($ou);
+			if(!$info["objectClass"]["zarafa-company"]){
+				$NOZARAFA=1;
+				$OuZarafaText="<br><a href=\"javascript:blur()\" style='color:#B20808;text-decoration:underline;font-style:italic' 
+				OnClick=\"javascript:Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')\">$ou_nozarafa_explain</a>";
+			}
 		}
 	
 				
 		$actions="<table style=width:100%;border:0px;><tbody><tr style=background:transparent>
 		<td width=1% style=border:0px>$adduser</td><td width=1% style='border:0px'>$addgroup</td></tr></tbody></table>";
 		$array=array();
-		$array[]="<a href=\"javascript:blur();\" OnClick=\"$uri\" style='font-size:16px;font-weight:bolder;text-transform:capitalize;text-decoration:underline'>$ligne</strong></a>";
+		$array[]="<a href=\"javascript:blur();\" 
+		OnClick=\"$uri\" style='font-size:16px;font-weight:bolder;text-transform:capitalize;text-decoration:underline'>$ligne</strong></a>$OuZarafaText";
 		
 		if($_GET["zarafaF"]==1){
-			$info=$ldap->OUDatas($ou);
 			$zarafaEnabled="zarafa-logo-32.png";			
-			if(!$info["objectClass"]["zarafa-company"]){$zarafaEnabled="zarafa-logo-32-grey.png";}	
+			if($NOZARAFA==1){$zarafaEnabled="zarafa-logo-32-grey.png";}	
 			$array[]=imgsimple($zarafaEnabled,"<b>$ou:{APP_ZARAFA}</b><br>{ZARAFA_OU_ICON_TEXT}","Loadjs('domains.edit.zarafa.php?ou=$ou_encoded&t=$t')");
 		}else{
 			$array[]="&nbsp;";

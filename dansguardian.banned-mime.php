@@ -130,7 +130,7 @@ function main_extensions_bannedMimeTypelist_list($rule_main,$noecho=0){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$num=$ligne["ID"];
 		if($ligne["enabled"]==1){
-			$onoff=imgtootltip("icon_ok.gif","{disable}","bannedMimeTypelist_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
+			$onoff=imgtootltip("ok16.png","{disable}","bannedMimeTypelist_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
 		}else{$onoff=imgtootltip("icon_err.gif","{enable}","bannedMimeTypelist_switch('$hostname','$rule_main','$num','1')",null,"img_{$num}");}
 		
 		$categ=$categ . 
@@ -176,7 +176,7 @@ $users=new usersMenus();
 	
 	
 if($val["enabled"]==1){
-		$onoff=imgtootltip("icon_ok.gif","{disable}","bannedMimeTypelist_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
+		$onoff=imgtootltip("ok16.png","{disable}","bannedMimeTypelist_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
 		$dans->Edit_bannedMimeTypelist($num,0);
 		}
 		else{

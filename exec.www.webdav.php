@@ -43,7 +43,7 @@ for($i=0;$i<$hash["count"];$i++){
 	$d_path=$unix->APACHE_DIR_SITES_ENABLED();
 
 	if($ApacheGroupware==0){
-		echo "Starting......: Apache Groupware adding $d_path/webdav-artica-vhosts.conf\n";
+		echo "Starting......: ".date("H:i:s")." Apache Groupware adding $d_path/webdav-artica-vhosts.conf\n";
 		@file_put_contents("$d_path/groupware-artica-vhosts.conf",@implode("\n",$conf));
 		$conf=null;
 		$apache2ctl=$unix->LOCATE_APACHE_CTL();
@@ -74,10 +74,10 @@ function vhosts_users_ou($array){
 		$ApacheGroupwareListenIP=$unix->APACHE_ListenDefaultAddress();
 		$ApacheGroupWarePort=$sock->GET_INFO("FreeWebListenPort");
 		$ApacheGroupWarePortSSL=$sock->GET_INFO("FreeWebListenSSLPort");
-		echo "Starting......: Apache Webdav switch to Apache source\n";
+		echo "Starting......: ".date("H:i:s")." Apache Webdav switch to Apache source\n";
 	
 		foreach (glob("$d_path/webdav-artica-*") as $filename) {
-			echo "Starting......: Apache Webdav removing ".basename($filename)."\n";
+			echo "Starting......: ".date("H:i:s")." Apache Webdav removing ".basename($filename)."\n";
 		}
 	}
 	

@@ -49,6 +49,7 @@ class squid_bandwith_builder{
 	
 	
 	function compile(){
+		$logprix=__CLASS__."/".__FUNCTION__;
 		if(count($this->rules_array)==0){
 			if($GLOBALS["VERBOSE"]){echo "rules_array 0 element (die())\n";}
 			return;}
@@ -56,12 +57,12 @@ class squid_bandwith_builder{
 		
 		while (list ($index, $pool_id) = each ($this->rules_array) ){
 			if($index=="0"){
-				if($GLOBALS["VERBOSE"]){echo "Index is 0 -> continue;\n";}
+				if($GLOBALS["VERBOSE"]){echo "$logprix: Index is 0 -> continue;\n";}
 				continue;}
 			if($index==null){
-				if($GLOBALS["VERBOSE"]){echo "Index is null -> continue\n";}
+				if($GLOBALS["VERBOSE"]){echo "$logprix: Index is null -> continue\n";}
 				continue;}
-			if($GLOBALS["VERBOSE"]){echo "Checks Acls poolid=$pool_id index=$index\n";}
+			if($GLOBALS["VERBOSE"]){echo "$logprix: Checks Acls poolid=$pool_id index=$index\n";}
 			$this->delay_is_acls[$index]=false;
 			$this->squid_groups($pool_id,$index);
 			$this->src($pool_id,$index);
@@ -76,21 +77,23 @@ class squid_bandwith_builder{
 			while (list ($index, $acl) = each ($this->additionalsAcls) ){$this->acls[]=$acl;}
 		}		
 
+		
 		$conf[]="";
 		$conf[]="#--------- Bandwith limitations";
-		$conf[]="#Acls";
-		$conf[]=@implode("\n",$this->acls);
-
-		$conf[]="";
-		$conf[]="#Rules definitions";
-		$conf[]=$this->delay_pools;
-		$conf[]=@implode("\n",$this->delay_class);
-		$conf[]=@implode("\n",$this->delay_parameters);
-		$conf[]="";
-		$conf[]="#Rules Access definitions";		
-		$conf[]=@implode("\n",$this->delay_access);
-		$conf[]="delay_initial_bucket_level 50";
-		$conf[]="";
+		$conf[]="#Acls ". count($this->delay_access)." rules";
+		if(count($this->delay_access)>1){
+			$conf[]=@implode("\n",$this->acls);
+			$conf[]="";
+			$conf[]="#Rules definitions";
+			$conf[]=$this->delay_pools;
+			$conf[]=@implode("\n",$this->delay_class);
+			$conf[]=@implode("\n",$this->delay_parameters);
+			$conf[]="";
+			$conf[]="#Rules Access definitions";		
+			$conf[]=@implode("\n",$this->delay_access);
+			$conf[]="delay_initial_bucket_level 50";
+			$conf[]="";
+		}
 		return @implode("\n",$conf);
 		
 
@@ -225,16 +228,41 @@ class squid_bandwith_builder{
 	
 	private function proxy_objects($pool_id,$index){
 		$q=new mysql_squid_builder();
-		$sql="SELECT aclid,httpaccess_value,httpaccess_data 
-		FROM webfilters_sqaclaccess WHERE httpaccess='delay_access' AND httpaccess_data='$pool_id'";
-		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
-		$aclid=$ligne["aclid"];
-		if($this->AS_ROOT){echo "Starting......: [ACLS]: [bandwidth] Rule ID $pool_id (delay_access:$index) = ACLS number $aclid\n";}
-		$s=new squid_acls_groups();
-		$groups=$s->buildacls_bytype_items($aclid);
-		if(count($groups)>0){
-			$this->delay_access[]="delay_access $index allow ".@implode(" ",$groups);	
-			$this->delay_is_acls[$index]=true;
+		
+		$sql2="SELECT webfilters_sqacls.ID,
+		webfilters_sqaclaccess.aclid,
+		webfilters_sqacls.aclport,
+		webfilters_sqacls.xORDER,
+		webfilters_sqacls.PortDirection,
+		webfilters_sqaclaccess.httpaccess_data
+		FROM webfilters_sqacls, webfilters_sqaclaccess
+		WHERE webfilters_sqacls.ID=webfilters_sqaclaccess.aclid
+		AND webfilters_sqacls.enabled=1
+		AND webfilters_sqaclaccess.httpaccess='delay_access'
+		AND webfilters_sqaclaccess.httpaccess_data='$pool_id'
+		ORDER BY webfilters_sqacls.xORDER";		
+		
+		
+		
+		
+	//$sql="SELECT aclid,httpaccess_value,httpaccess_data 
+		//FROM webfilters_sqaclaccess 
+		//WHERE httpaccess='delay_access' AND httpaccess_data='$pool_id'";
+		
+		//$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		
+		$results = $q->QUERY_SQL($sql2);
+		
+	while ($ligne = mysql_fetch_assoc($results)) {
+			$aclid=$ligne["aclid"];
+			if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." [ACLS]: [bandwidth] Rule ID $pool_id (delay_access:$index) = ACLS number $aclid\n";}
+			$s=new squid_acls_groups();
+			$groups=$s->buildacls_bytype_items($aclid);
+			if(count($groups)>0){
+				$this->delay_access[]="delay_access $index allow ".@implode(" ",$groups);	
+				$this->delay_is_acls[$index]=true;
+			}
+		
 		}
 	}
 	

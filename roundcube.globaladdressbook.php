@@ -271,7 +271,7 @@ function admins_list(){
 			$Displayname=$ligne;
 			$js="DelGADBUser('".base64_encode($Displayname)."');";
 			if(strlen($Displayname)>30){$Displayname=substr($Displayname,0,27)."...";}
-			$img="winuser.png";
+			$img="user-18.png";
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 	$html=$html."
 		<tr class=$classtr>
@@ -340,14 +340,14 @@ function list_users(){
 			$uid=$num;
 			$js="AddGADBUser('".base64_encode($uid)."');";
 			if(strlen($Displayname)>30){$Displayname=substr($Displayname,0,27)."...";}
-			$img="winuser.png";
+			$img="user-18.png";
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 	
 			$html=$html."
 				<tr class=$classtr>
 				<td width=1%><img src='img/$img'></td>
 				<td><strong style='font-size:13px' >$Displayname ($uid)</td>
-				<td width=1%>". imgtootltip("add-18.gif","{add}",$js)."</td>
+				<td width=1%>". imgtootltip("add-18.png","{add}",$js)."</td>
 				</tr>";
 	}
 	$html=$html."</table>";

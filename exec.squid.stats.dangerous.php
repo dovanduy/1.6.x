@@ -159,8 +159,7 @@ if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
 		
 	}
 	MonthCatzFamilies();
-	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$php5 /usr/share/artica-postfix/exec.squid.stats.totals.php --interface --force >/dev/null 2>&1 &");
+	
 }
 
 function restart(){

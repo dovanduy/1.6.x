@@ -1,5 +1,9 @@
 <?php
 /*
+ * configre:
+ * ./configure  --with-fhs  --enable-shared  --enable-static  --disable-pie  --prefix=/usr  --sysconfdir=/etc  --libdir=/usr/lib  --with-privatedir=/etc/samba  --with-piddir=/var/run/samba  --localstatedir=/var  --with-rootsbindir=/sbin  --with-pammodulesdir=/lib/security  --with-pam  --with-syslog  --with-utmp  --with-readline  --with-pam_smbpass  --with-libsmbclient  --with-winbind  --with-cluster-support  --with-shared-modules=idmap_rid,idmap_ad  --with-automount  --with-ldap  --with-ads  --with-dnsupdate  --with-smbmount  --with-cifsmount  --with-acl-support  --with-dnsupdate  --with-syslog  --with-quotas  --with-automount
+ * 
+ * 
 apt-get install libtalloc2
 mkdir /etc/samba
 mkdir /var/log/samba/
@@ -7,6 +11,39 @@ mkdir /var/run/samba
 touch /etc/printcap
 */
 //http://www.samba.org/samba/ftp/stable/samba-3.6.6.tar.gz
+// http://samba.org/samba/ftp/stable/samba-3.6.22.tar.gz
+
+// **** XAPIAN ***
+/* 
+wget http://oligarchy.co.uk/xapian/1.2.16/xapian-core-1.2.16.tar.xz
+tar -xf xapian-core-1.2.16.tar.xz
+cd xapian-core-1.2.16
+./configure CFLAGS=-O2 CXXFLAGS=-O2 --prefix=/usr --sysconfdir=/etc --disable-dependency-tracking
+make && make install
+cd /root
+wget http://oligarchy.co.uk/xapian/1.2.16/xapian-omega-1.2.16.tar.xz
+tar -xf xapian-omega-1.2.16.tar.xz
+cd xapian-omega-1.2.16
+./configure CFLAGS=-O2 CXXFLAGS=-O2 --prefix=/usr --sysconfdir=/etc --mandir=/usr/share/man --disable-dependency-tracking
+make && make install
+cd /root
+wget http://oligarchy.co.uk/xapian/1.2.16/xapian-bindings-1.2.16.tar.xz
+tar -xf xapian-bindings-1.2.16.tar.xz
+cd xapian-bindings-1.2.16
+./configure CFLAGS=-O2 CXXFLAGS=-O2 --prefix=/usr --sysconfdir=/etc --disable-dependency-tracking --with-php PHP_CONFIG=/usr/bin/php-config5
+make && make install
+cd /root
+
+
+
+//samba 4
+ * libncurses5-dev libfam-dev
+git clone git://git.samba.org/samba.git /usr/src/samba4/
+/usr/src/samba4
+./configure --with-regedit --download --enable-fhs  --prefix=/usr --sysconfdir=/etc --localstatedir=/var --with-piddir=/var/run/samba --with-privatedir=/etc/samba --libdir=/usr/lib
+make 
+ */
+
 
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
@@ -40,17 +77,22 @@ $cp=$unix->find_program("cp");
 //http://ftp.samba.org/pub/samba/stable/
 
 
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid)){die();}
+
+
 $dirsrc="samba-0.0.0";
 $Architecture=Architecture();
 
 if(!$GLOBALS["NO_COMPILE"]){
-	$v="samba-3.6.18.tar.gz";
+	$v="samba-3.6.22.tar.gz";
 	if(preg_match("#samba-(.+?)#", $v,$re)){$dirsrc=$re[1];}
-	ufdbguard_admin_events("Downloading lastest file samba-3.6.18.tar.gz, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
+	ufdbguard_admin_events("Downloading lastest file samba-3.6.22.tar.gz, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
 }
 
 if(!$GLOBALS["FORCE"]){
-	if(is_file("/root/samba-3.6.18.tar.gz")){if($GLOBALS["REPOS"]){echo "No updates...\n";die();}}
+	if(is_file("/root/samba-3.6.22.tar.gz")){if($GLOBALS["REPOS"]){echo "No updates...\n";die();}}
 }
 
 if(is_dir("/root/samba-builder")){shell_exec("$rm -rf /root/samba-builder");}
@@ -60,8 +102,8 @@ if(!$GLOBALS["NO_COMPILE"]){
 	@mkdir("/root/$dirsrc");
 	if(!is_file("/root/$v")){
 		echo "Downloading $v ...\n";
-		shell_exec("$wget http://ftp.samba.org/pub/samba/stable/samba-3.6.18.tar.gz");
-		if(!is_file("/root/samba-3.6.18.tar.gz")){echo "Downloading failed...\n";die();}
+		shell_exec("$wget http://ftp.samba.org/pub/samba/stable/samba-3.6.22.tar.gz");
+		if(!is_file("/root/samba-3.6.22.tar.gz")){echo "Downloading failed...\n";die();}
 	}
 	
 	shell_exec("$tar -xf /root/$v -C /root/$dirsrc/");
@@ -152,48 +194,8 @@ if(!$GLOBALS["NO_COMPILE"]){
 	shell_exec("make install");
 }
 
-	if(is_file("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_wins.so")){
-		echo "Copy $SOURCESOURCE_DIRECTORY/nsswitch/libnss_wins.so\n";
-		@copy("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_wins.so", "/lib/libnss_wins.so");
-		
-	}
-	if(is_file("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_winbind.so")){
-		echo "Copy $SOURCESOURCE_DIRECTORY/nsswitch/libnss_winbind.so\n";
-		@copy("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_winbind.so", "/lib/libnss_winbind.so");
-		
-	}	
-	
-	
-	if($Architecture==64){$Architecture="x64";}
-	if($Architecture==32){$Architecture="i386";}
+create_package();
 
-
-	create_package();
-	@mkdir("/root/samba-builder/etc/init.d",0755,true);
-	if(is_file("$SOURCE_DIRECTORY2/packaging/LSB/samba.sh")){
-		shell_exec("/bin/cp $SOURCE_DIRECTORY2/packaging/LSB/samba.sh /root/samba-builder/etc/init.d/samba");
-		@chmod("/root/samba-builder/etc/init.d/samba", 0755);
-	}else{
-		echo "$SOURCE_DIRECTORY2/packaging/LSB/samba.sh no such file";
-	}
-
-
-
-	$version=SAMBA_VERSION();
-	
-	echo "Building package Arch:$Architecture Version:$version\n";
-	
-	@chdir("/root/samba-builder");
-	echo "Compressing sambac-$Architecture-$version.tar.gz\n";
-	shell_exec("$tar -czf sambac-$Architecture-$version.tar.gz *");
-	echo "Compressing sambac-$Architecture-$version.tar.gz Done...\n";
-	if(is_file("/root/ftp-password")){
-		echo "Uploading sambac-$Architecture-$version.tar.gz Done...\n";
-		echo "/root/samba-builder/sambac-$Architecture-$version.tar.gz is now ready to be uploaded\n";
-		shell_exec("curl -T /root/samba-builder/sambac-$Architecture-$version.tar.gz ftp://www.artica.fr/download/ --user ".@file_get_contents("/root/ftp-password"));
-		if(is_file("/root/rebuild-artica")){shell_exec("$wget \"".@file_get_contents("/root/rebuild-artica")."\" -O /tmp/rebuild.html");}
-		
-	}	
 
 function SAMBA_VERSION(){
 	
@@ -207,11 +209,29 @@ function SAMBA_VERSION(){
 	
 }
 
+function DebianVersion(){
+
+	$ver=trim(@file_get_contents("/etc/debian_version"));
+	preg_match("#^([0-9]+)\.#",$ver,$re);
+	if(preg_match("#squeeze\/sid#",$ver)){return 6;}
+	return $re[1];
+
+}
+
 
 
 
 
 function create_package(){
+	$Architecture=Architecture();
+	$unix=new unix();
+	$wget=$unix->find_program("wget");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$cp=$unix->find_program("cp");
+	$DebianVersion=DebianVersion();
+	if($DebianVersion==6){$DebianVersion=null;}else{$DebianVersion="-debian{$DebianVersion}";}
+
 	@mkdir('/root/samba-builder/usr/sbin',0755,true);
 	@mkdir('/root/samba-builder/usr/bin',0755,true);
 	@mkdir('/root/samba-builder/usr/lib/samba',0755,true);
@@ -434,6 +454,8 @@ function create_package(){
 	$f[]="/usr/lib/libxapian.a";
 	$f[]="/usr/lib/libxapian.so.22.5.0 ";
 	$f[]="/usr/lib/libxapian.so.22";
+	$f[]="/usr/lib/libxapian.so.22.6.3";
+	$f[]="/usr/lib/xapian-omega/bin/omega";
 	$f[]="/usr/bin/quartzcheck";
 	$f[]="/usr/bin/quartzcheck";
 	$f[]="/usr/bin/quartzcompact";
@@ -454,7 +476,9 @@ function create_package(){
 	$f[]="/usr/include/xapian.h";
 	$f[]="/usr/share/php5/xapian.php";
 	$f[]="/usr/lib/php5/20090626+lfs/xapian.so";
+	$f[]="/usr/lib/php5/20090626/xapian.so";
 	$f[]="/usr/lib/php5/20090626+lfs/xapian.la";
+	$f[]="/usr/lib/php5/20090626/xapian.la";
 	$f[]="/usr/bin/xapian-check";
 	$f[]="/usr/bin/xapian-compact";
 	$f[]="/usr/bin/xapian-inspect";
@@ -468,6 +492,9 @@ function create_package(){
 	$f[]="/usr/bin/mbox2omega";
 	$f[]="/usr/bin/omindex";
 	$f[]="/usr/bin/scriptindex";	
+	$f[]="/usr/bindbi2omega";
+	$f[]="/usr/binhtdig2omega"; 
+	$f[]="/usr/binmbox2omega";
 	
 	while (list ($num, $ligne) = each ($f) ){
 		if(!is_file($ligne)){echo "$ligne no such file\n";continue;}
@@ -484,6 +511,54 @@ function create_package(){
 	shell_exec("/bin/cp -rfd /usr/share/omega/* /root/samba-builder/usr/share/omega/");	
 
 	echo "Creating package done....\n";
+	
+	if(is_dir("/root/3/samba-3.6.22")){$SOURCESOURCE_DIRECTORY="/root/3/samba-3.6.22";}
+	
+
+	if(is_file("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_wins.so")){
+		echo "Copy $SOURCESOURCE_DIRECTORY/nsswitch/libnss_wins.so\n";
+		@copy("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_wins.so", "/lib/libnss_wins.so");
+	
+	}
+	if(is_file("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_winbind.so")){
+	echo "Copy $SOURCESOURCE_DIRECTORY/nsswitch/libnss_winbind.so\n";
+	@copy("$SOURCESOURCE_DIRECTORY/nsswitch/libnss_winbind.so", "/lib/libnss_winbind.so");
+	
+	}
+	
+	
+	if($Architecture==64){$Architecture="x64";}
+	if($Architecture==32){$Architecture="i386";}
+	
+	
+	
+	@mkdir("/root/samba-builder/etc/init.d",0755,true);
+			if(is_file("$SOURCESOURCE_DIRECTORY/packaging/LSB/samba.sh")){
+			shell_exec("/bin/cp $SOURCESOURCE_DIRECTORY/packaging/LSB/samba.sh /root/samba-builder/etc/init.d/samba");
+			@chmod("/root/samba-builder/etc/init.d/samba", 0755);
+	}else{
+		echo "$SOURCESOURCE_DIRECTORY/packaging/LSB/samba.sh no such file";
+	}
+	$version=SAMBA_VERSION();
+	echo "Building package Arch:$Architecture Version:$version  $DebianVersion\n";
+	
+	@chdir("/root/samba-builder");
+	if(is_file("/root/samba-builder/sambac$DebianVersion-$Architecture-$version.tar.gz")){@unlink("/root/samba-builder/sambac-$Architecture-$version.tar.gz");}
+	echo "Compressing sambac$DebianVersion-$Architecture-$version.tar.gz\n";
+	shell_exec("$tar -czf sambac$DebianVersion-$Architecture-$version.tar.gz *");
+	echo "Compressing /root/samba-builder/sambac$DebianVersion-$Architecture-$version.tar.gz Done...\n";
+	if(is_file("/root/ftp-password")){
+	echo "Uploading /root/samba-builder/sambac$DebianVersion-$Architecture-$version.tar.gz Done...\n";
+	echo "/root/samba-builder/sambac-$Architecture$DebianVersion-$version.tar.gz is now ready to be uploaded\n";
+	if($DebianVersion==null){
+		shell_exec("curl -T /root/samba-builder/sambac$DebianVersion-$Architecture-$version.tar.gz ftp://www.articatech.net/download/ --user ".@file_get_contents("/root/ftp-password"));
+		if(is_file("/root/rebuild-artica")){shell_exec("$wget \"".@file_get_contents("/root/rebuild-artica")."\" -O /tmp/rebuild.html");}
+	}
+	
+	
+	}	
+	
+	
 }
 
 

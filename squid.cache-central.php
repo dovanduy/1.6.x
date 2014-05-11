@@ -274,9 +274,8 @@ function page(){
 		$q=new mysql_squid_builder();
 		$sock=new sockets();
 		$users=new usersMenus();
-		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+		
 		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
 		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 		$sql="SELECT * FROM cacheconfig WHERE `uuid`='{$_GET["uuid"]}'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -335,11 +334,6 @@ function page(){
 	<div id='caches-32-div'>
 		<table style='width:99%' class=form>
 		<tr>
-			<td class=legend>{DisableSquidSNMPMode}:</td>
-			<td>". Field_checkbox("DisableSquidSNMPMode",1,$DisableSquidSNMPMode,"CheckSNMPMode()")."</td>
-		</tr>		
-		
-		<tr>
 			<td class=legend>{DisableAnyCache}:</td>
 			<td>". Field_checkbox("DisableAnyCache",1,$DisableAnyCache,"CheckDisableAnyCache()")."</td>
 		</tr>		
@@ -392,7 +386,7 @@ function page(){
 		function SaveSquid32Caches(){
 			if(confirm('$warning_rebuild_squid_caches')){
 				var XHR = new XHRConnection();
-				if(document.getElementById('DisableSquidSNMPMode').checked){XHR.appendData('DisableSquidSNMPMode','1');}else{XHR.appendData('DisableSquidSNMPMode','0');}
+				
 				XHR.appendData('uuid','$squid->uuid');
 				XHR.appendData('cachesDirectory',document.getElementById('cachesDirectory').value);
 				XHR.appendData('workers',document.getElementById('workers').value);
@@ -456,14 +450,6 @@ function page(){
 			document.getElementById('cachesDirectory').disabled=true;
 			document.getElementById('globalCachesize').disabled=true;
 			var CORP=$CORP;
-			if(CORP==0){document.getElementById('DisableSquidSNMPMode').checked=true;document.getElementById('DisableSquidSNMPMode').disabled=true;}
-			
-			
-			if(!document.getElementById('DisableSquidSNMPMode').checked){
-				document.getElementById('workers').disabled=false;
-				document.getElementById('cachesDirectory').disabled=false;
-				document.getElementById('globalCachesize').disabled=false;				
-			}
 			checkButtonMode();
 		}
 		
@@ -525,11 +511,9 @@ function button_mode(){
 		$page=CurrentPageName();
 		$tpl=new templates();
 		$sock=new sockets();
-		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
 		$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
 		if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-		if($DisableSquidSNMPMode==0){return null;}
+		
 		if($DisableAnyCache==1){return null;}
 		
 		$js="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?add-new-disk-js=yes');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>";
@@ -712,7 +696,6 @@ function squid_cache_status(){
 function squid_cache_save(){
 	$uuid=$_POST["uuid"];
 	$sock=new sockets();
-	$sock->SET_INFO("DisableSquidSNMPMode", $_POST["DisableSquidSNMPMode"]);
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL("DELETE FROM cachestatus WHERE uuid='$uuid'");
 

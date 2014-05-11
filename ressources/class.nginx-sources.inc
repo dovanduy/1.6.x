@@ -13,12 +13,18 @@ class nginx_sources{
 	public $ssl_commname=null;
 	public $forceddomain=0;
 	public $proxy_read_timeout=300;
-	
+	public $proxy_send_timeout=300;
+	public $proxy_buffering=1;
+	public $proxy_cache_min_uses=1;
+	public $proxy_buffer_size=8;
+	public $proxy_buffers="8 8k";
 	function nginx_source($cache_peer_id=0){
 		if(!is_numeric($cache_peer_id)){return;}
 		if($cache_peer_id>0){$this->load($cache_peer_id);}
 		
 	}
+	
+
 	
 	
 	private function load($cache_peer_id){
@@ -42,7 +48,12 @@ class nginx_sources{
 		$this->ssl_commname=$ligne["ssl_commname"];
 		$this->forceddomain=$ligne["forceddomain"];
 		$this->proxy_read_timeout=$ligne["proxy_read_timeout"];
-
+		$this->proxy_send_timeout=$ligne["proxy_send_timeout"];
+		$this->proxy_buffering=$ligne["proxy_buffering"];
+		$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
+		$this->proxy_buffer_size=$ligne["proxy_buffer_size"];
+		$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
+		$this->proxy_buffers=$ligne["proxy_buffers"];
 	}
 	
 	public function PatchTables(){
@@ -71,7 +82,7 @@ class nginx_sources{
 			$q->QUERY_SQL($sql,$this->database);
 			
 			$GLOBALS[__CLASS__.__FUNCTION__]=true;
-			if(!$q->ok){return;}
+			if(!$q->ok){echo $q->mysql_error_html();return;}
 			$this->PatchFields();
 	}
 	
@@ -87,6 +98,7 @@ class nginx_sources{
 		if(!$q->FIELD_EXISTS("reverse_sources", "isSuccesstxt")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `isSuccesstxt` TEXT");}
 		if(!$q->FIELD_EXISTS("reverse_sources", "isSuccessTime")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `isSuccessTime` datetime");}
 		if(!$q->FIELD_EXISTS("reverse_sources", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `proxy_read_timeout` SMALLINT(5) NOT NULL DEFAULT '300'");}
+		if(!$q->FIELD_EXISTS("reverse_sources", "OnlyTCP")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `OnlyTCP` smallint(1) NOT NULL DEFAULT '0'");}
 		
 		$GLOBALS[__CLASS__.__FUNCTION__]=true;
 	}

@@ -360,7 +360,7 @@ function day_top_members(){
 			$table=$table.
 				"
 				<tr class=$classtr style='height:auto'>
-					<td width=1%  style='font-size:14px;' nowrap><img src='img/user-single-18.gif'></td>
+					<td width=1%  style='font-size:14px;' nowrap><img src='img/user-18.png'></td>
 					<td width=1%  style='font-size:14px;'nowrap><strong>{$ligne["tcount"]}</strong></td>
 					<td width=99%  style='font-size:14px;' nowrap><strong>$uid ($ipaddrlink)<div>$mac</div></strong></td>
 				</tr>
@@ -547,7 +547,7 @@ function day_user_search(){
 			$table=$table.
 				"
 				<tr class=$classtr style='height:auto'>
-					<td width=1%  style='font-size:14px;height:auto'nowrap><img src='img/user-single-18.gif'></td>
+					<td width=1%  style='font-size:14px;height:auto'nowrap><img src='img/user-18.png'></td>
 					<td width=99%  style='font-size:12px;height:auto' nowrap><strong>$uid<div><span style='font-weight:normal;font-size:10px'>$mac/$ipaddr</span></div></strong></td>
 				</tr>
 				";		

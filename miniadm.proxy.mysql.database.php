@@ -116,7 +116,7 @@ function status(){
 	
 	$html="
 	<div id='title-$t' style='font-size:16px;font-weight:bold'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 	<td valign='top' style='width:35%'>$APP_SQUID_DB</td>

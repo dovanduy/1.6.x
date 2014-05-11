@@ -79,16 +79,14 @@ public
     procedure ParseUsbShares();
 
     function  NMBD_BIN_PATH():string;
-    function  WINBIND_PID():string;
-    function  WINBIND_BIN_PATH():string;
+
+
     function  INITD_WINBIND_PATH():string;
-    procedure WINBIND_START();
     procedure SAMBA_NMBD_START();
     procedure SAMBA_SMBD_START();
 
     procedure SAMBA_WINBINDD_START();
-    procedure WINBIND_STOP();
-    function  WINBIND_VERSION():string;
+
 
     procedure SCANNED_ONLY_START();
     procedure SCANNED_ONLY_STOP();
@@ -198,7 +196,7 @@ if not TryStrToInt(SYS.GET_INFO('KerbAuthDisableNsswitch'),KerbAuthDisableNsswit
 
 
 
-if FileExists(WINBIND_BIN_PATH()) then begin
+if FileExists(SMBD_PATH()) then begin
    logs.Debuglogs('Starting......: Samba winbindd is installed');
    logs.Debuglogs('Starting......: TypeOfSamba...............: '+IntToStr(TypeOfSamba));
    logs.Debuglogs('Starting......: EnableKerbAuth............: '+IntToStr(EnableKerbAuth));
@@ -326,14 +324,6 @@ begin
  if FileExists(path) then exit(path);
 end;
 //##############################################################################
-function Tsamba.WINBIND_BIN_PATH():string;
-   var path:string;
-begin
- if FileExists('/etc/artica-postfix/OPENVPN_APPLIANCE') then exit;
- path:=SYS.LOCATE_GENERIC_BIN('winbindd');
- if FileExists(path) then exit(path);
-end;
-//##############################################################################
 function Tsamba.NMBD_BIN_PATH():string;
    var path:string;
 begin
@@ -346,11 +336,10 @@ begin
 SAMBA_STOP();
 fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --remove "samba"');
 if FIleExists(NMBD_BIN_PATH()) then logs.DeleteFile(NMBD_BIN_PATH());
-if FIleExists(WINBIND_BIN_PATH()) then logs.DeleteFile(WINBIND_BIN_PATH());
 if FIleExists(SMBD_PATH()) then logs.DeleteFile(SMBD_PATH());
 logs.DeleteFile('/etc/artica-postfix/versions.cache');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --write-versions');
-fpsystem('/usr/share/artica-postfix/bin/process1 --force');
+fpsystem('/etc/init.d/artica-process1 start');
 end;
 //##############################################################################
 function Tsamba.SMBD_PID():string;
@@ -379,25 +368,6 @@ function Tsamba.SCANNED_ONLY_PID():string;
 begin
 if FileExists('/var/run/scannedonly.pid') then result:=SYS.GET_PID_FROM_PATH('/var/run/scannedonly.pid');
 if not SYS.PROCESS_EXIST(result) then result:=SYS.PIDOF('/usr/sbin/scannedonlyd_clamav');
-end;
-//##############################################################################
-function Tsamba.WINBIND_PID():string;
-var pid,binpath:string;
-
-begin
-    if FileExists('/var/run/samba/winbindd.pid') then begin
-       pid:=SYS.GET_PID_FROM_PATH('/var/run/samba/winbindd.pid');
-       result:=pid;
-    end;
-
-    if not SYS.PROCESS_EXIST(pid) then begin
-       binpath:=WINBIND_BIN_PATH();
-       logs.Debuglogs('WINBIND_PID:: "'+pid+'" does not seems to work try with pidof "'+binpath+'"');
-       pid:=SYS.PIDOF(binpath);
-       logs.Debuglogs('WINBIND_PID:: "'+pid+'"');
-       if length(trim(pid))>0 then logs.WriteToFile(pid,'/var/run/samba/winbindd.pid');
-       result:=pid;
-    end;
 end;
 //##############################################################################
 function Tsamba.INITD_PATH():string;
@@ -733,17 +703,7 @@ ViaSMBCOntrol:=false;
      SAMBA_NMBD_START();
  end;
 
- pid:=WINBIND_PID();
- if SYS.PROCESS_EXIST(pid) then begin
-      logs.NOTIFICATION('WINBINDD service was successfully reloaded PID: '+pid+'..','','samba');
-      if ViaSMBCOntrol then begin
-         fpsystem(smbcontrol+' winbindd reload-config');
-      end else begin
-          fpsystem(killbin+' -HUP '+pid);
-      end;
- end else begin
-     SAMBA_WINBINDD_START();
- end;
+
 
  pid:=SMBD_PID();
  if SYS.PROCESS_EXIST(pid) then begin
@@ -825,100 +785,12 @@ end;
 //##############################################################################
 procedure Tsamba.SAMBA_STOP();
 begin
-WINBIND_STOP();
+
 NMBD_STOP();
 SMBD_STOP();
 SCANNED_ONLY_STOP();
 logs.OutputCmd(smbpasswd_path()+' -w "' + openldap.ldap_settings.password+'"');
 PAM_LDAP_SECRET();
-end;
-//##############################################################################
-procedure Tsamba.WINBIND_STOP();
-var
-   pid:string;
-   count:Integer;
-   FORCE:boolean;
-   smbcontrol:string;
-   php5:string;
-begin
-
-if not FileExists(WINBIND_BIN_PATH()) then exit;
- php5:=SYS.LOCATE_PHP5_BIN();
-     if FileExists(SYS.LOCATE_GENERIC_BIN('update-rc.d')) then begin
-       logs.Syslogs('Artica: Task requested to stop winbindd...');
-       fpsystem(php5+' /usr/share/artica-postfix/exec.winbindd.php');
-       fpsystem('/etc/init.d/winbind stop');
-       exit;
-    end;
-
-if not TryStrToInt(SYS.GET_INFO('EnableKerbAuth'),EnableKerbAuth) then EnableKerbAuth:=0;
-pid:=WINBIND_PID();
-FORCE:=SYS.COMMANDLINE_PARAMETERS('--force');
-if not FORCE then begin
-   if(EnableKerbAuth=1) then begin
-     if SYS.PROCESS_EXIST(pid) then begin
-       logs.Syslogs('Artica: Task requested to stop winbindd but EnableKerbAuth=1 PID:'+pid+' aborting task');
-       exit;
-     end;
-   end;
-end;
-
-
-
-logs.Syslogs('Artica: stopping winbindd daemon');
-if not SYS.PROCESS_EXIST(pid) then begin
-   logs.Syslogs('Artica: artica-install task requested to stop winbindd but already stopped');
-   writeln('Stopping WINBIND.............: Already stopped');
-   exit;
-end;
-
-
-
-
-     logs.NOTIFICATION('Artica: stopping winbind','artica-install has been ordered to stop winbind','system');
-     writeln('Stopping WINBIND.............: ' + pid + ' PID');
-
-     smbcontrol:=SYS.LOCATE_GENERIC_BIN('smbcontrol');
-     count:=0;
-     if FileExists(smbcontrol) then begin
-     writeln('Stopping WINBIND.............: via smbcontrol');
-        fpsystem(smbcontrol+' winbindd shutdown');
-        pid:=WINBIND_PID();
-         while SYS.PROCESS_EXIST(pid) do begin
-                sleep(1000);inc(count);
-                 if count>50 then begin
-                    writeln('Stopping WINBIND.............: via smbcontrol timed-out');
-                    break;
-                 end;
-                pid:=WINBIND_PID();
-         end;
-     end;
-
-     pid:=WINBIND_PID();
-     if SYS.PROCESS_EXIST(pid) then begin
-        fpsystem('/bin/kill ' + pid);
-     end;
-     pid:=WINBIND_PID();
-     count:=0;
-
- while SYS.PROCESS_EXIST(pid) do begin
-        sleep(500);
-        inc(count);
-        if SYS.PROCESS_EXIST(pid) then fpsystem('/bin/kill ' + pid);
-        if count>50 then begin
-               writeln('Stopping WINBIND.............: ' + pid + ' PID time-out');
-               fpsystem('/bin/kill -9 ' + pid);
-              break;
-        end;
-        pid:=WINBIND_PID();
-  end;
-
-
-pid:=WINBIND_PID();
-if not SYS.PROCESS_EXIST(pid) then begin
-    writeln('Stopping WINBIND.............: stopped');
-    logs.NOTIFICATION('Winbindd was successfully stopped..','','samba');
-end;
 end;
 //##############################################################################
 procedure Tsamba.NMBD_STOP();
@@ -1099,19 +971,6 @@ SYS.SET_CACHE_VERSION('APP_SAMBA',result);
 mem_version:=result;
 end;
 //##############################################################################
-function Tsamba.WINBIND_VERSION():string;
-var
-   RegExpr:TRegExpr;
-   x:string;
-begin
-forcedirectories('/opt/artica/logs');
-fpsystem(WINBIND_BIN_PATH() + ' -V >/opt/artica/logs/samba.version');
-x:=ReadFileIntoString('/opt/artica/logs/samba.version');
-RegExpr:=TRegExpr.Create;
-RegExpr.Expression:='Version\s+([0-9a-z\.]+)';
-if RegExpr.Exec(x) then result:=trim(RegExpr.Match[1]);
-end;
-//##############################################################################
 FUNCTION Tsamba.SAMBA_AUDIT():string;
 var
    l:TstringList;
@@ -1150,40 +1009,6 @@ result:=logs.ReadFromFile(pidpath);
 logs.DeleteFile(pidpath);
 end;
 //#########################################################################################
-procedure Tsamba.WINBIND_START();
-var pid,php5:string;
-begin
-    php5:=SYS.LOCATE_PHP5_BIN();
-    if not FileExists(WINBIND_BIN_PATH()) then exit;
-    if FileExists(SYS.LOCATE_GENERIC_BIN('update-rc.d')) then begin
-       fpsystem(php5+' /usr/share/artica-postfix/exec.winbindd.php');
-       fpsystem('/etc/init.d/winbind start');
-       exit;
-    end;
-
-    pid:=WINBIND_PID();
-    
- if SYS.PROCESS_EXIST(pid) then begin
-   logs.Debuglogs('WINBIND_START:: WINBIND running PID ' + pid);
-   exit;
-end;
- logs.Syslogs('Artica: artica-install process start to start winbindd');
- fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.winbindd.php');
-  fpsystem(WINBIND_BIN_PATH()+' -D');
-    
- pid:=WINBIND_PID();
-
-     if not SYS.PROCESS_EXIST(pid) then begin
-        logs.Debuglogs('WINBIND_START:: Failed to start winbind with error ' + ReadFileIntoString('/opt/artica/logs/samba.start'));
-        exit;
-     end;
-
-  logs.Debuglogs('WINBIND_START:: WINBIND running PID ' + pid);
-  logs.NOTIFICATION('Winbind service was successfully started PID: '+pid+'..','','samba');
-  SYS.THREAD_COMMAND_SET(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.getent.php --force');
-
-end;
-//##############################################################################
 procedure Tsamba.SCANNED_ONLY_START();
 var
    pid:string;
@@ -1476,94 +1301,9 @@ if not FileExists(lib_nss_ldap_path()) then begin
    exit;
 end;
 
-  l:=TstringList.Create;
-  server:=openldap.ldap_settings.servername;
-  port:=openldap.ldap_settings.Port;
-  admin:='cn='+openldap.ldap_settings.admin+','+openldap.ldap_settings.suffix;
-  password:=openldap.ldap_settings.password;
-
-  if length(NSSLDAPUseIP)>2 then server:=NSSLDAPUseIP;
-
-  logs.Debuglogs('Starting......: Samba using ldap server "'+server+'"');
-  
-  forcedirectories('/etc/pam.d');
-
-  ldap_conf:=TstringList.Create;
-  ldap_conf.Add('host '+server);
-  ldap_conf.Add('port '+port);
-  ldap_conf.Add('uri ldap://'+server+':'+port);
-  ldap_conf.Add('ldap_version 3');
-  ldap_conf.Add('binddn '+admin);
-  ldap_conf.Add('rootbinddn '+admin);
-  ldap_conf.Add('bindpw '+openldap.ldap_settings.password);
-  ldap_conf.Add('bind_policy soft');
-  ldap_conf.Add('scope sub');
-  ldap_conf.Add('base dc=organizations,'+openldap.ldap_settings.suffix);
-  ldap_conf.Add('pam_password clear');
-  ldap_conf.Add('pam_lookup_policy yes');
-  ldap_conf.Add('pam_filter objectclass=posixAccount');
-  ldap_conf.Add('pam_login_attribute uid');
-  ldap_conf.Add('nss_reconnect_maxconntries 5');
-  ldap_conf.Add('idle_timelimit 3600');
-  ldap_conf.Add('nss_base_group '+openldap.ldap_settings.suffix+'?sub');
-  ldap_conf.Add('nss_base_passwd '+openldap.ldap_settings.suffix+'?sub');
-  ldap_conf.Add('nss_base_shadow '+openldap.ldap_settings.suffix+'?sub');
-
-  initgroups_ignoreusers:=nss_initgroups_ignoreusers();
-  if length(initgroups_ignoreusers)>0 then ldap_conf.Add('nss_initgroups_ignoreusers '+initgroups_ignoreusers);
-
-  logs.DeleteFile('/etc/pam_ldap.conf');
-  logs.DeleteFile('/etc/nss_ldap.conf');
-  if directoryExists('/usr/share/libnss-ldap') then logs.DeleteFile('/usr/share/libnss-ldap/ldap.conf');
-
-  logs.WriteToFile(ldap_conf.Text,'/etc/pam_ldap.conf');
-  logs.Debuglogs('Starting......: Samba /etc/pam_ldap.conf done');
-
-  logs.WriteToFile(ldap_conf.Text,'/etc/nss_ldap.conf');
-  logs.WriteToFile(ldap_conf.Text,'/etc/libnss-ldap.conf');
-  logs.Debuglogs('Starting......: Samba /etc/nss_ldap.conf done');
-  if directoryExists('/usr/share/libnss-ldap') then begin
-     logs.WriteToFile(ldap_conf.Text,'/usr/share/libnss-ldap/ldap.conf');
-     logs.Debuglogs('Starting......: Samba /usr/share/libnss-ldap/ldap.conf done');
-  end;
-
-
-  ldap_conf.Clear;
-  ldap_conf.Add('host '+server);
-  ldap_conf.Add('port '+port);
-  ldap_conf.Add('uri ldap://'+server+':'+port);
-  ldap_conf.Add('ldap_version 3');
-  ldap_conf.Add('binddn '+admin);
-  ldap_conf.Add('rootbinddn '+admin);
-  ldap_conf.Add('bindpw '+openldap.ldap_settings.password);
-  ldap_conf.Add('bind_policy soft');
-  ldap_conf.Add('scope sub');
-  ldap_conf.Add('base '+openldap.ldap_settings.suffix);
-  ldap_conf.Add('pam_password clear');
-  ldap_conf.Add('pam_lookup_policy yes');
-  ldap_conf.Add('pam_filter objectclass=posixAccount');
-  ldap_conf.Add('pam_login_attribute uid');
-  ldap_conf.Add('nss_reconnect_maxconntries 5');
-  ldap_conf.Add('idle_timelimit 3600');
-  ldap_conf.Add('nss_base_group '+openldap.ldap_settings.suffix+'?sub');
-  ldap_conf.Add('nss_base_passwd '+openldap.ldap_settings.suffix+'?sub');
-  ldap_conf.Add('nss_base_shadow '+openldap.ldap_settings.suffix+'?sub');
-  logs.WriteToFile(ldap_conf.Text,'/etc/ldap.conf');
-
-  if DirecToryExists('/etc/ldap') then logs.WriteToFile(ldap_conf.Text,'/etc/ldap/ldap.conf');
-  if DirecToryExists('/etc') then logs.WriteToFile(ldap_conf.Text,'/etc/ldap.conf');
-  if DirecToryExists('/etc/openldap') then logs.WriteToFile(ldap_conf.Text,'/etc/openldap/ldap.conf');
-  logs.Debuglogs('Starting......: Samba /etc/ldap.conf done');
-
-
-
-  ldap_conf.free;
+  fpsystem(SYS.LOCATE_PHP5_BIN()+'  /usr/share/artica-postfix/exec.initslapd.php --ldapd-conf');
 
   fpsystem(SYS.LOCATE_PHP5_BIN()+'  /usr/share/artica-postfix/exec.pam.php --build');
-
-  PAM_LDAP_SECRET();
-
-
 end;
 //##############################################################################
 procedure Tsamba.StripDiezes(filepath:string);

@@ -9,7 +9,7 @@
 	include_once(dirname(__FILE__).'/ressources/class.samba.inc');			
 	
 	
-system('/usr/share/artica-postfix/bin/process1 --force '.md5(date('Y-m-d H:i:s')));	
+shell_exec("/etc/init.d/artica-process1 start");
 $users=new usersMenus();
 if($users->POSTFIX_INSTALLED){
 	
@@ -27,7 +27,7 @@ if($users->POSTFIX_INSTALLED){
 	
 	if($users->cyrus_imapd_installed){
 		system('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
-		system('/etc/init.d/artica-postfix restart imap &');
+		system('/etc/init.d/cyrus-imapd restart &');
 	}
 	
 }

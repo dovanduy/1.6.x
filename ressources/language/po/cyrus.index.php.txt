@@ -54,7 +54,7 @@ In other way, you can define wich ip address can handle the protocol :[br]
 [/ul]
 </howto_cyrus_service>
 <mailboxes>mailboxes</mailboxes>
-<mailboxes_events>Events</mailboxes_events>
+<mailboxes_events>Eventos</mailboxes_events>
 <mailboxes_parameters>Mailboxes settings</mailboxes_parameters>
 <mailbox_size>Storage size</mailbox_size>
 <maxchild>Max instance</maxchild>

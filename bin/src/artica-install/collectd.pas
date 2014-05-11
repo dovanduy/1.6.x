@@ -365,16 +365,10 @@ ini:=TstringList.Create;
      if EnableCollectdDaemon=0 then begin
          result:=ini.Text;
          ini.free;
-         SYS.MONIT_DELETE('APP_COLLECTD');
+
          exit;
      end;
 
-      if SYS.MONIT_CONFIG('APP_COLLECTD',PID_PATH(),'collectd') then begin
-         ini.Add('monit=1');
-         result:=ini.Text;
-         ini.free;
-         exit;
-      end;
 
    pid:=PID_NUM();
    if SYS.PROCESS_EXIST(pid) then ini.Add('running=1') else  ini.Add('running=0');

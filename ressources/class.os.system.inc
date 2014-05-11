@@ -29,8 +29,6 @@ public function usb($uuid=null){
 			$this->uuid=$uuid;
 			$this->lOADINFOS();
 		}
-		
-		
 	}
 	
 public function HASH_UUID_LIST(){
@@ -229,7 +227,19 @@ function events_class($text){
 			$f->events($text,$_GET["FILE_DEBUG"][$i]);
 		}
 	}
-		
+function getSystemMemInfo(){
+		$data = explode("\n", file_get_contents("/proc/meminfo"));
+		$meminfo = array();
+		foreach ($data as $line) {
+			if(trim($line)==null){continue;}
+			if(strpos(" $line", ":")==0){continue;}
+			list($key, $val) = explode(":", $line);
+			$val=trim($val);
+			if(preg_match("#^([0-9\.]+)\s+#", $val,$re)){$val=$re[1];}
+			$meminfo[$key] = trim($val);
+		}
+		return $meminfo;
+	}		
 
 
 function system_is_overloaded($file=null){
@@ -257,8 +267,19 @@ function system_is_overloaded($file=null){
 			$GLOBALS["CPU_NUMBER"]=intval($users->CPU_NUMBER);
 	}
 	
+	$array_mem=getSystemMemInfo();
+	$MemFree=$array_mem["MemFree"];
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
+	$GLOBALS["SYSTEM_INTERNAL_MEM"]=$MemFree;
+	$GLOBALS["SYSTEM_INTERNAL_MEMM"]=round($MemFree/1024);
+	$GLOBALS["SYSTEM_INTERNAL_LOAD"]=$internal_load;
+	if($MemFree<51200){
+		$d->events("Load: Not enough memory {$MemFree}KB < 102400 ","/var/log/artica-postfix/syslog.log");
+		os_system_ToSyslog("Not enough memory {$MemFree}KB < 102400");
+		return true;
+	}
+	
 	$cpunum=$GLOBALS["CPU_NUMBER"]+0.5;	
 	$called=null;
 	if($GLOBALS["VERBOSE"]){
@@ -275,14 +296,15 @@ function system_is_overloaded($file=null){
 
 	if($file==null){$file=basename(__FILE__);}
 	
-
+	$GLOBALS["SYSTEM_MAX_LOAD"]=$cpunum;
 	if($internal_load>=$cpunum){
 		if(function_exists("debug_backtrace")){try {$trace=@debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}} catch (Exception $e) {}}		
 		
-		$GLOBALS["SYSTEM_INTERNAL_LOAD"]=$internal_load;
+		
 		$d->events("Load: OVERLOADED $called","/var/log/artica-postfix/syslog.log");
 		if($GLOBALS["VERBOSE"]){echo "$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called\n";}
 		if(!$notlog[$file]){
+			os_system_ToSyslog("OVERLOADED [$internal_load] $called ");
 			$d->events("$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called","/var/log/artica-postfix/artica-status.debug");
 		}
 		return true;
@@ -292,6 +314,13 @@ function system_is_overloaded($file=null){
 	return false;
 
 	
+}
+function os_system_ToSyslog($text,$error=false){
+
+	if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
+	if(function_exists("openlog")){openlog("class.os.system.inc", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
 }
 
 
@@ -311,6 +340,26 @@ function systemMaxOverloaded(){
 		return true;
 	}
 	
+}
+
+function SquidStatisticsTasksOverTime(){
+	if(!isset($GLOBALS["ArticaProxyStatisticsMaxTime"])){
+		$sock=new sockets();
+		$GLOBALS["ArticaProxyStatisticsMaxTime"]=$sock->GET_INFO("ArticaProxyStatisticsMaxTime");
+		if(!is_numeric($GLOBALS["ArticaProxyStatisticsMaxTime"])){$GLOBALS["ArticaProxyStatisticsMaxTime"]=420;}
+		if($GLOBALS["ArticaProxyStatisticsMaxTime"]<5){$GLOBALS["ArticaProxyStatisticsMaxTime"]=420;}
+	}
+	
+	if(is_file("/var/run/squid-stats-central.stop")){
+		if($GLOBALS["VERBOSE"]){echo "/var/run/squid-stats-central.stop -> STOP !\n";}
+		return true;}
+	
+	$unix=new unix();
+	$time=$unix->file_time_min("/var/run/squid-stats-central.run");
+	if($time>=$GLOBALS["ArticaProxyStatisticsMaxTime"]){
+		if($GLOBALS["VERBOSE"]){echo "/var/run/squid-stats-central.run {$time}Mn > {$GLOBALS["ArticaProxyStatisticsMaxTime"]}Mn STOP! \n";}
+		return true;}
+	return false;
 }
 
 function LOCATE_PROGRAM($file){

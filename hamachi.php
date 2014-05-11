@@ -54,7 +54,7 @@ function help(){
 	$html="<table style='width:99%' class=form>
 	<tbody>
 	<tr>
-		<td valign='top' width=1%><a href='http://www.artica.fr/download/artica-hamachi.pdf'><img src='img/pdf-128.png' style='border:0px'></a></td>
+		<td valign='top' width=1%><a href='http://www.articatech.net/download/artica-hamachi.pdf'><img src='img/pdf-128.png' style='border:0px'></a></td>
 		<td valign='top'><div class=explain style='font-size:16px'>{HELP_PDF_DOWNLOAD_EXPLAIN}</div>
 	</tr>
 	</tbody>

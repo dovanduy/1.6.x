@@ -69,7 +69,7 @@ function restart(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: nginx Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -84,13 +84,18 @@ function reload(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
 	
 	$postconf=$unix->find_program("postconf");
 	$postfix=$unix->find_program("postfix");
+	$unixsocket=$users->cyrus_lmtp_path;
+	if($unixsocket==null){$unixsocket="/var/spool/postfix/var/run/cyrus/socket/lmtp";}
+	@chown($unixsocket, "postfix");
+	@chgrp($unixsocket, "postfix");
+	@chmod($unixsocket,0777);
 	
 	shell_exec("$postfix reload");
 
@@ -101,8 +106,10 @@ function start($aspid=false){
 	$sock=new sockets();
 	$postconf=$unix->find_program("postconf");
 	$postfix=$unix->find_program("postfix");
+	$usermod=$unix->find_program("usermod");
+	$users=new usersMenus();
 	if(!is_file($postconf)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix, not installed\n";}
 		return;
 	}
 
@@ -111,7 +118,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -121,7 +128,7 @@ function start($aspid=false){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 
@@ -131,13 +138,26 @@ function start($aspid=false){
 	if(!is_numeric($EnableStopPostfix)){$EnableStopPostfix=0;}
 	if($EnableStopPostfix==1){$EnablePostfix=0;}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix EnablePostfix     = $EnablePostfix\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix EnableStopPostfix = $EnableStopPostfix\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix EnablePostfix     = $EnablePostfix\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix EnableStopPostfix = $EnableStopPostfix\n";}
 	if($EnablePostfix==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service disabled\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service disabled\n";}
 		return;
 	}
 
+	$unix->CreateUnixUser("postfix","postfix");
+	$unix->CreateUnixUser("clamav","clamav");
+	shell_exec("$usermod -a -G postfix clamav >/dev/null 2>&1");
+	@mkdir("/var/amavis",0755,true);
+	@chmod("/var/amavis", 0755);
+	if(!is_file("/etc/postfix/relay_domains.db")){@touch("/etc/postfix/relay_domains"); shell_exec("postmap hash:/etc/postfix/relay_domains"); }
+	
+	$unixsocket=$users->cyrus_lmtp_path;
+	if($unixsocket==null){$unixsocket="/var/spool/postfix/var/run/cyrus/socket/lmtp";}
+	@chown($unixsocket, "postfix");
+	@chgrp($unixsocket, "postfix");
+	@chmod($unixsocket,0777);
+	
 	
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -150,7 +170,7 @@ function start($aspid=false){
 	for($i=0;$i<6;$i++){
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service waiting $i/6...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service waiting $i/6...\n";}
 		sleep(1);
 	}
 
@@ -158,18 +178,30 @@ function start($aspid=false){
 	@unlink($TMPFILE);
 	while (list ($num, $line) = each ($f)){
 		if(trim($line)==null){continue;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $line\n";}
+		if(strpos($line, "unused parameter:")>0){continue;}
+		
+		if(preg_match("#fatal:.*?directory\s+(.+?):\s+Permission denied#", $line,$re)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: permission error on \"{$re[1]}\"\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Running permission tool\n";}
+			exec("$postfix set-permissions 2>&1",$results2);
+			while (list ($num, $line) = each ($results2)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $line\n";}
+			}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: You need to restart again the service\n";}
+		}
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $line\n";}
 		
 	}
 	
 	
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service Success service started pid:$pid...\n";}
 		return;
 	}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service failed...\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	
 }
@@ -180,7 +212,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -189,9 +221,9 @@ function stop($aspid=false){
 	$pid=PID_NUM();
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix Pid file: ". PID_PATH()."\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix Pid file: ". PID_PATH()."\n";}
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix service already stopped...\n";}
 		return;
 	}
 	
@@ -202,7 +234,7 @@ function stop($aspid=false){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$kill=$unix->find_program("kill");
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix service Shutdown pid $pid...\n";}
 	
 	
 	
@@ -210,31 +242,31 @@ function stop($aspid=false){
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix service success...\n";}
 		return;
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Postfix service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Postfix service failed...\n";}
 	
 }
 

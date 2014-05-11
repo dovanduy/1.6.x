@@ -10,6 +10,7 @@ uses
 
   var
      install:tubuntu;
+     EnableSystemUpdates:integer;
      suse:tsuse;
      fedora:tfedora;
      centos:tcentos;
@@ -24,6 +25,10 @@ begin
         halt(0);
      end;
 
+
+
+
+
      distri:=tdistriDetect.Create;
      libs:=tlibs.Create;
      try
@@ -31,6 +36,20 @@ begin
      except
      writeln('ERROR while exporting PATH');
      end;
+
+if DirectoryExists('/etc/artica-postfix/settings/Daemons') then begin
+     if FileExists('/usr/share/artica-postfix/bin/setup-ubuntu') then begin
+        if not TryStrToInt(libs.GET_INFO('EnableSystemUpdates'),EnableSystemUpdates) then EnableSystemUpdates:=0;
+        if EnableSystemUpdates = 0 then  begin
+           writeln('This program cannot be executed because EnableSystemUpdates is disabled');
+           writeln('If you need to perform installations, do this command line:');
+           writeln('echo 1 >/etc/artica-postfix/settings/Daemons/EnableSystemUpdates');
+           writeln('If you need to disable it, do this command line:');
+           writeln('echo 0 >/etc/artica-postfix/settings/Daemons/EnableSystemUpdates');
+           halt(0);
+        end;
+     end;
+end;
 
      ForceDirectories('/etc/artica-postfix/settings/Daemons');
      fpsystem('/bin/echo "'+distri.DISTRINAME_CODE+'" >/etc/artica-postfix/settings/Daemons/LinuxDistributionCodeName');

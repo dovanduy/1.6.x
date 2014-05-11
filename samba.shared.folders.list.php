@@ -431,7 +431,7 @@ function aclfolders(){
 		
 		if($aclsTests[0]=="NO_SUCH_DIR"){
 			$info=imgsimple("warning-panneau-32.png");
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$js=null;
 		}
 

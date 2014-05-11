@@ -84,11 +84,11 @@ $('#table-$t').flexigrid({
 	url: '$page?virtual-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'icon', width : 31, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'icon', width : 44, sortable : false, align: 'center'},
 		{display: '$nic', name : 'ID', width :148, sortable : true, align: 'left'},
 		{display: '$tcp_address', name : 'ipaddr', width :124, sortable : true, align: 'left'},
 		{display: '$netmask', name : 'netmask', width : 124, sortable : true, align: 'left'},
-		{display: '$organization', name : 'org', width : 326, sortable : true, align: 'left'},
+		{display: '$organization', name : 'org', width : 313, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'none2', width : 31, sortable : false, align: 'center'},
 		
 	],
@@ -105,7 +105,7 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $tablewidth,
+	width: '99%',
 	height: 320,
 	singleSelect: true
 	
@@ -246,18 +246,13 @@ function nics_list(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
-	
+	if(mysql_num_rows($results)==0){json_error_show('no data');}
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){json_error_show($q->mysql_error);return;}	
 	
 	$net=new networking();
 
@@ -271,16 +266,16 @@ function nics_list(){
 			$ligne["cdir"]=$net->array_TCP[$ligne["nic"]];
 			$eth=$ligne["nic"];
 		}
-		$img="22-win-nic-off.png";
+		$img="port-off.png";
 		$color="#B7B7B7";
 		
 		if($interfaces[$eth_text]<>null){
-			$img="22-win-nic.png";
+			$img="port-on.png";
 			$color="black";
 		}
 		
 		if($ligne["ipv6"]==1){
-			$img="22-win-nic.png";
+			$img="port-on.png";
 			$color="black";			
 		}
 		
@@ -301,11 +296,16 @@ function nics_list(){
 		
 	
 		
-		$edit="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsEdit$t({$ligne["ID"]})\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
-		$delete="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsDelete$t({$ligne["ID"]})\" style='font-size:14px;text-decoration:underline'><img src='img/delete-24.png'></a>";
+		$edit="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:VirtualsEdit$t({$ligne["ID"]})\" style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";
+		$delete="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:VirtualsDelete$t({$ligne["ID"]})\" 
+		style='font-size:16px;text-decoration:underline'><img src='img/delete-32.png'></a>";
 		
 		if($ligne["ipv6"]==1){
-			$edit="<a href=\"javascript:blur();\" OnClick=\"javascript:VirtualsEdit6$t({$ligne["ID"]})\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
+			$edit="<a href=\"javascript:blur();\" 
+			OnClick=\"javascript:VirtualsEdit6$t({$ligne["ID"]})\" 
+			style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";
 			$ligne["netmask"]="/{$ligne["netmask"]}";
 		}
 		
@@ -315,9 +315,9 @@ function nics_list(){
 		'cell' => array(
 		"<img src='img/$img'>"
 		,"<span style='font-size:16px;color:$color;font-weight:bold'>$eth_text</span>",
-		"<span style='font-size:14px'>$edit{$ligne["ipaddr"]}</a></span>",
-		"<span style='font-size:14px'>$edit{$ligne["netmask"]}</a></span>",
-		"<span style='font-size:14px;color:$color'>{$ligne["org"]}</span>"
+		"<span style='font-size:16px'>$edit{$ligne["ipaddr"]}</a></span>",
+		"<span style='font-size:16px'>$edit{$ligne["netmask"]}</a></span>",
+		"<span style='font-size:16px;color:$color'>{$ligne["org"]}</span>"
 		,$delete )
 		);
 	}

@@ -1,7 +1,11 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
+
+
+if(preg_match("#--verbose#",implode(" ",$argv))){
+		$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+//$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
@@ -12,14 +16,27 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.squidguard.inc');
 
 
+$unix=new unix();
+if(is_file("/etc/artica-postfix/FROM_ISO")){
+	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+}
+
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--register"){register();die();}
 if($argv[1]=="--uuid"){uuid_check();die();}
 if($argv[1]=="--register-lic"){register_lic();die();}
+if($argv[1]=="--register-unveiltech"){register_lic_unveiltech();die();}
+if($argv[1]=="--dump-unveiltech"){dump_lic_unveiltech();die();}
+if($argv[1]=="--update-unveiltech"){update_unveiltech();die();}
 
 
-if($argv[1]=="--uuid"){$sock=new sockets();echo base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"))."\n";die();}
+if($argv[1]=="--register-kaspersky"){register_lic_kaspersky();die();}
+if($argv[1]=="--category-tickets"){category_tickets();exit;}
+
+
+
+if($argv[1]=="--uuid"){$unix=new unix();echo $unix->GetUniqueID()."\n";die();}
 if(!ifMustBeExecuted()){die();}
 if($argv[1]=="--patterns"){die();}
 if($argv[1]=="--sitesinfos"){die();}
@@ -30,7 +47,7 @@ if($argv[1]=="--export-deleted"){export_deleted_categories(true);die();}
 if($argv[1]=="--export-weighted"){Export_Weighted(true);die();}
 if($argv[1]=="--export-perso-cats"){ExportPersonalCategories(true);die();}
 if($argv[1]=="--export-not-categorized"){ExportNoCategorized(true);die();}
-
+if($argv[1]=="--export-category-tickets"){category_tickets(true);die();}
 
 
 
@@ -82,6 +99,9 @@ if($argv[1]=="--export-not-categorized"){ExportNoCategorized(true);die();}
 	
 	WriteMyLogs("-> Export()","MAIN",null,__LINE__);
 	Export();
+	WriteMyLogs("-> category_tickets()","MAIN",null,__LINE__);
+	category_tickets();
+	
 	WriteMyLogs("-> Import()","MAIN",null,__LINE__);
 	import();
 	
@@ -91,28 +111,140 @@ if($argv[1]=="--export-not-categorized"){ExportNoCategorized(true);die();}
 		 "Exporting websites, importing websites calculate categories took $distanceOfTimeInWords", "proxy");
 	
 	
-function register(){
+function category_tickets($asPid=false){
+	$unix=new unix();
+	$sock=new sockets();
 	
+	
+	if($asPid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}
+		@file_put_contents($pidfile,getmypid());
+	}	
+	
+	
+	$q=new mysql_squid_builder();
+	$URIBASE=$unix->MAIN_URI();
+	if(!$q->TABLE_EXISTS("catztickets")){return;}
+	$sql="SELECT *  FROM catztickets WHERE `status`=0 LIMIT 0,25";
+	$results = $q->QUERY_SQL($sql);
+	
+	if(!$q->ok){return;}
+	if(mysql_num_rows($results)==0){return;}
+	$uuid=$unix->GetUniqueID();
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;}
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	
+	
+	
+	while ($ligne = mysql_fetch_assoc($results)) {
+		
+		$SITES[$ligne["sitename"]]=true;
+		
+		$array[]=array(
+					"uuid"=>$uuid,
+					"zDate"=>$ligne["zDate"],
+					"sitename"=>$ligne["sitename"],
+					"category"=>$ligne["category"],
+					"company"=>$LicenseInfos["COMPANY"],
+					"email"=>$LicenseInfos["EMAIL"]);
+		
+	}
+	
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
+	$curl->parms["CATEGORIZE_SUPPORT"]=base64_encode(serialize($array));
+	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=true;}
+	$curl->NoLocalProxy();
+	$curl->get();
+	echo $curl->data;	
+	
+	if(!preg_match("#GOOD#s", $curl->data)){return;}
+	
+	
+	while (list ($www) = each ($SITES) ){
+		$q->QUERY_SQL("UPDATE catztickets SET `status`=1 WHERE `sitename`='$www'");
+	}
+	
+		
+	
+	
+}
+	
+	
+function register(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."() in line ". __LINE__."\n";}
 	$sock=new sockets();
 	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid)){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}	
 	
+	$sock=new sockets();
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
+	
+	if($GLOBALS["VERBOSE"]){echo "Loading WizardSavedSettings ".__FUNCTION__."() in line ". __LINE__."\n";}
 	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
 	$WizardSavedSettingsSend=$sock->GET_INFO("WizardSavedSettingsSend");
-	if(count($WizardSavedSettings)<2){return;}
+	
+	
+	
+	
+	if(count($WizardSavedSettings)<2){
+		if($GLOBALS["VERBOSE"]){echo "WizardSavedSettings array is less than 2".__FUNCTION__."() in line ". __LINE__."\n";}
+		return;}
 	if(!isset($WizardSavedSettings["company_name"])){$WizardSavedSettings["company_name"]=null;}
 	if($WizardSavedSettings["company_name"]==null){return;}
 	
 	if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
-	if($WizardSavedSettingsSend==1){return;}
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	if($WizardSavedSettingsSend==1){
+		if(!$GLOBALS["FORCE"]){
+			if($GLOBALS["VERBOSE"]){echo "WizardSavedSettingsSend == 1, aborting.. (use --force)".__FUNCTION__."() in line ". __LINE__."\n";}
+		return;}
+	}
+	
+	$uuid=$unix->GetUniqueID();
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
+	$WizardSavedSettings["ACTIVE_DIRECTORY"]=$EnableKerbAuth;
+	
+	if($EnableKerbAuth==1){
+		include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+		$ldap=new external_ad_search();
+		$NET_RPC_INFOS=$ldap->NET_RPC_INFOS();
+		while (list ($a, $b) = each ($NET_RPC_INFOS)){$WizardSavedSettings[$a]=$b;}
+	}
+	
 	$WizardSavedSettings["UUID"]=$uuid;
-	$WizardSavedSettings["CPUS_NUMBER"]=XZCPU_NUMBER();
+	$WizardSavedSettings["CPUS_NUMBER"]=$unix->CPU_NUMBER();
 	$WizardSavedSettings["MEMORY"]=$unix->SYSTEM_GET_MEMORY_MB()."MB";
 	$WizardSavedSettings["LINUX_DISTRI"]=$unix->LINUX_DISTRIBUTION();
+	$zarafa_server=$unix->find_program("zarafa-server");
+	if(is_file($zarafa_server)){$WizardSavedSettings["ZARAFA APPLIANCE"]="YES";}
+	$squid=$unix->find_program("squid");
+	if(is_file($squid)){$WizardSavedSettings["PROXY INSTALLED"]="YES";}
+	if(is_file("/etc/artica-postfix/FROM_ISO")){$WizardSavedSettings["FROM ISO"]="YES";}
+	if(is_file("/etc/artica-postfix/SQUID_APPLIANCE")){$WizardSavedSettings["APPLIANCE"]="Artica Proxy";$WizardSavedSettings["PROXY APPLIANCE"]="YES";}
+	if(is_file("/etc/artica-postfix/SAMBA_APPLIANCE")){$WizardSavedSettings["APPLIANCE"]="Artica NAS";$WizardSavedSettings["N.A.S APPLIANCE"]="YES";}
+	
+	if(is_file("/etc/artica-postfix/artica-iso-first-reboot")){
+		$zDate=filemtime("/etc/artica-postfix/artica-iso-first-reboot");
+		$WizardSavedSettings["INSTALL_DATE"]=date("Y-m-d H:i:s",$zDate);
+	}else{
+		$zDate=filemtime("/etc/artica-postfix/.");
+		$WizardSavedSettings["INSTALL_DATE"]=date("Y-m-d H:i:s",$zDate);
+	}
 	
 	if(is_file("/etc/artica-postfix/dmidecode.cache.url")){
 		$final_array=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/dmidecode.cache.url")));
@@ -122,10 +254,14 @@ function register(){
 	}
 	
 	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", base64_encode(serialize($WizardSavedSettings)));
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	
+	if($GLOBALS["VERBOSE"]){echo "Send order to $URIBASE/shalla-orders.php ".__FUNCTION__."() in line ". __LINE__."\n";}
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["REGISTER"]=base64_encode(serialize($WizardSavedSettings));
+	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=true;}
+	$curl->NoLocalProxy();
 	$curl->get();
-	echo $curl->data;
+	if($GLOBALS["VERBOSE"]){echo $curl->data;}
 	
 	if(preg_match("#GOOD#s", $curl->data)){
 		$sock->SET_INFO("WizardSavedSettingsSend", 1);
@@ -147,8 +283,8 @@ function XZCPU_NUMBER(){
 }
 
 function uuid_check(){
-	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$unix=new unix();
+	$uuid=$unix->GetUniqueID();
 	echo $uuid."\n";
 }
 
@@ -156,8 +292,10 @@ function CheckLic($array1=array(),$array2=array()){
 	$WORKDIR=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2E=");
 	$WORKFILE=base64_decode('LmxpYw==');
 	$WORKPATH="$WORKDIR/$WORKFILE";
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	$sock=new sockets();	
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($array1));
 	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($array2));
 	$curl->get();
@@ -173,6 +311,234 @@ function CheckLic($array1=array(),$array2=array()){
 	}	
 	
 }
+
+function dump_lic_unveiltech(){
+	$sock=new sockets();
+	$json=json_decode(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/UtDNSArticaUser")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$smtp_domainname=$WizardSavedSettings["smtp_domainname"];
+	$telephone=$WizardSavedSettings["telephone"];
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	$ldap=new clladp();
+	$password=md5($ldap->ldap_password);
+	echo "Is True: $json->success\n";
+	echo "Is hash: $json->hash\n";
+	echo "Is id: $json->id\n";
+	echo "interface is https://myaccount.unveiltech.com/checklogin.php?email={$LicenseInfos["EMAIL"]}&pwd=$password&goto=https://utdns.unveiltech.com/dashboard.php?hash=$json->hash\n";
+	
+	
+}
+
+function update_unveiltech(){
+	
+	if(!is_file("/etc/artica-postfix/settings/Daemons/UtDNSArticaUser")){return;}
+	
+	$sock=new sockets();
+	$unix=new unix();
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$smtp_domainname=$WizardSavedSettings["smtp_domainname"];
+	$telephone=$WizardSavedSettings["telephone"];
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	
+	
+	
+	$UtDNSIPAddr=$sock->GET_INFO("UtDNSIPAddr");
+	if($UtDNSIPAddr==null){
+		$nets=$unix->NETWORK_ALL_INTERFACES();
+		$ipaddr=ip2long($nets["eth0"]["IPADDR"]);
+	}else{
+		$ipaddr=ip2long($UtDNSIPAddr);	
+	}
+	
+	$json=json_decode(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/UtDNSArticaUser")));
+	$ldap=new clladp();
+	$password=md5($ldap->ldap_password);
+	$uri="https://utdns.unveiltech.com/utdnsarticaupdate.php";
+	
+	
+	$curl=new ccurl($uri);
+	$curl->parms["fname"]=null;
+	$curl->parms["lname"]=null;
+	$curl->parms["email"]=$LicenseInfos["EMAIL"];
+	$curl->parms["phone"]=$telephone;
+	$curl->parms["company"]=$LicenseInfos["COMPANY"];
+	$curl->parms["pwd"]=$password;
+	$curl->parms["website"]=$smtp_domainname;
+	$curl->parms["fakeip"]=$ipaddr;
+	$curl->parms["users"]=$LicenseInfos["EMPLOYEES"];
+	$curl->parms["hash"]=$json->hash;
+	$curl->parms["id"]=$json->id;
+
+	if(!$curl->get()){
+		echo "Failed!\nFailed whith Internet error \"$curl->error\"\n";
+		return;
+	}
+	
+	
+	$return=intval(trim($curl->data));
+	if($return==1){echo "Success\n";}
+	
+	
+}
+
+function register_lic_unveiltech(){
+	$sock=new sockets();
+	$unix=new unix();
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$smtp_domainname=$WizardSavedSettings["smtp_domainname"];
+	$telephone=$WizardSavedSettings["telephone"];
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	
+	$nets=$unix->NETWORK_ALL_INTERFACES();
+	$ipaddr=ip2long($nets["eth0"]["IPADDR"]);
+	
+/*	Frederic Testa: fname: prenom
+	Frederic Testa: lname: nom de famille
+	Frederic Testa: email: adresse email
+	Frederic Testa: phone: numero de tel.
+	Frederic Testa: company: societe
+	Frederic Testa: pwd: mot de passe en clair encapsulй dans un base64
+	Frederic Testa: ex: base64_encode("toto");
+	Frederic Testa: website: site web du gars
+	Frederic Testa: ipv4l: ip public en numerique	
+	
+	*/
+	
+	$ldap=new clladp();
+	$password=base64_encode($ldap->ldap_password);
+	$uri="https://utdns.unveiltech.com/utdnsarticanewuser.php";
+	
+	$curl=new ccurl($uri);
+	$curl->parms["fname"]=null;
+	$curl->parms["lname"]=null;
+	$curl->parms["email"]=$LicenseInfos["EMAIL"];
+	$curl->parms["phone"]=$telephone;
+	$curl->parms["company"]=$LicenseInfos["COMPANY"];
+	$curl->parms["pwd"]=$password;
+	$curl->parms["website"]=$smtp_domainname;
+	$curl->parms["fakeip"]=$ipaddr;
+	$curl->parms["users"]=$LicenseInfos["EMPLOYEES"];
+
+	
+	if(!$curl->get()){
+		echo "Failed!\nFailed whith Internet error \"$curl->error\"\n";
+		return;
+	}
+	
+	
+	if(!preg_match("#<ANSWER>(.+?)</ANSWER>#is", $curl->data,$re)){
+		echo "Failed!\nProtocol error with the remote cloud server\n";
+		return;
+	}
+	
+	
+	$json=json_decode(base64_decode($re[1]));
+	if($json->success){
+		echo "Success!\nThe remote cloud server as accepted the request\n";
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/UtDNSArticaUser", $re[1]);
+		@chmod("/etc/artica-postfix/settings/Daemons/UtDNSArticaUser",0755);
+	}else{
+		echo "Failed!\nThe remote cloud server as refused the request\n";
+	}
+	
+	
+	
+	
+	//https://utdns.unveiltech.com/utdnsarticagetdns.php
+	
+	
+	// {'success':'true/false', 'id':'XX', 'hash':'sdflsdkjflskjflsfl',prim:123, sec:456}
+}
+
+
+function register_lic_kaspersky(){
+	$sock=new sockets();
+	$unix=new unix();
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
+	$uuid=$unix->GetUniqueID();
+	if($GLOBALS["VERBOSE"]){echo " *************** \n\n UUID : $uuid \n\n ***************\n";}
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
+	$WizardSavedSettings["UUID"]=$uuid;
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
+	$verbosed=null;
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$KasperskyAskQuoteResults=$sock->GET_INFO("KasperskyAskQuoteResults");
+	if($KasperskyAskQuoteResults=="KEY_OK"){return;}
+	
+	if(is_file("/etc/artica-postfix/artica-iso-first-reboot")){
+		$zDate=filemtime("/etc/artica-postfix/artica-iso-first-reboot");
+		$WizardSavedSettings["INSTALL_DATE"]=date("Y-m-d H:i:s",$zDate);
+	}else{
+		$zDate=filemtime("/etc/artica-postfix/.");
+		$WizardSavedSettings["INSTALL_DATE"]=date("Y-m-d H:i:s",$zDate);
+	}	
+	
+	
+	$curl=new ccurl("$URIBASE/shalla-orders.php$verbosed",false,null,true);
+	$curl->NoLocalProxy();
+	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=yes;}
+	$curl->parms["REGISTER_KAV4PROXY"]=base64_encode(serialize($WizardSavedSettings));
+	$curl->get();
+	if($GLOBALS["VERBOSE"]){echo "***** $curl->data ****\n";}
+	
+	if(preg_match("#INVALID_TEMP_LICENSE#is", $curl->data)){
+		$sock->SET_INFO("KasperskyAskQuoteResults", "INVALID_TEMP_LICENSE");
+		return false;
+	}
+	if(preg_match("#CLOUD_ERROR#is", $curl->data)){
+		$sock->SET_INFO("KasperskyAskQuoteResults", "CLOUD_ERROR");
+		return false;
+	}	
+	
+	if(preg_match("#TEMP_LICENSE=\[(.+?)\]#is",$curl->data,$re)){
+		$sock->SET_INFO("KasperskyAskQuoteResults", "waiting_order");
+		$WizardSavedSettings["license_kav4Proxy_temp"]=$re[1];
+		$sock->SaveConfigFile(base64_encode(serialize($WizardSavedSettings)), "WizardSavedSettings");
+		return true;
+	}
+	
+	if(preg_match("#<LICENSE_K>(.*?)</LICENSE_K>#is", $curl->data,$re)){
+		$ldata=$re[1];
+		@file_put_contents("/tmp/kl", $ldata);
+		exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -a /tmp/kl 2>&1",$results);
+		@unlink("/tmp/kl");
+		while (list ($table, $none) = each ($results) ){
+			if(!preg_match("#successfully registered#", $none)){
+				if($GLOBALS["VERBOSE"]){echo "$none\n";}
+				continue;
+			}
+			$sock->SET_INFO("KasperskyAskQuoteResults", "KEY_OK");
+			shell_exec("$php /usr/share/artica-postfix/exec.keepup2date.php --update");
+			shell_exec("$nohup $php /usr/share/artica-postfix/exec.kav4proxy.php --license --force >/dev/null 2>&1 &");
+			break;
+		}
+		
+		
+	}
+	
+	
+	
+	
+	
+}
+
 
 function register_lic(){
 	$sock=new sockets();
@@ -200,9 +566,15 @@ function register_lic(){
 	$LicenseInfos["COMPANY"]=str_replace("%uFFFD", "é", $LicenseInfos["COMPANY"]);
 	
 	
-	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$uuid=$unix->GetUniqueID();
+	
+	if($GLOBALS["VERBOSE"]){echo " *************** \n\n UUID : $uuid \n\n ***************\n";}
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
+	
 	if(!is_numeric($LicenseInfos["REGISTER"])){echo "License information: server is not registered\n";}
 	if($LicenseInfos["REGISTER"]<>1){echo "License information: server is not registered\n";die();}	
 	$LicenseInfos["UUID"]=$uuid;
@@ -238,12 +610,18 @@ function register_lic(){
 				
 		}
 	}	
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
+	$verbosed=null;
 	
-	
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("$URIBASE/shalla-orders.php$verbosed",false,null,true);
+	$curl->NoLocalProxy();
+	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=yes;}
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
 	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($WizardSavedSettings));
 	$curl->get();
+	
+	if($GLOBALS["VERBOSE"]){echo "***** $curl->data ****\n";}
 	
 	if(preg_match("#REGISTRATION_OK:\[(.+?)\]#s", $curl->data,$re)){
 			$LicenseInfos["license_status"]="{waiting_approval}";
@@ -252,9 +630,11 @@ function register_lic(){
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 			@unlink($WORKPATH);
 			if($cmdADD<>null){shell_exec($cmdADD);}
+			shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose ".time()." >/dev/null 2>&1");
 			return;
 	}
 	if(preg_match("#LICENSE_OK:\[(.+?)\]#s", $curl->data,$re)){
+			if($GLOBALS["VERBOSE"]){echo "***** LICENSE_OK ****\n";}
 			@file_put_contents($WORKPATH, "TRUE");
 			$LicenseInfos["license_status"]="{license_active}";
 			$LicenseInfos["TIME"]=time();
@@ -264,6 +644,7 @@ function register_lic(){
 	}
 	if(preg_match("#REGISTRATION_INVALID#s", $curl->data,$re)){
 		@unlink($WORKPATH);
+		if($GLOBALS["VERBOSE"]){echo "***** REGISTRATION_INVALID ****\n";}
 		$LicenseInfos["license_status"]="{license_invalid}";
 		$LicenseInfos["license_number"]=null;
 		$LicenseInfos["UNLOCKLIC"]=null;
@@ -274,6 +655,7 @@ function register_lic(){
 	}	
 
 	if(preg_match("#REGISTRATION_DELETE_NOW#s", $curl->data,$re)){
+		if($GLOBALS["VERBOSE"]){echo "***** REGISTRATION_DELETE_NOW ****\n";}
 		@unlink($WORKPATH);
 		$LicenseInfos["license_status"]="{license_invalid}";
 		$LicenseInfos["license_number"]=null;
@@ -287,6 +669,7 @@ function register_lic(){
 		system_admin_events("License registration failed with error $curl->error", "GetLicense", "license", 0, "license");
 	}
 	if(!is_file($WORKPATH)){
+		if($GLOBALS["VERBOSE"]){echo "***** registration_failed ****\n";}
 		$LicenseInfos["TIME"];
 		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
@@ -301,7 +684,11 @@ function ExportPersonalCategories($asPid=false){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$restart_cmd=trim("$nohup $php5 ".__FILE__." --export >/dev/null 2>&1 &");
 	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$uuid=$unix->GetUniqueID();
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
 	
 	if($asPid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -324,7 +711,9 @@ function ExportPersonalCategories($asPid=false){
 	
 	WriteMyLogs("Exporting ". count($PERSONALSCATS)." personal category",__FUNCTION__,__FILE__,__LINE__);
 	$f=base64_encode(serialize($PERSONALSCATS));
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["PERSO_CAT_POST"]=$f;
 
 	if(!$curl->get()){
@@ -358,7 +747,13 @@ function export_deleted_categories($asPid=false){
 	}	
 	
 	@file_put_contents($pidfile,getmypid());
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
+	$uuid=$unix->GetUniqueID();
+	
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
+	
 	$q=new mysql_squid_builder();
 	$ALLCOUNT=$q->COUNT_ROWS("categorize_delete");
 	if($ALLCOUNT==0){return;}
@@ -379,10 +774,11 @@ function export_deleted_categories($asPid=false){
 		);
 	}
 
-
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	
 	$f=base64_encode(serialize($array));
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["COMMUNITY_POST_CATEGORIES_DELETE"]=$f;
 
 	if(!$curl->get()){
@@ -413,6 +809,26 @@ function ExportNoCategorized($asPid=false){
 		@file_put_contents($pidfile,getmypid());
 	}	
 	
+	$sock=new sockets();
+	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	if(!isset($WizardStatsAppliance["SERVER"])){$WizardStatsAppliance["SERVER"]=null;}
+	
+	if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
+	if($DisableArticaProxyStatistics==1){
+		if($GLOBALS["VERBOSE"]){echo "COMMUNITY_POST_VISITED = DisableArticaProxyStatistics=$DisableArticaProxyStatistics\n";}
+		return;
+	}
+	
+	if(!is_file("$ArticaDBPath/data/catz/category_porn.MYI")){
+		if($GLOBALS["VERBOSE"]){echo "COMMUNITY_POST_VISITED = $ArticaDBPath/data/catz/category_porn.MYI no such file\n";}
+	}
+	
+	if($WizardStatsAppliance["SERVER"]<>null){return;}
+	
+	
 	$q=new mysql_squid_builder();
 	$sql="SELECT * FROM visited_sites WHERE LENGTH(category)=0 AND NotVisitedSended=0 LIMIT 0,5000";
 	$results=$q->QUERY_SQL($sql);
@@ -420,16 +836,24 @@ function ExportNoCategorized($asPid=false){
 	if(mysql_num_rows($results)==0){return;}
 	
 	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
+	$uuid=$unix->GetUniqueID();
+	
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$md5=md5("$uuid{$ligne["sitename"]}{$ligne["familysite"]}");
-		$ligne["sitename"]=addslashes($ligne["sitename"]);
+		$ligne["sitename"]=mysql_escape_string2($ligne["sitename"]);
+		$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
 		$array[]="('$md5','$uuid','{$ligne["sitename"]}','{$ligne["HitsNumber"]}','{$ligne["familysite"]}')";
 		
 	}
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	$f=base64_encode(serialize($array));
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	
 	if($GLOBALS["VERBOSE"]){echo "COMMUNITY_POST_VISITED = array of ". count($array)." elements\n";}
 	$curl->parms["COMMUNITY_POST_VISITED"]=$f;
@@ -455,8 +879,15 @@ function ExportNoCategorized($asPid=false){
 function Export_Weighted(){
 	$q=new mysql_squid_builder();
 	$tables=$q->LIST_TABLES_WEIGHTED();
+	$unix=new unix();
 	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
+	$uuid=$unix->GetUniqueID();
+	
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
+	
 	$count=count($tables);
 	$unix=new unix();
 	echo count($tables)." tables\n";
@@ -475,11 +906,12 @@ function Export_Weighted(){
 						
 			
 		}
-
+		$unix=new unix();
+		$URIBASE=$unix->MAIN_URI();
 		if(!is_array($array)){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 		if(count($array)==0){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}	
 		$f=base64_encode(serialize($array));
-		$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+		$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 		echo "Push $table -> " .count($array)." entries\n";
 		$curl->parms["WEIGHTED_POST"]=$f;
 		
@@ -526,7 +958,13 @@ function Export($asPid=false){
 		if($unix->process_exists($pid,basename(__FILE__))){WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);die();}	
 		@file_put_contents($pidfile,getmypid());
 	}
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));	
+	$uuid=$unix->GetUniqueID();
+	
+	if($uuid==null){
+		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		return;
+	}
+	
 	export_deleted_categories();
 	$q=new mysql_squid_builder();
 	$tables=$q->LIST_TABLES_CATEGORIES();
@@ -537,6 +975,12 @@ function Export($asPid=false){
 		$q->CreateCategoryTable(null,$table);
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){
+			writelogs("$table $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
+			return;
+		}
+		
+		
 		$prefix="INSERT IGNORE INTO categorize (zmd5 ,pattern,zDate,uuid,category) VALUES";
 		if($ligne["tcount"]>0){
 			writelogs("$table {$ligne["tcount"]} items to export",__FUNCTION__,__FILE__,__LINE__);
@@ -595,8 +1039,10 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 
 	WriteMyLogs("Exporting ". count($array)." websites",__FUNCTION__,__FILE__,__LINE__);
 	$f=base64_encode(serialize($array));
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	if($GLOBALS["VERBOSE"]){echo "Sending ". strlen($f)." bytes to repository server\n";}
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["COMMUNITY_POST"]=$f;
 	
 	if(!$curl->get()){
@@ -610,7 +1056,7 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 		WriteMyLogs("Exporting success ". count($array)." websites",__FUNCTION__,__FILE__,__LINE__);
 		if(count($logsExp)<10){$textadd=@implode(",", $logsExp);}
 		writelogs_squid("Success exporting ".count($array)." categorized websites to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__,"export");
-		$curl=new ccurl("http://www.artica.fr/webfilters-instant.php?checks=yes");
+		$curl=new ccurl("$URIBASE/webfilters-instant.php?checks=yes",false,null,true);
 		$curl->NoHTTP_POST=true;
 		if(!$curl->get()){
 			writelogs_squid("Failed to order to build webfilter instant with HTTP ERROR: `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"export");
@@ -646,7 +1092,9 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 
 
 function pushit(){
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["ORDER_EXPORT"]="yes";
 	$curl->get();
 	if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){
@@ -678,7 +1126,7 @@ function ParseGzSqlFile($filepath){
 	}
 	
 	//echo $cmd." <$filepath\n";
-	echo "Starting......: [ParseGzSqlFile]:: Artica database community running importation (". basename($filepath).")\n";
+	echo "Starting......: ".date("H:i:s")." [ParseGzSqlFile]:: Artica database community running importation (". basename($filepath).")\n";
 	exec("$cmd <$filepath 2>&1",$results);
 	
 	
@@ -686,9 +1134,9 @@ function ParseGzSqlFile($filepath){
 	if(count($results)>0){
 		while (list ($num, $ligne) = each ($results) ){
 			if(!preg_match("#Duplicate entry#",$ligne)){
-				echo "Starting......: Artica database community $ligne\n";
+				echo "Starting......: ".date("H:i:s")." Artica database community $ligne\n";
 				if(preg_match("#ERROR\s+[0-9]+#",$ligne)){
-					echo "Starting......: Artica database community error detected\n";
+					echo "Starting......: ".date("H:i:s")." Artica database community error detected\n";
 					$GLOBALS["NEWFILES"][]=$ligne;
 					$unix->send_email_events("Web community mysql error", "Unable to import data file $filepath\n$ligne","proxy");
 					return false;
@@ -715,9 +1163,9 @@ function uncompress($srcName, $dstName) {
 function WriteCategory($category){
 	$squidguard=new squidguard();
 	$q=new mysql_squid_builder();
-	echo "Starting......: Artica database writing category $category\n";
-	echo "Starting......: Artica database /etc/dansguardian/lists/blacklist-artica/$category/domains\n";
-	echo "Starting......: Artica database /var/lib/squidguard/blacklist-artica/$category\n";
+	echo "Starting......: ".date("H:i:s")." Artica database writing category $category\n";
+	echo "Starting......: ".date("H:i:s")." Artica database /etc/dansguardian/lists/blacklist-artica/$category/domains\n";
+	echo "Starting......: ".date("H:i:s")." Artica database /var/lib/squidguard/blacklist-artica/$category\n";
 	@mkdir("/etc/dansguardian/lists/blacklist-artica/$category",0755,true);
 	@mkdir("/var/lib/squidguard/blacklist-artica/$category",0755,true);
 	
@@ -729,9 +1177,9 @@ function WriteCategory($category){
 	$sql="SELECT pattern FROM $tablesource WHERE enabled=1";
 	
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "Starting......: Artica database $q->mysql_error\n";return;}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." Artica database $q->mysql_error\n";return;}
 	$num=mysql_num_rows($results);
-	echo "Starting......: Artica database $num domains\n";
+	echo "Starting......: ".date("H:i:s")." Artica database $num domains\n";
 	
 	$domain_path_1="/etc/dansguardian/lists/blacklist/$category/domains";
 	$domain_path_2="/var/lib/squidguard/$category/domains";
@@ -748,7 +1196,7 @@ function WriteCategory($category){
 	fclose($fh1);
 	fclose($fh2);
 	
-	echo "Starting......: finish\n\n";
+	echo "Starting......: ".date("H:i:s")." finish\n\n";
 		
 }
 
@@ -781,7 +1229,7 @@ function mycnf_change_value($key,$value_to_modify){
 	while (list ($index, $line) = each ($f) ){
 		if(preg_match("#$key(.*?)=(.*)#",$line,$re)){
 			$re[2]=trim($re[2]);
-			echo "Starting......: Artica database community line $index $key = {$re[2]} change to $value_to_modify\n";
+			echo "Starting......: ".date("H:i:s")." Artica database community line $index $key = {$re[2]} change to $value_to_modify\n";
 			$f[$index]="$key = $value_to_modify";
 			$found=true;
 			}

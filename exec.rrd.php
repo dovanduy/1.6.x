@@ -1,4 +1,7 @@
 <?php
+
+die();
+
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');

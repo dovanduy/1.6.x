@@ -35,7 +35,6 @@ function Tracker($www){
 				if(preg_match("#^mail-stats\..+#", $www)){return "tracker";}
 				if(preg_match("#\.affistats\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.thetrafficstat\.net$#", $www)){return "tracker";}
-				if(preg_match("#\.metric\.gstatic\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.deskmetrics\.com$#", $www)){return "tracker";}
 				if(preg_match("#\.webtracker\.[a-z]+$#", $www)){return "tracker";}
 				if(preg_match("#\.lphbs\.com$#", $www)){return "tracker";}

@@ -6,7 +6,7 @@ unit lighttpd;
 interface
                                                               
 uses
-    Classes, SysUtils,variants,strutils,IniFiles, Process,logs,unix,RegExpr in 'RegExpr.pas',zsystem,awstats,mailmanctl,tcpip,mysql_daemon,zarafa_server,backuppc,memcached;
+    Classes, SysUtils,variants,strutils,IniFiles, Process,logs,unix,RegExpr in 'RegExpr.pas',zsystem,awstats,mailmanctl,tcpip,mysql_daemon,zarafa_server,backuppc;
 
 type
   TStringDynArray = array of string;
@@ -607,7 +607,7 @@ FUNCTION Tlighttpd.STATUS():string;
 var
    pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_LIGHTTPD');
+
 if not FileExists(LIGHTTPD_BIN_PATH()) then exit;
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --lighttpd >'+pidpath +' 2>&1');

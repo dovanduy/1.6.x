@@ -272,7 +272,7 @@ function items_list(){
 		$val=0;
 		$mkey=$ligne["zmd5"];
 		$color="black";
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$arrayF=$acl->FlexArray($ligne["groupid"],$ligne["enabled"]);
 		$delete=imgsimple("delete-24.png",null,"DeleteObjectLinks$t0('$mkey')");
 		$enable=Field_checkbox("enable-$mkey", 1,$ligne["enabled"],"ChangeEnabled$t0('$mkey')");

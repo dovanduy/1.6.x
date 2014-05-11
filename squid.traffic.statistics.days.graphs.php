@@ -676,7 +676,8 @@ function left(){
 	</tr>		";
 	
 	$html="
-		<table style='width:97%' class=form>
+		<div style='width:98%' class=form>
+		<table style='width:100%' >
 	<tbody>
 	<tr>
 		<td class=legend nowrap>{day}:</td>
@@ -686,7 +687,7 @@ function left(){
 	
 	</tbody>
 	</table>
-	
+	</div>
 	<div id='statistics-days-left-status'></div>
 	
 <script>

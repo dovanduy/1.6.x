@@ -21,6 +21,8 @@ if(preg_match("#--force#", @implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
 
 $users=new usersMenus();
 
+// ./configure --prefix=/usr --enable-embedded-perl --enable-shared
+
 
 $wget=$unix->find_program("wget");
 $tar=$unix->find_program("tar");
@@ -216,7 +218,4 @@ function snmpd_version(){
 		if(preg_match("#NET-SNMP version:.*?([0-9\.]+)#", $line,$re)){return $re[1];}
 	
 	}
-	
-	
-	
 }

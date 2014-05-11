@@ -254,7 +254,7 @@ class ejabberd{
 		if($users->PYMSNT_INSTALLED){
 			if($PYMSNT["MSN_GATEWAY"]<>null){
 				$PYMSNT_INSTALLED=true;
-				echo "Starting......: ejabberd adding MSN gateway {$PYMSNT["MSN_GATEWAY"]} Internal Port:5347\n";
+				echo "Starting......: ".date("H:i:s")." ejabberd adding MSN gateway {$PYMSNT["MSN_GATEWAY"]} Internal Port:5347\n";
 				$password=$PYMSNT["PASSWORD"];
 				$f[]=",\t{5347, ejabberd_service, [{ip, {127, 0, 0, 1}},";
            	 	$f[]="\t\t{access, all},";
@@ -266,7 +266,7 @@ class ejabberd{
 		if($users->PYICQT_INSTALLED){
 			if($PYICQT["ICQ_GATEWAY"]<>null){
 				$PYICQT_INSTALLED=true;
-				echo "Starting......: ejabberd adding ICQ gateway {$PYICQT["ICQ_GATEWAY"]} Internal Port:5348\n";
+				echo "Starting......: ".date("H:i:s")." ejabberd adding ICQ gateway {$PYICQT["ICQ_GATEWAY"]} Internal Port:5348\n";
 				$password=$PYICQT["PASSWORD"];
 				$f[]=",\t{5348, ejabberd_service, [{ip, {127, 0, 0, 1}},";
            	 	$f[]="\t\t{access, all},";
@@ -278,8 +278,8 @@ class ejabberd{
 		
 		
 		
-		if(!$PYMSNT_INSTALLED){echo "Starting......: ejabberd MSN gateway not installed of false configuration...\n";}
-		if(!$PYICQT_INSTALLED){echo "Starting......: ejabberd ICQ gateway not installed of false configuration...\n";}
+		if(!$PYMSNT_INSTALLED){echo "Starting......: ".date("H:i:s")." ejabberd MSN gateway not installed of false configuration...\n";}
+		if(!$PYICQT_INSTALLED){echo "Starting......: ".date("H:i:s")." ejabberd ICQ gateway not installed of false configuration...\n";}
 		
 		$f[]="]}.";	
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."() ". count($f)." rows L.".__LINE__."\n";}
@@ -537,7 +537,7 @@ class ejabberd{
 		$f[]="</pyicqt>";
 		$f[]="";
 		if(!is_file("/etc/pyicqt.conf.xml.back")){@copy("/etc/pyicqt.conf.xml", "/etc/pyicqt.conf.xml.bak");}
-		echo "Starting......: ejabberd updating pyicqt.conf.xml done...\n";
+		echo "Starting......: ".date("H:i:s")." ejabberd updating pyicqt.conf.xml done...\n";
 		@file_put_contents("/etc/pyicqt.conf.xml", @implode("\n", $f));
 	}	
 	
@@ -578,7 +578,7 @@ class ejabberd{
 		$f[]="\t<debugLevel>4</debugLevel>";
 		$f[]="</pymsnt>";		
 		if(!is_file("/etc/pymsnt.conf.xml.back")){@copy("/etc/pymsnt.conf.xml", "/etc/pymsnt.conf.xml.bak");}
-		echo "Starting......: ejabberd updating pymsnt.conf.xml done...\n";
+		echo "Starting......: ".date("H:i:s")." ejabberd updating pymsnt.conf.xml done...\n";
 		@file_put_contents("/etc/pymsnt.conf.xml", @implode("\n", $f));
 	}
 	

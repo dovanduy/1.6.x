@@ -20,7 +20,7 @@ class roundcube_freewebs{
 		if($servername<>null){
 			
 			$this->servername=$servername;
-			$this->PrefixOutput="Starting......: [INIT]: Apache \"$servername\"";
+			$this->PrefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\"";
 		
 		}
 		$this->load();
@@ -98,7 +98,7 @@ class roundcube_freewebs{
 			$Update=true;
 			$q->CREATE_DATABASE($this->database);
 			$php5=$unix->LOCATE_PHP5_BIN();
-			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php --force");
+			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php");
 		}
 		
 		

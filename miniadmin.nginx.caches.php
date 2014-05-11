@@ -23,7 +23,7 @@ if(isset($_GET["js-cache"])){cache_js();exit;}
 if(isset($_GET["cache-popup"])){cache_popup();exit;}
 if(isset($_POST["ID"])){cache_popup_save();exit;}
 if(isset($_POST["DeleteCache"])){cache_delete();exit;}
-
+if(isset($_POST["PurgeCache"])){PurgeCache();exit;}
 
 
 
@@ -179,6 +179,7 @@ function caches_search(){
 	$page=CurrentPageName();
 	$t=time();
 	$delete_text=$tpl->javascript_parse_text("{delete}");
+	$purge_cache=$tpl->javascript_parse_text("{purge_cache}");
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 	
 		$icon="disk-64.png";
@@ -188,8 +189,11 @@ function caches_search(){
 		
 		$keys_zone=$ligne["keys_zone"];
 		$delete=imgsimple("delete-64.png",null,"Delete$t('{$ligne["ID"]}','$md')");
+		$purge=imgsimple("dustbin-64.png",null,"Purge$t('{$ligne["ID"]}')");
 		if(!$AdminPrivs){
 			$delete=imgsimple("delete-64-grey.png",null,"blur()");
+			$purge=imgsimple("dustbin-64-grey.png",null,"blur()");
+			
 			
 		}
 	
@@ -211,7 +215,10 @@ function caches_search(){
 		<td width=1% nowrap $jsedit style='vertical-align:middle' nowrap>
 			<span style='font-size:18px;font-weight:bold'>{$ligne["max_size"]}G</span>
 		</td>
-		<td width=1% nowrap style='vertical-align:middle'>$delete</td>
+		<td width=1% nowrap style='vertical-align:middle;min-width:64px'>$purge</td>
+		<td width=1% nowrap style='vertical-align:middle;min-width:64px'>$delete</td>
+		
+		
 		</tr>
 		";
 	}	
@@ -225,33 +232,59 @@ function caches_search(){
 					<th >{name}</th>
 					<th >{maxsize}</th>
 					<th>&nbsp;</th>
+					<th>&nbsp;</th>
 				</tr>
 			</thead>
 			 <tbody>").@implode("", $tr)."</tbody></table>
 <script>
 var mem$t='';
 
-		var xDelete$t = function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue);return}
-			$('#'+mem$t).remove();
-			
-		}			
+var xDelete$t = function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return}
+	$('#'+mem$t).remove();
+}
+var xPurge$t = function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return}
+	ExecuteByClassName('SearchFunction');
+	
+}			
 
-	function Delete$t(id,md){
+function Delete$t(id,md){
 		mem$t=md;
 		if(!confirm('$delete_text: '+id)){return;}
 		var XHR = new XHRConnection();
 		XHR.appendData('DeleteCache',id);
 		XHR.sendAndLoad('$page', 'POST',xDelete$t);			
-		
+}
 	
-	}
+function Purge$t(id){
+	if(!confirm('$purge_cache: '+id)){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('PurgeCache',id);
+	XHR.sendAndLoad('$page', 'POST',xPurge$t);			
+}	
+	
+	
 </script>	
 			 		
 ";	
 	
 }
+
+function PurgeCache(){
+	$ID=intval($_POST["PurgeCache"]);
+	if($ID>0){
+		$sock=new sockets();
+		$sock->getFrameWork("nginx.php?purge-cache=$ID");
+	}
+	
+	sleep(4);
+	
+	
+}
+
 function cache_delete(){
 	$ID=$_POST["DeleteCache"];
 	$q=new mysql_squid_builder();

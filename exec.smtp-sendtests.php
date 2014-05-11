@@ -87,7 +87,6 @@ function SendTest($Key){
 	$boundary="$random_hash/$instance";	
 $body[]="Return-Path: <$sender>";
 $body[]="X-Original-To: $recipient";
-$body[]="Delivered-To: $recipient";
 $body[]="Date: ". date("D, d M Y H:i:s"). " +0100 (CET)";
 $body[]="From: $sender (Mail Delivery System)";
 $body[]="Subject: Test Message";

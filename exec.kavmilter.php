@@ -42,12 +42,12 @@ Removes();
 		PatchDomains($ou);
 		PatchIncludeByName($ou);
 		PatchAdminAddresses($ou);
-		echo "Starting......: Kaspersky Mail server rule:$ou ok\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail server rule:$ou ok\n";
 		}
 		
 	SendmailPath();	
 	if(!$GLOBALS["NORELOAD"]){
-		echo "Starting......: Kaspersky Mail server reloading\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail server reloading\n";
 		shell_exec("/usr/share/artica-postfix/bin/artica-install --kavmilter-reload");
 	}
 	
@@ -113,7 +113,7 @@ $tbl=explode("\n",@file_get_contents($kavmilter_file));
 	while (list ($num, $val) = each ($tbl) ){
 		if(preg_match("#AdminAddresses=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/AdminAddresses is null, create a default one\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/AdminAddresses is null, create a default one\n";
 				$tbl[$num]="AdminAddresses=root@localhost.localdomain";
 				$modified=true;
 				continue;
@@ -122,7 +122,7 @@ $tbl=explode("\n",@file_get_contents($kavmilter_file));
 
 if(preg_match("#EnableNotifications=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/EnableNotifications is null, set off by default\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/EnableNotifications is null, set off by default\n";
 				$tbl[$num]="EnableNotifications=off";
 				$modified=true;
 				continue;
@@ -131,7 +131,7 @@ if(preg_match("#EnableNotifications=(.*)#",$val,$re)){
 
 	if(preg_match("#AdminSubject=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/AdminSubject is null, set by default\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/AdminSubject is null, set by default\n";
 				$tbl[$num]="AdminSubject=Admin virus notification!";
 				$modified=true;
 				continue;
@@ -141,7 +141,7 @@ if(preg_match("#EnableNotifications=(.*)#",$val,$re)){
 		
 if(preg_match("#PostmasterAddress=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/PostmasterAddress is null, set one by default\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/PostmasterAddress is null, set one by default\n";
 				$tbl[$num]="PostmasterAddress=root@localhost.localdomain";
 				$modified=true;
 				continue;
@@ -150,7 +150,7 @@ if(preg_match("#PostmasterAddress=(.*)#",$val,$re)){
 		
 	if(preg_match("#NotifyAdmin=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/NotifyAdmin is null, set off default\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/NotifyAdmin is null, set off default\n";
 				$tbl[$num]="NotifyAdmin=none";
 				$modified=true;
 				continue;
@@ -159,7 +159,7 @@ if(preg_match("#PostmasterAddress=(.*)#",$val,$re)){
 
 	if(preg_match("#NotifySender=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/NotifySender is null, set off default\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/NotifySender is null, set off default\n";
 				$tbl[$num]="NotifySender=none";
 				$modified=true;
 				continue;
@@ -168,7 +168,7 @@ if(preg_match("#PostmasterAddress=(.*)#",$val,$re)){
 
 		if(preg_match("#NotifyRecipients=(.*)#",$val,$re)){
 			if(trim($re[1])==null){
-				echo "Starting......: Kaspersky Mail server line: ".($num+1).", $ou/NotifyRecipients is null, set off default\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server line: ".($num+1).", $ou/NotifyRecipients is null, set off default\n";
 				$tbl[$num]="NotifyRecipients=none";
 				$modified=true;
 				continue;
@@ -179,7 +179,7 @@ if(preg_match("#PostmasterAddress=(.*)#",$val,$re)){
 		
 	}
 if($modified){
-	echo "Starting......: Kaspersky Mail server saving configuration.\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail server saving configuration.\n";
 	@file_put_contents($kavmilter_file,implode("\n",$tbl));
 	}	
 	
@@ -257,10 +257,10 @@ function build_main(){
 			$sock=new sockets();
 			$bases="/var/db/kav/5.6/kavmilter/bases/";
 			if($sock->GET_INFO("RetranslatorEnabled")==1){
-				echo "Starting......: Kaspersky Mail server using retranslator for pattern databases.\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server using retranslator for pattern databases.\n";
 				$bases="/var/db/kav/databases/bases/av/avc/i386/";
 			}else{
-				echo "Starting......: Kaspersky Mail server retranslator is not enabled.\n";
+				echo "Starting......: ".date("H:i:s")." Kaspersky Mail server retranslator is not enabled.\n";
 			}
 			
 			

@@ -59,6 +59,7 @@ class vhosts{
     "UFDBGUARD"=>"128-banned.png",
 	"APP_FILEZ_WEB"=>"filez-logo-128.png",
 	"CHILLI"=>"webfilter-128.png",
+	"WPADDYN"=>"script-128.png",
 			
 //	
 	);
@@ -112,7 +113,7 @@ class vhosts{
 	"WEBDAVFREE"=>"organisation-64.gif",
 	"APP_FILEZ_WEB"=>"filez-logo-64.png",
 	"CHILLI"=>"webfilter-64.png",
-			
+	"WPADDYN"=>"script-64.png",
 			
 	);
 
@@ -125,7 +126,7 @@ class vhosts{
 	'WEBDAV'=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,"ARKEIA"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true);
 	var $noneeduser_mysql=array("ARTICA_USR"=>true,"ZARAFA_MOBILE"=>true,"ZARAFA"=>true,"DRUPAL"=>true,"WEBDAV"=>true,"BACKUPPC"=>true,"SQUID_STATS"=>true,
 	"ARKEIA"=>true,"SARG"=>true,"XAPIAN"=>true,"SPLASHSQUID"=>true,"ARTICA_PRXYLOGS"=>true,
-	"ERRSQUID"=>true,"UFDBGUARD"=>true,"WEBDAVFREE"=>true,"CHILLI"=>true);
+	"ERRSQUID"=>true,"UFDBGUARD"=>true,"WEBDAVFREE"=>true,"CHILLI"=>true,"WPADDYN"=>true);
 	
 
 	
@@ -177,6 +178,7 @@ class vhosts{
 	"WEBDAVFREE"=>array("TITLE"=>"WEBDAVFREE","TEXT"=>"WEBDAVFREE_TEXT"),
 	"APP_FILEZ_WEB"=>array("TITLE"=>"APP_FILEZ_WEB","TEXT"=>"APP_FILEZ_WEB_TEXT"),
 	"CHILLI"=>array("TITLE"=>"APP_CHILLIWEB","TEXT"=>"APP_APP_CHILLIWEB_TEXT"),
+	"WPADDYN"=>array("TITLE"=>"APP_WPADDYN","TEXT"=>"APP_WPADDYN_TEXT"),
 	
 	
 	);
@@ -247,8 +249,12 @@ function listOfAvailableServices($freeweb=false){
 		if($user->SQUID_INSTALLED){
 			$array["ARTICA_PRXYLOGS"]="{APP_ARTICA_PRXYLOGS}";
 			$array["WPAD"]="{APP_WPAD}";
+			$array["WPADDYN"]="{APP_WPADDYN}";
 			$array["ANDROWEB"]="WebStats Tablet";
 			$array["CHILLI"]="{APP_CHILLIWEB}";
+			
+			
+			
 			$SquidEnableISPMode=$sock->GET_INFO("SquidEnableISPMode");
 			$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
 			$squidEnableRemoteStatistics=$sock->GET_INFO("squidEnableRemoteStatistics");

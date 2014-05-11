@@ -150,16 +150,19 @@ function tasks(){
 	
 	if(trim($partArray["MOUNTED"])<>null){
 		$automount=$automount_disabled;
+		$mounted_info="&nbsp;<span style='font-size:14px'>{mounted}:{$partArray["MOUNTED"]}</span>";
 		$connect_partitions=$connect_partitions_disabled;
 	}
 	
 	if(isset($lvm_dev[$dev])){
 		$automount=$automount_disabled;
+		echo "<H1>".__LINE__."</H1>";
 		$connect_partitions=$connect_partitions_disabled;		
 	}
 	
 	if(!isset($array["ID_FS_TYPE"])){
 		$automount=$automount_disabled;
+		echo "<H1>".__LINE__."</H1>";
 		$connect_partitions=$connect_partitions_disabled;			
 	}
 	if(!$users->autofs_installed){
@@ -175,14 +178,14 @@ function tasks(){
 	
 	$intro[]="<table style='width:99%' class=form>";
 		
-		$icon=imgtootltip("mailbox_hd.gif","$xdevPart","$xdevPart");
+		$icon=imgtootltip("mailbox_hd.png","$xdevPart","$xdevPart");
 		$intro[]="<tr>
-		<td style='font-size:13px;font-weight:bold'>$icon</td>
-		<td class=legend style='font-size:13px'>{xtype}:</td>
-		<td style='font-size:13px;font-weight:bold'>$href{$blkidArray["TYPE"]}</a></td>
-		<td class=legend style='font-size:13px' width=1%>&nbsp;|&nbsp;</td>
-		<td class=legend style='font-size:13px'>{label}:</td>
-		<td style='font-size:13px;font-weight:bold'>$href{$blkidArray["LABEL"]}</a></td>
+		<td style='font-size:14px;font-weight:bold'>$icon</td>
+		<td class=legend style='font-size:14px'>{xtype}:</td>
+		<td style='font-size:14px;font-weight:bold'>$href{$blkidArray["TYPE"]}</a></td>
+		<td class=legend style='font-size:14px' width=1%>&nbsp;|&nbsp;</td>
+		<td class=legend style='font-size:14px'>{label}:</td>
+		<td style='font-size:14px;font-weight:bold'>$href{$blkidArray["LABEL"]}</a>$mounted_info</td>
 	</tr>";
 		
 	

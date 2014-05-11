@@ -8,7 +8,7 @@
 		ini_set('error_prepend_string',null);
 		ini_set('error_append_string',null);
 	}
-	
+
 	if($GLOBALS["VERBOSE"]){echo "<H1>DEBUG</H1>";}
 
     include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -102,16 +102,16 @@ function js(){
 	if(isset($_GET["add-www"])){
 		if($category<>null){$category_text="&raquo;&raquo;{category}&raquo;&raquo;$category";}
 		$title=$tpl->_ENGINE_parse_body("{add_websites}$category_text");
-		$start="YahooWin3('650','$page?free-cat-tabs=yes&websitetoadd={$_GET["websitetoadd"]}&category=$category&t=$t','$title');";
+		$start="YahooWin3('800','$page?free-cat-tabs=yes&websitetoadd={$_GET["websitetoadd"]}&category=$category&t=$t','$title');";
 	}
 
 	$html="
 	$start
 
 	function CategorizeAll(query){
-	YahooWin4(580,'$page?CategorizeAll='+escape(query)+'&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}','$categorize_this_query');
+		YahooWin4(800,'$page?CategorizeAll='+escape(query)+'&day={$_GET["day"]}&week={$_GET["week"]}&month={$_GET["month"]}','$categorize_this_query');
 
-}
+	}
 ";
 echo $html;
 
@@ -415,7 +415,7 @@ function free_catgorized(){
 	}
 	$html="
 	<div class=explain style='font-size:13px' id='free-cat-explain$t'>{free_catgorized_explain}</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table >
 	<tr>
 		<td class=legend>{category}:</td>
@@ -1196,6 +1196,12 @@ function CategorizeAll_explain(){
 	$tpl=new templates();
 	$dans=new dansguardian_rules();
 	$text=$dans->array_blacksites[$_GET["cat-explain"]];
+	if($text==null){
+		$q=new mysql_squid_builder();
+		$sql="SELECT category_description FROM personal_categories WHERE `category`='".mysql_escape_string2($_GET["cat-explain"])."'";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$text=$ligne["category_description"];
+	}
 	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>$text</div>");
 	
 }

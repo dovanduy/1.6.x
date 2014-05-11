@@ -326,7 +326,7 @@ begin
         end;
      logs.Syslogs('tsquid.ERROR_FD():: Error FD Found, restart all server !!!');
      logs.NOTIFICATION(LastLog + ' Artica will be restarted','Fatal error...','system');
-     fpsystem('/etc/init.d/artica-postfix restart');
+
      halt(0);
     end;
   end;
@@ -339,7 +339,7 @@ if RegExpr.Exec(LastLog) then begin
         end;
      logs.Syslogs('tsquid.ERROR_FD():: Error FD Found, restart all server !!!');
      logs.NOTIFICATION(LastLog + ' Artica will be restarted','Fatal error...','system');
-     fpsystem('/etc/init.d/artica-postfix restart');
+
      halt(0);
     end;
   end;
@@ -697,7 +697,7 @@ end;
      logs.DebugLogs('Starting......: Squid System is overloaded');
      exit;
 end;
-  SYS.MONIT_DELETE('APP_DANSGUARDIAN');
+
   if is32Ver() then TAIL_SOCK_START(false);
   TAIL_SQUIDCLAMAV_START();
   ERROR_FD();
@@ -707,33 +707,7 @@ end;
      if SQUIDEnable=0 then SQUID_STOP();
    exit;
   end;
-  //http_port:=SQUID_GET_CONFIG('http_port');
- // options:=' -D -sYC -a '+http_port +' -f ' +SQUID_CONFIG_PATH();
-  
-
-  pidpath:=SQUID_GET_CONFIG('pid_filename');
-  LOGS.DeleteFile(pidpath);
- // FileTemp:=artica_path+'/ressources/logs/squid.start.daemon';
-  
-       if not SYS.IsUserExists('squid') then begin
-           logs.DebugLogs('Starting......: Squid user "squid" doesn''t exists... reconfigure squid');
-           fpsystem(Paramstr(0) + ' -squid-configure');
-       end else begin
-           logs.DebugLogs('Starting......: [INIT]: Squid user "squid" exists OK');
-       end;
-  
-        logs.DebugLogs('Starting......: [INIT]: Squid binary: '+SQUID_BIN_PATH());
-
-
-        logs.DebugLogs('Starting......: [INIT]: Squid configure rrd statistics...');
-        SQUID_RRD_INIT();
-        SQUID_RRD_INSTALL();
-        logs.DebugLogs('Starting......: [INIT]: Squid verify cache containers...');
-        SQUID_VERIFY_CACHE();
-        logs.DebugLogs('Starting......: [INIT]: Squid change the init.d script');
-        WRITE_INITD();
-        logs.DebugLogs('Starting......: [INIT]: Squid Starting squid');
-        START_SIMPLE();
+  START_SIMPLE();
 
 
 end;
@@ -1253,7 +1227,7 @@ logs.WriteToFile(MyPID,MyPidPath);
 count:=0;
 binpath:=SQUID_BIN_PATH();
 configpath:=SQUID_CONFIG_PATH();
-SYS.MONIT_DELETE('APP_SQUID');
+
 killbin:=SYS.LOCATE_GENERIC_BIN('kill');
 if not FileExists(binpath) then exit;
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.watchdog.php  --stop --bydaemon');
@@ -1313,7 +1287,7 @@ var
   pidpath:string;
 begin
  if not FileExists(SQUID_BIN_PATH()) then exit;
- SYS.MONIT_DELETE('APP_SQUID');
+
  pidpath:=logs.FILE_TEMP();
  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --all-squid >'+pidpath +' 2>&1');
  result:=logs.ReadFromFile(pidpath);
@@ -1341,7 +1315,7 @@ begin
       if SYS.verbosed then writeln('tsquid.SQUID_VERSION():not installed');
       exit;
    end;
-   fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.squid.php --compilation-params');
+
    tmpstr:=logs.FILE_TEMP();
    fpsystem(squidbin + ' -v >'+tmpstr+' 2>&1');
    tmp:=SYS.ReadFileIntoString(tmpstr);

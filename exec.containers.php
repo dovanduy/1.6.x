@@ -50,7 +50,7 @@ function Checks($nopid=false){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$oldpid=@file_get_contents($pidfile);
 		if($GLOBALS["VERBOSE"]){echo "Time file: $timefile\n";}
-		if($unix->process_exists($oldpid)){echo "Starting......: Already process exists pid $oldpid\n";return;}
+		if($unix->process_exists($oldpid)){echo "Starting......: ".date("H:i:s")." Already process exists pid $oldpid\n";return;}
 		$time=$unix->file_time_min($timefile);
 		if($time<15){return;}
 		@unlink($timefile);
@@ -157,7 +157,7 @@ function build(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){echo "Starting......: Already process exists pid $oldpid\n";return;}
+	if($unix->process_exists($oldpid)){echo "Starting......: ".date("H:i:s")." Already process exists pid $oldpid\n";return;}
 	
 	@file_put_contents($pidfile,getmypid());
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -169,10 +169,10 @@ function build(){
 	$sql="SELECT * FROM users_containers WHERE created=0 AND onerror=0";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	$count=mysql_num_rows($results);
-	if(!$q->ok){echo "Starting......: users_containers $q->mysql_error\n";return;}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." users_containers $q->mysql_error\n";return;}
 	
 	
-	echo "Starting......: $count containers to build\n";
+	echo "Starting......: ".date("H:i:s")." $count containers to build\n";
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$directory=trim($ligne["directory"]);
@@ -191,11 +191,11 @@ function build(){
 		if($size>$directory_size_avai){users_containers_error($ID,"{$size}MB will exceed space on main storage");continue;			}
 		
 		$label="{$ID}_disk";
-		echo "Starting......: Verify $ContainerFullPath with a size of {$size}MB\n";
+		echo "Starting......: ".date("H:i:s")." Verify $ContainerFullPath with a size of {$size}MB\n";
 		
 		
 		if(!stat_system($ContainerFullPath)){
-			echo "Starting......: buil_dd $ContainerFullPath {$size}MB\n";
+			echo "Starting......: ".date("H:i:s")." buil_dd $ContainerFullPath {$size}MB\n";
 			if(!build_dd($ContainerFullPath,$size)){
 				users_containers_error($ID,"Unable to build the virtual disk (ERR.".__LINE__.")");
 				continue;
@@ -209,11 +209,11 @@ function build(){
 		}
 		
 		if($GetLoops[$ContainerFullPath]==null){
-			echo "Starting......: $ContainerFullPath no such loop\n";
+			echo "Starting......: ".date("H:i:s")." $ContainerFullPath no such loop\n";
 			
 			if(!build_loop($ContainerFullPath)){
 				echo "`$ContainerFullPath` unable to create loop\n";
-				echo "Starting......: Re-check the loop list...\n";
+				echo "Starting......: ".date("H:i:s")." Re-check the loop list...\n";
 				$GetLoops=GetLoops();
 				if($GetLoops[$ContainerFullPath]==null){
 					users_containers_error($ID,"Loop error (ERR.".__LINE__.")");
@@ -223,13 +223,13 @@ function build(){
 		}
 		
 		
-		echo "Starting......: $ContainerFullPath loop={$GetLoops[$ContainerFullPath]}\n";
+		echo "Starting......: ".date("H:i:s")." $ContainerFullPath loop={$GetLoops[$ContainerFullPath]}\n";
 		$sql="UPDATE users_containers SET loop_dev='{$GetLoops[$ContainerFullPath]}' WHERE `container_id`='$ID'";
 		$q->QUERY_SQL($sql,'artica_backup');
 		if(!$q->ok){echo "$q->mysql_error\n";continue;}
 		
 		$dev=$GetLoops[$ContainerFullPath];
-		echo "Starting......: $ContainerFullPath is $dev\n";	
+		echo "Starting......: ".date("H:i:s")." $ContainerFullPath is $dev\n";	
 		if(!ifFileSystem($dev)){
 			if(!mke2fs($dev,$label)){
 				users_containers_error($ID,"mke2fs error (ERR.".__LINE__.")");
@@ -239,7 +239,7 @@ function build(){
 		
 		
 		$uuid=Getuuid($dev);
-		echo "Starting......: $dev uuid=$uuid\n";
+		echo "Starting......: ".date("H:i:s")." $dev uuid=$uuid\n";
 		$q->QUERY_SQL("UPDATE users_containers SET uuid='$uuid' WHERE `container_id`='$ID'",'artica_backup');
 		if($uuid==null){continue;}
 		$q->QUERY_SQL("UPDATE users_containers SET created='1' WHERE `container_id`='$ID'",'artica_backup');
@@ -250,6 +250,7 @@ function build(){
 	$sql="SELECT * FROM users_containers WHERE created=1 AND onerror=0";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	$count=mysql_num_rows($results);
+
 	
 	$mount=$unix->find_program("mount");
 	$umount=$unix->find_program("umount");
@@ -263,14 +264,14 @@ function build(){
 		$ContainerFullPath=$directory."/$ID.disk";
 		
 		if(!is_file($ContainerFullPath)){
-			echo "Starting......: $ContainerFullPath no such file\n";
+			echo "Starting......: ".date("H:i:s")." $ContainerFullPath no such file\n";
 			
 		}
 		
 		$autofs[]="disk$ID\t-fstype=$typ,loop\t:$ContainerFullPath";
 		
 	}
-	echo "Starting......: Saving /etc/auto.members\n";
+	echo "Starting......: ".date("H:i:s")." Saving /etc/auto.members\n";
 	@file_put_contents("/etc/auto.members", implode("\n", $autofs)."\n");
 	@unlink("/etc/init.d/artica-containers");
 	patch_auto_master();
@@ -319,7 +320,7 @@ function mke2fs($dev,$label,$maxfds=0){
 		$mkfs_ext4=$unix->find_program("mkfs.ext3");
 	}	
 	if($label<>null){$label_cmd=" -L $label";}
-	echo "Starting......: $dev formatting...\n";		
+	echo "Starting......: ".date("H:i:s")." $dev formatting...\n";		
 	$cmd="$mkfs_ext4 $label_cmd$maxfds_cmd -q $dev 2>&1";
 	exec($cmd,$results);
 	if($debug){echo "mke2fs($dev) -> $cmd ". count($results)." rows\n";}	
@@ -395,37 +396,37 @@ function remove($path){
 	if($dev==null){$dev=$loop_dev;}
 	$uuid=Getuuid($dev);
 	if($dev<>null){
-		echo "Starting......: $dev umounting...\n";
+		echo "Starting......: ".date("H:i:s")." $dev umounting...\n";
 		exec("$umount -l $dev 2>&1",$results);
 		exec("$umount -l $dev 2>&1",$results);
 		exec("$umount -l $dev 2>&1",$results);
-		while (list ($num, $ligne) = each ($results) ){echo "Starting......: $dev $ligne\n";}
+		while (list ($num, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." $dev $ligne\n";}
 		
 	}
 	
 	
 	$results=array();
 	if($uuid<>null){
-		echo "Starting......: $dev disconnect $uuid...$disk_name\n";
+		echo "Starting......: ".date("H:i:s")." $dev disconnect $uuid...$disk_name\n";
 		$autofs=new autofs();
 		$autofs->uuid=$uuid;
 		$autofs->by_uuid_removemedia($disk_name,"auto");		
 	}
 	
 	if($dev<>null){
-		echo "Starting......: dev:`$dev` remove media\n";
+		echo "Starting......: ".date("H:i:s")." dev:`$dev` remove media\n";
 		$cmd="{$GLOBALS["losetup"]} -d $dev 2>&1";
 		exec($cmd,$results);	
-		while (list ($num, $ligne) = each ($results) ){echo "Starting......: $dev $ligne\n";}	
+		while (list ($num, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." $dev $ligne\n";}	
 		if(is_file($path)){
-			echo "Starting......: $dev remove file\n";
+			echo "Starting......: ".date("H:i:s")." $dev remove file\n";
 			shell_exec("/bin/rm -f $path");
 		}
 	}
-	echo "Starting......: $dev remove entry in database\n";
+	echo "Starting......: ".date("H:i:s")." $dev remove entry in database\n";
 	$sql="DELETE FROM loop_disks WHERE `path`='$path'";
 	$q->QUERY_SQL($sql,"artica_backup");
-	echo "Starting......: $dev removed\n";
+	echo "Starting......: ".date("H:i:s")." $dev removed\n";
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup /etc/init.d/autofs restart >/dev/null 2>&1 &");
 	
@@ -510,7 +511,7 @@ function patch_auto_master(){
 	
 	$f[]="/media/artica_containers/membersdisks /etc/auto.members --ghost,--timeout=30";
 	$f[]="+auto.master";
-	echo "Starting......: /etc/auto.master done.\n";
+	echo "Starting......: ".date("H:i:s")." /etc/auto.master done.\n";
 	@file_put_contents("/etc/auto.master", @implode("\n", $f)."\n");
 }
 

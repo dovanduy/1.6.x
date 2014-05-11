@@ -10,6 +10,10 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
   $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/SplashDebug");
+  $GLOBALS["DEBUG_LEVEL"]=0;
+  $GLOBALS["EnableArticaHotSpot"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableArticaHotSpot"));
+  if(!is_numeric($GLOBALS["EnableArticaHotSpot"])){$GLOBALS["EnableArticaHotSpot"]=0;}
+  
   $GLOBALS["Q"]=new mysql_squid_builder();
   
   if(!is_numeric( $GLOBALS["DEBUG_LEVEL"])){ $GLOBALS["DEBUG_LEVEL"]=0;}
@@ -23,7 +27,7 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/session.cache"));
   
   
-  WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
+  WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]}; EnableArticaHotSpot={$GLOBALS["EnableArticaHotSpot"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
   if($argv[1]=="--mactouid"){$GLOBALS["MACTUIDONLY"]=true;}
   if($argv[1]=="--splash"){
   	$GLOBALS["SPLASH"]=true;
@@ -95,7 +99,10 @@ while (!feof(STDIN)) {
  			continue;
  		}
  		
- 		fwrite(STDOUT, "OK\n");
+ 		
+ 		
+ 		
+ 		fwrite(STDOUT, "OK user={$array["IPADDR"]}\n");
  		continue;
  	} 	
  	
@@ -288,10 +295,33 @@ function GetMacToUid($mac){
 	$uid=$GLOBALS["Q"]->MacToUid($mac);
 	if($uid<>null){return $uid;}
 	
-	$uid=$GLOBALS["Q"]->IpToUid($mac);
-	if($uid<>null){return $uid;}
 	
+	if($GLOBALS["EnableArticaHotSpot"]==1){
+		$time=time();
+		$q=new mysql_squid_builder();
+		$sql="SELECT uid FROM hotspot_sessions WHERE MAC='$mac'";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){ WLOG("Mysql Error line ".__LINE__); WLOG($sql); WLOG($q->mysql_error); }
+		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("$sql");}
+		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("$mac -> uid/mac: {$ligne["uid"]}");}
+		if($ligne["uid"]<>null){return $ligne["uid"];}
+		
+		$sql="SELECT uid FROM hotspot_sessions WHERE ipaddr='$mac'";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){ WLOG("Mysql Error line ".__LINE__); WLOG($sql); WLOG($q->mysql_error); }
+		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("$sql");}
+		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("$mac -> uid/ipaddr: {$ligne["uid"]}");}
+		if($ligne["uid"]<>null){return $ligne["uid"];}
+		
+		$sql="SELECT uid FROM hotspot_networks WHERE pattern='$mac'";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
+		if(!$q->ok){ WLOG("Mysql Error line ".__LINE__); WLOG($sql); WLOG($q->mysql_error); }
+		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("$sql");}
+		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("$mac -> uid/ipaddr: {$ligne["uid"]}");}
+		if($ligne["uid"]<>null){return $ligne["uid"];}
+	}
 	
+		
 	if(isset($GLOBALS["GetMacToUidMD5"])){
 			$md5file=md5_file("/etc/squid3/MacToUid.ini");
 			if($md5file<>$GLOBALS["GetMacToUidMD5"]){

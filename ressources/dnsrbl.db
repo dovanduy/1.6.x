@@ -10,7 +10,6 @@ RBL:malaysia.blackholes.us
 RBL:nigeria.blackholes.us
 RBL:cbl.abuseat.org
 RBL:combined.njabl.org
-RBL:list.dsbl.org
 RBL:dnsbl.ahbl.org
 RBL:dnsbl.njabl.org
 RBL:dynablock.njabl.org
@@ -19,7 +18,6 @@ RBL:spammers.v6net.org
 RBL:opm.blitzed.org
 RBL:blackholes.mail-abuse.org
 RBL:relays.mail-abuse.org
-RBL:multihop.dsbl.org
 RBL:korea.services.net
 RBL:ipwhois.rfc-ignorant.org
 RBL:dul.dnsbl.sorbs.net
@@ -33,7 +31,6 @@ RBL:sbl-xbl.spamhaus.org
 RBL:zen.spamhaus.org
 RBL:blackholes.wirehub.net
 RBL:proxies.relays.monkeys.com
-RBL:combined-hib.dnsiplists.completewhois.com
 RBL:xbl-sbl.spamhaus.org
 RBL:blacklist.spambag.org
 RBL:blackholes.five-ten-sg.com
@@ -78,7 +75,6 @@ RBL:query.trustic.com
 RBL:satos.rbl.cluecentral.net
 RBL:blacklist.woody.ch
 RBL:all.spamblock.unit.liu.se
-RBL:lbl.lagengymnastik.dk
 RBL:rbl.firstbase.com
 RBL:bl.tolkien.dk
 RBL:reject.the-carrot-and-the-stick.com
@@ -118,7 +114,6 @@ RBL:form.rbl.kropka.net
 RBL:access.redhawk.org
 RBL:all.spamblock.unit.liu.se 
 RBL:assholes.madscience.nl 
-RBL:bl.csma.biz 
 RBL:bl.redhatgate.com 
 RBL:bl.spamcannibal.org
 RBL:bl.spamcop.net 
@@ -134,11 +129,9 @@ RBL:blocked.hilli.dk
 RBL:blocked.secnap.net 
 RBL:blocklist2.squawk.com 
 RBL:blocktest.relays.osirusoft.com 
-RBL:bogons.dnsiplists.completewhois.com
 RBL:cart00ney.surriel.com 
 RBL:cbl.abuseat.org 
 RBL:dews.qmail.org 
-RBL:dialup.blacklist.jippg.org 
 RBL:dialup.rbl.kropka.net
 RBL:dialups.mail-abuse.org 
 RBL:dialups.relays.osirusoft.com 
@@ -152,9 +145,7 @@ RBL:fl.chickenboner.biz
 RBL:flowgoaway.com 
 RBL:form.rbl.kropka.net 
 RBL:formmail.relays.monkeys.com 
-RBL:hijacked.dnsiplists.completewhois.com
 RBL:hil.habeas.com 
-RBL:http.opm.blitzed.org
 RBL:inflow.noflow.org 
 RBL:inputs.relays.osirusoft.com 
 RBL:ip.rbl.kropka.net 
@@ -165,7 +156,6 @@ RBL:msgid.bl.gweep.ca
 RBL:no-more-funn.moensted.dk 
 RBL:ohps.bl.reynolds.net.au 
 RBL:omrs.bl.reynolds.net.au 
-RBL:opm.blitzed.org 
 RBL:or.rbl.kropka.net 
 RBL:orbs.dorkslayers.com
 RBL:orvedb.aupads.org 
@@ -196,9 +186,7 @@ RBL:relays.visi.com
 RBL:ricn.bl.reynolds.net.au 
 RBL:rsbl.aupads.org 
 RBL:sbbl.they.com 
-RBL:sbl.csma.biz 
 RBL:sbl-xbl.spamhaus.org 
-RBL:socks.opm.blitzed.org 
 RBL:socks.relays.osirusoft.com 
 RBL:spam.dnsrbl.net 
 RBL:spam.olsentech.net 
@@ -215,7 +203,6 @@ RBL:vbl.messagelabs.com
 RBL:vox.schpider.com 
 RBL:whois.rfc-ignorant.org
 RBL:will-spam-for-food.eu.org 
-RBL:wingate.opm.blitzed.org 
 RBL:xbl.spamhaus.org 
 RBL:ybl.megacity.org 
 RBL:ztl.dorkslayers.com
@@ -225,18 +212,14 @@ RHSBL:dsn.rfc-ignorant.org
 RHSBL:rddb.dnsbl.net.au
 RHSBL:endn.dnsbl.net.au 
 RHSBL:dnsbl.sorbs.net
-RHSBL:blackhole.securitysage.com
 RHSBL:relays.ordb.org
 RHSBL:dnsbl.njabl.org
 RHSBL:blackholes.mail-abuse.org
 RHSBL:relays.mail-abuse.org
-RHSBL:multihop.dsbl.org
 RHSBL:endn.dnsbl.net.au
-RHSBL:list.dsbl.org
 RHSBL:block.rhs.mailpolice.com
 RHSBL:rhsbl.sorbs.net
 RHSBL:dynamic.rhs.mailpolice.com
-RHSBL:unconfirmed.dsbl.org
 RHSBL:in.dnsbl.org
 RHSBL:dnsbl.delink.net
 RHSBL:spam.dnsbl.sorbs.net
@@ -266,7 +249,6 @@ RHSBL:dul.dnsbl.sorbs.net
 RHSBL:http.dnsbl.sorbs.net 
 RHSBL:l1.spews.dnsbl.sorbs.net
 RHSBL:l2.spews.dnsbl.sorbs.net 
-RHSBL:list.dsbl.org 
 RHSBL:misc.dnsbl.sorbs.net 
 RHSBL:ohps.dnsbl.net.au
 RHSBL:omrs.dnsbl.net.au 
@@ -288,7 +270,6 @@ RHSBL:spamsources.dnsbl.info
 RHSBL:spews.dnsbl.net.au
 RHSBL:t1.dnsbl.net.au
 RHSBL:ucepn.dnsbl.net.au 
-RHSBL:unconfirmed.dsbl.org 
 RHSBL:web.dnsbl.sorbs.net 
 RHSBL:zombie.dnsbl.sorbs.net
 

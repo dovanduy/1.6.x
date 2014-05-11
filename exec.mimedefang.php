@@ -246,7 +246,7 @@ function mimedefang_tmpfs_mount($size){
 	if(strlen($idbin)<3){echo "Starting mimedefang: tmpfs `id` no such binary\n";return;}
 	if(strlen($mount)<3){echo "Starting mimedefang: tmpfs `mount` no such binary\n";return;}
 	exec("$idbin postfix 2>&1",$results);
-	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......:MySQL mysql no such user...\n";return;}
+	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......: ".date("H:i:s")."MySQL mysql no such user...\n";return;}
 	$uid=$re[1];
 	$gid=$re[2];
 	echo "Starting mimedefang: tmpfs uid/gid =$uid:$gid for {$size}M\n";

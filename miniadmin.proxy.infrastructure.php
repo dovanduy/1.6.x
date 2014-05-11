@@ -37,6 +37,7 @@ function tabs(){
 	$mini=new boostrap_form();
 	$array["{behavior_listen_ports}"]="$page?ports-behavior=yes";
 	$array["{authenticate_users}"]="miniadmin.proxy.authentication.php";
+	$array["{IT_charter}"]="miniadmin.proxy.charter.php?tabs=yes";
 	echo $mini->build_tab($array);
 }
 
@@ -56,9 +57,11 @@ function section_ports(){
 	
 	$KernelSendRedirects=$sock->GET_INFO("KernelSendRedirects");
 	$SquidTransparentMixed=$sock->GET_INFO("SquidTransparentMixed");
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	
 	if(!is_numeric($KernelSendRedirects)){$KernelSendRedirects=1;}
 	if(!is_numeric($SquidTransparentMixed)){$SquidTransparentMixed=0;}
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
 	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
 	$q=new mysql();
@@ -67,6 +70,12 @@ function section_ports(){
 	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];}	
 	
 	$boot->set_formtitle("{behavior}");
+	
+	$boot->set_checkbox("SQUIDEnable", "{enable_squid_service}",$SQUIDEnable,
+				array("TOOLIP"=>"{enable_squid_service_explain}",
+					 "DISABLEALL"=>true));
+	
+	
 	$boot->set_field("visible_hostname","{visible_hostname}",$squid->visible_hostname,array("TOOLIP"=>"{visible_hostname_text}"));
 	$boot->set_checkbox("hasProxyTransparent", "{transparent_mode}", 
 				$squid->hasProxyTransparent,
@@ -141,6 +150,8 @@ function section_ports_save(){
 	$squid->ssl_port=$_POST["ssl_port"];
 	$squid->certificate_center=$_POST["certificate_center"];
 	
+	
+	$sock->SET_INFO("SQUIDEnable", $_POST["SQUIDEnable"]);
 	$sock->SET_INFO("KernelSendRedirects", $_POST["KernelSendRedirects"]);
 	$sock->SET_INFO("SquidTransparentMixed", $_POST["SquidTransparentMixed"]);
 	$sock->SET_INFO("SquidOldHTTPPort",$squid->listen_port);

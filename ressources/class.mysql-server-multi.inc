@@ -210,7 +210,7 @@ class mysqlserver_multi{
 		
 
 		if(count($mysqld)==0){
-			echo "Starting......: [Note] Mysql no additional setting\n";
+			echo "Starting......: ".date("H:i:s")." [Note] Mysql no additional setting\n";
 			return null;}
 		while (list ($key, $value) = each ($mysqld) ){
 			if($key=="ssl"){$f[]="$key";continue;}
@@ -220,7 +220,7 @@ class mysqlserver_multi{
 			if($key=="log_error"){$f[]="$key = $value";continue;}
 			
 			if(!isset($mysqld_variables_cmdline[$key])){
-				if($this->instance_id==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: [Note] Mysql skipping token `$key`\n";}
+				if($this->instance_id==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: ".date("H:i:s")." [Note] Mysql skipping token `$key`\n";}
 				continue;
 			}
 			if($value==null){$f[]="$key";continue;}
@@ -230,7 +230,7 @@ class mysqlserver_multi{
 			$f[]="$key = $value";
 		}
 		
-		if($this->instance_id==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: [Note] Mysql building ". count($f)." additional settings\n";}
+		if($this->instance_id==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: ".date("H:i:s")." [Note] Mysql building ". count($f)." additional settings\n";}
 		return @implode("\n", $f)."\n";
 		
 	}

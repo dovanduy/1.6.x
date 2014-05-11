@@ -44,7 +44,7 @@ $auto=new autofs();
 $hash=$auto->automounts_Browse();
 $sock=new sockets();
 $count=count($hash);
-echo "Starting......: AutoFS $count mounted directories\n";
+echo "Starting......: ".date("H:i:s")." AutoFS $count mounted directories\n";
 $sock->SET_INFO("AutoFSCountDirs",$count);
 }
 
@@ -122,7 +122,7 @@ $f[]="";
 $f[]="# debug           # possible values: config, kernel, cache, http, xml,";
 $f[]="                  #      httpauth, locks, ssl, httpbody, secrets, most";
 $f[]="";
-echo "Starting......: AutoFS davfs2.conf done\n";
+echo "Starting......: ".date("H:i:s")." AutoFS davfs2.conf done\n";
 @file_put_contents("/etc/davfs2/davfs2.conf",@implode("\n",$f));
 
 $f=array();
@@ -139,7 +139,7 @@ $f=array();
 		
 	}
 	$f[]="";
-echo "Starting......: AutoFS secrets file with $c credential(s) done\n";
+echo "Starting......: ".date("H:i:s")." AutoFS secrets file with $c credential(s) done\n";
 @file_put_contents("/etc/davfs2/secrets",@implode("\n",$f));
 
 if(!$GLOBALS["NORELOAD"]){

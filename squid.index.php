@@ -88,9 +88,11 @@ function main_tabs(){
 	$page=CurrentPageName();
 	$squid=new squid();
 	$users=new usersMenus();
+	$sock=new sockets();
 	$array["networking"]='{squid_net_settings}';
 	$array["acl"]='{acls}';
 	$array["access"]='{access_rules}';
+	
 	
 	if($users->SQUID_ICAP_ENABLED){
 		$array["icap_service"]='{icap_service}';
@@ -877,7 +879,7 @@ if(!isset($_GET["rulename"])){$_GET["rulename"]="http_access";}
 while (list ($num, $ligne) = each ($array) ){
 	
 	if($_GET["rulename"]==$ligne){
-		$color="red";
+		$color="#CC0A0A";
 	}else{$color="black";}
 	$menus=$menus . "
 	<tr>

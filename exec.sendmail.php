@@ -38,7 +38,7 @@ function remove_initd(){
 	$unix=new unix();
 	$debianbin=$unix->find_program("update-rc.d");
 	$redhatbin=$unix->find_program("chkconfig");
-	echo "Starting......: sendmail remove /etc/init.d/sendmail\n";	
+	echo "Starting......: ".date("H:i:s")." sendmail remove /etc/init.d/sendmail\n";	
 	if(is_file($redhatbin)){
 		shell_exec("$redhatbin --del sendmail >/dev/null 2>&1");
 		shell_exec("$redhatbin --level 2345 sendmail off >/dev/null 2>&1");

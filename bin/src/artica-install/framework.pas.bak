@@ -35,7 +35,6 @@ EnableLighttpd:integer;
     function    LIGHTTPD_BIN_PATH():string;
     FUNCTION    STATUS():string;
     function    PHP5_CGI_BIN_PATH():string;
-    function    DEFAULT_CONF():string;
     function    MON():string;
     procedure   INSTALL_INIT_D();
 

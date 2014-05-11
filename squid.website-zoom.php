@@ -21,16 +21,10 @@ tab();
 
 function js(){
 	
-	if(!$_SESSION["CORP"]){
-		$tpl=new templates();
-		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
-		echo "alert('$onlycorpavailable');";
-		return;
-	}		
-	
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$www=$_GET["sitename"];
+	if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
 	$html="RTMMail(1090,'$page?sitename=$www&xtime={$_GET["xtime"]}&week={$_GET["week"]}&year={$_GET["year"]}&day={$_GET["day"]}','ZOOM:$www')";
 	echo $html;
 	
@@ -42,6 +36,19 @@ function tab(){
 	$page=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$familysite=$q->GetFamilySites($_GET["sitename"]);
+	
+	if(is_numeric($_GET["xtime"])){
+		$prefix=date("YmdH",$_GET["xtime"]);
+		$tableHour="squidhour_$prefix";
+		if($q->TABLE_EXISTS($tableHour)){
+			$array["thishour"]="{this_hour}";
+				
+		}
+	}
+	
+	$array["ident"]="{$_GET["sitename"]}";
+	
+
 	
 	if(!is_numeric($_GET["xtime"])){
 		if($_GET["day"]<>null){
@@ -62,8 +69,26 @@ function tab(){
 		$array["members-week"]="{members}";
 	}
 	
-	$array["popup"]="{status} $dateT";
+	
+	//$array["popup"]="{status} $dateT";
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="ident"){
+			$day=date("Y-m-d",$_GET["xtime"]);
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.www-ident.php?popup=yes&www={$_GET["sitename"]}&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+				
+			
+		}
+		
+		
+		if($num=="thishour"){
+			$day=date("Y-m-d",$_GET["xtime"]);
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.traffic.statistics.hour.php?day=$day&sitename={$_GET["sitename"]}&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;			
+			
+		}
+		
 		if($num=="day"){
 			$day=date("Y-m-d",$_GET["xtime"]);
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.traffic.statistics.days.php?today-zoom-popup-history=yes&day=$day&type=size&familysite=$familysite\"><span style='font-size:14px'>$ligne</span></a></li>\n");
@@ -90,17 +115,8 @@ function tab(){
 	
 
 	
-	echo "
-	<div id=main_config_zoomwebsite>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_zoomwebsite').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_zoomwebsite");
+		
 	
 }
 

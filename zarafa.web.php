@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -22,7 +23,7 @@
 	if(isset($_GET["ZarafaApachePort"])){SAVE();exit;}
 	if(isset($_GET["DbAttachConverter-popup"])){DbAttachConverter_popup();exit;}
 	if(isset($_GET["DbAttachConverterPerform"])){DbAttachConverter_Perform();exit;}
-	if(isset($_GET["popup-webmail"])){zarafa_settings_webmail();exit;}
+	
 	if(isset($_GET["popup-server"])){zarafa_settings_server();exit;}
 	if(isset($_GET["popup-imap"])){zarafa_settings_imap();exit;}
 	
@@ -101,68 +102,59 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
-	
-	$array["popup"]="{general_settings}";
+	$array["popup-tune"]="{global_parameters}";
+	$array["popup-imap"]="IMAP/POP3";
 	if($_GET["font-size"]>14){$_GET["font-size"]=14;}
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";}
-	$array["popup-tune"]="{service_tuning}";
-	$array["popup-mysql"]="{mysql_tuning}";
+
 	
 	if($users->ZARAFA_INDEXER_INSTALLED){
 		$array["popup-indexer"]="{APP_ZARAFA_INDEXER}";
 	}
-	$array["tools"]="{tools}";
+	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="status"){
-			$html[]="<li><a href=\"zarafa.index.php?popup-status=yes\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.index.php?popup-status=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n";
 			continue;
-		}		
-		
-		if($num=="popup-indexer"){
-			$html[]="<li><a href=\"zarafa.indexer.php\"><span>$ligne</span></a></li>\n";
-			continue;
-		}
+		}	
 		
 		if($num=="popup-tune"){
-			$html[]="<li><a href=\"zarafa.tuning.php\"><span>$ligne</span></a></li>\n";
-			continue;
-		}		
-		
-		if($num=="popup-mysql"){
-			$html[]="<li><a href=\"zarafa.mysqlparams.php\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.tuning.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
+		if($num=="popup-imap"){
+			$html[]="<li><a href=\"zarafa.web.php?popup-imap=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		if($num=="popup-indexer"){
+			$html[]="<li><a href=\"zarafa.indexer.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+
+
 		if($num=="tools"){
-			$html[]="<li><a href=\"zarafa.tools.php\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.tools.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="popup-orphans"){
-			$html[]="<li><a href=\"zarafa.orphans.php\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.orphans.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
 			continue;
 		}			
 		
-		$html[]="<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n";
 			
 		}	
 	
-	$tab="<div id=main_config_zarafa2 style='width:100%;height:100%;overflow:auto;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_zarafa2').tabs();
-			
-			
-			});
-			QuickLinkShow('quicklinks-APP_ZARAFA');
-		</script>";		
 	
 	
-	echo $tpl->_ENGINE_parse_body($tab);
+	echo build_artica_tabs($html, "main_config_zarafa2");
+	
 	
 }
 
@@ -242,7 +234,7 @@ function popup(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$array["popup-webmail"]="{WEBMAIL}";
-	$array["popup-server"]="{APP_ZARAFA_SERVER}";
+	
 	
 	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
 	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
@@ -1111,53 +1103,53 @@ if($ZarafaEnableServer==0){
 $ip=new networking();
 $ips=$ip->ALL_IPS_GET_ARRAY();	
 $ips["0.0.0.0"]="{all}";
-$ZarafaGatewayBindAR=Field_array_Hash($ips,"ZarafaGatewayBind",$ZarafaGatewayBind,"style:font-size:14px;padding:3px");
+$ZarafaGatewayBindAR=Field_array_Hash($ips,"ZarafaGatewayBind",$ZarafaGatewayBind,"style:font-size:18px;padding:3px");
 $t=time();	
 	
 $html="
 <div id='anim-$t'></div>
 <table style='width:99%' class=form>
 			<tr>
-				<td class=legend style='font-size:14px'>{listen_ip} (POP/IMAP):</td>
-				<td><strong style='font-size:13px'>$ZarafaGatewayBindAR</strong></td>
+				<td class=legend style='font-size:18px'>{listen_ip} (POP/IMAP):</td>
+				<td><strong style='font-size:18px'>$ZarafaGatewayBindAR</strong></td>
 			</tr>			
 			<tr>
-				<td class=legend style='font-size:14px'>{disable_pop3}:</td>
-				<td><strong style='font-size:13px'>". Field_checkbox("Zarafa7Pop3Disable", 1,$Zarafa7Pop3Disable,"CheckZarafaFieldsPOP3()")."</td>
+				<td class=legend style='font-size:18px'>{disable_pop3}:</td>
+				<td><strong style='font-size:18px'>". Field_checkbox("Zarafa7Pop3Disable", 1,$Zarafa7Pop3Disable,"CheckZarafaFieldsPOP3()")."</td>
 			</tr>						
 			<tr>
-				<td class=legend style='font-size:14px'>{pop3_port}:</td>
-				<td>". Field_text("ZarafaPop3Port",$ZarafaPop3Port,"width:90px;font-size:13px;padding:3px")."</td>
+				<td class=legend style='font-size:18px'>{pop3_port}:</td>
+				<td>". Field_text("ZarafaPop3Port",$ZarafaPop3Port,"width:90px;font-size:18px;padding:3px")."</td>
 			</tr>		
 			<tr>
-				<td class=legend style='font-size:14px'>{enable_pop3s}:</td>
-				<td><strong style='font-size:13px'>". Field_checkbox("ZarafaPop3sEnable", 1,$ZarafaPop3sEnable,"CheckZarafaFieldsPOP3S()")."</td>
+				<td class=legend style='font-size:18px'>{enable_pop3s}:</td>
+				<td><strong style='font-size:18px'>". Field_checkbox("ZarafaPop3sEnable", 1,$ZarafaPop3sEnable,"CheckZarafaFieldsPOP3S()")."</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:14px'>{pop3s_port}:</td>
-				<td>". Field_text("ZarafaPop3sPort",$ZarafaPop3sPort,"width:90px;font-size:13px;padding:3px")."</td>
+				<td class=legend style='font-size:18px'>{pop3s_port}:</td>
+				<td>". Field_text("ZarafaPop3sPort",$ZarafaPop3sPort,"width:90px;font-size:18px;padding:3px")."</td>
 			</tr>	
 			
 			<tr><td colspan=2 align='right'><hr></td></tr>
 
 			<tr>
-				<td class=legend style='font-size:14px'>{disable_imap}:</td>
-				<td><strong style='font-size:13px'>". Field_checkbox("Zarafa7IMAPDisable", 1,$Zarafa7IMAPDisable,"CheckZarafaFieldsIMAP()")."</td>
+				<td class=legend style='font-size:18px'>{disable_imap}:</td>
+				<td><strong style='font-size:18px'>". Field_checkbox("Zarafa7IMAPDisable", 1,$Zarafa7IMAPDisable,"CheckZarafaFieldsIMAP()")."</td>
 			</tr>				
 			<tr>
-				<td class=legend style='font-size:14px'>{imap_port}:</td>
-				<td>". Field_text("ZarafaIMAPPort",$ZarafaIMAPPort,"width:90px;font-size:13px;padding:3px")."</td>
+				<td class=legend style='font-size:18px'>{imap_port}:</td>
+				<td>". Field_text("ZarafaIMAPPort",$ZarafaIMAPPort,"width:90px;font-size:18px;padding:3px")."</td>
 			</tr>
 
 			<tr>
-				<td class=legend style='font-size:14px'>{enable_imaps}:</td>
+				<td class=legend style='font-size:18px'>{enable_imaps}:</td>
 				<td><strong style='font-size:13px'>". Field_checkbox("ZarafaIMAPsEnable", 1,$ZarafaIMAPsEnable,"CheckZarafaFieldsIMAPS()")."</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:14px'>{imaps_port}:</td>
-				<td>". Field_text("ZarafaIMAPsPort",$ZarafaIMAPsPort,"width:90px;font-size:13px;padding:3px")."</td>
+				<td class=legend style='font-size:18px'>{imaps_port}:</td>
+				<td>". Field_text("ZarafaIMAPsPort",$ZarafaIMAPsPort,"width:90px;font-size:18px;padding:3px")."</td>
 			</tr>	
-			<tr><td colspan=2 align='right'><hr>". button("{apply}","APP_ZARAFA_WEB_SAVE$t()","16px")."</td></tr>					
+			<tr><td colspan=2 align='right'><hr>". button("{apply}","APP_ZARAFA_WEB_SAVE$t()",24)."</td></tr>					
 		</table>
 		
 		<script>
@@ -1276,209 +1268,7 @@ function zarafa_settings_imap_save(){
 
 }
 
-function zarafa_settings_webmail(){
-$page=CurrentPageName();
-$tpl=new templates();	
-$sock=new sockets();
-$users=new usersMenus();
-$zarafa_version=$sock->getFrameWork("zarafa.php?getversion=yes");
-preg_match("#^([0-9]+)\.#", $zarafa_version,$re);
-$major_version=$re[1];
-if(!is_numeric($major_version)){$major_version=6;}
 
-$ZarafaApachePort=$sock->GET_INFO("ZarafaApachePort");
-$ZarafaUserSafeMode=$sock->GET_INFO("ZarafaUserSafeMode");
-$ZarafaApacheServerName=$sock->GET_INFO("ZarafaApacheServerName");
-if(trim($ZarafaApacheServerName)==null){$ZarafaApacheServerName=$users->hostname;}
-
-$enable_ssl=$sock->GET_INFO("ZarafaApacheSSL");	
-if($ZarafaApachePort==null){$ZarafaApachePort="9010";}
-$ZarafaApacheEnable=$sock->GET_INFO("ZarafaApacheEnable");
-$ZarafaImportContactsInLDAPEnable=$sock->GET_INFO("ZarafaImportContactsInLDAPEnable");
-$ZarafaWebNTLM=$sock->GET_INFO("ZarafaWebNTLM");
-
-
-
-$ZarafaEnablePlugins=$sock->GET_INFO("ZarafaEnablePlugins");
-
-if(!is_numeric($ZarafaApacheEnable)){$ZarafaApacheEnable=1;}
-if(!is_numeric($ZarafaEnablePlugins)){$ZarafaEnablePlugins=0;}
-if(!is_numeric($ZarafaWebNTLM)){$ZarafaWebNTLM=0;}
-if(!is_numeric($ZarafaImportContactsInLDAPEnable)){$ZarafaImportContactsInLDAPEnable=0;}
-if(!is_numeric($ZarafaSessionTime)){$ZarafaSessionTime=1440;}
-$ZarafaSessionTime_field=$ZarafaSessionTime/60;
-
-
-
-
-if($enable_ssl==null){$enable_ssl="0";}
-if($ZarafaiCalEnable==null){$ZarafaiCalEnable=0;}
-if(!is_numeric($ZarafaUserSafeMode)){$sock->SET_INFO("ZarafaUserSafeMode",0);$ZarafaUserSafeMode=0;}
-$ZarafaStoreOutside=$sock->GET_INFO("ZarafaStoreOutside");
-$ZarafaStoreOutsidePath=$sock->GET_INFO("ZarafaStoreOutsidePath");
-$ZarafaStoreCompressionLevel=$sock->GET_INFO("ZarafaStoreCompressionLevel");
-
-$ZarafaAspellEnabled=$sock->GET_INFO("ZarafaAspellEnabled");
-if(!is_numeric($ZarafaAspellEnabled)){$ZarafaAspellEnabled=0;}
-$ZarafaAspellInstalled=0;
-$ZarafaAspellInstalled_text="({not_installed})";
-
-if($users->ASPELL_INSTALLED){
-	$ZarafaAspellInstalled=1;
-	$ZarafaAspellInstalled_text="({installed})";
-}
-
-$fieldsHTTP[]="ZarafaApacheServerName";
-$fieldsHTTP[]="ZarafaApachePort";
-$fieldsHTTP[]="ZarafaApacheSSL";
-$fieldsHTTP[]="ZarafaSessionTime";
-$fieldsHTTP[]="ZarafaWebNTLM";
-$fieldsHTTP[]="ZarafaAspellEnabled";
-$fieldsHTTP[]="ZarafaEnablePlugins";
-$fieldsHTTP[]="ZarafaImportContactsInLDAPEnable";
-
-while (list($num,$val)=each($fieldsHTTP)){	
-	$fieldsHTTPjs1[]="if(document.getElementById('$val')){document.getElementById('$val').disabled=true;}";
-	$fieldsHTTPjs2[]="if(document.getElementById('$val')){document.getElementById('$val').disabled=false;}";
-	
-}
-
-if(!$users->APACHE_INSTALLED){
-	$html="
-	<table style='width:100%'>
-	<tr>
-		<td valign='top'><img id='zrfa-logo' src='img/zarfa-web-error-128.png'></td>
-		<td valign='top'>	
-			<table style='width:100%'>
-			<tr>
-				<td colspan=2>
-				<p style='font-size:14px;color:#C61010'>{ZARAFA_ERROR_NO_APACHE}</p>
-				
-				</td>
-			</tr>
-			</table>
-		</td>
-		</tr>
-		</table>";
-		$tpl=new templates();
-		echo $tpl->_ENGINE_parse_body($html);
-		return;
-}
-
-	
-$t=time();	
-$html="
-<div class=explain style='font-size:14px' id='anim-$t'>{zarafa_settings_webmail}</div>
-<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:14px'>{enable_http_service}:</td>
-		<td>". Field_checkbox("ZarafaApacheEnable",1,$ZarafaApacheEnable,'ZarafaApacheDisableCheck()')."</td>
-	</tr>		
-	<tr>
-		<td class=legend style='font-size:14px'>{servername}:</td>
-		<td>". Field_text("ZarafaApacheServerName",$ZarafaApacheServerName,"font-size:13px;padding:3px;width:210px")."</td>
-	</tr>		
-		<tr>
-		<td class=legend style='font-size:14px'>{listen_port}:</td>
-		<td>". Field_text("ZarafaApachePort",$ZarafaApachePort,"font-size:13px;padding:3px;width:60px")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{enable_ssl}:</td>
-		<td>". Field_checkbox("ZarafaApacheSSL",1,$enable_ssl)."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{SessionTime}:</td>
-		<td style='font-size:13px;padding:3px;'>". Field_text("ZarafaSessionTime",$ZarafaSessionTime_field,"font-size:13px;padding:3px;width:60px")."&nbsp;{minutes}</td>
-	</tr>			
-	<tr>
-		<td class=legend style='font-size:14px'>{ZarafaWebNTLM}:</td>
-		<td>". Field_checkbox("ZarafaWebNTLM",1,$ZarafaWebNTLM)."</td>
-	</tr>			
-	<tr>
-		<td class=legend style='font-size:14px'>{spell_checker}&nbsp;$ZarafaAspellInstalled_text&nbsp;:</td>
-		<td>". Field_checkbox("ZarafaAspellEnabled",1,$ZarafaAspellEnabled)."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{ZarafaEnablePlugins}:</td>
-		<td>". Field_checkbox("ZarafaEnablePlugins",1,$ZarafaEnablePlugins)."</td>
-	</tr>			
-	<tr>
-		<td class=legend style='font-size:14px'>{ZarafaImportContactsInLDAPEnable}&nbsp;:</td>
-		<td>". Field_checkbox("ZarafaImportContactsInLDAPEnable",1,$ZarafaImportContactsInLDAPEnable)."</td>
-	</tr>			
-		<tr><td colspan=2 align='right'><hr>". button("{apply}","APP_ZARAFA_WEB_SAVE$t()","16px")."</td></tr>							
-	</table>
-	<script>
-		var X_APP_ZARAFA_WEB_SAVE$t= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);}
-			RefreshTab('main_config_zarafa3');
-			}	
-	function ZarafaApacheDisableCheck(){
-		var ZarafaAspellInstalled=$ZarafaAspellInstalled;
-		". @implode("\n", $fieldsHTTPjs1)."
-		if(document.getElementById('ZarafaApacheEnable').checked){
-		". @implode("\n", $fieldsHTTPjs2)."
-		
-		if(ZarafaAspellInstalled==0){
-			document.getElementById('ZarafaAspellEnabled').disabled=true;
-		}
-		
-		}
-	}			
-		
-			function APP_ZARAFA_WEB_SAVE$t(){
-				var XHR = new XHRConnection();
-				if(document.getElementById('ZarafaApacheEnable').checked){XHR.appendData('ZarafaApacheEnable',1);}else{XHR.appendData('ZarafaApacheEnable',0);}
-				XHR.appendData('ZarafaApacheServerName',document.getElementById('ZarafaApacheServerName').value);
-				XHR.appendData('ZarafaApachePort',document.getElementById('ZarafaApachePort').value);
-				XHR.appendData('ZarafaSessionTime',document.getElementById('ZarafaSessionTime').value);
-				if(document.getElementById('ZarafaApacheSSL').checked){XHR.appendData('ZarafaApacheSSL',1);}else{XHR.appendData('ZarafaApacheSSL',0);}
-				if(document.getElementById('ZarafaWebNTLM').checked){XHR.appendData('ZarafaWebNTLM',1);}else{XHR.appendData('ZarafaWebNTLM',0);}
-				if(document.getElementById('ZarafaAspellEnabled').checked){XHR.appendData('ZarafaAspellEnabled',1);}else{XHR.appendData('ZarafaAspellEnabled',0);}
-				if(document.getElementById('ZarafaEnablePlugins').checked){XHR.appendData('ZarafaEnablePlugins',1);}else{XHR.appendData('ZarafaEnablePlugins',0);}
-				if(document.getElementById('ZarafaImportContactsInLDAPEnable').checked){XHR.appendData('ZarafaImportContactsInLDAPEnable',1);}else{XHR.appendData('ZarafaImportContactsInLDAPEnable',0);}
-				AnimateDiv('anim-$t');
-				XHR.sendAndLoad('$page', 'POST',X_APP_ZARAFA_WEB_SAVE$t);	
-			}
-			
-			ZarafaApacheDisableCheck();
-		</script>		
-		";	
-echo $tpl->_ENGINE_parse_body($html);
-	
-}
-
-function zarafa_settings_webmail_save(){
-	$sock=new sockets();
-	$ZarafaApachePort=$sock->GET_INFO("ZarafaApachePort");
-	if(!is_numeric($_POST["ZarafaApachePort"])){$_POST["ZarafaApachePort"]=9010;}
-	if(!is_numeric($ZarafaApachePort)){$ZarafaApachePort=9010;}
-	
-	if($ZarafaApachePort<>$_POST["ZarafaApachePort"]){
-		$socket = @socket_create(AF_INET, SOCK_STREAM, 0);
-		if(socket_connect($socket, "127.0.0.1", $_POST["ZarafaApachePort"])){
-			@socket_close($socket);
-			$tpl=new templates();
-			echo $tpl->javascript_parse_text("{error_port_already_use} {$_POST["ZarafaApachePort"]}");
-		}else{
-			$sock->SET_INFO("ZarafaApachePort",trim($_POST["ZarafaApachePort"]));	
-		}
-	}
-	
-	
-	
-	
-	$sock->SET_INFO("ZarafaApacheEnable",trim($_POST["ZarafaApacheEnable"]));
-	$sock->SET_INFO("ZarafaApacheSSL",trim($_POST["ZarafaApacheSSL"]));
-	$sock->SET_INFO("ZarafaApacheServerName",trim($_POST["ZarafaApacheServerName"]));
-	$sock->SET_INFO("ZarafaWebNTLM",trim($_POST["ZarafaWebNTLM"]));
-	$sock->SET_INFO("ZarafaEnablePlugins",trim($_POST["ZarafaEnablePlugins"]));
-	$sock->SET_INFO("ZarafaAspellEnabled",trim($_POST["ZarafaAspellEnabled"]));
-	$sock->SET_INFO("ZarafaImportContactsInLDAPEnable",trim($_POST["ZarafaImportContactsInLDAPEnable"]));
-	$sock->getFrameWork("cmd.php?zarafa-restart-web=yes");
-	
-}
 
 
 

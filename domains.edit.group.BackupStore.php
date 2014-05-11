@@ -30,7 +30,7 @@ function page(){
 	$html="
 	<div style='font-size:16px' class=explain>{BACKUP_STORAGE_ENDUSERS_CONTAINER_EXPLAIN}</div>
 	<div id='animate-$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{enable}:</td>
@@ -91,7 +91,7 @@ function Save(){
 		$sql="CREATE TABLE IF NOT EXISTS `artica_backup`.`storage_containers` (
 				`groupid` VARCHAR( 255 ) NOT NULL,
 				`enabled` smallint( 1 ) NOT NULL,
-				`maxsize` INT( 100 ) NOT NULL ,
+				`maxsize` INT UNSIGNED ,
 				`directory` VARCHAR( 255 ) NOT NULL,
 				 PRIMARY KEY ( `groupid` ),
 				 KEY `enabled`(`enabled`)

@@ -1,8 +1,9 @@
 <?php
-if(isset($_GET["verbose"])){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if(isset($_GET["verbose"])){ini_set_verbosed();}
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RELOAD"]=false;
+$GLOBALS["RESTART"]=false;
 $GLOBALS["TITLENAME"]="URLfilterDB daemon";
 $_GET["LOGFILE"]="/var/log/artica-postfix/dansguardian.compile.log";
 if(posix_getuid()<>0){
@@ -10,7 +11,6 @@ if(posix_getuid()<>0){
 	
 	if(isset($_POST["USERNAME"])){parseTemplate_LocalDB_receive();die();}
 	if(isset($_POST["password"])){parseTemplate_SinglePassWord_receive();die();}
-	if(isset($_GET["parseTemplate-SinglePassWord-popup"])){parseTemplate_SinglePassWord_popup();die();}
 	if(isset($_GET["SquidGuardWebUseLocalDatabase"])){parseTemplate_LocalDB();die();}
 	parseTemplate();die();}
 
@@ -38,16 +38,22 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(count($argv)>0){
 	$imploded=implode(" ",$argv);
 	
-	if(preg_match("#--verbose#",$imploded)){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["OUPUT"]=true;ini_set_verbosed(); }
+	if(preg_match("#--verbose#",$imploded)){
+			$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;
+			$GLOBALS["OUTPUT"]=true;ini_set_verbosed(); 
+	}
 	if(preg_match("#--reload#",$imploded)){$GLOBALS["RELOAD"]=true;}
 	if(preg_match("#--force#",$imploded)){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--shalla#",$imploded)){$GLOBALS["SHALLA"]=true;}
+	if(preg_match("#--restart#",$imploded)){$GLOBALS["RESTART"]=true;}
 	if(preg_match("#--catto=(.+?)\s+#",$imploded,$re)){$GLOBALS["CATTO"]=$re[1];}
 	if($argv[1]=="--disks"){DisksStatus();exit;}
 	if($argv[1]=="--version"){checksVersion();exit;}
 	if($argv[1]=="--dump-adrules"){dump_adrules($argv[2]);exit;}
 	if($argv[1]=="--dbmem"){ufdbdatabases_in_mem();exit;}
 	if($argv[1]=="--notify-start"){ufdguard_start_notify();exit;}
+	if($argv[1]=="--artica-db-status"){ufdguard_artica_db_status();exit;}
+	
 	
 	
 	$argvs=$argv;
@@ -89,8 +95,7 @@ if(count($argv)>0){
 	if($argv[1]=="--list-missdbs"){BuildMissingUfdBguardDBS(false,true);exit;}				
 	if($argv[1]=="--parsedir"){ParseDirectory($argv[2]);exit;}
 	if($argv[1]=="--notify-dnsmasq"){notify_remote_proxys_dnsmasq();exit;}
-	
-	if($argvs[1]=='--build-ufdb-smoothly'){echo build_ufdbguard_smooth();exit;}
+	if($argvs[1]=='--build-ufdb-smoothly'){echo build_ufdbguard_smooth();echo "Starting......: ".date("H:i:s")." Starting UfdGuard FINISH DONE\n";exit;}
 	
 	
 	
@@ -144,12 +149,14 @@ function build_categories(){
 
 function build_ufdbguard_smooth(){
 	$users=new usersMenus();
-	if(!$users->APP_UFDBGUARD_INSTALLED){echo "Starting......: ufdbGuard is not installed, aborting\n";return;}
+	if(!$users->APP_UFDBGUARD_INSTALLED){echo "Starting......: ".date("H:i:s")." ufdbGuard is not installed, aborting\n";return;}
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
-	if($EnableRemoteStatisticsAppliance==1){echo "Starting......: It use Statistics appliance, aborting\n";return;}
+	if($EnableRemoteStatisticsAppliance==1){echo "Starting......: ".date("H:i:s")." It use Statistics appliance, aborting\n";return;}
 	if(function_exists('WriteToSyslogMail')){WriteToSyslogMail("build_ufdbguard_smooth() -> reconfigure UfdbGuardd", basename(__FILE__));}
+	
+	echo "Starting......: ".date("H:i:s")." ufdbGuard ". date("Y-m-d H:i:s")."\n";
 	build_ufdbguard_config();
 	build_ufdbguard_HUP();
 }
@@ -160,8 +167,9 @@ function build_ufdbguard_HUP(){
 	$GLOBALS["build_ufdbguard_HUP_EXECUTED"]=true;
 	$unix=new unix();
 	$sock=new sockets();$forceTXT=null;
-	$ufdbguardReloadTTL=$sock->GET_INFO("ufdbguardReloadTTL");
-	if(!is_numeric($ufdbguardReloadTTL)){$ufdbguardReloadTTL=10;}
+	$ufdbguardReloadTTL=intval($sock->GET_INFO("ufdbguardReloadTTL"));
+	if($ufdbguardReloadTTL<1){$ufdbguardReloadTTL=10;}
+	
 	
 	if(function_exists("debug_backtrace")){
 		$trace=@debug_backtrace();
@@ -171,53 +179,66 @@ function build_ufdbguard_HUP(){
 	}
 	$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	
-	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$TIMEZ=$unix->file_time_min($timeFile);
-	
-	
-	
-	if(!$GLOBALS["FORCE"]){
-		if($TIMEZ<$ufdbguardReloadTTL){
-			//squid_admin_mysql(1, "Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TIMEZ}mn","$called\n{$GLOBALS["CMDLINEXEC"]}");
-			ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TIMEZ}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-			echo "Starting......: ufdbGuard reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
-			return;
-		}
-	}else{
-		$forceTXT=" with option FORCE enabled";
+	$timeFile="/etc/artica-postfix/pids/UfdbGuardReload.time";
+	$TimeReload=$unix->file_time_min($timeFile);
+	if($TimeReload<$ufdbguardReloadTTL){
+		$unix->_syslog("ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn", basename(__FILE__));
+		echo "Starting......: ".date("H:i:s")." ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn\n";
+		return;
 	}
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());
 	
-	
-	
-	
+	$pid=ufdbguard_pid();
 	
 	$squidbin=$unix->find_program("squid");
 	if(!is_file($squidbin)){$unix->find_program("squid3");}
 	$ufdbguardd=$unix->find_program("ufdbguardd");
 	if(strlen($ufdbguardd)<5){WriteToSyslogMail("ufdbguardd no such binary", basename(__FILE__));return;}
-	$kill=$unix->find_program("kill");
-	$pid=ufdbguard_pid();
-	if($unix->process_exists($pid)){
-		$TimeProcess=$unix->PROCCESS_TIME_MIN($pid);
-		if(!$GLOBALS["FORCE"]){
-			if($TIMEZ<$TimeProcess){ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$TimeProcess}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");return;}
-		}
+	$kill=$unix->find_program("kill");	
+	
+if($unix->process_exists($pid)){
+		$processTTL=intval($unix->PROCCESS_TIME_MIN($pid));
 		
+		$LastTime=intval($unix->file_time_min($timeFile));
+		
+		echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service TTL {$processTTL}Mn\n";
+		echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Last config since {$LastTime}Mn\n";
+		echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading Max reload {$ufdbguardReloadTTL}Mn\n";
+		
+		if(!$GLOBALS["FORCE"]){
+			echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading force is disabled\n";
+			if($LastTime<$ufdbguardReloadTTL){
+				ufdbguard_admin_events("Asking to reload ufdbguard but last config not reached ({$ufdbguardReloadTTL}mn) current {$LastTime}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn - Current {$LastTime}mn\n";
+				return;
+			}			
+			
+			
+			if($processTTL<$ufdbguardReloadTTL){
+				ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$processTTL}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
+				return;
+			}
+		}
+		if($GLOBALS["FORCE"]){ $forceTXT=" with option FORCE enabled";}
 		@unlink($timeFile);
 		@file_put_contents($timeFile, time());
 		
-		echo "Starting......: ufdbGuard reloading service PID:$pid {$TIMEZ}mn\n";
-		squid_admin_mysql(2, "Reloading Web Filtering service PID: $pid TTL {$TimeProcess}Mn Last reload since {$TIMEZ}mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
+		echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service PID:$pid {$processTTL}mn\n";
+		squid_admin_mysql(2, "Reloading Web Filtering service PID: $pid TTL {$processTTL}Mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
 		WriteToSyslogMail("Asking to reload ufdbguard PID:$pid",basename(__FILE__));
 		ufdbguard_admin_events("Asking to reload ufdbguard$forceTXT - $called - cmdline:{$GLOBALS["EXECUTEDCMDLINE"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		shell_exec("$kill -HUP $pid");
 		return;
-	}
-	echo "Starting......: UfdbGuard reloading service no pid is found, Starting service...\n";
+}
+	
+	
+	echo "Starting......: ".date("H:i:s")." UfdbGuard reloading service no pid is found, Starting service...\n";
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());
 	ufdbguard_start();
-	echo "Starting......: UfdbGuard restarting ufdb-tail process\n";
+	echo "Starting......: ".date("H:i:s")." UfdbGuard restarting ufdb-tail process\n";
 	shell_exec("/etc/init.d/ufdb-tail restart");
 
 }
@@ -231,16 +252,49 @@ function ufdbguard_pid(){
 }
 
 function ufdguard_start_notify(){
-	squid_admin_mysql(2, "Starting Web Filtering engine service by init.d script","");
+	squid_admin_mysql(2, "Starting Web Filtering engine service by init.d script","",__FILE__,__LINE__);
+	$unix=new unix();
+	$fuser=$unix->find_program("fuser");
+	$port=ufdguard_get_listen_port();
+	$results=array();
+	echo "Starting......: ".date("H:i:s")." UfdbGuard Listen on port $port\n";
+	$cmd="$fuser $port/tcp 2>&1";
+	exec("$cmd",$results);
+	echo "Starting......: ".date("H:i:s")." UfdbGuard `$cmd` ". count($results) ." lines.\n";
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#$port\/tcp:(.+)#", $ligne,$re)){
+			$ff=explode(" ", $re[1]);
+			while (list ($index, $ligne2) = each ($ff) ){
+				$ligne2=trim($ligne2);
+				if(!is_numeric($ligne2)){continue;}
+				echo "Starting......: ".date("H:i:s")." UfdbGuard killing PID $ligne2\n";
+				$unix->KILL_PROCESS($ligne2,9);
+			}
+		}
+	}
 }
+
+
+function ufdguard_get_listen_port(){
+	$f=explode("\n",@file_get_contents("/etc/squid3/ufdbGuard.conf"));
+	while (list ($index, $ligne) = each ($f) ){
+		if(preg_match("#^port\s+([0-9]+)#", $ligne,$re)){return $re[1];}
+		
+	}
+	return 3977;
+}
+
+
+
 
 function ufdbguard_start(){
 	$unix=new unix();
 	$sock=new sockets();
+	$nohup=$unix->find_program("nohup");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		echo "Starting......: UfdbGuard Starting service aborted, task pid already running $pid\n";
+		echo "Starting......: ".date("H:i:s")." UfdbGuard Starting service aborted, task pid already running $pid\n";
 		writelogs(basename(__FILE__).":Already executed.. aborting the process",basename(__FILE__),__FILE__,__LINE__);
 		return;
 	}
@@ -250,13 +304,13 @@ function ufdbguard_start(){
 	$pid_path="/var/tmp/ufdbguardd.pid";
 	if(!is_dir("/var/tmp")){@mkdir("/var/tmp",0775,true);}
 	$ufdbguardd_path=$unix->find_program("ufdbguardd");
-	$master_pid=trim(@file_get_contents($pid_path));
+	$master_pid=ufdbguard_pid();
 
 	if(!$unix->process_exists($master_pid)){
 		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("UfdGuard master Daemon seems to not running, trying with pidof", basename(__FILE__));}
 		$master_pid=$unix->PIDOF($ufdbguardd_path);
 		if($unix->process_exists($master_pid)){
-			echo "Starting......: UfdGuard master is running, updating PID file with $master_pid\n";
+			echo "Starting......: ".date("H:i:s")." UfdGuard master is running, updating PID file with $master_pid\n";
 			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("UfdGuard master is running, updating PID file with $master_pid", basename(__FILE__));}
 			@file_put_contents($pid_path,$master_pid);	
 			return;
@@ -270,11 +324,11 @@ function ufdbguard_start(){
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($UseRemoteUfdbguardService==1){$EnableUfdbGuard=0;}
 	if($SQUIDEnable==0){$EnableUfdbGuard=0;}
-	if($EnableUfdbGuard==0){echo "Starting......: Starting UfdGuard master service Aborting, service is disabled\n";return;}
+	if($EnableUfdbGuard==0){echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service Aborting, service is disabled\n";return;}
 	$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 	squid_admin_mysql(2, "Starting Web Filtering engine service","$trace\n{$GLOBALS["CMDLINEXEC"]}");
 	ufdbguard_admin_events("Asking to start ufdbguard $trace",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");	
-	echo "Starting......: Starting UfdGuard master service...\n";
+	echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service...\n";
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service...", basename(__FILE__));}
 	@mkdir("/var/log/ufdbguard",0755,true);
 	@file_put_contents("/var/log/ufdbguard/ufdbguardd.log", "#");
@@ -282,20 +336,26 @@ function ufdbguard_start(){
 	@chgrp("/var/log/ufdbguard/ufdbguardd.log", "squid");	
 	
 	
-	exec("/etc/init.d/ufdb start 2>&1",$results);
-	sleep(5);
+	shell_exec("$nohup /etc/init.d/ufdb start >/dev/null 2>&1 &");
 	
-	echo "Starting......: Starting UfdGuard master init.d ufdb done...\n";
-	$master_pid=trim(@file_get_contents($pid_path));
-	if(!$unix->process_exists($master_pid)){
-		echo "Starting......: Starting UfdGuard master service failed...\n";
-		squid_admin_mysql(0, "Starting Web Filtering engine service failed","$trace\n{$GLOBALS["CMDLINEXEC"]}\n".@implode("\n", $results));
-		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service failed...", basename(__FILE__));}
-	}else{
-		echo "Starting......: Starting UfdGuard master success pid $master_pid...\n";
+	for($i=1;$i<5;$i++){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Starting UfdGuard  waiting $i/5\n";}
+		sleep(1);
+		$pid=ufdbguard_pid();
+		if($unix->process_exists($pid)){break;}
 	}
 	
-	echo "Starting......: Starting UfdGuard master ufdbguard_start() function done\n";
+	echo "Starting......: ".date("H:i:s")." Starting UfdGuard master init.d ufdb done...\n";
+	$master_pid=ufdbguard_pid();
+	if(!$unix->process_exists($master_pid)){
+		echo "Starting......: ".date("H:i:s")." Starting UfdGuard master service failed...\n";
+		squid_admin_mysql(0, "Starting Web Filtering engine service failed","$trace\n{$GLOBALS["CMDLINEXEC"]}\n");
+		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting UfdGuard master service failed...", basename(__FILE__));}
+	}else{
+		echo "Starting......: ".date("H:i:s")." Starting UfdGuard master success pid $master_pid...\n";
+	}
+	
+	echo "Starting......: ".date("H:i:s")." Starting UfdGuard master ufdbguard_start() function done\n";
 	
 }
 
@@ -314,21 +374,21 @@ function checksVersion(){
 		}
 	}
 	
-	echo "Starting......: Starting UfdGuard binary version $version\n";
+	echo "Starting......: ".date("H:i:s")." Starting UfdGuard binary version $version\n";
 	if($version<130){$mustcompile=true;}
 	
 	
 	if(!$mustcompile){
 		$binadate=filemtime($ufdbguardd);
 		$fileatime=fileatime($ufdbguardd);
-		echo "Starting......: Starting UfdGuard version date $binadate (".date("Y-m-d",$binadate).")\n";
+		echo "Starting......: ".date("H:i:s")." Starting UfdGuard version date $binadate (".date("Y-m-d",$binadate).")\n";
 		if($binadate<1358240994){
 			$mustcompile=true;
 		}
 	}
 	
 	if($mustcompile){
-		echo "Starting......: Starting UfdGuard must be updated !!\n";
+		echo "Starting......: ".date("H:i:s")." Starting UfdGuard must be updated !!\n";
 		shell_exec("/usr/share/artica-postfix/bin/artica-make APP_UFDBGUARD");
 	}
 	
@@ -338,6 +398,8 @@ function checksVersion(){
 function build_ufdbguard_config(){
 	checksVersion();
 	$sock=new sockets();
+	$DenyUfdbWriteConf=$sock->GET_INFO("DenyUfdbWriteConf");
+	if(!is_numeric($DenyUfdbWriteConf)){$DenyUfdbWriteConf=0;}
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
 	if($EnableRemoteStatisticsAppliance==1){return;}	
@@ -369,10 +431,11 @@ function build_ufdbguard_config(){
 		@file_put_contents("/usr/share/artica-postfix/ressources/databases/ufdbGuard.conf",$datas);
 	}
 
-	
-	@file_put_contents("/etc/ufdbguard/ufdbGuard.conf",$datas);
-	@file_put_contents("/etc/squid3/ufdbGuard.conf",$datas);
-	$sock->TOP_NOTIFY("{webfiltering_parameters_was_saved}");
+	if($DenyUfdbWriteConf==0){
+		@file_put_contents("/etc/ufdbguard/ufdbGuard.conf",$datas);
+		@file_put_contents("/etc/squid3/ufdbGuard.conf",$datas);
+		$sock->TOP_NOTIFY("{webfiltering_parameters_was_saved}");
+	}
 	shell_exec("$chmod 755 /etc/squid3/ufdbGuard.conf");
 	shell_exec("$chmod -R 755 /etc/squid3/ufdbGuard.conf");
 	shell_exec("$chmod -R 755 /etc/ufdbguard");	
@@ -458,13 +521,13 @@ function remove_bad_files(){
 	while (list ($directory, $b) = each ($dirs)){
 		$dirname=basename($directory);
 		if(is_link("$directory/$dirname")){
-			echo "Starting......: UfdBguard removing $dirname/$dirname bad file\n";
+			echo "Starting......: ".date("H:i:s")." UfdBguard removing $dirname/$dirname bad file\n";
 			@unlink("$directory/$dirname");
 		}
 	}
 	
 	
-	echo "Starting......: UfdBguard removing bad files done...\n";
+	echo "Starting......: ".date("H:i:s")." UfdBguard removing bad files done...\n";
 }
 
 
@@ -477,6 +540,7 @@ function build(){
 	if($EnableRemoteStatisticsAppliance==1){return;}	
 	send_email_events("Order to rebuild filters configuration",@implode("\nParams:",$argv),"proxy");
 	$funtion=__FUNCTION__;
+	if($GLOBALS["VERBOSE"]){echo "$funtion::".__LINE__." Loading libraries\n";}
 	$users=new usersMenus();
 	$sock=new sockets();
 	$unix=new unix();
@@ -491,23 +555,39 @@ function build(){
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid");}
+	$EnableUfdbGuard=$sock->EnableUfdbGuard();
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	
 	if($GLOBALS["VERBOSE"]){echo "DEBUG::$funtion:: EnableWebProxyStatsAppliance=$EnableWebProxyStatsAppliance\n";}
 	if($GLOBALS["VERBOSE"]){echo "DEBUG::$funtion:: EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance\n";}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG::$funtion:: EnableUfdbGuard=$EnableUfdbGuard\n";}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG::$funtion:: SQUIDEnable=$SQUIDEnable\n";}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG::$funtion:: UseRemoteUfdbguardService=$UseRemoteUfdbguardService\n";}
+	
+
 	
 	$GLOBALS["SQUIDBIN"]=$squidbin;	
 	if($EnableWebProxyStatsAppliance==0){
 		$installed=false;
-		if($users->SQUIDGUARD_INSTALLED){$installed=true;echo "Starting......: SquidGuard is installed\n";}
-		if($users->APP_UFDBGUARD_INSTALLED){$installed=true;echo "Starting......: UfdBguard is installed\n";}
-		if($users->DANSGUARDIAN_INSTALLED){$installed=true;echo "Starting......: Dansguardian is installed\n";}
+		if($users->SQUIDGUARD_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." SquidGuard is installed\n";}
+		if($users->APP_UFDBGUARD_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." UfdBguard is installed\n";}
+		if($users->DANSGUARDIAN_INSTALLED){$installed=true;echo "Starting......: ".date("H:i:s")." Dansguardian is installed\n";}
 		if(!$installed){if($GLOBALS["VERBOSE"]){echo "No one installed...\n";
 		shell_exec("$nohup ".LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.usrmactranslation.php >/dev/null 2>&1 &");
 		return false;}}
 		
 	}
 	
+	
+	if($EnableUfdbGuard==0){if($GLOBALS["VERBOSE"]){echo "UfDbguard is disabled ( see EnableUfdbGuard ) in line: ". __LINE__."\n";}return;}	
+	if($SQUIDEnable==0){if($GLOBALS["VERBOSE"]){echo "UfDbguard is disabled ( see SQUIDEnable ) in line: ". __LINE__."\n";}return;}
+	if($UseRemoteUfdbguardService==1){if($GLOBALS["VERBOSE"]){echo "UfDbguard is disabled ( see UseRemoteUfdbguardService ) in line: ". __LINE__."\n";}return;}
+	
+	if($GLOBALS["VERBOSE"]){echo "FIX_1_CATEGORY_CHECKED()\n";}
 	FIX_1_CATEGORY_CHECKED();
 	
 	if($EnableRemoteStatisticsAppliance==1){
@@ -517,16 +597,19 @@ function build(){
 		return;
 	}		
 
+	
+	if($GLOBALS["VERBOSE"]){echo "$funtion::".__LINE__."Loading compile_dansguardian()\n";}
 	$dans=new compile_dansguardian();
+	if($GLOBALS["VERBOSE"]){echo "$funtion::".__LINE__."Loading compile_dansguardian::->build()\n";}
 	$dans->build();
-	echo "Starting......: Dansguardian compile done...\n";	
+	echo "Starting......: ".date("H:i:s")." Dansguardian compile done...\n";	
 	if(function_exists('WriteToSyslogMail')){WriteToSyslogMail("build() -> reconfigure UfdbGuardd", basename(__FILE__));}
 	build_ufdbguard_config();
 	ufdbguard_schedule();
 	
 	
 	if($EnableWebProxyStatsAppliance==1){
-		echo "Starting......: This server is a Squid Appliance, compress databases and notify proxies\n";
+		echo "Starting......: ".date("H:i:s")." This server is a Squid Appliance, compress databases and notify proxies\n";
 		CompressCategories();	
 		notify_remote_proxys();
 	}
@@ -536,21 +619,30 @@ function build(){
 	ufdbguard_admin_events("Service will be rebuiled and restarted",__FUNCTION__,__FILE__,__LINE__,"config");
 	shell_exec("$nohup ".LOCATE_PHP5_BIN2()." ".dirname(__FILE__)."/exec.usrmactranslation.php >/dev/null 2>&1 &");
 	
-	if(is_file("/etc/init.d/ufdb")){
-		echo "Starting......: Checking watchdog\n";
-		ufdbguard_watchdog();
-		echo "Starting......: ufdbGuard reloading service\n";
-		build_ufdbguard_HUP();
+	if(!$GLOBALS["RESTART"]){
+		if(is_file("/etc/init.d/ufdb")){
+			echo "Starting......: ".date("H:i:s")." Checking watchdog\n";
+			ufdbguard_watchdog();
+			echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service\n";
+			build_ufdbguard_HUP();
+		}
+	}
+	
+	if($GLOBALS["RESTART"]){
+		if(is_file("/etc/init.d/ufdb")){
+			echo "Starting......: ".date("H:i:s")." Restarting\n";
+			shell_exec("/etc/init.d/ufdb restart");
+		}
 	}
 	
 	if($users->DANSGUARDIAN_INSTALLED){
-		echo "Starting......: Dansguardian reloading service\n";
+		echo "Starting......: ".date("H:i:s")." Dansguardian reloading service\n";
 		shell_exec("/usr/share/artica-postfix/bin/artica-install --reload-dansguardian --withoutconfig");
 	}
 	
 	if(is_file($GLOBALS["SQUIDBIN"])){
 		if(function_exists('WriteToSyslogMail')){WriteToSyslogMail("build() -> Reloading Squid service", basename(__FILE__));}
-		echo "Starting......: Squid reloading service\n";
+		echo "Starting......: ".date("H:i:s")." Squid reloading service\n";
 		shell_exec("$nohup $php5 ". basename(__FILE__)."/exec.squid.php --reconfigure-squid >/dev/null 2>&1");
 	}
 	
@@ -575,81 +667,8 @@ if(preg_match("#^(.+?)\s+.+?#",$data,$re)){return trim($re[1]);}
 }
 
 function ufdbguard_watchdog_remove(){
-	$unix=new unix();
-	$monitbin=$unix->find_program("monit");
-	$nohup=$unix->find_program("nohup");	
-	$monit_file="/etc/monit/conf.d/ufdb.monitrc";
-	$files[]="/usr/sbin/ufdb-monit-start";
-	$files[]="/usr/sbin/ufdb-monit-stop";
-	$files[]=$monit_file;
-	$configured=false;
-	while (list ($a, $b) = each ($files)){
-		if(is_file($b)){
-			@unlink($b);
-			$configured=true;
-		}
-	}	
-	
-	if($configured){shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --monit-check >/dev/null 2>&1 &");}
 }
-
-
 function ufdbguard_watchdog(){
-	$unix=new unix();
-	$monitbin=$unix->find_program("monit");
-	$nohup=$unix->find_program("nohup");
-	$chown=$unix->find_program("chown");
-	$chmod=$unix->find_program("chmod");		
-	if(!is_file($monitbin)){return;}
-	if(!is_file("/etc/init.d/ufdb")){ufdbguard_watchdog_remove();return;}
-	$sock=new sockets();
-	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
-	$EnableUfdbGuard=$sock->EnableUfdbGuard();
-	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
-	if($SQUIDEnable==0){$EnableUfdbGuard=0;}
-	if($EnableUfdbGuard==0){ufdbguard_watchdog_remove();return;}
-	
-	
-	$monit_file="/etc/monit/conf.d/ufdb.monitrc";
-	$files[]="/usr/sbin/ufdb-monit-start";
-	$files[]="/usr/sbin/ufdb-monit-stop";
-	$files[]=$monit_file;
-	$configured=true;
-	while (list ($a, $b) = each ($files)){
-		if(!is_file($b)){$configured=false;}
-	}
-	
-	if(!$GLOBALS["RELOAD"]){
-		if($configured){return;}
-	}	
-	
-		$pidfile="/var/tmp/ufdbguardd.pid";
-		echo "Starting......: ufdbguard Monit is enabled check pid `$pidfile`\n";
-		$f[]="check process ufdb";
-   		$f[]="with pidfile $pidfile";
-   		$f[]="start program = \"/usr/sbin/ufdb-monit-start\"";
-   		$f[]="stop program =  \"/usr/sbin/ufdb-monit-stop\"";
-		$f[]="if totalmem > 700 MB for 5 cycles then alert";
-   		$f[]="if cpu > 95% for 5 cycles then alert";
-   		$f[]="if 5 restarts within 5 cycles then timeout";
- 	    @file_put_contents($monit_file, @implode("\n", $f));	
-
- 	   $f=array();
-	   $f[]="#!/bin/sh";
-	   $f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-	   $f[]=$unix->LOCATE_PHP5_BIN()." ".__FILE__." --ufdbguard-start";
-	   $f[]="exit 0\n";
- 	   @file_put_contents("/usr/sbin/ufdb-monit-start", @implode("\n", $f));
- 	   shell_exec("$chmod 777 /usr/sbin/ufdb-monit-start");
-	   $f=array();
-	   $f[]="#!/bin/sh";
-	   $f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-	   $f[]="/etc/init.d/ufdb stop";
-	   $f[]="exit 0\n";
- 	   @file_put_contents("/usr/sbin/ufdb-monit-stop", @implode("\n", $f));
- 	   shell_exec("$chmod 777 /usr/sbin/ufdb-monit-stop");	    	    
-	   shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --monit-check >/dev/null 2>&1 &");
 }
 
 function dump_adrules($ruleid){
@@ -986,7 +1005,7 @@ function KillSquidGuardInstances(){
 		exec("$pidof $users->SQUIDGUARD_BIN_PATH 2>&1",$results);
 		$pids=trim(@implode(" ",$results));
 		if(strlen($pids)>3){
-			echo "Starting......: squidGuard kill $pids PIDs\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard kill $pids PIDs\n";
 			shell_exec("/bin/kill $pids");
 		}
 		
@@ -1007,15 +1026,15 @@ function compile_databases(){
 	
 	if( count($array)>0){
 		while (list ($index, $file) = each ($array)){
-			echo "Starting......: squidGuard compiling ". count($array)." databases\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard compiling ". count($array)." databases\n";
 			$file=str_replace(".db",'',$file);
 			$textfile=str_replace("/var/lib/squidguard/","",$file);
-			echo "Starting......: squidGuard compiling $textfile database ".($index+1) ."/". count($array)."\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard compiling $textfile database ".($index+1) ."/". count($array)."\n";
 			if($GLOBALS["VERBOSE"]){$verb=" -d";echo $users->SQUIDGUARD_BIN_PATH." $verb -C $file\n";}
 			system($users->SQUIDGUARD_BIN_PATH." -P$verb -C $file");
 		}
 	}else{
-		echo "Starting......: squidGuard compiling all databases\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard compiling all databases\n";
 		if($GLOBALS["VERBOSE"]){$verb=" -d";echo $users->SQUIDGUARD_BIN_PATH." $verb -C all\n";}
 		system($users->SQUIDGUARD_BIN_PATH." -P$verb -C all");
 	}
@@ -1361,7 +1380,9 @@ function parseTemplate_SinglePassWord(){
 	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/cookies.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/default.js\"></script>    
   	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/endusers/js/jquery-1.8.0.min.js\"></script>
-  	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js\"></script>    
+  	<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js\"></script>
+  	<script type='text/javascript' language='javascript' src='{$GLOBALS["JS_HEAD_PREPREND"]}/js/jquery.uilock.min.js'></script>
+  	<script type='text/javascript' language='javascript' src='{$GLOBALS["JS_HEAD_PREPREND"]}/js/jquery.blockUI.js'></script>      
    <style type=\"text/css\">
      body {
         padding-top: 40px;
@@ -1505,6 +1526,14 @@ function parseTemplate_categoryname($category,$license=0,$nosuffix=0){
 		}
 		return $category;
 	}
+	
+function hostfrom_url($url){
+	$URL_ARRAY=parse_url($url);
+	$src_hostname=$URL_ARRAY["host"];
+	if(preg_match("#^www.(.+)#", $src_hostname,$re)){$src_hostname=$re[1];}
+	if(preg_match("#^(.+?):[0-9]+#", $src_hostname,$re)){$src_hostname=$re[1];}
+	return $src_hostname;
+}
 
 
 function parseTemplate(){
@@ -1515,6 +1544,7 @@ function parseTemplate(){
 	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 	$sock=new sockets();
 	$users=new usersMenus();
+	//$q=new mysql_squid_builder();
 	$UfdbGuardRedirectCategories=unserialize(base64_decode($sock->GET_INFO("UfdbGuardRedirectCategories")));
 	$SquidGuardWebFollowExtensions=$sock->GET_INFO("SquidGuardWebFollowExtensions");
 	$SquidGuardWebAllowUnblock=$sock->GET_INFO("SquidGuardWebAllowUnblock");
@@ -1522,6 +1552,7 @@ function parseTemplate(){
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
 	$SquidGuardWebUseLocalDatabase=$sock->GET_INFO("SquidGuardWebUseLocalDatabase");
+	$SquidGuardWebBlankReferer=intval($sock->GET_INFO("SquidGuardWebBlankReferer"));
 	
 	if(!is_numeric($SquidGuardWebAllowUnblock)){$SquidGuardWebAllowUnblock=0;}
 	if(!is_numeric($SquidGuardWebFollowExtensions)){$SquidGuardWebFollowExtensions=1;}
@@ -1530,6 +1561,26 @@ function parseTemplate(){
 	$TARGET_GROUP_SOURCE=$_GET["targetgroup"];
 	
 	$proto="http";
+	
+	$QUERY_STRING=$_SERVER["QUERY_STRING"];
+	$HTTP_REFERER=$_SERVER["HTTP_REFERER"];
+	$url=$_GET["url"];
+	
+	$URL_HOST=hostfrom_url($url);
+	$HTTP_REFERER_HOST=hostfrom_url($HTTP_REFERER);
+	
+	if($SquidGuardWebBlankReferer==1){
+		if($URL_HOST<>$HTTP_REFERER_HOST){
+			$data="<html><head></head><body></body></html>";
+			header("Content-Length: ".strlen($data));
+			header("Content-Type: text/html");
+			echo $data;
+			die();
+		}
+	}
+	
+	
+	
 
 	if (isset($_SERVER['HTTPS'])){if (strtolower($_SERVER['HTTPS']) == 'on'){$proto="https";}}
 	
@@ -1590,6 +1641,9 @@ function parseTemplate(){
 	$REASONGIVEN="Web filtering $_CATEGORIES_K";
 	
 	parseTemplateLogs("{$REASONGIVEN}: _CATEGORIES_K=`$_CATEGORIES_K` _RULE_K=$_RULE_K` LICENSE:$LICENSE",__FUNCTION__,__FILE__,__LINE__);
+	$IpToUid=null;
+	//$IpToUid=$q->IpToUid($_GET["clientaddr"]);
+	if($IpToUid<>null){$IpToUid="&nbsp;($IpToUid)";}
 	
 	if($LICENSE==1){
 		if($CATEGORY_KEY<>null){
@@ -1606,7 +1660,7 @@ function parseTemplate(){
 					header('Content-Type: text/html; charset=iso-8859-1');
 					$TemplateErrorFinal=$RedirectCategory["template_data"];
 					$TemplateErrorFinal=str_replace("-URL-",$_GET["url"],$TemplateErrorFinal);
-					$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"],$TemplateErrorFinal);
+					$TemplateErrorFinal=str_replace("-IP-",$_GET["clientaddr"].$IpToUid,$TemplateErrorFinal);
 					$TemplateErrorFinal=str_replace("-REASONGIVEN-","REASON:$REASONGIVEN",$TemplateErrorFinal);
 					$TemplateErrorFinal=str_replace("-CATEGORIES-","<strong>Category:$_CATEGORIES_K:</strong><div>Rule:{$_GET["targetgroup"]}</div>",$TemplateErrorFinal);
 					$TemplateErrorFinal=str_replace("-REASONLOGGED-","<strong>Rule:&nbsp;</strong>$_RULE_K",$TemplateErrorFinal);
@@ -1768,7 +1822,7 @@ function GetSquidUser(){
 	$squidconf=$unix->SQUID_CONFIG_PATH();
 	$group=null;
 	if(!is_file($squidconf)){
-		echo "Starting......: squidGuard unable to get squid configuration file\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard unable to get squid configuration file\n";
 		return "squid:squid";
 	}
 	
@@ -1793,7 +1847,8 @@ function GetSquidUser(){
 function ParseDirectory($path){
 	if(!is_dir($path)){echo "$path No such directory\n";return;}
 	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$unix=new unix();
+	$uuid=$unix->GetUniqueID();
 	if($uuid==null){echo "No uuid\n";return;}	
 	$handle=opendir($path);
 	$q=new mysql_squid_builder();
@@ -2105,7 +2160,8 @@ function inject($category,$table=null,$file=null){
 	if(!is_file($file)){echo "$file no such file";return;}
 		
 	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$unix=new unix();
+	$uuid=$unix->GetUniqueID();
 	if($uuid==null){echo "No uuid\n";return;}
 	echo "open $file\n";
 	
@@ -2138,6 +2194,7 @@ function inject($category,$table=null,$file=null){
 		if(strpos($www, "{")>0){echo "FALSE: $www\n";continue;}
 		if(strpos($www, "(")>0){echo "FALSE: $www\n";continue;}
 		if(strpos($www, ")")>0){echo "FALSE: $www\n";continue;}
+		if(strpos($www, "%")>0){echo "FALSE: $www\n";continue;}
 		
 		$md5=md5($www.$category);
 		$n[]="('$md5',NOW(),'$category','$www','$uuid')";
@@ -2316,7 +2373,7 @@ function BuildMissingUfdBguardDBS($all=false,$output=false){
 		
 	}
 	
-	echo "Starting......: ufdbGuard ". count($Narray)." database(s) must be compiled\n";
+	echo "Starting......: ".date("H:i:s")." ufdbGuard ". count($Narray)." database(s) must be compiled\n";
 	if(!$all){
 		@file_put_contents("/usr/share/artica-postfix/ressources/logs/ufdbguard.db.status.txt",serialize($Narray));
 		chmod("/usr/share/artica-postfix/ressources/logs/ufdbguard.db.status.txt",777);
@@ -2378,9 +2435,9 @@ function DisksStatus($aspid=false){
 			
 		$sql="CREATE TABLE IF NOT EXISTS `webfilters_dbstats` (
 				  `category` varchar(128) NOT NULL PRIMARY KEY,
-				  `articasize` BIGINT(100) NOT NULL,
-				  `unitoulouse` BIGINT(100) NOT NULL,
-				  `persosize` bigint(100)  NOT NULL,
+				  `articasize` BIGINT UNSIGNED NOT NULL,
+				  `unitoulouse` BIGINT UNSIGNED NOT NULL,
+				  `persosize` BIGINT UNSIGNED  NOT NULL,
 				  KEY `articasize` (`articasize`),KEY `unitoulouse` (`unitoulouse`), KEY `persosize` (`persosize`) )  ENGINE = MYISAM;"; $q->QUERY_SQL($sql);
 			
 	}	
@@ -2487,22 +2544,22 @@ function ufdbguard_recompile_missing_dbs(){
 		$table=$ligne["c"];
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
-		echo "Starting......: ufdbGuard $table -> $categoryname\n";
+		echo "Starting......: ".date("H:i:s")." ufdbGuard $table -> $categoryname\n";
 		if(!is_file("/var/lib/squidguard/$categoryname/domains")){
 			@mkdir("/var/lib/squidguard/$categoryname",0755,true);
 			$sql="SELECT LOWER(pattern) FROM {$ligne["c"]} WHERE enabled=1 AND pattern REGEXP '[a-zA-Z0-9\_\-]+\.[a-zA-Z0-9\_\-]+' ORDER BY pattern INTO OUTFILE '$table.temp' FIELDS OPTIONALLY ENCLOSED BY 'n'";
 			$q->QUERY_SQL($sql);
 			if(!is_file("$MYSQL_DATA_DIR/squidlogs/$table.temp")){
-				echo "Starting......: ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp no such file\n";
+				echo "Starting......: ".date("H:i:s")." ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp no such file\n";
 				continue;
 			}
-			echo "Starting......: ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp done...\n";
+			echo "Starting......: ".date("H:i:s")." ufdbGuard $MYSQL_DATA_DIR/squidlogs/$table.temp done...\n";
 			@copy("$MYSQL_DATA_DIR/squidlogs/$table.temp", "/var/lib/squidguard/$categoryname/domains");	
 			@unlink("$MYSQL_DATA_DIR/squidlogs/$table.temp");
-			echo "Starting......: ufdbGuard UFDBGUARD_COMPILE_SINGLE_DB(/var/lib/squidguard/$categoryname/domains)\n";
+			echo "Starting......: ".date("H:i:s")." ufdbGuard UFDBGUARD_COMPILE_SINGLE_DB(/var/lib/squidguard/$categoryname/domains)\n";
 			UFDBGUARD_COMPILE_SINGLE_DB("/var/lib/squidguard/$categoryname/domains");					
 		}else{
-			echo "Starting......: ufdbGuard /var/lib/squidguard/$categoryname/domains OK\n";
+			echo "Starting......: ".date("H:i:s")." ufdbGuard /var/lib/squidguard/$categoryname/domains OK\n";
 			
 		}
 		
@@ -2511,7 +2568,7 @@ function ufdbguard_recompile_missing_dbs(){
 	}
 	build();
 	if(is_file("/etc/init.d/ufdb")){
-		echo "Starting......: ufdbGuard reloading service\n";
+		echo "Starting......: ".date("H:i:s")." ufdbGuard reloading service\n";
 		ufdbguard_admin_events("Service will be reloaded",__FUNCTION__,__FILE__,__LINE__,"config");
 		build_ufdbguard_HUP();
 	}
@@ -2544,7 +2601,7 @@ function ufdbguard_schedule(){
 	if(!is_numeric($UfdbGuardSchedule["EnableSchedule"])){$UfdbGuardSchedule["EnableSchedule"]=1;}
 	if($UfdbGuardSchedule["EnableSchedule"]==0){
 		@unlink($cronfile);
-		echo "Starting......: ufdbGuard recompile all databases is not scheduled\n";
+		echo "Starting......: ".date("H:i:s")." ufdbGuard recompile all databases is not scheduled\n";
 		return;
 	}
 	if(!is_numeric($UfdbGuardSchedule["H"])){$UfdbGuardSchedule["H"]=5;}
@@ -2553,15 +2610,18 @@ function ufdbguard_schedule(){
 	$f[]="{$UfdbGuardSchedule["H"]} {$UfdbGuardSchedule["M"]} * * * root ".$unix->LOCATE_PHP5_BIN()." ".__FILE__." --ufdbguard-recompile-dbs >/dev/null 2>&1"; 
 	$f[]="";
 	@file_put_contents($cronfile,@implode("\n",$f) );	
-	echo "Starting......: ufdbGuard recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}\n";
+	echo "Starting......: ".date("H:i:s")." ufdbGuard recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}\n";
 	//events_ufdb_tail("ufdbGuard recompile all databases each day at {$UfdbGuardSchedule["H"]}:{$UfdbGuardSchedule["M"]}",__LINE__);
 }
 
 function UFDBGUARD_COMPILE_CATEGORY($category){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
-	if($EnableRemoteStatisticsAppliance==1){return;}	
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}	
+	if($EnableRemoteStatisticsAppliance==1){return;}
+	if($UseRemoteUfdbguardService==1){return;}	
 	$unix=new unix();
 	if($GLOBALS["VERBOSE"]){
 		$ufdbguardd=$unix->find_program("ufdbguardd");
@@ -2588,7 +2648,7 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	
 	if($EnableWebProxyStatsAppliance==1){
-		echo "Starting......: This server is a Squid Appliance, compress databases and notify proxies\n";
+		echo "Starting......: ".date("H:i:s")." This server is a Squid Appliance, compress databases and notify proxies\n";
 		CompressCategories();	
 		notify_remote_proxys();
 	}	
@@ -2596,8 +2656,14 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 
 function UFDBGUARD_COMPILE_ALL_CATEGORIES(){
 	$sock=new sockets();
+	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}	
+	if($EnableRemoteStatisticsAppliance==1){return;}
+	if($UseRemoteUfdbguardService==1){return;}		
+	
 	if($EnableRemoteStatisticsAppliance==1){
 		ufdbguard_admin_events("Compilation task aborted this server is a Web statistics client.",__FUNCTION__,__FILE__,__LINE__,"global-compile");
 		return;
@@ -2813,7 +2879,7 @@ function Dansguardian_remote(){
 		shell_exec($cmd);
 		
 		if($users->DANSGUARDIAN_INSTALLED){
-			echo "Starting......: Dansguardian reloading service\n";
+			echo "Starting......: ".date("H:i:s")." Dansguardian reloading service\n";
 			shell_exec("/usr/share/artica-postfix/bin/artica-install --reload-dansguardian --withoutconfig");
 		}		
 		
@@ -2846,24 +2912,19 @@ function ufdbguard_remote(){
 	$GLOBALS["REMOTE_SPORT"]=$RemoteStatisticsApplianceSettings["PORT"];
 	$GLOBALS["REMOTE_SSL"]=$RemoteStatisticsApplianceSettings["SSL"];
 	if($GLOBALS["REMOTE_SSL"]==1){$refix="https";}else{$refix="http";}
+	$DenyUfdbWriteConf=$sock->GET_INFO("DenyUfdbWriteConf");
+	if(!is_numeric($DenyUfdbWriteConf)){$DenyUfdbWriteConf=0;}
 	$baseUri="$refix://{$GLOBALS["REMOTE_SSERVER"]}:{$GLOBALS["REMOTE_SPORT"]}/ressources/databases";
-	$uri="$baseUri/ufdbGuard.conf";
-	$curl=new ccurl($uri,true);
-	if($curl->GetFile("/tmp/ufdbGuard.conf")){
-		@file_put_contents("/etc/ufdbguard/ufdbGuard.conf", @file_get_contents("/tmp/ufdbGuard.conf"));
-		@file_put_contents("/etc/squid3/ufdbGuard.conf", @file_get_contents("/tmp/ufdbGuard.conf"));
-	}else{
-		ufdbguard_admin_events("Failed to download ufdbGuard.conf aborting `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"global-compile");			
-	}
 	
-	
-	$uri="$baseUri/ufdbGuard.conf";
-	$curl=new ccurl($uri,true);
-	if($curl->GetFile("/tmp/ufdbGuard.conf")){
-		@file_put_contents("/etc/ufdbguard/ufdbGuard.conf", @file_get_contents("/tmp/ufdbGuard.conf"));
-		@file_put_contents("/etc/squid3/ufdbGuard.conf", @file_get_contents("/tmp/ufdbGuard.conf"));
-	}else{
-		ufdbguard_admin_events("Failed to download ufdbGuard.conf aborting `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"global-compile");			
+	if($DenyUfdbWriteConf==0){
+		$uri="$baseUri/ufdbGuard.conf";
+		$curl=new ccurl($uri,true);
+		if($curl->GetFile("/tmp/ufdbGuard.conf")){
+			@file_put_contents("/etc/ufdbguard/ufdbGuard.conf", @file_get_contents("/tmp/ufdbGuard.conf"));
+			@file_put_contents("/etc/squid3/ufdbGuard.conf", @file_get_contents("/tmp/ufdbGuard.conf"));
+		}else{
+			ufdbguard_admin_events("Failed to download ufdbGuard.conf aborting `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"global-compile");			
+		}
 	}
 
 	$uri="$baseUri/blacklist.tar.gz";
@@ -2901,7 +2962,7 @@ function ufdbguard_remote(){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	if(is_file($GLOBALS["SQUIDBIN"])){
-		echo "Starting......: Squid reloading service\n";
+		echo "Starting......: ".date("H:i:s")." Squid reloading service\n";
 		shell_exec("$nohup $php5 ". basename(__FILE__)."/exec.squid.php --reconfigure-squid >/dev/null 2>&1");
 	}	
 	
@@ -2919,7 +2980,7 @@ function ufdbguard_remote(){
 
 function events_ufdb_exec($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/ufdbguard-compilator.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
@@ -2933,7 +2994,7 @@ function events_ufdb_exec($text){
 
 function events_ufdb_tail($text,$line=0){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/ufdbguard-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
@@ -3120,7 +3181,7 @@ function ufdbdatabases_in_mem(){
 		if(strlen($idbin)<3){echo "Starting URLfilterDB: tmpfs `id` no such binary\n";return;}
 		if(strlen($mount)<3){echo "Starting URLfilterDB: tmpfs `mount` no such binary\n";return;}
 		exec("$idbin squid 2>&1",$results);
-		if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......:MySQL mysql no such user...\n";return;}
+		if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......: ".date("H:i:s")."MySQL mysql no such user...\n";return;}
 		$uid=$re[1];
 		$gid=$re[2];
 		echo "Starting URLfilterDB: tmpfs uid/gid =$uid:$gid for {$total}M\n";
@@ -3181,7 +3242,7 @@ function stop_ufdbguard($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -3191,7 +3252,7 @@ function stop_ufdbguard($aspid=false){
 	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		return;
 	}
 	$pid=ufdbguard_pid();
@@ -3202,37 +3263,54 @@ function stop_ufdbguard($aspid=false){
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=ufdbguard_pid();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 	
 	$pid=ufdbguard_pid();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		return;
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=ufdbguard_pid();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 	
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 
 }
 
+function ufdguard_artica_db_status(){
+	$unix=new unix();
+	$mainpath="/var/lib/ufdbartica";
+	
+	
+	$mainpath_size=$unix->DIRSIZE_BYTES($mainpath);
+	
+	$array["SIZE"]=$mainpath_size;
+	if(is_file("$mainpath/category_porn/domains.ufdb")){
+		$date=filemtime("$mainpath/category_porn/domains.ufdb");
+		$array["DATE"]=$date;
+	}else{
+		$array["DATE"]=0;
+	}
+	@file_put_contents("/etc/artica-postfix/ARTICA_WEBFILTER_DB_STATUS", serialize($array));
+	
+}
 
 
 

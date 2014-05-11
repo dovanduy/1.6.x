@@ -1,4 +1,5 @@
 <?php
+$GLOBALS["KILL"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){
 	echo "VERBOSED\n";
 	$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;
@@ -9,6 +10,7 @@ $GLOBALS["FORCE"]=false;
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--kill#",implode(" ",$argv),$re)){$GLOBALS["KILL"]=true;}
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
@@ -40,39 +42,97 @@ function ZARAFADB_PID(){
 
 }
 
-function start(){
+//##############################################################################
+function restart($nopid=false){
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/zarafa-server-starter.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$php=$unix->LOCATE_PHP5_BIN();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	if(!$nopid){
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+	}
+	@file_put_contents($pidfile, getmypid());
+	stop(true);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server reconfiguring\n";}
+	
+	shell_exec("$php /usr/share/artica-postfix/exec.zarafa.build.stores.php --ldap-config");
+	shell_exec("/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure >/dev/null 2>&1");
+	start(true);
+}
+//##############################################################################
+
+function start($aspid=false){
+	$unix=new unix();
 	$sock=new sockets();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	
+	$pidfile="/etc/artica-postfix/pids/zarafa-server-starter.pid";
+	$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
+	$PidLock="/etc/artica-postfix/LOCK_ZARAFA";
+	
+	$oldpid=$unix->get_pid_from_file($PidRestore);
+	if($unix->process_exists($oldpid)){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Artica Restore running PID $oldpid since {$time}mn\n";}
 		return;
 	}
-
+	
+	if(!$aspid){
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+	}
 	@file_put_contents($pidfile, getmypid());
 	$serverbin=$unix->find_program("zarafa-server");
 
 
 	if(!is_file($serverbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine is not installed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine is not installed...\n";}
 		return;
 	}
+	
+	if(is_file($PidLock)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server !! Locked !! ( $PidLock ) aborting...\n";}
+		return;
+	}
+	
 	
 	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
 	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
 	if(!$unix->process_exists($oldpid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine OpenLDAP server is not running start it...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine OpenLDAP server is not running start it...\n";}
 		shell_exec("/etc/init.d/slapd start");
 		return;
 	}
 
 		
 	if(!$unix->process_exists($oldpid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine Failed, OpenLDAP server is not running...\n";}		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Failed, OpenLDAP server is not running...\n";}		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine OpenLDAP server is running...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine OpenLDAP server is running...\n";}
+	}
+	
+	if(!is_file("/usr/lib/libmapi.so")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server fix /usr/lib/libmapi.so\n";}
+		if(is_file("/home/artica/zarafa.tar.gz.old")){
+			$tar=$unix->find_program("tar");
+			shell_exec("$tar -xf /home/artica/zarafa.tar.gz.old -C /");
+		}
+	}
+	
+	if(is_dir("/usr/share/zarafa-webapp/webapp-1.4.svn42633")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server fix webapp-1.4.svn42633\n";}
+		$cp=$unix->find_program("cp");
+		$rm=$unix->find_program("rm");
+		shell_exec("$cp -rf /usr/share/zarafa-webapp/webapp-1.4.svn42633/ /usr/share/zarafa-webapp/");
+		shell_exec("$rm -rf /usr/share/zarafa-webapp/webapp-1.4.svn42633");
+		
 	}
 	
 	$ZarafaMySQLServiceType=$sock->GET_INFO("ZarafaMySQLServiceType");
@@ -85,7 +145,7 @@ function start(){
 		if($ZarafaMySQLServiceType==3){
 			$PID=ZARAFADB_PID();
 			if(!$unix->process_exists($PID)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine Failed, Zarafa Database is not running\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Failed, Zarafa Database is not running\n";}
 			}
 		}
 	}
@@ -96,12 +156,12 @@ function start(){
 
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine already running pid $pid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine already running pid $pid since {$time}mn\n";}
 		return;
 	}
 
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server Engine reconfigure...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine reconfigure...\n";}
 	system("/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure");
 	@unlink("/usr/share/artica-postfix/ressources/logs/zarafa.notify");
 	@unlink("/usr/share/artica-postfix/ressources/logs/zarafa.notify.MySQLIssue");
@@ -114,23 +174,23 @@ function start(){
 	$cmdline=@implode(" ", $f);
 
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting zarafa-server daemon\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting zarafa-server daemon\n";}
 	shell_exec("$cmdline 2>&1");
 	sleep(1);
 
 	for($i=0;$i<5;$i++){
 		$pid=XZARAFA_SERVER_PID();
-		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server daemon started pid .$pid..\n";}break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server daemon wait $i/5\n";}
+		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server daemon started pid .$pid..\n";}break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server daemon wait $i/5\n";}
 		sleep(1);
 	}
 
 	$pid=XZARAFA_SERVER_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server daemon failed to start\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmdline\n";
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server daemon failed to start\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmdline\n";
 		}else{
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: zarafa-server daemon success PID $pid\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server daemon success PID $pid\n";}
 
 		}
 	}
@@ -163,52 +223,60 @@ function reload(){
 }
 
 
-function stop(){
+function stop($aspid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
-		return;
+	if(!$aspid){
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
 	}
-
+	
+	@file_put_contents($pidfile, getmypid());
 	$pid=XZARAFA_SERVER_PID();
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server already stopped...\n";}
 		return;
 	}
+	
+	if($GLOBALS["KILL"]){
+		$killopt=" -9";
+		@unlink("/tmp/zarafa-upgrade-lock");}
 
 	if(is_file("/tmp/zarafa-upgrade-lock")){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server database upgrade is taking place.\n";}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Do not stop this process bacause it may render your database unusable..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server database upgrade is taking place.\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Do not stop this process bacause it may render your database unusable..\n";}
 		return;
 	}
 
 	$time=$unix->PROCCESS_TIME_MIN($pid);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server Daemon with a ttl of {$time}mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server Daemon with a ttl of {$time}mn\n";}
 	$kill=$unix->find_program("kill");
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server killing smoothly PID $pid...\n";}
-	shell_exec("$kill $pid");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server killing smoothly PID $pid...\n";}
+	shell_exec("$kill$killopt $pid");
 	sleep(1);
 
 	for($i=1;$i<60;$i++){
 		$pid=XZARAFA_SERVER_PID();
 		if(!$unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server pid $pid successfully stopped ...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server pid $pid successfully stopped ...\n";}
 			break;
 		}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server wait $i/60\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server wait $i/60\n";}
+		shell_exec("$kill$killopt $pid");
 		sleep(1);
 	}
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server daemon success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server daemon success...\n";}
 		return;
 	}
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: zarafa-server daemon failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server daemon failed...\n";}
 }
 ?>

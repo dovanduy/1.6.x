@@ -187,7 +187,7 @@ function active_directory_parameters(){
 	if(!$users->CNTLM_INSTALLED){$cntlm_error="<p class=text-error>{CNTLM_NOT_INSTALLED}</p>";}
 	$boot->set_spacerexplain("{APP_CNTLM_EXPLAIN}$cntlm_error");
 	$boot->set_checkbox("EnableCNTLM", "{activate_CNTLM_service}",$EnableCNTLM);
-	$boot->set_field("CnTLMPORT", "{listen_port}", $CNTLMPort,array("TOOLTIP"=>"{CnTLMPORT_explain}"));
+	$boot->set_field("CnTLMPORT", "{listen_port}", $CNTLMPort,array("TOOLTIP"=>"{CnTLMPORT_explain2}"));
 	
 	$boot->set_button("{apply}");
 	
@@ -400,7 +400,7 @@ function ldap_auth_parameters(){
 	$boot->set_spacertitle("{local_ldap}");
 	$boot->set_spacerexplain("{authenticate_users_explain}");
 	$boot->set_checkbox("ldap_auth", "{local_ldap}", $squid->LDAP_AUTH);
-	$boot->set_checkbox("SquidLdapAuthEnableGroups", "{enable_group_checking}",$SquidLdapAuthEnableGroups);
+	//$boot->set_checkbox("SquidLdapAuthEnableGroups", "{enable_group_checking}",$SquidLdapAuthEnableGroups);
 	$boot->set_field("SquidLdapAuthBanner", "{auth_banner}", $SquidLdapAuthBanner,array("ENCODE"=>true));
 	
 	$boot->set_spacertitle("{remote_database}");
@@ -448,11 +448,8 @@ function  ldap_auth_save(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$squid->LDAP_AUTH=$_POST["ldap_auth"];
+	$squid->SquidLdapAuthEnableGroups=0;
 	
-	
-	if(isset($_POST["SquidLdapAuthEnableGroups"])){
-		$squid->SquidLdapAuthEnableGroups=$_POST["SquidLdapAuthEnableGroups"];
-	}
 	
 	if(isset($_POST["SquidLdapAuthBanner"])){
 		$sock->SET_INFO("SquidLdapAuthBanner", $_POST["SquidLdapAuthBanner"]);

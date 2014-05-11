@@ -275,7 +275,7 @@ begin
      if NTPDEnabled=0 then begin
          result:=ini.Text;
          ini.free;
-         SYS.MONIT_DELETE('APP_NTPD');
+
          exit;
      end;
 

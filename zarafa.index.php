@@ -81,74 +81,71 @@ function popup(){
 		$array["popup-orphans"]="{orphans}";
 	}
 	
-	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$adduri="&font-size={$_GET["font-size"]}";$adduri2="?font-size={$_GET["font-size"]}";}
+	$fontsize="font-size:16px;";
+	$adduri="&font-size=18";$adduri2="?font-size={$_GET["font-size"]}";
 	
 	//$array["popup-instances"]="{multiple_webmail}";
 	$array["popup-mailbox"]="{mailboxes}";
 	$array["popup-license"]="{zarafa_license}";
 	$array["tools"]="{tools}";
 	$array["backup"]="{backup}";
+	$array["restore"]="{restore}";
 	
-	if(count($array)>7){$fontsize="font-size:12px"; }
+	$fontsize="font-size:18px";
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		
 		if($num=="popup-zarafadb"){
-			$html[]="<li><a href=\"zarafa.database.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.database.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			continue;
+		}
+
+		
+		if($num=="restore"){
+			$html[]="<li><a href=\"zarafa.restore.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}		
 		
 	
 		if($num=="popup-multi"){
-			$html[]="<li><a href=\"zarafa.multi.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.multi.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}		
 		
 		if($num=="popup-mysql"){
-			$html[]="<li><a href=\"zarafa.mysql.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.mysql.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
 		if($num=="tools"){
-			$html[]="<li><a href=\"zarafa.tools.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.tools.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="popup-orphans"){
-			$html[]="<li><a href=\"zarafa.orphans.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.orphans.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
 		if($num=="popup-instances"){
-			$html[]="<li><a href=\"zarafa.freewebs.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.freewebs.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="backup"){
-			$html[]="<li><a href=\"zarafa.backup.php$adduri2\"><span>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.backup.php$adduri2\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			continue;
 		}			
 		
-		$html[]="<li><a href=\"$page?$num=yes$adduri\"><span>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes$adduri\" style='$fontsize' ><span>$ligne</span></a></li>\n";
 			
 		}	
 	$tabwidth=759;
 	if(is_numeric($_GET["tabwith"])){$tabwitdh=$_GET["tabwith"];}
-	$tab="<div id=main_config_zarafa style='width:{$tabwitdh}px;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_zarafa').tabs();
-			
-			
-			});
-			QuickLinkShow('quicklinks-APP_ZARAFA');
-		</script>";		
 	
+	echo build_artica_tabs($html, "main_config_zarafa")."<script>QuickLinkShow('quicklinks-APP_ZARAFA');</script>";
 	
-	echo $tpl->_ENGINE_parse_body($tab);
 	
 }
 
@@ -185,7 +182,7 @@ function popup_status(){
 		<td valign='top' width=99%>
 			<H3 style='font-size:22px;font-weight:bold'>{APP_ZARAFA} v{$ini->_params["APP_ZARAFA"]["master_version"]}</H3>
 			<div id='zarafa-error' style='color:#FB0808;font-weight:bold;font-size:14px'></div>
-			<div class=explain>{APP_ZARAFA_TEXT}</div>$yaffas
+			<div class=explain style='font-size:14px'>{APP_ZARAFA_TEXT}</div>$yaffas
 			<table style='width:100%'>
 			<tr>
 				<td width=1%><img src='img/arrow-right-24.png'></td>
@@ -249,7 +246,7 @@ function ZarafaBox(){
 	
 	$zarafabox="zarafa-box-256.png";
 	
-	$USERSARR=unserialize(base64_decode($sock->getFrameWork("zarafa.php?users-count=yes")));
+	/*$USERSARR=unserialize(base64_decode($sock->getFrameWork("zarafa.php?users-count=yes")));
 	if(!$USERSARR["STATUS"]){
 		$zarafabox="zarafa-box-red-256.png";
 		$zarafaerror=$tpl->javascript_parse_text($USERSARR["ERROR"]);
@@ -258,7 +255,7 @@ function ZarafaBox(){
 		$zarafaerror=$tpl->javascript_parse_text("{license2}: {$USERSARR["ACTIVE"]["USED"]}/{$USERSARR["ACTIVE"]["ALLOWED"]}");
 		$zarafaerror=" document.getElementById('zarafa-error').innerHTML='<span style=\"color:black\">$zarafaerror</span>';";
 		
-	}
+	}*/
 	
 	echo "<img src='img/$zarafabox'>
 	<script>
@@ -340,13 +337,13 @@ function services_status(){
 	
 	
 	
-$tables[]="<div style='width:95%' class=form>";	
+$tables[]="<div style='width:98%' class=form>";	
 if(isset($_GET["miniadm"])){
 	$tables[]=CompileTr4($tr,true);
 	$et="&miniadm=yes";
 	
 }else{
-	$tables[]=CompileTr2($tr,true);
+	$tables[]=CompileTr3($tr,true);
 }
 $tables[]="
 <div style='width:100%;text-align:right'>". 
@@ -370,29 +367,19 @@ function popup_mailbox_tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="popup-orphans"){
-			$html[]="<li><a href=\"zarafa.orphans.php$adduri2\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$html[]="<li><a href=\"zarafa.orphans.php$adduri2\"><span style='font-size:16px'>$ligne</span></a></li>\n";
 			continue;
 		}
 
 	
 		
-		$html[]="<li><a href=\"$page?$num=yes$adduri\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes$adduri\"><span style='font-size:16px'>$ligne</span></a></li>\n";
 			
 		}	
 	
-	$tab="<div id=main_config_zarafaMBX style='width:100%;height:100%;overflow:auto;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_zarafaMBX').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_zarafaMBX");
+		
 	
-	
-	echo $tpl->_ENGINE_parse_body($tab);
 		
 	
 	
@@ -425,7 +412,7 @@ $page=CurrentPageName();
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$email=$tpl->_ENGINE_parse_body("{mail}");
 	$ou=$tpl->_ENGINE_parse_body("{organization}");
-	$license=$tpl->_ENGINE_parse_body("{license}");
+	$license=$tpl->_ENGINE_parse_body("{license2}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$user=$tpl->_ENGINE_parse_body("{user}");
 	$mailbox_size=$tpl->_ENGINE_parse_body("{mailbox_size}");
@@ -434,6 +421,7 @@ $page=CurrentPageName();
 	$refresh=$tpl->_ENGINE_parse_body("{refresh}");
 	$deleteAll=$tpl->_ENGINE_parse_body("{delete_all}");
 	$apply=$tpl->_ENGINE_parse_body("{apply_parameters}");
+	$new_mailbox=$tpl->javascript_parse_text("{new_mailbox}");
 	$t=time();
 	
 	$q=new mysql();
@@ -455,6 +443,7 @@ $page=CurrentPageName();
 	$buttons="
 	buttons : [
 	{name: '$refresh', bclass: 'Reload', onpress : Reload$t},
+	{name: '$new_mailbox', bclass: 'add', onpress : NewMailbox$t},
 	],	";		
 	
 	
@@ -471,8 +460,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?mailboxes-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$member', name : 'uid', width :146, sortable : true, align: 'left'},
-		{display: '$email', name : 'mail', width :169, sortable : true, align: 'left'},
+		{display: '$member', name : 'uid', width :181, sortable : true, align: 'left'},
+		{display: '$email', name : 'mail', width :266, sortable : true, align: 'left'},
 		{display: '$ou', name : 'ou', width : 78, sortable : true, align: 'center'},
 		{display: '$license', name : 'license', width : 31, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'NONACTIVETYPE', width : 82, sortable : true, align: 'left'},
@@ -492,7 +481,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 690,
+	width: '99%',
 	height: 400,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,300,500]
@@ -509,7 +498,10 @@ $('#flexRT$t').flexigrid({
 		document.getElementById('anim-$t').innerHTML='';
 	}    
 
+function NewMailbox$t(){
+	Loadjs('create-user.php');
 
+}
   
   function Reload$t(){
   	 var XHR = new XHRConnection();
@@ -521,8 +513,7 @@ $('#flexRT$t').flexigrid({
 
 
 </script>";
-	
-	echo $html;	
+echo $html;	
 	
 	
 }

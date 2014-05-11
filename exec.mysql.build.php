@@ -14,7 +14,7 @@ $GLOBALS["MULTI"]=false;
 $GLOBALS["NOMONIT"]=false;
 $GLOBALS["DEBUG"]=false;
 $GLOBALS["VERBOSE"]=false;
-
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -71,7 +71,7 @@ if($argv[1]=='--mysqlcheck'){mysqlcheck($argv[2],$argv[3],$argv[4]);die();}
 
 
 
-if($GLOBALS["VERBOSE"]){echo "Starting......:MySQL no understandeable parameters, build the config by default...\n";}
+if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."MySQL no understandeable parameters, build the config by default...\n";}
 
 
 $sock=new sockets();
@@ -85,12 +85,12 @@ if($users->ZARAFA_INSTALLED){if($EnableZarafaTuning==1){$MysqlConfigLevel=-1;}}
 
 if($MysqlConfigLevel>0){
 	if($MysqlConfigLevel==1){
-		echo "Starting......:MySQL my.cnf........: SWITCH TO LOWER CONFIG.\n";
+		echo "Starting......: ".date("H:i:s")."MySQL my.cnf........: SWITCH TO LOWER CONFIG.\n";
 		$datas=$q->Mysql_low_config();
 	}
 	
 	if($MysqlConfigLevel==2){
-		echo "Starting......:MySQL my.cnf........: SWITCH TO VERY LOWER CONFIG.\n";
+		echo "Starting......: ".date("H:i:s")."MySQL my.cnf........: SWITCH TO VERY LOWER CONFIG.\n";
 		$datas=$q->Mysql_verlow_config();
 	}	
 }
@@ -100,13 +100,13 @@ if($MysqlConfigLevel==0){
 	$unix=new unix();
 	$mem=$unix->TOTAL_MEMORY_MB();
 	echo "\n";
-	echo "Starting......: MySQL my.cnf........: Total memory {$mem}MB\n";
+	echo "Starting......: ".date("H:i:s")." MySQL my.cnf........: Total memory {$mem}MB\n";
 	
 	if($mem<550){
-		echo "Starting......: MySQL my.cnf........: SWITCH TO LOWER CONFIG.\n";
+		echo "Starting......: ".date("H:i:s")." MySQL my.cnf........: SWITCH TO LOWER CONFIG.\n";
 		$datas=$q->Mysql_low_config();
 		if($mem<390){
-			echo "Starting......: MySQL my.cnf........: SWITCH TO VERY LOWER CONFIG.\n";
+			echo "Starting......: ".date("H:i:s")." MySQL my.cnf........: SWITCH TO VERY LOWER CONFIG.\n";
 			$datas=$q->Mysql_verlow_config();
 		}
 	}else{
@@ -115,16 +115,16 @@ if($MysqlConfigLevel==0){
 }
 
 if($MysqlConfigLevel==-1){
-	echo "Starting......: MySQL my.cnf........: SWITCH TO PERSONALIZED CONFIG.\n";
+	echo "Starting......: ".date("H:i:s")." MySQL my.cnf........: SWITCH TO PERSONALIZED CONFIG.\n";
 	$datas=$q->BuildConf();
 }
 
 $mycnf=$argv[1];
 if(!is_file($mycnf)){$mycnf=LOCATE_MY_CNF();}
-if(!is_file($mycnf)){echo "Starting......: Mysql my.cnf........: unable to stat {$argv[1]}\n";die();}
+if(!is_file($mycnf)){echo "Starting......: ".date("H:i:s")." Mysql my.cnf........: unable to stat {$argv[1]}\n";die();}
 
 @file_put_contents($mycnf,$datas);
-echo "Starting......: Mysql Updating \"$mycnf\" success ". strlen($datas)." bytes\n";
+echo "Starting......: ".date("H:i:s")." Mysql Updating \"$mycnf\" success ". strlen($datas)." bytes\n";
 
 function checks($nodestroy=false){
 	$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
@@ -183,7 +183,7 @@ $tableEngines = array("hardware"=>"InnoDB","accesslog"=>"InnoDB","bios"=>"InnoDB
 			if(preg_match("#Table '(.*?)' doesn't exist#", $q->mysql_error)){
 				if(!$nodestroy){
 					$q->DELETE_DATABASE("ocsweb");
-					if(is_dir("$MYSQL_DATA_DIR/ocsweb")){echo "Starting......: OCS removing $MYSQL_DATA_DIR/ocsweb\n";shell_exec("$rm -rf $MYSQL_DATA_DIR/ocsweb");}
+					if(is_dir("$MYSQL_DATA_DIR/ocsweb")){echo "Starting......: ".date("H:i:s")." OCS removing $MYSQL_DATA_DIR/ocsweb\n";shell_exec("$rm -rf $MYSQL_DATA_DIR/ocsweb");}
 					checks(true);
 				}
 			}
@@ -196,7 +196,7 @@ $tableEngines = array("hardware"=>"InnoDB","accesslog"=>"InnoDB","bios"=>"InnoDB
 }
 function mysqld_version(){
 	if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
-
+	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	$mysqld=$GLOBALS["CLASS_UNIX"]->find_program("mysqld");
 	exec("$mysqld --version 2>&1",$results);
 	while (list ($num, $ligne) = each ($results) ){
@@ -428,7 +428,7 @@ function multi_databases_list_tables($instance_id,$database){
 		if($GLOBALS["VERBOSE"]){echo "[$line]: $text\n";}
 		$pid=getmypid();
 		$date=date('Y-m-d H:i:s');
-		$logFile="/var/log/artica-postfix/databases-stats.log";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/databases-stats.log";
 		$size=@filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -466,9 +466,10 @@ function databases_list_fill(){
 	$prefix="INSERT IGNORE INTO mysqldbs (databasename,TableCount,dbsize) VALUES ";
 	$q=new mysql();
 	if(!$q->TABLE_EXISTS('mysqldbs','artica_backup')){
-	if($GLOBALS["VERBOSE"]){echo "check_storage_table()\n";}	
-		$q->check_storage_table();}	
-		eventsDB("DATABASE_LIST_SIMPLE()",__LINE__);
+	if($GLOBALS["VERBOSE"]){echo "check_storage_table()\n";}$q->check_storage_table(true);}	
+	
+	
+	eventsDB("DATABASE_LIST_SIMPLE()",__LINE__);
 	$databases=$q->DATABASE_LIST_SIMPLE();
 	eventsDB("DATABASE_LIST_SIMPLE() fone",__LINE__);
 	eventsDB("Found ". count($databases)." databases -> dROP mysqldbtables",__LINE__);
@@ -584,12 +585,12 @@ function multi_get_pid($ID){
 }
 
 function multi_stop($ID){
-	if(!is_numeric($ID)){echo "Stopping......: Mysql instance no id specified\n";return;}
+	if(!is_numeric($ID)){echo "Stopping......: ".date("H:i:s")."Mysql instance no id specified\n";return;}
 	$PID=multi_get_pid($ID);
-	echo "Stopping......: Mysql instance id:$ID PID:$PID..\n";
+	echo "Stopping......: ".date("H:i:s")."Mysql instance id:$ID PID:$PID..\n";
 	$unix=new unix();
 	if(!$unix->process_exists($PID)){
-		echo "Stopping......: Mysql instance id:$ID already stopped..\n";
+		echo "Stopping......: ".date("H:i:s")."Mysql instance id:$ID already stopped..\n";
 		return;
 	}
 	$mysqld_multi=$unix->find_program("mysqld_multi");
@@ -597,7 +598,7 @@ function multi_stop($ID){
 	$cmd="$mysqld_multi --defaults-file=/etc/mysql-multi.cnf start $ID 2>&1";
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	exec($cmd,$results);
-	while (list ($index, $ligne) = each ($results) ){echo "Stopping......: Mysql instance id:$ID $ligne\n";}
+	while (list ($index, $ligne) = each ($results) ){echo "Stopping......: ".date("H:i:s")."Mysql instance id:$ID $ligne\n";}
 	sleep(1);
 	
 	for($i=0;$i<10;$i++){
@@ -605,17 +606,17 @@ function multi_stop($ID){
 		if(!$unix->process_exists($PID)){break;}
 		if(is_numeric($PID)){
 			$cmd="$kill -9 $PID";
-			echo "Stopping......: Mysql instance id:$ID killing PID: $PID\n";
+			echo "Stopping......: ".date("H:i:s")."Mysql instance id:$ID killing PID: $PID\n";
 			shell_exec($cmd);
 			sleep(1);
 		}
 	}
 	$PID=multi_get_pid($ID);
 	if(!$unix->process_exists($PID)){
-		echo "Stopping......: Mysql instance id:$ID success..\n";
+		echo "Stopping......: ".date("H:i:s")."Mysql instance id:$ID success..\n";
 		return;
 	}	
-	echo "Stopping......: Mysql instance id:$ID failed..\n";
+	echo "Stopping......: ".date("H:i:s")."Mysql instance id:$ID failed..\n";
 }
 
 function multi_start($ID){
@@ -625,16 +626,16 @@ function multi_start($ID){
 	multi_monit($ID);
 	multi_create_cache();
 	$q->mysql_multi();
-	echo "Starting......: Mysql instance id:$ID..\n";
+	echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID..\n";
 	$pidfile="/var/run/mysqld/mysqld$ID.pid";
-	echo "Starting......: Mysql instance id:$ID PID:$pidfile..\n";
+	echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID PID:$pidfile..\n";
 	$unix=new unix();
-	if($unix->process_exists($unix->get_pid_from_file($pidfile))){echo "Starting......: Mysql instance id:$ID already running...\n";return;}
+	if($unix->process_exists($unix->get_pid_from_file($pidfile))){echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID already running...\n";return;}
 	$chmod=$unix->find_program("chmod");
 	$ini=new iniFrameWork("/etc/mysql-multi.cnf");
 	$database_path=$ini->get("mysqld$ID","datadir");
 	if(is_file("$database_path/error.log")){@unlink("$database_path/error.log");}
-	echo "Starting......: Mysql instance id:$ID database=$database_path\n";
+	echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID database=$database_path\n";
 	
 	$cmd="$chmod 755 $database_path";
 	exec($cmd,$results);
@@ -643,7 +644,7 @@ function multi_start($ID){
 	if(is_file("$database_path/maria_log_control")){@unlink("$database_path/maria_log_control");}
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	exec($cmd,$results);
-	while (list ($index, $ligne) = each ($results) ){echo "Starting......: Mysql instance id:$ID $ligne\n";}
+	while (list ($index, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID $ligne\n";}
 	
 	for($i=0;$i<4;$i++){
 		sleep(1);
@@ -651,7 +652,7 @@ function multi_start($ID){
 	}
 	
 	if(!$unix->process_exists(multi_get_pid($ID))){
-		echo "Starting......: Mysql instance id:$ID failed..\n";
+		echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID failed..\n";
 	}else{
 		$q=new mysql_multi($ID);
 		$q->QUERY_SQL_NO_BASE("create user 'mysqld_multi'@'127.0.0.1' identified by 'mysqld_multi'");
@@ -662,15 +663,15 @@ function multi_start($ID){
 		
 	}
 		if(is_file("$database_path/error.log")){
-			echo "Starting......: Mysql instance id:$ID $database_path/error.log\n";
+			echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID $database_path/error.log\n";
 			$f=explode("\n",@file_get_contents("$database_path/error.log"));
 			while (list ($index, $ligne) = each ($f) ){
 				if(trim($ligne)==null){continue;}
 				if(preg_match("#^[0-9]+\s+[0-9\:]+\s+(.+)#", $ligne,$re)){$ligne=$re[1];}
-				echo "Starting......: $ligne\n";
+				echo "Starting......: ".date("H:i:s")." $ligne\n";
 			}
 		}else{
-			echo "Starting......: Mysql instance id:$ID $database_path/error.log no such file\n";
+			echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID $database_path/error.log no such file\n";
 		}
 }
 
@@ -686,7 +687,7 @@ function multi_monit($ID){
 	$pidfile="/var/run/mysqld/mysqld$ID.pid";
 	
 	if($q->watchdog==0){
-		echo "Starting......: Mysql instance id:$ID monit is not enabled ($q->watchdog)\n";
+		echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID monit is not enabled ($q->watchdog)\n";
 		if(is_file($monit_file)){
 			@unlink($monit_file);
 			@unlink("/usr/sbin/mysqlmulti-start{$ID}");
@@ -695,7 +696,7 @@ function multi_monit($ID){
 	}
 	
 	if($q->watchdog==1){
-		echo "Starting......: Mysql instance id:$ID monit is enabled\n";
+		echo "Starting......: ".date("H:i:s")." Mysql instance id:$ID monit is enabled\n";
 		$reloadmonit=true;
 		$f[]="check process mysqlmulti{$ID}";
    		$f[]="with pidfile $pidfile";
@@ -1254,22 +1255,22 @@ function mysql_tmpfs(){
 	$MySQLTMPDIR=trim($sock->GET_INFO("MySQLTMPDIR"));
 	if($MySQLTMPDIR=="/tmp"){$MySQLTMPDIR=null;}
 	$MySQLTMPMEMSIZE=trim($sock->GET_INFO("MySQLTMPMEMSIZE"));
-	if($MySQLTMPDIR==null){echo "Starting......: MySQL tmpdir not set...\n";return;}
+	if($MySQLTMPDIR==null){echo "Starting......: ".date("H:i:s")." MySQL tmpdir not set...\n";return;}
 	if(!is_numeric($MySQLTMPMEMSIZE)){$MySQLTMPMEMSIZE=0;}
-	if($MySQLTMPMEMSIZE<1){echo "Starting......: MySQL tmpfs not set...\n";return;}
+	if($MySQLTMPMEMSIZE<1){echo "Starting......: ".date("H:i:s")." MySQL tmpfs not set...\n";return;}
 	
 	$idbin=$unix->find_program("id");
 	$mount=$unix->find_program("mount");
 	$umount=$unix->find_program("umount");
 	$rm=$unix->find_program("rm");
 	
-	if(strlen($idbin)<3){echo "Starting......: MySQL tmpfs `id` no such binary\n";return;}
-	if(strlen($mount)<3){echo "Starting......: MySQL tmpfs `mount` no such binary\n";return;}
+	if(strlen($idbin)<3){echo "Starting......: ".date("H:i:s")." MySQL tmpfs `id` no such binary\n";return;}
+	if(strlen($mount)<3){echo "Starting......: ".date("H:i:s")." MySQL tmpfs `mount` no such binary\n";return;}
 	exec("$idbin mysql 2>&1",$results);
-	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......:MySQL mysql no such user...\n";return;}
+	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......: ".date("H:i:s")."MySQL mysql no such user...\n";return;}
 	$uid=$re[1];
 	$gid=$re[2];
-	echo "Starting......: MySQL tmpfs uid/gid =$uid:$gid\n";
+	echo "Starting......: ".date("H:i:s")." MySQL tmpfs uid/gid =$uid:$gid\n";
 	mysql_tmpfs_umount($uid);
 	if(is_dir($MySQLTMPDIR)){shell_exec("$rm -rf $MySQLTMPDIR/* >/dev/null 2>&1");}
 	@mkdir($MySQLTMPDIR,0755,true);
@@ -1277,10 +1278,10 @@ function mysql_tmpfs(){
 	shell_exec($cmd);
 	$mounted=mysql_tmpfs_ismounted($uid);
 	if(strlen($mounted)>3){
-		echo "Starting......: MySQL $MySQLTMPDIR(tmpfs) for {$MySQLTMPMEMSIZE}M success\n";	
+		echo "Starting......: ".date("H:i:s")." MySQL $MySQLTMPDIR(tmpfs) for {$MySQLTMPMEMSIZE}M success\n";	
 		
 	}else{
-		echo "Starting......: MySQL tmpfs for {$MySQLTMPMEMSIZE}M failed, it will return back to disk\n";
+		echo "Starting......: ".date("H:i:s")." MySQL tmpfs for {$MySQLTMPMEMSIZE}M failed, it will return back to disk\n";
 	}
 }
 function mysql_tmpfs_umount($uid){
@@ -1291,12 +1292,12 @@ function mysql_tmpfs_umount($uid){
 	$umount=$unix->find_program("umount");
 	$rm=$unix->find_program("rm");	
 	exec("$idbin mysql 2>&1",$results);
-	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......:MySQL mysql no such user...\n";return;}	
+	if(!preg_match("#uid=([0-9]+).*?gid=([0-9]+)#", @implode("", $results),$re)){echo "Starting......: ".date("H:i:s")."MySQL mysql no such user...\n";return;}	
 	$uid=$re[1];
 	$gid=$re[2];
 	
 	if(!is_numeric($uid)){
-		echo "Starting......: MySQL tmpfs uid is not a numeric, aborting umounting task\n";
+		echo "Starting......: ".date("H:i:s")." MySQL tmpfs uid is not a numeric, aborting umounting task\n";
 		return;
 	}	
 	
@@ -1304,7 +1305,7 @@ function mysql_tmpfs_umount($uid){
 	$c=0;
 	while (strlen($mounted)>3) {
 		if(strlen($mounted)>3){
-		echo "Starting......:MySQL umount($uid) $mounted\n";
+		echo "Starting......: ".date("H:i:s")."MySQL umount($uid) $mounted\n";
 		shell_exec("$umount -l \"$mounted\"");
 		$c++;
 		}

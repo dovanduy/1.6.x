@@ -4,7 +4,7 @@
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.mysql.syslog.inc');
+	include_once('ressources/class.mysql.syslogs.inc');
 
 	
 $usersmenus=new usersMenus();
@@ -51,9 +51,9 @@ function tableau(){
 	$zdate=$tpl->javascript_parse_text("{date}");
 	$action=$tpl->javascript_parse_text("{action}");
 	
-	$q=new mysql_syslog();
-	$files=$q->COUNT_ROWS("store");
-	$size=$q->TABLE_SIZE("store");
+	$q=new mysql_storelogs();
+	$files=$q->COUNT_ROWS("accesslogs");
+	$size=$q->TABLE_SIZE("access_store");
 	$title=$tpl->_ENGINE_parse_body("MySQL: {storage} {files}:".FormatNumberX($files,0)." (".FormatBytes($size/1024).")");
 	$t=time();
 	$html="
@@ -156,26 +156,25 @@ function tableau(){
 function search_store(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
-	$q=new mysql_syslog();
+	$q=new mysql_storelogs();
 	$search='%';
-	$table="store";
+	$table="accesslogs";
 	$page=1;
-	$ORDER="ORDER BY ID DESC";
+	$ORDER="ORDER BY ID filetime";
 	$sock=new sockets();
 	$t=$_GET["t"];
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
-	$database="syslogstore";
+	$database="syslogs";
 
 	$total=0;
 	if($q->COUNT_ROWS($table,$database)==0){json_error_show("No data...");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
-
-	$table="(SELECT `filename`,`taskid`,`filesize`,`filetime` FROM store 
-			WHERE (`filename` LIKE 'auth.log%') OR (filename LIKE 'squid-access%')) as t";
 	
 	
 
+
+	
 	$searchstring=string_to_flexquery();
 
 	if($searchstring<>null){
@@ -196,7 +195,7 @@ function search_store(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 
-	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	$sql="SELECT * FROM $table WHERE 1 $searchstring $ORDER $limitSql";
 	$results=$q->QUERY_SQL($sql);
 
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
@@ -246,10 +245,10 @@ function search_store(){
 		$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array("$span{$ligne['filetime']}</a></span><div style='font-size:11px'><i>$dateTex</i></div>",
-		"$span$view{$ligne["filename"]}</a></span>",
+		"$span{$ligne["filename"]}</a><br><i>{$ligne['hostname']}</a></span>",
 		"$span{$ligne["filesize"]}</a></span>",
-		"$span$jstask{$ligne["taskid"]}</a></span>",$action,
-		$delete )
+		"$span{$ligne["taskid"]}</a></span>",$action,
+		"" )
 		);
 	}
 

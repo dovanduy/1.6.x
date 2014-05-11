@@ -1,5 +1,5 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
+
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 $GLOBALS["FORCE"]=false;
@@ -16,6 +16,12 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.squidguard.inc');
 include_once(dirname(__FILE__).'/ressources/class.compile.ufdbguard.inc');
 
+$unix=new unix();
+if(is_file("/etc/artica-postfix/FROM_ISO")){
+	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+}
+
+
 $GLOBALS["MYPID"]=getmypid();
 if($argv[1]=="--ufdbcheck"){CoherenceRepertoiresUfdb();die();}
 if($argv[1]=="--mysqlcheck"){CoherenceBase();die();}
@@ -29,12 +35,16 @@ Execute();
 
 function Execute(){
 	if(!ifMustBeExecuted()){
-		ufdbguard_admin_events("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
-		WriteMyLogs("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
 	}
 	$unix=new unix();
+	
+	
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
+	
+	
 	$myFile=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".{$GLOBALS["SCHEDULE_ID"]}.time";
@@ -47,10 +57,9 @@ function Execute(){
 		if($unix->process_exists($pid,$myFile)){
 			$timePid=$unix->PROCCESS_TIME_MIN($pid);
 			if($timePid<60){
-				ufdbguard_admin_events("Already executed PID:$pid, since {$timePid}Mn die() ",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+
 				die();
 			}else{
-				ufdbguard_admin_events("Killed PID:$pid, since {$timePid}Mn (exceed 60mn)",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 				shell_exec("$kill -9 $pid 2>&1");
 			}
 		}
@@ -91,12 +100,12 @@ function Execute(){
 	if(!$q->ok){
 		ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		WriteMyLogs("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__);
-		die();
+
 	}
 	
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		WriteMyLogs("ftpunivtlse1fr: {$ligne["filename"]} -> {$ligne["zmd5"]}",__FUNCTION__,__FILE__,__LINE__);
+		
 		$ARRAYSUM_LOCALE[$ligne["filename"]]=$ligne["zmd5"];
 		
 	}
@@ -109,7 +118,7 @@ function Execute(){
 	}
 	
 	if(count($GLOBALS["squid_admin_mysql"])){
-		squid_admin_mysql(2,count($GLOBALS["squid_admin_mysql"])." Webfiltering Toulouse Databases updated",@implode("\n", $GLOBALS["squid_admin_mysql"]));
+		artica_update_event(2, count($GLOBALS["squid_admin_mysql"])." Webfiltering Toulouse Databases updated", @implode("\n", $GLOBALS["squid_admin_mysql"]),__FILE__,__LINE__);
 		unset($GLOBALS["squid_admin_mysql"]);
 	}
 	
@@ -143,6 +152,13 @@ function Execute(){
 }
 
 function BuildDatabaseStatus(){
+	
+	if(!ifMustBeExecuted()){
+		
+		WriteMyLogs("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
+	}
+	
 	$q=new mysql_squid_builder();
 	$unix=new unix();
 	$dirs=$unix->dirdir("/var/lib/ftpunivtlse1fr");
@@ -168,6 +184,7 @@ function BuildDatabaseStatus(){
 		
 	}
 	
+	$LastC=trim(@file_get_contents("/etc/artica-postfix/ftpunivtlse1frCount"));
 	$c=0;
 	while (list ($cat, $array) = each ($f) ){
 		$count=$array["F"];
@@ -180,10 +197,13 @@ function BuildDatabaseStatus(){
 		$q->QUERY_SQL("TRUNCATE TABLE univtlse1fr");
 		$q->QUERY_SQL("INSERT IGNORE INTO univtlse1fr (category,websitesnum,zDate) VALUES ".@implode(",", $sql));
 		if(!$q->ok){
-			ufdbguard_admin_events("Fatal $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+			artica_update_event(2,"Fatal $q->mysql_error",null,__FILE__,__LINE__);
 			return;
 		}
-		ufdbguard_admin_events("Toulouse University status: $c items in database",__FUNCTION__,__FILE__,__LINE__);
+		if($c<>$LastC){
+			//artica_update_event("Toulouse University status: $c items in database",__FUNCTION__,__FILE__,__LINE__);
+			@file_put_contents("/etc/artica-postfix/ftpunivtlse1frCount", $c);
+		}
 		
 	}
 	//univtlse1fr
@@ -195,6 +215,13 @@ function BuildDatabaseStatus(){
 
 
 function GET_MD5S_REMOTE(){
+	
+	if(!ifMustBeExecuted()){
+		$GLOBALS["LOGS"][]="ifMustBeExecuted():: No make sense to execute this script.";
+		WriteMyLogs("ifMustBeExecuted():: No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
+	}
+	
 	$unix=new unix();
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
 	$indexuri="$BASE_URI/MD5SUM.LST";
@@ -203,8 +230,9 @@ function GET_MD5S_REMOTE(){
 	WriteMyLogs("Downloading $indexuri",__FUNCTION__,__FILE__,__LINE__);
 	$curl->Timeout=320;
 	if(!$curl->GetFile($cache_temp)){
-		WriteMyLogs("Fatal error downloading $indexuri $curl->error",__FUNCTION__,__FILE__,__LINE__);
-		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
+		WriteMyLogs("Fatal error downloading $indexuri $curl->error\n$errorDetails",__FUNCTION__,__FILE__,__LINE__);
+		artica_update_event(0, "Web filtering databases, unable to download index file", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
 		die();
 	}
 	$f=explode("\n",@file_get_contents($cache_temp));
@@ -238,12 +266,13 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	echo "Downloading $indexuri\n";
 	$cache_temp="/tmp/$filename";
 	if(!$curl->GetFile($cache_temp)){echo "Fatal error downloading $indexuri $curl->error\n";
-		ufdbguard_admin_events("Fatal: unable to download index file $indexuri `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
+		artica_update_event(0, "Web filtering databases, unable to download $indexuri", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
 		return;
 	}
 	
 	$filesize=$unix->file_size($cache_temp);
-	ufdbguard_admin_events("$filename ($filesize bytes)",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+	
 	
 	
 	@mkdir("/var/lib/ftpunivtlse1fr",755,true);
@@ -252,37 +281,48 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	if(isset($Conversion[$categoryname])){$categoryDISK=$Conversion[$categoryname];}
 	$categoryDISK=str_replace("/", "_", $categoryDISK);
 	
+	if(is_link("/var/lib/ftpunivtlse1fr/$categoryname")){
+		if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname is link of ". @readlink("/var/lib/ftpunivtlse1fr/$categoryname")."\n";}
+		if($GLOBALS["VERBOSE"]){echo "Removing  /var/lib/ftpunivtlse1fr/$categoryname/\n";}
+		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
+	}
 	
-	ufdbguard_admin_events("Extracting $filename for category $categoryname",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
-	if(is_dir("/var/lib/ftpunivtlse1fr/$categoryname")){shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");}
+	
+	if(is_dir("/var/lib/ftpunivtlse1fr/$categoryname")){
+		if($GLOBALS["VERBOSE"]){echo "Removing  /var/lib/ftpunivtlse1fr/$categoryname/\n";}
+		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
+	}
+	if($GLOBALS["VERBOSE"]){echo "Creating  /var/lib/ftpunivtlse1fr/$categoryname/\n";}
 	@mkdir("/var/lib/ftpunivtlse1fr/$categoryname",0755,true);
+	
+	if($GLOBALS["VERBOSE"]){echo "Extracting $cache_temp to  /var/lib/ftpunivtlse1fr/\n";}
+	
 	shell_exec("$tar -xf $cache_temp -C /var/lib/ftpunivtlse1fr/");
 	if(!is_file("/var/lib/ftpunivtlse1fr/$categoryname/domains")){
-		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		ufdbguard_admin_events("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		return;
 	}
 	$CountDeSitesFile=CountDeSitesFile("/var/lib/ftpunivtlse1fr/$categoryname/domains");
 	if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname/domains -> $CountDeSitesFile websites\n";}
 	if($CountDeSitesFile==0){
-		ufdbguard_admin_events("/var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
+		ufdbguard_admin_events("Fatal!!: /var/lib/ftpunivtlse1fr/$categoryname/domains corrupted, no website",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
 		return;		
 	}
 	
-	if($categoryDISK<>$categoryname){
+	if(trim(strtolower($categoryDISK))<>trim(strtolower($categoryname))){
 		if(is_dir("/var/lib/ftpunivtlse1fr/$categoryDISK")){shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryDISK");}
 		shell_exec("ln -sf /var/lib/ftpunivtlse1fr/$categoryDISK /var/lib/ftpunivtlse1fr/$categoryname");
 	}
 	
-	WriteMyLogs("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'",__FUNCTION__,__FILE__,__LINE__);
+	
 	$q->QUERY_SQL("DELETE FROM ftpunivtlse1fr WHERE filename='$filename'");
-	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	if(!$q->ok){ufdbguard_admin_events("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
 	$q->QUERY_SQL("INSERT INTO ftpunivtlse1fr (`filename`,`zmd5`,`websitesnum`) VALUES ('$filename','$md5','$CountDeSitesFile')");
-	if(!$q->ok){ufdbguard_admin_events("Fatal: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
+	if(!$q->ok){ufdbguard_admin_events("Fatal!!: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");return;}
 	
 	
 	$GLOBALS["squid_admin_mysql"][]="Success updating category `$categoryname` with $CountDeSitesFile websites";
-	ufdbguard_admin_events("Success updating category `$categoryname` with $CountDeSitesFile websites",__FUNCTION__,__FILE__,__LINE__,"Toulouse DB");
 	if($GLOBALS["VERBOSE"]){echo "ufdbGenTable=$ufdbGenTable\n";}
 	
 
@@ -306,16 +346,23 @@ function remove_bad_files(){
 	while (list ($directory, $b) = each ($dirs)){
 		$dirname=basename($directory);
 		if(is_link("$directory/$dirname")){
-			echo "Starting......: UfdBguard removing $dirname/$dirname bad file\n";
+			echo "Starting......: ".date("H:i:s")." UfdBguard removing $dirname/$dirname bad file\n";
 			@unlink("$directory/$dirname");
 		}
 	}
 
 
-	echo "Starting......: UfdBguard removing bad files done...\n";
+	echo "Starting......: ".date("H:i:s")." UfdBguard removing bad files done...\n";
 }
 
 function compile(){
+	
+	if(!ifMustBeExecuted()){
+		
+		WriteMyLogs("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
+	}
+	
 	$ufdb=new compile_ufdbguard();
 	$q=new mysql_squid_builder();
 	$unix=new unix();
@@ -355,6 +402,13 @@ function compile(){
 }
 
 function CoherenceRepertoiresUfdb(){
+	
+	if(!ifMustBeExecuted()){
+		
+		WriteMyLogs("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
+	}
+	
 	$unix=new unix();
 	$q=new mysql_squid_builder();
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
@@ -381,6 +435,12 @@ function CoherenceRepertoiresUfdb(){
 }
 
 function CoherenceOffiels(){
+	
+	if(!ifMustBeExecuted()){
+		WriteMyLogs("No make sense to execute this script...",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
+	}
+	
 	$workdir="/var/lib/ftpunivtlse1fr";
 	$unix=new unix();
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
@@ -469,20 +529,9 @@ function CountDeSitesFile($filename){
 
 
 function ifMustBeExecuted(){
-	$users=new usersMenus();
-	$sock=new sockets();
-	$update=true;
-	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	if(!is_numeric($CategoriesRepositoryEnable)){$CategoriesRepositoryEnable=0;}
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	if($EnableRemoteStatisticsAppliance==1){writelogs("EnableRemoteStatisticsAppliance ACTIVE ,ABORTING TASK",__FUNCTION__,__FILE__,__LINE__);die();}	
-	if($EnableWebProxyStatsAppliance==1){return true;}	
-	$CategoriesRepositoryEnable=$sock->GET_INFO("CategoriesRepositoryEnable");
-	if($CategoriesRepositoryEnable==1){return true;}
-	if(!$users->SQUID_INSTALLED){$update=false;}
-	return $update;
+	$q=new mysql_squid_builder();
+	return $q->ifSquidUpdatesMustBeExecuted();
+	
 }
 function WriteMyLogs($text,$function,$file,$line){
 	if(!isset($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}

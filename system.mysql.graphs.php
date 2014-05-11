@@ -87,7 +87,7 @@ function report(){
 	
 
 	
-	$html="<table style='width:95%' class=form>$html</table>";
+	$html="<table style='width:98%' class=form>$html</table>";
 	echo $html;
 	
 }

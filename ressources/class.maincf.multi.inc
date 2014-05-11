@@ -195,7 +195,7 @@ public function SET_BIGDATA($key,$value){
 		
 		if(isset($conf)){
 			if(is_array($conf)){
-				echo "Starting......: Postfix \"$this->myhostname\" check_client_access: ". count($conf)." entries\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: ". count($conf)." entries\n";
 				@file_put_contents($target_file,@implode("\n",$conf));
 				$unix=new unix();
 				$postmap=$unix->find_program("postmap");
@@ -210,7 +210,7 @@ public function SET_BIGDATA($key,$value){
 	public function postfix_global_whitelist_to_mx(){
 		if(isset($GLOBALS["postfix_global_whitelist_to_mx"])){return $GLOBALS["postfix_global_whitelist_to_mx"];}
 		if(!function_exists("getmxrr")){
-			echo "Starting......: Postfix getmxrr function not available\n";
+			echo "Starting......: ".date("H:i:s")." Postfix getmxrr function not available\n";
 			return false;}
 		$q=new mysql();
 		if(!$q->FIELD_EXISTS("postfix_global_whitelist","allmx","artica_backup")){
@@ -290,7 +290,7 @@ public function SET_BIGDATA($key,$value){
 		$sql="SELECT * FROM postfix_global_blacklist WHERE `hostname`='$this->myhostname' AND enabled=1";
 		$q=new mysql();
 		
-		if(!$q->TestingConnection()){echo "Starting......: Postfix MySQL testing connection failed error $q->mysql_error on Blacklist_generic() function\n";return;}
+		if(!$q->TestingConnection()){echo "Starting......: ".date("H:i:s")." Postfix MySQL testing connection failed error $q->mysql_error on Blacklist_generic() function\n";return;}
 		
 		
 		if(strtolower($this->myhostname)=="master"){
@@ -300,7 +300,7 @@ public function SET_BIGDATA($key,$value){
 		}
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		$senders=array();
-		if(!$q->ok){echo "Starting......: Postfix mysql error $q->mysql_error on Blacklist_generic() function\n";return;}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." Postfix mysql error $q->mysql_error on Blacklist_generic() function\n";return;}
 		$already=array();
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$sender=trim($ligne["sender"]);
@@ -315,7 +315,7 @@ public function SET_BIGDATA($key,$value){
 			$senders[]="$sender\tREJECT blacklisted sender";
 			$already[$sender]=true;
 		}
-		echo "Starting......: Postfix \"$this->myhostname\" ".count($senders)." blacklisted item(s)\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ".count($senders)." blacklisted item(s)\n";
 		
 		if(count($senders)>0){
 			@file_put_contents($target,@implode("\n",$senders));
@@ -334,7 +334,7 @@ public function SET_BIGDATA($key,$value){
 			$smtpd_sender_restrictions_black=$this->Blacklist_generic();
 			$smtpd_sender_restrictions=array();
 			if($RestrictToInternalDomains==1){
-				echo "Starting......: Postfix \"$this->myhostname\" set to restrict sender domain to only known domains\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" set to restrict sender domain to only known domains\n";
 				$this->BuildAllWhitelistedServer();
 				$this->BuildAllMyDomains();
 				$smtpd_sender_restrictions[]="check_client_access hash:/etc/postfix-$this->myhostname/all_whitelisted_servers";
@@ -413,7 +413,7 @@ public function SET_BIGDATA($key,$value){
 			if($domain==null){continue;}
 			$doms[]="$domain\tOK";
 		}
-		echo "Starting......: Postfix \"$this->myhostname\" store ". count($doms)." domains\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" store ". count($doms)." domains\n";
 		@file_put_contents("/etc/postfix-$this->myhostname/all_internal_domains",@implode("\n",$doms));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/all_internal_domains >/dev/null 2>&1");
 	
@@ -438,7 +438,7 @@ public function SET_BIGDATA($key,$value){
 		}
 				
 		
-		echo "Starting......: Postfix \"$this->myhostname\" store ". count($f)." whitelisted servers\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" store ". count($f)." whitelisted servers\n";
 		@file_put_contents("/etc/postfix-$this->myhostname/all_whitelisted_servers",@implode("\n",$f));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/all_whitelisted_servers >/dev/null 2>&1");
 	}
@@ -461,7 +461,7 @@ private function restrict_relay_domains(){
 		}
 	}
 
-	echo "Starting......: Postfix \"$this->myhostname\"". count($f)." restricted relayed domains\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\"". count($f)." restricted relayed domains\n"; 
 	@file_put_contents("/etc/postfix-$this->myhostname/relay_domains_restricted",implode("\n",$f));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/relay_domains_restricted >/dev/null 2>&1");
 	
@@ -521,7 +521,7 @@ private function restrict_relay_domains(){
 			if($EnableCluebringer==1){
 				$array_filters=unserialize(base64_decode($this->GET_BIGDATA("PluginsEnabled")));
 				if($array_filters["APP_CLUEBRINGER"]==1){
-					echo "Starting......: Postfix \"$this->myhostname\" cluebringer is enabled.\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" cluebringer is enabled.\n";
 					$smtpd_recipient_restrictions[]="check_policy_service inet:127.0.0.1:13331";
 				}
 			}
@@ -529,13 +529,13 @@ private function restrict_relay_domains(){
 		
 		
 		if($TrustMyNetwork==1){
-			echo "Starting......: Postfix \"$this->myhostname\" TrustMyNetwork is enabled (permit_mynetworks will be added).\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" TrustMyNetwork is enabled (permit_mynetworks will be added).\n";
 			$smtpd_client_restrictions[]="permit_mynetworks";
 			$smtpd_helo_restrictions[]="permit_mynetworks";
 			$smtpd_recipient_restrictions[]="permit_mynetworks";		
 		
 		}else{
-			echo "Starting......: Postfix \"$this->myhostname\" TrustMyNetwork is !disabled (permit_mynetworks will be removed).\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" TrustMyNetwork is !disabled (permit_mynetworks will be removed).\n";
 		}
 		$smtpd_client_restrictions[]="check_client_access hash:/etc/postfix-$this->myhostname/amavis_internal";
 		
@@ -700,7 +700,7 @@ private function restrict_relay_domains(){
 		
 		if($EnableAmavisDaemon==1){
 			if($max_rcpt_to>0){
-				echo "Starting......: Postfix \"$this->myhostname\" activate Maximum recipients in headers...\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" activate Maximum recipients in headers...\n";
 				$conf[]="/^To:([^@]*@){".$max_rcpt_to.",}/	REJECT Sorry, your message has too many recipients $max_rcpt_to.";
 				$conf[]="/^Cc:([^@]*@){".$max_rcpt_to.",}/	REJECT Sorry, your message has too many recipients $max_rcpt_to.";
 				$conf[]="/^Bcc:([^@]*@){".$max_rcpt_to.",}/	REJECT Sorry, your message has too many recipients $max_rcpt_to.";
@@ -716,7 +716,7 @@ private function restrict_relay_domains(){
 			
 			
 			if(is_array($nets)){
-				echo "Starting......: Postfix \"$this->myhostname\" activate hide MUA in headers...\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" activate hide MUA in headers...\n";
 				while (list ($num, $network) = each ($nets) ){
 					if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)#",$network,$re)){
 						$conf[]="/^Received:.*\[{$re[1]}\.{$re[2]}\.{$re[3]}.\.[0-9]/      IGNORE Make E-Mail Anonymous";
@@ -733,7 +733,7 @@ private function restrict_relay_domains(){
 		}
 		@file_put_contents("$target_file",@implode("\n",$conf));
 		if($pure_headerschecks<>null){$pure_headerschecks=",$pure_headerschecks";}
-		echo "Starting......: Postfix \"$this->myhostname\" ". count($conf)." checks headers rules\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($conf)." checks headers rules\n";
 		return "header_checks = regexp:$target_file$pure_headerschecks";
 		
 	}
@@ -764,7 +764,7 @@ private function amavis_bypass_byrecipients(){
 		}
 	}
 	$postmap=$unix->find_program("postmap");
-	echo "Starting......: ". count($f) ." bypass recipient(s) for amavisd new\n"; 	
+	echo "Starting......: ".date("H:i:s")." ". count($f) ." bypass recipient(s) for amavisd new\n"; 	
 	
 	$f[]="";
 	@file_put_contents("/etc/postfix-$this->myhostname/amavis_bypass_rcpt",@implode("\n",$f));
@@ -845,7 +845,7 @@ private function amavis_internal(){
 		//----------------------------------------------------------------------------------------------------------			
 		
 		if(!count($relay_domains)==0){return "relay_domains = \$mydestination";}
-		echo "Starting......: Postfix \"$this->myhostname\" ". count($relay_domains)." relay domain(s)\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($relay_domains)." relay domain(s)\n";
 		@file_put_contents("/etc/postfix-$this->myhostname/relay_domains",implode("\n",$relay_domains));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/relay_domains >/dev/null 2>&1");
 		return "relay_domains = \$mydestination, hash:/etc/postfix-$this->myhostname/relay_domains";
@@ -892,7 +892,7 @@ private function recipient_bcc_domain_maps(){
 		$t[]="$nextdomain_transport\tsmtp:[{$ligne["relay"]}]:{$ligne["port"]}";
 		$c++;
 	}
-	echo "Starting......: ".count($f)." duplicated destination(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." ".count($f)." duplicated destination(s)\n"; 
 	$f[]="";
 	@file_put_contents("/etc/postfix-$this->myhostname/copy.pcre",implode("\n",$f));
 	@file_put_contents("/etc/postfix-$this->myhostname/copy.transport",implode("\n",$t));
@@ -914,7 +914,7 @@ private function recipient_bcc_domain_maps(){
 		$dn="ou=$this->ou,dc=organizations,$ldap->suffix";
 		if(trim($this->ou)==null){$dn="dc=organizations,$ldap->suffix";}
 		$hash=$ldap->Ldap_search($dn,$filter,$attrs);
-		echo "Starting......: Postfix \"$this->myhostname\" mailAlias: {$hash["count"]} aliases in $this->ou organization\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" mailAlias: {$hash["count"]} aliases in $this->ou organization\n";
 		
 		
 		for($i=0;$i<$hash["count"];$i++){
@@ -976,7 +976,7 @@ private function recipient_bcc_domain_maps(){
 			$cn=trim($hash[$i]["cn"][0]);
 			if(trim($cn)==null){continue;}
 			for($t=0;$t<$hash[$i][strtolower("CatchAllPostfixAddr")]["count"];$t++){
-				echo "Starting......: catch-all {$hash[$i][strtolower("CatchAllPostfixAddr")][$t]} for $cn\n";
+				echo "Starting......: ".date("H:i:s")." catch-all {$hash[$i][strtolower("CatchAllPostfixAddr")][$t]} for $cn\n";
 				if(substr($cn,0,1)<>"@"){$cn="@$cn";}
 				$hash[$i][strtolower("CatchAllPostfixAddr")][$t]=trim($hash[$i][strtolower("CatchAllPostfixAddr")][$t]);
 				if($hash[$i][strtolower("CatchAllPostfixAddr")][$t]==null){continue;}
@@ -1058,7 +1058,7 @@ private function recipient_bcc_domain_maps(){
 		@file_put_contents("/etc/postfix-$this->myhostname/virtual.domains",@implode("\n",$li));
 			
 		if(is_array($virtual_alias_maps)){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($virtual_alias_maps)." virtuals aliases\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($virtual_alias_maps)." virtuals aliases\n";
 			$virtual_mailbox_maps_cf[]="hash:/etc/postfix-$this->myhostname/virtual";
 			$virtual_alias_maps_cf[]="hash:/etc/postfix-$this->myhostname/virtual";
 			@file_put_contents("/etc/postfix-$this->myhostname/virtual",@implode("\n",$virtual_alias_maps));
@@ -1069,7 +1069,7 @@ private function recipient_bcc_domain_maps(){
 		
 
 		if(is_array($alias_maps)){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($alias_maps)." aliases\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($alias_maps)." aliases\n";
 			$alias_maps_cf[]="hash:/etc/postfix-$this->myhostname/aliases" .$this->mailman_aliases();
 			@file_put_contents("/etc/postfix-$this->myhostname/aliases",@implode("\n",$alias_maps));
 			//shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/aliases >/dev/null 2>&1");
@@ -1099,7 +1099,7 @@ private function recipient_bcc_domain_maps(){
 	
 	public function mailman_aliases(){
 		if(!is_file("/var/lib/mailman/bin/genaliases")){
-			echo "Starting......: Unable to locate genaliases tool\n";
+			echo "Starting......: ".date("H:i:s")." Unable to locate genaliases tool\n";
 			return null;
 		}
 	
@@ -1304,7 +1304,7 @@ private function transport_maps(){
 	$this->DOMAINS_ADVS();
 	
 	if(count($array)>0){
-		echo "Starting......: Postfix \"$this->myhostname\" ". count($array)." transport rules\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($array)." transport rules\n";
 		@file_put_contents("/etc/postfix-$this->myhostname/transport",implode("\n",$array));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/transport >/dev/null 2>&1");
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/transport.throttle >/dev/null 2>&1");
@@ -1387,7 +1387,7 @@ private function transport_maps(){
 			}
 		}
 		
-		echo "Starting......: Postfix \"$this->myhostname\" ". count($mydestination)." local destination domains\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($mydestination)." local destination domains\n";
 		@file_put_contents("/etc/postfix-$this->myhostname/mydestination",implode("\n",$mydestination));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/mydestination >/dev/null 2>&1");
 		return "mydestination = hash:/etc/postfix-$this->myhostname/mydestination";
@@ -1427,7 +1427,7 @@ private function transport_maps(){
 		
 		
 		if(count($sender_canonical_maps)>0){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($sender_canonical_maps)." sender retranslation rule(s)\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($sender_canonical_maps)." sender retranslation rule(s)\n"; 
 			@file_put_contents("/etc/postfix-$this->myhostname/sender_canonical",implode("\n",$sender_canonical_maps));
 			$f[]="sender_canonical_maps = hash:/etc/postfix-$this->myhostname/sender_canonical";
 			shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/sender_canonical >/dev/null 2>&1");
@@ -1482,7 +1482,7 @@ private	function sender_dependent_relayhost_maps(){
 		}
 		
 		if(is_array($sender_dependent_relayhost_maps)){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($sender_dependent_relayhost_maps)." sender dependent relayhost rule(s)\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($sender_dependent_relayhost_maps)." sender dependent relayhost rule(s)\n"; 
 			@file_put_contents("/etc/postfix-$this->myhostname/sender_dependent_relayhost",implode("\n",$sender_dependent_relayhost_maps));
 			shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/sender_dependent_relayhost >/dev/null 2>&1");
 			return "sender_dependent_relayhost_maps = hash:/etc/postfix-$this->myhostname/sender_dependent_relayhost";
@@ -1506,7 +1506,7 @@ private	function sender_dependent_relayhost_maps(){
 		}
 	
 		if(count($recipient_canonical_maps)>0){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($recipient_canonical_maps)." sender dependent relayhost rule(s)\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($recipient_canonical_maps)." sender dependent relayhost rule(s)\n"; 
 			@file_put_contents("/etc/postfix-$this->myhostname/recipient_canonical",implode("\n",$recipient_canonical_maps));
 			shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/recipient_canonical >/dev/null 2>&1");
 			return "recipient_canonical_maps = hash:/etc/postfix-$this->myhostname/recipient_canonical";
@@ -1532,7 +1532,7 @@ private	function recipient_bcc_maps(){
 		}	
 		
 		if(is_array($bcc_maps)){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($bcc_maps)." recipient(s) BCC\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($bcc_maps)." recipient(s) BCC\n"; 
 			@file_put_contents("/etc/postfix-$this->myhostname/recipient_bcc",implode("\n",$bcc_maps));
 			shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/recipient_bcc >/dev/null 2>&1");		
 			return "recipient_bcc_maps = hash:/etc/postfix-$this->myhostname/recipient_bcc,pcre:/etc/postfix-$this->myhostname/copy.pcre";
@@ -1559,7 +1559,7 @@ private	function recipient_bcc_maps(){
 		}	
 		
 		if(is_array($sender_bcc_maps)){
-				echo "Starting......: Postfix \"$this->myhostname\"". count($sender_bcc_maps)." sender(s) BCC\n"; 
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\"". count($sender_bcc_maps)." sender(s) BCC\n"; 
 				@file_put_contents("/etc/postfix-$this->myhostname/sender_bcc",implode("\n",$sender_bcc_maps));
 				shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/sender_bcc >/dev/null 2>&1");		
 				return "sender_bcc_maps = hash:/etc/postfix-$this->myhostname/sender_bcc";
@@ -1569,7 +1569,7 @@ private	function recipient_bcc_maps(){
 	
 private function smtp_sasl_password_map(){
 	$ldap=new clladp();
-	echo "Starting......: Postfix \"$this->myhostname\" checks SASL Passwords maps\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" checks SASL Passwords maps\n"; 
 	$filter="(&(objectClass=PostfixSmtpSaslPaswordMaps)(cn=*))";
 	$attrs=array("cn","SmtpSaslPasswordString");
 	$dn="cn=smtp_sasl_password_maps,cn=artica,$ldap->suffix";
@@ -1600,7 +1600,7 @@ private function smtp_sasl_password_map(){
 		
 		if($relayhost==null){@file_put_contents("/etc/postfix-$this->myhostname/sasl_service_relayhost","\n");}
 		if(preg_match("#(.+?):(.+)#",$auth,$re)){
-			echo "Starting......: Postfix \"$this->myhostname\" relayhost = $relayhost with autentication\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" relayhost = $relayhost with autentication\n";
 			@file_put_contents("/etc/postfix-$this->myhostname/sasl_service_relayhost","$relayhost\t$auth");
 			$sssasltoadd[]="hash:/etc/postfix-$this->myhostname/sasl_service_relayhost";
 		}
@@ -1614,7 +1614,7 @@ private function smtp_sasl_password_map(){
 	
 
 	if($include){
-			echo "Starting......: Postfix \"$this->myhostname\" ". count($smtp_sasl_password_maps)." sender(s) relay(s) password(s)\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($smtp_sasl_password_maps)." sender(s) relay(s) password(s)\n"; 
 			if(is_array($sssasltoadd)){$adfiles=",".@implode(",",$sssasltoadd);}	
 			$conf[]="smtp_sasl_password_maps = hash:/etc/postfix-$this->myhostname/sasl_passwd hash:/etc/postfix-$this->myhostname/sasl_relayhost$adfiles";
 			$conf[]="smtp_sasl_auth_enable = yes";
@@ -1622,13 +1622,13 @@ private function smtp_sasl_password_map(){
 			$conf[]="smtp_sasl_security_options = ";
 			$conf[]="smtp_tls_mandatory_protocols=SSLv3,TLSv1";
 	}else{
-		echo "Starting......: Postfix \"$this->myhostname\" 0 sender(s) relay(s) password(s) and relayhost auth\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" 0 sender(s) relay(s) password(s) and relayhost auth\n";
 		@file_put_contents("/etc/postfix-$this->myhostname/sasl_relayhost"," ");
 		@file_put_contents("/etc/postfix-$this->myhostname/sasl_passwd"," ");  
 	}
-	echo "Starting......: Postfix \"$this->myhostname\" compiling sasl_relayhost\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" compiling sasl_relayhost\n";
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/sasl_relayhost >/dev/null 2>&1");		
-	echo "Starting......: Postfix \"$this->myhostname\" compiling sasl_passwd\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" compiling sasl_passwd\n";
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->myhostname/sasl_passwd >/dev/null 2>&1");	
 	
 	if(is_array($sssasltoadd)){
@@ -1649,6 +1649,11 @@ private function smtp_sasl_password_map(){
 		
 		$unixsocket=$users->cyrus_lmtp_path;
 		if($unixsocket==null){$unixsocket="/var/spool/postfix/var/run/cyrus/socket/lmtp";}
+		
+		@chown($unixsocket, "postfix");
+		@chgrp($unixsocket, "postfix");
+		@chmod($unixsocket,0777);
+		
 		if($users->cyrus_imapd_installed){
 		if(!$users->ZARAFA_INSTALLED){
 				$CyrusEnableLMTPUnix=$sock->GET_INFO("CyrusEnableLMTPUnix");
@@ -1714,24 +1719,24 @@ private function smtp_sasl_password_map(){
 				$minor=intval($re[2]);
 				$binver="{$major}{$minor}";
 				if($EnablePostfixHaProxy==1){
-					if($binver<210){echo "Starting......: Postfix \"$this->myhostname\" HaProxy compliance: require 2.10 minimal.\n";return;}
+					if($binver<210){echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" HaProxy compliance: require 2.10 minimal.\n";return;}
 				}
 				
 			}
 			
-			if($EnablePostfixHaProxy==0){echo "Starting......: Postfix \"$this->myhostname\" HaProxy compliance: disabled\n";return;}
+			if($EnablePostfixHaProxy==0){echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" HaProxy compliance: disabled\n";return;}
 			
-			echo "Starting......: Postfix \"$this->myhostname\" HaProxy compliance: enabled\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" HaProxy compliance: enabled\n";
 			$EnablePostScreen=$this->GET("EnablePostScreen");
 			if(!is_numeric($EnablePostScreen)){$EnablePostScreen=0;}	
 			if(!$users->POSTSCREEN_INSTALLED){$EnablePostScreen=0;}
 			
 			if($EnablePostScreen==1){
-				echo "Starting......: Postfix \"$this->myhostname\"HaProxy compliance: enabled + PostScreen\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\"HaProxy compliance: enabled + PostScreen\n";
 				return "postscreen_upstream_proxy_protocol = haproxy";
 				
 			}else{
-				echo "Starting......: Postfix \"$this->myhostname\" HaProxy compliance: enabled + SMTPD\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" HaProxy compliance: enabled + SMTPD\n";
 				return "smtpd_upstream_proxy_protocol = haproxy";
 			}
 		
@@ -1743,8 +1748,8 @@ private function smtp_sasl_password_map(){
 	$sock=new sockets();
 	$EnablePostScreen=$this->GET("EnablePostScreen");
 	if(!is_numeric($EnablePostScreen)){$EnablePostScreen=0;}
-	if($EnablePostScreen==0){echo "Starting......: PostScreen is not enabled\n";return null;}
-	echo "Starting......: PostScreen \"$this->myhostname\" configuring....\n";
+	if($EnablePostScreen==0){echo "Starting......: ".date("H:i:s")." PostScreen is not enabled\n";return null;}
+	echo "Starting......: ".date("H:i:s")." PostScreen \"$this->myhostname\" configuring....\n";
 	if(!is_file("/etc/postfix-$this->myhostname/postscreen_access.cidr")){@file_put_contents("/etc/postfix-$this->myhostname/postscreen_access.cidr","#");}
 	if(!is_file("/etc/postfix-$this->myhostname/postscreen_access.hosts")){@file_put_contents("/etc/postfix-$this->myhostname/postscreen_access.hosts"," ");}
 	$TrustMyNetwork=$this->GET("TrustMyNetwork");
@@ -1928,7 +1933,7 @@ private function smtp_sasl_password_map(){
 		$locate3=$this->LOCATE_POSTFIX_DAEMON_DIRECTORY_3();
 		if($locate2<>null){if($locate1<>$locate2){$locate1=$locate2;}}
 		if($locate3<>null){if($locate1<>$locate3){$locate1=$locate3;}}
-		if($locate1==null){"Starting......: Postfix WARNING unable to find daemon directory\n";}
+		if($locate1==null){"Starting......: ".date("H:i:s")." Postfix WARNING unable to find daemon directory\n";}
 		$GLOBALS[__FUNCTION__]=$locate1;
 		return $locate1; 
 	}
@@ -2079,7 +2084,7 @@ private function smtp_sasl_password_map(){
 			}
 		
 			$myhostname=$this->myhostname;
-			echo "Starting......: Postfix \"$myhostname\" is a member of $this->ou IP $this->ip_addr\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" is a member of $this->ou IP $this->ip_addr\n";
 			$users=new usersMenus();		
 			
 			$mailbox_transport=$this->getMailBoxTransport();
@@ -2088,7 +2093,7 @@ private function smtp_sasl_password_map(){
 				while (list ($d, $z) = each ($nets) ){
 					if(trim($z)==null){continue;}
 					if(trim($z)==$this->ip_addr){continue;}
-					echo "Starting......: Postfix \"$myhostname\" Trusted network (mynetworks) `$z`\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" Trusted network (mynetworks) `$z`\n";
 					$newnets[$z]=$z;
 				}
 				$nets=array();
@@ -2100,18 +2105,18 @@ private function smtp_sasl_password_map(){
 				$nets=array();
 				$newnets=$this->NetWorksBubble();
 				
-				echo "Starting......: Postfix \"$myhostname\" NetWorksBubble = ". count($newnets)." rows\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" NetWorksBubble = ". count($newnets)." rows\n";
 				while (list ($d, $z) = each ($newnets) ){
 					if($d==$this->ip_addr){continue;}
-					echo "Starting......: Postfix \"$myhostname\" Trusted network (mynetworks) `$d`\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" Trusted network (mynetworks) `$d`\n";
 					$nets[]=$d;}
 			}
 			
 			
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix \"$myhostname\" Network:PostfixMultiTrustAllInstances = $PostfixMultiTrustAllInstances\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" Network:PostfixMultiTrustAllInstances = $PostfixMultiTrustAllInstances\n";}
 			if($PostfixMultiTrustAllInstances==1){
 				$MULTINETS=$this->MULTINETS();
-				echo "Starting......: Postfix \"$myhostname\" Trust ".count($MULTINETS)." instances enabled\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" Trust ".count($MULTINETS)." instances enabled\n";
 				while (list ($e, $w) = each ($MULTINETS) ){
 					$nets[]=$e;
 				}
@@ -2139,7 +2144,7 @@ private function smtp_sasl_password_map(){
 			$VirtualHostnameToChange=trim($this->GET("VirtualHostNameToChange"));
 			if($VirtualHostnameToChange<>null){
 				$myhostname_maincf=$VirtualHostnameToChange;
-				echo "Starting......: Postfix $myhostname is now virtualy called $VirtualHostnameToChange\n";
+				echo "Starting......: ".date("H:i:s")." Postfix $myhostname is now virtualy called $VirtualHostnameToChange\n";
 			}
 			
 			$mynetworkfinal="127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128$addMyIpInsideMyNet,{$mynetworks}";
@@ -2158,10 +2163,10 @@ private function smtp_sasl_password_map(){
 			$conf[]="";
 			$conf[]="#  NETWORK ---------------------------------";			
 			$conf[]="myhostname = $myhostname_maincf";
-			if($this->ip_addr==null){echo "Starting......: Postfix $myhostname warning inet_interfaces is null !\n";}
+			if($this->ip_addr==null){echo "Starting......: ".date("H:i:s")." Postfix $myhostname warning inet_interfaces is null !\n";}
 			
 			$myorigin=$this->GET("myorigin");
-			echo "Starting......: Postfix \"$this->myhostname\" myorigin = `$myorigin` or default = \$mydomain\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" myorigin = `$myorigin` or default = \$mydomain\n";
 			if($myorigin==null){$myorigin="\$mydomain";}
 			
 			$ipClass=new IP();
@@ -2169,7 +2174,7 @@ private function smtp_sasl_password_map(){
 			$conf[]="mynetworks=$mynetworkfinal";
 			if($this->EnableipV6==1){
 				if($ipClass->isIPv6($this->ip_addr)){
-					echo "Starting......: Postfix \"$this->myhostname\" activate ipv6 only\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" activate ipv6 only\n";
 					$conf[]="smtp_bind_address6 = $this->ip_addr";
 					$conf[]="inet_protocols = ipv6";
 					$this->checkipv6($this->ip_addr);
@@ -2210,15 +2215,15 @@ private function smtp_sasl_password_map(){
 			
 			
 			
-			echo "Starting......: Postfix \"$this->myhostname\" checking restrictions\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" checking restrictions\n";
 			$conf[]=$this->smtpd_sender_restrictions();
-			echo "Starting......: Postfix \"$this->myhostname\" checking smtpd_client_restrictions\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" checking smtpd_client_restrictions\n";
 			$conf[]=$this->smtpd_client_restrictions();
-			echo "Starting......: Postfix \"$this->myhostname\" checking smtpd_end_of_data_restrictions\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" checking smtpd_end_of_data_restrictions\n";
 			$conf[]=$this->smtpd_end_of_data_restrictions();
-			echo "Starting......: Postfix \"$this->myhostname\" checking body_checks\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" checking body_checks\n";
 			$conf[]=$this->body_checks();
-			echo "Starting......: Postfix \"$this->myhostname\" checking restrictions done.\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" checking restrictions done.\n";
 			$conf[]="";
 			$conf[]="bounce_service_name=bounce";
 			$conf[]="bounce_size_limit=50000";
@@ -2308,14 +2313,14 @@ private function smtp_sasl_password_map(){
 			if(!is_numeric($smtpd_client_new_tls_session_rate_limit)){$smtpd_client_new_tls_session_rate_limit=0;}
 			if(!is_numeric($initial_destination_concurrency)){$initial_destination_concurrency=5;}
 			if(!is_numeric($default_destination_concurrency_limit)){
-				echo "Starting......: Postfix $this->myhostname default_destination_concurrency_limit (back to default).\n";
+				echo "Starting......: ".date("H:i:s")." Postfix $this->myhostname default_destination_concurrency_limit (back to default).\n";
 				$default_destination_concurrency_limit=20;
 			}
 			if(!is_numeric($smtp_destination_concurrency_limit)){
-				echo "Starting......: Postfix $this->myhostname smtp_destination_concurrency_limit (back to default).\n";
+				echo "Starting......: ".date("H:i:s")." Postfix $this->myhostname smtp_destination_concurrency_limit (back to default).\n";
 				$smtp_destination_concurrency_limit=20;}
 			if(!is_numeric($local_destination_concurrency_limit)){
-				echo "Starting......: Postfix $this->myhostname local_destination_concurrency_limit (back to default).\n";
+				echo "Starting......: ".date("H:i:s")." Postfix $this->myhostname local_destination_concurrency_limit (back to default).\n";
 				$local_destination_concurrency_limit=2;}
 			
 			
@@ -2378,7 +2383,7 @@ private function smtp_sasl_password_map(){
 			$in_flow_delay=$this->GET("in_flow_delay");
 			$freeze_delivery_queue=$this->GET("freeze_delivery_queue");
 			if($freeze_delivery_queue==1){
-				echo "Starting......: Postfix delivery queue is frozen..\n";
+				echo "Starting......: ".date("H:i:s")." Postfix delivery queue is frozen..\n";
 				$in_flow_delay="0";
 				$conf[]="master_service_disable=qmgr.fifo";
 			}	
@@ -2409,9 +2414,9 @@ private function smtp_sasl_password_map(){
 			$conf[]="disable_dns_lookups=no";
 			$conf[]=$this->debug_peer_list();
 			
-			echo "Starting......: Postfix \"$this->myhostname\" default_destination_concurrency_limit:`$default_destination_concurrency_limit`\n";
-			echo "Starting......: Postfix \"$this->myhostname\" local_destination_concurrency_limit..:`$local_destination_concurrency_limit`\n";
-			echo "Starting......: Postfix \"$this->myhostname\" smtp_destination_concurrency_limit...:`$smtp_destination_concurrency_limit`\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" default_destination_concurrency_limit:`$default_destination_concurrency_limit`\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" local_destination_concurrency_limit..:`$local_destination_concurrency_limit`\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" smtp_destination_concurrency_limit...:`$smtp_destination_concurrency_limit`\n";
 			
 			
 			
@@ -2431,10 +2436,13 @@ private function smtp_sasl_password_map(){
 			$conf[]="#  SASL / TLS ---------------------------------";
 			$conf[]="broken_sasl_auth_clients = yes";			
 			if($EnableSasl==1){	
+				$sock=new sockets();
+				$smtpd_sasl_path=$sock->GET_INFO("smtpd_sasl_path");
+				if($smtpd_sasl_path==null){$smtpd_sasl_path="/etc/postfix/sasl/smtpd.conf";}
 				$conf[]="smtpd_sasl_auth_enable = yes";
 				$conf[]=$this->smtp_sasl_security_options();
 				$conf[]="smtpd_sasl_authenticated_header = yes";
-				$conf[]="smtpd_sasl_path=smtpd";
+				$conf[]="smtpd_sasl_path=$smtpd_sasl_path";
 				$conf[]="smtpd_sasl_local_domain = ";
 				$conf[]="smtpd_sasl_exceptions_networks = \$mynetworks";
 			}
@@ -2475,7 +2483,7 @@ private function smtp_sasl_password_map(){
 			
 			if($MAJOR>1){
 				if($MINOR>9){
-					$conf[]="smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination";
+					$conf[]="smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, defer_unauth_destination";
 				}
 			}
 			$conf[]="smtpd_reject_unlisted_recipient=" .$this->YesNo($smtpd_reject_unlisted_recipient);
@@ -2493,7 +2501,7 @@ private function smtp_sasl_password_map(){
 			$db[]=$this->sender_canonical_maps();
 			$db[]=$this->sender_dependent_relayhost_maps();
 			$db[]=$this->sender_bcc_maps();
-			echo "Starting......: Postfix \"$this->myhostname\" check recipient bcc\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check recipient bcc\n";
 			$db[]=$this->recipient_bcc_maps();	
 			
 			while (list ($num, $ligne) = each ($db) ){
@@ -2519,7 +2527,7 @@ private function smtp_sasl_password_map(){
 			
 			$relayhost=$this->GET("relayhost");
 			
-			echo "Starting......: Postfix \"$this->myhostname\" relayhost ?? ($relayhost)\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" relayhost ?? ($relayhost)\n";
 			
 			if($relayhost<>null){
 				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#",$relayhost)){
@@ -2550,7 +2558,7 @@ private function smtp_sasl_password_map(){
 			$conf[]="data_directory = /var/lib/postfix-$this->myhostname";
 			
 			$daemon_directory=$this->LOCATE_POSTFIX_DAEMON_DIRECTORY();
-			echo "Starting......: Postfix daemon directory \"$daemon_directory\"\n";
+			echo "Starting......: ".date("H:i:s")." Postfix daemon directory \"$daemon_directory\"\n";
 			$conf[]="daemon_directory = ". $this->LOCATE_POSTFIX_DAEMON_DIRECTORY();
 			
 			$conf[]="multi_instance_name = postfix-$this->myhostname";
@@ -2560,14 +2568,14 @@ private function smtp_sasl_password_map(){
 			
 			$this->CheckDirectories($this->myhostname);
 			if(!is_dir("/etc/postfix-$this->myhostname")){
-				echo "Starting......: Postfix creating dir /etc/postfix-$this->myhostname\n";
+				echo "Starting......: ".date("H:i:s")." Postfix creating dir /etc/postfix-$this->myhostname\n";
 				@mkdir("/etc/postfix-$this->myhostname",null,true);
 			}
 			
 			
 			
 			@file_put_contents("/etc/postfix-$this->myhostname/main.cf",@implode("\n",$conf));
-			echo "Starting......: Postfix \"$this->myhostname\" main.cf done\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" main.cf done\n";
 			$this->buildmaster();
 			$this->PostfixMainCfDefaultInstance();
 		
@@ -2595,7 +2603,7 @@ private function smtp_sasl_password_map(){
 	
 	private function checkipv6($ip=null){
 		if($ip==null){
-			echo "Starting......: Postfix \"$this->myhostname\" IPV6: Checks ipv6 no ip set\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" IPV6: Checks ipv6 no ip set\n";
 			return;}
 		if(!$this->AS_ROOT){return;}
 		$unix=new unix();
@@ -2603,17 +2611,17 @@ private function smtp_sasl_password_map(){
 		$sql="SELECT * FROM  nics_virtuals WHERE ipaddr='$ip' AND ipv6=1";	
 		$ligne=mysql_fetch_array($this->q->QUERY_SQL($sql,"artica_backup"));
 		if(!$this->q->ok){
-			echo "Starting......: Postfix \"$this->myhostname\" IPV6: $ip {$this->q->mysql_error}\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" IPV6: $ip {$this->q->mysql_error}\n";
 		}	
 		if(!is_numeric($ligne["ID"])){$ligne["ID"]=0;}
 		if($ligne["ID"]==0){
-			echo "Starting......: Postfix \"$this->myhostname\" IPV6: $ip not a virtual interface\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" IPV6: $ip not a virtual interface\n";
 			return;}
 		$netmask=$ligne["netmask"];
 		$gateway=$ligne["gateway"];
 		$eth=$ligne["nic"];
 		$cmd="$ipbin addr add dev $eth $ip/$netmask";
-		echo "Starting......: Postfix \"$this->myhostname\" IPV6:  Checks ipv6 $ip/$netmask on $eth\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" IPV6:  Checks ipv6 $ip/$netmask on $eth\n";
 		shell_exec($cmd);
 		
 	}
@@ -2628,14 +2636,14 @@ private function smtp_sasl_password_map(){
 		$EnableDkimMilter=$sock->GET_INFO("EnableDkimMilter");
 		if(!is_numeric($EnableDkimMilter)){$EnableDkimMilter=0;}
 		
-		echo "Starting......: Postfix \"$this->myhostname\" EnableDKFilter   = `$EnableDKFilter`\n";
-		echo "Starting......: Postfix \"$this->myhostname\" EnableDkimMilter = `$EnableDkimMilter`\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" EnableDKFilter   = `$EnableDKFilter`\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" EnableDkimMilter = `$EnableDkimMilter`\n";
 		
 		
 		if($users->OPENDKIM_INSTALLED){
 			if($EnableDKFilter==1){
 				if($array_filters["APP_OPENDKIM"]==1){
-						echo "Starting......: Postfix \"$this->myhostname\" OpenDKIM mail filter Enabled\n";
+						echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" OpenDKIM mail filter Enabled\n";
 						$smtpd_milters[]="unix:/var/run/opendkim/opendkim.sock";
 						$nosmtpd_milters[]="unix:/var/run/opendkim/opendkim.sock";
 					}
@@ -2650,7 +2658,7 @@ private function smtp_sasl_password_map(){
 			if($EnableDkimMilter==1){
 				if($array_filters["APP_MILTER_DKIM"]==1){
 					if($EnableDkimMilter==1){
-						echo "Starting......: Postfix \"$this->myhostname\" Milter-DKIM mail filter Enabled\n";
+						echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" Milter-DKIM mail filter Enabled\n";
 						$smtpd_milters[]="unix:/var/run/dkim-milter/dkim-milter.sock";
 						$nosmtpd_milters[]="unix:/var/run/dkim-milter/dkim-milter.sock";
 					}
@@ -2663,7 +2671,7 @@ private function smtp_sasl_password_map(){
 		if($users->KAV_MILTER_INSTALLED){
 			if($KasxFilterEnabled==1){
 				if($array_filters["APP_KAS3"]==1){
-					echo "Starting......: Postfix \"$this->myhostname\" Kaspersky AntiSpam Enabled\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" Kaspersky AntiSpam Enabled\n";
 					$smtpd_milters[]="unix:/var/run/kas-milter.socket";
 				}
 			}
@@ -2673,7 +2681,7 @@ private function smtp_sasl_password_map(){
 		if($users->KAV_MILTER_INSTALLED){
 			if($kavmilterEnable==1){
 				if($array_filters["APP_KAVMILTER"]==1){
-					echo "Starting......: Postfix \"$this->myhostname\" Kaspersky antivirus Enabled\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" Kaspersky antivirus Enabled\n";
 					$smtpd_milters[]="inet:127.0.0.1:1052";
 				}
 			}
@@ -2681,7 +2689,7 @@ private function smtp_sasl_password_map(){
 		
 		if($users->MILTERGREYLIST_INSTALLED){
 			if($array_filters["APP_MILTERGREYLIST"]==1){
-				echo "Starting......: Postfix \"$this->myhostname\" milter-greylist Enabled\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" milter-greylist Enabled\n";
 				$smtpd_milters[]="unix:/var/spool/postfix/var/run/milter-greylist/$this->myhostname/greylist.sock";
 			}
 		}
@@ -2703,7 +2711,7 @@ private function smtp_sasl_password_map(){
 			$conf[]="milter_command_timeout=180";
 			$conf[]="milter_content_timeout=600";	
 			if(count($nosmtpd_milters)>0){
-				echo "Starting......: Postfix \"$this->myhostname\" non_smtpd_milters `".implode(" ",$nosmtpd_milters)."`\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" non_smtpd_milters `".implode(" ",$nosmtpd_milters)."`\n";
 				$conf[]="non_smtpd_milters =".implode(" ",$nosmtpd_milters)."\n";
 			}
 			
@@ -2715,7 +2723,7 @@ private function smtp_sasl_password_map(){
 	
 	public function ConfigureMilters(){
 		$milters=$this->milters(true);
-		echo "Starting......: Postfix \"$this->myhostname\" configure milters\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" configure milters\n";
 		if($GLOBALS["postconf"]==null){$unix=new unix();$GLOBALS["postconf"]=$unix->find_program("postconf");}
 		if($GLOBALS["postmulti"]==null){$unix=new unix();$GLOBALS["postmulti"]=$unix->find_program("postmulti");}
 		shell_exec("{$GLOBALS["postconf"]} -c \"/etc/postfix-$this->myhostname\" -e \"smtpd_milters = $milters\"");
@@ -2753,7 +2761,7 @@ private function smtp_sasl_password_map(){
 		
 		while (list ($num, $dir) = each ($queues) ){
 			if(!is_dir("/var/spool/postfix-$hostname/$dir")){
-				echo "Starting......: Postfix \"$hostname\" Create directory $dir\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" Create directory $dir\n";
 				@mkdir("/var/spool/postfix-$hostname/$dir",0600,true);
 			}
 		}
@@ -2787,10 +2795,32 @@ private function smtp_sasl_password_map(){
 		@mkdir("/etc/postfix-$hostname",0600,true);
 		shell_exec("/bin/chown -R postfix:postfix /var/lib/postfix-$hostname");
 		shell_exec("/bin/chown -R root:root /etc/postfix-$hostname");		
+		
+		
+		if(!is_file("/etc/postfix-$hostname/dynamicmaps.cf")){
+			shell_exec("/bin/ln -sf /etc/postfix/dynamicmaps.cf /etc/postfix-$hostname/dynamicmaps.cf");
+		}
+		
+		if(!is_file("/etc/postfix-$hostname/sasl/smtpd.conf")){
+			@mkdir("/etc/postfix-$hostname/sasl",0755,true);
+			shell_exec("/bin/ln -sf /etc/postfix/sasl/smtpd.conf /etc/postfix-$hostname/sasl/smtpd.conf");
+		
+		}
+		
+		$f[]="/etc/postfix-$hostname/transport.banned";
+		
+		while (list ($num, $path) = each ($f) ){
+			if(!is_file("$path.db")){
+				if(!is_file($path)){ @touch($path);}
+				shell_exec("{$GLOBALS["postmap"]} hash:$path >/dev/null 2>&1");
+			}
+		
+		}
+		
 
 		$mandatories[]="/etc/postfix-$hostname/sasl_passwd";
 		$mandatories[]="/etc/postfix-$hostname/sasl_relayhost";
-		$mandatories[]="/etc/postfix-$hostname/dynamicmaps.cf";
+		
 		
 		while (list ($num, $filename) = each ($mandatories) ){
 			if(!is_file($filename)){
@@ -2812,11 +2842,11 @@ private function smtp_sasl_password_map(){
 	$resultsPerms=array();
 	if(!isset($GLOBALS["Perms$hostname"])){
 		$GLOBALS["Perms$hostname"]=true;
-		echo "Starting......: Postfix \"$hostname\" ask to $postfix to set permissions...\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" ask to $postfix to set permissions...\n";
 		exec("$postfix -c /etc/postfix-$hostname set-permissions 2>&1",$resultsPerms);
 		while (list ($num, $line) = each ($resultsPerms) ){
 			if(preg_match("#unused parameter:#", $line)){continue;}
-			echo "Starting......: Postfix $hostname $line\n";
+			echo "Starting......: ".date("H:i:s")." Postfix $hostname $line\n";
 		}
 	}
 
@@ -2887,8 +2917,7 @@ private function smtp_sasl_password_map(){
 			$action=$ligne["action"];
 			$pcr=$ligne["pcre"];
 			$xNOTIFY=$ligne["xNOTIFY"];
-			$flags=$flags." RULEID:{$ligne["ID"]}";
-			if($xNOTIFY==1){$flags=$flags." ARTICA_XNOTIFY";}			
+			
 			
 			if($pcr==1){
 				$pcre[]="/$pattern/ $action $flags";
@@ -2963,7 +2992,7 @@ private function smtp_sasl_password_map(){
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){
-			echo "Starting......: Postfix Mysql Error on body_checks() function\n";
+			echo "Starting......: ".date("H:i:s")." Postfix Mysql Error on body_checks() function\n";
 			if($pure_bodychecks<>null){return "body_checks = $pure_bodychecks";}
 			return;
 		}
@@ -2989,7 +3018,7 @@ private function smtp_sasl_password_map(){
 		}else{
 			$target="/etc/postfix-$this->myhostname/body_checks";
 		}
-		echo "Starting......: Postfix \"$this->myhostname\" ". count($f). " Regex Body rules\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($f). " Regex Body rules\n";
 		@file_put_contents($target,@implode("\n",$f));
 		if(count($f)>0){
 			if($pure_bodychecks<>null){$pure_bodychecks=",$pure_bodychecks";}
@@ -3029,7 +3058,7 @@ private function smtp_sasl_password_map(){
 			$smtp_private="n";
 			if(isset($array_filters["APP_AMAVIS"])){
 				if($users->AMAVIS_INSTALLED){$array["APP_AMAVIS"]=$array_filters["APP_AMAVIS"];}else{
-					echo "Starting......: Postfix \"$this->myhostname\" amavisd-new is not installed\n";
+					echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" amavisd-new is not installed\n";
 					$amavis[]="#amavis not installed";
 				}
 			}
@@ -3080,12 +3109,12 @@ private function smtp_sasl_password_map(){
 			$artica_filter_amavis_option=" -o content_filter=artica-filter:";
 			
 			if($array["APP_ARTICA_FILTER"]==0){
-				echo "Starting......: Postfix \"$this->myhostname\" artica-filter is not enabled\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" artica-filter is not enabled\n";
 				$artica_smtp=null;
 				$artica_filter_smtp_option=null;
 				$artica_filter_amavis_option=" -o content_filter=";
 			}else{
-				echo "Starting......: Postfix \"$this->myhostname\" artica-filter is enabled\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" artica-filter is enabled\n";
 				$ADD_PRECLEANUP=true;
 				$amavis_cleanup_infos  =" -o cleanup_service_name=pre-cleanup";
 			}
@@ -3131,12 +3160,12 @@ private function smtp_sasl_password_map(){
 				$ADD_PRECLEANUP=true;
 				$artica_filter_smtp_option=null;
 			}else{
-				echo "Starting......: Postfix \"$this->myhostname\" amavisd-new is not enabled\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" amavisd-new is not enabled\n";
 				unset($amavis);$amavis[]="#amavis not enabled";$amavis_smtp=null;}
 			}
 			
 			if($ADD_PRECLEANUP){
-				echo "Starting......: Enable pre-cleanup service...\n";
+				echo "Starting......: ".date("H:i:s")." Enable pre-cleanup service...\n";
 				$pre_cleanup_addons=" -o smtp_generic_maps= -o canonical_maps= -o sender_canonical_maps= -o recipient_canonical_maps= -o masquerade_domains= -o recipient_bcc_maps= -o sender_bcc_maps=";
 				$re_cleanup_infos  =" -o cleanup_service_name=pre-cleanup";
 			}	
@@ -3144,7 +3173,7 @@ private function smtp_sasl_password_map(){
 			
 			if($EnablePostScreen==1){
 				$EnableSubmission=1;
-				echo "Starting......: PostScreen $this->myhostname is enabled, users should use 587 port to send mails internally\n"; 
+				echo "Starting......: ".date("H:i:s")." PostScreen $this->myhostname is enabled, users should use 587 port to send mails internally\n"; 
 				$smtp_in_proto="pass";
 				$smtp_private="-";
 				if($postfix_listen_port=="smtp"){$postfix_listen_port="smtpd";}
@@ -3284,7 +3313,7 @@ private function smtp_sasl_password_map(){
 			
 			$conf[]="";
 			@file_put_contents("/etc/postfix-$this->myhostname/master.cf",@implode("\n",$conf));	
-			echo "Starting......: Postfix \"$this->myhostname\" master.cf done\n";	
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" master.cf done\n";	
 		
 	}
 
@@ -3438,7 +3467,7 @@ private function DOMAINS_ADVS(){
 		}
 		
 		if($this->uuid==null){
-			echo "Starting......: Postfix warning function ". __FUNCTION__." uuid=null !\n";
+			echo "Starting......: ".date("H:i:s")." Postfix warning function ". __FUNCTION__." uuid=null !\n";
 			return;
 		}
 		
@@ -3452,7 +3481,7 @@ private function DOMAINS_ADVS(){
 			if($myhostname=="master"){continue;}
 			$myhostnames[]="/etc/postfix-$myhostname";
 			$myhosts[]=$myhostname;
-			echo "Starting......: Postfix inserting $myhostname in master done\n";
+			echo "Starting......: ".date("H:i:s")." Postfix inserting $myhostname in master done\n";
 		}
 		
 		if(is_array($myhostnames)){
@@ -3574,7 +3603,7 @@ private function DOMAINS_ADVS(){
 		
 		$freeze_delivery_queue=$main->GET("freeze_delivery_queue");
 			if($freeze_delivery_queue==1){
-				echo "Starting......: Postfix delivery queue is frozen..\n";
+				echo "Starting......: ".date("H:i:s")." Postfix delivery queue is frozen..\n";
 				$conf[]="in_flow_delay=0";
 				$conf[]="master_service_disable=qmgr.fifo";
 			}	
@@ -3598,7 +3627,7 @@ private function DOMAINS_ADVS(){
 		if(!is_file("/usr/share/man/man5/postfix-wrapper.5")){@mkdir("/usr/share/man/man5");@file_put_contents("/usr/share/man/man5/postfix-wrapper.5","#");}
 		
 		
-		echo "Starting......: Postfix default main.cf done\n";
+		echo "Starting......: ".date("H:i:s")." Postfix default main.cf done\n";
 		}
 		
 		public function buidLdapDB($hostname,$dbindex,$array){
@@ -3698,10 +3727,10 @@ public function MULTINETS(){
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if(isset($GLOBALS["MEM_MULTINETS"][$this->ip_addr])){continue;}	
 			if($ligne["ip_address"]==$this->ip_addr){continue;}
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix \"$this->myhostname\" Network:{$ligne["ip_address"]}\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" Network:{$ligne["ip_address"]}\n";}
 			$GLOBALS["MEM_MULTINETS"][$ligne["ip_address"]]=$ligne["ip_address"];
 		}	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix \"$this->myhostname\" Network:MULTINETS = ". count($GLOBALS["MEM_MULTINETS"])." items\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" Network:MULTINETS = ". count($GLOBALS["MEM_MULTINETS"])." items\n";}
 	return $GLOBALS["MEM_MULTINETS"];
 }
 	
@@ -3715,7 +3744,7 @@ public function MULTINETS(){
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if(isset($ipaddr[$this->ip_addr])){continue;}	
 			if($ligne["ip_address"]==$this->ip_addr){continue;}
-			echo "Starting......: Postfix \"$this->myhostname\" NetWorksBubble Trust:{$ligne["ip_address"]}\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" NetWorksBubble Trust:{$ligne["ip_address"]}\n";
 			$ipaddr[$ligne["ip_address"]]=$ligne["ip_address"];
 		}
 		
@@ -3726,7 +3755,7 @@ public function MULTINETS(){
 			if($ligne["ipaddr"]==$this->ip_addr){continue;}
 			if(isset($ipaddr[$this->ip_addr])){continue;}
 			if(isset($ipaddr[$ligne["ipaddr"]])){continue;}
-			echo "Starting......: Postfix \"$this->myhostname\" NetWorksBubble Trust:{$ligne["ipaddr"]}\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" NetWorksBubble Trust:{$ligne["ipaddr"]}\n";
 			$ipaddr[$ligne["ipaddr"]]=$ligne["ipaddr"];
 		}		
 		$GLOBALS["NetWorksBubble"]=$ipaddr;
@@ -3870,7 +3899,7 @@ private function certificate_openssl_conf(){
 	}
 
 	public function certificate_generate(){
-		 echo "Starting......: Postfix \"$this->myhostname\" building TLS certificate\n";
+		 echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" building TLS certificate\n";
 		 $this->certificate_openssl_conf();
 		 $unix=new unix();
 		 $openssl=$unix->find_program("openssl");

@@ -10,7 +10,7 @@ class postfix_maillog_buffer{
 		if(!isset($GLOBALS["maillog_tools"])){$GLOBALS["maillog_tools"]=new maillog_tools();}
 		if(!isset($GLOBALS["POSTCONF_BIN"])){$GLOBALS["POSTCONF_BIN"]=$GLOBALS["CLASS_UNIX"]->find_program('postconf');}
 		if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
-		
+		if(!isset($GLOBALS["MYSQL_POSTFIX"])){$GLOBALS["MYSQL_POSTFIX"]=new mysql_postfix_builder();}
 		if(!isset($GLOBALS["EnablePostfixMultiInstance"])){$GLOBALS["EnablePostfixMultiInstance"]=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePostfixMultiInstance");}
 		if(!is_numeric($GLOBALS["EnablePostfixMultiInstance"])){$GLOBALS["EnablePostfixMultiInstance"]=0;}
 	}
@@ -20,13 +20,63 @@ class postfix_maillog_buffer{
 		if(preg_match("#refreshing the Postfix mail system#i", $buffer)){return true;}
 		if(preg_match("#reload -- version .*?, configuration#i", $buffer)){return true;}
 		
+		
+		if(preg_match("#(.*?):\s+to=<(.*?)>,\s+relay=(.+?)\[(.*?)\]:.*?,\s+delay=([0-9\.]+),\s+delays=#",$buffer,$re)){	
+			$messageid=$re[1];
+			$recipient=$re[2];
+			$hostname=$re[3];
+			$ipaddr=$re[4];
+			$delay=$re[5]*1000;
+			$this->routed($messageid,$recipient,$hostname,$ipaddr,$delay);
+			
+		}	
+		
+		if(preg_match("#:\s+(.+?):\s+from=<(.*?)>,\s+size=([0-9]+)#",$buffer,$re)){	
+			$messageid=$re[1];
+			$mailfrom=$re[2];
+			$size=$re[3];
+			$this->routed_from($messageid,$mailfrom,$size);
+			
+		}	
+		
+		if(preg_match("#:\s+(.+?):\s+client=(.+?)\[(.+?)\]#",$buffer,$re)){	
+			$messageid=$re[1];
+			$hostname=$re[2];
+			$ipaddr=$re[3];
+			$this->routed_cnx($messageid,$hostname,$ipaddr);
+			
+		}	
+// ----------------------------------------------------------------- Create Postfix user -----------------------------------------		
+		if(preg_match("#parameter mail_owner: unknown user name value: postfix#i",$buffer)){
+			$GLOBALS["CLASS_UNIX"]->CreateUnixUser("postfix","postfix");
+			return true;
+		}
+		
+// ----------------------------------------------------------------- Restart Amavis -----------------------------------------		
+		if(preg_match("#postfix\/error\[.*?delivery temporarily suspended.*?lost connection with\s+127\.0\.0\.1#i",$buffer)){
+			if($GLOBALS["AMAVIS_INSTALLED"]){
+				if($GLOBALS["EnableAmavisDaemon"]==1){
+					$timefile="/etc/artica-postfix/croned.1/".md5("deliverytemporarilysuspendeddeliverytemporarilysuspended:lostconnectionwith127.0.0.1");
+					$TimeMin=$this->file_time_min($timefile);
+					if($TimeMin>8){
+					$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/amavis restart >/dev/null 2>&1 &";
+					$this->email_events("[AMAVISD]:delivery temporarily suspended: lost connection with 127.0.0.1",$buffer."\nArtica will restart amavis",'postfix');
+					shell_exec($cmd);
+					@unlink($timefile);
+					@file_put_contents($timefile,time());
+					}
+				}
+			}
+		}
+		
+// -----------------------------------------------------------------------------------------------------------------------------------------		
 		if(preg_match("#klms-milter:.+?started,\s+pid.*?([0-9]+).*?scanner.*?=(.*)#",$buffer,$re )){
 			$this->email_events("Kaspersky Mail security Milter started pid {$re[1]} on {$re[2]}",$buffer,'klms');
 			return true;
 		}
-		
-		
-		if(preg_match("#connect to Milter service unix:.*?maildump\/maildump\.socket: No such file or directory#",$buffer,$re )){
+// -----------------------------------------------------------------------------------------------------------------------------------------		
+
+	if(preg_match("#connect to Milter service unix:.*?maildump\/maildump\.socket: No such file or directory#",$buffer,$re )){
 			$timefile="/etc/artica-postfix/croned.1/NoSuchFile-".md5("maildump.socket");
 			$TimeMin=$this->file_time_min($timefile);
 			$this->events("maildump.socket such file",__LINE__);
@@ -39,7 +89,7 @@ class postfix_maillog_buffer{
 			}
 			return;			
 		}
-		
+// -----------------------------------------------------------------------------------------------------------------------------------------		
 		
 		if(preg_match("#postfix\[.*?fatal:\s+chdir\((.+?)\):\s+No such file or directory#",$buffer,$re )){
 			$dir=$re[1];
@@ -456,6 +506,48 @@ class postfix_maillog_buffer{
 		}
 	
 	// ----------------------------------------------------------------------------------------------------------------
+	
+	}
+	
+	private function routed($messageid,$recipient,$hostname,$ipaddr,$delay){
+		$fam=new familysite();
+		$date=date("Ymd");
+		$GLOBALS["MYSQL_POSTFIX"]->BuildDaySentTable("{$date}_sent");
+		$domain=$fam->GetFamilySites($recipient);
+		$zmd5=md5("$messageid,$recipient,$hostname,$ipaddr");
+		$zDate=date("Y-m-d H:i:s");
+		$hour=date("H");
+		$sql=" INSERT IGNORE INTO `{$date}_sent` (`zmd5`,`zDate`,`hour`,`messageid`,`mailto`,`domainto`,`hostname`,`ipaddr`,`mailtime`)
+		VALUES ('$zmd5','$zDate','$hour','$messageid','$recipient','$domain','$hostname','$ipaddr','$delay')";
+		$GLOBALS["MYSQL_POSTFIX"]->QUERY_SQL($sql);
+		
+	}
+	
+	private function routed_from($messageid,$mailfrom,$size){
+		$fam=new familysite();
+		$date=date("Ymd");
+		$GLOBALS["MYSQL_POSTFIX"]->BuildDayFromTable("{$date}_rec");
+		$domain=$fam->GetFamilySites($mailfrom);
+		$zmd5=md5("$messageid,$mailfrom,$size");
+		$zDate=date("Y-m-d H:i:s");
+		$hour=date("H");
+		$sql=" INSERT IGNORE INTO `{$date}_rec` (`zmd5`,`zDate`,`hour`,`messageid`,`mailfrom`,`domainfrom`,`mailsize`)
+		VALUES ('$zmd5','$zDate','$hour','$messageid','$mailfrom','$domain','$size')";
+		$GLOBALS["MYSQL_POSTFIX"]->QUERY_SQL($sql);
+
+	}
+	
+	private function routed_cnx($messageid,$hostname,$ipaddr){
+		$fam=new familysite();
+		$date=date("Ymd");
+		$GLOBALS["MYSQL_POSTFIX"]->BuildDayConnectTable("{$date}_con");
+		$domain=$fam->GetFamilySites($hostname);
+		$zmd5=md5("$messageid,$hostname,$ipaddr");
+		$zDate=date("Y-m-d H:i:s");
+		$hour=date("H");
+		$sql=" INSERT IGNORE INTO `{$date}_con` (`zmd5`,`zDate`,`hour`,`messageid`,`hostname`,`domain`,`ipaddr`)
+		VALUES ('$zmd5','$zDate','$hour','$messageid','$hostname','$domain','$ipaddr')";
+		$GLOBALS["MYSQL_POSTFIX"]->QUERY_SQL($sql);		
 	
 	}
 	

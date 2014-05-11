@@ -20,12 +20,12 @@ foreach (glob("{$GLOBALS["SOURCEDIR"]}/zcp-*.tar.gz") as $filename) {
 	
 function processtgz($filepath){
 	$filename=basename($filepath);
-	if(preg_match("#zcp-([0-9\.]+)-([0-9]+)-([a-z]+)-([0-9\.]+)-(.+?)-supported#",$filename,$re)){
+	if(preg_match("#zcp-([0-9\.]+)-([0-9]+)-([a-z]+)-([0-9\.]+)-(.+?)-free#",$filename,$re)){
 	}else{
 		echo "No match $filename\n";
 		return;
 	}
-	$originalFileName=str_replace("-supported.tar.gz","",$filename);
+	$originalFileName=str_replace("-free.tar.gz","",$filename);
 	$proc=$re[5];
 	$procOrg=$re[5];
 	if($proc=="i586"){$proc="i386";}
@@ -63,7 +63,12 @@ function processtgz($filepath){
 		}
 		if($linux_ver=="6.0"){
 			$package_name="zarafa-debian60-$proc-$version.tar.gz";
+		}	
+
+		if($linux_ver=="7.0"){
+			$package_name="zarafa-debian70-$proc-$version.tar.gz";
 		}		
+		
 	}
 
 	if($linux=="ubuntu"){

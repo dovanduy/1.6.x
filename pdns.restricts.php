@@ -230,7 +230,7 @@ function items(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$id=md5($ligne["address"]);
 		$color="black";
-		if($EnablePDNSRecurseRestrict==0){$color="#9C9C9C";$colored=$color;}
+		if($EnablePDNSRecurseRestrict==0){$color="#8a8a8a";$colored=$color;}
 		$delete=imgsimple("delete-24.png",null,"PdnsAddressDelete$t('{$ligne["address"]}','$id')");
 		$text_recursive=null;
 	$data['rows'][] = array(
@@ -291,7 +291,7 @@ function restrictions(){
 	if(!is_numeric($EnablePDNSRecurseRestrict)){$EnablePDNSRecurseRestrict=0;}
 	$p=Paragraphe_switch_img("{enable_restriction}", "{enable_restriction_pdns_explain}","EnablePDNSRecurseRestrict",$EnablePDNSRecurseRestrict,null,550);
 	
-	$html="<table style='width:95%' class=form>
+	$html="<table style='width:98%' class=form>
 	<tr>
 		<td>$p</td>
 	</tr>

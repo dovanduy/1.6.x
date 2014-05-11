@@ -148,7 +148,7 @@ function usermap(){
 	}
 	
 	if($user->MailAlternateAddress<>null){
-		$end1="<td width=1% align='center'><img src='img/user-black-48.png'></td>";
+		$end1="<td width=1% align='center'><img src='img/postmaster-48.png'></td>";
 		$end11="<td align='center' style='font-size:13px'>{$user->MailAlternateAddress}</td>";		
 	}
 	

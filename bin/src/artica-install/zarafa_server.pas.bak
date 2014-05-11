@@ -690,7 +690,7 @@ var
    ZarafaMajorVersion,ZarafaMinorVersion,ZarafaSoftDelete,ZarafaCacheCellSize,ZarafaCacheObjectSize,ZarafaCacheIndexedObjectSize,ZarafaCacheQuotaLifeTime:Integer;
    ZarafaCacheQuotaSize,ZarafaCacheAclSize,ZarafaCacheUserSize,ZarafaCacheUserDetailsSize,ZarafaCacheUserDetailsLifeTime,ZarafaThreadStackSize,ZarafaCacheServerSize,ZarafadAgentJunk:integer;
    ZarafaMySQLServiceType:integer;
-   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaEnableSecurityLogging,ZarafaDedicateMySQLServer:integer;
+   EnableZarafaSearch,EnableZarafaSearchAttach,ZarafaLogLevel,ZarafaServerListenPort,ZarafaEnableSecurityLogging,ZarafaDedicateMySQLServer,ZarafaAlwaysSendDelegates,ZarafaMAPISSLPort:integer;
    ZarafaIndexPath:string;
 begin
 attachment_storage:='database';
@@ -736,9 +736,16 @@ if not TryStrToInt(SYS.GET_INFO('ZarafaLogLevel'),ZarafaLogLevel) then ZarafaLog
 if not TryStrToInt(SYS.GET_INFO('ZarafaEnableSecurityLogging'),ZarafaEnableSecurityLogging) then ZarafaEnableSecurityLogging:=0;
 if not TryStrToInt(SYS.GET_INFO('ZarafaMySQLServiceType'),ZarafaMySQLServiceType) then ZarafaMySQLServiceType:=1;
 if not TryStrToInt(SYS.GET_INFO('ZarafaDedicateMySQLServer'),ZarafaDedicateMySQLServer) then ZarafaDedicateMySQLServer:=0;
+if not TryStrToInt(SYS.GET_INFO('ZarafaAlwaysSendDelegates'),ZarafaAlwaysSendDelegates) then ZarafaAlwaysSendDelegates:=0;
+if not TryStrToInt(SYS.GET_INFO('ZarafaServerListenPort'),ZarafaServerListenPort) then ZarafaServerListenPort:=236;
+if not TryStrToInt(SYS.GET_INFO('ZarafaMAPISSLPort'),ZarafaMAPISSLPort) then ZarafaMAPISSLPort:=237;
+
+
+
+
 
 ZarafaIndexPath:=SYS.GET_INFO('ZarafaIndexPath');
-if(length(trim(ZarafaIndexPath))=0 then ZarafaIndexPath:='/var/lib/zarafa/index';
+if length(trim(ZarafaIndexPath))=0 then ZarafaIndexPath:='/var/lib/zarafa/index';
 
 ZarafaDeliverBind:=SYS.GET_INFO('ZarafaDeliverBind');
 if length(ZarafaDeliverBind)=0 then ZarafaDeliverBind:='127.0.0.1';
@@ -830,7 +837,7 @@ l:=Tstringlist.Create;
 l.add('server_bind		= '+ZarafaServerListenIP);
 l.add('server_hostname          = '+SYS.HOSTNAME_g());
 l.add('server_tcp_enabled	= yes');
-l.add('server_tcp_port		= 236');
+l.add('server_tcp_port		= '+IntToStr(ZarafaServerListenPort));
 l.add('server_pipe_enabled	= yes');
 l.add('server_pipe_name	= /var/run/zarafa');
 l.add('server_name = Zarafa');
@@ -1021,7 +1028,8 @@ l.add('log_timestamp	=	1');
 l.add('max_threads = 5');
 l.add('fax_domain = fax.local');
 l.add('fax_international = 00');
-l.add('always_send_delegates = no');
+if ZarafaAlwaysSendDelegates=0 then l.add('always_send_delegates = no');
+if ZarafaAlwaysSendDelegates=1 then l.add('always_send_delegates = yes');
 l.add('allow_redirect_spoofing = no');
 l.add('copy_delegate_mails = yes');
 l.add('always_send_tnef = yes');
@@ -1074,7 +1082,11 @@ l.free;
  // /etc/zarafa/gateway.cfg
 l:=Tstringlist.Create;
 l.add('server_bind	=	'+ZarafaGatewayBind);
-l.add('server_socket	=	http://'+ZarafaServerListenIP+':236/zarafa');
+if ZarafaServerListenIP ='0.0.0.0' then begin
+   l.add('server_socket	=	http://localhost:'+IntToStr(ZarafaServerListenPort)+'/zarafa');
+end else begin
+   l.add('server_socket	=	http://'+ZarafaServerListenIP+':'+IntToStr(ZarafaServerListenPort)+'/zarafa');
+end;
 l.add('run_as_user = root');
 l.add('run_as_group = root');
 l.add('pid_file = /var/run/zarafa-gateway.pid');
@@ -1436,10 +1448,12 @@ end;
 procedure tzarafa_server.ICAL_CONFIG();
 var
   ZarafaiCalPort:Integer;
+  ZarafaServerListenPort:integer;
   ZarafaiCalBind:string;
   l:Tstringlist;
 begin
  l:=Tstringlist.Create;
+ if not TryStrToInt(SYS.GET_INFO('ZarafaServerListenPort'),ZarafaServerListenPort) then ZarafaServerListenPort:=236;
  if Not TryStrToInt(SYS.GET_INFO('ZarafaiCalPort'),ZarafaiCalPort) then ZarafaiCalPort:=8088;
  ZarafaiCalBind:=SYS.GET_INFO('ZarafaiCalBind');
  if length(ZarafaiCalBind)<4 then ZarafaiCalBind:='0.0.0.0';
@@ -1448,7 +1462,7 @@ l.add('run_as_user      =       root');
 l.add('run_as_group     =       root');
 l.add('ical_port	=	'+IntToStr(ZarafaiCalPort));
 l.add('ical_enable      =       yes');
-l.add('server_socket	=	http://localhost:236/zarafa');
+l.add('server_socket	=	http://localhost:'+IntToStr(ZarafaServerListenPort)+'/zarafa');
 l.add('pid_file         =	/var/run/zarafa-ical.pid');
 l.add('log_method	=	syslog');
 l.add('log_level	=	2');
@@ -1533,13 +1547,7 @@ function tzarafa_server.STATUS():string;
 var
 pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_ZARAFA_WEB');
-SYS.MONIT_DELETE('APP_ZARAFA_ICAL');
-SYS.MONIT_DELETE('APP_ZARAFA_DAGENT');
-SYS.MONIT_DELETE('APP_ZARAFA_MONITOR');
-SYS.MONIT_DELETE('APP_ZARAFA_GATEWAY');
-SYS.MONIT_DELETE('APP_ZARAFA_SPOOLER');
-SYS.MONIT_DELETE('APP_ZARAFA_SERVER');
+
 if not FileExists(SERVER_BIN_PATH()) then  exit;
 
  pidpath:=logs.FILE_TEMP();

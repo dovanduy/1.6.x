@@ -36,7 +36,7 @@ function restart() {
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -54,7 +54,7 @@ function start($aspid=false){
 	$Masterbin=$unix->find_program("snmpd");
 
 	if(!is_file($Masterbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
 		return;
 	}
 
@@ -63,7 +63,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -73,7 +73,7 @@ function start($aspid=false){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 	$EnableSNMPD=$sock->GET_INFO("EnableSNMPD");
@@ -81,7 +81,7 @@ function start($aspid=false){
 	
 
 	if($EnableSNMPD==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableSNMPD)\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableSNMPD)\n";}
 		return;
 	}
 	
@@ -92,19 +92,19 @@ function start($aspid=false){
 	$IPZ[]="127.0.0.1";
 	$ips=$unix->NETWORK_ALL_INTERFACES(true);
 	while (list ($ip, $line) = each ($ips) ){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} listen $ip\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} listen $ip\n";}
 		$IPZ[]=$ip;
 		
 	}
 
-	$cmd="$Masterbin -Lsd -Lf /dev/null -u root -I -smux -p /var/run/snmpd.pid " .@implode(" ", $IPZ);
+	$cmd="$Masterbin -c /etc/snmp/snmpd.conf -Lsd -Lf /dev/null -u root -g root -I -smux -p /var/run/snmpd.pid";
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 	build();
 	shell_exec($cmd);
 
 	for($i=1;$i<5;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
@@ -112,10 +112,10 @@ function start($aspid=false){
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 	}
 
 
@@ -128,7 +128,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -138,7 +138,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		return;
 	}
 	$pid=PID_NUM();
@@ -149,32 +149,32 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 
@@ -198,28 +198,66 @@ function PID_PATH(){
 
 
 function build(){
-	if(is_file("/etc/snmp/snmpd.conf")){return;}
-	$f[]="agentAddress  udp:127.0.0.1:161";
-	$f[]="view   systemonly  included   .1.3.6.1.2.1.1";
-	$f[]="view   systemonly  included   .1.3.6.1.2.1.25.1";
-	$f[]="rouser   authOnlyUser";
-	$f[]="sysServices    72";
-	$f[]="proc  mountd";
-	$f[]="proc  ntalkd    4";
-	$f[]="proc  sendmail 10 1";
-	$f[]="disk       /     10000";
-	$f[]="disk       /var  5%";
-	$f[]="includeAllDisks  10%";
-	$f[]="load   12 10 5";
-	$f[]="trapsink     localhost public";
-	$f[]="iquerySecName   internalUser       ";
-	$f[]="rouser          internalUser";
-	$f[]="defaultMonitors          yes";
-	$f[]="linkUpDownNotifications  yes";
-	$f[]="master          agentx";	
+	
+	$sock=new sockets();
+	$EnableSNMPD=$sock->GET_INFO("EnableSNMPD");
+	$SNMPDNetwork=$sock->GET_INFO("SNMPDNetwork");
+	if($SNMPDNetwork==null){$SNMPDNetwork="default";}
+	if(!is_numeric($EnableSNMPD)){$EnableSNMPD=0;}
+	$SNMPDCommunity=$sock->GET_INFO("SNMPDCommunity");
+	if($SNMPDCommunity==null){$SNMPDCommunity="public";}
+	
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	
+	$organization=$WizardSavedSettings["organization"];
+	$mail=$WizardSavedSettings["mail"];
+	
+
+$f[]="agentAddress udp:161";
+$f[]="view   systemonly  included   .1.3.6.1.2.1.1";
+$f[]="view   systemonly  included   .1.3.6.1.2.1.25.1";
+$f[]="rwcommunity $SNMPDCommunity  $SNMPDNetwork";
+$f[]="rouser   authOnlyUser";
+$f[]="#rwuser   authPrivUser   priv";
+$f[]="sysLocation    $organization";
+$f[]="sysContact     Manager <$mail>";
+$f[]="sysServices    72";
+$f[]="proc  mountd";
+$f[]="proc  ntalkd";
+
+$unix=new unix();
+$squid=$unix->LOCATE_SQUID_BIN();
+if($squid<>null){ $f[]="proc  $squid";}
+
+$apache=$unix->LOCATE_APACHE_BIN_PATH();
+if($apache<>null){ $f[]="proc  $apache";}
+
+$ufdbguardd=$unix->find_program("ufdbguardd");
+if($ufdbguardd<>null){ $f[]="proc  $ufdbguardd";}
+
+
+$f[]="proc  ".$unix->LOCATE_PHP5_BIN();
+
+$mysqld=$unix->find_program("mysqld");
+if($mysqld<>null){$f[]="proc  $mysqld";}
+$lighttpd=$unix->find_program("lighttpd");
+if($lighttpd<>null){$f[]="proc  $lighttpd";}
+$clamd=$unix->find_program("clamd");
+if($clamd<>null){$f[]="proc  $clamd";}
+
+$f[]="disk       /     10000";
+$f[]="disk       /var  5%";
+$f[]="includeAllDisks  10%";
+$f[]="load   12 10 5";
+$f[]="iquerySecName   internalUser       ";
+$f[]="rouser          internalUser";
+$f[]="defaultMonitors          yes";
+$f[]="master          agentx";
+$f[]="#agentXSocket    tcp:localhost:705";
+
 	@mkdir("/etc/snmp",0755,true);
 	@file_put_contents("/etc/snmp/snmpd.conf", @implode("\n", $f));
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/snmp/snmpd.conf done\n";}
 	
 }
 

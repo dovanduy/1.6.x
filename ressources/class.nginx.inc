@@ -15,6 +15,7 @@ class nginx{
 	private $HostPortLNK=null;
 	private $forceddomain=null;
 	private $NginxProxyStorePath=null;
+	private $RedirectQueries=null;
 	private $host_port=0;
 	private $storeid=0;
 	private $host_ipaddr=null;
@@ -29,7 +30,26 @@ class nginx{
 	private $BuildFramework=false;
 	private $SargDir=null;
 	private $OWA=false;
+	private $EnableHSTS=0;
+	private $RestrictIFrames=0;
+	private $XSSBrowser=0;
+	private $EnableCSP=0;
 	private $ClassFreeWeb=null;
+	private $default_server=0;
+	private $ssl_protocols=null;
+	private $ssl_ciphers=null;
+	private $LimitCnx=0;
+	private $LimitReqs=0;
+	public $NoErrorPages=false;
+	public $proxy_read_timeout=300;
+	public $proxy_send_timeout=300;
+	public $proxy_buffering=1;
+	public $proxy_cache_min_uses=1;
+	public $proxy_buffer_size=8;
+	public $proxy_buffers="8 8k";
+	public $file_settings_path;
+	public $BackupBefore=false;
+	
 	function nginx($servername=null){
 		$this->unix=new unix();
 		if(preg_match("#([0-9\.]+):([0-9]+)#", $servername,$re)){$servername=$re[1];$this->host_port=$re[2];}
@@ -53,6 +73,7 @@ class nginx{
 		if($this->APACHE_USER==null){$this->APACHE_USER="www-data";}
 		if($this->APACHE_SRC_GROUP==null){$this->APACHE_SRC_GROUP="www-data";}
 		if(class_exists("unix")){$this->LoadParams();}
+		$this->LoadParams();
 	}
 	
 	
@@ -86,6 +107,10 @@ class nginx{
 			}
 			
 		}
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT start_directory FROM reverse_www WHERE servername='$this->servername'"));
+		if($ligne["start_directory"]<>null){$this->proxy_suffix="/{$ligne["start_directory"]}/";}
+		
 		if(!is_numeric($this->proxy_to_port)){$this->proxy_to_port=0;}
 		
 		
@@ -103,10 +128,50 @@ class nginx{
 	}
 	
 	private function LoadParams(){
+		$key="$this->servername:$this->host_port";
+		if(isset($GLOBALS[__CLASS__][__FUNCTION__][$key])){return;}
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Loading\n";}
 		$unix=new unix();
 		$this->CompileParams=$unix->NGINX_COMPILE_PARAMS();
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
+		$this->build_file_path();
+		if($this->servername<>null){
+			
+			$q=new mysql_squid_builder();
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$this->servername'"));
+			$this->proxy_read_timeout=$ligne["proxy_read_timeout"];
+			$this->proxy_send_timeout=$ligne["proxy_send_timeout"];
+			$this->proxy_buffering=$ligne["proxy_buffering"];
+			$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
+			$this->proxy_buffer_size=$ligne["proxy_buffer_size"];
+			$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
+			$this->proxy_buffers=$ligne["proxy_buffers"];
+			$this->default_server=$ligne["default_server"];
+			$this->EnableHSTS=$ligne["EnableHSTS"];
+			$this->RestrictIFrames=$ligne["RestrictIFrames"];
+			$this->XSSBrowser=$ligne["XSSBrowser"];
+			$this->EnableCSP=$ligne["EnableCSP"];
+			$this->ssl_protocols=$ligne["ssl_protocols"];
+			$this->ssl_ciphers=$ligne["ssl_ciphers"];
+			$this->LimitCnx=$ligne["LimitCnx"];
+			$this->LimitReqs=$ligne["LimitReqs"];
+			if($this->ssl_protocols==null){$this->ssl_protocols="TLSv1 TLSv1.1 TLSv1.2";}
+			if($this->ssl_ciphers==null){$this->ssl_ciphers="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";}
+			
+			
+		$GLOBALS[__CLASS__][__FUNCTION__][$key]=true;
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." default_server = {$ligne["default_server"]}\n";}
+			
+		}else{
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, no servername aborting LoadParams()\n";}
+		}
+		
+		if($this->IsMiscModule()){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername MISC module OK\n";}
+		}else{
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername MISC module Failed\n";}
+		}
+		
 	}
 	
 	public function set_proxy_port($port=null){
@@ -115,6 +180,11 @@ class nginx{
 		if($port<0){return;}
 		$this->proxy_to_port=$port;
 	}	
+	
+	public function set_RedirectQueries($url=null){
+		$this->RedirectQueries=$url;
+	}
+	
 	public function set_forceddomain($domainname=null){
 		$this->forceddomain=$domainname;
 	}
@@ -139,7 +209,7 @@ class nginx{
 	public function SargDir(){
 		$sock=new sockets();
 		$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-		if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+		if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 		$this->SargDir=$SargOutputDir;
 	}
 	
@@ -153,13 +223,13 @@ class nginx{
 	
 	public function set_cache_peer_id($ID=0){
 		if(!is_numeric($ID)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, set_cache_peer_id($ID) : False\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, set_cache_peer_id($ID) : False\n";}
 			return;}
 		if($ID>0){
 			$this->cache_peer_id=$ID;
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, set_cache_peer_id($ID) : True\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, set_cache_peer_id($ID) : True\n";}
 			return;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, set_cache_peer_id($ID) : False\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, set_cache_peer_id($ID) : False\n";}
 	}
 	
 	public function set_listen_port($port=0){
@@ -190,7 +260,7 @@ class nginx{
 	public function set_listen_ip($ipaddr){
 		$net =new IP();
 		if(!$net->isValid($ipaddr)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx,$ipaddr not a valid ip address\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,$ipaddr not a valid ip address\n";}
 			return;
 		}
 		
@@ -218,15 +288,15 @@ class nginx{
 			$this->servername=$GLOBALS["FillHostnameAsIP"];
 			return $GLOBALS["FillHostnameAsIP"];}
 		$ifconfig_all_ips=$this->unix->ifconfig_all_ips();
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, ".count($ifconfig_all_ips)." network addresses\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, ".count($ifconfig_all_ips)." network addresses\n";}
 		while (list ($a, $b) = each ($ifconfig_all_ips) ){$ips[]=$a;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, host:{$ips[0]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, host:{$ips[0]}\n";}
 		$GLOBALS["FillHostnameAsIP"]=$ips[0];
 		$this->servername=$ips[0];		
 		return $GLOBALS["FillHostnameAsIP"];
 	}
 	
-	private function IsSubstitutions(){
+	public function IsSubstitutions(){
 		if(isset($GLOBALS["IsSubstitutions"])){return $GLOBALS["IsSubstitutions"];}
 		$GLOBALS["IsSubstitutions"]=false;
 		$ARRAY=$this->CompileParams;
@@ -252,7 +322,21 @@ class nginx{
 	
 		}
 		return $GLOBALS["IsLdapModule"];
-	}	
+	}
+	private function IsMiscModule(){
+		if(isset($GLOBALS["IsMiscModule"])){return $GLOBALS["IsMiscModule"];}
+		$ARRAY=$this->CompileParams;
+		$GLOBALS["IsMiscModule"]=false;
+		while (list ($a, $b) = each ($ARRAY["MODULES"]) ){
+			if(preg_match("#misc-nginx-module#", $a)){
+				$GLOBALS["IsMiscModule"]=true;
+				break;
+			}
+		
+		}
+		return $GLOBALS["IsMiscModule"];
+	}
+	
 	
 	private function IsAutheRequestsModule(){
 		if(isset($GLOBALS["IsAutheRequestsModule"])){return $GLOBALS["IsAutheRequestsModule"];}
@@ -275,17 +359,17 @@ class nginx{
 		$NGINX_COMPILE_PARAMS=$unix->NGINX_COMPILE_PARAMS();
 		
 		if(!isset($NGINX_COMPILE_PARAMS["ARGS"]["WITH-HTTP_DAV_MODULE"])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, WebDav not implemented.\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, WebDav not implemented.\n";}
 			$GLOBALS["webdav_containers"]="# WebDav not implemented\n";return null;
 			return;
 		}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, WebDav implemented.\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, WebDav implemented.\n";}
 		$freeweb=new freeweb();
 		$ls=$unix->find_program("ls");
 		$sql="SELECT * FROM users_containers WHERE created=1 AND onerror=0 AND webdav=1";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, ".mysql_num_rows($results)." WebDav items...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, ".mysql_num_rows($results)." WebDav items...\n";}
 		$apacheusername=$unix->APACHE_SRC_ACCOUNT();
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -296,7 +380,7 @@ class nginx{
 				if(!is_dir("$MountedPath/WebShared")){@mkdir("$MountedPath/WebShared",0755,true);}
 				@chown("$MountedPath/WebShared", $apacheusername);
 				@mkdir("/etc/htpass",0755,true);
-				echo "Starting......: [INIT]: nginx, WebDav `$MountedPath`\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, WebDav `$MountedPath`\n";
 				$f[]="\tlocation ~ /disk$ID/(.*?)$ {";
 				$f[]="\t\tautoindex on;";
 				$f[]="\t\talias\t$MountedPath/WebShared/$1;";
@@ -313,12 +397,28 @@ class nginx{
 			$GLOBALS["webdav_containers"]=@implode("\n",$f);
 			return $GLOBALS["webdav_containers"];
 	}
+	
+	
+	private function build_file_path(){
+		if($this->servername==null){$this->servername=$this->FillHostnameAsIP();}
+		$suffix=$this->servername;
+		$suffix=str_replace("unix:", "unix-", $suffix);
+		$suffix=str_replace("/", "", $suffix);
+		if($this->ssl==1){
+			$this->file_settings_path="/etc/nginx/sites-enabled/freewebs-ssl-$suffix.$this->host_port.conf";
+		}else{
+			$this->file_settings_path="/etc/nginx/sites-enabled/freewebs-$suffix.$this->host_port.conf";
+		}
+		
+		
+	}
 
 	
 	public function build_proxy(){
-		@chmod(0755,"/etc/nginx/sites-enabled");
+		@chmod("/etc/nginx/sites-enabled",0755);
+		$this->LoadParams();
 		if($this->sslcertificate<>null){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, using certificate $this->sslcertificate, turn to ssl\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, using certificate $this->sslcertificate, turn to ssl\n";}
 			$this->ssl=1;
 		}
 		
@@ -326,7 +426,7 @@ class nginx{
 		if($this->servername==null){$this->servername=$this->FillHostnameAsIP();}
 		
 		if(isset($GLOBALS["NGINX_SERVERS_NAME"][$this->servername])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername already set\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername already set\n";}
 			return;
 		}
 		
@@ -335,30 +435,97 @@ class nginx{
 		$suffix=str_replace("/", "", $suffix);
 		
 		if($this->ssl==1){
-
-			$filename="/etc/nginx/sites-enabled/freewebs-ssl-$suffix.$this->host_port.conf";
 			$data=$this->ssl_proxy();
 			
 		}else{
-			$filename="/etc/nginx/sites-enabled/freewebs-$suffix.$this->host_port.conf";
 			$data=$this->http_proxy();
 			
 		}
 		
 
-		if($GLOBALS["VERBOSE"]){
-			echo "\n$data\n";
-			file_put_contents($filename,$data);
-		}else{
-			@file_put_contents($filename,$data);
+		if($GLOBALS["VERBOSE"]){echo "\n$data\n";}
+		
+		@mkdir("/etc/nginx/sites-enabled-backuped",0755,true);
+		
+		if($this->BackupBefore){
+			if(is_file($this->file_settings_path)){
+				$file=basename($this->file_settings_path);
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, backup old file before\n";}
+				@copy("/etc/nginx/nginx.conf","/etc/nginx/nginx.bak");
+				@copy($this->file_settings_path, "/etc/nginx/sites-enabled-backuped/$file");
+			}
+		}
+
+		@file_put_contents($this->file_settings_path,$data);
+		$size=filesize($this->file_settings_path);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,$this->file_settings_path done.($size bytes)\n";}
+		
+		if($this->BackupBefore){
+			if(!$this->TestTheWholeConfig()){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, recover old config..\n";}
+				$file=basename($this->file_settings_path);
+				@copy("/etc/nginx/sites-enabled-backuped/$file",$this->file_settings_path);
+				@copy("/etc/nginx/nginx.bak","/etc/nginx/nginx.conf");
+			}
 		}
 		
-		$size=filesize($filename);
-		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx,".$filename." done.($size bytes)\n";}
 		
 		
 	}
+	
+	public function TestTheWholeConfig(){
+		$unix=new unix();
+		$nginxbin=$unix->find_program("nginx");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, testing configuration with $nginxbin...\n";}
+		$unix=new unix();
+		
+		exec("$nginxbin -c /etc/nginx/nginx.conf -t 2>&1",$testsR);
+		$tests=false;
+		while (list ($index, $line) = each ($testsR)){
+			if(preg_match("#\[warn\]\s+(.+)#", $line,$re)){$line=$re[1];}
+			if(preg_match("#nginx:\s+(.+)#", $line,$re)){$line=$re[1];}
+			
+			if(preg_match("#invalid URL prefix in\s+(.*?):([0-9]+)#",$line,$re)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $line\n";}
+				$filename=$re[1];
+				$filenameBase=basename($filename);
+				$lineError=$re[2];
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, copy $filenameBase to /root\n";}
+				@unlink("/root/$filenameBase");
+				@copy($filename,"/root/$filenameBase");
+			}
+			
+			if(preg_match("#a duplicate default server for (.+?)\s+in\s+(.+?):#", $line,$re)){
+				$filename=$re[2];
+				$filenameBase=basename($filename);
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, duplicate default server {$re[1]} remove $filenameBase\n";}
+				@unlink($filename);
+				return $this->TestTheWholeConfig();
+			}
+			
+			if(preg_match("#invalid URL prefix in\s+(.+?):#", $line,$re)){
+				$filename=$re[1];
+				$filenameBase=basename($filename);
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, invalid URL prefix remove $filenameBase\n";}
+				@unlink($filename);
+				return $this->TestTheWholeConfig();
+			}
+			
+			
+		
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $line\n";}
+			if(preg_match("#configuration file.*?test is successful#", $line)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, testing configuration Success...\n";}
+				$tests=true;
+				break;
+			}
+		
+		}
+		return $tests;
+	}
+	
+	
+	
 	private function keys_zone($storeid=null){
 		if(!is_numeric($storeid)){return null;}
 		if($storeid==0){return null;}
@@ -372,11 +539,31 @@ class nginx{
 	
 	private function proxy_parameters($cache_peer_id=0){
 		$rev=new nginx_sources($cache_peer_id);
+		$logprefix="Starting......: ".date("H:i:s")." [INIT]: proxy_pass: $this->servername:$this->host_port: ";
 		$f[]="\t\tproxy_read_timeout    $rev->proxy_read_timeout;";
-		$f[]="\t\tproxy_send_timeout	$rev->proxy_read_timeout;";
+		$f[]="\t\tproxy_send_timeout	$rev->proxy_send_timeout;";
 		$f[]="\t\tproxy_ignore_headers  Expires Cache-Control;";
-		$f[]="\t\tproxy_buffering       on;";
-		$f[]="\t\tproxy_cache_min_uses 1;";
+
+		if($this->proxy_buffering==1){
+			$f[]="\t\tproxy_buffering       on;";
+			$f[]="\t\tproxy_cache_min_uses $this->proxy_cache_min_uses;";
+			if($this->proxy_buffer_size>0){
+				$f[]="\t\tproxy_buffer_size       {$this->proxy_buffer_size}k;";
+			}else{
+				$f[]="#\t\tproxy_buffer_size == 0";
+			}
+			if(preg_match("#([0-9\.]+)\s+([0-9\.]+)#", $this->proxy_buffers,$re)){
+				$f[]="\t\tproxy_buffers      {$re[1]} {$re[2]}k;";
+				$buffers=($re[1]-1)*$re[2];
+				if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size {$buffers}k;\n";}
+				$f[]="\t\tproxy_busy_buffers_size {$buffers}k;";
+			}else{
+				$f[]="#\t\tproxy_buffers bad value";
+			}
+			
+		}else{
+			$f[]="#\t\tproxy_buffering  == 0";
+		}
 		return @implode("\n", $f)."\n";
 	}
 	
@@ -392,8 +579,12 @@ class nginx{
 		$q=new mysql_squid_builder();
 		$suffix=null;
 		$http_prefix=null;
-		$logprefix="Starting......: [INIT]: nginx, $this->servername:$this->host_port: Proxy:[$folderid]";
+		$logprefix="Starting......: ".date("H:i:s")." [INIT]: proxy_pass: $this->servername:$this->host_port: Proxy:[$folderid]";
 		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT start_directory FROM reverse_www WHERE servername='$this->servername'"));
+		$start_directory=$ligne["start_directory"];
+		if($start_directory<>null){$start_directory="$start_directory/";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix start_directory `$start_directory`\n";}
 		
 		if($folderid>0){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_dirs WHERE folderid='$folderid'"));
@@ -413,12 +604,12 @@ class nginx{
 		}
 		
 		if(!is_numeric($cache_peer_id)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: [$cache_peer_id]: aborting\n";}
+			if($GLOBALS["OUTPUT"]){echo "$logprefix cache_peer_id is not numeric, aborting\n";}
 			return null;
 		}
 		
 		if($cache_peer_id==0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: [$cache_peer_id]: aborting\n";}
+			if($GLOBALS["OUTPUT"]){echo "$logprefix cache_peer_id = 0 aborting\n";}
 			return null;
 		}		
 		
@@ -456,20 +647,24 @@ class nginx{
 		if($GLOBALS["OUTPUT"]){echo "$logprefix Pass to = `{$http_prefix}://$ipaddr$port_suffix$suffix`\n";}
 		
 		if($this->IsSubstitutions()){
-			$f[]="\t\tsubs_filter_types text/html text/css text/xml;";
 			if($directory<>null){
 				if(strpos(" $directory", "~")==0){
-					$f[]="\t\tsubs_filter $ipaddr $directory gi;";
+					
+					$f[]="\t\tsubs_filter ". str_replace(".", "\.", $ipaddr)." $directory gi;";
 				}
 			}else{
-				$f[]="\t\tsubs_filter $ipaddr $this->servername;";
+				$f[]="\t\tsubs_filter ". str_replace(".", "\.", $ipaddr)." $this->servername;";
 			}
 		}
 		
 		
-		$f[]="\t\tproxy_pass {$http_prefix}://$ipaddr$port_suffix$suffix;";
+		$proxy_pass_suffix=$suffix.$start_directory;
+		$proxy_pass_suffix=str_replace("//", "/", $proxy_pass_suffix);
+		if($GLOBALS["OUTPUT"]){echo "$logprefix Suffix = `$proxy_pass_suffix`\n";}
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: [$cache_peer_id]: ForceRedirect = {$ligne["ForceRedirect"]}\n";}
+		$f[]="\t\tproxy_pass {$http_prefix}://$ipaddr$port_suffix$proxy_pass_suffix;";
+		
+		if($GLOBALS["OUTPUT"]){echo "$logprefix ForceRedirect = {$ligne["ForceRedirect"]}\n";}
 		if($ligne["ForceRedirect"]==1){
 			$f[]="\t\tproxy_redirect   {$http_prefix}://$ipaddr$port_suffix$suffix/   /$directoryStriped;";
 		}
@@ -612,13 +807,13 @@ class nginx{
 		
 		$results=$q->QUERY_SQL($sql);
 		if(!$q->ok){
-			echo "\n   ***** \nStarting......: [INIT]: nginx, $this->servername FATAL $q->mysql_error\n   ***** \n";
+			echo "\n   ***** \nStarting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername FATAL $q->mysql_error\n   ***** \n";
 		}
 		
-		echo "Starting......: [INIT]: nginx, Authenticator rule $ruleid ". mysql_num_rows($results)." groups\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Authenticator rule $ruleid ". mysql_num_rows($results)." groups\n";
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
-			echo "Starting......: [INIT]: nginx, Authenticator {$ligne["groupid"]} = {$ligne["group_type"]}\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Authenticator {$ligne["groupid"]} = {$ligne["group_type"]}\n";
 			$GPS[$ligne["ID"]]=$ligne["group_type"];
 		}
 		
@@ -676,14 +871,14 @@ class nginx{
 				
 		
 		if(!isset($array["ENABLE_LDAP_AUTH"])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername LDAP Authentication not set.\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername LDAP Authentication not set.\n";}
 			return null;
 		}
 		
 		if(!is_numeric($array["LDAP_PORT"])){$array["LDAP_PORT"]=389;}
 		if($array["LDAP_PORT"]<>389){$ldapport=":{$array["LDAP_PORT"]}";}
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername LDAP {$array["LDAP_SERVER"]}$ldapport\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername LDAP {$array["LDAP_SERVER"]}$ldapport\n";}
 		$f[]="\tauth_ldap_url ldap://{$array["LDAP_SERVER"]}$ldapport/{$array["LDAP_SUFFIX"]}?{$array["LDAP_USER_ATTR"]}?sub?(objectClass={$array["LDAP_OBJCLASS_ATTR"]});";
 		if($array["LDAP_DN"]<>null){
 			$array["LDAP_PASSWORD"]=str_replace("$", "\$", $array["LDAP_PASSWORD"]);
@@ -703,7 +898,7 @@ class nginx{
 	
 	private function LDAP_require(){
 		return null;
-		if(!$this->IsLdapModule()){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername LDAP Authentication not compiled.\n";}return null;}
+		if(!$this->IsLdapModule()){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername LDAP Authentication not compiled.\n";}return null;}
 		$q=new mysql_squid_builder();
 		if(!$q->FIELD_EXISTS("reverse_www","webauth")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD webauth TEXT");}
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `webauth` FROM reverse_www WHERE servername='$this->servername'"));
@@ -737,6 +932,72 @@ class nginx{
 		return @implode("\n", $f);
 	}
 	
+	private function error_pages_default(){
+		$squid_reverse=new squid_reverse();
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$this->servername'"));
+		if($ligne["ArticaErrors"]==0){return null;}
+		
+		while (list ($key, $value) = each ($squid_reverse->errors_page) ){
+			$f[]="\terror_page $value = @backendErrors{$value};";
+			$f[]="\t\tlocation @backendErrors{$value} {";
+			$f[]="\t\tinternal;";
+			$f[]="\t\tset \$a \$request_uri;";
+			if($this->IsMiscModule()){
+				$f[]="\t\tset_encode_base64 \$a;";
+			}
+			$f[]="\t\tproxy_pass  http://unix:/var/run/nginx-authenticator.sock:/authenticator.php?error-page={$value}&servername=$this->servername&localport=$this->host_port&ipaddr=\$remote_addr&uencode=\$a;";
+			$f[]="\t}";
+		}
+		$f[]="";
+		return @implode("\n", $f);
+	}
+	
+	private function header_csp(){
+		
+		if(!isset($GLOBALS["ALL_WEBSITES"])){
+			$sql="SELECT * FROM `reverse_www` WHERE `enabled`=1";
+			$q=new mysql_squid_builder();
+			$results=$q->QUERY_SQL($sql);
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$ligne["servername"]=trim($ligne["servername"]);
+				$GLOBALS["ALL_WEBSITES"]["https://{$ligne["servername"]}"]=true;
+				$GLOBALS["ALL_WEBSITES"]["http://{$ligne["servername"]}"]=true;
+			}
+			$q=new mysql();
+			$sql="SELECT * FROM freeweb WHERE `enabled`=1";
+			$results=$q->QUERY_SQL($sql,"artica_backup");
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$ligne["servername"]=trim($ligne["servername"]);
+				$GLOBALS["ALL_WEBSITES"]["https://{$ligne["servername"]}"]=true;
+				$GLOBALS["ALL_WEBSITES"]["http://{$ligne["servername"]}"]=true;
+			}
+			
+			$GLOBALS["ALL_WEBSITES"]["https://fonts.googleapis.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://ssl.google-analytics.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://assets.zendesk.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://connect.facebook.net"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://s-static.ak.facebook.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://assets.zendesk.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://themes.googleusercontent.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://assets.zendesk.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://www.facebook.com"]=true;
+			$GLOBALS["ALL_WEBSITES"]["https://s-static.ak.facebook.com"]=true; 
+			$GLOBALS["ALL_WEBSITES"]["https://tautt.zendesk.com"]=true;
+		}
+		reset($GLOBALS["ALL_WEBSITES"]);
+		while (list ($site, $value) = each ($GLOBALS["ALL_WEBSITES"]) ){
+			$t[]=$site;
+		}
+		
+		$f[]=@implode($t," ")."; img-src 'self' ; style-src 'self' 'unsafe-inline' ".@implode($t," ")." ; object-src 'none'\";";
+		
+		
+		return "add_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' $websites; img-src 'self' $websites; style-src 'self' 'unsafe-inline' $websites; font-src 'self' $websites; frame-src $websites; object-src 'none'\";";
+		
+		
+	}
+	
 	
 	private function error_pages_perso(){
 		$squid_reverse=new squid_reverse();
@@ -744,8 +1005,12 @@ class nginx{
 		$f[]="\t\tproxy_intercept_errors on;";
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$this->servername'"));
+		if($ligne["ArticaErrors"]==0){return null;}
+		
+		
+		
 		while (list ($key, $value) = each ($squid_reverse->errors_page) ){
-			$params="?error-page=$value&error-ID={$ligne[$value]}&servername=$this->servername&uri=\$request_uri";
+			$params="?error-page=$value&error-ID={$ligne[$value]}&servername=$this->servername&localport=$this->host_port&uri=\$request_uri";
 			$f[]="\t\terror_page $value /nginx.error.php$params;";
 		}
 		$f[]="";
@@ -754,6 +1019,10 @@ class nginx{
 	
 	
 	private function error_pages_perso_framework(){
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$this->servername'"));
+		if($ligne["ArticaErrors"]==0){return null;}
+		
 		$f[]="\tlocation /nginx.error.php {";
 		$f[]="\tproxy_pass http://unix:/var/run/nginx-authenticator.sock:/authenticator.php;";
 		//$f[]=$this->php5_params("/usr/share/artica-postfix");
@@ -784,7 +1053,7 @@ class nginx{
 			$ServersAliasesTMP=trim(strtolower($alias));
 			if(isset($GLOBALS["NGINX_SERVERS_NAME"][$ServersAliasesTMP])){continue;}
 			$GLOBALS["NGINX_SERVERS_NAME"][$ServersAliasesTMP]=true;
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername, Alias: $ServersAliasesTMP...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername, Alias: $ServersAliasesTMP...\n";}
 			$f[]=$ServersAliasesTMP;
 		}
 		
@@ -796,16 +1065,120 @@ class nginx{
 	private function translate_destdir($directory){
 		$asregex=false;
 		$directory=trim(stripslashes($directory));
+		$Asfile=false;
+		if(preg_match("#\.[a-z0-9]+$#", $directory)){
+			$Asfile=true;
+			
+		}
+		
+		
+		
 		$firstPat=substr($directory, 0,1);
 		$lastPat=substr($directory, strlen($directory)-1,1);
 		if($firstPat<>"~"){
 			if($firstPat<>'/'){$directory="/$directory";}
-			if($lastPat<>'/'){$directory="$directory/";}
+			if(!$Asfile){
+				if($lastPat<>'/'){$directory="$directory/";}
+			}
 		}else{
 			$asregex=true;
 		}
 		
-		return array($directory,$asregex);
+		return array($directory,$asregex,$Asfile);
+		
+	}
+	
+	public function groupware_zarafa_Frontend(){
+		if(!$this->spawn_fcgi()){return null;}
+		$free=new freeweb($this->servername);
+		$rootdir=$free->WORKING_DIRECTORY;
+		$php_values=$free->php_values(true);
+		$port=80;
+		if($this->ssl==1){$port=443;}
+		$f[]="server {";
+		$f[]="        listen $port;";
+		$f[]="        server_name $this->servername;";
+		$f[]="        access_log  /var/log/apache2/$this->servername/access.log;";
+		$f[]="        error_log   /var/log/apache2/$this->servername/error.log;";
+		$f[]="        index index.php;";
+		$f[]="        root $rootdir/;";
+		if($this->ssl==1){
+			$this->LoadParams();
+			$f[]="\tssl on;";
+			$f[]=$this->squidR->SaveCertificate($this->sslcertificate,false,true);
+			$f[]="\tssl_session_timeout  5m;";
+			$f[]="\tssl_protocols  $this->ssl_protocols;";
+			$f[]="\tssl_ciphers '$this->ssl_ciphers';";
+			$f[]="\tssl_prefer_server_ciphers   on;";
+		}
+		
+
+		$f[]="        location / {";
+		$f[]="                try_files \$uri \$uri/ /index.php;";
+		$f[]="        }";
+		$f[]="";
+		$f[]="location ~ \.php$ {";
+		$f[]="                try_files \$uri =404;";
+		$f[]="                fastcgi_buffers 8 16k;";
+		$f[]="                fastcgi_buffer_size 32k;";
+		$f[]="                fastcgi_read_timeout 300;";
+		$f[]="                fastcgi_connect_timeout 300;";
+		$f[]="                fastcgi_send_timeout 300;";
+		$f[]="                fastcgi_index  index.php;";
+		$f[]="                fastcgi_param   SCRIPT_FILENAME         \$document_root\$fastcgi_script_name;";
+		$f[]="                fastcgi_param   SCRIPT_NAME             \$fastcgi_script_name;";
+		$f[]="                fastcgi_param   PATH_INFO               \$fastcgi_path_info;";
+		$f[]="                fastcgi_param   REQUEST_URI             \$request_uri;";
+		$f[]="                fastcgi_param   DOCUMENT_URI            \$document_uri;";
+		$f[]="                fastcgi_param   DOCUMENT_ROOT           \$document_root;";
+		$f[]="                fastcgi_param   SERVER_PROTOCOL         \$server_protocol;";
+		$f[]="                fastcgi_param   GATEWAY_INTERFACE       CGI/1.1;";
+		$f[]="                fastcgi_param   SERVER_SOFTWARE         nginx/\$nginx_version;";
+		$f[]="                fastcgi_param   REMOTE_ADDR             \$remote_addr;";
+		$f[]="                fastcgi_param   REMOTE_PORT             \$remote_port;";
+		$f[]="                fastcgi_param   SERVER_ADDR             \$server_addr;";
+		$f[]="                fastcgi_param   SERVER_PORT             \$server_port;";
+		$f[]="                fastcgi_param   SERVER_NAME             \$server_name;";
+		$f[]="                fastcgi_param   HTTPS                   \$server_https;";
+		$f[]="				  fastcgi_pass 	   unix:/var/run/php-fpm-zarafa.sock;";
+		$f[]="				  include fastcgi_params;";
+		$f[]="        }";
+		$f[]="}";
+		
+		$filename="/etc/nginx/sites-enabled/freewebs-ssl-$this->servername.$port.conf";
+		@file_put_contents($filename, @implode("\n", $f));
+		
+	}	
+	
+	private function http_locations_authenticator($ligne){
+		$pageid=$ligne["webpageid"];
+		$directoryZ=$this->translate_destdir($ligne["directory"]);
+		$directory=$directoryZ[0];
+		$asregex=$directoryZ[1];
+		$AsFile=$directoryZ[2];
+		$logprefix="Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Page ID: $pageid";
+		if($GLOBALS["OUTPUT"]){echo "$logprefix [{$ligne["directory"]}]\n";}
+		$proxy_cache=$this->keys_zone($ligne["storeid"]);
+		$dirpat=$this->strip_slashes($directory);
+		
+		$directory_name=$directory;
+		if(substr($directory_name, 0,1)<>"/"){$directory_name="/$directory_name";}
+		$f[]="location $directory_name {";
+		
+		if($ligne["folderid"]>0){
+			$f[]=$this->replace_folder_rules($ligne["folderid"]);
+		}
+		$replace_rules=$this->replace_rules_build($ligne["replaceid"]);
+		if($replace_rules<>null){
+			$f[]="\t\tproxy_set_header Accept-Encoding \"\";";
+			$f[]=$replace_rules;
+		}
+		$f[]="\t\tproxy_pass http://unix:/var/run/nginx-authenticator.sock:/authenticator.php?pageid=$pageid;";
+		$f[]="}";
+		$f[]="";
+		@mkdir("/home/reverse_pages_content",0777);
+		@chmod("/home/reverse_pages_content",0777);
+		return @implode("\n", $f);
 		
 	}
 	
@@ -814,9 +1187,9 @@ class nginx{
 		$directoryZ=$this->translate_destdir($ligne["directory"]);
 		$directory=$directoryZ[0];
 		$asregex=$directoryZ[1];
+		$AsFile=$directoryZ[2];
 		
-		
-		$logprefix="Starting......: [INIT]: nginx, $this->servername:$this->host_port: Proxy: $directory";
+		$logprefix="Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Proxy: $directory";
 		
 		if($GLOBALS["OUTPUT"]){echo "$logprefix [{$ligne["directory"]}]\n";}
 			
@@ -840,12 +1213,18 @@ class nginx{
 		if($forcedomain<>null){$HostHeader=$forcedomain;}
 		$dirpat=$this->strip_slashes($directory);
 		
-			
+		$directory_name=$directory;
+		if(substr($directory_name, 0,1)<>"/"){$directory_name="/$directory_name";}
 		
-		$f[]="location $directory {";
+		
+		$f[]="location $directory_name {";
 		//$f[]="\t\tproxy_redirect off;";
 		if(!$asregex){
-			$f[]="\t\trewrite ^$directory(.*) /$1 break;";
+		if(!$AsFile){
+				$f[]="\t\trewrite ^$directory(.*) /$1 break;";
+			}else{
+				$f[]="\t\trewrite ^$directory /$1 break;";
+			}
 		}
 		if($ligne["folderid"]>0){
 			$f[]=$this->replace_folder_rules($ligne["folderid"]);
@@ -870,15 +1249,6 @@ class nginx{
 		$f[]="\t\tauth_request_set \$username \$upstream_http_x_username;";
 		}
 		
-		
-		
-		
-			
-		
-		
-		
-		
-		
 		//$f[]="\t\tproxy_pass http://$HostHeader/;";
 		$f[]="\t\tproxy_pass_header Date;";
 		$f[]="\t\tproxy_pass_header Server;";
@@ -897,9 +1267,13 @@ class nginx{
 	private function http_locations_local($ligne){
 		$directory=trim(stripslashes($ligne["directory"]));
 		$destination=$ligne["localdirectory"];
-		$f[]="location $directory {";
+		$directory_name=$directory;
+		if(substr($directory_name, 0,1)<>"/"){$directory_name="/$directory_name";}
+		if(preg_match("#.+?\.[a-z]+$#", $destination)){$destination=dirname($destination);}
+		
+		$f[]="\tlocation $directory_name {";
 		$f[]="\t\troot\t$destination;";
-		$f[]="}";
+		$f[]="\t}";
 		
 		$f[]="";
 		return @implode("\n", $f);
@@ -909,7 +1283,7 @@ class nginx{
 
 	
 	private function http_locations($servername){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $servername, checking LOCATIONS...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername, checking LOCATIONS...\n";}
 		$f=array();
 		if($this->SargDir<>null){
 			
@@ -938,6 +1312,15 @@ class nginx{
 		}
 		
 		
+		$f[]=$this->reverse_dirs();
+		$f[]=$this->webdav_containers();
+		return @implode("\n", $f);
+		
+		
+	}
+	
+	
+	private function reverse_dirs(){
 		$q=new mysql_squid_builder();
 		
 		$sql="SELECT * FROM reverse_dirs WHERE servername='$this->servername' AND enabled=1 ORDER BY directory";
@@ -945,29 +1328,26 @@ class nginx{
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$asregex=false;
 			$directory=trim($ligne["directory"]);
-			
-			if(isset($ALREADY[$directory])){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: $directory already set\n";}continue;}
+				
+			if(isset($ALREADY[$directory])){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: $directory already set\n";}continue;}
 			$ALREADY[$directory]=true;
 			if($directory==null){continue;}
-			
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: [$directory] Is local ={$ligne["local"]}\n";}
-			
-			
-			if($ligne["local"]==0){
-				$f[]=$this->http_locations_proxy($ligne);
-			}else{
-				$f[]=$this->http_locations_local($ligne);
-			}
-			
-
-			
+				
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: [$directory] Is local ={$ligne["local"]}\n";}
+			$f[]=$this->reverse_dirs_pattern($ligne);
 		}
-		$f[]=$this->webdav_containers();
+
 		return @implode("\n", $f);
-		
-		
 	}
-	
+	private function reverse_dirs_pattern($ligne){
+		if($ligne["webpageid"]>0){
+			return $this->http_locations_authenticator($ligne);
+		}
+		if($ligne["local"]==1){
+			return $this->http_locations_local($ligne);
+		}
+		return $this->http_locations_proxy($ligne);
+	}
 	
 	
 	private function http_proxy(){
@@ -976,7 +1356,10 @@ class nginx{
 		$server_name=null;
 		$ErrorLogLevel="warn";
 		if(trim($this->servername)==null){$this->FillHostnameAsIP();}
-		
+		if($this->default_server==1){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." IS A DEFAULT SERVER..\n";}
+			$default_server=" default_server";
+		}
 		
 		
 		$HostHeader="\$host";
@@ -989,16 +1372,18 @@ class nginx{
 		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: proxy_disabled='$this->proxy_disabled'\n";}
 		
 		if($this->proxy_disabled==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: It is not a reverse Proxy\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: It is not a reverse Proxy\n";}
 			$AsProxy=false;
 		}		
 		
 		
 		
 		$f[]="server {";
-		$f[]="\tlisten {$HostIPADDR}$this->host_port;";
+		$f[]="\tlisten {$HostIPADDR}$this->host_port{$default_server};";
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." listen {$HostIPADDR}$this->host_port{$default_server}\n";}
 		$server_name_text=$this->CheckServerName($this->servername);
 		$ServersAliases=$this->http_servername_aliases();
+		
 		$server_name=trim("$server_name_text{$ServersAliases}");
 		if($server_name<>null){$f[]="\tserver_name $server_name;";}
 		if($this->isDebug()){$ErrorLogLevel="debug";}
@@ -1008,22 +1393,43 @@ class nginx{
 		$Logsuffix=$this->servername;
 		$Logsuffix=str_replace("unix:", "unix-", $Logsuffix);
 		$Logsuffix=str_replace("/", "", $Logsuffix);
+		
+		// LOGS
+		$f[]="# Access logs Line ".__LINE__;
+		$access_log="/var/log/apache2/$Logsuffix/nginx.access.log";
+		
 		@mkdir("/var/log/apache2/$Logsuffix",0755,true);
 		$unix->chown_func($this->APACHE_USER,$this->APACHE_SRC_GROUP,"/var/log/apache2/$Logsuffix");
-		
-		$f[]="\taccess_log  /var/log/apache2/$Logsuffix/nginx.access.log aws_log;";
-		$f[]="\terror_log  /var/log/apache2/$Logsuffix/nginx.error.log $ErrorLogLevel;";
+		if(preg_match("#^unix:#", $this->servername)){
+			$access_log="/dev/null";
+			$ErrorLogLevel="crit";
+		}
 			
-
+		
+		$f[]="\taccess_log  $access_log aws_log;";
+		$f[]="\terror_log  /var/log/apache2/$Logsuffix/nginx.error.log $ErrorLogLevel;";
+		
+		
 		if($this->OWA){
 			$f[]="rewrite ^/$ http://$server_name_text$this->HostPortLNK/owa permanent;";
 		}
+		
+		if($this->RedirectQueries<>null){
+			$f[]="return 301 $this->RedirectQueries\$request_uri;";
+			$f[]="}";
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: ".count($f)." parameters\n";}
+			return @implode("\n", $f);
+				
+		}
+		$f[]=$this->general_security();
+		$f[]=$this->error_pages_default();
+		$f[]=$this->AntiExploits();
 		
 		if($this->DocumentRoot<>null){
 			$f[]="\troot   $this->DocumentRoot;";
 			if($this->IndexFile<>null){ $f[]="\tindex $this->IndexFile;";}
 			$f[]="\tlocation ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {";
-			$f[]="\t\taccess_log        off;";
+			//$f[]="\t\taccess_log        off;";
 			$f[]="\t\texpires           max;";
 			$f[]="\t}";
 		}		
@@ -1034,13 +1440,15 @@ class nginx{
 		}else{
 			$f[]=$this->ROOT_PROXY();
 		}
-		$f[]=$this->error_pages();
-		$f[]=$this->error_pages_perso_framework();		
+		if(!$this->NoErrorPages){
+			$f[]=$this->error_pages();
+			$f[]=$this->error_pages_perso_framework();
+		}		
 
 		$f[]="}";		
 
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port:".count($f)." parameters\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port:".count($f)." parameters\n";}
 		return @implode("\n", $f);
 		
 	}
@@ -1086,7 +1494,63 @@ class nginx{
 	}
 	
 	
-
+	private function AntiExploits(){
+		$q=new mysql_squid_builder();
+		$sql="SELECT * FROM nginx_exploits WHERE servername='$this->servername'";
+		if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+		$results=$q->QUERY_SQL($sql);
+		$f=array();
+		if(!$q->ok){echo $q->mysql_error."\n";return;}
+		if(mysql_num_rows($results)==0){return;}
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			if($GLOBALS["VERBOSE"]){echo "nginx_exploits: gpid:{$ligne["groupid"]}\n";}
+			$groupid=$ligne["groupid"];
+			$rules=$this->AntiExploits_items($groupid);
+			if($rules<>null){$f[]=$rules;}
+		}
+			
+		if(count($f)>0){return @implode("\n" ,$f);}
+	}
+	
+	private function AntiExploits_items($groupid){
+		$q=new mysql_squid_builder();
+		$A="$";
+		$f=array();
+		$sql="SELECT * FROM nginx_exploits_items WHERE groupid=$groupid AND `enabled`=1";
+		if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+		$results=$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error."\n";return;}
+		if(mysql_num_rows($results)==0){return;}
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$neg=null;
+			if($ligne["reverse"]==1){$neg="!";}
+			$ligne["pattern"]=str_replace('"', '\"', $ligne["pattern"]);
+			$f[]="\tif ($A{$ligne["token"]} {$neg}~ \"{$ligne["pattern"]}\") {  return 403; }";
+   
+		}
+		
+		if(count($f)>0){return @implode("\n" ,$f);}
+		
+	}
+	
+	private function general_security(){
+		$servername=$this->servername;
+		$ZoneName=str_replace(".", "", $servername);
+		$ZoneName=str_replace("-", "", $servername);
+		$ZoneName=str_replace("_", "", $servername);
+		$f=array();
+		if($this->LimitCnx>0){$f[]="\tlimit_conn LimitCnx $this->LimitCnx;";}
+		if($this->EnableHSTS==1){$f[]="\tadd_header Strict-Transport-Security \"max-age=31536000\";";}
+		if($this->RestrictIFrames==1){$f[]="\tadd_header X-Frame-Options SAMEORIGIN;";}
+		if($this->XSSBrowser==1){$f[]="\tadd_header X-XSS-Protection \"1; mode=block\";";}
+		if($this->EnableCSP==1){$f[]=$this->header_csp();}
+		
+		if($this->LimitReqs>0){
+			$f[]="\tlimit_req   zone=$ZoneName  burst=2  nodelay;";
+		}
+		if(count($f)>0){return @implode("\n", $f);}
+		
+	}
 	
 	
 	private function ssl_proxy(){
@@ -1098,14 +1562,15 @@ class nginx{
 		if($this->servername==null){$this->FillHostnameAsIP();}
 		if($this->host_port==0){$this->host_port=443;}
 		$HostIPADDR=$this->MyHostnameListen();
-		
+		if($this->default_server==1){$default_server=" default_server";}
 		if($this->isDebug()){$ErrorLogLevel="debug";}
 		$AsProxy=true;
 		
+		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: default_server='$this->default_server'\n";}
 		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: proxy_disabled='$this->proxy_disabled'\n";}
 		
 		if($this->proxy_disabled==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: It not a reverse Proxy\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: It not a reverse Proxy\n";}
 			$AsProxy=false;
 		}
 		
@@ -1118,19 +1583,33 @@ class nginx{
 		
 		$server_name_text=$this->CheckServerName($this->servername);
 		$f[]="server {";
-		$f[]="\tlisten {$HostIPADDR}$this->host_port;";
+		$f[]="\tlisten {$HostIPADDR}$this->host_port{$default_server};";
+		$f[]="\tset \$cache_uri \$request_uri;";
+		$f[]="\tif (\$request_method = POST) {";
+		$f[]="\t\tset \$cache_uri 'null cache';";
+		$f[]="\t}";
 		
 		$server_name=trim("$server_name_text{$ServersAliases}");
 		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: $this->servername:$this->host_port server_name='$server_name'\n";}
 		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: $this->servername:$this->host_port OWA='$this->OWA'\n";}
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: server_name=\"$server_name\"\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: server_name=\"$server_name\"\n";}
 		if($server_name<>null){$f[]="\tserver_name $server_name_text{$ServersAliases};";}
 		
 		if($this->OWA){$f[]="\trewrite ^/$ https://$this->servername$this->HostPortLNK/owa/auth/logon.aspx?replaceCurrent=1&url=https%3a%2f%2f$this->servername%2fowa%2f permanent;";}
 		
 		$f[]="\taccess_log  /var/log/apache2/$this->servername/nginx.access.log aws_log;";
 		$f[]="\terror_log  /var/log/apache2/$this->servername/nginx.error.log $ErrorLogLevel;";
+		if($this->RedirectQueries<>null){
+			$f[]="return 301 $this->RedirectQueries\$request_uri;";
+			$f[]="}";
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: ".count($f)." parameters\n";}
+			return @implode("\n", $f);
+			
+		}
+		$f[]=$this->general_security();
+		$f[]=$this->error_pages_default();
+		$f[]=$this->AntiExploits();
 		
 		
 		$LDAP_server_auth=$this->LDAP_server_auth();
@@ -1154,9 +1633,10 @@ class nginx{
 		
 		$f[]="\tssl on;";
 		$f[]=$this->squidR->SaveCertificate($this->sslcertificate,false,true);
+		$f[]="\tssl_session_cache shared:SSL:50m;";
 		$f[]="\tssl_session_timeout  5m;";
-		$f[]="\tssl_protocols  SSLv3 TLSv1;";
-		$f[]="\tssl_ciphers HIGH:!aNULL:!MD5;";
+		$f[]="\tssl_protocols  $this->ssl_protocols;";
+		$f[]="\tssl_ciphers '$this->ssl_ciphers';";
 		$f[]="\tssl_prefer_server_ciphers   on;";
 		
 		
@@ -1166,7 +1646,7 @@ class nginx{
 		$f[]=$this->error_pages_perso_framework();
 		$f[]="}";
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: ".count($f)." parameters\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: ".count($f)." parameters\n";}
 		return @implode("\n", $f);
 		
 	}
@@ -1188,15 +1668,44 @@ class nginx{
 	private function replace_rules_single_domain(){
 		if(!$this->IsSubstitutions()){return null;}
 		$q=new mysql_squid_builder();
+		if(!$q->FIELD_EXISTS("nginx_replace_www", "zorder")){
+			$q->QUERY_SQL("ALTER TABLE `nginx_replace_www` ADD `zorder` INT( 10 ) NOT NULL DEFAULT '0' ,ADD INDEX ( `zorder` )");
+			if(!$q->ok){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: $q->mysql_error\n";}
+				return null;
+			}
+		}
+		
+		if(!$q->FIELD_EXISTS("nginx_replace_www", "AsRegex")){
+			$q->QUERY_SQL("ALTER TABLE `nginx_replace_www` ADD `AsRegex` smallint( 1 ) NOT NULL DEFAULT '0' ,ADD INDEX ( `AsRegex` )");
+			if(!$q->ok){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: $q->mysql_error\n";}
+				return null;
+			}
+		}		
+		
+		
 		$f=array();
 		$sql="SELECT * FROM nginx_replace_www WHERE servername='$this->servername' ORDER BY zorder";
 		$results=$q->QUERY_SQL($sql);
-		if(mysql_num_rows($results)==0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: no main replace rule\n";}
+		
+		
+		
+		if(!$q->ok){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: $q->mysql_error\n";}
+			return null;
+		}
+		
+		if(@mysql_num_rows($results)==0){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: no main replace rule\n";}
 		}
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$ligne["stringtosearch"]=stripslashes($ligne["stringtosearch"]);
+			$AsRegex=$ligne["AsRegex"];
+			if($AsRegex==0){$ligne["stringtosearch"]=$this->PatternToRegex($ligne["stringtosearch"]);}
+			
+			
 			$ligne["stringtosearch"]=$this->QuoteStringSpaces($ligne["stringtosearch"]);
 				
 			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
@@ -1211,10 +1720,10 @@ class nginx{
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT replaceid FROM reverse_www WHERE servername='$this->servername'"));
 		
-		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, *** FATAL *** $q->mysql_error\n";}}
+		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, *** FATAL *** $q->mysql_error\n";}}
 		if(!is_numeric($ligne["replaceid"])){$ligne["replaceid"]=0;}
 		if($ligne["replaceid"]>0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: no replace rule ({$ligne["replaceid"]})\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: no replace rule ({$ligne["replaceid"]})\n";}
 			if($GLOBALS["VERBOSE"]){echo "SELECT replaceid FROM reverse_www WHERE servername='$this->servername'\n";}
 			$a=$this->replace_rules_build($ligne["replaceid"]);
 			if($a<>null){$f[]=$a;}
@@ -1227,6 +1736,41 @@ class nginx{
 		
 	}
 	
+	private function PatternToRegex($pattern){
+		
+		if(isset($GLOBALS["PatternToRegex"][$pattern])){return $GLOBALS["PatternToRegex"][$pattern];}
+		$pattern=trim($pattern);
+		$patternSrc=$pattern;
+		$pattern=str_replace("\\", "\\\\", $pattern);
+		$pattern=str_replace(".", "\.", $pattern);
+
+		$pattern=str_replace("/", "\/", $pattern);
+		$pattern=str_replace("(", "\(", $pattern);
+		$pattern=str_replace(")", "\)", $pattern);
+		$pattern=str_replace("[", "\[", $pattern);
+		$pattern=str_replace("]", "\]", $pattern);
+		$pattern=str_replace("+", "\+", $pattern);
+		$pattern=str_replace("{", "\{", $pattern);
+		$pattern=str_replace("}", "\}", $pattern);
+		$pattern=str_replace("=", "\=", $pattern);
+		$pattern=str_replace("!", "\!", $pattern);
+		$pattern=str_replace("?", "\?", $pattern);
+		$pattern=str_replace("|", "\|", $pattern);
+		$pattern=str_replace("$", "\$", $pattern);
+	
+		$pattern=str_replace("^", "\^", $pattern);
+		
+		$pattern=str_replace("\n", "\s+", $pattern);
+		$pattern=str_replace("\t", "\s+", $pattern);
+		$pattern=str_replace("  ", "\s+", $pattern);
+		$pattern=str_replace("\s+\s+", "\s+", $pattern);
+		$pattern=str_replace("\s+\s+", "\s+", $pattern);
+		$pattern=str_replace("*", ".*?", $pattern);
+	
+		$GLOBALS["PatternToRegex"][$pattern]=$pattern;
+		return $pattern;
+	}
+	
 	private function replace_rules_build($id){
 		if(!is_numeric($id)){return;}
 		if($id==0){return;}
@@ -1234,15 +1778,19 @@ class nginx{
 		$results=$q->QUERY_SQL("SELECT * FROM nginx_replace WHERE groupid='$id'");
 		$t=array();
 		
-		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, *** FATAL *** $q->mysql_error\n";}}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Replace Group id:$id ". mysql_num_rows($results)." rules\n";}
+		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, *** FATAL *** $q->mysql_error\n";}}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Replace Group id:$id ". mysql_num_rows($results)." rules\n";}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			
+			$AsRegex=$ligne["AsRegex"];
+			
 		if(trim($ligne["stringtosearch"])==null){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Replace rule id:{$ligne["ID"]} no search pattern\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Replace rule id:{$ligne["ID"]} no search pattern\n";}
 			return;}
 			$ligne["stringtosearch"]=stripslashes($ligne["stringtosearch"]);
+			if($AsRegex==0){$ligne["stringtosearch"]=$this->PatternToRegex($ligne["stringtosearch"]);}
 			$ligne["stringtosearch"]=str_replace("\"", '\"', $ligne["stringtosearch"]);
+			
 			
 			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
 			$ligne["replaceby"]=str_replace("\"", '\"', $ligne["replaceby"]);
@@ -1251,22 +1799,24 @@ class nginx{
 		}
 		
 		if(count($t)==0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Replace Group id:$id no rule\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Replace Group id:$id no rule\n";}
 			return null;}
 		return @implode("\n", $t);		
 	}
 	
 	private function replace_folder_rules($folderid){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Folder ID:$folderid [".__LINE__."]\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Folder ID:$folderid [".__LINE__."]\n";}
 		if(!is_numeric($folderid)){return;}
 		if($folderid==0){return;}
 		$q=new mysql_squid_builder();
 		$results=$q->QUERY_SQL("SELECT * FROM nginx_replace_folder WHERE folderid='$folderid' ORDER BY zorder");
 		$t=array();
-		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, *** FATAL *** $q->mysql_error\n";}}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port: Replace Folder id:$folderid ". mysql_num_rows($results)." rules\n";}
+		if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, *** FATAL *** $q->mysql_error\n";}}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: Replace Folder id:$folderid ". mysql_num_rows($results)." rules\n";}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$AsRegex=$ligne["AsRegex"];
 			$ligne["stringtosearch"]=stripslashes($ligne["stringtosearch"]);
+			if($AsRegex==0){$ligne["stringtosearch"]=$this->PatternToRegex($ligne["stringtosearch"]);}
 			$ligne["stringtosearch"]=str_replace("\"", '\"', $ligne["stringtosearch"]);
 			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
 			$ligne["replaceby"]=str_replace("\"", '\"', $ligne["replaceby"]);
@@ -1287,7 +1837,7 @@ class nginx{
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT poolname FROM nginx_pools WHERE ID='$this->poolid'"));
 		$upstream_name=$ligne["poolname"];
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, Load-balancing: [$this->poolid] \"$upstream_name\"\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Load-balancing: [$this->poolid] \"$upstream_name\"\n";}
 		
 		if(!isset($GLOBALS["upstream_available"][$upstream_name])){return $ReverseProxyPattern;}
 		if($this->OWA){$http="https";}
@@ -1299,6 +1849,10 @@ class nginx{
 		$HostHeader="\$host";
 		$PortTXT=null;
 		if($this->forceddomain<>null){$HostHeader="$this->forceddomain";}
+		if($this->default_server==1){
+			$HostHeader="\$host";
+			$this->forceddomain=$HostHeader;
+		}
 		$proxy_to_host=$this->proxy_to_host;
 		$proxy_ssl_session_reuse=null;
 		$http_prefix=null;
@@ -1317,24 +1871,30 @@ class nginx{
 			$this->proxy_to_host="127.0.0.1";
 			$proxy_to_host=$this->proxy_to_host;
 			if($this->isFreeWebSSL()){
-				$http_prefix="https";
-				$this->proxy_to_port=447;
+				$http_prefix="http";
+				$this->proxy_to_port=82;
 				$proxy_ssl_session_reuse="off";
 			}
 			
 		}
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port Proxy to: '$proxy_to_host', suffix '$this->proxy_suffix'\n";} 
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port Proxy to: '$proxy_to_host', suffix '$this->proxy_suffix'\n";} 
 		
 		if($this->proxy_to_port<>null){
 			$PortTXT=":$this->proxy_to_port";
 		}
 		
+		$this->proxy_suffix=str_replace("//", "/", $this->proxy_suffix);
 		$ReverseProxyPattern="{$http_prefix}://$proxy_to_host$PortTXT$this->proxy_suffix";
 		if($this->poolid>0){
 			$ReverseProxyPattern=$this->ChekPool($ReverseProxyPattern);
 		}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, $this->servername:$this->host_port source id: $this->cache_peer_id\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port source id: $this->cache_peer_id\n";}
+		
+		
+		if(substr($ReverseProxyPattern, strlen($ReverseProxyPattern)-1,1)=="/"){
+			$ReverseProxyPattern=substr($ReverseProxyPattern, 0,strlen($ReverseProxyPattern)-1);
+		}
 		
 		if($this->cache_peer_id>0){
 			if($this->IsForceRedirect()){
@@ -1414,29 +1974,36 @@ class nginx{
 		
 		if($this->forceddomain<>null){
 			if($this->IsSubstitutions()){
+				$ToReplacewww=$this->servername;	
+				if($this->default_server==1){$ToReplacewww="\$host";}
 				$f[]="\t\tproxy_set_header Accept-Encoding \"\";";
-				$f[]="\t\tsubs_filter_types text/html text/css text/xml;";
+				
 				$subs_filter_types=true;
-				$f[]="\t\tsubs_filter $proxy_to_host $this->servername gi;";
+				$f[]="\t\tsubs_filter ".$this->PatternToRegex($proxy_to_host)." $ToReplacewww gi;";
 				if(preg_match("#^www\.(.+)#", $this->proxy_to_host,$re)){
-					$f[]="\t\tsubs_filter {$re[1]} $this->servername;";
+					$f[]="\t\tsubs_filter ".$this->PatternToRegex($re[1])." $ToReplacewww;";
 				}
 			}
+			
+			$f[]="\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
+			$f[]="\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+			$f[]="\t\tproxy_set_header Host $this->forceddomain;";
+			
+			
 		}
 		
 		$replace_rules=$this->replace_rules_single_domain();
 		
 		
 		if($replace_rules<>null){
-			if(!$subs_filter_types){
 				$f[]="\t\tproxy_set_header Accept-Encoding \"\";";
-				$f[]="\t\tsubs_filter_types text/html text/css text/xml;";				
-			}
-			$f[]=$replace_rules;
+				$f[]=$replace_rules;
 		}
 		$proxy_cache=$this->keys_zone($this->storeid);
 		if($proxy_cache<>null){$f[]=$proxy_cache;}
 		$f[]=$this->proxy_parameters($this->cache_peer_id);
+		
+
 		$f[]="\t\tproxy_pass $ReverseProxyPattern;";
 		
 		if($proxy_redirect<>null){$f[]="\t\t$proxy_redirect";}
@@ -1459,10 +2026,11 @@ class nginx{
 		$unix=new unix();
 		$aptget=$unix->find_program("apt-get");
 		if(!is_file($aptget)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, Operating system not supported\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Operating system not supported\n";}
+			return;
 		}
 		$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes --yes install spawn-fcgi";
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, installing spawn-fcgi...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, installing spawn-fcgi...\n";}
 		shell_exec($cmd);
 		
 	}
@@ -1476,13 +2044,13 @@ class nginx{
 		}
 		$spawn_fcgi=$unix->find_program("spawn-fcgi");
 		if(!is_file($spawn_fcgi)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, FATAL no spawn-php can be enabled !\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, FATAL no spawn-php can be enabled !\n";}
 			return false;
 		}
 		$phpcgi=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
 		
 		if(!is_file($phpcgi)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, FATAL no php-cgi can be enabled !\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, FATAL no php-cgi can be enabled !\n";}
 			return false;			
 		}
 		
@@ -1495,10 +2063,10 @@ class nginx{
 		}
 		$pid=$unix->get_pid_from_file("/var/run/spawn-fcgi.pid");
 		if($unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, PHP cgi spawned pid:$pid\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, PHP cgi spawned pid:$pid\n";}
 			return true;
 		}else{
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, PHP cgi spawned failed\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, PHP cgi spawned failed\n";}
 			
 		}
 		
@@ -1506,7 +2074,14 @@ class nginx{
 		
 	}
 	
-	private function spawn_fcgi_config(){
+	public function PHP_ENGINE($defaultfile=null){
+		if($defaultfile==null){$defaultfile="index.php";}
+		$this->IndexFile=$defaultfile;
+		return $this->php_fpm();
+	}
+	
+	
+	private function spawn_fcgi_config($root=null){
 		if(!$this->spawn_fcgi()){return null;}
 		
 		$this->fastcgi_params();
@@ -1518,6 +2093,8 @@ class nginx{
 		}
 		
 		$f[]="\tlocation ~ [^/]\.php(/|\$) {";
+		if($root<>null){$f[]="\t\troot\t$root;";}
+		$f[]="\t\tindex\t$index;";
 		$f[]="\t\tfastcgi_split_path_info ^(.+?\.php)(/.*)\$;";
 		$f[]="\t\tif (!-f \$document_root\$fastcgi_script_name) {";
 		$f[]="\t\t\treturn 404;";
@@ -1541,6 +2118,11 @@ class nginx{
 		$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
 		$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
 		if(!is_file($phpfpm)){$EnablePHPFPM=0;}
+		$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+		if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+		if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
+		
+		
 		if($EnablePHPFPM==1){
 			return "\t\troot $root;\n\t\tfastcgi_pass unix:/var/run/php-fpm.sock;\n\t\tinclude fastcgi_params;\n";
 		}
@@ -1550,21 +2132,27 @@ class nginx{
 	
 
 	
-	private function php_fpm($Forceindex=null){
+	public function php_fpm($Forceindex=null,$root=null,$Disable_phpfpm=0){
 		$unix=new unix();
 		$sock=new sockets();
-		
+		$index="index.php";
+		if($this->IndexFile<>null){ $index=$this->IndexFile;}
+		if($Forceindex<>null){$index=$Forceindex;}
 		
 		$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
 		$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
-		if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=1;}
+		if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
 		if(!is_file($phpfpm)){$EnablePHPFPM=0;}
+		
+		if($Disable_phpfpm==1){
+			$results=$this->spawn_fcgi_config($root);
+			if($results<>null){return $results;}
+		}
+		
 		if($EnablePHPFPM==0){return $this->spawn_fcgi_config();}
 		$this->fastcgi_params();
-		$index="index.php";
-		if($this->IndexFile<>null){ $index=$this->IndexFile;}
-
-		if($Forceindex<>null){$index=$Forceindex;}
+		
+		
 		
 		if(strpos($index, " ")>0){
 			$indexR=explode(" ", $index);
@@ -1572,12 +2160,20 @@ class nginx{
 		}
 		
 			$f[]="\tlocation ~ [^/]\.php(/|\$) {";
+			$f[]="\t\tindex\t$index;";
+			if($root<>null){$f[]="\t\troot\t$root;";}
 			$f[]="\t\tfastcgi_split_path_info ^(.+?\.php)(/.*)\$;";
 			$f[]="\t\tif (!-f \$document_root\$fastcgi_script_name) {";
 			$f[]="\t\t\treturn 404;";
 			$f[]="\t\t}";
 			$f[]=" ";
+			$f[]="\t\tfastcgi_buffers 8 16k;";
+			$f[]="\t\tfastcgi_buffer_size 32k;";
+			$f[]="\t\tfastcgi_read_timeout 300;";
+			$f[]="\t\tfastcgi_connect_timeout 300;";
+			$f[]="\t\tfastcgi_send_timeout 300;";
 			if($this->BuildFramework){
+				
 				$f[]="\t\tfastcgi_pass unix:/var/run/php-fpm-framework.sock;";
 			}else{
 				$f[]="\t\tfastcgi_pass unix:/var/run/php-fpm.sock;";
@@ -1637,7 +2233,7 @@ class nginx_upstream{
 		$results=$q->QUERY_SQL($sql);
 		if(mysql_num_rows($results)==0){return;}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: nginx, Load-balancing [{$ligne["poolname"]}]\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Load-balancing [{$ligne["poolname"]}]\n";}
 			$upstream_name=$ligne["poolname"];
 			$keepaliveTXT=null;
 			$poolid=$ligne["ID"];
@@ -1712,5 +2308,7 @@ class nginx_upstream{
 		}
 	
 	}
+	
+
 
 }

@@ -1,4 +1,4 @@
-<ADD_DNS_ENTRY>Ajouter une nouvelle entr&eacute;e</ADD_DNS_ENTRY>
+<ADD_DNS_ENTRY>Nouvelle entr&eacute;e</ADD_DNS_ENTRY>
 <ADD_DNS_ENTRY_TEXT>Ins&eacute;rez un nouvel ordinateur dans votre base DNS</ADD_DNS_ENTRY_TEXT>
 <pdns_addaliases_text>Indiquez ici le FQDN du serveur (par exemple:server.domain.tld)</pdns_addaliases_text>
 <pdns_explain>PowerDNS est un serveur de noms polyvalent qui . PowerDNS essaie de mettre l'accent sur la vitesse et la s&eacute;curit&eacute;.

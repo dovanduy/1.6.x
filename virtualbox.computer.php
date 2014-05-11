@@ -252,7 +252,7 @@ function status(){
 	
 	if(strlen($infos["ADDITIONS ACTIVE"])>0){
 		if($infos["ADDITIONS ACTIVE"]=="no"){
-			$ADDITIONSimg="<img src='img/status_warning.gif'>";
+			$ADDITIONSimg="<img src='img/status_warning.png'>";
 		}
 		$infos["ADDITIONS ACTIVE"]="{{$infos["ADDITIONS ACTIVE"]}}";
 		

@@ -88,9 +88,9 @@ echo $html;
 
 
 function showlist(){
-	
+	$page=1;
 	$q=new mysql_squid_builder();
-	$tablesrc="quotahours_".date("YmdH");
+	$tablesrc="quotatemp_".date("YmdH");
 	$table="(SELECT SUM(size) as size,ipaddr,familysite,uid,MAC FROM `$tablesrc` GROUP BY ipaddr,familysite,uid,MAC) as t";
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
@@ -109,24 +109,32 @@ function showlist(){
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
-	
+	if(!is_numeric($rp)){$rp=50;}
 	
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
+	
+	
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
+	if(isset($_GET["verbose"])){echo "<hr><code>$sql</code></hr>";}
 	$results = $q->QUERY_SQL($sql,"artica_events");
+	
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
+
+	if(mysql_num_rows($results)==0){
+		json_error_show("$table no data",1);
+	}
+	
+	
 	
 	
 		$data = array();
-		$data['page'] = $page;
-		$data['total'] = $total;
+		$data['page'] = 1;
+		$data['total'] = mysql_num_rows($results);
 		$data['rows'] = array();
-	
-		if(!$q->ok){json_error_show($q->mysql_error,1);}
 	
 		//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	

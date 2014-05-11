@@ -83,6 +83,16 @@ D:=false;
 GLOBAL_INI:=myconf.Create();
 zlogs:=tlogs.Create;
 SYS:=Tsystem.Create;
+zlogs.WriteToFile('/var/run/artica-process1.pid',SYS.SYSTEM_GET_MYPID());
+
+if FileExists('/etc/artica-postfix/LOCK_PROCESS1') then begin
+      if sys.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/LOCK_PROCESS1')>5 then begin
+         fpsystem('/bin/rm -f /etc/artica-postfix/LOCK_PROCESS1');
+      end else begin
+          halt(0);
+      end;
+end;
+
 
 if ParamStr(1)='-V' then begin
    writeln('process1 start in debug mode');
@@ -96,9 +106,18 @@ if ParamStr(2)='--verbose' then begin
    writeln('process1 start in debug mode');
    D:=True;
 end;
+
+if ParamStr(1)='--arch' then begin
+writeln('Arch:',SYS.ArchStruct());
+halt(0);
+end;
+
 if ParamStr(1)='--web-settings' then begin
+        if FileExists('/etc/artica-postfix/LOCK_PROCESS1') then halt(0);
+        fpsystem('/bin/touch /etc/artica-postfix/LOCK_PROCESS1');
         P1:=Tprocess1.Create(true);
         P1.web_settings(true);
+        fpsystem('/bin/rm -f /etc/artica-postfix/LOCK_PROCESS1');
         zlogs.Debuglogs('shutdown...');
         zlogs.OutputCmd('/bin/touch /etc/artica-postfix/process1.cron');
         halt(0);

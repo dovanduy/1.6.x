@@ -435,7 +435,7 @@ function add_server_popup(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:13px'>{servername}:</td>
+		<td class=legend style='font-size:13px'>{hostname}:</td>
 		<td class=legend style='font-size:13px'>". Field_text("hostname",null,
 		"font-size:16px;padding:3px","script:AddPostfixMultiSaveCheck(event)")."</td>
 		<td><span style='font-size:13px'>.</span>$domains_field</td>

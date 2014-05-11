@@ -56,7 +56,8 @@ function search(){
 	
 	$pattern=base64_encode($_GET["search"]);
 	$sock=new sockets();
-	$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$pattern&syslog-path=/var/lib/logmein-hamachi/h2-engine.log")));
+	$sock->getFrameWork("cmd.php?syslog-query=$pattern&syslog-path=/var/lib/logmein-hamachi/h2-engine.log");
+	$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 	if(!is_array($array)){return null;}
 	
 	$html="<table class=TableView>";

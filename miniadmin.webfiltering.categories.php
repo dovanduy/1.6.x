@@ -163,7 +163,7 @@ function page(){
 	$button_edit=null;
 	
 	
-	$compile_rules=button("{compile_rules}","Loadjs('dansguardian2.mainrules.php?CompileUfdbGuardRules=yes');",16);
+	$compile_rules=button("{compile_rules}","Loadjs('dansguardian2.compile.php');;",16);
 	$EXPLAIN["BUTTONS"][]=$button;
 	$EXPLAIN["BUTTONS"][]=$compile_rules;
 	$SearchQuery=$boot->SearchFormGen("category,category_description,master_category","category-search");
@@ -260,7 +260,7 @@ function category_items(){
 	$button_edit=null;
 	$suffix=suffix();
 	
-	$compile_rules=button("{compile_rules}","Loadjs('dansguardian2.mainrules.php?CompileUfdbGuardRules=yes');",16);
+	$compile_rules=button("{compile_rules}","Loadjs('dansguardian2.compile.php');;",16);
 	
 	$EXPLAIN["BUTTONS"][]=button("{new_item}","Loadjs('squid.visited.php?add-www=yes&category={$_GET["cat"]}&t=$t')",16);
 	
@@ -281,7 +281,7 @@ function category_urls(){
 	$button_edit=null;
 	$suffix=suffix();
 	
-	$compile_rules=button("{compile_rules}","Loadjs('dansguardian2.mainrules.php?CompileUfdbGuardRules=yes');",16);
+	$compile_rules=button("{compile_rules}","Loadjs('dansguardian2.compile.php');;",16);
 	
 	$EXPLAIN["BUTTONS"][]=button("{new_item}","Loadjs('squid.categories.urls.php?add-uris-js=yes&category={$_GET["cat"]}&t=$t')",16);
 	

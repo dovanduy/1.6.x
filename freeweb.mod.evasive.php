@@ -201,7 +201,7 @@ function whitelist(){
 	$html="
 	<div class=explain>{DDOS_WHITE_EXPLAIN}</div>
 <center>
-<table style='width:95%' class=form>
+<table style='width:98%' class=form>
 <tr>
 	<td class=legend>{whitelist}:</td>
 	<td>". Field_text("white_area_search",null,"font-size:13px;padding:3px",null,null,null,false,"EvasiveWhiteSearchCheck(event)")."</td>

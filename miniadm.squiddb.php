@@ -3,14 +3,14 @@ session_start();
 
 ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
 ini_set('error_append_string',null);
-if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if(!isset($_SESSION["uid"])){die('NO UID');}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.mini.admin.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
-if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
+if($_SESSION["uid"]<>-100){if(!$_SESSION["AsWebStatisticsAdministrator"]){die();}}
 
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["messaging-right"])){messaging_right();exit;}
@@ -38,7 +38,7 @@ function main_page(){
 function tabs(){
 	$sock=new sockets();
 	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
-	if(is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
+	if(!is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$boot=new boostrap_form();
@@ -69,6 +69,10 @@ function settings_retention(){
 	if($users->CORP_LICENSE){$LICENSE=1;}else{$LICENSE=0;}
 	$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
 	$ArticaProxyStatisticsBackupDays=$sock->GET_INFO("ArticaProxyStatisticsBackupDays");
+	$ArticaProxyStatisticsBackHourTables=$sock->GET_INFO("ArticaProxyStatisticsBackHourTables");
+	
+	if(!is_numeric($ArticaProxyStatisticsBackHourTables)){$ArticaProxyStatisticsBackHourTables=1;}
+	
 	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";}
 	$q=new mysql_squid_builder();
 	if(!is_numeric($ArticaProxyStatisticsBackupDays)){$ArticaProxyStatisticsBackupDays=90;}
@@ -88,6 +92,8 @@ function settings_retention(){
 		$boot=new boostrap_form();
 
 		$boot->set_formdescription($EnableSquidRemoteMySQL_text."<br>{purge_statistics_database_explain2}");
+		
+		$boot->set_checkbox("ArticaProxyStatisticsBackHourTables", "{backup_hourly_tables}", $ArticaProxyStatisticsBackHourTables,array("TOOLTIP"=>"{backup_hourly_tables_explain}"));
 		$boot->set_field("ArticaProxyStatisticsBackupFolder", "{backup_folder}", $ArticaProxyStatisticsBackupFolder,array("BROWSE"=>true));
 		$boot->set_field("ArticaProxyStatisticsBackupDays", "{max_days}", $ArticaProxyStatisticsBackupDays);
 		
@@ -184,6 +190,8 @@ function settings_retention_save(){
 		$sock->SET_INFO("BackupSquidStatsNASUser", $_POST["BackupSquidStatsNASUser"]);
 		$sock->SET_INFO("BackupSquidStatsNASPassword", $_POST["BackupSquidStatsNASPassword"]);
 		$sock->SET_INFO("BackupSquidStatsNASRetry", $_POST["BackupSquidStatsNASRetry"]);
+		$sock->SET_INFO("ArticaProxyStatisticsBackHourTables", $_POST["ArticaProxyStatisticsBackHourTables"]);
+		
 		
 		
 		
@@ -248,14 +256,14 @@ function tools(){
 	
 	
 	$tr[]=Paragraphe32('remote_mysql_server','remote_mysqlsquidserver_text'
-			,"Loadjs('squid.remote-mysql.php')","artica-meta-32.png");
+			,"Loadjs('squid.remote-mysql.php',true)","artica-meta-32.png");
 	
 	
 	
 	
 	
 	$tr[]=Paragraphe32('restore_purged_statistics','restore_purged_statistics_explain'
-			,"Loadjs('squid.artica.statistics.restore.php')","32-import.png");
+			,"Loadjs('squid.artica.statistics.restore.php',true)","32-import.png");
 	
 	
 
@@ -263,7 +271,7 @@ function tools(){
 	
 	
 	$tr[]=Paragraphe32('enable_disable_statistics','ARTICA_STATISTICS_TEXT'
-			,"Loadjs('squid.artica.statistics.php')","statistics-32.png");	
+			,"Loadjs('squid.artica.statistics.php',true)","statistics-32.png");	
 	
 	
 	$html="

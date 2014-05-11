@@ -409,7 +409,7 @@ function repquota(){
 
 		if(preg_match("#(.+?):(.+)#",$member,$re)){
 			if($re[1]=="group"){$img="wingroup.png";}
-			if($re[1]=="user"){$img="winuser.png";}
+			if($re[1]=="user"){$img="user-18.png";}
 			if($re[1]=="computer"){$img="base.png";}
 			$member_text=$re[2];
 			$a_modify="<a href=\"javascript:blur();\" OnClick=\"javascript:AddQuotaUserGroup('$member');\" style='font-size:13px;text-decoration:underline;font-weight:bold'>";

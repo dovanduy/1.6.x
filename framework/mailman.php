@@ -87,7 +87,7 @@ function service_start(){
 	$cmd=trim("$nohup /etc/init.d/artica-postfix start mailman >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);			
 	
@@ -98,7 +98,7 @@ function service_stop(){
 	$cmd=trim("$nohup /etc/init.d/artica-postfix stop mailman >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);		
 }

@@ -49,8 +49,8 @@ WriteMyLogs("Loading PID {$GLOBALS["MYPID"]}",__LINE__);
 $BaseDir="/etc/artica-postfix/settings/Daemons";
 $GLOBALS["SquidSessionEngineExternalUrl"]=@file_get_contents("$BaseDir/SquidSessionEngineExternalUrl");
 if($GLOBALS["SquidSessionEngineExternalUrl"]==null){
-	WriteMyLogs("SquidSessionEngineExternalUrl is null assume http://www.artica.fr",__LINE__);
-	$GLOBALS["SquidSessionEngineExternalUrl"]="http://www.artica.fr";
+	WriteMyLogs("SquidSessionEngineExternalUrl is null assume http://www.articatech.net",__LINE__);
+	$GLOBALS["SquidSessionEngineExternalUrl"]="http://www.articatech.net";
 	
 }
 

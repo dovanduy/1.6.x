@@ -602,7 +602,7 @@ function main_smb_config(){
 	
 	$form1="
 	<input type='hidden' name='SaveGeneralSettings' id='SaveGeneralSettings' value='yes'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 <tr>
 	<td align='right' nowrap valign='top' class=legend class=legend style='$styleTD'>SID:</td>
@@ -672,14 +672,14 @@ function main_smb_config(){
 	$sock=new sockets();
 	$AsWinbindd=0;
 	$cups_installed=0;
-	if($users->WINBINDD_INSTALLED){$winbindd="status_ok.gif";$AsWinbindd=1;}else{$winbindd="status_critical.gif";}
+	if($users->WINBINDD_INSTALLED){$winbindd="status_ok.png";$AsWinbindd=1;}else{$winbindd="status_critical.png";}
 	if($users->CUPS_INSTALLED){$cups_installed=1;}
 	$TypeOfSamba=$sock->GET_INFO("TypeOfSamba");
 	if(!is_numeric($TypeOfSamba)){$TypeOfSamba=1;}
 	
 
 $form2="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 <tr>	
 	<td align='right' nowrap valign='top' class=legend style='$styleTD'>{winbindd_installed}:</td>
@@ -738,7 +738,7 @@ if(!is_numeric($SharedFoldersDefaultMask)){$SharedFoldersDefaultMask="0755";}
 
 
 $formArtica="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 <tr>	
 	<td align='right' nowrap valign='top' class=legend style='$styleTD'>{enable_automask_creation}:</td>
@@ -1673,7 +1673,7 @@ function folder_properties(){
 	<td valign='top' width=99%>
 		<input type='hidden' name='SaveFolderProp' id='SaveFolderProp' value='$folder'><br>
 		<div id='FodPropertiesFrom'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>		
 		<tr>	
 			<td align='right' nowrap valign='top' class=legend>{share_name}:</td>
@@ -1729,7 +1729,7 @@ function folder_properties(){
 	<tr>
 	</table>
 	</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<td colspan=3 style='font-size:15px;padding-top:5px'>{acls}</td>		
 	<tr>			
@@ -1780,7 +1780,7 @@ function folder_properties(){
 		</div></div>
 
 <br>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 <tr>
  	<td $style valign='top' class=legend'>{comment}:</td>
@@ -2082,7 +2082,7 @@ function folder_UserSecurityInfos(){
 	</script>
 	<input type='hidden' name='SaveFolderProp' id='SaveFolderProp' value='$folder'>
 	<div style='font-size:16px;font-weight:bold;padding:4px'>$DisplayName:</div>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
 			<td align='center'>&nbsp;</th>
@@ -2396,7 +2396,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	$kav_vfs="
 	<tr>
 		<td align='right' nowrap class=legend>{kantivirus_protect}:</td>
-		<td align='left'><img src='img/status_ok-grey.gif'><input type='hidden' id='kav_vfs' name='kav_vfs' value='no'></td>
+		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' id='kav_vfs' name='kav_vfs' value='no'></td>
 	</tr>";	
 	}
 	
@@ -2405,7 +2405,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	$scannedonly_vfs="
 	<tr>
 		<td align='right' nowrap class=legend>{clamav_protect}:</td>
-		<td align='left'><img src='img/status_ok-grey.gif'><input type='hidden' id='scannedonly_vfs' name='scannedonly_vfs' value='no'></td>
+		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' id='scannedonly_vfs' name='scannedonly_vfs' value='no'></td>
 	</tr>";			
 	}
 	
@@ -2413,7 +2413,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	$scannedonly_vfs="
 	<tr>
 		<td align='right' nowrap class=legend>{clamav_protect}:</td>
-		<td align='left'><img src='img/status_ok-grey.gif'><input type='hidden' id='scannedonly_vfs' name='scannedonly_vfs' value='no'></td>
+		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' id='scannedonly_vfs' name='scannedonly_vfs' value='no'></td>
 	</tr>";			
 	}
 	
@@ -2422,7 +2422,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	<br>
 	<H5>{options}</H5>
 	<input type='hidden' id='vfs_object' name='vfs_object' value='{$_GET["prop"]}'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	$recycle_vfs
 	$mysql_vfs
@@ -2637,7 +2637,7 @@ function folder_security_users_table(){
 				$Displayname=substr($ligne,1,strlen($ligne));
 			}else{
 				$Displayname=$ligne;
-				$img="winuser.png";
+				$img="user-18.png";
 			}
 			$Displayname=str_replace('"',"", $Displayname);
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
@@ -2709,7 +2709,7 @@ $html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style
 			$Displayname=substr($ligne,1,strlen($ligne));
 		}else{
 			$Displayname=$ligne;
-			$img="winuser.png";
+			$img="user-18.png";
 		}
 			$Displayname=str_replace('"',"", $Displayname);
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
@@ -2894,7 +2894,7 @@ $html="<center>
 			$Displayname=substr($ligne,1,strlen($ligne));
 		}else{
 			$Displayname=$ligne;
-			$img="winuser.png";
+			$img="user-18.png";
 		}
 		
 		if(substr($num,strlen($num)-1,1)=='$'){
@@ -3131,7 +3131,7 @@ function main_kav4samba_Objects_action(){
 	$html="$tabs<br><H5>{APP_KAV4SAMBA}</H5>".main_kav4samba_tabs()."
 	<FORM NAME=FFM1>
 	<input type='hidden' name='kav_actions' id='kav_actions' value='yes'>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 	<td align='right' nowrap class=legend>{OnInfected}:</td>
@@ -3198,7 +3198,7 @@ function main_kav4samba(){
 	<p class=caption>{kav4samba_about}</p>
 	
 	<FORM NAME=FFM1>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr><td colspan=2><strong style='font-size:13px;font-weight:bold'>{how_to_scan}<hr></td></tr>
 	<tr>
@@ -3307,7 +3307,7 @@ function DomainAdmin_index(){
 	
 	<strong style='font-size:14px'>&laquo;{$samba->main_array["global"]["workgroup"]}\administrator&raquo; {password}</strong>
 	<div id='DomainAdminSave'>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{password}:</td>

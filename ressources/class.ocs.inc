@@ -77,6 +77,10 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 			$MAC=strtolower($this->mac);
 			$NAME=strtolower($this->ComputerName);
 			$IPADDR=$this->ComputerIP;
+			$this->mac=str_replace("-", ":", $this->mac);
+			$this->mac=strtolower($this->mac);
+			$MAC=str_replace("-", ":", $MAC);
+			
 			$ComputerOS_edit=null;$ComputerOS_add_field=null;$ComputerOS_add_datd=null;
 			$IPADDR_SQL=null;
 			$date=date('Y-m-d H:i:s');
@@ -254,7 +258,7 @@ if($t<2){
 				
 				$html=$html . "
 				<tr ". CellRollOver().">
-					<td width=1%><img src='img/mailbox_hd.gif'></td>
+					<td width=1%><img src='img/mailbox_hd.png'></td>
 					<td><span style='font-size:11px;font-weight:bold'>$name</span>
 					<td><span style='font-size:11px;font-weight:bold'>{$DISKSIZE}</span>
 				</tr>

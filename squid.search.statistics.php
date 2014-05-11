@@ -61,7 +61,7 @@ function start(){
 	
 	
 	<div style='width:104%;margin:-10px;margin-left:-15px'>
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			<div id='search-stats-results'></div>
 			<div class=explain>{SQUID_SEARCH_STATS_EXPLAIN}</div>
 			</div>
@@ -451,7 +451,7 @@ function ChangeFilterCatz_popup(){
 	}
 	$_SESSION["ChangeFilterCatz"][null]="{select}";
 	$html="
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{categories}:</td>
 		<td>". Field_array_Hash($_SESSION["ChangeFilterCatz"], "ChangeFilterCatz-$t",null,"xChangeFilterCatz()",null,0,"font-size:14px")."</td>
@@ -633,7 +633,9 @@ function site_infos_categories(){
 	$catNum=count($cats);
 	
 	if($catNum==0){
-		$html="<table style='width:99%' class=form>
+		$html="
+		
+		<table style='width:99%'>
 			<tbody><tr><td width=1%>
 				<img src='img/warning-panneau-32.png'></td>
 				<td width=99% style='font-size:13px;font-weight:bold'>{this_website_hasnocat}</td>
@@ -645,7 +647,7 @@ function site_infos_categories(){
 	$catstext=str_replace("XX", count($cats), $catstext);
 	https://192.168.1.106:9000/squid.categories.php?query=yes&category=porn&search=megavideo.&strictSearch=0
 	
-	$html="<table style='width:99%' class=form>
+	$html="<table style='width:99%'>
 		<tbody>
 		<tr>
 			<td colspan=2 style='font-size:13px'>$catstext</td>

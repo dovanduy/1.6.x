@@ -25,18 +25,39 @@
 	if(isset($_POST["add-routes"])){ipconfig_routes_add();exit;}
 	if(isset($_GET["del-routes"])){ipconfig_routes_del();exit;}	
 	if(isset($_POST["ipv6-enable"])){UseIpv6();exit;}
+	if(isset($_GET["ipconfig-tools"])){ipconfig_tools();exit;}
+	if(isset($_GET["flush-arp-cache-js"])){flus_arp_cache_js();;exit;}
+	if(isset($_GET["flush-arp-cache-popup"])){flus_arp_cache_popup();;exit;}
 	
 	js();
 
 	
 function js(){
 	$page=CurrentPageName();
-	
-	$html="YahooWin2('480','$page?tabs=yes&netconfig={$_GET["nic"]}&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}','{$_GET["nic"]}');";
+	header("content-type: application/x-javascript");
+	$html="YahooWin2('585','$page?tabs=yes&netconfig={$_GET["nic"]}&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}','{$_GET["nic"]}');";
 	echo $html;
 	
 	
 }	
+
+function flus_arp_cache_js(){
+	
+	$nic=$_GET["nic"];
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("$nic::{flush_arp_cache}");
+	echo "YahooWin3('650','$page?flush-arp-cache-popup=yes&nic=$nic','$title');";
+}
+function flus_arp_cache_popup(){
+	$sock=new sockets();
+	$nic=$_GET["nic"];
+	$datas=unserialize(base64_decode($sock->getFrameWork("network.php?flush-arp-cache=$nic")));
+	echo "<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:11px' id='textToParseCats-$t'>".@implode("\n", $datas)."</textarea>";
+}
 
 function UseSnort(){
 	$eth=$_POST["eth"];
@@ -57,10 +78,28 @@ function UseIpv6(){
 	$eth=$_POST["eth"];
 	$value=$_POST["ipv6-enable"];
 	$nics=new system_nic($eth);
-	$nics->eth=$nic;	
+	$nics->eth=$eth;	
 }
 
-
+function ipconfig_tools(){
+	$nic=$_GET["netconfig"];
+	if(strlen($_GET["nic"])>3){$nic=$_GET["nic"];}
+	$tpl=new templates();
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tr[]=Paragraphe32("flush_arp_cache", "flush_arp_cache_all_explain","Loadjs('$page?flush-arp-cache-js=yes&nic=$nic')","cache-refresh-32.png");
+	// 
+	$users=new usersMenus();
+	if($users->dnsmasq_installed){
+		$tr[]=Paragraphe32("APP_DHCP", "DNSMASQ_DHCP_INSTALL_TEXT",
+				"Loadjs('dnsmasq.dhcp.service.php?install-js=yes&nic=$nic')","32-dhcp.png");
+	}
+	
+	
+	$table=CompileTr2($tr,true);
+	echo $tpl->_ENGINE_parse_body($table);
+	
+}
 
 
 
@@ -77,6 +116,9 @@ function tabs(){
 		$array["ipconfig-v6"]='ipV6';
 	}
 	$array["ipconfig-routes"]='{routes}';
+	$array["ipconfig-tools"]='{tools}';
+	
+	//ip neigh flush dev eth0
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -84,15 +126,8 @@ function tabs(){
 	}
 	
 	
-	$html= "
-	<div id=main_config_$nic>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_$nic').tabs();
-			});
-		</script>";		
+	$html= build_artica_tabs($html, "main_config_$nic");
+
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
@@ -250,9 +285,16 @@ function ipconfig_nic(){
 	</table>
 	
 	
-	
-	<table style='width:99.5%' class=form>
-		
+	<div style='width:98%' class=form>
+	<table style='100%'>
+		<tr>
+			<td class=legend style='font-size:14px'>{netzone}:</td>
+			<td>" . field_text("netzone-$t",$nic->netzone,'padding:3px;font-size:18px;width:85px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>				
+		<tr>
+			<td class=legend style='font-size:14px'>{name}:</td>
+			<td>" . field_text("NICNAME-$t",$nic->NICNAME,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>		
 		<tr>
 			<td class=legend style='font-size:14px'>{tcp_address}:</td>
 			<td>" . field_ipv4("IPADDR",$nic->IPADDR,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
@@ -279,20 +321,21 @@ function ipconfig_nic(){
 			<td>" . field_ipv4("BROADCAST",$nic->BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>		
 	</table>
-	
+	</div>
 	<br>
 	
-	<table style='width:99.5%' class=form>
-	<tr>
-		<td class=legend style='font-size:14px'>{primary_dns}:</td>
-		<td>" . field_ipv4("DNS_1",$nic->DNS1,'padding:3px;font-size:18px',null,null,null,false,null)."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{secondary_dns}:</td>
-		<td>" . field_ipv4("DNS_2",$nic->DNS2,'padding:3px;font-size:18px',null,null,null,false,null)."</td>
-	</tr>	
-	</table>
-		
+	<div style='width:98%' class=form>
+		<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:14px'>{primary_dns}:</td>
+			<td>" . field_ipv4("DNS_1",$nic->DNS1,'padding:3px;font-size:18px',null,null,null,false,null)."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{secondary_dns}:</td>
+			<td>" . field_ipv4("DNS_2",$nic->DNS2,'padding:3px;font-size:18px',null,null,null,false,null)."</td>
+		</tr>	
+		</table>
+	</div>	
 	
 	
 	<table style='width:100%'>
@@ -324,6 +367,8 @@ function ipconfig_nic(){
 			if(document.getElementById('dhcp').checked){XHR.appendData('dhcp','1');}else{XHR.appendData('dhcp','0');}
 			if(document.getElementById('enabled').checked){XHR.appendData('enabled','1');}else{XHR.appendData('enabled','0');}
 			if(document.getElementById('defaultroute-$t').checked){XHR.appendData('defaultroute','1');}else{XHR.appendData('defaultroute','0');}
+			XHR.appendData('NICNAME',encodeURIComponent(document.getElementById('NICNAME-$t').value));
+			XHR.appendData('netzone',document.getElementById('netzone-$t').value);
 			XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
 			XHR.appendData('NETMASK',document.getElementById('NETMASK').value);
 			XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
@@ -450,6 +495,21 @@ function save_nic(){
 	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
 	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
 	if($DisableNetworksManagement==1){echo $ERROR_NO_PRIVS;return;}
+	if(isset($_GET["NICNAME"])){
+		$NICNAME=trim(url_decode_special_tool($_GET["NICNAME"]));
+	}
+	
+	if($_GET["netzone"]==null){
+		echo "Network Zone must be defined\n";
+		return;
+	}
+	
+	if($_GET["netzone"]<>null){
+		if(strlen($_POST["netzone"])>5){echo "Network Zone {$_GET["netzone"]} at most 5 characters long\n";return;}
+		if(is_numeric(substr($_GET["netzone"], 0,1))){echo "Network Zone Must start with a letter\n";return;}
+	}
+	
+	
 	$nic=trim($_GET["save_nic"]);
 	$IPADDR=trim($_GET["IPADDR"]);
 	$NETMASK=trim($_GET["NETMASK"]);
@@ -501,7 +561,10 @@ function save_nic(){
 	
 	$tpl=new templates();
 	$nics=new system_nic($nic);
-	$text[]="$nic $IPADDR";
+	$text[]="$NICNAME $nic $IPADDR";
+	if($NICNAME<>null){
+		$nics->NICNAME=$NICNAME;
+	}
 	$nics->eth=$nic;
 	$nics->IPADDR=$IPADDR;
 	$nics->NETMASK=$NETMASK;
@@ -512,6 +575,8 @@ function save_nic(){
 	$nics->dhcp=$_GET["dhcp"];
 	$nics->metric=$_GET["metric"];
 	$nics->enabled=$_GET["enabled"];
+	$nics->netzone=$_GET["netzone"];
+	
 	if(isset($_GET["defaultroute"])){
 		$nics->defaultroute=$_GET["defaultroute"];
 	}
@@ -654,7 +719,7 @@ function ipconfig_routes_add_popup(){
 	$html="
 	<center style='margin:20px'>
 	<div id='id='routes-$eth'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%' >
 		<tr>
 			<td class=legend width=1% nowrap style='font-size:16px'>{from_ip_address}:</td>

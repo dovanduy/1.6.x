@@ -374,7 +374,7 @@ function tpolicyd_weight.STATUS();
 var
    pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_POLICYD_WEIGHT');
+
 if not FileExists(BIN_PATH()) then exit;
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --policydw >'+pidpath +' 2>&1');

@@ -126,7 +126,7 @@ class mysql_mimedefang_builder{
 			`filename` VARCHAR(255) NOT NULL PRIMARY KEY,
 			`filetime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
 			`filedata` longblob NOT NULL,
-			`filesize` BIGINT(100) NOT NULL,
+			`filesize` BIGINT UNSIGNED NOT NULL,
 			 INDEX ( `filetime`,`filesize`)
 			 )";	
 

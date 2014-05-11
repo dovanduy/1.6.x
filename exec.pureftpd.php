@@ -7,11 +7,12 @@ include_once(dirname(__FILE__) . '/ressources/class.ini.inc');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}}
+if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $unix=new unix();
 $apache_usr=$unix->APACHE_SRC_ACCOUNT();
 $pure_pw=$unix->find_program("pure-pw");
 if(strlen($pure_pw)<4){
-	echo "Starting......: pure-ftpd pure-pw no such file\n";
+	echo "Starting......: ".date("H:i:s")." pure-ftpd pure-pw no such file\n";
 	die();
 }
 
@@ -20,27 +21,34 @@ if(!is_file("/etc/pure-ftpd/conf/Umask")){@file_put_contents("/etc/pure-ftpd/con
 
 $ldap=new clladp();
 if($ldap->ldapFailed){
-	echo "Starting......: pure-ftpd ldap failed\n";
+	echo "Starting......: ".date("H:i:s")." pure-ftpd ldap failed\n";
 	die();
 }
 
 
 		$attr=array();
-		$pattern="(&(objectClass=PureFTPdUser)(FTPStatus=TRUE))";
+		$pattern="(&(objectClass=PureFTPdUser)(FTPStatus=*))";
 		$sr=@ldap_search($ldap->ldap_connection,$ldap->suffix,$pattern,$attr);
 		if(!$sr){
-			echo "Starting......: pure-ftpd (&(objectClass=PureFTPdUser)(FTPStatus=TRUE)) Failed\n";
+			echo "Starting......: ".date("H:i:s")." pure-ftpd (&(objectClass=PureFTPdUser)(FTPStatus=TRUE)) Failed\n";
 			die();
 		}
 		$hash=ldap_get_entries($ldap->ldap_connection,$sr);
 		
 		if($hash["count"]==0){
-			echo "Starting......: pure-ftpd no users\n";
+			echo "Starting......: ".date("H:i:s")." pure-ftpd no users\n";
 			die();
 		}
 		
 		if($hash["count"]>0){
 			for($i=0;$i<$hash["count"];$i++){
+				$enabled=false;
+				$ftpstatus=$hash[$i]["ftpstatus"][0];
+				if($ftpstatus=="enabled"){$enabled=true;}
+				if($ftpstatus=="TRUE"){$enabled=true;}
+				if($ftpstatus=="true"){$enabled=true;}
+				if($ftpstatus=="1"){$enabled=true;}
+				if(!$enabled){continue;}
 				$homedirectory=$hash[$i]["homedirectory"][0];
 				$FTPDownloadBandwidth=$hash[$i][strtolower("FTPDownloadBandwidth")][0];
 				$FTPUploadBandwidth=$hash[$i][strtolower("FTPUploadBandwidth")][0];
@@ -78,7 +86,7 @@ if($ldap->ldapFailed){
 			
 		}
 		
-echo "Starting......: pure-ftpd ". count($cmds)." users\n";
+echo "Starting......: ".date("H:i:s")." pure-ftpd ". count($cmds)." users\n";
 if(!is_array($cmds)){return null;}
 while (list ($num, $val) = each ($cmds) ){
 	if(trim($val)==null){continue;}

@@ -67,7 +67,7 @@ function backends_js(){
 	$tpl=new templates();
 	$new_backend=$tpl->_ENGINE_parse_body("{new_backend}");
 	if($_GET["backendname"]==null){$title="{$_GET["servicename"]}&raquo;$new_backend";}else{$title="{$_GET["servicename"]}&raquo;{$_GET["backendname"]}";}
-	echo "YahooWin4(700,'$page?backend-tabs=yes&servicename={$_GET["servicename"]}&backendname={$_GET["backendname"]}&t={$_GET["t"]}&tt={$_GET["tt"]}','$title')";
+	echo "YahooWin4(850,'$page?backend-tabs=yes&servicename={$_GET["servicename"]}&backendname={$_GET["backendname"]}&t={$_GET["t"]}&tt={$_GET["tt"]}','$title')";
 	
 }
 
@@ -86,7 +86,7 @@ function balancer_js(){
 	$tpl=new templates();
 	$new_service=$tpl->_ENGINE_parse_body("{new_service}");
 	if($_GET["servicename"]==null){$title=$new_service;}else{$title=$_GET["servicename"];}
-	echo "YahooWin3(700,'$page?balancer-tabs=yes&servicename={$_GET["servicename"]}&t={$_GET["t"]}','$title')";
+	echo "YahooWin3(850,'$page?balancer-tabs=yes&servicename={$_GET["servicename"]}&t={$_GET["t"]}','$title')";
 	
 }
 
@@ -155,13 +155,13 @@ $('#table-$t').flexigrid({
 	url: '$page?backend-status-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'none', width : 31, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'none', width : 65, sortable : true, align: 'center'},
 		{display: '$servicename', name : 'servicename', width : 208, sortable : true, align: 'left'},
-		{display: '$backends', name : 'none2', width : 261, sortable : false, align: 'left'},
-		{display: 'IN', name : 'enabled', width : 86, sortable : true, align: 'left'},
-		{display: 'OUT', name : 'delete', width : 77, sortable : false, align: 'left'},
-		{display: '$requests', name : 'delete', width : 65, sortable : false, align: 'left'},
-		{display: 'CMD', name : 'delete', width : 39, sortable : false, align: 'center'},
+		{display: '$backends', name : 'none2', width : 275, sortable : false, align: 'left'},
+		{display: 'IN', name : 'enabled', width : 100, sortable : true, align: 'left'},
+		{display: 'OUT', name : 'delete', width : 100, sortable : false, align: 'left'},
+		{display: '$requests', name : 'delete', width : 94, sortable : false, align: 'left'},
+		{display: 'CMD', name : 'delete', width : 45, sortable : false, align: 'center'},
 		
 	],
 
@@ -178,7 +178,7 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 869,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	
@@ -311,31 +311,31 @@ $typof=array(0=>"frontend", 1=>"backend", 2=>"server", 3=>"socket");
 		$cli_abrt=$f[49];
 		$srv_abrt=$f[50];
 		if(!is_numeric($req_tot)){$req_tot=0;}
-		$img="ok24.png";
+		$img="ok42.png";
 		$color="black";
 		$check_status_text=$status[$check_status];
-		if(isset($ERR[$check_status])){$img="error-24.png";$color="#D20C0C";}
+		if(isset($ERR[$check_status])){$img="error-42.png";$color="#D20C0C";}
 		$md5=md5($ligne);
 		$button=null;
 		$arraySRV=base64_encode(serialize(array($pxname,$svname)));
 		if($type=="server"){
 			
 			$downser="HaProxyDownserv('$arraySRV');";
-			$button=imgsimple("24-stop.png",null,$downser);
+			$button=imgsimple("32-stop.png",null,$downser);
 			
 		}
 		
 		if($status=="MAINT"){
 			$downser="HaProxyUpserv('$arraySRV');";
-			$img="warning24.png";
-			$button=imgsimple("24-run.png",null,$downser);
+			$img="warning42.png";
+			$button=imgsimple("32-run.png",null,$downser);
 		}
 		if($status=="DOWN"){
 			$downser="HaProxyUpserv('$arraySRV');";
 			$button=null;
-			$img="error-24.png";
+			$img="error-42.png";
 			$color="#D20C0C";
-			$button=imgsimple("24-run.png",null,$downser);
+			$button=imgsimple("32-run.png",null,$downser);
 		}
 		
 			
@@ -344,12 +344,12 @@ $typof=array(0=>"frontend", 1=>"backend", 2=>"server", 3=>"socket");
 		$data['rows'][] = array(
 		'id' => "$md5",
 		'cell' => array("<img src='img/$img'>",
-		"<span style='font-size:14px;color:$color'>$pxname</span>",
-		"<span style='font-size:14px;color:$color'>$svname ($type - $status)</span>",
-		"<span style='font-size:14px;color:$color'>$bin</span>",
-		"<span style='font-size:14px;color:$color'>$bout</span>",
-		"<span style='font-size:14px;color:$color'>$req_tot</span>",
-		"<span style='font-size:14px;color:$color'>$button</span>",
+		"<span style='font-size:18px;color:$color'>$pxname</span>",
+		"<span style='font-size:18px;color:$color'>$svname ($type - $status)</span>",
+		"<span style='font-size:18px;color:$color'>$bin</span>",
+		"<span style='font-size:18px;color:$color'>$bout</span>",
+		"<span style='font-size:18px;color:$color'>$req_tot</span>",
+		"<span style='font-size:18px;color:$color'>$button</span>",
 		
 		$disable,$delete)
 		);
@@ -431,10 +431,10 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$servicename', name : 'servicename', width : 465, sortable : true, align: 'left'},
-		{display: '$interface', name : 'listen_ip', width : 158, sortable : false, align: 'left'},
+		{display: '$interface', name : 'listen_ip', width : 210, sortable : false, align: 'left'},
 		{display: '$backends', name : 'none2', width : 67, sortable : false, align: 'center'},
 		{display: '$enabled', name : 'enabled', width : 31, sortable : true, align: 'center'},
-		{display: '$delete', name : 'delete', width : 53, sortable : false, align: 'center'},
+		{display: '$delete', name : 'delete', width : 83, sortable : false, align: 'center'},
 		
 	],
 buttons : [
@@ -453,7 +453,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 869,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	
@@ -596,8 +596,8 @@ function balancers_list(){
 		$color="black";
 		$disable=Field_checkbox("HaProxDisable_{$ligne['servicename']}", 1,$ligne["enabled"],"EnableDisableHaService('{$ligne['servicename']}')");
 		$md5=md5($ligne['servicename']);
-		$delete=imgsimple("delete-24.png",null,"BalancerDeleteService('{$ligne['servicename']}','$md5')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		$delete=imgsimple("delete-32.png",null,"BalancerDeleteService('{$ligne['servicename']}','$md5')");
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$listen_ip=$ligne["listen_ip"];
 		$listen_port=$ligne["listen_port"];
 		$interface="$listen_ip:$listen_port";
@@ -610,9 +610,9 @@ function balancers_list(){
 	$data['rows'][] = array(
 		'id' => "BF$md5",
 		'cell' => array("<a href=\"javascript:blur();\"  OnClick=\"javascript:Loadjs('$MyPage?balancer-js=yes&servicename={$ligne['servicename']}&t={$_GET["t"]}');\" 
-		style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['servicename']}</span>",
-		"<span style='font-size:14px;color:$color'>$interface</span>",
-		"<span style='font-size:14px;color:$color'>$Tcount</span>",
+		style='font-size:22px;text-decoration:underline;color:$color'>{$ligne['servicename']}</span>",
+		"<span style='font-size:22px;color:$color'>$interface</span>",
+		"<span style='font-size:22px;color:$color'>$Tcount</span>",
 		$disable,$delete)
 		);
 	}
@@ -671,6 +671,12 @@ function backends_settings(){
 	if(!is_numeric($hap->MainConfig["rise"])){$hap->MainConfig["rise"]=2;}
 	if(!is_numeric($hap->MainConfig["maxconn"])){$hap->MainConfig["maxconn"]=10000;}
 	
+	$ip=new networking();
+	$Interfaces=$ip->Local_interfaces();
+	$Interfaces[null]="{default}";
+	unset($Interfaces["lo"]);
+	
+	
 	$html="
 	<div id='$t-defaults'></div>
 	<table style='width:99%;margin-bottom:15px' class=form>
@@ -678,7 +684,14 @@ function backends_settings(){
 				<td class=legend style='font-size:16px' nowrap>{backendname}:</td>
 				<td>". Field_text("backendname-$t",$backendname,"font-size:16px;padding:3px;width:270px")."</td>
 				<td>&nbsp;</td>
-			</tr>	
+			</tr>
+			<tr>
+				<td class=legend style='font-size:16px' nowrap>{outgoing_address}:</td>
+				<td>". Field_array_Hash($Interfaces,"localInterface-$t",$hap->localInterface,"style:font-size:16px;padding:3px;")."</td>
+				<td>". icon_help("{haproxy_local_interface_help}")."</td>
+			</tr>
+						
+						
 			<tr>
 				<td class=legend style='font-size:16px' nowrap>{listen_ip}:</td>
 				<td width=99%>". field_ipv4("listen_ip-$t",$hap->listen_ip,"font-size:16px;")."</td>
@@ -761,6 +774,10 @@ $toolbox
     		XHR.appendData('listen_port',document.getElementById('listen_port-$t').value);
     		XHR.appendData('bweight',document.getElementById('bweight-$t').value);
     		XHR.appendData('maxconn',document.getElementById('maxconn-$t').value);
+    		XHR.appendData('localInterface',document.getElementById('localInterface-$t').value);
+    		
+    		
+    		
     		
     		XHR.appendData('inter',document.getElementById('inter-$t').value);
     		XHR.appendData('fall',document.getElementById('fall-$t').value);
@@ -815,6 +832,7 @@ function backends_save(){
 	$hap->listen_ip=$_POST["listen_ip"];
 	$hap->listen_port=$_POST["listen_port"];
 	$hap->bweight=$_POST["bweight"];
+	$hap->localInterface=$_POST["localInterface"];
 	$hap->MainConfig["inter"]=$_POST["inter"];
 	$hap->MainConfig["fall"]=$_POST["fall"];
 	$hap->MainConfig["rise"]=$_POST["rise"];
@@ -1148,7 +1166,7 @@ function balancer_tabs(){
 		unset($array["balancer-backends"]);
 	}
 	
-	$fontsize="style='font-size:14px'";$width="100%";
+	$fontsize="style='font-size:16px'";$width="100%";
 	
 	
 	
@@ -1157,15 +1175,7 @@ function balancer_tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_haservice style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_haservice').tabs();
-			});
-		</script>";			
+	echo build_artica_tabs($html, "main_config_haservice");
 	
 	
 }
@@ -1185,7 +1195,7 @@ function backends_tabs(){
 		unset($array["balancer-backends"]);
 	}
 	
-	$fontsize="style='font-size:14px'";$width="100%";
+	$fontsize="style='font-size:16px'";$width="100%";
 	
 	
 	
@@ -1193,16 +1203,8 @@ function backends_tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servicename={$_GET["servicename"]}&backendname={$_GET["backendname"]}&t={$_GET["t"]}&tt={$_GET["tt"]}\"><span $fontsize>$ligne</span></a></li>\n");
 	}
 	
-	
-	echo "
-	<div id=main_config_backendservice style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_backendservice').tabs();
-			});
-		</script>";			
+	echo build_artica_tabs($html, "main_config_backendservice");
+		
 	
 	
 }
@@ -1218,7 +1220,7 @@ function tabs(){
 	$array["events"]='{events}';
 	$tpl=new templates();
 	
-	$fontsize="style='font-size:14px'";$width="100%";
+	$fontsize="style='font-size:16px'";$width="100%";
 	
 	
 	
@@ -1227,15 +1229,9 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_haproxy style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_haproxy').tabs();
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_haproxy",1024)."<script>LeftDesign('load-balance-white-256-opac20.png');</script>";
+	
+	
 	
 }
 function backends(){
@@ -1268,10 +1264,10 @@ $('#table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$backends', name : 'backendname', width : 271, sortable : true, align: 'left'},
-		{display: '$interface', name : 'listen_ip', width : 167, sortable : false, align: 'left'},
+		{display: '$interface', name : 'listen_ip', width : 233, sortable : false, align: 'left'},
 		{display: '$weight', name : 'bweight', width : 52, sortable : true, align: 'center'},
 		{display: '$enabled', name : 'enabled', width : 31, sortable : true, align: 'center'},
-		{display: '$delete', name : 'delete', width : 31, sortable : false, align: 'center'},
+		{display: '$delete', name : 'delete', width : 70, sortable : false, align: 'center'},
 		
 	],
 buttons : [
@@ -1289,7 +1285,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 645,
+	width: '99%',
 	height: 350,
 	singleSelect: true
 	
@@ -1418,8 +1414,8 @@ function backends_list(){
 		$color="black";
 		$disable=Field_checkbox("HaProxBckDisable_{$ligne['backendname']}", 1,$ligne["enabled"],"EnableDisableBackend('{$ligne['backendname']}')");
 		$md5=md5($ligne['servicename'].$ligne['backendname']);
-		$delete=imgsimple("delete-24.png",null,"BackendDelete('{$ligne['backendname']}','{$_GET['servicename']}','$md5')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		$delete=imgsimple("delete-32.png",null,"BackendDelete('{$ligne['backendname']}','{$_GET['servicename']}','$md5')");
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$listen_ip=$ligne["listen_ip"];
 		$listen_port=$ligne["listen_port"];
 		$interface="$listen_ip:$listen_port";
@@ -1430,9 +1426,9 @@ function backends_list(){
 	$data['rows'][] = array(
 		'id' => "TF$md5",
 		'cell' => array("<a href=\"javascript:blur();\"  OnClick=\"javascript:Loadjs('$MyPage?backend-js=yes&backendname={$ligne['backendname']}&servicename={$_GET["servicename"]}&t={$_GET["t"]}');\" 
-		style='font-size:16px;text-decoration:underline;color:$color'>{$ligne['backendname']}</span>",
-		"<span style='font-size:14px;color:$color'>$interface</span>",
-		"<span style='font-size:14px;color:$color'>{$ligne['bweight']}</span>",
+		style='font-size:22px;text-decoration:underline;color:$color'>{$ligne['backendname']}</span>",
+		"<span style='font-size:22px;color:$color'>$interface</span>",
+		"<span style='font-size:22px;color:$color'>{$ligne['bweight']}</span>",
 	
 	
 		$disable,$delete)
@@ -1446,7 +1442,7 @@ function popup_script(){
 	$sock=new sockets();
 	$hap=new haproxy();
 	$conf=$hap->buildconf();
-	$html="<textarea style='height:450px;overflow:auto;width:100%;font-size:14px'>$conf</textarea>";
+	$html="<textarea style='height:450px;overflow:auto;width:100%;font-size:16px'>$conf</textarea>";
 	echo $html;
 	
 	
@@ -1457,7 +1453,7 @@ function events(){
 	$html="<div id='$t' style='width:100%'></div>
 	
 	<script>
-		LoadAjax('$t','syslog.php?popup=yes&force-prefix=haproxy&TB_WIDTH=850&TB_HEIGHT=455&TB_EV=655');
+		LoadAjax('$t','syslog.php?popup=yes&force-prefix=haproxy&TB_WIDTH=997&TB_HEIGHT=455&TB_EV=803');
 	</script>
 	";
 	echo $html;

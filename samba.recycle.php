@@ -136,8 +136,8 @@ function search(){
 		$enc=base64_encode($orgfile);
 		$md5=md5($orgfile);
 		$color="black";
-		if($ligne["restore"]==1){$color="#CCCCCC";}
-		if($ligne["delete"]==1){$color="#CCCCCC";}
+		if($ligne["restore"]==1){$color="#8a8a8a";}
+		if($ligne["delete"]==1){$color="#8a8a8a";}
 		$html=$html."
 		<tr class=$classtr>
 		<td width=1% nowrap style='font-size:13px' colspan=2><span id='date-$md5' style='color:$color'>{$ligne["zDate"]}</span></td>

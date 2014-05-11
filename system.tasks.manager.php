@@ -104,15 +104,7 @@ function popup(){
 	
 	
 	
-	echo "
-	<div id=main_taskmanager_tabs style='width:100%;overflow:auto;margin-left:-10px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_taskmanager_tabs').tabs();
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_taskmanager_tabs");
 	
 }
 

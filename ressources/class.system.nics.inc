@@ -3,6 +3,8 @@
 	include_once(dirname(__FILE__).'/class.sockets.inc');
 	include_once(dirname(__FILE__).'/class.resolv.conf.inc');
 	include_once(dirname(__FILE__).'/class.tcpip.inc');
+	include_once(dirname(__FILE__).'/class.system.network.inc');
+	include_once(dirname(__FILE__).'/class.mysql.shorewall.inc');
 
 class system_nic{
 	var $eth;
@@ -14,6 +16,7 @@ class system_nic{
 	var $DNS2;
 	var $dhcp=0;
 	var $ROUTES=array();
+	var $NICNAME=null;
 	var $NETWORK;
 	var $unconfigured=true;
 	var $enabled=0;
@@ -35,8 +38,17 @@ class system_nic{
 	var $defaultroute=0;
 	var $DNS_1=null; 
 	var $DNS_2=null;
+	var $netzone=null;
+	var $isFW=0;
+	var $isFWAcceptNet=1;
+	var $isFWLogBlocked=0;
+	var $ShoreWallServices=array();
 	function system_nic($eth=null){
-		
+		if(!isset($GLOBALS["AS_ROOT"])){
+			$GLOBALS["AS_ROOT"]=false;
+			if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
+		}
+		if($GLOBALS["AS_ROOT"]){if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}}
 		$sock=new sockets();
 		$this->EnableipV6=$sock->GET_INFO("EnableipV6");
 		if(!is_numeric($this->EnableipV6)){$this->EnableipV6=0;}		
@@ -106,38 +118,101 @@ class system_nic{
 		}
 		
 		if(!$q->FIELD_EXISTS("nics","ucarp-advskew","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-advskew` INT( 1 )",'artica_backup');
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-advskew` smallint( 1 )",'artica_backup');
 		}
 		
 		if(!$q->FIELD_EXISTS("nics","ucarp-advbase","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-advbase` INT( 3 )",'artica_backup');
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-advbase` smallint( 3 )",'artica_backup');
 		}
 		
 		if(!$q->FIELD_EXISTS("nics","ucarp-enable","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-enable` INT( 1 ) NULL DEFAULT '0'",'artica_backup');
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-enable` smallint( 1 ) NULL DEFAULT '0'",'artica_backup');
 		}
 		
 		if(!$q->FIELD_EXISTS("nics","ucarp-master","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-master` INT( 1 ) NULL DEFAULT '0'",'artica_backup');
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ucarp-master` smallint( 1 ) NULL DEFAULT '0'",'artica_backup');
 		}
-		
+		if(!$q->FIELD_EXISTS("nics","isFW","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `isFW` smallint(1 ) ,ADD INDEX ( `isFW` )",'artica_backup');
+		}
+				
 		if(!$q->FIELD_EXISTS("nics","defaultroute","artica_backup")){
 			$q->QUERY_SQL("ALTER TABLE `nics` ADD `defaultroute` smallint(1 ) ,ADD INDEX ( `defaultroute` )",'artica_backup');
 		}		
-		
-		
+		if(!$q->FIELD_EXISTS("nics","ShoreWallServices","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ShoreWallServices` TEXT",'artica_backup');
+		}		
+		if(!$q->FIELD_EXISTS("nics_switch","ShoreWallServices","artica_backup")){
+			$q->QUERY_SQL("ALTER TABLE `nics_switch` ADD `ShoreWallServices` TEXT",'artica_backup');
+		}
+		if(!$q->FIELD_EXISTS("nics","netzone","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `netzone` VARCHAR( 10 ) ,ADD INDEX ( `netzone` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
 		
 	}
 	
+	private function loadEthVirtual(){
+		$LOGPR=__CLASS__."/".__FUNCTION__;
+		if(preg_match("#^virt([0-9]+)#", $this->eth,$re)){$ID=$re[1];}
+		$sql="SELECT * FROM `nics_switch` WHERE `ID`='$ID'";
+		if($GLOBALS["VERBOSE"]){echo "$LOGPR: $sql<br>\n";}
+		$q=new mysql();
+		
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		
+		if(!$q->ok){echo "$q->mysql_error\n";}
+		
+		if(!isset($ligne["DNS1"])){$ligne["DNS1"]=null;}
+		if(!isset($ligne["DNS2"])){$ligne["DNS2"]=null;}
+		if(!isset($ligne["NETWORK"])){$ligne["NETWORK"]=null;}
+		if(!isset($ligne["ipv6mask"])){$ligne["ipv6mask"]=null;}
+		if(!isset($ligne["ipv6addr"])){$ligne["ipv6addr"]=null;}
+		if(!isset($ligne["ipv6gw"])){$ligne["ipv6gw"]=null;}
+		if(!isset($ligne["netzone"])){
+			$q->QUERY_SQL("ALTER TABLE `nics_switch` ADD `netzone` VARCHAR( 10 ) ,ADD INDEX ( `netzone` )","artica_backup");
+			$ligne["netzone"]=$this->eth;
+		}
+		if($ligne["netzone"]==null){$ligne["netzone"]=$this->eth;}
+		
+		$this->netzone=$ligne["netzone"];
+		$this->ipv6=$ligne["ipv6"];
+		$this->NETMASK=$ligne["netmask"];
+		$this->GATEWAY=$ligne["gateway"];
+		$this->IPADDR=$ligne["ipaddr"];
+		$this->DNS1=trim($ligne["DNS1"]);
+		$this->DNS2=trim($ligne["DNS2"]);
+		$this->NETWORK=$ligne["cdir"];
+		$this->ipv6mask=$ligne["ipv6mask"];
+		$this->ipv6addr=$ligne["ipv6addr"];
+		$this->ipv6gw=$ligne["ipv6gw"];
+		$this->metric=$ligne["metric"];
+		$this->NICNAME=$ligne["NICNAME"];
+		$this->isFW=$ligne["isFW"];
+		$this->isFWAcceptNet=$ligne["isFWAcceptNet"];
+		$this->isFWLogBlocked=$ligne["isFWLogBlocked"];
+		$this->ShoreWallServices=unserialize(base64_decode($ligne["ShoreWallServices"]));
+		if($this->NICNAME==null){$this->NICNAME="Interface $this->eth";}
+		if($this->NETWORK==null){$this->NETWORK=$this->GetCDIRNetwork($this->IPADDR,$this->NETMASK);}
+		if($GLOBALS["VERBOSE"]){echo "$LOGPR: NETWORK:$this->NETWORK<br>\n";}
+	}
+	
+	
 	private function loadEthConfig(){
 		$q=new mysql();
+		$LOGPR=__CLASS__."/".__FUNCTION__;
+		if($GLOBALS["VERBOSE"]){echo "$LOGPR: Loading $this->eth<br>\n";}
+		if(preg_match("#^virt#", $this->eth)){
+			$this->loadEthVirtual();
+			return;
+		}
+		
 		
 		$sql="SELECT * FROM `nics` WHERE `Interface`='$this->eth'";
 		if($GLOBALS["VERBOSE"]){echo "$sql<br>\n";}
 		writelogs("loadEthConfig: Loading nic infos from `$this->eth` `$sql`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){
-			echo $q->mysql_error;
 			writelogs("$q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		}
 		$this->dhcp=0;
@@ -162,8 +237,9 @@ class system_nic{
 		if(!isset($ligne["ipv6mask"])){$ligne["ipv6mask"]=null;}
 		if(!isset($ligne["ipv6addr"])){$ligne["ipv6addr"]=null;}
 		if(!isset($ligne["ipv6gw"])){$ligne["ipv6gw"]=null;}
+		if($ligne["netzone"]==null){$ligne["netzone"]=$this->eth;}
 		
-		
+		$this->netzone=$ligne["netzone"];
 		$this->ipv6=$ligne["ipv6"];
 		$this->NETMASK=$ligne["NETMASK"];
 		$this->GATEWAY=$ligne["GATEWAY"];
@@ -186,12 +262,17 @@ class system_nic{
 		$this->Bridged=$ligne["Bridged"];
 		$this->BridgedTo=$ligne["BridgedTo"];
 		$this->defaultroute=$ligne["defaultroute"];
+		$this->NICNAME=$ligne["NICNAME"];
+		$this->isFW=$ligne["isFW"];
+		$this->isFWAcceptNet=$ligne["isFWAcceptNet"];
+		$this->isFWLogBlocked=$ligne["isFWLogBlocked"];
 		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
 		if(!is_numeric($this->ucarp_vid)){$this->ucarp_vid=0;}
 		if(!is_numeric($this->ucarp_advbase)){$this->ucarp_advbase=0;}
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
-		
+		$this->ShoreWallServices=unserialize(base64_decode($ligne["ShoreWallServices"]));
+		if(!is_numeric($this->isFWAcceptNet)){$this->isFWAcceptNet=1;}
 		if($this->metric==0){$this->metric=$this->lastmetric();}
 		
 		if($this->ipv6addr==null){
@@ -224,14 +305,24 @@ class system_nic{
 			$t=explode(".", $this->IPADDR);
 			$this->BROADCAST="{$t[0]}.{$t[1]}.{$t[2]}.255";
 		}
-
+		
+		if($this->NICNAME==null){$this->NICNAME="Interface $this->eth";}
+		if($GLOBALS["VERBOSE"]){echo "<hr>$LOGPR: $this->NICNAME NETWORK:$this->NETWORK<br>\n";}
 	}
 	
 	private function CheckUnconfigured(){
 		$q=new mysql();
+		if(!$q->TABLE_EXISTS("nics", "artica_backup")){
+			$q->BuildNetworkTables();
+		}
+		
+		
 		if(!$q->FIELD_EXISTS("nics","enabled","artica_backup")){$sql="ALTER TABLE `nics` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '0'";$q->QUERY_SQL($sql,'artica_backup');}
 		$sql="SELECT COUNT(Interface) as tcount FROM `nics` WHERE enabled=1";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo basename(__FILE__)."\nFunction:".__FUNCTION__."\nLine:".__LINE__."\n$q->mysql_error\n";}
+		$ligne=mysql_fetch_array($results);
+		
 		if($ligne["tcount"]>0){$this->unconfigured=false;}
 	}
 	
@@ -241,7 +332,26 @@ class system_nic{
 		$f=array();
 		
 		if(!$q->FIELD_EXISTS("nics","metric","artica_backup")){$sql="ALTER TABLE `nics` ADD `metric` INT( 5 ) ,ADD INDEX ( `metric` )";$q->QUERY_SQL($sql,'artica_backup');}
-		if(!$q->FIELD_EXISTS("nics","enabled","artica_backup")){$sql="ALTER TABLE `nics` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '0'";$q->QUERY_SQL($sql,'artica_backup');}		
+		
+		if(!$q->FIELD_EXISTS("nics","enabled","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '0'";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}	
+		if(!$q->FIELD_EXISTS("nics","isFWAcceptNet","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `isFWAcceptNet` smallint( 1 ) NOT NULL DEFAULT '0'";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}
+		
+		
+		
+		if(!$q->FIELD_EXISTS("nics_virtuals","enabled","artica_backup")){
+			$sql="ALTER TABLE `nics_virtuals` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '1'";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
+		if(!$q->FIELD_EXISTS("nics_vlan","enabled","artica_backup")){
+			$sql="ALTER TABLE `nics_vlan` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '1'";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
 		
 		
 		$sql="SELECT metric as tcount FROM `nics` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
@@ -252,7 +362,7 @@ class system_nic{
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$hash[$ligne["metric"]]=$ligne["metric"];
 
-		$sql="SELECT metric as tcount FROM `nic_virtuals` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
+		$sql="SELECT metric as tcount FROM `nics_virtuals` WHERE enabled=1 ORDER BY metric DESC LIMIT 0,1";
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$hash[$ligne["metric"]]=$ligne["metric"];		
 		
@@ -283,6 +393,86 @@ class system_nic{
 	}
 	
 	
+	public function set_hostname($hostname){
+		$sock=new sockets();
+		$q=new mysql();
+		
+		if($GLOBALS["AS_ROOT"]){
+			$unix=new unix();
+			$php=$unix->LOCATE_PHP5_BIN();
+			$nohup=$unix->find_program("nohup");
+		}
+		
+		
+		if($q->COUNT_ROWS("net_hosts", "artica_backup")==0){
+			if(!$GLOBALS["AS_ROOT"]){$sock->getFrameWork("network.php?etc-hosts-default=yes");}
+			if($GLOBALS["AS_ROOT"]){$cmd=trim("$php /usr/share/artica-postfix/exec.virtuals-ip.php --hosts-defaults >/dev/null 2>&1");}
+		}
+		
+		$q->QUERY_SQL("DELETE FROM net_hosts WHERE `ipaddr` = '127.0.0.1'",'artica_backup');
+		$md5=md5("127.0.0.1{$hostname}");
+		$TR=explode(".",$hostname);
+		$netbiosname=$TR[0];
+		$sql="INSERT IGNORE INTO net_hosts (`zmd5`,`ipaddr`,`hostname`,`alias`) VALUES  ('$md5','127.0.0.1','$hostname','$netbiosname')";
+		$q->QUERY_SQL($sql,"artica_backup");
+		
+		
+		if(!$GLOBALS["AS_ROOT"]){
+			$sock->SET_INFO("myhostname",$hostname);
+			$sock->getFrameWork("cmd.php?ChangeHostName=$hostname");
+			$users=new usersMenus();
+			if($users->POSTFIX_INSTALLED){$sock->getFrameWork("cmd.php?postfix-others-values=yes");}
+		}
+		if($GLOBALS["AS_ROOT"]){
+			@file_put_contents("/etc/artica-postfix/settings/Daemons/myhostname", $hostname);
+			$unix->CHANGE_HOSTNAME($hostname);
+			if(is_file($unix->find_program("postconf"))){
+				shell_exec("$nohup $php /usr/share/artica-postfix/exec.postfix.maincf.php --others-values >/dev/null 2>&1 &");
+			}
+		}
+		
+	}
+	
+	private function SaveNicFW_switch(){
+		if(preg_match("#^virt([0-9]+)#", $this->eth,$re)){$ID=$re[1];}
+		
+		$ShoreWallServices=base64_encode(serialize($this->ShoreWallServices));
+		$q=new mysql();
+		$this->ToSyslog("Edit nics_switch:ShoreWallServices $ID");
+		$q->QUERY_SQL("UPDATE nics_switch SET ShoreWallServices='$ShoreWallServices' WHERE ID='$ID'","artica_backup");
+		if(!$q->ok){echo $q->mysql_error;}
+	}
+	
+	function ToSyslog($text,$error=false){
+	
+		if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
+		if(function_exists("openlog")){openlog("monit", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+		if(function_exists("closelog")){closelog();}
+	}	
+	
+	public function SaveNicFW(){
+		if(!is_array($this->ShoreWallServices)){
+			echo "ShoreWallServices is not an array...\n";
+			return;
+		}
+		
+		if($this->eth==null){
+			echo "No interface sepcified...\n";
+			return;			
+		}
+		
+		$LOGPR=__CLASS__."/".__FUNCTION__;
+		if(preg_match("#^virt([0-9]+)#", $this->eth,$re)){$this->SaveNicFW_switch();return;}
+		$ShoreWallServices=base64_encode(serialize($this->ShoreWallServices));
+		$q=new mysql();
+		$q->QUERY_SQL("UPDATE `nics` SET ShoreWallServices='$ShoreWallServices' WHERE `Interface`='$this->eth'","artica_backup");
+		$q=new mysql_shorewall();
+		$q->NIC_UPDATE($this->eth);
+	}
+	
+	
+	
 	public function SaveNic(){
 		$q=new mysql();
 		$routes=addslashes(serialize($this->ROUTES));
@@ -291,19 +481,24 @@ class system_nic{
 			$q->QUERY_SQL("UPDATE `nics` SET defaultroute=0","artica_backup");
 		}
 		
+
+		
 		$this->eth=trim($this->eth);
 		$this->eth=str_replace("\r\n", "", $this->eth);
 		$this->eth=str_replace("\r", "", $this->eth);
 		$this->eth=str_replace("\n", "", $this->eth);		
-		
+		if($this->NICNAME==null){$this->NICNAME="Interface $this->eth";}
+		if(!is_numeric($this->isFWAcceptNet)){$this->isFWAcceptNet=1;}
+		writelogs("save nic infos : NIC: `$this->eth`;CheckMySQLFields()",__CLASS__."/".__FUNCTION__,__FILE__);
 		$this->CheckMySQLFields();
 		$sql_add="
 		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,
 		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`,`Bridged`,
-		`BridgedTo`,`defaultroute`)
+		`BridgedTo`,`defaultroute`,`NICNAME`,`netzone`,`isFW`,`isFWAcceptNet`,`isFWLogBlocked`)
 		VALUES('$this->eth','$this->IPADDR','$this->NETMASK','$this->GATEWAY','$this->BROADCAST','$this->DNS_1',
 		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask',
-		'$this->ipv6gw','$this->ipv6addr','$this->metric','$this->Bridged','$this->BridgedTo','$this->defaultroute');
+		'$this->ipv6gw','$this->ipv6addr','$this->metric','$this->Bridged','$this->BridgedTo',
+		'$this->defaultroute','$this->NICNAME','$this->netzone','$this->isFW','$this->isFWAcceptNet','$this->isFWLogBlocked');
 		";
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
@@ -324,11 +519,16 @@ class system_nic{
 		
 		$ip=new IP();
 		if(!$ip->isIPAddress($this->IPADDR)){
-			echo __CLASS__."/".__FUNCTION__."/".__LINE__.": $this->IPADDR no a valid IP address\n";
+			echo __CLASS__."/".__FUNCTION__."/".__LINE__.": \"$this->IPADDR\" not a valid IP address\n";
 			return;
 		}
 		
+		if($this->netzone==null){$this->netzone="$this->eth";}
+		
+		
 		$sql_upd="UPDATE `nics` SET 
+		`NICNAME`='".mysql_escape_string2($this->NICNAME)."',
+		`netzone`='$this->netzone',
 		`IPADDR`='$this->IPADDR',
 		`NETMASK`='$this->NETMASK',
 		`GATEWAY`='$this->GATEWAY',
@@ -353,6 +553,9 @@ class system_nic{
 		`Bridged`='$this->Bridged',
 		`BridgedTo`='$this->BridgedTo',
 		`defaultroute`='$this->defaultroute',
+		`isFW`='$this->isFW',
+		`isFWAcceptNet`='$this->isFWAcceptNet',
+		`isFWLogBlocked`='$this->isFWLogBlocked',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
 
@@ -360,26 +563,41 @@ class system_nic{
 		
 		writelogs("save nic infos : NIC:ipv6=$this->ipv6; `$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
 		
-		
-		$q->check_networks_tables();
-		
-		if(!$q->FIELD_EXISTS("nics","ipv6","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6` smallint( 1 ) NOT NULL DEFAULT '0'",'artica_backup');
-			if(!$q->ok){echo $q->mysql_error;return;}
-		}	
-
-		
-		if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
-		}	
-		if(!$q->FIELD_EXISTS("nics","ipv6addr","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6addr` VARCHAR( 50 ) NOT NULL",'artica_backup');
-		}	
-		if(!$q->FIELD_EXISTS("nics","ipv6gw","artica_backup")){
-			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6gw` VARCHAR( 50 ) NOT NULL",'artica_backup');
-		}			
-		
-		
+		if(!isset($GLOBALS["NIC_TABLE_CHECKED"])){
+			$q->check_networks_tables();
+			
+			if(!$q->FIELD_EXISTS("nics","ipv6","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6` smallint( 1 ) NOT NULL DEFAULT '0'",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}	
+			if(!$q->FIELD_EXISTS("nics","isFWLogBlocked","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `isFWLogBlocked` smallint( 1 ) NOT NULL DEFAULT '0'",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}
+			
+			if(!$q->FIELD_EXISTS("nics","isFWAcceptNet","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `isFWAcceptNet` smallint( 1 ) NOT NULL DEFAULT '0'",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}			
+			
+			if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}	
+			if(!$q->FIELD_EXISTS("nics","ipv6addr","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6addr` VARCHAR( 50 ) NOT NULL",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}	
+			if(!$q->FIELD_EXISTS("nics","ipv6gw","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6gw` VARCHAR( 50 ) NOT NULL",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}			
+			if(!$q->FIELD_EXISTS("nics","NICNAME","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `nics` ADD `NICNAME` VARCHAR( 90 ) NOT NULL DEFAULT 'My Interface'",'artica_backup');
+				if(!$q->ok){echo $q->mysql_error;return;}
+			}	
+			$GLOBALS["NIC_TABLE_CHECKED"]=true;
+		}
 		
 		$sql="SELECT Interface FROM `nics` WHERE `Interface`='$this->eth'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -405,7 +623,7 @@ class system_nic{
 	}
 	
 	private function root_build_redhat_remove_scripts($dir){
-		if(!is_dir($dir)){echo "Starting......: IP mode RedHat $dir no such directory\n";return;}
+		if(!is_dir($dir)){echo "Starting......: ".date("H:i:s")." IP mode RedHat $dir no such directory\n";return;}
 		$unix=new unix();
 		$ifconfig=$unix->find_program("ifconfig");
 		
@@ -413,22 +631,22 @@ class system_nic{
 			$fileconf=basename($filename);
 			if($fileconf=="ifcfg-lo"){continue;}
 			if(preg_match("#ifcfg-(.*)#",$fileconf,$re)){$nic=$re[1];}
-			if($GLOBALS["VERBOSE"]){echo "Starting......: IP mode RedHat;$fileconf\n";}
-			if($GLOBALS["VERBOSE"]){echo "Starting......: $ifconfig $nic down\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." IP mode RedHat;$fileconf\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $ifconfig $nic down\n";}
 			system("$ifconfig $nic down");
-			echo "Starting......: Network remove {$re[1]}\n";
+			echo "Starting......: ".date("H:i:s")." Network remove {$re[1]}\n";
 			@unlink($filename);
 			if(is_file("/etc/sysconfig/networking/devices/$fileconf")){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Delete /etc/sysconfig/networking/devices/$fileconf\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Delete /etc/sysconfig/networking/devices/$fileconf\n";}
 				@unlink("/etc/sysconfig/networking/devices/$fileconf");
 			}
 			if(is_file("/etc/sysconfig/networking/profiles/default/$fileconf")){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Delete /etc/sysconfig/networking/profiles/default/$fileconf\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Delete /etc/sysconfig/networking/profiles/default/$fileconf\n";}
 				@unlink("/etc/sysconfig/networking/profiles/default/$fileconf");
 			}
 			
 			if(is_file("/etc/sysconfig/network/scripts/ifup-$fileconf")){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Delete /etc/sysconfig/network/scripts/ifup-$fileconf\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Delete /etc/sysconfig/network/scripts/ifup-$fileconf\n";}
 				@unlink("/etc/sysconfig/network/scripts/ifup-$fileconf");	
 			}
 				
@@ -438,21 +656,21 @@ class system_nic{
 	
 	private function root_build_redhat_ifcfg($eth,$datas){
 		if(is_dir("/etc/sysconfig/network")){
-			echo "Starting......: IP mode RedHat $eth writing /etc/sysconfig/network/ifcfg-$eth\n";
+			echo "Starting......: ".date("H:i:s")." IP mode RedHat $eth writing /etc/sysconfig/network/ifcfg-$eth\n";
 			@file_put_contents("/etc/sysconfig/network/ifcfg-$eth",$datas);
 		}
 		
 		if(is_dir("/etc/sysconfig/network-scripts")){
-			echo "Starting......: IP mode RedHat $eth writing /etc/sysconfig/network-scripts/ifcfg-$eth\n";
+			echo "Starting......: ".date("H:i:s")." IP mode RedHat $eth writing /etc/sysconfig/network-scripts/ifcfg-$eth\n";
 			@file_put_contents("/etc/sysconfig/network-scripts/ifcfg-$eth",$datas);
 		}
 		
 		if(is_dir("/etc/sysconfig/networking/profiles/default")){
-			echo "Starting......: IP mode RedHat $eth writing profiles/default/ifcfg-$eth\n";
+			echo "Starting......: ".date("H:i:s")." IP mode RedHat $eth writing profiles/default/ifcfg-$eth\n";
 			@file_put_contents("/etc/sysconfig/networking/profiles/default/ifcfg-$eth",$datas);
 		}		
 		if(is_dir("/etc/sysconfig/networking/devices")){
-			echo "Starting......: IP mode RedHat $eth writing devices/ifcfg-$eth\n";
+			echo "Starting......: ".date("H:i:s")." IP mode RedHat $eth writing devices/ifcfg-$eth\n";
 			@file_put_contents("/etc/sysconfig/networking/devices/ifcfg-$eth",$datas);
 		}			
 		
@@ -478,9 +696,9 @@ class system_nic{
 		$sql="SELECT * FROM `nics` WHERE enabled=1";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo "Starting......: Mysql error : $q->mysql_error\n";return;}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." Mysql error : $q->mysql_error\n";return;}
 		$count=mysql_num_rows($results);
-		if($count==0){echo "Starting......: Network unconfigured\n";return;}
+		if($count==0){echo "Starting......: ".date("H:i:s")." Network unconfigured\n";return;}
 		$ROUTESCFG=array();
 		$this->root_build_redhat_remove_scripts("/etc/sysconfig/network-scripts");
 		$this->root_build_redhat_remove_scripts("/etc/sysconfig/network");
@@ -488,10 +706,10 @@ class system_nic{
 
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$eth=$ligne["Interface"];
-			if(trim($eth)==null){echo "Starting......: no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
+			if(trim($eth)==null){echo "Starting......: ".date("H:i:s")." no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
 			
-			echo "Starting......: $eth \"{$ligne["IPADDR"]}\"\n";
+			echo "Starting......: ".date("H:i:s")." $eth \"{$ligne["IPADDR"]}\"\n";
 			$dns=array();
 			$array=array();
 			if(trim($ligne["GATEWAY"])==null){$ligne["GATEWAY"]="0.0.0.0";}
@@ -500,7 +718,7 @@ class system_nic{
 			
 					
 			if($this->IsBridged($eth)){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: $eth bridged to {$ligne["BridgedTo"]}\n";}	
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $eth bridged to {$ligne["BridgedTo"]}\n";}	
 				$array[]="DEVICE=$eth";
 				$array[]="STARTMODE='auto'";
 				$array[]="ONBOOT=yes";
@@ -511,7 +729,7 @@ class system_nic{
 				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth 0.0.0.0 promisc up";
 				$GLOBALS["SAVED_INTERFACES"][]=$eth;
 				$GLOBALS["MEM_INTERFACES"][$eth]="0.0.0.0";
-				echo "Starting......: $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
+				echo "Starting......: ".date("H:i:s")." $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
 				$f[]="iface $eth inet manual";
 				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" IS BRIDGED ****";
 				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
@@ -551,7 +769,7 @@ class system_nic{
 				$unix=new unix();
 				$php5=$unix->LOCATE_PHP5_BIN();
 				$chmod=$unix->find_program("chmod");
-				if($GLOBALS["VERBOSE"]){echo "Starting......: $eth is a bridge\n";}	
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $eth is a bridge\n";}	
 				$array[]="BOOTPROTO=static";
 				$array[]="NM_CONTROLLED=no";
 				$array[]="DELAY=5";
@@ -598,7 +816,7 @@ class system_nic{
 			if($ligne["DNS1"]<>null){$array[]="DNS1={$ligne["DNS1"]}";}
 			if($ligne["DNS2"]<>null){$array[]="DNS2={$ligne["DNS2"]}";}			
 			
-			if($GLOBALS["VERBOSE"]){echo "Starting......: {$ligne["IPADDR"]}/{$ligne["NETMASK"]}:=> ifcfg-$eth\n";}	
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." {$ligne["IPADDR"]}/{$ligne["NETMASK"]}:=> ifcfg-$eth\n";}	
 			$this->root_build_redhat_ifcfg($eth,@implode("\n",$array));		
 		}
 		
@@ -611,7 +829,7 @@ class system_nic{
 					if($ROUTESARRAY["IP"]==null){$ROUTESARRAY["IP"]="default";}
 					if($ROUTESARRAY["GW"]==null){$ROUTESARRAY["GW"]="-";}
 					if($ROUTESARRAY["MASK"]==null){$ROUTESARRAY["MASK"]="-";}
-					echo "Starting......: $ETHROUTE route {$ROUTESARRAY["IP"]}/{$ROUTESARRAY["MASK"]} via {$ROUTESARRAY["GW"]}\n";
+					echo "Starting......: ".date("H:i:s")." $ETHROUTE route {$ROUTESARRAY["IP"]}/{$ROUTESARRAY["MASK"]} via {$ROUTESARRAY["GW"]}\n";
 					$routesDatas[]="{$ROUTESARRAY["IP"]}  {$ROUTESARRAY["GW"]} {$ROUTESARRAY["MASK"]}  $ETHROUTE";
 				}
 			}
@@ -639,7 +857,7 @@ class system_nic{
 			$arr[3]="255";
 			$brd=implode(".",$arr);			
 			$eth="{$ligne["nic"]}:{$ligne["ID"]}";
-			echo "Starting......: $eth \"{$ligne["ipaddr"]}\"\n";
+			echo "Starting......: ".date("H:i:s")." $eth \"{$ligne["ipaddr"]}\"\n";
 			if(trim($ligne["GATEWAY"])==null){$ligne["GATEWAY"]="0.0.0.0";}
 			$array[]="DEVICE=$eth";
 			$array[]="STARTMODE='auto'";
@@ -653,7 +871,7 @@ class system_nic{
 			$array[]="ONBOOT=yes";
 			$array[]="USERCTL=yes";	
 			
-			if($GLOBALS["VERBOSE"]){echo "Starting......: {$ligne["ipaddr"]}/{$ligne["netmask"]}:=> ifcfg-$eth\n";}	
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." {$ligne["ipaddr"]}/{$ligne["netmask"]}:=> ifcfg-$eth\n";}	
 			$this->root_build_redhat_ifcfg($eth,@implode("\n",$array));			
 		}
 
@@ -668,9 +886,9 @@ class system_nic{
 			$brd=implode(".",$arr);			
 			$eth="vlan{$ligne["ID"]}";
 			if(trim($ligne["GATEWAY"])==null){$ligne["GATEWAY"]="0.0.0.0";}
-			echo "Starting......: VLAN $eth {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]})\n";
+			echo "Starting......: ".date("H:i:s")." VLAN $eth {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]})\n";
 
-			echo "Starting......: $eth \"{$ligne["ipaddr"]}\"\n";
+			echo "Starting......: ".date("H:i:s")." $eth \"{$ligne["ipaddr"]}\"\n";
 			$array[]="DEVICE=$eth";
 			$array[]="STARTMODE='auto'";
 			$array[]="IPADDR={$ligne["ipaddr"]}";
@@ -685,7 +903,7 @@ class system_nic{
 			$array[]="USERCTL=yes";	
 			$array[]="VLAN_NAME_TYPE=VLAN_PLUS_VID_NO_PAD";
 			$array[]="PHYSDEV={$ligne["nic"]}";
-			if($GLOBALS["VERBOSE"]){echo "Starting......: {$ligne["ipaddr"]}/{$ligne["netmask"]}:=> ifcfg-$eth\n";}	
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." {$ligne["ipaddr"]}/{$ligne["netmask"]}:=> ifcfg-$eth\n";}	
 			$this->root_build_redhat_ifcfg($eth,@implode("\n",$array));			
 			
 		}			
@@ -722,7 +940,7 @@ class system_nic{
 		if(!is_numeric($OVHNetConfig)){$OVHNetConfig=0;}
 		$sysctl=$unix->find_program("sysctl");
 		$ip=new IP();		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: Main interface `$eth`";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Main interface `$eth`";}
 		$echo=$unix->find_program("echo");
 		$nic=new system_nic($eth);
 		$route=$unix->find_program("route");
@@ -730,14 +948,14 @@ class system_nic{
 		
 		if($nic->dhcp==1){return "iface $eth inet6 dhcp";}
 		if($OVHNetConfig==1){$ligne["GATEWAY"]=null;}
-		echo "Starting......: Main interface `$eth` enable ipv6 ($sysctl net.ipv6.conf.$eth.disable_ipv6)\n";
+		echo "Starting......: ".date("H:i:s")." Main interface `$eth` enable ipv6 ($sysctl net.ipv6.conf.$eth.disable_ipv6)\n";
 		shell_exec("$sysctl -w net.ipv6.conf.$eth.disable_ipv6=0 >/dev/null 2>&1");
 		
 		$ipv6mask=$nic->ipv6mask;
 		$ipv6addr=$nic->ipv6addr;
 		$ipv6Gwaddr=$nic->ipv6gw;
 		if($ipv6mask==0){
-			echo "Starting......: Main interface `$eth` [$ipv6addr] ipv6mask is not a numeric value...\n"; 
+			echo "Starting......: ".date("H:i:s")." Main interface `$eth` [$ipv6addr] ipv6mask is not a numeric value...\n"; 
 			return "#[$eth] $ipv6addr: ipv6mask is not a numeric...\n";}
 		$f[]="iface $eth inet6 static";
 		$f[]="\taddress $ipv6addr";
@@ -796,7 +1014,7 @@ class system_nic{
 		$sh[]="exit 0";	
 		$f[]="";
 		$sh[]="";
-		echo "Starting......: Building Ipv6 virtuals IP for `$eth` creating `/etc/init.d/$eth-up`\n";
+		echo "Starting......: ".date("H:i:s")." Building Ipv6 virtuals IP for `$eth` creating `/etc/init.d/$eth-up`\n";
 		@file_put_contents("/etc/init.d/$eth-up", @implode("\n", $sh));
 		$unix->chmod_func(0755, "/etc/init.d/$eth-up");
 		shell_exec("$servicebin -f $eth-up defaults >/dev/null 2>&1");
@@ -818,11 +1036,16 @@ class system_nic{
 	public function IsBridged($eth){
 		$key=__CLASS__.__FUNCTION__.$eth;
 		if(isset($GLOBALS[$key])){return $GLOBALS[$key];}
-		$this->LoadTools();
-		if(!is_file($GLOBALS["brctlbin"])){
-			echo "Starting......: $eth brctl no such binary\n";
-			$GLOBALS[$key]=false;
-			return false;
+		if($GLOBALS["AS_ROOT"]){
+			$this->LoadTools();
+			
+			if(!is_file($GLOBALS["brctlbin"])){
+				if($GLOBALS["AS_ROOT"]){
+					echo "Starting......: ".date("H:i:s")." $eth brctl no such binary\n";
+				}
+				$GLOBALS[$key]=false;
+				return false;
+			}
 		}
 		$eth=trim($eth);
 		if(preg_match("#^br[0-9]+#", $eth)){$GLOBALS[$key]=false;return false;}
@@ -830,20 +1053,20 @@ class system_nic{
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!is_numeric($ligne["Bridged"])){
-			echo "Starting......: $eth Not enabled [NULL] ({$ligne["Bridged"]} to bridge\n";
+			echo "Starting......: ".date("H:i:s")." $eth Not enabled [NULL] ({$ligne["Bridged"]} to bridge\n";
 			$GLOBALS[$key]=false;return false;}
 		if($ligne["Bridged"]==0){
-			echo "Starting......: $eth Not enabled [0] to bridge\n";
+			echo "Starting......: ".date("H:i:s")." $eth Not enabled [0] to bridge\n";
 			$GLOBALS[$key]=false;return FALSE;}
 		if($ligne["BridgedTo"]==null){
-			echo "Starting......: $eth Not bridged to any interface\n";
+			echo "Starting......: ".date("H:i:s")." $eth Not bridged to any interface\n";
 			$GLOBALS[$key]=false;return false;}
 		if(!preg_match("#^br([0-9]+)#", $ligne["BridgedTo"],$re)){
-			echo "Starting......: $eth -> {$ligne["BridgedTo"]} incorrect\n";
+			echo "Starting......: ".date("H:i:s")." $eth -> {$ligne["BridgedTo"]} incorrect\n";
 			$GLOBALS[$key]=false;return false;}
 		$BridgeID=$re[1];
 		
-		echo "Starting......: $eth Bridged To {$ligne["BridgedTo"]}\n";
+		echo "Starting......: ".date("H:i:s")." $eth Bridged To {$ligne["BridgedTo"]}\n";
 		$sql="SELECT ipaddr FROM `nics_bridge` WHERE ID='$BridgeID'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if($ligne["ipaddr"]==null){$GLOBALS[$key]=false;return false;}
@@ -855,8 +1078,10 @@ class system_nic{
 	
 	
 	public function LoadTools(){
-		
-		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}	
+		if(!isset($GLOBALS["PROC_NET_DEV"])){$this->LoadProcNetDev();}
+		if(!class_exists("unix")){return;}
+			
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		if(!isset($GLOBALS["sysctl"])){$GLOBALS["sysctl"]=$GLOBALS["CLASS_UNIX"]->find_program("sysctl");}
 		if(!isset($GLOBALS["ifconfig"])){$GLOBALS["ifconfig"]=$GLOBALS["CLASS_UNIX"]->find_program("ifconfig");}
 		if(!isset($GLOBALS["routebin"])){$GLOBALS["routebin"]=$GLOBALS["CLASS_UNIX"]->find_program("route");}
@@ -868,7 +1093,94 @@ class system_nic{
 		if(!isset($GLOBALS["tunctlbin"])){$GLOBALS["tunctlbin"]=$GLOBALS["CLASS_UNIX"]->find_program("tunctl");}
 		if(!isset($GLOBALS["sleepbin"])){$GLOBALS["sleepbin"]=$GLOBALS["CLASS_UNIX"]->find_program("sleep");}
 		if(!isset($GLOBALS["echobin"])){$GLOBALS["echobin"]=$GLOBALS["CLASS_UNIX"]->find_program("echo");}
+		if(!isset($GLOBALS["rmbin"])){$GLOBALS["rmbin"]=$GLOBALS["CLASS_UNIX"]->find_program("rm");}
+		if(!isset($GLOBALS["touchbin"])){$GLOBALS["touchbin"]=$GLOBALS["CLASS_UNIX"]->find_program("touch");}
+		if(!isset($GLOBALS["dhclientbin"])){$GLOBALS["dhclientbin"]=$GLOBALS["CLASS_UNIX"]->find_program("dhclient");}
 		
+		
+		
+	}
+	
+	
+	public function networks_disabled(){
+		
+		$sql="SELECT * FROM `nics` WHERE enabled=0 ORDER BY Interface";
+		$q=new mysql();
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		
+		$count=mysql_num_rows($results);
+		if($count>0){
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] **** SETTINGS for $count NICs Disabled  ***";
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] *******************************";
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";
+			
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+				$eth=trim($ligne["Interface"]);
+				$eth=str_replace("\n", "", $eth);
+				$eth=str_replace("\r", "", $eth);
+				$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] **** \"$eth\" {$ligne["IPADDR"]} IS disabled ****";
+				if(trim($eth)==null){echo "Starting......: ".date("H:i:s")." no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
+				$GLOBALS["SCRIPTS_TOP"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SCRIPTS_TOP"][]="{$GLOBALS["ipbin"]} route flush table $eth";
+			}
+			
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";	
+		}
+
+		
+		$sql="SELECT * FROM nics_vde";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		$count=mysql_num_rows($results);
+		if($count>0){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+				$eth="virt{$ligne["ID"]}";
+				$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] disable virtual NIC $eth";
+				$GLOBALS["SCRIPTS_TOP"][]="{$GLOBALS["ifconfig"]} $eth down";
+				$GLOBALS["SCRIPTS_TOP"][]="{$GLOBALS["ipbin"]} route flush table $eth";
+					
+			}
+		}
+		
+	}
+	
+	private function LoadProcNetDev(){
+		$datas=explode("\n",@file_get_contents("/proc/net/dev"));
+		while (list ($num, $line) = each ($datas) ){
+			if(preg_match("#^(.+?):#",$line,$re)){
+				$re[1]=trim($re[1]);
+				$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] Found Network Interface <{$re[1]}>";
+				$GLOBALS["PROC_NET_DEV"][$re[1]]=true;
+			}
+		}
+		
+		$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] Found ". count($GLOBALS["PROC_NET_DEV"])." Network Interface(s)";
+	}
+
+	
+	private function root_build_debian_config_all_dhcpd(){
+		if(!isset($GLOBALS["PROC_NET_DEV"])){$this->LoadProcNetDev();}
+		while (list ($interface, $line) = each ($GLOBALS["PROC_NET_DEV"]) ){
+			if($interface=="lo"){continue;}
+			
+			
+		}
+		
+		
+	}
+	
+	
+	private function root_build_debian_config_dhcpd($eth){
+		if(!is_file($GLOBALS["dhclientbin"])){return;}
+		if($this->IsBridged($eth)){return;}
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS DHCP for \"$eth\" ****";
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+		$GLOBALS["SCRIPTS"][]="{$GLOBALS["dhclientbin"]} -nw $eth";
+	
 	}
 
 	
@@ -879,9 +1191,11 @@ class system_nic{
 		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
 		$EnableChilli=$sock->GET_INFO("EnableChilli");
 		if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+		if(!isset($GLOBALS["PROC_NET_DEV"])){$this->LoadProcNetDev();}
+		
 		if($EnableChilli==1){
 			$ChilliConf=unserialize(base64_decode($sock->GET_INFO("ChilliConf")));
-			echo "Starting......: Will skip {$ChilliConf["HS_LANIF"]} for HotSpot config\n";
+			echo "Starting......: ".date("H:i:s")." Will skip {$ChilliConf["HS_LANIF"]} for HotSpot config\n";
 			$eth_SKIP[$ChilliConf["HS_LANIF"]]=true;
 		}
 		
@@ -894,20 +1208,38 @@ class system_nic{
 		if($GLOBALS["AS_ROOT"]){
 			$this->LoadTools();
 			$unix=new unix();
-			echo "Starting......: route bin.....: {$GLOBALS["routebin"]}\n";
-			echo "Starting......: vconfig bin...: {$GLOBALS["vconfigbin"]}\n";
-			echo "Starting......: modprobe bin..: {$GLOBALS["moprobebin"]}\n";
+			echo "Starting......: ".date("H:i:s")." route bin.....: {$GLOBALS["routebin"]}\n";
+			echo "Starting......: ".date("H:i:s")." vconfig bin...: {$GLOBALS["vconfigbin"]}\n";
+			echo "Starting......: ".date("H:i:s")." modprobe bin..: {$GLOBALS["moprobebin"]}\n";
+			echo "Starting......: ".date("H:i:s")." dhclient......: {$GLOBALS["dhclientbin"]}\n";
 			
 		}
+		$q=new mysql();
+
+		$GLOBALS["SCRIPTS"][]="# **** MAIN INTERFACES  ****";
+		$q->QUERY_SQL("DELETE FROM `nics` WHERE LENGTH(Interface)<3","artica_backup");
+		$sql="SELECT COUNT(*) FROM `nics`";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		
+		$CountDeInterfaces=mysql_num_rows($results);
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] $CountDeInterfaces Interface(s) set in database";
+		if($CountDeInterfaces==0){
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] No interface set, using DHCP First";
+			$this->root_build_debian_config_all_dhcpd();
+			return;
+		}
+		
 		
 		$sql="SELECT * FROM `nics` WHERE enabled=1 ORDER BY Interface";
-		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo "Starting......: Mysql error : $q->mysql_error\n";return;}
+
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." Mysql error : $q->mysql_error\n";return;}
 		$count=mysql_num_rows($results);
-		if($count==0){echo "Starting......: Network Unconfigured\n";return;}
+		if($count==0){
+			$GLOBALS["SCRIPTS"][]="# No interface defined or enabled";
+			echo "Starting......: ".date("H:i:s")." Network Unconfigured\n";return;}
 		
-		$GLOBALS["SCRIPTS"][]="# **** MAIN INTERFACES  ****";
+		
 		
 		$f[]="auto lo";
 		$f[]="iface lo inet loopback";
@@ -917,24 +1249,46 @@ class system_nic{
 			$eth=trim($ligne["Interface"]);
 			$eth=str_replace("\n", "", $eth);
 			$eth=str_replace("\r", "", $eth);			
-			if(trim($eth)==null){echo "Starting......: no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
+			if(trim($eth)==null){echo "Starting......: ".date("H:i:s")." no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			if(isset($eth_SKIP[$eth])){
-				echo "Starting......: $eth skipping\n";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";	
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] BLACKLISTED - SKIPPED";
+				echo "Starting......: ".date("H:i:s")." $eth skipping\n";
 				continue;
 			}
+			
+			if(!isset($GLOBALS["PROC_NET_DEV"][$eth])){
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] HARDWARE ERROR, DID NOT FOUND...";
+				continue;
+			}
+			
+			
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
-			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Reload Interface $eth";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Reload/flush Interface $eth";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
-			
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} addr flush $eth";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Remove routes should added by OS during startup";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} route del default dev $eth";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
 			if($this->IsBridged($eth)){
-				echo "Starting......: $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
+				
+				echo "Starting......: ".date("H:i:s")." $eth \" ** is bridged to {$ligne["BridgedTo"]} **\n";
 				$f[]="iface $eth inet manual";
-				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" IS BRIDGED ****";
+				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" IS BRIDGED to {$ligne["BridgedTo"]} ****";
 				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
 				$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth 0.0.0.0 promisc up";
 				$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["ifconfig"]} $eth down";
@@ -943,7 +1297,7 @@ class system_nic{
 				continue;
 			}else{
 				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Not bridged";
-				echo "Starting......: $eth is not bridged\n";
+				echo "Starting......: ".date("H:i:s")." $eth is not bridged\n";
 			}
 			
 			$ipv6=$ligne["ipv6"];
@@ -961,8 +1315,8 @@ class system_nic{
 			$f[]="";
 			
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** \"$eth\" {$ligne["IPADDR"]} ****";
-			echo "Starting......: \"$eth\" \"{$ligne["IPADDR"]}\"\n";
-			$f[]="auto $eth ".$this->auto_eth_virts($eth);	
+			echo "Starting......: ".date("H:i:s")." \"$eth\" \"{$ligne["IPADDR"]}\"\n";
+			$NETWORK_INTERFACE[]="auto $eth ".$this->auto_eth_virts($eth);	
 			$ISREAL++;
 			
 
@@ -978,14 +1332,9 @@ class system_nic{
 			if($eth=="eth0"){
 				if($OVHNetConfig==1){
 					$REMOVE_GATEWAY=true;
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} del default gw {$ligne["GATEWAY"]}";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";					
-					$scripts[]="\tpost-up {$GLOBALS["routebin"]} add {$ligne["GATEWAY"]} dev eth0 metric 10{$ligne["metric"]}";
-					$scripts[]="\tpost-up {$GLOBALS["routebin"]} add default gw {$ligne["GATEWAY"]}";
-					$scripts[]="\tpost-down {$GLOBALS["routebin"]} del {$ligne["GATEWAY"]} dev eth0 metric 10{$ligne["metric"]}";
-					$scripts[]="\tpost-down {$GLOBALS["routebin"]} del default gw {$ligne["GATEWAY"]}";
+					$GLOBALS["SCRIPTS_ROUTES"][]="# [eth0/".__CLASS__."/".__LINE__."]";
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev eth0";
+
 				}
 			}
 			
@@ -1010,11 +1359,12 @@ class system_nic{
 				if($ligne["GATEWAY"]<>null){
 					if($ligne["GATEWAY"]<>"0.0.0.0"){
 						$f[]="\tgateway {$ligne["GATEWAY"]}";
+						$mainroute="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$this->NicToOther($eth);
 						if(preg_match("#^([0-9\.]+)\.[0-9]+$#", $ligne["IPADDR"],$re)){
 							if(!isset($ALREADYNETSROUTE["{$re[1]}.0"])){
 								$ALREADYNETSROUTE["{$re[1]}.0"]=true;
 								$mainroute="{$GLOBALS["routebin"]} add -net {$re[1]}.0 netmask {$ligne["NETMASK"]} gw {$ligne["GATEWAY"]} dev ".$this->NicToOther($eth);
-								//$GLOBALS["SCRIPTS_ROUTES"][]=$mainroute;
+
 							}
 						}
 					}
@@ -1066,7 +1416,7 @@ class system_nic{
 	         			
 	         			
 		         		if($ip=="default"){
-		         			$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         			
 							$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 							$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 		         			continue;
@@ -1074,7 +1424,7 @@ class system_nic{
 		         			
 		         		if($ip_array["GATEWAY"]==null){
 		         			if($ip_array["DEV"]<>null){
-		         				//$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
+		         				
 		         				$this->scriptaddroute($ip,$ip_array["NETMASK"],$ip_array["GATEWAY"],0,$ip_array["DEV"]);
 		         				$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} dev ". $this->NicToOther($ip_array["DEV"]);
 		         				$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} dev ".$this->NicToOther($ip_array["DEV"]);
@@ -1085,7 +1435,6 @@ class system_nic{
 		         		$scripts[]="\tup {$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
 		         		
 		         		$scripts[]="\tdown {$GLOBALS["ipbin"]} route del default via {$ligne["GATEWAY"]} dev ". $this->NicToOther($eth)."  metric 10{$ligne["metric"]}";
-		         		//$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."] Added in default route for the interface $eth\n";
 		         		$this->scriptaddroute($ip,$ip_array["NETMASK"],$ip_array["GATEWAY"],$ligne["metric"]);
 						$scripts[]="\tup {$GLOBALS["routebin"]} add -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
 	   					$scripts[]="\tdown {$GLOBALS["routebin"]} del -net $ip netmask {$ip_array["NETMASK"]} gw {$ip_array["GATEWAY"]} metric 10{$ligne["metric"]}";
@@ -1145,33 +1494,7 @@ class system_nic{
 	
 	}
 	
-	public function scriptaddroute($ip,$netmask,$gateway,$metric=0,$eth=null,$default=false){
-		return;
-		if($metric>0){$metric=" metric 10{$metric}";}
-		if($eth<>null){$eth=" dev $eth";}
-		$defm=null;$defT=null;
-		if($default){$defm="default";}
-		$md5net=md5("$ip$netmask$gateway$defm");
-
-		
-		if(function_exists("debug_backtrace")){
-			$trace=debug_backtrace();
-			if(isset($trace[1])){
-				$sourcefile=basename($trace[1]["file"]);
-				$sourcefunction=$trace[1]["function"];
-				$sourceline=$trace[1]["line"];
-			}
-				
-		}
-		if(isset($GLOBALS["MD5NET"][$md5net])){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# skiped Route $ip/$netmask of $eth - $sourcefile $sourcefunction() line:$sourceline";
-			return;}
-			$GLOBALS["MD5NET"][$md5net]=true;
-		
-		$GLOBALS["SCRIPTS_ROUTES"][]="# Route $ip/$netmask added by main configuration of $eth - $sourcefile $sourcefunction() line:$sourceline";
-		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $ip netmask $netmask gw $gateway$metric$eth";
-		
-		
+	public function scriptaddroute($ip,$netmask,$gateway,$metric=0,$eth=null,$default=false){ //depreciated
 	}
 	
 	public function BuildBridges_getlinked($bridge){
@@ -1192,7 +1515,11 @@ class system_nic{
 		
 		$q=new mysql();
 		$this->LoadTools();
-		if(!is_file($GLOBALS["brctlbin"])){return false;}
+		if(!is_file($GLOBALS["brctlbin"])){
+			$GLOBALS["SCRIPTS"][]="# **** NO Bridge configuration...";
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["rmbin"]} -f /etc/artica-postfix/IPTABLES_BR_BRIDGE >/dev/null 2>&1";
+			return false;
+		}
 		$sql="SELECT * FROM nics_bridge";
 		$results = $q->QUERY_SQL($sql,"artica_backup");
 		
@@ -1202,6 +1529,7 @@ class system_nic{
 		
 		$GW=false;
 		$GLOBALS["SCRIPTS"][]="# **** Bridge configuration...";
+		$GLOBALS["SCRIPTS"][]="{$GLOBALS["touchbin"]} /etc/artica-postfix/IPTABLES_BR_BRIDGE >/dev/null 2>&1";
 		$GLOBALS["SCRIPTS"][]="{$GLOBALS["sysctl"]} -w net.ipv4.ip_forward=1";
 		$GLOBALS["SCRIPTS"][]="# Table nics_bridge ". mysql_num_rows($results)." element(s)";
 		while ($ligne = mysql_fetch_assoc($results)) {
@@ -1220,6 +1548,7 @@ class system_nic{
 			if($gateway=="0.0.0.0"){$gateway=null;}
 			if($netmask=="0.0.0.0"){$netmask=null;}
 			if($broadcast=="0.0.0.0"){$broadcast=null;}
+			if(!is_numeric($ligne["STP"])){$ligne["STP"]=1;}
 			
 			$f[]="iface $eth inet static";
 			$f[]="\tbridge_ports ";@implode(" ", $Linked);
@@ -1242,7 +1571,12 @@ class system_nic{
 			
 			
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth $ipaddr$netup up";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["brctlbin"]} setfd $eth 0";
+			if($ligne["STP"]==1){
+				$GLOBALS["SCRIPTS"][]="{$GLOBALS["brctlbin"]} stp $eth 1";
+			}
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["brctlbin"]} setfd $eth 15";
+			
+			
 			
 			$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["brctlbin"]} delbr $eth";
@@ -1257,9 +1591,8 @@ class system_nic{
 				if($ip->isValid($gateway)){
 					$f[]="\tgateway $gateway";
 					if(!$GW){
-						$GLOBALS["SCRIPTS_ROUTES"][]="#Default gateway to $eth\n";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add default gw $gateway dev $eth";
-						$GLOBALS["SCRIPTS_DOWN"][]="{$GLOBALS["routebin"]} del default gw $gateway dev $eth";
+						$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__CLASS__."/".__LINE__."] Default gateway $gateway\n";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw $gateway dev $eth";
 						$GW=true;
 					}
 				}
@@ -1332,7 +1665,7 @@ class system_nic{
 			
 			if($this->IsBridged($ligne["nic"])){
 				$GLOBALS["SCRIPTS"][]="# [".__LINE__."] {$ligne["nic"]} is Bridged, skip it";
-				echo "Starting......: Virtual {$ligne["nic"]}:{$ligne["ID"]}  {$ligne["nic"]} is bridged, aborting\n";
+				echo "Starting......: ".date("H:i:s")." Virtual {$ligne["nic"]}:{$ligne["ID"]}  {$ligne["nic"]} is bridged, aborting\n";
 				continue;
 			}
 			$eth="{$ligne["nic"]}:{$ligne["ID"]}";
@@ -1348,7 +1681,7 @@ class system_nic{
 			$ligne["cdir"]=$this->checkcdir($ligne["cdir"]);
 				
 				
-			echo "Starting......: Virtual $eth net:{$ligne["cdir"]} {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]})\n";
+			echo "Starting......: ".date("H:i:s")." Virtual $eth net:{$ligne["cdir"]} {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]})\n";
 			
 			
 			$GLOBALS["SCRIPTS_TOP"][]="# Stopping Interface $eth";
@@ -1361,8 +1694,8 @@ class system_nic{
 			if($GLOBALS["NoGatewayForVirtualNetWork"]==0){
 			if($ligne["gateway"]<>"0.0.0.0"){
 				if($ligne["ForceGateway"]==1){
-					$GLOBALS["SCRIPTS_ROUTES"][]="# Added from line ".__LINE__;
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
+					$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__CLASS__."/".__LINE__."] Default gateway {$ligne["gateway"]}\n";
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["gateway"]} dev $eth";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} rule add from {$ligne["ipaddr"]} table {$ligne["ID"]}0";
 					$scripts[]="\tpost-up {$GLOBALS["ipbin"]} route add default via {$ligne["gateway"]} metric 20{$ligne["metric"]} table {$ligne["ID"]}0";
 					
@@ -1457,10 +1790,10 @@ class system_nic{
 			$table_routename="vlan{$ligne["vlanid"]}";
 			$this->vlanTable($table_routename, $table_routeid);
 			
-			echo "Starting......: VLAN $eth {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]}) route ID $table_routeid/$table_routename\n";
+			echo "Starting......: ".date("H:i:s")." VLAN $eth {$ligne["ipaddr"]}/{$ligne["netmask"]} gateway {$ligne["gateway"]} ({$ligne["org"]}) route ID $table_routeid/$table_routename\n";
 			$f[]="";
 			$GLOBALS["MEM_INTERFACES"]["$eth$vlanid_text"]=$ligne["ipaddr"];
-					$f[]="auto $eth$vlanid_text";
+					$NETWORK_INTERFACE[]="auto $eth$vlanid_text";
 					$f[]="iface $eth$vlanid_text inet static";
 					$f[]="\taddress {$ligne["ipaddr"]}";
 					$f[]="\tnetmask {$ligne["netmask"]}";

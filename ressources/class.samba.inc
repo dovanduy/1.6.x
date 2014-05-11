@@ -740,7 +740,7 @@ function ChangeSID($sid){
 			
 			if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)#",$ipmask,$re)){
 				if(($re[1]==127) && ($re[2]==0) && ($re[3]==0)){continue;}
-				if($this->posix_getuid==0){echo "Starting......: Samba adding net {$re[1]}.{$re[2]}.{$re[3]}.255/$DOMAIN\n";}
+				if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Samba adding net {$re[1]}.{$re[2]}.{$re[3]}.255/$DOMAIN\n";}
 				$n[]="{$re[1]}.{$re[2]}.{$re[3]}.255/$DOMAIN";
 			}
 			
@@ -763,7 +763,7 @@ private function WINBINDD_PARAMS(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	if(!$this->WINBINDD_INSTALLED){
-		if($this->posix_getuid==0){echo "Starting......: WINBINDD NOT INSTALLED\n";}
+		if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." WINBINDD NOT INSTALLED\n";}
 		return "\n#WINBINDD NOT INSTALLED\n";
 	}
 	
@@ -789,14 +789,14 @@ private function WINBINDD_PARAMS(){
 	if(!is_numeric($SambaWinbindUseDefaultDomain)){$SambaWinbindUseDefaultDomain=0;}
 	if($SambaWinbindUseDefaultDomain==1){$SambaWinbindUseDefaultDomain="Yes";}else{$SambaWinbindUseDefaultDomain="No";}	
 	
-	if($this->posix_getuid==0){echo "Starting......: Enable Active Directory...: $this->EnableSambaActiveDirectory\n";}
-	if($this->posix_getuid==0){echo "Starting......: WINBINDD disabled.........: $this->DisableWinbindd\n";}
-	if($this->posix_getuid==0){echo "Starting......: Type of Samba.............: $this->TypeOfSamba\n";}
-	if($this->posix_getuid==0){echo "Starting......: Kerberos enabled..........: $this->EnableKerbAuth\n";}
-	if($this->posix_getuid==0){echo "Starting......: Up to 3.6.x...............: $upTo36\n";}
-	if($this->posix_getuid==0){echo "Starting......: Winbindd RPC Only.........: $SambaWinbindRpcOnly\n";}
-	if($this->posix_getuid==0){echo "Starting......: Allow Trusted domains.....: $SambaAllowTrustedDomains\n";}
-	if($this->posix_getuid==0){echo "Starting......: Remove domain & separator.: $SambaWinbindUseDefaultDomain\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Enable Active Directory...: $this->EnableSambaActiveDirectory\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." WINBINDD disabled.........: $this->DisableWinbindd\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Type of Samba.............: $this->TypeOfSamba\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Kerberos enabled..........: $this->EnableKerbAuth\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Up to 3.6.x...............: $upTo36\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Winbindd RPC Only.........: $SambaWinbindRpcOnly\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Allow Trusted domains.....: $SambaAllowTrustedDomains\n";}
+	if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Remove domain & separator.: $SambaWinbindUseDefaultDomain\n";}
 	
 
 	
@@ -816,7 +816,7 @@ private function WINBINDD_PARAMS(){
 	$this->WinbinddChoose();
 	
 	if($this->DisableWinbindd==1){
-		if($this->posix_getuid==0){echo "Starting......: WINBINDD is disabled\n";}
+		if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." WINBINDD is disabled\n";}
 		return "\n#WINBINDD DISABLED\n";
 		$sock->getFrameWork("cmd.php?winbindd-stop=yes");
 		
@@ -833,8 +833,8 @@ private function WINBINDD_PARAMS(){
 	
 	
 	if($this->EnableSambaActiveDirectory==1){
-		if($this->posix_getuid==0){echo "Starting......: Samba join domain {$this->config_activedirectory["ADDOMAIN"]}\n";}
-		if($this->posix_getuid==0){echo "Starting......: Samba master server {$this->config_activedirectory["ADSERVER"]}.{$this->config_activedirectory["ADDOMAIN"]}\n";}	
+		if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Samba join domain {$this->config_activedirectory["ADDOMAIN"]}\n";}
+		if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Samba master server {$this->config_activedirectory["ADSERVER"]}.{$this->config_activedirectory["ADDOMAIN"]}\n";}	
 		$sock=new sockets();
 		$WORKGROUP=strtoupper($this->config_activedirectory["WORKGROUP"]);
 		$SambaUseBackendAD=$sock->GET_INFO("SambaUseBackendAD");
@@ -851,14 +851,14 @@ private function WINBINDD_PARAMS(){
 		
 		if($upTo36==0){
 			if($SambaUseBackendAD==0){
-				if($this->posix_getuid==0){echo "Starting......: Samba use RID has backend\n";}
+				if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Samba use RID has backend\n";}
 				$conf[]="\tidmap config $WORKGROUP:backend	= rid";
 				$conf[]="\tidmap config $WORKGROUP:base_rid	= 0";
 				$conf[]="\tidmap config $WORKGROUP:read only= Yes";
 				$conf[]="\tidmap config $WORKGROUP:range	= 100000 - 199999";		
 				
 			}else{
-				if($this->posix_getuid==0){echo "Starting......: Samba use default backend\n";}
+				if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Samba use default backend\n";}
 				$conf[]="\tidmap uid = 100000-20000000";
 				$conf[]="\tidmap gid = 100000-20000000";
 				
@@ -983,7 +983,7 @@ private function netbios_aliases(){
 		$this->samba_aliases[]=$ligne["hostname"];
 		
 	}
-	if($GLOBALS["AS_ROOT"]){echo "Starting......: Samba ".count($this->samba_aliases)." virtual servers\n";}
+	if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Samba ".count($this->samba_aliases)." virtual servers\n";}
 	if(count($this->samba_aliases)==0){return null;}
 	return @implode(" ", $this->samba_aliases);
 	
@@ -1048,13 +1048,13 @@ function BuildConfig(){
 			if($this->EnableSambaVirtualsServers==1){
 				if($netbios_aliases<>null){
 					$this->main_array["global"]["disable netbios"]="no";
-					if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Virtual servers is enabled\n";} 
+					if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." [$netbiosname]: Virtual servers is enabled\n";} 
 					$conf[]="\tnetbios aliases =  {$this->main_array["global"]["netbios name"]} ". strtoupper($netbios_aliases)."";
 					$conf[]="\tsmb ports = 139";
 					$conf[]="\tinclude = /etc/samba/virtual/smb.conf.%L";
 					if($this->posix_getuid==0){@mkdir("/etc/samba/virtual",644,true);}
 					while (list ($Asnull, $sambaAlias) = each ($this->samba_aliases) ){
-						if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Virtual server [$sambaAlias]\n";} 
+						if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." [$netbiosname]: Virtual server [$sambaAlias]\n";} 
 						$smbalias=new samba_aliases($sambaAlias);
 						$smbalias->ASROOT=$GLOBALS["AS_ROOT"];
 						$smbalias->build();
@@ -1119,7 +1119,7 @@ function BuildConfig(){
 			if($GLOBALS["AS_ROOT"]){
 				$SECOND_PART=$this->SECOND_PART();
 				$conf[]=$SECOND_PART;
-				if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: ". strlen($SECOND_PART)." bytes for second part\n";} 
+				if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." [$netbiosname]: ". strlen($SECOND_PART)." bytes for second part\n";} 
 			}else{
 				$this->SECOND_PART();
 			}
@@ -1181,7 +1181,7 @@ private function SECOND_PART(){
 			
 			
 			if($DisableSambaFileSharing==1){
-				if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba limit to lo, file sharing is disabled\n";} 
+				if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba limit to lo, file sharing is disabled\n";} 
 				$conf[]="#Samba only used for AD connection, no shares";
 				$conf[]="\tinterfaces = lo";
 				$conf[]="\tbind interfaces only = yes";
@@ -1315,7 +1315,7 @@ private function SECOND_PART(){
 							if($ligne["path"]==null){continue;}
 							$FOLDER=basename($ligne["path"]);
 						}
-						if($this->posix_getuid==0){echo "[$netbiosname]: Starting......: Samba shared folder \"$FOLDER\"\n";} 					
+						if($this->posix_getuid==0){echo "[$netbiosname]: Starting......: ".date("H:i:s")." Samba shared folder \"$FOLDER\"\n";} 					
 						$conf[]="\n[$FOLDER]";
 						if($GLOBALS["VERBOSE"]){writelogs("Folder............: $FOLDER",__CLASS__,__FUNCTION__,__FILE__);}
 						$vfs_modules=array();
@@ -1330,7 +1330,7 @@ private function SECOND_PART(){
 						unset($ligne["dfree command"]);
 						if(isset($GREYHOLE[$FOLDER])){
 							if(is_numeric($GREYHOLE[$FOLDER])){
-								if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba greyhole on folder $FOLDER\n";} 
+								if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba greyhole on folder $FOLDER\n";} 
 								$vfs["greyhole"]=true;
 								$ligne["dfree command"]="/usr/bin/greyhole-dfree";
 							}
@@ -1345,7 +1345,7 @@ private function SECOND_PART(){
 						unset($ligne["recycle:noversions"]);
 						if(isset($RECYCLES[$FOLDER])){						
 							if($RECYCLES[$FOLDER]){
-								if($this->posix_getuid==0){echo "Starting......: [$netbiosname]: Samba recycle bin enabled on folder $FOLDER\n";} 
+								if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba recycle bin enabled on folder $FOLDER\n";} 
 								$ligne["recycle:repository"]=".RecycleBin$/%U";
 								$ligne["recycle:keeptree"]="yes";	
 								$ligne["recycle:versions"]="yes";
@@ -1501,11 +1501,11 @@ private function SECOND_PART(){
 						if(strpos($hostname_text, '.')>0){$tz=explode(".",$hostname_text);$hostname_text=$tz[0];}
 						
 						$finale="[global]\n\tworkgroup =$this->WORKGROUP\n\tnetbios name = $netbiosname\n$this->SECOND_PART_CONF";
-						echo "Starting......: [$netbiosname]: Samba also known has $hostname_text\n";
-						echo "Starting......: [$netbiosname]: Samba processing /etc/samba/virtual/smb.conf.0.0.0.0\n";
-						echo "Starting......: [$netbiosname]: Samba processing /etc/samba/virtual/smb.conf.". strtolower($hostname_text)."\n";
+						echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba also known has $hostname_text\n";
+						echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba processing /etc/samba/virtual/smb.conf.0.0.0.0\n";
+						echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba processing /etc/samba/virtual/smb.conf.". strtolower($hostname_text)."\n";
 						
-						echo "Starting......: [$netbiosname]: Samba processing /etc/samba/virtual/smb.conf.$netbiosname\n";
+						echo "Starting......: ".date("H:i:s")." [$netbiosname]: Samba processing /etc/samba/virtual/smb.conf.$netbiosname\n";
 						@file_put_contents("/etc/samba/virtual/smb.conf.0.0.0.0",$finale);
 						@file_put_contents("/etc/samba/virtual/smb.conf.$netbiosname", $finale);
 						@file_put_contents("/etc/samba/virtual/smb.conf.$hostname_text", $finale);
@@ -1637,7 +1637,7 @@ private function LDAP_SETTINGS(){
 		if($major>=3){if($minor>=6){$upTo36=1;$upTo357=1;}}
 		if($major==3 && $minor==6){$upTo36=1;}
 	}else{
-		if($this->posix_getuid==0){echo "Starting......: WARNING, SAMBA_VERSION unable to preg_match !!!\n";} 
+		if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." WARNING, SAMBA_VERSION unable to preg_match !!!\n";} 
 		
 	}	
 
@@ -1713,7 +1713,7 @@ private function LDAP_SETTINGS(){
 				
 		if($EnableSambaActiveDirectory==0){				
 				$conf[]="\tencrypt passwords = true";
-				if($this->posix_getuid==0){echo "Starting......: Samba ID IMAP:$this->DisableWinbindd\n";} 
+				if($this->posix_getuid==0){echo "Starting......: ".date("H:i:s")." Samba ID IMAP:$this->DisableWinbindd\n";} 
 				if($this->DisableWinbindd==0){
 				if($upTo36==1){	
 					$conf[]="\tidmap config * : backend = ldap:$ldap_uri";

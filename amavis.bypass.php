@@ -204,7 +204,7 @@ function ip_list(){
 			$md=md5($ligne["ip_addr"]);
 			$delete=imgsimple("delete-24.png","{delete}","DeleteAmavisBypass('{$ligne["ip_addr"]}')");
 			$color="black";
-			if($EnableAmavisInMasterCF<>1){$color="#CCCCCC";}
+			if($EnableAmavisInMasterCF<>1){$color="#8a8a8a";}
 			
 
 		
@@ -259,7 +259,7 @@ function ip_list_old(){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}	
 			$delete=imgtootltip("delete-32.png","{delete}","DeleteAmavisBypass('{$ligne["ip_addr"]}')");
 			$color="black";
-			if($EnableAmavisInMasterCF<>1){$color="#CCCCCC";}
+			if($EnableAmavisInMasterCF<>1){$color="#8a8a8a";}
 			
 			
 		$html=$html . "

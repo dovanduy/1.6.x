@@ -126,9 +126,11 @@ function build(){
 	//$f[]="\$INCLUDE dictionary";
 	
 	dictionary();
+
 	echo "Starting FreeRadius.............: /etc/freeradius/radiusd.conf done...\n";
 	@mkdir("/etc/freeradius",0755,true);
 	@file_put_contents("/etc/freeradius/radiusd.conf", @implode("\n", $f));
+	attrs_access_reject();
 	eap();
 	pap();
 	proxy();
@@ -1463,4 +1465,28 @@ function microtik(){
 	$f[]="END-VENDOR      Mikrotik";
 	@mkdir("/usr/share/freeradius",0755);
 	@file_put_contents("/usr/share/freeradius/dictionary.mikrotik", @implode("\n", $f));	
+}
+
+function attrs_access_reject(){
+
+$filename="/etc/freeradius/attrs.access_reject";
+$f[]="#";
+$f[]="#	Configuration file for the rlm_attr_filter module.";
+$f[]="#	Please see rlm_attr_filter(5) manpage for more information.";
+$f[]="#";
+$f[]="#	\$Id$";
+$f[]="#";
+$f[]="#	This configuration file is used to remove almost all of the attributes";
+$f[]="#	From an Access-Reject message.  The RFC's say that an Access-Reject";
+$f[]="#	packet can contain only a few attributes.  We enforce that here.";
+$f[]="#";
+$f[]="DEFAULT";
+$f[]="EAP-Message =*,";
+$f[]="State =*,";
+$f[]="Message-Authenticator =*,";
+$f[]="Reply-Message =*,";
+$f[]="Proxy-State =*";
+$f[]="";
+@file_put_contents($filename, @implode("\n", $f));
+echo "Starting FreeRadius.............: $filename done\n";
 }

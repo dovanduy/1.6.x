@@ -32,7 +32,7 @@ $GLOBALS["NOCACHES"]=false;
 $GLOBALS["NOAPPLY"]=false;
 $GLOBALS["NORELOAD"]=false;
 WriteMyLogs("commands= ".implode(" ",$argv),"MAIN",__FILE__,__LINE__);
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["NORELOAD"]=true;}
 if(preg_match("#--noreload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
@@ -69,7 +69,7 @@ function build(){
 		$EnableNginx=$sock->GET_INFO("EnableNginx");
 		if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 		if($EnableNginx==1){
-			echo "Starting......: Building reverse websites with nginx...\n";
+			echo "Starting......: ".date("H:i:s")." Building reverse websites with nginx...\n";
 			@file_put_contents("/etc/squid3/reverse.conf","\n");
 			return;
 		}
@@ -77,7 +77,7 @@ function build(){
 	}
 		
 	$squid=new squid_reverse();
-	echo "Starting......: Building reverse websites...\n";
+	echo "Starting......: ".date("H:i:s")." Building reverse websites...\n";
 	$q=new mysql_squid_builder();
 	$squidR=new squidbee();
 	
@@ -86,9 +86,10 @@ function build(){
 	echo @implode("\n", $conf);
 	
 	
-	echo "Starting......: Building /etc/squid3/reverse.conf done...\n";
+	echo "Starting......: ".date("H:i:s")." Building /etc/squid3/reverse.conf done...\n";
 	@file_put_contents("/etc/squid3/reverse.conf", @implode("\n", $conf)."\n");
 	if(!$GLOBALS["NORELOAD"]){
+		squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
 		shell_exec($unix->LOCATE_SQUID_BIN()." -k reconfigure");
 		
 	}

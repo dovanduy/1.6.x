@@ -1,6 +1,6 @@
 <accounts_text>Changement global du nom et mot de passeAdministrateur utilisateur et mot de passe et base de donn&eacute;es LDAP branche</accounts_text>
 <account_settings>Comptes Administrateurs</account_settings>
-<add_recipient>Ajouter un nouveau destinataire</add_recipient>
+<add_recipient>Nouveau destinataire</add_recipient>
 <add_recipient_text>Ajouter un nouveau destinataire afin qu'il puisse aussi recevoir les notifications</add_recipient_text>
 <advanced_settings>Configurations avanc&eacute;es</advanced_settings>
 <all_modules>Tous les modules</all_modules>
@@ -106,15 +106,15 @@ L'authentification par pop-up permet au lighttpd d'utiliser la base de donn&eacu
 <PHP_FCGI_MAX_REQUESTS>Requetes maximun avant le red&eacute;marrage de processus php-cgi</PHP_FCGI_MAX_REQUESTS>
 <PostfixQueueEnabled>Activer la notification lorsque les files d'attente atteignent la limite</PostfixQueueEnabled>
 <PostfixQueueMaxMails>Nombre maximal de messages dans les files d'attente</PostfixQueueMaxMails>
-<rbl_cache_database>base de donn&eacute;es du cache RBL</rbl_cache_database>
+<rbl_cache_database>Base de donn&eacute;es du cache RBL</rbl_cache_database>
 <sa-learn>Apprentissage de l'Anti-spam</sa-learn>
 <services_enabled>Activer les services</services_enabled>
 <set_cachesize>Cache de la base de donn&eacute;e</set_cachesize>
 <set_cachesize_text>Vous pouvez am&eacute;liorer les performances du serveur LDAP en ajustant la taille du cache de la base de donn&eacute;e.[br]Cette taille doit se rapprocher au plus pr&egrave;s de la taille sur le disque de votre base.[br]
 Tout de m&ecirc;me limit&eacute; &agrave; 4G sur du 32bits et 10TB sur du 64Bits.</set_cachesize_text>
 <size>taille</size>
-<smtp_auth_passwd>Mot de passe d'authentification</smtp_auth_passwd>
-<smtp_auth_user>Utilisateur d'authentification</smtp_auth_user>
+<smtp_auth_passwd>Mot de passe</smtp_auth_passwd>
+<smtp_auth_user>Compte utilisateur</smtp_auth_user>
 <smtp_dest>Votre adresse email</smtp_dest>
 <smtp_enabled>Activer les notifications SMTP</smtp_enabled>
 <smtp_notifications>Notifications email</smtp_notifications>

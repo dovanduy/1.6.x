@@ -10,22 +10,22 @@ include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
 include_once(dirname(__FILE__) . '/framework/class.postfix.inc');
 include_once(dirname(__FILE__).  "/framework/frame.class.inc");
 include_once(dirname(__FILE__).  '/framework/class.unix.inc');
-
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;}
 
 $users=new usersMenus();
 $sock=new sockets();
+$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+if($DisableMessaging==1){die();}
+
+
 $unix=new unix();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $oldpid=@file_get_contents($pidfile);
 
-if($unix->process_exists($oldpid)){
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::Already executed PID: $oldpid.. aborting the process\n";}
-	die();
-}
-
-
 if(!$users->POSTFIX_INSTALLED){die();}
+if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::Already executed PID: $oldpid.. aborting the process\n";}die();}
+if(system_is_overloaded()){die();}
 $EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 watchdog();
 corrupt_queue_master();
@@ -149,8 +149,8 @@ function postqueue_master($instance="MASTER"){
 	
 	$content=serialize($array);
 	$filename=md5($content);
-	if(!is_dir("/var/log/artica-postfix/postqueue")){@mkdir("/var/log/artica-postfix/postqueue",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/postqueue/$filename.array",$content);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/postqueue")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/postqueue",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/postqueue/$filename.array",$content);
 }
 
 function postqueue_master_count($instance="MASTER",$results){
@@ -191,6 +191,6 @@ function multiples_instances(){
 
 function RTMevents($text){
 		$f=new debuglogs();
-		$f->events(basename(__FILE__)." $text","/var/log/artica-postfix/artica-status.debug");
+		$f->events(basename(__FILE__)." $text","{$GLOBALS["ARTICALOGDIR"]}/artica-status.debug");
 		}
 ?>

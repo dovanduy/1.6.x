@@ -561,9 +561,9 @@ class netagent{
 		@chgrp("/var/log/squid/cache.log", "squid");
 		@chmod("/var/log/squid/cache.log", 0755);		
 		
-		squid_admin_mysql(2, "Network Agent: Reconfiguring squid-cache");
-		if(is_file($squidbin)){shell_exec("$squidbin -k reconfigure");}
-		if(is_file("/usr/share/artica-postfix/exec.squid.transparent.php")){shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.transparent.php");}
+		
+		if(is_file($squidbin)){shell_exec("/etc/init.d/squid reload");}
+		
 		
 	}	
 	
@@ -616,7 +616,7 @@ class netagent{
 		exec($cmd,$results);
 		@unlink($sqlfilename);	
 		if($q->IS_ERROR_DUMP_CMDLINE($results)){
-			if($this->ASROOT){echo "Starting......: [SERV]: Replicate $localdatabase MySQL tables failed..\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SERV]: Replicate $localdatabase MySQL tables failed..\n";}
 			ufdbguard_admin_events("replication failed restoring $localdatabase with $sqlfilename with error $q->mysql_error", __FUNCTION__, __FILE__, __LINE__, "squidstats");
 			return;
 		}			

@@ -18,108 +18,21 @@ function js(){
 	echo "<script>LoadAjax('middle','$page?start=yes');</script>";
 }
 
-function start(){
-	
-$page=CurrentPageName();
-$tpl=new templates();
-$sock=new sockets();
-$users=new usersMenus();
-
-$nic=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("folder-network-48.png", "parameters",null, "QuickLinkSystems('section_mynic')"));
-$openvpn=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-openvpn.png", "APP_OPENVPN",null, "QuickLinkSystems('section_openvpn')"));
-$network_services=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-network-server.png", "network_services",null, "QuickLinkSystems('section_network_services')"));
-$dhcp=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-dhcp.png", "APP_DHCP",null, "QuickLinkSystems('section_dhcp')"));
-$computers=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-computer-alias.png", "browse_computers","browse_computers_text", "QuickLinkSystems('section_computers')"));
-$ocs=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("48-ocs.png", "APP_OCSI","APP_OCSI_TEXT", "QuickLinkSystems('section_ocs')"));
-$dnsmasq=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("dns-48.png", "APP_DNSMASQ","APP_DNSMASQ_TEXT", "QuickLinkSystems('section_dnsmasq')"));
-
-if(!$users->dnsmasq_installed){$dnsmasq=null;}
-if($users->dnsmasq_installed){$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}if($EnableDNSMASQ<>1){$dnsmasq=null;}}
-
-if(!$users->dhcp_installed){$dhcp=null;}
-
-
-
-$stats=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("perf-stats-48.png", "statistics",null, "QuickLinkSystems('section_statistics')"));
-
-
-if(!$users->OPENVPN_INSTALLED){$openvpn=null;}
-if($users->OCSI_INSTALLED){$computers=null;}else{$ocs=null;}
-
-$tr[]=$nic;
-$tr[]=$network_services;
-$tr[]=$dnsmasq;
-$tr[]=$dhcp;
-$tr[]=$ocs;
-$tr[]=$computers;
-$tr[]=$stats;
-$tr[]=$tpl->_ENGINE_parse_body(quicklinks_paragraphe("web-site-48.png", "main_interface","main_interface_back_interface_text", "QuickLinksHide()"));
-
-$count=1;
-
-
-
-
-while (list ($key, $line) = each ($tr) ){
-	if($line==null){continue;}
-	$f[]="<li id='kwick1'>$line</li>";
-	$count++;
-	
-}
-
-while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
-	
-	$jsitems[]="\tif(document.getElementById('$line')){document.getElementById('$line').className='QuickLinkTable';}";
-}
-
-	
+function section_virtualswitch(){
 	$html="
-            <div id='QuickLinksTop' class=mainHeaderContent>
-                <ul class='kwicks'>
-					".@implode("\n", $f)."
-                    
-                </ul>
-            </div>
-	
-	<div id='BodyContent' style='width:900px'></div>
-	
-	
+	<div id='section_virtualswitch'></div>
+	<script>LoadAjax('section_virtualswitch','virtualswitch.php?tabs=yes',true);</script>";
+	echo $html;
+}
+
+function start(){
+$page=CurrentPageName();	
+$html="<div id='BodyContent' style='width:100%'></div>
 	<script>
-		function LoadQuickTaskBar(){
-			$(document).ready(function() {
-				$('#QuickLinksTop .kwicks').kwicks({max: 205,spacing:  5});
-			});
-		}
-		
-	
-		function QuickLinkSystems(sfunction){
-			Set_Cookie('QuickLinkCacheNet', '$page?function='+sfunction, '3600', '/', '', '');
-			LoadAjax('BodyContent','$page?function='+sfunction);
-		}
-		
-		function QuickLinkMemory(){
-			var memorized=Get_Cookie('QuickLinkCacheNet');
-			if(!memorized){QuickLinkSystems('section_mynic');return;}
-			if(memorized.length>0){LoadAjax('BodyContent',memorized);}else{QuickLinkSystems('section_mynic');}
-		
-		}
-		
-		function QuickLinkShow(id){
-			".@implode("\n", $jsitems)."
-			if(document.getElementById(id)){document.getElementById(id).className='QuickLinkOverTable';}
-			}			
-		
-		LoadQuickTaskBar();
-		QuickLinkMemory();
+		LoadAjax('BodyContent','$page?function=section_mynic');
 	</script>
 	";
-	
-	
-	
-
-
-$tpl=new templates();
-echo $tpl->_ENGINE_parse_body($html);	
+echo $html;
 	
 }
 

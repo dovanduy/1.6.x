@@ -63,6 +63,10 @@ function status(){
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+	
 	if($EnablePDNS==0){
 		echo $tpl->_ENGINE_parse_body("<p class=text-error>{error_powerdns_disabled}</p>");
 		return;
@@ -209,7 +213,8 @@ function events_table(){
 	$sock=new sockets();
 	$pattern=base64_encode($_GET["search-events"]);	
 	$sock=new sockets();
-	$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=pdns*")));
+	$sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=pdns*");
+	$datas=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 	
 	krsort($datas);
 	while (list ($key, $line) = each ($datas) ){

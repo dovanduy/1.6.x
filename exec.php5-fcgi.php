@@ -29,7 +29,7 @@ function restart($nopid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -45,7 +45,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -53,7 +53,7 @@ function stop($aspid=false){
 	
 	$spawn_fcgi=$unix->find_program("spawn-fcgi");
 	if(!is_file($spawn_fcgi)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
 		return;
 	}
 
@@ -61,7 +61,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
 		return;
 	}
 	$pid=DEFAULT_PID();
@@ -72,35 +72,35 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=DEFAULT_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=DEFAULT_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=DEFAULT_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		return;
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
 	}
 }
 
@@ -134,7 +134,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -142,7 +142,7 @@ function start($aspid=false){
 	
 	$spawn_fcgi=$unix->find_program("spawn-fcgi");
 	if(!is_file($spawn_fcgi)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
 		return;
 	}
 	
@@ -150,7 +150,7 @@ function start($aspid=false){
 		
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 	
@@ -159,8 +159,43 @@ function start($aspid=false){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$phpcgi=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
 	
+	$EnablePHPFPM=intval($sock->GET_INFO("EnablePHPFPM"));
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
+	if($EnableFreeWeb==0){$EnablePHPFPMFreeWeb=1;}
+	
+	
+	$enabled=1;
+	if($EnablePHPFPM==1){
+		if($EnablePHPFPMFrameWork==1){
+			if($EnableArticaApachePHPFPM==1){
+				if($EnablePHPFPMFreeWeb==1){
+					$enabled=0;
+				}
+			}
+		}
+	}
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} EnablePHPFPM............: $EnablePHPFPM\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} EnablePHPFPMFrameWork...: $EnablePHPFPMFrameWork\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} EnableArticaApachePHPFPM: $EnableArticaApachePHPFPM\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} EnablePHPFPMFreeWeb.....: $EnablePHPFPMFreeWeb\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Enabled.................: $enabled\n";}
+	
+	if($enabled==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} is disabled...\n";}
+		stop();
+	}
+	
 	if(!is_file($phpcgi)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} FATAL no php-cgi can be enabled !\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} FATAL no php-cgi can be enabled !\n";}
 		return false;
 	}
 	
@@ -168,48 +203,52 @@ function start($aspid=false){
 		$unix->chmod_func(0777, "/var/run");
 		
 		if($unix->is_socket("/var/run/php-fcgi.sock")){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} remove old socket /var/run/php-fcgi.sock\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} remove old socket /var/run/php-fcgi.sock\n";}
 			@unlink("/var/run/php-fcgi.sock");
 		}
 		$params=LOAD_CMDLINES();
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} version {$params["VERSION"]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} version {$params["VERSION"]}\n";}
 		
+		$PROCESSES=3;
+		$CHILDREN=5;
+		$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+		if($MEMORY<624288){$PROCESSES=1;$CHILDREN=2;}
 		
 		$pid=$unix->get_pid_from_file("/var/run/spawn-fcgi.pid");
 		$f[]=$spawn_fcgi;
 		$f[]="-s /var/run/php-fcgi.sock";
 		if(isset($params["C"])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} 3 Processes\n";}
-			$f[]="-C 3";
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $PROCESSES Processes\n";}
+			$f[]="-C $PROCESSES";
 		}
 		
 		if(isset($params["F"])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} 5 Children\n";}
-			$f[]="-F 5";
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $CHILDREN Children\n";}
+			$f[]="-F $CHILDREN";
 		}		
 		
-		$f[]="-u www-data -g www-data -C 3";
+		$f[]="-u www-data -g www-data";
 		$f[]="-f $phpcgi";
 		$f[]="-P /var/run/spawn-fcgi.pid";
 		
 		$cmd=@implode(" ", $f);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $cmd\n";}
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		shell_exec($cmd);
 	
 	for($i=0;$i<4;$i++){
 		$pid=DEFAULT_PID();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/4...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/4...\n";}
 		sleep(1);
 	}
 	
 	$pid=DEFAULT_PID();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	}
 	
 	

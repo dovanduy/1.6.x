@@ -192,7 +192,7 @@ $cp=$unix->find_program("cp");
 $Architecture=Architecture();
 $version=squid_version();
 
-shell_exec("wget http://www.artica.fr/download/anthony-icons.tar.gz -O /tmp/anthony-icons.tar.gz");
+shell_exec("wget http://www.articatech.net/download/anthony-icons.tar.gz -O /tmp/anthony-icons.tar.gz");
 @mkdir("/usr/share/squid3/icons",0755,true);
 shell_exec("tar -xf /tmp/anthony-icons.tar.gz -C /usr/share/squid3/icons/");
 shell_exec("/bin/chown -R squid:squid /usr/share/squid3/icons/");
@@ -227,7 +227,7 @@ shell_exec("$tar -czf squid32-$Architecture-$version.tar.gz *");
 system_admin_events("/root/squid-builder/squid32-$Architecture-$version.tar.gz  ready...",__FUNCTION__,__FILE__,__LINE__);
 if(is_file("/root/ftp-password")){
 	echo "/root/squid-builder/squid32-$Architecture-$version.tar.gz is now ready to be uploaded\n";
-	shell_exec("curl -T /root/squid-builder/squid32-$Architecture-$version.tar.gz ftp://www.artica.fr/download/ --user ".@file_get_contents("/root/ftp-password"));
+	shell_exec("curl -T /root/squid-builder/squid32-$Architecture-$version.tar.gz ftp://www.articatech.net/download/ --user ".@file_get_contents("/root/ftp-password"));
 	system_admin_events("Uploading squid32-$Architecture-$version.tar.gz done.",__FUNCTION__,__FILE__,__LINE__);
 	if(is_file("/root/rebuild-artica")){shell_exec("$wget \"".@file_get_contents("/root/rebuild-artica")."\" -O /tmp/rebuild.html");}
 	
@@ -270,6 +270,7 @@ $f[]="/usr/share/locale/uk/LC_MESSAGES/sarg.mo";
 $f[]="/usr/etc/sarg.conf";
 $f[]="/usr/etc/user_limit_block";
 $f[]="/usr/etc/exclude_codes";
+$f[]="usr/sbin/sniproxy";
 
 	while (list ($num, $ligne) = each ($f) ){
 		if(!is_file($ligne)){echo "$ligne no such file\n";continue;}
@@ -404,142 +405,7 @@ function serialize_tests(){
 }
 
 
-function error_txt(){
-$f[]="#rebuilded error template by script";	
-$f[]="name: SQUID_X509_V_ERR_DOMAIN_MISMATCH";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Certificate does not match domainname\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT";
-$f[]="detail: \"SSL Certficate error: certificate issuer (CA) not known: %ssl_ca_name\"";
-$f[]="descr: \"Unable to get issuer certificate\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_GET_CRL";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Unable to get certificate CRL\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Unable to decrypt certificate's signature\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_DECRYPT_CRL_SIGNATURE";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Unable to decrypt CRL's signature\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY";
-$f[]="detail: \"Unable to decode issuer (CA) public key: %ssl_ca_name\"";
-$f[]="descr: \"Unable to decode issuer public key\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_SIGNATURE_FAILURE";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Certificate signature failure\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CRL_SIGNATURE_FAILURE";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"CRL signature failure\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_NOT_YET_VALID";
-$f[]="detail: \"SSL Certficate is not valid before: %ssl_notbefore\"";
-$f[]="descr: \"Certificate is not yet valid\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_HAS_EXPIRED";
-$f[]="detail: \"SSL Certificate expired on: %ssl_notafter\"";
-$f[]="descr: \"Certificate has expired\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CRL_NOT_YET_VALID";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"CRL is not yet valid\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CRL_HAS_EXPIRED";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"CRL has expired\"";
-$f[]="";
-$f[]="name: X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD";
-$f[]="detail: \"SSL Certificate has invalid start date (the 'not before' field): %ssl_subject\"";
-$f[]="descr: \"Format error in certificate's notBefore field\"";
-$f[]="";
-$f[]="name: X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD";
-$f[]="detail: \"SSL Certificate has invalid expiration date (the 'not after' field): %ssl_subject\"";
-$f[]="descr: \"Format error in certificate's notAfter field\"";
-$f[]="";
-$f[]="name: X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Format error in CRL's lastUpdate field\"";
-$f[]="";
-$f[]="name: X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Format error in CRL's nextUpdate field\"";
-$f[]="";
-$f[]="name: X509_V_ERR_OUT_OF_MEM";
-$f[]="detail: \"%ssl_error_descr\"";
-$f[]="descr: \"Out of memory\"";
-$f[]="";
-$f[]="name: X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT";
-$f[]="detail: \"Self-signed SSL Certificate: %ssl_subject\"";
-$f[]="descr: \"Self signed certificate\"";
-$f[]="";
-$f[]="name: X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN";
-$f[]="detail: \"Self-signed SSL Certificate in chain: %ssl_subject\"";
-$f[]="descr: \"Self signed certificate in certificate chain\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY";
-$f[]="detail: \"SSL Certficate error: certificate issuer (CA) not known: %ssl_ca_name\"";
-$f[]="descr: \"Unable to get local issuer certificate\"";
-$f[]="";
-$f[]="name: X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Unable to verify the first certificate\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_CHAIN_TOO_LONG";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Certificate chain too long\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_REVOKED";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Certificate revoked\"";
-$f[]="";
-$f[]="name: X509_V_ERR_INVALID_CA";
-$f[]="detail: \"%ssl_error_descr: %ssl_ca_name\"";
-$f[]="descr: \"Invalid CA certificate\"";
-$f[]="";
-$f[]="name: X509_V_ERR_PATH_LENGTH_EXCEEDED";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Path length constraint exceeded\"";
-$f[]="";
-$f[]="name: X509_V_ERR_INVALID_PURPOSE";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Unsupported certificate purpose\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_UNTRUSTED";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Certificate not trusted\"";
-$f[]="";
-$f[]="name: X509_V_ERR_CERT_REJECTED";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Certificate rejected\"";
-$f[]="";
-$f[]="name: X509_V_ERR_SUBJECT_ISSUER_MISMATCH";
-$f[]="detail: \"%ssl_error_descr: %ssl_ca_name\"";
-$f[]="descr: \"Subject issuer mismatch\"";
-$f[]="";
-$f[]="name: X509_V_ERR_AKID_SKID_MISMATCH";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Authority and subject key identifier mismatch\"";
-$f[]="";
-$f[]="name: X509_V_ERR_AKID_ISSUER_SERIAL_MISMATCH";
-$f[]="detail: \"%ssl_error_descr: %ssl_ca_name\"";
-$f[]="descr: \"Authority and issuer serial number mismatch\"";
-$f[]="";
-$f[]="name: X509_V_ERR_KEYUSAGE_NO_CERTSIGN";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Key usage does not include certificate signing\"";
-$f[]="";
-$f[]="name: X509_V_ERR_APPLICATION_VERIFICATION";
-$f[]="detail: \"%ssl_error_descr: %ssl_subject\"";
-$f[]="descr: \"Application verification failure\";\n";
-@file_put_contents("/usr/share/squid3/errors/templates/error-details.txt", @implode("\n", $f));
 
-}
 
 
 function remove_squid(){
@@ -844,7 +710,7 @@ function ecap_clamav(){
 	chdir("/root");
 	echo "Download squid-ecap-av-1.0.3.tar.bz2\n";
 	@unlink("/root/squid-ecap-av-1.0.3.tar.bz2");
-	shell_exec("wget http://www.artica.fr/download/squid-ecap-av-1.0.3.tar.bz2");
+	shell_exec("wget http://www.articatech.net/download/squid-ecap-av-1.0.3.tar.bz2");
 	echo "extracting squid-ecap-av-1.0.3.tar.bz2\n";
 	shell_exec("$tar -xf squid-ecap-av-1.0.3.tar.bz2");
 	if(!is_dir("/root/squid-ecap-av-1.0.3")){echo "Failed\n";return;}

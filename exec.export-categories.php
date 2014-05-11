@@ -90,13 +90,14 @@ $GLOBALS["CATS"][]="celebrity";
 $GLOBALS["CATS"][]="books";
 $GLOBALS["CATS"][]="maps";
 
-
+$unix=new unix();
+$URIBASE=$unix->MAIN_URI();
 
 	while (list ($index, $category) = each ($GLOBALS["CATS"]) ){
 		echo "echo sending Extracting $category\n";
-		shell_exec("/usr/bin/wget http://www.artica.fr/compile-www.php?ExportCategory=$index -O /tmp/tmp.txt");
+		shell_exec("/usr/bin/wget $URIBASE/compile-www.php?ExportCategory=$index -O /tmp/tmp.txt");
 		echo "echo sending Extracting $category done\n";
 	}
-shell_exec("/usr/bin/wget http://www.artica.fr/compile-www.php?compress-categories=yes -O /tmp/tmp.txt");	
+shell_exec("/usr/bin/wget $URIBASE/compile-www.php?compress-categories=yes -O /tmp/tmp.txt");	
 
 

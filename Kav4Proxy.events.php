@@ -22,6 +22,15 @@ $user=new usersMenus();
 tabs();
 
 function tabs(){
+	
+	$sock=new sockets();
+	$tpl=new templates();
+	$INSTALLED=trim($sock->getFrameWork("squid.php?kaspersky-is-installed=yes"));
+	if($INSTALLED<>"TRUE"){
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{not_installed}"));
+		return;
+	}
+	
 		$font_size=$_GET["font-size"];
 		if($font_size==null){$font_size="100%";}
 		$tpl=new templates();
@@ -42,22 +51,9 @@ function tabs(){
 		
 			$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:$font_size'>$ligne</span></a></li>\n";
 		}
-	$html="
-		<div id='main_kav4proxyevents' style='background-color:white;margin-top:10px;height:650px'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_kav4proxyevents').tabs();
-			
 
-			});
-		</script>
-		";	
+	echo build_artica_tabs($tab, "main_kav4proxyevents");
 	
-	echo $tpl->_ENGINE_parse_body($html);
 	
 }
 function requests(){
@@ -156,7 +152,8 @@ function service_search(){
 	
 	
 	
-	$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$search&syslog-path=/var/log/kaspersky/kav4proxy/kavicapserver.log&rp={$_POST["rp"]}")));
+	$sock->getFrameWork("cmd.php?syslog-query=$search&syslog-path=/var/log/kaspersky/kav4proxy/kavicapserver.log&rp={$_POST["rp"]}");
+	$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 	if(!is_array($array)){json_error_show("No data");}
 	
 	if($_POST["sortname"]<>null){

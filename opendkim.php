@@ -24,7 +24,7 @@
 	if(isset($_GET["whitelist-list"])){whitelist_list();exit;}							
 	if(isset($_GET["whitelist-add"])){whitelist_add();exit;}
 	if(isset($_GET["whitelist-del"])){whitelist_del();exit;}	
-
+	if(isset($_GET["dkim-service"])){dkim_service();exit;}
 	
 	
 js();
@@ -62,32 +62,13 @@ function popup(){
 	$array["whitelist"]="{whitelist}";
 	$tpl=new templates();
 	
-		while (list ($num, $ligne) = each ($array) ){
-		
-		$a[]="<li style='font-size:16px'><a href=\"$page?$num=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}\"><span>". $tpl->_ENGINE_parse_body("$ligne")."</span></a></li>\n";
-		
-			
-		}	
+	while (list ($num, $ligne) = each ($array) ){
+		$a[]="<li style='font-size:18px'><a href=\"$page?$num=yes&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}\"><span>". $tpl->_ENGINE_parse_body("$ligne")."</span></a></li>\n";
+	}	
 	
-	
-	$html="
-	<div id='OPENDKIM_TABS'>
-	<ul>
-		".implode("\n",$a)."
-	</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#OPENDKIM_TABS').tabs();
-			
-			
-			});
-		</script>
-	
-	";
-	
+	$html=build_artica_tabs($a,'OPENDKIM_TABS',975)."
+	<script>LeftDesign('certified-256-white-opac20.png');</script>";
 	echo $html;
-	
 	
 }
 
@@ -121,75 +102,84 @@ function config(){
 	
 //dkim_key('mondomaine.com', 'domaine', '/var/amavis/dkim/domaine.key.pem');	
 	
-	
+	$t=time();
 	
 	$html="
-			<div class=explain style='font-size:14px'>{dkim_about}<br>{dkim_about2}</div>
-			<div id='dkim-form' style='width:99%' class=form>
 			<table style='width:100%'>
+			<tr>
+			<td valing='top' width='250px'><div id='dkim_service'></div>
+			<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('dkim_service','$page?dkim-service=yes');")."</div>
+			</td>
+			<td valing='top'>
+			<div class=explain style='font-size:14px'>{dkim_about}{dkim_about2}</div>
+			</td>
+			</tr>
+			</table>
+			<div id='dkim-form' style='width:98%' class=form>
+			
+			". Paragraphe_switch_img("{enable_opendkim}", "{dkim_about2}","EnableDKFilter-$t",
+					$EnableDKFilter,null,750)."
+			
+			
+			<table style='width:100%;margin-top:15px'>
 				<tr>
-					<td class=legend style='font-size:13px'>{enable_opendkim}</td>
-					<td>". Field_checkbox("EnableDKFilter",1,$EnableDKFilter,"SaveEnableDKFilter_silent()")."</td>
-					<td width=1%>&nbsp;</td>
-				</tr>
-				<tr>
-					<td class=legend style='font-size:13px'>{disconnect_from_artica}</td>
+					<td class=legend style='font-size:18px'>{disconnect_from_artica}</td>
 					<td>". Field_checkbox("DisconnectDKFilter",1,$DisconnectDKFilter)."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>							
 				<tr>
-					<td class=legend style='font-size:13px'>{OpenDKIMTrustInternalNetworks}</td>
+					<td class=legend style='font-size:18px'>{OpenDKIMTrustInternalNetworks}</td>
 					<td>". Field_checkbox("OpenDKIMTrustInternalNetworks",1,$conf["OpenDKIMTrustInternalNetworks"])."</td>
 					<td width=1%>". help_icon("{OpenDKIMTrustInternalNetworks_text}")."</td>
 				</tr>					
 				<tr>
-					<td class=legend style='font-size:13px'>{DomainKeysCompat}</td>
+					<td class=legend style='font-size:18px'>{DomainKeysCompat}</td>
 					<td>". Field_checkbox("DomainKeysCompat",1,$conf["DomainKeysCompat"])."</td>
 					<td width=1%>". help_icon("{DomainKeysCompat_text}")."</td>
 				</tr>				
 				<tr>
-					<td class=legend style='font-size:13px'>{ADSPDiscard}</td>
+					<td class=legend style='font-size:18px'>{ADSPDiscard}</td>
 					<td>". Field_checkbox("ADSPDiscard",1,$conf["ADSPDiscard"])."</td>
 					<td width=1%>". help_icon("{ADSPDiscard_text}")."</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:13px'>{ADSPNoSuchDomain}</td>
+					<td class=legend style='font-size:18px'>{ADSPNoSuchDomain}</td>
 					<td>". Field_checkbox("ADSPNoSuchDomain",1,$conf["ADSPDiscard"])."</td>
 					<td width=1%>". help_icon("{ADSPNoSuchDomain_text}")."</td>
 				</tr>												
 				<tr>
-					<td class=legend style='font-size:13px'>{On-Default}</td>
-					<td>". Field_array_Hash($actions,"On-Default",$conf["On-Default"],null,null,0,"font-size:13px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{On-Default}</td>
+					<td>". Field_array_Hash($actions,"On-Default",$conf["On-Default"],null,null,0,"font-size:18px;padding:3px")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>					
 				<tr>
-					<td class=legend style='font-size:13px'>{On-BadSignature}</td>
-					<td>". Field_array_Hash($actions,"On-BadSignature",$conf["On-BadSignature"],null,null,0,"font-size:13px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{On-BadSignature}</td>
+					<td>". Field_array_Hash($actions,"On-BadSignature",$conf["On-BadSignature"],null,null,0,"font-size:18px;padding:3px")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:13px'>{On-NoSignature}</td>
-					<td>". Field_array_Hash($actions,"On-NoSignature",$conf["On-NoSignature"],null,null,0,"font-size:13px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{On-NoSignature}</td>
+					<td>". Field_array_Hash($actions,"On-NoSignature",$conf["On-NoSignature"],null,null,0,"font-size:18px;padding:3px")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:13px'>{On-DNSError}</td>
-					<td>". Field_array_Hash($actions,"On-DNSError",$conf["On-DNSError"],null,null,0,"font-size:13px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{On-DNSError}</td>
+					<td>". Field_array_Hash($actions,"On-DNSError",$conf["On-DNSError"],null,null,0,"font-size:18px;padding:3px")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:13px'>{On-Security}</td>
-					<td>". Field_array_Hash($actions,"On-Security",$conf["On-Security"],null,null,0,"font-size:13px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{On-Security}</td>
+					<td>". Field_array_Hash($actions,"On-Security",$conf["On-Security"],null,null,0,"font-size:18px;padding:3px")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>													
 				<tr>
-					<td class=legend style='font-size:13px'>{On-InternalError}</td>
-					<td>". Field_array_Hash($actions,"On-InternalError",$conf["On-InternalError"],null,null,0,"font-size:13px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{On-InternalError}</td>
+					<td>". Field_array_Hash($actions,"On-InternalError",$conf["On-InternalError"],null,null,0,"font-size:18px;padding:3px")."</td>
 					<td width=1%>&nbsp;</td>
 				</tr>				
 				
 				<tr>
-					<td colspan=2 align='right'><hr>". button("{apply}","SaveOpenDKIMForm()",18)."</td>
+					<td colspan=2 align='right'><hr>". button("{apply}","SaveOpenDKIMForm()",22)."</td>
 				</tr>			
 			</table>
 			</div>
@@ -209,14 +199,14 @@ function SaveEnableDKFilter_silent(){
 		
 function SaveOpenDKIMForm(){
 	var XHR = new XHRConnection();
-	if(document.getElementById('EnableDKFilter').checked){XHR.appendData('EnableDKFilter','1');}else{XHR.appendData('EnableDKFilter','0');}
+	
 	if(document.getElementById('ADSPDiscard').checked){XHR.appendData('ADSPDiscard','1');}else{XHR.appendData('ADSPDiscard','0');}
 	if(document.getElementById('ADSPNoSuchDomain').checked){XHR.appendData('ADSPNoSuchDomain','1');}else{XHR.appendData('ADSPNoSuchDomain','0');}
 	if(document.getElementById('DomainKeysCompat').checked){XHR.appendData('DomainKeysCompat','1');}else{XHR.appendData('DomainKeysCompat','0');}
 	if(document.getElementById('OpenDKIMTrustInternalNetworks').checked){XHR.appendData('OpenDKIMTrustInternalNetworks','1');}else{XHR.appendData('OpenDKIMTrustInternalNetworks','0');}
 	if(document.getElementById('DisconnectDKFilter').checked){XHR.appendData('DisconnectDKFilter','1');}else{XHR.appendData('$DisconnectDKFilter','0');}
 	
-	
+	XHR.appendData('EnableDKFilter',document.getElementById('EnableDKFilter-$t').value);
 	
 	XHR.appendData('On-Default',document.getElementById('On-Default').value);
 	XHR.appendData('On-BadSignature',document.getElementById('On-BadSignature').value);
@@ -228,6 +218,8 @@ function SaveOpenDKIMForm(){
 	document.getElementById('dkim-form').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 	XHR.sendAndLoad('$page', 'GET',x_SaveOpenDKIMForm);	
 	}
+	
+	LoadAjax('dkim_service','$page?dkim-service=yes');
 	</script>	
 			
 			
@@ -304,7 +296,8 @@ function dns_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<p style='font-size:13px'>{dkim_showkeys_text}</p>
+	<div style='font-size:18px' class=explain>{dkim_showkeys_text}</div>
+	<center style='margin:10px'>". imgtootltip("48-refresh.png","{refresh}","LoadAjax('dns_key_display','$page?dns-key-view=yes');")."</center>
 	<div id='dns_key_display'></div>
 	
 	<script>
@@ -319,20 +312,24 @@ $tpl=new templates();
 function dns_keys_display(){
 	$sock=new sockets();
 	$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?opendkim-show-keys=yes")));
+	if(!is_array($array)){
+		$sock->getFrameWork("cmd.php?opendkim-build-keys=yes");
+		$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?opendkim-show-keys=yes")));
+	}
+
+	
+	
 	if(is_array($array)){
-		$ul[]="<ul id='domains-checklist'>";
+		
 		while (list ($domain, $lines) = each ($array) ){
-			$ul[]="<li class='domainsli' style='width:550px'>";
-			$ul[]="<p style='font-size:16px;color:#005447;border-bottom:1px solid #005447'>$domain</strong>";
-			$rlines=explode("\n",$lines);
-			while (list ($index, $line) = each ($rlines) ){
-				$line=htmlentities($line);
-				$line=str_replace(" ","&nbsp;",$line);
-				$ul[]="<div><code style='font-size:11px'>$line</code></div>";
-				}
-			$ul[]="</li>";
+			$ul[]="<div style='font-size:22px;margin:10px'>$domain</div>";
+			$ul[]="	<textarea 
+				style='width:95%;height:250px;overflow:auto;border:5px solid #CCCCCC;font-size:16px !important;font-weight:bold;padding:3px'
+		id='$t'>$lines</textarea>";
+			
+			
 			}
-		$ul[]="</ul>";
+		
 		$html=$html.@implode("\n",$ul);
 	}
 	
@@ -346,7 +343,14 @@ function dns_tests_keys(){
 	$page=CurrentPageName();
 	$html="
 	
-	<p style='font-size:13px'>{dkim_testkeys_text}</p>
+	<div style='font-size:16px' class=explain>{dkim_testkeys_text}</div>
+	<p style='margin:10px'>
+	<a href=\"http://www.protodave.com/tools/dkim-key-checker/\" target=_new
+	style='font-size:16px;text-decoration:underline'>DKIM Key Checker &laquo;  protodave</a>
+	<br>
+	</p>
+	<center style='margin:10px'>". imgtootltip("48-refresh.png","{refresh}","LoadAjax('dns_key_results','$page?dns-tests-view=yes');")."</center>
+	
 	<div id='dns_key_results'></div>
 	
 	<script>
@@ -361,19 +365,16 @@ function dns_tests_keys_display(){
 $sock=new sockets();
 	$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?opendkim-show-tests-keys=yes")));	
 	if(is_array($array)){
-		$ul[]="<ul id='domains-checklist'>";
+		
 		while (list ($domain, $lines) = each ($array) ){
-			$ul[]="<li class='domainsli' style='width:550px'>";
-			$ul[]="<p style='font-size:16px;color:#005447;border-bottom:1px solid #005447'>$domain</strong>";
-			$rlines=explode("\n",$lines);
-			while (list ($index, $line) = each ($rlines) ){
-				$line=htmlentities($line);
-				$line=str_replace(" ","&nbsp;",$line);
-				$ul[]="<div><code style='font-size:11px'>$line</code></div>";
-				}
-			$ul[]="</li>";
+			$ul[]="<div style='font-size:22px;margin:10px'>$domain</div>";
+			$ul[]="	<textarea 
+				style='width:95%;height:250px;overflow:auto;border:5px solid #CCCCCC;font-size:16px !important;font-weight:bold;padding:3px'
+		id='$t'>$lines</textarea>";
+			
+			
 			}
-		$ul[]="</ul>";
+		
 		$html=$html.@implode("\n",$ul);
 	}
 	
@@ -388,13 +389,13 @@ $sock=new sockets();
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td><div style='text-align:right;padding:5px;margin:5px'>". button("{add_default_values}","DKIM_SPAMMASS_LIST_DEFAULT()")."</div></td>
-	<td><div style='text-align:right;padding:5px;margin:5px'>". button("{add}","DKIM_SPAMMASS_ADD_WL()")."</div></td>
+	<td><div style='text-align:right;padding:5px;margin:5px'>". button("{add_default_values}","DKIM_SPAMMASS_LIST_DEFAULT()",22)."</div></td>
+	<td><div style='text-align:right;padding:5px;margin:5px'>". button("{add}","DKIM_SPAMMASS_ADD_WL()",22)."</div></td>
 	</tr>
 	</table>
-	<p style='font-size:13px'>{DKIM_SPAMASS_WBL_HOWTO}</p>
+	<div style='font-size:16px;margin-bottom:30px' class=explain>{DKIM_SPAMASS_WBL_HOWTO}</div>
 	
-	<div id='whitelistsDKIMspamass' style='height:450px;overflow:auto'></div>
+	<div id='whitelistsDKIMspamass' style='min-height:450px;'></div>
 	
 	<script>
 	
@@ -446,9 +447,10 @@ function whitelist_list(){
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$html=$html."<tr ". CellRollOver().">";
-		$html=$html."<td width=1%><img src='img/fw_bold.gif'></td>
-		<td style='font-size:13px'>{$ligne["domain"]}</td>
-		<td width=1%>". imgtootltip("ed_delete.gif","{delete}","DKIM_SPAMMASS_DELETE_WL({$ligne["ID"]})")."</td>
+		$html=$html."
+			<td width=1% nowrap><img src='img/arrow-blue-left-32.png'></td>
+			<td style='font-size:18px'>{$ligne["domain"]}</td>
+			<td width=1% nowrap>". imgtootltip("delete-32.png","{delete}","DKIM_SPAMMASS_DELETE_WL({$ligne["ID"]})")."</td>
 		</tr>
 		";
 	}
@@ -516,6 +518,16 @@ function whitelist_add(){
 	$sock->getFrameWork("cmd.php?opendkim-whitelistdomains=yes");
 	
 	
-}	
+}
+
+function dkim_service(){
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?opendkim-status=yes')));
+	$status=DAEMON_STATUS_ROUND("APP_OPENDKIM",$ini,null);
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($status);
+	
+}
 
 ?>

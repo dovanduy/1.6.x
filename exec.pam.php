@@ -39,14 +39,14 @@ function build(){
 	}
 	
 	if($KerbAuthDisableNsswitch==1){$EnableSambaActiveDirectory=0;}
-	if($EnableSambaActiveDirectory==0){echo "Starting......: pam.d, ActiveDirectory is disabled\n";}else{echo "Starting......: pam.d, ActiveDirectory is Enabled\n";}
+	if($EnableSambaActiveDirectory==0){echo "Starting......: ".date("H:i:s")." pam.d, ActiveDirectory is disabled\n";}else{echo "Starting......: ".date("H:i:s")." pam.d, ActiveDirectory is Enabled\n";}
 		
 	$f[]="@include common-auth";
 	$f[]="@include common-account";
 	$f[]="@include common-session";
 	
 	@file_put_contents("/etc/pam.d/samba", @implode("\n", $f));
-	echo "Starting......: pam.d, \"/etc/pam.d/samba\" done\n";
+	echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/samba\" done\n";
 	unset($f);
 
 
@@ -65,7 +65,7 @@ function build(){
 		 $f[]="account required   pam_unix.so try_first_pass";
 		 $f[]="";
 		 @file_put_contents("/etc/pam.d/common-account", @implode("\n", $f)); 
-		 echo "Starting......: pam.d, \"/etc/pam.d/common-account\" done\n";
+		 echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/common-account\" done\n";
 		 unset($f);
 		}
  
@@ -82,10 +82,12 @@ function build(){
 		 if($EnableSambaActiveDirectory==1){ $f[]="auth sufficient pam_winbind.so";} 
 		 $f[]="auth sufficient pam_ldap.so";
 		 $f[]="auth	requisite	pam_unix.so nullok_secure try_first_pass";
-		 $f[]="auth	optional	pam_smbpass.so migrate";
+		 if(SearchLibrarySecurity("pam_smbpass.so")){
+		 	$f[]="auth	optional	pam_smbpass.so migrate";
+		 }
 		 $f[]="";
 		 @file_put_contents("/etc/pam.d/common-auth", @implode("\n", $f)); 
-		 echo "Starting......: pam.d, \"/etc/pam.d/common-auth\" done\n";
+		 echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/common-auth\" done\n";
 		 unset($f); 
 	 }
  
@@ -100,7 +102,7 @@ function build(){
 	 $f[]="session required pam_limits.so";
 	 $f[]="";
 	 @file_put_contents("/etc/pam.d/sudo", @implode("\n", $f)); 
-	 echo "Starting......: pam.d, \"/etc/pam.d/sudo\" done\n";
+	 echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/sudo\" done\n";
 	 unset($f); 
 
 
@@ -108,7 +110,7 @@ function build(){
 		$sock=new sockets();
 		$PAMLdapPrio=$sock->GET_INFO("PAMLdapPrio");
 		if(!is_numeric($PAMLdapPrio)){$PAMLdapPrio=1;}		
-		echo "Starting......: pam.d,PAMLdapPrio=$PAMLdapPrio\n";
+		echo "Starting......: ".date("H:i:s")." pam.d,PAMLdapPrio=$PAMLdapPrio\n";
 		
 		 $f[]="#";
 		 $f[]="# /etc/pam.d/common-password - password-related modules common to all services";
@@ -136,10 +138,12 @@ function build(){
 		 $f[]="# match, this module will be ignored without prompting; and if the ";
 		 $f[]="# passwords do match, the NTLM hash for the user will be updated";
 		 $f[]="# automatically.";
-		 $f[]="password   optional   pam_smbpass.so nullok use_authtok use_first_pass";
+		  if(SearchLibrarySecurity("pam_smbpass.so")){
+			$f[]="password   optional   pam_smbpass.so nullok use_authtok use_first_pass";
+		  }
 		 $f[]="";
 		 @file_put_contents("/etc/pam.d/common-password", @implode("\n", $f)); 
-		 echo "Starting......: pam.d, \"/etc/pam.d/common-password\" done\n";
+		 echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/common-password\" done\n";
 		 unset($f); 
 	}
 
@@ -167,7 +171,7 @@ function build(){
 		$f[]="# end of pam-auth-update config";
 		$f[]="";
 		 @file_put_contents("/etc/pam.d/common-session", @implode("\n", $f)); 
-		 echo "Starting......: pam.d, \"/etc/pam.d/common-session\" done\n";
+		 echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/common-session\" done\n";
 		 unset($f); 
 	}	
 	
@@ -203,7 +207,7 @@ function build(){
 		$f[]="session     required      pam_unix.so";
 		$f[]="";	
 		 @file_put_contents("/etc/pam.d/system-auth-ac", @implode("\n", $f)); 
-		 echo "Starting......: pam.d, \"/etc/pam.d/system-auth-ac\" done\n";
+		 echo "Starting......: ".date("H:i:s")." pam.d, \"/etc/pam.d/system-auth-ac\" done\n";
 		 unset($f); 	
 	}
 
@@ -212,7 +216,7 @@ function ifispam_mkhomedir(){
 	if(is_file("/lib/x86_64-linux-gnu/security/pam_mkhomedir.so")){return true;}
 	if(is_file("/lib/security/pam_mkhomedir.so")){return true;}
 	if(is_file("/lib/i386-linux-gnu/security/pam_mkhomedir.so")){return true;}
-	echo "Starting......: pam.d, pam_mkhomedir.so no such file\n";
+	echo "Starting......: ".date("H:i:s")." pam.d, pam_mkhomedir.so no such file\n";
 	return false;
 	
 }
@@ -223,7 +227,7 @@ function SearchLibrarySecurity($filename){
 	if(is_file("/lib/x86_64-linux-gnu/security/$filename")){return true;}
 	if(is_file("/lib/security/$filename")){return true;}
 	if(is_file("/lib/i386-linux-gnu/security/$filename")){return true;}	
-	echo "Starting......: pam.d $filename, no such library\n";
+	echo "Starting......: ".date("H:i:s")." pam.d $filename, no such library\n";
 	
 }
 

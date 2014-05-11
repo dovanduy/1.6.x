@@ -463,7 +463,7 @@ function load_balance_form_backend_search(){
 		$select=imgtootltip("32-parameters.png","{edit}","Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","DeleteBalancerBackend('{$ligne["backendmd"]}')");
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$style="style='font-size:12px;font-weight:bold;color:$color'";
 		$selectUri="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')\" $style>";
 		if($ligne["name"]==null){$ligne["name"]="Load balancer on {$ligne["ipaddrport"]} port";}
@@ -611,7 +611,7 @@ function xr_list_search(){
 		$select=imgtootltip("32-parameters.png","{edit}","Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","DeleteBalancerService('{$ligne["ID"]}')");
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$style="style='font-size:12px;font-weight:bold;color:$color;text-decoration:underline'";
 		$selectUri="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')\" $style>";
 		if($ligne["name"]==null){$ligne["name"]="Load balancer on {$ligne["ipaddrport"]} port";}

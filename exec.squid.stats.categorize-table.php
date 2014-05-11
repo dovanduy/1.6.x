@@ -27,23 +27,24 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
-$GLOBALS["Q"]=new mysql_squid_builder();
+
 
 if($GLOBALS["VERBOSE"]){"echo Parsing arguments...\n";}
 
 $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
-
+$GLOBALS["Q"]=new mysql_squid_builder();
 
 if($argv[1]=="--table"){_xprocess_table($argv[2]);exit;}
 if($argv[1]=="--all"){process_all_tables();exit;}
 if($argv[1]=="--xtime"){process_xtable($argv[2]);exit;}
 if($argv[1]=="--repair-tables"){repair_tables();exit;}
+if($argv[1]=="--last-days"){last_days();exit;}
 
 
 
 function process_xtable($xtime){
-	$GLOBALS["Q"]=new mysql_squid_builder();
+	
 	$table=date("Ymd",$xtime)."_hour";
 	events_tail("process_xtable:: Processing $table");
 	_xprocess_table($table);
@@ -82,17 +83,16 @@ function process_all_tables(){
 		@file_put_contents($pidfile,$mypid);
 	}
 	@file_put_contents($timefile, time());
-	$q=new mysql_squid_builder();
 	
-	$tables=$q->LIST_TABLES_HOURS();
+	
+	$tables=$GLOBALS["Q"]->LIST_TABLES_HOURS();
 	while (list ($tablename, $ligne) = each ($tables)){
 		_xprocess_table($tablename);
-		$xtime=$q->TIME_FROM_DAY_TABLE($tablename);
+		$xtime=$GLOBALS["Q"]->TIME_FROM_DAY_TABLE($tablename);
 		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.stats.totals.php --xtime $xtime >/dev/null 2>&1 &");
 
-		if(system_is_overloaded(__FILE__)){
-			writelogs_squid("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} aborting task..");
-			return;
+		if(!$GLOBALS["VERBOSE"]){
+			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 		}
 		
 	}
@@ -103,13 +103,14 @@ function process_all_tables(){
 }
 
 function _xprocess_table($tablename,$nopid=false){
+	
 	if($GLOBALS["VERBOSE"]){echo "Loading...\n";}
 	$unix=new unix();
 	
 	if($GLOBALS["VERBOSE"]){echo "Loading done...\n";}
 	if(!$nopid){
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$tablename.pid";
-		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$tablename.time";
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 		$oldpid=@file_get_contents($pidfile);
 		if(!$GLOBALS["FORCE"]){
 			if($oldpid<100){$oldpid=null;}
@@ -131,11 +132,11 @@ function _xprocess_table($tablename,$nopid=false){
 		}	
 	}
 	
-	$q=new mysql_squid_builder();
+	
 	
 	$sql="SELECT COUNT(`sitename`) as tcount FROM $tablename WHERE LENGTH(`category`)=0";
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
 	$max=$ligne["tcount"];
 	
 	
@@ -155,10 +156,10 @@ function _xprocess_table($tablename,$nopid=false){
 	
 	$sql="SELECT `sitename`,`familysite` FROM $tablename WHERE LENGTH(`category`)=0 ORDER BY familysite $LIMIT_SQL";
 	
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){
-		events_tail("$tablename:: MySQL error","$q->mysql_error");
-		categorize_tables_events("MySQL error","$q->mysql_error<br>$sql",$tablename);
+	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+	if(!$GLOBALS["Q"]->ok){
+		events_tail("$tablename:: MySQL error","{$GLOBALS["Q"]->mysql_error}");
+		categorize_tables_events("MySQL error","{$GLOBALS["Q"]->mysql_error}<br>$sql",$tablename);
 		return;
 	}
 	
@@ -181,71 +182,84 @@ function _xprocess_table($tablename,$nopid=false){
 		
 		if($sitename==null){
 			if($GLOBALS["VERBOSE"]){echo "Null value for $sitename,$familysite aborting\n";}
-			$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
+			$GLOBALS["Q"]->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
 			continue;
 		}
 		
 		if($sitename=='.'){if($GLOBALS["VERBOSE"]){echo "'.' value for $sitename,$familysite aborting\n";}
-			$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
+			$GLOBALS["Q"]->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
 			continue;
 		}
 			
 		if(strpos($sitename, ',')>0){
 			$sitename=str_replace(",", "", $sitename);
 			$sitenameToScan=$sitename;
-			$q->QUERY_SQL("UPDATE $tablename SET `sitename`='$sitename' WHERE `sitename`='{$ligne["sitename"]}'");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $tablename SET `sitename`='$sitename' WHERE `sitename`='{$ligne["sitename"]}'");
 		}
 			
 		if(is_numeric($sitename)){
 			if($GLOBALS["VERBOSE"]){echo "Numeric value for $sitename,$familysite aborting\n";}
-			$q->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
+			$GLOBALS["Q"]->QUERY_SQL("DELETE FROM $tablename WHERE `sitename`='{$ligne["sitename"]}'");
 			continue;
 		}
 			
 			
 		if(strpos($sitename, ".")==0){
 			if($GLOBALS["VERBOSE"]){echo "Seems to be a local domain for $sitename,$familysite aborting\n";}
-			$q->QUERY_SQL("UPDATE $tablename SET `category`='internal' WHERE `sitename`='{$ligne["sitename"]}'");
+			$GLOBALS["Q"]->QUERY_SQL("UPDATE $tablename SET `category`='internal' WHERE `sitename`='{$ligne["sitename"]}'");
 			continue;
 		}
 		
-		
-		
-		
-		
-		
-		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitenameToScan)){
-			$sitename=gethostbyaddr($sitename);
-			if($GLOBALS["VERBOSE"]){echo "IP:$sitenameToScan -> `$sitename`\n";}
-			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){
-				$GLOBALS[$tablename][$sitename]="ipaddr";
+		if(!isset($GLOBALS[$tablename][$sitename])){
+			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitenameToScan)){
+				$sitename=gethostbyaddr($sitename);
+				if($GLOBALS["VERBOSE"]){echo "IP:$sitenameToScan -> `$sitename`\n";}
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $sitename)){
+					$GLOBALS[$tablename][$sitename]="ipaddr";
+					$GLOBALS["Q"]->categorize($sitename, "ipaddr");
+					$category="ipaddr";
+				}
 			}
 		}
 		
-		
-		$c++;
 		if(!isset($GLOBALS[$tablename][$sitename])){
 			$GLOBALS[$tablename][$sitename]=mysql_escape_string2($GLOBALS["Q"]->GET_CATEGORIES($sitename));
 		}
-		$category=$GLOBALS[$tablename][$sitename];
-		if($GLOBALS["VERBOSE"]){echo "$sitename -> `$category`\n";}
+		
 		$c++;
-		$d++;
-		if($category==null){continue;}
-		if(!isset($UPDATED[$sitenameToScan])){
-			$sqltmp="UPDATE `$tablename` SET `category`='$category' WHERE `sitename`='$sitenameToScan'";
-			$q->QUERY_SQL($sqltmp);
-			if(!$q->ok){
-				categorize_tables_events("MySQL error (after $d rows)","$q->mysql_error<br>$sqltmp",$tablename);
+
+		$category=$GLOBALS[$tablename][$sitename];
+		
+		writelogs_squid("$sitename -> `$category`");
+		if(!$GLOBALS["VERBOSE"]){
+			if(SquidStatisticsTasksOverTime()){
+				stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__);
 				return;
 			}
 		}
 		
-		$UPDATED[$sitenameToScan]=true;
+		if($GLOBALS["VERBOSE"]){echo "$sitename -> `$category`\n";}
+		$c++;
+		$d++;
+		if($category==null){continue;}
+		
+	
+		if(!isset($UPDATED[$sitenameToScan])){
+			$GLOBALS["Q"]->categorize_temp($sitenameToScan,$category);
+			$sqltmp="UPDATE `$tablename` SET `category`='$category' WHERE `sitename`='$sitenameToScan'";
+			$GLOBALS["Q"]->QUERY_SQL($sqltmp);
+			if(!$GLOBALS["Q"]->ok){
+				categorize_tables_events("MySQL error (after $d rows)","{$GLOBALS["Q"]->mysql_error}<br>$sqltmp",$tablename);
+				return;
+			}
+			$UPDATED[$sitenameToScan]=true;
+		}
+		
+		
 		
 		if($c>500){
 			WriteStatus($d,$max,$tablename);
-			if(system_is_overloaded(__FILE__)){categorize_tables_events("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} die() task..",null,$tablename);die();}
+			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 			$c=0;
 		}
 		
@@ -256,7 +270,7 @@ function _xprocess_table($tablename,$nopid=false){
 	if($catz>0){
 		$took=$unix->distanceOfTimeInWords($t,time());
 		events_tail("$catz/$d/$max websites categorized for $tablename, took: $took");
-		categorize_tables_events("$catz/$d websites categorized<br>took: $took",null,$tablename,1);
+		stats_admin_events(2,"$catz/$d websites categorized took: $took",$tablename,null,__FILE__,__LINE__);
 	}
 	
 	
@@ -326,5 +340,82 @@ function repair_tables(){
 	
 	
 }
+
+function last_days(){
+	
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	if($GLOBALS["VERBOSE"]){echo "last_days Loading done...\nTimeFile:$timefile\n";}
+	$unix=new unix();
+
+	if(!$GLOBALS["VERBOSE"]){
+		if(SquidStatisticsTasksOverTime()){ 
+			stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); 
+			return; 
+		}
+	}
+	
+	
+	$oldpid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($oldpid<100){$oldpid=null;}
+
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+			return;
+		}
+		
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<7200){
+			if($GLOBALS["VERBOSE"]){echo "{$timeexec} <> 7200...\n";}
+			return;
+		}
+	}
+	
+	
+	
+	$q=new mysql_squid_builder();
+	$mypid=getmypid();
+	@file_put_contents($pidfile,$mypid);
+	@file_put_contents($timefile, time());
+	
+	
+	
+	$current_table=date("Ymd")."_hour";
+	$t=time();
+	$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `suffix` FROM tables_day WHERE DAY(zDate)<DAY(NOW()) AND zDate>DATE_SUB(NOW(),INTERVAL 7 DAY)";
+	
+	$results=$q->QUERY_SQL($sql);
+	$num=mysql_num_rows($results);
+	if($num==0){return;}
+	$q->QUERY_SQL("TRUNCATE TABLE `catztemp`");
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$current_table=$ligne["suffix"]."_hour";
+		if(!$q->TABLE_EXISTS($current_table)){
+			if($GLOBALS["VERBOSE"]){echo "$current_table no such table\n";}
+			continue;
+		}
+		if($GLOBALS["VERBOSE"]){echo "Processing $current_table\n";}
+		
+		if(!$GLOBALS["VERBOSE"]){
+			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+		}
+		_xprocess_table($current_table,true);
+		
+		$f[]=$current_table;
+		
+	}
+	
+	$took=$unix->distanceOfTimeInWords($t,time(),true);
+	stats_admin_events(2,"Processing categorization of $num tables $took",@implode("\n", $f),__FILE__,__LINE__);
+	
+}
+
+
+
+
 
 ?>

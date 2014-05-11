@@ -34,21 +34,14 @@ function tabs(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$squid=new squidbee();
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}	
+	
 	$users=new usersMenus();
-	if(!$users->CORP_LICENSE){$DisableSquidSNMPMode=1;}
-	if($squid->IS_31){$DisableSquidSNMPMode=1;}
-	if($squid->IS_30){$DisableSquidSNMPMode=1;}
-	
-	
 	$mini=new boostrap_form();
-	if($DisableSquidSNMPMode==1){
-		$array["{caches} {disks}"]="miniadmin.proxy.caches30.php";
-		
-	}
+	
+	$array["{caches} {disks}"]="miniadmin.proxy.caches30.php";
 	$array["{caches_rules}"]="$page?tab-rules=yes";
 	$array["{APP_HAARP}"]="miniadmin.proxy.haarp.php?section=yes";
 	$array["{squid_parents_proxy}"]="miniadmin.proxy.parents.php?section=yes";

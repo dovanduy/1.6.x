@@ -407,7 +407,7 @@ function users_list(){
 	$t=$_GET["t"];
 	$ad=new external_ad_search($_GET["ConnectionEnc"]);
 	if(!is_numeric($_GET["OnlyUsers"])){$_GET["OnlyUsers"]=0;}
-	$icon="user7-32.png";
+	$icon="user-32.png";
 	
 	
 	if($_GET["OnlyGroups"]==1){

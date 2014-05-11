@@ -11,7 +11,7 @@
 	$pidpath="/etc/artica-postfix/pids/$me.pid";
 	$oldpid=$unix->get_pid_from_file($pidpath);
 	if($unix->process_exists($oldpid,$me)){
-		echo "Starting......: amavisd-new already executed pid $pid\n";
+		echo "Starting......: ".date("H:i:s")." amavisd-new already executed pid $pid\n";
 		die();
 	}
 	
@@ -22,7 +22,7 @@
 	$cmd="$nohup $php /usr/share/artica-postfix/exec.spamassassin.php --sa-update >/dev/null 2>&1 &";	
 	shell_exec($cmd);
 	
-	echo "Starting......: amavisd-new build configuration\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new build configuration\n";
 	
 	$amavis=new amavis();
 	$amavis->CheckDKIM();
@@ -40,14 +40,14 @@
 	@mkdir("/usr/local/etc/amavis",0755,true);
 	while (list ($index, $file) = each ($tpl)){
 		if(!is_file("/usr/local/etc/amavis/$file")){
-			echo "Starting......: amavisd-new installing template $file\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new installing template $file\n";
 			@copy("/usr/share/artica-postfix/bin/install/amavis/$file","/usr/local/etc/amavis/$file");
 			
 		}
 	}
 	
 	
-	echo "Starting......: amavisd-new ". strlen($conf)." bytes length\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new ". strlen($conf)." bytes length\n";
 	@file_put_contents("/usr/local/etc/amavisd.conf",$conf);
 	shell_exec("/bin/chown -R postfix:postfix /etc/amavis/dkim >/dev/null 2>&1");
 	shell_exec("/bin/chown -R postfix:postfix /usr/local/etc/amavis >/dev/null 2>&1");
@@ -78,7 +78,7 @@
 	
 
 	
-	echo "Starting......: amavisd-new done\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new done\n";
 
 	$unix=new unix();
 	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.spamassassin.php");
@@ -90,7 +90,7 @@ function PatchPyzor(){
 	$unix=new unix();
 	$pyzor=$unix->find_program("pyzor");
 	if(!is_file($pyzor)){
-		echo "Starting......: amavisd-new pyzor is not installed\n";
+		echo "Starting......: ".date("H:i:s")." amavisd-new pyzor is not installed\n";
 		return;
 	}
 	
@@ -101,7 +101,7 @@ function PatchPyzor(){
 	$f[]="pyzor.client.run()";	
 
 	@file_put_contents($pyzor, @implode("\n", $f));
-	echo "Starting......: amavisd-new pyzor is now patched\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new pyzor is now patched\n";
 
 }
 

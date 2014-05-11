@@ -33,7 +33,7 @@
 <kaspersky_av_text>Voir l`&eacute;tat des produits de Kaspersky antivirus</kaspersky_av_text>
 <local_account>Compte sur Artica</local_account>
 <local_email>Votre adresse eMail locale</local_email>
-<local_mail>Adresse email locale</local_mail>
+<local_mail>Adresse eMail locale</local_mail>
 <local_password>V&ocirc;tre mot de passe local</local_password>
 <manage_backups>Configurer votre sauvegarde</manage_backups>
 <manage_backups_text>Emp&ecirc;cher la perte de donn&eacute;es et d&eacute;finissez votre processus de sauvegarde de donn&eacute;e</manage_backups_text>

@@ -1,12 +1,13 @@
 <?php
-function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterface=0){
+function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterface=0,$noman=0){
 	$ADD_ID_DIV=false;
 	$idIMG=null;
 	$processes=null;
 	$cmdline=null;
 	if(preg_match("#^ID:(.+)#",$key, $re)){$ADD_ID_DIV=true;$key=$re[1];}
 	$version=null;$license_error=null;$icap=null;$pattern=null;$textoadd2=null;$disabled=null;
-	if(!isset($bsini->_params[$key]["service_name"])){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED::service_name for $key<br>\n".print_r($bsini->_params[$key])."<br>\n";}return null;}
+	if(!isset($bsini->_params[$key]["service_name"])){
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>".__FUNCTION__."::".__LINE__."::FAILED:: KEY service_name for &laquo;$key&raquo;<br>\n".print_r($bsini->_params[$key])."<br></span>\n";}return null;}
 	if($bsini->_params["$key"]["service_name"]==null){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::FAILED<br>\n";}return null;}
 	if($bsini->_params["$key"]["service_disabled"]==null){$bsini->_params["$key"]["service_disabled"]=-1;}
 	$app=$bsini->_params["$key"]["service_name"];
@@ -30,7 +31,7 @@ function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterfac
 	}
 
 if($monit==1){
-		if(!isset($GLOBALS["MONIT_ARRAY"])){$sock=new sockets();$GLOBALS["MONIT_ARRAY"]=unserialize(base64_decode($sock->getFrameWork("cmd.php?monit-status=yes")));}
+		if(!isset($GLOBALS["MONIT_ARRAY"])){$sock=new sockets();$GLOBALS["MONIT_ARRAY"]=unserialize(base64_decode($sock->getFrameWork("monit.php?monit-status=yes")));}
 		$monit_status=$GLOBALS["MONIT_ARRAY"][$app]["status"];
 		$monit_uptime=$GLOBALS["MONIT_ARRAY"][$app]["uptime"];
 		$bsini->_params["$key"]["master_memory"]=$GLOBALS["MONIT_ARRAY"][$app]["memory kilobytes total"];
@@ -53,7 +54,9 @@ if($monit==1){
 }
 
 
-if($noenable==1){if($bsini->_params["$key"]["service_disabled"]==0){return null;}}
+if($noenable==1){
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>Service not enabled -> NULL</span><br>\n";}
+	if($bsini->_params["$key"]["service_disabled"]==0){return null;}}
 $tpl=new templates();
 $prod=$bsini->_params[$key]["service_name"];
 $title=$tpl->_ENGINE_parse_body("{{$prod}}");
@@ -88,7 +91,7 @@ if($bsini->_params[$key]["running"]==0){
 	if(!isset($bsini->_params[$key]["license_error"])){$bsini->_params[$key]["license_error"]=null;}
 	if(!isset($bsini->_params[$key]["why"])){$bsini->_params[$key]["why"]=null;}
 	if(!isset($bsini->_params[$key]["other"])){$bsini->_params[$key]["other"]=null;}
-
+	if(!isset($bsini->_params[$key]["threads_socket"])){$bsini->_params[$key]["threads_socket"]=null;}
 	
 	
 if($bsini->_params[$key]["pattern_version"]<>null && $bsini->_params[$key]["pattern_date"]==null){
@@ -149,6 +152,16 @@ if($bsini->_params["$key"]["master_pid"]<>null){
 					</tr>";
 		}
 	}
+	
+	if(trim($bsini->_params[$key]["threads_socket"])<>null){
+		if($bsini->_params[$key]["threads_socket"]>0){
+			$processes="<tr>
+						<td align='right' style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>Threads sockets:</strong></td>
+						<td style='background-color:#D5EED9;font-size:11px;line-height:auto'><strong>".$bsini->_params["$key"]["threads_socket"]."</strong></td>
+					</tr>";
+		}
+	}
+	
 
 
 	if(trim($bsini->_params[$key]["license_error"])<>null){
@@ -220,9 +233,9 @@ $version="
 				<td>
 				<table style='width:54px'>
 					<tr>
-						<td width=18px>". imgtootltip("16-run.png","{start}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=start&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
-						<td width=18px>". imgtootltip("restart-16.png","{restart}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=restart&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>
-						<td width=18px>". imgtootltip("16-stop.png","{stop}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=stop&cmd={$bsini->_params["$key"]["service_cmd"]}&id=$idIMG&appcode=$key')")."</td>		
+						<td width=18px>". imgtootltip("16-run.png","{start}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=start&cmd={$bsini->_params["$key"]["service_cmd"]}&appcode=$key')")."</td>
+						<td width=18px>". imgtootltip("restart-16.png","{restart}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=restart&cmd={$bsini->_params["$key"]["service_cmd"]}&appcode=$key')")."</td>
+						<td width=18px>". imgtootltip("16-stop.png","{stop}","Loadjs('system.services.cmd.php?APPNAME={$bsini->_params["$key"]["service_name"]}&action=stop&cmd={$bsini->_params["$key"]["service_cmd"]}&appcode=$key')")."</td>		
 					</tr>		
 				</table>
 				</td>
@@ -235,7 +248,10 @@ $html="
 
 <table style='width:100%;background-color:#D5EED9;font-size:11px;line-height:auto' class='TableRemove TableMarged'>
 <tr>
-<td width='34px' valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto;vertical-align:top'><img src='img/$img' id='$idIMG'></td>
+<td width='34px' valign='top' style='background-color:#D5EED9;font-size:11px;line-height:auto;vertical-align:top'>
+	<img src='img/$img' id='$idIMG'>
+	
+</td>
 <td style='background-color:#D5EED9;font-size:11px;border:0px;line-height:auto;vertical-align:top'>
 	<table style='width:100%;background:transparent;border:0px;padding:0px;background-color:#D5EED9;font-size:11px;line-height:auto' class=TableRemove>
 		<tr>
@@ -262,7 +278,12 @@ $textoadd";
 if($ADD_ID_DIV){	
 	return "<div id='SERVICE-STATUS-ROUND-$key'>".RoundedLightGreen($html)."</div><br>";
 }else{
-	return RoundedLightGreen($html)."<br>";
+	if($noman==0){
+		return "<div id='MAN-STATUS-ROUND-$key'>".RoundedLightGreen($html)."</div><br>";
+		
+	}
+	return "<div id='MAN-STATUS-ROUND-$key'>".RoundedLightGreen($html)."</div><br>";
+	
 }
 }
 
@@ -290,8 +311,12 @@ function DAEMON_STATUS_ROUND_TEXT($image,$title,$text,$linkjs){
 }
 
 function icon_href($img,$java){
+	$size=null;
+	if(preg_match("#-48\.#", $img)){$size=";width:48px;max-width:48px;";}
+	if(preg_match("#-32\.#", $img)){$size=";width:32px;max-width:32px;";}
+	if(preg_match("#-24\.#", $img)){$size=";width:24px;max-width:24px;";}
 	if($java<>null){$java="<a href=\"javascript:blur();\" OnClick=\"javascript:$java\">";$javaend="</a>";}
-	return "$java<img src=\"img/$img\" style=\"border:0px\">$javaend";
+	return "$java<img src=\"img/$img\" style=\"border:0px$size\">$javaend";
 }
 
 function RoundedLightGreen($text){
@@ -456,6 +481,7 @@ return $html;}
 
 
 function url_decode_special_tool($path){
+	$path=str_replace("%C3%C2§","ç",$path);
 	$path=str_replace("%20"," ",$path);
 	$path=str_replace("%0A","\n",$path);
 	$path=str_replace("%C2£","£",$path);
@@ -565,7 +591,9 @@ function url_decode_special_tool($path){
 class htmltools_inc{
 	
 	function replace_accents($s) {
+		$source=$s;
 	    $s = htmlentities($s);
+	   	if($s==null){$s=$source;$s=utf8_encode($s); $s = htmlentities($s);}
 	    $s = preg_replace ('/&([a-zA-Z])(uml|acute|grave|circ|tilde|cedil|ring);/', '$1', $s);
 	    $s=str_replace("&Ntilde;","N",$s);
 	    $s=str_replace("&ntilde;","n",$s);
@@ -598,6 +626,7 @@ class htmltools_inc{
 	    $s=str_replace("&Icirc;","I",$s);
 	    $s=str_replace("&icirc;","i",$s);  
 		$s = html_entity_decode($s);
+		
 		return $s;		
 	}	
 	

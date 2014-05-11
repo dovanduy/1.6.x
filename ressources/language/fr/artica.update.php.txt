@@ -1,9 +1,9 @@
 <autoupdate_text>Cette fonction permet &agrave; artica de v&eacute;rifier s'il y a de nouvelles mises &agrave; jour sur le serveur de mise &agrave; jour d' artica . [Br] Vous pouvez activer/d&eacute;sactiver l'auto-installation de nouvelles mises &agrave; jour [br] si vous voulez d&eacute;sactiver l'auto-installation, l'agent de mise &agrave; jour attendra votre ordre pour ex&eacute;cuter auto-installe.</autoupdate_text>
 <CheckEveryMinutes>V&eacute;rifier les mises &agrave; jour toutes les x minutes</CheckEveryMinutes>
 <current_version>Version actuelle</current_version>
-<enable_autoinstall>Activer l'installation automatique</enable_autoinstall>
-<enable_autoupdate>Activer la fonctionnalit&eacute; de mise &agrave; jour automatique</enable_autoupdate>
-<enable_nightlybuild>Activer les mises &agrave; jour nightly build</enable_nightlybuild>
+<enable_autoinstall>Appliquer la mise &agrave; jour</enable_autoinstall>
+<enable_autoupdate>T&eacute;l&eacute;charger les mises 	&agrave; jour</enable_autoupdate>
+<enable_nightlybuild>T&eacute;l&eacute;charger les nightly builds</enable_nightlybuild>
 <front_page_notify>Afficher sur la page de garde</front_page_notify>
 <install_package>Installer le package...</install_package>
 <install_package_text>Mettre &agrave; jour le noyau d'Artica en utilisant ce paquet ?

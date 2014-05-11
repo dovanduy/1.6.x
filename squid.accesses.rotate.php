@@ -22,14 +22,21 @@ if(isset($_POST["extract-file"])){storage_view_extract();exit;}
 if(isset($_POST["storage-delete"])){storage_delete();exit;}
 if(isset($_POST["delete-extracted"])){storage_view_delete();exit;}
 
-
-
+if(isset($_GET["status"])){status();exit;}
+if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["popup"])){tableau();exit;}
 if(isset($_GET["search-store"])){search_store();exit;}
+
+if(isset($_GET["nas-settings-js"])){nas_settings_js();exit;}
+if(isset($_GET["nas-settings"])){nas_settings();exit;}
+
+if(isset($_POST["BackupSquidLogsUseNas"])){nas_settings_save();exit;}
+
 
 js();
 
 function storage_view_js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$filename=$_GET["filename"];
@@ -37,12 +44,70 @@ function storage_view_js(){
 	echo $html;
 }
 
+function nas_settings_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$filename=$tpl->javascript_parse_text("{NAS_storage}");
+	$html="YahooWin6('700','$page?nas-settings=yes','$filename')";
+	echo $html;
+
+
+}
+
+
+function tabs(){
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["status"]="{status}";
+	$array["popup"]="{storage}";
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="events"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"sarg.events.php?popup=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+	
+	}
+	
+	$id=time();
+	
+	echo build_artica_tabs($html, "access_logs");	
+	
+	
+}
+
+function status(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+
+	
+	$tr[]=Paragraphe("time-64.png", "{log_retention}", "{log_retention_mysql_text}","javascript:Loadjs('logrotate.php?log-retention-time-js=yes')");
+	
+	$tr[]=Paragraphe("64-idisk-server.png", "{NAS_storage}", "{log_retention_nas_text}","javascript:Loadjs('$page?nas-settings-js=yes')");
+	
+	
+	
+	$html="<div class=explain style='font-size:14px'>{access_logs_storage_explain}</div>".
+	CompileTr3($tr);
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	
+	
+}
+
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{source_logs}");
 	header("content-type: application/x-javascript");
-	$html="YahooWin2('850','$page?popup=yes','$title');";
+	$html="YahooWin2('1050','$page?tabs=yes','$title');";
 	echo $html;
 }
 
@@ -100,7 +165,7 @@ function tableau(){
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 835,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
@@ -162,6 +227,107 @@ function StorageTaskDelete$t(ID,md5){
 		
 	
 }
+
+function nas_settings(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+	$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+	$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
+	
+	
+	
+	$html="
+	<div style='width:95%'  class=form>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:14px'>{use_remote_nas}:</td>
+		<td>". Field_checkbox("BackupSquidLogsUseNas", 1,$BackupSquidLogsUseNas,"SaveBackupSquidNasCheck()")."</td>
+		<td>". help_icon("{BackupSquidLogsUseNas_explain}")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{hostname}:</td>
+		<td>". Field_text("BackupSquidLogsNASIpaddr",$BackupSquidLogsNASIpaddr,"font-size:14px;width:220px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{shared_folder}:</td>
+		<td>". Field_text("BackupSquidLogsNASFolder",$BackupSquidLogsNASFolder,"font-size:14px;width:220px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{username}:</td>
+		<td>". Field_text("BackupSquidLogsNASUser",$BackupSquidLogsNASUser,"font-size:14px;width:150px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{password}:</td>
+		<td>". Field_password("BackupSquidLogsNASPassword",$BackupSquidLogsNASPassword,"font-size:14px;width:150px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	
+	<tr>
+		<td colspan=3 align=right><hr>". button("{apply}", "SaveBackupSquidNas()",16)."</td>
+	</tr>
+	<tr>
+		<td colspan=3 align=right><hr>". button("{test_connection}", "Loadjs('miniadm.system.syslogstore.php?test-nas-js=yes')",12)."</td>
+	</tr>	
+	
+	</table>
+</div>
+<script>
+	
+var x_SaveSettsLogRotate=function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+	YahooWin6Hide();
+}
+	
+function SaveBackupSquidNasCheck(){
+	document.getElementById('BackupSquidLogsNASIpaddr').disabled=true;
+	document.getElementById('BackupSquidLogsNASFolder').disabled=true;
+	document.getElementById('BackupSquidLogsNASUser').disabled=true;
+	document.getElementById('BackupSquidLogsNASPassword').disabled=true;
+	if(document.getElementById('BackupSquidLogsUseNas').checked){
+		document.getElementById('BackupSquidLogsNASIpaddr').disabled=false;
+		document.getElementById('BackupSquidLogsNASFolder').disabled=false;
+		document.getElementById('BackupSquidLogsNASUser').disabled=false;
+		document.getElementById('BackupSquidLogsNASPassword').disabled=false;
+	}
+}
+	
+	
+function SaveBackupSquidNas(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('BackupSquidLogsUseNas').checked){XHR.appendData('BackupSquidLogsUseNas',1);}
+	else{XHR.appendData('BackupSquidLogsUseNas',0);}
+	
+	XHR.appendData('BackupSquidLogsNASIpaddr',document.getElementById('BackupSquidLogsNASIpaddr').value);
+	XHR.appendData('BackupSquidLogsNASFolder',encodeURIComponent(document.getElementById('BackupSquidLogsNASFolder').value));
+	XHR.appendData('BackupSquidLogsNASUser',encodeURIComponent(document.getElementById('BackupSquidLogsNASUser').value));
+	XHR.appendData('BackupSquidLogsNASPassword',encodeURIComponent(document.getElementById('BackupSquidLogsNASPassword').value));
+	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate);
+}
+	SaveBackupSquidNasCheck();
+</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);	
+}
+
+function nas_settings_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("BackupSquidLogsUseNas",$_POST["BackupSquidLogsUseNas"]);
+	$sock->SET_INFO("BackupSquidLogsNASIpaddr",$_POST["BackupSquidLogsNASIpaddr"]);
+	$sock->SET_INFO("BackupSquidLogsNASFolder",url_decode_special_tool($_POST["BackupSquidLogsNASFolder"]));
+	$sock->SET_INFO("BackupSquidLogsNASUser",url_decode_special_tool($_POST["BackupSquidLogsNASUser"]));
+	$sock->SET_INFO("BackupSquidLogsNASPassword",url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]));
+	
+}
+
 
 function storage_delete(){
 	$q=new mysql_storelogs();
@@ -252,12 +418,12 @@ function search_store(){
 		$dateTex=date("Y {l} {F} d",$xtime);
 		if($tpl->language=="fr"){$dateTex=date("{l} d {F} Y",$xtime);}
 		$dateTex=$tpl->_ENGINE_parse_body("$dateTex");
-
+		$hostname=$ligne["hostname"];
 		
 		$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array("$span{$ligne['filetime']}</a></span><div style='font-size:11px'><i>$dateTex</i></div>",
-		"$span$view{$ligne["filename"]}</a></span>",
+		"$span$view{$ligne["filename"]}</a><div style='font-size:11px'><i>$hostname</i></div></span>",
 		"$span{$ligne["filesize"]}</a></span>",
 		$delete )
 		);
@@ -323,7 +489,7 @@ function storage_view_popup(){
 	rp: 15,
 	rpOptions: [10, 20, 30, 50,100,200,500,1500],
 	showTableToggleBtn: false,
-	width: 1050,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 

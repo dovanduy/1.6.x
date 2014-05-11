@@ -12,7 +12,7 @@ class squidworkers{
 	private $SquidBoosterMemK;
 	private $DisableAnyCache=0;
 	private $SquidBoosterMem=0;
-	private $DisableSquidSNMPMode=1;
+	
 	private $SquidCachesMount=array();
 	public $CPU_FINAL=0;
 	
@@ -39,30 +39,26 @@ class squidworkers{
 		$this->SquidBoosterMemK=$sock->GET_INFO("SquidBoosterMemK");
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
 		$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-		$this->DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-		$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-		if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
-		$this->DisableSquidSNMPMode=$DisableSquidSNMPMode;
+
 		
 		if($this->EnableRemoteStatisticsAppliance==1){
-			if($this->ASROOT){echo "Starting......: [SMP] Using remote statistics appliance parameters...\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] Using remote statistics appliance parameters...\n";}
 			include_once(dirname(__FILE__)."/class.blackboxes.inc");
 			$sock=new blackboxes($this->uuid);
 			$this->SquidBoosterMem=$sock->GET_SQUID_INFO("SquidBoosterMem");
 			$this->SquidBoosterMemK=$sock->GET_SQUID_INFO("SquidBoosterMemK");
 			$this->DisableAnyCache=$sock->GET_SQUID_INFO("DisableAnyCache");	
-			$this->DisableSquidSNMPMode=$sock->GET_SQUID_INFO("DisableSquidSNMPMode");
+			
 			if($GLOBALS["VERBOSE"]){
-				echo "Starting......: [SMP] $this->uuid is SquidBoosterMem ? `$this->SquidBoosterMem`\n";
-				echo "Starting......: [SMP] $this->uuid is SquidBoosterMemK ? `$this->SquidBoosterMemK`\n";
-				echo "Starting......: [SMP] $this->uuid is DisableAnyCache ? `$this->DisableAnyCache`\n";
-				echo "Starting......: [SMP] $this->uuid is DisableSquidSNMPMode ? `$this->DisableSquidSNMPMode`\n";
+				echo "Starting......: ".date("H:i:s")." [SMP] $this->uuid is SquidBoosterMem ? `$this->SquidBoosterMem`\n";
+				echo "Starting......: ".date("H:i:s")." [SMP] $this->uuid is SquidBoosterMemK ? `$this->SquidBoosterMemK`\n";
+				echo "Starting......: ".date("H:i:s")." [SMP] $this->uuid is DisableAnyCache ? `$this->DisableAnyCache`\n";
+				
 			}
 			
 		}	
 		
 		if(!is_numeric($this->DisableAnyCache)){$this->DisableAnyCache=0;}
-		if(!is_numeric($this->DisableSquidSNMPMode)){$this->DisableSquidSNMPMode=1;}
 		if(!is_numeric($this->SquidBoosterMem)){$this->SquidBoosterMem=0;}
 		if(!is_numeric($this->SquidBoosterMemK)){$this->SquidBoosterMemK=50;}	
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
@@ -96,14 +92,85 @@ class squidworkers{
 	}	
 	
 	
+	private function olders_caches(){
+		if($this->DisableAnyCache==1){return;}
+		$sock=new sockets();
+		$ini=new Bs_IniHandler();
+		$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
+		$ini->loadString($ArticaSquidParameters);
+		$cache_list=array();
+		if(!is_array($ini->_params)){return null;}
+		reset($ini->_params);
+		
+		$CACHE_SIZE=$ini->_params["CACHE"]["CACHE_SIZE"];
+		$CACHE_PATH=$ini->_params["CACHE"]["CACHE_PATH"];
+		$CACHE_PATH=str_replace(" ", "_", $CACHE_PATH);
+		$CACHE_TYPE=$ini->_params["CACHE"]["CACHE_TYPE"];
+		
+		if($CACHE_PATH<>null){
+			$cache_list[$CACHE_PATH]["cache_type"]=$CACHE_TYPE;
+			$cache_list[$CACHE_PATH]["cache_dir_level1"]=16;
+			$cache_list[$CACHE_PATH]["cache_dir_level2"]=256;
+			$cache_list[$CACHE_PATH]["cache_size"]=$CACHE_SIZE;
+			$cache_list[$CACHE_PATH]["cache_maxsize"]=$this->store_dir_minsize;
+		}
+		
+				
+		while (list ($num, $val) = each ($ini->_params)){
+			if(preg_match('#cache:(.+)#',$num,$re)){
+				if($GLOBALS["VERBOSE"]){echo "Found cache: {$re[1]}<br>\n";}
+				$re[1]=str_replace(" ", "_", $re[1]);
+				$cache_list[$re[1]]=array(
+							"cache_type"=>$ini->_params[$num]["cache_type"],
+							"cache_dir_level1"=>$ini->_params[$num]["cache_dir_level1"],
+							"cache_dir_level2"=>$ini->_params[$num]["cache_dir_level2"],
+							"cache_size"=>$ini->_params[$num]["cache_size"],
+							"cache_maxsize"=>$ini->_params[$num]["cache_maxsize"],
+					);
+			}
+		}
+		if(count($cache_list)==0){return;}
+		
+		while (list ($num, $val) = each ($cache_list)){
+			if(trim($num)==null){continue;}
+			$Directory=$num;
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[1]: \"{$Directory}\" ({$cache_list[$num]["cache_type"]})\n";}
+		
+			if(preg_match("#^\/dev\/#", $Directory)){
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[1]: \"$Directory\" Invalid cache path...!!\n";}
+				continue;
+			}
+		
+			if($cache_list[$num]["cache_type"]=="rock"){
+				$mxsize=$this->cache_list[$num]["cache_maxsize"]*1000;
+				$mxsize=$mxsize*1024;
+				//$conf=$conf."cache_dir {$this->cache_list[$num]["cache_type"]} $num {$this->cache_list[$num]["cache_size"]} max-size=32768\n";
+				continue;
+			}
+			
+			
+			$num=str_replace(" ", "_", $num);
+			if($cache_list[$num]["cache_type"]=="ufs"){$cache_list[$num]["cache_type"]="aufs";}
+			if(is_link($Directory)){$Directory=readlink($Directory);}
+			if(!is_dir($Directory)){
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[1]: \"$Directory\" ( No such directory )\n";}
+				continue;
+			}
+			$conf[]="cache_dir {$cache_list[$num]["cache_type"]} $Directory {$cache_list[$num]["cache_size"]} {$cache_list[$num]["cache_dir_level1"]} {$cache_list[$num]["cache_dir_level2"]} $this->store_dir_minsize \n";
+		}		
+				
+		return @implode("\n", $conf);
+	}
+	
+	
 	public function Workers($maincachedir=null){
 		if(!$this->IS_32){return;}
 		if(!isset($GLOBALS["NO_KILL_MYSQL"])){$GLOBALS["NO_KILL_MYSQL"]=false;}
 		$sock=new sockets();
 		
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
-		echo "Starting......: [SMP] Use only Booster:$this->SquidBoosterOnly\n";
-		echo "Starting......: [SMP] Disable SMP:$this->DisableSquidSNMPMode\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] Use only Booster:$this->SquidBoosterOnly\n";
+		
 		
 		
 		if(!function_exists("mysql_connect")){return;}
@@ -111,12 +178,12 @@ class squidworkers{
 		$q=new mysql_squid_builder();
 		if(!$q->BD_CONNECT(true)){
 			if($this->ASROOT){
-				echo "Starting......: [SMP] MySQL database engine not ready, die()...\n";
+				echo "Starting......: ".date("H:i:s")." [SMP] MySQL database engine not ready, die()...\n";
 				if(!$GLOBALS["NO_KILL_MYSQL"]){die();}
 				return;
 			}
 		}
-		echo "Starting......: [SMP] Query MySQL Engine...for $this->uuid\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] Query MySQL Engine...for $this->uuid\n";
 		$sql="SELECT uuid FROM cacheconfig WHERE `uuid`='$this->uuid'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["uuid"]==null){$this->WorkersDefault();}
@@ -126,44 +193,52 @@ class squidworkers{
 
 		
 	
-		if($this->DisableSquidSNMPMode==0){echo "Starting......: [SMP] $CPUS workers\n";}
-		if($this->DisableSquidSNMPMode==1){$CPUS=1;echo "Starting......: [SMP] $CPUS workers\n";}
+		echo "Starting......: ".date("H:i:s")." [SMP] $CPUS workers\n";
+		
 		
 		if($this->ASROOT){
 			$unix=new unix();
-			echo "Starting......: [SMP] launch exec.squid.smp.php\n";
+			echo "Starting......: ".date("H:i:s")." [SMP] launch exec.squid.smp.php\n";
 			system($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.smp.php");
 		}
 	
 		$cachesDirectory=$ligne["cachesDirectory"];
-		$globalCachesize=$ligne["globalCachesize"];
-		if(!is_numeric($globalCachesize)){$globalCachesize=5000;}
-		if($cachesDirectory==null){$cachesDirectory="/var/cache";}
-		
+		if($cachesDirectory==null){$cachesDirectory="/home/squid";}
 		if(preg_match("#^\/var\/#", $cachesDirectory)){
 			$cachesDirectory=str_replace("/var/", "/home/squid/", $cachesDirectory);
 		}
 		
+		$CurrentDirectorySizeAvailable=$unix->DIRECTORY_FREEM($cachesDirectory);
+		echo "Starting......: ".date("H:i:s")." [SMP]: $cachesDirectory = {$CurrentDirectorySizeAvailable}M available\n";
+		
+		$globalCachesize=$ligne["globalCachesize"];
+		if(!is_numeric($globalCachesize)){$globalCachesize=5000;}
+		
+		
+		
+		
 		if(!is_numeric($CPUS)){$CPUS=$this->CPU_NUMBER();}
 		$boost=new squidbooster();
-		echo "Starting......: [SMP] is disabled ? `$this->DisableSquidSNMPMode`\n";
-		if($this->DisableSquidSNMPMode==1){
-			echo "Starting......: [SMP] is disabled ... turn to worker 1\n";
-			$f[]="workers 1";
-			if($maincachedir<>null){$f[]=$maincachedir;}
-			return @implode("\n", $f);
-		}
-	
-		echo "Starting......: [SMP] is enabled checking new SMP mode feature...\n";
+		
+		echo "Starting......: ".date("H:i:s")." [SMP] is enabled checking new SMP mode feature...\n";
 		$newworkers=$this->caches_mysql();
 		if($newworkers<>null){return $newworkers;}
 		$f[]="workers $CPUS";
+		$olders_caches=$this->olders_caches();
 		for($i=1;$i<$CPUS+1;$i++){
 			$f[]="if \${process_number} = $i";
 				$this->CPU_FINAL++;
 				$boost_cache=$boost->cache_booster_SMP($i);
 				if($boost_cache<>null){$f[]=$boost_cache;}
-				if($this->SquidBoosterOnly==0){$f[]="cache_dir aufs $cachesDirectory-$i $globalCachesize 128 512 $this->store_dir_minsize";}
+				if($this->SquidBoosterOnly==0){
+					if($i==1){if($olders_caches<>null){$f[]=$olders_caches;}}
+					$CurrentDirectorySizeAvailable=$CurrentDirectorySizeAvailable-$globalCachesize;
+					if($CurrentDirectorySizeAvailable>5){
+						$f[]="cache_dir aufs $cachesDirectory-$i $globalCachesize 128 512 $this->store_dir_minsize";
+					}else{
+						echo "Starting......: ".date("H:i:s")." [SMP] CPU[$i]: No space left on $cachesDirectory\n";
+					}
+				}
 			$f[]="endif";
 		
 		}
@@ -176,7 +251,7 @@ class squidworkers{
 		
 	
 		if($GLOBALS["VERBOSE"]){
-			echo "Starting......: [SMP] Use only \$SquidBoosterOnly:$this->SquidBoosterOnly\n";
+			echo "Starting......: ".date("H:i:s")." [SMP] Use only \$SquidBoosterOnly:$this->SquidBoosterOnly\n";
 		}
 		if(!is_numeric($this->SquidBoosterOnly)){$this->SquidBoosterOnly=0;}
 		if(!is_numeric($this->SquidBoosterMem)){$this->SquidBoosterMem=0;}
@@ -197,7 +272,7 @@ class squidworkers{
 				if($re[1]=="3.0."){$re[1]="3.0.0";}
 				if($re[1]=="3.1."){$re[1]="3.1.0";}
 				if($re[1]=="3.2."){$re[1]="3.2.0";}
-				echo "Starting......: Squid : Version (as root) '{$re[1]}'\n";
+				echo "Starting......: ".date("H:i:s")." Squid : Version (as root) '{$re[1]}'\n";
 				$GLOBALS[__FUNCTION__]=$re[1];
 				return $re[1];
 			}
@@ -212,7 +287,7 @@ class squidworkers{
 		$count=0;
 		
 		$CacheMount=$this->BuildSquidCachesMount($cpuindex);
-		echo "Starting......: [SMP] CPU[$cpuindex] : Memory Cache = `$CacheMount`\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] CPU[$cpuindex] : Memory Cache = `$CacheMount`\n";
 		if($CacheMount<>null){$count++;}
 		
 		if($this->DisableAnyCache==0){
@@ -239,7 +314,7 @@ class squidworkers{
 		$q=new mysql();
 		$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' AND ToDelete=0 AND Building=2","artica_backup");
 		$CPU_NUMBER=$this->CPU_NUMBER();
-		echo "Starting......: [SMP] CPU(s) = $CPU_NUMBER\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] CPU(s) = $CPU_NUMBER\n";
 		
 		$f[]="workers $CPU_NUMBER";
 		$boost=new squidbooster();
@@ -247,13 +322,13 @@ class squidworkers{
 		
 		for($i=1;$i<$CPU_NUMBER+1;$i++){
 			$CountDeCaches=$this->CountDeCaches($i,$uuid);
-			echo "Starting......: [SMP] CPU[$i] = CPU[$i] Caches = `$CountDeCaches`\n";
+			echo "Starting......: ".date("H:i:s")." [SMP] CPU[$i] = CPU[$i] Caches = `$CountDeCaches`\n";
 			if($CountDeCaches==0){continue;}
 			$f[]="if \${process_number} = $i";
 			$this->CPU_FINAL++;
 			
 			$CacheMount=$this->BuildSquidCachesMount($i);
-			echo "Starting......: [SMP] CPU[$i] = Cache mounted `$CacheMount`\n";
+			echo "Starting......: ".date("H:i:s")." [SMP] CPU[$i] = Cache mounted `$CacheMount`\n";
 			if($CacheMount<>null){
 				$WORKCOUNT++;
 				$f[]=$CacheMount;
@@ -264,26 +339,38 @@ class squidworkers{
 				if($boost_cache<>null){$f[]=$boost_cache;}
 				if($this->SquidBoosterOnly==1){continue;}
 				$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' AND cpunum=$i AND ToDelete=0 AND Building=2","artica_backup");
-				if(!$q->ok){echo "Starting......: [SMP] CPU Number $i `$q->mysql_error`\n";continue;}
+				if(!$q->ok){echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i `$q->mysql_error`\n";continue;}
 			
 				if(mysql_num_rows($results)==0){
-					echo "Starting......: [SMP] CPU Number $i No cache saved, this CPU run wihout caching\n";
+					echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i No cache saved, this CPU run wihout caching\n";
 				}else{
-					echo "Starting......: [SMP] CPU Number $i `". mysql_num_rows($results)." caches`\n";
+					echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i `". mysql_num_rows($results)." caches`\n";
 				}
 				if(mysql_num_rows($results)>0){
 					while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 						$cache_maxsizeT=null;
 						$cache_directory=$ligne["cache_directory"];
+						$cache_directory_calc=$ligne["cache_directory"];
+						if(is_link($cache_directory_calc)){$cache_directory_calc=readlink($cache_directory_calc);}
+						if(preg_match("#^\/var\/#", $cache_directory)){$cache_directory=str_replace("/var/", "/home/squid/", $cache_directory);}
+						if(preg_match("#^\/var\/#", $cache_directory_calc)){$cache_directory_calc=str_replace("/var/", "/home/squid/", $cache_directory_calc);}
 						
-						if(preg_match("#^\/var\/#", $cache_directory)){
-							$cache_directory=str_replace("/var/", "/home/squid/", $cache_directory);
+						if(isset($sizeAvailble[$cache_directory_calc])){
+							$sizeAvailble[$cache_directory_calc]=$unix->DIRECTORY_FREEM($cache_directory_calc);
 						}
 						
-						echo "Starting......: [SMP] CPU Number $i cache dir:`$cache_directory`\n";
-						if(!$this->ifValidCache($cache_directory)){echo "Starting......: [SMP] CPU Number $i invalid cache path `$cache_directory`\n";continue;}
+						
+						echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i cache dir:`$cache_directory`\n";
+						if(!$this->ifValidCache($cache_directory)){echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i invalid cache path `$cache_directory`\n";continue;}
 						$cache_directory=$ligne["cache_directory"];
 						$cache_size=$ligne["size"]*1000;
+						
+						if($cache_size>$sizeAvailble[$cache_directory_calc]){
+							echo "Starting......: ".date("H:i:s")." [SMP] CPU Number $i cache dir:`$cache_directory` no space left {$sizeAvailble[$cache_directory_calc]}\n";
+							continue;
+						}
+						$sizeAvailble[$cache_directory_calc]=$sizeAvailble[$cache_directory_calc]-$cache_size;
+						
 						$cache_dir_level1=$ligne["cache_dir_level1"];
 						$cache_dir_level2=$ligne["cache_dir_level2"];
 						$cache_maxsize=$ligne["cache_maxsize"];
@@ -338,24 +425,24 @@ class squidworkers{
 		
 		
 		if(!isset($this->SquidCachesMount[$Index])){
-			if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index]: Memory cache: no array()\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[$Index]: Memory cache: no array()\n";}
 			return null;
 		}
 		$mountedram=intval($this->SquidCachesMount[$Index]);
-		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Memory cache: ={$mountedram}M\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[$Index] : Memory cache: ={$mountedram}M\n";}
 		if(!is_numeric($mountedram)){return null;}
 		if($mountedram<0){$mountedram=0;}
 		
 		if($mountedram==0){
 			if($this->BuildSquidCachesMountIsMounted($Index)>0){
-				if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Memory cache umounting..\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[$Index] : Memory cache umounting..\n";}
 				$this->BuildSquidCachesMountUmount($Index);
 			}
 			return null;
 		}
 		
-		$Dir="/var/cache/MemBooster$Index";
-		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Memory cache on `$Dir`\n";}
+		$Dir="/home/squid/cache/MemBooster$Index";
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[$Index] : Memory cache on `$Dir`\n";}
 		
 		$AlreadyMounted=$this->BuildSquidCachesMountIsMounted($Index);
 		if($AlreadyMounted==0){$this->BuildSquidCachesMountInRam($mountedram,$Index);}
@@ -368,7 +455,7 @@ class squidworkers{
 		
 		
 		$MemDIFF=$mountedram-10;
-		if($this->ASROOT){echo "Starting......: [SMP] CPU[$Index] : Return a cache of {$MemDIFF}M\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [SMP] CPU[$Index] : Return a cache of {$MemDIFF}M\n";}
 		$GLOBALS["BuildSquidCachesMount"][$Index]="cache_dir aufs $Dir $MemDIFF 16 256";
 		return "cache_dir aufs $Dir $MemDIFF 16 256";		
 		
@@ -377,7 +464,7 @@ class squidworkers{
 	private function BuildSquidCachesMountIsMounted($Index){
 		$f=file("/proc/mounts");
 		while (list ($num, $val) = each ($f)){
-				if(preg_match("#^tmpfs.+?\/var\/cache\/MemBooster$Index\s+.+?size=([0-9]+)([a-zA-Z]+)#", $val,$re)){
+				if(preg_match("#^tmpfs.+?\/home\/squid\/cache\/MemBooster$Index\s+.+?size=([0-9]+)([a-zA-Z]+)#", $val,$re)){
 					$size=$re[1];
 					$unit=strtolower($re[2]);
 					if($unit=="k"){return round($size/1024);}
@@ -391,7 +478,7 @@ class squidworkers{
 		private function BuildSquidCachesMountInRam($RAM,$Index){
 			$unix=new unix();
 			$mount=$unix->find_program("mount");
-			$Dir="/var/cache/MemBooster$Index";
+			$Dir="/home/squid/cache/MemBooster$Index";
 			
 			@mkdir($Dir,0755,true);
 			@chown($Dir, "squid");
@@ -404,7 +491,7 @@ class squidworkers{
 			$unix=new unix();
 			$umount=$unix->find_program("umount");
 			$rm=$unix->find_program("rm");
-			$Dir="/var/cache/MemBooster$Index";
+			$Dir="/home/squid/cache/MemBooster$Index";
 			shell_exec("$umount -l $Dir");
 			shell_exec("$rm -rf  -l $Dir");
 			

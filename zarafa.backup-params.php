@@ -30,7 +30,7 @@ function js(){
 	$page=CurrentPageName();		
 	
 	$title=$tpl->_ENGINE_parse_body("{backup_parameters}");
-	echo "YahooWin3('590','$page?popup=yes','$title')";
+	echo "YahooWin3('800','$page?popup=yes','$title')";
 	
 }	
 	
@@ -57,28 +57,31 @@ function popup(){
 		<div style='text-align:right'><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:s_PopUpFull('http://www.mail-appliance.org/index.php?cID=279','1024','900');\" 
 		style='font-size:16px;text-decoration:underline'>{online_help}</a></div>
-		<table style='width:99%' class=form>
+		<div style='width:98%' class=form>
+		<table style='width:99%'>
 		
 			
 			<tr>
-				<td class=legend style='font-size:16px'>{backup_directory}:</td>
-				<td>". Field_text("DEST-$t",$ZarafaBackupParams["DEST"],"font-size:16px;padding:3px;width:190px")."</td>
+				<td class=legend style='font-size:18px'>{backup_directory}:</td>
+				<td>". Field_text("DEST-$t",$ZarafaBackupParams["DEST"],"font-size:18px;padding:3px;width:253px")."</td>
 				<td>". button("{browse}","Loadjs('SambaBrowse.php?no-shares=yes&field=DEST-$t&no-hidden=yes')")."</td>
 			</tr>				
 			<tr>
-				<td class=legend style='font-size:16px'>{DELETE_OLD_BACKUPS}:</td>
+				<td class=legend style='font-size:18px'>{DELETE_OLD_BACKUPS}:</td>
 				<td>". Field_checkbox("DELETE_OLD_BACKUPS-$t",1,$ZarafaBackupParams["DELETE_OLD_BACKUPS"],"CheckSaveZarafaBackupParams()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:16px'>{MaxDays}:</td>
-				<td>". Field_text("DELETE_BACKUPS_OLDER_THAN_DAYS-$t",$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"],"font-size:16px;padding:3px;width:90px")."</td>
+				<td class=legend style='font-size:18px'>{retention}:</td>
+				<td style='font-size:18px'>". Field_text("DELETE_BACKUPS_OLDER_THAN_DAYS-$t",
+						$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"],"font-size:18px;padding:3px;width:90px")."&nbsp;{days}</td>
 				<td>&nbsp;</td>
 			</tr>			
 			<tr>
-				<td colspan=3 align='right'><hr>". button("{apply}","SaveZarafaBackupParams$t()","16px")."</td>
+				<td colspan=3 align='right'><hr>". button("{apply}","SaveZarafaBackupParams$t()","26px")."</td>
 			</tr>		
 		</table>
+	</div>
 	<script>
 	var x_SaveZarafaBackupParams$t= function (obj) {
 		var tempvalue=obj.responseText;

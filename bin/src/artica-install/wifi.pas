@@ -111,7 +111,7 @@ pidpath:string;
 begin
 
    if not FileExists(wpa_supplicant_bin()) then  begin
-      SYS.MONIT_DELETE('APP_WPA_SUPPLIANT');
+
       exit;
    end;
 
@@ -121,11 +121,11 @@ begin
  logs.DeleteFile(pidpath);
 
  if WpaSuppliantEnabled=0 then begin
-    SYS.MONIT_DELETE('APP_WPA_SUPPLIANT');
+
     exit;
 end;
 
-SYS.MONIT_CONFIG('APP_WPA_SUPPLIANT','/var/run/wpa_supplicant.'+trim(ethw)+'.pid','wifi');
+
 end;
 //##############################################################################
 function twifi.WPA_SUPPLIANT_VERSION():string;
@@ -220,7 +220,7 @@ begin
    if WpaSuppliantEnabled=0 then begin
        logs.Debuglogs('Starting......: WPA Supplicant is disabled');
        if FIleexists('/etc/wpa_supplicant.conf') then logs.DeleteFile('/etc/wpa_supplicant.conf');
-       SYS.MONIT_DELETE('APP_WPA_SUPPLIANT');
+
        WPA_SUPPLIANT_STOP();
        exit;
    end;
@@ -288,7 +288,7 @@ end;
      sleep(500);
   end else begin
      writeln('Stopping WPA Supplicant......: stopped');
-     SYS.MONIT_DELETE('APP_WPA_SUPPLIANT');
+
   end;
 end;
 //##############################################################################
@@ -311,7 +311,7 @@ end;
 
    if HostApdEnabled=0 then begin
        logs.Debuglogs('Starting......: Advanced IEEE 802.11 management is disabled');
-       SYS.MONIT_DELETE('APP_HOSTAPD');
+
        HOSTAPD_STOP();
        exit;
    end;
@@ -377,7 +377,7 @@ end;
      sleep(500);
   end else begin
      writeln('Stopping Advanced IEEE 802.11.: stopped');
-     SYS.MONIT_DELETE('APP_HOSTAPD');
+
   end;
 end;
 //##############################################################################

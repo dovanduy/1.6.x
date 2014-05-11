@@ -14,7 +14,7 @@ Procmail is also a complete drop-in replacement for your MDA. (If this doesn't m
 <AccountLess3Carac>Accounts less than 4 caracters</AccountLess3Carac>
 <account_already_exists>Account already exists</account_already_exists>
 <account_name>Account settings</account_name>
-<action>action</action>
+<action>Action</action>
 <actions>Action</actions>
 <ActionsGroup>Actions - Group</ActionsGroup>
 <ActionsGroupDESC>Actions to be performed on incoming messages</ActionsGroupDESC>
@@ -856,24 +856,24 @@ You can add privileges allows users to administrate this rule in their end-user 
 <dansguardian_user_manage_rule>Click on this icon in order to personnalize the web content filtering</dansguardian_user_manage_rule>
 <dansguardian_user_whitelists>Whitelists</dansguardian_user_whitelists>
 <Data exchange timeout>Data exchange timeout</Data exchange timeout>
-<database>database</database>
-<databases>databases</databases>
+<database>Database</database>
+<databases>Databases</databases>
 <databases_status>Databases status</databases_status>
 <database_entries_number>Database entries number</database_entries_number>
 <database_name>Database name</database_name>
-<date>date</date>
+<date>Date</date>
 <date_from>From date</date_from>
 <date_to>To date</date_to>
 <day>Day</day>
-<days>days</days>
+<days>Days</days>
 <dayw>DaysOfWeek</dayw>
 <db_enable_mailboxes>Manage local mailboxes</db_enable_mailboxes>
 <db_method>Database method</db_method>
-<debug>debug</debug>
+<debug>Debug</debug>
 <debug_mode>Debug mode</debug_mode>
 <december>December</december>
 <dedicated_storage>dedicated storage</dedicated_storage>
-<default>default</default>
+<default>Default</default>
 <Default domain>Default domain</Default domain>
 <default_destination_concurrency_limit>default destination concurrency limit</default_destination_concurrency_limit>
 <default_destination_concurrency_limit_text>he default maximal number of parallel deliveries to the same destination.
@@ -890,8 +890,8 @@ Setting this parameter to a value of 1 changes the meaning of the corresponding 
 <delete aliase>Delete this aliase</delete aliase>
 <delete group explain>Delete this group from tree</delete group explain>
 <delete mail>Delete this email address</delete mail>
-<deleted>deleted</deleted>
-<delete_all>delete all</delete_all>
+<deleted>Deleted</deleted>
+<delete_all>Delete all</delete_all>
 <delete_all_items>Delete all items</delete_all_items>
 <delete_group>Delete Group</delete_group>
 <delete_mail>delete mail</delete_mail>
@@ -906,27 +906,27 @@ Setting this parameter to a value of 1 changes the meaning of the corresponding 
 <delete_thisuser>Delete this user</delete_thisuser>
 <delete_this_user>Delete this user</delete_this_user>
 <delete_this_user_text>Are you sure to delete this user ?</delete_this_user_text>
-<delete_users>delete users</delete_users>
-<deliver_imap>deliver mails to mailboxes server</deliver_imap>
+<delete_users>Delete users</delete_users>
+<deliver_imap>Deliver mails to mailboxes server</deliver_imap>
 <denied>Denied</denied>
 <deny>Deny</deny>
 <deny_countries>Deny countries</deny_countries>
 <deny_countries_text>Deny or put in quarantine emails from a specific country</deny_countries_text>
 <deny_countries_text_spam>Add metadata to the Bayesian filtering process, allowing the Bayesian filters to learn information based on countries</deny_countries_text_spam>
-<department>department</department>
-<deploy>deploy</deploy>
+<department>Department</department>
+<deploy>Deploy</deploy>
 <DepositBoxSize>Safe-deposit box size (Go)</DepositBoxSize>
 <description>Description</description>
 <detach>Detach</detach>
-<details>details</details>
+<details>Details</details>
 <detected_spam>Spams</detected_spam>
 <detection>Detection</detection>
-<device>device</device>
+<device>Device</device>
 <dev_point>Dev point</dev_point>
 <directory>Directory</directory>
-<disable>disable</disable>
+<disable>Disable</disable>
 <disable tls postfix>disable TLS for postfix</disable tls postfix>
-<disabled>disabled</disabled>
+<disabled>Disabled</disabled>
 <DisableMagicQuotesGpc>Disable magic_quotes on the GPC</DisableMagicQuotesGpc>
 <DisableMagicQuotesGpc_text>Disable fixing the magic_quotes on the GPC operations (get/post/cookie).[br] especially for egroupware compatibility</DisableMagicQuotesGpc_text>
 <disable_all_filters>Disable all filters</disable_all_filters>
@@ -937,8 +937,8 @@ Setting this parameter to a value of 1 changes the meaning of the corresponding 
               message.[br] Log the optional text if specified,  otherwise log a generic message.[br]
 [/i]Note:  this action currently affects all recipients of the message.[/i]</DISCARD_help>
 <disclaimer_tiny>Disclaimer</disclaimer_tiny>
-<disconnect>disconnect</disconnect>
-<disk>disk</disk>
+<disconnect>Disconnect</disconnect>
+<disk>Disk</disk>
 <disks_usage>Disks usage</disks_usage>
 <disk_name>Disk name</disk_name>
 <displayname>Display name</displayname>
@@ -947,39 +947,39 @@ Setting this parameter to a value of 1 changes the meaning of the corresponding 
 <dmidecode_text>Contains a description  of  the  system’s  hardware  components,  as well as other useful pieces of information such as serial numbers and BIOS revision</dmidecode_text>
 <dnsmasq_DNS_records>MX Records</dnsmasq_DNS_records>
 <dnsmasq_DNS_records_text>Dnsmasq can serve DNS MX records with its database</dnsmasq_DNS_records_text>
-<dnsmasq_settings>dnsmasq settings</dnsmasq_settings>
+<dnsmasq_settings>Dnsmasq settings</dnsmasq_settings>
 <DNSServer>DNS Server</DNSServer>
 <dns_main_settings>DNS settings and tweeks</dns_main_settings>
 <dns_server>DNS server</dns_server>
 <dns_servers>DNS Servers</dns_servers>
-<documents>documents</documents>
+<documents>Documents</documents>
 <Does not Contain>Does not Contain</Does not Contain>
 <Does not End width>Does not End width</Does not End width>
 <Does not matches>Does not matches</Does not matches>
 <Does not start width>Does not start width</Does not start width>
 <domain>Domain</domain>
 <domainName>SMTP Domain</domainName>
-<domains>domains</domains>
+<domains>Domains</domains>
 <domains_link>Add, Edit, manage your eMail domains</domains_link>
 <domains_title>Your domains</domains_title>
 <domain_activated>Domain enabled</domain_activated>
 <DOMAIN_ADMIN_NOT_EDITED>Domain administrator not activated/edited</DOMAIN_ADMIN_NOT_EDITED>
 <DOMAIN_ADMIN_NOT_EDITED_TEXT>You must activate and edit the domain administrator settings to receive all administrative features related to a domain server</DOMAIN_ADMIN_NOT_EDITED_TEXT>
 <domain_name>Domain name</domain_name>
-<done>done</done>
+<done>Done</done>
 <double_bounce_sender>Notifications Sender address</double_bounce_sender>
 <double_bounce_sender_text>The sender address of postmaster notifications that are generated by the mail system.[br]All mail to this address is silently discarded, in order to terminate mail bounce loops</double_bounce_sender_text>
-<down>down</down>
-<download>download</download>
+<down>Down</down>
+<download>Download</download>
 <downloading>Downloading</downloading>
-<do_nothing>do nothing</do_nothing>
-<driver>driver</driver>
+<do_nothing>Do nothing</do_nothing>
+<driver>Driver</driver>
 <DUNNO_help>Pretend that the lookup key  was  not  found.[br]This prevents  Postfix  from  trying  substrings  of the lookup key (such as a subdomain name, or a  network address subnetwork).</DUNNO_help>
-<duration>duration</duration>
-<during>during</during>
-<each>each</each>
+<duration>Duration</duration>
+<during>During</during>
+<each>Each</each>
 <edit>Apply</edit>
-<edit mode>edit mode</edit mode>
+<edit mode>Edit mode</edit mode>
 <edit_paremeters>Set parameters for this section</edit_paremeters>
 <edit_rule>Edit a rule</edit_rule>
 <edit_table>Edit the table</edit_table>
@@ -1190,25 +1190,25 @@ This method is one of several system facilities to address network nodes on a co
 On some operating systems, the host file content is used preferentially over other methods, such as the Domain Name System (DNS), but many systems implement name service switches to provide customization.[br]
  Unlike DNS, the hosts file is under the control of the local computer's administrator</etc_hosts_explain>
 <etc_hosts_text>The hosts file is a computer file used in an operating system to map hostnames to IP addresses</etc_hosts_text>
-<events>events</events>
+<events>Events</events>
 <events_text>Read all events about this daemon in realtime in order to follow the flow...</events_text>
-<every>every</every>
-<exact_match>exact match</exact_match>
-<example>example</example>
-<execute>execute</execute>
+<every>Every</every>
+<exact_match>Exact match</exact_match>
+<example>Example</example>
+<execute>Execute</execute>
 <execute_operation>Performed operation</execute_operation>
 <ExeptionFileSiteList_user_explain>Allow downloading files from specific web sites</ExeptionFileSiteList_user_explain>
 <Exit_delay_in_seconds>Exit delay (in seconds)</Exit_delay_in_seconds>
 <expired>Expired</expired>
 <expire_date>Expiration date</expire_date>
 <explain 1>Give the email domain (after the @ of your mailboxes)</explain 1>
-<explorer>explorer</explorer>
+<explorer>Explorer</explorer>
 <explorer_browse_yours_files>Browse your files and your allowed storages</explorer_browse_yours_files>
 <EXPORT_ORG>Export organization</EXPORT_ORG>
 <EXTERNAL_PORTS>Externals ports list</EXTERNAL_PORTS>
 <EXTERNAL_PORTS_TEXT>Modify and get a list of all TCP/IP ports used on this computer</EXTERNAL_PORTS_TEXT>
-<external_resource>external resource</external_resource>
-<extra infos>extra informations</extra infos>
+<external_resource>External resource</external_resource>
+<extra infos>Extra informations</extra infos>
 <extracting>Extracting</extracting>
 <facsimileTelephoneNumber>Fax</facsimileTelephoneNumber>
 <failed>Failed</failed>
@@ -1241,8 +1241,8 @@ Fetchmail is licensed under the GNU General Public License</fetchmail_about>
 <fetchmail_user_text>Define rules to retreive mails stored on the ISP mailbox server</fetchmail_user_text>
 <fetch_hotmail>Fetch your mails from hotmail and live account</fetch_hotmail>
 <fetch_mails>Fetch emails</fetch_mails>
-<field>field</field>
-<file>file</file>
+<field>Field</field>
+<file>File</file>
 <filedate>File date</filedate>
 <fileinto>Put into imap folder</fileinto>
 <filename>File name</filename>
@@ -1297,7 +1297,7 @@ in this form you want to submit</form_error>
 <fs_type>filesystem type</fs_type>
 <gateway>Gateway</gateway>
 <GDPHP_NOT_INSTALLED>GD Library !</GDPHP_NOT_INSTALLED>
-<general_settings>general settings</general_settings>
+<general_settings>General settings</general_settings>
 <generate certificate>generate certificate</generate certificate>
 <generate temporary error>generate temporary error</generate temporary error>
 <generate_config>Rebuild config</generate_config>
@@ -1324,7 +1324,7 @@ in this form you want to submit</form_error>
 <global_organization>global organization</global_organization>
 <global_quarantine_rules>Global quarantine settings</global_quarantine_rules>
 <global_services_status>Global services status</global_services_status>
-<global_smtp_rules>Global SMTP rules</global_smtp_rules>
+<global_smtp_rules>SMTP rules</global_smtp_rules>
 <global_whitelist>White & black list admin</global_whitelist>
 <go>go</go>
 <goback>Return to domains list</goback>
@@ -1606,7 +1606,7 @@ With the default 100 SMTP server process limit, "in flow delay as 1s" limits the
 <kav_title>Kaspersky For Mail server Global settings</kav_title>
 <kav_title_infos>Statics informations</kav_title_infos>
 <keep>Keep</keep>
-<keepup2date settings>keepup2date settings</keepup2date settings>
+<keepup2date settings>Keepup2date settings</keepup2date settings>
 <kill_process>Kill process</kill_process>
 <label>label</label>
 <label_add_transport>Add a relay server for this domain</label_add_transport>
@@ -1685,7 +1685,7 @@ The message delivery transport name is the first field in the entry in the maste
 <mailbox>Mailbox</mailbox>
 <mailbox account>Account</mailbox account>
 <mailbox quota>mailbox quota</mailbox quota>
-<mailbox settings>mailbox settings</mailbox settings>
+<mailbox settings>Mailbox settings</mailbox settings>
 <MailboxActive>Local Mailbox</MailboxActive>
 <mailboxes_stored_cyrus>mailboxes stored on cyrus</mailboxes_stored_cyrus>
 <mailboxes_stored_ldap>mailboxes stored on LDAP</mailboxes_stored_ldap>
@@ -1784,7 +1784,7 @@ The default time unit is d (days).[br]Specify 0 when mail delivery should be tri
 <Max_idle_time_in_seconds>Max. idle time (in seconds)</Max_idle_time_in_seconds>
 <may>May</may>
 <mbx_con>Mailboxes connections</mbx_con>
-<members>members</members>
+<members>Members</members>
 <member_of_group>Member of groups</member_of_group>
 <memory>Memory</memory>
 <memory_info>Your system memory</memory_info>
@@ -1978,10 +1978,10 @@ don't forget to - Save & Apply settings - to make them in production mode</notif
 <october>October</october>
 <OK_help>Accept the address etc. that matches the pattern</OK_help>
 <ok_listen>The service currently listen the defined port</ok_listen>
-<older_days>older than (days)</older_days>
+<older_days>Older than (days)</older_days>
 <old_name>Old name</old_name>
 <On filtering error>On filtering error</On filtering error>
-<on port>on socket port</on port>
+<on port>On socket port</on port>
 <online_help>on-line help</online_help>
 <online_help_text>Get help using your internet web site knowledge database</online_help_text>
 <only_postfix_events>Only Postfix events</only_postfix_events>
@@ -1990,23 +1990,23 @@ don't forget to - Save & Apply settings - to make them in production mode</notif
 <opcheck1>Check artica-postfix service status</opcheck1>
 <openldap_parameters>LDAP Database parameters</openldap_parameters>
 <openldap_parameters_text>Mandatories settings are stored on an LDAP database, personalize, optimize the OpenLDAP settings</openldap_parameters_text>
-<operation>operation</operation>
-<operator>operator</operator>
+<operation>Operation</operation>
+<operator>Operator</operator>
 <Opportunistic_TLS>Opportunistic TLS</Opportunistic_TLS>
-<option>option</option>
-<optional_text>optional text</optional_text>
-<options>options</options>
+<option>Option</option>
+<optional_text>Optional text</optional_text>
+<options>Options</options>
 <or>or</or>
 <organization>organization</organization>
 <organizationalUnitName>organizational unit name</organizationalUnitName>
 <organizationName>organization name</organizationName>
-<organizations>organizations</organizations>
+<organizations>Organizations</organizations>
 <ORG_HD_TITLE>Parition editor</ORG_HD_TITLE>
-<ORG_HD_TITLE_TEXT>creating, reorganizing, and deleting disk partitions</ORG_HD_TITLE_TEXT>
-<original>original</original>
+<ORG_HD_TITLE_TEXT>Creating, reorganizing, and deleting disk partitions</ORG_HD_TITLE_TEXT>
+<original>Original</original>
 <or_select>Or select value</or_select>
-<other>other</other>
-<others>others</others>
+<other>Other</other>
+<others>Others</others>
 <others_options>Other options</others_options>
 <other_settings>Other settings</other_settings>
 <ou>Organisation unit</ou>
@@ -2016,23 +2016,23 @@ don't forget to - Save & Apply settings - to make them in production mode</notif
 <OU_BIND_ADDR_AFFECT>Affect IP addresses</OU_BIND_ADDR_AFFECT>
 <OU_BIND_ADDR_AFFECT_TEXT>Affect IP addresses to postfix instances for each organization</OU_BIND_ADDR_AFFECT_TEXT>
 <Overall timeout of all DNS requests>Overall timeout of all DNS requests (in seconds)</Overall timeout of all DNS requests>
-<overloaded>overloaded</overloaded>
+<overloaded>Overloaded</overloaded>
 <overview>overview</overview>
 <overwritten_by_org>Can be overwritten by Organization</overwritten_by_org>
 <overwritten_by_user>Can be overwritten bu users</overwritten_by_user>
-<owner>owner</owner>
+<owner>Owner</owner>
 <packages_to_upgrade>packages need to be upgraded, it is necessary to perform updates of found packages</packages_to_upgrade>
-<page>page</page>
-<pages>pages</pages>
+<page>Page</page>
+<pages>Pages</pages>
 <parameters>Parameters</parameters>
 <partitions>Partitions</partitions>
 <partitions_number>partitions number</partitions_number>
-<pass>pass</pass>
+<pass>Pass</pass>
 <PassiveFtp>Use Passive Ftp</PassiveFtp>
 <password>Password</password>
-<path>path</path>
-<pattern>pattern</pattern>
-<pattern_action>pattern action</pattern_action>
+<path>Path</path>
+<pattern>Pattern</pattern>
+<pattern_action>Pattern action</pattern_action>
 <pattern_action_help>When pattern matches a mail address, domain or host address, it perform an action.
 [h4]EMAIL ADDRESS PATTERNS[/h4]
 [ul]
@@ -2166,7 +2166,7 @@ This is because Postfix needs to open lookup tables ahead of time, but the reade
 <product>Product</product>
 <product_licence>Licence</product_licence>
 <product_licence_text>Get the licence info and update your licence definition</product_licence_text>
-<product_update_settings>updates settings</product_update_settings>
+<product_update_settings>Updates settings</product_update_settings>
 <product_update_settings_text>Settings for download updates in order to maintain the security service</product_update_settings_text>
 <professional_email>Professional eMail</professional_email>
 <prompt_add_rule_name>Give name of your new rule</prompt_add_rule_name>
@@ -2313,7 +2313,7 @@ This is a weaker restriction than the reject unknown client hostname rule,[br] w
 <reject_unlisted_recipient_text>Reject the request when the RCPT TO address is not listed[br] in the list of valid recipients for its domain class.</reject_unlisted_recipient_text>
 <reject_unlisted_sender>reject unlisted sender</reject_unlisted_sender>
 <reject_unlisted_sender_text>Reject the request when the MAIL FROM address is not listed[br] in the list of valid recipients for its domain class</reject_unlisted_sender_text>
-<reject_unverified_recipient>reject unverified recipient</reject_unverified_recipient>
+<reject_unverified_recipient>Reject unverified recipient</reject_unverified_recipient>
 <reject_unverified_recipient_text>Reject the request when mail to the RCPT TO address is known to bounce,[br] or when the recipient address destination is not reachable.</reject_unverified_recipient_text>
 <reject_unverified_sender>reject unverified sender</reject_unverified_sender>
 <reject_unverified_sender_help>Reject the request when mail to the MAIL FROM address is known to bounce, or when the sender address destination is not reachable</reject_unverified_sender_help>
@@ -2364,7 +2364,7 @@ All the emails will be deleted and not be able to restore...</remove_mailqueue_t
 <repair>repair</repair>
 <replace>replace</replace>
 <replace_line>replace current line with</replace_line>
-<report_settings>report settings</report_settings>
+<report_settings>Report settings</report_settings>
 <reprocess_queue>reprocess all queues</reprocess_queue>
 <request_start_artica_service>You should start or restart artica service by execute /etc/init.d/artica-postfix restart</request_start_artica_service>
 <reserved>reserved</reserved>
@@ -2376,11 +2376,11 @@ All the emails will be deleted and not be able to restore...</remove_mailqueue_t
 <restart_autofs_text>Restart the auto-connect service in order to apply new settings in production mode</restart_autofs_text>
 <restart_computer>Reboot</restart_computer>
 <restart_computer_text>This operation will reboot this computer</restart_computer_text>
-<restore>restore</restore>
-<restrictions>restrictions</restrictions>
+<restore>Restore</restore>
+<restrictions>Restrictions</restrictions>
 <restrictions_classes_list>Classes list</restrictions_classes_list>
 <results>Results</results>
-<return_to>return to</return_to>
+<return_to>Return to</return_to>
 <roomNumber>Room number</roomNumber>
 <rotate_logs>Rotate log file</rotate_logs>
 <ROUNDCUBE_NEWVERSION>New RoundCube version</ROUNDCUBE_NEWVERSION>
@@ -2390,14 +2390,14 @@ All the emails will be deleted and not be able to restore...</remove_mailqueue_t
 <roundcube_plugins_text>Add/delete RoundCube plugins in order to provide more features for your users</roundcube_plugins_text>
 <routing_relay_recipient>Relay Recipients allowed</routing_relay_recipient>
 <routing_rule>Routing rule</routing_rule>
-<row>row</row>
-<rows>rows</rows>
-<rule>rule</rule>
+<row>Row</row>
+<rows>Rows</rows>
+<rule>Rule</rule>
 <rulegeneral>Rules - General</rulegeneral>
 <rules>Rules</rules>
 <rule_name>rule name</rule_name>
 <rule_number>Rule number</rule_number>
-<run>run</run>
+<run>Run</run>
 <runat>Time to execute</runat>
 <running>running</running>
 <run_every>Run every</run_every>
@@ -2418,18 +2418,18 @@ in a SASL password LDAP, and if a username/password is found, it will use that u
 <save_configuration_file>Saving configuration</save_configuration_file>
 <save_task>Save task</save_task>
 <scanning_your_network>Scanning your network</scanning_your_network>
-<schedule>schedule</schedule>
+<schedule>Schedule</schedule>
 <scheduled>Scheduled</scheduled>
 <schedule_import_settings>Schedule the importation process periodically in order to refresh database automatically</schedule_import_settings>
-<score>score</score>
-<search>search</search>
+<score>Score</score>
+<search>Search</search>
 <search_break>Results of your query exceed maximum rows that the system accept, please specify a query that match more your research</search_break>
-<search_by>search by</search_by>
+<search_by>Search by</search_by>
 <search_connector>Search Connector>
 <add_search_connector_text>Add a search connector directly in your browser in order to find documents without need to logon</search_connector>
 <search_in_message>Search in message</search_in_message>
-<search_on>search on</search_on>
-<seconds>seconds</seconds>
+<search_on>Search on</search_on>
+<seconds>Seconds</seconds>
 <SectionSecurityRulesExplain>This section allows you to manage security settings when email go trought your server.
 [br]These rules are translated when email agents send data on the postfix in order to recieve emails or send emails.[br]
 [h3]Content rules[/h3]
@@ -2494,21 +2494,21 @@ while distributing domain2.com mail as usual.[br]
 <services_family>Family Services</services_family>
 <services_family_text>This section allows you to change the behavior of your server by adding or removing services</services_family_text>
 <Services_Status>Services status</Services_Status>
-<services_status>services status</services_status>
+<services_status>Services status</services_status>
 <services_status_failed>Failed services</services_status_failed>
 <services_status_text>View all services and their status in one page</services_status_text>
 <service_disabled>This service is disabled by artica...</service_disabled>
 <service_info>Service information</service_info>
 <service_name>Daemon name</service_name>
 <service_not_installed>The service is not installed</service_not_installed>
-<service_running>The service currently running</service_running>
-<service_stopped>The service is stopped!</service_stopped>
-<sessions>sessions</sessions>
+<service_running>Service is running</service_running>
+<service_stopped>Service is stopped!</service_stopped>
+<sessions>Sessions</sessions>
 <SESSION_END>[center][h2]This session is terminated... please logon[/center][/h2]</SESSION_END>
 <session_expired>Your session as expired</session_expired>
 <session_expired_text>You need to logon in order to continue[br]Click on the link below in order to go to the logon page[a href=logon.php]logon[/a][/center]</session_expired_text>
 <session_settings>Session settings</session_settings>
-<settings>settings</settings>
+<settings>Settings</settings>
 <set_quota>Set quota</set_quota>
 <SET_SCHEDULE>Set the schedule task</SET_SCHEDULE>
 <SET_SCHEDULE_TEXT>Define when this task will be performed</SET_SCHEDULE_TEXT>
@@ -2801,7 +2801,7 @@ The operation will be performed in few times</start_all_services_perform>
 <statistics_engine>statistics engines</statistics_engine>
 <statistics_engine_text>Enable Artica Statistics engine,graphs and monitoring functions</statistics_engine_text>
 <statistics_ou_text>View all emails statistics about your Organization</statistics_ou_text>
-<status>status</status>
+<status>Status</status>
 <statusandlicense>Status & License</statusandlicense>
 <STAT_MODULES>Statistics modules</STAT_MODULES>
 <stopped>Stopped</stopped>
@@ -4353,11 +4353,11 @@ If you did not open this port, you will have a LowID and you will not be able to
 <ED2K-update_server_list_server>Update server list automatically</ED2K-update_server_list_server>
 <ED2K-update_server_list_server_help>These options control whether MLdonkey should add new servers or just use a fixed server list.</ED2K-update_server_list_server_help>
 <download_list>Downloads list</download_list>
-<configure>configure</configure>
+<configure>Configure</configure>
 <import_servers>Import servers</import_servers>
-<MLDONKEY_SEARCH_FORM>build your search queries</MLDONKEY_SEARCH_FORM>
+<MLDONKEY_SEARCH_FORM>Build your search queries</MLDONKEY_SEARCH_FORM>
 <download_this_file>Download this file</download_this_file>
-<members>members</members>
+<members>Members</members>
 <eMuleIDServers>ID Rate on servers</eMuleIDServers>
 <APP_GROUPWARE_APACHE_DISABLED_TEXT>For some reasons/issues, the groupware web service is disabled.[br]You need to contact your administrator if you want to activate this feature.</APP_GROUPWARE_APACHE_DISABLED_TEXT>
 <ACTIVATE_APP_GROUPWARE_APACHE>Activate the groupware web service</ACTIVATE_APP_GROUPWARE_APACHE>
@@ -4372,7 +4372,7 @@ Define here the time when configuration will be switched.
 <max_hard_upload_rate>Upload bandwidth</max_hard_upload_rate>
 <current_parameters>Current parameters</current_parameters>
 <max_hard_download_rate>Download bandwidth</max_hard_download_rate>
-<bandwith>bandwidth</bandwith>
+<bandwith>Bandwidth</bandwith>
 <USER_WEBDAV>Home Directory sharing trough Internet</USER_WEBDAV>
 <USER_WEBDAV_TEXT>Share the Home directory of this user using WebDav protocol.[br]WebDAV is a recently-developed protocol for connecting to a file server. It's easier and more secure than FTP</USER_WEBDAV_TEXT>
 <ACTIVATE_THIS_USER_WEBDAV>Activate HTTP remote access</ACTIVATE_THIS_USER_WEBDAV>

@@ -81,7 +81,7 @@ function page(){
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $table_width,
+	width: '99%',
 	height: 600,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -108,7 +108,7 @@ function events_list(){
 	if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 
 	while (list ($index, $line) = each ($array) ){
-	
+		$date=null;
 		if(preg_match("#\[(.+?)\]\s+\[(.*?)\]\s+(.+)#", $line,$re)){
 			$date="{$re[1]}";
 			$errortype=$re[2];
@@ -134,11 +134,23 @@ function events_list(){
 			$line="[".$re[1]."] ".$re[4];			
 		}
 		
+
+		
 		$line=str_replace("HTTP/1.1", "", $line);
 		$line=str_replace("HTTP/1.0", "", $line);
 
 		$img=statusLogs($line);
 		$m5=md5($line);
+		
+		if(trim($dateText)==null){
+			if(preg_match("#(.+?)\s+([0-9:]+)\s+\[(.+?)\]\s+([0-9]+)\#[0-9]+:(.+)#", $line,$re)){
+				$re[1]=str_replace(date("Y/m/d"), "", $re[1]);
+				$dateText=$re[1]." ".$re[2];
+				$errortype=$re[3];
+				$line=$re[5];
+			}
+		}
+		
 
 		$data['rows'][] = array(
 				'id' => "dom$m5",

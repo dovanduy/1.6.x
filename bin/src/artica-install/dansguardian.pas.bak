@@ -602,8 +602,6 @@ procedure tdansguardian.C_ICAP_STOP();
 begin
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.c-icap.php --stop');
 end;
-
-
 function tdansguardian.DANSGUARDIAN_STATUS():string;
 var
   pidpath:string;
@@ -666,10 +664,9 @@ begin
  logs.DeleteFile(pidpath);
 
  if CicapEnabled=0 then begin
- SYS.MONIT_DELETE('APP_C_ICAP');
+
  exit;
  end;
- SYS.MONIT_CONFIG('APP_C_ICAP','/var/run/c-icap/c-icap.pid','cicap');
 
 end;
 //##############################################################################

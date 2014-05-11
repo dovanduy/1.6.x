@@ -35,7 +35,7 @@ class mysqlserver{
 		
 		if(posix_getuid()==0){
 			$GLOBALS["AS_ROOT"]=true;
-			echo "Starting......: MySQL version.......:$this->mysql_version_string\n";
+			echo "Starting......: ".date("H:i:s")." MySQL version.......:$this->mysql_version_string\n";
 			
 			
 		}
@@ -61,8 +61,8 @@ class mysqlserver{
 		if(!is_numeric($this->innodb_file_per_table)){$this->innodb_file_per_table=0;}
 		if($this->INNODB_FILE_PER_TABLE_INSTALL){$this->innodb_file_per_table=1;}
 		if($GLOBALS["AS_ROOT"]){
-			echo "Starting......: MySQL version.......:$this->mysql_version_string\n";
-			echo "Starting......: MySQL ..............:innodb_file_per_table = $this->innodb_file_per_table\n";
+			echo "Starting......: ".date("H:i:s")." MySQL version.......:$this->mysql_version_string\n";
+			echo "Starting......: ".date("H:i:s")." MySQL ..............:innodb_file_per_table = $this->innodb_file_per_table\n";
 		}
 		$ini->loadString($datas);
 		$this->main_array=$ini->_params["MYSQL"];
@@ -236,7 +236,7 @@ class mysqlserver{
 		$this->main_array["table_cache"]=1;
 		if(posix_getuid()==0){
 			$GLOBALS["AS_ROOT"]=true;
-			echo "Starting......: Mysql binary version:$this->mysqlvbin\n";
+			echo "Starting......: ".date("H:i:s")." Mysql binary version:$this->mysqlvbin\n";
 			if(!is_file("/etc/mysql/debian-start")){@file_put_contents("/etc/mysql/debian-start", "");}
 			shell_exec("/bin/chmod 755 /etc/mysql/debian-start");
 		}
@@ -268,7 +268,7 @@ class mysqlserver{
 			$conf=$conf ."skip-name-resolve\n";
 		}				
 		
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: Mysql Major:$this->VERSION_MAJOR; Minor:$this->VERSION_MAJOR; rev: $this->VERSION_REV\n";}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Mysql Major:$this->VERSION_MAJOR; Minor:$this->VERSION_MAJOR; rev: $this->VERSION_REV\n";}
 		
 		if($this->main_array["default-character-set"]<>null){$conf=$conf.$this->default_character_set()."=".$this->main_array["default-character-set"];}
 		
@@ -276,7 +276,7 @@ class mysqlserver{
 			$conf=$conf ."skip-character-set-client-handshake\n";
 		}
 		
-		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: Mysql innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}		
+		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Mysql innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}		
 		
 		if(is_numeric($this->main_array["open_files_limit"])){
 			$conf=$conf ."open_files_limit={$this->main_array["open_files_limit"]}\n";
@@ -336,7 +336,7 @@ class mysqlserver{
 		$this->main_array["key_buffer"]=16;
 		$this->main_array["table_cache"]=1;
 		if(posix_getuid()==0){
-			echo "Starting......: Mysql binary version:$this->mysqlvbin\n";
+			echo "Starting......: ".date("H:i:s")." Mysql binary version:$this->mysqlvbin\n";
 		}
 		
 		
@@ -388,7 +388,7 @@ class mysqlserver{
 		}
 		
 		if($this->main_array["max_allowed_packet"]<2){$this->main_array["max_allowed_packet"]=5;}
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: MySQL max_allowed_packet = {$this->main_array["max_allowed_packet"]}M\n";}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL max_allowed_packet = {$this->main_array["max_allowed_packet"]}M\n";}
 		
 		if(isset($this->MYSQL_BIN_PARAMS["skip-innodb"])){
 			$conf=$conf. "skip-innodb\n";		
@@ -409,7 +409,7 @@ class mysqlserver{
 		$conf=$conf ."query_cache_size = 1048576\n";
 		$conf=$conf ."query_cache_type = 1\n";	
 		$conf=$conf ."default-storage-engine=MyISAM\n";	
-		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: MySQL innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}	
+		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}	
 		$conf=$conf ."\n";
 		$conf=$conf ."[mysqldump]\n";	
 		$conf=$conf ."quick\n";	
@@ -447,13 +447,13 @@ class mysqlserver{
 			if(preg_match("#(.+?)=(.+)#", $value,$re)){
 				$key=trim(strtolower($re[1]));
 				if($this->TestsParametersToDelete($key)){
-					echo "Starting......: Mysql \"$key\" is depreciated\n";
+					echo "Starting......: ".date("H:i:s")." Mysql \"$key\" is depreciated\n";
 					$tbl[$index]="#$key={$re[2]} - depreciated";
 					$save=true;
 					continue;
 				}
 				
-				echo "Starting......: Mysql checking $key done\n";
+				echo "Starting......: ".date("H:i:s")." Mysql checking $key done\n";
 			}
 			
 		}
@@ -575,7 +575,7 @@ class mysqlserver{
 		$conf=$conf ."\n";
 		
 		if($GLOBALS["AS_ROOT"]){
-			echo "Starting......: Mysql ". count($SpecificConf)." specific tokens\n";
+			echo "Starting......: ".date("H:i:s")." Mysql ". count($SpecificConf)." specific tokens\n";
 		}
 		$conf=$conf ."[mysqld]\n";
 		if($SpecificConf<>null){
@@ -643,7 +643,7 @@ class mysqlserver{
 		if($this->main_array["sort_buffer"]<>null){
 			$mysqld["sort_buffer"]=$this->SetUnits("{$this->main_array["sort_buffer"]}");
 		}	
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: Mysql binary version :$this->mysqlvbin\n";}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Mysql binary version :$this->mysqlvbin\n";}
 		if($this->mysqlvbin>0){
 		if($this->mysqlvbin<501030){
 			if($this->main_array["table_cache"]<>null){
@@ -679,6 +679,7 @@ class mysqlserver{
 		if($this->main_array["innodb_additional_mem_pool_size"]<>null){
 			$mysqld["innodb_additional_mem_pool_size"]=$this->SetUnits($this->main_array["innodb_additional_mem_pool_size"]);
 		}			
+		
 		
 		if(is_numeric($this->main_array["innodb_log_file_size"])){
 			$mysqld["innodb_log_file_size"]=$this->SetUnits($this->main_array["innodb_log_file_size"]);
@@ -760,7 +761,7 @@ class mysqlserver{
 			
 		}
 		
-		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: Mysql innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}		
+		if($this->innodb_file_per_table==1){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Mysql innodb_file_per_table added...\n";}$conf=$conf ."innodb_file_per_table\n";}		
 
 		if($this->ZARAFA_INSTALLED){
 			///$mysqld["innodb_force_recovery"]= 4;
@@ -807,7 +808,7 @@ class mysqlserver{
 	function mysql_multi(){
 		if(!$GLOBALS["AS_ROOT"]){return;}
 		$lastconf="/etc/artica-postfix/MysqlMulti.conf";
-		if(!$GLOBALS["MULTI"]){if(is_file($lastconf)){echo "Starting......: [Note] Mysql return cached content\n";return @file_get_contents($lastconf);}}
+		if(!$GLOBALS["MULTI"]){if(is_file($lastconf)){echo "Starting......: ".date("H:i:s")." [Note] Mysql return cached content\n";return @file_get_contents($lastconf);}}
 		$unix=new unix();
 		
 		$chown=$unix->find_program("chown");
@@ -817,7 +818,7 @@ class mysqlserver{
 		$mysqld=$unix->find_program("mysqld");
 		$mysqlbin=$unix->find_program("mysql");
 		$mysqld_multi=$unix->find_program("mysqld_multi");
-		if(!is_file($mysql_install_db)){echo "Starting......: Mysql Warning mysql_install_db no such binary !!!\n";return;}
+		if(!is_file($mysql_install_db)){echo "Starting......: ".date("H:i:s")." Mysql Warning mysql_install_db no such binary !!!\n";return;}
 		$mysqld_variables_cmdline=$this->mysqld_variables_cmdline();
 		$lc_messages_dir=true;
 		if(!isset($mysqld_variables_cmdline["lc-messages-dir"])){$lc_messages_dir=false;}
@@ -826,7 +827,7 @@ class mysqlserver{
 		$q=new mysql();
 		$sql="SELECT * FROM mysqlmulti WHERE enabled=1 ORDER BY ID DESC";
 		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo "Starting......: Mysql checking fatal error $q->mysql_error\n";return;}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." Mysql checking fatal error $q->mysql_error\n";return;}
 		$f[]="[mysqld_multi]";
 		$f[]="mysqld = $mysqld";
 		$f[]="mysqladmin = $mysqladmin";
@@ -840,7 +841,7 @@ class mysqlserver{
 			if($ligne["Dir"]==null){$ligne["Dir"]="$this->MYSQL_DATA_DIR-$ID";}
 			if($lc_messages_dir){$lc_messages_dir_cmd=" --lc-messages-dir=";}
 			$mysql_install_db_cmds="$mysql_install_db --user=mysql --datadir=\"{$ligne["Dir"]}\"$lc_messages_dir_cmd";
-			if($ID==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: [Note] Mysql building configuration for instance Number $ID..\n";}
+			if($ID==$GLOBALS["SHOWLOGONLYFOR"]){echo "Starting......: ".date("H:i:s")." [Note] Mysql building configuration for instance Number $ID..\n";}
 			if(!is_numeric($ligne["usesocket"])){$ligne["usesocket"]=0;}
 			
 			
@@ -871,8 +872,8 @@ class mysqlserver{
 			if(!is_dir($ligne["Dir"])){
 				@mkdir($ligne["Dir"],0755,true);
 				shell_exec("$chown mysql:mysql {$ligne["Dir"]} >/dev/null 2>&1");
-				echo "Starting......: [Note] Mysql Installing databases in {$ligne["Dir"]}\n";
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Mysql $mysql_install_db_cmds\n";}
+				echo "Starting......: ".date("H:i:s")." [Note] Mysql Installing databases in {$ligne["Dir"]}\n";
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Mysql $mysql_install_db_cmds\n";}
 				shell_exec($mysql_install_db_cmds);	
 				shell_exec("$mysqld_multi start $ID");	
 				sleep(2);
@@ -883,8 +884,8 @@ class mysqlserver{
 			}
 			
 			if(!is_file("{$ligne["Dir"]}/mysql/user.MYI")){
-				echo "Starting......: [Note] Mysql Installing databases in {$ligne["Dir"]}\n";
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Mysql $mysql_install_db_cmds\n";}
+				echo "Starting......: ".date("H:i:s")." [Note] Mysql Installing databases in {$ligne["Dir"]}\n";
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Mysql $mysql_install_db_cmds\n";}
 				shell_exec($mysql_install_db_cmds);
 				shell_exec("$mysqld_multi start $ID");
 				sleep(2);
@@ -896,7 +897,7 @@ class mysqlserver{
 		}	
 
 		  			
-		echo "Starting......: [Note] Mysql building configuration done..\n";	
+		echo "Starting......: ".date("H:i:s")." [Note] Mysql building configuration done..\n";	
 		@file_put_contents("/etc/mysql-multi.cnf", @implode("\n", $f));
 		@file_put_contents($lastconf, @implode("\n", $f));
 		return @implode("\n", $f);

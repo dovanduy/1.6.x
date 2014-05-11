@@ -11,7 +11,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if($argv[1]=="route"){FixRoute();die();}
@@ -26,7 +26,7 @@ if($argv[1]=="--initd"){buildinit();die();}
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: hamachi already executed PID: $oldpid since {$time}Mn\n";
+		echo "Starting......: ".date("H:i:s")." hamachi already executed PID: $oldpid since {$time}Mn\n";
 		writelogs("hamachi already executed PID: $oldpid","MAIN",__FUNCTION__,__FILE__,__LINE__);
 		if(!$GLOBALS["FORCE"]){die();}
 		$kill=$unix->find_program("kill");
@@ -41,13 +41,13 @@ function main(){
 	$sock=new sockets();
 	$unix=new unix();
 	$users=new usersMenus();
-	if(!$users->HAMACHI_INSTALLED){echo "Starting......: hamachi not installed\n";die();}
+	if(!$users->HAMACHI_INSTALLED){echo "Starting......: ".date("H:i:s")." hamachi not installed\n";die();}
 	if(!isset($GLOBALS["hamachi_bin"])){$GLOBALS["hamachi_bin"]=$unix->find_program("hamachi");}
-	if(!is_file($GLOBALS["hamachi_bin"])){echo "Starting......: hamachi no such binary\n";die();}
+	if(!is_file($GLOBALS["hamachi_bin"])){echo "Starting......: ".date("H:i:s")." hamachi no such binary\n";die();}
 	
 	$EnableHamachi=$sock->GET_INFO("EnableHamachi");
 	if(!is_numeric($EnableHamachi)){$EnableHamachi=1;}	
-	if($EnableHamachi==0){echo "Starting......: hamachi disabled\n";HasGateway_iptables_delete_rules();hamachi_etc_hosts_remove();@unlink("/etc/cron.d/HamachiHosts");die();}
+	if($EnableHamachi==0){echo "Starting......: ".date("H:i:s")." hamachi disabled\n";HasGateway_iptables_delete_rules();hamachi_etc_hosts_remove();@unlink("/etc/cron.d/HamachiHosts");die();}
 	AdditionalSettings();
 	GetNets();
 	shell_exec("/etc/init.d/artica-postfix start hamachi");
@@ -85,7 +85,7 @@ function SetSchedule(){
 		if(!is_file($targetfile)){if($GLOBALS["VERBOSE"]){echo " -> $targetfile No such file\n";}}
 		$chmod=$unix->find_program("chmod");
 		shell_exec("$chmod 640 $targetfile");
-		echo "Starting......: hamachi $targetfile done\n";
+		echo "Starting......: ".date("H:i:s")." hamachi $targetfile done\n";
 		unset($f);			
 	}else{
 		hamachi_etc_hosts_remove();
@@ -100,7 +100,7 @@ function GetNets(){
 	exec($unix->find_program("hamachi")." list",$l);
 	while (list ($num, $ligne) = each ($l) ){
 		if(preg_match("#\[(.+?)\]#",$ligne,$re)){
-			echo "Starting......: hamachi {$re[1]} OK...\n";
+			echo "Starting......: ".date("H:i:s")." hamachi {$re[1]} OK...\n";
 			$GLOBALS["NETS"][$re[1]]=true;
 		}
 		
@@ -114,9 +114,9 @@ function DO_SET_NICK(){
 	$cmd=$GLOBALS["hamachi_bin"]." set-nick $users->hostname 2>&1";	
 	exec($cmd,$l3);
 	while (list ($num1, $ligne2) = each ($l3) ){
-		echo "Starting......: hamachi set-nick: $users->hostname $ligne2 - {$GLOBALS["COUNT".__FUNCTION__]}\n";
+		echo "Starting......: ".date("H:i:s")." hamachi set-nick: $users->hostname $ligne2 - {$GLOBALS["COUNT".__FUNCTION__]}\n";
 		if(preg_match("#failed, busy#", $ligne2)){
-			echo "Starting......: hamachi set-nick: $users->hostname waiting 2 seconds\n";
+			echo "Starting......: ".date("H:i:s")." hamachi set-nick: $users->hostname waiting 2 seconds\n";
 			sleep(2);
 			if($GLOBALS["COUNT".__FUNCTION__]<5){
 				$GLOBALS["COUNT".__FUNCTION__]=$GLOBALS["COUNT".__FUNCTION__]+1;
@@ -129,11 +129,11 @@ function DO_SET_NICK(){
 	
 function connect($array){
 	if(isset($GLOBALS["NETS"][$array["NETWORK"]])){
-		echo "Starting......: hamachi {$array["NETWORK"]} already connected...\n";
+		echo "Starting......: ".date("H:i:s")." hamachi {$array["NETWORK"]} already connected...\n";
 		return true;
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi perform {$array["TYPE"]} operation...\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi perform {$array["TYPE"]} operation...\n";}
 	
 	switch ($array["TYPE"]) {
 		case "JOIN_NET":JOIN_NET($array);break;
@@ -152,9 +152,9 @@ function DO_JOIN($network,$password){
 	$cmd=$GLOBALS["hamachi_bin"]." do-join $network $password 2>&1";	
 	exec($cmd,$l3);
 	while (list ($num1, $ligne2) = each ($l3) ){
-		echo "Starting......: hamachi [do-join]: $ligne2 - {$GLOBALS["COUNT".__FUNCTION__]}\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [do-join]: $ligne2 - {$GLOBALS["COUNT".__FUNCTION__]}\n";
 		if(preg_match("#failed, busy#", $ligne2)){
-			echo "Starting......: hamachi [do-join]: waiting 2 seconds\n";
+			echo "Starting......: ".date("H:i:s")." hamachi [do-join]: waiting 2 seconds\n";
 			sleep(2);
 			if($GLOBALS["COUNT".__FUNCTION__]<5){
 				$GLOBALS["COUNT".__FUNCTION__]=$GLOBALS["COUNT".__FUNCTION__]+1;
@@ -168,9 +168,9 @@ function DO_GO_ONLINE($network){
 	$cmd=$GLOBALS["hamachi_bin"]." go-online $network 2>&1";	
 	exec($cmd,$l3);
 	while (list ($num1, $ligne2) = each ($l3) ){
-		echo "Starting......: hamachi [go-online]: $ligne2 - {$GLOBALS["COUNT".__FUNCTION__]}\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [go-online]: $ligne2 - {$GLOBALS["COUNT".__FUNCTION__]}\n";
 		if(preg_match("#failed, busy#", $ligne2)){
-			echo "Starting......: hamachi [go-online]: waiting 2 seconds\n";
+			echo "Starting......: ".date("H:i:s")." hamachi [go-online]: waiting 2 seconds\n";
 			sleep(2);
 			if($GLOBALS["COUNT".__FUNCTION__]<5){
 				$GLOBALS["COUNT".__FUNCTION__]=$GLOBALS["COUNT".__FUNCTION__]+1;
@@ -184,20 +184,20 @@ function JOIN_NET($array){
 	if(!isset($GLOBALS["COUNT".__FUNCTION__])){$GLOBALS["COUNT".__FUNCTION__]=0;}
 	$unix=new unix();
 	if(!isset($GLOBALS["hamachi_bin"])){$GLOBALS["hamachi_bin"]=$unix->find_program("hamachi");}
-	echo "Starting......: hamachi [logout]: ...- {$GLOBALS["COUNT".__FUNCTION__]}\n";
+	echo "Starting......: ".date("H:i:s")." hamachi [logout]: ...- {$GLOBALS["COUNT".__FUNCTION__]}\n";
 	exec($GLOBALS["hamachi_bin"]." logout 2>&1",$l);
 	while (list ($num, $ligne) = each ($l) ){
-		echo "Starting......: hamachi [logout]: $ligne\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [logout]: $ligne\n";
 	}
 	$l=array();
-	echo "Starting......: hamachi [login]: ...- {$GLOBALS["COUNT".__FUNCTION__]}\n";
+	echo "Starting......: ".date("H:i:s")." hamachi [login]: ...- {$GLOBALS["COUNT".__FUNCTION__]}\n";
 	
 	
 	exec($GLOBALS["hamachi_bin"]." login 2>&1",$l);
 	while (list ($num, $ligne) = each ($l) ){
-		echo "Starting......: hamachi [login]: $ligne\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [login]: $ligne\n";
 		if(preg_match("#failed, busy#", $ligne)){
-			echo "Starting......: hamachi [login]: waiting 2 seconds\n";
+			echo "Starting......: ".date("H:i:s")." hamachi [login]: waiting 2 seconds\n";
 			sleep(2);
 			if($GLOBALS["COUNT".__FUNCTION__]<5){
 				$GLOBALS["COUNT".__FUNCTION__]=$GLOBALS["COUNT".__FUNCTION__]+1;
@@ -206,20 +206,20 @@ function JOIN_NET($array){
 		}
 
 		if(preg_match("#failed, already online#", $ligne)){
-			echo "Starting......: hamachi [login]: OK already online\n";
+			echo "Starting......: ".date("H:i:s")." hamachi [login]: OK already online\n";
 		}
 		
 	}
 	
 	
-	echo "Starting......: hamachi [join]: {$array["NETWORK"]}...\n";
+	echo "Starting......: ".date("H:i:s")." hamachi [join]: {$array["NETWORK"]}...\n";
 	$cmd=$GLOBALS["hamachi_bin"]." join {$array["NETWORK"]} {$array["PASSWORD"]} 2>&1";
 	exec($cmd,$l1);
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	while (list ($num, $ligne) = each ($l1) ){
-		echo "Starting......: hamachi [join]: $ligne\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [join]: $ligne\n";
 		if(preg_match("#failed, manual approval required#", $ligne)){
-			echo "Starting......: hamachi [join]: approval requested\n";	
+			echo "Starting......: ".date("H:i:s")." hamachi [join]: approval requested\n";	
 			DO_JOIN($array["NETWORK"],$array["PASSWORD"]);	
 		}
 		
@@ -282,7 +282,7 @@ function AdditionalSettings(){
 		}	
 	
 	if($ArticaProxyServerEnabled=="yes"){
-		echo "Starting......: hamachi [Conf]: Proxy tunnel is enabled\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [Conf]: Proxy tunnel is enabled\n";
 		$f[]="Conn.PxyAddr\t$ArticaProxyServerName";
 		$f[]="Conn.PxyPort\t$ArticaProxyServerPort";
 		$f[]="Conn.PxySave\t1";
@@ -297,7 +297,7 @@ function AdditionalSettings(){
 		
 	}
 	@file_put_contents("/var/lib/logmein-hamachi/h2-engine-override.cfg", @implode("\n", $f));
-	echo "Starting......: hamachi [Conf]: h2-engine-override.cfg done ". count($f)." parameters\n";
+	echo "Starting......: ".date("H:i:s")." hamachi [Conf]: h2-engine-override.cfg done ". count($f)." parameters\n";
 }
 
 
@@ -310,7 +310,7 @@ function FixRoute(){
 	while (list ($num, $ligne) = each ($results) ){
 		if(preg_match("#([0-9\.]+)\s+([0-9\.\*]+).+?\s+([0-9\.]+)\s+[A-Z]+.+ham0#",$ligne,$re)){
 			if(trim($re[2])<>$ip){
-				echo "Starting......: hamachi [Net]: ham0: $ip, building routes\n";
+				echo "Starting......: ".date("H:i:s")." hamachi [Net]: ham0: $ip, building routes\n";
 				shell_exec("route del -net 5.0.0.0 gw 0.0.0.0 netmask 255.0.0.0 dev ham0");
 				shell_exec("route add -net 5.0.0.0 gw $ip netmask 255.0.0.0 dev ham0");
 			}
@@ -336,7 +336,7 @@ function HasGateway_iptables_delete_rules(){
 	if($count>0){
 		file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
 		shell_exec("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
-		echo "Starting......: hamachi [Net]: Cleaning iptables $count rules\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [Net]: Cleaning iptables $count rules\n";
 	}
 
 }
@@ -352,12 +352,12 @@ function HasGateway(){
 	
 	if($EnableArticaAsGateway==1){
 		$sysctl=$unix->find_program("sysctl");
-		echo "Starting......: hamachi [Net]: Enable gateway mode\n";	
+		echo "Starting......: ".date("H:i:s")." hamachi [Net]: Enable gateway mode\n";	
 		shell_exec("$sysctl -w net.ipv4.ip_forward=1");
 	}
 	HasGateway_iptables_delete_rules();
 	if($HamachiFwInterface<>null){
-		echo "Starting......: hamachi [Net]: Transfert $HamachiFwInterface requests to ham0\n";
+		echo "Starting......: ".date("H:i:s")." hamachi [Net]: Transfert $HamachiFwInterface requests to ham0\n";
 		HasGateway_iptables($HamachiFwInterface);
 	}
 	
@@ -366,8 +366,8 @@ function HasGateway(){
 function HasGateway_iptables($IPTABLES_ETH){
 	$unix=new unix();
 	$iptables=$unix->find_program("iptables");
-	if(!is_file($iptables)){echo "Starting......: hamachi `iptables`, no such binary\n";return false;}
-	if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: hook the $IPTABLES_ETH nic\n";}
+	if(!is_file($iptables)){echo "Starting......: ".date("H:i:s")." hamachi `iptables`, no such binary\n";return false;}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: hook the $IPTABLES_ETH nic\n";}
 	shell_exec2("$iptables -A INPUT -i ham0 -j ACCEPT -m comment --comment \"ArticaHamachi\"");
 	shell_exec2("$iptables -A FORWARD -i ham0 -j ACCEPT -m comment --comment \"ArticaHamachi\"");
 	shell_exec2("$iptables -A OUTPUT -o ham0 -j ACCEPT -m comment --comment \"ArticaHamachi\"");
@@ -377,12 +377,12 @@ function HasGateway_iptables($IPTABLES_ETH){
 	shell_exec2("$iptables -A FORWARD -i $IPTABLES_ETH -j ACCEPT -m comment --comment \"ArticaHamachi\"");
 	shell_exec2("$iptables -A OUTPUT -o $IPTABLES_ETH -j ACCEPT -m comment --comment \"ArticaHamachi\"");
 	shell_exec2("$iptables -t nat -A POSTROUTING -o ham0 -j MASQUERADE -m comment --comment \"ArticaHamachi\"");
-	echo "Starting......: hamachi prerouting success from ham0 -> $IPTABLES_ETH...\n";
+	echo "Starting......: ".date("H:i:s")." hamachi prerouting success from ham0 -> $IPTABLES_ETH...\n";
 	
 }
-function shell_exec2($cmd){if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: executing \"$cmd\"\n";}shell_exec($cmd);}
+function shell_exec2($cmd){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: executing \"$cmd\"\n";}shell_exec($cmd);}
 function buildinit(){
-		if(!is_file("/etc/init.d/logmein-hamachi")){echo "Starting......: hamachi: [init]: logmein-hamachi no such file\n";return; }
+		if(!is_file("/etc/init.d/logmein-hamachi")){echo "Starting......: ".date("H:i:s")." hamachi: [init]: logmein-hamachi no such file\n";return; }
 		$unix=new unix();
 		$php=$unix->LOCATE_PHP5_BIN();	
 		$nohup=$unix->find_program("nohup");
@@ -509,13 +509,13 @@ function buildinit(){
 		$f[]="";
 		$f[]=":";	
 		@file_put_contents("/etc/init.d/logmein-hamachi", @implode("\n", $f));	
-		echo "Starting......: hamachi: [init]: logmein-hamachi done\n";
+		echo "Starting......: ".date("H:i:s")." hamachi: [init]: logmein-hamachi done\n";
 }
 
 function hamachi_etc_hosts(){
 		$sock=new sockets();
 		$DisableEtcHosts=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableEtcHosts"));
-		if($DisableEtcHosts==1){echo "Starting......: hamachi: [hosts]: DisableEtcHosts is enabled, aborting\n";return;}
+		if($DisableEtcHosts==1){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: DisableEtcHosts is enabled, aborting\n";return;}
 		$fixedDomain="hamachi.local";
 		$HamachiExtDomain=trim($sock->GET_INFO("HamachiExtDomain"));
 		if($HamachiExtDomain==null){hamachi_etc_hosts_remove();return;}
@@ -534,7 +534,7 @@ function hamachi_etc_hosts(){
 		exec("$hamachi list 2>&1",$f);
 		while (list ($num, $ligne) = each ($f) ){
 			if(preg_match("#[0-9\-]+\s+(.+?)\s+([0-9\.]+)\s+([0-9a-z\:]+)#", $ligne,$re)){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: [hosts]: {$re[1]} `{$re[2]}` `{$re[3]}`\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: {$re[1]} `{$re[2]}` `{$re[3]}`\n";}
 				$re[1]=trim($re[1]);
 				$re[2]=trim($re[2]);
 				$re[3]=trim($re[3]);
@@ -546,11 +546,11 @@ function hamachi_etc_hosts(){
 					$hostname=strtolower($hostSplit[0].".$HamachiExtDomain");
 					$hostname2=strtolower($hostSplit[0].".hamachi.local");
 					$hostFill[$key]=$re[2]."\t$hostname\t$hostname2";
-					if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: [hosts]: {$hostFill[$key]}\n";}
+					if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: {$hostFill[$key]}\n";}
 				}
 				
 			}else{
-				if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: [hosts]: $ligne NO MATCH\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: $ligne NO MATCH\n";}
 			}
 			
 		}
@@ -567,25 +567,25 @@ function hamachi_etc_hosts(){
 		@file_put_contents("/etc/artica-postfix/hamachi.cache", serialize($cache));
 		
 		
-		echo "Starting......: hamachi: [hosts]: /etc/hosts ". count($f)." items done...\n";
+		echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: /etc/hosts ". count($f)." items done...\n";
 		$users=new usersMenus();
 		if($users->dnsmasq_installed){
-			echo "Starting......: hamachi: [hosts]: reloading DNSMASQ...\n";
+			echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: reloading DNSMASQ...\n";
 			$cmd="$php5 ".dirname(__FILE__)."/exec.dnsmasq.php --reload";
-			if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: [hosts]: $cmd\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: $cmd\n";}
 			system($cmd);
 		}
 		
 		if($users->POWER_DNS_INSTALLED){
-			echo "Starting......: hamachi: [hosts]: reloading PDNS...\n";
+			echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: reloading PDNS...\n";
 			$cmd="$php5 ".dirname(__FILE__)."/exec.pdns.php --reload";
-			if($GLOBALS["VERBOSE"]){echo "Starting......: hamachi: [hosts]: $cmd\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: $cmd\n";}
 			system($cmd);
 		}
 
 	}else{
 		if($GLOBALS["VERBOSE"]){
-			echo "Starting......: hamachi: [hosts]: no changes\n";
+			echo "Starting......: ".date("H:i:s")." hamachi: [hosts]: no changes\n";
 		}
 	}	
 		

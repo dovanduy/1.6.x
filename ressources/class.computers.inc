@@ -10,6 +10,7 @@ include_once(dirname(__FILE__).'/class.crypt.php');
 include_once(dirname(__FILE__).'/class.dhcpd.inc');
 include_once(dirname(__FILE__).'/class.ocs.inc');
 include_once(dirname(__FILE__) . '/class.pdns.inc');
+include_once(dirname(__FILE__) . '/class.tcpip.inc');
 
 
 class computers{
@@ -87,8 +88,6 @@ function computers($uid=null){
 	
 function ChangeDisplayName(){
 	if($GLOBALS["NORESOLVCOMP"]){return;}
-	if(isset($GLOBALS[__CLASS__.__FUNCTION__.$this->ComputerIP])){$this->DisplayName=$GLOBALS[__CLASS__.__FUNCTION__.$this->ComputerIP];return;}
-	if(isset($_SESSION[__CLASS__.__FUNCTION__.$this->ComputerIP])){$this->DisplayName=$_SESSION[__CLASS__.__FUNCTION__.$this->ComputerIP];return;}
 	if($this->ComputerIP<>null){
 		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+#", $this->ComputerIP)){return;}
 		
@@ -98,8 +97,6 @@ function ChangeDisplayName(){
 			if($tmp<>$this->ComputerIP){$this->DisplayName=$tmp;}
 		}
 	}
-	$GLOBALS[__CLASS__.__FUNCTION__.$this->ComputerIP]=$this->DisplayName;
-	$_SESSION[__CLASS__.__FUNCTION__.$this->ComputerIP]=$this->DisplayName;	
 	
 }
 	
@@ -465,13 +462,21 @@ function SaveDHCPMode(){
 	
 function VerifyDefault(){
 	$u=array();
+	$ip=new IP();
 	if($this->DnsType==null){$this->DnsType="A";}
 	if($this->DnsZoneName==null){$this->DnsZoneName="localhost";}
 	if($this->ComputerIP==null){
-		$resolved=@gethostbyname($this->uid);
-		if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$resolved)){
-			writelogs("gethostbyname($this->uid)=$resolved",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			$this->ComputerIP=$resolved;
+		$hostname=$this->uid;
+		$hostname=str_replace("$", "", $hostname);
+		if(!$ip->isIPAddress($hostname)){
+			$resolved=@gethostbyname($hostname);
+			if($ip->isIPAddress($hostname)){
+				writelogs("gethostbyname($this->uid)=$resolved",__CLASS__.'/'.__FUNCTION__,__FILE__);
+				$this->ComputerIP=$resolved;
+			}
+		}else{
+			$this->ComputerIP=$hostname;
+			$this->ComputerRealName=gethostbyaddr($hostname);
 		}
 	}
 	
@@ -743,20 +748,23 @@ private function uidPatternFromComputer($uid){
 }
 	
 function Add(){
+	$ip=new IP();
 	$this->ComputerIP=str_replace("$",'',$this->ComputerIP);
 	$this->ComputerIP=$this->uidPatternFromComputer($this->ComputerIP);
-	if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->ComputerIP)){$this->ComputerIP=null;}
-	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$this->uid)){writelogs("$this->uid wrong computername",__CLASS__.'/'.__FUNCTION__,__FILE__);return;}
+	$this->ComputerMacAddress=trim(strtolower($this->ComputerMacAddress));
+	$this->ComputerMacAddress=str_replace("-", ":", $this->ComputerMacAddress);
+	
+	if(!$ip->isIPAddress($this->ComputerIP)){$this->ComputerIP=null;}
+	if($ip->isIPAddress($this->uid)){$this->uid="Unknown-".ip2long($this->uid);}
 	$this->uid=str_replace(" ","",$this->uid);
+	if(!$ip->IsvalidMAC($this->ComputerMacAddress)){$this->ComputerMacAddress=null;}
+	
 	if($this->ComputerMacAddress<>null){
-		if($this->ComputerMacAddress<>"Unknown"){
-			$uid_mac=$this->ComputerIDFromMAC($this->ComputerMacAddress);
-			if(trim($uid_mac)<>null){
-					writelogs("$this->ComputerMacAddress= $uid_mac, change to this uid",__CLASS__.'/'.__FUNCTION__,__FILE__);
-					$this->uid=$uid_mac;
-			}
+		$uid_mac=$this->ComputerIDFromMAC($this->ComputerMacAddress);
+		if(trim($uid_mac)<>null){
+			writelogs("$this->ComputerMacAddress= $uid_mac, change to this uid",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			$this->uid=$uid_mac;
 		}
-		
 	}
 	
 	$this->VerifyDefault();

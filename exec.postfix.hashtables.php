@@ -42,7 +42,7 @@ $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($pid,basename(__FILE__))){
 	$time=$unix->PROCCESS_TIME_MIN($pid);
-	echo "Starting......: Already executed pid:$pid since {$time}Mn\n";
+	echo "Starting......: ".date("H:i:s")." Already executed pid:$pid since {$time}Mn\n";
 	$unix->send_email_events("Postfix user databases aborted (instance executed)", "Already instance pid $pid is executed", "postfix");
 	die();
 }
@@ -52,7 +52,7 @@ if($unix->process_exists($pid,basename(__FILE__))){
 $ldap=new clladp();
 if($ldap->ldapFailed){
 	WriteToSyslogMail("Fatal: connecting to ldap server $ldap->ldap_host",basename(__FILE__),true);
-	echo "Starting......: failed connecting to ldap server $ldap->ldap_host\n";
+	echo "Starting......: ".date("H:i:s")." failed connecting to ldap server $ldap->ldap_host\n";
 	$unix->send_email_events("Postfix user databases aborted (ldap failed)", "The process has been scheduled to start in few seconds.", "postfix"); 
 	$unix->THREAD_COMMAND_SET(trim($unix->LOCATE_PHP5_BIN()." ".__FILE__. " {$argv[1]}"));
 	die();
@@ -66,7 +66,7 @@ if($argv[1]=="--postmaster"){postmaster();die();}
 
 if($argv[1]=="--mailbox-transport-maps"){
 	mailbox_transport_maps();
-	echo "Starting......: Postfix reloading\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();	
 }
@@ -76,7 +76,7 @@ if($argv[1]=="--mailman"){
 	cmdline_alias();
 	cmdline_transport();
 	perso_settings();
-	echo "Starting......: Postfix reloading\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();	
 }
@@ -122,7 +122,7 @@ if($argv[1]=="--transport"){
 	internal_pid($argv);
 	cmdline_transport();
 	perso_settings();
-	echo "Starting......: Postfix reloading\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();}
 	
@@ -130,7 +130,7 @@ if($argv[1]=="--aliases"){
 	internal_pid($argv);
 	cmdline_alias();
 	perso_settings();
-	echo "Starting......: Postfix reloading\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();}
 		
@@ -144,7 +144,7 @@ if($argv[1]=="--smtp-passwords"){
 	smtp_sasl_password_maps_build();
 	smtp_sasl_password_maps();
 	perso_settings();
-	echo "Starting......: Postfix reloading\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();}	
 	
@@ -154,7 +154,7 @@ if($argv[1]=="--smtp-generic-maps"){
 	smtp_generic_maps_build_global();
 	smtp_generic_maps();
 	perso_settings();
-	echo "Starting......: Postfix reloading\n";
+	echo "Starting......: ".date("H:i:s")." Postfix reloading\n";
 	shell_exec("{$GLOBALS["postfix"]} reload >/dev/null 2>&1");
 	die();
 
@@ -166,7 +166,7 @@ $pidfile="/etc/artica-postfix/pids/postfix.reconfigure2.pid";
 $oldpid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($oldpid,basename(__FILE__))){
 	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
 	die();
 }
 @file_put_contents($pidfile, getmypid());
@@ -246,7 +246,7 @@ function internal_pid($argv){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$md5.pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,$mef)){
-		echo "Starting......: Postfix : Process Already exist pid $oldpid line:".__LINE__."\n";
+		echo "Starting......: ".date("H:i:s")." Postfix : Process Already exist pid $oldpid line:".__LINE__."\n";
 		system_admin_events("`$cmsline` task cannot be performed, a Process Already exist pid $oldpid", __FUNCTION__, __FILE__, __LINE__, "postfix");
 		die();
 	}	
@@ -304,7 +304,7 @@ $ldap=new clladp();
 		$GLOBALS["bcc_maps"][]="$mail\t$RecipientToAdd";
 		
 	}	
-	echo "Starting......: Postfix ". count($GLOBALS["bcc_maps"])." recipient(s) BCC\n"; 	
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["bcc_maps"])." recipient(s) BCC\n"; 	
 }
 function sender_bcc_maps(){
 $ldap=new clladp();
@@ -319,7 +319,7 @@ $ldap=new clladp();
 		$GLOBALS["sender_bcc_maps"][]="$mail\t$senderbccmaps";
 		
 	}	
-	echo "Starting......: Postfix ". count($GLOBALS["sender_bcc_maps"])." Sender(s) BCC\n"; 	
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["sender_bcc_maps"])." Sender(s) BCC\n"; 	
 }
 function sender_bcc_maps_build(){
 	
@@ -331,7 +331,7 @@ function sender_bcc_maps_build(){
 		}
 	
 		shell_exec("{$GLOBALS["postconf"]} -e \"sender_bcc_maps =hash:/etc/postfix/sender_bcc\" >/dev/null 2>&1");
-		echo "Starting......: Compiling Sender(s) BCC\n"; 
+		echo "Starting......: ".date("H:i:s")." Compiling Sender(s) BCC\n"; 
 		@file_put_contents("/etc/postfix/sender_bcc",implode("\n",$GLOBALS["sender_bcc_maps"]));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_bcc >/dev/null 2>&1");	
 }
@@ -378,7 +378,7 @@ function recipient_bcc_domain_maps(){
 		$t[]="$nextdomain_transport\tsmtp:[{$ligne["relay"]}]:{$ligne["port"]}";
 		$c++;
 	}
-	echo "Starting......: ".count($f)." duplicated destination(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." ".count($f)." duplicated destination(s)\n"; 
 	$f[]="";
 	@file_put_contents("/etc/postfix/copy.pcre",implode("\n",$f));
 	@file_put_contents("/etc/postfix/copy.transport",implode("\n",$t));
@@ -391,7 +391,7 @@ if(!is_array($GLOBALS["bcc_maps"])){
 		}
 	
 		shell_exec("{$GLOBALS["postconf"]} -e \"recipient_bcc_maps =hash:/etc/postfix/recipient_bcc,pcre:/etc/postfix/copy.pcre\" >/dev/null 2>&1");
-		echo "Starting......: Compiling Recipient(s) BCC\n";
+		echo "Starting......: ".date("H:i:s")." Compiling Recipient(s) BCC\n";
 		@file_put_contents("/etc/postfix/recipient_bcc",implode("\n",$GLOBALS["bcc_maps"]));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/recipient_bcc >/dev/null 2>&1");	
 }
@@ -478,7 +478,7 @@ function catch_all(){
 	for($i=0;$i<$hash["count"];$i++){
 		$cn=$hash[$i]["cn"][0];
 		for($t=0;$t<$hash[$i][strtolower("CatchAllPostfixAddr")]["count"];$t++){
-			echo "Starting......: catch-all {$hash[$i][strtolower("CatchAllPostfixAddr")][$t]} for $cn\n";
+			echo "Starting......: ".date("H:i:s")." catch-all {$hash[$i][strtolower("CatchAllPostfixAddr")][$t]} for $cn\n";
 			if(substr($cn,0,1)<>"@"){$cn=trim("@$cn");}
 			if($GLOBALS["DEBUG"]){echo __FUNCTION__." -> virtual_alias_maps=$cn\t{$hash[$i][strtolower("CatchAllPostfixAddr")][$t]}\n";}
 			$GLOBALS["virtual_alias_maps"][$cn]="$cn\t{$hash[$i][strtolower("CatchAllPostfixAddr")][$t]}";
@@ -517,7 +517,7 @@ function relais_domains_search(){
 
 	
 	
-	echo "Starting......: Postfix ". count($GLOBALS["relay_domains"])." relay domain(s)\n";
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["relay_domains"])." relay domain(s)\n";
 }
 	
 function build_relay_domains(){
@@ -687,11 +687,11 @@ function aliases_users(){
 function build_local_recipient_maps(){
 if(!is_array($GLOBALS["local_recipient_maps"])){
 		shell_exec("{$GLOBALS["postconf"]} -e \"local_recipient_maps = \" >/dev/null 2>&1");
-		echo "Starting......: No recipients maps\n"; 
+		echo "Starting......: ".date("H:i:s")." No recipients maps\n"; 
 		return null;
 		}	
 
-echo "Starting......: Postfix ". count($GLOBALS["local_recipient_maps"])." local recipient(s)\n"; 
+echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["local_recipient_maps"])." local recipient(s)\n"; 
 shell_exec("{$GLOBALS["postconf"]} -e \"local_recipient_maps =hash:/etc/postfix/local_recipients\" >/dev/null 2>&1");
 file_put_contents("/etc/postfix/local_recipients",implode("\n",$GLOBALS["local_recipient_maps"]));
 shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/local_recipients >/dev/null 2>&1");		
@@ -721,14 +721,14 @@ function build_virtual_alias_maps(){
 	if($GLOBALS["DEBUG"]){echo __FUNCTION__." -> virtual_alias_maps=". count($GLOBALS["virtual_alias_maps"]) . " entries\n";}
 
 	if(is_array($GLOBALS["virtual_alias_maps_emailing"])){	
-			echo "Starting......: Postfix ". count($GLOBALS["virtual_alias_maps_emailing"])." distribution listes\n";	
+			echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["virtual_alias_maps_emailing"])." distribution listes\n";	
 			while (list ($num, $ligne) = each ($GLOBALS["virtual_alias_maps_emailing"]) ){
 				$final[]=$ligne;
 			}
 		}	
 //-----------------------------------------------------------------------------------
 	if(is_array($GLOBALS["virtual_alias_maps"])){
-			echo "Starting......: Cleaning virtual aliase(s)\n"; 
+			echo "Starting......: ".date("H:i:s")." Cleaning virtual aliase(s)\n"; 
 			while (list ($num, $ligne) = each ($GLOBALS["virtual_alias_maps"]) ){
 			if(preg_match("#x500:#",$ligne)){continue;}
 			if(preg_match("#x400:#",$ligne)){continue;}
@@ -789,8 +789,8 @@ function build_virtual_alias_maps(){
 		}
 	
 	
-		echo "Starting......: Postfix ". count($final)." virtual aliase(s)\n"; 	
-		echo "Starting......: Postfix ". count($li)." virtual domain(s) aliases\n"; 	
+		echo "Starting......: ".date("H:i:s")." Postfix ". count($final)." virtual aliase(s)\n"; 	
+		echo "Starting......: ".date("H:i:s")." Postfix ". count($li)." virtual domain(s) aliases\n"; 	
 		$virtual_alias_maps_cf[]="hash:/etc/postfix/virtual";
 		$virtual_alias_maps_cf[]="pcre:/etc/postfix/virtual.domains";
 		
@@ -798,7 +798,7 @@ function build_virtual_alias_maps(){
 		@file_put_contents("/etc/postfix/virtual",implode("\n",$final));
 		@file_put_contents("/etc/postfix/virtual.domains",implode("\n",$li));
 		
-		echo "Starting......: Postfix compiling virtual aliase database /etc/postfix/virtual\n"; 
+		echo "Starting......: ".date("H:i:s")." Postfix compiling virtual aliase database /etc/postfix/virtual\n"; 
 		if($GLOBALS["DEBUG"]){echo __FUNCTION__." -> {$GLOBALS["postmap"]} hash:/etc/postfix/virtual >/dev/null 2>&1\n";}	
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/virtual >/dev/null 2>&1");
 	
@@ -810,10 +810,10 @@ function build_virtual_alias_maps(){
 	if(!is_array($virtual_alias_maps_cf)){
 		if($GLOBALS["DEBUG"]){echo __FUNCTION__." -> {$GLOBALS["postconf"]} -e \"virtual_alias_maps = \" >/dev/null 2>&1\n";}
 		shell_exec("{$GLOBALS["postconf"]} -e \"virtual_alias_maps = \" >/dev/null 2>&1");
-		echo "Starting......: Postfix No virtual aliases\n";
+		echo "Starting......: ".date("H:i:s")." Postfix No virtual aliases\n";
 		return;
 	}else{
-		echo "Starting......: Postfix building virtual_alias_maps\n";
+		echo "Starting......: ".date("H:i:s")." Postfix building virtual_alias_maps\n";
 		shell_exec("{$GLOBALS["postconf"]} -e \"virtual_alias_maps = ". @implode(",",$virtual_alias_maps_cf).$main->mailman_aliases()."\" >/dev/null 2>&1");
 	}		
 	
@@ -856,7 +856,7 @@ function build_aliases_maps(){
 	$alias_maps_cf[]="hash:/etc/postfix/aliases";
 	$alias_database_cf[]="hash:/etc/postfix/aliases";
 	
-	echo "Starting......: Postfix ". count($GLOBALS["alias_maps"])." aliase(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["alias_maps"])." aliase(s)\n"; 
 		
 	
 	
@@ -874,15 +874,15 @@ function build_aliases_maps(){
 	}
 	
 	
-	echo "Starting......: Postfix building alias_maps\n";
+	echo "Starting......: ".date("H:i:s")." Postfix building alias_maps\n";
 	shell_exec("{$GLOBALS["postconf"]} -e \"alias_maps =". @implode(",",$alias_maps_cf)."\" >/dev/null 2>&1");
 	
 	
-	echo "Starting......: Postfix building alias_database\n";
+	echo "Starting......: ".date("H:i:s")." Postfix building alias_database\n";
 	shell_exec("{$GLOBALS["postconf"]} -e \"alias_database =". @implode(",",$alias_database_cf)."\" >/dev/null 2>&1");
 	
 	if(count($virtual_mailbox_maps_cf)>0){	
-		echo "Starting......: Postfix building virtual_mailbox_maps\n";
+		echo "Starting......: ".date("H:i:s")." Postfix building virtual_mailbox_maps\n";
 		shell_exec("{$GLOBALS["postconf"]} -e \"virtual_mailbox_maps =". @implode(",",$virtual_mailbox_maps_cf)."\" >/dev/null 2>&1");
 	}else{
 		shell_exec("{$GLOBALS["postconf"]} -e \"virtual_mailbox_maps = \" >/dev/null 2>&1");
@@ -957,7 +957,7 @@ function build_transport_maps(){
 		
 	}
 	
-	echo "Starting......: Postfix ". count($array)." routings rules\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($array)." routings rules\n"; 
 	
 	if(count($GLOBALS["transport_maps_AT"])>0){
 	while (list ($num, $ligne) = each ($GLOBALS["transport_maps_AT"]) ){
@@ -1037,12 +1037,12 @@ function smtp_sasl_password_maps_build(){
 		$mail=$hash[$i]["cn"][0];
 		$value=trim($hash[$i][strtolower("SmtpSaslPasswordString")][0]);
 		if($value==null){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: skip  $mail (no password)\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." skip  $mail (no password)\n";}
 			continue;
 		}
 		if($value==":"){continue;}
 		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: adding  $mail\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." adding  $mail\n";}
 		$smtp_sasl_password_maps[$mail]=$value;
 	}
 
@@ -1054,11 +1054,11 @@ function smtp_sasl_password_maps_build(){
 		$mail=$hash[$i]["cn"][0];
 		$value=trim($hash[$i][strtolower("SenderCanonicalRelayPassword")][0]);
 		if($value==null){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: skip  $mail (no password)\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." skip  $mail (no password)\n";}
 			continue;
 		}
 		if($value==":"){continue;}
-		if($GLOBALS["VERBOSE"]){echo "Starting......: adding  $mail\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." adding  $mail\n";}
 		
 		$smtp_sasl_password_maps[$mail]=$value;
 	}
@@ -1077,7 +1077,7 @@ function smtp_sasl_password_maps(){
 	if(!is_array($GLOBALS["smtp_sasl_password_maps"])){
 		
 		
-		echo "Starting......: 0 smtp password rule(s)\n"; 
+		echo "Starting......: ".date("H:i:s")." 0 smtp password rule(s)\n"; 
 		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_password_maps =\" >/dev/null 2>&1");
 		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_auth_enable =no\" >/dev/null 2>&1");
 		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_password_maps =\" >/dev/null 2>&1");
@@ -1087,7 +1087,7 @@ function smtp_sasl_password_maps(){
 	while (list ($index, $value) = each ($GLOBALS["smtp_sasl_password_maps"]) ){$newarray[$value]=$value;}
 	while (list ($index, $value) = each ($newarray) ){$newarray2[]=$value;}		
 
-	echo "Starting......: Postfix ". count($newarray2)." smtp password rule(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($newarray2)." smtp password rule(s)\n"; 
 	@file_put_contents("/etc/postfix/smtp_sasl_password",implode("\n",$newarray2));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/smtp_sasl_password >/dev/null 2>&1");
 	shell_exec("{$GLOBALS["postconf"]} -e \"smtp_sasl_password_maps = hash:/etc/postfix/smtp_sasl_password\" >/dev/null 2>&1");
@@ -1159,13 +1159,13 @@ function sender_dependent_relayhost_maps_build(){
 function sender_dependent_relayhost_maps(){
 	sender_dependent_relayhost_maps_build();
 	if(!is_array($GLOBALS["sender_dependent_relayhost_maps"])){
-		echo "Starting......: 0 sender dependent relayhost rule(s)\n"; 
+		echo "Starting......: ".date("H:i:s")." 0 sender dependent relayhost rule(s)\n"; 
 		shell_exec("{$GLOBALS["postconf"]} -e \"sender_dependent_relayhost_maps =hash:/etc/postfix/sender_dependent_relayhost\" >/dev/null 2>&1");
 		@file_put_contents("/etc/postfix/sender_dependent_relayhost","#");
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_dependent_relayhost >/dev/null 2>&1");
 	}
 
-	echo "Starting......: Postfix ". count($GLOBALS["sender_dependent_relayhost_maps"])." sender dependent relayhost rule(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["sender_dependent_relayhost_maps"])." sender dependent relayhost rule(s)\n"; 
 	@file_put_contents("/etc/postfix/sender_dependent_relayhost",implode("\n",$GLOBALS["sender_dependent_relayhost_maps"]));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_dependent_relayhost >/dev/null 2>&1");
 	shell_exec("{$GLOBALS["postconf"]} -e \"sender_dependent_relayhost_maps = hash:/etc/postfix/sender_dependent_relayhost\" >/dev/null 2>&1");
@@ -1207,11 +1207,11 @@ function smtp_generic_maps_build_global(){
 
 function sender_canonical_maps(){
 	if(!is_array($GLOBALS["sender_canonical_maps"])){
-		echo "Starting......: 0 sender retranslation rule(s)\n"; 
+		echo "Starting......: ".date("H:i:s")." 0 sender retranslation rule(s)\n"; 
 		shell_exec("{$GLOBALS["postconf"]} -e \"sender_canonical_maps =\" >/dev/null 2>&1");
 	}
 
-	echo "Starting......: Postfix ". count($GLOBALS["sender_canonical_maps"])." sender retranslation rule(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["sender_canonical_maps"])." sender retranslation rule(s)\n"; 
 	@file_put_contents("/etc/postfix/sender_canonical",implode("\n",$GLOBALS["sender_canonical_maps"]));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/sender_canonical >/dev/null 2>&1");
 	shell_exec("{$GLOBALS["postconf"]} -e \"sender_canonical_maps = hash:/etc/postfix/sender_canonical\" >/dev/null 2>&1");
@@ -1219,10 +1219,10 @@ function sender_canonical_maps(){
 
 function smtp_generic_maps(){
 	if(!is_array($GLOBALS["smtp_generic_maps"])){
-		echo "Starting......: 0 SMTP generic retranslations rule(s)\n"; 
+		echo "Starting......: ".date("H:i:s")." 0 SMTP generic retranslations rule(s)\n"; 
 		shell_exec("{$GLOBALS["postconf"]} -e \"smtp_generic_maps =\" >/dev/null 2>&1");
 	}	
-	echo "Starting......: Postfix ". count($GLOBALS["smtp_generic_maps"])." SMTP generic retranslations rule(s)\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["smtp_generic_maps"])." SMTP generic retranslations rule(s)\n"; 
 	@file_put_contents("/etc/postfix/smtp_generic_maps",implode("\n",$GLOBALS["smtp_generic_maps"]));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/smtp_generic_maps >/dev/null 2>&1");
 	shell_exec("{$GLOBALS["postconf"]} -e \"smtp_generic_maps = hash:/etc/postfix/smtp_generic_maps\" >/dev/null 2>&1");
@@ -1241,7 +1241,7 @@ function recipient_canonical_maps(){
 	if(!isset($GLOBALS["recipient_canonical_maps"])){$GLOBALS["recipient_canonical_maps"]=array();}
 	
 	if(count($GLOBALS["recipient_canonical_maps"])>0){
-		echo "Starting......: Postfix ". count($GLOBALS["recipient_canonical_maps"])." recipients retranslation rule(s)\n"; 
+		echo "Starting......: ".date("H:i:s")." Postfix ". count($GLOBALS["recipient_canonical_maps"])." recipients retranslation rule(s)\n"; 
 		$recipient_canonical_maps[]="hash:/etc/postfix/recipient_canonical";
 		@file_put_contents("/etc/postfix/recipient_canonical",implode("\n",$GLOBALS["recipient_canonical_maps"]));
 		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/recipient_canonical >/dev/null 2>&1");
@@ -1249,10 +1249,10 @@ function recipient_canonical_maps(){
 	
 	
 	if(count($recipient_canonical_maps)>0){
-		echo "Starting......: Postfix ". count($recipient_canonical_maps)." retranslation database(s)\n"; 
+		echo "Starting......: ".date("H:i:s")." Postfix ". count($recipient_canonical_maps)." retranslation database(s)\n"; 
 		shell_exec("{$GLOBALS["postconf"]} -e \"recipient_canonical_maps = ".@implode(", ", $recipient_canonical_maps)."\" >/dev/null 2>&1");
 	}else{
-		echo "Starting......: Postfix 0 retranslation database\n";
+		echo "Starting......: ".date("H:i:s")." Postfix 0 retranslation database\n";
 		shell_exec("{$GLOBALS["postconf"]} -e \"recipient_canonical_maps =\" >/dev/null 2>&1");
 	}
 }
@@ -1265,17 +1265,17 @@ function restrict_relay_domains(){
 	$relaysdomains=$ldap->hash_get_relay_domains();
 	$main=new maincf_multi("master","master");
 	$relay_domains_restricted=$main->relay_domains_restricted();
-	echo "Starting......: Postfix ".count($relay_domains_restricted)." restricted defined domains\n";
+	echo "Starting......: ".date("H:i:s")." Postfix ".count($relay_domains_restricted)." restricted defined domains\n";
 	
 	if(count($relaysdomains)>0){
 		while (list ($domain, $ligne) = each ($relaysdomains) ){
 			if(preg_match("#^@(.+)#",$domain,$re)){$domain=$re[1];}
 			if(!isset($relay_domains_restricted[$domain])){continue;}
 			$f[]="$domain\tartica_restrict_relay_domains";
-			echo "Starting......: Postfix `$domain` will be restricted\n";
+			echo "Starting......: ".date("H:i:s")." Postfix `$domain` will be restricted\n";
 		}
 	}
-	echo "Starting......: Postfix ". count($f)." restricted relayed domains\n"; 
+	echo "Starting......: ".date("H:i:s")." Postfix ". count($f)." restricted relayed domains\n"; 
 	@file_put_contents("/etc/postfix/relay_domains_restricted",implode("\n",$f));
 	shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/relay_domains_restricted >/dev/null 2>&1");
 	
@@ -1342,7 +1342,7 @@ function transport_maps_search(){
 			$GLOBALS["transport_mem"]["@$domain"]=true;
 		}
 	}	
-	echo "Starting......: Postfix $t routed domains from external sources\n";
+	echo "Starting......: ".date("H:i:s")." Postfix $t routed domains from external sources\n";
 	
   	$dn="cn=artica_smtp_sync,cn=artica,$ldap->suffix";
   	$filter="(&(objectClass=InternalRecipients)(cn=*))";	
@@ -1393,7 +1393,7 @@ function relayhost(){
 	$hash=$tools->transport_maps_explode($PostfixRelayHost);
 	if($hash[2]==null){$hash[2]=25;}
 	$PostfixRelayHost_pattern="[{$hash[1]}]:{$hash[2]}";
-	echo "Starting......: Relay host: $PostfixRelayHost_pattern\n"; 
+	echo "Starting......: ".date("H:i:s")." Relay host: $PostfixRelayHost_pattern\n"; 
 	$ldap=new clladp();
 	$sasl_password_string=$ldap->sasl_relayhost($hash[1]);
 	if($sasl_password_string<>null){

@@ -104,17 +104,8 @@ function tabs(){
 		//$html=$html . "<li><a href=\"javascript:LoadAjax('squid_main_config','$page?main=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
 			
 		}
-	echo "
-	<div id=squid_main_blacklists style='width:750px;heigth:750px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#squid_main_blacklists').tabs();
-			
-			
-			});
-		</script>";			
+	echo build_artica_tabs($html, "squid_main_blacklists");
+		
 }
 
 function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){ 

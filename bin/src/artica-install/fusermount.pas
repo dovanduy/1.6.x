@@ -299,7 +299,7 @@ begin
 
    if not DirectoryExists('/sys/fs/fuse/connections') then begin
       forceDirectories('/sys/fs/fuse/connections');
-      fpsystem('/bin/chmod 755 /sys/fs/fuse/connections');
+      fpsystem('/bin/chmod 755 /sys/fs/fuse/connections >/dev/null 2>&1');
    end;
 
    modprobed();

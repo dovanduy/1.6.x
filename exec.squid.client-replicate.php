@@ -21,7 +21,7 @@ $GLOBALS["REBUILD"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["OUTPUT"]=false;
 WriteMyLogs("commands= ".implode(" ",$argv),"MAIN",__FILE__,__LINE__);
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}

@@ -3,7 +3,7 @@
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.iptables-chains.inc');
-	
+	include_once('ressources/class.resolv.conf.inc');
 	
 
 if(isset($_GET["popup"])){popup();exit;}
@@ -309,17 +309,8 @@ $array["tab-iptables-events"]='{events}';
 	}
 	
 	
-	echo "
-	<div id=instant_iptables_tabs style='width:100%;height:700px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#instant_iptables_tabs').tabs();
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "instant_iptables_tabs");
+	
 	
 	
 }
@@ -760,7 +751,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'ID', width : 31, sortable : true, align: 'center'},	
-		{display: '$server', name : 'server', width : 670, sortable : false, align: 'left'},
+		{display: '$server', name : 'server', width : 651, sortable : false, align: 'left'},
 		{display: '$enable', name : 'enable', width : 31, sortable : false, align: 'center'},
 		{display: 'LOG', name : 'log', width : 31, sortable : false, align: 'center'},
 		{display: 'DEL', name : 'Del', width : 31, sortable : false, align: 'center'},
@@ -776,7 +767,7 @@ $('#$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 875,
+	width: '99%',
 	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]

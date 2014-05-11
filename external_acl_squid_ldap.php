@@ -14,6 +14,10 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
   $GLOBALS["MACTUIDONLY"]=false;
   $GLOBALS["uriToHost"]=array();
   $GLOBALS["SESSION_TIME"]=array();
+  $GLOBALS["LDAP_TIME_LIMIT"]=10;
+  
+  $GLOBALS["DEBUG"]=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidExternalLDAPDebug"));
+  if(!is_numeric($GLOBALS["DEBUG"])){$GLOBALS["DEBUG"]=0;}
   $GLOBALS["F"] = @fopen("/var/log/squid/external-acl.log", 'a');
   $GLOBALS["TIMELOG"]=0;
   $GLOBALS["QUERIES_NUMBER"]=0;
@@ -24,7 +28,7 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
 
   $max_execution_time=ini_get('max_execution_time'); 
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/".basename(__FILE__).".cache"));
-  WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters");
+  WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters debug = {$GLOBALS["DEBUG"]}");
   ConnectToLDAP();
   if($argv[1]=="--groups"){$GLOBALS["VERBOSE"]=true;$GROUPZ=GetGroupsFromMember($argv[2]);print_r($GROUPZ);die();}
   
@@ -33,11 +37,17 @@ while (!feof(STDIN)) {
  $content = trim(fgets(STDIN));
  
  if($content<>null){
- 	//WLOG("receive content...$content");
+ 	if($GLOBALS["DEBUG"] == 1){ WLOG("receive content...$content"); }
  	$array=explode(" ",$content);
  	$member=trim($array[0]);
- 	$group=strtolower($array[1]);
- 	//WLOG("GetGroupsFromMember($member) -> `$member`");
+ 	$member=str_replace("%20", " ", $member);
+ 	$group=$array[1];
+ 	unset($array[0]);
+ 	$count=count($array);
+ 	if($count>1){ $group=@implode(" ", $array);}
+ 	$group=strtolower($group);
+ 	
+	if($GLOBALS["DEBUG"] == 1){ WLOG("GetGroupsFromMember($member) -> `$member` [1] = \"$group\" count:$count"); }
  	$GROUPZ=GetGroupsFromMember($member);
  	
  	//WLOG("Checking $group ? {$GROUPZ[$member][$group]}");
@@ -51,12 +61,12 @@ while (!feof(STDIN)) {
  	}
  	
  	if(isset($GROUPZ[$group])){
- 		WLOG("[SEND]: <span style='font-weight:bold;color:#00B218'>OK</span> &laquo;$member&raquo; is a member of &laquo;$group&raquo;");
+ 		if($GLOBALS["DEBUG"] == 1){  WLOG("[SEND]: <span style='font-weight:bold;color:#00B218'>OK</span> &laquo;$member&raquo; is a member of &laquo;$group&raquo;");}
  		fwrite(STDOUT, "OK\n");
  		continue;
  	}
 
- 	//WLOG("$member is not a member of $group");
+ 	if($GLOBALS["DEBUG"] == 1){  WLOG("$member is not a member of $group"); }
  	fwrite(STDOUT, "ERR\n");
 
 	}
@@ -122,13 +132,22 @@ function GetGroupsFromMember($member){
 	//$link_identifier, $base_dn, $filter, array $attributes = null, $attrsonly = null, $sizelimit = null, $timelimit = null, $deref = null
 	$filter=array("memberOf");
 	@ldap_set_option($GLOBALS["CONNECTION"], LDAP_OPT_REFERRALS, 0);
-	$searchFilter="(&(objectCategory=Person)(objectClass=user)(sAMAccountName=$member))";
+	$filter="(&(objectCategory=Person)(objectClass=user)(sAMAccountName=$member))";
 	
-	if($GLOBALS["VERBOSE"]){WLOG("[QUERY]::$searchFilter -> $filter");}
+	
 	
 	$GLOBALS["QUERIES_NUMBER"]++;
+	$link_identifier=$GLOBALS["CONNECTION"];
+	$base_dn=$GLOBALS["SUFFIX"];
+	$attributes=array();
+	$attrsonly=null;
+	$sizelimit=null;
+	$timelimit= $GLOBALS["LDAP_TIME_LIMIT"];
+	if($GLOBALS["VERBOSE"]){WLOG("[QUERY]::$filter -> $filter in $base_dn");}
 	
-	$sr =@ldap_search($GLOBALS["CONNECTION"],$GLOBALS["SUFFIX"],"$searchFilter",$filter,null, 10, 10);
+	
+	
+	$sr =@ldap_search($link_identifier,$base_dn,$filter,$attributes,$attrsonly, $sizelimit, $timelimit);
 	if (!$sr) {
 		if(is_numeric(ldap_errno($GLOBALS["CONNECTION"]))){
 			$error=ldap_errno($GLOBALS["CONNECTION"]);
@@ -146,10 +165,10 @@ function GetGroupsFromMember($member){
 				
 			}
 			
-			WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> suffix:{$GLOBALS["SUFFIX"]} $searchFilter, return no user");
+			WLOG("[QUERY]: <strong style='color:red'>Error:`$error` ($errstr)</strong> suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
 			return false;
 		}else{
-			WLOG("[QUERY]: <strong style='color:red'>Error: unknown Error (ldap_errno not a numeric) suffix:{$GLOBALS["SUFFIX"]} $searchFilter, return no user");
+			WLOG("[QUERY]: <strong style='color:red'>Error: unknown Error (ldap_errno not a numeric) suffix:{$GLOBALS["SUFFIX"]} $filter, return no user");
 		}
 	}
 	
@@ -168,28 +187,37 @@ function GetGroupsFromMember($member){
 		for($i=0;$i<$hash[0]["memberof"]["count"];$i++){
 			if(preg_match("#^CN=(.+?),#i", $hash[0]["memberof"][$i],$re)){
 				$re[1]=trim(strtolower($re[1]));
+				if($GLOBALS["DEBUG"] == 1){  WLOG("$member = \"{$re[1]}\""); }
 				$array[$re[1]]=true;
 			}
 			
 		}
 	}
-	
+	if($GLOBALS["DEBUG"] == 1){  WLOG("Return array of ".count($array)." items"); }
 	return $array;
 	
 }
 
-function MemberInfoByDN($dn){
+function MemberInfoByDN($base_dn){
+	
+	$FUNCTION=__FUNCTION__;
+	
 	if(!TestConnectToLDAP()){
-		if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN():: TestConnectToLDAP() -> FALSE\n";}
+		if($GLOBALS["VERBOSE"]){echo "$FUNCTION():: TestConnectToLDAP() -> FALSE\n";}
 		return null;
 	}
-	$searchFilter="(objectClass=*)";
-	//"memberOf" retiré.
-	$filter=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","objectClass","member");
-	$sr =@ldap_search($GLOBALS["CONNECTION"],$dn,"$searchFilter",$filter,null, null, 10);
-	if (!$sr) {WLOG("[QUERY]: MemberInfoByDN()::Bad search $dn / $searchFilter");return null;}
+	
+	$link_identifier=$GLOBALS["CONNECTION"];
+	$attributes=array("displayName","samaccountname","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","objectClass","member");
+	$attrsonly=null;
+	$sizelimit=null;
+	$filter="(objectClass=*)";;
+	$timelimit= $GLOBALS["LDAP_TIME_LIMIT"];
+	
+	$sr =@ldap_search($link_identifier,$base_dn,$filter,$attributes,$attrsonly, $sizelimit, $timelimit);
+	if (!$sr) {WLOG("[QUERY]: MemberInfoByDN()::Bad search $base_dn / $filter");return null;}
 	$hash=ldap_get_entries($GLOBALS["CONNECTION"],$sr);
-	if(!is_array($hash)){WLOG("[QUERY]: MemberInfoByDN():: Not an array $dn / $searchFilter");return null;}
+	if(!is_array($hash)){WLOG("[QUERY]: MemberInfoByDN():: Not an array $base_dn / $filter");return null;}
 	$AsGroup=false;
 
 
@@ -197,7 +225,7 @@ function MemberInfoByDN($dn){
 
 	for($i=0;$i<$hash[0]["objectclass"]["count"];$i++){
 		$class=$hash[0]["objectclass"][$i];
-		if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN()::$dn::objectclass -> $class\n";}
+		if($GLOBALS["VERBOSE"]){echo "$FUNCTION()::$base_dn::objectclass -> $class\n";}
 		if($class=="group"){$AsGroup=true;break;}
 	}
 
@@ -222,7 +250,7 @@ function MemberInfoByDN($dn){
 
 
 	if(!isset($hash[0]["samaccountname"][0])){WLOG("[QUERY]: MemberInfoByDN():: samaccountname no such attribute");return null;}
-	if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN()::$dn:: -> {$hash[0]["samaccountname"][0]}\n";}
+	if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN()::$base_dn:: -> {$hash[0]["samaccountname"][0]}\n";}
 	return $hash[0]["samaccountname"][0];
 }
 
@@ -266,15 +294,23 @@ function TestConnectToPureLDAP(){
 function HashUsersFromFullDN($dn){
 	TestConnectToLDAP();
 	if(isset($GLOBALS["HashUsersFromFullDN($dn)"])){return $GLOBALS["HashUsersFromFullDN($dn)"];}
-	$searchFilter="(&(objectClass=user)(sAMAccountName=*))";
-	$attrs=array("samaccountname");
 
 	
-	$sr =@ldap_search($GLOBALS["CONNECTION"],$dn,$searchFilter,$attrs);
+
+	
+	$link_identifier=$GLOBALS["CONNECTION"];
+	$base_dn=$GLOBALS["SUFFIX"];
+	$attributes=array("samaccountname");
+	$attrsonly=null;
+	$sizelimit=null;
+	$filter="(&(objectClass=user)(sAMAccountName=*))";
+	$timelimit= $GLOBALS["LDAP_TIME_LIMIT"];
+	
+	$sr =@ldap_search($link_identifier,$base_dn,$filter,$attributes,$attrsonly, $sizelimit, $timelimit);
 	
 	if (!$sr) {
-		if($GLOBALS["output"]){echo "Bad search $dn / $searchFilter\n";}
-		WLOG("[QUERY]: Bad search $dn / $searchFilter");
+		if($GLOBALS["output"]){echo "Bad search $dn / $filter\n";}
+		WLOG("[QUERY]: Bad search $dn / $filter");
 		return array();
 	}
 	
@@ -303,18 +339,26 @@ function HashUsersFromFullDN($dn){
 
 function HashUsersFromGroupDN($dn){
 	$ORGDN=$dn;
+	$FUNCTION=__FUNCTION__;
 	TestConnectToLDAP();
 	if(isset($GLOBALS["HashUsersFromGroupDN($ORGDN)"])){return $GLOBALS["HashUsersFromGroupDN($ORGDN)"];}
 	$f=array();
-	$searchFilter="(objectClass=*)";
-	$filter=array("member","memberOf");
-	$sr =@ldap_search($GLOBALS["CONNECTION"],$dn,"$searchFilter",$filter,null, null, 10);
-	if (!$sr) {WLOG("[QUERY]: Bad search $dn / $searchFilter");return array();}
+
+	$link_identifier=$GLOBALS["CONNECTION"];
+	$base_dn=$dn;
+	$attributes=array("member","memberOf");
+	$attrsonly=null;
+	$sizelimit=null;
+	$filter="(objectClass=*)";
+	$timelimit= $GLOBALS["LDAP_TIME_LIMIT"];
+	
+	$sr =@ldap_search($link_identifier,$base_dn,$filter,$attributes,$attrsonly, $sizelimit, $timelimit);
+	if (!$sr) {WLOG("[QUERY]: $FUNCTION() Bad search $dn / $filter");return array();}
 	$hash=@ldap_get_entries($GLOBALS["CONNECTION"],$sr);
-	if(!is_array($hash)){WLOG("[QUERY]:HashUsersFromGroupDN() Not an array...$dn / $searchFilter");return array();}
+	if(!is_array($hash)){WLOG("[QUERY]:HashUsersFromGroupDN() Not an array...$dn / $filter");return array();}
 
 	$MembersCount=$hash[0]["member"]["count"];
-	if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN():: $MembersCount member(s) $dn / $searchFilter\n";}
+	if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN():: $MembersCount member(s) $dn / $filter\n";}
 	
 	for($i=0;$i<$MembersCount;$i++){
 		if($GLOBALS["VERBOSE"]){echo "HashUsersFromGroupDN():: MemberName = {$hash[0]["member"][$i]}\n";}
@@ -593,6 +637,22 @@ function ufdbguard_checks($id){
 	$arrayGROUPS=unserialize(@file_get_contents("/etc/squid3/ufdb.groups.$id.db"));
 	$FINAL=array();
 	
+	
+	
+	
+	if(isset($arrayGROUPS["EXTLDAP"])){
+		while (list ($index, $CONFS) = each ($arrayGROUPS["EXTLDAP"]) ){
+			$rr=external_ldap_members($CONFS["DN"],$CONFS["CONF"]);
+			if($GLOBALS["output"]){echo "{$CONFS["DN"]} return ". count($rr)." users\n";}
+			while (list ($a, $b) = each ($rr) ){
+				echo "USER= $b\n";
+				$MemberArray[$a]=$a;}
+		}
+		
+		while (list ($a, $b) = each ($MemberArray) ){
+			$FINAL[]=$a;
+		}
+	}
 
 	
 	if(isset($arrayGROUPS["AD"])){
@@ -679,6 +739,87 @@ function ufdbguard_checks($id){
 	
 	
 }
+
+function external_ldap_members($dn,$conf){
+	$ldap_host=$conf["ldap_server"];
+	$ldap_port=$conf["ldap_port"];
+	$ldap_admin=$conf["ldap_user"];
+	$ldap_password=$conf["ldap_password"];
+	$suffix=$conf["ldap_suffix"];
+	$ldap_filter_users=$conf["ldap_filter_users"];
+	$ldap_filter_group=$conf["ldap_filter_group"];
+	
+	if(preg_match("#^ExtLdap:(.+)#", $dn,$re)){$dn=$re[1];}
+	
+	if($GLOBALS["output"]){echo "$ldap_host:$ldap_port -> $ldap_filter_group\n";}
+	
+	if(!is_numeric($ldap_port)){$ldap_port=389;}
+	if(!function_exists("ldap_connect")){
+		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
+		return array();
+	}
+	
+	$ldap_connection=@ldap_connect($ldap_host, $ldap_port ) ;
+	if(!$ldap_connection){
+		WLOG("Fatal: ldap_connect -> $ldap_host:$ldap_port FAILED");
+		return array();
+	}
+	
+		
+	ldap_set_option($ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+	ldap_set_option($ldap_connection, LDAP_OPT_REFERRALS, 0);
+	$ldapbind=@ldap_bind($ldap_connection, $ldap_admin, $ldap_password);
+	
+	if(!$ldapbind){
+		$error=ldap_err2str(ldap_err2str(ldap_errno($ldap_connection)));
+		@ldap_close($ldap_connection);
+		WLOG("Fatal: ldap_bind -> $ldap_host:$ldap_port FAILED $error");
+		return array();
+	}
+	
+	if(preg_match_all("#\((.+?)=(.+?)\)#", $ldap_filter_group,$re)){
+		while (list ($key, $line) = each ($re[1])){
+			if($re[2][$key]=="*"){ $MemberAttribute=$line; }
+		}
+	}
+	if($GLOBALS["output"]){echo "DN -> Member attribute = $dn\n";}
+	if($GLOBALS["output"]){echo "$ldap_filter_group -> Member attribute = $MemberAttribute\n";}
+	$pattern=str_replace("%u", "*", $ldap_filter_group);
+	$sr =@ldap_search($ldap_connection,$dn,$pattern,array());
+	if(!$sr){
+		$error=ldap_err2str(ldap_err2str(ldap_errno($ldap_connection)));
+		@ldap_close($ldap_connection);
+		WLOG("Fatal: ldap_search -> $pattern FAILED $error");
+		return array();
+	}	$filter=array("cn","description",'sAMAccountName',"dn","member","memberOf");
+	
+	$f=array();
+	$result = @ldap_get_entries($ldap_connection, $sr);
+	for($i=0;$i<$result["count"];$i++){
+		if(isset($result[$i][$MemberAttribute]["count"])){
+			for($z=0;$z<$result[$i][$MemberAttribute]["count"];$z++){
+				$uid=$result[$i][$MemberAttribute][$z];
+				if(strpos($uid, ",")>0){
+					$TRANS=explode(",",$uid);
+					while (list ($ind, $fnd) = each ($TRANS)){
+						if(preg_match("#^(cn|uid|memberUid|sAMAccountName|member|memberOf)=(.+)#i", $fnd,$re)){
+							$uid=trim($re[2]);
+						}
+						
+					}
+				}
+				
+				$f[$uid]=$uid;
+				
+			}
+		}
+	
+	}
+
+	return $f;
+	
+}
+
 
 function HashUsersFromGPID($gpid){
 	$array=array();

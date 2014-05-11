@@ -15,28 +15,28 @@ function build(){
 	$webappFile=null;
 	$tomcatDir="/var/lib/tomcat6/webapps";
 	if(!is_dir($tomcatDir)){
-		echo "Starting......: C.A.S server failed `$tomcatDir` no such directory...\n";
+		echo "Starting......: ".date("H:i:s")." C.A.S server failed `$tomcatDir` no such directory...\n";
 		return; 
 	}
 	$unix=new unix();
 	$dirfiles=$unix->DirFiles("/usr/share/cas-server/modules","cas-server-webapp-.*?\.war");
 	
-	echo "Starting......: C.A.S server checking libraries...\n";
-	echo "Starting......: C.A.S server TomCat webapps `$tomcatDir`\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S server checking libraries...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S server TomCat webapps `$tomcatDir`\n";
 	while (list ($num, $line) = each ($dirfiles)){
 		$webappFile="/usr/share/cas-server/modules/$num";
 	}
 	
-	if($webappFile==null){echo "Starting......: C.A.S server failed to retrive cas-server-webapp war file\n";return;}
+	if($webappFile==null){echo "Starting......: ".date("H:i:s")." C.A.S server failed to retrive cas-server-webapp war file\n";return;}
 	if(is_file("$tomcatDir/cas.war")){@unlink("$tomcatDir/cas.war");}
-	echo "Starting......: C.A.S server installing $webappFile into $tomcatDir..\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S server installing $webappFile into $tomcatDir..\n";
 	@link($webappFile, "$tomcatDir/cas.war");
 	writesettings();
 	maven2();
 	tomcat_config();
 	log4jxml();
 	if(is_file("/etc/init.d/tomcat6")){
-		echo "Starting......: C.A.S server restarting tomcat server...\n";
+		echo "Starting......: ".date("H:i:s")." C.A.S server restarting tomcat server...\n";
 		shell_exec("/etc/init.d/tomcat6 restart >/dev/null 2>&1");
 	}
 	WEB_INF_deployerConfigContext();
@@ -228,7 +228,7 @@ function WEB_INF_deployerConfigContext(){
 	$f[]="";
 	
 	@file_put_contents("/var/lib/tomcat6/webapps/cas/WEB-INF/deployerConfigContext.xml", @implode("\n", $f));
-	echo "Starting......: C.A.S deployerConfigContext.xml done...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S deployerConfigContext.xml done...\n";
 }
 
 function maven2(){
@@ -238,7 +238,7 @@ function maven2(){
 	$f[]="[plexus.core]";
 	$f[]="load /usr/share/maven2/lib/*.jar";
 	@file_put_contents("/etc/maven2/m2.conf", @implode("\n", $f));
-	echo "Starting......: C.A.S /etc/maven2/m2.conf done...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S /etc/maven2/m2.conf done...\n";
 	
 	$f=array();
 	
@@ -496,7 +496,7 @@ function maven2(){
 	$f[]="</settings>";
 	$f[]="";
 	@file_put_contents("/etc/maven2/settings.xml", @implode("\n", $f));
-	echo "Starting......: C.A.S /etc/maven2/settings.xml done...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S /etc/maven2/settings.xml done...\n";
 	
 }
 
@@ -1394,7 +1394,7 @@ function writesettings(){
 	$f[]="  </properties>";
 	$f[]="</project>\n";
 	@file_put_contents("/usr/share/cas-server/pom.xml", @implode("\n", $f));
-	echo "Starting......: C.A.S /usr/share/cas-server/pom.xml done...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S /usr/share/cas-server/pom.xml done...\n";
 }
 
 function log4jxml(){
@@ -1506,7 +1506,7 @@ function log4jxml(){
 	$f[]="    </root>";
 	$f[]="</log4j:configuration>";	
 	@file_put_contents("/var/lib/tomcat6/webapps/cas/WEB-INF/classes/log4j.xml",@implode("\n", $f));
-	echo "Starting......: C.A.S log4j.xml done...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S log4j.xml done...\n";
 }
 
 
@@ -1637,6 +1637,6 @@ function tomcat_config(){
 	$f[]="</Server>";
 	$f[]="";
 	@file_put_contents("/etc/tomcat6/server.xml", @implode("\n", $f));
-	echo "Starting......: C.A.S /etc/tomcat6/server.xml done...\n";
+	echo "Starting......: ".date("H:i:s")." C.A.S /etc/tomcat6/server.xml done...\n";
 	
 }

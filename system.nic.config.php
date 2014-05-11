@@ -4,16 +4,28 @@
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 	header("Cache-Control: no-cache, must-revalidate");	
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-	include_once('ressources/class.templates.inc');
-	include_once('ressources/class.ldap.inc');
-	include_once('ressources/class.users.menus.inc');
-	include_once('ressources/class.system.network.inc');
-	include_once('ressources/class.system.nics.inc');
-	include_once('ressources/class.maincf.multi.inc');
-	include_once('ressources/class.tcpip.inc');
+
+	$dirname=dirname(__FILE__);
+	
+	include_once("$dirname/ressources/class.templates.inc");
+	include_once("$dirname/ressources/class.ldap.inc");
+	include_once("$dirname/ressources/class.users.menus.inc");
+	include_once("$dirname/ressources/class.system.network.inc");
+	include_once("$dirname/ressources/class.system.nics.inc");
+	include_once("$dirname/ressources/class.maincf.multi.inc");
+	include_once("$dirname/ressources/class.tcpip.inc");
 	$usersmenus=new usersMenus();
 	if($usersmenus->AsSystemAdministrator==false){exit();}
 
+if(isset($argv[1])){
+	if($argv[1]=="zlistnics"){
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+		zlistnics();
+		die();
+	}
+}	
+	
 if(isset($_GET["listnics"])){zlistnics_tabs();exit;}
 if(isset($_GET["listnics2"])){zlistnics();exit;}
 if(isset($_GET["nic-builder"])){zlistnics_builder();exit;}
@@ -98,7 +110,7 @@ function popup2(){
 if(isset($_GET["newinterface"])){$fontsize="font-size:14px";$linkadd="&newinterface=yes";}		
 $page=CurrentPageName();	
 $html="
-	<div class=explain >{network_about}</div>
+	<div class=explain style='font-size:16px;width:945px;margin-left:-2px'>{network_about}</div>
 	<div id='hostname_cf'></div>
 	<div id='nic_status'></div>
 	<div id='nic_tabs'></div>
@@ -124,12 +136,13 @@ function tabs(){
 	$users=new usersMenus();
 	$array["listnics"]='{main_interfaces}';
 	$array["DNSServers"]='{dns_nameservers}';
+	$array["hosts"]='{hosts}';
 	$array["virtuals"]='{virtual_interfaces}';
-	if($users->VDESWITCH_INSTALLED){$array["vde"]='{Ethernet_switch}';}
+	
 	if($users->VLAN_INSTALLED){$array["vlan"]='VLAN';}
 	
 	$array["bridges"]='{bridges}';
-	$array["routes"]='{routes}';
+	//$array["routes"]='{routes}';
 	$array["hard"]='{hardware}';
 	
 	if($users->KASPERSKY_WEB_APPLIANCE){
@@ -151,7 +164,12 @@ function tabs(){
 		if($num=="routes"){
 			$html[]= "<li><a href=\"system.nic.routes.php$linkadd2\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
 			continue;
-		}	
+		}
+		
+		if($num=="hosts"){
+			$html[]= "<li><a href=\"system-etc-hosts.php?table=yes$linkadd2\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}		
 
 		if($num=="vlan"){
 			$html[]= "<li><a href=\"system.nic.vlan.php$linkadd2\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
@@ -173,7 +191,7 @@ function tabs(){
 	
 
 	
-	echo build_artica_tabs($html, "main_config_nics",980);
+	echo build_artica_tabs($html, "main_config_nics",990)."<script>LeftDesign('nic-white-256-opac20.png');</script>";;
 	
 	
 	
@@ -186,7 +204,7 @@ function tabs_hostname(){
 	$tpl=new templates();
 if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
 	echo $tpl->_ENGINE_parse_body("
-		<table style='width:320px;margin:3px;padding:3px;'
+		<table style='width:400px;margin:3px;padding:3px;'
 		OnMouseOver=\";this.style.cursor='pointer';this.style.background='#F5F5F5';\"
 		OnMouseOut=\";this.style.cursor='default';this.style.background='#FFFFFF';\"
 		class=form
@@ -195,14 +213,17 @@ if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinter
 			<td valign='top' width=1%><img src='img/64-server-script.png'></td>
 			<td valign='top' style='padding:4px'>
 				<div style='font-size:13px'>
-					
-					<strong style='font-size:14px'>
 						<a href=\"javascript:blur()\" 
 						OnClick=\"javascript:Loadjs('$page?change-hostname-js=yes');\" 
-						style='text-decoration:underline;font-weight:bold;font-size:16px'>{hostname}:</a></strong><br>
-					<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$page?change-hostname-js=yes$linkadd');\" style='text-decoration:underline'>$hostname</a>
-					<p>&nbsp;</p>
-					<div style='width:100%;text-align:right'><i style='font-size:9px;color:black'>{click_to_edit}</i></div>
+						style='font-weight:bold;font-size:22px;font-weight:bold'>{hostname}:</a>
+					<div style='margin-top:15px;margin-bottom:15px'>
+					<a href=\"javascript:blur()\" 
+					OnClick=\"javascript:Loadjs('$page?change-hostname-js=yes$linkadd');\" 
+					style='text-decoration:underline;font-size:16px'>$hostname</a>
+					</div>
+					<div style='width:100%;text-align:right'>
+						<i style='font-size:12px;color:black'>{click_to_edit}</i>
+					</div>
 					
 				</div>
 			</td>
@@ -333,9 +354,12 @@ $html="
 var x_ChangeHostName= function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);}
+	UnlockPage();
 	if(document.getElementById('MasterNetworkSection')){LoadAjax('MasterNetworkSection','$page?popup2=yes$linkadd');}
 	if(document.getElementById('squidcklinks-host-infos')){LoadAjaxTiny('squidcklinks-host-infos','quicklinks.php?squidcklinks-host-infos=yes');}
 	if(document.getElementById('main_adker_tabs')){RefreshTab('main_adker_tabs');}
+	if(document.getElementById('template-top-menus')){ AjaxTopMenu('template-top-menus','admin.top.menus.php');}
+	
 	ChangeHTMLTitle();
 		
 }
@@ -348,6 +372,7 @@ function ChangeHostName(){
 			var XHR = new XHRConnection();
 			XHR.appendData('ChangeHostName',hostname);
 			if(document.getElementById('MasterNetworkSection')){document.getElementById('MasterNetworkSection').innerHTML=\"<center style='margin:10px'><img src='img/wait_verybig.gif'></center>\";}
+			LockPage();
 			XHR.sendAndLoad('$page', 'GET',x_ChangeHostName);
 			}
 
@@ -364,6 +389,8 @@ function ChangeHostName(){
 	
 	$sock=new sockets();
 	$tpl=new templates();
+	$q=new mysql();
+	
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
 	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}	
@@ -378,27 +405,18 @@ function ChangeHostName(){
 	$t=explode(".",$_GET["ChangeHostName"]);
 	if(count($t)==1){echo $tpl->_ENGINE_parse_body("{$_GET["ChangeHostName"]}: {not_an_fqdn}");return;}
 	
-	$sock=new sockets();
-	$sock->SET_INFO("myhostname",$_GET["ChangeHostName"]);
-	$sock->getFrameWork("cmd.php?ChangeHostName={$_GET["ChangeHostName"]}");
 	
-	
-	$users=new usersMenus();
-	if($users->POSTFIX_INSTALLED){
-		$sock->getFrameWork("cmd.php?postfix-others-values=yes");
-		
-	}
-	
-	
-	
+	$nic=new system_nic();
+	$nic->set_hostname($_GET["ChangeHostName"]);
 }
 
 function zlistnics_tabs(){
+	
 	$array["listnics2"]='{nics}';
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();	
-	$array["networks"]="{edit_networks}";
+	
 	$array["arpd"]="{arp_table}";
 	
 	if($users->ETTERCAP_INSTALLED){
@@ -421,21 +439,14 @@ function zlistnics_tabs(){
 	$tabwidth="730px";
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
 	
-	
-	
-	
-	
-		while (list ($num, $ligne) = each ($array) ){
+	while (list ($num, $ligne) = each ($array) ){
 			
 		if($num=="arpspoof"){
 			$html[]= "<li><a href=\"arp.spoof.php?none=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
 			continue;
 		}			
 			
-		if($num=="networks"){
-			$html[]= "<li><a href=\"computer-browse.php?browse-networks=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
-			continue;
-		}	
+	
 
 		if($num=="arpd"){
 			$html[]= "<li><a href=\"arptable.php\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
@@ -463,6 +474,8 @@ function zlistnics_tabs(){
 	$tab=time();
 	
 	echo build_artica_tabs($html, "tabs_listnics2");
+	
+	
 }
 
 function DefaultRouteStatus(){
@@ -525,11 +538,14 @@ function zlistnics(){
 		}
 	}	
 	
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: LOADING class networking<br>\n";}
+	
 	$tcp=new networking();
 	
 	
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__.":".date("H:i:s")."]: cmd.php?list-nics=yes<br>\n";}
 	$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?list-nics=yes")));
-	
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__.":".date("H:i:s")."]: cmd.php?list-nics=yes done<br>\n";}
 	$count=0;
 	writelogs(count($datas). " rows for nic infos",__FUNCTION__,__FILE__,__LINE__);
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
@@ -537,7 +553,7 @@ function zlistnics(){
 	
 	
 	$tr[]=$tpl->_ENGINE_parse_body("
-		<table style='width:320px;margin:3px;padding:3px;'
+		<table style='width:400px;margin:3px;padding:3px;'
 		OnMouseOver=\";this.style.cursor='pointer';this.style.background='#F5F5F5';\"
 		OnMouseOut=\";this.style.cursor='default';this.style.background='#FFFFFF';\"
 		class=form
@@ -545,13 +561,13 @@ function zlistnics(){
 		<tr>
 			<td valign='top' width=1%><img src='img/ipv6-64.png'></td>
 			<td valign='top' style='padding:4px'>
-				<div style='font-size:13px'>
-					
-					<strong style='font-size:14px'>
-						<a href=\"javascript:blur()\" 
+			<a href=\"javascript:blur()\" 
 						OnClick=\"javascript:Loadjs('system.nic.ipv6.php')\" 
-						style='text-decoration:underline;font-weight:bold;font-size:16px'>IPv6: {parameters}</a></strong><br>
-					<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('system.nic.ipv6.php')\" style='text-decoration:underline'>{ipv6_explain_enable_text}</a>
+						style='text-decoration:underline;font-weight:bold;font-size:22px'>IPv6: {parameters}</a>	
+					<div style='font-size:14px;;margin-top:15px;margin-bottom:15px'>
+						
+					<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('system.nic.ipv6.php')\" 
+					style='text-decoration:underline;font-size:16px'>{ipv6_explain_enable_text}</a>
 					
 				</div>
 			</td>
@@ -581,7 +597,9 @@ function zlistnics(){
 		if(preg_match("#^virt[0-9]+#",$val)){continue;}
 		
 		
-		$nic=new system_nic();
+		$nic=new system_nic($val);
+		
+		
 		if(!$nic->unconfigured){		
 			if($LXCEthLocked==1){if($val==$LXCInterface){
 				writelogs("LXCEthLocked:$LXCEthLocked; $val==$LXCInterface -> abort",__FUNCTION__,__FILE__,__LINE__);
@@ -591,14 +609,21 @@ function zlistnics(){
 		}
 		
 		if(trim($val)==null){continue;}
+		if($nic->Bridged==1){continue;}
 		$tcp->ifconfig(trim($val));
 		$text=listnicinfos(trim($val),"Loadjs('$page?script=netconfig&nic=$val')");
 		$js="javascript:Loadjs('system.nic.edit.php?nic=$val')";
+		
+		if(preg_match("#^br([0-9]+)#", $val,$re)){
+			$js="javascript:Loadjs('system.network.bridges.interfaces.php?network-bridge-js=yess&ID={$re[1]}')";
+		}
+		
+		
 		if(!$tcp->linkup){
-			$img_on="64-win-nic-off.png";
+			$img_on="net-card-64-grey.png";
 			
 		}else{
-			$img_on="64-win-nic.png";
+			$img_on="net-card-64.png";
 			if($snortInterfaces[trim($val)]==1){$img_on="64-win-nic-snort.png";}
 		}
 		
@@ -751,16 +776,25 @@ function zlistnics_builder(){
 		if($GLOBALS["VERBOSE"]){echo "<strong>tcp->ifconfig($val)</strong><br>\n";}
 		$tcp->ifconfig(trim($val));
 		
+		$jsEdit="Loadjs('system.nic.edit.php?nic=$val')";
 		
-		$text=listnicinfos(trim($val),"Loadjs('system.nic.edit.php?nic=$val')");
+		if(preg_match("#^br([0-9]+)#", $val,$re)){$jsEdit="Loadjs('system.network.bridges.interfaces.php?network-bridge-js=yess&ID={$re[1]}')";}
+		
+		$text=listnicinfos(trim($val),$jsEdit);
+		
+		
+		
+
+		
 		$ipddr=$GLOBALS[trim($val)]["IP"];
 		
-		$js="javascript:Loadjs('system.nic.edit.php?nic=$val')";
+		$js="javascript:$jsEdit";
+		
 		if(!$tcp->linkup){
-			$img_on="64-win-nic-off.png";
+			$img_on="net-card-64-grey.png";
 			
 		}else{
-			$img_on="64-win-nic.png";
+			$img_on="net-card-64.png";
 			$NIC_UP=true;
 			if($snortInterfaces[trim($val)]==1){$img_on="64-win-nic-snort.png";}
 		}
@@ -783,7 +817,7 @@ function zlistnics_builder(){
 		}
 		
 		$html="
-		<table style='width:320px;margin:3px;padding:3px;'
+		<table style='width:400px;margin:3px;padding:3px;'
 		OnMouseOver=\";this.style.cursor='pointer';this.style.background='#F5F5F5';\"
 		OnMouseOut=\";this.style.cursor='default';this.style.background='#FFFFFF';\"
 		class=form>
@@ -792,13 +826,11 @@ function zlistnics_builder(){
 			<td valign='top' style='padding:4px'>
 				<div OnClick=\"$js\">$text</div>
 				<table style='width:100%'>
-				<tr>
-					<td width=1% nowrap><i>$val</td>
-					
-					<td width=99%><div style='text-align:right'>$icon1</div></td>
-					<td width=99%><div style='text-align:right'>". imgtootltip("16-refresh.png","{refresh}","RefreshMyNic$val()")."</div></td>
-					<td width=99%><div style='text-align:right'>$icon2</div></td>
-				</tr>
+					<tr>
+						<td width=99%><div style='text-align:right'>$icon1</div></td>
+						<td width=99%><div style='text-align:right'>". imgtootltip("16-refresh.png","{refresh}","RefreshMyNic$val()")."</div></td>
+						<td width=99%><div style='text-align:right'>$icon2</div></td>
+					</tr>
 				</table>
 			</td>
 		</tr>
@@ -863,7 +895,7 @@ function listnicinfos($nicname,$js=null){
 		$ip6s=unserialize(base64_decode($sock->getFrameWork("network.php?ifconfig6=$nicname")));
 		while (list ($num, $ligne) = each ($ip6s) ){
 			$ip6z[]="<tr>
-					<td colspan=2 ><i style='font-size:11px'>$num</i></td>
+					<td><i style='font-size:11px'>$num</i></td>
 				</tr>";	
 		}
 	}
@@ -901,7 +933,8 @@ function listnicinfos($nicname,$js=null){
 	
 	$GLOBALS[$nicname]["IP"]=$tbl[0];
 	
-	if($js<>null){$href="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-weight:bold;font-size:13px;text-decoration:underline;color:$textColor'>";}
+	if($js<>null){$href="<a href=\"javascript:blur();\" 
+	OnClick=\"javascript:$js\" style='font-weight:bold;font-size:16px;text-decoration:underline;color:$textColor'>";}
 	
 	$textColor="black";
 	
@@ -912,32 +945,28 @@ function listnicinfos($nicname,$js=null){
 	
 	$html="
 	<input type='hidden' id='infos_$nicname' value='$defaults_infos_array'>
-	<table style='width:99.5%' class=form>
+	<div style='width:98%' class=form>
+	<div style='font-size:22px;font-weight:bold;margin-left:10px;margin-bottom:10px'>$nicz->NICNAME/$nicz->netzone [$nicname]</div>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend nowrap style='color:$textColor' valign='top'>{tcp_address}:</td>
-		<td style='font-weight:bold;font-size:13px;color:$textColor'>
-			<table style='width:100%'>
-				<tr>
-					<td width=1%><img src='img/arrow-right-16.png'></td>
-					<td>$href{$tbl[0]}</a></td>
-				</tr>
-			". @implode("", $ip6z)."
-			</table>
-			</td>
+		<td class=legend nowrap style='color:$textColor;font-size:16px' valign='top'>{tcp_address}:</td>
+		<td style='color:$textColor;font-size:16px'>$href{$tbl[0]}</a></td>
 	</tr>
+	". @implode("", $ip6z)."
 	<tr>
-		<td class=legend nowrap style='color:$textColor'>$_netmask</td>
-		<td style='font-weight:bold;font-size:13px;color:$textColor'>$href{$tbl[2]}</a></td>
+		<td class=legend nowrap style='color:$textColor;font-size:16px'>$_netmask</td>
+		<td style='font-weight:bold;font-size:16px;color:$textColor'>$href{$tbl[2]}</a></td>
 	</tr>	
 	<tr>
-		<td class=legend nowrap style='color:$textColor'>{gateway}:</td>
-		<td style='font-weight:bold;font-size:13px;color:$textColor'>$href{$gateway}</a>$defaultroute_text</td>
+		<td class=legend nowrap style='color:$textColor;vertical-align:top;font-size:16px'>{gateway}:</td>
+		<td style='font-weight:bold;font-size:16px;color:$textColor'>$href{$gateway}</a><br><div style='font-size:11px;text-align:right'>metric: $nicz->metric$defaultroute_text</div></td>
 	</tr>		
 	<tr>
-		<td class=legend nowrap style='color:$textColor'>{mac_addr}:</td>
-		<td style='font-weight:bold;font-size:13px;color:$textColor'>$href{$tbl[1]}</a></td>
+		<td class=legend nowrap style='color:$textColor;font-size:16px'>{mac_addr}:</td>
+		<td style='font-weight:bold;font-size:16px;color:$textColor'>$href{$tbl[1]}</a></td>
 	</tr>	
 	</table>
+	</div>
 	";
 	
 	
@@ -1564,7 +1593,6 @@ function virtual_add_form(){
 				document.getElementById('gateway_virtual').value='';
 				document.getElementById('ForceGateway').disabled=true;
 				document.getElementById('ForceGateway').checked=false;				
-				Ipv4FieldDisable('gateway_virtual');
 				document.getElementById('infosVirtual').innerHTML='$NoGatewayForVirtualNetWorkExplain';
 				
 			}
@@ -1603,27 +1631,13 @@ function virtual_add_form(){
 		}
 
 		function FaileOverCheck(){
-			document.getElementById('netmask_0').disabled=false;
-			document.getElementById('netmask_1').disabled=false;
-			document.getElementById('netmask_2').disabled=false;
-			document.getElementById('netmask_3').disabled=false;
+			document.getElementById('netmask').disabled=false;
+			document.getElementById('gateway_virtual').disabled=false;
 			
-			document.getElementById('gateway_virtual_0').disabled=false;
-			document.getElementById('gateway_virtual_1').disabled=false;
-			document.getElementById('gateway_virtual_2').disabled=false;
-			document.getElementById('gateway_virtual_3').disabled=false;
-		
 		
 			if(document.getElementById('failover').checked){
-				document.getElementById('netmask_0').disabled=true;
-				document.getElementById('netmask_1').disabled=true;
-				document.getElementById('netmask_2').disabled=true;
-				document.getElementById('netmask_3').disabled=true;
-				
-				document.getElementById('gateway_virtual_0').disabled=true;
-				document.getElementById('gateway_virtual_1').disabled=true;
-				document.getElementById('gateway_virtual_2').disabled=true;
-				document.getElementById('gateway_virtual_3').disabled=true;					
+				document.getElementById('netmask').disabled=true;
+				document.getElementById('gateway_virtual').disabled=true;					
 			}
 			
 		
@@ -1838,9 +1852,11 @@ function virtuals_del(){
 	if($DisableNetworksManagement==1){echo $ERROR_NO_PRIVS;return;}		
 	
 		$sql="SELECT * FROM nics_virtuals WHERE ID='{$_GET["ID"]}'";
+		
 		$q=new mysql();
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 		$ipaddr=$ligne["ipaddr"];
+		$eth="{$ligne["nic"]}:{$ligne["ID"]}";
 		$main=new maincf_multi(null,null,$ipaddr);
 		if($main->myhostname<>null){
 			echo $tpl->javascript_parse_text("{cannot_delete_address_postfix_instance}:\n$main->myhostname\n{organization}\n$main->ou\n");
@@ -1865,7 +1881,8 @@ function virtuals_del(){
 		$q->QUERY_SQL($sql,"artica_backup");
 		
 		$sql="DELETE FROM crossroads_smtp WHERE ipaddr='{$_GET["virt-del"]}'";
-		
+		$sock=new sockets();
+		$sock->getFrameWork("network.php?down-interface=$eth");
 		
 		if(!$q->ok){echo $q->mysql_error;return;}
 		

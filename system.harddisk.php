@@ -116,7 +116,7 @@ $tpl=new templates();
 	$html="
 	<table style='width:100%'>
 <tr>
-	<td align='right' colspan=2>" . imgtootltip('icon_refresh-20.gif','{refresh}',"LoadAjax('disk','$page?disk=yes');")."</td>
+	<td align='right' colspan=2>" . imgtootltip('20-refresh.png','{refresh}',"LoadAjax('disk','$page?disk=yes');")."</td>
 </tr>	
 		<tr>
 		<td width=1% valign='top'><img src='img/disk-64.png'></td>

@@ -37,7 +37,7 @@ Lorsque la partition est sup&eacute;rieure &agrave; la valeur en pourcentage, le
 <MaxLoad_text>Si le syst&egrave;me est plus charg&eacute; que la valeur suivante, les utilisateurs anonymes ne sont pas autoris&eacute;s &agrave; t&eacute;l&eacute;charger.</MaxLoad_text>
 <Max_Load>Charge Max</Max_Load>
 <NoAnonymous>Pas d'anonyme</NoAnonymous>
-<NoAnonymous_text>Interdire les connections anonymes. Autoriser seulement les utilisateurs authentifi&eacute;s.</NoAnonymous_text>
+<NoAnonymous_text>Interdire les connexions anonymes. Autoriser seulement les utilisateurs authentifi&eacute;s.</NoAnonymous_text>
 <ProhibitDotFilesRead>Interdire la lecture des fichiers avec un point</ProhibitDotFilesRead>
 <ProhibitDotFilesRead_text>Interdire la lecture des fichiers commen&ccedil;ant par un point (.history, .ssh...)</ProhibitDotFilesRead_text>
 <ProhibitDotFilesWrite>Interdire la modification de l'extension</ProhibitDotFilesWrite>

@@ -35,6 +35,17 @@ $content=str_replace("{TEMPLATE_TITLE_HEAD}", $_SERVER["SERVER_NAME"], $content)
 $content=str_replace("{LOGON_BUTTON}",$button, $content);
 $content=str_replace("{SCRIPTS}","Loadjs('$page?js=yes&t=$t');", $content);
 $content=str_replace("<!-- ERROR -->","<p class=text-error>$error</p>", $content);
+$sublink=null;
+if($_SERVER["SERVER_PORT"]==9000){
+	if($_SERVER["HTTPS"]=="on"){
+		$sublink="<a href='https://{$_SERVER["SERVER_NAME"]}:9000/logon.php'>&laquo;{back_to_artica}&raquo;</a>";
+		
+	}
+}
+
+$content=str_replace("{SUBLINKS}",$sublink, $content);
+
+
 $tpl=new templates();
 $content=$tpl->_ENGINE_parse_body($content);
 echo $content;
@@ -100,8 +111,7 @@ function checklogonCreds($Aspost=false){
 	
 	$username=$array["USERNAME"];
 	$password=$array["PASSWORD"];
-	
-	
+
 	
 	$ldap=new clladp();
 	
@@ -194,6 +204,7 @@ function checklogon_ie(){
 }
 
 function checklogon($Aspost=false){
+	
 	include_once(dirname(__FILE__)."/ressources/class.user.inc");
 	$FixedLanguage=null;
 	$username=$_POST["username"];

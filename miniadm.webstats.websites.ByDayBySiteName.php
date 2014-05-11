@@ -294,11 +294,11 @@ function graph2(){
 	$tpl=new templates();
 	$highcharts=new highcharts();
 	$highcharts->container=$_GET["container"];
-			$highcharts->PieDatas=$PieData;
-			$highcharts->ChartType="pie";
-			$highcharts->PiePlotTitle="{hits}";
-			$highcharts->Title=$tpl->_ENGINE_parse_body("$sitename: {top_members_by_hits}");
-			echo $highcharts->BuildChart();
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{hits}";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("$sitename: {top_members_by_hits}");
+	echo $highcharts->BuildChart();
 
 }
 

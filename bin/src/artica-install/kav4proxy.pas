@@ -125,7 +125,7 @@ writeln('Uninstall Kaspersky For Linux Proxy server');
 if FIleExists('/opt/kaspersky/kav4proxy/lib/bin/uninstall.pl') then logs.OutputCmd('/opt/kaspersky/kav4proxy/lib/bin/uninstall.pl');
    logs.DeleteFile('/etc/artica-postfix/versions.cache');
    logs.OutputCmd('/usr/share/artica-postfix/bin/artica-install --write-versions');
-   logs.OutputCmd('/usr/share/artica-postfix/bin/process1 --force');
+   logs.OutputCmd('/etc/init.d/artica-process1 start');
    logs.OutputCmd('/bin/rm -rf /opt/kaspersky/kav4proxy');
    logs.DeleteFile('/etc/init.d/kav4proxy');
    logs.OutputCmd(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.php --reconfigure');
@@ -541,7 +541,7 @@ end;
   end else begin
      writeln('Stopping Kav4Proxy...........: stopped');
       fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.kav4proxy.php --umount');
-     SYS.MONIT_DELETE('APP_KAV4PROXY');
+
   end;
 
 end;
@@ -551,7 +551,6 @@ function tkav4proxy.KAV4PROXY_STATUS():string;
 var
 pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_KAV4PROXY');
 if not FileExists(BIN_PATH()) then  exit;
 
  pidpath:=logs.FILE_TEMP();

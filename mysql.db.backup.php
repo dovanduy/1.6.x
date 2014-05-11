@@ -181,7 +181,7 @@ function containers_items(){
 	$page=1;
 	
 	
-	if(!$q->TABLE_EXISTS("mysqldb_backup_containers","artica_backup")){$q->check_storage_table();}
+	if(!$q->TABLE_EXISTS("mysqldb_backup_containers","artica_backup")){$q->check_storage_table(true);}
 	if(!$q->TABLE_EXISTS("mysqldb_backup_containers", "artica_backup")){json_error_show("$database: $table doesn't exists...");}
 	if($q->COUNT_ROWS("mysqldb_backup_containers", "artica_backup")==0){json_error_show("$database: $table: No data");}
 
@@ -273,7 +273,7 @@ function tabs(){
 	if(!is_numeric($_GET["instance-id"])){$_GET["instance-id"]=0;}
 	$instance_id=$_GET["instance-id"];
 	$array["params"]="{backup_parameters}";
-	if(!$q->TABLE_EXISTS("mysqldb_backup_containers","artica_backup")){$q->check_storage_table();}
+	if(!$q->TABLE_EXISTS("mysqldb_backup_containers","artica_backup")){$q->check_storage_table(true);}
 	if(!$q->TABLE_EXISTS("mysqldb_backup_containers","artica_backup")){echo "mysqldb_backup_containers no such table....\n";}
 	$md5=md5("$database$instance_id");
 	

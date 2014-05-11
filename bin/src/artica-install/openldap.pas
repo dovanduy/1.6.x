@@ -169,7 +169,7 @@ function topenldap.STATUS():string;
 var
 pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_LDAP');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --openldap >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);
@@ -602,8 +602,7 @@ begin
       if length(LDAPSyncProvClientBindPassword)=0 then EnableLDAPSyncProvClient:=0;
    end;
 
-    logs.WriteToFile(ldap_settings.password,'/etc/ldap.secret');
-    logs.OutputCmd('/bin/chmod 0600 /etc/ldap.secret');
+
     fpsystem(SYS.LOCATE_GENERIC_BIN('addgroup')+' nvram >/dev/null 2>&1');
 
    
@@ -645,6 +644,7 @@ begin
        end;
 
 l:=TstringList.Create;
+if SlapdThreads>1 then l.Add('threads '+IntToStr(SlapdThreads));
 l.Add('pidfile         /var/run/slapd/slapd.pid');
 
 l.Add('');
@@ -767,7 +767,7 @@ l.add('');
 
 l.Add('directory       /var/lib/ldap');
 if not TRyStrToINt(SYS.GET_INFO('LdapDBCachesize'),LdapDBCachesize) then LdapDBCachesize:=1000;
-if SlapdThreads>1 then l.Add('threads '+IntToStr(SlapdThreads));
+
 l.Add('cachesize '+ IntToStr(LdapDBCachesize));
 l.Add('dbconfig set_lk_max_objects 1500');
 l.Add('dbconfig set_lk_max_locks 1500');

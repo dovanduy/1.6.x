@@ -1,4 +1,3 @@
-
 <?php
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -60,6 +59,7 @@
 	if($_GET["content"]=="visible_hostname"){echo visible_hostname_popup();exit;}
 	
 	if($_GET["content"]=="listen_port_tab"){echo listen_port_popup_tabs();exit;}
+	if(isset($_GET["browsers-setup"])){listen_port_browsers();exit;}
 	
 	if($_GET["content"]=="ldap_auth"){echo ldap_auth_index();exit;}
 	if($_GET["content"]=="ldap_local"){echo ldap_auth_popup();exit;}
@@ -100,7 +100,7 @@
 	
 	if(isset($_GET["ldap_auth"])){ldap_auth_save();exit;}
 	if(isset($_GET["ntlm_auth"])){ldap_ntlm_auth_save();exit;}
-	if(isset($_GET["EnableSquidExternalLDAP"])){ldap_external_auth_save();exit;}
+	if(isset($_POST["EnableSquidExternalLDAP"])){ldap_external_auth_save();exit;}
 	
 	
 	if(isset($_GET["nameserver"])){dns_add();exit();}
@@ -128,7 +128,8 @@
 		$page=CurrentPageName();
 		$tpl=new templates();
 		$your_network=$tpl->_ENGINE_parse_body("{your_network}");
-		echo "
+		header("content-type: application/x-javascript");
+		echo "				
 		YahooWin2(500,'squid.network.php?popup=yes','$your_network','');
 		
 		
@@ -184,16 +185,14 @@ function ldap_auth_save(){
 		$squid->LDAP_AUTH=$_GET["ldap_auth"];
 
 		
-		if(isset($_GET["SquidLdapAuthEnableGroups"])){
-			$squid->SquidLdapAuthEnableGroups=$_GET["SquidLdapAuthEnableGroups"];
-		}
+		
 		
 		if(isset($_GET["SquidLdapAuthBanner"])){
 			$sock=new sockets();
-			$sock->SET_INFO("SquidLdapAuthBanner", $_GET["SquidLdapAuthBanner"]);
+			$sock->SET_INFO("SquidLdapAuthBanner", url_decode_special_tool($_GET["SquidLdapAuthBanner"]));
 		}
 		
-		
+		$squid->SquidLdapAuthEnableGroups=0;
 		if(!$squid->SaveToLdap()){
 			echo $squid->ldap_error;
 			exit;
@@ -203,8 +202,9 @@ function ldap_auth_save(){
 function ldap_external_auth_save(){
 	if($_GET["EnableSquidExternalLDAP"]==1){$squid->LDAP_AUTH=1;}
 	$squid=new squidbee();	
-	$squid->LDAP_EXTERNAL_AUTH=$_GET["EnableSquidExternalLDAP"];
-	$squid->EXTERNAL_LDAP_AUTH_PARAMS=$_GET;
+	$_POST["ldap_password"]=url_decode_special_tool($_POST["ldap_password"]);
+	$squid->LDAP_EXTERNAL_AUTH=$_POST["EnableSquidExternalLDAP"];
+	$squid->EXTERNAL_LDAP_AUTH_PARAMS=$_POST;
 	$squid->SaveToLdap();
 }
 
@@ -318,21 +318,17 @@ function dns_popup_cache_save(){
 
 		
 function dns_js(){
-		$page=CurrentPageName();
-		echo "
-		YahooWin2(490,'$page?content=dns','DNS servers...','');
-
-";}
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	echo "YahooWin2(750,'$page?content=dns','DNS servers...',true);";
+}
 		
 function user_agent_ban_js(){
 $page=CurrentPageName();
 $tpl=new templates();
+header("content-type: application/x-javascript");
 $title=$tpl->_ENGINE_parse_body("{ban_browsers}");
-
-echo "
-		YahooWin2(600,'$page?user-agent-ban=yes','$title','');
-		
-		";
+echo "YahooWin2(600,'$page?user-agent-ban=yes','$title',true);";
 }
 		
 		
@@ -443,7 +439,7 @@ function url_regex_MalwarePatrol_popup(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'>$EnableMalwarePatrol</td>
+	<td >$EnableMalwarePatrol</td>
 	<td valign='middle'>".button("{edit}","EnableMalwarePatrol()")."</td>
 	</tr>
 	</table>
@@ -946,7 +942,7 @@ $tpl=new templates();
 $t=time();	
 		
 		$html="
-			<div class=explain>{dns_nameservers_text}</div>
+			<div class=explain style='font-size:14px'>{dns_nameservers_text}</div>
 			<div id='$t'></div>
 			<script>
 				LoadAjax('$t','squid.dns.php');
@@ -978,30 +974,30 @@ function dns_popup_opendns(){
 	
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' class=legend>{useOpenDNS}:</td>
+		<td  class=legend>{useOpenDNS}:</td>
 		<td>".Field_checkbox("EnableOpenDNSInProxy",1,$EnableOpenDNSInProxy,"EnableOpenDNSInProxyCheck()")."</td>
 	</tr>
-		<td valign='top' class=legend>{primary_dns}:</td>
+		<td  class=legend>{primary_dns}:</td>
 		<td>". Field_text("OpenDNS1",$array["OpenDNS1"],"font-size:16px;padding:3px;font-weight:bold")."</td>
 	</tr>
 	</tr>
-		<td valign='top' class=legend>{secondary_dns}:</td>
+		<td  class=legend>{secondary_dns}:</td>
 		<td>". Field_text("OpenDNS2",$array["OpenDNS2"],"font-size:16px;padding:3px;font-weight:bold")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend>{UseDynamicIpService}:</td>
+		<td  class=legend>{UseDynamicIpService}:</td>
 		<td>".Field_checkbox("EnableDDClient",1,$EnableDDClient,"EnableOpenDNSInProxyCheck()")."</td>
 	</tr>
 	</tr>
-		<td valign='top' class=legend>OpenDNS {username}:</td>
+		<td  class=legend>OpenDNS {username}:</td>
 		<td>". Field_text("dd_client_username",$DDClientArray["dd_client_username"],"font-size:16px;padding:3px;font-weight:bold")."</td>
 	</tr>			
 	</tr>
-		<td valign='top' class=legend>{password}:</td>
+		<td  class=legend>{password}:</td>
 		<td>". Field_password("dd_client_password",$DDClientArray["dd_client_password"],"font-size:16px;padding:3px;font-weight:bold")."</td>
 	</tr>
 	</tr>
-		<td valign='top' class=legend>{opendns_network_label}:</td>
+		<td  class=legend>{opendns_network_label}:</td>
 		<td>". Field_text("opendns_network_label",$DDClientArray["opendns_network_label"],"font-size:16px;padding:3px;font-weight:bold")."</td>
 	</tr>			
 	<tr>
@@ -1066,20 +1062,42 @@ function dns_popup_opendns_save(){
 	$sock->SaveConfigFile(base64_encode(serialize($_GET)),"OpenDNSConfig");
 	$sock->getFrameWork("cmd.php?ddclient=yes");
 	$sock->getFrameWork("squid.php?build-smooth=yes");	
-	
-	
-	
-	}
+}
 
 function dns_popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	
 	$array["standard_dns"]='{dns_nameservers}';
 	$array["dns_cache"]='{performance}';
-	$array["opendns"]='OpenDNS';
+	$array["dns_status"]='{status}';
+	$array["booster"]='{dns_cache}';
+	$array["dn_entries"]="{dns_items}";
+	$array["dns_query"]="{dns_query}";
+	//$array["opendns"]='OpenDNS';
 
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="booster"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dnsmasq.php?popup=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="dns_status"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.status.php\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="dn_entries"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.items.php\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="dns_query"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.dns.query.php?popup=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	}
 	
@@ -1098,7 +1116,7 @@ function ldap_js(){
 		$title=$tpl->javascript_parse_text("{authenticate_users}");
 		echo "
 		function ldapauth_display(){
-			YahooWin2(600,'$page?content=ldap_auth','$title');
+			YahooWin2(995,'$page?content=ldap_auth','$title');
 		}
 		
 		
@@ -1119,10 +1137,7 @@ function ldap_js(){
 				XHR.appendData('SquidLdapAuthBanner',pp);
 			}
 			
-			if( document.getElementById('SquidLdapAuthEnableGroups') ) {
-				if(document.getElementById('SquidLdapAuthEnableGroups').checked){SquidLdapAuthEnableGroups=1;}
-				XHR.appendData('SquidLdapAuthEnableGroups',SquidLdapAuthEnableGroups);
-			}
+			
 			XHR.sendAndLoad('$page', 'GET',x_ldapauth);	
 		}
 		
@@ -1159,7 +1174,7 @@ function ldap_auth_index(){
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?content=$num\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?content=$num\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -1178,8 +1193,8 @@ function ldap_auth_remote(){
 		$form_ldap="	
 			<table style='width:100%'>
 				<tr>
-				<td valign='top'>" . Paragraphe_switch_disable("{authenticate_users}","{authenticate_users_no_binaries}",null,300)."</td>
-				<td  valign='top'></td>
+				<td >" . Paragraphe_switch_disable("{authenticate_users}","{authenticate_users_no_binaries}",null,300)."</td>
+				<td  ></td>
 				</tr>
 			</table>";
 		echo $tpl->_ENGINE_parse_body($form_ldap);
@@ -1213,45 +1228,45 @@ function ldap_auth_remote(){
 	$html="$error
 	<div class=explain style='font-size:16px'>{SQUID_LDAP_AUTH_EXT}</div>
 	
-	<div id='ldap_ext_auth' style='width:95%' class=form>
+	<div id='ldap_ext_auth' style='width:98%' class=form>
 		<table style='width:99%' class=TableRemove>
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{activate}:</td>
+		<td  style='font-size:16px' class=legend>{activate}:</td>
 		<td>". Field_checkbox("EnableSquidExternalLDAP",1,$EnableSquidExternalLDAP,"EnableSquidExternalLDAP()")."</td>
 	</tr>		
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{hostname}:</td>
+		<td  style='font-size:16px' class=legend>{hostname}:</td>
 		<td>". Field_text("ldap_server",$ldap_server,"font-size:16px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{listen_port}:</td>
+		<td  style='font-size:16px' class=legend>{listen_port}:</td>
 		<td>". Field_text("ldap_port",$ldap_port,"font-size:16px;padding:3px")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{auth_banner}:</td>
+		<td  style='font-size:16px' class=legend>{auth_banner}:</td>
 		<td>". Field_text("auth_banner",$auth_banner,"font-size:16px;padding:3px")."</td>
 	</tr>	
 	
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{userdn}:</td>
+		<td  style='font-size:16px' class=legend>{userdn}:</td>
 		<td>". Field_text("ldap_user",$userdn,"font-size:16px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{ldap_password}:</td>
+		<td  style='font-size:16px' class=legend>{ldap_password}:</td>
 		<td>". Field_password("ldap_password",$ldap_password,"font-size:16px;padding:3px")."</td>
 	</tr>
 	<tr><td colspan=2><hr></tD></tr>
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{ldap_suffix}:</td>
+		<td  style='font-size:16px' class=legend>{ldap_suffix}:</td>
 		<td>". Field_text("ldap_suffix",$ldap_suffix,"font-size:16px;padding:3px")."</td>
 	</tr>		
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{ldap_filter_users}:</td>
+		<td  style='font-size:16px' class=legend>{ldap_filter_users}:</td>
 		<td>". Field_text("ldap_filter_users",$ldap_filter_users,"font-size:16px;padding:3px")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' style='font-size:16px' class=legend>{ldap_filter_group}:</td>
-		<td>". Field_text("ldap_filter_group",$ldap_filter_group,"font-size:16px;padding:3px")."</td>
+		<td  style='font-size:16px' class=legend>{ldap_filter_group}:</td>
+		<td>". Field_text("ldap_filter_group",$ldap_filter_group,"font-size:16px;padding:3px;width:600px")."</td>
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'>
@@ -1293,13 +1308,12 @@ function ldap_auth_remote(){
 			XHR.appendData('ldap_server',document.getElementById('ldap_server').value);
 			XHR.appendData('ldap_port',document.getElementById('ldap_port').value);
 			XHR.appendData('ldap_user',document.getElementById('ldap_user').value);
-			XHR.appendData('ldap_password',document.getElementById('ldap_password').value);
+			XHR.appendData('ldap_password',encodeURIComponent(document.getElementById('ldap_password').value));
 			XHR.appendData('ldap_suffix',document.getElementById('ldap_suffix').value);
 			XHR.appendData('ldap_filter_users',document.getElementById('ldap_filter_users').value);
 			XHR.appendData('ldap_filter_group',document.getElementById('ldap_filter_group').value);
 			XHR.appendData('auth_banner',document.getElementById('auth_banner').value);
-			document.getElementById('ldap_ext_auth').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
-			XHR.sendAndLoad('$page', 'GET',x_SaveExternalLDAPSYS);		
+			XHR.sendAndLoad('$page', 'POST',x_SaveExternalLDAPSYS);		
 			}
 			
 	
@@ -1329,21 +1343,17 @@ function ldap_auth_popup(){
 	//SquidLdapAuthEnableGroups
 	$form_ldap="	
 			$error
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 		<table style='width:99%' class=TableRemove>
 			<tr>
-			<td valign='top'>" . Paragraphe_switch_img(
+			<td >" . Paragraphe_switch_img(
 					"{authenticate_users}","{authenticate_users_explain}",
-					'ldap_auth',$squid->LDAP_AUTH,'{enable_disable}',400)."
+					'ldap_auth',$squid->LDAP_AUTH,'{enable_disable}',850)."
 			</td>
 			</tr>
 			<tr>
 			<td>
 				<table style='width:100%' class=TableRemove>
-				<tr>
-					<td style='font-size:16px' class=legend>{enable_group_checking}:</td>
-					<td>". Field_checkbox("SquidLdapAuthEnableGroups", 1,$SquidLdapAuthEnableGroups)."</td>
-				</tr>
 				<tr>
 					<td style='font-size:16px' class=legend>{banner}:</td>
 					<td>". Field_text("SquidLdapAuthBanner", $SquidLdapAuthBanner,"font-size:16px;width:350px")."</td>
@@ -1352,7 +1362,7 @@ function ldap_auth_popup(){
 			</td>
 			</tr>
 			<tr>
-				<td  valign='top' align='right'><hr>". button("{apply}","ldapauth()",18)."</td>
+				<td   align='right'><hr>". button("{apply}","ldapauth()",18)."</td>
 			</tr>
 		</table>			
 		";
@@ -1365,8 +1375,8 @@ if(trim($users->SQUID_LDAP_AUTH)==null){
 	$form_ldap="	
 		<table style='width:100%'>
 			<tr>
-			<td valign='top'>" . Paragraphe_switch_disable("{authenticate_users}","{authenticate_users_no_binaries}",null,300)."</td>
-			<td  valign='top'></td>
+			<td >" . Paragraphe_switch_disable("{authenticate_users}","{authenticate_users_no_binaries}",null,300)."</td>
+			<td  ></td>
 			</tr>
 		</table>";
 	
@@ -1440,10 +1450,7 @@ function plugins_js(){
  				document.getElementById('img_enable_metascanner').src='img/wait_verybig.gif';
 				XHR.appendData('enable_metascanner',document.getElementById('enable_metascanner').value);
 			}	
-		 	if(document.getElementById('enable_streamcache')){
- 				document.getElementById('img_enable_streamcache').src='img/wait_verybig.gif';
-				XHR.appendData('enable_streamcache',document.getElementById('enable_streamcache').value);
-			}
+
 			
 			
 			
@@ -1576,10 +1583,7 @@ function plugins_save(){
 		
 	}
 	
-	if(isset($_GET["enable_streamcache"])){
-		writelogs("Save enable_streamcache {$_GET["enable_streamcache"]}",__FUNCTION__,__FILE__);
-		$squid->enable_streamcache=$_GET["enable_streamcache"];
-	}	
+
 	
 	if(isset($_GET["enable_ecapav"])){
 		writelogs("Save enable_ecapav {$_GET["enable_ecapav"]}",__FUNCTION__,__FILE__);
@@ -1681,14 +1685,12 @@ function plugins_popup(){
 		$adzapper=null;
 	}
 	
-	//SquidEnableStreamCache
-	$streaming_cache=Paragraphe_switch_img('{enable_streamcache}','{enable_streamcache_text}','enable_streamcache',$squid->enable_streamcache,'{enable_disable}',250);
+	
 	
 	$tr[]=$squidclamav;
 	$tr[]=$metascanner;
 	$tr[]=$cicap;
 	$tr[]=$kav;
-	$tr[]=$streaming_cache;
 	$tr[]=$adzapper;
 	$tr[]=$squidguard;
 	$tr[]=$ufdbguardd;
@@ -1701,13 +1703,13 @@ while (list ($key, $line) = each ($tr) ){
 		$line=trim($line);
 		if($line==null){continue;}
 		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
+		$tables[]="<td >$line</td>";
 		if($t==2){$t=0;$tables[]="</tr><tr>";}
 		}
 
 if($t<2){
 	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
+		$tables[]="<td >&nbsp;</td>";				
 	}
 }	
 	
@@ -1717,7 +1719,7 @@ if($t<2){
 	$form="<div id='div-poubelle'></div>
 		 ".implode("\n",$tables)."
 		</table> 	
-			<div  valign='top' style='text-align:right'><hr>". button("{edit}","save_plugins()")."</div>
+			<div   style='text-align:right'><hr>". button("{edit}","save_plugins()")."</div>
 					
 		";
 		
@@ -1739,42 +1741,30 @@ function listen_port_js(){
 	$t=time();
 	header("content-type: application/x-javascript");
 		echo "
-		LoadWinORG(750,'$page?content=listen_port_tab&t=$t','$title');
-		
-	
-		";	
+		LoadWinORG(914,'$page?content=listen_port_tab&t=$t','$title');";	
 }
 
 function visible_hostname_js(){
 	$page=CurrentPageName();
-		echo "
-		YahooWin2(450,'$page?content=visible_hostname','Hostname...','');
-		
-		var x_visible_hostname= function (obj) {
-			var results=obj.responseText;
-			alert(results);
-			YahooWin2(450,'$page?content=visible_hostname','hostname...','');
-		}
-		
-		function visible_hostname(){
-			var XHR = new XHRConnection();
-			XHR.appendData('visible_hostname_save',document.getElementById('visible_hostname_to_save').value);
-			XHR.sendAndLoad('$page', 'GET',x_visible_hostname);	
-		}		
-		";
+	$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$title=$tpl->javascript_parse_text("{visible_hostname}");
+		echo "YahooWin2(600,'$page?content=visible_hostname','$title',true);";
 }
 
 
 function visible_hostname_popup(){
 	$squid=new squidbee();
+	$page=CurrentPageName();
+	$t=time();
 	$form="	
 		<table style='width:100%'>
 			<tr>
-			<td class=legend nowrap>{visible_hostname}:</td>
-			<td>" . Field_text('visible_hostname_to_save',$squid->visible_hostname,'width:195px;font-size:16px')."</td>
+			<td class=legend nowrap style='font-size:18px'>{visible_hostname}:</td>
+			<td>" . Field_text("visible_hostname_to_save-$t",$squid->visible_hostname,'width:95%;font-size:18px')."</td>
 			</tr>
 			<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","visible_hostname();")."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","visible_hostname$t();",18)."</td>
 			</tr>
 		</table>			
 		";
@@ -1782,13 +1772,28 @@ function visible_hostname_popup(){
 		
 		
 $html="
-			<div class=explain>{visible_hostname_text}</div>
+			<div class=explain style='font-size:14px'>{visible_hostname_text}</div>
+			<div style='width:98%' class=form>
 				$form
-			<br>
-		";
+			</div>
 		
-		$tpl=new templates();
-		echo $tpl->_ENGINE_parse_body($html,'squid.index.php');	
+<script>
+
+var x_visible_hostname$t= function (obj) {
+	var results=obj.responseText;
+	alert(results);
+	RefreshTab('squid_main_svc');
+	YahooWin2Hide();
+}
+		
+function visible_hostname$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('visible_hostname_save',document.getElementById('visible_hostname_to_save-$t').value);
+	XHR.sendAndLoad('$page', 'GET',x_visible_hostname$t);	
+}
+</script>";
+$tpl=new templates();
+echo $tpl->_ENGINE_parse_body($html,'squid.index.php');	
 	
 }
 
@@ -1811,22 +1816,57 @@ function listen_port_popup_tabs(){
 	$tpl=new templates();
 	
 	$array["listen_port"]="{listen_ports}";
-	$array["ssl"]="{squid_sslbump}";
+	
+	$array["browsers"]="{browsers_setup}";
 	$t=time();
 	
 	while (list ($num, $ligne) = each ($array) ){
 	
-		if($num=="ssl"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.sslbump.php?popup=yes&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+
+
+		if($num=="browsers"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?browsers-setup=yes&t=$t\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 			continue;
-				
-		}
-	
 		
+		}		
 	
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?content=listen_port\" style='font-size:14px'><span>$ligne</span></a></li>\n");
 	}
 	echo build_artica_tabs($html, "listen_port_popup_tabs");
+	
+}
+
+function listen_port_browsers(){
+	$squid=new squidbee();	
+	$tpl=new templates();
+	$sock=new sockets();
+	$currentIP=$sock->GET_INFO("SquidBinIpaddr");
+	if($currentIP==null){$currentIP=$_SERVER["REMOTE_ADDR"];}
+	
+	if($squid->hasProxyTransparent==1){
+		
+		echo $tpl->_ENGINE_parse_body("<center>
+				<span style='font-size:24px'>FireFox - {transparent}/{gateway}:$currentIP</span>
+				<img src='img/firefox-front2.png'>
+			</center>
+				
+				
+				");
+		return;
+	}
+	
+	$port=$squid->listen_port;
+	
+		echo $tpl->_ENGINE_parse_body("
+				<center>
+				<span style='font-size:24px'>FireFox</span>
+				<div>
+				<div style='position:absolute;top:236px;left:453px;font-size:13px'><strong>$currentIP</strong></div>
+				<div style='position:absolute;top:236px;left:598px;font-size:13px'><strong>$port</strong></div>
+				<img src='img/firefox-front.png'>
+				</div>
+			</center>");
+	return;	
 	
 }
 
@@ -1847,7 +1887,7 @@ function listen_port_popup(){
 	$EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
 	$CNTLMPort=$sock->GET_INFO("CnTLMPORT");
 	$DisableSSLStandardPort=$sock->GET_INFO("DisableSSLStandardPort");
-	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=0;}
+	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=1;}
 	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
 	if(!is_numeric($CNTLMPort)){$CNTLMPort=3155;}
 	
@@ -1872,11 +1912,20 @@ function listen_port_popup(){
 	
 	$page=CurrentPageName();
 	$t=time();
-	
+	$EnableTCPOptimize=$sock->GET_INFO("EnableTCPOptimize");
+	if(!is_numeric($EnableTCPOptimize)){$EnableTCPOptimize=0;}
 	
 $form="<center id='animate-$t'></center>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 		<table style='width:100%' >
+			<tr>
+				<td class=legend nowrap style='font-size:16px;'>{EnableTCPOptimize}:</td>
+				<td>" . Field_checkbox("EnableTCPOptimize-$t",1,$EnableTCPOptimize,'width:95px;font-size:16px;padding:5px')."</td>
+				<td width=1% nowrap style='font-weight:bold;color:#C81717;font-size:14px !important'></td>
+				<td width=1%>". help_icon("{EnableTCPOptimize_explain}")."</td>
+			</tr>		
+		
+		
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{listen_port}:</td>
 				<td>" . Field_text("listen_port-$t",$squid->listen_port,'width:95px;font-size:16px;padding:5px')."</td>
@@ -1899,7 +1948,7 @@ $form="<center id='animate-$t'></center>
 				<td class=legend nowrap style='font-size:16px;'>{cntlm_port}:</td>
 				<td>" . Field_text("CNTLMPort-$t",$CNTLMPort,'width:95px;font-size:16px;padding:5px')."</td>
 				<td>&nbsp;</td>
-				<td width=1%>". help_icon("{CnTLMPORT_explain}")."</td>
+				<td width=1%>". help_icon("{CnTLMPORT_explain2}")."</td>
 			</tr>								
 			<tr>
 				<td class=legend nowrap style='font-size:16px;'>{icp_port}:</td>
@@ -1972,6 +2021,11 @@ $form="<center id='animate-$t'></center>
 			XHR.appendData('smartphones_port',document.getElementById('smartphones_port-$t').value);
 			
 			
+			if( document.getElementById('EnableTCPOptimize-$t').checked){
+				XHR.appendData('EnableTCPOptimize',1);
+			}else{
+				XHR.appendData('EnableTCPOptimize',0);
+			}			
 			
 			if( document.getElementById('DisableSSLStandardPort-$t').checked){
 				XHR.appendData('DisableSSLStandardPort',1);
@@ -2122,6 +2176,8 @@ function listen_port_save(){
 		$sock->SET_INFO("CNTLMPort", $_GET["CNTLMPort"]);
 		$sock->SET_INFO("DisableSSLStandardPort", $_GET["DisableSSLStandardPort"]);
 		$sock->SET_INFO("smartphones_port", $_GET["smartphones_port"]);
+		$sock->SET_INFO("EnableTCPOptimize", $_GET["EnableTCPOptimize"]);
+		
 		
 		
 		if(!$squid->SaveToLdap()){
@@ -2146,7 +2202,7 @@ function listen_port_save(){
 		}
 
 		
-		
+		$sock->getFrameWork("services.php?KernelTuning=yes");
 		$sock->getFrameWork("cmd.php?restart-apache-src=yes");		
 		$sock->getFrameWork("squid.php?cntlm-restart=yes");
 		
@@ -2247,9 +2303,9 @@ function network_popup(){
 		<div style='font-size:16px;font-weight:bold'>{allow_network}:</div><br>
 		<table style='width:100%'>
 			<tr>
-			<td valign='top' style='padding:4xp'>
+			<td  style='padding:4xp'>
 			<div style='padding:2px;border:1px solid #CCCCCC;height:225px;overflow:auto'>$list</div></td>
-			<td valign='top' style='padding:4xp'>
+			<td  style='padding:4xp'>
 				<H3>{squid_net_simple}</H3>
 				<table class=form>
 					<tr>

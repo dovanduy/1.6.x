@@ -71,6 +71,8 @@ function getDiskList(){
 	}
 	
 	
+	
+	
 	if(is_array($_GLOBAL["disks_list"])){
 		while (list ($num, $ARRAY) = each ($_GLOBAL["disks_list"]) ){
 			$disk=basename($num);
@@ -79,11 +81,23 @@ function getDiskList(){
 			}
 			
 			while (list ($partition_dev, $ARRAY_PARTITIONS) = each ($ARRAY["PARTITIONS"]) ){
+				
 				if($ARRAY_PARTITIONS["MOUNTED"]<>null){
 					$disk=basename($partition_dev);
 					$ARRAY_PARTITIONS["free_size"]=str_replace("%",'',$ARRAY_PARTITIONS["free_size"]);
-					$infos=explode(";",$ARRAY_PARTITIONS["free_size"]);
-					$arrayDisks[$disk]=array("POURC"=>$infos[3],"SIZE"=>$ARRAY_PARTITIONS["SIZE"],"MOUNTED"=>$ARRAY_PARTITIONS["MOUNTED"]);
+					if(strpos($ARRAY_PARTITIONS["free_size"], ";")>0){
+						$infos=explode(";",$ARRAY_PARTITIONS["free_size"]);
+						$POURC=$infos[3];
+					}else{
+						if(strpos($ARRAY_PARTITIONS["free_size"], ",")>0){
+							$infos=explode(",",$ARRAY_PARTITIONS["free_size"]);
+							$POURC=$infos[3];
+						}
+					}
+					
+					//echo "{$ARRAY_PARTITIONS["free_size"]}:: POURC {$POURC} SIZE =>{$ARRAY_PARTITIONS["SIZE"]} MOUNTED=>{$ARRAY_PARTITIONS["MOUNTED"]}<br>\n";
+					
+					$arrayDisks[$disk]=array("POURC"=>$POURC,"SIZE"=>$ARRAY_PARTITIONS["SIZE"],"MOUNTED"=>$ARRAY_PARTITIONS["MOUNTED"]);
 					
 				}
 				
@@ -94,7 +108,7 @@ function getDiskList(){
 		
 		
 	}
-
+	
 	return $arrayDisks;
 	
 }	
@@ -147,12 +161,19 @@ function Folders_interdis(){
 	$l["/usr/usr"]=true;
 	$l["/usr/X11R6"]=true;
 	$l["/usr/lib"]=true;
+	$l["/lib64"]=true;
+	$l["/opt/artica"]=true;
+	$l["/selinux"]=true;
+	$l["/run"]=true;
+	$l["/lib32"]=true;
+	$l["/usr/lib32"]=true;
 	$l["/usr/lib64"]=true;
 	$l["/usr/src"]=true;	
 	$l["/srv"]=true;
 	$l["/var/log"]=true;
 	$l["/var/db"]=true;
 	$l["/var/lib"]=true;
+	$l["/var/spool"]=true;
 	$l["/var/lock"]=true;
 	$l["/var/mail"]=true;
 	$l["/var/milter-greylist"]=true;

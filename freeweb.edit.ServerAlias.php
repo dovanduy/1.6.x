@@ -21,18 +21,19 @@
 	if(isset($_POST["Alias"])){alias_save();exit;}
 	if(isset($_POST["DelAlias"])){alias_del();exit;}
 	if(isset($_POST["AddAlias"])){alias_add();exit;}
-	
+	if(isset($_GET["aliases-list"])){aliases_list();exit;}
 	
 	
 	js();	
 	
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$server=$_GET["servername"];
 	$title=$tpl->_ENGINE_parse_body("{aliases}");
-	echo "YahooWin3('375','$page?popup=yes&servername=$server','$server::$title')";
+	echo "YahooWin3('650','$page?popup=yes&servername=$server','$server::$title')";
 	
 	
 }
@@ -40,7 +41,7 @@ function js(){
 function alias_start(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	$html="<div class=explain>{freeweb_aliasserver_explain}</div>
+	$html="
 	<div id='freeweb-aliasesserver-list' style='width:100%;heigth:350px;overflow:auto'></div>
 	<script>
 		function FreeWebAliasList(){
@@ -67,9 +68,140 @@ function alias_add(){
 	$free->Params["ServerAlias"][$_POST["AddAlias"]]=true;
 	$free->SaveParams();
 }
-
+//{freeweb_aliasserver_explain}
 
 function alias_list(){
+	$t=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$t=time();
+	$alias=$tpl->_ENGINE_parse_body("{aliases}");
+	$new_alias=$tpl->_ENGINE_parse_body("{new_alias}");
+	$txt=$tpl->javascript_parse_text("{add_serveralias_ask}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$aliases=$tpl->javascript_parse_text("{aliases}");
+	$about2=$tpl->_ENGINE_parse_body("{about2}");
+	$about_text=$tpl->javascript_parse_text("{freeweb_aliasserver_explain}");
+	$servernameenc=urlencode($_GET["servername"]);
+	$buttons="
+	buttons : [
+	{name: '$new_alias', bclass: 'add', onpress : FreeWebAddServerAlias$t},
+	{name: '$about2', bclass: 'help', onpress : About$t},
+	],";
+
+	$explain=$tpl->_ENGINE_parse_body("{postfix_transport_senders_explain}");
+	$html="
+<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+<script>
+$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?aliases-list=yes&t=$t&servername=$servernameenc',
+	dataType: 'json',
+	colModel : [
+	{display: '$aliases', name : 'domain', width : 507, sortable : true, align: 'left'},
+	{display: '$delete;', name : 'delete', width : 70, sortable : false, align: 'center'},
+	],
+	$buttons
+	searchitems : [
+	{display: '$aliases', name : 'domain'},
+	],
+	sortname: 'domain',
+	sortorder: 'asc',
+	usepager: true,
+	title: '',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: '350',
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200]
+
+});
+});
+
+function About$t(){
+	alert('$about_text');
+}
+
+var x_FreeWebAddServerAlias$t=function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}	
+	if(document.getElementById('main_config_freeweb')){RefreshTab('main_config_freeweb');}
+	$('#flexRT$t').flexReload();
+	WebServerAliasesRefresh();
+}	
+
+function FreeWebAddServerAlias$t(){
+	var newserv=prompt('$txt');
+	if(newserv){
+		if(newserv.length<2){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('AddAlias',newserv);
+		XHR.appendData('servername','{$_GET["servername"]}');
+		XHR.sendAndLoad('$page', 'POST',x_FreeWebAddServerAlias$t);
+    }			
+}	
+
+function FreeWebDelServerAlias$t(id){
+	var XHR = new XHRConnection();
+	XHR.appendData('DelAlias',id);
+	XHR.appendData('servername','{$_GET["servername"]}');
+	XHR.sendAndLoad('$page', 'POST',x_FreeWebAddServerAlias$t);			
+}
+
+function sender_routing_ruleED$t(domainName){
+YahooWin3(552,'postfix.routing.table.php?SenderTable=yes&domainName='+domainName+'&t=$t','$sender_dependent_relayhost_maps_title::'+domainName);
+}
+
+
+function SenderTableDelete$t(domain){
+Loadjs('$page?SenderTableDelete-js=yes&domain='+domain+'&t=$t');
+
+}
+
+</script>
+";
+
+echo $html;
+
+
+}
+
+function aliases_list(){
+	$tpl=new templates();
+	$free=new freeweb($_GET["servername"]);
+	$page=CurrentPageName();	
+	$t=$_GET["t"];
+	if($_POST["query"]<>null){$search=str_replace("*", ".*?", $_POST["query"]);}
+	$c=0;
+	while (list ($host, $num) = each ($free->Params["ServerAlias"]) ){
+		if($search<>null){if(!preg_match("#$search#", $host)){continue;}}
+		$c++;
+		$delete=imgsimple("delete-48.png","{delete}","FreeWebDelServerAlias$t('{$host}')");
+		
+		$m5=md5($host);
+		$data['rows'][] = array(
+				'id' => "dom$m5",
+				'cell' => array("
+						<span style='font-size:22px;font-weight:bold;'>$host</span>",
+						$delete) 
+		);
+	
+		if($c>$_POST["rp"]){break;}
+	
+	}
+	
+	if($c==0){json_error_show("no data");}
+	$data['page'] = 1;
+	$data['total'] = $c;
+	echo json_encode($data);
+	
+}
+
+function alias_list_old(){
 	$tpl=new templates();	
 	$free=new freeweb($_GET["servername"]);
 	$page=CurrentPageName();

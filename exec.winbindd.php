@@ -19,7 +19,7 @@ if($argv[1]=="--privs"){setfacl_squid();exit;}
 if($argv[1]=="--privs-squid"){setfacl_squid(true);exit;}
 
 
-initd_debian();
+
 
 
 function setfacl_squid($without_reload=false){
@@ -42,23 +42,23 @@ function setfacl_squid($without_reload=false){
 	if($EnableKerbAuth==0){return;}
 	
 	for($i=0;$i<6;$i++){
-		echo "Starting......: WINBIND waiting pipe...$i/5\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND waiting pipe...$i/5\n";
 		reset($dirs);
 		while (list ($dir, $val) = each ($dirs) ){
 			if($GLOBALS["VERBOSE"]){echo "cheks $dir/pipe\n";}
 			$array=$unix->alt_stat("$dir/pipe");
 			
 			if(isset($array["file"])){
-				echo "Starting......: WINBIND setfacl_squid:: apply Squid settings in $dir/pipe\n";
+				echo "Starting......: ".date("H:i:s")." WINBIND setfacl_squid:: apply Squid settings in $dir/pipe\n";
 				shell_exec("$setfacl -R -m u:squid:rwx $dir/pipe >/dev/null 2>&1");
 				shell_exec("$setfacl -R -m g:squid:rwx $dir/pipe >/dev/null 2>&1");
 				shell_exec("$chmod 1777 $dir/pipe");
-				echo "Starting......: WINBIND setfacl_squid:: reloading squid\n";
+				echo "Starting......: ".date("H:i:s")." WINBIND setfacl_squid:: reloading squid\n";
 				
 				if(!$without_reload){
-					squid_watchdog_events("Reconfiguring Proxy parameters...");;
-					squid_admin_mysql(1, "Reloading Squid-cache for disk ACL");
-					shell_exec("$squidbin -k reconfigure >/dev/null 2>&1");}
+					$cmd="/etc/init.d/squid reload --script=".basename(__FILE__);
+					shell_exec("$cmd >/dev/null 2>&1");
+					}
 				return;
 			}else{
 				if($GLOBALS["VERBOSE"]){echo "$dir/pipe no such file\n";}
@@ -66,7 +66,7 @@ function setfacl_squid($without_reload=false){
 		}
 		sleep(1);
 	}
-	echo "Starting......: WINBIND setfacl_squid:: waiting pipe done...\n";
+	echo "Starting......: ".date("H:i:s")." WINBIND setfacl_squid:: waiting pipe done...\n";
 	
 }
 function squid_watchdog_events($text){
@@ -94,10 +94,10 @@ function DirsPrivileges(){
 	if($EnableKerbAuth==1){
 		while (list ($dir, $val) = each ($dirs) ){
 			if(is_dir($dir)){
-				echo "Starting......: WINBIND DirsPrivileges:: 1777 in $dir for squid\n";
+				echo "Starting......: ".date("H:i:s")." WINBIND DirsPrivileges:: 1777 in $dir for squid\n";
 				shell_exec("$chmod 1777 $dir");
 				@mkdir("$dir/winbindd_privileged",0750,true);
-				echo "Starting......: WINBIND DirsPrivileges:: 0750 in $dir/winbindd_privileged\n";
+				echo "Starting......: ".date("H:i:s")." WINBIND DirsPrivileges:: 0750 in $dir/winbindd_privileged\n";
 				shell_exec("$chmod 0750 $dir/winbindd_privileged");
 				@chgrp("$dir/winbindd_privileged", "winbindd_priv");
 			}
@@ -109,7 +109,7 @@ function DirsPrivileges(){
 	
 	while (list ($dir, $val) = each ($dirs) ){
 		if(is_dir("$dir/winbindd_privileged")){
-			echo "Starting......: WINBIND DirsPrivileges:: 0750 in $dir/winbindd_privileged\n";
+			echo "Starting......: ".date("H:i:s")." WINBIND DirsPrivileges:: 0750 in $dir/winbindd_privileged\n";
 			shell_exec("$chmod 0750 $dir/winbindd_privileged");}
 			@chgrp("$dir/winbindd_privileged", "winbindd_priv");
 	}	
@@ -144,31 +144,52 @@ function Winbindd_events($text,$sourcefunction=null,$sourceline=null){
 
 function start($nopid=false){
 	$unix=new unix();
-	
+	$sock=new sockets();
 	
 	if(!$nopid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$oldpid=$unix->get_pid_from_file($pidpath);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
-			echo "Starting......: WINBIND Already running start process exists\n";
+			echo "Starting......: ".date("H:i:s")." WINBIND Already running start process exists\n";
 			Winbindd_events("Already running start process exists",__FUNCTION__,__LINE__);
 			return;
 		}
 	}
 	
 	if(is_run()){
-		echo "Starting......: WINBIND already running....\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND already running....\n";
 		Winbindd_events("Winbindd ask to start But already running",__FUNCTION__,__LINE__);
-		echo "Starting......: WINBIND check privileges...\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND check privileges...\n";
 		DirsPrivileges();
 		return;
 	}
 	
 	
 	$winbindd=$unix->find_program("winbindd");
-	echo "Starting......: WINBIND $winbindd....\n";
+	echo "Starting......: ".date("H:i:s")." WINBIND $winbindd....\n";
+	$DisableWinbindd=$sock->GET_INFO("DisableWinbindd");
+	if(!is_numeric($DisableWinbindd)){$DisableWinbindd=0;}
+	$squid=$unix->LOCATE_SQUID_BIN();
+	if(is_file($squid)){
+		$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+		$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
+		if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
+		if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+		if($EnableKerbAuth==1){$DisableWinbindd=0;}
+	}
 	
 	
+	
+	if($DisableWinbindd==1){
+		echo "Starting......: ".date("H:i:s")." WINBIND $winbindd is disabled ( see DisableWinbindd )....\n";
+		stop();
+		return;
+	}
+	
+	
+	$unix->CleanOldLibs();
+	
+
 	
 	$pidof=$unix->find_program("pidof");
 	exec("$pidof $winbindd 2>&1",$pidofr);
@@ -189,30 +210,28 @@ function start($nopid=false){
 		return;
 	}
 	
-	$ulimit=$unix->find_program("ulimit");
-	Winbindd_events("Winbindd set ulimit to 65500",__FUNCTION__,__LINE__);
-	shell_exec("$ulimit -n 65500 >/dev/null 2>&1");
+
 	
 	DirsPrivileges();
 	shell_exec($winbindd." -D");
 	for($i=0;$i<10;$i++){
 		if(is_run()){break;}
-		echo "Starting......: WINBIND (start) waiting to run\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND (start) waiting to run\n";
 		sleep(1);
 	}
 	if(is_run()){
 		$pid=WINBIND_PID();
 		Winbindd_events("Winbindd start success PID $pid",__FUNCTION__,__LINE__);
-		echo "Starting......: WINBIND (start) success PID $pid\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND (start) success PID $pid\n";
 	}else{
-		echo "Starting......: WINBIND (start) failed\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND (start) failed\n";
 	}
 }
 
 function restart(){
 	
 	if(!is_run()){
-		echo "Starting......: WINBIND (restart) not running, start it...\n";
+		echo "Starting......: ".date("H:i:s")." WINBIND (restart) not running, start it...\n";
 		Winbindd_events("Winbindd (restart) not running, start it",__FUNCTION__,__LINE__);
 		start(true);
 		return;
@@ -230,10 +249,11 @@ function restart(){
 			$pid=WINBIND_PID();
 			if($unix->process_exists($pid)){
 				$timepid=$unix->PROCESS_TTL($pid);
+				echo "Starting......: ".date("H:i:s")." WINBIND ask to restart need to wait 60Mn pid:$pid $timepid\n";
 				Winbindd_events("Winbindd ask to restart need to wait 60Mn pid:$pid $timepid",__FUNCTION__,__LINE__);
 				return;
 			}else{
-				echo "Starting......: WINBIND (restart) not running, start it...\n";
+				echo "Starting......: ".date("H:i:s")." WINBIND (restart) not running, start it...\n";
 				shell_exec("$php5 /usr/share/artica-postfix/exec.winbindd.php --start");
 			}
 		}
@@ -250,7 +270,7 @@ function restart(){
 	if(!$GLOBALS["FORCE"]){
 		if(is_file($smbcontrol)){
 			Winbindd_events("Winbindd reloading",__FUNCTION__,__LINE__);
-			echo "Starting......: WINBIND reloading...\n";
+			echo "Starting......: ".date("H:i:s")." WINBIND reloading...\n";
 			shell_exec("$smbcontrol winbindd reload-config");
 			shell_exec("$smbcontrol winbindd offline");
 			shell_exec("$smbcontrol winbindd online");
@@ -275,100 +295,16 @@ function stop(){
 	exec("$pidof $winbindd 2>&1",$results);
 	while (list ($key, $val) = each ($results) ){
 		if(preg_match("#([0-9\s]+)#", $val,$re)){
-			echo "Stopping WINBIND.............: killing {$re[1]} pid(s)\n";
-			shell_exec("$kill -9 {$re[1]} >/dev/null");
+			
+			$tb=explode(" ",$re[1]);
+			while (list ($a, $b) = each ($tb) ){
+				if(!is_numeric($b)){continue;}
+				echo "Stopping WINBIND.............: killing $b pid\n";
+				shell_exec("$kill -9 $b >/dev/null 2>&1");
+			}
 		}
 	}
 	
 }
 
 
-function initd_debian(){
-	$unix=new unix();
-	$sock=new sockets();
-	$settings=new settings_inc();
-	$winbindd=$unix->find_program("winbindd");
-	if(!is_file($winbindd)){
-		echo "Starting......: WINBIND no such binary...\n";
-		return;
-	}
-	$servicebin=$unix->find_program("update-rc.d");
-	
-	if(!is_file($servicebin)){
-		echo "Starting......: WINBIND not a Debian system...\n";
-		return;
-	}
-	$php5=$unix->LOCATE_PHP5_BIN();	
-	$cat=$unix->find_program("cat");
-	$mkdir=$unix->find_program("mkdir");
-	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	$smbcontrol=$unix->find_program("smbcontrol");
-	$SquidInstalled=0;
-	if($settings->SQUID_INSTALLED){
-		$SquidInstalled=1;
-	}
-	
-	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
-	$setfacl=$unix->find_program("setfacl")	;
-	echo "Starting......: WINBIND writing init.d script..\n";
-	echo "Starting......: WINBIND binary: `$winbindd`\n";
-	echo "Starting......: WINBIND Squid+Winbindd ?: `$EnableKerbAuth`\n";
-	
-	$f[]="#!/bin/sh";
-	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides:          winbind";
-	$f[]="# Required-Start:    \$network \$remote_fs \$syslog";
-	$f[]="# Required-Stop:     \$network \$remote_fs \$syslog";
-	$f[]="# Default-Start:     2 3 4 5";
-	$f[]="# Default-Stop:      0 1 6";
-	$f[]="# Short-Description: start Winbind daemon";
-	$f[]="### END INIT INFO";
-	$f[]="";
-	$f[]="";
-	$f[]="PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin";
-	$f[]="DAEMON=$winbindd";
-	$f[]="PIDDIR=/var/run/samba";
-	$f[]="SMBCONTROL=$smbcontrol";
-	$f[]="WINBINDPID=\$PIDDIR/winbindd.pid";
-	$f[]="EnableKerbAuth=$EnableKerbAuth";
-	$f[]="SquidInstalled=$SquidInstalled";
-	$f[]="# clear conflicting settings from the environment";
-	$f[]="unset TMPDIR";
-	$f[]="";
-	$f[]="# See if the daemon is there";
-	$f[]="test -x \$DAEMON || exit 0";
-	$f[]="";
-	$f[]=". /lib/lsb/init-functions";
-	$f[]="";
-	$f[]="case \"\$1\" in";
-	$f[]="	start)";
-	$f[]="		$php5 ".__FILE__." --start";
-	$f[]="		;;";
-	$f[]="";
-	$f[]="	stop)";
-	$f[]="		echo \"Stopping WINBIND.............: winbind\"\n";
-	$f[]="		$php5 ".__FILE__." --stop";
-	$f[]="		;;";
-	$f[]="";
-	$f[]="	restart|force-reload)";
-	$f[]="		$php5 ".__FILE__." --restart";
-	$f[]="		;;";
-	$f[]="	reload)";
-	$f[]="		$php5 ".__FILE__." --restart";
-	$f[]="		;;";	
-	$f[]="";
-	$f[]="	status)";
-	$f[]="		status_of_proc -p \$WINBINDPID \$DAEMON winbind && exit 0 || exit \$?";
-	$f[]="		;;";
-	$f[]="	*)";
-	$f[]="		echo \"Usage: /etc/init.d/winbind {start|stop|restart|force-reload|reload|status}\"";
-	$f[]="		exit 1";
-	$f[]="		;;";
-	$f[]="esac";
-	$f[]="";
-	@file_put_contents("/etc/init.d/winbind", @implode("\n", $f));
-	@chmod("/etc/init.d/winbind", 0755);
-	shell_exec("$servicebin -f winbind defaults >/dev/null 2>&1");
-	echo "configuring...: WINBIND init.d debian mode done\n";
-	
-}

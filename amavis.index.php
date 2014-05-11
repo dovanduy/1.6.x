@@ -541,7 +541,7 @@ function main_settings($noecho=0){
 	}
 	
 	
-	$trustlocal=Paragraphe("network-connection2.png",'{trust_local}','{trust_local_text}',"javascript:Loadjs('$page?script=trustlocal')",null,210,100);
+	$trustlocal=Paragraphe("folder-network-64.png",'{trust_local}','{trust_local_text}',"javascript:Loadjs('$page?script=trustlocal')",null,210,100);
 	$localNetwork=Paragraphe("64-ip-settings.png",'{local_network}','{local_network_text}',"javascript:Loadjs('$page?script=localnetwork')",null,210,100);
 	$filterbhavior=Paragraphe("64-milter-behavior.png",'{filter_behavior}','{filter_behavior_text}',"javascript:Loadjs('$page?script=filterbehavior')",null,210,100);
 	$notification=Paragraphe("mail4-64.png",'{smtp_notification}','{notification_text}',"javascript:Loadjs('$page?script=notification')",null,210,100);

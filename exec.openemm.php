@@ -25,7 +25,7 @@ function patch_config_sh(){
 	$datas=explode("\n",@file_get_contents("/home/openemm/bin/scripts/config.sh"));
 	while (list ($num, $val) = each ($datas) ){
 		if(preg_match('#sendmail="(.+?)"#', $val,$re)){
-			echo "Starting......: OpenEMM patching config.sh line $num\n";
+			echo "Starting......: ".date("H:i:s")." OpenEMM patching config.sh line $num\n";
 			$datas[$num]=str_replace($re[1], "/home/openemm/sendmail/sbin/sendmail", $datas[$num]);
 		}
 		
@@ -38,7 +38,7 @@ $datas=explode("\n",@file_get_contents("/home/openemm/bin/scripts/bavd.py"));
 	while (list ($num, $val) = each ($datas) ){
 			$datas[$num]=str_replace("/usr/sbin/sendmail", "/home/openemm/sendmail/sbin/sendmail", $datas[$num]);
 		}
-	echo "Starting......: OpenEMM patching bavd.py done\n";
+	echo "Starting......: ".date("H:i:s")." OpenEMM patching bavd.py done\n";
 	@file_put_contents("/home/openemm/bin/scripts/bavd.py", @implode("\n", $datas));		
 		
 }	
@@ -53,26 +53,26 @@ function checkdb(){
 	$unix=new unix();
 	$q=new mysql();
 	$JAVA_HOME=$unix->JAVA_HOME_GET();
-	if(strlen($JAVA_HOME)==0){echo "Starting......: OpenEMM JAVA_HOME failed\n";return;}
-	echo "Starting......: OpenEMM JAVA_HOME $JAVA_HOME\n";
+	if(strlen($JAVA_HOME)==0){echo "Starting......: ".date("H:i:s")." OpenEMM JAVA_HOME failed\n";return;}
+	echo "Starting......: ".date("H:i:s")." OpenEMM JAVA_HOME $JAVA_HOME\n";
 	if(!is_file("/home/openemm/bin/openemm.sh")){
-		echo "Starting......: OpenEMM /home/openemm/bin/openemm.sh no such file\n";
+		echo "Starting......: ".date("H:i:s")." OpenEMM /home/openemm/bin/openemm.sh no such file\n";
 		return;
 	}
 	
 	if(!is_file("/opt/openemm/tomcat6/bin/startup.sh")){
-		echo "Starting......: OpenEMM tomcat 6.x is not installed\n";
+		echo "Starting......: ".date("H:i:s")." OpenEMM tomcat 6.x is not installed\n";
 		return;
 	}
 	
 	
 	
 	if(!$q->DATABASE_EXISTS("openemm")){$q->CREATE_DATABASE("openemm");}
-	if(!$q->DATABASE_EXISTS("openemm")){echo "Starting......: OpenEMM failed creating database openemm\n";return;}
-	echo "Starting......: OpenEMM database openemm OK\n";
+	if(!$q->DATABASE_EXISTS("openemm")){echo "Starting......: ".date("H:i:s")." OpenEMM failed creating database openemm\n";return;}
+	echo "Starting......: ".date("H:i:s")." OpenEMM database openemm OK\n";
 	
 	if(!$q->DATABASE_EXISTS("openemm_cms")){$q->CREATE_DATABASE("openemm_cms");}
-	if(!$q->DATABASE_EXISTS("openemm_cms")){echo "Starting......: OpenEMM failed creating database openemm_cms\n";return;}
+	if(!$q->DATABASE_EXISTS("openemm_cms")){echo "Starting......: ".date("H:i:s")." OpenEMM failed creating database openemm_cms\n";return;}
 	
 	if(!test_cms_tables()){
 		if(is_file("/home/openemm/USR_SHARE/openemm_cms-2011.sql")){
@@ -87,21 +87,21 @@ function checkdb(){
 		$mysql=$unix->find_program("mysql");
 		if(is_file("/home/openemm/USR_SHARE/openemm-2011.sql")){$cmd="$mysql -u $q->mysql_admin -p\"$q->mysql_password\" --batch --database=openemm < /home/openemm/USR_SHARE/openemm-2011.sql";shell_exec($cmd);}}
 		
-	if(!testtables()){echo "Starting......: OpenEMM failed creating openemm tables\n";return;}
-	if(!test_cms_tables()){echo "Starting......: OpenEMM failed creating openemm_cms tables\n";return;}
+	if(!testtables()){echo "Starting......: ".date("H:i:s")." OpenEMM failed creating openemm tables\n";return;}
+	if(!test_cms_tables()){echo "Starting......: ".date("H:i:s")." OpenEMM failed creating openemm_cms tables\n";return;}
 	
 	
-	echo "Starting......: OpenEMM tables in openemm base OK\n";
-	echo "Starting......: OpenEMM tables in openemm_cms base OK\n";
+	echo "Starting......: ".date("H:i:s")." OpenEMM tables in openemm base OK\n";
+	echo "Starting......: ".date("H:i:s")." OpenEMM tables in openemm_cms base OK\n";
 	if(!$unix->CreateUnixUser("openemm")){
-		echo "Starting......: OpenEMM unix user openemm failed\n";
+		echo "Starting......: ".date("H:i:s")." OpenEMM unix user openemm failed\n";
 		return;
 	}
-	echo "Starting......: OpenEMM unix user openemm OK\n";
+	echo "Starting......: ".date("H:i:s")." OpenEMM unix user openemm OK\n";
 	patch_javahome($JAVA_HOME);
 	patch_tomcat_dir("/opt/openemm/tomcat6");
 	if(!is_dir("/home/openemm/logs")){
-		echo "Starting......: OpenEMM creating /home/openemm/logs directory\n";
+		echo "Starting......: ".date("H:i:s")." OpenEMM creating /home/openemm/logs directory\n";
 		@mkdir("/home/openemm/logs",0755,true);
 		
 	}
@@ -118,7 +118,7 @@ function checkdb(){
 	shell_exec("/bin/chown -R openemm /home/openemm");
 	
 	if(is_numeric(is_tomcat_running())){
-		echo "Starting......: OpenEMM stopping tomcat first...\n";
+		echo "Starting......: ".date("H:i:s")." OpenEMM stopping tomcat first...\n";
 		shell_exec("/etc/init.d/artica-postfix stop tomcat");
 	}
 	@unlink("/home/openemm/logs/catalina.out");
@@ -152,7 +152,7 @@ $cms[]="#####################################################";
 $cms[]="cms.ccr.url=http://192.168.1.105:8080";	
 
 @file_put_contents("/home/openemm/webapps/openemm/WEB-INF/classes/cms.properties", @implode("\n", $cms));
-echo "Starting......: OpenEMM creating cms.properties done.\n";	
+echo "Starting......: ".date("H:i:s")." OpenEMM creating cms.properties done.\n";	
 	
 }
 
@@ -273,7 +273,7 @@ $emm[]="import.report.replyTo.name=";
 $emm[]="import.report.bounce=openemm@localhost";
 $emm[]="";	
 @file_put_contents("/home/openemm/webapps/openemm/WEB-INF/classes/emm.properties", @implode("\n", $cms));
-echo "Starting......: OpenEMM creating emm.properties done.\n";	
+echo "Starting......: ".date("H:i:s")." OpenEMM creating emm.properties done.\n";	
 	
 	
 }
@@ -283,26 +283,26 @@ function patch_javahome($java){
 	$f=@explode("\n", @file_get_contents("/home/openemm/bin/openemm.sh"));
 	while (list ($num, $val) = each ($f) ){
 		if(preg_match('#JAVA_HOME="(.*?)"#', $val,$re)){
-			if($re[1]==$java){echo "Starting......: OpenEMM openemm.sh (java) OK\n";return;}
+			if($re[1]==$java){echo "Starting......: ".date("H:i:s")." OpenEMM openemm.sh (java) OK\n";return;}
 			$f[$num]="JAVA_HOME=\"$java\"";
 			@file_put_contents("/home/openemm/bin/openemm.sh", @implode("\n", $f));
-			echo "Starting......: OpenEMM openemm.sh (java) OK\n";return;
+			echo "Starting......: ".date("H:i:s")." OpenEMM openemm.sh (java) OK\n";return;
 		}
 	}
-	echo "Starting......: OpenEMM openemm.sh (java) FAILED\n";return;
+	echo "Starting......: ".date("H:i:s")." OpenEMM openemm.sh (java) FAILED\n";return;
 }
 
 function patch_tomcat_dir($dir){
 	$f=@explode("\n", @file_get_contents("/home/openemm/bin/openemm.sh"));
 	while (list ($num, $val) = each ($f) ){
 		if(preg_match('#CATALINA_HOME="(.*?)"#', $val,$re)){
-			if($re[1]==$dir){echo "Starting......: OpenEMM openemm.sh (tomcat) OK\n";return;}
+			if($re[1]==$dir){echo "Starting......: ".date("H:i:s")." OpenEMM openemm.sh (tomcat) OK\n";return;}
 			$f[$num]="CATALINA_HOME=\"$dir\"";
 			@file_put_contents("/home/openemm/bin/openemm.sh", @implode("\n", $f));
-			echo "Starting......: OpenEMM openemm.sh (tomcat) OK\n";return;
+			echo "Starting......: ".date("H:i:s")." OpenEMM openemm.sh (tomcat) OK\n";return;
 		}
 	}
-	echo "Starting......: OpenEMM openemm.sh (tomcat) FAILED\n";return;	
+	echo "Starting......: ".date("H:i:s")." OpenEMM openemm.sh (tomcat) FAILED\n";return;	
 
 	
 }
@@ -316,7 +316,7 @@ function is_tomcat_running(){
 	
 	exec($cmd,$results);
 	$pid=trim(@implode("", $results));
-	if($GLOBALS["VERBOSE"]){echo "Starting......: OpenEMM [$pid] \"$cmd\"\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." OpenEMM [$pid] \"$cmd\"\n";}
 	
 	if(is_numeric($pid)){return $pid;}
 	return null;
@@ -348,7 +348,7 @@ $tables[]="cm_type_tbl_seq";
 
 while (list ($num, $tbl) = each ($tables) ){
 		if(!$q->TABLE_EXISTS($tbl, "openemm_cms")){
-			echo "Starting......: OpenEMM CMS: $tbl no such table\n";
+			echo "Starting......: ".date("H:i:s")." OpenEMM CMS: $tbl no such table\n";
 			return false;
 		}
 		
@@ -413,7 +413,7 @@ function testtables(){
 	$tables[]="ws_admin_tbl";	
 	while (list ($num, $tbl) = each ($tables) ){
 		if(!$q->TABLE_EXISTS($tbl, "openemm")){
-			echo "Starting......: OpenEMM $tbl no such table\n";
+			echo "Starting......: ".date("H:i:s")." OpenEMM $tbl no such table\n";
 			return false;
 		}
 		
@@ -524,7 +524,7 @@ $f[]="dnl FEATURE(`blacklist_recipients')dnl";
 $f[]="dnl EXPOSED_USER(`root')dnl";
 $f[]="dnl define(`confLOCAL_MAILER', `cyrusv2')dnl";
 $f[]="dnl define(`CYRUSV2_MAILER_ARGS', `FILE /var/lib/imap/socket/lmtp')dnl";
-echo "Starting......: Sendmail for OpenEMM server local port : 127.0.0.1:$OpenEMMSendMailPort\n";
+echo "Starting......: ".date("H:i:s")." Sendmail for OpenEMM server local port : 127.0.0.1:$OpenEMMSendMailPort\n";
 $f[]="DAEMON_OPTIONS(`Port=$OpenEMMSendMailPort,Addr=127.0.0.1, Name=MTA')dnl";
 $f[]="dnl DAEMON_OPTIONS(`Port=submission, Name=MSA, M=Ea')dnl";
 $f[]="dnl DAEMON_OPTIONS(`Port=smtps, Name=TLSMTA, M=s')dnl";
@@ -570,11 +570,11 @@ $f[]="define(`QUEUE_DIR', `/home/openemm/sendmail/run/sm-client.pid')dnl\n";
 
 $unix=new unix();
 $m4=$unix->find_program("m4");
-echo "Starting......: Sendmail for OpenEMM server using m4:$m4\n";
+echo "Starting......: ".date("H:i:s")." Sendmail for OpenEMM server using m4:$m4\n";
 
 shell_exec("$m4 /home/openemm/sendmail/etc/cf.m4 /home/openemm/sendmail/etc/sendmail.mc > /home/openemm/sendmail/etc/sendmail.cf");
 shell_exec("$m4 /home/openemm/sendmail/etc/cf.m4 /home/openemm/sendmail/etc/submit.mc > /home/openemm/sendmail/etc/submit.cf");
-echo "Starting......: Sendmail for OpenEMM server submit.cf & sendmail.cf done...\n";
+echo "Starting......: ".date("H:i:s")." Sendmail for OpenEMM server submit.cf & sendmail.cf done...\n";
 @unlink("/etc/mail/sendmail.cf");
 @unlink("/etc/mail/submit.cf");
 if(!is_dir("/etc/mail")){@mkdir("/etc/mail");}

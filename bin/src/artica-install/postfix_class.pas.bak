@@ -61,7 +61,7 @@ public
     function    POSTFIX_READ_QUEUE_MESSAGE(MessageID:string):string;
     function    POSTFIX_EXTRACT_MAINCF(key:string):string;
     procedure   POSTFIX_MOVE_CORRUPTED_QUEUE();
-    procedure   POSTFIX_DISABLE_MGREYLIST();
+
     function    master_path():string;
     function    Is_CYRUS_enabled_in_master_cf():boolean;
     function    postfix_path():string;
@@ -77,12 +77,8 @@ public
     function    MON():string;
     procedure    POSTFIX_START_LIMITED();
 
-
-
-    procedure    MYSQMAIL_START();
-    procedure    MYSQMAIL_STOP();
     function     MYSQMAIL_STATUS():string;
-    function     MYSQMAIL_PID():string;
+
 
 
     function     gnarwl_VERSION():string;
@@ -514,113 +510,14 @@ begin
 
 
 end;
-//#####################################################################################
-procedure tpostfix.MYSQMAIL_START();
-var
-   pid:string;
-   log_path:string;
-   count:integer;
-   cmd:string;
-   stime:string;
-   detect_tail:string;
-   pidlist:Tstringlist;
-   pidlistInt:integer;
-   i:integer;
-begin
-
-
-
-log_path:=SYS.MAILLOG_PATH();
-
-
-pid:=MYSQMAIL_PID();
-if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: artica-postfix realtime logs already running with pid '+pid);
-      if ActAsSMTPGatewayStatistics=0 then begin
-            if EnablePostfix=0 then MYSQMAIL_STOP();
-      end;
-      exit;
-end;
-
-
-
-if not FileExists(log_path) then begin
-   logs.Syslogs('Starting......: artica-postfix realtime logs unable to locate mail logs !!');
-   exit;
-end;
-logs.DebugLogs('Starting......: artica-postfix realtime logs path: '+log_path);
-
-
-
-stime:=logs.DateTimeNowSQL();
-stime:=AnsiReplaceText(stime,' ','-');
-stime:=AnsiReplaceText(stime,':','-');
-detect_tail:='/usr/bin/tail -f -n 0 '+log_path;
-pidlist:=Tstringlist.Create;
-pidlist.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST(detect_tail));
-for i:=0 to pidlist.count-1 do begin
-   if not TryStrToInt(pidlist.Strings[i],pidlistInt) then continue;
-   if pidlistInt>5 then begin
-       logs.DebugLogs('Starting......: artica-postfix kill old tail : '+IntTOStr(pidlistInt));
-       fpsystem('/bin/kill -9 '+ intToStr(pidlistInt));
-   end;
-end;
-
-
-
-cmd:='/usr/bin/tail -f -n 0 '+log_path+'|'+MYSQMAIL_STARTUP+' >>/var/log/artica-postfix/postfix-logger-start.log 2>&1 &';
-logs.Debuglogs(cmd);
-fpsystem(cmd);
-pid:=SYS.PIDOF_PATTERN(MYSQMAIL_STARTUP);
-count:=0;
-while not SYS.PROCESS_EXIST(pid) do begin
-
-        sleep(100);
-        inc(count);
-        if count>40 then begin
-           logs.DebugLogs('Starting......: artica-postfix realtime logs (timeout)');
-           break;
-        end;
-        pid:=SYS.PIDOF_PATTERN(MYSQMAIL_STARTUP);
-  end;
-
-
-  pid:=SYS.PIDOF_PATTERN(MYSQMAIL_STARTUP);
-if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: artica-postfix realtime logs success with pid '+pid);
-      exit;
-end else begin
-    logs.DebugLogs('Starting......: artica-postfix realtime logs failed');
-end;
-end;
-//#####################################################################################
 function tpostfix.MYSQMAIL_STATUS():string;
 var
 pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_POSTFIX');
-SYS.MONIT_DELETE('APP_ARTICA_MYSQMAIL');
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --postfix-logger >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);
 logs.DeleteFile(pidpath);
-end;
-//#####################################################################################
-function tpostfix.MYSQMAIL_PID():string;
-var
-   pid:string;
-begin
-
-if FileExists('/etc/artica-postfix/exec.maillog.php.pid') then begin
-   pid:=SYS.GET_PID_FROM_PATH('/etc/artica-postfix/exec.maillog.php.pid');
-   logs.Debuglogs('MYSQMAIL_PID /etc/artica-postfix/exec.maillog.php.pid='+pid);
-   if SYS.PROCESS_EXIST(pid) then result:=pid;
-   exit;
-end;
-
-
-result:=SYS.PIDOF_PATTERN(MYSQMAIL_STARTUP);
-logs.Debuglogs(MYSQMAIL_STARTUP+' pid='+pid);
 end;
 //#####################################################################################
 procedure tpostfix.hash_postfix_allowed_connections();
@@ -650,35 +547,6 @@ end;
 logs.OutputCmd('/usr/sbin/postmap hash:/etc/postfix/postfix_allowed_connections');
 end;
 //#####################################################################################
-
-procedure tpostfix.MYSQMAIL_STOP();
-var
-   pid:string;
-begin
-pid:=MYSQMAIL_PID();
-logs.NOTIFICATION('order to stop Postfix logger...','An order has been executed to stop postfix-logger','smtp' );
-if SYS.PROCESS_EXIST(pid) then begin
-      writeln('artica-postfix realtime logs.: Stopping pid '+pid);
-      while SYS.PROCESS_EXIST(pid) do begin
-           fpsystem('/bin/kill '+pid);
-           sleep(100);
-           pid:=MYSQMAIL_PID();
-      end;
-end else begin
-      writeln('artica-postfix realtime logs.: Already stopped');
-      exit;
-end;
-
-pid:=SYS.PIDOF_PATTERN(MYSQMAIL_STARTUP);
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('artica-postfix realtime logs.: stopped');
-end else begin
-      writeln('artica-postfix realtime logs.: Failed to stop');
-end;
-
-end;
-//#####################################################################################
-
 function tpostfix.POSTFIX_EXTRACT_MAINCF(key:string):string;
 var
    List:TstringList;
@@ -756,7 +624,7 @@ POSFTIX_VERIFY_MAINCF();
 VERIFY_BOUNCE_TEMPLATE();
 gnarwl_set_config();
 GENERATE_CERTIFICATE();
-MYSQMAIL_START();
+
 
   if FileExists('/etc/init.d/sendmail') then begin
            if not SYS.FileSymbolicExists('/etc/init.d/sendmail') then begin
@@ -1103,7 +971,7 @@ if EnablePostfix=0 then exit;
     logs.Debuglogs('POSTFIX_START:: Postfix is not installed');
     exit;
  end;
- MYSQMAIL_START();
+
  pid:=POSTFIX_PID();
 
  if not SYS.PROCESS_EXIST(pid) then begin

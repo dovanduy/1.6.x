@@ -53,7 +53,7 @@ function js(){
 		$title="{$_GET["taskid"]}::Type:{$ligne2["TaskType"]}::{$ligne2["TimeDescription"]}";
 	}	
 	
-	$html="YahooWin5('650','$page?popup=yes&filename={$_GET["filename"]}&taskid={$_GET["taskid"]}&category={$_GET["category"]}&tablesize={$_GET["tablesize"]}&descriptionsize={$_GET["descriptionsize"]}&table={$_GET["table"]}','$title')";
+	$html="YahooWin5('670','$page?popup=yes&filename={$_GET["filename"]}&taskid={$_GET["taskid"]}&category={$_GET["category"]}&tablesize={$_GET["tablesize"]}&descriptionsize={$_GET["descriptionsize"]}&table={$_GET["table"]}','$title')";
 	echo $html;
 }
 
@@ -116,7 +116,7 @@ $('#ufdbguard-events-$t').flexigrid({
 	useRp: true,
 	rp: 25,
 	showTableToggleBtn: false,
-	width: $tablesize,
+	width: '99%',
 	height: 350,
 	singleSelect: true
 	
@@ -245,6 +245,10 @@ function search(){
 		}
 	}
 	
+	if($_GET["category"]<>null){
+		$ADD2=$ADD2." AND category='{$_GET["category"]}'";
+	}
+	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
 			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
@@ -299,7 +303,8 @@ function search(){
 		$ttim=strtotime($ligne['zDate']);
 		$dateD=date('Y-m-d',$ttim);
 		$description=$tpl->_ENGINE_parse_body("$description");
-		$function="<div style='margin-top:-4px;margin-left:-5px'><i style='font-size:11px'>{$ligne["filename"]}:{$ligne["function"]}() $line {$ligne["line"]}</i></div>";
+		$category=$ligne["category"];
+		$function="<div style='margin-top:-4px;margin-left:-5px'><i style='font-size:11px'>{$ligne["filename"]}:{$ligne["function"]}() $line {$ligne["line"]} - $category</i></div>";
 		if(preg_match("#(.+?)\s+thumbnail#", $description,$re)){
 			$description=str_replace($re[1], "<a href=\"javascript:blur();\" 
 			OnClick=\"javascript:Loadjs('squid.traffic.statistics.days.php?today-zoom=yes&type=req&familysite={$re[1]}&day=$dateD');\" style='text-decoration:underline'>{$re[1]}</a>", $description);

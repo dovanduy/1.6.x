@@ -3,6 +3,8 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.spamassassin.inc');
 include_once('ressources/class.amavis.inc');
+include_once('ressources/externals/dns/class.dns.inc');
+include_once('ressources/class.resolv.conf.inc');
 
 session_start();
 $ldap=new clladp();
@@ -15,12 +17,94 @@ if(isset($_GET["loadhelp"])){loadhelp();exit;}
 		die();exit();
 	}
 
+	if(isset($_GET["newdomain"])){$_POST["white-list-domain"]=$_GET["newdomain"];add_domain_white_save();exit;}
 	if(isset($_POST["white-list-host-del"])){hosts_WhiteList_del();exit;}
 	if(isset($_POST["white-list-host"])){hosts_WhiteList_add();exit;}
 	if(isset($_GET["list-table"])){list_table();exit;}
-	
+	if(isset($_GET["add-domain-white-js"])){add_domain_white_js();exit;}
+	if(isset($_GET["add-domain-white"])){add_domain_white_popup();exit;}
+	if(isset($_POST["white-list-domain"])){add_domain_white_save();exit;}
 	
 	page();
+	
+function add_domain_white_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{new_domain}");
+	echo "YahooWin4('650','$page?add-domain-white=yes&t={$_GET["t"]}','$title',true);";
+}	
+	
+function add_domain_white_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$html="
+	<div style='width:98%' class=form>
+	<div style='font-size:14px' class=explain>{whitelist_mx_explain}</div>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:16px'>{domain}</td>
+		<td>". Field_text("domain-$t",null,"font-size:16px;width:95%",null,null,null,false,"SaveCK$t(event)")."</td>
+	</tr>
+	<tr>
+		<td colspan=2 align=right><hr>". button("{add}","Save$t()",18)."</td>
+	</tr>
+	</table>		
+	</div>
+	
+<script>
+
+function SaveCK$t(e){
+	if( !checkEnter(e) ){return;}
+	Save$t();
+}
+
+var xSave$t=function(obj){
+	var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);return;}
+ 	$('#flexRT{$_GET["t"]}').flexReload();
+}	
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('white-list-domain',document.getElementById('domain-$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>	
+	";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}	
+
+function add_domain_white_save(){
+	$tpl=new templates();
+	$domain=$_POST["white-list-domain"];
+
+	getmxrr($domain, $mxhosts,$mxWeight);
+	if(count($mxhosts)==0){
+		echo $tpl->javascript_parse_text("$domain : {no_mx}");
+	}
+	
+	
+	$q=new mysql();
+	while (list ($index, $hostname) = each ($mxhosts) ){
+		$ipaddr=gethostbyname($hostname);
+		$sql="INSERT IGNORE INTO postfix_whitelist_con (ipaddr,hostname) VALUES('$ipaddr','$hostname')";
+		$q->QUERY_SQL($sql,"artica_backup");
+		$q->QUERY_SQL("UPDATE iptables SET disable=1 WHERE serverip='$ipaddr'","artica_backup");
+		$q->QUERY_SQL("UPDATE iptables SET disable=1 WHERE servername='$hostname'","artica_backup");
+		if(!$q->ok){echo $q->mysql_error;continue;}
+	}
+	
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?smtp-whitelist=yes");
+	
+}
+
+
+	
 function page(){
 
 		$t=time();
@@ -42,10 +126,11 @@ function page(){
 		$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
 		$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 		$delete=$tpl->_ENGINE_parse_body("{delete}");
-	
+		$new_domain=$tpl->_ENGINE_parse_body("{new_domain}");
 		$buttons="
 		buttons : [
 		{name: '$new_item', bclass: 'add', onpress : AddHostWhite$t},
+		{name: '$new_domain', bclass: 'add', onpress : AddDomainWhite$t},
 		],";
 
 	
@@ -79,7 +164,7 @@ function page(){
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
-		width: 840,
+		width: '99%',
 		height: 650,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200]
@@ -114,7 +199,11 @@ function page(){
 		XHR.appendData('white-list-host-del',server);
 		XHR.appendData('white-list-host-delip',ip);
 		XHR.sendAndLoad('$page', 'POST',x_DelHostWhite$t);
-	}	
+	}
+
+	function AddDomainWhite$t(){
+		Loadjs('$page?add-domain-white-js=yes&t=$t',true);
+	}
 	
 	</script>";
 		echo $html;

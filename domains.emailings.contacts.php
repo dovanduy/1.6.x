@@ -90,7 +90,7 @@ function popup_add_contact(){
 		$js_add="ContactHideDBADD()";
 		
 		if($ID<>null){
-			$logo="contact-card-show-128.png";
+			$logo="contact-128.png";
 			$button_title="{edit}";
 			$resfresh_after=null;
 			$sql="SELECT * FROM emailing_{$_GET["dbname"]} WHERE ID=$ID";

@@ -105,7 +105,7 @@ function WriteFileCache($file){
 }
 function events($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/squidguard-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}

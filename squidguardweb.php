@@ -103,7 +103,7 @@ function per_category_settings(){
 	
 	$t=time();
 	$html="<div class=explain style='font-size:14px'>$explain</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:14px'>{enable}:</td>
@@ -256,6 +256,7 @@ function popup(){
 	$SquidGuardWebExternalUriSSL=$sock->GET_INFO("SquidGuardWebExternalUriSSL");
 	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
 	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
+	$SquidGuardWebBlankReferer=intval($sock->GET_INFO("SquidGuardWebBlankReferer"));
 	
 	$SquidGuardApacheShowGroupName=$sock->GET_INFO("SquidGuardApacheShowGroupName");
 	$SquidGuardApacheShowGroupNameTXT=$sock->GET_INFO("SquidGuardApacheShowGroupNameTXT");
@@ -271,6 +272,8 @@ function popup(){
 	
 	if(!is_numeric($SquidGuardWebAllowUnblock)){$SquidGuardWebAllowUnblock=0;}
 	if(!is_numeric($SquidGuardWebUseExternalUri)){$SquidGuardWebUseExternalUri=0;}
+	
+	
 	
 	$SquidGuardServerName=$sock->GET_INFO("SquidGuardServerName");
 	
@@ -320,6 +323,13 @@ function popup(){
 		<td>". Field_checkbox("SquidGuardWebFollowExtensions",1,$SquidGuardWebFollowExtensions)."</td>
 		<td>". help_icon("{SquidGuardWebFollowExtensions_explain}")."</td>
 	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{SquidGuardWebBlankReferer}:</td>
+		<td>". Field_checkbox("SquidGuardWebBlankReferer",1,$SquidGuardWebBlankReferer)."</td>
+		<td>". help_icon("{SquidGuardWebBlankReferer_explain}")."</td>
+	</tr>				
+				
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{SquidGuardApacheShowGroupName}:</td>
 		<td>". Field_checkbox("SquidGuardApacheShowGroupName",1,$SquidGuardApacheShowGroupName)."</td>
@@ -394,6 +404,7 @@ function popup(){
 			 document.getElementById('SquidGuardWebExternalUriSSL').disabled=true;
 			 document.getElementById('SquidGuardApacheShowGroupName').disabled=true;
 			 document.getElementById('SquidGuardApacheShowGroupNameTXT').disabled=true;
+			 document.getElementById('SquidGuardWebBlankReferer').disabled=true;
 			 
 			 
 			 
@@ -408,6 +419,7 @@ function popup(){
 				 	document.getElementById('servername_squidguard').disabled=false;
 				 	document.getElementById('SquidGuardWebAllowUnblock').disabled=false;
 				 	document.getElementById('SquidGuardWebFollowExtensions').disabled=false;
+				 	document.getElementById('SquidGuardWebBlankReferer').disabled=false;
 				 	if(LICENSE==1){
 				 		document.getElementById('SquidGuardApacheShowGroupName').disabled=false;
 				 		document.getElementById('SquidGuardApacheShowGroupNameTXT').disabled=false;
@@ -424,7 +436,7 @@ function popup(){
 			 	document.getElementById('listen_port_squidguard_ssl').disabled=true;
 			 	document.getElementById('SquidGuardApacheShowGroupName').disabled=true;
 			 	document.getElementById('SquidGuardApacheShowGroupNameTXT').disabled=true;
-			 	
+			 	document.getElementById('SquidGuardWebBlankReferer').disabled=false;
 			 	
 			 
 			 }
@@ -443,8 +455,9 @@ var x_SaveSquidGuardHTTPService=function(obj){
      if(document.getElementById('SquidGuardWebAllowUnblock').checked){XHR.appendData('SquidGuardWebAllowUnblock',1);}else{XHR.appendData('SquidGuardWebAllowUnblock',0);}
      if(document.getElementById('SquidGuardWebUseExternalUri').checked){XHR.appendData('SquidGuardWebUseExternalUri',1);}else{XHR.appendData('SquidGuardWebUseExternalUri',0);}
      if(document.getElementById('SquidGuardApacheShowGroupName').checked){XHR.appendData('SquidGuardApacheShowGroupName',1);}else{XHR.appendData('SquidGuardApacheShowGroupName',0);}
+     if(document.getElementById('SquidGuardWebBlankReferer').checked){XHR.appendData('SquidGuardWebBlankReferer',1);}else{XHR.appendData('SquidGuardWebBlankReferer',0);}
 
-     
+
      
 	 XHR.appendData('listen_port_squidguard',document.getElementById('listen_port_squidguard').value);
 	 XHR.appendData('listen_port_squidguard_ssl',document.getElementById('listen_port_squidguard_ssl').value);
@@ -498,6 +511,10 @@ function save(){
 	$sock->SET_INFO("SquidGuardApacheSSLPort",$_GET["listen_port_squidguard_ssl"]);
 	$sock->SET_INFO("EnableSquidGuardHTTPService",$_GET["EnableSquidGuardHTTPService"]);
 	$sock->SET_INFO("SquidGuardWebAllowUnblock",$_GET["SquidGuardWebAllowUnblock"]);
+	$sock->SET_INFO("SquidGuardWebBlankReferer",$_GET["SquidGuardWebBlankReferer"]);
+	
+	
+	
 	$sock->SET_INFO("SquidGuardIPWeb",$SquidGuardIPWeb);
 	$sock->SET_INFO("SquidGuardIPWebSSL",$SquidGuardIPWebSSL);
 	$sock->getFrameWork("cmd.php?squid-wrapzap=yes");

@@ -24,7 +24,7 @@ class haarp{
 		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
-			if($this->BySquid){echo "Starting......: [HAA]: FATAL (".__CLASS__.") $q->mysql_error $sql\n";}
+			if($this->BySquid){echo "Starting......: ".date("H:i:s")." [HAA]: FATAL (".__CLASS__.") $q->mysql_error $sql\n";}
 			writelogs("$q->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;
 		}		
 		
@@ -38,12 +38,12 @@ class haarp{
 		$q->QUERY_SQL($sql);
 		
 		if(!$q->ok){
-			if($this->BySquid){echo "Starting......: [HAA]: FATAL (".__CLASS__.") $q->mysql_error $sql\n";}
+			if($this->BySquid){echo "Starting......: ".date("H:i:s")." [HAA]: FATAL (".__CLASS__.") $q->mysql_error $sql\n";}
 			writelogs("$q->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);return;
 		}
 		
 		if($q->COUNT_ROWS("haarp_redirpats")==0){
-			if($this->BySquid){echo "Starting......: [HAA]: (".__CLASS__.") building default rules...\n";}
+			if($this->BySquid){echo "Starting......: ".date("H:i:s")." [HAA]: (".__CLASS__.") building default rules...\n";}
 			$f[]="http.*\.4shared\.com.*(\.exe|\.iso|\.torrent|\.zip|\.rar|\.pdf|\.doc|\.tar|\.mp3|\.mp4|\.avi|\.wmv)";
 			$f[]="http.*\.avast\.com.*(\.def|\.vpu|\.vpaa|\.stamp)";
 			$f[]="http.*(\.avg\.com|\.grisoft\.com|\.grisoft\.cz).*(\.bin|\.exe)";

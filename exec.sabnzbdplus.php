@@ -18,21 +18,21 @@ function patchbin(){
 	$unix=new unix();
 	$sabnzbdplus=$unix->find_program("sabnzbdplus");
 	if(strlen($sabnzbdplus)<5){
-		echo "Starting......: sabnzbdplus sabnzbdplus no such file\n";
+		echo "Starting......: ".date("H:i:s")." sabnzbdplus sabnzbdplus no such file\n";
 		return;
 	}
-	echo "Starting......: sabnzbdplus $sabnzbdplus\n";
+	echo "Starting......: ".date("H:i:s")." sabnzbdplus $sabnzbdplus\n";
 	$f=explode("\n",@file_get_contents($sabnzbdplus));
 	
 	while (list ($index, $line) = each ($f) ){
 		if(preg_match("#^import sys#",$line)){
 			$nextline=$f[$index+1];
-			echo "Starting......: sabnzbdplus line $index\n";
+			echo "Starting......: ".date("H:i:s")." sabnzbdplus line $index\n";
 			if(preg_match("#sys\.path.insert\(0#",$nextline)){
-				echo "Starting......: sabnzbdplus Patched OK\n";
+				echo "Starting......: ".date("H:i:s")." sabnzbdplus Patched OK\n";
 				return;
 			}else{
-				echo "Starting......: sabnzbdplus patching line $index\n";
+				echo "Starting......: ".date("H:i:s")." sabnzbdplus patching line $index\n";
 				$f[$index]="import sys\nsys.path.insert(0,'/usr/share/sabnzbdplus')";
 				@file_put_contents($sabnzbdplus,@implode("\n",$f));
 				return;

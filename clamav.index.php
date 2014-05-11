@@ -136,25 +136,25 @@ $ini->loadString($datas);
 $page=CurrentPageName();
 //print_r($ini->_params);
 if($ini->_params["CLAMAV"]["application_installed"]<>1){
-	$clamd_img="status_critical.gif";
+	$clamd_img="status_critical.png";
 }else{
-	$clamd_img="status_ok.gif";
+	$clamd_img="status_ok.png";
 }
 if($ini->_params["CLAMSCAN"]["application_installed"]<>1){
-	$clamds_img="status_critical.gif";
+	$clamds_img="status_critical.png";
 }else{
-	$clamds_img="status_ok.gif";
+	$clamds_img="status_ok.png";
 }
 if($ini->_params["CLAMAV_MILTER"]["application_installed"]<>1){
-	$clamdm_img="status_critical.gif";
+	$clamdm_img="status_critical.png";
 }else{
-	$clamdm_img="status_ok.gif";
+	$clamdm_img="status_ok.png";
 }
 
 if($ini->_params["FRESHCLAM"]["application_installed"]<>1){
-	$clamdf_img="status_critical.gif";
+	$clamdf_img="status_critical.png";
 }else{
-	$clamdf_img="status_ok.gif";
+	$clamdf_img="status_ok.png";
 	$freshclam_settings=Paragraphe("folder-update.png","{APP_FRESHCLAM}",'{product_update_settings_text}');
 	$freshclam_settings="<div style='float:left'>$freshclam_settings</div>";
 }

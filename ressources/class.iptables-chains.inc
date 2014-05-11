@@ -1,7 +1,7 @@
 <?php
 include_once(dirname(__FILE__)."/class.mysql.inc");
 include_once(dirname(__FILE__) . '/class.ldap.inc');
-
+include_once(dirname(__FILE__) . '/class.tcpip.inc');
 class iptables_chains{
 	var $id;
 	var $servername;
@@ -25,12 +25,15 @@ class iptables_chains{
 	}
 	
 public	function add_chain(){
+		
 		if($this->rule_string==null){$this->rule_string=time();}
 		if(strlen($this->rulemd5)<10){$rulemd5=md5($this->serverip.$this->servername.$this->localport);}else{$rulemd5=$this->rulemd5;}
 		$date=date('Y-m-d H:i:s');
 		if($this->serverip==null){return;}
+		$ClassIP=new IP();
 		
 		if(!preg_match("#Range:(.+)#", $this->serverip)){
+			if(!$ClassIP->isIPAddress($this->serverip)){return;}
 			if($this->servername==null){
 				if(preg_match("#^[0-9\.]+$#", $this->serverip)){
 					$this->servername=gethostbyaddr($this->serverip);
@@ -95,9 +98,61 @@ public	function add_chain(){
 		return true;
 		
 		}	
+		
+		
+	public	function add_xchain($ports=array(),$service="MANU"){
+			if($this->rule_string==null){$this->rule_string=time();}
+			$rulemd5=md5($this->rule_string);
+			$date=date('Y-m-d H:i:s');
+			if(count($ports)==0){return;}
+			$ClassIP=new IP();
+			if(!$ClassIP->isIPAddress($this->serverip)){
+				if(function_exists("Debuglogs")){Debuglogs("add_xchain():: $this->serverip: Not an ip addr");}
+				return false;}
+			while (list ($num, $port) = each ($ports) ){
+				if(!is_numeric($port)){continue;}
+				$portrule=" --destination-port $port";
+				if($port<2){$portrule=null;}
+				$this->rule_string="iptables -A INPUT -s $this->serverip -p tcp$portrule -j DROP -m comment --comment \"{$service}\"";
+				$rulemd5=md5($this->rule_string);
+				$ID=$this->postfix_chain_get_id($rulemd5);
+				if($ID>0){
+					if(function_exists("Debuglogs")){Debuglogs("add_xchain():: $this->serverip: Already exists ID $ID");}
+					if($GLOBALS["VERBOSE"]){echo "$this->serverip: Already exists ID $ID\n";}return true;}
+				
+				$sql="INSERT IGNORE INTO iptables(
+				servername, serverip, local_port, disable,
+				events_number,rule_string,rulemd5,
+				flux,events_block,date_created,allow,`service`)
+				VALUES(
+				'$this->servername',
+				'$this->serverip',
+				'$port',
+				'0',
+				'$this->events_number',
+				'$this->rule_string',
+				'$rulemd5','INPUT',
+				'$this->EventsToAdd','$date','$this->allow','$service')";
+		
+				$q=new mysql();
+				writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$q->QUERY_SQL($sql,"artica_backup");
+				if(!$q->ok){
+					if(function_exists("Debuglogs")){Debuglogs("add_xchain():: $this->serverip $q->mysql_error");}
+					if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n$sql\n";}
+					$this->events("$q->mysql_error");
+					return false;
+				}
+				if($GLOBALS["VERBOSE"]){echo "OK\n";}
+			
+			}
+			
+			return true;
+		
+		}		
 	
 	
-public	function addPostfix_chain(){
+public	function addPostfix_chain($port=25){
 		if($this->rule_string==null){$this->rule_string=time();}
 		$rulemd5=md5($this->rule_string);
 		$date=date('Y-m-d H:i:s');
@@ -120,7 +175,7 @@ public	function addPostfix_chain(){
 		VALUES(
 			'$this->servername',
 			'$this->serverip',
-			'25',
+			'$port',
 			'0',
 			'$this->events_number',
 			'$this->rule_string',

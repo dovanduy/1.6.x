@@ -862,14 +862,13 @@ function graph2(){
 	
 	
 	
-	$sql="SELECT SUM(size) as size,uid,zDate FROM members_uid GROUP BY uid,zDate HAVING uid='{$_GET["member-value"]}' ORDER BY zDate";
+	$sql="SELECT SUM(size) as size,uid,MONTH(zDate) as tmonth,YEAR(zDate) as tyear FROM members_uid GROUP BY uid,tmonth,tyear HAVING uid='{$_GET["member-value"]}' ORDER BY tmonth";
 	$results=$q->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=$ligne["size"];
 		$size=$size/1024;
 		$size=round($size/1024,2);
-		$date=strtotime($ligne["zDate"]."00:00:00");
-		$xdata[]=date("m-d",$date);
+		$xdata[]=$ligne["tmonth"]."/".$ligne["tyear"];
 		$ydata[]=$size;
 	
 	}
@@ -877,6 +876,7 @@ function graph2(){
 	$highcharts->container=$_GET["container"];
 	$highcharts->xAxis=$xdata;
 	$highcharts->Title="{size}";
+	$highcharts->LegendSuffix="MB";
 	$highcharts->yAxisTtitle="{size} MB";
 	$highcharts->xAxisTtitle="{days}";
 	$highcharts->datas=array("{size}"=>$ydata);
@@ -884,12 +884,11 @@ function graph2(){
 }
 function graph1(){
 	$q=new mysql_squid_builder();
-	$sql="SELECT SUM(hits) as hits,uid,zDate FROM members_uid GROUP BY uid,zDate HAVING uid='{$_GET["member-value"]}' ORDER BY zDate";
+	$sql="SELECT SUM(hits) as hits,uid,MONTH(zDate) as tmonth,YEAR(zDate) as tyear FROM members_uid GROUP BY uid,tmonth,tyear HAVING uid='{$_GET["member-value"]}' ORDER BY tmonth";
 	$results=$q->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=$ligne["hits"];
-		$date=strtotime($ligne["zDate"]."00:00:00");
-		$xdata[]=date("m-d",$date);
+		$xdata[]=$ligne["tmonth"]."/".$ligne["tyear"];
 		$ydata[]=$size;
 
 	}
@@ -898,7 +897,7 @@ function graph1(){
 	$highcharts->xAxis=$xdata;
 	$highcharts->Title="{requests}";
 	$highcharts->yAxisTtitle="{hits}";
-	$highcharts->xAxisTtitle="{days}";
+	$highcharts->xAxisTtitle="{month}";
 	$highcharts->datas=array("{requests}"=>$ydata);
 	echo $highcharts->BuildChart();
 }

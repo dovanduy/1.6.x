@@ -112,7 +112,7 @@ events_tail(basename(__FILE__).": FINISH $pid");
 
 function events_tail($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/proxy-injector.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}

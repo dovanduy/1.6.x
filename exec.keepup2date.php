@@ -22,6 +22,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 include_once(dirname(__FILE__).'/ressources/class.updateutility2.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
+$GLOBALS["RUN_DIR"]="/var/run/kav4proxy";
 
 if($argv[1]=="--update"){StartUpdate();die();}
 if($argv[1]=="--buildconf"){buildConf();die();}
@@ -44,12 +45,12 @@ function buildConf(){
 	$t=time();
 	$unix=new unix();
 	$sock=new sockets();
-	@mkdir("/var/run/Kav4Proxy",0777,true);
+	@mkdir("{$GLOBALS["RUN_DIR"]}",0777,true);
 	@mkdir("/opt/tmp",0777,true);
 	$chmod=$unix->find_program("chmod");
-	shell_exec("$chmod 777 /var/run/Kav4Proxy");
+	shell_exec("$chmod 777 {$GLOBALS["RUN_DIR"]}");
 	
-	$pidFile="/var/run/Kav4Proxy/keepup2date.pid";
+	$pidFile="{$GLOBALS["RUN_DIR"]}/keepup2date.pid";
 	$UseProxy="no";
 	$ProxyAddress=null;
 	$datas=$sock->GET_INFO("ArticaProxySettings");
@@ -139,11 +140,11 @@ function StartUpdate(){
 	ufdbguard_admin_events("Starting updating Kaspersky For Proxy server", __FUNCTION__, __FILE__, __LINE__, "update");
 	$unix=new unix();
 	$sock=new sockets();
-	@mkdir("/var/run/Kav4Proxy",0777,true);
+	@mkdir("{$GLOBALS["RUN_DIR"]}",0777,true);
 	$chmod=$unix->find_program("chmod");
-	shell_exec("$chmod 777 /var/run/Kav4Proxy");
+	shell_exec("$chmod 777 {$GLOBALS["RUN_DIR"]}");
 	
-	$pidFile="/var/run/Kav4Proxy/keepup2date.pid";
+	$pidFile="{$GLOBALS["RUN_DIR"]}/keepup2date.pid";
 	$oldpid=$unix->get_pid_from_file($pidFile);
 	if($unix->process_exists($oldpid)){
 		ufdbguard_admin_events("Other instance $oldpid running, aborting task", __FUNCTION__, __FILE__, __LINE__, "update");
@@ -175,6 +176,7 @@ function StartUpdate(){
 		}
 	}
 	if($GLOBALS["VERBOSE"]){$verb=" --verbose";}
+	shell_exec("/opt/kaspersky/kav4proxy/bin/kav4proxy-licensemanager -i >/etc/artica-postfix/kav4proxy-licensemanager-i");
 	shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.kaspersky-update-logs.php --force$verb");
 	
 	

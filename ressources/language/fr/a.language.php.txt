@@ -62,7 +62,7 @@ Vous pouvez ajouter des entr&eacute;es multiples en les s&eacute;parant par une 
 exemple:mydomain.com,mydomain.net)</add_official_domains_popup_text>
 <add_serveralias_ask>Indiquez l'alias du serveur : www.domain.tld ou domain.tld ou *.domain.tld ...</add_serveralias_ask>
 <add_smb_virtual_server>Ajouter un nouveau serveur virtuel Samba qui sera &eacute;mul&eacute; par l'instance principale de Samba.</add_smb_virtual_server>
-<add_storage>Ajouter un nouveau stockage</add_storage>
+<add_storage>Nouveau stockage</add_storage>
 <add_subdomain_explain>Dans ce formulaire, vous pouvez ajouter un sous-domaine des domaines list&eacute;s.[br]
 Choisissez le domaine principale et indiquez le sous-domaine que vous voulez cr&eacute;er</add_subdomain_explain>
 <add_to_menu>Ajouter au menu</add_to_menu>
@@ -330,7 +330,7 @@ Afin de ne pas surcharger votre serveur, lorsque Artica injecte les donn&eacute;
 Si un serveur DHCP est en train d'&ecirc;tre configur&eacute; par quelqu'un d'autre que l'administrateur r&eacute;seau et qui par cons&eacute;quent ne souhaite pas endosser ce niveau d'autorit&eacute;, alors l'instruction alors cette option devra &ecirc;tre d&eacute;sactiv&eacute;e.</authoritativeDHCP_explain>
 <auth_mechanism>M&eacute;canismes d'authentification</auth_mechanism>
 <autofs_about>Automount ou AutoFS est une solution afin de connecter des r&eacute;pertoires distants automatiquement.[br]
-L'avantage d'utiliser ce service est que les connections s'effectuent uniquement &agrave; la demande.[br]
+L'avantage d'utiliser ce service est que les connexions s'effectuent uniquement &agrave; la demande.[br]
 Une d&eacute;connexion automatique est effectu&eacute;e au bout d'un certain temps.[br]
 En effet, les liaisons NFS/Partages Windows utilisent de la bande passante tout au long de la connexion.[br]Cette m&eacute;thode permet d'utiliser uniquement une connexion distante qui si il y en a le besoin.</autofs_about>
 <autofs_ask_dir>Indiquez ici le nom du r&eacute;pertoire qui sera le point de montage.
@@ -552,7 +552,7 @@ Voulez-vous proc&eacute;der &agrave; cette op&eacute;ration ?</confirm_remove_za
 <connected_has>Connect&eacute; en tant que</connected_has>
 <connections_filters>filtres de connexions</connections_filters>
 <connections_for>Connexions pour</connections_for>
-<connection_name>Nom de connection</connection_name>
+<connection_name>Nom de connexion</connection_name>
 <connection_time_squid_text>Autoriser ou interdire l'acc&egrave;s provenant d'utilisateurs ou bien pour des sites web en fonction d'heures d&eacute;finies.</connection_time_squid_text>
 <content_filter>Filtre de contenu</content_filter>
 <content_filtering>Filtrage de contenu</content_filtering>
@@ -770,7 +770,7 @@ Probl&egrave;me rencontr&eacute; habituellement avec les syst&egrave;mes de mess
 <DRUPAL_USER>Utilisateur Drupal</DRUPAL_USER>
 <DRUPAL_VERSION>Version de Drupal</DRUPAL_VERSION>
 <DRUSH_VERSION>Version de Drush</DRUSH_VERSION>
-<dstdomain>Serveur Web</dstdomain>
+<dstdomain>Serveur Web ou domaine</dstdomain>
 <dumpcycle>Cycle d'extraction</dumpcycle>
 <dumpcycleExplain>Le nombre de jours d'un cycle de d&eacute;p&ocirc;t, indique comment une sauvegarde compl&egrave;te est effectu&eacute;e.</dumpcycleExplain>
 <dunno>Dunno</dunno>
@@ -1024,7 +1024,7 @@ Le moteur sera en charge de retrouver les liens dans le texte.Vous n'avez donc p
 <goto>Aller &agrave;</goto>
 <grace_period>P&eacute;riode de gr&acirc;ce</grace_period>
 <graph_instant_update_squid_byhour>Nouveaux &eacute;l&eacute;ments cat&eacute;goris&eacute;s par heure</graph_instant_update_squid_byhour>
-<GRAPH_POSTFIX_REJECTED_CONNEXIONS>Connections SMTP rejet&eacute;es</GRAPH_POSTFIX_REJECTED_CONNEXIONS>
+<GRAPH_POSTFIX_REJECTED_CONNEXIONS>Connexions SMTP rejet&eacute;es</GRAPH_POSTFIX_REJECTED_CONNEXIONS>
 <GREENSQL_block_level>Si le taux de risque de la requ&ecirc;te est sup&eacute;rieur &agrave; cette valeur, elle sera alors bloqu&eacute;e.</GREENSQL_block_level>
 <greensql_is_available>Le service GreenSQL est disponible.</greensql_is_available>
 <greensql_is_available_text>Cela veut dire que l'IP/Port est ouvert et attends les connexions MySQL.</greensql_is_available_text>
@@ -1185,9 +1185,9 @@ Si vous voulez afficher la somme de tout le trafique, indiquez 0.0.0.0 et le mas
 <ipv6_explain_enable_text>Pr&eacute;cisez les param&egrave;tres IPv6 pour votre serveur.[br]Activez ou d&eacute;sactivez IPv6 et indiquez les param&egrave;tres g&eacute;n&eacute;raux.</ipv6_explain_enable_text>
 <ip_already_exists_in_the_network>Cette adresse IP existe d&eacute;j&agrave; dans votre r&eacute;seau.</ip_already_exists_in_the_network>
 <ip_rotator>Rotation TCP/IP</ip_rotator>
-<ip_rotator_smtp_explain>La rotation TCP/IP utilise le pare-feu local afin de transf&eacute;rer les connexions vers d'autres destinations en fonction d'un &quot;taux&quot; de connections ou de probabilit&eacute;s.[br]
+<ip_rotator_smtp_explain>La rotation TCP/IP utilise le pare-feu local afin de transf&eacute;rer les connexions vers d'autres destinations en fonction d'un &quot;taux&quot; de connexions ou de probabilit&eacute;s.[br]
 Vous pouvez utiliser cette fonctionnalit&eacute; si vous avez besoin de fournir une sorte de Round Robbin ou un syst&egrave;me de balancier vers plusieurs relais de messagerie.</ip_rotator_smtp_explain>
-<ip_rotator_text>La rotation TCP/IP vous permet d'effectuer une rotation de transfert des connections SMTP vers d'autres relais de messagerie</ip_rotator_text>
+<ip_rotator_text>La rotation TCP/IP vous permet d'effectuer une rotation de transfert des connexions SMTP vers d'autres relais de messagerie</ip_rotator_text>
 <is>est</is>
 <iscsi-secu-explain>Cette section active l'authentification afin d'acc&eacute;der au disque, indiquez ici le membre qui sera autoris&eacute;.</iscsi-secu-explain>
 <iscsi_explain>Le protocole iSCSI est un &quot;protocole de la couche application permettant le transport de commandes SCSI sur un r&eacute;seau &quot;. Ce qu%u2019il faut comprendre, c%u2019est qu%u2019il est possible d%u2019exporter un p&eacute;riph&eacute;rique au travers d%u2019un r&eacute;seau en le pr&eacute;sentant comme un p&eacute;riph&eacute;rique SCSI. Outre le fait que le protocole SCSI est un standard de l%u2019industrie d&eacute;ploy&eacute; massivement en production, le fait de passer par un r&eacute;seau IP classique permet de r&eacute;duire les co&ucirc;ts de mise en %u0153uvre par rapport au d&eacute;ploiement de solutions de stockage bas&eacute;es sur la technologie Fibre Channel. Par ailleurs, la sauvegarde des donn&eacute;es peut se faire au niveau du serveur iSCSI, ce qui limite le co&ucirc;t de la solution de sauvegarde.</iscsi_explain>
@@ -1811,7 +1811,7 @@ Rediriger */mirror/foo vers foo.com[br]
 Requ&ecirc;te source: /mirror/foo[br]
 Rediriger vers: http://foo.com[br]
 [br]
-Rediriger */video connections vers http://cam.hometranet.home:5555/cams/sony/stream [br]
+Rediriger */video connexions vers http://cam.hometranet.home:5555/cams/sony/stream [br]
 Requ&ecirc;te source: /video[br]
 Rediriger vers: http://cam.hometranet.home:5555/cams/sony/stream[br]
 [br]</ProxyPass_explain>
@@ -1848,7 +1848,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</purge_catagories_database_explai
 <QS_ClientEntries_explain>G&egrave;re les connexions avec un maximum de x adresses TCP/IP</QS_ClientEntries_explain>
 <QS_LimitRequestBody>Limiter la taille des donn&eacute;es des requ&ecirc;tes (bytes)</QS_LimitRequestBody>
 <QS_SrvMaxConnClose>D&eacute;sactiver le keep-alive apr&egrave;s:</QS_SrvMaxConnClose>
-<QS_SrvMaxConnClose_explain>D&eacute;sactive le keep-alive lorsque X connections sont occup&eacute;es</QS_SrvMaxConnClose_explain>
+<QS_SrvMaxConnClose_explain>D&eacute;sactive le keep-alive lorsque X connexions sont occup&eacute;es</QS_SrvMaxConnClose_explain>
 <QS_SrvMaxConnPerIP>Connexions MAX par IP</QS_SrvMaxConnPerIP>
 <QS_SrvMaxConnPerIP_explain>Autorise seulement X connexions par IP</QS_SrvMaxConnPerIP_explain>
 <QS_SrvMinDataRate>D&eacute;bit minimum</QS_SrvMinDataRate>
@@ -2078,7 +2078,7 @@ Les autres syst&egrave;mes de fichiers (ext3, ZFS, HFS  ) risquent au contraire 
 <samba_sync_always>Toujours synchroniser</samba_sync_always>
 <samba_sync_always_text>Toujours synchroniser oblige Samba &agrave; &quot;flusher&quot; chaque &eacute;criture sur le disque.[br]
 C'est tr&egrave;s bien si votre serveur crashe r&eacute;guli&egrave;rement mais augmente de fa&ccedil;on cons&eacute;quente les performances du syst&egrave;me.[br]
-Normalement le serveur SMB utilise les oplocks et les reconnections automatiques afin d'&eacute;viter les effets de collisions de fichiers. Utiliser ce param&egrave;tres n'est normalement pas n&eacute;cessaire...</samba_sync_always_text>
+Normalement le serveur SMB utilise les oplocks et les reconnexions automatiques afin d'&eacute;viter les effets de collisions de fichiers. Utiliser ce param&egrave;tres n'est normalement pas n&eacute;cessaire...</samba_sync_always_text>
 <samba_virtual_explain>Les serveurs virtuels sont une technique afin de cr&eacute;er une illusion de multiples serveurs sur le r&eacute;seau alors qu'en r&eacute;alit&eacute;, un seul serveur physique est utilis&eacute;.[br]
 Il y a de nombreux avantages d'utiliser cette m&eacute;thode.[br]Elle permet par exemple de modifier le comportement global du serveur en fonction des diff&eacute;rents services de votre entreprise. Ce vous &eacute;vite alors d'installer un serveur de fichier par service.</samba_virtual_explain>
 <samba_wins_explain>Le broacast - qu'il s'agisse via la navigation ou l'enregistrement de noms et de r&eacute;solution - ne passe pas facilement &agrave; travers
@@ -2226,7 +2226,7 @@ Les messages qui correspondent aux r&egrave;gles vont &ecirc;tre automatiquement
 <skip-incr>Passer le disque lorsque le niveau 0 n'est pas atteint</skip-incr>
 <skip-incrExplain>Passer le disque lorsque le niveau 0 n'est pas atteint.Ceci est utilis&eacute; dans des configurations d'archivage, o&ugrave; seules les extractions compl&egrave;tes sont faites et les bandes enregistr&eacute;es.</skip-incrExplain>
 <skip-name-resolve>Ne pas r&eacute;soudre les noms d'h&ocirc;tes</skip-name-resolve>
-<skip-name-resolve_text>Ne pas r&eacute;soudre les noms d'h&ocirc;tes lors de la v&eacute;rification des connections clientes.[br]
+<skip-name-resolve_text>Ne pas r&eacute;soudre les noms d'h&ocirc;tes lors de la v&eacute;rification des connexions clientes.[br]
 Utilise dans ce cas que des adresses IP.[br]
 Les donn&eacute;es de la colonne Host dans la table des privil&egrave;ges devra &ecirc;tre que des adresses IP</skip-name-resolve_text>
 <SlapdThreads>Nombre de threads utilisables par OpenLDAP</SlapdThreads>
@@ -2522,7 +2522,7 @@ Si le message en renvoy&eacute; dans un d&eacute;lai fix&eacute; alors le messag
 <use_another_WINS_server>Utiliser un autre serveur WINS</use_another_WINS_server>
 <use_another_WINS_server_explain>Toutes requ&ecirc;tes WINS seront redirig&eacute;es vers le serveur indiqu&eacute;. [br]Indiquez 0.0.0.0 afin de d&eacute;sactiver cette fonctionnalit&eacute;</use_another_WINS_server_explain>
 <use_external_mysql_server>Utiliser un serveur MySQL distant</use_external_mysql_server>
-<use_stats_appliance>Utiliser un serveur distant de statistiques</use_stats_appliance>
+<use_stats_appliance>Un serveur distant de statistiques</use_stats_appliance>
 <VarWWWChmod>Permissions sur la racine /var/www</VarWWWChmod>
 <verify_disks>V&eacute;rifier les disques</verify_disks>
 <verify_disks_text>Lance une t&acirc;che de v&eacute;rification/construction en t&acirc;che de fond.</verify_disks_text>

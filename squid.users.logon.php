@@ -9,7 +9,7 @@
 	}	
 	
 	if(isset($_GET["proxypac"])){
-		error_log(" ->proxypac()".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+		error_log("[{$_SESSION["uid"]}]:: ->proxypac()".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 		proxypac();die();
 	}
 	
@@ -22,19 +22,19 @@
 	if(!function_exists("session_start")){echo "<div style='margin:200px;padding:10px;border:2px solid red'><center><H1><error>session module is not properly loaded<BR>please restart artica-postfix web daemon using <br> <code>/etc/init.d/artica-postfix restart apache</code></error><div style='color:red;font-size:13px'>Unable to stat session_start function</div></H1></div>";exit;}
 	
 	if(function_exists("session_start")){
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		session_start();
 	}
 	
 	$GLOBALS["DEBUG_INCLUDES"]=false;
 	$GLOBALS["EXECUTED_AS_ROOT"]=false;
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);} 
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);} 
 	unset($_SESSION["LANG_FILES"]);
 	if(isset($_POST["php5-ldap-restart"])){restart_phpldap();exit;}
 	if(isset($_POST["Changelang"])){applyLang();exit;}
 	
 	if(isset($_SESSION["uid"])){
-			error_log("Redirecto squid.users.index.php".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+			error_log("[{$_SESSION["uid"]}]::Redirecto squid.users.index.php".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 			header("location:squid.users.index.php");
 			die();
 	}
@@ -201,9 +201,9 @@ if($user->SQUID_INSTALLED){
 	if($SQUIDEnable==0){$user->SQUID_INSTALLED=false;}
 }
 
-error_log("logon form ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::logon form ". __FILE__. " line ". __LINE__);
 $fixed_template=$sock->GET_INFO('ArticaFixedTemplate');
-error_log("init fixed template=$fixed_template in ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::init fixed template=$fixed_template in ". __FILE__. " line ". __LINE__);
 if(trim($fixed_template)<>null){$_COOKIE["artica-template"]=$fixed_template;}
 $imglogon="img/logon2.png";
 
@@ -261,10 +261,10 @@ $newacc="<div style='float:left;margin-left:-180px;width:179px;margin-top:-50px'
 
 ";
 
-error_log("-> buildFrontEnd  ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::-> buildFrontEnd  ". __FILE__. " line ". __LINE__);
 $sock->getFrameWork("cmd.php?buildFrontEnd=yes");
 
-error_log("-> CheckAutousers  ". __FILE__. " line ". __LINE__);
+error_log("[{$_SESSION["uid"]}]::-> CheckAutousers  ". __FILE__. " line ". __LINE__);
 if(!CheckAutousers()){$newacc=null;}
 
 	if($user->KASPERSKY_WEB_APPLIANCE){
@@ -392,7 +392,7 @@ function logonForm(){
 		";
 			
 		$_SESSION["detected_lang"]=$_GET["DEFAULT_LANGUAGE"];
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: _SESSION[detected_lang]={$_GET["DEFAULT_LANGUAGE"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE: _SESSION[detected_lang]={$_GET["DEFAULT_LANGUAGE"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		unset($_SESSION["translation"]);
 		setcookie("artica-language", $_GET["DEFAULT_LANGUAGE"], time()+172800);			
 		$sock->SET_INFO($FileCookyKey, $_GET["DEFAULT_LANGUAGE"]);	
@@ -502,7 +502,7 @@ $ldap_error
 $script
 
 ";
-if($GLOBALS["DEBUG_TEMPLATE"]){error_log("FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 return $html;
 }
 
@@ -609,7 +609,7 @@ function applyLang(){
 	setcookie("artica-language", $_POST["Changelang"], time()+172800);
 	$FileCookyKey=md5($_SERVER["REMOTE_ADDR"].$_SERVER["HTTP_USER_AGENT"]);
 	$sock->SET_INFO($FileCookyKey, $_POST["Changelang"]);
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 }
 
 
@@ -628,7 +628,7 @@ function logon(){
 	unset($_SESSION);
 	$DetectedLanguage=$langAutodetect->get_languages();
 	
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: _SESSION[detected_lang]=`$DetectedLanguage` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE: _SESSION[detected_lang]=`$DetectedLanguage` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
 	$tpl=new templates();
 	$tpl->language=$DetectedLanguage;
@@ -639,7 +639,7 @@ function logon(){
 	$_POST["artica_username"]=trim(strtolower($_POST["artica_username"]));
 	$sql="SELECT userid,user_password,email,enabled FROM usersisp WHERE email='{$_POST["artica_username"]}' ORDER BY enabled DESC";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
-	error_log("$sql ($q->mysql_error) function:".__FUNCTION__." in " . __FILE__. " line ".__LINE__);
+	error_log("[{$_SESSION["uid"]}]::$sql ($q->mysql_error) function:".__FUNCTION__." in " . __FILE__. " line ".__LINE__);
 	
 	if(!is_numeric($ligne["userid"])){$ligne["userid"]=0;}
 	
@@ -654,7 +654,7 @@ function logon(){
 	}	
 	
 	if($ligne["user_password"]<>$md5submitted){
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANG:[{$_SESSION["detected_lang"]}]:: `{$ligne["user_password"]}` did not match submited `$md5submitted` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANG:[{$_SESSION["detected_lang"]}]:: `{$ligne["user_password"]}` did not match submited `$md5submitted` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		echo $tpl->javascript_parse_text("{failed_login}");
 		die();		
 	}
@@ -674,7 +674,7 @@ function logon(){
 	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
 	setcookie("artica-language", $_POST["lang"], time()+172800);
 	$_SESSION["detected_lang"]=$_POST["lang"];
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: _SESSION[detected_lang]=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE: _SESSION[detected_lang]=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	$_SESSION["privileges"]["ArticaGroupPrivileges"]='
 			[AllowAddGroup]="no"
 			[AllowAddUsers]="no"
@@ -692,9 +692,9 @@ function logon(){
 	$arraySession["uid"]=$ligne["userid"];
 	
 		$tpl=new templates();
-		error_log("uid:`{$_SESSION["uid"]}` -> squid.users.index.php function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
+		error_log("[{$_SESSION["uid"]}]::uid:`{$_SESSION["uid"]}` -> squid.users.index.php function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
 		$sessionDatas=base64_encode(serialize($arraySession));
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		echo("location:squid.users.index.php?phpsess=$sessionDatas");
 		die();
 		
@@ -733,7 +733,7 @@ function session_settings(){
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	
 	
 	
@@ -907,7 +907,7 @@ function lang(){
 
 function buildPage(){
 	unset($_SESSION);
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::START:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	
 	$page=CurrentPageName();
 	$users=new usersMenus();
@@ -1031,7 +1031,7 @@ function buildPage(){
 		$tpl2=new templates();
 		$tpl2->language=$DetectedLanguage;
 		$html2=$tpl2->_ENGINE_parse_body($tpl);
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::FINISH:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		return $html2;
 	}
 	
@@ -1082,6 +1082,8 @@ $html="<html xmlns='http://www.w3.org/1999/xhtml'>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.cluetip.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.blockUI.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.treeview.min.js\"></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 		<!-- js Artica  -->
 
 
@@ -1508,7 +1510,7 @@ function register_popup(){
 	unset($_SESSION);
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$_SESSION["detected_lang"]=$DetectedLanguage;
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: _SESSION[detected_lang]=$DetectedLanguage function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE: _SESSION[detected_lang]=$DetectedLanguage function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
 	$tpl=new templates();
 	$tpl->language=$DetectedLanguage;
@@ -1524,7 +1526,7 @@ function register_save(){
 	unset($_SESSION);
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$_SESSION["detected_lang"]=$DetectedLanguage;
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: _SESSION[detected_lang]=$DetectedLanguage function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE: _SESSION[detected_lang]=$DetectedLanguage function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
 	$tpl=new templates();
 	$tpl->language=$DetectedLanguage;	
@@ -1617,7 +1619,7 @@ function proxypac(){
 	
 	$md5=$_GET["proxypac"];
 	$sql="SELECT userid,email,ProxyPacCompiled,ProxyPacDatas FROM usersisp WHERE zmd5='$md5' AND enabled=0";
-	error_log("$hostname: {$ligne["email"]}".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+	error_log("[{$_SESSION["uid"]}]::$hostname: {$ligne["email"]}".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 	
 	$q=new mysql_squid_builder();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));	

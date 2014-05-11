@@ -87,6 +87,7 @@ function section_rules_list(){
 	$refresh=$tpl->_ENGINE_parse_body("{refresh}");
 	$deleteAll=$tpl->_ENGINE_parse_body("{delete_all}");
 	$apply=$tpl->_ENGINE_parse_body("{apply_parameters}");
+	$export=$tpl->_ENGINE_parse_body("{export}");
 	$t=time();
 	
 	
@@ -96,7 +97,8 @@ function section_rules_list(){
 	$buttons="
 	buttons : [
 	{name: '$new_rule', bclass: 'Add', onpress : add_fetchmail_rules$t},
-	{name: '$import', bclass: 'Copy', onpress : ImportBulk$t},
+	{name: '$import', bclass: 'import', onpress : ImportBulk$t},
+	{name: '$export', bclass: 'export', onpress : ExportTable$t},
 	{name: '$deleteAll', bclass: 'Delz', onpress : DeletAll$t},
 	{name: '$refresh', bclass: 'Reload', onpress : Reload$t},
 	{name: '$apply', bclass: 'Reconf', onpress : ApplyParams$t},
@@ -104,10 +106,9 @@ function section_rules_list(){
 		],	";		
 	
 	
-	$html="
-	<div>
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
+	$html=Field_hidden("FETCHMAIL_FLEXRT", "flexRT$t")."
+<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+
 	
 <script>
 var fetchid=0;
@@ -136,7 +137,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 860,
+	width: '99%',
 	height: 408,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -146,6 +147,10 @@ $('#flexRT$t').flexigrid({
 
 function ImportBulk$t(){
 	Loadjs('fetchmail.import.php?t=$t');
+}
+
+function ExportTable$t(){
+	Loadjs('fetchmail.export.php?t=$t');
 }
 
 function UserFetchMailRule$t(num,userid){
@@ -261,7 +266,9 @@ function section_rules_search(){
 	$ORDER="ORDER BY zDate DESC";
 	
 	$total=0;
-	if($q->COUNT_ROWS($table,"artica_backup")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,"artica_backup")==0){
+		json_error_show("no rule");
+	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
@@ -293,9 +300,7 @@ function section_rules_search(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){
-		
-	}
+	if(!$q->ok){ json_error_show($q->mysql_error); }
 	
 	
 	$data = array();
@@ -303,14 +308,11 @@ function section_rules_search(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
 	
-	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
+	
+	if(mysql_num_rows($results)==0){
+		json_error_show("no rule");
+	}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$uid=$ligne["uid"];

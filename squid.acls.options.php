@@ -28,7 +28,7 @@ function js(){
 	$tpl=new templates();
 	header("content-type: application/javascript");
 	$title=$tpl->_ENGINE_parse_body("{options}");
-	echo "YahooWin(650,'$page?popup=yes&t={$_GET["t"]}','$title');";
+	echo "YahooWin(750,'$page?popup=yes&t={$_GET["t"]}','$title');";
 }
 
 function popup(){
@@ -55,61 +55,71 @@ function popup(){
 	for($i=0;$i<6;$i++){$DYN_LOG_LEVEL[$i]=$i;	}
 	
 	$export=Paragraphe("64-export.png", "{export_rules}", "{export_acl_rules_explain}",
-			"javascript:Loadjs('squid.acls.export.php')");
+			"javascript:Loadjs('squid.acls.export.php?t=$t')");
 	
 	$import=Paragraphe("64-import.png", "{import_rules}", "{import_acl_rules_explain}",
-			"javascript:Loadjs('squid.acls.import.php')");	
+			"javascript:Loadjs('squid.acls.import.php?t=$t')");	
+	
+	$delete=Paragraphe("delete-64.png", "{delete_all_acls}", "{delete_all_acls_explain}",
+			"javascript:Loadjs('squid.acls.delete.php?t=$t')");
+	
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td align='center'>$export</td>
 		<td align='center'>$import</td>
+		<td align='center'>$delete</td>
 	</tr>
 	</table>
+	</div>
 	<div id='serverkerb-$t'></div>
-	<table style='width:99%' class=form>
-	<tr>
-		<td colspan=2 style='font-size:16px'>{dynamic_acls_newbee}:<hr style='border-top:1px solid;margin:5px 0'></td>
-	<tr>
-		<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
-		<td style='font-size:14px'>". Field_text("DYN_TTL",$ACLS_OPTIONS["DYN_TTL"],"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{CHILDREN_STARTUP}:</td>
-		<td style='font-size:14px'>". Field_text("CHILDREN_STARTUP",$ACLS_OPTIONS["CHILDREN_STARTUP"],"font-size:14px;padding:3px;width:60px")."&nbsp;{processes}</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{CHILDREN_IDLE}:</td>
-		<td style='font-size:14px'>". Field_text("CHILDREN_IDLE",$ACLS_OPTIONS["CHILDREN_IDLE"],"font-size:14px;padding:3px;width:60px")."&nbsp;{processes}</td>
-	</tr>									
-	<tr>
-		<td class=legend style='font-size:14px'>{log_level}:</td>
-		<td style='font-size:14px'>". Field_array_Hash($DYN_LOG_LEVEL, "DYN_LOG_LEVEL",$ACLS_OPTIONS["DYN_LOG_LEVEL"],null,null,0,"font-size:14px")."</td>
-	</tr>			
-	<tr>
-		<td colspan=2 style='font-size:16px'>{dynamic_acls_group}:<hr style='border-top:1px solid;margin:5px 0'></td>
-	<tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{use_dynamic_groups_acls}:</td>
-		<td>". Field_checkbox("UseDynamicGroupsAcls-$t",1,$UseDynamicGroupsAcls,"UseDynamicGroupsAclsCheck$t()")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
-		<td style='font-size:14px'>". Field_text("DynamicGroupsAclsTTL-$t",$DynamicGroupsAclsTTL,"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
-	</tr>	
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+		<tr>
+			<td colspan=2 style='font-size:16px'>{dynamic_acls_newbee}:<hr style='border-top:1px solid;margin:5px 0'></td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
+			<td style='font-size:14px'>". Field_text("DYN_TTL",$ACLS_OPTIONS["DYN_TTL"],"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{CHILDREN_STARTUP}:</td>
+			<td style='font-size:14px'>". Field_text("CHILDREN_STARTUP",$ACLS_OPTIONS["CHILDREN_STARTUP"],"font-size:14px;padding:3px;width:60px")."&nbsp;{processes}</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{CHILDREN_IDLE}:</td>
+			<td style='font-size:14px'>". Field_text("CHILDREN_IDLE",$ACLS_OPTIONS["CHILDREN_IDLE"],"font-size:14px;padding:3px;width:60px")."&nbsp;{processes}</td>
+		</tr>									
+		<tr>
+			<td class=legend style='font-size:14px'>{log_level}:</td>
+			<td style='font-size:14px'>". Field_array_Hash($DYN_LOG_LEVEL, "DYN_LOG_LEVEL",$ACLS_OPTIONS["DYN_LOG_LEVEL"],null,null,0,"font-size:14px")."</td>
+		</tr>			
+		<tr>
+			<td colspan=2 style='font-size:16px'>{dynamic_acls_group}:<hr style='border-top:1px solid;margin:5px 0'></td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{use_dynamic_groups_acls}:</td>
+			<td>". Field_checkbox("UseDynamicGroupsAcls-$t",1,$UseDynamicGroupsAcls,"UseDynamicGroupsAclsCheck$t()")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:14px'>{TTL_CACHE}:</td>
+			<td style='font-size:14px'>". Field_text("DynamicGroupsAclsTTL-$t",$DynamicGroupsAclsTTL,"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
+		</tr>	
 
-	<tr>
-		<td colspan=2 style='font-size:16px'>{service_options}:<hr style='border-top:1px solid;margin:5px 0'></td>
-	<tr>				
-	<tr>
-		<td class=legend style='font-size:14px'>{debug_acls}:</td>
-		<td>". Field_checkbox("SquidDebugAcls-$t",1,$SquidDebugAcls)."</td>
-	</tr>				
+		<tr>
+			<td colspan=2 style='font-size:16px'>{service_options}:<hr style='border-top:1px solid;margin:5px 0'></td>
+		</tr>				
+		<tr>
+			<td class=legend style='font-size:14px'>{debug_acls}:</td>
+			<td>". Field_checkbox("SquidDebugAcls-$t",1,$SquidDebugAcls)."</td>
+		</tr>				
 				
-	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",16)."</td>
-	</tr>
-		</table>
+		<tr>
+			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",16)."</td>
+		</tr>
+	</table>
+	</div>
 		<script>
 			var x_Save$t= function (obj) {
 			var results=obj.responseText;

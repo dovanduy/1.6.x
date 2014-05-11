@@ -7,6 +7,7 @@ header("Cache-Control: no-cache, must-revalidate");
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.ssl.certificate.inc');
 	if(posix_getuid()==0){die();}
 	
 	$user=new usersMenus();
@@ -16,20 +17,62 @@ header("Cache-Control: no-cache, must-revalidate");
 		die();exit();
 	}
 	
+	if(isset($_GET["gen-certif-js"])){gen_certif_js();exit;}
+	if(isset($_GET["gen-certif-popup"])){gen_certif_popup();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
+	if(isset($_GET["certificate"])){certificate();exit;}
 	if(isset($_GET["parameters"])){parameters_main();exit;}
 	if(isset($_GET["popup-settings"])){parameters_main();exit;}
 	if(isset($_POST["EnableSSLBump"])){parameters_enable_save();exit;}
+	if(isset($_POST["EnableSquidSSLCRTD"])){parameters_certificate_save();exit;}
 	if(isset($_GET["whitelist"])){whitelist_popup();exit;}
 	if(isset($_GET["whitelist-list"])){whitelist_list();exit;}
 	if(isset($_GET["website_ssl_wl"])){whitelist_add();exit;}
 	if(isset($_GET["website_ssl_eble"])){whitelist_enabled();exit;}
 	if(isset($_GET["website_ssl_del"])){whitelist_del();exit;}
+	if(isset($_POST["AllowSquidSSLDropBox"])){AllowSquidSSLDropBox();exit;}
+	if(isset($_POST["AllowSquidSSLSkype"])){AllowSquidSSLSkype();exit;}
+	
 	
 	if(isset($_GET["add-params"])){parameters_main();exit;}
-	
+	if(isset($_GET["help"])){help();exit;}
 	
 	js();
+	
+	
+function gen_certif_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{generate_certificate}");
+	$page=CurrentPageName();	
+	echo "RTMMail(800,'$page?gen-certif-popup=yes','$title');";
+	
+}
+function gen_certif_popup(){
+	$sock=new sockets();
+	$data=base64_decode($sock->getFrameWork("squid.php?ssl-windows-gen=yes"));
+	$tpl=new templates();
+	
+	$warn=$tpl->javascript_parse_text("{you_need_to_restart_proxy_service}");
+	echo "	<center style='margin:10px'>
+	<textarea id='text$t' style='font-family:Courier New;
+	font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:14px !important;width:99%;height:390px'>$data</textarea>
+	
+	<center style='margin:10px'>". $tpl->_ENGINE_parse_body(button("{restart}","Loadjs('squid.compile.progress.php?restart=yes')",18))."</center>
+	</center>
+	
+	<script>
+		if( document.getElementById('main-config-sslbump-id') ){
+			RefreshTab(document.getElementById('main-config-sslbump-id').value);
+		}
+		
+		alert('$warn');
+		
+	</script>
+	
+	";
+}
 	
 	
 function js() {
@@ -57,122 +100,472 @@ function js() {
 	
 }
 
+function help(){
+	
+	echo "<center style='margin:10px'>
+			<iframe width=\"853\" 
+			height=\"480\" src=\"//www.youtube.com/embed/k4sM-akxPwQ\" frameborder=\"0\" allowfullscreen></iframe>
+			
+			<p>&nbsp;</p>
+			
+			<iframe width=\"853\" 
+			height=\"480\" src=\"//www.youtube.com/embed/EukUm1iS60E\" frameborder=\"0\" allowfullscreen></iframe>
+			
+			
+		</center>";
+	
+	
+}
+
 function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["parameters"]='{global_parameters}';
+	$array["certificate"]='{certificate}';
 	$array["whitelist"]='{whitelist}';
 	$array["http-safe-ports-ssl"]=$tpl->_ENGINE_parse_body('{http_safe_ports} (SSL)');
+	$array["certificate-center"]=$tpl->_ENGINE_parse_body('{ssl_certificate}');
+	$array["help"]=$tpl->_ENGINE_parse_body('{help}');
 	//$array["popup-bandwith"]='{bandwith}';
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="http-safe-ports-ssl"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.advParameters.php?http-safe-ports-ssl=yes&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.advParameters.php?http-safe-ports-ssl=yes&t=$t\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		
+		if($num=="certificate-center"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"certificates.center.php?popup=yes&t=$t\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_sslbump$t");
+	echo 
+	"<input type='hidden' id='main-config-sslbump-id' value='main_config_sslbump$t'>".
+	build_artica_tabs($html, "main_config_sslbump$t");
+}
+
+function LoadCountryCodes(){
+	$db=file_get_contents(dirname(__FILE__) . '/ressources/databases/ISO-3166-Codes-Countries.txt');
+	$tbl=explode("\n",$db);
+	while (list ($num, $ligne) = each ($tbl) ){
+		if(preg_match('#(.+?);\s+([A-Z]{1,2})#',$ligne,$regs)){
+			$regs[2]=trim($regs[2]);
+			$regs[1]=trim($regs[1]);
+
+			$array_country_codes[$regs[2]]=$regs[2];
+			
+			
+		}
+			
+	}
+	
+	return $array_country_codes;
+}
+
+function certificate(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$squid=new squidbee();
+	$master_version=$squid->SQUID_VERSION;
+	$compilefile="ressources/logs/squid.compilation.params";
+	if(!is_file($compilefile)){$sock->getFrameWork("squid.php?compil-params=yes");}
+	$COMPILATION_PARAMS=unserialize(base64_decode(file_get_contents($compilefile)));
+	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$EnableSquidSSLCRTD=$sock->GET_INFO("EnableSquidSSLCRTD");
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	
+	$tr[]="<hr>{parameters}:<table>";
+	$tr[]="<td width=1% nowrap><img src='img/arrow-right-16.png'></td>
+	<td style='font-size:14px'>{version}: $master_version</td>
+	</tR>";
+	while (list ($key, $val) = each ($COMPILATION_PARAMS) ){
+		$tr[]="<td width=1% nowrap><img src='img/arrow-right-16.png'></td>
+		<td style='font-size:14px'>$key</td>
+		</tR>";
+	}
+	$tr[]="</table>";
+	$table_compile=@implode("\n", $tr);
+	$tr=null;
+	
+	if(!isset($COMPILATION_PARAMS["enable-ssl"])){
+		
+		echo FATAL_ERROR_SHOW_128("{error_squid_ssl_not_compiled}".$table_compile);
+		return;
+	
+	}
+	
+	if(!isset($COMPILATION_PARAMS["enable-ssl-crtd"])){
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{enable-ssl-crtd-not-compiled}</p><p>.$table_compile</p>");
+	}
+	$array_country_codes=LoadCountryCodes();
+	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
+	$ini=new Bs_IniHandler();
+	$ini->loadString($ArticaSquidParameters);
+	
+	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+	$q=new mysql();
+	$sslcertificates[null]="{select}";
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$CommonName=$ligneZ["CommonName"];
+		//$CommonName=str_replace("*", "_ALL_", $CommonName);
+		$sslcertificates[$CommonName]=$ligneZ["CommonName"];
+	}
+	
+	$DefaultSSLParams=unserialize(base64_decode($sock->GET_INFO("DefaultSSLParams")));
+	if($DefaultSSLParams["countryName"]==null){$DefaultSSLParams["countryName"]="US";}
+	if($DefaultSSLParams["stateOrProvinceName"]==null){$DefaultSSLParams["stateOrProvinceName"]=$WizardSavedSettings["city"];}
+	if($DefaultSSLParams["localityName"]==null){$DefaultSSLParams["localityName"]=$WizardSavedSettings["city"];}
+	if($DefaultSSLParams["organizationName"]==null){$DefaultSSLParams["organizationName"]=$LicenseInfos["COMPANY"];}
+	if($DefaultSSLParams["organizationalUnitName"]==null){$DefaultSSLParams["organizationalUnitName"]=$WizardSavedSettings["organization"];}
+	if(!is_numeric($DefaultSSLParams["CertificateMaxDays"])){$DefaultSSLParams["CertificateMaxDays"]=730;}
+	$page=CurrentPageName();
+	
+$html="
+<div style='font-size:16px' class=explain>{squid_ssl_certificate_explain}</div>
+<div style='width:98%' class=form>
+<table style='width:100%'>		
+<tr>
+		<td class=legend nowrap style='font-size:18px'>{use_certificate_from_certificate_center}:</td>
+		<td>". Field_array_Hash($sslcertificates, "certificate-$t",$ini->_params["NETWORK"]["certificate_center"],null,null,0,"font-size:18px")."</td>
+	</tr>	
+	<tr>
+		<td style='font-size:18px' class=legend>{ssl_crtd}:</td>
+		<td>". Field_checkbox("EnableSquidSSLCRTD-$t",1,$EnableSquidSSLCRTD)."</td>
+	</tr>	
+	<tr>
+		<td style='font-size:18px' class=legend>{whitelist_all_domains}:</td>
+		<td>". Field_checkbox("SSL_BUMP_WHITE_LIST-$t",1,$squid->SSL_BUMP_WHITE_LIST)."</td>
+	</tr>
+	<tr>
+		<td style='font-size:18px' class=legend>{countryName}</strong>:</td>
+		<td>". Field_array_Hash($array_country_codes, "countryName-$t",$DefaultSSLParams["countryName"],null,null,0,"font-size:18px")."</td>
+	</tr>
+	<tr>
+		<td style='font-size:18px' class=legend>{stateOrProvinceName}:</strong></td>
+		<td align='left'>" . Field_text("stateOrProvinceName-$t",$DefaultSSLParams["stateOrProvinceName"],"font-size:18px;width:150px;padding:3px")  . "</td>
+	</tr>
+	<tr>
+		<td style='font-size:18px' class=legend>{localityName}:</strong></td>
+		<td align='left'>" . Field_text("localityName-$t",$DefaultSSLParams["localityName"],"font-size:18px;width:150px;padding:3px")  . "</td>
+	</tr>	
+	
+	<tr>
+		<td style='font-size:18px' class=legend>{organizationName}:</strong></td>
+		<td align='left'>" . Field_text("organizationName-$t",$DefaultSSLParams["organizationName"],"font-size:18px;width:210px;padding:3px")  . "</td>
+	</tr>				
+	<tr>
+		<td style='font-size:18px' class=legend>{organizationalUnitName}:</strong></td>
+		<td align='left'>" . Field_text("organizationalUnitName-$t",$DefaultSSLParams["organizationalUnitName"],"font-size:18px;width:150px;padding:3px")  . "</td>
+	</tr>					
+	<tr>
+		<td style='font-size:18px' class=legend>{CertificateMaxDays}:</strong></td>
+		<td align='left' style='font-size:16px;width:18px;padding:3px'>" . Field_text("CertificateMaxDays-$t",$DefaultSSLParams["CertificateMaxDays"],"font-size:18px;width:90px;padding:3px")  . "&nbsp;{days}</td>
+	</tr>	
+	<tr>
+		<td colspan=2 align=right><hr>".button("{apply}","Save$t()",22)."</td>
+	</tr>
+
+	
+	
+</table>
+</div>
+<script>
+var xSave$t=function(obj){
+    var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);}
+	Loadjs('$page?gen-certif-js=yes');
+	
+}	
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('certificate',document.getElementById('certificate-$t').value);
+	XHR.appendData('stateOrProvinceName',document.getElementById('stateOrProvinceName-$t').value);
+	XHR.appendData('localityName',document.getElementById('localityName-$t').value);
+	XHR.appendData('countryName',document.getElementById('countryName-$t').value);
+	XHR.appendData('organizationName',document.getElementById('organizationName-$t').value);
+	XHR.appendData('organizationalUnitName',document.getElementById('organizationalUnitName-$t').value);
+	XHR.appendData('CertificateMaxDays',document.getElementById('CertificateMaxDays-$t').value);
+	if(document.getElementById('EnableSquidSSLCRTD-$t').checked){XHR.appendData('EnableSquidSSLCRTD',1);}else{XHR.appendData('EnableSquidSSLCRTD',0);}
+	if(document.getElementById('SSL_BUMP_WHITE_LIST-$t')){
+		if(document.getElementById('SSL_BUMP_WHITE_LIST-$t').checked){XHR.appendData('SSL_BUMP_WHITE_LIST',1);}else{XHR.appendData('SSL_BUMP_WHITE_LIST',0);}
+	}
+	XHR.sendAndLoad('$page', 'POST',xSave$t);		
+}
+</script>				
+";	
+
+echo $tpl->_ENGINE_parse_body($html);
+	
 }
 
 
 function parameters_main(){
+	
+	// --enable-ssl-crtd
+	$tpl=new templates();
 	$sock=new sockets();
+	$compilefile="ressources/logs/squid.compilation.params";
+	if(!is_file($compilefile)){$sock->getFrameWork("squid.php?compil-params=yes");}
+	$COMPILATION_PARAMS=unserialize(base64_decode(file_get_contents($compilefile)));
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}	
+	$EnableSquidSSLCRTD=$sock->GET_INFO("EnableSquidSSLCRTD");
+	$SSlBumpAllowLogon=intval($sock->GET_INFO("SSlBumpAllowLogon"));
+	
+	
+	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
+	if($LicenseInfos["EMAIL"]==null){$LicenseInfos["EMAIL"]=$WizardSavedSettings["mail"];}
+	if(!is_numeric($LicenseInfos["EMPLOYEES"])){$LicenseInfos["EMPLOYEES"]=$WizardSavedSettings["employees"];}
+	
+	if(!is_numeric($EnableSquidSSLCRTD)){$EnableSquidSSLCRTD=1;}
+	$DefaultSSLParams=unserialize(base64_decode($sock->GET_INFO("DefaultSSLParams")));
+	
 	$squid=new squidbee();
 	$page=CurrentPageName();
 	$sslbumb=false;
 	$users=new usersMenus();
 	$t=$_GET["t"];
+	
+	if(!isset($COMPILATION_PARAMS["enable-ssl"])){
+		echo FATAL_ERROR_SHOW_128("{error_squid_ssl_not_compiled}");
+		return;
+		
+	}
+	
+	if(!isset($COMPILATION_PARAMS["enable-ssl-crtd"])){
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{enable-ssl-crtd-not-compiled}</p>");
+		
+	
+	}
+	$array_country_codes=LoadCountryCodes();
+	
 	$DisableSSLStandardPort=$sock->GET_INFO("DisableSSLStandardPort");
-	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=0;}
+	if(!is_numeric($DisableSSLStandardPort)){$DisableSSLStandardPort=1;}
+	
+	if($DisableSSLStandardPort==0){$StandardPortSSL=1;}else{$StandardPortSSL=0;}
+	
+	
 	$DisableSSLStandardPort_warn=null;
-	if($DisableSSLStandardPort==1){$DisableSSLStandardPort_warn="<div class=explain style='font-size:16px;color:#BD0000'>{DisableSSLStandardPort_warn}</div>";}
+	if($DisableSSLStandardPort==1){$DisableSSLStandardPort_warn="<div style='font-size:14px;font-style:italic'>{DisableSSLStandardPort_warn}</div>";}
 	
 	if(preg_match("#^([0-9]+)\.([0-9]+)#",$users->SQUID_VERSION,$re)){
 		
 	    	if($re[1]>=3){if($re[2]>=1){$sslbumb=true;}}}
 		
 		$enableSSLBump=Paragraphe_switch_img("{activate_ssl_bump}",
-	"{activate_ssl_bump_text}","EnableSSLBump-$t",$squid->SSL_BUMP,null,450);
+	"{activate_ssl_bump_text}","EnableSSLBump-$t",$squid->SSL_BUMP,null,650);
+		
+		$FIELD_StandardPortSSL=Paragraphe_switch_img("{activate_ssl_on_standard_ports}",
+	"{activate_ssl_on_standard_ports_text}$DisableSSLStandardPort_warn","StandardPortSSL-$t",$StandardPortSSL,null,650);
+		
+		$FIELD_certificate_login=Paragraphe_switch_img("{allow_download_certificate_public}",
+				"{allow_download_certificate_public_explain}","SSlBumpAllowLogon-$t",$SSlBumpAllowLogon,null,650);		
 		
     if(!is_numeric($squid->ssl_port)){$squid->ssl_port =$squid->listen_port+5;}		
 	if($squid->ssl_port<3){$squid->ssl_port =$squid->listen_port+5;}	
 	if($EnableRemoteStatisticsAppliance==0){
-		if(!$sslbumb){$enableSSLBump=Paragraphe_switch_disable("{wrong_squid_version}: &laquo;$users->SQUID_VERSION&raquo;","{wrong_squid_version_feature_text}",null,450);}
+		if(!$sslbumb){
+			echo FATAL_ERROR_SHOW_128("{wrong_squid_version}: &laquo;$users->SQUID_VERSION&raquo;<hr>{wrong_squid_version_feature_text}");
+			return;
+		}
+			
 	}
+	
+	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+	$q=new mysql();
+	$sslcertificates[null]="{select}";
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$CommonName=$ligneZ["CommonName"];
+		//$CommonName=str_replace("*", "_ALL_", $CommonName);
+		$sslcertificates[$CommonName]=$ligneZ["CommonName"];
+	}
+
+	
+
+
+	if($EnableSquidSSLCRTD==1){
+		if(is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){
+			$DownloadDER="
+			<div style='width:650px;border:1px solid #005447;border-radius: 4px 4px 4px 4px;margin-top:15px;margin-bottom:15px'>
+			<table style='width:100%'>
+					
+			<tr>
+				<td style='vertical-align:top;width:128px'>
+					<img src='img/certificate-128.png' align='left'></td>
+				</td>
+				<td style='vertical-align:top;padding-top:15px;padding-left:15px'><a href='ressources/squid/certificate.der' 
+					style='font-size:16px;color:#A91919;font-weight:bold;text-decoration:underline'>
+					
+			{certificate_to_deploy_explain}
+			</a>
+			</td>
+			</tr>
+			</table>
+			</div>";
+		}
+	}
+	
 	$html="
 	<div style='font-size:14px' id='sslbumpdiv$t'></div>
-	$DisableSSLStandardPort_warn
-	<div style='width:95%' class=form>
+	
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-		<td colspan=2>$enableSSLBump</td>
+		<td colspan=2>$enableSSLBump$FIELD_StandardPortSSL
+			$DownloadDER
+			<center style='margin:10px'>
+				". button("{generate_certificate}","Loadjs('$page?gen-certif-js=yes')",18)."
+			</center>
+			
+			$FIELD_certificate_login</td>
 	</tr>
 	<tr>
-		<td style='font-size:14px' class=legend>{ssl_port}:</td>
+		<td style='font-size:26px' class=legend>{ssl_port}:</td>
 		<td><a href=\"javascript:blur();\" 
 			OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port')\"
-			style='font-size:14px;font-weight:bold;text-decoration:underline'>
+			style='font-size:26px;font-weight:bold;text-decoration:underline'>
 			$squid->ssl_port</td>
 	</tr>
-	<tr>
-		<td style='font-size:14px' class=legend>{whitelist_all_domains}:</td>
-		<td>". Field_checkbox("SSL_BUMP_WHITE_LIST-$t",1,$squid->SSL_BUMP_WHITE_LIST)."</td>
-	</tr>
 	
+	
+	<tr>
+		<td colspan=2 align=right><hr>".button("{apply}","SaveEnableSSLDump$t()",16)."</td>
+	</tr>
+
 	</table>
-	<hr>
-	<div style='text-align:right'>". button("{apply}","SaveEnableSSLDump()",16)."</div>
+
 	</div>
 	<script>
-		var x_SaveEnableSSLDump=function(obj){
-     	 var tempvalue=obj.responseText;
-      	if(tempvalue.length>3){alert(tempvalue);}
-     	document.getElementById('sslbumpdiv$t').innerHTML='';
-     	Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
-     	RefreshTab('main_config_sslbump$t');
-	 }	
+var x_SaveEnableSSLDump$t=function(obj){
+	var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);}
+    Loadjs('squid.compile.progress.php?restart=yes&ask=yes');
+    RefreshTab('main_config_sslbump$t');
+}	
 
-	function SaveEnableSSLDump(){
-		var XHR = new XHRConnection();
-		if(!document.getElementById('EnableSSLBump-$t')){return;}
-		XHR.appendData('EnableSSLBump',document.getElementById('EnableSSLBump-$t').value);
+function SaveEnableSSLDump$t(){
+	var XHR = new XHRConnection();
+	if(!document.getElementById('EnableSSLBump-$t')){return;}
+	XHR.appendData('EnableSSLBump',document.getElementById('EnableSSLBump-$t').value);
+	XHR.appendData('SSlBumpAllowLogon',document.getElementById('SSlBumpAllowLogon-$t').value);
+	XHR.appendData('StandardPortSSL',document.getElementById('StandardPortSSL-$t').value);
+	
+	if(document.getElementById('SSL_BUMP_WHITE_LIST-$t')){
 		if(document.getElementById('SSL_BUMP_WHITE_LIST-$t').checked){XHR.appendData('SSL_BUMP_WHITE_LIST',1);}else{XHR.appendData('SSL_BUMP_WHITE_LIST',0);}
-		AnimateDiv('sslbumpdiv$t');
-		XHR.sendAndLoad('$page', 'POST',x_SaveEnableSSLDump);		
+	}
+	XHR.sendAndLoad('$page', 'POST',x_SaveEnableSSLDump$t);		
 	
 	}
-	</script>
+</script>
 	";
 	
-	$tpl=new templates();
+	
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
 function parameters_enable_save(){
 	$squid=new squidbee();
 	$tpl=new templates();
-
+	$sock=new sockets();
+	if(isset($_POST["EnableSquidSSLCRTD"])){
+		$sock->SET_INFO("EnableSquidSSLCRTD", $_POST["EnableSquidSSLCRTD"]);
+	}
+	if(isset($_POST["DisableSSLStandardPort"])){
+		$sock->SET_INFO("DisableSSLStandardPort", $_POST["DisableSSLStandardPort"]);
+	}
+	
+	if(isset($_POST["StandardPortSSL"])){
+		if($_POST["StandardPortSSL"]==1){
+			$sock->SET_INFO("DisableSSLStandardPort",0);
+		}else{
+			$sock->SET_INFO("DisableSSLStandardPort",1);
+		}
+	}
+	
+	if(isset($_POST["SSlBumpAllowLogon"])){
+		$sock->SET_INFO("SSlBumpAllowLogon", $_POST["SSlBumpAllowLogon"]);
+	}
+	
+		
+	if($squid->IS_33){
+		$sock->SET_INFO("EnableSquidSSLCRTD", 1);
+	}
 	
 	$squid->SSL_BUMP=$_POST["EnableSSLBump"];
+	
 	if($_POST["EnableSSLBump"]==1){
 		if(!is_numeric($squid->ssl_port)){$squid->ssl_port=$squid->listen_port+10;}
 		if($squid->ssl_port==443){$squid->ssl_port=$squid->listen_port+10;}	
 	
 	}
-	
-	
-	$squid->SSL_BUMP_WHITE_LIST=$_POST["SSL_BUMP_WHITE_LIST"];
+	if(isset($_POST["SSL_BUMP_WHITE_LIST"])){
+		$squid->SSL_BUMP_WHITE_LIST=$_POST["SSL_BUMP_WHITE_LIST"];
+	}
 	$squid->SaveToLdap(true);
 
 	
 }
+
+function parameters_certificate_save(){
+	$squid=new squidbee();
+	$tpl=new templates();
+	$sock=new sockets();
+	
+	if(isset($_POST["EnableSquidSSLCRTD"])){
+		$sock->SET_INFO("EnableSquidSSLCRTD", $_POST["EnableSquidSSLCRTD"]);
+	}
+	
+	if(isset($_POST["StandardPortSSL"])){
+		if($_POST["StandardPortSSL"]==1){
+			$sock->SET_INFO("DisableSSLStandardPort",0);
+		}else{
+			$sock->SET_INFO("DisableSSLStandardPort",1);
+		}
+	}
+	
+	if(isset($_POST["SSlBumpAllowLogon"])){
+		$sock->SET_INFO("SSlBumpAllowLogon", $_POST["SSlBumpAllowLogon"]);
+	}
+	
+	
+	if(isset($_POST["certificate"])){
+		$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
+		$ini=new Bs_IniHandler();
+		$ini->loadString($ArticaSquidParameters);
+		$ini->_params["NETWORK"]["certificate_center"]=$_POST["certificate"];
+		$sock->SaveConfigFile($ini->toString(), "ArticaSquidParameters");
+	}
+	
+	$DefaultSSLParams=unserialize(base64_decode($sock->GET_INFO("DefaultSSLParams")));
+	$DefaultSSLParams["stateOrProvinceName"]=$_POST["stateOrProvinceName"];
+	$DefaultSSLParams["localityName"]=$_POST["localityName"];
+	$DefaultSSLParams["countryName"]=$_POST["countryName"];
+	$DefaultSSLParams["organizationName"]=$_POST["organizationName"];
+	$DefaultSSLParams["organizationalUnitName"]=$_POST["organizationalUnitName"];
+	$DefaultSSLParams["CertificateMaxDays"]=$_POST["CertificateMaxDays"];
+	$sock->SaveConfigFile(base64_encode(serialize($DefaultSSLParams)), "DefaultSSLParams");
+	$sock->getFrameWork("squid.php?remove-ssl-cert-def=yes");
+}
+
 
 function whitelist_popup(){
 	$page=CurrentPageName();
@@ -185,7 +578,8 @@ function whitelist_popup(){
 	$SSL_BUMP_WL=$tpl->_ENGINE_parse_body("{SSL_BUMP_WL}");
 	$website_ssl_wl_help=$tpl->javascript_parse_text("{website_ssl_wl_help}");
 	$parameters=$tpl->javascript_parse_text("{parameters}");
-	
+	$website_name=$tpl->javascript_parse_text("{websites}");
+	$apply=$tpl->javascript_parse_text("{apply}");
 	$squid=new squidbee();
 	if($squid->hasProxyTransparent==1){
 		$explain=$tpl->_ENGINE_parse_body("<div style='font-weight:bold;color:#BD0000'>{sslbum_wl_not_supported_transp}</div>");
@@ -197,11 +591,11 @@ function whitelist_popup(){
 	$buttons="
 	buttons : [
 	{name: '<b>$new_webiste</b>', bclass: 'Add', onpress : sslBumbAddwl},
-	{name: '<b>$parameters</b>', bclass: 'Reconf', onpress : sslBumSettings},$bt_enable
+	{name: '<b>$apply</b>', bclass: 'Apply', onpress : Apply$t}
 	],";	
 	
 $html="
-<div class=explain style='font-size:13px'>$SSL_BUMP_WL$explain</div>
+<div class=explain style='font-size:13px'>$SSL_BUMP_WL</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 
 	
@@ -212,9 +606,9 @@ $('#flexRT$t').flexigrid({
 	url: '$page?whitelist-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$website_name', name : 'website_name', width : 474, sortable : false, align: 'left'},	
-		{display: '$enabled', name : 'enabled', width : 31, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'center'},
+		{display: '$website_name', name : 'website_name', width : 606, sortable : false, align: 'left'},	
+		{display: '$enabled', name : 'enabled', width : 68, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : 68, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -227,7 +621,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 590,
+	width: '95%',
 	height: 310,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -235,40 +629,56 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 
-	var x_sslBumbAddwl=function(obj){
-     	var tempvalue=obj.responseText;
-      	if(tempvalue.length>3){alert(tempvalue);}
-     	$('#flexRT$t').flexReload();
-     	}	
+var x_sslBumbAddwl$t=function(obj){
+	var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);}
+    $('#flexRT$t').flexReload();
+}	
       
-     function sslBumbAddwlCheck(e){
-    	if(checkEnter(e)){sslBumbAddwl();} 
-		}
+function sslBumbAddwlCheck(e){
+	if(checkEnter(e)){sslBumbAddwl();} 
+}
 
-	function sslBumbAddwl(){
-		var www=prompt('$website_ssl_wl_help');
-		if(www){
-			var XHR = new XHRConnection();
-			XHR.appendData('website_ssl_wl',www);
-			XHR.sendAndLoad('$page', 'GET',x_sslBumbAddwl);		
-		}
+function sslBumbAddwl(){
+	var www=prompt('$website_ssl_wl_help');
+	if(www){
+		var XHR = new XHRConnection();
+		XHR.appendData('website_ssl_wl',www);
+		XHR.sendAndLoad('$page', 'GET',x_sslBumbAddwl$t);		
 	}
+}
 	
-	var x_sslbumpEnableW=function(obj){
-     	var tempvalue=obj.responseText;
-      	if(tempvalue.length>3){alert(tempvalue);}
-      	if(row_id.length>0){ $('#row'+row_id).remove();}
-     	}	
+var x_sslbumpEnableW=function(obj){
+	var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);}
+    if(row_id.length>0){ $('#row'+row_id).remove();}
+}	
 	
-		function sslbumpEnableW(idname){
-			var XHR = new XHRConnection();
-			if(document.getElementById(idname).checked){
-			XHR.appendData('enable',1);}else{XHR.appendData('enable',0);}
-			XHR.appendData('website_ssl_eble',idname);
-			XHR.sendAndLoad('$page', 'GET',x_sslbumpEnableW);		
-		}
+function sslbumpEnableW(idname){
+	var XHR = new XHRConnection();
+	if(document.getElementById(idname).checked){XHR.appendData('enable',1);}else{XHR.appendData('enable',0);}
+	XHR.appendData('website_ssl_eble',idname);
+	XHR.sendAndLoad('$page', 'GET',x_sslbumpEnableW);		
+}
+
+function Apply$t(){
+	Loadjs('squid.compile.progress.php');
+}
+
+function sslbumpAllowSquidSSLDropBox(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('AllowSquidSSLDropBox').checked){XHR.appendData('AllowSquidSSLDropBox',1);}else{XHR.appendData('AllowSquidSSLDropBox',0);}
+	XHR.sendAndLoad('$page', 'POST',x_sslBumbAddwl$t);
+
+}
+
+function sslbumpAllowSquidSSLSkype(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('AllowSquidSSLSkype').checked){XHR.appendData('AllowSquidSSLSkype',1);}else{XHR.appendData('AllowSquidSSLSkype',0);}
+	XHR.sendAndLoad('$page', 'POST',x_sslBumbAddwl$t);
+}
 		
-	function sslBumSettings(){
+function sslBumSettings(){
 		YahooWin3('550','$page?add-params=yes','$parameters');
 	}
 		
@@ -277,7 +687,7 @@ $('#flexRT$t').flexigrid({
 			row_id=rowid;
 			var XHR = new XHRConnection();
 			XHR.appendData('website_ssl_del',ID);
-			XHR.sendAndLoad('$page', 'GET',x_sslbumpEnableW);	
+			XHR.sendAndLoad('$page', 'GET',x_sslBumbAddwl$t);	
 		}
 		
 	
@@ -331,21 +741,17 @@ function whitelist_list(){
 	$search='%';
 	$table="squid_ssl";
 	$page=1;
+	$sock=new sockets();
 	$FORCE_FILTER="AND `type`='ssl-bump-wl'";
 	$squid=new squidbee();
 	
-	if($q->COUNT_ROWS($table,$database)==0){json_error_show("Empty table");}
+
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
+	if($searchstring<>null){
 		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
@@ -366,19 +772,43 @@ function whitelist_list(){
 	
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
 	
+	$AllowSquidSSLDropBox=intval($sock->GET_INFO('AllowSquidSSLDropBox'));
+	$AllowSquidSSLSkype=intval($sock->GET_INFO('AllowSquidSSLSkype'));
+	$enable=Field_checkbox("AllowSquidSSLDropBox",1,$AllowSquidSSLDropBox,"sslbumpAllowSquidSSLDropBox()");
+	
 	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total;
-	$data['rows'] = array();
+	$data['page'] = 1;
+	$data['total'] = 2;
+	
+	$no_ssl_bump_dropbox=$tpl->_ENGINE_parse_body("{no_ssl_bump_dropbox}");
+	$no_ssl_bump_skype=$tpl->_ENGINE_parse_body("{no_ssl_bump_skype}");
+	$color="black";
+	if($AllowSquidSSLDropBox==0){$color="#AFAFAF";}
+	
+	$data['rows'][] = array(
+		'id' => 0,
+		'cell' => array("<span style='font-size:16px;color:$color'>$no_ssl_bump_dropbox</span>"
+		,$enable,"&nbsp;" )
+		);
+	
+	$color="black";
+	$enable=Field_checkbox("AllowSquidSSLSkype",1,$AllowSquidSSLSkype,"sslbumpAllowSquidSSLSkype()");
+	if($AllowSquidSSLSkype==0){$color="#AFAFAF";}
+	$data['rows'][] = array(
+			'id' => 0,
+			'cell' => array("<span style='font-size:16px;color:$color'>$no_ssl_bump_skype</span>"
+					,$enable,"&nbsp;" )
+	);
 	
 	if(!$q->ok){json_error_show($q->mysql_error);}
 		
 	
-	
-	
+	if(mysql_num_rows($results)>0){
+		$data = array();
+		$data['page'] = $page;
+		$data['total'] = $total;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$id=md5(serialize($ligne));
 		$color="black";	
@@ -389,11 +819,13 @@ function whitelist_list(){
 		
 			
 		
-	$data['rows'][] = array(
-		'id' => $id,
-		'cell' => array("<span style='font-size:16px;color:$color'>{$ligne["website_name"]}</span>"
-		,$enable,$delete )
-		);
+		$data['rows'][] = array(
+			'id' => $id,
+			'cell' => array("<span style='font-size:16px;color:$color'>{$ligne["website_name"]}</span>"
+			,$enable,$delete )
+			);
+		}
+	
 	}
 	
 	
@@ -401,7 +833,15 @@ echo json_encode($data);
 
 }	
 
-
+function AllowSquidSSLDropBox(){
+	$sock=new sockets();
+	$sock->SET_INFO("AllowSquidSSLDropBox", $_POST["AllowSquidSSLDropBox"]);
+	
+}
+function AllowSquidSSLSkype(){
+	$sock=new sockets();
+	$sock->SET_INFO("AllowSquidSSLSkype", $_POST["AllowSquidSSLSkype"]);	
+}
 
 
 

@@ -74,11 +74,13 @@ function members_uid(){
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$date=$ligne["zDate"];
 			$time=strtotime($date." 00:00:00");
+			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 				
 			$tablename=$ligne["tablename"];
 			if($q->TABLE_EXISTS($tablename)){
 				if(members_uid_from_dansguardian_events($tablename,$time)){
 					$q->QUERY_SQL("UPDATE tables_day SET members_uid=1 WHERE tablename='$tablename'");
+					if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 					continue;
 				}
 			}
@@ -87,6 +89,7 @@ function members_uid(){
 			if($q->TABLE_EXISTS($hourtable)){
 				if(members_uid_from_hourtable($hourtable,$time)){
 					$q->QUERY_SQL("UPDATE tables_day SET members_uid=1 WHERE tablename='$tablename'");
+					if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 					continue;
 				}
 
@@ -97,14 +100,6 @@ function members_uid(){
 		}
 	}
 	
-	$php5=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.websites_uid.php >/dev/null 2>&1 &");
-	if($GLOBALS["VERBOSE"]){echo "--> members_mac();\n";}
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.members_mac.php  --schedule-id={$GLOBALS["SCHEDULE_ID"]}>/dev/null 2>&1 &");
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.members_macip.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}>/dev/null 2>&1 &");
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.blocked_uid.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.youtube_uid.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
 }
 function members_uid_from_hourtable($tablename,$time){
 	$zdate=date("Y-m-d",$time);

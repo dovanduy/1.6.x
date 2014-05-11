@@ -132,7 +132,7 @@
 				if($this->AsRoot){
 					$unix=new unix();
 					$php5=$unix->LOCATE_PHP5_BIN();
-					$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php --force");
+					$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php");
 				}
 		}
 		return;
@@ -289,15 +289,17 @@
 		$unix=new unix();
 		$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
 		$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
-		if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=1;}
+		if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
 		if(!is_file($phpfpm)){$EnablePHPFPM=0;}
 		$LighttpdUseUnixSocket=$sock->GET_INFO('LighttpdUseUnixSocket');
 		if(!is_numeric($LighttpdUseUnixSocket)){$LighttpdUseUnixSocket=0;}
 		$lighttpdRcbePhpPort=$sock->GET_INFO('lighttpdRcbePhpPort');
 		if(!is_numeric($lighttpdRcbePhpPort)){$lighttpdRcbePhpPort=1818;}
+		$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+		if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+		if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
+	
 		$PHP_STANDARD_MODE=true;
-	
-	
 		$f[]="#artica-postfix saved by artica lighttpd-roundcube.conf";
 		$f[]="server.modules = (";
 		$f[]="\t\"mod_alias\",";
@@ -374,7 +376,7 @@
 		$f[]="accesslog.filename          = \"/var/log/lighttpd/roundcube-access.log\"";
 		$f[]="url.access-deny             = ( \"~\", \".inc\" )";
 		$f[]="";
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Listen port $this->https_port\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Listen port $this->https_port\n";}
 		$f[]="static-file.exclude-extensions = ( \".php\", \".pl\", \".fcgi\" )";
 		$f[]="server.port                 = $this->https_port";
 		$f[]="#server.bind                = \"127.0.0.1\"";
@@ -389,7 +391,7 @@
 		if(is_file($phpfpm)){
 				
 			if($EnablePHPFPM==1){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Artica Web service PHP-FPM is enabled\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Artica Web service PHP-FPM is enabled\n";}
 				$PHP_STANDARD_MODE=false;
 				$f[]='fastcgi.server = ( ".php" =>((';
 				$f[]="\t\"socket\" => \"/var/run/php-fpm.sock\",";
@@ -457,7 +459,7 @@
 			$mysql=new mysql();
 			if(!$this->ClassSQL->TABLE_EXISTS($num,$this->database)){
 				$img="icon_mini_off.gif";
-			}else{$img="icon-mini-ok.gif";}
+			}else{$img="ok13.png";}
 			
 			$html=$html .  "<tr>
 			<td width=1%><img src='img/$img'></td>
@@ -475,10 +477,12 @@
 		$path=$users->roundcube_mysql_sources;
 		$this->ClassSQL->DELETE_DATABASE('roundcubemail');
 		$this->ClassSQL->CREATE_DATABASE('roundcubemail');
+		
 		$this->ParseSQLCommands($path);
 		if($this->AsRoot){
 			$unix=new unix();
-			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php --force");
+			$php5=$unix->LOCATE_PHP5_BIN();
+			$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.roundcube.php");
 		}
 	}
 	
@@ -497,7 +501,7 @@
 	public function plugin_install($basedir,$pluginname){
 		if(!is_dir("/usr/share/artica-postfix/bin/install/roundcube/$pluginname")){return;}
 		if(!is_dir($basedir)){return;}
-		if($this->AsRoot){echo "Starting......: Roundcube installing $pluginname plugin\n";}
+		if($this->AsRoot){echo "Starting......: ".date("H:i:s")." Roundcube installing $pluginname plugin\n";}
 		@mkdir("$basedir/plugins/$pluginname",null,true);
 		shell_exec("/bin/cp -rf /usr/share/artica-postfix/bin/install/roundcube/$pluginname/* $basedir/plugins/$pluginname/");
 		
@@ -578,13 +582,13 @@
 			reset($this->roundCubeArray);
 				
 		    if($RoundCubeEnableSieve==1){
-		    	if($this->AsRoot){echo "Starting......: Roundcube sieverules Enabled\n";}
+		    	if($this->AsRoot){echo "Starting......: ".date("H:i:s")." Roundcube sieverules Enabled\n";}
 		    	$arr[]="'sieverules'";
 		    	$sock->getFrameWork("cmd.php?roundcube-install-sieverules=yes");
 		    }
 		    
 			if($RoundCubeEnableCalendar==1){
-				if($this->AsRoot){echo "Starting......: Roundcube calendar Enabled\n";}
+				if($this->AsRoot){echo "Starting......: ".date("H:i:s")." Roundcube calendar Enabled\n";}
 		    	$arr[]="'calendar'";
 		    	$sock->getFrameWork("cmd.php?roundcube-install-calendar=yes");
 		    }	
@@ -592,7 +596,7 @@
 		    
 		    writelogs("RoundCubeEnableGlobalAddressBook=$RoundCubeEnableGlobalAddressBook",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		    if($RoundCubeEnableGlobalAddressBook==1){
-		    	if($this->AsRoot){echo "Starting......: Roundcube Global Address Book Enabled\n";}
+		    	if($this->AsRoot){echo "Starting......: ".date("H:i:s")." Roundcube Global Address Book Enabled\n";}
 		   		$sock->getFrameWork("cmd.php?roundcube-install-globaladdressbook=yes");
 		    	$arr[]="'globaladdressbook'";
 		    }
@@ -613,38 +617,38 @@
 				
 				
 				if(is_file("$this->root_path/plugins/msglistcols/msglistcols.php")){
-					echo "Starting......: Roundcube msglistcols Enabled\n";
+					echo "Starting......: ".date("H:i:s")." Roundcube msglistcols Enabled\n";
 					$arr[]="'msglistcols'";
 				}
 				
 				
 				if(is_file("$this->root_path/plugins/dkimstatus/dkimstatus.php")){
-					echo "Starting......: Roundcube dkimstatus Enabled\n";
+					echo "Starting......: ".date("H:i:s")." Roundcube dkimstatus Enabled\n";
 					$arr[]="'dkimstatus'";
 				}
 				
 				if(is_file("$this->root_path/plugins/fail2ban/fail2ban.php")){
-					echo "Starting......: Roundcube fail2ban installed but skipped\n";
+					echo "Starting......: ".date("H:i:s")." Roundcube fail2ban installed but skipped\n";
 					//$arr[]="'fail2ban'";
 				}				
 				
 				
 				if(is_file("$this->root_path/plugins/jqueryui/jqueryui.php")){
-					echo "Starting......: Roundcube jqueryui Enabled\n";
+					echo "Starting......: ".date("H:i:s")." Roundcube jqueryui Enabled\n";
 					$this->plugin_jqueryui($this->root_path);
 					$arr[]="'jqueryui'";
 					
 					if(is_file("$this->root_path/plugins/sticky_notes/sticky_notes.php")){
-						echo "Starting......: Roundcube sticky_notes Enabled\n";
+						echo "Starting......: ".date("H:i:s")." Roundcube sticky_notes Enabled\n";
 						$arr[]="'sticky_notes'";
 					}					
 				}
 				
 				if($this->plugin_password($this->root_path,null)){
-					echo "Starting......: Roundcube password Enabled\n";
+					echo "Starting......: ".date("H:i:s")." Roundcube password Enabled\n";
 					$arr[]="'password'";
 				}else{
-					echo "Starting......: Roundcube password failed\n";
+					echo "Starting......: ".date("H:i:s")." Roundcube password failed\n";
 				}
 				
 				if(is_dir("$this->root_path/plugins/managesieve")){
@@ -963,7 +967,7 @@
 		$f[]="?>";
 		@mkdir(dirname($filepath),0755,true);
 		if(!$return){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: RoundCube Web `$filepath`\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: RoundCube Web `$filepath`\n";}
 			@file_put_contents($filepath, @implode("\n", $f));
 		}
 		
@@ -1030,13 +1034,13 @@
 		if($return){return @implode("\n", $f);}
 		@mkdir(dirname($filepath),0755,true);
 		@file_put_contents($filepath, @implode("\n", $f));
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: RoundCube Web `$filepath`\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: RoundCube Web `$filepath`\n";}
 		
 		if(is_file("$this->root_path/plugins/sieverules/sieverules.php")){
 			$users=new usersMenus();
 			$sieverules_port=4190;
 			if(is_numeric($users->SIEVE_PORT)){if($users->SIEVE_PORT>0){$sieverules_port=$users->SIEVE_PORT;}}
-			echo "Starting......: Roundcube (php) sieverules_port ($sieverules_port)\n";
+			echo "Starting......: ".date("H:i:s")." Roundcube (php) sieverules_port ($sieverules_port)\n";
 			$conf[]="\$rcmail_config['plugins'][] = 'sieverules';";
 			$sieve[]="<?php";
 			$sieve[]="\$rcmail_config[\"sieverules_host\"] = \"127.0.0.1\";";
@@ -1060,7 +1064,7 @@
 			$sieve[]="\$rcmail_config[\"sieverules_use_elsif\"] = TRUE;";
 			$sieve[]="?>";
 			@file_put_contents("$this->root_path/plugins/sieverules/config.inc.php",@implode("\n",$sieve));
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: RoundCube Web `plugins/sieverules/config.inc.php`\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: RoundCube Web `plugins/sieverules/config.inc.php`\n";}
 			@chmod("$this->root_path/plugins/sieverules/config.inc.php",0755);
 		}		
 		

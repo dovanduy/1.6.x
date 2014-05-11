@@ -70,7 +70,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -149,7 +149,7 @@ function items(){
 	$FORCE_FILTER="";
 	
 	if($q->COUNT_ROWS($table)==0){
-		json_error_show("NO item...");
+		json_error_show("no data...");
 	}
 
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
@@ -177,6 +177,7 @@ function items(){
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	
 	$results = $q->QUERY_SQL($sql,$database);
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	$data = array();
 	$data['page'] = $page;

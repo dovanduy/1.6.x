@@ -24,6 +24,8 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 
 $GLOBALS["ARGVS"]=implode(" ",$argv);
+
+if($argv[1]=="--install"){$GLOBALS["OUTPUT"]=true;install_switch($argv[2]);die();}
 if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop_all();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start_all();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
@@ -31,6 +33,24 @@ if($argv[1]=="--reconfigure"){$GLOBALS["OUTPUT"]=true;reconfigure();die();}
 if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;vde_status();die();}
 if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;reconfigure();die();}
 if($argv[1]=="--vlan"){$GLOBALS["OUTPUT"]=true;vde_plug2tap_vlan($argv[2]);die();}
+if($argv[1]=="--vde-routes"){$GLOBALS["OUTPUT"]=true;vde_check_routes($argv[2]);die();}
+if($argv[1]=="--start-switch"){$GLOBALS["OUTPUT"]=true;start_switch($argv[2]);die();}
+if($argv[1]=="--restart-switch"){$GLOBALS["OUTPUT"]=true;restart_switch($argv[2]);die();}
+if($argv[1]=="--reconfigure-switch"){$GLOBALS["OUTPUT"]=true;reconfigure_switch($argv[2]);die();}
+if($argv[1]=="--stop-switch"){$GLOBALS["OUTPUT"]=true;stop_switch($argv[2]);die();}
+if($argv[1]=="--vde-all"){$GLOBALS["OUTPUT"]=true;vde_all();die();}
+
+if($argv[1]=="--pcapplug-start"){$GLOBALS["OUTPUT"]=true;vde_pcapplug($argv[2]);die();}
+if($argv[1]=="--pcapplug-stop"){$GLOBALS["OUTPUT"]=true;vde_pcapplug_down($argv[2]);die();}
+
+if($argv[1]=="--remove"){$GLOBALS["OUTPUT"]=true;remove_switch($argv[2]);die();}
+if($argv[1]=="--build-port"){$GLOBALS["OUTPUT"]=true;port_create($argv[2]);exit;}
+if($argv[1]=="--start-port"){$GLOBALS["OUTPUT"]=true;port_start($argv[2]);exit;}
+if($argv[1]=="--stop-port"){$GLOBALS["OUTPUT"]=true;port_stop($argv[2]);exit;}
+if($argv[1]=="--remove-port"){$GLOBALS["OUTPUT"]=true;port_remove($argv[2]);exit;}
+
+
+
 
 
 
@@ -41,7 +61,7 @@ function restart() {
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -55,53 +75,467 @@ function restart() {
 	
 }
 
-function reconfigure($aspid=false){
+function reconfigure_switch($switch,$aspid=false){
+	$GLOBALS["TITLENAME"]="Virtual Switch for $switch";
 	$unix=new unix();
+	$q=new mysql();
+	$sock=new sockets();
 	
+	
+	$INITD_PATH="/etc/init.d/virtualnet-$switch";
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." remove >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --del " .basename($INITD_PATH)." >/dev/null 2>&1");
+	}
+	
+	@unlink($INITD_PATH);
+	
+	$VirtualSwitchEnabled=$sock->GET_INFO("VirtualSwitchEnabled{$switch}");
+	if(!is_numeric($VirtualSwitchEnabled)){$VirtualSwitchEnabled=1;}
+	if($VirtualSwitchEnabled==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Virtual Switch is disabled\n";}
+		return;
+	}
+	
+	$sql="SELECT * FROM nics_switch WHERE nic='$switch'";
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	$toto=@mysql_num_rows($results);
+	if($toto==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} no interface set\n";}
+		return;
+	}
+	
+
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $toto interfaces\n";}
+	$killbin=$unix->find_program("kill");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$ifconfig=$unix->find_program("ifconfig");
+	$ipbin=$unix->find_program("ip");
+	$vde_tunctl=$unix->find_program("vde_tunctl");
+	$vde_plug2tap=$unix->find_program("vde_plug2tap");
+	$rmbin=$unix->find_program("rm");
+	$arp=$unix->find_program("arp");
+	$cat=$unix->find_program("cat");
+	$routebin=$unix->find_program("route");
+	$LOGFILE=" >>/var/log/vde-ports.log 2>&1";
+	$pgrepbin=$unix->find_program("pgrep");
+	
+	$START=array();
+	$STOP=array();
+	
+	$START[]="if [ ! -f /etc/init.d/virtualswitch-$switch ]";
+	$START[]="then";
+	$START[]="	echo \"Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} not installed\"";
+	$START[]="	exit 0";
+	$START[]="fi";
+	$START[]="";
+	$START[]="$php ".__FILE__." --start-switch $switch";
+	
+	
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ID=$ligne["ID"];
+		$START[]="/etc/init.d/virtualport-$ID start";
+		$STOP[]="/etc/init.d/virtualport-$ID stop";
+	}
+	
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          virtualnet-$switch";
+	$f[]="# Required-Start:    \$local_fs \$syslog \$virtualswitch-$switch";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Virtual Switch $switch network";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Virtual Switch $switch network";
+	$f[]="### END INIT INFO";
+	$f[]="IFCONFIG=$ifconfig";
+	$f[]="IPBIN=$ipbin";
+	$f[]="VDE_TUNCTL=$vde_tunctl";
+	$f[]="ARP_BIN=$arp";
+	$f[]="vde_plug2tap=$vde_plug2tap";
+	$f[]="RMBIN=$rmbin";
+	$f[]="";
+	
+	
+	
+	
+	$f[]="do_start () {";
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} START():".count($START)."\n";}
+	$f[]=@implode("\n", $START);
+	$f[]="}";
+	$f[]="";
+	$f[]="do_stop () {";
+	$f[]=@implode("\n", $STOP);
+	$f[]="}";
+	$f[]="";	
+	
+	$f[]="case \"\$1\" in";
+	
+	$f[]=" start)";	
+	$f[]="\techo \"Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} network\"";
+	$f[]="\tdo_start";
+	$f[]=" exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="\techo \"Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} network\"";
+	$f[]="\tdo_stop";
+	$f[]=" exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="\tdo_stop";
+	$f[]="\tdo_start";
+	$f[]=" exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="\tdo_stop";
+	$f[]="\tdo_start";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reload} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";	
+	
+	
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $INITD_PATH done\n";}
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+	
+}
+
+
+
+
+function restart_switch($eth,$aspid=false){
+	$GLOBALS["TITLENAME"]="Virtual Switch for $eth";
+	$unix=new unix();
 	if(!$aspid){
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$eth.pid";
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	vde_switch_down($eth);
+	sleep(1);
+	start_switch($eth,true);
+	
+}
+
+function stop_switch($eth,$aspid=false){
+	$GLOBALS["TITLENAME"]="Virtual Switch for $eth";
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$eth.pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	vde_switch_down($eth);
+}
+
+function start_switch($eth,$aspid=false){
+	$GLOBALS["TITLENAME"]="Virtual Switch for $eth";
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$eth.pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
 	
+	$unix=new unix();
+	$sysctl=$unix->find_program("sysctl");
+	shell_exec_logs("$sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1");
+	vde_switch($eth);	
 	
-	
-	$sql="SELECT nic FROM nics_vde GROUP BY nic";
-	
-	
-	
-	$q=new mysql();
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} ".mysql_num_rows($results)." switche(s)\n";}
-	
-	
-	$GLOBALS["SCRIPTS"][]="# [".__LINE__."]:". mysql_num_rows($results). " switche(s)";
-	if(!$q->ok){return null;}
-	
-	@mkdir("/etc/vde_switch_config",0755,true);
-	$rm=$unix->find_program("rm");
-	shell_exec("$rm -rf /etc/vde_switch_config/*");
-	
-	
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		@mkdir("/etc/vde_switch_config/{$ligne["nic"]}");
-		
-	}
-	
-	$sql="SELECT * FROM nics_vde";
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} real interface {$ligne["nic"]} for virt{$ligne["ID"]}\n";}
-		@file_put_contents("/etc/vde_switch_config/{$ligne["nic"]}/{$ligne["ID"]}.conf",serialize($ligne));
-		@file_put_contents("/etc/vde_switch_config/{$ligne["ID"]}.conf",serialize($ligne));
-	}
 	
 }
+
+function port_create($ID){
+	port_remove($ID);
+	$sql="SELECT * FROM nics_switch WHERE ID='$ID'";
+	$q=new mysql();
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	
+	
+	
+	while (list ($num, $line) = each ($ligne) ){
+		if(is_numeric($num)){continue;}
+		$MAIN_ARRAY[$num]=$line;
+	}
+	
+	@mkdir("/etc/vde/Interfaces",0755,true);
+	@file_put_contents("/etc/vde/Interfaces/$ID", serialize($MAIN_ARRAY));
+	
+	
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$SCRIPTFILENAME=__FILE__;
+	$INIT_D="/etc/init.d/virtualport-$ID";
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:         virtualport-$ID";
+	$f[]="# Required-Start:    \$local_fs \$network";
+	$f[]="# Required-Stop:     \$local_fs \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: virtualport-$ID";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: virtualport-$ID";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php $SCRIPTFILENAME --start-port $ID --byinitd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php $SCRIPTFILENAME --stop-port $ID --byinitd --force \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	
+	$f[]="    $php $SCRIPTFILENAME --stop-port $ID--byinitd --force \$2 \$3";
+	$f[]="    $php $SCRIPTFILENAME --start-port $ID --byinitd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} {ldap|} (+ 'debug' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+	@file_put_contents($INIT_D, @implode("\n", $f));
+	@chmod($INIT_D,0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f ".basename($INIT_D)." defaults >/dev/null 2>&1");
+	
+	}
+	
+	if(is_file("/sbin/chkconfig")){
+		shell_exec("/sbin/chkconfig --add ".basename($INIT_D)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 ".basename($INIT_D)." on >/dev/null 2>&1");
+	}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: ".basename($INIT_D)." success...\n";}	
+	shell_exec($INIT_D." start");
+	
+	
+}
+
+
+function switchcommand($eth,$command){
+	$unix=new unix();
+	if(!is_file("/etc/vde2/vdecmd")){
+		$f[]="TIMEOUT 1000";
+		$f[]="1 IN '\$ ' 100";
+		$f[]="3 SEND '\$*\\n'";
+		$f[]="5 THROW";
+		$f[]="6 IN '\n' 100";
+		$f[]="7 IF '0000 DATA END WITH \'.\'' 10";
+		$f[]="8 IF '10' 20";
+		$f[]="9 GOTO 100";
+		$f[]="10 THROW ";
+		$f[]="11 IN '\\n' 100";
+		$f[]="12 IF '.\\n' 5";
+		$f[]="13 COPY";
+		$f[]="14 GOTO 10";
+		$f[]="20 SKIP 2";
+		$f[]="21 SEND 'logout\\n'";
+		$f[]="22 EXITATOI";
+		$f[]="100 EXIT -1";
+		@file_put_contents("/etc/vde2/vdecmd", @implode("\n", $f));
+	}
+	
+	$moins=" -s";
+	$moinsf=" -f /etc/vde2/vdecmd";
+	$vdecmd=$unix->find_program("vdecmd");
+	if(!is_file($vdecmd)){$vdecmd=$unix->find_program("unixcmd");}
+	if(!is_file($vdecmd)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: vdecmd no such binary\n";}return;}	
+	$sock="/var/run/switchM$eth";
+	if($GLOBALS["VERBOSE"]){echo "$vdecmd -s $sock $command\n";}
+	exec("$vdecmd$moins $sock$moinsf $command 2>&1",$results);
+	return $results;
+}
+
+
+function port_plug_vlan($ID){
+	$unix=new unix();
+	$GLOBALS["TITLENAME"]="Port $ID";
+	$configfile="/etc/vde/Interfaces/$ID";
+	if(!is_file("$configfile")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $configfile no such file\n";}
+		return;
+	}	
+	
+	$ligne=unserialize(@file_get_contents($configfile));
+	$vlan=$ligne["vlan"];
+	if(!is_numeric($vlan)){$vlan=0;}
+	if($vlan==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} No VLAN\n";}
+		return;
+	}
+	$eth=$ligne["nic"];
+	$port=$ligne["port"];
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Create VLAN $vlan into Switch $eth\n";}
+	switchcommand($eth,"vlan/create $vlan");
+
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Linking VLAN $vlan to port $port Switch $eth\n";}
+	switchcommand($eth,"vlan/addport $port $vlan");
+	
+	
+}
+function port_stop($ID){
+	$unix=new unix();
+	$GLOBALS["TITLENAME"]="Port $ID";
+	$configfile="/etc/vde/Interfaces/$ID";
+	if(!is_file("$configfile")){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $configfile no such file\n";}
+		return;
+	}
+	
+	if(!vde_plug2tap_down($ID)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Port $ID cannot be unplugged\n";}
+		return;
+	}
+	
+	$ligne=unserialize(@file_get_contents($configfile));
+	$vde_tunctl=$unix->find_program("vde_tunctl");
+	$routebin=$unix->find_program("route");
+	$ifconfig=$unix->find_program("ifconfig");
+	$virtname="virt{$ID}";
+	$ipaddr=$ligne["ipaddr"];
+	$gateway=$ligne["gateway"];
+	$cdir=$ligne["cdir"];
+	$metric=$ligne["metric"];
+	$netmask=$ligne["netmask"];
+	$port=$ligne["port"];
+	if(!is_numeric($metric)){$metric="10{$ID}";}
+	if(!is_numeric($port)){$port=1;}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Port $ID $virtname $ipaddr/$netmask $gateway\n";}
+	$ip=new IP();
+	if(!$ip->isIPAddress($ip)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Port $ID bad ip address\n";}
+		return;
+	}
+	if($cdir<>null){
+		shell_exec("$routebin del -net $cdir gw $gateway dev $virtname >/dev/null 2>&1");
+	}
+	
+	shell_exec("$routebin del -net 0.0.0.0 gw $gateway dev $virtname >/dev/null 2>&1");
+	shell_exec("$ifconfig $virtname down >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Port $ID success\n";}
+	
+}
+
+function port_start($ID){
+	$unix=new unix();
+	$GLOBALS["TITLENAME"]="Port $ID";
+	$configfile="/etc/vde/Interfaces/$ID";
+	if(!is_file("$configfile")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $configfile no such file\n";}
+		return;
+	}
+	
+	if(!vde_plug2tap($ID)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Port $ID not plugged\n";}
+		return;
+	}
+	
+	$ligne=unserialize(@file_get_contents($configfile));
+	$vde_tunctl=$unix->find_program("vde_tunctl");
+	$routebin=$unix->find_program("route");
+	$ifconfig=$unix->find_program("ifconfig");
+	$virtname="virt{$ID}";
+	$ipaddr=$ligne["ipaddr"];
+	$gateway=$ligne["gateway"];
+	$cdir=$ligne["cdir"];
+	$metric=$ligne["metric"];
+	$netmask=$ligne["netmask"];
+	$port=$ligne["port"];
+	if(!is_numeric($metric)){$metric="10{$ID}";}
+	if(!is_numeric($port)){$port=1;}
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Port $ID $virtname $ipaddr/$netmask $gateway\n";}
+	
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Port $ID tunctl -t $virtname\n";}
+	shell_exec("$vde_tunctl -t $virtname >/dev/null 2>&1");
+	shell_exec("$ifconfig $virtname up");
+	shell_exec("$ifconfig $virtname $ipaddr netmask $netmask up");
+	
+	
+	
+	if($gateway<>null){
+		shell_exec("$routebin add -net 0.0.0.0 gw $gateway dev $virtname");
+	}
+	
+	
+	if($ligne["vlan"]>0){port_plug_vlan($ID);}
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Port $ID $virtname success\n";}
+	
+	
+	
+	
+}
+
+function port_remove($ID){
+	$INIT_D="/etc/init.d/virtualport-$ID";
+	if($GLOBALS["VERBOSE"]){$verb=" --verbose";}
+	shell_exec("$INIT_D stop");
+	@unlink("/etc/vde/Interfaces/$ID $verb");
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f virtualport-$ID remove >/dev/null 2>&1");
+		@unlink("/etc/init.d/virtualport-$ID");
+	}
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --del virtualport-$ID >/dev/null 2>&1");
+		@unlink("/etc/init.d/virtualport-$ID");
+	}	
+}
+
 
 function start_all($aspid=false){
 	
@@ -113,7 +547,7 @@ function start_all($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -122,7 +556,7 @@ function start_all($aspid=false){
 	$unix=new unix();
 	$sysctl=$unix->find_program("sysctl");
 	$dirs=$unix->dirdir("/etc/vde_switch_config");
-	shell_exec("$sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1");
+	shell_exec_logs("$sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1");
 	
 	while (list ($num, $ligne) = each ($dirs) ){
 		$eth=basename($num);
@@ -130,11 +564,6 @@ function start_all($aspid=false){
 		vde_switch($eth);
 		
 	}
-	
-	
-	
-	
-	
 }
 
 
@@ -142,14 +571,12 @@ function stop_all($aspid=false){
 	
 	$unix=new unix();
 	
-	
-	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -159,16 +586,10 @@ function stop_all($aspid=false){
 	while (list ($num, $ligne) = each ($dirs) ){
 		$eth=basename($num);
 		$GLOBALS["TITLENAME"]="Virtual Switch for $eth";
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}\n";}
 		vde_switch_down($eth);
 	
 	}
-		
-		
-	
-	
-	
-	
 }
 
 function vde_status($aspid=false){
@@ -179,7 +600,7 @@ function vde_status($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -217,38 +638,31 @@ function vde_status($aspid=false){
 	if($GLOBALS["VERBOSE"]){print_r($ARRAY);}
 	@mkdir("/usr/share/artica-postfix/ressources/logs/web",0777,true);
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/vde_status", serialize($ARRAY));
-	@chmod(0755,"/usr/share/artica-postfix/ressources/logs/web/vde_status");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/vde_status",0755);
 
 	
 	
 }
 
-function vde_config_shutdown($ID){
-	$unix=new unix();
-	$virtname="virt{$ID}";
-	$ligne=unserialize(@file_get_contents("/etc/vde_switch_config/{$ID}.conf"));
-	$echo =$unix->find_program("echo");
-	$eth=$ligne["nic"];
-	$ipaddr=$ligne["ipaddr"];
-	$gateway=$ligne["gateway"];
-	$cdir=$ligne["cdir"];
-	$netmask=$ligne["netmask"];
-	$ips=$unix->NETWORK_ALL_INTERFACES();
-	
-	vde_plug2tap_down($ID);
-	
-	if(!isset($ips[$virtname])){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $virtname already unplugged\n";}
-		return;
+
+
+function vde_route_set_tables($virtname){
+	$LastNumber=0;
+	$TABLES=explode("\n",@file_get_contents("/etc/iproute2/rt_tables"));
+	while (list ($id, $ligne) = each ($TABLES) ){
+		if(!preg_match("#^([0-9]+)\s+(.+)#", $ligne,$re)){continue;}
+		if($re[1]==0){continue;}
+		if($re[1]>252){continue;}
+		if(trim($re[2])==$virtname){return $virtname;}
+		if($re[1]>$LastNumber){$LastNumber=$re[1];}
+		
 	}
-	$ifconfig=$unix->find_program("ifconfig");
-	$ip=$unix->find_program("ip");
-	shell_exec("$ifconfig $virtname down >/dev/null 2>&1");
-	shell_exec("$ips link delete $virtname >/dev/null 2>&1");
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $virtname unplugged\n";}
-	
+	$LastNumber=$LastNumber+1;
+	$TABLES[]="$LastNumber\t$virtname";
+	@file_put_contents("/etc/iproute2/rt_tables", @implode("\n", $TABLES));
 	
 }
+
 
 function vde_check_routes($ID){
 	$virtname="virt{$ID}";
@@ -272,17 +686,18 @@ function vde_check_routes($ID){
 	if(!is_numeric($metric)){$metric="10{$ID}";}
 	if($gateway==null){return;}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Adding $gateway to $virtname\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Adding $gateway to $virtname CDIR:$cdir\n";}
 	
 	
 	if($cdir<>null){
-		if(isset($ROUTES[$cdir])){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} route $cdir already set\n";}return;}
-		shell_exec("$ip route add $gateway dev $virtname >/dev/null 2>&1");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Adding $cdir to $virtname trough $gateway\n";}
-		shell_exec("$ifconfig $virtname up >/dev/null 2>&1");
-		$cmd="$ip route add $cdir via $gateway dev $virtname metric $metric";
+		
+		vde_route_set_tables($virtname);
+		shell_exec_logs("$ip route add $gateway dev $virtname table $virtname >/dev/null 2>&1");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Adding $cdir to $virtname trough $gateway table $virtname\n";}
+		shell_exec_logs("$ifconfig $virtname up >/dev/null 2>&1");
+		$cmd="$ip route add default via $gateway dev $virtname metric $metric table $virtname";
 		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-		shell_exec($cmd);
+		shell_exec_logs($cmd);
 		
 		return;
 	}
@@ -290,10 +705,12 @@ function vde_check_routes($ID){
 	$t=explode(".",$ipaddr);
 	$t[3]=0;
 	$net=@implode(".", $t);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Adding $cdir to $virtname trough $gateway\n";}
-	shell_exec("$ifconfig $virtname up >/dev/null 2>&1");
-	shell_exec("$ip route add $gateway dev $virtname >/dev/null 2>&1");
-	shell_exec("$ip route add $net/$netmask via $gateway dev $virtname metric $metric");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Adding $cdir to $virtname trough $gateway\n";}
+	shell_exec_logs("$ifconfig $virtname up >/dev/null 2>&1");
+	shell_exec_logs("$ip route add $gateway dev $virtname table $virtname >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Adding default to $virtname trough $gateway table $virtname\n";}
+	shell_exec_logs("$ip route add default via $gateway dev $virtname metric $metric table $virtname");
+	shell_exec_logs("$ip rule add iif $virtname table $virtname");
 	
 	
 	
@@ -301,88 +718,6 @@ function vde_check_routes($ID){
 
 
 function vde_config($ID){
-	
-	$unix=new unix();
-	
-	
-	$vde_tunctl=$unix->find_program("vde_tunctl");
-	$echo=$unix->find_program("echo");
-	$virtname="virt{$ID}";
-	
-	$GLOBALS["TITLENAME"]="Network Interface $virtname";
-	if(!is_file("/etc/vde_switch_config/{$ID}.conf")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} /etc/vde_switch_config/{$ID}.conf no such file\n";}
-		return;
-	}
-	
-	$ligne=unserialize(@file_get_contents("/etc/vde_switch_config/{$ID}.conf"));
-	
-	$echo =$unix->find_program("echo");
-	$eth=$ligne["nic"];	
-	$ipaddr=$ligne["ipaddr"];
-	$gateway=$ligne["gateway"];
-	$cdir=$ligne["cdir"];
-	$netmask=$ligne["netmask"];
-	$ips=$unix->ifconfig_interfaces_list();
-	
-	
-	
-	if($ips[$virtname]==$ipaddr){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, $ipaddr/$netmask already defined\n";}
-		vde_check_routes($ID);
-		vde_plug2tap($ID);
-		vde_check_routes($ID);
-		return;
-	}
-
-	
-	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, $ipaddr/$netmask\n";}
-	$ifconfig=$unix->find_program("ifconfig");
-	$ip=$unix->find_program("ip");
-	$metric=$ligne["metric"];
-	$arp=$unix->find_program("arp");
-	shell_exec("$vde_tunctl -t $virtname >/dev/null");
-	$ligne=unserialize(@file_get_contents("/etc/vde_switch_config/{$ID}.conf"));
-	
-	if(!is_numeric($metric)){$metric="10{$ID}";}
-	shell_exec("$ifconfig $virtname up >/dev/null 2>&1");
-	shell_exec("$ifconfig $virtname $ipaddr netmask $netmask up >/dev/null 2>&1");
-	shell_exec("$echo \"1\" > /proc/sys/net/ipv4/conf/$virtname/proxy_arp");
-	
-	
-	if($gateway==null){
-		vde_plug2tap($ID);
-		return;
-	}
-	
-	$rt_tables=$unix->load_rt_table();
-	$last_rt_table_number=$unix->last_rt_table_number();
-	if(!isset($rt_tables[$virtname])){
-		$last_rt_table_number=$last_rt_table_number+1;
-		$lastnumber=$rt_tables;
-		shell_exec("$echo \"$last_rt_table_number\t$virtname\" >> /etc/iproute2/rt_tables");
-	}
-	
-	shell_exec("$ip route add $gateway dev $virtname table $eth");
-	if(is_file($arp)){shell_exec("$arp -Ds $gateway $eth pub");}
-	
-	if($cdir<>null){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, $cdir -> $gateway\n";}
-		shell_exec("$ip route add $cdir dev $virtname src $ipaddr table $virtname");
-		shell_exec("$ip route add default via $gateway dev $eth table $virtname");
-		vde_plug2tap($ID);
-		return;
-	}
-	
-	$t=explode(".",$ipaddr);
-	$t[3]=0;
-	$net=@implode(".", $t);
-	shell_exec("$ip route add $net/$netmask dev $virtname src $ipaddr table $virtname");
-	shell_exec("$ip route add default via $gateway dev $eth table $virtname");
-	vde_plug2tap($ID);
-	
-	
 }
 
 function vde_plug2tap_down($ID){
@@ -397,9 +732,9 @@ function vde_plug2tap_down($ID){
 	
 	$pid=vde_plug2tap_pid($virtname);
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped\n";}
 		@unlink("/var/run/$virtname.pid");
-		return;
+		return true;
 	}
 	
 	
@@ -407,84 +742,83 @@ function vde_plug2tap_down($ID){
 	$ifconfig=$unix->find_program("ifconfig");
 	$ip=$unix->find_program("ip");
 	$ligne=unserialize(@file_get_contents("/etc/vde_switch_config/{$ID}.conf"));
-	shell_exec("$ifconfig $virtname down >/dev/null 2>&1");	
+	shell_exec_logs("$ifconfig $virtname down >/dev/null 2>&1");	
 	
 	$kill=$unix->find_program("kill");
 	$pid=vde_plug2tap_pid($virtname);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	shell_exec_logs("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=vde_plug2tap_pid($virtname);
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 	
 	$pid=vde_plug2tap_pid($virtname);
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		@unlink("/var/run/$virtname.pid");
-		return;
+		return true;
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec_logs("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=vde_plug2tap_pid($virtname);
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 	
 	$pid=vde_plug2tap_pid($virtname);
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}	
 	@unlink("/var/run/$virtname.pid");
-	
+	return true;
 }
 
 
 function vde_plug2tap($ID){
 	$unix=new unix();
 	$sock=new sockets();
-	
-	
-	
+	$configfile="/etc/vde/Interfaces/$ID";
 	$Masterbin=$unix->find_program("vde_plug2tap");
 	if(!is_file($Masterbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, vde_plug2tap not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, vde_plug2tap not installed\n";}
 		return;
 	}
 	
 	
 	
-	$ligne=unserialize(@file_get_contents("/etc/vde_switch_config/{$ID}.conf"));
+	$ligne=unserialize(@file_get_contents($configfile));
 	$eth=$ligne["nic"];
+	$port=$ligne["port"];
 	$virtname="virt$ID";
 	$vlan=$ligne["vlan"];
 	$GLOBALS["TITLENAME"]="Interface Plug $virtname";
 	$nohup=$unix->find_program("nohup");
 	
+	switchcommand($eth,"port/create $port");
 	$pid=vde_plug2tap_pid($virtname);
 	
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
-		vde_plug2tap_vlan($ID);
-		return;
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		return true;
 	}
 	@unlink("/var/run/$virtname.pid");
 	$port=$ligne["port"];
 	if(!is_numeric($port)){$port=1;}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}\n";}
 	$cmd="$Masterbin -s /var/run/switch$eth --port=$port --daemon -P /var/run/$virtname.pid $virtname >/dev/null 2>&1 &";
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Switch $eth Interface $virtname port $port\n";}
-	shell_exec($cmd);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Switch $eth Interface $virtname port $port\n";}
+	shell_exec_logs($cmd);
 	
 	for($i=1;$i<5;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=vde_plug2tap_pid($virtname);
 		if($unix->process_exists($pid)){break;}
@@ -494,45 +828,17 @@ function vde_plug2tap($ID){
 	
 	
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
-		vde_plug2tap_vlan($ID);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		return true;
 		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 	}	
 	
 }
 
-function vde_plug2tap_vlan($ID){
-	
-	$unix=new unix();
-	$vdecmd=$unix->find_program("vdecmd");
-	if(!is_file($vdecmd)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: vdecmd no such binary\n";}
-		return;
-	}
-	$ligne=unserialize(@file_get_contents("/etc/vde_switch_config/{$ID}.conf"));
-	$vlan=$ligne["vlan"];
-	if(!is_numeric($vlan)){$vlan=0;}
-	if($vlan==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} No VLAN\n";}
-		return;
-	}
-	$eth=$ligne["nic"];
-	$port=$ligne["port"];
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Create VLAN $vlan into Switch $eth\n";}
-	$sock="/var/run/switchM$eth";
-	if($GLOBALS["VERBOSE"]){echo "$vdecmd -s $sock vlan/create $vlan\n";}
-	shell_exec("$vdecmd -s $sock vlan/create $vlan");
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Adding VLAN $vlan to port $port Switch $eth\n";}
-	
-	//if($GLOBALS["VERBOSE"]){echo "$vdecmd -s $sock vlan/addport $vlan $port\n";}
-	//shell_exec("$vdecmd -s $sock vlan/addport $vlan $port >/dev/null 2>&1");
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Linking VLAN $vlan to port $port Switch $eth\n";}
-	if($GLOBALS["VERBOSE"]){echo "$vdecmd -s $sock port/setvlan $port $vlan\n";}
-	shell_exec("$vdecmd -s $sock port/setvlan $port $vlan >/dev/null 2>&1");
-}
+
 
 
 function vde_plug2tap_pid($virtname){
@@ -555,7 +861,15 @@ function vde_switch($eth){
 	$Masterbin=$unix->find_program("vde_switch");
 	$vde_tunctl=$unix->find_program("vde_tunctl");
 	if(!is_file($Masterbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, vde switch not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, vde switch not installed\n";}
+		return;
+	}
+	
+	$VirtualSwitchEnabled=$sock->GET_INFO("VirtualSwitchEnabled{$eth}");
+	if(!is_numeric($VirtualSwitchEnabled)){$VirtualSwitchEnabled=1;}
+	
+	if($VirtualSwitchEnabled==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, vde switch not enabled ( see VirtualSwitchEnabled{$eth} )\n";}
 		return;
 	}
 
@@ -563,8 +877,8 @@ function vde_switch($eth){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
-		vde_pcapplug($eth);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		vde_pcapplug($eth,true);
 		return;
 	}
 	
@@ -573,11 +887,11 @@ function vde_switch($eth){
 	
 	
 	$cmd="$nohup $Masterbin -s /var/run/switch$eth -M /var/run/switchM$eth -daemon -p /var/run/switch-$eth.pid >/dev/null 2>&1 &";
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
-	shell_exec($cmd);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+	shell_exec_logs($cmd);
 
 	for($i=1;$i<4;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/3\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/3\n";}
 		sleep(1);
 		$pid=vde_switch_pid($eth);
 		if($unix->process_exists($pid)){break;}
@@ -585,64 +899,143 @@ function vde_switch($eth){
 	
 	$pid=vde_switch_pid($eth);
 	if(!$unix->process_exists($pid)){	
-		shell_exec($cmd);
+		shell_exec_logs($cmd);
 		sleep(1);
 	}
 
 	$pid=vde_switch_pid($eth);
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
-		vde_pcapplug($eth);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		vde_pcapplug($eth,true);
+		
+		
+		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 	}
 }
 
-function vde_nics($eth){
-	
-	
-	$c=0;
-	foreach (glob("/etc/vde_switch_config/$eth/*") as $filename) {
-		$c++;
-		$file=basename($filename);
-		if(preg_match("#([0-9]+)\.conf$#", $filename,$re)){
-			vde_config($re[1],true);
-		}
-	}	
-	
-	$GLOBALS["TITLENAME"]="Virtual Interfaces ($eth)";
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $c Interface(s)\n";}
-	
-	
-}
 function vde_nics_shutdown($eth){
 
 
 	$c=0;
-	foreach (glob("/etc/vde_switch_config/$eth/*") as $filename) {
+	foreach (glob("/etc/vde/Interfaces/*") as $filename) {
 		$c++;
 		$file=basename($filename);
-		if(preg_match("#([0-9]+)\.conf$#", $filename,$re)){
-			vde_config_shutdown($re[1],true);
+		if(is_numeric($filename)){
+			port_stop($filename,true);
 		}
 	}
 
 	$GLOBALS["TITLENAME"]="Virtual Interfaces ($eth)";
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} $c Interface(s)\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $c Interface(s)\n";}
 
 
 }
-function vde_pcapplug($eth){
+
+function vde_pcapplug_init_install($eth){
 	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          pcapplug-$eth";
+	$f[]="# Required-Start:    \$local_fs \$syslog";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Capture Plug ($eth)";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Capture Plug ($eth)";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="   $php ".__FILE__." --pcapplug-start $eth \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="   $php ".__FILE__." --pcapplug-stop $eth \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="   $php ".__FILE__." --pcapplug-stop $eth \$2 \$3";
+	$f[]="   $php ".__FILE__." --pcapplug-start $eth \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="   $php ".__FILE__." --pcapplug-stop $eth \$2 \$3";
+	$f[]="   $php ".__FILE__." --pcapplug-start $eth \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+	
+	$INITD_PATH="/etc/init.d/virtualhook-$eth";
+	echo "vde_pcapplug: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+	shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+			shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+}
+
+
+function vde_pcapplug($eth,$aspid=false){
+	$unix=new unix();
+	
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$eth.pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	
+	
 	$sock=new sockets();
 	$Masterbin=$unix->find_program("vde_pcapplug");
+	
+	$VirtualSwitchEnabled=$sock->GET_INFO("VirtualSwitchEnabled{$eth}");
+	if(!is_numeric($VirtualSwitchEnabled)){$VirtualSwitchEnabled=1;}
+	
+	
+	if($VirtualSwitchEnabled==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, vde switch not enabled - VirtualSwitchEnabled{$eth}:$VirtualSwitchEnabled -\n";}
+		return;
+	}
 	
 	
 	$GLOBALS["TITLENAME"]="Capture Plug ($eth)";
 	
 	if(!is_file($Masterbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, vde switch not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, vde switch not installed\n";}
+		return;
+	}
+	
+	
+	if(!$unix->is_interface_available($eth)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $eth not available\n";}
 		return;
 	}
 	
@@ -650,19 +1043,21 @@ function vde_pcapplug($eth){
 	
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
-		vde_nics($eth);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		if(is_file("/etc/init.d/virtualnet-$eth")){
+			shell_exec("/etc/init.d/virtualnet-$eth start");
+		}
 		return;
 	}
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$cmd="$Masterbin -s /var/run/switch$eth -d -P /var/run/switch{$eth}p.pid $eth >/dev/null 2>&1 &";
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service on real interface $eth\n";}
-	shell_exec($cmd);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service on real interface $eth\n";}
+	shell_exec_logs($cmd);
 	
 	for($i=1;$i<5;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=vde_pcapplug_pid($eth);
 		if($unix->process_exists($pid)){break;}
@@ -670,12 +1065,14 @@ function vde_pcapplug($eth){
 	
 	$pid=vde_pcapplug_pid($eth);
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
-		vde_nics($eth);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
-	}	
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+	}
+
+	
+	
 }
 
 function vde_switch_down($eth){
@@ -684,14 +1081,16 @@ function vde_switch_down($eth){
 	$GLOBALS["TITLENAME"]="Virtual Switch ($eth)";
 	$unix=new unix();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		vde_pcapplug_down($eth);
 		vde_nics_shutdown($eth);
 		return;
 	}
 	
-	vde_pcapplug_down($eth);
-	vde_nics_shutdown($eth);
+	vde_pcapplug_down($eth,true);
+	if(is_file("/etc/init.d/virtualnet-$eth")){
+		shell_exec("/etc/init.d/virtualnet-$eth stop");
+	}
 	
 	$pid=vde_switch_pid($eth);
 	$nohup=$unix->find_program("nohup");
@@ -699,51 +1098,62 @@ function vde_switch_down($eth){
 	$kill=$unix->find_program("kill");
 	$rm=$unix->find_program("rm");
 	$GLOBALS["TITLENAME"]="Virtual Switch ($eth)";
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	shell_exec_logs("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=vde_switch_pid($eth);
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=vde_switch_pid($eth);
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} cleaning sockets\n";}
-		shell_exec("rm -rf /var/run/switch$eth");
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} cleaning sockets\n";}
+		shell_exec_logs("rm -rf /var/run/switch$eth");
 		@unlink("/var/run/switch{$eth}p.pid");
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec_logs("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=vde_switch_pid($eth);
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} cleaning sockets\n";}
-	shell_exec("rm -rf /var/run/switch$eth");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} cleaning sockets\n";}
+	shell_exec_logs("rm -rf /var/run/switch$eth");
 	@unlink("/var/run/switch{$eth}p.pid");
 	
 
 }
-function vde_pcapplug_down($eth){
-	
-	$pid=vde_pcapplug_pid($eth);
+function vde_pcapplug_down($eth,$aspid=false){
 	$GLOBALS["TITLENAME"]="Capture Plug ($eth)";
 	$unix=new unix();
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$eth.pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$pid=vde_pcapplug_pid($eth);
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		return;
 	}
 	$pid=vde_pcapplug_pid($eth);
@@ -754,35 +1164,49 @@ function vde_pcapplug_down($eth){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	shell_exec_logs("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=vde_pcapplug_pid($eth);
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=vde_pcapplug_pid($eth);
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec_logs("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=vde_pcapplug_pid($eth);
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 
+}
+
+function shell_exec_logs($cmdline){
+	$trace=debug_backtrace();
+	if(isset($trace[1])){
+		$function="{$trace[1]["function"]}()";
+		$line="{$trace[1]["line"]}";			
+		}
+	
+		$f = @fopen("/var/log/net-start.log", 'a');
+		@fwrite($f, "exec.vde.php:: $cmdline function $function in line $line\n");
+		@fclose($f);
+		shell_exec($cmdline);
+	
 }
 
 function vde_switch_pid($eth){
@@ -802,5 +1226,104 @@ function vde_pcapplug_pid($eth){
 	return $unix->PIDOF_PATTERN("$Masterbin.*?switchp{$eth}.pid");	
 }
 
+function remove_switch($switch){
+	
+	shell_exec("/etc/init.d/virtualnet-$switch stop");
+	vde_switch_down($switch,true);
+	vde_pcapplug_down($switch,true);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f virtualnet-$switch remove >/dev/null 2>&1");
+		shell_exec("/usr/sbin/update-rc.d -f virtualswitch-$switch remove >/dev/null 2>&1");
+		shell_exec("/usr/sbin/update-rc.d -f virtualhook-$switch remove >/dev/null 2>&1");
+		@unlink("/etc/init.d/virtualnet-$switch");
+		@unlink("/etc/init.d/virtualswitch-$switch");
+		@unlink("/etc/init.d/virtualhook-$switch");
+	}
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --del virtualnet-$switch >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --del virtualswitch-$switch >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --del virtualhook-$switch >/dev/null 2>&1");
+		@unlink("/etc/init.d/virtualnet-$switch");
+		@unlink("/etc/init.d/virtualswitch-$switch");
+		@unlink("/etc/init.d/virtualhook-$switch");
+	}
+	
+}
+
+
+function install_switch($switch){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          virtualswitch-$switch";
+	$f[]="# Required-Start:    \$local_fs \$syslog";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Virtual Switch $switch";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Virtual Switch $switch";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="   $php ".__FILE__." --start-switch $switch \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="   $php ".__FILE__." --stop-switch $switch \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="   $php ".__FILE__." --restart-switch $switch \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="   $php ".__FILE__." --reload-switch $switch \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reload} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+	
+	$INITD_PATH="/etc/init.d/virtualswitch-$switch";
+	echo "Virtual Switch: [INFO] Writing \"$INITD_PATH\" with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 2345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+	
+	vde_pcapplug_init_install($switch);
+	
+}
+
+function vde_all(){
+	$unix=new unix();
+	
+	$files=$unix->DirFiles("/etc/init.d","virtualswitch");
+	while (list ($num, $ligne) = each ($files) ){
+		if(preg_match("#virtualswitch-(.+)#", $ligne,$re)){
+			echo "switch {$re[1]}\n";
+		}
+		
+	}
+}
 
 ?>

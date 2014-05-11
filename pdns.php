@@ -155,6 +155,11 @@ function EnablePDNS(){
 	$users=new usersMenus();
 	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
 	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}	
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
+	
+	
 	if($_GET["EnablePDNS"]==1){
 		if($users->dnsmasq_installed){
 			if($EnableDNSMASQ==1){
@@ -299,6 +304,11 @@ $page=CurrentPageName();
 	
 	
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+	
+	
 	$PowerDNSMySQLEngine=1;
 	if(!is_numeric($PowerActHasMaster)){$PowerActHasMaster=0;}
 	if(!is_numeric($PDNSRestartIfUpToMB)){$PDNSRestartIfUpToMB=700;}
@@ -384,7 +394,7 @@ $page=CurrentPageName();
 	<div id='PowerDNSMAsterConfigDiv'>
 	
 	
-<div style='width:95%' class=form>	
+<div style='width:98%' class=form>	
 <table style='width:100%'>
 				<tr>
 					<td valign='top' class=legend style='font-size:16px' nowrap>{cache-ttl}:</td>
@@ -2106,7 +2116,8 @@ function parameters$t(){
 function events_query_list(){	
 	$pattern=base64_encode($_POST["query"]);
 	$sock=new sockets();
-	$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=pdns*")));
+	$sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=pdns*");
+	$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 	if(!is_array($array)){return null;}
 	
 	$t=$_GET["t"];

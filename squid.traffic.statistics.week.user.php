@@ -300,7 +300,7 @@ function users_search(){
 		if($eght>25){$usertext=substr($usertext,0,22)."...";}
 		
 		$rows[]="<tr>
-		<td width=1% valign='top'><IMG SRC='img/winuser.png'></TD>
+		<td width=1% valign='top'><IMG SRC='img/user-18.png'></TD>
 		<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.traffic.statistics.week.user.php?user=$FIELD_SRC&field=$field&table=$table')\" style='font-weight:bold;font-size:12px;text-decoration:underline'>$usertext</a>
 		
 		</td></tr>";
@@ -552,7 +552,7 @@ function synthesis(){
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
-		<td width=1%><img src='img/user-black-48.png'></td>
+		<td width=1%><img src='img/postmaster-48.png'></td>
 		<td><div style='width:100%;font-size:16px;font-weight:bold'>$TITLE_PAGE</div></td>
 	</tr>
 	</tbody>

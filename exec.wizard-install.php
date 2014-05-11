@@ -1,7 +1,13 @@
 <?php
+$GLOBALS["NOREBOOT"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){
 	$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 }
+
+if(preg_match("#noreboot#",implode(" ",$argv))){
+	$GLOBALS["NOREBOOT"]=true;
+}
+
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
@@ -16,6 +22,10 @@ include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 
 
 if($argv[1]=="--articaweb"){create_articaweb($argv["2"]);die();}
+if($argv[1]=="--genuid"){
+		$unix=new unix();
+		echo "Dynamic: ";
+		echo $unix->gen_uuid()."\nCurrent: ".$unix->GetUniqueID()."\n";die();}
 if($argv[1]=="--tests-network"){testnetworks($argv["2"]);die();}
 
 WizardExecute();
@@ -47,39 +57,90 @@ function testnetworks(){
 	
 }
 
+function writeprogress($perc,$text){
+	$array["POURC"]=$perc;
+	$array["TEXT"]=$text;
+	@mkdir("/usr/share/artica-postfix/ressources/logs/web",true,0755);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/wizard.progress", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/wizard.progress",0755);
+	
+}
+
 
 function WizardExecute(){
-
+	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	$pid=$unix->PIDOF_PATTERN(basename(__FILE__));
+	if($pid<>getmypid()){return;}
+	$uuid=$unix->GetUniqueID();
+	writeprogress(5,"Server ID: $uuid");
+	sleep(2);
+	writeprogress(10,"Scanning hardware/software");
+	
+	shell_exec("/etc/init.d/artica-process1 start");
+
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");	
 	@file_get_contents($pidfile,getmypid());
 
 	$users=new usersMenus();
 	$q=new mysql();
+	writeprogress(20,"Creating databases");
 	$q->BuildTables();
 	$sock=new sockets();
-	$savedsettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$savedsettings=unserialize(base64_decode(file_get_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings")));
+	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
+	if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
+	
 
-	if(!is_array($savedsettings)){die();}
-	if(count($savedsettings)<4){die();}
+	if(!is_array($savedsettings)){
+		writeprogress(100,"No saved settings...");
+		die();
+	}
+	if(count($savedsettings)<4){
+		writeprogress(100,"No saved settings...");
+		die();}
+		
+	writeprogress(30,"Creating services");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initslapd.php  --force >/dev/null 2>&1 &");
 	
-	if(is_dir("/opt/articatech/data")){
-		shell_exec("$nohup /etc/init.d/artica-postfix start articadb >/dev/null 2>&1 &");
+	if(is_dir("$ArticaDBPath/data")){
+		writeprogress(40,"Starting services");
+		shell_exec("$nohup /etc/init.d/squid-db start >/dev/null 2>&1 &");
 	}
 	$KEEPNET=$savedsettings["KEEPNET"];
 	if($KEEPNET==1){
+		writeprogress(100,"Done");
 		@file_put_contents("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED", time());
-		shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+		shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
+		shell_exec("$nohup /etc/init.d/monit restart >/dev/null 2>&1 &");
+		FINAL___();
 		return;
 	}
 	
+
+	
+	$Encoded=base64_encode(serialize($savedsettings));
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", $Encoded);
+	
+	if(isset($savedsettings["GoldKey"])){
+		if($sock->IsGoldKey($savedsettings["GoldKey"])){
+			$WORKDIR=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2E=");
+			$WORKFILE=base64_decode('LmxpYw==');
+			$WORKPATH="$WORKDIR/$WORKFILE";
+			@file_put_contents($WORKPATH, "TRUE");
+			$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+			$LicenseInfos["UUID"]=$savedsettings["UUID_FIRST"];
+			$LicenseInfos["TIME"]=time();
+			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		}
+	}
 	
 	
+	writeprogress(60,"Building networks");
 	$nics=new system_nic("eth0");
 	$nics->eth="eth0";
 	$nics->IPADDR=$savedsettings["IPADDR"];
@@ -92,42 +153,52 @@ function WizardExecute(){
 	$nics->metric=$savedsettings["metric"];
 	$nics->enabled=1;
 	$nics->defaultroute=1;
+	writeprogress(60,"Saving networks");
 	$nics->SaveNic();
 
+	writeprogress(60,"Loading resolv library");
 	$resolv=new resolv_conf();
 	$arrayNameServers[0]=$savedsettings["DNS1"];
 	$arrayNameServers[1]=$savedsettings["DNS2"];
 	$resolv->MainArray["DNS1"]=$arrayNameServers[0];
 	$resolv->MainArray["DNS2"]=$arrayNameServers[1];
+	writeprogress(60,"Saving DNS settings");
 	$resolv->save();
 
 	$netbiosname=$savedsettings["netbiosname"];
 	$domainname=$savedsettings["domain"];
-	$resolv=new resolv_conf();
-	$resolv->MainArray["DNS1"]=$arrayNameServers[0];
-	$resolv->MainArray["DNS2"]=$arrayNameServers[1];
-	$resolv->save();
+
+	
 	$sock=new sockets();
-	$sock->SET_INFO("myhostname","$netbiosname.$domainname");
-	$sock->getFrameWork("cmd.php?ChangeHostName=$netbiosname.$domainname");
+	
+	$nic=new system_nic();
+	writeprogress(60,"Setting hostname");
+	$nic->set_hostname("$netbiosname.$domainname");
+	
+	writeprogress(60,"Apply networks");
 	$sock->getFrameWork("services.php?resolvConf=yes");
 	$sock->getFrameWork("services.php?folders-security=yes");
 	$sock->getFrameWork("services.php?cache-pages=yes");
 	sleep(1);
 	
 	$ldap=new clladp();
+	writeprogress(60,"Building {$savedsettings["organization"]}");
 	$ldap->AddOrganization($savedsettings["organization"]);
 	$ldap->AddDomainEntity($savedsettings["organization"],$savedsettings["smtp_domainname"]);
 	$sock=new sockets();
 	
+	writeprogress(60,"Reconfiguring networks");
 	shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1");
-	shell_exec("/etc/init.d/artica-ifup start");
-	
 	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.postfix.maincf.php --reconfigure");
 	$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus");
 
 	$FreeWebAdded=false;
 	sleep(3);
+	
+	if(!is_file("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED")){
+		if(!$GLOBALS["NOREBOOT"]){$reboot=true;}
+		$rebootWarn=" - System will be rebooted";
+	}
 
 	if($users->SQUID_INSTALLED){
 		include_once(dirname(__FILE__)."/ressources/class.squid.inc");
@@ -136,7 +207,15 @@ function WizardExecute(){
 			$squid->listen_port=$savedsettings["proxy_listen_port"];
 				
 		}
+		
+		if($q->COUNT_ROWS("squid_caches_center", "artica_backup")==0){
+			$cachename=basename($squid->CACHE_PATH);
+			$q->QUERY_SQL("INSERT IGNORE INTO `squid_caches_center` (cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,remove)
+			VALUES('$cachename',1,'$squid->CACHE_PATH','$squid->CACHE_TYPE','2000','128','256',1,0,0,0)","artica_backup");
+		}
+		
 		$squid->SaveToLdap();
+		writeprogress(65,"Reconfiguring Proxy");
 		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
 	}
 
@@ -151,23 +230,32 @@ function WizardExecute(){
 		$sock->SET_INFO("EnableFreeRadius",$savedsettings["EnableFreeRadius"]);
 		$sock->getFrameWork("freeradius.php?restart=yes");
 	}
-	
+	$restart_artica_status=false;
 	if($savedsettings["adminwebserver"]<>null){
+		writeprogress(67,"Creating Webservices$rebootWarn");
 		$sock->SET_INFO("EnableFreeWeb", 1);
+		writeprogress(60,"Restarting Artica Status");
+		$restart_artica_status=true;
 		restart_artica_status();
+		writeprogress(68,"Restarting Web services");
 		restart_apache_src();
+		writeprogress(69,"Creating default website {$savedsettings["adminwebserver"]}");
 		include_once(dirname(__FILE__)."/ressources/class.freeweb.inc");
 		$free=new freeweb($savedsettings["adminwebserver"]);
 		$free->servername=$savedsettings["adminwebserver"];
 		$free->groupware="ARTICA_MINIADM";
 		$free->CreateSite();
+		writeprogress(69,"Building default website {$savedsettings["adminwebserver"]}");
 		rebuild_vhost($savedsettings["adminwebserver"]);
 	}
 
 	if($savedsettings["second_webadmin"]<>null){
 		$sock->SET_INFO("EnableFreeWeb", 1);
-		restart_artica_status();
-		restart_apache_src();
+		if(!$restart_artica_status){
+			writeprogress(70,"Creating Webservices$rebootWarn");
+			restart_artica_status();
+			restart_apache_src();
+		}
 		include_once(dirname(__FILE__)."/ressources/class.freeweb.inc");
 		$free=new freeweb($savedsettings["second_webadmin"]);
 		$free->servername=$savedsettings["second_webadmin"];
@@ -177,6 +265,7 @@ function WizardExecute(){
 	}
 
 	if($savedsettings["administrator"]<>null){
+		writeprogress(75,"Creating Accounts$rebootWarn");
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT id FROM radgroupcheck WHERE groupname='administrators' LIMIT 0,1","artica_backup"));
 		$gpid=$ligne["id"];
 		if(!is_numeric($gpid)){$gpid=0;}
@@ -238,28 +327,75 @@ function WizardExecute(){
 			}
 		}
 	}
+	$reboot=false;
+	writeprogress(80,"Checking parameters$rebootWarn");
 	
-	@file_put_contents("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED", time());
 	
-	shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php");
+	if(!is_file("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED")){
+		@file_put_contents("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED", time());
+
+	}
+	
+	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.initslapd.php");
+	
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	if($EnableKerbAuth==1){
+		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.kerbauth.php --build");
+	}
 	
 	
 	if($savedsettings["EnableWebFiltering"]==1){
 		EnableWebFiltering();
-		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.update.squid.tlse.php --force >/dev/null 2>&1 &");
-		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
-	}
-	if($savedsettings["EnableYoutubeCache"]==1){
-		@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableHaarp", 1);
-		squid_admin_mysql(0, "Initial installation, Order to restart Haarp","");
-		shell_exec("/etc/init.d/haarp restart");
+		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.update.squid.tlse.php --force");
 		
-		shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1");
 	}
 
 	
-	shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
-	shell_exec("$nohup /etc/init.d/nginx restart >/dev/null 2>&1 &");
+	if($users->POSTFIX_INSTALLED){
+		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.postfix.maincf.php --build --force");
+	}
+	
+	
+	$serverbin=$unix->find_program("zarafa-server");
+	if(is_file($serverbin)){
+		writeprogress(85,"Restarting Zarafa services$rebootWarn");
+		shell_exec("$php5 /usr/share/artica-postfix/exec.initdzarafa.php");
+		shell_exec("$php5 /usr/share/artica-postfix/exec.zarafa-db.php --init");
+		shell_exec("/etc/init.d/zarafa-db restart");
+		shell_exec("/etc/init.d/zarafa-server restart");
+		shell_exec("/etc/init.d/zarafa-web restart");
+	}
+	
+	writeprogress(90,"Restarting services$rebootWarn");
+	shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/monit restart >/dev/null 2>&1 &");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.monit.php --build >/dev/null 2>&1");
+	shell_exec("$nohup /usr/share/artica-postfix/exec.web-community-filter.php --register  >/dev/null 2>&1 &");
+	
+	$time=$unix->file_time_min("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED");
+	if(!$reboot){
+		writeprogress(100,"done");
+		FINAL___();
+		return;
+	}
+	writeprogress(100,"Rebooting");
+	sleep(10);
+	shell_exec($unix->find_program("reboot"));
+}
+
+function FINAL___(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.web-community-filter.php --register >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.schedules.php --output >/dev/null 2>&1 &");
+	shell_exec($cmd);
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build-schedules >/dev/null 2>&1 &");
+	shell_exec($cmd);
+		
+	
 }
 
 
@@ -290,7 +426,7 @@ function restart_artica_status(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");	
-	shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	
 }
 

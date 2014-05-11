@@ -3,11 +3,12 @@ if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}
 if(function_exists("debug_mem")){debug_mem();}
 include_once(dirname(__FILE__).'/class.users.menus.inc');
 if(function_exists("debug_mem")){debug_mem();}
-include_once(dirname(__FILE__).'/class.mysql.inc');
+include_once(dirname(__FILE__).'/class.squid.familysites.inc');
 if(function_exists("debug_mem")){debug_mem();}
 class mysql_catz{
 	var $ClassSQL;
 	private $called='';
+	private $mysql_connection;
 	var $ok=false;
 	var $mysql_error;
 	var $UseMysql=true;
@@ -23,166 +24,60 @@ class mysql_catz{
 	var $SocketPath=null;
 	var $TryTCP=true;	
 	var $arrayConfig=array();
-	function mysql_catz($nomysql=FALSE){
-		if(!$nomysql){
-			$sock=new sockets();
-			$this->arrayConfig["mysql_admin"]="root";
-			$this->arrayConfig["SocketPath"]="/var/run/articadb.sock";
-			$this->arrayConfig["TryTCP"]=false;
-			$this->DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
-			$this->EnableArticaDB=$sock->GET_INFO("EnableArticaDB");
-			if(!is_numeric($this->DisableArticaProxyStatistics)){$this->DisableArticaProxyStatistics=0;}
-			if(!is_numeric($this->EnableArticaDB)){$this->EnableArticaDB=1;}
-			
-			if($this->EnableRemoteStatisticsAppliance==1){$this->DisableArticaProxyStatistics=1;}
-			if($this->EnableArticaDB==0){$this->DisableArticaProxyStatistics=1;}
-			if($this->DisableArticaProxyStatistics==1){return;}			
-			
-			unset($GLOBALS["MYSQL_PARAMETERS"]);
-			unset($_SESSION["MYSQL_PARAMETERS"]);
-			
-			$this->ClassSQL=new mysql($this->arrayConfig);
-			$this->UseMysql=$this->ClassSQL->UseMysql;
-			$this->mysql_admin=$this->ClassSQL->mysql_admin;
-			$this->mysql_password=$this->ClassSQL->mysql_password;
-			$this->ClassSQL->SocketPath="/var/run/articadb.sock";
-			$this->ClassSQL->TryTCP=false;
-			
+	function mysql_catz($nomysql=false){
 
-			
-			if(function_exists("debug_backtrace")){
-				$trace=@debug_backtrace();
-				if(isset($trace[1])){
-					$this->called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]} ";
-				}
-			}			
-			
-			if($this->TestingConnection()){}else{$this->MysqlFailed=true;return;}
-			if(!$this->DATABASE_EXISTS($this->database)){$this->MysqlFailed=true;return;}
-			if(function_exists("debug_mem")){debug_mem();}
-			
-			if(function_exists("debug_mem")){debug_mem();}
-		}
-		
 	}
 	
 	public function SHOW_VARIABLES(){
-		if($this->DisableArticaProxyStatistics==1){return;}
-		$this->TestingConnection();
-		return $this->ClassSQL->SHOW_VARIABLES();
+		
 	}	
 	
 	public function TestingConnection(){
-		if($this->DisableArticaProxyStatistics==1){return;}
-		$this->ok=true;
-		$this->ClassSQL->ok=true;
-		$this->ClassSQL=new mysql($this->arrayConfig);
-		$a=$this->ClassSQL->TestingConnection();
-		$this->mysql_error=$this->called.$this->ClassSQL->mysql_error;
-		return $a;
+		return true;
 	}
 	
+	public function EXECUTE_SQL($sql){
+
+	}	
+	
 	public function COUNT_ROWS($table,$database=null){
-		if($this->DisableArticaProxyStatistics==1){return 0;}
-		$table=str_replace("`", "", $table);
-		$table=str_replace("'", "", $table);
-		$table=str_replace("\"", "", $table);
-		$sql="show TABLE STATUS WHERE Name='$table'";
-		if(!function_exists("mysql_fetch_array")){return 0;}
-		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql));
-		
-		if($ligne["Rows"]==null){$ligne["Rows"]=0;}
-		
-		return $ligne["Rows"];
+
 		
 	}
 	
 	
 	public function TABLE_SIZE($table,$database=null){
-		if($this->DisableArticaProxyStatistics==1){return 0;}
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->TABLE_SIZE($table,$database);		
+	
 	}
 	
 	public function TABLE_EXISTS($table,$database=null,$nocache=false){
-		if($this->DisableArticaProxyStatistics==1){return true;}
-		$keyCache=__FUNCTION__;
-		$table=str_replace("`", "", $table);
-		$table=str_replace("'", "", $table);
-		$table=str_replace("\"", "", $table);
-		if($database==null){$database=$this->database;}
-		if(!$nocache){
-			if(!isset($GLOBALS[$keyCache])){$GLOBALS[$keyCache]=array();}
-			if(isset($GLOBALS[$keyCache][$database][$table])){if($GLOBALS[$keyCache][$database][$table]==true){return true;}}
-			if(isset($_SESSION[$keyCache][$database][$table])){if($_SESSION[$keyCache][$database][$table]==true){return true;}}
-		}
-		
-		if(!$this->DATABASE_EXISTS($database)){
-			writelogs("Database $database does not exists...create it",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			if(!$this->CREATE_DATABASE($database)){
-				writelogs("Unable to create $database database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				return false;
-			}
-		}
-		
-		
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database'";
-		$results=$this->QUERY_SQL($sql,$database);
-		if(!$this->ok){writelogs($this->mysql_error,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-		$result=false;
-
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$GLOBALS[$keyCache][$database][$ligne["c"]]=true;
-			if(!$GLOBALS["AS_ROOT"]){$_SESSION[$keyCache][$database][$ligne["c"]]=true;}
-			if(strtolower($table)==strtolower($ligne["c"])){
-				
-				$result=true;}
-		}
-		
-		return $result;
+		if(is_file("/home/artica/categories_databases/$table.db")){return true;}
 		
 	
 		
 	}
 	private function DATABASE_EXISTS($database){
-		if($this->DisableArticaProxyStatistics==1){return true;}
-		$this->ClassSQL=new mysql($this->arrayConfig);
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->DATABASE_EXISTS($database,true);
+		return true;
 	}
 	
 	private function FIELD_EXISTS($table,$field,$database=null){
-		if($this->DisableArticaProxyStatistics==1){return true;}
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->FIELD_EXISTS($table,$field,$database);
+		
 	}
 	
 	public function QUERY_SQL($sql,$database=null){
-		if($this->DisableArticaProxyStatistics==1){return null;}
-		if($database<>$this->database){$database=$this->database;}
-		$this->ClassSQL=new mysql($this->arrayConfig);
-		$results=$this->ClassSQL->QUERY_SQL($sql,$database,$this->called);
-		$this->ok=$this->ClassSQL->ok;
-		$this->mysql_error=$this->called.$this->ClassSQL->mysql_error;
-		$this->last_id=$this->ClassSQL->last_id;
-		$this->affected_rows=$this->ClassSQL->affected_rows;
-		return $results;
+		
 	}
 	
 	private function FIELD_TYPE($table,$field,$database=null){
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->FIELD_TYPE($table,$field,$database);
+		
 	}
 	
 	private FUNCTION INDEX_EXISTS($table,$index,$database=null){
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->INDEX_EXISTS($table,$index,$database);
+		
 	}
 	
 	private FUNCTION CREATE_DATABASE($database){
-		if($this->DisableArticaProxyStatistics==1){return null;}
-		if($database<>$this->database){$database=$this->database;}
-		return $this->ClassSQL->CREATE_DATABASE($database);
+		
 	}
 	
 	function category_transform_name($category){
@@ -197,9 +92,14 @@ class mysql_catz{
 
 	
 	function GET_CATEGORIES($sitename){
-		if($this->DisableArticaProxyStatistics==1){return null;}
 		$keyMem=date("Ymdh");
 		$orgsitename=$sitename;
+		$cat=$this->GetMemoryCache($orgsitename);
+		if($cat<>null){return $cat;}
+		
+		$orgsite=$sitename;
+		$this->ok=true;
+		$t1=time();
 		$BADCATZ["category_drogue"]=true;
 		$BADCATZ["category_english_malware"]=true;
 		$BADCATZ["category_forum"]=true;
@@ -208,8 +108,13 @@ class mysql_catz{
 		$BADCATZ["category_phishtank"]=true;
 		$BADCATZ["category_radio"]=true;
 		$BADCATZ["category_radiotv"]=true;
-		$BADCATZ["category_spywmare"]=true;		
-		$orgsite=$sitename;
+		$BADCATZ["category_spywmare"]=true;	
+		$BADCATZ["category_search"]=true;
+		$BADCATZ["category_radio"]=true;
+		$BADCATZ["categoryuris_phishing"]=true;
+		$BADCATZ["categoryuris_malware"]=true;
+		$BADCATZ["category_association"]=true;
+		
 		$debug=false;
 		if(isset($_POST["WEBTESTS"])){$debug=true;}
 		$GLOBALS["CATEGORIZELOGS"]=array();
@@ -220,16 +125,16 @@ class mysql_catz{
 		$sitename=strtolower(trim($sitename));
 		if(preg_match("#^www\.(.+)#", $sitename,$re)){$sitename=$re[1];}
 		
-		if(substr($sitename, 0,1)=="."){$sitename=substr($sitename, 1,strlen($sitename));}
-		$orgsite=$sitename;
+		if(substr($sitename, 0,1)=="."){$sitename=trim(substr($sitename, 1,strlen($sitename)));}
+		
 		$sitename=md5($sitename);
-		if($debug){echo "$sitename\n";}
+		if($GLOBALS["VERBOSE"]){echo "$orgsite = $sitename\n";}
 		$trans=$this->TransArray();
 		if(!isset($GLOBALS["TABLESCATEZ$keyMem"])){
 			$GLOBALS["TABLESCATEZ$keyMem"]=$this->LIST_TABLES_CATEGORIES(true);
 		}	
 		$tablescat_count=count($GLOBALS["TABLESCATEZ$keyMem"]);
-		$t1=time();
+		
 		$tablescat=$GLOBALS["TABLESCATEZ$keyMem"];
 		while (list ($table, $none) = each ($tablescat) ){
 			$category=null;
@@ -249,24 +154,43 @@ class mysql_catz{
 				continue;
 			}
 			
+			$t=time();
 			
-			$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT zmd5 FROM $table WHERE zmd5='$sitename'"));
+			if(isset($trans[$table])){ $category=$trans[$table]; }
+			if($category==null){
+				if($GLOBALS["VERBOSE"]){ echo "Cannot translate $table to category\n";}
+				continue;
+			}
+			
+			$id=null;
+			
+			$id = dba_open("/home/artica/categories_databases/$table.db", "r","db4");
+			if(!$id){
+				if(isset($_REQUEST["WEBTESTS"])){echo "$table.db failed\n";}
+				if($GLOBALS["VERBOSE"]){echo "/home/artica/categories_databases/$table.db failed...\n";}
+				writelogs("/home/artica/categories_databases/$table.db failed",__CLASS__,__FUNCTION__,__FILE__,__LINE__);
+				dba_close($id);
+				continue;
+			}
 			
 			
-			if(isset($trans[$table])){
+			if(!dba_exists($sitename,$id)){
+				dba_close($id);
+				continue;
+			}
+			
+			if(dba_exists($sitename,$id)){
+				$took=$this->distanceOfTimeInWords($t,time(),true); 
+				if($debug){echo "ArticaDB::$orgsite: \"$category\" [".__LINE__."]\n";}
+				if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: Found $category FOR \"$sitename\" in ". __CLASS__ ." line: ".__LINE__."\n";}
+				$cattmp[$category]=$category;
 				
-				$category=$trans[$table];
 			}
 			
+			dba_close($id);
+			$tablescat_count++;
 			
-			if($category<>null){
-				$tablescat_count++;
-				if($ligne["zmd5"]<>null){
-					if($debug){echo "ArticaDB::$orgsite: \"$category\"\n";}
-					if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: Found $category FOR \"$sitename\" in ". __CLASS__ ." line: ".__LINE__."\n";}
-					$cattmp[$category]=$category;
-				}
-			}
+			
 		
 		
 		
@@ -274,7 +198,10 @@ class mysql_catz{
 
 		$t2=time();
 		$time=$t2-$t1;
-		if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES:: $orgsitename ".count($cattmp)." {$time}s\n";}
+		
+		if(isset($_REQUEST["WEBTESTS"])){echo "GET_CATEGORIES:: $orgsitename Categories found ".count($cattmp)." in $tablescat_count tables for {$time}s\n";}
+		
+		if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES:: $orgsitename Categories found ".count($cattmp)." in $tablescat_count tables for {$time}s<br>\n";}
 		if(count($cattmp)==0){return null;}
 		
 		
@@ -282,23 +209,54 @@ class mysql_catz{
 			while (list ($a, $b) = each ($cattmp) ){if($b<>null){$cat[]=$b;}}
 		}	
 		if(count($cat)==0){return null;}
-		return @implode(",", $cat);
+		$final=@implode(",", $cat);
+		$this->SetMemoryCache($orgsitename, $final);
+		return $final;
+		
 	}
 	
-	public function LIST_TABLES_CATEGORIES($nocache=false){
-		if($this->DisableArticaProxyStatistics==1){return array();}
-		if(!$nocache){
-			if(!$GLOBALS["AS_ROOT"]){
-				if(isset($_SESSION["CATZLIST_TABLES_CATEGORIES"])){return $_SESSION["CATZLIST_TABLES_CATEGORIES"];}
+	private function GetMemoryCache($sitename){
+		if(!isset($GLOBALS["CATZ"])){return;}
+		if($GLOBALS["CATZ"]==null){return;}
+		if(strlen($GLOBALS["CATZ"])<2){return;}
+		$array=unserialize($GLOBALS["CATZ"]);
+		if(count($array)>64000){$GLOBALS["CATZ"]=null;return;}
+		if(!isset($array[$sitename])){return;}
+		return $array[$sitename];
+		
+	}
+	
+	private function SetMemoryCache($sitename,$category){
+		if(isset($GLOBALS["CATZ"])){
+			if($GLOBALS["CATZ"]<>null){
+				if(strlen($GLOBALS["CATZ"])>1){
+					$array=unserialize($GLOBALS["CATZ"]);
+				}
 			}
-			if(isset($GLOBALS["LIST_TABLES_CATEGORIES_CATZ"])){return $GLOBALS["LIST_TABLES_CATEGORIES_CATZ"];}
+		}
+			
+		$array[$sitename]=$category;
+		$GLOBALS["CATZ"]=serialize($array);
+		
+	}
+	
+	
+	
+	
+	public function LIST_TABLES_CATEGORIES($nocache=false){
+		if(!$nocache){
+			
+			if(isset($GLOBALS["LIST_TABLES_CATEGORIES_CATZ"])){
+				if(strlen($GLOBALS["LIST_TABLES_CATEGORIES_CATZ"])>2){
+					return unserialize($GLOBALS["LIST_TABLES_CATEGORIES_CATZ"]);
+				}
+			}
 		}
 		
 		$f=$this->TransArray();
 		while (list ($table, $none) = each ($f) ){	
 			if($this->TABLE_EXISTS($table)){
 				if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: `$table` exists...\n";}
-				
 				$array[$table]=$table;
 			}else{
 				
@@ -307,40 +265,43 @@ class mysql_catz{
 		}
 		
 		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE 'category_%'";
-		$results=$this->QUERY_SQL($sql);
-		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){if($ligne["c"]=="category_"){$this->QUERY_SQL("DROP TABLE `category_`");continue;}$array[$ligne["c"]]=$ligne["c"];}
 		
-		if(count($array)>0){
-			if(!$GLOBALS["AS_ROOT"]){
-				$_SESSION["CATZLIST_TABLES_CATEGORIES"]=$array;
-			}
+		foreach (glob("/home/artica/categories_databases/*.db") as $filename) {
+			$file=basename($filename);
+			$file=str_replace(".db", "", $file);
+			$array[$file]=$file;
+		
 		}
-		$GLOBALS["LIST_TABLES_CATEGORIES_CATZ"]=$array;
+
+		
+		$GLOBALS["LIST_TABLES_CATEGORIES_CATZ"]=serialize($array);
 		return $array;
 		
 	}	
 	
-	function COUNT_CATEGORIES(){
-		if($this->DisableArticaProxyStatistics==1){return 0;}
-		if(!$GLOBALS["AS_ROOT"]){
-			if(isset($_SESSION["CATZLIST_COUNT_CATEGORIES"])){return $_SESSION["CATZLIST_COUNT_CATEGORIES"];}
-		}
-		
+	function COUNT_DATABASES(){
+	
 		$c=0;
-		$tablescat=$this->LIST_TABLES_CATEGORIES();
-		while (list ($table, $none) = each ($tablescat) ){		
-			$count=$this->COUNT_ROWS($table);
-			$c=$c+$count;
+		$array=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+		while (list ($table, $items) = each ($array) ){
+			$items=intval($items);
+			if($items==0){continue;}
+			$c++;
 		}
-		
-		if($c>0){
-			if(!$GLOBALS["AS_ROOT"]){
-				$_SESSION["CATZLIST_COUNT_CATEGORIES"]=$c;
-			}
+	
+		return $c;
+	}	
+	
+	function COUNT_CATEGORIES(){
+		if(isset($GLOBALS[__CLASS__.__FUNCTION__])){return $GLOBALS[__CLASS__.__FUNCTION__];}
+		$c=0;
+		$array=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+		unset($array["TIME"]);
+		while (list ($table, $items) = each ($array) ){
+			$items=intval($items);
+			$c=$c+$items;
 		}
-		
+		$GLOBALS[__CLASS__.__FUNCTION__]=$c;
 		return $c;
 	}
 	
@@ -350,6 +311,62 @@ class mysql_catz{
 		if(function_exists("system_admin_events")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}system_admin_events("MySQL table $this->database/$table was deleted $called" , __FUNCTION__, __FILE__, __LINE__, "mysql-delete");}
 		$this->QUERY_SQL("DROP TABLE `$table`",$this->database);
 	}		
+	
+	private function distanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMinute = true) {
+		$distanceInSeconds = round(abs($toTime - $fromTime));
+		$distanceInMinutes = round($distanceInSeconds / 60);
+	
+		if ( $distanceInMinutes <= 1 ) {
+			if ( !$showLessThanAMinute ) {
+				return ($distanceInMinutes == 0) ? 'less than a minute' : '1 {minute}';
+			} else {
+				if ( $distanceInSeconds < 5 ) {
+					return '{lessthan} 5 {seconds} ('.$distanceInSeconds.'s)';
+				}
+				if ( $distanceInSeconds < 10 ) {
+					return '{lessthan} 10 {seconds} ('.$distanceInSeconds.'s)';
+				}
+				if ( $distanceInSeconds < 20 ) {
+					return '{lessthan} 20 {seconds} ('.$distanceInSeconds.'s) ';
+				}
+				if ( $distanceInSeconds < 40 ) {
+					return '{abouttime} {halfaminute} ('.$distanceInSeconds.'s)';
+				}
+				if ( $distanceInSeconds < 60 ) {
+					return '{lessthanaminute}';
+				}
+	
+				return '1 minute';
+			}
+		}
+		if ( $distanceInMinutes < 45 ) {
+			return $distanceInMinutes . ' {minutes}';
+		}
+		if ( $distanceInMinutes < 90 ) {
+			return '{abouttime} 1 {hour}';
+		}
+		if ( $distanceInMinutes < 1440 ) {
+			return '{abouttime} ' . round(floatval($distanceInMinutes) / 60.0) . ' {hours}';
+		}
+		if ( $distanceInMinutes < 2880 ) {
+			return '1 {day}';
+		}
+		if ( $distanceInMinutes < 43200 ) {
+			return '{abouttime} ' . round(floatval($distanceInMinutes) / 1440) . ' {days}';
+		}
+		if ( $distanceInMinutes < 86400 ) {
+			return '{abouttime} 1 {month}';
+		}
+		if ( $distanceInMinutes < 525600 ) {
+			return round(floatval($distanceInMinutes) / 43200) . ' {months}';
+		}
+		if ( $distanceInMinutes < 1051199 ) {
+			return '{abouttime} 1 {year}';
+		}
+	
+		return 'over ' . round(floatval($distanceInMinutes) / 525600) . ' {years}';
+		 
+	}	
 
 function TransArray(){
 		
@@ -402,6 +419,7 @@ function TransArray(){
 			$trans["category_games"]="games";
 			$trans["category_genealogy"]="genealogy";
 			$trans["category_gifts"]="gifts";
+			$trans["category_governements"]="governments";
 			$trans["category_governments"]="governments";
 			$trans["category_green"]="green";
 			$trans["category_hacking"]="hacking";
@@ -444,6 +462,7 @@ function TransArray(){
 			$trans["category_music"]="music";
 			$trans["category_nature"]="nature";
 			$trans["category_news"]="news";
+			$trans["category_press"]="press";
 			$trans["category_passwords"]="passwords";
 			$trans["category_phishing"]="phishing";
 			$trans["category_photo"]="photo";
@@ -506,6 +525,12 @@ function TransArray(){
 			$trans["category_horses"]="horses";	
 			$trans["category_meetings"]="meetings";	
 			$trans["category_tattooing"]="tattooing";	
+			$trans["category_advertising"]="publicite";	
+			$trans["category_getmarried"]="getmarried";	
+			$trans["category_literature"]="literature";
+			$trans["category_police"]="police";
+			$trans["category_search"]="searchengines";
+			
 			return $trans;		
 		
 	}	
@@ -514,59 +539,7 @@ function TransArray(){
 	
 	
 	function CreateCategoryTable($category,$fulltablename=null){
-		if($this->DisableArticaProxyStatistics==1){return true;}
-		if($category=="drogue"){$category="drugs";}
-		if($category=="gambling"){$category="gamble";}
-		if($category=="hobby/games"){$category="games";}
-		if($category=="forum"){$category="forums";}
-		if($category=="spywmare"){$category="spyware";}			
-		$category=$this->category_transform_name($category);
-		$tablename=strtolower("category_$category");
-		if($fulltablename<>null){$tablename=$fulltablename;}
-		if($tablename=="category_teans"){$tablename="category_teens";}
-		$tablename=strtolower($tablename);
-		$tablename=str_replace("category_category_","category_",$tablename);
-		if($tablename=="category_drogue"){$tablename="category_drugs";}
-		if($tablename=="category_gambling"){$tablename="category_gamble";}
-		if($tablename=="category_hobby_games"){$tablename="category_games";}
-		if($tablename=="category_forum"){$tablename="category_forums";}
-		if($tablename=="category_spywmare"){$tablename="category_spyware";}
-		if($tablename=="category_housing_reale_state_"){$tablename="category_finance_realestate";}
-		
-		if(!$this->DATABASE_EXISTS($this->database)){
-			$this->CREATE_DATABASE($this->database);
-			if(!$this->ok){return false;}
-			if(!$this->DATABASE_EXISTS($this->database)){
-				$this->mysql_error="$this->database, no such database....";
-				return false;
-			}
-				
-			
-		}
-		
-		
-		$tablename=strtolower($tablename);
-		if(!$this->TABLE_EXISTS($tablename,$this->database)){	
-			if($GLOBALS["VERBOSE"]){echo "CREATE CATEGORY TABLE `$tablename`\n";}
-			$sql="CREATE TABLE `$this->database`.`$tablename` (
-					`zmd5` VARCHAR( 90 ) NOT NULL ,
-					PRIMARY KEY ( `zmd5` )
-					) ENGINE = MYISAM";
-			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){
-				if(function_exists("debug_backtrace")){
-					try {
-						$trace=@debug_backtrace();
-						if(isset($trace[1])){$called="\ncalled by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-					} catch (Exception $e) {$this->writeLogs("Fatal: ".$e->getMessage(),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-				}
-				$this->mysql_error=$this->called.$this->mysql_error." cat:$category $called";
-				writelogs("Failed to create $category $called",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				return false;
-			}
-		}
-
-		return true;
+	return true;
 		
 	}	
 	

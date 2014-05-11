@@ -84,7 +84,7 @@ $('#flexRT$t').flexigrid({
 });
 
 function ComputerInfos(){
-	Loadjs('squid.nodes.php?node-infos-js=yes&MAC={$_GET["value"]}');
+	Loadjs('squid.nodes.php?node-infos-js=yes&MAC={$_GET["value"]}',true);
 }
 
 </script>

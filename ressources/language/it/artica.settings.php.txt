@@ -128,8 +128,8 @@ This is subject to the limit of 4 GB for 32 bit and 10 TB for 64 bit, and the am
 The size of the data set is the sum of the Berkeley DataBase (BDB) files
 </set_cachesize_text>
 <size>size</size>
-<smtp_auth_passwd>Password AUTH</smtp_auth_passwd>
-<smtp_auth_user>Username AUTH</smtp_auth_user>
+<smtp_auth_passwd>Password</smtp_auth_passwd>
+<smtp_auth_user>Account utente</smtp_auth_user>
 <smtp_dest>Your email address</smtp_dest>
 <smtp_enabled>Enable SMTP notifications</smtp_enabled>
 <smtp_notifications>email notifications</smtp_notifications>

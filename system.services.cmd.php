@@ -6,12 +6,19 @@
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.ini.inc');
+	if(isset($_GET["verbose"])){
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',"<p class='text-error'>");
+		ini_set('error_append_string',"</p>");
+		$GLOBALS["VERBOSE"]=true;}
 	
 	$users=new usersMenus();
 	if(!$users->AsAnAdministratorGeneric){header("content-type: application/x-javascript");echo "alert('No privileges');";die();}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_POST["STATUSOF"])){STATUSOF();exit;}
 	if(isset($_POST["LOGSOF"])){LOGSOF();exit;}
+	if(isset($_GET["ifStopped"])){ifStopped();exit;}
 	js();
 	
 function js(){
@@ -38,7 +45,7 @@ function popup(){
 	$_GET["cmd"]=urlencode($_GET["cmd"]);
 	$sock=new sockets();
 	$sock->getFrameWork("system.php?generic-start=yes&action={$_GET["action"]}&cmd={$_GET["cmd"]}&key=$t");
-	
+	$finish_text=$tpl->_ENGINE_parse_body("{{$action}} {{$appname}} {success}");
 	$html="
 		<center id='title-$t' style='font-size:18px'>$title</center><br>
 		<center>
@@ -47,6 +54,7 @@ function popup(){
 		<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
 	id='textarea$t'></textarea>
+	<input type='hidden' id='stopall-$t' value='0'>
 			
 	<script>
 		var timez$t=0;
@@ -55,15 +63,28 @@ function popup(){
 		function step1$t() {
 			if(!YahooWinBrowseOpen()){return;}
 			timez$t=timez$t+1;
+			
+			var stopall=document.getElementById('stopall-$t').value;
+			if(stopall==1){
+				timez$t=110;
+				$('#Status$t').progressbar({ value: 100 });
+				Finish$t();
+				return;
+			}
+			
 			if(timez$t>100){
 				document.getElementById('title-$t').innerHTML='';
 				refreshidStatus$t();GetInfos$t();
 				Finish$t();
 				return;}
-			if(timez$t==10){refreshidStatus$t();}
+			if(timez$t==1){GetInfos$t();}
+			if(timez$t==5){GetInfos$t();}
+			if(timez$t==10){refreshidStatus$t();GetInfos$t();}
+			if(timez$t==15){GetInfos$t();}
+			if(timez$t==20){GetInfos$t();}
 			if(timez$t==30){GetInfos$t();}
 			if(timez$t==40){GetInfos$t();}
-			if(timez$t==50){GetInfos$t();}
+			if(timez$t==50){GetInfos$t();}			
 			if(timez$t==60){refreshidStatus$t();}
 			if(timez$t==70){GetInfos$t();}
 			if(timez$t==80){GetInfos$t();}
@@ -77,9 +98,19 @@ function popup(){
 		}
 		
 		function Finish$t(){
-			if(document.getElementById('squid_main_svc')){refreshTab('squid_main_svc');}
-			if(document.getElementById('main_kav4proxy_config')){refreshTab('main_kav4proxy_config');}
+			if(document.getElementById('squid_main_svc')){RefreshTab('squid_main_svc');}
+			if(document.getElementById('main_kav4proxy_config')){RefreshTab('main_kav4proxy_config');}
+			if(document.getElementById('main_config_openssh')){RefreshTab('main_config_openssh');}
+			if(document.getElementById('main_config_dnsmasqsub')){RefreshTab('main_config_dnsmasqsub');}
+			if(document.getElementById('main_dansguardian_mainrules')){RefreshTab('main_dansguardian_mainrules');}
+			if(document.getElementById('main_backup_fly')){RefreshTab('main_backup_fly');}
+			if(document.getElementById('OPENDKIM_TABS')){RefreshTab('OPENDKIM_TABS');}
+			if(document.getElementById('main_config_fetchmail')){RefreshTab('main_config_fetchmail');}
 			
+			
+			
+			
+			document.getElementById('title-$t').innerHTML='$finish_text';
 		}
 		
 	var X_refreshidStatus$t= function (obj) {
@@ -96,6 +127,7 @@ function popup(){
 			if(document.getElementById('$id')){
 				var XHR = new XHRConnection();
 				XHR.appendData('STATUSOF','{$_GET["appcode"]}');
+				XHR.setLockOff();
 				XHR.sendAndLoad('$page', 'POST',X_refreshidStatus$t);   
 			}
 		}
@@ -104,18 +136,18 @@ function popup(){
 		var res=obj.responseText;
 		if (res.length>3){
 			document.getElementById('textarea$t').value=res;
+			Loadjs('$page?ifStopped={$_GET["appcode"]}&t=$t&action=$action');
 		}
 	}		
 		
-		function GetInfos$t(){
-			var XHR = new XHRConnection();
-			XHR.appendData('LOGSOF','$t');
-			XHR.sendAndLoad('$page', 'POST',X_GetInfos$t);   
-		}		
+	function GetInfos$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('LOGSOF','$t');
+		XHR.setLockOff();
+		XHR.sendAndLoad('$page', 'POST',X_GetInfos$t);   
+	}		
 		
-		if(document.getElementById('$id')){
-			document.getElementById('$id').src='img/wait_verybig_mini_red-48.gif';
-		}
+	
 	step1$t();		
 	";
 	echo $tpl->_ENGINE_parse_body($html);
@@ -141,7 +173,145 @@ function LOGSOF(){
 		return;
 	}
 	$t=explode("\n",@file_get_contents($file));
+	@file_put_contents($file, @implode("\n", $t));
+	
+	
 	krsort($t);
 	echo @implode("\n", $t);
+	
+	
+}
+
+function ifStopped(){
+	$key=$_GET["ifStopped"];
+	if($GLOBALS["VERBOSE"]){echo "KEY: $key<br>\n";}
+	$tTime=$_GET["t"];
+	header("content-type: application/x-javascript");
+	$file="/usr/share/artica-postfix/ressources/logs/web/$tTime.log";
+	if($GLOBALS["VERBOSE"]){echo "Open $file<br>\n";}
+	$action=$_GET["action"];
+	if(!is_file($file)){return;}
+	$t=explode("\n",@file_get_contents($file));
+	
+	while (list ($num, $ligne) = each ($t) ){
+		if( ($action=="restart") OR ($action=="start") OR ($action=="reload") ){
+			if(preg_match("#Starting.*?started with new PID#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;	
+			}
+			
+			if(preg_match("#(already|success) running.*?pid\s+[0-9]+#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#success with pid#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Already instance running#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#please wait, installing#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Success service reloaded#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Success service started#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Starting.*?Success PID#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Starting.*?failed#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}			
+			
+			if(preg_match("#Already Artica task running#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#started pid#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#already started#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Already running.*?PID#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#already running pid#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Service already started#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Success service started pid#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Success service reloaded#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Transparent proxy done#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Already running since#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+		
+		}
+		
+		
+		if( ($action=="stop")){
+			
+			if(preg_match("#Already stopped#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}			
+			
+			if(preg_match("#success stopped#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}			
+			
+		}
+		
+		
+		
+	
+	}
+	
+	
 	
 }

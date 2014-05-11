@@ -215,7 +215,7 @@ function AddCachedSitelist_popup(){
 	
 	$html="
 	<div id='AddCachedSitelistDiv-$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table >
 	<tr>
 	<td valign='top'>
@@ -260,7 +260,7 @@ function AddCachedSitelist_popup(){
 	</table>
 	
 	<center style='margin-top:10px'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<center><img src='img/refresh_pattern_graph.gif' style='border:3px solid #CCCCCC'></center>
 	</div>
 	</div>
@@ -395,7 +395,7 @@ buttons : [
 	useRp: true,
 	rp: 100,
 	showTableToggleBtn: false,
-	width: 826,
+	width: '98%',
 	height: 400,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -525,7 +525,7 @@ function WEBSITES_SEARCH(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=md5($ligne["domain"].$ligne["ID"]);
 		$color="black";
-		if($DisableAnyCache==1){$color="#9C9C9C";}
+		if($DisableAnyCache==1){$color="#8a8a8a";}
 		$delete=imgtootltip("delete-24.png","{delete}","Loadjs('$MyPage?AddCachedSitelist-delete={$ligne["ID"]}&t={$_GET["t"]}&IDROW={$ID}')");
 		$select="Loadjs('$MyPage?AddCachedSitelist-js=yes&id={$ligne["ID"]}&t={$_GET["t"]}');";
 		

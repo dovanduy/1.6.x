@@ -133,7 +133,7 @@ function choose_group(){
 	$butts[null]="{all}";	
 	$field=Field_array_Hash($butts, "CatzByGroup-$t",null,"RefreshConfigCategorized$t()",null,0,"font-size:16px");
 	
-	$html="<table style='width:95%' class=form>
+	$html="<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{group}:</td>
 		<td>". $field."</td>

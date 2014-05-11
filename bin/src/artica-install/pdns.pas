@@ -188,8 +188,6 @@ function tpdns.STATUS:string;
 var
 pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_PDNS');
-   SYS.MONIT_DELETE('APP_PDNS_RECURSOR');
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --pdns >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

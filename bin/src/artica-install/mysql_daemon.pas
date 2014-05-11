@@ -374,9 +374,6 @@ FUNCTION tmysql_daemon.STATUS():string;
 var
 pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_MYSQL_ARTICA');
-   SYS.MONIT_DELETE('MYSQL_CLUSTER_REPLICA');
-   SYS.MONIT_DELETE('APP_MYSQL_CLUSTER_MGMT');
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --mysql >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);

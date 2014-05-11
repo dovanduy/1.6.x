@@ -46,7 +46,7 @@ if(!is_file($apxs2)){
 }
 echo "Downloading mod_rpaf-0.6.tar.gz in order to compile in $APACHE_MODULES_PATH\n";
 if(is_file("/root/mod_rpaf-0.6.tar.gz")){@unlink("/root/mod_rpaf-0.6.tar.gz");}
-shell_exec("$wget http://www.artica.fr/download/mod_rpaf-0.6.tar.gz -O /root/mod_rpaf-0.6.tar.gz");
+shell_exec("$wget http://www.articatech.net/download/mod_rpaf-0.6.tar.gz -O /root/mod_rpaf-0.6.tar.gz");
 echo "Extracting mod_rpaf-0.6.tar.gz\n";
 if(is_dir("/root/mod_rpaf")){shell_exec("$rm -rf /root/mod_rpaf");}
 @mkdir("/root/mod_rpaf",0755,true);

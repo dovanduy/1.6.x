@@ -3,19 +3,65 @@ session_start();
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
-$GLOBALS["DEBUG"]=true;
+include_once(dirname(__FILE__)."/ressources/class.iptables-chains.inc");
+$GLOBALS["DEBUG"]=false;
+$GLOBALS["OUTOUT"]=false;
 $GLOBALS["ruleid"]=$_GET["ruleid"];
 $SERVER_NAME=$_SERVER["SERVER_NAME"];
 $HTTP_HOST=$_SERVER["HTTP_HOST"];
+$GLOBALS["SSL"]=false;
+if($_SERVER["HTTPS"]<>"off"){$GLOBALS["SSL"]=true;}
 $HTTP_X_FORWARDED_FOR=$_SERVER["HTTP_X_FORWARDED_FOR"];
 $HTTP_X_REAL_IP=$_SERVER["HTTP_X_REAL_IP"];
+$ipaddr=$_GET["ipaddr"];
 if(!isset($_GET["cachetime"])){$_GET["cachetime"]=15;}
 if(!is_numeric($_GET["cachetime"])){$_GET["cachetime"]=15;}
+Debuglogs("Receive connection from $HTTP_X_REAL_IP for HTTP_HOST = $HTTP_HOST ".count($_GET)." GET parameters",__FUNCTION__,__LINE__);
 
 
-Debuglogs("receive connection...",__FUNCTION__,__LINE__);
-if(isset($_GET["results-page"])){send_result_page();exit;}
-if(isset($_GET["error-page"])){send_error_page();exit;}
+if($argv[1]=="--cas"){
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
+	$GLOBALS["DEBUG"]=true;
+	$GLOBALS["OUTOUT"]=true;
+	cas_auth($argv[2],$argv[3]);
+	die();
+}
+
+if($GLOBALS["DEBUG"]){
+	while (list ($index, $alias) = each ($_GET) ){
+		Debuglogs("HTTP_GET: $index: -> $alias",__FUNCTION__,__LINE__);
+	
+	}	
+}
+
+if(isset($_SESSION["AUTHENTICATOR_REDIRECT"])){
+	Debuglogs("REDIRECT: {$_SESSION["AUTHENTICATOR_REDIRECT"]}",__FUNCTION__,__LINE__);
+	echo "<html><head><meta http-equiv=\"refresh\" content=\"0; url={$_SESSION["AUTHENTICATOR_REDIRECT"]}\" />
+	</head><body></body></html>";
+	unset($_SESSION["AUTHENTICATOR_REDIRECT"]);
+	return;
+}
+
+
+
+if(isset($_GET["results-page"])){
+	if($GLOBALS["DEBUG"]){Debuglogs("-> results-page",__FUNCTION__,__LINE__);}
+	send_result_page();
+	exit;
+}
+if(isset($_GET["error-page"])){
+	if($GLOBALS["DEBUG"]){Debuglogs("-> error-page",__FUNCTION__,__LINE__);}
+	send_error_page();
+	exit;
+}
+if(isset($_GET["pageid"])){
+	if($GLOBALS["DEBUG"]){Debuglogs("-> send_pageid",__FUNCTION__,__LINE__);}
+	send_pageid();
+	exit;
+}
 
 
 $sesskey=$_GET["sesskey"];
@@ -26,10 +72,20 @@ if($time<$_GET["cachetime"]+1){
 	die();
 }
 
+while (list ($index, $alias) = each ($_SERVER) ){
+	Debuglogs("SERVER: $index: -> $alias",__FUNCTION__,__LINE__);
+
+}
+
 
 while (list ($index, $alias) = each ($_GET) ){
 	Debuglogs("GET: $index: -> $alias",__FUNCTION__,__LINE__);
 	
+}
+
+while (list ($index, $alias) = each ($_COOKIE) ){
+	Debuglogs("COOKIE: $index: -> $alias",__FUNCTION__,__LINE__);
+
 }
 
 $gps=unserialize(base64_decode($_GET["gps"]));
@@ -55,13 +111,20 @@ while (list ($index, $type) = each ($des) ){
 		if(redirect_rule($gps,$index)){die();}
 	}
 	
+	if($type==5){
+		if(cas_auth($index,$_GET["ruleid"])){
+			header("HTTP/1.0 200 OK");
+			Debuglogs("$HTTP_X_REAL_IP: Auth: Authenticated trough CAS rule {$_GET["ruleid"]}",__FUNCTION__,__LINE__);
+			die();
+		}else{
+			header('HTTP/1.0 403 Unauthorized');
+			die();
+		}
+	}
+	
 }
 
-
-
-
-Debuglogs("$HTTP_X_REAL_IP: Auth: \"{$_SERVER['PHP_AUTH_USER']}\", uri:{$_GET['uri']}, rule:{$_GET["ruleid"]}",
-__FUNCTION__,__LINE__);
+Debuglogs("$HTTP_X_REAL_IP: Auth: \"{$_SERVER['PHP_AUTH_USER']}\", uri:{$_GET['uri']}, rule:{$_GET["ruleid"]}",__FUNCTION__,__LINE__);
 $banner=base64_decode($_GET["banner"]);
 Debuglogs("$HTTP_X_REAL_IP: -> INIT",__FUNCTION__,__LINE__);
 $GLOBALS["Q"]=new mysql_squid_builder();
@@ -75,6 +138,7 @@ if($MUST_AUTH){
 		die();
 	}
 }else{
+	Debuglogs("HTTP/1.0 200 OK -> END",__FUNCTION__,__LINE__);
 	header("HTTP/1.0 200 OK");
 	die();
 }
@@ -196,6 +260,11 @@ function local_ad($username,$password,$params){
 function isMustAuth($ruleid){
 	
 	
+	if(isset($_SESSION["isMustAuth-$ruleid"])){
+		Debuglogs("rule:$ruleid -> _SESSION return {$_SESSION["isMustAuth-$ruleid"]}",__FUNCTION__,__LINE__);
+		return $_SESSION["isMustAuth-$ruleid"];
+	}
+	
 	$sql="
 	SELECT
 	authenticator_sourceslnk.ID,
@@ -210,11 +279,10 @@ function isMustAuth($ruleid){
 	ORDER BY zorder
 	";
 	
-	
-	
+	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+	Debuglogs("rule:$ruleid -> Running query on MySQL",__FUNCTION__,__LINE__);
 	$results = $GLOBALS["Q"]->QUERY_SQL($sql);
 	if(!$GLOBALS["Q"]->ok){ErrorLogs($GLOBALS["Q"]->mysql_error,__FUNCTION__,__LINE__);return true;}
-	
 	Debuglogs("rule:{$_GET["ruleid"]} -> ". mysql_num_rows($results)." sources groups",__FUNCTION__,__LINE__);
 	
 	$t=time();
@@ -225,8 +293,15 @@ function isMustAuth($ruleid){
 		$enabled=$ligne["enabled"];
 		if($enabled==0){continue;}
 		Debuglogs("rule:{$_GET["ruleid"]} Group:{$ligne["groupname"]} (enabled=$enabled): type:{$ligne["group_type"]}",__FUNCTION__,__LINE__);
-		if($ligne["group_type"]==0){Debuglogs("rule:{$_GET["ruleid"]} Group:{$ligne["groupname"]}: -> in All cases...",__FUNCTION__,__LINE__);return true;}
+		if($ligne["group_type"]==0){
+			Debuglogs("rule:{$_GET["ruleid"]} Group:{$ligne["groupname"]}: -> in All cases...",__FUNCTION__,__LINE__);
+			$_SESSION["isMustAuth-$ruleid"]=true;
+			return true;
+		}
 	}
+	
+	$_SESSION["isMustAuth-$ruleid"]=false;
+	return false;
 	
 	
 }
@@ -314,7 +389,6 @@ function ErrorLogs($text=null,$function=null,$line=null){
 
 
 function Debuglogs($text=null,$function=null,$line=null){
-	if(!$GLOBALS["DEBUG"]){return;}
 	if($text==null){return;}
 	$linetext=null;
 
@@ -334,14 +408,19 @@ function Debuglogs($text=null,$function=null,$line=null){
 		}
 	}
 	
+	if($GLOBALS["OUTOUT"]){echo "$linetext\n";return;}
 	
-	if(function_exists("syslog")){
-		$LOG_SEV=LOG_INFO;
-		openlog("authenticator", LOG_PID , LOG_SYSLOG);
-		syslog($LOG_SEV, $linetext);
-		closelog();
-		
+	if (is_file("/var/log/apache2/authenticator.log")) {
+		$size=filesize("/var/log/apache2/authenticator.log");
+		if($size>1000000){@unlink("/var/log/apache2/authenticator.log");}
 	}
+	
+	$linetext=date("H:i:s")." ". $linetext;
+	$f = @fopen("/var/log/apache2/authenticator.log", 'a');
+	@fwrite($f, "$linetext\n");
+	@fclose($f);
+	
+
 }
 
 function send_result_page(){
@@ -361,6 +440,114 @@ function send_result_page(){
 	
 }
 
+function nginx_attack(){
+	
+	$zDate=date('Y-m-d H:i:s');
+	$HTTP_HOST=$_SERVER["HTTP_HOST"];
+	$servername=$HTTP_HOST;
+	$HTTP_X_REAL_IP=$_SERVER["HTTP_X_REAL_IP"];
+	if($HTTP_X_REAL_IP=="127.0.0.1"){return;}
+	$q=new mysql_squid_builder();
+	$timekey=date('YmdH');
+	$table="ngixattck_$timekey";
+	$url=base64_decode($_GET["uencode"]);
+	$localport=$_GET["localport"];
+	
+	if($GLOBALS["VERBOSE"]){
+		Debuglogs("$HTTP_HOST $HTTP_X_REAL_IP $table",__FUNCTION__,__LINE__);
+	}
+	
+	
+	if(!is_numeric($localport)){$localport=80;}
+	$ports[]=80;
+	$ports[]=443;
+	if($localport<>80){if($localport<>443){$ports[]=$localport;}}
+	$hostname=null;
+	$country=null;
+	
+	if(!isset($_SESSION["nginx_exploits_fw"][$servername])){
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT maxaccess,sendlogs FROM nginx_exploits_fw WHERE servername='$servername'"));
+		$md5=md5("$zDate$servername$HTTP_X_REAL_IP");
+		$md5L=md5("$servername$HTTP_X_REAL_IP");
+		$maxaccess=$ligne["maxaccess"];
+		$sendlogs=$ligne["sendlogs"];
+		if(!is_numeric($maxaccess)){$maxaccess=0;}
+		$_SESSION["nginx_exploits_fw"][$servername]["maxaccess"]=$maxaccess;
+		$_SESSION["nginx_exploits_fw"][$servername]["sendlogs"]=$sendlogs;
+		Debuglogs("$servername, maxaccess=$maxaccess, sendlogs={$ligne["sendlogs"]} table=$table",__FUNCTION__,__LINE__);
+	}else{
+		$maxaccess=$_SESSION["nginx_exploits_fw"][$servername]["maxaccess"];
+		$sendlogs=$_SESSION["nginx_exploits_fw"][$servername]["sendlogs"];
+	}
+
+if(!isset($_SESSION["nginx_exploits_fw"]["BLOCKED"])){	
+	if($maxaccess>0){
+		$sendlogs=1;
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(keyr) as tcount FROM `$table` WHERE ipaddr='$HTTP_X_REAL_IP' and `servername`='$servername'"));
+		if(!$q->ok){Debuglogs("$q->mysql_error");}
+		$Count=$ligne["tcount"];
+		Debuglogs("Current $Count time(s)/$maxaccess",__FUNCTION__,__LINE__);
+		$Count++;
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `ipaddr` FROM `nginx_exploits_fwev` WHERE zmd5='$md5L'"));
+		Debuglogs("$md5L = `{$ligne["ipaddr"]}",__FUNCTION__,__LINE__);
+		
+		
+		if($ligne["ipaddr"]==null){
+			if($Count>$maxaccess){
+				$hostname=gethostbyaddr($HTTP_X_REAL_IP);
+				Debuglogs("$HTTP_X_REAL_IP -> BAN !!! ( count $Count <-> $maxaccess )");
+				$ipchain=new iptables_chains();
+				$ipchain->servername=gethostbyaddr($HTTP_X_REAL_IP);;
+				$ipchain->serverip=$HTTP_X_REAL_IP;
+				$ipchain->EventsToAdd="Reverse Proxy 403 error";
+				$ipchain->add_xchain($ports,"ArticaInstantNginx");
+				$sock=new sockets();
+				$sock->getFrameWork("cmd.php?iptables-nginx-compile=yes");
+				$country=mysql_escape_string2(GeoLoc($HTTP_X_REAL_IP));
+				$sql="INSERT IGNORE INTO nginx_exploits_fwev (`zmd5`,`servername`,`zDate`,`ipaddr`,`hostname`,`country`)
+				VALUES('$md5L','$servername','$zDate','$HTTP_X_REAL_IP','$hostname','$country');";
+				Debuglogs($sql);
+				$q->QUERY_SQL($sql);
+				if(!$q->ok){Debuglogs($q->mysql_error);}
+				if($q->ok){$_SESSION["nginx_exploits_fw"]["BLOCKED"]=true;}
+			}
+		}
+	}
+}	
+
+	
+	if($sendlogs==1){
+		if($country==null){$country=mysql_escape_string2(GeoLoc($HTTP_X_REAL_IP));}
+		if($hostname==null){$hostname=gethostbyaddr($HTTP_X_REAL_IP);}
+		$family=$q->GetFamilySites($hostname);
+		$q->check_nginx_attacks_RT($timekey);
+		$sql="INSERT IGNORE INTO $table (`keyr`,`servername`,`zDate`,`ipaddr`,`familysite`,`hostname`,`country`)
+		VALUES('$md5','$servername','$zDate','$HTTP_X_REAL_IP','$family','$hostname','$country');";
+		Debuglogs("$servername: Attack from $hostname [$HTTP_X_REAL_IP] - $country ");
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){Debuglogs($q->mysql_error);}
+	}
+	
+	
+	
+	
+	
+}
+function GeoLoc($ipaddr){
+
+	if(!function_exists("geoip_record_by_name")){return;}
+	$record = @geoip_record_by_name($ipaddr);
+	if ($record) {
+		return $record["country_name"];
+	}
+	
+
+}
+
+
+
+
 function send_error_page(){
 	$SERVER_NAME=$_SERVER["SERVER_NAME"];
 	$HTTP_HOST=$_SERVER["HTTP_HOST"];
@@ -369,7 +556,13 @@ function send_error_page(){
 	$REQUESTED_URI=$_GET["uri"];
 	$uid=$_SERVER['PHP_AUTH_USER'];
 	$error_id=$_GET["error-ID"];
-	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+	
+	if($GLOBALS["DEBUG"]){
+		Debuglogs("$SERVER_NAME $REQUESTED_URI - $uid Error ID:$error_id",__FUNCTION__,__LINE__);
+	}
+	
+	if($_GET["error-page"]==403){nginx_attack();}
 	
 	$GLOBALS["Q"]=new mysql_squid_builder();
 	
@@ -480,7 +673,7 @@ function send_error_page(){
 	<blockquote id=\"error\"> <p><b>{$error[$_GET["error-page"]]["EXPLAIN"]}</b></p> </blockquote>
 	<p>The request:<a href=\"$REQUESTED_URI\">$REQUESTED_URI</a> cannot be displayed<br> 
 	Please contact your service provider if you feel this is incorrect.
-	</p>  <p>Generated by Artica Reverse Proxy <a href=\"http://www.artica.fr\">artica.fr</a></p>
+	</p>  <p>Generated by Artica Reverse Proxy <a href=\"http://www.articatech.net\">artica.fr</a></p>
 	 <br> </div>  <hr> <div id=\"footer\"> <p>Artica version: $ARTICAV</p> <!-- %c --> </div> </div></div>
 	</div>
 	</td>
@@ -510,7 +703,7 @@ function send_error_page(){
 	$newheader=str_replace("{error_desc}", $error[$_GET["error-page"]]["EXPLAIN"], $newheader);
 	$newheader=str_replace("{uri}", $REQUESTED_URI, $newheader);
 	
-	$content=str_replace("{ARTICA_VERSION}", $content, $content);
+	$content=str_replace("{ARTICA_VERSION}", $ARTICAV, $content);
 	$content=str_replace("{uid}", $uid, $content);
 	$content=str_replace("{TITLE}", $title, $content);
 	$content=str_replace("{error_code}", $_GET["error-page"], $content);
@@ -585,3 +778,301 @@ function TraceZ($text,$servername){
 	@fwrite($f, "$text\n");
 	@fclose($f);
 }
+
+function if_groupes_matches($gps){
+	
+	
+	while (list ($gpid, $type) = each ($gps) ){
+	
+		Debuglogs("Check Group ID $gpid for type=$type (".$GLOBALS["SOURCE_TYPE"][$type].")",__FUNCTION__,__LINE__);
+		if($type==0){
+			$MATCHES=true;
+			Debuglogs("Group ID $gpid for type=$type MATCHES IN ALL CASES",__FUNCTION__,__LINE__);
+			return true;
+		}
+	
+		if(!isset($_SESSION["AUTHENTICATOR_ITEMS"][$gpid])){
+			$q=new mysql_squid_builder();
+			$sql="SELECT pattern FROM authenticator_items WHERE groupid=$gpid";
+			$results = $q->QUERY_SQL($sql);
+				
+			while ($ligne = mysql_fetch_assoc($results)) {
+				Debuglogs("$gpid {$ligne["pattern"]}",__FUNCTION__,__LINE__);
+				$_SESSION["AUTHENTICATOR_ITEMS"][$gpid][]=$ligne["pattern"];
+					
+			}
+				
+		}
+	
+		reset($_SESSION["AUTHENTICATOR_ITEMS"][$gpid]);
+	}
+	
+	return $MATCHES;
+	
+}
+
+// doit renvoyer http://auth.u-cergy.fr/login?service=http://biblioweb.u-cergy.org
+
+
+function cas_auth($groupid,$ruleid){
+	
+	if(isset($_SESSION["CASUSER"][$groupid][$ruleid]["USER"])){
+		Debuglogs("Rule:$ruleid Groupid:$groupid ->{$_SESSION["CASUSER"][$groupid][$ruleid]["USER"]}/{$_SESSION["CASUSER"][$groupid][$ruleid]["GPNAME"]} OK",__FUNCTION__,__LINE__);
+		return true;
+	}
+	
+	Debuglogs("Rule:$ruleid Groupid:$groupid Testing source groups...",__FUNCTION__,__LINE__);
+	if(!isMustAuth($ruleid)){
+		Debuglogs("Rule:$ruleid Groupid:$groupid From groups not match rule.",__FUNCTION__,__LINE__);
+		return;
+	}
+	
+	Debuglogs("Rule:$ruleid Groupid:$groupid From groups match rule.",__FUNCTION__,__LINE__);
+	
+	if(isset($_SESSION["AUTH_GROUP_DATA"][$groupid])){
+		if($_SESSION["AUTH_GROUP_DATA"][$groupid]["params"]==null){
+			unset($_SESSION["AUTH_GROUP_DATA"][$groupid]);
+		}
+	}
+	
+	if(!isset($_SESSION["AUTH_GROUP_DATA"][$groupid])){
+		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+		Debuglogs("Rule:$ruleid Groupid:$groupid Run MySQL query",__FUNCTION__,__LINE__);
+		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT groupname,group_type,params FROM authenticator_auth WHERE ID='$groupid'"));
+		if(!$GLOBALS["Q"]->ok){Debuglogs("Rule:{$_GET["ruleid"]} Groupid:$groupid {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__LINE__);}
+		$_SESSION["AUTH_GROUP_DATA"][$groupid]["groupname"]=$ligne["groupname"];
+		$_SESSION["AUTH_GROUP_DATA"][$groupid]["group_type"]=$ligne["group_type"];
+		$_SESSION["AUTH_GROUP_DATA"][$groupid]["params"]=unserialize(base64_decode($ligne["params"]));
+	}
+	
+	
+	$groupname=$_SESSION["AUTH_GROUP_DATA"][$groupid]["groupname"];
+	$group_type=$_SESSION["AUTH_GROUP_DATA"][$groupid]["group_type"];
+	$params=$_SESSION["AUTH_GROUP_DATA"][$groupid]["params"];
+		
+	$cas_host=$params["CAS_HOST"];
+	$cas_port=intval($params["CAS_PORT"]);
+	$cas_context=$params["CAS_CONTEXT"];
+	$certificate=$params["CAS_CERT"];
+	$http_context="http";
+	if($cas_port==443){	$http_context="https";}
+	$mycontext="http";
+	if($GLOBALS["SSL"]){$mycontext="https";}
+	if($cas_context<>null){$cas_context="/$cas_context";}
+	$uri="$http_context://$cas_host";
+	
+	Debuglogs("CAS URI: $uri",__FUNCTION__,__LINE__);
+	Debuglogs("Request: {$_GET["uri"]}",__FUNCTION__,__LINE__);
+	
+	$MyServer=$_SERVER["HTTP_HOST"];
+	if($_GET["servername"]<>null){$MyServer=$_GET["servername"];}
+	
+	
+	$uri_renvoi="$uri$cas_context/login?service=$mycontext://$MyServer";
+	
+	
+	if(!preg_match("#\?ticket=(.+)#",$_GET["uri"],$re)){
+		Debuglogs("No ticket found ->",__FUNCTION__,__LINE__);
+		$_SESSION["AUTHENTICATOR_REDIRECT"]=$uri_renvoi;
+		return false;
+	}
+	
+
+	$TGT=$re[1];
+	$uri_check="$uri$cas_context/serviceValidate?ticket=$TGT&service=$mycontext://$MyServer";
+	Debuglogs("Ticket found -> \"{$TGT}\"",__FUNCTION__,__LINE__);
+	Debuglogs("Validate $uri_check",__FUNCTION__,__LINE__);
+	$curl = curl_init("$uri_check");
+	
+	$t=time();
+	curl_setopt($curl,  CURLOPT_HEADER, true);
+	curl_setopt($curl,  CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($curl,  CURLOPT_FAILONERROR, true);
+	curl_setopt($curl,  CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt($curl,  CURLOPT_HTTPHEADER, array('Expect:'));
+	curl_setopt($curl,  CURLOPT_POST, 0);
+	curl_setopt($curl, CURLOPT_USERAGENT, "Mozilla");
+	curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+	curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
+	curl_setopt($curl, CURLOPT_FOLLOWLOCATION, TRUE);
+	
+	$data = curl_exec($curl);
+	$length=strlen($data);
+	$CURLINFO_HTTP_CODE=curl_getinfo($curl,CURLINFO_HTTP_CODE);
+	curl_close($curl);
+	$distanceInSeconds = round(abs(time() - $t));
+	Debuglogs("CAS response CODE:$CURLINFO_HTTP_CODE {$distanceInSeconds}s \"$data\"");
+	if($CURLINFO_HTTP_CODE<>200){return false;}
+	
+	if(preg_match("#<cas:user>(.+?)</cas:user>#is", $data,$re)){
+		Debuglogs("CAS USER \"{$re[1]}\" Stamp in memory");
+		$_SESSION["CASUSER"][$groupid][$ruleid]["USER"]=$re[1];
+		$_SESSION["CASUSER"][$groupid][$ruleid]["GPNAME"]=$groupname;
+		return true;
+	}
+	
+}
+
+
+function xcas_auth($groupid,$ruleid){
+	
+	Debuglogs("Rule:$ruleid Groupid:$groupid Testing source groups...",__FUNCTION__,__LINE__);
+	if(!isMustAuth($ruleid)){
+		Debuglogs("Rule:$ruleid Groupid:$groupid From groups not match rule.",__FUNCTION__,__LINE__);
+		return;
+	}
+	
+	Debuglogs("Rule:$ruleid Groupid:$groupid From groups match rule.",__FUNCTION__,__LINE__);
+	
+	if(isset($_SESSION["AUTH_GROUP_DATA"][$groupid])){
+		if($_SESSION["AUTH_GROUP_DATA"][$groupid]["params"]==null){
+			unset($_SESSION["AUTH_GROUP_DATA"][$groupid]);
+		}
+	}
+	
+	if(!isset($_SESSION["AUTH_GROUP_DATA"][$groupid])){
+		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+		Debuglogs("Rule:$ruleid Groupid:$groupid Run MySQL query",__FUNCTION__,__LINE__);
+		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT groupname,group_type,params FROM authenticator_auth WHERE ID='$groupid'"));
+		if(!$GLOBALS["Q"]->ok){Debuglogs("Rule:{$_GET["ruleid"]} Groupid:$groupid {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__LINE__);}
+		$_SESSION["AUTH_GROUP_DATA"][$groupid]["groupname"]=$ligne["groupname"];
+		$_SESSION["AUTH_GROUP_DATA"][$groupid]["group_type"]=$ligne["group_type"];
+		$_SESSION["AUTH_GROUP_DATA"][$groupid]["params"]=unserialize(base64_decode($ligne["params"]));
+	}
+	
+	
+	$groupname=$_SESSION["AUTH_GROUP_DATA"][$groupid]["groupname"];
+	$group_type=$_SESSION["AUTH_GROUP_DATA"][$groupid]["group_type"];
+	$params=$_SESSION["AUTH_GROUP_DATA"][$groupid]["params"];
+	
+	
+	include_once(dirname(__FILE__)."/ressources/externals/jasigcas/CAS.php");
+	Debuglogs("Rule:$ruleid Groupid:$groupid checking group:$groupname type:$group_type",__FUNCTION__,__LINE__);	
+	
+	if(!preg_match("#\?ticket=(.+)#",$_GET["uri"],$re)){
+		Debuglogs("Not ticket found in `{$_GET["uri"]}`",__FUNCTION__,__LINE__);
+		return false;
+		
+	}
+	
+	
+	
+	//$_SESSION["USER"]=$user;
+	//$_SESSION["CASTIME"]=time();
+	
+	
+	if(preg_match("#\?ticket=(.+)#",$_GET["uri"],$re)){
+		$ticket=$re[1];
+		Debuglogs("{$_GET["uri"]} -> $ticket",__FUNCTION__,__LINE__);
+		
+		$uriToSend="https://auth.u-cergy.fr/serviceValidate?ticket=$ticket&service=http://{$_GET["servername"]}";
+		Debuglogs("$uriToSend",__FUNCTION__,__LINE__);
+		
+		@unlink("/tmp/toto.txt");
+		exec("wget \"$uriToSend\" -O /tmp/toto.txt");
+		$tr=explode("\n",@file_get_contents("/tmp/toto.txt"));
+		
+		while (list ($index, $alias) = each ($tr) ){
+			Debuglogs("$alias",__FUNCTION__,__LINE__);
+			
+		}
+	}else{
+		Debuglogs("{$_GET["uri"]} no pregmatch",__FUNCTION__,__LINE__);
+	}
+	
+	
+	
+
+	
+	
+	if($GLOBALS["DEBUG"]){
+		Debuglogs("Rule:$ruleid Groupid:$groupid checking group:$groupname set to debug",__FUNCTION__,__LINE__);
+		phpCAS::setDebug("/var/log/apache2/cas.debug.log");
+	
+	}
+	phpCAS::setDebug("/var/log/apache2/cas.debug.log");
+	Debuglogs("for debug purpose cmdline should be \"". __FILE__." --cas $groupid $ruleid\"",__FUNCTION__,__LINE__);
+	$cas_host=$params["CAS_HOST"];
+	$cas_port=intval($params["CAS_PORT"]);
+	$cas_context=$params["CAS_CONTEXT"];
+	$certificate=$params["CAS_CERT"];
+	Debuglogs("Using certificate: $certificate ",__FUNCTION__,__LINE__);
+	Debuglogs("Rule:$ruleid Groupid:$groupid checking group:$groupname Initialize phpCAS host:$cas_host Port:\"$cas_port\" context=$cas_context",__FUNCTION__,__LINE__);
+	phpCAS::client(CAS_VERSION_2_0, $cas_host, intval($cas_port), $cas_context);
+	
+	//phpCAS::proxy(CAS_VERSION_2_0, $cas_host, intval($cas_port), $cas_context);
+	// For quick testing you can disable SSL validation of the CAS server.
+// THIS SETTING IS NOT RECOMMENDED FOR PRODUCTION.
+// VALIDATING THE CAS SERVER IS CRUCIAL TO THE SECURITY OF THE CAS PROTOCOL!
+
+	if(is_file($certificate)){
+		//Debuglogs("Using certificate: $certificate ",__FUNCTION__,__LINE__);
+		//phpCAS::setCasServerCACert($certificate);
+	}else{
+		Debuglogs(" $certificate no such file",__FUNCTION__,__LINE__);
+	}
+	unset($_SESSION["AUTH_GROUP_DATA"]);
+	
+	Debuglogs("Rule:$ruleid Groupid:$groupid checking group:$groupname Initialize phpCAS setNoCasServerValidation()",__FUNCTION__,__LINE__);
+	phpCAS::setNoCasServerValidation();
+	phpCAS::setFixedServiceURL("http://biblioweb.u-cergy.org");
+	
+	//https://auth.u-cergy.fr/is/cas/serviceValidate?ticket=ST-956-Lyg0BdLkgdrBO9W17bXS&service=http://localhost/bling
+	
+	//phpCAS::forceAuthentication();
+	if(!phpCAS::checkAuthentication()){
+		Debuglogs("Rule:$ruleid Groupid:$groupid checking group:$groupname Initialize phpCAS, not authenticated",__FUNCTION__,__LINE__);
+		return false;
+	}
+	// force CAS authentication
+	//phpCAS::forceAuthentication();
+	return true;
+
+
+}
+function _file_time_min($path){
+	$last_modified=0;
+
+	if(is_dir($path)){return 10000;}
+	if(!is_file($path)){return 100000;}
+	if($last_modified==0){$last_modified = filemtime($path);}
+	$data1 = $last_modified;
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	$results=intval(round($difference/60));
+	if($results<0){$results=1;}
+	return $results;
+}
+
+function send_pageid(){
+	$ID=$_GET["pageid"];
+	$cachepage="/home/reverse_pages_content/$ID";
+	if(is_file($cachepage)){
+		$ligne=unserialize(@file_get_contents($cachepage));
+		$time=_file_time_min();
+		if($time<$ligne["cachemin"]){
+			$date=strtotime($ligne["zDate"]);
+			header("Cache-Control: private, max-age=0");
+			header("content-type: text/html; charset=ISO-8859-1");
+			header("Last-Modified: " . gmdate("D, d M Y H:i:s",$date) . " GMT");
+			echo stripslashes($ligne["content"]);
+			return;
+		}
+	}
+	
+	
+	
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_pages_content WHERE ID='$ID'"));
+	
+	$date=strtotime($ligne["zDate"]);
+	header("Cache-Control: private, max-age=0");
+	header("content-type: text/html; charset=ISO-8859-1");
+	header("Last-Modified: " . gmdate("D, d M Y H:i:s",$date) . " GMT");
+	@unlink($cachepage);
+	@file_put_contents($cachepage, serialize($ligne));
+	echo stripslashes($ligne["content"]);
+	
+}
+

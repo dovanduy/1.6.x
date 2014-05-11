@@ -41,7 +41,7 @@ function build(){
 	
 	$results=$q->QUERY_SQL($sql,"artica_backup");	
 	if(!$q->ok){
-		echo "Starting......: Loop disks $q->mysql_error\n";
+		echo "Starting......: ".date("H:i:s")." Loop disks $q->mysql_error\n";
 		$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__);
 		return;
 	}
@@ -82,10 +82,10 @@ function build(){
 		$q->QUERY_SQL($sql,'artica_backup');
 		if(!$q->ok){echo "$q->mysql_error\n";continue;}
 		$dev=$GetLoops[$path];
-		echo "Starting......: $path is $dev\n";	
+		echo "Starting......: ".date("H:i:s")." $path is $dev\n";	
 		if(!ifFileSystem($dev)){if(!mke2fs($dev,$label,$maxfds)){continue;}}
 		$uuid=Getuuid($dev);
-		echo "Starting......: $dev uuid=$uuid\n";
+		echo "Starting......: ".date("H:i:s")." $dev uuid=$uuid\n";
 		if($uuid==null){continue;}
 
 		
@@ -125,7 +125,7 @@ function mke2fs($dev,$label,$maxfds=0){
 		$mkfs_ext4=$unix->find_program("mkfs.ext3");
 	}	
 	if($label<>null){$label_cmd=" -L $label";}
-	echo "Starting......: $dev formatting...\n";		
+	echo "Starting......: ".date("H:i:s")." $dev formatting...\n";		
 	$cmd="$mkfs_ext4 $label_cmd$maxfds_cmd -q $dev 2>&1";
 	exec($cmd,$results);
 	if($debug){echo "mke2fs($dev) -> $cmd ". count($results)." rows\n";}	
@@ -200,37 +200,37 @@ function remove($path){
 	if($dev==null){$dev=$loop_dev;}
 	$uuid=Getuuid($dev);
 	if($dev<>null){
-		echo "Starting......: $dev umounting...\n";
+		echo "Starting......: ".date("H:i:s")." $dev umounting...\n";
 		exec("$umount -l $dev 2>&1",$results);
 		exec("$umount -l $dev 2>&1",$results);
 		exec("$umount -l $dev 2>&1",$results);
-		while (list ($num, $ligne) = each ($results) ){echo "Starting......: $dev $ligne\n";}
+		while (list ($num, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." $dev $ligne\n";}
 		
 	}
 	
 	
 	$results=array();
 	if($uuid<>null){
-		echo "Starting......: $dev disconnect $uuid...$disk_name\n";
+		echo "Starting......: ".date("H:i:s")." $dev disconnect $uuid...$disk_name\n";
 		$autofs=new autofs();
 		$autofs->uuid=$uuid;
 		$autofs->by_uuid_removemedia($disk_name,"auto");		
 	}
 	
 	if($dev<>null){
-		echo "Starting......: dev:`$dev` remove media\n";
+		echo "Starting......: ".date("H:i:s")." dev:`$dev` remove media\n";
 		$cmd="{$GLOBALS["losetup"]} -d $dev 2>&1";
 		exec($cmd,$results);	
-		while (list ($num, $ligne) = each ($results) ){echo "Starting......: $dev $ligne\n";}	
+		while (list ($num, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." $dev $ligne\n";}	
 		if(is_file($path)){
-			echo "Starting......: $dev remove file\n";
+			echo "Starting......: ".date("H:i:s")." $dev remove file\n";
 			shell_exec("/bin/rm -f $path");
 		}
 	}
-	echo "Starting......: $dev remove entry in database\n";
+	echo "Starting......: ".date("H:i:s")." $dev remove entry in database\n";
 	$sql="DELETE FROM loop_disks WHERE `path`='$path'";
 	$q->QUERY_SQL($sql,"artica_backup");
-	echo "Starting......: $dev removed\n";
+	echo "Starting......: ".date("H:i:s")." $dev removed\n";
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup /etc/init.d/autofs restart >/dev/null 2>&1 &");
 	

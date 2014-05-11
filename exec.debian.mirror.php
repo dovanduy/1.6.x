@@ -51,7 +51,7 @@ die();
 
 function start(){
 	$SERV_NAME=$GLOBALS["SERV_NAME"];
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME cannot be started by init.d ...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME cannot be started by init.d ...\n";}
 	
 }
 
@@ -73,7 +73,7 @@ function kill_process(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -107,45 +107,45 @@ function stop(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
 	$pid=RSYNC_PID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME already stopped...\n";}
 		return;
 	}
 	
 	
 	$time=$unix->PROCCESS_TIME_MIN($pid);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME with a ttl of {$time}mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME with a ttl of {$time}mn\n";}
 	
 	$MirrorDebianDir=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MirrorDebianDir");
 	if($MirrorDebianDir==null){$MirrorDebianDir="/home/mirrors/Debian";}
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME with a mirror located in \"$MirrorDebianDir\"\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME with a mirror located in \"$MirrorDebianDir\"\n";}
 	
 	
 	$kill=$unix->find_program("kill");
 	for($i=0;$i<10;$i++){
 		$pid=RSYNC_PID();
 		if($unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME kill pid $pid..\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME kill pid $pid..\n";}
 			shell_exec("$kill -9 $pid");
 		}else{
 			break;
 		}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME wait $i/10\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME wait $i/10\n";}
 		sleep(1);
 	}
 	$pid=RSYNC_PID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME success...\n";}
 		return;
 	}
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME Failed...\n";}	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Failed...\n";}	
 	
 }
 
@@ -166,7 +166,7 @@ function rsync_mirror_execute($scheduled=false){
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
 		writelogs("$SERV_NAME Already task running PID $oldpid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}	
 	
@@ -175,7 +175,7 @@ function rsync_mirror_execute($scheduled=false){
 	if($unix->process_exists($RSYNC_PID)){
 		$time=$unix->PROCCESS_TIME_MIN($RSYNC_PID);
 		writelogs("rsync task running PID $oldpid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME rsync task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME rsync task running PID $oldpid since {$time}mn\n";}
 		return;
 	}	
 	$MirrorEnableDebianSchedule=$sock->GET_INFO("MirrorEnableDebianSchedule");
@@ -203,7 +203,7 @@ function rsync_mirror_execute($scheduled=false){
 	
 	if(!is_file($rsync)){
 		writelogs("$SERV_NAME rsync no such binary",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME rsync no such binary\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME rsync no such binary\n";}
 		return;
 	}
 	$sock=new sockets();
@@ -412,13 +412,13 @@ function ChecksLogs($noexec=false){
 	
 	$q=new mysql();
 	$sql="CREATE TABLE IF NOT EXISTS `mirror_logs` (
-		 `ID` bigint(100) NOT NULL auto_increment,
+		 `ID` BIGINT UNSIGNED NOT NULL auto_increment,
 		 `zDate` datetime NOT NULL,
-		 `pid` bigint(100) NOT NULL,
-		 `starton` bigint(100) NOT NULL,
-		 `endon` bigint(100) NOT NULL,
-		 `filesnumber` bigint(100) NOT NULL,
-		 `totalsize` bigint(100) NOT NULL,
+		 `pid` BIGINT UNSIGNED NOT NULL,
+		 `starton` BIGINT UNSIGNED NOT NULL,
+		 `endon` BIGINT UNSIGNED NOT NULL,
+		 `filesnumber` BIGINT UNSIGNED NOT NULL,
+		 `totalsize` BIGINT UNSIGNED NOT NULL,
 		 `error` varchar(255),
 		  PRIMARY KEY  (`ID`),
 		  KEY `zDate` (`zDate`),

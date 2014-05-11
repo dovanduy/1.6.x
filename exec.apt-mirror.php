@@ -42,7 +42,7 @@ function perform(){
 	$EnableAptMirror=$sock->GET_INFO("EnableAptMirror");
 	
 	if($EnableAptMirror<>1){
-		echo "Starting......: Debian mirror feature is disabled\n";
+		echo "Starting......: ".date("H:i:s")." Debian mirror feature is disabled\n";
 		apt_mirror_events_file("Debian mirror feature is disabled");
 		die();
 	}	
@@ -52,20 +52,20 @@ function perform(){
 	$pid=@file_get_contents($pidpath);
 	
 	if($unix->process_exists($pid)){
-			echo "Starting......: Debian mirror already executed PID $pid\n";
+			echo "Starting......: ".date("H:i:s")." Debian mirror already executed PID $pid\n";
 			apt_mirror_events_file("Debian mirror already executed PID $pid");
 			writelogs("Debian mirror already executed PID $pid",__FUNCTION__,__FILE__,__LINE__);
 			die();
 	}
 	$getmypid=getmypid();
 	@file_put_contents($pidpath,$getmypid);
-	echo "Starting......: Debian mirror PID $getmypid\n";
+	echo "Starting......: ".date("H:i:s")." Debian mirror PID $getmypid\n";
 	apt_mirror_events("INFO: Starting PID $getmypid",@implode("\n",$results));
 	
 	
 	writelogs("New Pid:$getmypid -> $pidpath",__FUNCTION__,__FILE__,__LINE__);
-	echo "Starting......: Pid path: $pidpath\n";
-	apt_mirror_events_file("Starting......: Pid path: $pidpath");
+	echo "Starting......: ".date("H:i:s")." Pid path: $pidpath\n";
+	apt_mirror_events_file("Starting......: ".date("H:i:s")." Pid path: $pidpath");
 	
 	apt_mirror_events_file("-> BuildMirrorConf()");
 	writelogs("-> BuildMirrorConf()",__FUNCTION__,__FILE__,__LINE__);
@@ -75,7 +75,7 @@ function perform(){
 	$config=unserialize(base64_decode($sock->GET_INFO("AptMirrorConfig")));
 	if($config["webserverpath"]==null){
 		apt_mirror_events_file("-> No destination path set");
-		echo "Starting......: Debian mirror No destination path set\n";
+		echo "Starting......: ".date("H:i:s")." Debian mirror No destination path set\n";
 		return;
 	}			
 	$t1=time();
@@ -145,19 +145,19 @@ function BuildVhost(){
 	$EnableAptMirror=$sock->GET_INFO("EnableAptMirror");
 
 	if($EnableAptMirror<>1){
-		echo "Starting......: Debian mirror feature is disabled\n";
+		echo "Starting......: ".date("H:i:s")." Debian mirror feature is disabled\n";
 		@file_put_contents("/usr/local/apache-groupware/conf/mirror-vhosts.conf","#");
 		return;
 	}
 	
 	if($config["webserverpath"]==null){
-		echo "Starting......: Debian mirror No destination path set\n";
+		echo "Starting......: ".date("H:i:s")." Debian mirror No destination path set\n";
 		@file_put_contents("/usr/local/apache-groupware/conf/mirror-vhosts.conf","#");
 		return;
 	}
 	
 	if($config["webservername"]==null){
-		echo "Starting......: Debian mirror no web servername set\n";
+		echo "Starting......: ".date("H:i:s")." Debian mirror no web servername set\n";
 		@file_put_contents("/usr/local/apache-groupware/conf/mirror-vhosts.conf","#");
 		return;
 	}	
@@ -165,7 +165,7 @@ function BuildVhost(){
 
 	
 	$ApacheGroupWarePort=$sock->GET_INFO("ApacheGroupWarePort");
-	echo "Starting......: Debian mirror apache listen on port $ApacheGroupWarePort\n";
+	echo "Starting......: ".date("H:i:s")." Debian mirror apache listen on port $ApacheGroupWarePort\n";
 	
 $conf[]="<VirtualHost *:80>";
 $conf[]="	ServerName webdav.touzeau.com";
@@ -209,7 +209,7 @@ if($config["UbuntuEnabled"]==1){
 $conf[]="";
 
 @file_put_contents("/usr/local/apache-groupware/conf/mirror-vhosts.conf",@implode("\n",$conf));
-echo "Starting......: Debian mirror set virtual host config done (mirror-vhosts.conf)\n";	
+echo "Starting......: ".date("H:i:s")." Debian mirror set virtual host config done (mirror-vhosts.conf)\n";	
 }
 
 
@@ -219,8 +219,8 @@ function BuildMirrorConf(){
 	$config=unserialize(base64_decode($sock->GET_INFO("AptMirrorConfig")));
 	$EnableAptMirror=$sock->GET_INFO("EnableAptMirror");
 	
-	if($EnableAptMirror<>1){echo "Starting......: Debian mirror feature is disabled\n";return;}
-	if($config["webserverpath"]==null){echo "Starting......: Debian mirror No destination path set\n";return;}
+	if($EnableAptMirror<>1){echo "Starting......: ".date("H:i:s")." Debian mirror feature is disabled\n";return;}
+	if($config["webserverpath"]==null){echo "Starting......: ".date("H:i:s")." Debian mirror No destination path set\n";return;}
 	@mkdir($config["webserverpath"],666,true);
 	
 	$paths[]="mirror";
@@ -412,6 +412,6 @@ if($config["UbuntuEnabled"]==1){
 while (list ($key, $line) = each ($cleans) ){$f[]="clean ".$line;}
 
 @file_put_contents("/etc/apt/mirror.list",@implode("\n",$f));
-echo "Starting......: Debian /etc/apt/mirror.list done.\n";
+echo "Starting......: ".date("H:i:s")." Debian /etc/apt/mirror.list done.\n";
 }
 //http://doc.ubuntu-fr.org/sources.list

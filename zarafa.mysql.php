@@ -46,7 +46,7 @@ function page(){
 	if(!is_numeric($zarafa_innodb_log_buffer_size)){$zarafa_innodb_log_buffer_size=32;}
 	if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=16;}
 	if(!is_numeric($zarafa_query_cache_size)){$zarafa_query_cache_size=8;}
-	
+	if($zarafa_innodb_log_file_size>2000){$zarafa_innodb_log_file_size=2000;}
 	
 	
 	

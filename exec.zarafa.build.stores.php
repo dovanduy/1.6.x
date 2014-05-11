@@ -14,6 +14,12 @@ if(preg_match("#--nomail#",implode(" ",$argv))){$GLOBALS["NOMAIL"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 
+$unix=new unix();
+$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
+$oldpid=$unix->get_pid_from_file($PidRestore);
+if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+
+
 
 if($argv[1]=="--remove-database"){remove_database();exit;}
 if($argv[1]=="--relink-to"){relinkto($argv[2],$argv[3]);exit;}
@@ -65,13 +71,56 @@ while (list ($index, $user) = each ($usernames) ){
 }
 
 function export_orphans(){
-if(system_is_overloaded(basename(__FILE__))){system_admin_events("Task stopped, overloaded system", __FUNCTION__, __FILE__, __LINE__, "zarafa");die();}
+	
+	if(isset($GLOBALS["export_orphans_executed"])){
+		if($GLOBALS["VERBOSE"]){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){
+				$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+				echo "export_orphans Already executed $called\n";
+			}
+			}
+			return;
+	}
+	$GLOBALS["export_orphans_executed"]=true;
+	
+	
+if(system_is_overloaded(basename(__FILE__))){
+	if($GLOBALS["VERBOSE"]){echo "System overloaded\n";}
+	system_admin_events("Task stopped, overloaded system", __FUNCTION__, __FILE__, __LINE__, "zarafa");
+	die();
+}
 $unix=new unix();
 $q=new mysql();
 $q->BuildTables();
 $q->QUERY_SQL("TRUNCATE TABLE `zarafa_orphaned`","artica_backup");
 $zarafaadmin=$unix->find_program("zarafa-admin");
-exec("$zarafaadmin --list-orphans 2>&1",$array);
+
+
+$kill=$unix->find_program("kill");
+$pids=$unix->PIDOF_PATTERN_ALL("zarafa-admin --list-orphans");
+if(count($pids)>0){
+	while (list ($pid, $line) = each ($pids) ){
+		$time=$unix->PROCESS_TTL($pid);
+		if($time>15){
+			$unix->_syslog("killing zarafa-admin --list-orphans pid $pid ({$time}mn)", basename(__FILE__));
+			shell_exec("$kill -9 $pid");
+		}
+		
+	}
+	
+}
+
+$pid=$unix->PIDOF_PATTERN("zarafa-admin --list-orphans");
+if($unix->process_exists($pid)){
+	$unix->_syslog("zarafa-admin --list-orphans pid $pid still running", basename(__FILE__));
+}
+
+
+$cmd="$zarafaadmin --list-orphans 2>&1";
+
+exec($cmd,$array);
+if($GLOBALS["VERBOSE"]){echo "$cmd --> ".count($array)."\n";}
 
 
 
@@ -80,6 +129,7 @@ while (list ($index, $line) = each ($array) ){
 	
 	
 	if(preg_match("#([A-Z0-9]+)\s+(.+)\s+([0-9\/]+)\s+([0-9:]+)\s+([A-Z]+)\s+([0-9]+)\s+([A-Z]+)#", $line,$re)){
+		if($GLOBALS["VERBOSE"]){echo "$line --> match Pattern 1\n";}
 		$store=$re[1];
 		$user=$re[2];
 		
@@ -91,6 +141,7 @@ while (list ($index, $line) = each ($array) ){
 
 	if($store==null){
 		if(preg_match("#([A-Z0-9]+)\s+(.+?)\s+([0-9\/]+)\s+([0-9:]+)\s+([0-9]+)\s+([A-Z]+)#", $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "$line --> match Pattern 2\n";}
 			$store=$re[1];
 			$user=$re[2];
 			$date=strtotime("{$re[3]} {$re[4]}");	
@@ -102,6 +153,7 @@ while (list ($index, $line) = each ($array) ){
 	
 	if($store==null){
 		if(preg_match("#([A-Z0-9]+)\s+(.+?)\s+([0-9\/]+)\s+([0-9:]+)\s+unlimited#", $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "$line --> match Pattern 3\n";}
 			$store=$re[1];
 			$user=$re[2];
 			$date=strtotime("{$re[3]} {$re[4]}");	
@@ -109,8 +161,31 @@ while (list ($index, $line) = each ($array) ){
 			$unit="B";
 		}
 	}
+	if($store==null){
+		if(preg_match("#([A-Z0-9]+)\s+(.*?)\s+<unknown>\s+([0-9\.]+)\s+([A-Z]+)\s+([a-z]+)#", $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "$line --> match Pattern 4\n";}
+			$store=$re[1];
+			$user=$re[2];
+			$date=strtotime("0000/00/00 00:00:00");
+			$size=$re[3];
+			$unit=$re[4];	
+		}
+	}	
+	if($store==null){
+		if(preg_match("#([A-Z0-9]+)\s+(.*?)\s+(.*?)\s+([0-9\.]+)\s+([A-Z]+)\s+([a-z]+)#", $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "$line --> match Pattern 4\n";}
+			$store=$re[1];
+			$user=$re[2];
+			$date=strtotime($re[3]);
+			$size=$re[4];
+			$unit=$re[5];
+		}
+	}	
+	
+	
 	
 	if($store==null){
+		if($GLOBALS["VERBOSE"]){echo "$line --> No match ALL\n";}
 		$arraylo[]="No match $line";
 		continue;
 	}
@@ -122,6 +197,9 @@ while (list ($index, $line) = each ($array) ){
 		$date=date("Y-m-d H:i:s",$date);
 		$textsize=FormatBytes($size/1024);
 		$textsize=str_replace("&nbsp;", "", $textsize);
+		
+		if($GLOBALS["VERBOSE"]){echo "Store $store ($textsize) for user $user is unlinked since $date ($distanceOfTimeInWords)\n";}
+		
 		$f[]="Store $store ($textsize) for user $user is unlinked since $date ($distanceOfTimeInWords)";
 		$sql="INSERT IGNORE INTO zarafa_orphaned (storeid,size,zDate,uid) VALUES ('$store','$size','$date','$user')";
 		$arraylo[]=$sql;
@@ -133,12 +211,14 @@ while (list ($index, $line) = each ($array) ){
 		}
 		
 
-	
-	@file_put_contents("/tmp/zarafa.scan.txt", @implode("\n", $array)."\n".@implode("\n", $arraylo));
-	user_status_table();
+
 }
 
+if($GLOBALS["VERBOSE"]){echo "Save /tmp/zarafa.scan.txt \n";}
+@file_put_contents("/tmp/zarafa.scan.txt", @implode("\n", $array)."\n".@implode("\n", $arraylo));
 
+if($GLOBALS["VERBOSE"]){echo "--> user_status_table()\n";}
+user_status_table();
 
 if(!$GLOBALS["NOMAIL"]){
 	if(count($f)>0){
@@ -159,10 +239,7 @@ function orphans(){
 	$unix=new unix();
 	$zarafaadmin=$unix->find_program("zarafa-admin");
 	if(!is_file($zarafaadmin)){return ;}
-	
-	
-	
-		$mns=$unix->file_time_min($timefile);
+		//$mns=$unix->file_time_min($timefile);
 		if(!$GLOBALS["FORCE"]){
 			if(system_is_overloaded(basename(__FILE__))){
 				system_admin_events("Overloaded system, aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
@@ -185,6 +262,26 @@ function orphans(){
 		}
 
 @file_put_contents($pidfile, getmypid());
+
+$kill=$unix->find_program("kill");
+$pids=$unix->PIDOF_PATTERN_ALL("zarafa-admin --list-orphans");
+if(count($pids)>0){
+	while (list ($pid, $line) = each ($pids) ){
+		$time=$unix->PROCESS_TTL($pid);
+		if($time>15){
+			$unix->_syslog("killing zarafa-admin --list-orphans pid $pid ({$time}mn)", basename(__FILE__));
+			shell_exec("$kill -9 $pid");
+		}
+
+	}
+
+}
+
+$pid=$unix->PIDOF_PATTERN("zarafa-admin --list-orphans");
+if($unix->process_exists($pid)){
+	$unix->_syslog("zarafa-admin --list-orphans pid $pid still running", basename(__FILE__));
+	return;
+}
 
 
 
@@ -495,7 +592,12 @@ $f[]="ldap_user_unique_attribute_type = $ldap_user_unique_attribute_type";
 $f[]="";
 $f[]="ldap_user_sendas_attribute = zarafaSendAsPrivilege";
 $f[]="ldap_user_sendas_attribute_type = text";
-$f[]="ldap_user_sendas_relation_attribute =";
+$f[]="ldap_user_sendas_relation_attribute = $ldap_user_sendas_relation_attribute";
+$f[]="";
+$f[]="ldap_sendas_attribute = zarafaSendAsPrivilege";
+$f[]="ldap_sendas_attribute_type = text";
+$f[]="ldap_sendas_relation_attribute = $ldap_user_sendas_relation_attribute";
+
 $f[]="";
 $f[]="ldap_user_certificate_attribute = userCertificate";
 $f[]="ldap_fullname_attribute = displayName";
@@ -610,6 +712,17 @@ echo "Starting zarafa..............: LDAP config done (".basename(__FILE__).")\n
 function remove_database(){
 	$q=new mysql();
 	$unix=new unix();
+	
+	$sock=new sockets();
+	
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	
+	if($ZarafaDedicateMySQLServer==1){
+		shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.zarafa-db.php --remove-database");
+		return;
+		
+	}
 	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
 	$q->DELETE_DATABASE("zarafa");
 	if(!$q->ok){
@@ -678,6 +791,28 @@ function relinkto($from,$to){
 	if($from==null){system_admin_events("Unhooking store failed, from is not specified", __FUNCTION__, __FILE__, __LINE__, "zarafa");return;}
 	if($to==null){system_admin_events("Unhooking store failed, recipient is not specified", __FUNCTION__, __FILE__, __LINE__, "zarafa");return;}
 	$unix=new unix();
+	
+	$kill=$unix->find_program("kill");
+	$pids=$unix->PIDOF_PATTERN_ALL("zarafa-admin --list-orphans");
+	if(count($pids)>0){
+		while (list ($pid, $line) = each ($pids) ){
+			$time=$unix->PROCESS_TTL($pid);
+			if($time>15){
+				$unix->_syslog("killing zarafa-admin --list-orphans pid $pid ({$time}mn)", basename(__FILE__));
+				shell_exec("$kill -9 $pid");
+			}
+	
+		}
+	
+	}
+	
+	$pid=$unix->PIDOF_PATTERN("zarafa-admin --list-orphans");
+	if($unix->process_exists($pid)){
+		$unix->_syslog("zarafa-admin --list-orphans pid $pid still running", basename(__FILE__));
+		return;
+	}
+	
+	
 	$zarafaadmin=$unix->find_program("zarafa-admin");
 	$fromRegex=$from;
 	$fromRegex=str_replace(".", "\.", $fromRegex);
@@ -706,6 +841,17 @@ function relinkto($from,$to){
 }
 
 function user_status_table(){
+	if(isset($GLOBALS["user_status_table_executed"])){
+		if($GLOBALS["VERBOSE"]){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){
+				$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+				echo "user_status_table Already executed $called\n";
+			}
+		}
+		return;
+	}
+	$GLOBALS["user_status_table_executed"]=true;
 	$unix=new unix();
 	$sock=new sockets();
 	$timefile="/usr/share/artica-postfix/ressources/databases/ZARAFA_DB_STATUS.db";
@@ -714,6 +860,8 @@ function user_status_table(){
 
 	
 	$mns=$unix->file_time_min($timefile);
+	if($GLOBALS["VERBOSE"]){echo "$timefile = {$mns}Mn\n";}
+	
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){
 			system_admin_events("Overload system, aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
@@ -738,8 +886,9 @@ function user_status_table(){
 	}
 	
 	@file_put_contents($pidfile, getmypid());
-	
 	@unlink($timefile);
+	@file_put_contents($timefile, time());
+	
 	$ZarafaIndexPath=$sock->GET_INFO("ZarafaIndexPath");
 	$ZarafaStoreOutsidePath=$sock->GET_INFO("ZarafaStoreOutsidePath");
 	$ZarafaMySQLServiceType=$sock->GET_INFO("ZarafaMySQLServiceType");
@@ -773,13 +922,41 @@ function user_status_table(){
 	@chmod($timefile,0750);
 	unset($ARRAY);
 	$zarafaadmin=$unix->find_program("zarafa-admin");	
+	
+	
+	$kill=$unix->find_program("kill");
+	$pids=$unix->PIDOF_PATTERN_ALL("zarafa-admin -l");
+	if(count($pids)>0){
+		while (list ($pid, $line) = each ($pids) ){
+			$time=$unix->PROCESS_TTL($pid);
+			if($time>15){
+				$unix->_syslog("killing zarafa-admin -l pid $pid ({$time}mn)", basename(__FILE__));
+				shell_exec("$kill -9 $pid");
+			}
+	
+		}
+	
+	}
+	
+	$pid=$unix->PIDOF_PATTERN("zarafa-admin -l");
+	if($unix->process_exists($pid)){
+		$unix->_syslog("zarafa-admin -l pid $pid still running", basename(__FILE__));
+	}	
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "$zarafaadmin -l 2>&1\n--------------------------------------------------------------------\n";}
 	exec("$zarafaadmin -l 2>&1",$results);
+	
+	
+	
 	while (list ($num, $line) = each ($results) ){
 		$line=trim($line);
+		if($GLOBALS["VERBOSE"]){echo "\"$line\"\n";}
 		if(preg_match("#User list for\s+(.+?)\(#i",$line,$re)){$ou=$re[1];continue;}
 		if(preg_match("#Username#", $line)){continue;}
 		if(preg_match("#SYSTEM#", $line)){continue;}
 		if(preg_match("#^(.+?)\s+.+?#", $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "\"$ou\" -> \"{$re[1]}\" -> \"_user_status_table_info({$re[1]},$zarafaadmin)\"\n";}
 			$array[$ou][$re[1]]=_user_status_table_info($re[1],$zarafaadmin);
 		}
 	}
@@ -792,9 +969,9 @@ function user_status_table(){
 			  `uid` varchar(128) NOT NULL,
 			  `ou` varchar(128) NOT NULL,
 			  `mail` varchar(255) NOT NULL,
-			  `license` TINYINT(1) NOT NULL,
+			  `license` smallint(1) NOT NULL,
 			  `NONACTIVETYPE` varchar(60) NOT NULL,
-			  `storesize` INT(100) NOT NULL,
+			  `storesize` BINT(100) UNSIGNED NOT NULL,
 			  KEY `uid` (`uid`),
 			  KEY `ou` (`ou`),
 			  KEY `mail` (`mail`),
@@ -811,6 +988,8 @@ function user_status_table(){
 		while (list ($ou, $members) = each ($array) ){	
 			while (list ($uid, $main) = each ($members) ){	
 				$md5=md5("$uid$ou");
+				if(!isset($main["NONACTIVETYPE"])){$main["NONACTIVETYPE"]='';}
+				if($GLOBALS["VERBOSE"]){echo "\"('$md5','$uid','$ou','{$main["MAIL"]}','{$main["ACTIVE"]}','{$main["NONACTIVETYPE"]}','{$main["STORE_SIZE"]}')\n";}
 				$f[]="('$md5','$uid','$ou','{$main["MAIL"]}','{$main["ACTIVE"]}','{$main["NONACTIVETYPE"]}','{$main["STORE_SIZE"]}')";
 			}	
 				
@@ -822,7 +1001,7 @@ function user_status_table(){
 	$q->QUERY_SQL("TRUNCATE TABLE zarafauserss","artica_events");
 	$q->QUERY_SQL($prefix.@implode(",", $f),"artica_events");
 	if(!$q->ok){echo $q->mysql_error."\n";}
-	
+	if($GLOBALS["VERBOSE"]){echo "FINISH\n--------------------------------------------------------------------\n";}
 }
 
 function _user_status_table_info($uid,$zarafaadmin){
@@ -847,12 +1026,17 @@ function _user_status_table_info($uid,$zarafaadmin){
 			$array["NONACTIVETYPE"]=trim($re[1]);continue;
 		}
 		
-		if(preg_match("#Current store size:\s+([0-9\.]+)\s+([A-Z]+)#i", $line,$re)){
-			$size=trim($re[1]);
+		if(preg_match("#Current store size:\s+([0-9\.\,\s]+)\s+([A-Z]+)#i", $line,$re)){
+			$size = intval(trim($re[1]));
 			$unit=trim($re[2]);
+			if($GLOBALS["VERBOSE"]){echo "$uid: Found $size -> Unit $unit\n";}
+			
 			if($unit=="MB"){$size=$size*1000;$size=$size*1024;$unit="B";}
 			if($unit=="KB"){$size=$size*1024;$unit="B";}
 			if($unit=="GB"){$size=$size*1000;$size=$size*1000;$size=$size*1024;}
+			if($unit=="MiB"){$size=$size*1000;$size=$size*1024;$unit="B";}
+			if($GLOBALS["VERBOSE"]){echo "$uid: OK $size -> Unit:$unit Bytes\n";}
+			
 			$array["STORE_SIZE"]=$size;continue;
 		}
 		

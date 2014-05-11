@@ -612,7 +612,7 @@ function netadsleave_perform(){
 function netadsleave_icon(){
 	$tpl=new templates();
 	
-	$tests=imgtootltip("loupe-64.png","{analyze}","Loadjs('squid.adker.php?test-popup-js=yes&via-samba=yes')");
+	$tests=imgtootltip("loupe-64.png","{analyze}","Loadjs('squid.adker.php?test-popup-js=yes&via-samba=yes',true)");
 	
 	echo $tpl->_ENGINE_parse_body("<hr>$tests<hr>".imgtootltip("delete-64.png","{leave_ad}","NetAdsLeave()"));
 	

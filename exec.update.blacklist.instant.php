@@ -1,11 +1,12 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
+$GLOBALS["SCHEDULE_ID"]=0;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["VERBOSE"]=false;$GLOBALS["BYCRON"]=false;$GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
@@ -21,16 +22,19 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 
 
 	if(system_is_overloaded(basename(__FILE__))){
-		$ldao=getSystemLoad();
-		ufdbguard_admin_events("Processing task database aborted System is overloaded ($ldao), the processing will be aborted and restart in next cycle
-		Task stopped line $c/$count rows\n",__FUNCTION__,__FILE__,__LINE__,"update");
-		die();
+		if($GLOBALS["SCHEDULE_ID"]==0){
+			$ldao=getSystemLoad();
+			ufdbguard_admin_events("Processing task database aborted System is overloaded ($ldao), the processing will be aborted and restart in next cycle
+			Task stopped line $c/$count rows\n",__FUNCTION__,__FILE__,__LINE__,"update");
+			die();
+		}
 	}	
 
 
 if($argv[1]=="--view"){DumpDb($argv[2]);die();}
 if($argv[1]=="--fishTank"){fishTank();die();}
 if($argv[1]=="--CleanDB"){CleanDBZ();die();}
+if($argv[1]=="--exec"){Execute();die();}
 
 
 
@@ -44,8 +48,9 @@ ExecuteMD5();
 	
 function DumpDb($num){
 	$unix=new unix();
-	$BASE_URI="http://www.artica.fr/instant-blks";
-	$indexuri="http://www.artica.fr/webfilters-instant.php";	
+	$URIBASE=$unix->MAIN_URI();
+	$BASE_URI="$URIBASE/instant-blks";
+	$indexuri="$URIBASE/webfilters-instant.php";	
 	$data_temp_file=$unix->FILE_TEMP();
 	$url_temp_file="$BASE_URI/$num.dat";	
 	$curl=new ccurl($url_temp_file);
@@ -130,7 +135,9 @@ function Execute(){
 	WriteMyLogs("Execute()...",__FUNCTION__,__FILE__,__LINE__);
 	
 	$unix=new unix();
-	$BASE_URI="http://www.artica.fr/instant-blks";
+	
+	$URIBASE=$unix->MAIN_URI();
+	$indexuri="$URIBASE/instant-blks";
 	
 
 	$CACHE=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/instantBlackList.cache")));
@@ -151,12 +158,12 @@ function Execute(){
 	
 	return;
 	$data_temp_file=$unix->FILE_TEMP();
-	$url_temp_file="$BASE_URI/$num.dat";	
+	$url_temp_file="$indexuri/$num.dat";	
 	$curl=new ccurl($url_temp_file);
 	if(!$curl->GetFile($data_temp_file)){echo "Fatal error downloading $data_temp_file\n";ufdbguard_admin_events("Fatal: unable to download data file $data_temp_file",__FUNCTION__,__FILE__,__LINE__,"update");die();}
-	$prefix="INSERT IGNORE INTO $table (zmd5,zDate,category,pattern,uuid,sended) VALUES ";
+	//$prefix="INSERT IGNORE INTO $table (zmd5,zDate,category,pattern,uuid,sended) VALUES ";
 	$array=unserialize(base64_decode(@file_get_contents($data_temp_file)));	
-	print_r($array);
+	//print_r($array);
 
 }
 
@@ -285,7 +292,7 @@ function WriteMyLogs($text,$function,$file,$line){
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	if(!isset($GLOBALS["MYPID"])){$GLOBALS["MYPID"]=getmypid();}
 	writelogs($text,$function,__FILE__,$line);
-	$logFile="/var/log/artica-postfix/".basename(__FILE__).".log";
+	$logFile="{$GLOBALS["ARTICALOGDIR"]}/".basename(__FILE__).".log";
 	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    	if (is_file($logFile)) { 
    		$size=filesize($logFile);

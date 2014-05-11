@@ -134,7 +134,7 @@ function memory_trace($array){
 	
 	$familysite=$GLOBALS["Q"]->GetFamilySites($servername);
 	$uid=mysql_escape_string2($uid);
-	$sql="INSERT DELAYED INTO `$table` (`hour`,`keyr`,`ipaddr`,`familysite`,`servername`,`filetype`,`uid`,`MAC`,`size`) VALUES
+	$sql="INSERT IGNORE INTO `$table` (`hour`,`keyr`,`ipaddr`,`familysite`,`servername`,`filetype`,`uid`,`MAC`,`size`) VALUES
 	('$hour','$keyr','$ipaddr','$familysite','$servername','$type','$uid','$mac','$size')";
 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($sql);}
 	$GLOBALS["Q"]->QUERY_SQL($sql);

@@ -97,7 +97,7 @@ begin
   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/compile-squid32.php --c-icap-remove');
 
   SetCurrentDir(source_folder);
-  cmd:='./configure --enable-static --prefix=/usr --includedir="\${prefix}/include"';
+  cmd:='./configure --enable-static --prefix=/usr --includedir="\${prefix}/include" --enable-large-files';
   cmd:=cmd+' --mandir="\${prefix}/share/man" --infodir="\${prefix}/share/info" --sysconfdir=/etc --localstatedir=/var --libexecdir="\${prefix}/lib/c-icap"';
   fpsystem(cmd);
   fpsystem('make');

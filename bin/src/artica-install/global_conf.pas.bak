@@ -8,8 +8,8 @@ interface
 uses
 //depreciated oldlinux -> linux
 Classes, SysUtils,Process,strutils,IniFiles,RegExpr in 'RegExpr.pas',unix,logs,dateutils,uHashList,Geoip,BaseUnix,md5,dhcp_server,openvpn,cups,pdns, obm2,
-samba,smartd,xapian,opengoo,dstat,sugarcrm,rsync,tcpip,policyd_weight,apache_artica, autofs,nfsserver,framework,ocsi,assp,gluster,zabbix,hamachi,vmwaretools,phpldapadmin,zarafa_server,squidguard,emailrelay,mldonkey,backuppc,kav4fs,
-ocsagent,sshd,auditd,dkfilter,ufdbguardd,dkimmilter,dropbox,articapolicy,virtualbox,crossroads,articastatus,articaexecutor,articabackground,pptpd,ddclient,cluebringer,toolsversions,sabnzbdplus,fusermount,vnstat,munin,greyhole,snort,greensql,tomcat,
+samba,smartd,xapian,opengoo,dstat,sugarcrm,rsync,tcpip,policyd_weight,apache_artica, autofs,nfsserver,framework,ocsi,assp,gluster,zabbix,hamachi,vmwaretools,phpldapadmin,zarafa_server,squidguard,mldonkey,backuppc,kav4fs,
+ocsagent,auditd,dkfilter,ufdbguardd,dkimmilter,dropbox,articapolicy,virtualbox,crossroads,articaexecutor,articabackground,pptpd,ddclient,cluebringer,toolsversions,sabnzbdplus,fusermount,vnstat,munin,greyhole,snort,greensql,tomcat,
 openemm,yaffas,memcached,ejabberd,articadb,
 mailarchiver in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/mailarchiver.pas',
 kavmilter    in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/kavmilter.pas',
@@ -187,11 +187,7 @@ public
       //CONSOLE-KIT
       function       CONSOLEKIT_STATUS():string;
 
-      //SYSLOGGER
-      procedure      SYSLOGER_STOP();
-      function       SYSLOGER_STATUS():string;
-      function       SYSLOGER_PID():string;
-      procedure      SYSLOGER_START();
+
 
       //USB
       function       SCAN_USB():string;
@@ -204,7 +200,7 @@ public
       function       SCAN_DISK_PHP(norecheck:boolean=false):string;
       function       SCAN_DISK_PARTITIONS_PHP(dev:string):string;
 
-      function       LMB_LUNDIMATIN_VERSION():string;
+
       function       PHPMYADMIN_VERSION():string;
       function       DRUPAL_VERSION():string;
 
@@ -457,22 +453,10 @@ public
       function  MD5FromFile(path:string):string;
       function  CURL_HTTPS_ENABLED():boolean;
 
-      //BOA
-      function         BOA_SET_CONFIG():boolean;
-      procedure        BOA_FIX_ETC_HOSTS();
-      function         BOA_DAEMON_GET_PID():string;
-      procedure        BOA_TESTS_INIT_D();
-      procedure        BOA_STOP();
-      procedure        BOA_START();
-      function         BOA_BIN_PATH():string;
-       function        BOA_DAEMON_STATUS():string;
-
-
       function hpinlinux_VERSION():string;
 
-      function  SASLAUTHD_PATH_GET():string;
-      function  SASLAUTHD_VALUE_GET(key:string):string;
-      function  SASLAUTHD_TEST_INITD():boolean;
+
+
 
 
 
@@ -1025,6 +1009,7 @@ function myconf.SCAN_DISK_PHP(norecheck:boolean):string;
    l,s:TstringList;
    i:integer;
    RegExpr:TRegExpr;
+   RegExpr2:TRegExpr;
    DiskDev:string;
    SIZE:string;
    ID_BUS:string;
@@ -1032,6 +1017,7 @@ function myconf.SCAN_DISK_PHP(norecheck:boolean):string;
 
 begin
 
+    if debug then writeln('SCAN_DISK_PHP....');
     proc_partition:=false;
     if not FileExists('/etc/artica-postfix/fdisk.info') then begin
        if FileExists('/proc/partitions') then begin
@@ -1056,8 +1042,10 @@ begin
 
      l:=TstringList.Create;
      RegExpr:=TRegExpr.Create;
+     RegExpr2:=TRegExpr.Create;
 
      l.LoadFromFile('/etc/artica-postfix/fdisk.info');
+     if debug then writeln('SCAN_DISK_PHP : /etc/artica-postfix/fdisk.info rows:',l.Count);
      for i:=0 to l.Count-1 do begin
          RegExpr.Expression:='cannot open.+?partitions';
          if RegExpr.Exec(l.Strings[i]) then begin
@@ -1068,10 +1056,32 @@ begin
          end;
 
         RegExpr.Expression:='(.+?)\s+([0-9\.A-Z]+)\s+([0-9\.A-Z]+)\s+([0-9\.A-Z]+)\s+([0-9\.\%]+)\s+';
-        if proc_partition then RegExpr.Expression:='^[A-Za-z]+\s+(.+?):\s+([0-9\.]+)\s+([A-Za-z]+)';
+        if proc_partition then RegExpr.Expression:='^[A-Za-z]+\s+(.+?):\s+([0-9\.]+).*?([A-Za-z]+)';
          if RegExpr.Exec(l.Strings[i]) then begin
-                  DiskDev:=RegExpr.Match[1];
-                  if DiskDev='size (logical/physical)' then continue;
+                  if debug then writeln('CAN_DISK_PHP : *** "',l.Strings[i],'" match "', RegExpr.Expression,'" ***');
+                  DiskDev:=trim(RegExpr.Match[1]);
+                  DiskDev:=trim(DiskDev);
+                  RegExpr2.Expression:='^(.+?)\s+';
+                  if RegExpr2.Exec(DiskDev) then DiskDev:=RegExpr2.Match[1];
+
+                  if pos('(',DiskDev)>0 then begin
+                      if debug then writeln('CAN_DISK_PHP : *** "  size (logical/physical) " abort');
+                       continue;
+                  end;
+                  if DiskDev='size (logical/physical)' then begin
+                       if debug then writeln('CAN_DISK_PHP : *** "  size (logical/physical) " abort');
+                       continue;
+                  end;
+
+                  if pos('/',DiskDev)=0 then begin
+                      if debug then writeln('CAN_DISK_PHP : *** "'+DiskDev+'" abort');
+                       continue;
+                  end;
+                  if pos('''',DiskDev)>1 then begin
+                      if debug then writeln('CAN_DISK_PHP : *** "'+DiskDev+'" abort');
+                       continue;
+                  end;
+
                   if DiskDev='none' then continue;
                   logs.Debuglogs('SCAN_DISK_PHP:: Found "'+DiskDev+'"');
                   ID_BUS:=usb_devinfo_query(DiskDev,'SUBSYSTEMS');
@@ -1081,6 +1091,7 @@ begin
                   end;
                   if ID_BUS='usb' then continue;
                   if proc_partition then SIZE:=RegExpr.Match[2]+' '+RegExpr.Match[3] else SIZE:=RegExpr.Match[2];
+                  if debug then writeln('CAN_DISK_PHP : *** "',DiskDev,'" **** In array');
                   s.Add(chr(9)+chr(9)+'"'+DiskDev+'"=>array(');
                   s.Add(chr(9)+chr(9)+chr(9)+'"SIZE"=>"'+SIZE+'",');
                   s.add(chr(9)+chr(9)+chr(9)+'"ID_FS_LABEL"=>"'+sys.usbLabel(DiskDev)+'",');
@@ -1093,8 +1104,9 @@ begin
                   s.Add(chr(9)+chr(9)+chr(9)+'"MOUNTED"=>"'+SYS.usb_mount_point(DiskDev)+'",');
                   s.Add(chr(9)+chr(9)+chr(9)+'"PARTITIONS"=>'+SCAN_DISK_PARTITIONS_PHP(DiskDev));
                   s.Add(chr(9)+chr(9)+chr(9)+'),');
+         end else begin
+              if debug then writeln('CAN_DISK_PHP :"',l.Strings[i],'" no match "', RegExpr.Expression,'"');
          end;
-
 
 
      end;
@@ -1281,12 +1293,12 @@ newdev:=RegExpr.Match[1];
 if D then writeln('USB_DEV_INFO(',dev,',',key,') newdev=',newdev);
 
 if length(newdev)=0 then begin
-   if D then writeln('unable to find new dev in '+dev+' Match ' + key);
+   if D then writeln('unable to find new dev in '+dev+' Match ' + key +' regex:\/([a-zA-Z0-9\-\_]+)$');
    newdev:=dev;
 end;
 
 if length(newdev)=0 then begin
-   if D then writeln('unable to find new dev in '+dev+' Match ' + key);
+   if D then writeln('unable to find new dev in '+dev+' Match ' + key+' regex:\/([a-zA-Z0-9\-\_]+)$');
    exit;
 end;
 
@@ -1452,6 +1464,7 @@ end;
 
   cmd:=cmd+' >'+tmpfile + ' 2>&1';
   if d then writeln('usb_devinfo_query():: '+cmd);
+  if Not FileExists(tmpfile) then exit;
   fpsystem(cmd);
   l:=TstringList.Create;
   l.LoadFromFile(tmpfile);
@@ -2674,7 +2687,6 @@ var
    mldonkey:tmldonkey;
    backuppc:tbackuppc;
    kav4fs:tkav4fs;
-   sshd:tsshd;
    auditd:tauditd;
    dkfilter:tdkfilter;
    ufdbguardd:tufdbguardd;
@@ -2883,14 +2895,6 @@ begin
     end;
     openemm.free;
 
-    // OpenSSH
-    sshd:=tsshd.Create(SYS);
-    try
-       ArrayList.Add('[APP_OPENSSH] "'+sshd.VERSION()+'"');
-    except
-          logs.Syslogs('FATAL ERROR on CGI_ALL_APPLIS_INSTALLED after sshd.VERSION()');
-    end;
-    sshd.free;
 
     // crossroads
     crossroads:=tcrossroads.Create(SYS);
@@ -3068,14 +3072,6 @@ begin
     mgreylist.free;
 
 
-    //opendkim
-    dkfilter:=tdkfilter.Create(SYS);
-    try
-       ArrayList.Add('[APP_OPENDKIM] "'+dkfilter.VERSION()+'"');
-    except
-          logs.Syslogs('FATAL ERROR on CGI_ALL_APPLIS_INSTALLED after dkfilter.VERSION()');
-    end;
-    dkfilter.free;
 
 
     dkimmilter:=tdkimmilter.Create(SYS);
@@ -5480,128 +5476,6 @@ begin
  if IOresult<>0 then logs.Syslogs('Cannot change to directory : ' + path);
 end;
 //##############################################################################
-function MyConf.SASLAUTHD_PATH_GET():string;
-begin
-
-    if FileExists('/etc/default/saslauthd') then result:='/etc/default/saslauthd';
-    if FileExists('/etc/sysconfig/saslauthd') then  result:='/etc/sysconfig/saslauthd';
-    if Debug then ShowScreen('SASLAUTHD_PATH_GET -> "' + result + '"');
-end;
-//##############################################################################
-function MyConf.SASLAUTHD_VALUE_GET(key:string):string;
-var Msaslauthd_path,mdatas:string;
-   RegExpr:TRegExpr;
-begin
-Msaslauthd_path:=SASLAUTHD_PATH_GET();
-    if length(Msaslauthd_path)=0 then begin
-        if Debug then writeln('SASLAUTHD_VALUE_GET -> NULL!!!');
-        exit;
-    end;
-
-     RegExpr:=TRegExpr.Create;
-     RegExpr.Expression:=key + '=[\s"]+([a-z\/]+)(?)';
-     if Debug then writeln('SASLAUTHD_VALUE_GET -> Read ' + Msaslauthd_path);
-     mdatas:=ReadFileIntoString(Msaslauthd_path);
-
-     if RegExpr.Exec(mdatas) then begin
-        result:=RegExpr.Match[1];
-        if Debug then writeln('SASLAUTHD_VALUE_GET -> regex ' + result);
-     end;
-     RegExpr.Free;
-end;
-//##############################################################################
-function myconf.SASLAUTHD_TEST_INITD():boolean;
-var List:TStringList;
-   RegExpr:TRegExpr;
-   i:integer;
-begin
-   ShowScreen('SASLAUTHD_TEST_INITD:: Prevent false mechanism in init.d for saslauthd');
-   if not fileExists('/etc/init.d/saslauthd') then begin
-      showScreen('SASLAUTHD_TEST_INITD:: Error stat etc/init.d/saslauthd');
-   end;
-     List:=TStringList.Create;
-     List.LoadFromFile('/etc/init.d/saslauthd');
-     RegExpr:=TRegExpr.Create;
-     RegExpr.Expression:='SASLAUTHD_AUTHMECH=([a-z]+)';
-     for i:=0 to List.Count-1 do begin
-          if RegExpr.Exec(list.Strings[i]) then begin
-             showScreen('SASLAUTHD_TEST_INITD:: Read: "' + RegExpr.Match[1]+'"');
-             if  RegExpr.Match[1]<>'ldap' then begin
-                  showScreen('SASLAUTHD_TEST_INITD:: change to "ldap" mode');
-                  list.Strings[i]:='SASLAUTHD_AUTHMECH=ldap';
-                  list.SaveToFile('/etc/init.d/saslauthd');
-                  showScreen('SASLAUTHD_TEST_INITD:: done..');
-                  fpsystem('/etc/init.d/saslauthd restart');
-                  list.Free;
-                  RegExpr.free;
-                  exit(true);
-             end;
-          end;
-
-     end;
- showScreen('SASLAUTHD_TEST_INITD:: nothing to change...');
- list.Free;
- RegExpr.free;
- exit(true);
-end;
-//##############################################################################
-function MyConf.BOA_SET_CONFIG();
-var
-   List:TstringList;
-   LocalPort:integer;
-   BoaLOGS:Tlogs;
-   openldap:Topenldap;
-   newal:string;
-   hostname:string;
-begin
-result:=true;
-LocalPort:=get_ARTICA_LOCAL_PORT();
-BoaLOGS:=Tlogs.Create;
-forcedirectories('/opt/artica/share/www');
-forcedirectories('/opt/artica/share/www/squid/rrd');
-forcedirectories('/opt/artica/share/www/squid/sarg');
-List:=TstringList.Create;
-hostname:=SYS.HOSTNAME_g();
-BoaLOGS.logs('Writing httpd.conf for artica-postfix listener on ' + IntToStr(LocalPort) + ' port');
-logs.DebugLogs('Starting......: Boa will listen on '+ IntToStr(LocalPort) + ' port');
-logs.DebugLogs('Starting......: Boa hostname '+hostname);
-if FileExists('/var/log/artica-postfix/boa_error.log') then logs.DeleteFile('/var/log/artica-postfix/boa_error.log');
-if FileExists('/var/log/artica-postfix/boa_access_log') then logs.DeleteFile('/var/log/artica-postfix/boa_access_log');
-if FileExists('/var/log/artica-postfix/boa_cgi_log') then logs.DeleteFile('/var/log/artica-postfix/boa_cgi_log');
-
-List.Add('Port ' + IntToStr(LocalPort));
-List.Add('Listen 127.0.0.1');
-List.Add('ServerName '+hostname);
-List.Add('User root');
-List.Add('Group root');
-List.Add('PidFile /etc/artica-postfix/boa.pid');
-List.Add('ErrorLog /var/log/artica-postfix/boa_error.log');
-List.Add('AccessLog /var/log/artica-postfix/boa_access_log');
-List.Add('CGILog /var/log/artica-postfix/boa_cgi_log');
-List.Add('DocumentRoot /opt/artica/share/www');
-List.Add('DirectoryIndex index.html');
-List.Add('#DirectoryMaker /usr/lib/boa/boa_indexer');
-List.Add('KeepAliveMax 1000');
-List.Add('KeepAliveTimeout 5');
-List.Add('#MimeTypes /etc/mime.types');
-List.Add('DefaultType text/plain');
-List.Add('CGIPath /bin:/usr/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/sbin:/sbin:/bin:/usr/X11R6/bin');
-List.Add('AddType application/x-executable cgi');
-List.Add('ScriptAlias /cgi/ ' + get_ARTICA_PHP_PATH() + '/bin/');
-List.Add('Alias /queue ' + ARTICA_FILTER_QUEUEPATH());
-List.Add('Alias /images ' + get_ARTICA_PHP_PATH() + '/img/');
-List.Add('Alias /css ' + get_ARTICA_PHP_PATH() + '/css/');
-List.add('Alias /sarg /opt/artica/share/www/sarg/');
-openldap:=Topenldap.Create;
-newal:=logs.MD5FromString(openldap.ldap_settings.password+openldap.ldap_settings.suffix);
-List.add('Alias /'+newal+' /');
-
-
-list.SaveToFile('/etc/artica-postfix/httpd.conf');
-list.Free;
-BoaLOGS.free;
-end;
-//##############################################################################
 function myconf.LDAP_SLAPADD_BIN_PATH():string;
 begin
 if FileExists('/usr/sbin/slapadd') then exit('/usr/sbin/slapadd');
@@ -5706,17 +5580,17 @@ begin
        logs.DebugLogs('Starting......: ldap password as changed fix settings...');
        logs.DebugLogs('Starting......: Restart postfix, cyrus, saslauthd');
        POSTFIX_CONFIGURE_MAIN_CF();
-       CCYRUS.WRITE_IMAPD_CONF();
+
        CCYRUS.SASLAUTHD_CONFIGURE();
 
        postfix.POSTFIX_STOP();
-       CCYRUS.CYRUS_DAEMON_STOP();
-       sasl.STOP();
+       fpsystem('/etc/init.d/cyrus-imapd stop');
+
 
        postfix.POSTFIX_STOP();
        postfix.POSTFIX_START_LIMITED();
-       CCYRUS.CYRUS_DAEMON_START();
-       sasl.START();
+       fpsystem('/etc/init.d/cyrus-imapd start');
+
        sasl.Free;
     end;
 
@@ -5771,8 +5645,7 @@ var
    l:TstringList;
    xfce:Txfce;
    pidof_path:string;
-   emailrelay:Temailrelay;
-   articastatus:tarticastatus;
+
    articaexecutor:tarticaexecutor;
    articabackground:tarticabackground;
    EnableQOSInterface:integer;
@@ -5930,10 +5803,6 @@ begin
      logs.OutputCmd('/bin/chmod 777 /usr/share/artica-postfix/ressources/profiles');
      logs.OutputCmd('/bin/chmod 777 /tmp');
 
-     writeln('Starting......: Starting cron scheduler...');
-     artica_cron:=tcron.Create(SYS);
-     artica_cron.START();
-     artica_cron.free;
 
 
      writeln('Starting......: fusermount (if it is installed)');
@@ -5958,20 +5827,13 @@ begin
 
 
 
-     writeln('Starting......: Starting artica-sysloger');
-     SYSLOGER_START();
+
      writeln('Starting......: Starting MySQL server');
      START_MYSQL();
      writeln('Starting......: Starting apache web interface');
      APACHE_ARTICA_START();
-     writeln('Starting......: Starting Boa.... (global start)');
-     BOA_START();
      writeln('Starting......: Starting BOA Done....');
-     emailrelay:=Temailrelay.CReate(SYS);
 
-     writeln('Starting......: eMailRelay instances....');
-     emailrelay.START();
-     emailrelay.free;
 
 
      //logs.OutputCmd(Rootpath + '/bin/artica-ldap -iptables --start');
@@ -6029,7 +5891,7 @@ begin
           fpsystem('/bin/rm /home/artica/packages/SQUID/SQUID.tar.gz');
           fpsystem('/etc/init.d/artica-postfix restart squid');
           fpsystem('/etc/init.d/artica-postfix restart squid');
-          fpsystem('/usr/share/artica-postfix/bin/process1 --force');
+
        end;
 
       if FileExists('/home/artica/packages/squid32.tar.gz') then begin
@@ -6100,13 +5962,12 @@ var
    zabbix:tzabbix;
    mldonkey:tmldonkey;
    backuppc:tbackuppc;
-   sshd:tsshd;
+
    opendkim:tdkfilter;
    ufdbguardd:tufdbguardd;
    squidguard:tsquidguard;
    articapolicy:tarticapolicy;
    virtualbox:tvirtualbox;
-   articastatus:tarticastatus;
    articaexecutor:tarticaexecutor;
    articabackground:tarticabackground;
    pptpd:tpptpd;
@@ -6174,9 +6035,6 @@ begin
       logs.Debuglogs('SYSTEM_START_ARTICA_ALL_DAEMON:: fatal error on gluster');
     end;
 
-    articastatus:=tarticastatus.Create(SYS);
-    articastatus.START();
-    articastatus.free();
 
     articaexecutor:=tarticaexecutor.Create(SYS);
     articaexecutor.START();
@@ -6214,12 +6072,12 @@ begin
 
     if SYS.PROCESS_EXIST(SYS.PIDOF('artica-backup')) then begin
           logs.Syslogs('A backup process is currently in execution, stop process');
-          fpsystem(get_ARTICA_PHP_PATH()+'/bin/process1');
+
     end;
 
     if SYS.PROCESS_EXIST(SYS.PIDOF('artica-update')) then begin
           logs.Syslogs('An update process is currently in execution, stop process');
-          fpsystem(get_ARTICA_PHP_PATH()+'/bin/process1');
+
     end;
 
     logs.Debuglogs('############ autofs ##################');
@@ -6356,7 +6214,7 @@ begin
      logs.Debuglogs('############ saslauthd ##################');
      writeln('Starting......: Testing saslauthd Daemon');
      saslauthd:=tsaslauthd.Create(SYS);
-     saslauthd.START();
+
      saslauthd.Free;
 
 
@@ -6374,10 +6232,8 @@ begin
      collectd.START();
 
 
-     logs.Debuglogs('############ clamav ##################');
-     writeln('Starting......: Testing clamav Daemons');
-     clamav.FRESHCLAM_START();
-     clamav.CLAMD_START();
+
+
 
 
  if NetWorkAvailable then begin
@@ -6395,8 +6251,7 @@ begin
         fpsystem('/bin/chmod -R 755 '+SYS.GET_INFO('CompressQueue')+' && /bin/chown -R postfix:postfix '+SYS.GET_INFO('CompressQueue'));
 
 
-        logs.Debuglogs('############ MYSQMAIL ##################');
-        postfix.MYSQMAIL_START();
+
 
         articapolicy:=tarticapolicy.Create(SYS);
         articapolicy.START();
@@ -6417,11 +6272,6 @@ begin
         assp.START();
         assp.free;
 
-        //assp
-        logs.Debuglogs('############ opendkim ##################');
-        opendkim:=tdkfilter.Create(SYS);
-        opendkim.START();
-        opendkim.free;
 
         logs.Debuglogs('############ postfix ##################');
         postfix.POSTFIX_START_LIMITED();
@@ -6508,7 +6358,7 @@ begin
         obm.SERVICE_START();
         logs.Debuglogs('############ Fetchmail ##################');
         fetchmail.FETCHMAIL_LOGGER_START();
-        fetchmail.FETCHMAIL_START_DAEMON();
+        fpsystem('/etc/init.d/fetchmail start');
 
     end;
 end;
@@ -6516,9 +6366,6 @@ end;
         writeln('Starting......: Testing Samba Daemon');
         logs.Debuglogs('############ SAMBA ##################');
         samba.SAMBA_START();
-        logs.Debuglogs(' -> samba.WINBIND_START();');
-        samba.WINBIND_START();
-        logs.Debuglogs(' -> samba.WINBIND_START();');
         greyhole:=tgreyhole.Create(SYS);
         cups:=tcups.Create;
         logs.Debuglogs(' -> greyhole.START();');
@@ -6563,10 +6410,7 @@ end;
      logs.Debuglogs('############ HOTWAYD_START ##################');
      HOTWAYD_START();
 
-     logs.Debuglogs('############ dnsmasq ##################');
-     dnsmasq:=Tdnsmasq.Create(SYS);
-     dnsmasq.DNSMASQ_START_DAEMON();
-     dnsmasq.Free;
+
 
      logs.Debuglogs('############ artica-ldap -inadyn ##################');
      SYS.THREAD_COMMAND_SET(get_ARTICA_PHP_PATH() + '/bin/artica-ldap -inadyn');
@@ -6671,116 +6515,6 @@ begin
 end;
 
 
-procedure myconf.BOA_TESTS_INIT_D();
-var
-l:TstringList;
-begin
-if not SYS.COMMANDLINE_PARAMETERS('--force') then if fileExists('/etc/init.d/artica-boa') then exit;
-l:=TstringList.Create;
-l.Add('#!/bin/sh');
-l.Add('#Begin /etc/init.d/artica-postfix');
-
- if fileExists('/sbin/chkconfig') then begin
-    l.Add('# chkconfig: 2345 11 89');
-    l.Add('# description: Artica-postfix boa Daemon');
- end;
-    l.add('### BEGIN INIT INFO');
-    l.Add('# Provides:          artica-boa');
-    l.Add('# Required-Start:    $local_fs $remote_fs $syslog $named $network $time');
-    l.Add('# Required-Stop:     $local_fs $remote_fs $syslog $named $network');
-    l.Add('# Should-Start:');
-    l.Add('# Should-Stop:');
-    l.Add('# Default-Start:     2 3 4 5');
-    l.Add('# Default-Stop:      0 1 6');
-    l.Add('# Short-Description: Start artica-boa daemon');
-    l.Add('# chkconfig: 2345 11 89');
-    l.Add('# description: artica-boa Daemon');
-    l.add('### END INIT INFO');
-
-
-l.Add('case "$1" in');
-l.Add(' start)');
-l.Add('    /usr/share/artica-postfix/bin/artica-install -watchdog boa $2 $3');
-l.Add('    ;;');
-l.Add('');
-l.Add('  stop)');
-l.Add('    /usr/share/artica-postfix/bin/artica-install -shutdown boa $2 $3');
-l.Add('    ;;');
-l.Add('');
-l.Add(' restart)');
-l.Add('     /usr/share/artica-postfix/bin/artica-install -watchdog boa $2 $3');
-l.Add('     sleep 3');
-l.Add('     /usr/share/artica-postfix/bin/artica-install -shutdown boa $2 $3');
-l.Add('    ;;');
-l.Add('');
-l.Add('  *)');
-l.Add('    echo "Usage: $0 {start|stop|restart}  (+ ''debug'' for more infos)"');
-l.Add('    exit 1');
-l.Add('    ;;');
-l.Add('esac');
-l.Add('exit 0');
-l.SaveToFile('/etc/init.d/artica-boa');
-l.Free;
-
- fpsystem('/bin/chmod +x /etc/init.d/artica-boa >/dev/null 2>&1');
-
- if FileExists('/usr/sbin/update-rc.d') then begin
-    fpsystem('/usr/sbin/update-rc.d -f artica-boa defaults >/dev/null 2>&1');
- end;
-
-  if FileExists('/sbin/chkconfig') then begin
-     fpsystem('/sbin/chkconfig --add artica-boa >/dev/null 2>&1');
-     fpsystem('/sbin/chkconfig --level 2345 artica-boa on >/dev/null 2>&1');
-  end;
-
-   LOGS.Debuglogs('Starting......: BOA install init.d scripts........:OK (/etc/init.d/artica-boa {start,stop,restart})');
-
-
-end;
-
-
-
-procedure myconf.BOA_STOP();
-var
-   count:integer;
-   RootPath:string;
-   pids:string;
- begin
- count:=0;
-
- if FileExists('/usr/sbin/boa') then RootPath:='/usr/sbin/boa';
- if length(Rootpath)=0 then Rootpath:=get_ARTICA_PHP_PATH()+'/bin/boa';
-
- if SYSTEM_PROCESS_EXIST(BOA_DAEMON_GET_PID()) then begin
-        writeln('Stopping BOA.................: ' + BOA_DAEMON_GET_PID() + ' PID..');
-        fpsystem('/bin/kill -9 '+BOA_DAEMON_GET_PID());
-
-        while SYSTEM_PROCESS_EXIST(BOA_DAEMON_GET_PID()) do begin
-              sleep(100);
-              inc(count);
-              if count>20 then begin
-                 fpsystem('/bin/kill -9 ' + BOA_DAEMON_GET_PID());
-                 break;
-              end;
-        end;
-        if SYSTEM_PROCESS_EXIST(BOA_DAEMON_GET_PID()) then begin
-           writeln('Stopping BOA.................: Failed to stop PID ' + BOA_DAEMON_GET_PID());
-        end;
-  end else begin
-     writeln('Stopping BOA.................: checking process for ',Rootpath);
-     pids:=SYS.PidAllByProcessPath(Rootpath);
-     if length(pids)>0 then begin
-         writeln('Stopping BOA.................: '+pids);
-         fpsystem('/bin/kill ' + pids);
-         exit;
-     end;
-
-     writeln('Stopping BOA.................: Already stopped');
-  end;
-
-
-end;
-//##############################################################################
 procedure myconf.APACHE_ARTICA_STOP();
  var
     ApacheEnabled:integer;
@@ -7089,51 +6823,6 @@ l.SaveToFile('/usr/share/roundcubemail/config/db.inc.php');
 l.free;
 end;
 //#############################################################################
-procedure myconf.BOA_START();
-var
-   BoaPath:string;
-   Rootpath:string;
-   logs:Tlogs;
-begin
-logs:=tlogs.Create;
-
-
-if FileExists('/usr/sbin/boa') then RootPath:='/usr/sbin/boa';
-if length(Rootpath)=0 then Rootpath:=get_ARTICA_PHP_PATH()+'/bin/boa';
-BoaPath:=Rootpath+' -c /etc/artica-postfix -f /etc/artica-postfix/httpd.conf -l 4';
-BOA_TESTS_INIT_D();
-ForceDirectories(get_ARTICA_PHP_PATH() + '/ressources/logs');
-
-
-
-if not SYSTEM_PROCESS_EXIST(BOA_DAEMON_GET_PID()) then begin
-        BOA_SET_CONFIG();
-        BOA_FIX_ETC_HOSTS();
-        logs.DebugLogs('Starting......: Boa BOA daemon...');
-        logs.DebugLogs('Starting......: Boa using binary in '+Rootpath);
-        logs.Debuglogs('Starting......: Boa boa http server settings in "/etc/artica-postfix/httpd.conf"');
-        fpsystem(BoaPath +' >'+get_ARTICA_PHP_PATH() + '/ressources/logs/boa.start 2>&1');
-        logs.OutputCmd('/bin/chmod 755 ' + get_ARTICA_PHP_PATH() + '/ressources/logs/boa.start');
-   end else begin
-        logs.DebugLogs('Starting......: BOA daemon is already running using PID ' + BOA_DAEMON_GET_PID()+ '...');
-        exit;
-     end;
-
-if not SYSTEM_PROCESS_EXIST(BOA_DAEMON_GET_PID()) then begin
-   logs.DebugLogs('Starting......: Boa failed to start');
-   logs.Debuglogs('Starting......: ' + logs.ReadFromFile(get_ARTICA_PHP_PATH() + '/ressources/logs/boa.start'));
-end else begin
-    logs.DebugLogs('Starting......: Boa Starting with new PID '+ BOA_DAEMON_GET_PID());
-    logs.DebugLogs('Starting......: Boa done...');
-end;
-
-end;
-//##############################################################################
-procedure myconf.BOA_FIX_ETC_HOSTS();
-begin
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.samba.php --fix-etc-hosts');
-end;
-//##############################################################################
 function myconf.MAILGRAPH_RDD_PATH():string;
 var
    RegExpr:TRegExpr;
@@ -7203,7 +6892,6 @@ procedure myconf.ARTICA_STOP();
     pid:string;
     count:integer;
     cron:tcron;
-    articastatus:tarticastatus;
     articaexecutor:tarticaexecutor;
     ocsagent:tocsagent;
 begin
@@ -7214,9 +6902,7 @@ count:=0;
    cron.STOP();
    cron.free;
 
-   articastatus:=tarticastatus.Create(SYS);
-   articastatus.STOP();
-   articastatus.free;
+
 
    articaexecutor:=tarticaexecutor.Create(SYS);
    articaexecutor.STOP();
@@ -7237,7 +6923,7 @@ count:=0;
    end;
 
 
-   pid:=trim(SYSTEM_PROCESS_LIST_PID('/usr/share/artica-postfix/bin/process1'));
+
    if length(pid)>0 then begin
         fpsystem('/bin/kill -9 ' + pid);
    end;
@@ -7613,38 +7299,7 @@ begin
     result:=SYS.GET_PID_FROM_PATH('/etc/artica-postfix/artica-agent.pid');
 end;
 //##############################################################################
-function MyConf.BOA_DAEMON_GET_PID():string;
-var
-   BoaPath,PID,allpids:string;
-   RegExpr:TRegExpr;
-   D:BOOLEAN;
-begin
-D:=COMMANDLINE_PARAMETERS('debug');
-BoaPath:=BOA_BIN_PATH();
 
-pid:=SYS.PIDOF_PATTERN(BoaPath+' -c /etc/artica-postfix');
-if length(trim(pid))>0 then exit(pid);
-
-PID:=trim(SYS.GET_PID_FROM_PATH('/etc/artica-postfix/boa.pid'));
-if D then writeln('BOA_DAEMON_GET_PID:: Found PID="',PID,'"');
-if length(PID)>0 then begin
-   RegExpr:=TRegExpr.Create;
-   RegExpr.Expression:=PID;
-   allpids:=SYSTEM_PROCESS_LIST_PID(BoaPath);
-   if D then writeln('BOA_DAEMON_GET_PID:: Found allpids="',allpids,'"');
-   if RegExpr.Exec(allpids) then result:=PID;
-   RegExpr.Free
-end;
-if D then writeln('BOA_DAEMON_GET_PID:: Found PID FINAL="',result,'"');
-
-end;
-//##############################################################################
-function MyConf.BOA_BIN_PATH():string;
-begin
-     if FileExists('/usr/sbin/boa') then exit('/usr/sbin/boa');
-     if FileExists(get_ARTICA_PHP_PATH()+ '/bin/boa') then exit(get_ARTICA_PHP_PATH()+ '/bin/boa');
-end;
-//##############################################################################
 
 function MyConf.ReadFileIntoString(path:string):string;
 var
@@ -10236,40 +9891,8 @@ end;
 //******************************************************************************
 
 FUNCTION myconf.GLOBAL_STATUS():string;
-
-         const
-            CR = #$0d;
-            LF = #$0a;
-            CRLF = CR + LF;
-
- var
- LSHW_TIME:Integer;
 begin
-LSHW_TIME:=0;
 INSTANT_SEARCH();
-
-
-   if FileExists(SYS.LOCATE_LSHW()) then begin
-      LSHW_TIME:=SYS.FILE_TIME_BETWEEN_MIN('/usr/share/artica-postfix/ressources/logs/LSHW.NET.HTML');
-      if LSHW_TIME=0 then LSHW_TIME:=10000;
-      if not FileExists('/usr/share/artica-postfix/ressources/logs/LSHW.PROC.HTML') then LSHW_TIME:=7000;
-      if LSHW_TIME>6000 then begin
-         //http://ezix.org/project/wiki/HardwareLiSter
-         logs.DeleteFile('/usr/share/artica-postfix/ressources/logs/LSHW.NET.HTML');
-         logs.DeleteFile('/usr/share/artica-postfix/ressources/logs/LSHW.PROC.HTML');
-         if not SYS.PROCESS_EXIST(SYS.PIDOF(SYS.LOCATE_LSHW())) then begin
-            fpsystem(SYS.LOCATE_LSHW()+' -html -C network >/usr/share/artica-postfix/ressources/logs/LSHW.NET.HTML 2>&1 &');
-            fpsystem(SYS.LOCATE_LSHW()+' -html -C processor >/usr/share/artica-postfix/ressources/logs/LSHW.PROC.HTML 2>&1 &');
-         end;
-      end else begin
-         logs.Debuglogs('GLOBAL_STATUS():: LSHW -> '+ IntToStr(LSHW_TIME)+ ' minutes, needs more than 6000 to update...');
-      end;
-   end else begin
-       logs.WriteToFile('Unable to stat LSHW tool...','/usr/share/artica-postfix/ressources/logs/LSHW.ERROR.TXT');
-       fpsystem('chmod 777 /usr/share/artica-postfix/ressources/logs/LSHW.ERROR.TXT');
-       logs.Debuglogs('GLOBAL_STATUS():: UNABLE TO STAT LSHW');
-   end;
-
 end;
 //#########################################################################################
 FUNCTION myconf.IPTABLES_STATUS():string;
@@ -11121,7 +10744,6 @@ begin
   if ParamStr(2)='--inline' then begin
        root:=ParamStr(3);
        password:=Paramstr(4);
-       password:=AnsiReplaceText(password,'\&','&');
        logs.Debuglogs('Save password has "'+password+'"');
        SYS.set_MYSQL('database_admin',root);
        logs.WriteToFile(root,'/etc/artica-postfix/settings/Mysql/database_admin');
@@ -11553,7 +11175,7 @@ logs.WriteToFile(password,'/etc/artica-postfix/settings/Mysql/database_password'
 writeln('Run mysql in normal mode...');
    writeln('');
    writeln('');
-fpsystem('/usr/share/artica-postfix/bin/process1 --force mysql-ok');
+fpsystem('/etc/init.d/artica-process1 start');
 fpsystem('/etc/init.d/artica-postfix restart mysql');
 obm:=tobm.Create(SYS);
 obm.MYSQL_SETTING();
@@ -11569,7 +11191,7 @@ fpsystem('/etc/init.d/artica-postfix start daemon');
    writeln('');
    writeln('');
 writeln('');
-fpsystem(get_ARTICA_PHP_PATH()+'/bin/process1 --force &');
+
 fpsystem('/usr/share/artica-postfix/bin/artica-install --php-ini &');
 SYS.THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart apache-groupware');
 SYS.THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart apachesrc');
@@ -11694,200 +11316,6 @@ RegExpr.free;
 
 end;
 //#############################################################################
- function myconf.BOA_DAEMON_STATUS():string;
- var
-    pidpath:string;
- begin
-  SYS.MONIT_DELETE('APP_BOA');
-  pidpath:=logs.FILE_TEMP();
-  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --boa >'+pidpath +' 2>&1');
-  result:=logs.ReadFromFile(pidpath);
-  logs.DeleteFile(pidpath);
-end;
-//#############################################################################
-function myconf.LMB_LUNDIMATIN_VERSION():string;
-
-         const
-            CR = #$0d;
-            LF = #$0a;
-            CRLF = CR + LF;
-
- var
-    ini:string;
-    pid:string;
- begin
-    ini:='';
-    pid:=BOA_DAEMON_GET_PID();
-    logs.Debuglogs('starting status BOA');
-    ini:=ini+ '[BOA]'+CRLF;
-    if SYS.PROCESS_EXIST(pid) then ini:=ini+ 'running=1'+CRLF else  ini:=ini+ 'running=0'+CRLF;
-   ini:=ini+ 'application_installed=1'+CRLF;
-   ini:=ini+ 'master_pid='+ pid+CRLF;
-   ini:=ini+ 'master_memory=' + IntToStr(SYS.PROCESS_MEMORY(pid))+CRLF;
-   ini:=ini+ 'master_version=0.94.13'+CRLF;
-   ini:=ini+ 'status='+SYS.PROCESS_STATUS(pid)+CRLF;
-   ini:=ini+ 'service_name=APP_BOA'+CRLF;
-   ini:=ini+ 'service_cmd=boa'+CRLF;
-  result:=ini;
-end;
-//#############################################################################
-procedure myconf.SYSLOGER_START();
-var
-   pid:string;
-   pidint:integer;
-   log_path:string;
-   count:integer;
-   cmd:string;
-   CountTail:Tstringlist;
-   syslogs:string;
-   TAIL_STARTUP:string;
-begin
-
-syslogs:=SYS.LOCATE_SYSLOG_PATH();
-if not FileExists(syslogs) then begin
-      logs.DebugLogs('Starting......: sysloger unable to stat syslog file');
-      exit;
-end;
-
-pid:=SYSLOGER_PID();
-if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: sysloger already running with pid '+pid);
-      CountTail:=Tstringlist.Create;
-      CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 '+syslogs));
-      logs.DebugLogs('Starting......: sysloger realtime process number:'+IntToStr(CountTail.Count));
-      if CountTail.Count>3 then fpsystem('/etc/init.d/artica-postfix restart sysloger');
-      CountTail.free;
-      exit;
-end;
-log_path:=syslogs;
-TAIL_STARTUP:=SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.syslog.php';
-logs.DebugLogs('Starting......: sysloger realtime logs path: '+log_path);
-
-pid:=SYS.PIDOF_PATTERN('/usr/bin/tail -f -n 0 '+log_path);
-count:=0;
-pidint:=0;
-      while SYS.PROCESS_EXIST(pid) do begin
-          if count>0 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          logs.DebugLogs('Starting......: sysloger realtime logs stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(200);
-          pid:=SYS.PIDOF_PATTERN('/usr/bin/tail -f -n 0 '+log_path);
-          inc(count);
-      end;
-
-cmd:='/usr/bin/tail -f -n 0 '+log_path+'|'+TAIL_STARTUP+ ' &';
-logs.Debuglogs(cmd);
-fpsystem(cmd);
-pid:=SYSLOGER_PID();
-count:=0;
-while not SYS.PROCESS_EXIST(pid) do begin
-        sleep(100);
-        inc(count);
-        if count>40 then begin
-           logs.DebugLogs('Starting......: sysloger realtime logs (timeout)');
-           break;
-        end;
-        pid:=SYSLOGER_PID();
-  end;
-
-pid:=SYSLOGER_PID();
-
-if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: sysloger realtime logs success with pid '+pid);
-      exit;
-end else begin
-    logs.DebugLogs('Starting......: sysloger realtime logs failed');
-end;
-end;
-//#####################################################################################
-function myconf.SYSLOGER_PID():string;
-var
-   pid:string;
-   TAIL_STARTUP:string;
-begin
-TAIL_STARTUP:=SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.syslog.php';
-if FileExists('/etc/artica-postfix/exec.syslog.php.pid') then begin
-   pid:=SYS.GET_PID_FROM_PATH('/etc/artica-postfix/exec.syslog.php.pid');
-   logs.Debuglogs('DANSGUARDIAN_TAIL_PID /etc/artica-postfix/exec.syslog.php.pid='+pid);
-   if SYS.PROCESS_EXIST(pid) then result:=pid;
-   exit;
-end;
-
-
-result:=SYS.PIDOF_PATTERN(TAIL_STARTUP);
-logs.Debuglogs(TAIL_STARTUP+' pid='+pid);
-end;
-//#####################################################################################
-function myconf.SYSLOGER_STATUS():string;
-var
-pidpath:string;
-begin
-   SYS.MONIT_DELETE('APP_SYSLOGER');
-   pidpath:=logs.FILE_TEMP();
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --sysloger >'+pidpath +' 2>&1');
-   result:=logs.ReadFromFile(pidpath);
-   logs.DeleteFile(pidpath);
-end;
-//#####################################################################################
-procedure myconf.SYSLOGER_STOP();
-var
-   pid,syslogs:string;
-   pidint,i:integer;
-   count:integer;
-   CountTail:Tstringlist;
-begin
-pid:=SYSLOGER_PID();
-syslogs:=SYS.LOCATE_SYSLOG_PATH();
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping sysloger: Already stopped');
-      CountTail:=Tstringlist.Create;
-      try
-         CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 '+syslogs));
-         writeln('Stopping sysloger: Tail processe(s) number '+IntToStr(CountTail.Count));
-      except
-        logs.Debuglogs('Stopping sysloger: fatal error on SYS.PIDOF_PATTERN_PROCESS_LIST() function');
-      end;
-
-      count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping sysloger: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-      exit;
-end;
-
-writeln('Stopping sysloger: Stopping pid '+pid);
-fpsystem('/bin/kill '+pid);
-
-pid:=SYSLOGER_PID();
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping sysloger: Stopped');
-end;
-
-
-CountTail:=Tstringlist.Create;
-CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 '+syslogs));
-writeln('Stopping sysloger: Tail processe(s) number '+IntToStr(CountTail.Count));
-count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping sysloger: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-
-
-end;
-//#####################################################################################
 function myconf.LMB_VERSION():string;
 var
    l:Tstringlist;

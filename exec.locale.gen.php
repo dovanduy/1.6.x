@@ -1,5 +1,6 @@
 <?php
 $GLOBALS["FORCE"]=false;
+$GLOBALS["VERBOSE"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -15,10 +16,14 @@ if(!$GLOBALS["FORCE"]){
 		die();
 	}
 }
+$unix=new unix();
+if(is_file("/etc/artica-postfix/FROM_ISO")){
+	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<10){die();}
+}
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 @mkdir(dirname($pidfile),0755,true);
-$unix=new unix();
+
 $pid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($pid)){
 	echo "Aborting generating locales, a process with pid $pid already running\n";
@@ -449,9 +454,12 @@ $f[]="zu_ZA ISO-8859-1";
 @file_put_contents("/etc/locale.gen",@implode("\n",$f));
 $unix=new unix();
 $local=$unix->find_program("locale-gen");
+$NICE=$unix->EXEC_NICE();
 if(is_file($local)){
-	shell_exec($local);
+	echo "Generating local for ".count($f)." languages, please wait\n";
 	@file_put_contents("/etc/artica-postfix/locales.gen","#");
+	system("$NICE $local");
+	
 
 }
 ?>

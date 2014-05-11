@@ -158,7 +158,7 @@ function rules_search(){
 		if(!$q->FIELD_EXISTS("webfilter_rules", "zOrder")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `zOrder` SMALLINT(2) NOT NULL,ADD INDEX ( `zOrder` )");}
 		if(!$q->ok){json_error_show("$q->mysql_error");}
 	
-		if(!$q->FIELD_EXISTS("webfilter_rules", "AllSystems")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `AllSystems` SMALLINT(1),ADD INDEX ( `AllSystems` )");}
+		if(!$q->FIELD_EXISTS("webfilter_rules", "AllSystems")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `AllSystems` smallint(1),ADD INDEX ( `AllSystems` )");}
 		if(!$q->ok){json_error_show("$q->mysql_error");}
 	
 		$t=$_GET["t"];
@@ -207,7 +207,7 @@ function rules_search(){
 			
 			$TimeSpace=$webfilter->TimeToText(unserialize(base64_decode($ligne["TimeSpace"])));
 			$color="black";
-			if($ligne["enabled"]==0){$color="#CCCCCC";}
+			if($ligne["enabled"]==0){$color="#8a8a8a";}
 			$rules_dans_time_rule=$webfilter->rules_dans_time_rule($ligne["ID"]);
 			if($ligne["groupmode"]==0){$warn="<div style='float:right'><img src='img/stop-24.png'></div>";}
 			$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?from={$ligne['ID']}&t=$t')");
@@ -273,7 +273,7 @@ function DansGuardianNewRule(){
 	}
 	
 	function CompileUfdbGuardRules(){
-		Loadjs('dansguardian2.mainrules.php?CompileUfdbGuardRules=yes');
+		Loadjs('dansguardian2.compile.php');
 	}
 	
 	function UfdbGuardConfigs(){

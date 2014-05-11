@@ -1,5 +1,7 @@
 <?php
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if($argv[1]=='--verbose'){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+	if($GLOBALS["VERBOSE"]){echo "<H1>VERBOSED</H1>";}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -18,7 +20,7 @@
 	if(isset($_GET["users-list"])){users_list();exit;}
 	if(isset($_GET["UsersGroup-js"])){UsersBrowse_js();exit;}
 	if(isset($_GET["UsersGroup-popup"])){UsersBrowse_popup();exit;}
-	if(isset($_GET["UsersGroup-list"])){UsersBrowse_list();exit;}
+	if(isset($_GET["UsersGroup-list"])){UsersBrowselist();exit;}
 	if(isset($_GET["var-export-js"])){var_export_js();exit;}
 	if(isset($_GET["var-export-popup"])){var_export_popup();exit;}
 	if(isset($_GET["var-export-tabs"])){var_export_tabs();exit;}
@@ -285,7 +287,7 @@ function ParseUsersGroups($dn,$search){
 	if(count($Array)==0){return;}
 	while (list ($dn, $GPARR) = each ($Array) ){
 		if($search<>null){if(!preg_match("#$search#i", serialize($GPARR))){continue;}}
-		$icon="user7-32.png";
+		$icon="user-32.png";
 		$dnEnc=base64_encode($dn);
 		$type=$GPARR["TYPE"];
 		
@@ -350,7 +352,8 @@ function ParseUsersGroups($dn,$search){
 }
 
 
-function UsersBrowse_list(){
+function UsersBrowselist(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." line ".__LINE__."<br>\n";}
 	$CurPage=CurrentPageName();
 	$tpl=new templates();
 	$search=$_POST["query"];
@@ -360,17 +363,15 @@ function UsersBrowse_list(){
 	
 	if($ad->ldap_last_error<>null){json_error_show("$dn  $ad->ldap_last_error",1);}
 	if(count($Array)==0){json_error_show("$dn no such user",1);}
-	
-	if($OnlyGroups==1){
-		$icon="win7groups-32.png";
-		
-		if($ad->ldap_last_error<>null){json_error_show($ad->ldap_last_error,1);}
-	}
+
 	
 	$data = array();
 	$data['page'] = 1;
 	$data['total'] = count($Array);
 	$data['rows'] = array();	
+	$rp=$_POST["rp"];
+	if(!is_numeric($rp)){$rp=15;}
+	if($rp<10){$rp=15;}
 	
 	$displayname=$tpl->_ENGINE_parse_body("{displayname}");
 	$account=$tpl->_ENGINE_parse_body("{account}");
@@ -383,10 +384,8 @@ function UsersBrowse_list(){
 	
 	$c=0;
 	while (list ($dn, $GPARR) = each ($Array) ){
-		if($search<>null){
-			if(!preg_match("#$search#i", serialize($GPARR))){continue;}
-		}
-		$icon="user7-32.png";
+		if($search<>null){ if(!preg_match("#$search#i", serialize($GPARR))){continue;} }
+		$icon="user-32.png";
 		$dnEnc=base64_encode($dn);
 		$type=$GPARR["TYPE"];
 		
@@ -394,17 +393,14 @@ function UsersBrowse_list(){
 		$GroupxName=str_replace("'", "`", $GroupxName);
 		$GroupxName=replace_accents($GroupxName);
 		$descriptions=array();
-		$c++;
-		while (list ($a, $b) = each ($GPARR) ){
-			$GPARR[$a]=utf8_encode($b);
-		}
+		while (list ($a, $b) = each ($GPARR) ){ $GPARR[$a]=utf8_encode($b); }
 		
 		$cn=htmlentities($GPARR["cn"]);
 		$cn=str_replace("'", "`", $cn);
 		
 		$description=$GPARR["description"];
 		$description=htmlentities($description);
-		$description=str_replace("'", "`", $description);		
+		$description=str_replace("'", "`", $description);
 		
 		if($type=="group"){
 			$icon="win7groups-32.png";
@@ -413,11 +409,18 @@ function UsersBrowse_list(){
 				writelogs("Group -> ParseUsersGroups($dn,$search)",__FUNCTION__,__FILE__,__LINE__);
 				$newrow=ParseUsersGroups($dn,$search);
 				if(count($newrow)>0){
-					while (list ($a, $b) = each ($newrow) ){$data['rows'][]=$b;$c++;}
+					while (list ($a, $b) = each ($newrow) ){
+						$data['rows'][]=$b;
+						$c++;
+						if(!$c>$rp){
+							$data['total'] = $c;
+							echo json_encode($data);
+							return;
+						}
+		
+					}
 				}
 			}
-			
-			
 		}else{
 			$cn=$GPARR["uid"];
 			if(strlen($description)>2){
@@ -431,12 +434,12 @@ function UsersBrowse_list(){
 			}
 			if(strlen($GPARR["userprincipalname"])>0){
 				$descriptions[]="<strong>$account</strong>:&nbsp;".$GPARR["userprincipalname"];
-			}		
-
-			
-			
+			}
+		
+				
+				
 			$js="Loadjs('ActiveDirectory.user.php?dn=$dnEnc&ADID={$_GET["ADID"]}')";
-			$js=null;	
+			$js=null;
 		}
 		
 		$icon=imgsimple($icon,null,"Loadjs('$CurPage?var-export-js=$dnEnc&cn=$cn&ADID={$_GET["ADID"]}')");
@@ -444,8 +447,13 @@ function UsersBrowse_list(){
 		if($js==null){$link="<span style='font-size:14px;'>";}
 		
 		$md5=md5($dn);
-		$data['rows'][] = array('id' => $md5,'cell' => array($icon,"<span style='font-size:14px;'>$cn</a></span><div style='font-size:11px'>".@implode("<br>", $descriptions)."</div>",$delete )
-			);		
+		$c++;
+		$data['rows'][] = array('id' => $md5,'cell' => array($icon,"<span style='font-size:14px;'>$cn</a></span><div style='font-size:11px'>".@implode("<br>", $descriptions)."</div>",$delete ) );
+		if(count($data['rows'])>$rp){
+			$data['total'] = $c;
+			echo json_encode($data);
+			return;
+		}	
 	}
 	
 	$data['total'] = $c;
@@ -579,7 +587,7 @@ function users_list(){
 		$OnlyUsers=1;
 		$OnlyGroups=0;
 		writelogs("->UserSearch(null,$search,{$_POST["rp"]}",__FUNCTION__,__FILE__,__LINE__);
-		$icon="user7-32.png";
+		$icon="user-32.png";
 		$Array=$ad->UserSearch_formated(null,$search,$_POST["rp"]);
 		if($ad->ldap_last_error<>null){json_error_show($ad->ldap_last_error,1);}
 		
@@ -624,7 +632,7 @@ function users_list(){
 		$image=imgsimple($icon,null,"Loadjs('$CurPage?var-export-js=$dnEnc&cn=$cn&ADID={$_GET["ADID"]}')");
 		
 		if($OnlyUsers==1){
-			$icon="user7-32.png";
+			$icon="user-32.png";
 			
 			
 			$select=imgtootltip("arrow-right-24.png",null,"SelectAdUser$t('$GroupxSourceName')");
@@ -666,6 +674,4 @@ function users_list(){
 	
 	echo json_encode($data);	
 }
-
-
-//BrowseActiveDirectory.php
+?>

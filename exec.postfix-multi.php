@@ -13,7 +13,7 @@ include_once(dirname(__FILE__) . '/ressources/class.maincf.multi.inc');
 
 
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 
@@ -28,7 +28,7 @@ $GLOBALS["postfix"]=$unix->find_program("postfix");
 		$ldap=new clladp();
 		if($ldap->ldapFailed){
 			WriteToSyslogMail("Fatal: connecting to ldap server $ldap->ldap_host",basename(__FILE__),true);
-			echo "Starting......: failed connecting to ldap server $ldap->ldap_host\n";
+			echo "Starting......: ".date("H:i:s")." failed connecting to ldap server $ldap->ldap_host\n";
 			$unix->send_email_events("Postfix user databases aborted (ldap failed)", "The process has been scheduled to start in few seconds.", "postfix"); 
 			$unix->THREAD_COMMAND_SET(trim($unix->LOCATE_PHP5_BIN()." ".__FILE__. " {$argv[1]}"));
 			die();
@@ -39,7 +39,7 @@ $GLOBALS["postfix"]=$unix->find_program("postfix");
 		$mysql=new mysql();
 		if(!$mysql->TestingConnection()){
 			WriteToSyslogMail("Fatal: connecting to MySQL server $mysql->mysql_error",basename(__FILE__),true);
-			echo "Starting......: failed connecting to ldap server $mysql->mysql_error\n";
+			echo "Starting......: ".date("H:i:s")." failed connecting to ldap server $mysql->mysql_error\n";
 			$unix->send_email_events("Postfix user databases aborted (MySQL failed)", "The process has been scheduled to start in few seconds.", "postfix"); 
 			$unix->THREAD_COMMAND_SET(trim($unix->LOCATE_PHP5_BIN()." ".__FILE__. " {$argv[1]}"));
 			die();		
@@ -61,23 +61,23 @@ if($argv[1]=='--instance-start'){_start_instance($argv[2]);die();}
 $sock=new sockets();
 $GLOBALS["EnablePostfixMultiInstance"]=$sock->GET_INFO("EnablePostfixMultiInstance");
 if($GLOBALS["EnablePostfixMultiInstance"]<>1){
-		echo "Starting......: Multi-instances is not enabled ({$GLOBALS["EnablePostfixMultiInstance"]})\n";
+		echo "Starting......: ".date("H:i:s")." Multi-instances is not enabled ({$GLOBALS["EnablePostfixMultiInstance"]})\n";
 		PostfixMultiDisable();
 		die();
 }
 $unix=new unix();
 
-	echo "Starting......: Enable Postfix multi-instances\n";
+	echo "Starting......: ".date("H:i:s")." Enable Postfix multi-instances\n";
 	
 	$pidfile="/etc/artica-postfix/".basename(__FILE__)." ". md5(implode("",$argv)).".pid";
 	$oldPid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldPid,basename(__FILE__))){
-		echo "Starting......: multi-instances configurator already executed PID $oldPid\n";
+		echo "Starting......: ".date("H:i:s")." multi-instances configurator already executed PID $oldPid\n";
 		die();
 	}
 
 	$pid=getmypid();
-	echo "Starting......: Postfix multi-instances configurator running $pid\n";
+	echo "Starting......: ".date("H:i:s")." Postfix multi-instances configurator running $pid\n";
 	file_put_contents($pidfile,$pid);	
 
 
@@ -116,29 +116,29 @@ function restart_all_instances(){
 	$postfix=$unix->find_program("postfix");
 	$sock=new sockets();
 	$GLOBALS["postmulti"]=$unix->find_program("postmulti");
-	echo "Starting......: Stopping master instance\n";
+	echo "Starting......: ".date("H:i:s")." Stopping master instance\n";
 	system("$postfix stop");
 	if($sock->GET_INFO("EnablePostfixMultiInstance")==1){
 		$main=new maincf_multi(null);
 		$main->PostfixMainCfDefaultInstance();
 	}	
 	
-	echo "Starting......: checking first instance security\n";
+	echo "Starting......: ".date("H:i:s")." checking first instance security\n";
 	system("$postfix -c /etc/postfix set-permissions");
 	
 	if($sock->GET_INFO("EnablePostfixMultiInstance")==1){
-		echo "Starting......: checking all instances security\n";
+		echo "Starting......: ".date("H:i:s")." checking all instances security\n";
 		MysqlInstancesList();
 		if(is_array($GLOBALS["INSTANCES_LIST"])){
 			while (list ($num, $ligne) = each ($GLOBALS["INSTANCES_LIST"]) ){
-				echo "Starting......: Postfix \"$ligne\" checking instance security\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$ligne\" checking instance security\n";
 				system("$postfix -c /etc/postfix-$ligne set-permissions");
 			}
 		}
 		
 
 		
-		echo "Starting......: Starting master\n";
+		echo "Starting......: ".date("H:i:s")." Starting master\n";
 		system("$postfix stop");
 		system("$postfix start");
 		reset($GLOBALS["INSTANCES_LIST"]);
@@ -149,7 +149,7 @@ function restart_all_instances(){
 		
 	
 	}else{
-		echo "Starting......: Starting master\n";
+		echo "Starting......: ".date("H:i:s")." Starting master\n";
 		system("$postfix start");
 	}
 	
@@ -179,7 +179,7 @@ function InstancesList(){
 		if(preg_match("#^(.+?)\s+#",$ligne,$re)){
 			$re[1]=trim($re[1]);
 			if($re[1]=='-'){continue;}
-			echo "Starting......: Detecting instance {$re[1]}\n";
+			echo "Starting......: ".date("H:i:s")." Detecting instance {$re[1]}\n";
 			$GLOBALS["INSTANCE"][$re[1]]=true;
 			
 			
@@ -197,7 +197,7 @@ function MysqlInstancesList(){
 		$sql="SELECT `value` FROM postfix_multi WHERE `key`='myhostname' GROUP BY `value`";	
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo "Starting......: Postfix error $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." Postfix error $q->mysql_error\n";}
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$myhostname=trim($ligne["value"]);
 			if($myhostname==null){continue;}
@@ -213,18 +213,18 @@ function CheckInstances(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	if($unix->process_exists(@file_get_contents($pidfile))){
-		echo "Starting......: CheckInstances function already executed PID ". @file_get_contents($pidfile)."\n";
+		echo "Starting......: ".date("H:i:s")." CheckInstances function already executed PID ". @file_get_contents($pidfile)."\n";
 		die();
 	}
 
 		$pid=getmypid();
-		echo "Starting......: CheckInstances configurator running $pid\n";
+		echo "Starting......: ".date("H:i:s")." CheckInstances configurator running $pid\n";
 		file_put_contents($pidfile,$pid);		
 	
 		$maincf=new maincf_multi("");
 		$maincf->PostfixMainCfDefaultInstance();
 		$sql="SELECT `value` FROM postfix_multi WHERE `key`='myhostname' GROUP BY `value`";
-		echo "Starting......: Postfix activate HUB(s)\n";
+		echo "Starting......: ".date("H:i:s")." Postfix activate HUB(s)\n";
 
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
@@ -232,7 +232,7 @@ function CheckInstances(){
 			$myhostname=trim($ligne["value"]);
 			if($myhostname==null){continue;}
 			if($myhostname=="master"){continue;}
-			echo "Starting......: Postfix \"$myhostname\" checking HUB\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$myhostname\" checking HUB\n";
 			ConfigureMainCF($myhostname);
 			
 		}
@@ -247,12 +247,12 @@ function reconfigure_instance($hostname){
 	$users=new usersMenus();
 	$unix=new unix();
 	writelogs("reconfigure instance $hostname",__FUNCTION__,__FILE__,__LINE__);
-	echo "Starting......: Postfix \"$hostname\" checking instance\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" checking instance\n";
 	$instance_path="/etc/postfix-$hostname";	
 	$maincf=new maincf_multi($hostname);
 	if($maincf->GET("DisabledInstance")==1){return;}
 	$postmap=$unix->find_program("postmap");
-	echo "Starting......: Postfix \"$hostname\" IP: $maincf->ip_addr\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" IP: $maincf->ip_addr\n";
 	
 	$maincf->buildconf();	
 	$maincf->buildmaster();
@@ -278,16 +278,16 @@ function reconfigure_instance_tmpfs($hostname,$mem){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".".$hostname.".pid";
 	if($unix->process_exists(@file_get_contents($pidfile))){
-		echo "Starting......: multi-instances configurator already executed PID ". @file_get_contents($pidfile)."\n";
+		echo "Starting......: ".date("H:i:s")." multi-instances configurator already executed PID ". @file_get_contents($pidfile)."\n";
 		die();
 	}
 
 	$pid=getmypid();
-	echo "Starting......: Postfix multi-instances configurator running $pid\n";
+	echo "Starting......: ".date("H:i:s")." Postfix multi-instances configurator running $pid\n";
 	file_put_contents($pidfile,$pid);		
 	
 	if(!is_numeric($mem)){
-		echo "Starting......: Postfix multi-instances Memory set \"$mem\" is not an integer\n";
+		echo "Starting......: ".date("H:i:s")." Postfix multi-instances Memory set \"$mem\" is not an integer\n";
 		return;
 	}
 	if($mem<5){return null;}
@@ -296,17 +296,17 @@ function reconfigure_instance_tmpfs($hostname,$mem){
 		
 	$MOUNTED_TMPFS_MEM=$unix->MOUNTED_TMPFS_MEM($directory);
 	if($MOUNTED_TMPFS_MEM>0){
-		echo "Starting......: Postfix \"$hostname\" mounted memory $mem/{$MOUNTED_TMPFS_MEM}MB\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" mounted memory $mem/{$MOUNTED_TMPFS_MEM}MB\n";
 		if($mem>$MOUNTED_TMPFS_MEM){$diff=$mem-$MOUNTED_TMPFS_MEM;}
 		if($mem<$MOUNTED_TMPFS_MEM){$diff=$MOUNTED_TMPFS_MEM-$mem;}
 		if($diff>20){
-			echo "Starting......: Postfix \"$hostname\" diff={$diff}M\"\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" diff={$diff}M\"\n"; 
 			reconfigure_instance_tmpfs_umount($hostname);
 			reconfigure_instance_tmpfs_mount($hostname,$mem);
 		}
 		
 	}else{
-		echo "Starting......: Postfix \"$hostname\" directory is not mounted has tmpfs\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" directory is not mounted has tmpfs\n";
 		reconfigure_instance_tmpfs_mount($hostname,$mem);
 		
 	}
@@ -323,25 +323,25 @@ function reconfigure_instance_tmpfs_mount($hostname,$mem){
 		
 		$MOUNTED_TMPFS_MEM=$unix->MOUNTED_TMPFS_MEM($directory);
 		if($MOUNTED_TMPFS_MEM>0){
-			echo "Starting......: Postfix \"$hostname\" Already mounted\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" Already mounted\n";
 			return;
 		}
 		
 		
 		$mount=$unix->find_program("mount");
 		@mkdir("/var/spool/backup/postfix-$hostname",0755,true);
-		echo "Starting......: Postfix \"$hostname\" backup $directory\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" backup $directory\n";
 		shell_exec("/bin/cp -pr $directory/* /var/spool/backup/postfix-$hostname/");
 		shell_exec("/bin/rm -rf $directory/*");
-		echo "Starting......: Postfix \"$hostname\" mounting $directory\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" mounting $directory\n";
 		$cmd="$mount -t tmpfs -o size={$mem}M tmpfs \"$directory\"";
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		exec("$cmd");
 		$MOUNTED_TMPFS_MEM=$unix->MOUNTED_TMPFS_MEM($directory);
 		if($MOUNTED_TMPFS_MEM>0){
-			echo "Starting......: Postfix \"$hostname\" mounted memory $mem/{$MOUNTED_TMPFS_MEM}MB\n";	
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" mounted memory $mem/{$MOUNTED_TMPFS_MEM}MB\n";	
 		}else{
-			echo "Starting......: Postfix \"$hostname\" mounted memory FAILED\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" mounted memory FAILED\n";
 				
 		}	
 		
@@ -358,12 +358,12 @@ function reconfigure_instance_tmpfs_umount($hostname){
 		$umount=$unix->find_program("umount");
 		if($GLOBALS["UMOUNT_COUNT"]==0){
 			@mkdir("/var/spool/backup/postfix-$hostname",0755,true);
-			echo "Starting......: Postfix \"$hostname\" backup files and directories.\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" backup files and directories.\n";
 			shell_exec("/bin/cp -pr $directory/* /var/spool/backup/postfix-$hostname/ >/dev/null 2>&1");
 			shell_exec("/bin/rm -rf $directory/*");
 		}
 		
-		echo "Starting......: Postfix \"$hostname\" stopping postfix\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" stopping postfix\n";
 		$cmd="{$GLOBALS["postmulti"]} -i postfix-$hostname -p stop >/dev/null 2>&1";
 		if($hostname=="master"){$cmd="{$GLOBALS["postmulti"]} -i postfix-$hostname -p stop >/dev/null 2>&1";}
 		
@@ -371,7 +371,7 @@ function reconfigure_instance_tmpfs_umount($hostname){
 		
 		$pids=trim(@implode(" ",$unix->LSOF_PIDS($directory)));
 		if(strlen($pids)>2){
-			echo "Starting......: Postfix \"$hostname\" kill processes $pids\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" kill processes $pids\n";
 			shell_exec("/bin/kill -9 $pids >/dev/null 2>&1");
 		}
 		
@@ -382,21 +382,21 @@ function reconfigure_instance_tmpfs_umount($hostname){
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		exec("$cmd 2>&1",$results);
 		while (list ($num, $ligne) = each ($results) ){
-			echo "Starting......: Postfix \"$hostname\" $umount: $ligne\n"; 
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" $umount: $ligne\n"; 
 		}
 		
 		$MOUNTED_TMPFS_MEM=$unix->MOUNTED_TMPFS_MEM($directory);
 		if($MOUNTED_TMPFS_MEM==0){
-			echo "Starting......: Postfix \"$hostname\" umounted memory {$MOUNTED_TMPFS_MEM}MB\n";	
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" umounted memory {$MOUNTED_TMPFS_MEM}MB\n";	
 			
 		}else{
-			echo "Starting......: Postfix \"$hostname\" failed to umount {$GLOBALS["UMOUNT_COUNT"]}/10\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" failed to umount {$GLOBALS["UMOUNT_COUNT"]}/10\n";
 			$GLOBALS["UMOUNT_COUNT"]=$GLOBALS["UMOUNT_COUNT"]+1;
 			if($GLOBALS["UMOUNT_COUNT"]<20){
 				reconfigure_instance_tmpfs_umount($hostname);
 				return;
 			}else{
-				echo "Starting......: Postfix \"$hostname\" timeout\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" timeout\n";
 				shell_exec("/bin/cp -pr /var/spool/backup/postfix-$hostname/* $directory/ >/dev/null 2>&1");
 				shell_exec("/bin/rm -rf /var/spool/backup/postfix-$hostname");
 				return;	
@@ -422,7 +422,7 @@ function reconfigure_instance_ssl($hostname){
 	$maincf->certificate_generate();
 	$maincf->buildconf();	
 	$maincf->buildmaster();
-	echo "Starting......: restarting Postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p stop\n";		
+	echo "Starting......: ".date("H:i:s")." restarting Postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p stop\n";		
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p stop");
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p start");
 	
@@ -433,7 +433,7 @@ function reconfigure_instance_minimal($hostname){
 	$maincf=new maincf_multi($hostname);
 	$maincf->buildconf();	
 	$maincf->buildmaster();
-	echo "Starting......: Postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p reload\n";		
+	echo "Starting......: ".date("H:i:s")." Postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p reload\n";		
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p reload");		
 }
 function reconfigure_instance_mastercf($hostname){
@@ -441,7 +441,7 @@ function reconfigure_instance_mastercf($hostname){
 	$maincf=new maincf_multi($hostname);
 	$maincf->buildmaster();
 	$sock=new sockets();
-	echo "Starting......: restarting Postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p stop\n";		
+	echo "Starting......: ".date("H:i:s")." restarting Postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p stop\n";		
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p stop");
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p start");	
 	$sock->getFrameWork("cmd.php?amavis-restart=yes");
@@ -453,7 +453,7 @@ function ConfigureMainCF($hostname,$nostart=false){
 	if(strlen(trim($hostname))<3){return null;}
 	$users=new usersMenus();
 	$unix=new unix();
-	echo "Starting......: Postfix \"$hostname\" checking instance\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" checking instance\n";
 	
 
 	
@@ -462,7 +462,7 @@ function ConfigureMainCF($hostname,$nostart=false){
 	if(!is_file("$instance_path/main.cf")){@file_put_contents("$instance_path/main.cf", "\n");}
 	
 	if(!is_file("$instance_path/dynamicmaps.cf")){
-		echo "Starting......: Postfix $hostname creating dynamicmaps.cf\n";
+		echo "Starting......: ".date("H:i:s")." Postfix $hostname creating dynamicmaps.cf\n";
 		@file_put_contents("$instance_path/dynamicmaps.cf","#");
 	}
 	
@@ -476,7 +476,7 @@ function ConfigureMainCF($hostname,$nostart=false){
 		shell_exec(LOCATE_PHP5_BIN2()." ". dirname(__FILE__)."/exec.assp-multi.php --org \"$maincf->ou\"");
 	}
 	
-	echo "Starting......: Postfix $hostname enable it into the Postfix main system\n";
+	echo "Starting......: ".date("H:i:s")." Postfix $hostname enable it into the Postfix main system\n";
 	shell_exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -e enable >/dev/null 2>&1");
 	if(!$nostart){_start_instance($hostname);}
 }
@@ -499,6 +499,7 @@ function _start_instance($hostname){
 	$PostFixEnableQueueInMemory=$main->GET("PostFixEnableQueueInMemory");
 	$PostFixQueueInMemory=$main->GET("PostFixQueueInMemory");
 	$ifconfig=$unix->find_program("ifconfig");
+	$ln=$unix->find_program("ln");
 	$route=$unix->find_program("route");
 	$directory="/var/spool/postfix-$hostname";
 	$postfixbin=$unix->find_program("postfix");
@@ -512,9 +513,11 @@ function _start_instance($hostname){
 	}
 	
 	if(!is_file("/etc/postfix-$hostname/main.cf")){
-		echo "Starting......: Postfix \"$hostname\" /etc/postfix-$hostname/main.cf no such file (reconfigure)\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" /etc/postfix-$hostname/main.cf no such file (reconfigure)\n";
 		ConfigureMainCF($hostname,true);
-	}	
+	}
+
+	
 	
 	
 	$pidfile="/var/spool/postfix-$hostname/pid/master.pid";
@@ -527,7 +530,7 @@ function _start_instance($hostname){
 	$sql="SELECT * FROM nics_virtuals WHERE ipaddr='$main->ip_addr'";
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	echo "Starting......: Postfix \"$hostname\" $main->ip_addr on {$ligne["nic"]}:{$ligne["ID"]}\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" $main->ip_addr on {$ligne["nic"]}:{$ligne["ID"]}\n";
 	
 	if($ligne["ipv6"]==0){
 		if($ligne["ID"]>0){
@@ -541,16 +544,16 @@ function _start_instance($hostname){
 	writelogs("$hostname:: $pidfile=$pid",__FUNCTION__,__FILE__,__LINE__);
 	
 	if($unix->process_exists($pid)){
-		echo "Starting......: Postfix \"$hostname\" reloading\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" reloading\n";
 		writelogs("$hostname::reloading postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p reload",__FUNCTION__,__FILE__,__LINE__);
 		exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p reload 2>&1",$results);
 		while (list ($num, $line) = each ($results) ){
 			if(preg_match("#unused parameter#", $line)){continue;}
 			writelogs("$line",__FUNCTION__,__FILE__,__LINE__);
-			echo "Starting......: Postfix \"$hostname\" $line\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" $line\n";
 			
 			if(preg_match("#fatal: open /etc/postfix-(.+?)\/main\.cf#",$line,$re)){
-				echo "Starting......: Postfix reconfigure \"{$re[1]}\"\n";
+				echo "Starting......: ".date("H:i:s")." Postfix reconfigure \"{$re[1]}\"\n";
 				reconfigure_instance($re[1]);
 			}
 			
@@ -561,7 +564,7 @@ function _start_instance($hostname){
 	
 	
 	
-	echo "Starting......: Postfix starting \"$hostname\"\n";
+	echo "Starting......: ".date("H:i:s")." Postfix starting \"$hostname\"\n";
 	writelogs("$hostname::Starting postfix {$GLOBALS["postmulti"]} -i postfix-$hostname -p start",__FUNCTION__,__FILE__,__LINE__);
 	exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p start 2>&1",$results);
 	writelogs("$hostname::Starting LOG=".count($results)." lines",__FUNCTION__,__FILE__,__LINE__);
@@ -569,9 +572,9 @@ function _start_instance($hostname){
 		while (list ($num, $line) = each ($results) ){
 			if(preg_match("#unused parameter:#", $line)){continue;}
 			writelogs("$line",__FUNCTION__,__FILE__,__LINE__);
-			echo "Starting......: Postfix \"$hostname\" $line\n";
+			echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" $line\n";
 			if(preg_match("#fatal: open /etc/postfix-(.+?)\/main\.cf#",$line,$re)){
-				echo "Starting......: Postfix reconfigure \"{$re[1]}\"\n";
+				echo "Starting......: ".date("H:i:s")." Postfix reconfigure \"{$re[1]}\"\n";
 				reconfigure_instance($re[1]);
 			}			
 	}
@@ -579,20 +582,20 @@ function _start_instance($hostname){
 	
 	$pid=$unix->get_pid_from_file($pidfile);
 	for($i=0;$i<10;$i++){
-		if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix \"$hostname\" DEBUG open \"$pidfile\"\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" DEBUG open \"$pidfile\"\n";}
 		if($unix->process_exists($pid)){break;}
-		echo "Starting......: Postfix \"$hostname\" waiting run ($pid)\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" waiting run ($pid)\n";
 		sleep(1);
 		$pid=$unix->get_pid_from_file($pidfile);
 	}
 	
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid)){
-		echo "Starting......: Postfix \"$hostname\" SUCCESS with PID=$pid\n";
+		echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" SUCCESS with PID=$pid\n";
 		writelogs("$hostname::DONE",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
-	echo "Starting......: Postfix \"$hostname\" FAILED\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" FAILED\n";
 	writelogs("$hostname::FAILED",__FUNCTION__,__FILE__,__LINE__);
 	
 	
@@ -612,7 +615,7 @@ function ConfigureMainMaster(){
 	}
 	
 function DestroyInstance($instance){
-		echo "Starting......: Postfix destroy \"$instance\"\n";
+		echo "Starting......: ".date("H:i:s")." Postfix destroy \"$instance\"\n";
 		shell_exec("{$GLOBALS["postmulti"]} -i $instance -p stop");
 		shell_exec("{$GLOBALS["postmulti"]} -i $instance -e disable");
 		shell_exec("{$GLOBALS["postmulti"]} -i $instance -e destroy");	
@@ -625,7 +628,7 @@ function PostfixMultiDisable(){
 	while (list ($instance, $ou) = each ($GLOBALS["INSTANCE"]) ){
 		if($instance==null){continue;}
 		if($instance=="-"){continue;}
-		echo "Starting......: Postfix destroy \"$instance\"\n";
+		echo "Starting......: ".date("H:i:s")." Postfix destroy \"$instance\"\n";
 		shell_exec("{$GLOBALS["postmulti"]} -i $instance -p stop");
 		shell_exec("{$GLOBALS["postmulti"]} -i $instance -e disable");
 		shell_exec("{$GLOBALS["postmulti"]} -i $instance -e destroy");
@@ -659,7 +662,7 @@ function remove_old_instances(){
 			if($hostname=="master"){continue;}
 			if(!$array[$hostname]){
 				$restart=true;
-				echo "Starting......: Postfix remove old instance $hostname\n";
+				echo "Starting......: ".date("H:i:s")." Postfix remove old instance $hostname\n";
 				shell_exec("/bin/rm -rf /etc/postfix-$hostname");
 				shell_exec("/bin/rm -rf /var/lib/postfix-$hostname");
 				shell_exec("/bin/rm -rf /var/spool/postfix-$hostname");
@@ -676,7 +679,7 @@ function remove_old_instances(){
 
 function reconfigure_instance_mime_checks($hostname){
 	if($hostname=="master"){return;}
-	echo "Starting......: Postfix \"$hostname\" check mime_checks\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" check mime_checks\n";
 	$users=new usersMenus();
 	$f=array();
 	$unix=new unix();
@@ -715,7 +718,7 @@ function reconfigure_instance_mime_checks($hostname){
 	}
 	
 	$strings=implode("|",$f);
-	echo "Starting......: Postfix \"$hostname\" ". count($f)." extensions blocked\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" ". count($f)." extensions blocked\n";
 	$pattern[]="/^\s*Content-(Disposition|Type).*name\s*=\s*\"?(.+\.($strings))\"?\s*$/\tREJECT file attachment types is not allowed. File \"$2\" has the unacceptable extension \"$3\"";	
 	$pattern[]="";
 	@file_put_contents("/etc/postfix-$hostname/mime_header_checks",implode("\n",$pattern));	
@@ -728,7 +731,7 @@ function aiguilleuse($hostname){
 	$PostFixEnableAiguilleuse=$maincf->GET("PostFixEnableAiguilleuse");
 	if($PostFixEnableAiguilleuse<>1){return;}
 	if(!is_dir("/etc/postfix-$hostname")){@mkdir("/etc/postfix-$hostname",0755,true);}
-	echo "Starting......: Postfix \"$hostname\" save internal-routed parameters\n";
+	echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" save internal-routed parameters\n";
 	@file_put_contents("/etc/postfix-$hostname/aiguilleur.db",
 	base64_decode($maincf->GET_BIGDATA("PostFixAiguilleuseServers")));
 	
@@ -736,7 +739,7 @@ function aiguilleuse($hostname){
 
 function postscreen($hostname){
 	$user=new usersMenus();
-	if(!$user->POSTSCREEN_INSTALLED){echo "Starting......: $hostname PostScreen is not installed, you should upgrade to 2.8 postfix version\n";return;}
+	if(!$user->POSTSCREEN_INSTALLED){echo "Starting......: ".date("H:i:s")." $hostname PostScreen is not installed, you should upgrade to 2.8 postfix version\n";return;}
 	$maincf=new maincf_multi($hostname);
 	$maincf->buildconf();
 	_start_instance($hostname);
@@ -748,7 +751,7 @@ function build_all_aliases(){
 	
 MysqlInstancesList();
 		if(!is_array($GLOBALS["INSTANCES_LIST"])){
-			echo "Starting......: Postfix No instances, aborting\n";
+			echo "Starting......: ".date("H:i:s")." Postfix No instances, aborting\n";
 			return;
 			
 		}
@@ -756,12 +759,12 @@ MysqlInstancesList();
 		reset($GLOBALS["INSTANCES_LIST"]);
 		while (list ($num, $ligne) = each ($GLOBALS["INSTANCES_LIST"]) ){
 				$hostname=$ligne;
-				echo "Starting......: Postfix \"$hostname\" checking aliases\n";
+				echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" checking aliases\n";
 				$maincf=new maincf_multi($hostname);
 				$maincf->buildconf();
 				$results=array();
 				exec("{$GLOBALS["postmulti"]} -i postfix-$hostname -p reload 2>&1",$results);
-				while (list ($a, $b) = each ($results) ){echo "Starting......: Postfix \"$hostname\" $b\n";}
+				while (list ($a, $b) = each ($results) ){echo "Starting......: ".date("H:i:s")." Postfix \"$hostname\" $b\n";}
 		}
 			
 	

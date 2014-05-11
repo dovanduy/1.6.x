@@ -356,10 +356,10 @@ function sieve_index(){
 		$count=$count+1;
 		if(!$ligne){
 			
-			$img="status_critical.gif";
+			$img="status_critical.png";
 			$link=texttooltip("{enable}","{enable_this_filter}","SieveEnableRule('$rulename')");
 			$link="&laquo;&nbsp;$link</strong>&nbsp;&raquo;";
-		}else{$link="&nbsp;";$img="status_ok.gif";;}
+		}else{$link="&nbsp;";$img="status_ok.png";;}
 		
 		$tables=$tables."
 		<tr " . CellRollOver().">

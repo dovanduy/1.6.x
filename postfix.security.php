@@ -803,8 +803,8 @@ function section_antivirus(){
 	//$clamav_unofficial=Paragraphe("clamav-64.png","{clamav_unofficial}","{clamav_unofficial_text}",
 	//"javascript:Loadjs('clamav.unofficial.php')",null,210,100,0,true);//
 	
-	$clamav_unofficial=Paragraphe("clamav-64.png","{APP_CLAMAV}","{APP_CLAMAV_TEXT}",
-	"javascript:Loadjs('clamd.php')",null,210,100,0,true);//	
+	//$clamav_unofficial=Paragraphe("clamav-64.png","{APP_CLAMAV}","{APP_CLAMAV_TEXT}",
+	//"javascript:Loadjs('clamd.php')",null,210,100,0,true);//	
 	
 	
 

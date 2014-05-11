@@ -61,9 +61,9 @@ $f[]="}";
 $f[]="";
 */
 @file_put_contents("/etc/xinetd.d/amanda", @implode("\n", $f));
-echo "Starting......: Amanda server updating xinetd.d success\n";
+echo "Starting......: ".date("H:i:s")." Amanda server updating xinetd.d success\n";
 buildmain();
-if(is_file("/etc/init.d/xinetd")){echo "Starting......: Amanda server reloading xinetd\n";shell_exec("/etc/init.d/xinetd reload >/dev/null 2>&1");}
+if(is_file("/etc/init.d/xinetd")){echo "Starting......: ".date("H:i:s")." Amanda server reloading xinetd\n";shell_exec("/etc/init.d/xinetd reload >/dev/null 2>&1");}
 	
 }
 
@@ -661,7 +661,7 @@ for($i=1;$i<$config["tapecycle"]+1;$i++){
 set_backup_server();
 
 @file_put_contents("/etc/amanda/DailySet1/amanda.conf", @implode("\n", $f));
-echo "Starting......: Amanda server updating DailySet1 - amanda.conf success\n";
+echo "Starting......: ".date("H:i:s")." Amanda server updating DailySet1 - amanda.conf success\n";
 }
 
 

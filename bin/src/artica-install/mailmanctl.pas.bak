@@ -36,8 +36,6 @@ public
     function    VERSION():string;
     procedure   PUBLIC_ARCHIVES_ON_PHP();
     function    PostFixToMailManPath():string;
-
-
     function    PID_PATH():string;
 END;
 

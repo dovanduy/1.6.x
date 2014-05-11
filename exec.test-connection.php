@@ -34,7 +34,10 @@ $ini=new Bs_IniHandler();
 $ini->loadFile("/etc/artica-postfix/artica-update.conf");
 $uri=$ini->get("AUTOUPDATE","uri");
 if(trim($uri)==null){$uri="http://93.88.245.88/auto.update.php";}
-$uri=str_replace("www.artica.fr", "93.88.245.88", $uri);
+$unix=new unix();
+$URIBASE=$unix->MAIN_URI();
+
+$uri=str_replace($URIBASE, "93.88.245.88", $uri);
 $localFile='/usr/share/artica-postfix/ressources/index.ini';
 $curl=new ccurl("$uri?datas=$uriplus");
 

@@ -8,6 +8,7 @@ require_once("mapi/mapitags.php");
 class zarafa_contacts{
 	var $extension = ".vcf";
 	var $mime = "text/x-vcard";
+	
 	var $server = "http://localhost:236/zarafa";
 	var $zarafa = false;
 

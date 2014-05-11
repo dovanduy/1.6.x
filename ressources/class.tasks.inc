@@ -154,6 +154,15 @@ class system_tasks{
 			$this->tasks_array[66]="{restart_artica_web_services}";
 			$this->tasks_array[67]="{drop_caches}";
 			$this->tasks_array[68]="{update_debian_repository}";
+			$this->tasks_array[69]="{APP_CYRUS_BACKUP}";
+			$this->tasks_array[70]="{TEXT_TO_CSV}";
+			$this->tasks_array[71]="{clean_zarafa_search_indexes}";
+			$this->tasks_array[72]="{dns_performance}";
+			$this->tasks_array[73]="{dashboard_stats}";
+			$this->tasks_array[74]="{mysql_repair}";
+			$this->tasks_array[75]="{backup_artica_settings}";
+			
+			
 			
 			$this->tasks_explain_array[1]="{reboot_system_explain}";
 			$this->tasks_explain_array[2]="{check_system_updates_explain}";
@@ -225,6 +234,13 @@ class system_tasks{
 			$this->tasks_explain_array[66]="{restart_artica_web_services_explain}";
 			$this->tasks_explain_array[67]="{drop_caches_explain}";
 			$this->tasks_explain_array[68]="{update_debian_repository_explain}";
+			$this->tasks_explain_array[69]="{APP_CYRUS_BACKUP_EXPLAIN}";
+			$this->tasks_explain_array[70]="{TEXT_MEMBERS_TO_CSV}";
+			$this->tasks_explain_array[71]="{clean_zarafa_search_indexes_explain}";
+			$this->tasks_explain_array[72]="{DNSperformance_Taskexplain}";
+			$this->tasks_explain_array[73]="{dashboard_stats_explain}";
+			$this->tasks_explain_array[74]="{mysql_repair_task_explain}";
+			$this->tasks_explain_array[75]="{backup_artica_settings_explain}";
 			
 			
 
@@ -300,7 +316,13 @@ class system_tasks{
 			$this->tasks_processes[66]="exec.initslapd.php --restart-www";
 			$this->tasks_processes[67]="exec.drop-caches.php";
 			$this->tasks_processes[68]="exec.debian.mirror.php --schedule";
-			
+			$this->tasks_processes[69]="exec.cyrus.backup.php --schedule";
+			$this->tasks_processes[70]="exec.TextToLdap.php --schedule";
+			$this->tasks_processes[71]="exec.zarafa-search.php --clean";
+			$this->tasks_processes[72]="exec.squid.watchdog.php --dns";
+			$this->tasks_processes[73]="exec.loadavg.php --dns";
+			$this->tasks_processes[74]="exec.mysql.optimize.php --repair";
+			$this->tasks_processes[75]="exec.backup.artica.php";
 			
 			
 			$this->DisableTasks();
@@ -328,6 +350,24 @@ private function DisableTasks(){
 	if($EnableRemoteStatisticsAppliance==1){$ActAsASyslogClient=1;}
 	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
 	
+	if(!$users->ZARAFA_INSTALLED){
+		$this->task_disabled[31]=true;
+	}
+	
+	$MEMORY=$users->MEM_TOTAL_INSTALLEE;
+	
+	if($MEMORY<624288){
+		$this->task_disabled[14]=true;
+		$this->task_disabled[24]=true;
+		$this->task_disabled[25]=true;
+		$this->task_disabled[26]=true;
+		$this->task_disabled[39]=true;
+		$this->task_disabled[68]=true;
+		$this->task_disabled[69]=true;
+		$this->task_disabled[70]=true;
+		$this->task_disabled[71]=true;
+		$this->task_disabled[72]=true;
+	}
 	
 	if($ActAsASyslogServer==1){
 		$EnableSnort=1;
@@ -394,7 +434,7 @@ private function DisableTasks(){
 public function CheckDefaultSchedules(){
 		$sock=new sockets();
 		$q=new mysql();
-
+		if($GLOBALS["VERBOSE"]){echo "CheckDefaultSchedules OK\n";}
 		if(!$q->TABLE_EXISTS('system_schedules',"artica_backup")){	
 			$q->BuildTables();
 
@@ -405,6 +445,7 @@ public function CheckDefaultSchedules(){
 		}	
 		
 		$update=false;
+		$array[31]=array("TimeText"=>"05 00 * * *","TimeDescription"=>"Backup Zarafa server each 00h05");
 		$array[12]=array("TimeText"=>"30 23 * * *","TimeDescription"=>"Clean tables each day at 23h30");
 		$array[55]=array("TimeText"=>"15 5 * * *","TimeDescription"=>"myisamchk each day at 05h15");
 		$array[5]=array("TimeText"=>"30 7 * * *","TimeDescription"=>"MySQLTuner each day at 07h30");
@@ -446,15 +487,23 @@ public function CheckDefaultSchedules(){
 		$array[65]=array("TimeText"=>"30 18 * * 0","TimeDescription"=>"Purge logs storage MySQL database each Sunday at 18h30");
 		$array[66]=array("TimeText"=>"14 0,3,6,9,12,15,18,21 * * *","TimeDescription"=>"Restart Artica Web consoles each 3h");
 		$array[67]=array("TimeText"=>"17 0,4,8,12,16,18,22 * * *","TimeDescription"=>"Clean kernel caches each 4h");
+		$array[72]=array("TimeText"=>"0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,56,58 * * * *","TimeDescription"=>"DNS statistics each 2mn");
+		$array[72]=array("TimeText"=>"3,6,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,55,57,59 * * * *","TimeDescription"=>"Dahsboard statistics each 3mn");
+		$array[72]=array("TimeText"=>"30 3,6,12,18,22 * * *","TimeDescription"=>"Repair MySQL tables - non productive hours");
+		
 		
 		$c=0;
 		while (list ($TaskType, $content) = each ($array) ){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID,TimeText FROM system_schedules WHERE TaskType=$TaskType LIMIT 0,1","artica_backup"));
 			$ID=$ligne["ID"];
+			if($GLOBALS["VERBOSE"]){echo "TaskType $TaskType = $ID\n";}
+			
 			if(is_numeric($ID)){if($ID>0){continue;}}
 			if($ligne["TimeText"]<>null){continue;}
 			
 			$sql="INSERT IGNORE INTO system_schedules (TimeDescription,TimeText,TaskType,enabled) VALUES('{$content["TimeDescription"]}','{$content["TimeText"]}','$TaskType',1)";							
+			if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+			
 			writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 			$q->QUERY_SQL($sql,"artica_backup");
 				

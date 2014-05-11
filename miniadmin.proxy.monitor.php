@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('error_reporting', E_ALL);
 ini_set('error_prepend_string',"<p class='text-error'>");
 ini_set('error_append_string',"</p>");
-$_SESSION["MINIADM"]=true;
+
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -17,7 +17,7 @@ include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 if(isset($_GET["verbose"])){$GLOBALS["DEBUG_PRIVS"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(!isset($_SESSION["uid"])){writelogs("Redirecto to miniadm.logon.php...","NULL",__FILE__,__LINE__);header("location:miniadm.logon.php");}
 BuildSessionAuth();
-if($_SESSION["uid"]=="-100"){writelogs("Redirecto to location:admin.index.php...","NULL",__FILE__,__LINE__);header("location:admin.index.php");die();}
+
 $users=new usersMenus();
 if($GLOBALS["VERBOSE"]){
 	if(!$users->AsProxyMonitor){
@@ -157,7 +157,9 @@ function watchdog_params(){
 	//echo base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig"));
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
 	
-	
+	if(!isset($MonitConfig["SWAP_MONITOR"])){$MonitConfig["SWAP_MONITOR"]=1;}
+	if(!isset($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
+	if(!isset($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
 	if(!isset($MonitConfig["MAX_RESTART"])){$MonitConfig["MAX_RESTART"]=2;}
 	if(!isset($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
 	if(!isset($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
@@ -165,6 +167,7 @@ function watchdog_params(){
 	if(!isset($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
 	if(!isset($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
 	if(!isset($MonitConfig["RestartWhenCrashes"])){$MonitConfig["RestartWhenCrashes"]=1;}
+	if(!isset($MonitConfig["DisableWebFilteringNetFailed"])){$MonitConfig["DisableWebFilteringNetFailed"]=1;}
 	
 	if(!isset($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!isset($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
@@ -172,11 +175,21 @@ function watchdog_params(){
 	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
 	if(!isset($MonitConfig["ExternalPageToCheck"])){$MonitConfig["ExternalPageToCheck"]="http://www.google.fr/search?q=%T";}
 	
+	if(!is_numeric($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
+	if(!is_numeric($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
+	
 	if(!is_numeric($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
 	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
 	if(!is_numeric($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
+	if(!is_numeric($MonitConfig["WEBPROCISSUE"])){$MonitConfig["WEBPROCISSUE"]=3;}
+	
+	
+	
+	if(!is_numeric($MonitConfig["DisableWebFilteringNetFailed"])){$MonitConfig["DisableWebFilteringNetFailed"]=1;}
+	
+	
 		
 	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
 	if($MonitConfig["MgrInfosMaxTimeOut"]<5){$MonitConfig["MgrInfosMaxTimeOut"]=5;}
@@ -194,6 +207,8 @@ function watchdog_params(){
 	if(!is_numeric($MonitConfig["MaxLoad"])){$MonitConfig["MaxLoad"]=30;}
 	if(!is_numeric($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
 	if(!is_numeric($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
+	if(!is_numeric($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
+	
 	if(!is_numeric($MonitConfig["RestartWhenCrashes"])){$MonitConfig["RestartWhenCrashes"]=1;}
 
 	
@@ -205,7 +220,7 @@ function watchdog_params(){
 	if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
 	if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
 	if(!isset($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
-	if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=1;}
+	if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
 	
 	
 	
@@ -267,15 +282,19 @@ function watchdog_params(){
 	if(!isset($UfdbguardSMTPNotifs["ssl_enabled"])){$UfdbguardSMTPNotifs["ssl_enabled"]=$ini->_params["SMTP"]["ssl_enabled"];}
 	if(!is_numeric($UfdbguardSMTPNotifs["smtp_server_port"])){$UfdbguardSMTPNotifs["smtp_server_port"]=25;}
 	
-	if(!isset($UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"])){$UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"]=1;}
-	if(!is_numeric($UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"])){$UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"]=1;}
+	if(!isset($MonitConfig["ALLOW_RETURN_1CPU"])){$MonitConfig["ALLOW_RETURN_1CPU"]=1;}
+	if(!is_numeric($MonitConfig["ALLOW_RETURN_1CPU"])){$MonitConfig["ALLOW_RETURN_1CPU"]=1;}
 	
 	$boot=new boostrap_form();
 	$boot->set_checkbox("watchdog","{enable}",$MonitConfig["watchdog"],array("DISABLEALL"=>true));
 	$boot->set_checkbox("EnableFailover","{enable} {failover}",$EnableFailover,array("TOOLTIP"=>"{EnableFailover_explain}"));
 	$boot->set_field("MinTimeFailOverSwitch", "{failover_ttl} ({minutes})", $MonitConfig["MinTimeFailOverSwitch"],array("TOOLTIP"=>"{failover_ttl_explain}"));
 	
-	$boot->set_checkbox("ALLOW_RETURN_1CPU","{ALLOW_RETURN_1CPU}",$UfdbguardSMTPNotifs["ALLOW_RETURN_1CPU"],array("TOOLTIP"=>"{ALLOW_RETURN_1CPU_EXPLAIN}"));
+	$boot->set_checkbox("ALLOW_RETURN_1CPU","{ALLOW_RETURN_1CPU}",$MonitConfig["ALLOW_RETURN_1CPU"],array("TOOLTIP"=>"{ALLOW_RETURN_1CPU_EXPLAIN}"));
+	$boot->set_field("WEBPROCISSUE", "{max_attempts}",$MonitConfig["WEBPROCISSUE"]);
+	
+	
+	$boot->set_checkbox("DisableWebFilteringNetFailed","{DisableWebFilteringNetFailed}",$MonitConfig["DisableWebFilteringNetFailed"],array("TOOLTIP"=>"{DisableWebFilteringNetFailed_explain}"));
 	
 	
 
@@ -292,9 +311,16 @@ function watchdog_params(){
 	$boot->set_field("watchdogMEM", "{notify_when_memory_exceed} (MB)", $MonitConfig["watchdogMEM"]);
 	$boot->set_field("MaxSwapPourc", "{MaxSwapPourc}  (%)", $MonitConfig["MaxSwapPourc"],array("TOOLTIP"=>"{MaxSwapPourc_explain}"));
 	$boot->set_field("MaxLoad", "{max_system_load}", $MonitConfig["MaxLoad"],array("TOOLTIP"=>"{max_system_load_squid_explain}"));
+	$boot->set_field("MinFreeMem", "{MinFreeMem} MB", $MonitConfig["MinFreeMem"],array("TOOLTIP"=>"{MinFreeMem_squid_explain}"));
 	$boot->set_checkbox("MaxLoadFailOver", "{max_system_load_failover}", $MonitConfig["MaxLoadFailOver"],array("TOOLTIP"=>"{max_system_load_failover_explain}"));
 	$boot->set_checkbox("MaxLoadReboot", "{max_system_load_reboot}", $MonitConfig["MaxLoadReboot"],array("TOOLTIP"=>"{max_system_load_reboot_explain}"));
 	$boot->set_checkbox("RestartWhenCrashes", "{RestartWhenCrashes}", $MonitConfig["RestartWhenCrashes"],array("TOOLTIP"=>"{RestartWhenCrashes_explain}"));
+	
+	
+	$boot->set_spacertitle("SWAP");
+	$boot->set_checkbox("SWAP_MONITOR","{enable}",$MonitConfig["SWAP_MONITOR"],array("TOOLTIP"=>"{SWAP_MONITOR_EXPLAIN}"));
+	$boot->set_field("SWAP_MIN", "{SWAP_MIN} %", $MonitConfig["SWAP_MIN"],array("TOOLTIP"=>"{SWAP_MIN_EXPLAIN}"));
+	$boot->set_field("SWAP_MAX", "{SWAP_MAX} %", $MonitConfig["SWAP_MAX"],array("TOOLTIP"=>"{SWAP_MAX_EXPLAIN}"));
 	
 	
 	
@@ -303,8 +329,6 @@ function watchdog_params(){
 	$boot->set_field("MAX_PING_GATEWAY", "{MAX_PING_GATEWAY}", $MonitConfig["MAX_PING_GATEWAY"],array("TOOLTIP"=>"{MAX_PING_GATEWAY_EXPLAIN}"));
 	$boot->set_field("PING_GATEWAY", "{ipaddr}", $MonitConfig["PING_GATEWAY"],array("IPV4"=>true));
 	$boot->set_checkbox("PING_FAILED_RELOAD_NET","{reload_network}",$MonitConfig["PING_FAILED_RELOAD_NET"],array("TOOLTIP"=>"{PING_FAILED_RELOAD_NET_EXPLAIN}"));
-	
-	
 	$boot->set_checkbox("PING_FAILED_REPORT","{send_report}",$MonitConfig["PING_FAILED_REPORT"],array("TOOLTIP"=>"{PING_FAILED_REPORT_EXPLAIN}"));
 	$boot->set_checkbox("PING_FAILED_FAILOVER","{switch_to_failover}",$MonitConfig["PING_FAILED_FAILOVER"],array("TOOLTIP"=>"{PING_FAILED_FAILOVER_EXPLAIN}"));
 	$boot->set_checkbox("PING_FAILED_REBOOT","{reboot_system}",$MonitConfig["PING_FAILED_REBOOT"],array("TOOLTIP"=>"{reboot_system_explain}"));
@@ -354,7 +378,7 @@ function watchdog_save(){
 	$MonitConfig["TestExternalWebPage"]=$_POST["TestExternalWebPage"];
 	$MonitConfig["REBOOT_INTERVAL"]=$_POST["REBOOT_INTERVAL"];
 	$MonitConfig["MinTimeFailOverSwitch"]=$_POST["MinTimeFailOverSwitch"];
-	
+	$MonitConfig["ALLOW_RETURN_1CPU"]=$_POST["ALLOW_RETURN_1CPU"];
 	
 	
 	$MonitConfig["MaxLoad"]=$_POST["MaxLoad"];
@@ -514,8 +538,7 @@ function all_services_status_build(){
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+	
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
@@ -592,30 +615,28 @@ function all_services_status_build(){
 		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> $DisableSquidSNMPMode<br>\n";}
 	
-	if($DisableSquidSNMPMode==0){
-		$squid_status=null;
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> squid.php?smp-status=yes<br>\n";}
-		$ini=new Bs_IniHandler();
-		$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
+	
+	
+	$squid_status=null;
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
 		
-		while (list ($index, $line) = each ($ini->_params) ){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
-			$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
-			
-		}
-		
+	while (list ($index, $line) = each ($ini->_params) ){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
+		$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
 	}
+		
+	
 	
 
 	
 	if($SquidBoosterMem>0){
-		if($DisableSquidSNMPMode==0){
+		
 			if($DisableAnyCache==0){
 				$tr[]=squid_booster_smp();
 			}
-		}
+		
 	}
 	
 	
@@ -668,6 +689,9 @@ function graph0(){
 
 	
 		}
+		
+		if(!is_array($ARRAY)){$ARRAY=array();}
+		
 		while (list ($day, $array) = each ($ARRAY) ){
 			if(!is_numeric($array[1])){continue;}
 			if(!is_numeric($array[0])){continue;}
@@ -680,6 +704,8 @@ function graph0(){
 			$xdata[]=date("m-d",$date);
 			$ydata[]=$pourc;
 		}
+		
+
 		$highcharts=new highcharts();
 		$highcharts->container=$_GET["container"];
 		$highcharts->xAxis=$xdata;

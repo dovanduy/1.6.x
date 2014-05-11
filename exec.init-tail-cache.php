@@ -46,7 +46,7 @@ function restart(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -67,14 +67,14 @@ function start($aspid=false){
 	if(!is_numeric($NtpdateAD)){$NtpdateAD=0;}
 	$kill=$unix->find_program("kill");	
 	if($SQUIDEnable==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Squid is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Squid is disabled...\n";}
 		return;
 	}
 	
 	if(is_file("/etc/artica-postfix/squid.lock")){
 		$time=$unix->file_time_min("/etc/artica-postfix/squid.lock");
 		if($time<60){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Squid is locked (since {$time}Mn...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Squid is locked (since {$time}Mn...\n";}
 			return;
 		}
 		@unlink("/etc/artica-postfix/squid.lock");
@@ -85,7 +85,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -99,14 +99,14 @@ function start($aspid=false){
 	
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: cache-tail, already running since {$time}Mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, already running since {$time}Mn\n";}
 		return;
 	}
 	$tail=$unix->find_program("tail");
 	$pid=$unix->PIDOF_PATTERN("$tail -f -n 0 {$GLOBALS["log_path"]}");
 	if($unix->process_exists($pid)){
 		for($i=0;$i<20;$i++){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: killing old process pid $pid\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: killing old process pid $pid\n";}
 			shell_exec("$kill -9 $pid >/dev/null 2>&1");
 			usleep(800);
 			$pid=$unix->PIDOF_PATTERN("$tail -f -n 0 {$GLOBALS["log_path"]}");
@@ -121,16 +121,16 @@ function start($aspid=false){
 	for($i=0;$i<6;$i++){
 		$pid=GETPID();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: cache-tail, waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, waiting $i/5\n";}
 		sleep(1);
 	}
 	$pid=GETPID();
 	if($unix->process_exists($pid)){
 		events("exec.cache-logs.php success to start daemon PID:$pid...");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: cache-tail, success PID:$pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, success PID:$pid\n";}
 	}else{
 		events("exec.cache-logs.php failed to start daemon...");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: cache-tail, failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, failed\n";}
 	}
 }
 
@@ -143,7 +143,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -152,17 +152,17 @@ function stop($aspid=false){
 	
 	$pid=GETPID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: cache-tail, already stopped\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, already stopped\n";}
 		return;
 	}
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: cache-tail, stopping pid: $pid\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, stopping pid: $pid\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<6;$i++){
 		$pid=GETPID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: cache-tail, waiting pid: $pid $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, waiting pid: $pid $i/5\n";}
 		shell_exec("$kill -9 $pid >/dev/null 2>&1");
 		sleep(1);
 	}	
@@ -171,7 +171,7 @@ function stop($aspid=false){
 	$pid=$unix->PIDOF_PATTERN("$tail -f -n 0 {$GLOBALS["log_path"]}");
 	if($unix->process_exists($pid)){
 		for($i=0;$i<20;$i++){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: killing old process pid $pid\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: killing old process pid $pid\n";}
 			shell_exec("$kill -9 $pid >/dev/null 2>&1");
 			usleep(800);
 			$pid=$unix->PIDOF_PATTERN("$tail -f -n 0 {$GLOBALS["log_path"]}");
@@ -185,10 +185,10 @@ function stop($aspid=false){
 	$pid=GETPID();
 	if(!$unix->process_exists($pid)){
 		events("exec.cache-logs.php success to stop daemon...");
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: cache-tail, success\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, success\n";}
 	}else{
 		events("exec.cache-logs.php failed to stop daemon...");
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: cache-tail, failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, failed\n";}
 	}	
 	
 }

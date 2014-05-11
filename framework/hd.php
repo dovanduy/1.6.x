@@ -28,7 +28,7 @@ function check_nx(){
 	$unix=new unix();
 	$check=$unix->find_program("check-bios-nx");
 	if(strlen($check)<5){return;}
-	exec("/usr/bin/check-bios-nx --verbose 2>&1",$results);
+	exec("$check --verbose 2>&1",$results);
 	echo "<articadatascgi>".base64_encode(@implode("\n",$results))."</articadatascgi>";	
 }
 function fstab_add(){
@@ -44,4 +44,20 @@ function mountlist(){
 	$mount=$unix->find_program("mount");
 	exec("$mount -l 2>&1",$results);
 	echo "<articadatascgi>".base64_encode(@implode("\n",$results))."</articadatascgi>";
+}
+
+function unlink_disk(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.system.build-partition.php --unlink \"{$_GET["unlink-disk"]}\"";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__);
+	NOHUP_EXEC($cmd);
+}
+function NOHUP_EXEC($cmdline){
+	$cmdline=str_replace(">/dev/null 2>&1 &", "", $cmdline);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$cmdfinal="$nohup $cmdline >/dev/null 2>&1 &";
+	writelogs_framework("$cmdfinal",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdfinal);
 }

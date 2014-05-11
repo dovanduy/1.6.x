@@ -19,6 +19,7 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBA
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 
 if($argv[1]=="--start"){SERVICE_START();die(0);}
+if($argv[1]=="--ttl"){SERVICE_TTL();die(0);}
 if($argv[1]=="--stop"){SERVICE_STOP();die(0);}
 if($argv[1]=="--restart"){SERVICE_RESTART();die(0);}
 if($argv[1]=="--recovery"){restart_reco();die();}
@@ -70,7 +71,7 @@ function restart_reco(){
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "Starting......: MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
+			echo "Starting......: ".date("H:i:s")." MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
 			if($time<10){if(!$GLOBALS["FORCE"]){return;}}
 			shell_exec("$kill -9 $oldpid");
 		}
@@ -84,26 +85,39 @@ SERVICE_STOP(true);
 
 
 if(is_file($zarafa_server)){
-	echo "Starting......: Removing frm files.\n";
+	echo "Starting......: ".date("H:i:s")." Removing frm files.\n";
 	shell_exec("/bin/rm -f $MYSQL_DIR/zarafa/*.frm");
 }
 
-echo "Starting......: MySQL RECOVERY MODE\n";
+echo "Starting......: ".date("H:i:s")." MySQL RECOVERY MODE\n";
 SERVICE_START(false,true);
-echo "Starting......: Sleeping 10 seconds\n";
+echo "Starting......: ".date("H:i:s")." Sleeping 10 seconds\n";
 sleep(10);
 echo "Stopping MySQL...............: RECOVERY MODE\n";
 SERVICE_STOP(true);
 $GLOBALS["RECOVERY"]=0;
-echo "Starting......: MySQL Normal mode\n";
+echo "Starting......: ".date("H:i:s")." MySQL Normal mode\n";
 SERVICE_START(false,true);
 
 if(is_file($zarafa_server)){
-	echo "Starting......: Restarting Zarafa-server\n";
+	echo "Starting......: ".date("H:i:s")." Restarting Zarafa-server\n";
 	shell_exec("/etc/init.d/artica-postfix restart zarafa-server");
 }
 
 	
+}
+
+function SERVICE_TTL(){
+	$unix=new unix();
+	
+	$MYSQLPid=PID_NUM();
+	if(!$unix->process_exists($MYSQLPid)){
+		echo "Not running\n";
+		return;
+	}
+	
+	$RunningScince=$unix->PROCCESS_TIME_MIN($MYSQLPid);
+	echo "Running Since {$RunningScince}Mn\n";
 }
 
 function WATCHDOG_MYSQL(){
@@ -199,6 +213,27 @@ function SERVICE_RESTART(){
 	SERVICE_STOP(true);
 	SERVICE_START(false,true);
 	
+}
+
+function GetStartedValues(){
+	$unix=new unix();
+	$mysqld=$unix->find_program("mysqld");
+	exec("$mysqld --help --verbose 2>&1",$results);
+	while (list ($key, $valueN) = each ($results) ){
+	if(preg_match("#--([a-z\-\_\=]+)(.+)#", $valueN,$re)){
+		$key=trim($re[1]);
+		if(strpos($key,"=")>0){
+			$keyTR=explode("=",$key);
+			$key=$keyTR[0];
+		}
+		$value=trim($re[2]);
+		$array["--$key"]=true;
+		}
+	}
+	
+	echo "Starting......: ".date("H:i:s")." MySQL `$mysqld` ". count($array)." avilable option(s)\n";
+	
+	return $array;
 }
 
 
@@ -319,7 +354,7 @@ function SERVICE_START($nochecks=false,$nopid=false){
 	$oldpid=@file_get_contents($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "Starting......: MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
+			echo "Starting......: ".date("H:i:s")." MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
 			if($time<5){if(!$GLOBALS["FORCE"]){return;}}
 			shell_exec("$kill -9 $oldpid");
 		}
@@ -330,12 +365,12 @@ function SERVICE_START($nochecks=false,$nopid=false){
 		
 		
 	
-	if(is_file("/etc/artica-postfix/mysql.stop")){echo "Starting......: MySQL locked, exiting\n";return;}
+	if(is_file("/etc/artica-postfix/mysql.stop")){echo "Starting......: ".date("H:i:s")." MySQL locked, exiting\n";return;}
 	
 	$PID_NUM=PID_NUM();
 	if($unix->process_exists($PID_NUM)){
 		$timemin=$unix->PROCCESS_TIME_MIN($PID_NUM);
-		echo "Starting......: MySQL already running PID \"$PID_NUM\" since {$timemin}Mn\n";
+		echo "Starting......: ".date("H:i:s")." MySQL already running PID \"$PID_NUM\" since {$timemin}Mn\n";
 		return;
 	}	
 	
@@ -343,7 +378,7 @@ function SERVICE_START($nochecks=false,$nopid=false){
 	$mysqlbin=$unix->LOCATE_mysqld_bin();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");	
-	if(!is_file($mysqlbin)){echo "Starting......: MySQL is not installed, abort\n";return;}
+	if(!is_file($mysqlbin)){echo "Starting......: ".date("H:i:s")." MySQL is not installed, abort\n";return;}
 
 	$EnableMysqlFeatures=$sock->GET_INFO('EnableMysqlFeatures');
 	$MysqlBinAllAdresses=$sock->GET_INFO('MysqlBinAllAdresses');
@@ -364,16 +399,16 @@ function SERVICE_START($nochecks=false,$nopid=false){
 	$EnableMysqlLog=$sock->GET_INFO("EnableMysqlLog");
 	if(!is_numeric($EnableMysqlLog)){$EnableMysqlLog=0;}
 	
-
+	@mkdir("/var/run/mysqld",0755,true);
 	if($datadir==null){$datadir='/var/lib/mysql';}
 	if($MySqlTmpDir=='/tmp'){$MySqlTmpDir=null;}
 	if($MySQLLOgErrorPath==null){$MySQLLOgErrorPath=$datadir.'/mysqld.err';}
 
-	if($MysqlTooManyConnections==1){echo "Starting......: MySQL MysqlTooManyConnections=1, abort\n";return;}
+	if($MysqlTooManyConnections==1){echo "Starting......: ".date("H:i:s")." MySQL MysqlTooManyConnections=1, abort\n";return;}
 	if(isset($GLOBALS["RECOVERY"])){$innodb_force_recovery=$GLOBALS["RECOVERY"];}
 
 if(strlen($MySqlTmpDir)>3){
-        echo "Starting......: MySQL tempdir : $MySqlTmpDir\n";
+        echo "Starting......: ".date("H:i:s")." MySQL tempdir : $MySqlTmpDir\n";
        shell_exec("$php5 /usr/share/artica-postfix/exec.mysql.build.php --tmpfs");
        $MySqlTmpDir=str_replace("//", "/", $MySqlTmpDir);
        if(!is_dir($MySqlTmpDir)){
@@ -384,7 +419,7 @@ if(strlen($MySqlTmpDir)>3){
 }
 
 if($EnableMysqlFeatures==0){
- 	echo "Starting......: MySQL is disabled by \"EnableMysqlFeatures\"...\n";	
+ 	echo "Starting......: ".date("H:i:s")." MySQL is disabled by \"EnableMysqlFeatures\"...\n";	
  	return;
 }
 
@@ -395,6 +430,14 @@ if($EnableMysqlFeatures==0){
 	@mkdir("/var/log/mysql",0755,true);
 	@mkdir($datadir,0755,true);
 	
+	$dirs=$unix->dirdir("/var/lib/mysql");
+	while (list ($num, $directory) = each ($dirs) ){
+		echo "Starting......: ".date("H:i:s")." MySQL, apply permissions on ". basename($directory)."\n";
+		$unix->chown_func("mysql","mysql", "$directory/*");
+		
+	}
+	
+	
 	
 	$bind_address=' --bind-address=127.0.0.1';
 	$bind_address2="127.0.0.1";
@@ -403,19 +446,19 @@ if($EnableMysqlFeatures==0){
 	      $bind_address=' --bind-address=0.0.0.0';
 	  }
 
-   echo "Starting......: MySQL Pid path.......:$pid_file\n";
-   echo "Starting......: datadir..............:$datadir\n";
-   echo "Starting......: Log error............:$MySQLLOgErrorPath\n";
-   echo "Starting......: socket...............:$socket\n";
-   echo "Starting......: user.................:$mysql_user\n";
-   echo "Starting......: LOGS ENABLED.........:$EnableMysqlLog\n";
-   echo "Starting......: Daemon...............:$mysqlbin\n";
-   echo "Starting......: Bind address.........:$bind_address2\n";
-   echo "Starting......: Temp Dir.............:$MySqlTmpDir\n";
-   echo "Starting......: innodb_force_recovery:$innodb_force_recovery\n";
+   echo "Starting......: ".date("H:i:s")." MySQL Pid path.......:$pid_file\n";
+   echo "Starting......: ".date("H:i:s")." datadir..............:$datadir\n";
+   echo "Starting......: ".date("H:i:s")." Log error............:$MySQLLOgErrorPath\n";
+   echo "Starting......: ".date("H:i:s")." socket...............:$socket\n";
+   echo "Starting......: ".date("H:i:s")." user.................:$mysql_user\n";
+   echo "Starting......: ".date("H:i:s")." LOGS ENABLED.........:$EnableMysqlLog\n";
+   echo "Starting......: ".date("H:i:s")." Daemon...............:$mysqlbin\n";
+   echo "Starting......: ".date("H:i:s")." Bind address.........:$bind_address2\n";
+   echo "Starting......: ".date("H:i:s")." Temp Dir.............:$MySqlTmpDir\n";
+   echo "Starting......: ".date("H:i:s")." innodb_force_recovery:$innodb_force_recovery\n";
    
    
-   echo "Starting......: Settings permissions..\n";
+   echo "Starting......: ".date("H:i:s")." Settings permissions..\n";
    $unix->chown_func($mysql_user,$mysql_user, "/var/run/mysqld");
    $unix->chown_func($mysql_user,$mysql_user, "/var/log/mysql");
    $unix->chown_func($mysql_user,$mysql_user, $datadir);
@@ -443,15 +486,38 @@ if($EnableMysqlFeatures==0){
 	
 
 
-   echo "Starting......: MySQL Checking : $datadir/mysql/host.frm\n";
+   echo "Starting......: ".date("H:i:s")." MySQL Checking : $datadir/mysql/host.frm\n";
    if(!is_file("$datadir/mysql/host.frm")){
 	    if(is_file($mysql_install_db)){
-	        echo "Starting......: MySQL installing default databases\n";
+	        echo "Starting......: ".date("H:i:s")." MySQL installing default databases\n";
 	        shell_exec("$mysql_install_db --datadir=\"$datadir\"");
 	    	}
 	}else{
-		echo "Starting......: MySQL Checking : $datadir/mysql/host.frm OK\n";
+		echo "Starting......: ".date("H:i:s")." MySQL Checking : $datadir/mysql/host.frm OK\n";
 	}
+	$cmd2=array();
+	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+	
+	if($MEMORY<624288){
+		$GetStartedValues=GetStartedValues();
+		echo "Starting......: ".date("H:i:s")." MySQL Warning memory did not respond to pre-requesites, tuning to lower memory\n";
+		if($GetStartedValues["--key-buffer-size"]){ $cmd2[]="--key-buffer-size=12k";}
+		if($GetStartedValues["--max-allowed-packet"]){ $cmd2[]="--max-allowed-packet=1M";}
+		if($GetStartedValues["--table-cache"]){ $cmd2[]="--table-cache=4";}
+		if($GetStartedValues["--sort-buffer-size"]){ $cmd2[]="--sort-buffer-size=64k";}
+		if($GetStartedValues["--read-buffer-size"]){ $cmd2[]="--read-buffer-size=256k";}
+		if($GetStartedValues["--read-rnd-buffer-size"]){ $cmd2[]="--read-rnd-buffer-size=128k";}
+		if($GetStartedValues["--net-buffer-length"]){ $cmd2[]="--net-buffer-length=2k";}
+		if($GetStartedValues["--thread-stack"]){ $cmd2[]="--thread-stack=64k";}
+		if($GetStartedValues["--default-storage-engine"]){ $cmd2[]="--default-storage-engine=MyISAM";}
+		if($GetStartedValues["--default-tmp-storage-engine"]){ $cmd2[]="--default-tmp-storage-engine=MyISAM";}
+		if($GetStartedValues["--query-cache-limit"]){ $cmd2[]="--query-cache-limit=254k";}
+		if($GetStartedValues["--query-cache-size"]){ $cmd2[]="--query-cache-size=4M";}
+		if($GetStartedValues["--max-connections"]){ $cmd2[]="--max-connections=15";}
+		
+		echo "Starting......: ".date("H:i:s")." MySQL ". count($cmd2)." forced option(s)\n";
+	}
+
 
 
    if(is_file('/var/run/mysqld/mysqld.err')){@unlink('/var/run/mysqld/mysqld.err');}
@@ -459,26 +525,30 @@ if($EnableMysqlFeatures==0){
    
    if(is_file($MySQLLOgErrorPath)){@unlink($MySQLLOgErrorPath);}
 	$cmds[]=$mysqlbin;
+	if($MEMORY<624288){$cmds[]="--no-defaults --user=mysql";}
 	$cmds[]="--pid-file=/var/run/mysqld/mysqld.pid";
 	$cmds[]=trim($logpathstring);
 	$cmds[]=trim($MySqlTmpDirCMD);
 	$cmds[]="--socket=$socket";
 	$cmds[]="--datadir=\"$datadir\"";
-	if($innodb_force_recovery>0){
+	if(count($cmd2)==0){
+		if($innodb_force_recovery>0){
 		$cmds[]="--innodb-force-recovery=$innodb_force_recovery";
+		}
 	}
+	if(count($cmd2)>0){$cmds[]=@implode(" ", $cmd2);}
 	$cmds[]=">/dev/null 2>&1 &";
 	if(is_file('/usr/sbin/aa-complain')){
-        echo "Starting......: Mysql adding mysql in apparamor complain mode...\n";
+        echo "Starting......: ".date("H:i:s")." Mysql adding mysql in apparamor complain mode...\n";
         shell_exec("/usr/sbin/aa-complain $mysqlbin >/dev/null 2>&1");
 	}
 	
 	$cmd=@implode(" ", $cmds);
 	while (list ($num, $ligne) = each ($cmds) ){
-		echo "Starting......: MySQL option: $ligne\n";
+		echo "Starting......: ".date("H:i:s")." MySQL option: $ligne\n";
 	}
 	
-	echo "Starting......: MySQL starting daemon, please wait\n";
+	echo "Starting......: ".date("H:i:s")." MySQL starting daemon, please wait\n";
 	writelogs("Starting MySQL $cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 	$count=0;
@@ -489,17 +559,17 @@ if($EnableMysqlFeatures==0){
    for($i=0;$i<6;$i++){
    		$pid=PID_NUM();
    		if($unix->process_exists($pid,$mysqlbin)){
-   			echo "Starting......: MySQL checks daemon running...\n";
+   			echo "Starting......: ".date("H:i:s")." MySQL checks daemon running...\n";
    			break;
    		}
-   		echo "Starting......: MySQL checks daemon, please wait ($i/6)\n";
+   		echo "Starting......: ".date("H:i:s")." MySQL checks daemon, please wait ($i/6)\n";
    		sleep(1);
    }
 
    $pid=PID_NUM();
    if(!$unix->process_exists($pid)){
-   	echo "Starting......: MySQL failed\n";
-   	echo "Starting......: $cmd\n";
+   	echo "Starting......: ".date("H:i:s")." MySQL failed\n";
+   	echo "Starting......: ".date("H:i:s")." $cmd\n";
    	system_admin_events("Failed to start MySQL server", __FUNCTION__, __FILE__, __LINE__, "services");
    	$php5=$unix->LOCATE_PHP5_BIN();
    	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.mysql.build.php >/dev/null 2>&1 &");
@@ -507,7 +577,7 @@ if($EnableMysqlFeatures==0){
    	
    }else{
    		system_admin_events("Success to start MySQL server pid $pid", __FUNCTION__, __FILE__, __LINE__, "services");
-   		echo "Starting......: MySQL success pid $pid\n";
+   		echo "Starting......: ".date("H:i:s")." MySQL success pid $pid\n";
    		$q=new mysql_squid_builder();
    		$q->MEMORY_TABLES_RESTORE();
    	
@@ -525,7 +595,7 @@ function status_all_mysql_engines(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -539,19 +609,23 @@ function status_all_mysql_engines(){
 	
 	$sock=new sockets();
 	$datadir=$unix->MYSQL_DATA_DIR();
+	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
+	if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
+	$SquidStatsDatabasePath=$sock->GET_INFO("SquidStatsDatabasePath");
+	if($SquidStatsDatabasePath==null){$SquidStatsDatabasePath="/opt/squidsql";}
 	
 	$array["APP_MYSQL_ARTICA"]["size"]=$unix->DIRSIZE_BYTES($datadir);
 	$array["APP_MYSQL_ARTICA"]["INFO"]=$unix->DIRPART_INFO($datadir);
 	
-	if(is_dir("/opt/articatech/mysql")){
-		$array["APP_ARTICADB"]["size"]=$unix->DIRSIZE_BYTES("/opt/articatech");
-		$array["APP_ARTICADB"]["INFO"]=$unix->DIRPART_INFO("/opt/articatech");
+	if(is_dir("$ArticaDBPath/mysql")){
+		$array["APP_ARTICADB"]["size"]=$unix->DIRSIZE_BYTES("$ArticaDBPath");
+		$array["APP_ARTICADB"]["INFO"]=$unix->DIRPART_INFO("$ArticaDBPath");
 		
 	}
 	
-	if(is_dir("/opt/squidsql")){
-		$array["APP_SQUID_DB"]["size"]=$unix->DIRSIZE_BYTES("/opt/squidsql");
-		$array["APP_SQUID_DB"]["INFO"]=$unix->DIRPART_INFO("/opt/squidsql");
+	if(is_dir("$SquidStatsDatabasePath/data")){
+		$array["APP_SQUID_DB"]["size"]=$unix->DIRSIZE_BYTES("$SquidStatsDatabasePath");
+		$array["APP_SQUID_DB"]["INFO"]=$unix->DIRPART_INFO("$SquidStatsDatabasePath");
 		
 	}
 	

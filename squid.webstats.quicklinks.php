@@ -388,7 +388,7 @@ function section_architecture_tabs(){
 function section_architecture_advanced(){
 	$sock=new sockets();
 
-	$squid_parent_proxy=Paragraphe('server-redirect-64.png','{squid_parent_proxy}','{squid_parent_proxy_text}',"javascript:Loadjs('squid.parent.proxy.php')");
+	
 	$squid_reverse_proxy=Paragraphe('squid-reverse-64.png','{squid_reverse_proxy}','{squid_reverse_proxy_text}',"javascript:Loadjs('squid.reverse.proxy.php')");
 	$squid_advanced_parameters=Paragraphe('64-settings.png','{squid_advanced_parameters}','{squid_advanced_parameters_text}',"javascript:Loadjs('squid.advParameters.php')");
 	//$squid_conf=Paragraphe('script-view-64.png','{configuration_file}','{display_generated_configuration_file}',"javascript:Loadjs('squid.conf.php')");
@@ -807,15 +807,7 @@ function section_status(){
 			
 		}
 	echo build_artica_tabs($html, "squid_main_svc",950)."
-		<script>
-				$(document).ready(function(){
-					$('#squid_main_svc').tabs();
-			
-			
-			});
-			
-			QuickLinkShow('quicklinks-services_status');
-		</script>";			
+		<script>QuickLinkShow('quicklinks-services_status');</script>";			
 	
 	
 }

@@ -58,9 +58,12 @@ function downgrade($file){
 		Events("100%: Failed,  $workdir Permission denied");
 		die();
 	}
+	
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	if(is_file($gzf)){@unlink($gzf);}
 	Events("5%: PLEASE WAIT,PLEASE WAIT,PLEASE WAIT.....downloading $file");
-	$curl=new ccurl("http://www.artica.fr/download/old-samba/$file");
+	$curl=new ccurl("$URIBASE/download/old-samba/$file");
 	$curl->NoHTTP_POST=true;
 	$curl->ProgressFunction="downgrade_prg";
 	$curl->DebugProgress=true;
@@ -116,9 +119,10 @@ function downgrade($file){
 	shell_exec("/etc/init.d/samba start");
 	shell_exec("/etc/init.d/winbind start");
 	Events("80%: Refresh Artica with the new version...");
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time()." >/dev/null 2>&1");
+	shell_exec("/etc/init.d/artica-process1 start");
 	Events("90%: Restarting watchdogs...");
-	system("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	system("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/monit restart  >/dev/null 2>&1 &");
 	Events("100%: Done...");
 	Events("-------------------------------------------------------------");
 	Events("----------------     Samba FS V.$ver    ------------------");

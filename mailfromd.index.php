@@ -95,7 +95,7 @@ function page_status(){
 		
 if($ini->_params["MAILFROMD"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$rouage_title='{start_service}';
 		$rouage_text='{start_service_text}';
 		$error= "";
@@ -143,7 +143,7 @@ if($ini->_params["MAILFROMD"]["running"]==0){
 $ini->loadString($socks->getfile('clamav_status'));	
 if($ini->_params["CLAMAV"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$rouage_title='{start_service}';
 		$rouage_text='{start_service_text}';
 		$error= "";
@@ -196,7 +196,7 @@ $ini->loadString($socks->getfile('spamassassin_status'));
 
 if($ini->_params["SPAMASSASSIN"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$rouage_title='{start_service}';
 		$rouage_text='{start_service_text}';
 		$error= "";

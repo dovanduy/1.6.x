@@ -1,5 +1,5 @@
 <?php
-
+die();
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 	include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -120,7 +120,7 @@ function ImportTasks(){
 
 
 	$q=new mysql();
-	$q->check_storage_table();
+	$q->check_storage_table(true);
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$wbinfo=$unix->find_program("wbinfo");
@@ -176,7 +176,7 @@ function CheckTables(){
 
 	if(!$q->TABLE_EXISTS('adgroups','artica_backup')){
 		$sql="CREATE TABLE `artica_backup`.`adgroups` (
-			`gpid` BIGINT(100) NOT NULL,
+			`gpid` BIGINT UNSIGNED NOT NULL,
 			`groupname` VARCHAR( 128 ) NOT NULL ,
 			 PRIMARY KEY (`gpid`),
 			 KEY `groupname` (`groupname`)
@@ -186,7 +186,7 @@ function CheckTables(){
 	}
 	if(!$q->TABLE_EXISTS('adusers','artica_backup')){
 		$sql="CREATE TABLE IF NOT EXISTS `adusers` (
-				  `gpid` bigint(100) NOT NULL,
+				  `gpid` BIGINT UNSIGNED NOT NULL,
 				  `uid` varchar(128) NOT NULL,
 				  KEY `gpid` (`gpid`),
 				  KEY `uid` (`uid`)
@@ -197,7 +197,7 @@ function CheckTables(){
 
 	if(!$q->TABLE_EXISTS('adgroups','artica_backup')){return false;}
 	if(!$q->TABLE_EXISTS('adusers','artica_backup')){return false;}
-	$q->check_storage_table();
+	$q->check_storage_table(true);
 	return true;
 
 }

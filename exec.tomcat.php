@@ -41,8 +41,8 @@ function build(){
 	$f[]="</tomcat-users>";
 	$f[]="";
 	@file_put_contents("/opt/openemm/tomcat/conf/tomcat-users.xml", @implode("\n", $f));
-	echo "Starting......:  Tomcat server tomcat-users.xml done...\n";
-	echo "Starting......:  Tomcat server listen on port $TomcatListenPort\n";
+	echo "Starting......: ".date("H:i:s")."  Tomcat server tomcat-users.xml done...\n";
+	echo "Starting......: ".date("H:i:s")."  Tomcat server listen on port $TomcatListenPort\n";
 	
 	
 	unset($f);
@@ -189,11 +189,11 @@ function build(){
 	$f[]="  </Service>";
 	$f[]="</Server>";	
 	@file_put_contents("/opt/openemm/tomcat/conf/server.xml", @implode("\n", $f));
-	echo "Starting......:  Tomcat server server.xml done...\n";	
+	echo "Starting......: ".date("H:i:s")."  Tomcat server server.xml done...\n";	
 	
 	$java=$unix->JAVA_HOME_GET();
 	if(!is_dir($java)){
-		echo "Starting......: Tomcat server JAVA_HOME not set try to find a good one...\n";
+		echo "Starting......: ".date("H:i:s")." Tomcat server JAVA_HOME not set try to find a good one...\n";
 		checkJavaDirs();	
 	}
 	
@@ -209,13 +209,13 @@ function checkJavaDirs(){
 		if(is_file("$directory/bin/java")){
 			
 			$vbin=getjavaversion("$directory/bin/java");
-			echo "Starting......: Tomcat found $dirtmp $vbin\n";
+			echo "Starting......: ".date("H:i:s")." Tomcat found $dirtmp $vbin\n";
 			$jaws[$vbin]=$directory;
 		}
 			
 	}
 	if(!is_array($jaws)){
-		echo "Starting......: Tomcat server unable to find java\n";
+		echo "Starting......: ".date("H:i:s")." Tomcat server unable to find java\n";
 		return;
 		
 	}
@@ -225,7 +225,7 @@ function checkJavaDirs(){
 	}
 	
 	if(is_dir($f[0])){
-		echo "Starting......: Tomcat server set java to {$f[0]}\n";
+		echo "Starting......: ".date("H:i:s")." Tomcat server set java to {$f[0]}\n";
 		$unix->JAVA_HOME_SET($f[0]);
 	}
 	

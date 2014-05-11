@@ -1482,11 +1482,12 @@ if arch=32 then begin
       if distri.DISTRINAME_CODE='DEBIAN' then begin
            if distri.DISTRI_MAJOR=4  then begin
                install.INSTALL_STATUS(CODE_NAME,110);
-               install.INSTALL_PROGRESS(CODE_NAME,'{failed} debian 5-6 only');
+               install.INSTALL_PROGRESS(CODE_NAME,'{failed} debian 5-6-7 only');
                exit;
            end;
            if distri.DISTRI_MAJOR=5  then pkg:='zarafa-debian50-i386';
            if distri.DISTRI_MAJOR=6  then pkg:='zarafa-debian60-i386';
+           if distri.DISTRI_MAJOR=7  then pkg:='zarafa-debian70-i386';
 
 
        end;
@@ -1578,11 +1579,12 @@ if arch=64 then begin
        if distri.DISTRINAME_CODE='DEBIAN' then begin
            if distri.DISTRI_MAJOR=4  then begin
                install.INSTALL_STATUS(CODE_NAME,110);
-               install.INSTALL_PROGRESS(CODE_NAME,'{failed} debian 5-6 only');
+               install.INSTALL_PROGRESS(CODE_NAME,'{failed} debian 5-6-7 only');
                exit;
            end;
            if distri.DISTRI_MAJOR=5  then pkg:='zarafa-debian50-x64';
            if distri.DISTRI_MAJOR=6  then pkg:='zarafa-debian60-x64';
+           if distri.DISTRI_MAJOR=7  then pkg:='zarafa-debian70-x64';
 
 
        end;
@@ -1598,9 +1600,11 @@ if arch=64 then begin
                install.INSTALL_PROGRESS(CODE_NAME,'{failed} ubuntu 10.04 only');
                exit;
             end;
-            if distri.DISTRI_MAJOR=10 then pkg:='zarafa-ubuntu120-x64';
-            if distri.DISTRI_MAJOR=10 then pkg:='zarafa-ubuntu100-x64';
             if distri.DISTRI_MAJOR=8 then pkg:='zarafa-ubuntu80-x64';
+            if distri.DISTRI_MAJOR=10 then pkg:='zarafa-ubuntu100-x64';
+            if distri.DISTRI_MAJOR=12 then pkg:='zarafa-ubuntu120-x64';
+
+
        end;
 
 

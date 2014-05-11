@@ -116,7 +116,7 @@ if($_GET["hostname"]==null){$hostname=$users->hostname;$_GET["hostname"]=$hostna
 	$ini->loadString($sock->getfile('mimedefangstatus',$_GET["hostname"]));	
 	if($ini->_params["MIMEDEFANG"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$status="{stopped}";
 	}else{
 		$img="ok32.png";
@@ -158,7 +158,7 @@ if($_GET["hostname"]==null){$hostname=$users->hostname;$_GET["hostname"]=$hostna
 	
 if($ini->_params["MIMEDEFANGX"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$status="{stopped}";
 	}else{
 		$img="ok32.png";
@@ -550,7 +550,7 @@ function main_config_backup(){
 	}else{
 		$backup="<tr>
 		<td align='right' with=1% nowrap class=legend>{BACKUP_ENABLED}:</td>
-		<td align='left'><img src='img/status_ok-grey.gif'><input type='hidden' name='BACKUP_ENABLED' value='0' id='BACKUP_ENABLED'></td>
+		<td align='left'><img src='img/status_ok-grey.png'><input type='hidden' name='BACKUP_ENABLED' value='0' id='BACKUP_ENABLED'></td>
 		<td>&nbsp;</td>
 		</tr>";
 	}

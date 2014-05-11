@@ -134,7 +134,7 @@ Avec cette fonctionnalit&eacute; vous allez augmenter les performances par le re
 <postfix_autoblock_text>Ajoutez automatiquement des r&egrave;gles de Pare-feu afin de combattre les serveurs de messagerie des spammeurs.</postfix_autoblock_text>
 <postfix_messaging>Messagerie (Postfix &amp; Cyrus-imap)</postfix_messaging>
 <postfix_plugins>Plugins &amp; addons</postfix_plugins>
-<postfix_plugins_text>Activer les modules de connections sur postfix</postfix_plugins_text>
+<postfix_plugins_text>Activer les modules de connexions sur postfix</postfix_plugins_text>
 <POSTFIX_SMTP_NOTIFICATIONS>Notifications SMTP</POSTFIX_SMTP_NOTIFICATIONS>
 <POSTFIX_SMTP_NOTIFICATIONS_TEXT>D&eacute;finissez des adresses &eacute;lectroniques et des notifications envoy&eacute;es par le D&eacute;mon SMTP</POSTFIX_SMTP_NOTIFICATIONS_TEXT>
 <process_amavisd>Amavisd-new</process_amavisd>
@@ -160,7 +160,7 @@ Avec cette fonctionnalit&eacute; vous allez augmenter les performances par le re
 <relayhost_orange>FAI Orange</relayhost_orange>
 <relayhost_orange_text>Envoyer tous vos emails en passant par le FAI Orange</relayhost_orange_text>
 <relayhost_ssl>Vers Relais SSL</relayhost_ssl>
-<relayhost_ssl_text>Utiliser un serveur d'authentification SMTPS et relais pour l'envoi de mails sortants</relayhost_ssl_text>
+<relayhost_ssl_text>Serveur d'authentification SMTPS et relais pour l'envoi de mails sortants</relayhost_ssl_text>
 <relayhost_title>serveur de transfert</relayhost_title>
 <relayhost_title_text>Utiliser un serveur de relais pour le transfert des messages &agrave; des domaines ext&eacute;rieurs(FAI)</relayhost_title_text>
 <relayhost_wanadoo>FAI Wanadoo</relayhost_wanadoo>

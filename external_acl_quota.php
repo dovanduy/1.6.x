@@ -15,9 +15,8 @@ $GLOBALS["DEBUG_LEVEL"]=@file_get_contents("/etc/artica-postfix/settings/Daemons
 $GLOBALS["PARAMS"]=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidQuotasParams")));
 if(!isset($GLOBALS["PARAMS"]["CACHE_TIME"])){$GLOBALS["PARAMS"]["CACHE_TIME"]=360;}
 if(!is_numeric($GLOBALS["PARAMS"]["CACHE_TIME"])){$GLOBALS["PARAMS"]["CACHE_TIME"]=360;}
-
 if(!is_numeric( $GLOBALS["DEBUG_LEVEL"])){ $GLOBALS["DEBUG_LEVEL"]=0;}
-$GLOBALS["DEBUG_LEVEL"]=2;
+//$GLOBALS["DEBUG_LEVEL"]=2;
 if($GLOBALS["DEBUG_LEVEL"]>0){WLOG("Initialize library");}
 $GLOBALS["Q"]=new mysql_squid_builder();
 $GLOBALS["F"] = @fopen("/var/log/squid/external-acl-quota.log", 'a');
@@ -27,8 +26,9 @@ if($GLOBALS["DEBUG_LEVEL"]>0){WLOG("Loading database...");}
 if(!is_file("/etc/squid3/quotas_artica.db")){WLOG("/etc/squid3/quotas_artica.db no such file");}
 $GLOBALS["QUOTAS_DB"]=unserialize(@file_get_contents("/etc/squid3/quotas_artica.db"));
 
+
+WLOG("Starting... v1.1 Log level:{$GLOBALS["DEBUG_LEVEL"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
 WLOG(count($GLOBALS["QUOTAS_DB"])." rules...");
-WLOG("Starting... Log level:{$GLOBALS["DEBUG_LEVEL"]}; max_execution_time:$max_execution_time argv[1]={$argv[1]} session-time={$GLOBALS["SESSION_TIME"]}");
 if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("Starting loop...");}
   
   
@@ -46,8 +46,8 @@ while (!feof(STDIN)) {
 	 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($url);}
 	 	$array=parseURL($url);
 	 	if($GLOBALS["DEBUG_LEVEL"]>1){
-	 			WLOG($url." str:".strlen($url)." bytes LOGIN:{$array["LOGIN"]},IPADDR:{$array["IPADDR"]} MAC:{$array["MAC"]} HOST:{$array["HOST"]} RHOST:{$array["RHOST"]}");
-	 		}
+	 		WLOG($url." str:".strlen($url)." bytes LOGIN:{$array["LOGIN"]},IPADDR:{$array["IPADDR"]} MAC:{$array["MAC"]} HOST:{$array["HOST"]} RHOST:{$array["RHOST"]}");
+	 	}
 	 	
 		if($array["IPADDR"]=="127.0.0.1"){
 			if(trim($array["LOGIN"])==null){
@@ -58,12 +58,16 @@ while (!feof(STDIN)) {
 		 }
 	 	
 	 	if(!CheckQuota($array)){
+	 		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("Out Of Quota");}
 			fwrite(STDOUT, "ERR message=\"Out Of Quota\"\n");
 	 		continue;
 	 	}
-	 	
+	 	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("OK");}
 	 	fwrite(STDOUT, "OK\n");
+	 	continue;
 	}
+	
+	if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("...");}
 	
 }
 
@@ -202,7 +206,7 @@ function CheckQuota($CPINFOS){
 		
 		if(!sources_matches($xtype,$PATTERN,$CPINFOS)){continue;}
 		if(!destination_matches($DESTINATIONS,$CPINFOS,$DUR,$MAX,$xtype)){continue;}
-		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG("CheckQuota() *** Out of Quota ***");}
+		WLOG("CheckQuota() *** Out of Quota ***  $xtype $PATTERN [duration:$DUR | max:{$MAX}MB]");
 		return false;
 		
 	}

@@ -5,6 +5,7 @@
 	include_once('ressources/class.status.inc');
 	include_once('ressources/class.artica.graphs.inc');
 	include_once('ressources/class.computers.inc');
+	include_once('ressources/class.tcpip.inc');
 	$users=new usersMenus();
 	if(!$users->AsWebStatisticsAdministrator){die();}
 	
@@ -41,7 +42,7 @@ function page(){
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?search=yes&day=$defaultday&MAC={$_GET["MAC"]}',
+	url: '$page?search=yes&day=$defaultday&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '$time', name : 'hour', width :60, sortable : true, align: 'left'},
@@ -66,7 +67,7 @@ buttons : [
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 625,
+	width: '99%',
 	height: 420,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -76,7 +77,7 @@ buttons : [
 
 
 function ChangeDay(){
-	YahooWin6('375','$page?change-day-popup=yes&t=$t&MAC={$_GET["MAC"]}','$change_day');
+	YahooWin6('375','$page?change-day-popup=yes&t=$t&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}','$change_day');
 }
 
 </script>
@@ -115,7 +116,7 @@ function change_day_popup(){
 		function ChangeDay$t(){
 			var zday=document.getElementById('sdate$t').value;
 			document.getElementById('daycache$t').value=zday;
-			$('#flexRT$t').flexOptions({url: '$page?search=yes&day='+zday+'&MAC={$_GET["MAC"]}'}).flexReload(); 
+			$('#flexRT$t').flexOptions({url: '$page?search=yes&day='+zday+'&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}'}).flexReload(); 
 		
 		}
 		document.getElementById('sdate$t').value=document.getElementById('daycache$t').value;
@@ -147,18 +148,26 @@ function search(){
 	$search='%';
 	$page=1;
 	$ORDER="ORDER BY ID DESC";
+	$ip=new IP();
 	$FORCE_FILTER=" AND `MAC`='{$_GET["MAC"]}'";	
+	
+	if($ip->isIPAddress($_GET["ipaddr"])){
+		$Select="ipaddr";
+		$FORCE_FILTER="AND client='{$_GET["ipaddr"]}'";
+	}
+	
+	if($ip->IsvalidMAC($_GET["MAC"])){
+		$Select="MAC";
+		$FORCE_FILTER="AND MAC='{$_GET["MAC"]}'";
+	}
 	
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}	
 	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
-
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
-		$QUERY="WHERE (`uri` LIKE '$search')";
+	$search=string_to_flexquery();
+	if($search<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $search $FORCE_FILTER";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		
@@ -172,7 +181,7 @@ function search(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT* FROM $table WHERE 1 $FORCE_FILTER $ORDER $limitSql";
+	$sql="SELECT* FROM $table WHERE 1 $search $FORCE_FILTER $ORDER $limitSql";
 	$results=$q->QUERY_SQL($sql);
 	
 	$data = array();
@@ -181,8 +190,8 @@ function search(){
 	$data['rows'] = array();	
 	
 
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"$q->mysql_error", "",""));echo json_encode($data);return;}	
-	if(mysql_num_rows($results)==0){array('id' => $ligne[time()],'cell' => array(null,"", "",""));echo json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error);}
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	$data['total'] = mysql_num_rows($results);
 	

@@ -58,14 +58,14 @@ function page(){
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
-		<td width=1%><img src='img/icon-download.gif'></td>
+		<td width=1%><img src='img/icon-download.png'></td>
 		<td width=99%'>
 		<div style='font-size:14px;margin-top:10px'><a href=\"javascript:blur()\" OnClick=\"javascript:s_PopUpFull('$uti1',800,800);\"
 		style='font-size:14px;font-weight:bold;text-decoration:underline'>{download}:FusionInventory Agents</a></div>
 		</td>
 	</tr>
 	<tr>
-		<td width=1%><img src='img/icon-download.gif'></td>
+		<td width=1%><img src='img/icon-download.png'></td>
 		<td width=99%'>	
 	<div style='font-size:14px;margin-top:10px'><a href=\"javascript:blur()\" OnClick=\"javascript:s_PopUpFull('$uti2',800,800);\"
 	style='font-size:14px;font-weight:bold;text-decoration:underline'>{download}:OCS Inventory Official Agents</a></div>

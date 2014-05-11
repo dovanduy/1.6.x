@@ -363,7 +363,9 @@ function generate_graph2(){
 	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
+	if(!$q->ok){
+		$tpl->javascript_senderror($q->mysql_error."<br>$sql",$_GET["container"]);
+	}	
 	if(mysql_num_rows($results)>0){
 	
 
@@ -405,7 +407,9 @@ function generate_graph3(){
 	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+	if(!$q->ok){
+		$tpl->javascript_senderror($q->mysql_error."<br>$sql",$_GET["container"]);
+	}
 	if(mysql_num_rows($results)>0){
 	
 	
@@ -444,7 +448,9 @@ function generate_graph4(){
 	$unknown=$tpl->_ENGINE_parse_body("{unknown}");
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+	if(!$q->ok){
+		$tpl->javascript_senderror($q->mysql_error."<br>$sql",$_GET["container"]);
+	}
 	if(mysql_num_rows($results)>0){
 	
 	
@@ -480,7 +486,9 @@ function generate_graph(){
 	
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}	
+	if(!$q->ok){
+		$tpl->javascript_senderror($q->mysql_error."<br>$sql",$_GET["container"]);
+	}
 	if(mysql_num_rows($results)>0){
 	
 			$nb_events=mysql_num_rows($results);

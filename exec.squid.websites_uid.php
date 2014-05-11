@@ -26,6 +26,7 @@ include_once(dirname(__FILE__).'/ressources/class.squid.youtube.inc');
 
 $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
+$GLOBALS["CLASS_UNIX"]=new unix();
 
 if($argv[1]=="--reset"){websites_uid_reset();die();}
 if($argv[1]=='--websites-uid'){websites_uid();exit;}
@@ -93,15 +94,19 @@ function websites_uid(){
 			if($GLOBALS["VERBOSE"]){echo "############# ERROR #########\n$hourtable no such table ($date) $but\n#############\n";}
 			continue;
 		}
+		
+		events("websites_uid_from_hourtable($hourtable,$time)");
+		
 		if(websites_uid_from_hourtable($hourtable,$time)){
 			$q->QUERY_SQL("UPDATE tables_day SET websites_uid=1 WHERE tablename='$tablename'");
+			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 			continue;
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "Return false for $hourtable injection\n";}
 		}
 	}
+	if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 	
-	websites_uid_not_categorised();
 
 
 }
@@ -128,11 +133,11 @@ function websites_uid_from_hourtable($tablename,$time){
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "############# ERROR #########\n$q->mysql_error\Line:".__LINE__."\n#############\n";}return false;}
 
-
+	$a=0;
 	$c=0;
 	if(mysql_num_rows($results)==0){return true;}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$c++;
+		$c++;$a++;
 		$uid=$ligne["uid"];
 		$size=$ligne["size"];
 		$hits=$ligne["hits"];
@@ -144,6 +149,7 @@ function websites_uid_from_hourtable($tablename,$time){
 		$UIDS[$uid]=true;
 		$f[$uid][]="('$md5','$zdate','$familysite','$size','$hits')";
 		if($c>1000){
+			events("websites_uid_from_hourtable($tablename,$time):: $c events - $a");
 			if(!websites_uid_parse_array($f)){
 				if($GLOBALS["VERBOSE"]){echo "websites_uid_parse_array return false in line ".__LINE__."\n";}
 				return false;}
@@ -153,6 +159,7 @@ function websites_uid_from_hourtable($tablename,$time){
 		}
 
 		if(count($f)>500){
+			events("websites_uid_from_hourtable($tablename,$time):: $c events - $a");
 			if(!websites_uid_parse_array($f)){
 				if($GLOBALS["VERBOSE"]){echo "websites_uid_parse_array return false in line ".__LINE__."\n";}
 				return false;}
@@ -163,6 +170,7 @@ function websites_uid_from_hourtable($tablename,$time){
 	}
 
 	if(count($f)>0){
+		events("websites_uid_from_hourtable($tablename,$time):: $c events - $a");
 		if(!websites_uid_parse_array($f)){
 			if($GLOBALS["VERBOSE"]){echo "websites_uid_parse_array return false in line ".__LINE__."\n";}
 			return false;}
@@ -189,7 +197,7 @@ function websites_uid_parse_array($array){
 	while (list ($uid, $rows) = each ($array) ){
 		$uidtable=$q->uid_to_tablename($uid);
 
-		$sql="CREATE TABLE IF NOT EXISTS `www_$uidtable` ( `zmd5` varchar(90)  NOT NULL, `zDate` date  NOT NULL, `size` BIGINT(100)  NOT NULL, `hits`  BIGINT(100)  NOT NULL,
+		$sql="CREATE TABLE IF NOT EXISTS `www_$uidtable` ( `zmd5` varchar(90)  NOT NULL, `zDate` date  NOT NULL, `size` BIGINT UNSIGNED  NOT NULL, `hits`  BIGINT UNSIGNED  NOT NULL,
 		`familysite` varchar(255)  NOT NULL,`category` varchar(255), PRIMARY KEY (`zmd5`),
 		KEY `zDate` (`zDate`), KEY `size` (`size`), KEY `hits` (`hits`),
 		KEY `familysite` (`familysite`) ,KEY `category` (`category`) )  ENGINE = MYISAM;";
@@ -219,7 +227,7 @@ function websites_uid_parse_array($array){
 function websites_uid_not_categorised($uid=null,$tablename=null,$aspid=false){
 	if(isset($GLOBALS["websites_uid_not_categorised_$uid"])){return;}
 	$unix=new unix();
-
+	
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$uid.pid";
 	if($aspid){
@@ -244,8 +252,7 @@ function websites_uid_not_categorised($uid=null,$tablename=null,$aspid=false){
 		$q->QUERY_SQL("ALTER TABLE `$tablename` ADD `category` varchar(255), ADD INDEX (`category`)");
 	}
 
-	$sql="SELECT familysite,`category` FROM `$tablename`
-	GROUP BY familysite,`category` HAVING `category` IS NULL ";
+	$sql="SELECT familysite,`category` FROM `$tablename` GROUP BY familysite,`category` HAVING `category` IS NULL ";
 
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){
@@ -255,11 +262,33 @@ function websites_uid_not_categorised($uid=null,$tablename=null,$aspid=false){
 
 
 	$c=0;
-	if(mysql_num_rows($results)==0){
+	$mysql_num_rows=mysql_num_rows($results);
+	if($mysql_num_rows==0){
 	if($GLOBALS["VERBOSE"]){ echo "$sql (No rows)\n";}return true;}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$category=$q->GET_CATEGORIES($ligne["familysite"]);
+		$sitename=$ligne["familysite"];
+		$IpClass=new IP();
+		if($IpClass->isValid($sitename)){
+			if(isset($GLOBALS["IPCACHE"][$sitename])){
+				$t=time();
+				$sitename=gethostbyaddr($sitename);
+				events("$tablename: {$ligne["familysite"]} -> $sitename ". $unix->distanceOfTimeInWords($t,time())." gethostbyaddr() LINE:".__LINE__);
+				$GLOBALS["IPCACHE"][$sitename]=$sitename;
+
+			}
+		}
+		
+		
+		$category=$q->GET_CATEGORIES($sitename);
+		
+		
+		if($IpClass->isValid($sitename)){
+			if($category==null){$category="ipaddr";}
+			$q->categorize($sitename, $category);
+		}
+		events("$tablename: {$ligne["familysite"]} -> $sitename [$category] LINE:".__LINE__);
+		
 		if(strlen($category)>0){
 			$category=mysql_escape_string2($category);
 			$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
@@ -272,4 +301,19 @@ function websites_uid_not_categorised($uid=null,$tablename=null,$aspid=false){
 		}
 
 	}
+}
+
+function events($text){
+	if($GLOBALS["VERBOSE"]){echo $text."\n";}
+	$common="/var/log/artica-postfix/squid.stats.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] $text\n";
+	@fwrite($h,$line);
+	@fclose($h);
 }

@@ -45,7 +45,7 @@ function popup(){
 	$ENABLED=trim($sock->getFrameWork("squid.php?enable-http-violations-enabled=yes"));
 	if($ENABLED<>"TRUE"){
 		$html="
-		<table style='width:95%' class=form>
+		<table style='width:98%' class=form>
 		<tr>
 			<td valign='top' width=1%><img src='img/error-128.png'></td>
 			<td valign='top'><div style='font-size:18px'>{HTTP_VIOLATIONS_NOT_ENABLED_IN_SQUID}</td>
@@ -306,9 +306,9 @@ function proxies_list(){
 		$disable=Field_checkbox($md, 1,$ligne["active"],"EnableDisableProxyHeader('{$ligne['header']}','$md')");
 		$allow=Field_checkbox($mdB, 1,$ligne["allow"],"AllowProxyHeader('{$ligne['header']}','$mdB')");
 		
-		if($ligne["allow"]==1){$img="status_ok.gif";}else{$img="status_ok_red.gif";}
+		if($ligne["allow"]==1){$img="status_ok.png";}else{$img="status_ok_red.png";}
 		
-		if($ligne["active"]==0){$color="#9C9C9C";$img="status_ok-grey.gif";}
+		if($ligne["active"]==0){$color="#8a8a8a";$img="status_ok-grey.png";}
 		if($ligne["replacewith"]<>null){$replacewith="<div style='font-size:11px'>$replace: <i style='font-size:11px'>&laquo;{$ligne["replacewith"]}&raquo;</i></div>";}
 		
 		

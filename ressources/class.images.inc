@@ -26,7 +26,10 @@ class images{
 	function thumbnail($img_max_width, $img_max_height,$target_path) {
   		if($this->mustInstall){return null;}
   		$file = realpath($this->path); 
+  		if($GLOBALS["VERBOSE"]){echo " $this->path -> $file<br>\n";}
+  		
   		$dir = dirname($this->path).'/'; 
+  		if($GLOBALS["VERBOSE"]){echo " getimagesize($file)<br>\n";}
   		$img_infos = getimagesize($file); 
   		
   		if(!is_array($img_infos)){
@@ -45,7 +48,7 @@ class images{
   					writelogs("$num: $ligne",__FUNCTION__.'/'.__CLASS__,__FILE__);
   				}
   			}
-  			
+  			if($GLOBALS["VERBOSE"]){echo "Copy $this->path,$target_path)<br>\n";}
   			copy($this->path,$target_path);
   			return true;
   		}

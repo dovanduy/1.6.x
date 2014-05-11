@@ -16,12 +16,15 @@ if(!$usersmenus->AsPostfixAdministrator){$tpl=new templates();
 	die();
 }
 
+if(isset($_GET["Firewall-js"])){firewall_js();exit;}
+if(isset($_GET["firewall-popup"])){firewall_popup();exit;}
 if(isset($_GET["mynet_ipfrom"])){CalculCDR();exit;}
 if(isset($_GET["PostfixAddMyNetwork"])){PostfixAddMyNetwork();exit;}
 if(isset($_GET["network-list"])){network_list();exit;}
 if(isset($_GET["new-range"])){new_range_popup();exit;}
 if(isset($_GET["new-address"])){new_address_popup();exit;}
 if(isset($_POST["PostfixBannet"])){PostfixBannet();exit;}
+if(isset($_POST["PostFixLimitToNets"])){firewall_save();exit;}
 if(isset($_GET["PostFixDeleteMyNetwork"])){PostFixDeleteMyNetwork();exit;}
 page();
 
@@ -39,11 +42,55 @@ function PostfixAddMyNetwork(){
 	$main=new main_cf();
 	$main->add_my_networks($_GET["PostfixAddMyNetwork"]);
 	$sock=new sockets();
-	
-	
-	
 	$sock->getFrameWork("cmd.php?postfix-networks=yes");
 	}
+	
+function firewall_js(){
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{firewall}");
+	echo "YahooWin2(700,'$page?firewall-popup=yes','$title',true)";
+	
+}
+
+function firewall_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$t=time();
+	$PostFixLimitToNets=$sock->GET_INFO("PostFixLimitToNets");
+	if(!is_numeric($PostFixLimitToNets)){$PostFixLimitToNets=0;}
+	$p=Paragraphe_switch_img("{limit_connections_to_these_networks}", "{limit_connections_to_these_networks_explain}",
+	"PostFixLimitToNets-$t",$PostFixLimitToNets,null,600);
+	
+	$html="<div style='width:98%' class=form>
+		$p
+		<div style='text-align:right'>". button("{apply}","Save$t()",18)."</div>
+				
+	<script>
+	var xSave$t= function (obj) {
+		var results=obj.responseText;
+		YahooWin5Hide();
+		$('#flexRT$t').flexReload();
+	}	
+	function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('PostFixLimitToNets',document.getElementById('PostFixLimitToNets-$t').value);
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}		
+	
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function firewall_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("PostFixLimitToNets", $_POST["PostFixLimitToNets"]);
+	$sock->getFrameWork("cmd.php?postfix-iptables-compile=yes");
+}
 
 function page(){
 	
@@ -51,16 +98,18 @@ function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();	
-	$networks=$tpl->_ENGINE_parse_body("{networks}");
+	$networks=$tpl->javascript_parse_text("{networks}");
 	$description=$tpl->_ENGINE_parse_body("{description}");
 	$title=$tpl->javascript_parse_text("{mynetworks_title}");
-	$new_range=$tpl->_ENGINE_parse_body("{new_range}");
-	$new_address=$tpl->_ENGINE_parse_body("{new_address}");
-	$disable=$tpl->_ENGINE_parse_body("{disable}");
+	$new_range=$tpl->javascript_parse_text("{new_range}");
+	$new_address=$tpl->javascript_parse_text("{new_address}");
+	$disable=$tpl->javascript_parse_text("{disable}");
+	$firewall=$tpl->javascript_parse_text("{firewall}");
 	$buttons="
 		buttons : [
 		{name: '$new_range', bclass: 'add', onpress : AddNetworkRange$t},
 		{name: '$new_address', bclass: 'add', onpress : AddNetworkAddress$t},
+		{name: '$firewall', bclass: 'add', onpress : Firewall$t},
 		],";
 		
 	
@@ -72,7 +121,7 @@ $html="
 <script>
 var pstfixmd='';
 
-$(document).ready(function(){
+function start$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?network-list=yes&hostname={$_GET["hostname"]}',
 	dataType: 'json',
@@ -101,7 +150,7 @@ $('#flexRT$t').flexigrid({
 	rpOptions: [10, 20, 30, 50,100,200,1024]
 	
 	});   
-});
+}
 
 function AddNetworkRange$t(){
 	YahooWin5('550','$page?new-range=yes&hostname={$_GET["hostname"]}&t=$t','$new_range');
@@ -112,26 +161,38 @@ function AddNetworkAddress$t(){
 
 }
 
+var xPostfixBannet= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	$('#flexRT$t').flexReload();
+}
+
+function Firewall$t(){
+	Loadjs('$page?Firewall-js=yes',true);
+}
+
+
 function PostfixBannet(md,num){
 		var XHR = new XHRConnection();
 		if(document.getElementById(md).checked){XHR.appendData('value',1);}else{XHR.appendData('value',0);}
 		XHR.appendData('PostfixBannet',num);
-		XHR.sendAndLoad('$page', 'POST');
+		XHR.sendAndLoad('$page', 'POST',xPostfixBannet);
 
 }
 
-	var x_PostFixDeleteMyNetwork= function (obj) {
-		var results=obj.responseText;
-		if(results.length>3){alert(results);return;}
-		$('#row'+pstfixmd).remove();
-	}
+var x_PostFixDeleteMyNetwork= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	$('#row'+pstfixmd).remove();
+}
 
-	function PostFixDeleteMyNetwork(md5,num){
-		pstfixmd=md5;
-		var XHR = new XHRConnection();
-		XHR.appendData('PostFixDeleteMyNetwork',num);
-		XHR.sendAndLoad('$page', 'GET',x_PostFixDeleteMyNetwork);
-		}
+function PostFixDeleteMyNetwork(md5,num){
+	pstfixmd=md5;
+	var XHR = new XHRConnection();
+	XHR.appendData('PostFixDeleteMyNetwork',num);
+	XHR.sendAndLoad('$page', 'GET',x_PostFixDeleteMyNetwork);
+}
+setTimeout('start$t()',600);
 
 ";
 	echo $html;
@@ -335,7 +396,7 @@ function network_list(){
 	$PostfixBadNettr=unserialize(base64_decode($sock->GET_INFO("PostfixBadNettr")));	
 	
 	while (list ($num, $val) = each ($main->array_mynetworks) ){
-		
+		$color="black";
 		if($search<>null){
 			if(!preg_match("#$search#", $val)){continue;}
 		}
@@ -360,14 +421,14 @@ function network_list(){
 		$md5=md5($num);
 		$delete=imgtootltip('delete-32.png','{delete} {network}',"PostFixDeleteMyNetwork('$md5',$num)");
 		$enable=Field_checkbox($md5,1,$ligne["enabled"],"PostfixBannet('$md5','$val')");	
-		
+		if($ligne["enabled"]==1){$color="#C5C2C2";}
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array("
 		<img src='img/$icon'>"
-		,"<span style='font-size:16px'>$val</span>",
+		,"<span style='font-size:16px;color:$color'>$val</span>",
 		"<a href=\"javascript:blur();\" OnClick=\"javascript:GlobalSystemNetInfos('$val')\" 
-		style='font-size:12px;text-decoration:underline'><i>{$ligne["netinfos"]}</i>$explainmore</a>",$enable,$delete )
+		style='font-size:12px;text-decoration:underline;color:$color'><i>{$ligne["netinfos"]}</i>$explainmore</a>",$enable,$delete )
 		);
 	}
 	

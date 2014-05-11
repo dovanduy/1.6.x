@@ -24,7 +24,89 @@
 	
 	if(isset($_POST["range-from"])){firewall_range_save();exit;}
 	if(isset($_POST["EmptyAll"])){firewall_empty();exit;}
+	if(isset($_GET["options"])){options_js();exit;}
+	if(isset($_GET["options-popup"])){options_popup();exit;}
+	if(isset($_POST["EnableIptablesDNS"])){options_save();exit;}
+	
 	firewall_popup();
+	
+	
+function options_js(){
+header("content-type: application/x-javascript");
+$page=CurrentPageName();
+$tpl=new templates();
+$title=$tpl->_ENGINE_parse_body("{options}");
+echo "YahooWin5(600,'$page?options-popup=yes&table={$_GET["table"]}','$title',true)";
+}	
+
+function options_popup(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$t=time();
+	$EnableIptablesDNS=$sock->GET_INFO("EnableIptablesDNS");
+	$EnableSpamhausDROPList=$sock->GET_INFO("EnableSpamhausDROPList");
+	if(!is_numeric($EnableIptablesDNS)){$EnableIptablesDNS=1;}
+	if(!is_numeric($EnableSpamhausDROPList)){$EnableSpamhausDROPList=0;}
+	
+	
+	$html="
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:16px'>{enable_iptablesdns}</td>
+			<td>". Field_checkbox("EnableIptablesDNS", 1,$EnableIptablesDNS)."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:16px'>{EnableSpamhausDROPList}</td>
+			<td>". Field_checkbox("EnableSpamhausDROPList", 1,$EnableSpamhausDROPList)."</td>
+		</tr>					
+		<tr>
+			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",18)."</td>
+		</tr>
+	</table>
+	</div>	
+	
+	
+<script>
+	var xSave$t= function (obj) {
+		var tempvalue=obj.responseText;
+		UnlockPage();
+		if(tempvalue.length>3){alert(tempvalue)};
+		YahooWin5Hide();
+		$('#{$_GET["table"]}').flexReload();
+		
+	}		
+
+	function Save$t(){
+		var XHR = new XHRConnection();
+		if(document.getElementById('EnableIptablesDNS').checked){XHR.appendData('EnableIptablesDNS',1);}else{XHR.appendData('EnableIptablesDNS',0);}
+		if(document.getElementById('EnableSpamhausDROPList').checked){XHR.appendData('EnableSpamhausDROPList',1);}else{XHR.appendData('EnableSpamhausDROPList',0);}
+		LockPage();
+		XHR.sendAndLoad('$page', 'POST',xSave$t);		
+		}
+</script>								
+			
+	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function options_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableIptablesDNS", $_POST["EnableIptablesDNS"]);
+	$sock->SET_INFO("EnableSpamhausDROPList", $_POST["EnableSpamhausDROPList"]);
+	if($_POST["EnableSpamhausDROPList"]==1){
+		$q=new mysql();
+		$q->QUERY_SQL("DELETE FROM iptables WHERE `service`='SpamHaus' AND `allow`=0","artica_backup");
+	}
+	$sock->getFrameWork("network.php?fw-inbound-rules=yes");
+	
+	if($_POST["EnableSpamhausDROPList"]==1){
+		$sock->getFrameWork("network.php?fw-spamhaus-rules=yes");
+	}
+	
+}
 	
 	
 function firewall_popup(){
@@ -39,6 +121,12 @@ function firewall_popup(){
 		die();
 	}	
 	
+	$q=new mysql();
+	$results=$q->QUERY_SQL("SELECT service FROM iptables GROUP BY service ORDER BY service","artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		if(trim($ligne["service"])==null){continue;}
+		$searchitem[]="{display: '{$ligne["service"]}', name : 'service={$ligne["service"]}'},";
+	}
 	
 	$t=time();
 	$server=$tpl->_ENGINE_parse_body("{server}");
@@ -53,13 +141,14 @@ function firewall_popup(){
 	$empty_all_firewall_rules=$tpl->javascript_parse_text("{empty_all_firewall_rules}");
 	$block_countries=$tpl->_ENGINE_parse_body("{block_countries}");
 	$current_rules=$tpl->_ENGINE_parse_body("{current_rules}");
-	
+	$options=$tpl->_ENGINE_parse_body("{options}");
+	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
 	$ERROR_IPSET_NOT_INSTALLED=$tpl->javascript_parse_text("{ERROR_IPSET_NOT_INSTALLED}");
 	$IPSET_INSTALLED=0;
 	if($users->IPSET_INSTALLED){$IPSET_INSTALLED=1;}
 	
 	$TB_HEIGHT=450;
-	$TABLE_WIDTH=845;
+	$TABLE_WIDTH=920;
 	$TB2_WIDTH=400;
 	$ROW1_WIDTH=629;
 	$ROW2_WIDTH=163;
@@ -74,6 +163,7 @@ function firewall_popup(){
 	{name: '$banned_rules', bclass: 'Search', onpress : BannedRules},
 	{name: '$block_countries', bclass: 'Catz', onpress : block_countries},
 	{name: '$current_rules', bclass: 'Search', onpress : current_rules},
+	{name: '$options', bclass: 'Settings', onpress : options$t},
 	
 	
 		],	";
@@ -96,9 +186,11 @@ $('#table-$t').flexigrid({
 	$buttons
 	
 	searchitems : [
-		{display: '$server', name : 'servername'},
+		{display: '$server/$ipaddr', name : 'servername'},
+		
+		
 		{display: '$port', name : 'port'},
-		{display: '$saved_date', name : 'saved_date'},		
+		{display: '$saved_date', name : 'saved_date'},".@implode("\n",$searchitem)."	
 		],	
 	
 	sortname: 'saved_date',
@@ -108,7 +200,7 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TABLE_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true
 	
@@ -161,6 +253,10 @@ $('#table-$t').flexigrid({
 		
 	}	
 	
+	function options$t(){
+		Loadjs('$page?options=yes&table=table-$t',true);
+	}
+	
 	function IptableDelete(key){
 		IptableRow=key;
 		var XHR = new XHRConnection();
@@ -209,75 +305,59 @@ function firewall_rules(){
 	$page=1;
 	$ORDER=null;
 	$FORCE="flux='INPUT'";
-	
-	if(is_numeric($_GET["allow"])){
-		$FORCE="(flux='INPUT' AND allow={$_GET["allow"]})";
-	}
-	
+	$allow=null;
 	
 	$total=0;
-	if($q->COUNT_ROWS($table,$database)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,$database)==0){json_error_show("no data");;}
+	
+	if($_POST["query"]<>null){
+		$search="%{$_POST["query"]}%";
+		$search=str_replace("*", "%", $search);
+		$search=str_replace("%%", "%", $search);
+		$search=str_replace("%%", "%", $search);
+	}else{
+		$search="%";
+	}
+	if(is_numeric($_GET["allow"])){$allow="AND allow={$_GET["allow"]}";}
+	
+	
+	if(preg_match("#service=(.+)#", $_POST["qtype"],$re)){
+		$servcie="AND `service`='{$re[1]}'";
+		
+	}
+	$FORCE="(flux='INPUT' $allow $servcie  AND `servername` LIKE '$search') OR (flux='INPUT' $allow $servcie AND `serverip` LIKE '$search')";
+	
+	
+	
+	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		if(strpos("  {$_POST["query"]}", "%")>0){
-			$searchstring="AND `{$_POST["qtype"]}` LIKE '$search'";
-		}else{
-			$searchstring="AND `{$_POST["qtype"]}` = '$search'";
-		}
+	
+	
+	
+	$table="(SELECT * FROM iptables WHERE ($FORCE)) as t";
+	$sql="SELECT COUNT(*) as TCOUNT FROM $table";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+	$total = $ligne["TCOUNT"];
 		
-		if($_POST["qtype"]=="servername"){
-			if(strpos("  {$_POST["query"]}", "%")>0){
-				$searchstring="AND ((`{$_POST["qtype"]}` LIKE '$search') OR (`serverip` LIKE '$search'))";
-			}else{
-				$searchstring="AND ((`{$_POST["qtype"]}` = '$search') OR (`serverip` = '$search'))";
-			}
-		}
-		 
-		if($_POST["qtype"]=="port"){
-			if(strpos("  {$_POST["query"]}", "%")>0){
-				$searchstring="AND ((`local_port` LIKE '$search') OR (`multiples_ports` LIKE '$search'))";
-			}else{
-				$searchstring="AND ((`local_port` = '$search') OR (`multiples_ports` = '$search'))";
-			}
-		}		
-		
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-		$total = $ligne["TCOUNT"];
-		
-	}else{
-		
-		$total = $q->COUNT_ROWS($table, $database);
-	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT * FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";	
+	$sql="SELECT * FROM $table $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
+	if(mysql_num_rows($results)==0){json_error_show("no data $sql");}
 		
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){json_error_show($q->mysql_error);}	
 	$updated_from_community=$tpl->_ENGINE_parse_body("{updated_from_community}");
 	$ports=$tpl->_ENGINE_parse_body("{ports}");
 	
@@ -428,6 +508,7 @@ function firewall_range_form(){
 	
 	var x_SaveIptableRangeRule= function (obj) {
 		var tempvalue=obj.responseText;
+		UnlockPage();
 		if(tempvalue.length>3){alert(tempvalue)};
 		IpTablesInboundRuleResfresh();
 		YahooWin5Hide();
@@ -442,12 +523,14 @@ function firewall_range_form(){
 	
 		
 	function SaveIptableRangeRule(){
+	
 		var XHR = new XHRConnection();
 		XHR.appendData('range-from',document.getElementById('range-from').value);
 		XHR.appendData('range-to',document.getElementById('range-to').value);
 		XHR.appendData('multiples_ports',document.getElementById('multiples_ports-$t').value);
 		if(document.getElementById('allow-1-$t').checked){XHR.appendData('allow',1);}else{XHR.appendData('allow',0);}
 		AnimateDiv('div$t');
+		LockPage();
 		XHR.sendAndLoad('$page', 'POST',x_SaveIptableRangeRule);		
 		}
 		

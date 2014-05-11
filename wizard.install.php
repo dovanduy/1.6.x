@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;}
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
 include_once('ressources/class.user.inc');
@@ -10,6 +11,7 @@ include_once('ressources/class.browser.detection.inc');
 include_once('ressources/class.resolv.conf.inc');
 include_once('ressources/class.system.network.inc');
 include_once('ressources/class.system.nics.inc');
+include_once('ressources/class.squid.inc');
 
 if(isset($_GET["setup-1"])){setup_1();exit;}
 if(isset($_GET["setup-2"])){setup_2();exit;}
@@ -20,12 +22,601 @@ if(isset($_POST["savedsettings"])){save();exit;}
 if(isset($_GET["settings-dns"])){dns_save();exit;}
 if(isset($_GET["settings-ou"])){ou_save();exit;}
 if(isset($_GET["settings-final"])){final_show();exit;}
+if(isset($_GET["setup-active-directory"])){setup_active_directory();exit;}
+if(isset($_POST["EnableKerbAuth"])){setup_active_directory_save();exit;}
 
+if(isset($_GET["automation"])){automation_js();exit;}
+if(isset($_GET["automation-js"])){automation_js();exit;}
+if(isset($_GET["automation-popup"])){automation_popup();exit;}
+if(isset($_POST["AutomationScript"])){SaveAutomation();exit;}
+if(isset($_GET["setup-ufdbguard"])){setup_ufdbguard();exit;}
+if(isset($_POST["EnableUfdbGuard"])){EnableUfdbGuard();exit;}
+if(isset($_GET["progressbar-js"])){progressbar_js();exit;}
+if(isset($_GET["ShowProgress-js"])){progressbar_js();exit;}
 js();
+
+
+function automation_js(){
+	$sock=new sockets();
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	$WizardSavedSettingsSend=$sock->GET_INFO("WizardSavedSettingsSend");
+	if(!is_numeric($WizardSavedSettingsSend)){$WizardSavedSettingsSend=0;}
+	if($WizardSavedSettingsSend==1){die("Already posted..");}
+	if($WizardSavedSettings["company_name"]<>null){die("Already posted..");}
+	
+	
+	header("content-type: application/x-javascript");
+	$GLOBALS["DEBUG_TEMPLATE"]=true;
+	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
+	$langAutodetect=new articaLang();
+	$DetectedLanguage=$langAutodetect->get_languages();
+	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
+	$tpl=new templates();
+	$page=CurrentPageName();
+	
+	$title=$tpl->_ENGINE_parse_body("{WELCOME_ON_ARTICA_PROJECT}");
+	
+	echo "LoadAjax('content','$page?automation-popup=yes','$title')";
+	
+}
+
+function automation_popup(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$sock=new sockets();
+$html="";
+$apply=$tpl->_ENGINE_parse_body("{apply}");
+
+$nic=new system_nic("eth0");
+$IPADDR=$nic->IPADDR;
+$NETMASK=$nic->NETMASK;
+$GATEWAY=$nic->GATEWAY;
+$BROADCAST=$nic->BROADCAST;
+$metric=$nic->metric;
+if(!is_numeric($metric)){$metric=1;}
+
+$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));
+$q=new mysql_squid_builder();
+$domainname=$q->GetFamilySites($hostname);
+$CMP=explode(".",$domainname);
+$CompanyName=strtoupper($CMP[0]);
+
+$arrayNameServers=GetNamesServers();
+$tt=explode(".",$hostname);
+$tt1=$tt[0];
+unset($tt[0]);
+$tt2=@implode(".", $tt);
+
+
+
+
+	
+$f[]="########################################";
+$f[]="#";
+$f[]="#       Automation script sample       #";
+$f[]="#";
+$f[]="########################################";
+$f[]="# Copy this content and paste modified data";
+$f[]="# After apply, the server will change all parameters";
+$f[]="# You will have access to the interface using";
+$f[]="# Manager as account and secret as password";
+$f[]="";
+$f[]="########################################";
+$f[]="######             Network        ######";
+$f[]="########################################";
+$f[]="";
+$f[]="# First main Network interface";
+$f[]="# \"KEEPNET\" should modify current network [0] or keep the current network settings [1]";
+$f[]="KEEPNET=0";
+$f[]="IPADDR=$IPADDR";
+$f[]="NETMASK=$NETMASK";
+$f[]="GATEWAY=$GATEWAY";
+$f[]="BROADCAST=$BROADCAST";
+$f[]="metric=$metric";
+$f[]="DNS1=".$arrayNameServers[0];
+$f[]="DNS2=".$arrayNameServers[1];
+$f[]="";
+$f[]="########################################";
+$f[]="######          SNMP Service      ######";
+$f[]="########################################";
+$f[]="";
+$f[]="# Activate the SNMP service 0/1";
+$f[]="EnableSNMPD=0";
+$f[]="# Public community";
+$f[]="SNMPDCommunity=public";
+$f[]="# Allowed network";
+$f[]="SNMPDNetwork=default";
+$f[]="";
+$f[]="########################################";
+$f[]="######      System parameters     ######   ";
+$f[]="########################################";
+$f[]="# Hostname of the server";
+$f[]="netbiosname=$tt1";
+$f[]="";
+$f[]="# Domain of the server";
+$f[]="domain=$tt2";
+$f[]="";
+$f[]="# Time zone: Europe/Moscow, Europe/Paris, Europe/Rome, US/Central ...";
+$f[]="# see http://en.wikipedia.org/wiki/List_of_tz_database_time_zones for the complete list";
+$f[]="timezones=US/Central";
+$f[]="# OpenLDAP server threads";
+$f[]="SlapdThreads=2";
+$f[]="# Kernel Swapiness define after which percentage of physical memory use the kernel will use the swap file";
+$f[]="swappiness=90";
+$f[]="";
+
+
+
+$f[]="";
+$f[]="########################################";
+$f[]="######   Registration parameters  ######";
+$f[]="########################################";
+$f[]="";
+$f[]="";
+$f[]="# company name will be the title of your web interface";
+$f[]="# you should not set corrupted data such as toto mdlcsmck or something else";
+$f[]="# You will not be able to change it after";
+$f[]="company_name=$CompanyName";
+$f[]="city=Paris";
+$f[]="# LDAP Organization ( if not connected to the Active Directory)";
+$f[]="organization=$CompanyName";
+$f[]="country=France";
+$f[]="smtp_domainname=$domainname";
+$f[]="mail=support@$domainname";
+$f[]="telephone=00.00.00.00.00";
+$f[]="employees=55";
+$f[]="#The Gold key License number provided by our sales team;";
+$f[]="#GoldKey=";
+$f[]="";
+$f[]="########################################";
+$f[]="######    Services/Proxy section  ######";
+$f[]="########################################";
+$f[]="";
+
+$f[]="# Standard Proxy Listen port";
+$f[]="proxy_listen_port=3128";
+$f[]="";
+$f[]="# Enable/Disable the transparent mode 0 = no, 1 = yes";
+$f[]="# Standard Proxy Transparent Listen port";
+$f[]="EnableTransparent=0";
+$f[]="# Transparent port";
+$f[]="TransparentPort=0";
+$f[]="";
+$f[]="# Activate FreeRadius";
+$f[]="EnableFreeRadius=0";
+$f[]="";
+$f[]="# Activate DHCP service.";
+$f[]="EnableDHCPServer=0";
+$f[]="";
+
+$f[]="# Activate Web Filtering.";
+$f[]="EnableWebFiltering=1";
+$f[]="";
+$f[]="# Activate NTLM Proxy";
+$f[]="EnableCNTLM=0";
+$f[]="# NTLM Proxy Listen port";
+$f[]="CnTLMPORT=3155";
+$f[]="# Proxy shared physical memory (MB)";
+$f[]="cache_mem=256";
+$f[]="# Proxy FQDN DNS cache size (items)";
+$f[]="fqdncache_size=51200";
+$f[]="# Proxy IP DNS cache size (items)";
+$f[]="ipcache_size=51200";
+$f[]="# Proxy DNS cache low (%)";
+$f[]="ipcache_low=90";
+$f[]="# Proxy DNS cache High (%)";
+$f[]="ipcache_low=95";
+$f[]="";
+$f[]="";
+$f[]="# Watchdog";
+$f[]="";
+
+$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+if(!isset($MonitConfig["ENABLE_PING_GATEWAY"])){$MonitConfig["ENABLE_PING_GATEWAY"]=1;}
+if(!isset($MonitConfig["MAX_PING_GATEWAY"])){$MonitConfig["MAX_PING_GATEWAY"]=10;}
+if(!isset($MonitConfig["PING_FAILED_RELOAD_NET"])){$MonitConfig["PING_FAILED_RELOAD_NET"]=0;}
+if(!isset($MonitConfig["PING_FAILED_REPORT"])){$MonitConfig["PING_FAILED_REPORT"]=1;}
+if(!isset($MonitConfig["PING_FAILED_REBOOT"])){$MonitConfig["PING_FAILED_REBOOT"]=0;}
+if(!isset($MonitConfig["PING_FAILED_FAILOVER"])){$MonitConfig["PING_FAILED_FAILOVER"]=0;}
+$f[]="# Ping the gateway in order to see if network is available ?";
+$f[]="ENABLE_PING_GATEWAY={$MonitConfig["ENABLE_PING_GATEWAY"]}";
+$f[]="# Ip address of the gateway, if not set, then automatically found it";
+$f[]="PING_GATEWAY={$MonitConfig["PING_GATEWAY"]}";
+$f[]="# Max rotation, after x failed, stop to evaluate the ping process";
+$f[]="MAX_PING_GATEWAY={$MonitConfig["MAX_PING_GATEWAY"]}";
+$f[]="# If ping failed, reconfigure the network ?";
+$f[]="PING_FAILED_RELOAD_NET={$MonitConfig["PING_FAILED_RELOAD_NET"]}";
+$f[]="# If ping failed, reboot the server ?";
+$f[]="PING_FAILED_REBOOT={$MonitConfig["PING_FAILED_REBOOT"]}";
+$f[]="# If ping failed, report network status ?";
+$f[]="PING_FAILED_REPORT={$MonitConfig["PING_FAILED_REPORT"]}";
+$f[]="# If ping failed, switch to failover backup server ?";
+$f[]="PING_FAILED_FAILOVER={$MonitConfig["PING_FAILED_FAILOVER"]}";
+
+$f[]="";
+$f[]="";
+$f[]="# Specifics DNS servers for the proxy. Separate them with a comma";
+$f[]="ProxyDNS=".@implode(",",$arrayNameServers);
+$f[]="";
+$f[]="# Blacklist categories in default rule.";
+$f[]="# Separate them with a comma";
+$f[]="# possible values are:";
+$f[]="#porn,sex/lingerie,mixed_adult,sexual_education,abortion,dating,tattooing,agressive,violence,terrorism,";
+$f[]="#automobile/bikes,automobile/boats,automobile/cars,automobile/planes,automobile/carpool,bicycle,publicite,";
+$f[]="#cleaning,dangerous_material,downloads,chat,passwords,drugs,dynamic,financial,stockexchange,";
+$f[]="#finance/banking,finance/insurance,finance/moneylending,finance/realestate,finance/other,";
+$f[]="#forums,socialnet,jobsearch,jobtraining,learning,humanitarian,associations,gamble,hacking,warez,";
+$f[]="#hobby/cooking,hobby/fishing,hobby/arts,hobby/other,isp,webmail,liste_bu,mobile-phone,marketingware,";
+$f[]="#webradio,audio-video,webtv,music,movies,blog,news,press,society,books,manga,dictionaries,phishing,";
+$f[]="#redirector,proxy,strict_redirector,strong_redirector,paytosurf,reaffected,tricheur,webphone,weapons,";
+$f[]="#games,hobby/pets,animals,horses,filehosting,pictures,photo,pictureslib,imagehosting,religion,sect,";
+$f[]="#genealogy,ringtones,recreation/wellness,recreation/travel,recreation/nightout,governments,";
+$f[]="#recreation/schools,housing/doityourself,housing/builders,housing/accessories,houseads,smallads,";
+$f[]="#electricalapps,justice,police,converters,meetings,getmarried,tobacco,recreation/sports,recreation/humor,";
+$f[]="#children,teens,shopping,gifts,luxury,cosmetics,clothing,electronichouse,models,celebrity,womanbrand,";
+$f[]="#politic,industry,science/chemistry,sciences,astrology,science/astronomy,science/weather,nature,green,";
+$f[]="#browsersplugins,webplugins,maps,webapps,science/computing,remote-control,hospitals,medical,health,";
+$f[]="#handicap,sslsites,updatesites,internal,searchengines,translators,spyware,malware,tracker,";
+$f[]="#transport,culture,wine,alcohol,literature,mailing,suspicious";
+$f[]="";
+$f[]="Blacklists=porn,mixed_adult,dating,violence,spyware,malware,tracker,publicite,mailing,suspicious";
+$f[]="";
+$f[]="";
+$f[]="# Caches center.";
+$f[]="# Allows you to auto-create caches";
+$f[]="# Caches will be prepared but will not created until the license is not accepted by Artica";
+$f[]="# If you have a gold key, it is fully supported";
+$f[]="# caches type should be tmpfs,rock,aufs,diskd";
+$f[]="# define: cache_name,cpu,directory,type,cache_size (MB),cache_dir_level1,cache_dir_level2";
+$f[]="# Cache Memory Example: ";
+$f[]="# caches=Mem1,1,/home/mem,tmpfs,500,128,256 Will create a cache memory with 500MB";
+$f[]="# Cache disk Example: ";
+$f[]="# caches=disk1,2,/home/squid/cache,tmpfs,5000,128,256 Wil create a cache disk for CPU2 with 5GB";
+$f[]="";
+$f[]="# Activate ARP Daemon";
+$f[]="EnableArpDaemon=0";
+$f[]="#";
+$f[]="# Activate FreeWebs Web servers management";
+$f[]="EnableFreeWeb=0";
+$f[]="# If 1 then Artica Proxy Statistics are disabled, if 0 Artica Proxy Statistics are enabled";
+$f[]="DisableArticaProxyStatistics=1";
+$f[]="# Activate SARG statistics generation";
+$f[]="EnableSargGenerator=0";
+$f[]="# Activate Hostnames logging in Proxy statistics";
+$f[]="EnableProxyLogHostnames=1";
+
+$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+$username=$TuningParameters["username"];
+$password=$TuningParameters["password"];
+$mysqlserver=$TuningParameters["mysqlserver"];
+$RemotePort=$TuningParameters["RemotePort"];
+if($username==null){$username="root";}
+$f[]="# Activate System events logs storage";
+$f[]="EnableSyslogDB=1";
+$f[]="# 1 = Local service 2 = remote service";
+$f[]="MySQLSyslogType=1";
+$f[]="# Where to put Syslog database path";
+$f[]="# if EnableSyslogDB = 2";
+$f[]="MySQLSyslogWorkDir=/home/syslogsdb";
+$f[]="MySQLSyslogUsername=$username";
+$f[]="MySQLSyslogPassword=$password";
+$f[]="MySQLSyslogServer=$mysqlserver";
+$f[]="MySQLSyslogServerPort=$RemotePort";
+
+
+
+$f[]="";
+$f[]="########################################";
+$f[]="######       Web Interface       ######";
+$f[]="########################################";
+$f[]="# Manager name and password:";
+$f[]="# This is the Account of the gloabl Manager interface ( default: Username Manager, password=secret)";
+$f[]="#ManagerAccount=Manager";
+$f[]="#ManagerPassword=secret";
+$f[]="# Disable insert special characters in passwords (0/1)";
+$f[]="#DisableSpecialCharacters=1";
+$f[]="";
+$f[]="# EndUser Web Access Web servername";
+$f[]="adminwebserver=admin.company.tld";
+$f[]="";
+$f[]="# EndUser Web Access Web servername 2";
+$f[]="second_webadmin=$IPADDR";
+$f[]="# Full Administrator";
+$f[]="administrator=admin";
+$f[]="administratorpass=password";
+$f[]="# Statistics Administrator";
+$f[]="statsadministrator=admin";
+$f[]="statsadministratorpass=password";
+$f[]="";
+$f[]="########################################";
+$f[]="######  Active Directory settings ###### ";
+$f[]="########################################";
+$f[]="";
+$f[]="";
+$f[]="# Enable/Disable Active Directory connection.";
+$f[]="EnableKerbAuth=0";
+$f[]="# Enable Active Directory connection.";
+$f[]="# Active Directory DNS suffix.";
+$f[]="WINDOWS_DNS_SUFFIX=$domainname";
+$f[]="";
+$f[]="# Active Directory server netbios name";
+$f[]="WINDOWS_SERVER_NETBIOSNAME=dc";
+$f[]="# Active Directory workgroup name";
+$f[]="ADNETBIOSDOMAIN=$CompanyName";
+$f[]="# Ip address of the Active Directory server";
+$f[]="ADNETIPADDR=192.168.1.10";
+$f[]="# If ip address is set, you can force system to use the AD as first DNS";
+$f[]="UseADAsNameServer=1";
+$f[]="# Use the Active Directory as Time server ? 0/1";
+$f[]="NtpdateAD=0";
+$f[]="# Use this Internal Interface to communicate with the Active Directory";
+$f[]="#SambaBindInterface=10.10.10.1";
+$f[]="# Active Directory server version ( WIN_2003 or WIN_2008AES )";
+$f[]="WINDOWS_SERVER_TYPE=WIN_2003";
+$f[]="";
+$f[]="COMPUTER_BRANCH=CN=Computers";
+$f[]="WINDOWS_SERVER_ADMIN=administrator";
+$f[]="WINDOWS_SERVER_PASS=adminpassword\n";	
+
+$t=time();
+$text=@implode("\n", $f);
+
+$button=button($apply, "Save$t()",22);
+
+$html="
+<div style='font-size:22px;margin:15px' class=explain>{automation_script_explain}</div>
+<center id='$t' style='margin:10px'></center>
+<center>
+<div style='text-align:center;width:100%;background-color:white;margin-bottom:10px;padding:5px;'>$button<br></div>
+<textarea
+style='width:95%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
+id='content-$t'>$text</textarea>
+<div style='text-align:center;width:100%;background-color:white;margin-top:10px'>$button</div>
+</center>
+<script>
+var xSave$t= function (obj) {
+	var res=obj.responseText;
+	document.getElementById('$t').innerHTML='';
+	if(res.length>3){alert(res);return;}
+	alert('The Automation Script was correctly executed on your server...\\nWe suggest to reboot your server after 2/3 minutes');
+	document.location.href='logon.php';
+
+}
+
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('AutomationScript', encodeURIComponent(document.getElementById('content-$t').value));
+	document.getElementById('$t').innerHTML=\"<img src='img/wait_verybig_old.gif' style='margin:30px'>\";
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>";
+
+echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function SaveAutomation(){
+	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"\n");
+	$sock=new sockets();
+	$ipClass=new IP();
+	$users=new usersMenus();
+	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+	$_POST["AutomationScript"]=url_decode_special_tool($_POST["AutomationScript"]);
+	$data=explode("\n",$_POST["AutomationScript"]);
+	$sock->getFrameWork("system.php?create-new-uuid=yes");
+	
+	
+	while (list ($num, $ligne) = each ($data) ){
+		$ligne=trim($ligne);
+		if($ligne==null){continue;}
+		
+		if(preg_match("#^\##", trim($ligne))){continue;}
+		
+		
+		if(!preg_match("#(.+?)=(.+)#", $ligne,$re)){continue;}
+		$key=trim($re[1]);
+		$value=trim($re[2]);
+		if($key=="caches"){ $WizardSavedSettings["CACHES"][]=$value; continue; }
+		$WizardSavedSettings[$key]=$value;
+		$KerbAuthInfos[$key]=$value;
+	}
+	
+	if($WizardSavedSettings["company_name"]=="My Company"){echo "Please read correctly the config file \"My Company\" incorrect\n";return;}
+	if($WizardSavedSettings["smtp_domainname"]=="articatech.com"){echo "Please read correctly the config file \"articatech.com\" incorrect\n";return;}
+	if($WizardSavedSettings["mail"]=="support@artica.fr"){echo "Please read correctly the config file \"support@artica.fr\" incorrect\n";return;}
+	if($WizardSavedSettings["employees"]=="55"){echo "Please read correctly the config file \"employees number\" incorrect\n";return;}
+	
+	
+	
+	$WizardSavedSettings["ARTICAVERSION"]=$users->ARTICA_VERSION;
+	if(isset($WizardSavedSettings["EnableKerbAuth"])){
+		$sock->SET_INFO("EnableKerbAuth", $WizardSavedSettings["EnableKerbAuth"]);
+		$sock->SET_INFO("UseADAsNameServer", $WizardSavedSettings["UseADAsNameServer"]);
+		$sock->SET_INFO("NtpdateAD", $WizardSavedSettings["NtpdateAD"]);
+		if($WizardSavedSettings["UseADAsNameServer"]==1){
+		if($ipClass->isValid($WizardSavedSettings["ADNETIPADDR"])){
+				$WizardSavedSettings["DNS1"]=$WizardSavedSettings["ADNETIPADDR"];
+				$q=new mysql_squid_builder();
+				$q->QUERY_SQL("INSERT INTO dns_servers (dnsserver,zOrder) VALUES ('{$WizardSavedSettings["ADNETIPADDR"]}','0')");
+			}
+		}
+		
+	}
+	if(isset($WizardSavedSettings["ProxyDNS"])){
+		$ProxyDNS=explode(",",$WizardSavedSettings["ProxyDNS"]);
+		$c=1;
+		while (list ($num, $nameserver) = each ($ProxyDNS) ){
+			if(!$ipClass->isValid($nameserver)){continue;}
+			$q=new mysql_squid_builder();
+			$q->QUERY_SQL("INSERT INTO dns_servers (dnsserver,zOrder) VALUES ('{$WizardSavedSettings["ADNETIPADDR"]}','$c')");
+			$c++;
+		}
+	}
+	
+	
+	if(isset($WizardSavedSettings["ENABLE_PING_GATEWAY"])){
+		$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+		$MonitConfig["ENABLE_PING_GATEWAY"]=$WizardSavedSettings["ENABLE_PING_GATEWAY"];
+		$MonitConfig["PING_GATEWAY"]=$WizardSavedSettings["PING_GATEWAY"];
+		$MonitConfig["MAX_PING_GATEWAY"]=$WizardSavedSettings["MAX_PING_GATEWAY"];
+		$MonitConfig["PING_FAILED_RELOAD_NET"]=$WizardSavedSettings["PING_FAILED_RELOAD_NET"];
+		$MonitConfig["PING_FAILED_REBOOT"]=$WizardSavedSettings["PING_FAILED_REBOOT"];
+		$MonitConfig["PING_FAILED_REPORT"]=$WizardSavedSettings["PING_FAILED_REPORT"];
+		$MonitConfig["PING_FAILED_FAILOVER"]=$WizardSavedSettings["PING_FAILED_FAILOVER"];
+		$sock->SaveClusterConfigFile(base64_encode(serialize($MonitConfig)), "SquidWatchdogMonitConfig");
+		
+	}
+	
+	$sock->SET_INFO("timezones",$WizardSavedSettings["timezones"]);
+	$nic=new system_nic();	
+	$hostname=$WizardSavedSettings["netbiosname"].".".$WizardSavedSettings["domain"];
+	$nic->set_hostname($hostname);
+
+	$data=$sock->getFrameWork("system.php?zoneinfo-set=".urlencode(base64_encode($WizardSavedSettings["timezones"])));
+	
+	$Encoded=base64_encode(serialize($WizardSavedSettings));
+	$sock->SaveConfigFile($Encoded,"WizardSavedSettings");
+	
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+	if(isset($WizardSavedSettings["MySQLSyslogUsername"])){$TuningParameters["username"]=$WizardSavedSettings["MySQLSyslogUsername"];}
+	if(isset($WizardSavedSettings["MySQLSyslogPassword"])){$TuningParameters["password"]=$WizardSavedSettings["MySQLSyslogPassword"];}
+	if(isset($WizardSavedSettings["MySQLSyslogServer"])){$TuningParameters["mysqlserver"]=$WizardSavedSettings["MySQLSyslogServer"];}
+	if(isset($WizardSavedSettings["MySQLSyslogServerPort"])){$TuningParameters["RemotePort"]=$WizardSavedSettings["MySQLSyslogServerPort"];}
+	if(isset($WizardSavedSettings["MySQLSyslogWorkDir"])){$TuningParameters["MySQLSyslogWorkDir"]=$WizardSavedSettings["MySQLSyslogWorkDir"];}
+	if(isset($WizardSavedSettings["MySQLSyslogType"])){$TuningParameters["MySQLSyslogType"]=$WizardSavedSettings["MySQLSyslogType"];}
+	$sock->SaveConfigFile(base64_encode(serialize($TuningParameters)), "MySQLSyslogParams");
+	$sock->SET_INFO("MySQLSyslogType", $WizardSavedSettings["MySQLSyslogType"]);
+	$sock->SET_INFO("MySQLSyslogWorkDir", $WizardSavedSettings["MySQLSyslogWorkDir"]);
+	$sock->SET_INFO("EnableSyslogDB", $WizardSavedSettings["EnableSyslogDB"]);
+	
+	if(isset($WizardSavedSettings["EnableCNTLM"])){
+		$sock->SET_INFO("EnableCNTLM", $WizardSavedSettings["EnableCNTLM"]);
+		$sock->SET_INFO("CnTLMPORT", $WizardSavedSettings["CnTLMPORT"]);
+	}
+	
+	if(isset($WizardSavedSettings["DisableSpecialCharacters"])){
+		$sock->SET_INFO("DisableSpecialCharacters", $WizardSavedSettings["DisableSpecialCharacters"]);
+	}
+	
+	if(isset($WizardSavedSettings["SambaBindInterface"])){
+		$sock->SET_INFO("SambaBindInterface", $WizardSavedSettings["SambaBindInterface"]);
+	}	
+	
+	if(isset($WizardSavedSettings["EnableSNMPD"])){
+		$sock->SET_INFO("EnableSNMPD", $WizardSavedSettings["EnableSNMPD"]);
+		$sock->SET_INFO("SNMPDCommunity", $WizardSavedSettings["SNMPDCommunity"]);
+		$sock->SET_INFO("SNMPDNetwork", $WizardSavedSettings["SNMPDNetwork"]);
+		$sock->getFrameWork("snmpd.php?restart=yes");
+	}	
+
+	if(isset($WizardSavedSettings["DisableArticaProxyStatistics"])){$sock->SET_INFO("DisableArticaProxyStatistics", $WizardSavedSettings["DisableArticaProxyStatistics"]);}
+	if(isset($WizardSavedSettings["EnableProxyLogHostnames"])){$sock->SET_INFO("EnableProxyLogHostnames", $WizardSavedSettings["EnableProxyLogHostnames"]);}
+	if(isset($WizardSavedSettings["EnableSargGenerator"])){$sock->SET_INFO("EnableSargGenerator", $WizardSavedSettings["EnableSargGenerator"]);}
+	
+	if(isset($WizardSavedSettings["CACHES"])){
+		if(count($WizardSavedSettings["CACHES"])>0){
+			$q=new mysql_squid_builder();
+			$order=1;
+			while (list ($index, $line) = each ($WizardSavedSettings["CACHES"]) ){
+				$order++;
+				$CONFCACHE=explode(",",$line);
+				$cachename=$CONFCACHE[0];
+				$CPU=$CONFCACHE[1];
+				$cache_directory=$CONFCACHE[2];
+				$cache_type=$CONFCACHE[3];
+				$size=$CONFCACHE[4];
+				$cache_dir_level1=$CONFCACHE[5];
+				$cache_dir_level2=$CONFCACHE[6];
+				if($cache_type=="tmpfs"){ $users=new usersMenus(); $memMB=$users->MEM_TOTAL_INSTALLEE/1024; $memMB=$memMB-1500; if($size>$memMB){ $size=$memMB-100; }}
+				$q->QUERY_SQL("INSERT IGNORE INTO squid_caches_center
+				(cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,zOrder)
+				VALUES('$cachename',$CPU,'$cache_directory','$cache_type','$size','$cache_dir_level1','$cache_dir_level2',1,0,0,$order)","artica_backup");
+			}
+		}
+	}
+	
+	
+	if(isset($WizardSavedSettings["Blacklists"])){
+		if($WizardSavedSettings["EnableWebFiltering"]==1){
+			$tp=explode(",",$WizardSavedSettings["Blacklists"]);
+			$q=new mysql_squid_builder();
+			while (list ($key, $category) = each ($tp) ){
+				if(trim($category)==null){continue;}
+				$sql="INSERT IGNORE INTO webfilter_blks (webfilter_id,category,modeblk) VALUES ('0','$category','0')";
+				$q->QUERY_SQL($sql);
+				
+			}
+			$sock=new sockets();
+			$sock->getFrameWork("squid.php?rebuild-filters=yes");
+			
+		}
+		
+	}
+	
+	if(isset($WizardSavedSettings["EnableTransparent"])){
+		$sock->SET_INFO("hasProxyTransparent",$WizardSavedSettings["EnableTransparent"]);
+		if( $WizardSavedSettings["EnableTransparent"] ==1){
+			$squid=new squidbee();
+			$squid->listen_port=$WizardSavedSettings["TransparentPort"];
+			$squid->second_listen_port=$WizardSavedSettings["proxy_listen_port"];
+			$WizardSavedSettings["proxy_listen_port"]=$WizardSavedSettings["TransparentPort"];
+			$squid->SaveToLdap(true);
+		}
+	
+	}
+	
+	if(isset($WizardSavedSettings["cache_mem"])){
+		$squid=new squidbee();
+		$squid->global_conf_array["cache_mem"]=$WizardSavedSettings["cache_mem"];
+		$squid->global_conf_array["fqdncache_size"]=$WizardSavedSettings["fqdncache_size"];
+		$squid->global_conf_array["ipcache_size"]=$WizardSavedSettings["ipcache_size"];
+		$squid->global_conf_array["ipcache_low"]=$WizardSavedSettings["ipcache_low"];
+		$squid->global_conf_array["ipcache_high"]=$WizardSavedSettings["ipcache_high"];
+		$squid->SaveToLdap(true);
+	}
+	
+	
+	if(isset($WizardSavedSettings["swappiness"])){
+		$swappiness_saved=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
+		$swappiness_saved["swappiness"]=$WizardSavedSettings["swappiness"];
+		$sock->SaveConfigFile( base64_encode($swappiness_saved),"kernel_values");
+		$sock->getFrameWork("cmd.php?sysctl-setvalue={$WizardSavedSettings["swappiness"]}&key=".base64_encode("vm.swappiness"));
+	}
+	
+	if(isset($WizardSavedSettings["ManagerAccount"])){
+		$ldap=new clladp();
+		if($ldap->suffix==null){$suffix="dc=nodomain";}
+		$username=urlencode($WizardSavedSettings["ManagerAccount"]);
+		$password=urlencode($WizardSavedSettings["ManagerPassword"]);
+		$cmd="cmd.php?ChangeLDPSSET=yes&ldap_server=127.0.0.1&ldap_port=389&suffix=".urlencode($suffix);
+		$cmd=$cmd."&change_ldap_server_settings=no&username=$username&password=$password";
+		$datas=$sock->getFrameWork("$cmd");
+	}
+	
+	
+	$sock->SET_INFO("EnableUfdbGuard", $WizardSavedSettings["EnableWebFiltering"]);
+	$sock->SET_INFO("EnableArpDaemon", $WizardSavedSettings["EnableArpDaemon"]);
+	$sock->SET_INFO("EnablePHPFPM",0);
+	$sock->SET_INFO("EnableFreeWeb",$WizardSavedSettings["EnableFreeWeb"]);
+	$sock->SET_INFO("SlapdThreads", $WizardSavedSettings["SlapdThreads"]);
+	$sock->SET_INFO("EnableVnStat", 0);
+	$sock->SET_INFO("WizardSavedSettingsSend", 1);
+	
+	
+	$sock->getFrameWork("system.php?start-syslog-db=yes");
+	$sock->getFrameWork("system.php?wizard-execute=yes");
+	$sock->getFrameWork("services.php?register=yes");
+	sleep(3);
+	
+	
+}
 
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
 	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
 	$langAutodetect=new articaLang();
@@ -60,6 +651,14 @@ function setup_1(){
 			$WELCOME_WIZARD_2=@file_get_contents("ressources/templates/Squid/welcome-$DetectedLanguage.txt");
 		}
 		
+		$videoStarted="
+			
+			<center  >
+			<center style='font-size:18px;;margin-bottom:20px'>Video - Artica Proxy Started Guide</center>
+			<iframe style='margin:5px;background-color:black;border:3px solid #A0A0A0;padding:5px;margin;5px;border-radius:5px 5px 5px 5px;-moz-border-radius:5px;-webkit-border-radius:5px;'width='560' height='315' 
+			src='//www.youtube.com/embed/7ZUqX8_5NGk?list=UUYbS4gGDNP62LsEuDWOMN1Q' 
+				frameborder='0' allowfullscreen></iframe></center>";
+		
 	}
 	
 	
@@ -68,9 +667,26 @@ function setup_1(){
 	<input type='hidden' id='savedsettings' value=''>
 	<div id='setup-content'>
 	<div style='margin:10px;width:95%' class=form>
-	<div style='font-size:22px;font-weight:bolder'>{WELCOME_ON_ARTICA_PROJECT}</div>
+	<div style='font-size:28px;font-weight:bolder;padding:15px'>{WELCOME_ON_ARTICA_PROJECT}</div>
+	<div style='font-size:18px;font-weight:
+	margin:5px;
+	margin-top:20px;
+	padding:3px;
+	border:1px solid #E40501;
+	border-radius:5px 5px 5px 5px;
+	 -moz-border-radius:5px;
+	-webkit-border-radius:5px;
+    background-color: #F7E5D9;
+ 	font-weight:bold;
+    font-size: 14px;
+    margin-bottom: 20px;
+    padding: 8px 35px 8px 14px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);color:#C10000'>{WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT}</div>
+    $videoStarted
+    <div style='text-align:right'><hr>". button("{next}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$WizardSavedSettings')","18px")."</div>
 	<div style='margin:18px;font-size:14px'>{WELCOME_WIZARD_ARC1}$WELCOME_WIZARD_2</div>
 	<div style='text-align:right'><hr>". button("{next}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$WizardSavedSettings')","18px")."</div>
+				
 	<center style='margin:10px;width:95%'><img src='img/bg_user.jpg'></center>
 	</div>
 	</div>
@@ -84,6 +700,295 @@ function setup_1(){
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
+	
+}
+
+function setup_ufdbguard(){
+	include_once(dirname(__FILE__)."/ressources/class.dansguardian.inc");
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$EnableWebFiltering=$savedsettings["EnableWebFiltering"];
+	$savedsettings_encoded=urlencode($_GET["savedsettings"]);
+	$ss="porn,mixed_adult,dating,violence,spyware,malware,tracker,publicite,mailing,suspicious";
+	$t=time();
+	$html="
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
+		<div style='font-size:22px;margin-bottom:10px;'>{web_filtering}</div>
+	</tr>
+	<tr>
+	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
+	". Paragraphe_switch_img("{activate_webfiltering}", "{activate_webfiltering_text}","EnableWebFiltering-$t",
+			$EnableWebFiltering,null,500)."</td>
+	</td>
+	</tr>
+	<tr>
+		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
+	</tr>	
+	<tr>
+		<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","18px")."</td>
+		<td>&nbsp;</td>
+		<td align='right'>". button("{next}","SaveUfdbGuardSettings()","18px")."</td>
+	</tr>		
+	<tr>
+		<td colspan=3 style='padding-top:15px;padding-left:10px;'>
+		<div style='font-size:22px;margin-bottom:10px;'>{web_filtering_explain_choose}</div>
+	</tr>	
+	";
+	
+	$s=explode(",",$ss);
+	while (list ($a, $b) = each ($s) ){
+		$DEF[$b]=true;
+	}
+	
+	$dansG = new dansguardian_rules();
+	$ARRAY=$dansG->array_blacksites;
+	while (list ($cat, $explain) = each ($ARRAY) ){
+		$explain=$tpl->_ENGINE_parse_body("{$explain}");
+		$tt[]=$cat;
+		$vla=0;
+		if(isset($DEF[$cat])){$vla=1;}
+		$html=$html."
+		<tr>
+			<td style='border-top:1px solid #CCCCCC'>". Field_checkbox("cat_{$cat}", 1,$vla)."</td>
+			<td style='font-size:16px;font-weight:bold;border-top:1px solid #CCCCCC'>$cat</td>
+			<td style='font-size:14px;font-weight:normal;border-top:1px solid #CCCCCC'>$explain</td>
+		</tr>		
+				
+		";
+		$js[]="if(document.getElementById('cat_{$cat}').checked){ XHR.appendData('cat_{$cat}',1); }else{XHR.appendData('cat_{$cat}',0);}";
+	}
+	
+	$html=$html."
+	<tr>
+		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
+	</tr>	
+	<tr>
+		<td align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","18px")."</td>
+		<td>&nbsp;</td>
+		<td align='right'>". button("{next}","SaveUfdbGuardSettings()","18px")."</td>
+	</tr>
+	</table>
+	</div>	
+<script>
+var xSaveUfdbGuardSettings= function (obj) {
+	var results=obj.responseText;
+	UnlockPage();
+	LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');
+}
+
+
+		
+function SaveUfdbGuardSettings(){
+	var XHR = new XHRConnection();
+	XHR.appendData('EnableUfdbGuard',document.getElementById('EnableWebFiltering-$t').value);
+	".@implode("\n", $js)."
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xSaveUfdbGuardSettings);
+}
+</script>	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+
+}
+
+function EnableUfdbGuard(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableUfdbGuard", $_POST["EnableUfdbGuard"]);
+	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
+	$q=new mysql_squid_builder();
+	while (list ($key, $val) = each ($_POST) ){
+		if(!preg_match("#^cat_(.+)#", $key,$re)){continue;}
+		if($val==0){
+			$sql="DELETE FROM webfilter_blks WHERE webfilter_id=0 AND category='$key' AND modeblk=0";
+			$q->QUERY_SQL($sql);
+			continue;			
+		}
+		
+		$sql="INSERT IGNORE INTO webfilter_blks (webfilter_id,category,modeblk) VALUES ('0','$key','0')";
+		$q->QUERY_SQL($sql);
+	}
+	
+	$sql="DELETE FROM webfilter_blks WHERE webfilter_id=0 AND category='liste_bu' AND modeblk=1";
+	$q->QUERY_SQL($sql);
+	$sql="INSERT IGNORE INTO webfilter_blks (webfilter_id,category,modeblk) VALUES ('0','liste_bu','1')";
+	$q->QUERY_SQL($sql);
+	
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?rebuild-filters=yes");
+}
+
+
+function setup_active_directory(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
+	$savedsettings_encoded=urlencode($_GET["savedsettings"]);
+	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	$severtype["WIN_2003"]="Windows 2003";
+	$severtype["WIN_2008AES"]="Windows 2008 with AES";
+	$users=new usersMenus();
+	$setupWebFILTER=0;
+	if($users->APP_UFDBGUARD_INSTALLED){
+		$setupWebFILTER=1;
+	}
+	
+	
+	$hostname_domain=$savedsettings["domain"];
+	if(!isset($array["WINDOWS_DNS_SUFFIX"])){
+		$array["WINDOWS_DNS_SUFFIX"]=$hostname_domain;
+	}
+	
+	
+	$hostname_domain_TR=explode(".",$hostname_domain);
+	if(!isset($array["ADNETBIOSDOMAIN"])){
+		$array["ADNETBIOSDOMAIN"]=strtoupper($hostname_domain_TR[0]);
+	}
+	
+	if(!isset($array["COMPUTER_BRANCH"])){
+		$array["COMPUTER_BRANCH"]="CN=Computers";
+	}
+	
+	$html="
+<div style='width:98%' class=form>
+<table style='width:100%'>
+<tr>
+	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
+	<div style='font-size:22px;margin-bottom:10px;'>{join_active_directory}</div>
+</tr>	
+	<tr>
+		<td class=legend style='font-size:16px' nowrap>{EnableWindowsAuthentication}:</td>
+		<td>". Field_checkbox("EnableKerbAuth",1,"$EnableKerbAuth","EnableKerbAuthCheck()")."</td>
+		<td>&nbsp;</td>
+	</tr>			
+<tr> 
+		<td class=legend style='font-size:16px'>{WINDOWS_DNS_SUFFIX}:</td>
+		<td>". Field_text("WINDOWS_DNS_SUFFIX",$array["WINDOWS_DNS_SUFFIX"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{WINDOWS_SERVER_NETBIOSNAME}:</td>
+		<td>". Field_text("WINDOWS_SERVER_NETBIOSNAME",$array["WINDOWS_SERVER_NETBIOSNAME"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{ADNETBIOSDOMAIN}:</td>
+		<td>". Field_text("ADNETBIOSDOMAIN",$array["ADNETBIOSDOMAIN"],"font-size:16px;padding:3px;width:165px")."</td>
+		<td>". help_icon("{howto_ADNETBIOSDOMAIN}")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{ADNETIPADDR}:</td>
+		<td>". field_ipv4("ADNETIPADDR",$array["ADNETIPADDR"],"font-size:16px")."</td>
+		<td>". help_icon("{howto_ADNETIPADDR}")."</td>
+	</tr>			
+	<tr>
+		<td class=legend style='font-size:16px'>{WINDOWS_SERVER_TYPE}:</td>
+		<td>". Field_array_Hash($severtype,"WINDOWS_SERVER_TYPE",$array["WINDOWS_SERVER_TYPE"],"style:font-size:16px;padding:3px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{COMPUTERS_BRANCH}:</td>
+		<td>". Field_text("COMPUTER_BRANCH",$array["COMPUTER_BRANCH"],"font-size:16px;padding:3px;width:165px")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{administrator}:</td>
+		<td>". Field_text("WINDOWS_SERVER_ADMIN",$array["WINDOWS_SERVER_ADMIN"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td>&nbsp;</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:16px'>{password}:</td>
+		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td>&nbsp;</td>
+	</tr>			
+	
+	<tr>
+		<td colspan=3 align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","18px")."</td>
+		<td>&nbsp;</td>
+		<td colspan=3 align='right'>". button("{next}","JoinActiveDirectory()","18px")."</td>
+	</tr>
+	</table>
+	</div>	
+	<script>
+		var xJoinActiveDirectory= function (obj) {
+			var results=obj.responseText;
+			UnlockPage();
+			var setupWebFILTER=$setupWebFILTER;
+			LoadAjax('setup-content','$page?setup-3=yes&savedsettings=$savedsettings_encoded');
+			
+		}
+			
+		
+		function EnableKerbAuthCheck(){
+			document.getElementById('WINDOWS_SERVER_PASS').disabled=true;
+			document.getElementById('WINDOWS_SERVER_ADMIN').disabled=true;
+			document.getElementById('WINDOWS_DNS_SUFFIX').disabled=true;
+			document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=true;
+			document.getElementById('ADNETBIOSDOMAIN').disabled=true;
+			document.getElementById('ADNETIPADDR').disabled=true;
+			document.getElementById('COMPUTER_BRANCH').disabled=true;
+			document.getElementById('WINDOWS_SERVER_TYPE').disabled=true;
+			
+			
+			if(document.getElementById('EnableKerbAuth').checked){
+				document.getElementById('WINDOWS_SERVER_PASS').disabled=false;
+				document.getElementById('WINDOWS_SERVER_ADMIN').disabled=false;
+				document.getElementById('WINDOWS_DNS_SUFFIX').disabled=false;
+				document.getElementById('WINDOWS_SERVER_NETBIOSNAME').disabled=false;
+				document.getElementById('ADNETBIOSDOMAIN').disabled=false;
+				document.getElementById('ADNETIPADDR').disabled=false;
+				document.getElementById('COMPUTER_BRANCH').disabled=false;
+				document.getElementById('WINDOWS_SERVER_TYPE').disabled=false;		
+			
+			}
+		
+		}
+
+		
+		function JoinActiveDirectory(){
+			EnableKerbAuth=0;
+			if(document.getElementById('EnableKerbAuth').checked){EnableKerbAuth=1;}
+			var XHR = new XHRConnection();
+			XHR.appendData('EnableKerbAuth',EnableKerbAuth);
+			XHR.appendData('WINDOWS_SERVER_PASS',encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value));
+			XHR.appendData('WINDOWS_SERVER_ADMIN',document.getElementById('WINDOWS_SERVER_ADMIN').value);
+			
+			XHR.appendData('WINDOWS_DNS_SUFFIX',document.getElementById('WINDOWS_DNS_SUFFIX').value);
+			XHR.appendData('WINDOWS_SERVER_NETBIOSNAME',document.getElementById('WINDOWS_SERVER_NETBIOSNAME').value);
+			XHR.appendData('ADNETBIOSDOMAIN',document.getElementById('ADNETBIOSDOMAIN').value);
+			XHR.appendData('ADNETIPADDR',document.getElementById('ADNETIPADDR').value);
+			XHR.appendData('WINDOWS_SERVER_TYPE',document.getElementById('WINDOWS_SERVER_TYPE').value);
+			XHR.appendData('COMPUTER_BRANCH',encodeURIComponent(document.getElementById('COMPUTER_BRANCH').value));
+			
+			LockPage();
+			XHR.sendAndLoad('$page', 'POST',xJoinActiveDirectory);
+			
+		}
+		EnableKerbAuthCheck();
+	</script>	";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function setup_active_directory_save(){
+	
+	$sock=new sockets();
+	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
+	$_POST["WINDOWS_SERVER_PASS"]=url_decode_special_tool($_POST["WINDOWS_SERVER_PASS"]);
+	$_POST["COMPUTER_BRANCH"]=url_decode_special_tool($_POST["COMPUTER_BRANCH"]);
+	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
+	unset($_POST["savedsettings"]);
+	while (list ($num, $ligne) = each ($_POST) ){
+		$array[$num]=$ligne;
+	}
+	$sock->SaveConfigFile(base64_encode(serialize($array)), "KerbAuthInfos");
 	
 }
 
@@ -144,6 +1049,13 @@ function setup_2(){
 		$arrayNameServers=GetNamesServers();
 	}
 	
+	$SetupAD=0;
+	if($users->SQUID_INSTALLED){
+		if($users->SAMBA_INSTALLED){
+			$SetupAD=1;
+		}
+	}
+	
 	if($users->SQUID_INSTALLED){
 		
 		$arrayPP["3128"]=3128;
@@ -164,10 +1076,7 @@ function setup_2(){
 			<td class=legend style='font-size:14px;font-weight:bold' nowrap>{activate_webfiltering}:</td>
 			<td>". Field_checkbox("EnableWebFiltering", 1,$savedsettings["EnableWebFiltering"])."</td>
 		</tr>
-		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold' nowrap>{activate_streamcache}:</td>
-			<td>". Field_checkbox("EnableYoutubeCache", 1,$savedsettings["EnableYoutubeCache"])."</td>
-		</tr>					
+				
 		</table>
 		</td>
 		</tr>			
@@ -239,7 +1148,7 @@ function setup_2(){
 		<td colspan=2 style='font-size:30px;font-weight:bolder;margin-bottom:15px'>{serveretdom}</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:16px' nowrap>{timezone}:</td>
+		<td class=legend style='font-size:16px;vertical-align:top' nowrap>{timezone}:</td>
 		<td valign='top'>".Field_array_Hash($arrayTime,"timezones",$timezone_def,null,null,"style:font-size:16px;padding:3px")."</td>
 	</tr>			
 	<tr>
@@ -308,8 +1217,13 @@ function setup_2(){
 	<script>
 		var X_ChangeQuickHostname= function (obj) {
 			var results=obj.responseText;
-			LoadAjax('setup-content','$page?setup-3=yes&savedsettings='+results)
-		
+			UnlockPage();
+			var SetupAD=$SetupAD;
+			if(SetupAD==1){
+				LoadAjax('setup-content','$page?setup-active-directory=yes&savedsettings='+results)
+				return;
+			}
+				LoadAjax('setup-content','$page?setup-3=yes&savedsettings='+results)
 			}
 			
 		function ChangeQuickHostnameCheck(e){
@@ -378,11 +1292,7 @@ function setup_2(){
 				XHR.appendData('EnableDHCPServer',EnableDHCPServer);
 			}
 			
-			if(document.getElementById('EnableYoutubeCache')){
-				var EnableYoutubeCache=0;
-				if(document.getElementById('EnableYoutubeCache').checked){EnableYoutubeCache=1;}
-				XHR.appendData('EnableYoutubeCache',EnableYoutubeCache);
-			}	
+
 
 			if(document.getElementById('EnableWebFiltering')){
 				var EnableWebFiltering=0;
@@ -411,6 +1321,7 @@ function setup_2(){
 			
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
 			AnimateDiv('setup-content');
+			LockPage();
 			XHR.sendAndLoad('$page', 'POST',X_ChangeQuickHostname);
 			
 		}
@@ -441,6 +1352,9 @@ function setup_3(){
 	$sock=new sockets();
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
 	$users=new usersMenus();
+	$sock=new sockets();
+	$EnableUfdbGuard=$sock->GET_INFO("EnableUfdbGuard");
+	if($EnableUfdbGuard<>$savedsettings["EnableWebFiltering"]){$savedsettings["EnableWebFiltering"]=$EnableUfdbGuard;}
 	
 	$please_fill_all_form_values=$tpl->javascript_parse_text("{please_fill_all_form_values}");
 	$organization=$savedsettings["organization"];
@@ -461,6 +1375,7 @@ function setup_3(){
 	$UseServer["ASFILE"]="{file_server}";
 	$UseServer["ASPROXY"]="{proxy_server}";
 	$UseServer["ASREVERSEPROXY"]="{reverse_proxy_server}";
+	$UseServer["AS_FIREWALL"]="{gateway}";
 	
 	
 	
@@ -554,7 +1469,9 @@ function setup_3(){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Reverse Proxy Appliance' >";
 	}	
 	
-	
+	if($users->GATEWAY_APPLIANCE){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Gateway Appliance' >";
+	}	
 	
 	
 	
@@ -571,48 +1488,50 @@ function setup_3(){
 	
 	<table style='width:99%' class=form id='$t'>
 	<tr>
-		<td colspan=2 style='font-size:16px;font-weight:bolder'>{YourRealCompany}</td>
+		<td colspan=2 style='font-size:28px;font-weight:bolder'>{YourRealCompany}</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{company_name}:</td>
-		<td>". Field_text("company_name",$company_name,"font-size:16px;width:220px")."</td>
+		<td class=legend style='font-size:18px'>{company_name}:</td>
+		<td>". Field_text("company_name",$company_name,"font-size:18px;width:220px")."</td>
+	</tr>
+				
+	</tr>
+		<td class=legend style='font-size:18px'>{country}:</td>
+		<td>". Field_text("country",$country,"font-size:18px;width:220px")."</td>
 	</tr>
 	</tr>
-		<td class=legend style='font-size:16px'>{country}:</td>
-		<td>". Field_text("country",$country,"font-size:16px;width:220px")."</td>
+		<td class=legend style='font-size:18px'>{city}:</td>
+		<td>". Field_text("city",$city,"font-size:18px;width:220px")."</td>
 	</tr>
+					
 	</tr>
-		<td class=legend style='font-size:16px'>{city}:</td>
-		<td>". Field_text("city",$city,"font-size:16px;width:220px")."</td>
+		<td class=legend style='font-size:18px'>{your_email_address}:</td>
+		<td>". Field_text("mail",$mail,"font-size:18px;width:220px")."</td>
 	</tr>	
 	</tr>
-		<td class=legend style='font-size:16px'>{your_email_address}:</td>
-		<td>". Field_text("mail",$mail,"font-size:16px;width:220px")."</td>
-	</tr>	
-	</tr>
-		<td class=legend style='font-size:16px'>{phone_title}:</td>
+		<td class=legend style='font-size:18px'>{phone_title}:</td>
 		<td>". Field_text("telephone",$telephone,"font-size:16px;width:220px")."</td>
 	</tr>
 	</tr>
-		<td class=legend style='font-size:16px'>{nb_employees}:</td>
-		<td>". Field_text("employees",$employees,"font-size:16px;width:80px")."</td>
+		<td class=legend style='font-size:18px'>{nb_employees}:</td>
+		<td>". Field_text("employees",$employees,"font-size:18px;width:80px")."</td>
 	</tr>
 
 	$UseServerFF
 	
 	<tr>
-		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
+		<td colspan=2 style='font-size:18px;font-weight:bolder'>&nbsp;</td>
 	</tr>
 	<tr>
-		<td colspan=2 style='font-size:16px;font-weight:bolder'>{virtual_company}</div></td>
+		<td colspan=2 style='font-size:28px;font-weight:bolder'>{virtual_company}</div></td>
 	</tr>	
 	</tr>
-		<td class=legend style='font-size:16px'>{organization}:</td>
+		<td class=legend style='font-size:18px'>{organization}:</td>
 		<td>". Field_text("organization",$organization,"font-size:16px;width:220px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{smtp_domain}:</td>
-		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:16px;width:220px",null,null,null,false,"CheckMyForm$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{smtp_domain}:</td>
+		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:18px;width:220px",null,null,null,false,"CheckMyForm$t(event)")."</td>
 	</tr>	
 	
 	<tr>
@@ -623,6 +1542,7 @@ function setup_3(){
 	<div style='font-size:11px;text-align:right'>{noticeregisterform}</div>
 	<script>
 		var X_ChangeCompanySettings= function (obj) {
+			UnlockPage();
 			var results=obj.responseText;
 			var KEEPNET=$KEEPNET;
 			if(KEEPNET==0){
@@ -639,7 +1559,7 @@ function setup_3(){
 		}
 		
 		function ChangeCompanySettings(){
-			var XHR = XHRParseElements('$t');
+			var XHR = new XHRConnection();
 			var testval=document.getElementById('company_name').value;
 			if(testval.length==0){alert('$please_fill_all_form_values: $company_name_txtjs');return;}
 			var testval=document.getElementById('country').value;
@@ -647,7 +1567,7 @@ function setup_3(){
 			var testval=document.getElementById('city').value;
 			if(testval.length==0){alert('$please_fill_all_form_values');return;}						
 			var testval=document.getElementById('mail').value;
-			if(testval.length==0){alert('$please_fill_all_form_values');return;}
+			if(testval.length==0){alert('$please_fill_all_form_values - mail');return;}
 			var testval=document.getElementById('employees').value;
 			if(testval.length==0){alert('$please_fill_all_form_values');return;}
 			var testval=document.getElementById('organization').value;
@@ -655,7 +1575,21 @@ function setup_3(){
 			var testval=document.getElementById('smtp_domainname').value;
 			if(testval.length==0){alert('$please_fill_all_form_values');return;}			
 			
+			XHR.appendData('company_name',encodeURIComponent(document.getElementById('company_name').value));
+			XHR.appendData('city',encodeURIComponent(document.getElementById('city').value));
+			XHR.appendData('organization',encodeURIComponent(document.getElementById('organization').value));
+			XHR.appendData('country',encodeURIComponent(document.getElementById('country').value));
+			XHR.appendData('smtp_domainname',document.getElementById('smtp_domainname').value);
+			XHR.appendData('organization',document.getElementById('organization').value);
+			XHR.appendData('mail',document.getElementById('mail').value);
+			XHR.appendData('telephone',document.getElementById('telephone').value);
+			XHR.appendData('employees',document.getElementById('employees').value);
+			XHR.appendData('EnableWebFiltering','{$savedsettings["EnableWebFiltering"]}');
+			
+			
+			
 			XHR.appendData('savedsettings','{$_GET["savedsettings"]}');
+			LockPage();
 			XHR.sendAndLoad('$page', 'POST',X_ChangeCompanySettings);
 			
 		}
@@ -666,12 +1600,8 @@ function setup_3(){
 	
 	
 	$html="
-	<table style='width:100%'>
-	<tr>
-		<td width=1% valign='top'><img src='img/users-info-128.png'></td>
-		<td><div style='font-size:22px;font-weight:bolder;margin-bottom:10px'>{ContactAndOrganization}</div>$FORM</td>
-	</tr>
-	</table>
+	
+	<div style='font-size:32px;font-weight:bolder;margin-bottom:50px'>{ContactAndOrganization}</div>$FORM
 	
 	
 	";
@@ -690,7 +1620,17 @@ function save(){
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
 	$savedsettings=unserialize(base64_decode($_POST["savedsettings"]));
+	
 	unset($_POST["savedsettings"]);
+	
+	if(isset($_POST["company_name"])){$_POST["company_name"]=url_decode_special_tool($_POST["company_name"]);}
+	if(isset($_POST["city"])){$_POST["city"]=url_decode_special_tool($_POST["city"]);}
+	if(isset($_POST["organization"])){$_POST["organization"]=url_decode_special_tool($_POST["organization"]);}
+	if(isset($_POST["country"])){$_POST["country"]=url_decode_special_tool($_POST["country"]);}
+	
+
+	
+	
 	while (list ($key, $value) = each ($_POST) ){
 		$value=str_replace("___.___.___.___", "", $value);
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $value)){
@@ -701,8 +1641,11 @@ function save(){
 		
 		$savedsettings[$key]=$value;
 	}
-	
+	$GLOBALS["TIMEZONES"]=$_POST["timezones"];
+	$_SESSION["TIMEZONES"]=$_POST["timezones"];
 	if(isset($_POST["timezones"])){$sock->SET_INFO("timezones",$_POST["timezones"]);}
+	$timezoneenc=urlencode(base64_encode(trim($_POST["timezone"])));
+	$data=$sock->getFrameWork("system.php?zoneinfo-set=$timezoneenc");
 	
 	$savedsettings["ARTICAVERSION"]=$users->ARTICA_VERSION;
 	$Encoded=base64_encode(serialize($savedsettings));
@@ -718,12 +1661,18 @@ function setup_4(){
 	$sock=new sockets();
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
 	$users=new usersMenus();
+	$CPU=$users->CPU_NUMBER;
 	$memory=intval($sock->getFrameWork("services.php?total-memory=yes"));
+	if($memory==0){$memory=intval($sock->getFrameWork("services.php?total-memory=yes"));}
+	if($memory==0){$memory=round($users->MEM_TOTAL_INSTALLEE/1024);}
+	
+	
 	$WIZMEM=false;
 	$wizard_warn_memory=$tpl->_ENGINE_parse_body("{wizard_warn_memory}");
 	if($users->PROXYTINY_APPLIANCE){
 		if($memory<1000){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "1G", $wizard_warn_memory);
 			$WIZMEM=true;
 		}
@@ -731,6 +1680,7 @@ function setup_4(){
 	if($users->SAMBA_APPLIANCE){
 		if($memory<1000){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "1G", $wizard_warn_memory);
 			$WIZMEM=true;
 		}
@@ -738,6 +1688,7 @@ function setup_4(){
 	if($users->SMTP_APPLIANCE){
 		if($memory<1000){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "1G", $wizard_warn_memory);
 			$WIZMEM=true;
 		}
@@ -746,6 +1697,7 @@ function setup_4(){
 	if($users->LOAD_BALANCE_APPLIANCE){
 		if($memory<750){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "750M", $wizard_warn_memory);
 			$WIZMEM=true;
 		}
@@ -754,6 +1706,7 @@ function setup_4(){
 	if($users->LOAD_BALANCE_APPLIANCE){
 		if($memory<1000){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "1G", $wizard_warn_memory);
 			$WIZMEM=true;
 		}
@@ -762,6 +1715,7 @@ function setup_4(){
 	if($users->APACHE_APPLIANCE){
 		if($memory<1000){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "1G", $wizard_warn_memory);
 			$WIZMEM=true;
 		}
@@ -769,13 +1723,14 @@ function setup_4(){
 	
 	
 	if(!$WIZMEM){
-		if($memory<2450){
+		if( ($memory<2450) OR ($CPU<2)){
 			$wizard_warn_memory=str_replace("%M", $memory."MB", $wizard_warn_memory);
+			$wizard_warn_memory=str_replace("%s", $memory."MB", $wizard_warn_memory);
 			$wizard_warn_memory=str_replace("%F", "2.5G", $wizard_warn_memory);
 			$WIZMEM=true;
 			
 			$warn_memory="
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 				<table style='width:100%'>
 				<tr>
 					<td valign='top' width=1%><img src='img/error-64.png'></td>
@@ -784,7 +1739,65 @@ function setup_4(){
 				</table>
 			</div>
 			";
+			
+			if($users->SQUID_INSTALLED){
+				$sock->SET_INFO("EnableUfdbGuard", "0");
+				$savedsettings["EnableWebFiltering"]=0;
+			}
+			
+			$sock->SET_INFO("EnableArpDaemon", 0);
+			$sock->SET_INFO("EnablePHPFPM",0);
+			$sock->SET_INFO("EnableFreeWeb",0);
+			$sock->SET_INFO("SlapdThreads", 2);
+			$sock->SET_INFO("EnableVnStat", 0);
+			
+			
+			$Encoded=base64_encode(serialize($savedsettings));
+			
+			$sock->SET_INFO("WizardSavedSettings", $Encoded);
+			$sock->getFrameWork("services.php?restart-arpd=yes");
+			$f[]="[MYSQL]";
+			$f[]="default-character-set=";
+			$f[]="bind-address=";
+			$f[]="key_buffer=";
+			$f[]="tmp_table_size=64";
+			$f[]="max_allowed_packet=100";
+			$f[]="sort_buffer_size=1";
+			$f[]="key_buffer_size=32";
+			$f[]="innodb_log_file_size=";
+			$f[]="net_buffer_length=";
+			$f[]="join_buffer_size=";
+			$f[]="thread_cache_size=";
+			$f[]="query_cache_limit=";
+			$f[]="max_heap_table_size=";
+			$f[]="sort_buffer=";
+			$f[]="innodb_lock_wait_timeout=";
+			$f[]="open_files_limit=";
+			$f[]="skip_external_locking=yes";
+			$f[]="skip_name_resolve=no";
+			$f[]="table_cache=512";
+			$f[]="table_open_cache=256";
+			$f[]="read_buffer_size=0.5";
+			$f[]="read_rnd_buffer_size=1";
+			$f[]="myisam_sort_buffer_size=64";
+			$f[]="query_cache_size=4";
+			$f[]="thread_stack=0.192";
+			$f[]="max_tmp_table_size=0";
+			$f[]="innodb_buffer_pool_size=42";
+			$f[]="innodb_additional_mem_pool_size=3";
+			$f[]="innodb_log_buffer_size=3";
+			$f[]="max_connections=55";
+			$f[]="instance-id=";
+			$sock->SaveConfigFile(@implode("\n", $f), "MysqlParameters");
+			$sock->getFrameWork("cmd.php?restart-mysql=yes");
+			$f=array();			
+		
+			
+			
+			
 		}
+		
+
 	
 	}
 	if($savedsettings["adminwebserver"]==null){
@@ -796,9 +1809,13 @@ function setup_4(){
 		$savedsettings["second_webadmin"]=$savedsettings["IPADDR"];
 	}
 	
+	if($users->SQUID_INSTALLED){
+		$sock->getFrameWork("cmd.php?sysctl-setvalue=5&key=".base64_encode("vm.swappiness"));
+	}
+	
 	$html="
 	$warn_memory
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<div style='font-size:18px;font-weight:bolder;margin-bottom:10px'>End-Users WebAccess</div>
 		<p style='font-size:14px'>{miniadm_wizard_explain}</p>
 		<p style='font-size:14px'>{miniadm_wizard_explain2}</p>
@@ -868,16 +1885,13 @@ function setup_4(){
 	
 }
 
+	
 function setup_5(){
-	//finalisation des paramètres et FIN.
-	
-	
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$savedsettings=unserialize(base64_decode($_GET["savedsettings"]));
 	$users=new usersMenus();
-		
 	
 	if(!isset($_GET["bypass"])){
 		if(!check_email_address($savedsettings["mail"])){
@@ -1012,6 +2026,8 @@ $html="
 		LoadAjax('settings-final','$page?settings-final=yes&savedsettings={$_GET["savedsettings"]}');
 	</script>
 	";
+	$sock=new sockets();
+	$sock->getFrameWork("system.php?wizard-execute=yes");
 	echo $tpl->_ENGINE_parse_body($html);	
 	 
 	
@@ -1050,22 +2066,88 @@ function final_show(){
 			$webinterf[]="<div style='font-size:18px'><strong>WebAccess {username} ({statistics}):</strong>{$savedsettings["statsadministrator"]}</div>";
 		}		
 	}
-	
+$t=time();	
+$pleasewait=$tpl->_ENGINE_parse_body("{please_wait}");
 $html="
+		
+
+	<center id='title$t' style='font-size:22px;font-weight:bold;margin-bottom:15px'>$pleasewait</center>
+	<center style='margin-bottom:20px;margin-top:10px'>
+		<div id='Status$t' style='height:50px;'></div>
+	</center>
+
+
 		<table style='width:99%' class=form>
 		<tr>
 			<td valign='top'><img src='img/ok64.png'></td>
 			<td style='padding-left:15px'>
 				<div style='font-size:18px'>$settings_final_show</strong>
 				".@implode("\n", $webinterf)."
-				<center style='margin:10px'>". button("{close}","YahooSetupControlHide();document.location.href='logon.php'","22px")."</center>
+				
 		</td>
 		</tr>
-		</table>";
+		</table>
+<script>						
+	$('#Status$t').progressbar({ value: 2 });	
+	Loadjs('$page?progressbar-js=yes&t=$t');
+</script>
+
+";
+//<center style='margin:10px'>". button("{close}","YahooSetupControlHide();document.location.href='logon.php'","22px")."
+
 	$sock=new sockets();
+	$sock->getFrameWork("system.php?create-new-uuid=yes");
 	$sock->getFrameWork("system.php?wizard-execute=yes");
-	$sock->getFrameWork("services.php?register=yes");
 	echo $tpl->_ENGINE_parse_body($html);	
+	
+}
+
+function progressbar_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$tt=time();
+	$t=$_GET["t"];
+	header("content-type: application/x-javascript");
+	$ARRAY=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/wizard.progress"));
+	$please_wait=$tpl->_ENGINE_parse_body("{please_wait}");
+	if(!is_array($ARRAY)){
+	echo "
+	function Start$tt(){
+		Loadjs('$page?progressbar-js=yes&t=$t');
+	}
+	document.getElementById('title$t').innerHTML='$please_wait';
+	setTimeout('Start$tt()',2000);
+	";
+	return;
+	
+	}
+	
+	$text=$tpl->javascript_parse_text($ARRAY["TEXT"]);
+	$prc=$ARRAY["POURC"];
+	
+	if($prc>99){
+		echo "
+		document.getElementById('title$t').innerHTML='$text&nbsp;';
+		$('#Status$t').progressbar({ value: $prc });
+		YahooSetupControlHide();
+		document.location.href='logon.php'
+		";
+		return;
+		}
+	
+	
+	
+echo "
+function Start$tt(){
+		Loadjs('$page?ShowProgress-js=yes&t=$t');
+}
+	
+if(document.getElementById('title$t')){
+	document.getElementById('title$t').innerHTML='$text&nbsp;$please_wait';
+	$('#Status$t').progressbar({ value: $prc });
+	setTimeout('Start$tt()',2000);
+}
+";	
 	
 }
 

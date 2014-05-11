@@ -25,7 +25,7 @@ function restart(){
 	shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --haarp");
 	squid_admin_mysql(0, "Framework order to restart Haarp","");
 	shell_exec("$nohup /etc/init.d/haarp restart >/dev/null 2>&1 &");
-	shell_exec("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	
 }
 

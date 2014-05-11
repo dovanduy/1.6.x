@@ -52,6 +52,8 @@ function logon(){
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/default.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/ressources/templates/endusers/js/jquery-1.8.0.min.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js\"></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 	<style type=\"text/css\">
 	body {
 		padding-top: 40px;
@@ -224,8 +226,9 @@ function startpage(){
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/tween-min.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/tiny_mce/tinymce.min.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/colorpicker.js\"></script>
-	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.input-ip-address-control-1.0.min.js\"></script>
-	
+	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.watermark.min.js\"></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/highcharts.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/modules/exporting.js\"></script>
 	<link href=\"/js/tiny_mce/themes/advanced/skins/o2k7/ui.css\" rel=\"stylesheet\">

@@ -14,18 +14,23 @@
 	
 
 	$user=new usersMenus();
-	if($user->AsWebMaster==false){
-		$tpl=new templates();
-		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
-		die();exit();
+	if(!$user->AsWebMaster){
+		if(!$user->AsSquidAdministrator){
+			$tpl=new templates();
+			echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
+			die();exit();
+		}
 	}
+	
+	
 	if(isset($_POST["FreeWebsScanSize"])){FreeWebsScanSize();exit;}
 	if(isset($_POST["FreeWebChangeInit"])){changeInit();exit;}
 	if(isset($_GET["watchdog-popup"])){watchdog_form();exit;}
 	if(isset($_POST["watchdog"])){watchdog_save();exit;}
 	if(isset($_GET["status"])){freewebs_status();exit;}
-	
-	
+	if(isset($_POST["EnableArticaInNGINX"])){EnableArticaInNGINX();exit;}
+	if(isset($_POST["EnablePHPFPM"])){EnablePHPFPM();exit;}
+	if(isset($_POST["EnableNginx"])){EnableNginx();exit;}
 	if(isset($_GET["log-rotate-js"])){log_rotate_js();exit;}
 	if(isset($_GET["log-rotate-popup"])){log_rotate_popup();exit;}
 	if(isset($_POST["RotateFreq"])){log_rotate_save();exit;}
@@ -49,7 +54,7 @@
 	if(isset($_GET["apache_modules"])){modules_apache();exit;}
 	if(isset($_GET["apache-modules-list"])){modules_apache_list();exit;}
 	if(isset($_GET["DisableZarafaWebService"])){DisableZarafaWebService();exit;}
-	
+	if(isset($_POST["ZarafaWebAccessInFrontEnd"])){ZarafaWebAccessInFrontEnd();exit;}
 	
 	if(isset($_POST["AddDefaultOne"])){add_default_site();exit;}
 	if(isset($_POST["CheckAVailable"])){CheckAVailable();exit;}
@@ -659,7 +664,7 @@ function popup(){
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_freeweb");
+	echo build_artica_tabs($html, "main_config_freeweb")."<script>LeftDesign('web-white-256-opac20.png');</script>";
 	
 }
 
@@ -680,7 +685,7 @@ function index(){
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}
 	if($FreeWebListenPort==null){$FreeWebListenPort=80;}
 	if($FreeWebListenSSLPort==null){$FreeWebListenSSLPort=443;}
-	if($FreeWebLeftMenu==null){$FreeWebLeftMenu=1;}
+	if(!is_numeric($FreeWebLeftMenu)){$FreeWebLeftMenu=1;}
 	$tcp=new networking();
 	$APACHE_APPLIANCE=0;
 	if($users->APACHE_APPLIANCE){$APACHE_APPLIANCE=1;}
@@ -728,12 +733,12 @@ function index(){
 	$ips["*"]="{all}";
 	
 	$TOTAL_MEMORY_MB=$sock->getFrameWork("system.php?TOTAL_MEMORY_MB=yes");
-	if($TOTAL_MEMORY_MB<1500){
-		$EnableFreeWeb=0;
-		$p=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB {current}:{$TOTAL_MEMORY_MB}MB</strong>",true,true);
-	}else{
 	
-		$p=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}","EnableFreeWeb",$EnableFreeWeb,null,400);
+	$p=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}",
+			"EnableFreeWeb",$EnableFreeWeb,null,400);
+	
+	if($TOTAL_MEMORY_MB<1500){
+		$p_error=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB {current}:{$TOTAL_MEMORY_MB}MB</strong>",true,true);
 	}
 	
 	
@@ -754,6 +759,7 @@ function index(){
 				</tr>
 				<tr>
 					<td colspan=2>
+						$p_error
 						$p
 						<hr>
 						<div style='width:100%;text-align:right'>". button("{apply}","EnableFreeWebSave()",16)."</div>
@@ -793,7 +799,6 @@ function index(){
 		function EnableFreeWebSave(){
 			var XHR = new XHRConnection();
     		XHR.appendData('EnableFreeWeb',document.getElementById('EnableFreeWeb').value);
-    		document.getElementById('img_EnableFreeWeb').src='img/wait_verybig.gif';
     		XHR.sendAndLoad('$page', 'GET',x_EnableFreeWebSave);
 			
 		}	
@@ -816,7 +821,7 @@ function index(){
 			if(document.getElementById('FreeWebLeftMenu').checked){
 	    			XHR.appendData('FreeWebLeftMenu',1);
 				}else{
-					XHR.appendData('FreeWebLeftMenu',1);
+					XHR.appendData('FreeWebLeftMenu',0);
 				}
 				XHR.sendAndLoad('$page', 'GET',x_FreeWebLeftMenuCheck);
 		}
@@ -1126,14 +1131,14 @@ function listwebs_search(){
 		$ligneDrup=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 		if($ligne["ID"]>0){
 			$edit=imgtootltip("folder-tasks-32.png","{delete}");
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$delete=imgtootltip("delete-32-grey.png","{delete} {scheduled}");
 			
 		}
 		$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='INSTALL_GROUPWARE' AND `servername`='{$ligne["servername"]}'";
 		if($ligne["ID"]>0){
 			$edit=imgtootltip("folder-tasks-32.png","{installing}","Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}')");
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$delete=imgtootltip("delete-32-grey.png","{installing}");
 			$groupware="<span style='text-align:right;font-size:11px;font-weight:bold;font-style:italic;color:#B64B13;float:right'>&nbsp;({installing} {{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})</span>";
 			
@@ -1224,6 +1229,8 @@ if($_GET["force-groupware"]<>null){	$default_www=null;}
 function FreeWebLeftMenuSave(){
 	$sock=new sockets();
 	$sock->SET_INFO("FreeWebLeftMenu",$_GET["FreeWebLeftMenu"]);
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{success}");
 	
 }
 
@@ -1239,6 +1246,14 @@ function delete(){
 	if(!$q->ok){echo $q->mysql_error;return;}
 	$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
 	if(!$q->ok){echo $q->mysql_error;return;}
+	
+	$q->QUERY_SQL("DELETE FROM nginx_exploits_fw WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
+	$q->QUERY_SQL("DELETE FROM nginx_exploits WHERE servername='$servername'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
+
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
 	
@@ -1591,16 +1606,39 @@ function watchdog_form(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
+	$users=new usersMenus();
 	$FreeWebChangeInit=$sock->GET_INFO("FreeWebChangeInit");
 	if(!is_numeric($FreeWebChangeInit)){$FreeWebChangeInit=0;}
 	$MonitConfig=unserialize(base64_decode($sock->GET_INFO("ApacheWatchdogMonitConfig")));
+	$EnableArticaInNGINX_warn=$tpl->javascript_parse_text("{EnableArticaInNGINX_warn}");
+	$EnableArticaInNGINX_warn2=$tpl->javascript_parse_text("{EnableArticaInNGINX_warn2}");
+	$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
+	$EnableNginx_warn=$tpl->javascript_parse_text("{EnableNginx_warn}");
+	
+	
+	
+	$EnableArticaInNGINX=$sock->GET_INFO("EnableArticaInNGINX");
+	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	if(!is_numeric($EnableArticaInNGINX)){$EnableArticaInNGINX=0;}
+	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
+	if(!is_numeric($ZarafaWebAccessInFrontEnd)){$ZarafaWebAccessInFrontEnd=1;}
+	
+	
 	
 	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!is_numeric($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
+	if(!is_numeric($MonitConfig["watchdogTTL"])){$MonitConfig["watchdogTTL"]=1440;}
+	
+	$ZARAFA_INSTALLED=0;
 	$MONIT_INSTALLED=0;
+	$NgnixInstalled=0;
 	$users=new usersMenus();
 	if($users->MONIT_INSTALLED){$MONIT_INSTALLED=1;}
+	if($users->NGINX_INSTALLED){$NgnixInstalled=1;}
+	if($users->ZARAFA_INSTALLED){$ZARAFA_INSTALLED=1;}
 	
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}	
@@ -1611,6 +1649,27 @@ function watchdog_form(){
 	<div id='$t' style='margin-top:20px'>
 		<table style='width:99%' class=form>
 		<tbody>
+			<tr>
+				<td class=legend style='font-size:14px' nowrap>{ZarafaWebAccessInFrontEnd}:</td>
+				<td>". Field_checkbox("$t-ZarafaWebAccessInFrontEnd", 1,$ZarafaWebAccessInFrontEnd,"ZarafaWebAccessInFrontEnd{$t}()")."</td>
+				<td>&nbsp;</td>
+			</tr>		
+			<tr>
+				<td class=legend style='font-size:14px' nowrap>{EnableNginx}:</td>
+				<td>". Field_checkbox("$t-EnableNginx", 1,$EnableNginx,"EnableNginx{$t}()")."</td>
+				<td>&nbsp;</td>
+			</tr>		
+			<tr>
+				<td class=legend style='font-size:14px' nowrap>{ArticaWebConsoleAsFrontEnd}:</td>
+				<td>". Field_checkbox("$t-EnableArticaInNGINX", 1,$EnableArticaInNGINX,"EnableArticaInNGINX{$t}()")."</td>
+				<td>&nbsp;</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:14px' nowrap>{EnablePHPFPM}:</td>
+				<td>". Field_checkbox("$t-EnablePHPFPM", 1,$EnablePHPFPM,"EnableEnablePHPFPM{$t}()")."</td>
+				<td>&nbsp;</td>
+			</tr>		
+		
 			<tr>
 				<td class=legend style='font-size:14px'>{enable_watchdog}:</td>
 				<td>". Field_checkbox("$t-watchdog", 1,$MonitConfig["watchdog"],"InstanceCheckWatchdog{$t}()")."</td>
@@ -1626,6 +1685,11 @@ function watchdog_form(){
 				<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:14px;width:60px")."&nbsp;MB</td>
 				<td>&nbsp;</td>
 			</tr>
+			<tr>
+				<td class=legend style='font-size:14px'>{restart_each}:</td>
+				<td style='font-size:14px'>". Field_text("$t-watchdogTTL", $MonitConfig["watchdogTTL"],"font-size:14px;width:60px")."&nbsp;{minutes}</td>
+				<td>". help_icon("{restart_each_explain}")."</td>
+			</tr>						
 			<tr>
 				<td class=legend style='font-size:14px'>{change_initd}:</td>
 				<td>". Field_checkbox("$t-FreeWebChangeInit", 1,$FreeWebChangeInit,"FreeWebChangeInit()")."</td>
@@ -1643,12 +1707,93 @@ function watchdog_form(){
 		document.getElementById('$t-watchdog').disabled=true;
 		document.getElementById('$t-watchdogMEM').disabled=true;
 		document.getElementById('$t-watchdogCPU').disabled=true;
+		document.getElementById('$t-watchdogTTL').disabled=true;	
 		if(MONIT_INSTALLED==0){return;}
 		document.getElementById('$t-watchdog').disabled=false;
 		if(!document.getElementById('$t-watchdog').checked){return;}
 		document.getElementById('$t-watchdogMEM').disabled=false;
-		document.getElementById('$t-watchdogCPU').disabled=false;		
+		document.getElementById('$t-watchdogCPU').disabled=false;
+		document.getElementById('$t-watchdogTTL').disabled=false;			
 	
+	}
+	
+	var x_{$t}_SaveInstance= function (obj) {
+			LoadWatchdogConfig();
+		}	
+	
+	function EnableArticaInNGINX{$t}(){
+		var XHR = new XHRConnection();
+		EnableArticaInNGINX=0;
+		if(document.getElementById('$t-EnableArticaInNGINX').checked){EnableArticaInNGINX=1;}
+		XHR.appendData('EnableArticaInNGINX',EnableArticaInNGINX);
+		if(EnableArticaInNGINX==0){
+			if(confirm('$EnableArticaInNGINX_warn')){
+				AnimateDiv('$t');
+				XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
+			}
+		
+		}else{
+			if(confirm('$EnableArticaInNGINX_warn2')){
+				
+				AnimateDiv('$t');
+				XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
+			}
+		
+		}
+		
+	}
+	
+	function ZarafaWebAccessInFrontEnd{$t}(){
+		var XHR = new XHRConnection();
+		ZarafaWebAccessInFrontEnd=0;
+		if(document.getElementById('$t-ZarafaWebAccessInFrontEnd').checked){ZarafaWebAccessInFrontEnd=1;}
+		XHR.appendData('ZarafaWebAccessInFrontEnd',ZarafaWebAccessInFrontEnd);
+		AnimateDiv('$t');
+		XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
+		}
+		
+	function ZarafaWebAccessInFrontEnd{$t}Check(){
+		var ZARAFA_INSTALLED=$ZARAFA_INSTALLED;
+		if(ZARAFA_INSTALLED==0){
+			document.getElementById('$t-ZarafaWebAccessInFrontEnd').disabled=true;
+		}
+	}
+	
+	function EnableNginx{$t}(){
+		var XHR = new XHRConnection();
+		EnableNginx=0;
+		if(document.getElementById('$t-EnableNginx').checked){EnableNginx=1;}
+		XHR.appendData('EnableNginx',EnableNginx);
+		if(EnableNginx==0){
+			if(confirm('$EnableNginx_warn')){
+				XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
+				EnableNginxCheck{$t}
+			}
+			return;
+		}
+		XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
+		EnableNginxCheck{$t}
+	}
+	
+	function EnableEnablePHPFPM{$t}(){
+		var XHR = new XHRConnection();
+		EnablePHPFPM=0;
+		if(document.getElementById('$t-EnablePHPFPM').checked){EnablePHPFPM=1;}
+		XHR.appendData('EnablePHPFPM',EnablePHPFPM);
+		XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
+		
+	}
+	
+	function EnableNginxCheck{$t}(){
+		var NgnixInstalled=$NgnixInstalled;
+		EnableNginx=0;
+		if(NgnixInstalled==0){document.getElementById('$t-EnableNginx').disabled=true;return;}
+		
+		if(document.getElementById('$t-EnableNginx').checked){EnableNginx=1;}
+		document.getElementById('$t-EnableArticaInNGINX').disabled=true;
+		if(EnableNginx==1){
+			document.getElementById('$t-EnableArticaInNGINX').disabled=false;
+		}
 	}
 	
 	
@@ -1662,6 +1807,7 @@ function watchdog_form(){
 		if(document.getElementById('$t-FreeWebChangeInit').checked){XHR.appendData('FreeWebChangeInit',1);}else{XHR.appendData('FreeWebChangeInit',0);}
 		XHR.appendData('watchdogMEM',document.getElementById('$t-watchdogMEM').value);
 		XHR.appendData('watchdogCPU',document.getElementById('$t-watchdogCPU').value);
+		XHR.appendData('watchdogTTL',document.getElementById('$t-watchdogTTL').value);
 		AnimateDiv('$t');
 		XHR.sendAndLoad('$page', 'POST',x_{$t}_SaveInstance);
 	}
@@ -1671,7 +1817,8 @@ function watchdog_form(){
 		if(document.getElementById('$t-FreeWebChangeInit').checked){XHR.appendData('FreeWebChangeInit',1);}else{XHR.appendData('FreeWebChangeInit',0);}
 		XHR.sendAndLoad('$page', 'POST');
 	}
-	
+	EnableNginxCheck{$t}();
+	ZarafaWebAccessInFrontEnd{$t}Check();
 </script>
 
 ";
@@ -1792,8 +1939,28 @@ function FreeWebsScanSize(){
 	$sock->getFrameWork("freeweb.php?ScanSize=yes");
 	echo $success;
 }
+function EnableArticaInNGINX(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableArticaInNGINX",$_POST["EnableArticaInNGINX"]);
+	$sock->getFrameWork("nginx.php?restart=yes");
+}
 
-
+function EnablePHPFPM(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnablePHPFPM",$_POST["EnablePHPFPM"]);
+	$sock->getFrameWork("nginx.php?restart=yes");	
+	$sock->getFrameWork("services.php?restart-phpfpm=yes");
+}
+function EnableNginx(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableNginx",$_POST["EnableNginx"]);
+	$sock->getFrameWork("nginx.php?restart=yes&enable={$_POST["EnableNginx"]}");
+	$sock->getFrameWork("services.php?restart-phpfpm=yes");	
+}
+function ZarafaWebAccessInFrontEnd(){
+	$sock=new sockets();
+	$sock->SET_INFO("ZarafaWebAccessInFrontEnd",$_POST["ZarafaWebAccessInFrontEnd"]);
+}
 
 ?>
 	

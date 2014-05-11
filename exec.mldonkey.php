@@ -300,11 +300,11 @@ $f[]="options_version = 21";
 $f[]="max_comments_per_file = 100";
 $f[]="max_comment_length = 256";
 $f[]="";	
-echo "Starting......: MLDonkey removing backup configuration files\n";
+echo "Starting......: ".date("H:i:s")." MLDonkey removing backup configuration files\n";
 shell_exec('/bin/rm -rf /root/.mldonkey/old_config/*');
 @file_put_contents("/root/.mldonkey/downloads.ini",@implode("\n",$f));
 @file_put_contents("/root/.mldonkey/old_config/downloads.ini",@implode("\n",$f));
-echo "Starting......: MLDonkey success downloads.ini configuration file\n";
+echo "Starting......: ".date("H:i:s")." MLDonkey success downloads.ini configuration file\n";
 //auth admin “”
 }
 

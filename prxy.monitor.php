@@ -696,7 +696,9 @@ $html="
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.cookie.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/fileuploader.js\"></script>  
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/tween-min.js\"></script>
-	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/steelseries-min.js\"></script>	
+	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/steelseries-min.js\"></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  	
     <title>$APP_ARTICA_PRXYLOGS</title>
 </head>
 <body>". $p->YahooBody()."
@@ -918,8 +920,6 @@ function services_status(){
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
@@ -984,29 +984,25 @@ function services_status(){
 		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> $DisableSquidSNMPMode<br>\n";}
 	
-	if($DisableSquidSNMPMode==0){
-		$squid_status=null;
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> squid.php?smp-status=yes<br>\n";}
-		$ini=new Bs_IniHandler();
-		$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
 	
-		while (list ($index, $line) = each ($ini->_params) ){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
-			$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
-				
-		}
+	$squid_status=null;
 	
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
+	
+	while (list ($index, $line) = each ($ini->_params) ){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
+		$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
 	}
 	
 	
 	
+	
+	
 	if($SquidBoosterMem>0){
-		if($DisableSquidSNMPMode==0){
-			if($DisableAnyCache==0){
-				$tr[]=squid_booster_smp();
-			}
+		if($DisableAnyCache==0){
+			$tr[]=squid_booster_smp();
 		}
 	}
 	

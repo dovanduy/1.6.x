@@ -24,7 +24,7 @@ class main_hash_table{
 		if($PostfixLocalDomainToRemote==1){return null;}
 			
 		$ldap=new clladp();
-		if($ldap->ldapFailed){echo "Starting......: Postfix Warning !!! LDAP server is not available !!! ". __FUNCTION__."() in file ". basename(__FILE__)."\n"; return;}
+		if($ldap->ldapFailed){echo "Starting......: ".date("H:i:s")." Postfix Warning !!! LDAP server is not available !!! ". __FUNCTION__."() in file ". basename(__FILE__)."\n"; return;}
 		$filter="(&(objectClass=organizationalUnit)(associatedDomain=*))";
 		$attrs=array("associatedDomain");
 		$dn="$ldap->suffix";
@@ -36,7 +36,7 @@ class main_hash_table{
 			}
 			
 		}
-		echo "Starting......: Postfix ".count($this->mydestination_table)." Local domain(s)\n"; 	
+		echo "Starting......: ".date("H:i:s")." Postfix ".count($this->mydestination_table)." Local domain(s)\n"; 	
 	}
 	
 
@@ -47,7 +47,7 @@ class main_hash_table{
 			shell_exec("{$GLOBALS["postconf"]} -e \"mydestination =hash:/etc/postfix/mydestination\" >/dev/null 2>&1");
 			shell_exec("{$GLOBALS["postconf"]} -e \"virtual_mailbox_domains =\" >/dev/null 2>&1");
 			@file_put_contents("/etc/postfix/mydestination",implode("\n",$this->mydestination_table));
-			echo "Starting......: Postfix compiling mydestination...\n";
+			echo "Starting......: ".date("H:i:s")." Postfix compiling mydestination...\n";
 			shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/mydestination >/dev/null 2>&1");
 	}	
 	

@@ -326,24 +326,6 @@ begin
     end;
      
 
-    GLOBAL_INI.BOA_STOP();
-
-    fetchmail.FETCHMAIL_DAEMON_STOP();
-
-//--------------inadyn stopping ----------------------------------------------------
-    if length(INADYN_PID)>0 then begin
-                  GLOBAL_INI.INADYN_PERFORM_STOP();
-                  while length(trim(GLOBAL_INI.INADYN_PID()))>0 do begin
-                        Sleep(100);
-                        Inc(count);
-                        if count>20 then begin
-                           writeln('Stopping inadyn..............: timout while stop '+GLOBAL_INI.INADYN_PID());
-                           break;
-                        end;
-
-                  end;
-     end;
-//---------------------------------------------------------------------------------------
 
 articastatus:=tarticastatus.Create(SYS);
 articaexecutor:=tarticaexecutor.Create(SYS);
@@ -364,14 +346,8 @@ zarafa_server:=tzarafa_server.Create(SYS);
 zarafa_server.STOP();
 
 
-//DnsMasq
-dnsmasq.DNSMASQ_STOP_DAEMON();
-ldap.LDAP_STOP();
 
 //saslauthd;
-saslauthd:=tsaslauthd.Create(SYS);
-saslauthd.STOP();
-saslauthd.Free;
 GLOBAL_INI.ARTICA_STOP();
 
 end;

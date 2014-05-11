@@ -47,7 +47,7 @@ function reload(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -69,7 +69,7 @@ function restart() {
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -108,11 +108,16 @@ function start($aspid=false){
 	$PowerDNSLogLevel=$sock->GET_INFO("PowerDNSLogLevel");
 	$PowerDNSDNSSEC=$sock->GET_INFO("PowerDNSDNSSEC");
 	$PowerDNSLogsQueries=$sock->GET_INFO("PowerDNSLogsQueries");
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
 	if(!is_numeric($PowerDNSLogLevel)){$PowerDNSLogLevel=0;}
 	if(!is_numeric($PowerDNSDNSSEC)){$PowerDNSDNSSEC=0;}
 	if(!is_numeric($PowerDNSLogsQueries)){$PowerDNSLogsQueries=0;}
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	
+	
+	
 	if(!is_file($Masterbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
 		return;
 	}
 
@@ -121,7 +126,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -129,21 +134,28 @@ function start($aspid=false){
 
 	$pid=PID_NUM();
 
-	if($unix->process_exists($pid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
-		return;
-	}
+
 	
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 	
-	if($EnablePDNS==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnablePDNS)\n";}
+	if($DHCPDEnableCacheDNS==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service turned to cached DNS via dnsMasq\n";}
+		stop(true);
 		return;
 	}
 	
-
+	if($EnablePDNS==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnablePDNS)\n";}
+		stop(true);
+		return;
+	}
+	
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
 		
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -207,12 +219,12 @@ function start($aspid=false){
 	
 	$cmd=@implode(" ", $cmds);
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 	
 	shell_exec($cmd);
 
 	for($i=1;$i<11;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
@@ -220,13 +232,13 @@ function start($aspid=false){
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 		if($PowerDNSDNSSEC==1){shell_exec("$php5 /usr/share/artica-postfix/exec.pdns.php --dnssec");}
 		
 		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 	}
 
 
@@ -239,7 +251,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -249,7 +261,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		return;
 	}
 	$pid=PID_NUM();
@@ -260,32 +272,32 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 
@@ -405,7 +417,7 @@ function build(){
 // PowerSkipCname: Do not perform CNAME indirection for each query
 	
 	if($PdnsNoWriteConf==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}  PdnsNoWriteConf is enabled, skip the config and aborting pdns.conf\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}  PdnsNoWriteConf is enabled, skip the config and aborting pdns.conf\n";}
 		return;
 	}
 	$pdnssec_bin=$unix->find_program("pdnssec");
@@ -433,9 +445,12 @@ function build(){
 	}
 	
 	$LOCAL_ADDRESSES=array();
+	unset($t["127.0.0.1"]);
 	while (list ($a,$b) = each ($t) ){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} listen: $a\n";}
 		$LOCAL_ADDRESSES[]=$a;
-		$cdirlist[]=$a;}	
+		$cdirlist[]=$a;
+	}	
 
 $iplistV6=array();
 $RecursoriplistV6=array();
@@ -472,19 +487,19 @@ $f[]="#allow-recursion=0.0.0.0/0 ";
 $f[]="#allow-recursion-override=on";
 $f[]="cache-ttl=20";
 if($PowerChroot==1){
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} is chrooted\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} is chrooted\n";}
 	$f[]="chroot=./";
 }
 
 	
 if($PowerActHasMaster==1){
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Act has master\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Act has master\n";}
 	$f[]="master=yes";
 }
    
 
 if($PowerActAsSlave==1){
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Act has Slave\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Act has Slave\n";}
 	$f[]="slave=yes";
 }
 	
@@ -501,15 +516,15 @@ if($PowerActAsSlave==1){
 	$f[]="launch=".@implode(",", $launch);
 
 if($PDSNInUfdb==1){
-    @chmod(0777,"/usr/share/artica-postfix/exec.pdns.pipe.php");
+    @chmod("/usr/share/artica-postfix/exec.pdns.pipe.php",0777);
 	$f[]="pipe-command=/usr/share/artica-postfix/exec.pdns.pipe.php";
 	$f[]="pipebackend-abi-version=2";
 	$f[]="distributor-threads=2";
 }
 	
 if($PdnsHotSpot==1){
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} HotSpot engine...\n";}
-   	@chmod(0777,"/usr/share/artica-postfix/exec.pdns.pipe.php");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} HotSpot engine...\n";}
+   	@chmod("/usr/share/artica-postfix/exec.pdns.pipe.php",0777);
 	$f[]="pipe-command=/usr/share/artica-postfix/exec.pdns.pipe.php";
 	$f[]="pipebackend-abi-version=2";
 	$f[]="distributor-threads=2";
@@ -575,7 +590,7 @@ if($PdnsHotSpot==1){
 	
 	
 	if($PowerDNSMySQLType==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} MySQL /var/run/mysqld/mysqld.sock@$database_admin\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} MySQL /var/run/mysqld/mysqld.sock@$database_admin\n";}
 		$G[]="gmysql-socket=/var/run/mysqld/mysqld.sock";
 		$G[]="gmysql-user=$database_admin";
 		if($database_password<>null){$G[]="gmysql-password=$database_password";}
@@ -585,7 +600,7 @@ if($PdnsHotSpot==1){
 	}
 
 	if($PowerDNSMySQLType==2){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} MySQL $PowerDNSMySQLRemoteServer@$PowerDNSMySQLRemoteAdmin\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} MySQL $PowerDNSMySQLRemoteServer@$PowerDNSMySQLRemoteAdmin\n";}
 		$G[]="gmysql-host=$PowerDNSMySQLRemoteServer";
    		$G[]="gmysql-port=$PowerDNSMySQLRemotePort";
 		$G[]="gmysql-user=$PowerDNSMySQLRemoteAdmin";
@@ -603,7 +618,7 @@ if($PdnsHotSpot==1){
    			if(!is_numeric($GreenPort)){$GreenPort=3305;}
    			$mysql_port=$GreenPort;
    		}
-   		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} MySQL $mysql_server:$mysql_port@$database_admin\n";}
+   		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} MySQL $mysql_server:$mysql_port@$database_admin\n";}
    		$G[]="gmysql-host=$mysql_server";
    		$G[]="gmysql-port=$mysql_port";
    		$G[]="gmysql-user=$database_admin";
@@ -630,7 +645,7 @@ if($PdnsHotSpot==1){
 	if(is_file("/etc/pdns/pdns.conf")){@file_put_contents("/etc/pdns/pdns.conf", @implode("\n", $f));}
 	if(is_file("/etc/powerdns/pdns.conf")){@file_put_contents("/etc/powerdns/pdns.conf", @implode("\n", $f));}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} pdns.conf done...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} pdns.conf done...\n";}
 	
 	$f[]=array();
 	if($PowerDNSDisableLDAP==0){
@@ -644,7 +659,7 @@ if($PdnsHotSpot==1){
 	$f[]="recursor=$recursor";
 	$f[]=@implode("\n", $G);
 	@file_put_contents("/etc/powerdns/pdns.d/pdns.local", @implode("\n", $f));	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} pdns.local done...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} pdns.local done...\n";}
 
 	$f=array();
 	$CDIR=$cdirlist;
@@ -670,7 +685,7 @@ if($PdnsHotSpot==1){
 	$f[]="socket-dir=/var/run/pdns";
 	//$f[]="query-local-address6=";
 	@file_put_contents("/etc/powerdns/recursor.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} recursor.conf done...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} recursor.conf done...\n";}
 
 	
 	if($PowerDNSDNSSEC==1){

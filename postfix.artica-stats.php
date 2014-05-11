@@ -21,8 +21,8 @@ js();
 function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$title=$tpl->_ENGINE_parse_body("{rbl_check_artica}");		
-	echo "YahooWin3('700','$page?tabs=yes','$title');";
+	$title=$tpl->_ENGINE_parse_body("{ARTICA_STATS}");		
+	echo "YahooWin3('800','$page?tabs=yes','$title');";
 	
 }
 function tabs(){
@@ -35,18 +35,11 @@ function tabs(){
 	
 
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:16px'><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_artica_smtp_stats style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_artica_smtp_stats\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_artica_smtp_stats");	
 	
 }
 
@@ -81,30 +74,31 @@ function params(){
 	$hoursEX[480]="8 {hours}";	
 	
 	$enable=Paragraphe_switch_img("{ENABLE_ARTICA_SMTP_STATS}","{ARTICA_SMTP_STATS_EXPLAIN}","EnableArticaSMTPStatistics",$EnableArticaSMTPStatistics,null,550);
-	$ArticaSMTPStatsTimeFrame=Field_array_Hash($hoursEX,"ArticaSMTPStatsTimeFrame",$ArticaSMTPStatsTimeFrame,"style:font-size:14px;padding:3px");
+	$ArticaSMTPStatsTimeFrame=Field_array_Hash($hoursEX,"ArticaSMTPStatsTimeFrame",$ArticaSMTPStatsTimeFrame,"style:font-size:16px;padding:3px");
 	$html="
 	<div id='ENABLE_ARTICA_SMTP_STATS'>
 		$enable
-	<div style='width:100%;text-align:right'><hr>". button("{apply}","SaveArticaStatsEngine()")."</div>
+	<div style='width:100%;text-align:right'><hr>". button("{apply}","SaveArticaStatsEngine()",18)."</div>
 	<br>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-		<td class=legend>{ArticaStatusUsleep}:</td>
-		<td style='font-size:14px'>". Field_text("ArticaStatusUsleep",$ArticaStatusUsleep,"width:160px;font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:16px'>{ArticaStatusUsleep}:</td>
+		<td style='font-size:16px'>". Field_text("ArticaStatusUsleep",$ArticaStatusUsleep,"width:160px;font-size:16px;padding:3px")."</td>
 		<td>". help_icon("{ArticaStatusUsleep_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{ArticaSMTPStatsTimeFrame}:</td>
-		<td style='font-size:14px'>$ArticaSMTPStatsTimeFrame</td>
+		<td class=legend style='font-size:16px'>{ArticaSMTPStatsTimeFrame}:</td>
+		<td style='font-size:16px'>$ArticaSMTPStatsTimeFrame</td>
 		<td>". help_icon("{ArticaSMTPStatsTimeFrame_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{ArticaSMTPStatsMaxFiles}:</td>
-		<td style='font-size:14px'>". Field_text("ArticaSMTPStatsMaxFiles",$ArticaSMTPStatsMaxFiles,"width:160px;font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:16px'>{ArticaSMTPStatsMaxFiles}:</td>
+		<td style='font-size:16px'>". Field_text("ArticaSMTPStatsMaxFiles",$ArticaSMTPStatsMaxFiles,"width:160px;font-size:16px;padding:3px")."</td>
 		<td>". help_icon("{ArticaSMTPStatsMaxFiles_explain}")."</td>
 	</tr>	
 	</table>
-	
+	</div>
 	</div>
 	<script>
 	

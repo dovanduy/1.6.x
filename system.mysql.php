@@ -294,8 +294,8 @@ function tabs(){
 		$array["greensql"]='GreenSQL';
 	}
 	
-	if(count($array)>6){$tabsize="style='font-size:12px'";}
-	if(count($array)>7){$tabsize="style='font-size:12px'";}
+	if(count($array)>6){$tabsize="style='font-size:14px'";}
+	if(count($array)>7){$tabsize="style='font-size:14px'";}
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="greensql"){
@@ -333,14 +333,7 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_mysql style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_mysql\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_mysql")."<script>LeftDesign('mysql-white-256-opac20.png');</script>";
 }
 
 function popup(){

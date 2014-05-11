@@ -168,6 +168,15 @@ function build_script(){
 		} 	
 	
 	if($GLOBALS["VERBOSE"]){echo "$q->mysql_server; no pass:$nopass DEST:{$ZarafaBackupParams["DEST"]}\n";}
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	
+	$MYSQL_SOCKET="/var/run/mysqld/mysqld.sock";
+	if($ZarafaDedicateMySQLServer==1){
+		$MYSQL_SOCKET="/var/run/mysqld/zarafa-db.sock";
+		$nopass=1;
+	}
+	
 	
 $f[]="#!/bin/bash";
 $f[]="#";
@@ -175,9 +184,13 @@ $f[]="";
 $f[]="# Modify the variables below to your need";
 $f[]="";
 $f[]="# Mysql Credentials";
+if($ZarafaDedicateMySQLServer==0){
 $f[]="MyUSER=\"$q->mysql_admin\"";
 $f[]="MyPASS=\"$q->mysql_password\"";
 $f[]="MyHOST=\"$q->mysql_server\"";
+}else{
+	$f[]="MyUSER=\"root\"";
+}
 $f[]="NO_PASS=$nopass";
 $f[]="";
 $f[]="# Owner of mysql backup dir";
@@ -197,7 +210,7 @@ $f[]="# Backup Dest directory, change this if you have someother location";
 $f[]="DEST=\"{$ZarafaBackupParams["DEST"]}\"";
 $f[]="";
 $f[]="# mysqldump parameters";
-$f[]="DUMP_OPTS=\"-Q --single-transaction\"";
+$f[]="DUMP_OPTS=\"-Q --single-transaction -S $MYSQL_SOCKET --max-allowed-packet=100M\"";
 $f[]="";
 $f[]="# Send Result EMail";
 $f[]="SEND_EMAIL=0";

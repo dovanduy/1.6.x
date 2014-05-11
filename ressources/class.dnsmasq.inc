@@ -1,6 +1,6 @@
 <?php
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
-
+include_once(dirname(__FILE__)."/class.squid.inc");
 
 class dnsmasq{
 	var $configuration_file_datas;
@@ -10,19 +10,22 @@ class dnsmasq{
 	var $array_listenaddress;
 	var $array_ldap_addresses=array();
 	var $array_mxhost;
-	var $EnableDNSMASQLDAPDB=1;
+	var $EnableDNSMASQLDAPDB=0;
 	var $EnableDNSMASQOCSDB=1;
+	var $DHCPDEnableCacheDNS=0;
 	var $ARTICA_ARRAY=array();
 
-	function dnsmasq(){
+	function dnsmasq($noload=false){
 		include_once(dirname(__FILE__) . '/class.ldap.inc');
 		include_once(dirname(__FILE__).'/class.sockets.inc');
 		$sock=new sockets();
-		$this->EnableDNSMASQLDAPDB=$sock->GET_INFO("EnableDNSMASQLDAPDB");
+		$this->EnableDNSMASQLDAPDB=intval($sock->GET_INFO("EnableDNSMASQLDAPDB"));
 		$this->EnableDNSMASQOCSDB=$sock->GET_INFO("EnableDNSMASQOCSDB");
+		$this->DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
 		
-		if(!is_numeric($this->EnableDNSMASQLDAPDB)){$this->EnableDNSMASQLDAPDB=1;}
+		
 		if(!is_numeric($this->EnableDNSMASQOCSDB)){$this->EnableDNSMASQOCSDB=1;}
+		if(!is_numeric($this->DHCPDEnableCacheDNS)){$this->DHCPDEnableCacheDNS=0;}
 		
 		$this->configuration_file_datas=$sock->GET_INFO("DnsMasqConfigurationFile");
 		if(trim($this->configuration_file_datas)==null){
@@ -33,13 +36,16 @@ class dnsmasq{
 		
 		$this->ARTICA_ARRAY=unserialize(base64_decode($sock->GET_INFO("DNSMasqArticaParams")));
 		
-		$this->ParseConf();
-		$this->ldap_addesses();
-		$this->ParseAddress();
-		$this->ParseListenAddress();
-		$this->ParseInterfaces();
-		$this->Parsemxhost();
-		$this->Mainunset();
+		if(!$noload){
+			$this->ParseConf();
+			$this->cache_dns_hosts();
+			$this->ldap_addesses();
+			$this->ParseAddress();
+			$this->ParseListenAddress();
+			$this->ParseInterfaces();
+			$this->Parsemxhost();
+			$this->Mainunset();
+		}
 	}
 	
 	function ParseConf(){
@@ -86,7 +92,7 @@ class dnsmasq{
 		
 	}
 	
-	function ParseAddress(){
+	public function ParseAddress(){
 		$tpl=explode("\n",$this->configuration_file_datas);
 		if(!is_array($tpl)){return null;}
 		$filter='#^address=/(.+)?/(.+)?#';
@@ -100,7 +106,7 @@ class dnsmasq{
 		
 	}
 	
-	function Parsemxhost(){
+function Parsemxhost(){
 	$tpl=explode("\n",$this->configuration_file_datas);
 		if(!is_array($tpl)){return null;}
 		$filter='#^mx-host=(.+)?#';
@@ -154,7 +160,7 @@ class dnsmasq{
 	}
 
 	
-	function SaveConf(){
+	function SaveConf($OnlyReload=false){
 		$sock=new sockets();
 		$sock->SaveConfigFile(base64_encode(serialize($this->ARTICA_ARRAY)), "DNSMasqArticaParams");
 		
@@ -191,17 +197,20 @@ class dnsmasq{
 		}
 		
 		//LOCAL DOMAINS
-		
-		while (list ($domain, $enabled) = each ($this->ARTICA_ARRAY["LOCALNET"]) ){
-			if($enabled==0){continue;}
-			$conf=$conf . "local=/$domain/\n";
+		if(isset($this->ARTICA_ARRAY["LOCALNET"])){
+			if(is_array($this->ARTICA_ARRAY["LOCALNET"])){
+				while (list ($domain, $enabled) = each ($this->ARTICA_ARRAY["LOCALNET"]) ){
+					if($enabled==0){continue;}
+					$conf=$conf . "local=/$domain/\n";
+				}
+			}
 		}
 		
 			
 		// DNS WPAD 
 		
 		if($GLOBALS["AS_ROOT"]){
-			echo "Starting......: dnsmasq WPAD = {$this->ARTICA_ARRAY["WPAD"]["ENABLE"]}\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} WPAD = {$this->ARTICA_ARRAY["WPAD"]["ENABLE"]}\n";
 		}			
 			
 		if($this->ARTICA_ARRAY["WPAD"]["ENABLE"]==1){
@@ -230,19 +239,39 @@ class dnsmasq{
 		
 		//interfaces ---------------------------------------------------------------
 		if(is_array($this->array_interface)){
+			$nic=new system_nic();
 		while (list ($index, $value) = each ($this->array_interface) ){
 			if($value==null){continue;}
-			$conf=$conf . "interface=$value\n";
+			$value=$nic->NicToOther($value);
+			if(isset($ALDEFINT[$value])){continue;}
+			$ALDEFINT[$value]=true;
+			$conf=$conf . "interface=".$nic->NicToOther($value)."\n";
 			
 		}}		
 		//address ---------------------------------------------------------------
-		if(is_array($this->array_address)){
+		
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} ". count($this->array_address)." addresses\n"; }
+		
+		if(count($this->array_address)>0){
+		reset($this->array_address);
 		while (list ($index, $value) = each ($this->array_address) ){
-			if($value==null){continue;}
-			if($index==null){continue;}
+			if($value==null){
+				if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $index value = NULL invalid!\n";}
+				continue;
+			}
+				
+				
+			if($index==null){
+				if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} index is null\n";}
+				continue;
+			}
+			
 			if(isset($GLOBALS["ARRAY_ADRESSES_DONE"][$index])){continue;}
 			$GLOBALS["ARRAY_ADRESSES_DONE"][$index]=true;
 			$re=explode(".", $value);
+			if(!$this->isHostValid($index)){continue;}
+				
+				
 			$conf=$conf . "address=/$index/$value\n";
 			$conf=$conf . "ptr-record={$re[3]}.{$re[2]}.{$re[1]}.{$re[0]}.in-addr.arpa,\"$index\"\n";
 		}}
@@ -281,9 +310,15 @@ class dnsmasq{
 		if(!$GLOBALS["AS_ROOT"]){
 			
 			$sock->SaveConfigFile($conf."\n","DnsMasqConfigurationFile");
-			$sock->getFrameWork("cmd.php?restart-dnsmasq=yes");
+			if(!$OnlyReload){
+				$sock->getFrameWork("dnsmasq.php?restart=yes");
+			}else{
+				$sock->getFrameWork("dnsmasq.php?reload-hosts=yes");
+				
+			}
 		}else{
-			echo "Starting......: dnsmasq saving `/etc/dnsmasq.conf`\n";
+			unset($GLOBALS["ARRAY_ADRESSES_DONE"]);
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Saving `/etc/dnsmasq.conf` {".__LINE__."}\n";}
 			@file_put_contents("/etc/dnsmasq.conf", $conf."\n");
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/DnsMasqConfigurationFile", $conf."\n");
 			@file_put_contents("/usr/share/artica-postfix/ressources/databases/dnsmasq.conf", $conf."\n");
@@ -294,7 +329,7 @@ class dnsmasq{
 			if(is_file($dnsmasqbin)){
 				$pid=$unix->PIDOF($dnsmasqbin);
 				if(is_numeric($pid)){
-					echo "Starting......: dnsmasq reloading PID:`$pid`\n";
+					echo "Starting......: ".date("H:i:s")." dnsmasq reloading PID:`$pid`\n";
 					$kill=$unix->find_program("kill");
 					shell_exec("$kill -HUP $pid");
 				}
@@ -303,6 +338,29 @@ class dnsmasq{
 		}
 		
 	}
+	
+private function cache_dns_hosts(){
+	include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
+	if(isset($GLOBALS["cache_dns_hosts21"])){return;}
+	$GLOBALS["cache_dns_hosts"]=true;
+	$sock=new sockets();
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM dnsmasq_records";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){return;}
+	while ($ligne = mysql_fetch_assoc($results)) {
+		
+		if(isset($GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["hostname"]])){
+			if($GLOBALS["VERBOSE"]){echo "ocs_addresses:: MYSQL -> {$ligne["name"]} already added...{{$GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["name"]]}}\n";}
+			continue;
+		}
+		
+		$ipaddr=$ligne["ipaddr"];
+		$hostname=$ligne["hostname"];
+		$this->array_address[$hostname]=$ipaddr;
+	}
+	$GLOBALS["cache_dns_hosts21"]=true;
+}	
 	
 	private function ocs_addresses(){
 		include_once(dirname(__FILE__).'/class.mysql.inc');
@@ -314,14 +372,24 @@ class dnsmasq{
 		$results=$q->QUERY_SQL($sql,"ocsweb");
 		if($GLOBALS["VERBOSE"]){if(!$q->ok){echo $q->mysql_error."\n";}}
 		
-		if($GLOBALS["VERBOSE"]){echo "ocs_addresses:: MYSQL -> ".mysql_num_rows($results)." entries\n";}
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: MYSQL -> ".mysql_num_rows($results)." entries\n";}
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				
+				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\.#", $ligne["name"])){
+					if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: MYSQL -> {$ligne["name"]} BAD entry\n";}
+					continue;					
+				}
+			
 				if(isset($GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["name"]])){
-					if($GLOBALS["VERBOSE"]){echo "ocs_addresses:: MYSQL -> {$ligne["name"]} already added...{{$GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["name"]]}}\n";}
+					if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: MYSQL -> {$ligne["name"]} already added...{{$GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["name"]]}}\n";}
 					continue;
 				}
+				
+				
+				if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ocs_addresses:: MYSQL -> {$ligne["name"]}\n";}
+				
+				
 				$GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["name"]]=true;
 				$arecord=$ligne["IPADDRESS"];
 				$hostname=$ligne["name"];
@@ -333,11 +401,33 @@ class dnsmasq{
 			
 		}
 		
+		$q=new mysql_squid_builder();
+		$results=$q->QUERY_SQL("SELECT `hostname`,`ipaddr` FROM dnsmasq_records");
+		
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		
+			if(isset($GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["hostname"]])){
+				if($GLOBALS["VERBOSE"]){echo "ocs_addresses:: MYSQL -> {$ligne["hostname"]} already added...{{$GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["name"]]}}\n";}
+				continue;
+			}
+			$GLOBALS["ARRAY_ADRESSES_DONE"][$ligne["hostname"]]=true;
+			$arecord=$ligne["ipaddr"];
+			$hostname=$ligne["hostname"];
+			$rz=explode(".", $arecord);
+			if($GLOBALS["VERBOSE"]){echo "PTR {$rz[3]}.{$rz[2]}.{$rz[1]}.{$rz[0]}.in-addr.arpa (DNSITEMS)\n";}
+			$reverse["{$rz[3]}.{$rz[2]}.{$rz[1]}.{$rz[0]}.in-addr.arpa"]=$hostname;
+			$f[]="address=/$hostname/$arecord";
+				
+				
+		}		
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "ocs_addresses:: MYSQL -> ".count($f)." entries (". count($reverse)." reverses)\n";}
 		
 		if(isset($reverse)){
 			if(count($reverse)>0){
 				while (list ($a, $b) = each ($reverse) ){
+					if(!$this->isHostValid($b)){continue;}
 					$f[]="ptr-record=$a,\"$b\"";
 				}
 			}
@@ -349,9 +439,15 @@ class dnsmasq{
 		
 	}
 	
+	private function isHostValid($hostname){
+		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $hostname)){return false;}
+		if(strpos($hostname, " ")>0){return false;}
+		if(preg_match("#^\.#", $hostname)){return false;}
+		return true;
+	}
 	
 	
-	private function ldap_addesses(){
+	public function ldap_addesses(){
 
 		
 		
@@ -375,9 +471,8 @@ class dnsmasq{
 			reset($this->array_ldap_addresses);
 			while (list ($hostname, $arecord) = each ($this->array_ldap_addresses) ){
 				$hostname=trim(strtolower($hostname));
-				if(trim($hostname)==null){continue;}
-				if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $hostname)){continue;}
-				if(strpos($hostname, " ")>0){continue;}
+				if(!$this->isHostValid($hostname)){continue;}
+				
 				$f[]="address=/$hostname/$arecord";	
 				$re=explode(".", $arecord);
 				//if($GLOBALS["VERBOSE"]){echo "PTR {$re[3]}.{$re[2]}.{$re[1]}.{$re[0]}.in-addr.arpa (LDAP)\n";}
@@ -390,6 +485,7 @@ class dnsmasq{
 				if(isset($reverse)){
 					if(count($reverse)>0){
 						while (list ($a, $b) = each ($reverse) ){
+							if(!$this->isHostValid($b)){continue;}
 							$f[]="ptr-record=$a,\"$b\"";
 						}
 					}
@@ -431,6 +527,7 @@ class dnsmasq{
 			if(isset($reverse)){
 				if(count($reverse)>0){
 					while (list ($a, $b) = each ($reverse) ){
+						if(!$this->isHostValid($b)){continue;}
 						$f[]="ptr-record=$a,\"$b\"";
 					}
 				}
@@ -451,13 +548,6 @@ class dnsmasq{
 	
 	
 	public function SaveConfToServer(){$this->SaveConf();}
-	
-	
-	
-	
-	
-	
-	
 }
 
 ?>

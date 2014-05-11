@@ -11,7 +11,7 @@
 		die();exit();
 	}
 
-
+	if(isset($_POST["ArticaLogDir"])){ArticaLogDir();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["master"])){master_index();exit;}
 	if(isset($_GET["client"])){client_index();exit;}
@@ -70,14 +70,8 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_syslog style='width:100%;height:570px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_syslog\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_syslog");
+	
 		
 	
 }
@@ -88,6 +82,7 @@ function master_index(){
 	$page=CurrentPageName();
 	
 	$ActAsASyslogServer=$sock->GET_INFO("ActAsASyslogServer");
+	$ArticaLogDir=$sock->GET_INFO("ArticaLogDir");
 	if(!is_numeric($ActAsASyslogServer)){$ActAsASyslogServer=0;}
 	
 	if($ActAsASyslogServer==1){
@@ -102,11 +97,12 @@ function master_index(){
 	$enable=Paragraphe_switch_img("{enable_syslog_server}","{enable_syslog_server_text}","ActAsASyslogServer","$ActAsASyslogServer",null,540);
 	
 	$html="
-	<div id='ActAsASyslogServerDiv' style='width:95%' class=form>
+	<div id='ActAsASyslogServerDiv' style='width:98%' class=form>
 	$enable
 	$enableSMTPStats
 	<div style='text-align:right'>". button("{apply}","ActAsASyslogServerSave()",16)."</div>
-	</div>
+	<hr>
+
 	
 	<script>
 	var SMTPSTATS=0;
@@ -127,11 +123,30 @@ function master_index(){
 		AnimateDiv('ActAsASyslogServerDiv');
 		XHR.sendAndLoad('$page', 'GET',x_ActAsASyslogServerSave);		
 		}
+		
+	var xArticaLogDir= function (obj) {
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue)};
+			RefreshTab('main_config_syslog');
+			
+		}			
+		
+	function ArticaLogDir(){
+		var XHR = new XHRConnection();
+		XHR.appendData('ArticaLogDir',document.getElementById('ArticaLogDir').value);
+		XHR.sendAndLoad('$page', 'GET',xArticaLogDir);		
+		}		
+		
 	</script>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
+}
+
+function ArticaLogDir(){
+	$sock=new sockets();
+	$sock->SET_INFO("ArticaLogDir", $_POST["ArticaLogDir"]);
 }
 
 function client_index(){
@@ -253,7 +268,7 @@ if(is_array($serversList)){
 		
 		
 		
-		if($ActAsASyslogClient<>1){$color="#CCCCCC";}
+		if($ActAsASyslogClient<>1){$color="#8a8a8a";}
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$delete=imgtootltip("delete-32.png","{delete}","SyslogServerDelete('$server')");
 		$html=$html . "

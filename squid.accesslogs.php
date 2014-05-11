@@ -8,13 +8,13 @@
 	include_once('ressources/class.tcpip.inc');
 	
 $usersmenus=new usersMenus();
-if(!$usersmenus->AsSquidAdministrator){
+if(!$usersmenus->AsDansGuardianAdministrator){
 	$tpl=new templates();
 	$alert=$tpl->_ENGINE_parse_body('{ERROR_NO_PRIVS}');
 	echo "alert('$alert');";
 	die();	
 }
-
+if(isset($_GET["tabs-all"])){tabs_all();exit;}
 if(isset($_GET["external"])){external();exit;}
 if(isset($_GET["events-list"])){events_search();exit;}
 if(isset($_GET["container-list"])){container_list();exit;}
@@ -29,6 +29,61 @@ if(isset($_POST["csv-delete"])){csv_delete();exit;}
 if(isset($_POST["empty-store"])){empty_store();exit;}
 page();
 
+function tabs_all(){
+
+
+	$fontsize=16;
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["events-squidaccess"]='{realtime_requests}';
+	$array["today-squidaccess"]='{today}';
+	$array["watchdog"]="{squid_watchdog_mini}";
+	$array["events-squidcache"]='{proxy_service_events}';
+	$array["parameters"]='{log_retention}';
+
+
+	while (list ($num, $ligne) = each ($array) ){
+
+		if($num=="events-squidaccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?popup=yes&url-row=555\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+
+		}
+		
+		if($num=="parameters"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.params.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}
+				
+		
+		if($num=="today-squidaccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.access.today.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}
+
+		if($num=="watchdog"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.watchdog-events.php\">
+			<span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="events-squidcache"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.cachelogs.php\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+
+
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+	}
+
+	echo build_artica_tabs($html, "main_squid_logs_tabs")."<script>LeftDesign('logs-white-256-opac20.png');</script>";
+
+
+}
+
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -38,7 +93,8 @@ function page(){
 	$proto=$tpl->_ENGINE_parse_body("{proto}");
 	$uri=$tpl->_ENGINE_parse_body("{url}");
 	$member=$tpl->_ENGINE_parse_body("{member}");
-	$title=$tpl->_ENGINE_parse_body("{today}: {realtime_requests} ".date("H")."h");
+	if(function_exists("date_default_timezone_get")){$timezone=" - ".date_default_timezone_get();}
+	$title=$tpl->_ENGINE_parse_body("{today}: {realtime_requests} ".date("H")."h$timezone");
 	$zoom=$tpl->_ENGINE_parse_body("{zoom}");
 	$button1="{name: 'Zoom', bclass: 'Search', onpress : ZoomSquidAccessLogs},";
 	$stopRefresh=$tpl->javascript_parse_text("{stop_refresh}");
@@ -66,8 +122,10 @@ function page(){
 	$realsize=$tpl->_ENGINE_parse_body("{realsize}");
 	$delete_file=$tpl->javascript_parse_text("{delete_file}");
 	$rotate_logs=$tpl->javascript_parse_text("{rotate_logs}");
+	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
+	$reload_proxy_service=$tpl->_ENGINE_parse_body("{reload_proxy_service}");
 	$table_size=855;
-	$url_row=555;
+	$url_row=505;
 	$member_row=276;
 	$table_height=420;
 	$distance_width=230;
@@ -106,7 +164,11 @@ function page(){
 	$sitename=$tpl->javascript_parse_text("{sitename}");
 	$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 
-	$html="
+	
+	$buttons[]="{name: '<strong>$reload_proxy_service</stong>', bclass: 'Reload', onpress : ReloadProxy$t},";
+	
+	
+$html="
 	<div style='margin:{$margin}px;margin-left:{$margin_left}px' id='$t-main-form'>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:$tableprc'></table>
 	</div>
@@ -121,13 +183,14 @@ function StartLogsSquidTable$t(){
 		url: '$page?events-list=yes',
 		dataType: 'json',
 		colModel : [
+			{display: '&nbsp;', name : 'filetime', width :16, sortable : true, align: 'left'},
 			{display: '$zdate', name : 'zDate', width :52, sortable : true, align: 'left'},
 			{display: '$uri', name : 'events', width : $url_row, sortable : false, align: 'left'},
 			{display: '$member', name : 'mmeber', width : $member_row, sortable : false, align: 'left'},
 			],
 			
 	buttons : [
-			$button1$button2$button3
+			
 			],
 			
 		
@@ -137,15 +200,16 @@ function StartLogsSquidTable$t(){
 			{display: '$member', name : 'uid'},
 			{display: '$error', name : 'TYPE'},
 			{display: '$ipaddr', name : 'CLIENT'},
+			{display: '$MAC', name : 'MAC'},
 			],
 		sortname: 'zDate',
 		sortorder: 'desc',
 		usepager: true,
-		title: '$title',
+		title: '<span style=\"font-size:16px\">$title</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
-		width: $table_size,
+		width: '99%',
 		height: $table_height,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200]
@@ -153,6 +217,19 @@ function StartLogsSquidTable$t(){
 		});   
 
 }
+
+function OnlyCached$t(){
+	$('#flexRT$t').flexOptions({url: '$page?events-list=yes&cached=1'}).flexReload(); 
+}
+function OnlyAll$t(){
+	$('#flexRT$t').flexOptions({url: '$page?events-list=yes'}).flexReload(); 
+}
+
+function ReloadProxy$t(){
+	Loadjs('squid.reload.progress.php');
+
+}
+
 
 function StartLogsContainer$t(){
 	document.getElementById('$t-main-form').innerHTML='';
@@ -162,6 +239,7 @@ function StartLogsContainer$t(){
 		url: '$page?container-list=yes&t=$t',
 		dataType: 'json',
 		colModel : [
+			
 			{display: '$zdate', name : 'filetime', width :162, sortable : true, align: 'left'},
 			{display: '&nbsp;', name : 'filetime', width :$distance_width, sortable : true, align: 'left'},
 			{display: '$filename', name : 'filename', width :154, sortable : false, align: 'left'},
@@ -214,6 +292,8 @@ function SelectGrid2(com, grid) {
 function ZoomSquidAccessLogs(){
 	s_PopUp('squid.accesslogs.php?external=yes',1024,768);
 }
+
+
 
 function  StartStopRefresh$t(){
 	var ratxt='$stopRefresh';
@@ -282,11 +362,8 @@ setTimeout('StartLogsSquidTable$t()',800);
 $Start;
 	
 </script>
-	
-	
-	";
-	
-	echo $html;
+";
+echo $html;
 	
 }
 
@@ -299,6 +376,10 @@ $page=CurrentPageName();
 $tpl=new templates();
 $sock=new sockets();
 $q=new mysql_squid_builder();
+$sock=new sockets();
+$sock->getFrameWork("squid.php?rttlogs-parse=yes");
+
+
 $GLOBALS["Q"]=$q;
 $table="squidhour_".date("YmdH");	
 	
@@ -328,6 +409,7 @@ $table="squidhour_".date("YmdH");
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show($q->mysql_error);}
+	if(mysql_num_rows($results)==0){json_error_show("no data",2);}
 	
 	$data = array();
 	$data['page'] = $page;
@@ -357,13 +439,15 @@ $table="squidhour_".date("YmdH");
 		$today=date("Y-m-d");
 		$date=str_replace($today, "", $date);
 		$ident[]="<a href=\"javascript:blur()\"
-		OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$ip');\"
+		OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$ip',true);\"
 		style='text-decoration:underline;color:$color'>$ip</a>";
 		$spanON="<span style='color:$color'>";
 		$spanOFF="</span>";
 		$cached_text=null;
-		if($cached==1){$cached_text=" - $cachedT";}
+		
 		$size=FormatBytes($size/1024);
+		
+		if($return_code=="Not Found"){$color="#BA0000";}
 		if($return_code=="Service Unavailable"){$color="#BA0000";}
 		if($return_code=="Bad Gateway"){$color="#BA0000";}
 		$return_code_text="<div style='color:$color;font-size:11px'><i>&laquo;$return_code&raquo;$cached_text - $size</i></div>";
@@ -380,27 +464,39 @@ $table="squidhour_".date("YmdH");
 		if($user<>null){
 			if($tcp->isValid($user)){
 				$ident[]="<a href=\"javascript:blur()\"
-				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$user');\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$user',true);\"
 				style='text-decoration:underline;color:$color'>$user</a>";
 			}else{
 				$ident[]="<a href=\"javascript:blur()\"
-				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&uid=$user');\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&uid=$user',true);\"
 				style='text-decoration:underline;color:$color'>$user</a>";
 			}
 		}
 		
 		if($mac<>null){
 			$ident[]="<a href=\"javascript:blur()\"
-			OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac');\"
+			OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac',true);\"
 			style='text-decoration:underline;color:$color'>$mac</a>";
 		
 		}		
-		
+		$colorDiv=$color;
+		if($colorDiv=="black"){$colorDiv="transparent";}
 		$identities=@implode("&nbsp;|&nbsp;", $ident);
+		if($cached==1){$cached_text=" - $cachedT";$colorDiv="#00B954";}
+		
+		$www=$q->PostedServerToHost($uri);
+		$time=time();
+		$uri=str_replace($www, "<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.website-zoom.php?js=yes&sitename=$www&xtime=$time')\"
+		style='text-decoration:underline;color:$color;font-weight:bold'>$www</a>",$uri);
+		
+		
+		
+		
 				
 		$data['rows'][] = array(
 			'id' => $md,
 			'cell' => array(
+				"<div style='background-color:$colorDiv;margin-top:-5px;margin-left:-5px;margin-right:-5px;margin-bottom:-5px;'>&nbsp;</div>",
 				"$spanON$date$spanOFF",
 				"$spanON$uri.$return_code_text$spanOFF",
 				"$spanON$identities$spanOFF"
@@ -707,7 +803,7 @@ function uncompress_file_check(){
 		
 		$html="<table style='width:99%' class=form>
 		<tr>
-			<td width=1%><img src='img/icon-download.gif'></td>
+			<td width=1%><img src='img/icon-download.png'></td>
 			<td style='font-size:16px'>{download_file}: $link{$ttr[0]}.{$ligne["fileext"]}</a></td>
 			<td width=1%>". imgtootltip("delete-32.png","{delete}","DeleteFile$tt()")."</td>
 		</tr>

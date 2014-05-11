@@ -126,26 +126,11 @@ function tabs(){
 		}
 	
 	
+	echo build_artica_tabs($tab, "main_samba_quicklinks_config")."<script>LeftDesign('filesharing-256-white-opac20.png');</script>";
 	
 
-	$html="
-		<div id='main_samba_quicklinks_config' style='background-color:white;margin-top:10px'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_samba_quicklinks_config').tabs();
-			
-
-			});
-			QuickLinkShow('quicklinks-APP_SAMBA');
-		</script>
 	
-	";	
 	
-	echo $tpl->_ENGINE_parse_body($html);
 	
 }
 

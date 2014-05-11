@@ -47,7 +47,7 @@ function js(){
 	$html="
 	
 	function StartLoadjs$t(){
-			$warn
+		
 			YahooWin3('998','$page?popup=yes&t=$t','$title');
 		
 		}
@@ -70,10 +70,13 @@ function js(){
 	
 	function Procedure3$t(){
 		document.getElementById('title-$t').innerHTML='$please_wait_restarting_network';
-		LoadAjaxError('procedure3-$t','$page?procedure3=yes&t=$t','Procedure3Error$t()');
+		LoadAjax('procedure3-$t','$page?procedure3=yes&t=$t','Procedure3Error$t()');
 	}
 	
 	function finish$t(){
+		if( document.getElementById('title-$t') ){
+			document.getElementById('title-$t').innerHTML='';
+		}
 		if(document.getElementById('table-$t')){
 			$('#table-$t').flexReload();
 		}

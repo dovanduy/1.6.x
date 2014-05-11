@@ -1003,7 +1003,7 @@ l.add('iputils-arping');
 l.add('vde2');
 l.add('libmodule-build-perl');
 l.Add('librrds-perl');
-
+l.add('dnsmasq');
 l.Add('libwww-perl');
 
 l.Add('libio-stringy-perl');
@@ -1031,7 +1031,7 @@ l.Add('libnss-ldap');
 l.Add('libpam-ldap');
 l.Add('ldap-utils');
 if not LIGHT_INSTALL then l.add('resolvconf');
-if not LIGHT_INSTALL then L.add('ipband');
+
 
 
 l.Add('sasl2-bin');
@@ -1152,6 +1152,7 @@ l.Add('krb5-clients');
 l.Add('krb5-config');
 l.Add('krb5-user');
 l.Add('krb5-kdc');
+l.Add('conntrack');
 l.Add('krb5-admin-server');
 l.add('libfuse-dev');
 l.add('dsniff');
@@ -1297,7 +1298,7 @@ if not LIGHT_INSTALL then L.add('sysstat');
 if not LIGHT_INSTALL then l.add('libboost-filesystem1.35.0');
 if not LIGHT_INSTALL then l.add('libboost-system1.35.0');
 if not LIGHT_INSTALL then l.add('libicu38');
-      l.add('libreadline5-dev');
+      l.add('libreadline-gplv2-dev');
 
 
      if FileExists('/sbin/udevsettle')  then begin
@@ -1480,7 +1481,7 @@ if distri.DISTRINAME_CODE='UBUNTU' then begin
 
   l.add('libcurl4-openssl-dev');
   l.add('libsnmp-dev');
-  l.add('language-pack-nl'); // Zarafa
+
 
 
    if UbuntuIntVer=8 then begin
@@ -1596,7 +1597,7 @@ l.Add('lsof');
 
 
 // Hamachi (  /usr/lib/lsb/install_initd )
-l.Add('lsb-core');
+
 
 
 

@@ -34,7 +34,7 @@ function applyAcls(){
 	
 	$count=mysql_num_rows($results);
 	system_admin_events("INFO,acls $count items",__FUNCTION__, __FILE__, __LINE__, "acls");
-	echo "Starting......: acls $count items\n";
+	echo "Starting......: ".date("H:i:s")." acls $count items\n";
 	if($count==0){return;}
 	
 
@@ -62,7 +62,7 @@ function ApplySingleAcls_cmdline($md5){
 
 function ApplySingleAcls($directory){
 		if($directory=="/tmp"){
-			echo "Starting......: acls $directory is denied\n";
+			echo "Starting......: ".date("H:i:s")." acls $directory is denied\n";
 			return;
 		}
 		$unix=new unix();	
@@ -77,7 +77,7 @@ function ApplySingleAcls($directory){
 		
 		if(!is_dir($directory)){
 			system_admin_events("INFO,acls $directory no such directory delete it from database",__FUNCTION__, __FILE__, __LINE__, "acls");
-			echo "Starting......: acls $directory no such directory\n";
+			echo "Starting......: ".date("H:i:s")." acls $directory no such directory\n";
 			$q->QUERY_SQL("DELETE FROM acl_directories WHERE `directory`='$directory'");
 			if(!$q->ok){
 				system_admin_events("Fatal,$q->mysql_error",__FUNCTION__, __FILE__, __LINE__, "acls");
@@ -87,7 +87,7 @@ function ApplySingleAcls($directory){
 		
 		$acls=new aclsdirs($directory);
 		
-		echo "Starting......: acls \"$dir\" directory\n";
+		echo "Starting......: ".date("H:i:s")." acls \"$dir\" directory\n";
 		
 		if(!is_numeric($acls->chmod_octal)){$events[]="octal is not a numeric value...";}
 		if(is_numeric($acls->chmod_octal)){

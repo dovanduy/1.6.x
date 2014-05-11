@@ -179,6 +179,7 @@ function SearchComputers(){
 	$q=new mysql();	
 	$sock=new sockets();
 	$fontsize="14px";
+	$cs=0;
 	$page=1;
 	if(!$q->DATABASE_EXISTS("ocsweb")){$sock->getFrameWork("services.php?mysql-ocs=yes");}
 	if(!$q->TABLE_EXISTS("hardware", "ocsweb")){$sock->getFrameWork("services.php?mysql-ocs=yes");}
@@ -246,7 +247,7 @@ function SearchComputers(){
 	
 	$data = array();
 	$data['page'] = $page;
-	$data['total'] = $total;
+	$data['total'] = 0;
 	$data['rows'] = array();	
 	
 	$computer=new computers();
@@ -377,9 +378,13 @@ function SearchComputers(){
 		
 	}
 	
-		$data['total'] = $cs;
-		echo json_encode($data);
-		return;	
+	
+	if($cs==0){
+		json_error_show("no item");
+	}
+	$data['total'] = $cs;
+	echo json_encode($data);
+	return;	
 
 	$html=$html."</tbody></table>
 	'

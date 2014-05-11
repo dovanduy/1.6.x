@@ -104,14 +104,15 @@ while (list ($num, $line) = each ($content)){
 function WriteGnuPlot($processname,$array){
 	
 	
-
+$unix=new unix();
+$tempdir=$unix->TEMP_DIR();
    $processname_path=str_replace(".","-",$processname);
    $processname_path=str_replace(" ","-",$processname_path);
    $processname_path=strtolower($processname_path);
    $countlines=count($array);	
-   $shellpath="/tmp/gnuplot.".md5($processname).".plot";
+   $shellpath="$tempdir/gnuplot.".md5($processname).".plot";
    $imagepath="/usr/share/artica-postfix/ressources/logs/dstat.topmem.$countlines.$processname_path.png";
-   $datafile="/tmp/gnuplot.".md5($processname).".datas";
+   $datafile="$tempdir/gnuplot.".md5($processname).".datas";
    
  
    

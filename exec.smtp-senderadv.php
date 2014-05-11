@@ -1437,7 +1437,6 @@ function sendtestmail($from,$to){
 	}
 $body[]="Return-Path: <$from>";
 $body[]="X-Original-To: $to";
-$body[]="Delivered-To: $to";
 $body[]="Date: ". date("D, d M Y H:i:s"). " +0100 (CET)";
 $body[]="From: $from (Test sender)";
 $body[]="Subject: Test mail ".date("D, d M Y H:i:s");

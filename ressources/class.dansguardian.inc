@@ -630,6 +630,7 @@ class dansguardian_rules{
 									
 									"blog"=>"{blog}",
 									"news"=>"{www_news}",
+									"press"=>"{www_news}",
 									"society"=>"{www_society}",
 									"books"=>"{www_books}",
 									"manga"=>"{www_mangua}",
@@ -1090,8 +1091,21 @@ class dansguardian_rules{
 		
 	}
 	
+	private function get_cachedItems($function){
+		$filename="/usr/share/artica-postfix/ressources/logs/web/$function.cache";
+		if(is_file($filename)){return @file_get_contents($filename);}
+	
+	}	
+	
+	private function set_cachedItems($function,$data=null){
+		$filename="/usr/share/artica-postfix/ressources/logs/web/$function.cache";
+		@file_put_contents($filename, $data);
+	}
+	
 	function LoadBlackListes($nocache=false){
-		if(isset($_SESSION["CATZ"][__CLASS__.".".__FUNCTION__])){return $_SESSION["CATZ"][__CLASS__.".".__FUNCTION__];}
+		$data=$this->get_cachedItems(__FUNCTION__);
+		if($data<>null){return unserialize($data);}
+		
 		include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 		$q=new mysql_squid_builder();
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$this->CategoriesTableCache();}
@@ -1110,7 +1124,7 @@ class dansguardian_rules{
 			if($ligne["categorykey"]=="teans"){$ligne["categorykey"]="teens";}
 			$array[$ligne["categorykey"]]=$ligne["description"];
 		}
-		$_SESSION["CATZ"][__CLASS__.".".__FUNCTION__]=$array;
+		$this->set_cachedItems(__FUNCTION__,serialize($array));
 		return $array;
 	}
 	
@@ -1121,7 +1135,8 @@ class dansguardian_rules{
 	
 	
 	function LoadBlackListesGroups(){
-		if(isset($_SESSION["CATZ"][__CLASS__.".".__FUNCTION__])){return $_SESSION["CATZ"][__CLASS__.".".__FUNCTION__];}
+		$data=$this->get_cachedItems(__FUNCTION__);
+		if($data<>null){return unserialize($data);}
 		include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 		$q=new mysql_squid_builder();
 		if($q->COUNT_ROWS("webfilters_categories_caches")==0){$this->CategoriesTableCache();}
@@ -1139,7 +1154,7 @@ class dansguardian_rules{
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$array[$ligne["master_category"]]=$ligne["master_category"];
 		}
-		$_SESSION["CATZ"][__CLASS__.".".__FUNCTION__]=$array;
+		$this->set_cachedItems(__FUNCTION__,serialize($array));
 		return $array;
 	}	
 	

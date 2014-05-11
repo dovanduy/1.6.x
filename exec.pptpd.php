@@ -63,8 +63,8 @@ function build(){
 	$conf[]="remoteip {$PPTPDConfig["SERVER_IP_FROM"]}-{$re[4]}";
 	$conf[]="localip {$PPTPDConfig["SERVER_IP"]}";
 	$conf[]="";
-	echo "Starting......: PPTP VPN connexion name \"{$PPTPDConfig["SERVER_NAME"]}\"\n";
-	echo "Starting......: PPTP VPN {$PPTPDConfig["SERVER_IP"]} <- {$PPTPDConfig["SERVER_IP_FROM"]}-{$re[4]}/{$PPTPDConfig["NETMASK"]}\n";
+	echo "Starting......: ".date("H:i:s")." PPTP VPN connexion name \"{$PPTPDConfig["SERVER_NAME"]}\"\n";
+	echo "Starting......: ".date("H:i:s")." PPTP VPN {$PPTPDConfig["SERVER_IP"]} <- {$PPTPDConfig["SERVER_IP_FROM"]}-{$re[4]}/{$PPTPDConfig["NETMASK"]}\n";
 	@file_put_contents("/etc/pptpd.conf",@implode($conf,"\n"));
 	unset($conf);
 	
@@ -160,7 +160,7 @@ function chapsecrets(){
 		}
 	}	
 	events("WRITING:: PPTP VPN ". count($f). " user(s)",__FUNCTION__,__FILE__,__LINE__);
-	echo "Starting......: PPTP VPN ". count($f). " user(s)\n";
+	echo "Starting......: ".date("H:i:s")." PPTP VPN ". count($f). " user(s)\n";
 	$f[]="";
 	@file_put_contents($file,@implode($f,"\n"));
 	
@@ -184,7 +184,7 @@ function clients_connexions(){
 	$chap=explode("\n",@file_get_contents("/etc/ppp/chap-secrets"));
 	while (list ($connexionname, $PPTPDConfig) = each ($array) ){
 		if($PPTPDConfig["ENABLED"]<>1){continue;}
-		echo "Starting......: PPTP VPN Client connection $connexionname\n";
+		echo "Starting......: ".date("H:i:s")." PPTP VPN Client connection $connexionname\n";
 		$chap[]="{$PPTPDConfig["username"]}\t\"{$PPTPDConfig["username"]}\t{$PPTPDConfig["password"]}\t\*";
 		$peers[]="# PPTP Tunnel configuration for tunnel $connexionname";
 		$peers[]="# Server IP: {$PPTPDConfig["vpn_servername"]}";
@@ -489,17 +489,17 @@ function client_start_connexion($connexionname,$server){
 	$pptp=$unix->find_program("pptp");
 	$nohup=$unix->find_program("nohup");
 	if(!is_file($pptp)){
-		echo "Starting......: PPTP VPN Client pptp no such file\n";
+		echo "Starting......: ".date("H:i:s")." PPTP VPN Client pptp no such file\n";
 		return null;
 	}	
 	$arrayPIDS=client_is_active($connexionname);
 	if(is_array($arrayPIDS)){
 		events("$connexionname already executed PIDs ". @implode(", ",$arrayPIDS)."",__FUNCTION__,__FILE__,__LINE__);
-		echo "Starting......: PPTP VPN connection $connexionname already executed PIDs ". @implode(", ",$arrayPIDS)."\n";
+		echo "Starting......: ".date("H:i:s")." PPTP VPN connection $connexionname already executed PIDs ". @implode(", ",$arrayPIDS)."\n";
 		return;
 	}
 	
-	echo "Starting......: PPTP VPN Client connection $connexionname@$server\n";
+	echo "Starting......: ".date("H:i:s")." PPTP VPN Client connection $connexionname@$server\n";
 	$cmd="$nohup $pptp $server call $connexionname >/dev/null 2>&1 &";
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." ->$cmd\n";}
 	shell_exec($cmd);
@@ -514,11 +514,11 @@ function client_start_connexion($connexionname,$server){
 	
 	
 	if(is_array($arrayPIDS)){
-		echo "Starting......: PPTP VPN connection $connexionname successfully started PIDs ". @implode(", ",$arrayPIDS)."\n";
+		echo "Starting......: ".date("H:i:s")." PPTP VPN connection $connexionname successfully started PIDs ". @implode(", ",$arrayPIDS)."\n";
 		return;
 	}
 
-	echo "Starting......: PPTP VPN connection $connexionname failed\n";
+	echo "Starting......: ".date("H:i:s")." PPTP VPN connection $connexionname failed\n";
 	
 }
 

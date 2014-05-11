@@ -9,6 +9,7 @@ include_once(dirname(__FILE__). "/ressources/smtp/smtp.php");
 include_once(dirname(__FILE__).'/ressources/class.mime.parser.inc');
 include_once(dirname(__FILE__).'/ressources/class.rfc822.addresses.inc');
 $GLOBALS["OUTPUT"]=false;
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;}
 if(preg_match("#--verbose#",implode(" ",$argv))){
@@ -59,6 +60,8 @@ function work(){
 	//return;
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
+	$pidTime="/etc/artica-postfix/".basename(__FILE__).".time";
+	if($GLOBALS["VERBOSE"]){echo "PidFile = $pidfile\n";}
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
@@ -66,8 +69,17 @@ function work(){
 		die();
 	}
 
+	$TimeExec=$unix->file_time_min($pidTime);
+	if($TimeExec<4){return;}
+	
+	if(!is_dir("/var/spool/mail-rtt-backup")){return;}
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	
 	$pid=getmypid();
 	file_put_contents($pidfile,$pid);
+	
+	
 	$countDeFiles=0;
 	$t=time();
 	if (!$handle = opendir("/var/spool/mail-rtt-backup")) {@mkdir("/var/spool/mail-rtt-backup",0755,true);die();}
@@ -103,7 +115,7 @@ function events($text,$line=0){
 		$function=$trace[1]["function"];
 		if($line==0){$line=$trace[1]["line"];}
 		$date=date('Y-m-d H:i:s');
-		$logFile="/var/log/artica-postfix/artica-mailarchive.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/artica-mailarchive.debug";
 		$me=basename(__FILE__);
 		if($me==null){$me=basename($trace[1]["file"]);}
 		
@@ -645,7 +657,7 @@ function DeleteLine($msgid){
 }
 
 function DeleteMysqlError(){
-foreach (glob("/var/log/artica-postfix/mysql-error.*.err") as $filename) {if(file_time_min($filename)>5){@unlink($filename);}}
+foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/mysql-error.*.err") as $filename) {if(file_time_min($filename)>5){@unlink($filename);}}
 }
 
 function ScanSize(){
@@ -703,7 +715,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -712,11 +724,11 @@ function stop($aspid=false){
 	$pid=mailarchive_pid();
 	if(!$unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Mail Archiver already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver already stopped...\n";}
 		return;
 	}
 	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Mail Archiver pid $pid (run since {$time}Mn)...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver pid $pid (run since {$time}Mn)...\n";}
 	$kill=$unix->find_program("kill");
 	shell_exec("$kill $pid");
 	
@@ -724,7 +736,7 @@ function stop($aspid=false){
 		
 		$pid=mailarchive_pid();
 		if(!$unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Mail Archiver (Perl method) stopped...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) stopped...\n";}
 			break;
 		}
 		sleep(1);
@@ -732,31 +744,50 @@ function stop($aspid=false){
 	}
 	$pid=mailarchive_pid();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Mail Archiver (Perl method) success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) success...\n";}
 		@unlink("/var/run/maildump/maildump.socket");
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Mail Archiver (Perl method) failed to stop..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) failed to stop..\n";}
 	}	
 	
 }
 
 function CheckPerlDebian(){
-	
-	if(is_file("/usr/share/perl5/Sendmail/PMilter.pm")){return;}
-	if(is_file("/usr/share/perl6/Sendmail/PMilter.pm")){return;}
+
 	$unix=new unix();
 	$aptget=$unix->find_program("apt-get");
-	if(is_file($aptget)){
-		if($GLOBALS["VERBOSE"]){echo "Installing python-lxml\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver please wait, installing libsendmail-pmilter-perl...\n";}
-		exec("DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -fuy install libsendmail-pmilter-perl 2>&1",$results);
+	if(!is_file($aptget)){return;}
+	
+	$mhonarc=$unix->find_program("mhonarc");
+	
+	if(!is_file($mhonarc)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Installing mhonarc\n";}
+		exec("DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -fuy install mhonarc 2>&1",$results);
 		while (list ($num, $ligne) = each ($results) ){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $ligne\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: mhonarc: $ligne\n";}
 		}
 		
-		$run=true;
+	}
 	
-	}	
+	$f["Sendmail::PMilter"]="libsendmail-pmilter-perl";
+	$f["Unix::Syslog"]="libunix-syslog-perl";
+	$f["Mail::IMAPClient"]="libmail-imapclient-perl";
+	
+	
+	
+	while (list ($PERL_MODULE, $aptmodule) = each ($f) ){
+		if($unix->CHECK_PERL_MODULE($PERL_MODULE)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver $PERL_MODULE [OK]\n";}
+			continue;
+		}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver installing $PERL_MODULE\n";}
+		$results=array();
+		exec("DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -fuy install $aptmodule 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $PERL_MODULE: $ligne\n";}
+		}
+	}
+
 }
 
 
@@ -769,7 +800,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -786,36 +817,43 @@ function start($aspid=false){
 	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
 	if(!is_numeric($MailArchiverToMySQL)){$MailArchiverToMySQL=1;}
 	if(!is_numeric($MailArchiverUsePerl)){$MailArchiverUsePerl=1;}
-
+	if($GLOBALS["VERBOSE"]){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: VERBOSE MODE\n";}
+	}
 	
 	if($MailArchiverEnabled==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver is disabled...\n";}
 		return;
 	}	
 	if($MailArchiverUsePerl==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver (Perl method) is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) is disabled...\n";}
 		return;
 	}
 	
 	$pid=mailarchive_pid();
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver (Perl method) already running pid $pid since {$time}mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) already running pid $pid since {$time}mn...\n";}
 		return;
 	}
 
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver (Perl method)...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method)...\n";}
 	
 	$usersMenus=new usersMenus();
 	$OS=$usersMenus->LinuxDistriCode;
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver (Perl method) on $OS...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) on $OS...\n";}
 	if(($OS=="DEBIAN") OR ($OS=="UBUNTU")){
 		CheckPerlDebian();
 	}
 	
 	
+	$mhonarc=$unix->find_program("mhonarc");
 	
+	if(!is_file($mhonarc)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) failed mhonarc not such binary !!!\n";}
+		return;
+	}
 	
 	
 	$nohup=$unix->find_program("nohup");
@@ -827,21 +865,33 @@ function start($aspid=false){
 	
 	for($i=0;$i<5;$i++){
 		sleep(1);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) waiting $i/5...\n";}
 		$pid=mailarchive_pid();
 		if($unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver (Perl method) running pid $pid...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) Success running with pid $pid...\n";}
 			break;
 		}
-		
 	}
 	
 	
 	$pid=mailarchive_pid();
 	if($unix->process_exists($pid)){
-		@chmod("/var/run/maildump/maildump.socket", 0777);
+		for($i=0;$i<5;$i++){
+			if($unix->is_socket("/var/run/maildump/maildump.socket")){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver permission on maildump.socket done\n";}
+				@chmod("/var/run/maildump/maildump.socket", 0777);
+				break;
+			}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver waiting socket $i/5...\n";}
+			sleep(1);
+		}
+		
+		$unix->THREAD_COMMAND_SET("/etc/init.d/artica-status restart --force");
+		
+		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Mail Archiver (Perl method) failed..\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Mail Archiver (Perl method) failed to start..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	}
 
 }

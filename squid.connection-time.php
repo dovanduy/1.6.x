@@ -652,7 +652,7 @@ function timerules_list(){
 		$text=$tpl->_ENGINE_parse_body("{from} {$TimeSpace["BEGINH"]}:{$TimeSpace["BEGINM"]} {to} {$TimeSpace["ENDH"]}:{$TimeSpace["ENDM"]} (".@implode(", ", $f).")");
 		$delete=imgtootltip("delete-24.png","{delete} {$ligne['ID']}","TimeRuleDansDelete('{$ligne['ID']}')");
 		$picture="arrow-down-32.png";
-		if($ligne["Allow"]==0){$picture="stop-32.png";}
+		if($ligne["Allow"]==0){$picture="32-stop.png";}
 
 		
 	$data['rows'][] = array(

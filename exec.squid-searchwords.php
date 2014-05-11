@@ -332,37 +332,47 @@ function UserSizeRTT_oldfiles(){
 	
 }
 
+function hour_SearchWordTEMP(){
+	$prefix=date("YmdH");
+	$unix=new unix();
+	$CurrentTableDay="searchwordsD_".date("Ymd");
+	$q=new mysql_squid_builder();
+	if(!$q->TABLE_EXISTS($CurrentTableDay)){
+		if($GLOBALS["VERBOSE"]){echo "$CurrentTableDay, no such table\n";}
+		return;}
+		$sql="SELECT `words` FROM $CurrentTableDay GROUP BY `words`";
+		$results=$q->QUERY_SQL($sql);
+		$SourceTable=mysql_num_rows($results);
+		$currentdate=date("Y-m-d");
+		$q->QUERY_SQL("UPDATE tables_day SET SearchWordTEMP=$SourceTable WHERE `zDate`='$currentdate'");
+		ufdbguard_admin_events("$SourceTable searched words",__FUNCTION__,__FILE__,__LINE__,"stats");
+}
+
 function searchwords_hour($aspid=false){
 	if(isset($GLOBALS["searchwords_hour_executed"])){return true;}
 	$GLOBALS["searchwords_hour_executed"]=true;
 	$unix=new unix();
 	$GLOBALS["Q"]=new mysql_squid_builder();
 	
-	if(!$GLOBALS["FORCE"]){
-		if(systemMaxOverloaded()){
-			ufdbguard_admin_events("VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}) aborting function",__FUNCTION__,__FILE__,__LINE__,"stats");
-			return;
-		}
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "PidTime: $pidtime\n";}
 	
-		$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		$myfile=basename(__FILE__);
-			if($unix->process_exists($oldpid,$myfile)){
-				ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
-			return;
-		}
-		
-		$timeP=$unix->file_time_min($pidtime);
-		if($timeP<30){
-			events("Main::Line: ".__LINE__." 30Mn minimal current: {$timeP}mn-> DIE - $pidtime");
-			die();
-		}	
-		
-		@unlink($pidtime);
-		@file_put_contents($pidtime, time());
-		@file_put_contents($pidfile, getmypid());
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+	$myfile=basename(__FILE__);
+	if($unix->process_exists($oldpid,$myfile)){
+		ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+		return;
 	}
+		
+	$timeP=$unix->file_time_min($pidtime);
+	if($timeP<30){ events("Main::Line: ".__LINE__." 30Mn minimal current: {$timeP}mn-> DIE - $pidtime"); die(); }	
+		
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
+	@file_put_contents($pidfile, getmypid());
+	
 	
 	$currenttable="searchwords_".date("YmdH");
 	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
@@ -379,6 +389,7 @@ function searchwords_hour($aspid=false){
 			$GLOBALS["Q"]->QUERY_SQL("DROP TABLE $tablename");
 		}
 	}
+	hour_SearchWordTEMP();
 }
 
 function searchwords_hour_to_day($sourcetable){
@@ -446,7 +457,7 @@ function events($text){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		//if($GLOBALS["VERBOSE"]){echo "$text\n";}
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/auth-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}

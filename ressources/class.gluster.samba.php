@@ -20,15 +20,15 @@ class gluster_samba{
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		$CountDeDir=mysql_num_rows($results);
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: Gluster Daemon $CountDeDir clustered directories from MySQL database\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Gluster Daemon $CountDeDir clustered directories from MySQL database\n";}
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($ligne["cluster_path"]==null){continue;}
 			if(!is_dir($ligne["cluster_path"])){
-				if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: Gluster Daemon creating new directory {$ligne["cluster_path"]}\n";}
+				if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Gluster Daemon creating new directory {$ligne["cluster_path"]}\n";}
 				@mkdir($ligne["cluster_path"],0755,true);
 				if(!is_dir($ligne["cluster_path"])){
-					if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: Gluster Daemon creating new directory {$ligne["cluster_path"]} permission denied\n";}
+					if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Gluster Daemon creating new directory {$ligne["cluster_path"]} permission denied\n";}
 					continue;
 				}
 			}
@@ -49,12 +49,12 @@ class gluster_samba{
 	
 	private function BuildVolumes(){
 		if(!is_array($this->CLUSTERED_DIRECTORIES)){
-			if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: Gluster Daemon CLUSTERED_DIRECTORIES is not an array (failed)\n";}
+			if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Gluster Daemon CLUSTERED_DIRECTORIES is not an array (failed)\n";}
 			
 			return null;}
 		
 		reset($this->CLUSTERED_DIRECTORIES);
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: Gluster Daemon ". count($this->CLUSTERED_DIRECTORIES)." clustered directories\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Gluster Daemon ". count($this->CLUSTERED_DIRECTORIES)." clustered directories\n";}
 		
 		while (list ($index, $path) = each ($this->CLUSTERED_DIRECTORIES) ){
 			$f[]="volume posix-$index";
@@ -310,7 +310,7 @@ class gluster_client{
 			$f[]="";
 			@mkdir("/etc/artica-cluster/glusterfs-client",null,true);
 			@file_put_contents("/etc/artica-cluster/glusterfs-client/$path_count.vol",@implode("\n",$f));
-			echo "Starting......: Gluster clients $path_count.vol configuration done..\n";
+			echo "Starting......: ".date("H:i:s")." Gluster clients $path_count.vol configuration done..\n";
 			unset($f);
 			
 		}
@@ -376,7 +376,7 @@ class gluster_client{
 		exec("$mount -t glusterfs $volfile $path",$results);
 		while (list ($index, $line) = each ($results) ){
 			if(trim($line)==null){continue;}
-			echo "Starting......: Gluster clients $line\n";
+			echo "Starting......: ".date("H:i:s")." Gluster clients $line\n";
 		}
 	}
 	

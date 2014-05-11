@@ -55,15 +55,15 @@ class group_office{
 		
 		if(!$q->DATABASE_EXISTS($this->database)){
 			writelogs("[$this->servername] DATABASE DOES NOT EXISTS Create e new one",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			echo "Starting......: Apache \"$this->servername\" create database $this->database\n";
+			echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" create database $this->database\n";
 			$q->CREATE_DATABASE($this->database,true);
 			
 		}else{
-			echo "Starting......: Apache \"$this->servername\" create $this->database OK\n";
+			echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" create $this->database OK\n";
 		}
 		
 		if(!$q->DATABASE_EXISTS($this->database)){
-			echo "Starting......: Apache \"$this->servername\" create database $this->database FAILED\n";
+			echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" create database $this->database FAILED\n";
 		}
 		
 		if(!$this->testtables()){
@@ -72,7 +72,7 @@ class group_office{
 				$cmd="$mysql -u $q->mysql_admin -p\"$q->mysql_password\" --batch --database=$this->database < $this->www_dir/install/sql/groupoffice.sql";
 				writelogs("[$this->servername] \"$this->servername\" Creating tables....",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				writelogs("[$this->servername] $cmd",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				echo "Starting......: Apache $cmd\n";
+				echo "Starting......: ".date("H:i:s")." Apache $cmd\n";
 				
 				exec($cmd,$talesexec);
 				while (list ($num,  ) = each ($talesexec)){
@@ -273,7 +273,7 @@ class group_office{
 			
 			$GO_USERS = new GO_USERS();
 			$user['id'] = $GO_USERS->nextid("go_users");
-			echo "Starting......: Apache \"$this->servername\" userid \"{$user['id']}\"\n";
+			echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" userid \"{$user['id']}\"\n";
 			
 			
 			$GO_GROUPS = new GO_GROUPS();
@@ -293,7 +293,7 @@ class group_office{
 				$available_modules=array();
 				foreach($module_folders as $folder){
 					if(!file_exists($folder['path'].'/install/noautoinstall')){
-						echo "Starting......: Apache \"$this->servername\" checking module {$folder['name']}\n";
+						echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" checking module {$folder['name']}\n";
 						$available_modules[]=$folder['name'];
 					}
 				}
@@ -302,7 +302,7 @@ class group_office{
 
 				for($i=0;$i<count($priority_modules);$i++){
 					if(in_array($priority_modules[$i], $available_modules)){
-						echo "Starting......: Apache \"$this->servername\" add module \"{$priority_modules[$i]}\" [".$i."/".count($priority_modules)."]\n";
+						echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" add module \"{$priority_modules[$i]}\" [".$i."/".count($priority_modules)."]\n";
 						$GO_MODULES->add_module($priority_modules[$i]);
 					}
 				}
@@ -320,11 +320,11 @@ class group_office{
 						//if($available_modules[$i]=="bookmarks"){continue;}
 						//if($available_modules[$i]=="links"){continue;}
 						*/
-						echo "Starting......: Apache \"$this->servername\" add module \"{$available_modules[$i]}\" [".$i."/".count($available_modules)."]\n";
+						echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" add module \"{$available_modules[$i]}\" [".$i."/".count($available_modules)."]\n";
 						try {
 							$GO_MODULES->add_module($available_modules[$i]);	
 						} catch (Exception $e) {
-							echo "Starting......: Apache \"$this->servername\" failed adding \"{$available_modules[$i]}\" module\n";
+							echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" failed adding \"{$available_modules[$i]}\" module\n";
 						}
 						
 					}
@@ -332,7 +332,7 @@ class group_office{
 				
 				writelogs("Adding LDAPAUTH Module GO_MODULES->add_module('ldapauth')",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				$GO_MODULES->add_module('ldapauth');
-				echo "Starting......: Apache \"$this->servername\" save_setting upgrade_mtime\n";
+				echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" save_setting upgrade_mtime\n";
 				
 				$GO_CONFIG->save_setting('upgrade_mtime', $GO_CONFIG->mtime);
 				
@@ -351,7 +351,7 @@ class group_office{
 				}
 				
 				$GO_USERS->nextid('go_users');
-				writelogs("Starting......: Apache \"$this->servername\" adding \"$uid\" language {$GO_LANGUAGE->language} user $mail",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Starting......: ".date("H:i:s")." Apache \"$this->servername\" adding \"$uid\" language {$GO_LANGUAGE->language} user $mail",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				
 				$user['id']=1;
 				$user['language'] = $GO_LANGUAGE->language;
@@ -369,7 +369,7 @@ class group_office{
 				//$GO_USERS->debug=true;
 				
 				$GO_USERS->add_user($user,array(1,2,3),array($GO_CONFIG->group_everyone));
-				writelogs("Starting......: Apache installtion of group office success",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				writelogs("Starting......: ".date("H:i:s")." Apache installtion of group office success",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		
 	}
 	
@@ -404,7 +404,7 @@ class group_office{
 			while (list ($index, $yable) = each ($tables) ){
 
 				if(!$q->TABLE_EXISTS($yable, $this->database,true)){
-					echo "Starting......: Apache \"$this->servername\" create $yable no such table\n";
+					echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" create $yable no such table\n";
 					return false;
 				}
 			}

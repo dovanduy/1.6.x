@@ -47,6 +47,8 @@ function page(){
 
 	if(!isset($UfdbguardSMTPNotifs["ENABLED"])){$UfdbguardSMTPNotifs["ENABLED"]=0;}
 	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED"])){$UfdbguardSMTPNotifs["ENABLED"]=0;}	
+	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	
 	
 	if(!isset($UfdbguardSMTPNotifs["smtp_server_name"])){$UfdbguardSMTPNotifs["smtp_server_name"]=$ini->_params["SMTP"]["smtp_server_name"];}
@@ -65,7 +67,7 @@ $html="
 	<div class=explain style='font-size:14px'>{smtp_ufdbguard_notifications_text}</div>
 	<div id='notif1-$t'></div>
 
-	<table style='width:99%' class=form>
+	<table style='width:99%' class=form id='main-form-$t'>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_enabled}:</strong></td>
 		<td>" . Field_checkbox("ENABLED",1,$UfdbguardSMTPNotifs["ENABLED"],"SMTPNotifArticaEnableSwitch$t()")."</td>
@@ -103,7 +105,7 @@ $html="
 		<td>" . Field_checkbox("ssl_enabled",1,$UfdbguardSMTPNotifs["ssl_enabled"])."</td>
 	</tr>					
 	<tr>
-		<td align='right' colspan=2>".button('{apply}',"javascript:SaveArticaSMTPNotifValues$t();",16)."</td>
+		<td align='right' colspan=2>".button('{apply}',"SaveArticaSMTPNotifValues$t();",16)."</td>
 	</tr>
 
 	</tr>
@@ -117,6 +119,8 @@ $html="
 	}
 
 	function SaveArticaSMTPNotifValues$t(){
+		var UseRemoteUfdbguardService=$UseRemoteUfdbguardService;
+		if(UseRemoteUfdbguardService==1){return;}
 		var XHR = new XHRConnection();
 		var pp=encodeURIComponent(document.getElementById('smtp_auth_passwd-$t').value);
 		if(document.getElementById('ENABLED').checked){XHR.appendData('ENABLED',1);}else {XHR.appendData('ENABLED',0);}
@@ -154,7 +158,11 @@ $html="
 		document.getElementById('smtp_server_port').disabled=false;
 		document.getElementById('smtp_server_name').disabled=false;
 		document.getElementById('tls_enabled').disabled=false;
-		document.getElementById('ssl_enabled').disabled=false;			
+		document.getElementById('ssl_enabled').disabled=false;	
+		var UseRemoteUfdbguardService=$UseRemoteUfdbguardService;
+		if(UseRemoteUfdbguardService==1){
+			DisableFieldsFromId('main-form-$t');	
+		}		
 		
 	}
 	SMTPNotifArticaEnableSwitch$t();

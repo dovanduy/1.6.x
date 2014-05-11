@@ -52,7 +52,7 @@ function cachesave_popup(){
 	$text=$tpl->_ENGINE_parse_body("{please_wait_preparing_settings}...");
 
 	$html="
-	<div id='progress-$t'></div>
+	<div id='progress-$t' style='height:50px'></div>
 	<center id='step$t-0' style='font-size:16px'>$text</center>
 	<center id='step$t-1' style='font-size:16px'></center>
 	<script>
@@ -142,6 +142,9 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUID}::{restart_all_services}");
 	@unlink(dirname(__FILE__)."/ressources/logs/web/squid.status.html");
+	@unlink(dirname(__FILE__)."/ressources/logs/web/squid_stores_status.html");
+	@unlink(dirname(__FILE__)."/ressources/logs/web/admin.index.status.html");
+	
 	$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
 	if($_GET["ask"]=="yes"){
 		$warn="if(!confirm('$compile_squid_ask')){return;}";
@@ -192,6 +195,7 @@ function js(){
 		Loadjs('$page?logs=yes&t=$t&setTimeout={$_GET["setTimeout"]}');
 		if(document.getElementById('IMAGE_STATUS_INFO')){
 			Loadjs('admin.tabs.php?refresh-status-js=yes&nocache=yes');
+			
 		}
 	}
 		
@@ -204,14 +208,18 @@ function js(){
 function popup(){
 	$page=CurrentPageName();
 	$t=$_GET["t"];
+	$tpl=new templates();
+	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.restart.progress";
+	@unlink($cachefile);
 	$title="{PLEASE_WAIT_RESTARTING_ALL_SERVICES}";
 	if(isset($_GET["onlySquid"])){
+		$title="{please_wait}, {restarting_proxy_service}";
 		$onlySquid="&onlySquid=yes";
 	}	
 	
 	if(isset($_GET["onlyreload"])){
 		$onlySquid="&onlyreload=yes";
-		$title="{PLEASE_WAIT_RELOADING_SERVICE}";
+		$title="{please_wait_reloading_service}";
 	}
 
 	if(isset($_GET["CheckCaches"])){
@@ -227,17 +235,20 @@ function popup(){
 		$onlySquid="&firewall=yes";
 		$title="{please_wait}, {reconfigure_transparent_rules}";
 	}	
-	
+	$title=$tpl->_ENGINE_parse_body($title);
 	$html="
-	<center style='font-size:16px;margin:10px'><div id='title-$t'>$title</div></center>
-	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:97%;height:450px;overflow:auto' id='squid-restart'>
+	<input type='hidden' id='stop-$t' value='0'>
+	<center ><div id='title-$t' style='font-size:28px;margin:10px;margin-bottom:20px'>$title</div></center>
+	<div id='progress-$t' style='height:50px'></div>
+	<div style='margin:5px;padding:3px;border:1px solid #CCCCCC;width:97%;min-height:450px;' id='squid-restart'>
 	</div>
 	
 	<script>
+		$('#progress-$t').progressbar({ value: 5 });
 		LoadAjax('squid-restart','$page?start=yes$onlySquid&t=$t$ApplyConfToo');
 	</script>
 	";
-	$tpl=new templates();
+	
 	echo $tpl->_ENGINE_parse_body($html);
 	
 }
@@ -259,14 +270,14 @@ function restart(){
 	}	
 	
 	
-	$cmd="cmd.php?force-restart-squid=yes";
+	$cmd="cmd.php?force-restart-squid=yes$ApplyConfToo";
 	if(isset($_GET["onlySquid"])){
 		$ApplyConfToo="&ApplyConfToo=yes";
 		$cmd="cmd.php?force-restart-squidonly=yes$ApplyConfToo&force=yes";
 	}
 	
 	if(isset($_GET["onlyreload"])){
-		$cmd="squid.php?squid-k-reconfigure=yes&force=yes";
+		$cmd="squid.php?squid-k-reconfigure=yes&force=yes$ApplyConfToo";
 		
 	}
 	
@@ -290,9 +301,7 @@ function restart(){
 	$sock->getFrameWork($cmd);
 	
 	echo "
-	<center id='animate-$t'>
-				<img src=\"img/wait_verybig.gif\">
-	</center>
+	<center id='animate-$t'></center>
 	<textarea style='margin-top:5px;font-family:Courier New;
 	font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
 	overflow:auto;font-size:11px' id='textToParseCats-$t'></textarea>
@@ -305,17 +314,41 @@ function restart(){
 
 function Filllogs(){
 	$datas=explode("\n",@file_get_contents("ressources/logs/web/restart.squid"));
+	$t=$_POST["t"];
+	
 	krsort($datas);
 	echo @implode("\n", $datas);
 }
 
 function logs(){
 	$page=CurrentPageName();
+	$tpl=new templates();
 	$t=$_GET["t"];
 	$tt=time();
 	$datas=@file_get_contents("ressources/logs/web/restart.squid");
+	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.restart.progress";
+	$array=unserialize(@file_get_contents($cachefile));
+	header("content-type: application/x-javascript");
+	
+	$pourc=intval($array["POURC"]);
+	$text=$tpl->javascript_parse_text($array["TEXT"]);
+	if($text==null){$text=$tpl->javascript_parse_text("{please_wait}...");}
+	if($pourc>0){
+		echo "$('#progress-$t').progressbar({ value: $pourc });";
+		if($text<>null){
+			echo "
+			if(	document.getElementById('title-$t') ){	
+				document.getElementById('title-$t').innerHTML='$text';
+			}";
+		}
+	}
+	
 	if(strlen($datas)<10){
-		echo "Loadjs('$page?logs=yes&t=$t');";
+		
+		echo "
+		if(document.getElementById('textToParseCats-$t')){
+			Loadjs('$page?logs=yes&t=$t');
+		}";
 		return;
 	}
 	$strlenOrg=$_GET["strlen"];
@@ -331,7 +364,10 @@ function logs(){
 				
 			function Refresh$tt(){
 				if(!YahooWin3Open()){return;}
+				if(document.getElementById('stop-$t').value==1){return;}
 				Loadjs('$page?logs=yes&t=$t&strlen=$strlen&setTimeout={$_GET["setTimeout"]}');
+				LayersTabsAllAfter();
+				
 			
 			}
 		
@@ -340,9 +376,7 @@ function logs(){
 				var res=obj.responseText;
 				if (res.length>3){
 					document.getElementById('textToParseCats-$t').value=res;
-						if(document.getElementById('squid-services')){
-							LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes');
-						}
+					LayersTabsAllAfter();	
 					
 					}
 					
@@ -352,11 +386,12 @@ function logs(){
 		
 			function Fill$tt(){
 				if(!YahooWin3Open()){return;}
-				document.getElementById('title-$t').innerHTML='';
 				document.getElementById('animate-$t').innerHTML='';
 				var XHR = new XHRConnection();
 		   	 	XHR.appendData('Filllogs', 'yes');
-			    XHR.sendAndLoad('$page', 'POST',x_Fill$tt); 
+		   	 	XHR.appendData('t', '$t');
+		   	 	XHR.setLockOff();
+			    XHR.sendAndLoad('$page', 'POST',x_Fill$tt,false); 
 				setTimeout(\"Refresh$tt()\",5000);
 			}
 				

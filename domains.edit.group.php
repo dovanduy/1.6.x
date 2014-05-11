@@ -817,7 +817,7 @@ function GROUP_DEFAULT_PASSWORD(){
 	<div id='GROUP_DEFAULT_PASSWORD'>
 	<p class=caption>{group_default_password_text}</p>
 	<input type='hidden' id='error_passwords_mismatch' value='{error_passwords_mismatch}'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
 		<td class=legend>{password}:</span></td>	
@@ -1142,7 +1142,7 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	
 	$html_tab1="
 	
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 	<td valign='top'>$PRIVILEGES</td>
@@ -1156,7 +1156,7 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	</tr>
 	</table></div>";
 	
-	$html_tab2="<div style='width:95%' class=form>	<table>
+	$html_tab2="<div style='width:98%' class=form>	<table>
 	<tr>
 	<td valign='top'>&nbsp;</td>
 	<td valign='top'>&nbsp;</td>
@@ -1169,7 +1169,7 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	</tr>
 	</table></div>";
 	
-	$html_tab3="<div style='width:95%' class=form>	
+	$html_tab3="<div style='width:98%' class=form>	
 	<table>
 		<tr>
 			<td valign='top'>$DANSGUARDIAN</td>
@@ -1193,7 +1193,7 @@ function GROUP_SETTINGS_PAGE_CONTENT(){
 	
 	
 	
-	$html_tab4="<div style='width:95%' class=form><table>". CompileTr3($t)."</table></div>";
+	$html_tab4="<div style='width:98%' class=form><table>". CompileTr3($t)."</table></div>";
 	
 	
 	if($_GET["tab"]=='asav'){$html_tab1=$html_tab2;}
@@ -1341,7 +1341,7 @@ $html="
 	<table style='width:100%'>
 		<td valign='top'><table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table></td>
 	<td valign='top' width=5%>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 		<table>
 			<tr>
 				<td>$add_member</td>
@@ -1637,7 +1637,7 @@ $sr =@ldap_search($ldap->ldap_connection,$ldap->suffix,"(gidnumber=$gid)",array(
 function MEMBERS_SELL($uid,$number=null){
 	if($uid==null){return "&nbsp;";}
 	$computer_img="base.gif";
-	$user_img="user-single-18.gif";
+	$user_img="user-18.png";
 	$tpl=new templates();
 	$view_member=$tpl->_ENGINE_parse_body('{view_member}');
 	$show=MEMBER_JS($uid);
@@ -2228,40 +2228,40 @@ function GROUP_PRIVILEGES($gid){
     	
     	
     	if($priv->AllowAddUsers==false){
-    		$AllowAddUsers="<img src='img/status_critical.gif'>".Field_hidden('AllowAddUsers',$HashPrivieleges["AllowAddUsers"]);
-    		$AsDansGuardianGroupRule="<img src='img/status_critical.gif'>".Field_hidden('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
-    		$AsMessagingOrg="<img src='img/status_critical.gif'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);
-    		$AsOrgAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);
-    		$AsJoomlaWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);
-    		$AsVirtualBoxManager="<img src='img/status_critical.gif'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
-    		$AsComplexPassword="<img src='img/status_critical.gif'>".Field_hidden('AsComplexPassword',$HashPrivieleges["AsComplexPassword"]);
-    		$RestrictNabToGroups="<img src='img/status_critical.gif'>".Field_hidden('RestrictNabToGroups',$HashPrivieleges["RestrictNabToGroups"]);
-    		$AsWebFilterRepository="<img src='img/status_critical.gif'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
-    		$AsWebStatisticsAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
+    		$AllowAddUsers="<img src='img/status_critical.png'>".Field_hidden('AllowAddUsers',$HashPrivieleges["AllowAddUsers"]);
+    		$AsDansGuardianGroupRule="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
+    		$AsMessagingOrg="<img src='img/status_critical.png'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);
+    		$AsOrgAdmin="<img src='img/status_critical.png'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);
+    		$AsJoomlaWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);
+    		$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
+    		$AsComplexPassword="<img src='img/status_critical.png'>".Field_hidden('AsComplexPassword',$HashPrivieleges["AsComplexPassword"]);
+    		$RestrictNabToGroups="<img src='img/status_critical.png'>".Field_hidden('RestrictNabToGroups',$HashPrivieleges["RestrictNabToGroups"]);
+    		$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
+    		$AsWebStatisticsAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
     	}
     	if($priv->AsArticaAdministrator==false){
-    		$AsArticaAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsArticaAdministrator',$HashPrivieleges["AsArticaAdministrator"]);
-    		$AsSambaAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsSambaAdministrator',$HashPrivieleges["AsSambaAdministrator"]);
-    		$AsDnsAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsDnsAdministrator',$HashPrivieleges["AsDnsAdministrator"]);
-    		$AsQuarantineAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsQuarantineAdministrator',$HashPrivieleges["AsQuarantineAdministrator"]);
-    		$AsOrgStorageAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);
-    		$AsOrgPostfixAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);
-    		$AsDansGuardianGroupRule="<img src='img/status_critical.gif'>".Field_hidden('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
-    		$AsMessagingOrg="<img src='img/status_critical.gif'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);
-    		$AsOrgAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);
-    		$AsInventoryAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);
-    		$AsVirtualBoxManager="<img src='img/status_critical.gif'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
-			$OverWriteRestrictedDomains="<img src='img/status_critical.gif'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);
-			$AsDansGuardianAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
-    		$AsWebFilterRepository="<img src='img/status_critical.gif'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
-    		$AsWebStatisticsAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
-			$AsPostfixAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);
-			$AsSquidAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);
-			$AsMailBoxAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);
-			$AllowViewStatistics="<img src='img/status_critical.gif'>".Field_hidden('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
-    		$AllowEditOuSecurity="<img src='img/status_critical.gif'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
-    		$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
-    		$ASDCHPAdmin="<img src='img/status_critical.gif'>".Field_hidden('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);
+    		$AsArticaAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsArticaAdministrator',$HashPrivieleges["AsArticaAdministrator"]);
+    		$AsSambaAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsSambaAdministrator',$HashPrivieleges["AsSambaAdministrator"]);
+    		$AsDnsAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsDnsAdministrator',$HashPrivieleges["AsDnsAdministrator"]);
+    		$AsQuarantineAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsQuarantineAdministrator',$HashPrivieleges["AsQuarantineAdministrator"]);
+    		$AsOrgStorageAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);
+    		$AsOrgPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);
+    		$AsDansGuardianGroupRule="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
+    		$AsMessagingOrg="<img src='img/status_critical.png'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);
+    		$AsOrgAdmin="<img src='img/status_critical.png'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);
+    		$AsInventoryAdmin="<img src='img/status_critical.png'>".Field_hidden('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);
+    		$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
+			$OverWriteRestrictedDomains="<img src='img/status_critical.png'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);
+			$AsDansGuardianAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
+    		$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
+    		$AsWebStatisticsAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);
+			$AsPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);
+			$AsSquidAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);
+			$AsMailBoxAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);
+			$AllowViewStatistics="<img src='img/status_critical.png'>".Field_hidden('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);
+    		$AllowEditOuSecurity="<img src='img/status_critical.png'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);
+    		$AsHotSpotManager="<img src='img/status_critical.png'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);
+    		$ASDCHPAdmin="<img src='img/status_critical.png'>".Field_hidden('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);
     		
 			
     		
@@ -2269,11 +2269,11 @@ function GROUP_PRIVILEGES($gid){
 		
 		if(!$priv->AsOrgAdmin){
 			
-			$AsWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsWebMaster',$HashPrivieleges["AsWebMaster"]);
+			$AsWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsWebMaster',$HashPrivieleges["AsWebMaster"]);
 		}
 		
 		if(!$priv->AsProxyMonitor){
-			$AsProxyMonitor="<img src='img/status_critical.gif'>".Field_hidden('AsProxyMonitor',$HashPrivieleges["AsProxyMonitor"]);
+			$AsProxyMonitor="<img src='img/status_critical.png'>".Field_hidden('AsProxyMonitor',$HashPrivieleges["AsProxyMonitor"]);
 			
 		}
 		
@@ -2282,51 +2282,51 @@ function GROUP_PRIVILEGES($gid){
     		
     		
     	if($priv->AllowAddGroup==false){
-    		$AllowAddGroup="<img src='img/status_critical.gif'>".Field_hidden('AllowAddGroup',$HashPrivieleges["AllowAddGroup"]);
-    		$AsDansGuardianGroupRule="<img src='img/status_critical.gif'>".Field_hidden('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
-    		$AsMessagingOrg="<img src='img/status_critical.gif'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);
-    		$AsOrgAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);
-    		$AsInventoryAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);
-    		$AsJoomlaWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);
-    		$AsVirtualBoxManager="<img src='img/status_critical.gif'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
-    		$AsDansGuardianAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
-    		$AsWebFilterRepository="<img src='img/status_critical.gif'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
+    		$AllowAddGroup="<img src='img/status_critical.png'>".Field_hidden('AllowAddGroup',$HashPrivieleges["AllowAddGroup"]);
+    		$AsDansGuardianGroupRule="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianGroupRule',$HashPrivieleges["AsDansGuardianGroupRule"]);
+    		$AsMessagingOrg="<img src='img/status_critical.png'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);
+    		$AsOrgAdmin="<img src='img/status_critical.png'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);
+    		$AsInventoryAdmin="<img src='img/status_critical.png'>".Field_hidden('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);
+    		$AsJoomlaWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);
+    		$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);
+    		$AsDansGuardianAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);
+    		$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);
     		
     	
     	}
-    	if($priv->AllowChangeDomains==false){$AllowChangeDomains="<img src='img/status_critical.gif'>".Field_hidden('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);}
-    	if($priv->AsSystemAdministrator==false){$AsSystemAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsSystemAdministrator',$HashPrivieleges["AsSystemAdministrator"]);}
-    	if($priv->AsDnsAdministrator==false){$AsDnsAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsDnsAdministrator',$HashPrivieleges["AsDnsAdministrator"]);}
-    	if($priv->AsQuarantineAdministrator==false){$AsQuarantineAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsQuarantineAdministrator',$HashPrivieleges["AsQuarantineAdministrator"]);}
-		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
-		if($priv->AsOrgPostfixAdministrator==false){$AsOrgPostfixAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);}
-		if($priv->AsMessagingOrg==false){$AsMessagingOrg="<img src='img/status_critical.gif'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);}
-		if($priv->AsOrgAdmin==false){$AsOrgAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);}
-		if($priv->AsInventoryAdmin==false){$AsInventoryAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);}
-		if($priv->AsJoomlaWebMaster==false){$AsJoomlaWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);}
-		if($priv->AsVirtualBoxManager==false){$AsVirtualBoxManager="<img src='img/status_critical.gif'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);}
-		if($priv->AsDansGuardianAdministrator==false){$AsVirtualBoxManager="<img src='img/status_critical.gif'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);}
-		if($priv->AsWebFilterRepository==false){$AsWebFilterRepository="<img src='img/status_critical.gif'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);}
-		if($priv->AsWebStatisticsAdministrator==false){$AsWebStatisticsAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);}
-		if($priv->AllowUserMaillog==false){$AllowUserMaillog="<img src='img/status_critical.gif'>".Field_hidden('AllowUserMaillog',$HashPrivieleges["AllowUserMaillog"]);}
-		if($priv->AllowEditOuSecurity==false){$AllowEditOuSecurity="<img src='img/status_critical.gif'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);}
-		if($priv->AsMailManAdministrator==false){$AsMailManAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsMailManAdministrator',$HashPrivieleges["AsMailManAdministrator"]);}
-		if($priv->AsPostfixAdministrator==false){$AsPostfixAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);}
-		if($priv->AsSquidAdministrator==false){$AsSquidAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);}
-		if($priv->AsMailBoxAdministrator==false){$AsMailBoxAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);}
-		if($priv->AllowViewStatistics==false){$AllowViewStatistics="<img src='img/status_critical.gif'>".Field_hidden('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);}
-		if($priv->AllowEditOuSecurity==false){$AllowEditOuSecurity="<img src='img/status_critical.gif'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);}
-		if($priv->AsWebMaster==false){$AsWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsWebMaster',$HashPrivieleges["AsWebMaster"]);}
-		if($priv->AsSystemWebMaster==false){$AsSystemWebMaster="<img src='img/status_critical.gif'>".Field_hidden('AsSystemWebMaster',$HashPrivieleges["AsSystemWebMaster"]);}
+    	if($priv->AllowChangeDomains==false){$AllowChangeDomains="<img src='img/status_critical.png'>".Field_hidden('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);}
+    	if($priv->AsSystemAdministrator==false){$AsSystemAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsSystemAdministrator',$HashPrivieleges["AsSystemAdministrator"]);}
+    	if($priv->AsDnsAdministrator==false){$AsDnsAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsDnsAdministrator',$HashPrivieleges["AsDnsAdministrator"]);}
+    	if($priv->AsQuarantineAdministrator==false){$AsQuarantineAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsQuarantineAdministrator',$HashPrivieleges["AsQuarantineAdministrator"]);}
+		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
+		if($priv->AsOrgPostfixAdministrator==false){$AsOrgPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);}
+		if($priv->AsMessagingOrg==false){$AsMessagingOrg="<img src='img/status_critical.png'>".Field_hidden('AsMessagingOrg',$HashPrivieleges["AsMessagingOrg"]);}
+		if($priv->AsOrgAdmin==false){$AsOrgAdmin="<img src='img/status_critical.png'>".Field_hidden('AsOrgAdmin',$HashPrivieleges["AsOrgAdmin"]);}
+		if($priv->AsInventoryAdmin==false){$AsInventoryAdmin="<img src='img/status_critical.png'>".Field_hidden('AsInventoryAdmin',$HashPrivieleges["AsInventoryAdmin"]);}
+		if($priv->AsJoomlaWebMaster==false){$AsJoomlaWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsJoomlaWebMaster',$HashPrivieleges["AsJoomlaWebMaster"]);}
+		if($priv->AsVirtualBoxManager==false){$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsVirtualBoxManager',$HashPrivieleges["AsVirtualBoxManager"]);}
+		if($priv->AsDansGuardianAdministrator==false){$AsVirtualBoxManager="<img src='img/status_critical.png'>".Field_hidden('AsDansGuardianAdministrator',$HashPrivieleges["AsDansGuardianAdministrator"]);}
+		if($priv->AsWebFilterRepository==false){$AsWebFilterRepository="<img src='img/status_critical.png'>".Field_hidden('AsWebFilterRepository',$HashPrivieleges["AsWebFilterRepository"]);}
+		if($priv->AsWebStatisticsAdministrator==false){$AsWebStatisticsAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsWebStatisticsAdministrator',$HashPrivieleges["AsWebStatisticsAdministrator"]);}
+		if($priv->AllowUserMaillog==false){$AllowUserMaillog="<img src='img/status_critical.png'>".Field_hidden('AllowUserMaillog',$HashPrivieleges["AllowUserMaillog"]);}
+		if($priv->AllowEditOuSecurity==false){$AllowEditOuSecurity="<img src='img/status_critical.png'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);}
+		if($priv->AsMailManAdministrator==false){$AsMailManAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsMailManAdministrator',$HashPrivieleges["AsMailManAdministrator"]);}
+		if($priv->AsPostfixAdministrator==false){$AsPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsPostfixAdministrator',$HashPrivieleges["AsPostfixAdministrator"]);}
+		if($priv->AsSquidAdministrator==false){$AsSquidAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsSquidAdministrator',$HashPrivieleges["AsSquidAdministrator"]);}
+		if($priv->AsMailBoxAdministrator==false){$AsMailBoxAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsMailBoxAdministrator',$HashPrivieleges["AsMailBoxAdministrator"]);}
+		if($priv->AllowViewStatistics==false){$AllowViewStatistics="<img src='img/status_critical.png'>".Field_hidden('AllowViewStatistics',$HashPrivieleges["AllowViewStatistics"]);}
+		if($priv->AllowEditOuSecurity==false){$AllowEditOuSecurity="<img src='img/status_critical.png'>".Field_hidden('AllowEditOuSecurity',$HashPrivieleges["AllowEditOuSecurity"]);}
+		if($priv->AsWebMaster==false){$AsWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsWebMaster',$HashPrivieleges["AsWebMaster"]);}
+		if($priv->AsSystemWebMaster==false){$AsSystemWebMaster="<img src='img/status_critical.png'>".Field_hidden('AsSystemWebMaster',$HashPrivieleges["AsSystemWebMaster"]);}
 		
 		
-		if($priv->AllowChangeDomains==false){$AllowChangeDomains="<img src='img/status_critical.gif'>".Field_hidden('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);}
-		if($priv->AsOrgPostfixAdministrator==false){$AsOrgPostfixAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);}
-		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.gif'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
-		if($priv->OverWriteRestrictedDomains==false){$OverWriteRestrictedDomains="<img src='img/status_critical.gif'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);}
-		if($priv->AsHotSpotManager==false){$AsHotSpotManager="<img src='img/status_critical.gif'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);}
-		if($priv->AsOrgDNSAdmin==false){$AsOrgDNSAdmin="<img src='img/status_critical.gif'>".Field_hidden('AsOrgDNSAdmin',$HashPrivieleges["AsOrgDNSAdmin"]);}
-		if($priv->ASDCHPAdmin==false){$ASDCHPAdmin="<img src='img/status_critical.gif'>".Field_hidden('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);}
+		if($priv->AllowChangeDomains==false){$AllowChangeDomains="<img src='img/status_critical.png'>".Field_hidden('AllowChangeDomains',$HashPrivieleges["AllowChangeDomains"]);}
+		if($priv->AsOrgPostfixAdministrator==false){$AsOrgPostfixAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgPostfixAdministrator',$HashPrivieleges["AsOrgPostfixAdministrator"]);}
+		if($priv->AsOrgStorageAdministrator==false){$AsOrgStorageAdministrator="<img src='img/status_critical.png'>".Field_hidden('AsOrgStorageAdministrator',$HashPrivieleges["AsOrgStorageAdministrator"]);}
+		if($priv->OverWriteRestrictedDomains==false){$OverWriteRestrictedDomains="<img src='img/status_critical.png'>".Field_hidden('OverWriteRestrictedDomains',$HashPrivieleges["OverWriteRestrictedDomains"]);}
+		if($priv->AsHotSpotManager==false){$AsHotSpotManager="<img src='img/status_critical.png'>".Field_hidden('AsHotSpotManager',$HashPrivieleges["AsHotSpotManager"]);}
+		if($priv->AsOrgDNSAdmin==false){$AsOrgDNSAdmin="<img src='img/status_critical.png'>".Field_hidden('AsOrgDNSAdmin',$HashPrivieleges["AsOrgDNSAdmin"]);}
+		if($priv->ASDCHPAdmin==false){$ASDCHPAdmin="<img src='img/status_critical.png'>".Field_hidden('ASDCHPAdmin',$HashPrivieleges["ASDCHPAdmin"]);}
 		
 		if($priv->AsOrgAdmin){
 			$VirtualSambaServerColor="black";
@@ -2339,7 +2339,7 @@ function GROUP_PRIVILEGES($gid){
     	
     	
 $group_allow="&nbsp;{groups_allow}</H3><br>
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 		<table>
 		
 			<tr>
@@ -2354,7 +2354,7 @@ $group_allow="&nbsp;{groups_allow}</H3><br>
 ";  	
     	
 $user_allow="&nbsp;{users_allow}</H3><br>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 					<table>
 						
 						<tr>
@@ -2416,7 +2416,7 @@ $user_allow="&nbsp;{users_allow}</H3><br>
 					</table></div>";
 
 $org_allow="&nbsp;{organization_allow}</H3><br>
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table >	
 	<tr>
 		<td align='right' nowrap><span style='font-size:13.5px'>{AsOrgAdmin}:</span></td>
@@ -2477,7 +2477,7 @@ $org_allow="&nbsp;{organization_allow}</H3><br>
  
 
 $admin_allow="&nbsp;{administrators_allow}</H3><br>
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table>
 				
 
@@ -2909,7 +2909,7 @@ function GROUP_SAMBA_IDENTITY(){
 	$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?pdbedit-group=$group->groupName&password=$password")));
 	
 	$html="
-		<div style='width:95%' class=form>	
+		<div style='width:98%' class=form>	
 		<table>
 	<tr>
 		<td class=legend>{name}:</span></td>
@@ -2991,7 +2991,7 @@ $html="<div style='font-size:16px'>{MK_SAMBA_GROUP}&raquo;&nbsp;<strong>$group->
 <input type='hidden' name='ou' id='ou' value='{$_GET["ou"]}'>
 <input type='hidden' name='SaveGroupSamba' id='SaveGroupSamba' value='yes'>
 <div class=explain style='font-size:16px'>$text</div>
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table>
 <tr>
 	<td align='right' class=legend style='font-size:16px'><strong>{sambaGroupType}</strong>:</td>

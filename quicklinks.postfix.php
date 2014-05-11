@@ -154,10 +154,14 @@ function section_queue(){echo "<script>AnimateDiv('BodyContent');Loadjs('postfix
 function section_postfwd2(){echo "<script>javascript:AnimateDiv('BodyContent');Loadjs('postfwd2.php?instance=master&newinterface=yes');QuickLinkShow('quicklinks-APP_POSTFWD2');</script>";}
 
 function innodb_file_per_table_checks(){
+	$sock=new sockets();
+	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
+	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
+	if($ZarafaDedicateMySQLServer==1){return false;}
 	$q=new mysql();
 	$array=$q->SHOW_VARIABLES();
 	if($array["innodb_file_per_table"]=="ON"){
-		$sock=new sockets();
+	
 		$sock->SET_INFO("InnoDBFilePerTableAsk",1);
 		return false;
 	}

@@ -177,7 +177,7 @@ var
    ini:TstringList;
    pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_DHCP');
+
 if not FileExists(BIN_PATH()) then exit;
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --dhcpd >'+pidpath +' 2>&1');

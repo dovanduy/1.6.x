@@ -33,6 +33,8 @@ if(isset($_GET["browse-computer-list"])){computer_list();exit;}
 if(isset($_GET["browse-networks"])){networks();exit;}
 if(isset($_GET["browse-networks-list"])){networks_items();exit;}
 
+if(isset($_GET["networks-tabs"])){networks_tabs();exit;}
+
 
 
 if(isset($_GET["browse-networks-add"])){networks_add();exit;}
@@ -145,8 +147,15 @@ function computer_delete_js(){
 
 function tabs(){
 	$page=CurrentPageName();
+	$users=new usersMenus();
 	$array["browse-computers"]='{parameters}';
 	$array["search-computers"]='{search_computers}';
+	
+	
+	if($users->nmap_installed){
+		
+		$array["nmap"]='{APP_NMAP}';
+	}
 	
 	if($_GET["OnlyOCS"]==1){unset($array["browse-computers"]);}
 	if($_GET["OnlyOCS"]=="yes"){unset($array["browse-computers"]);}
@@ -161,22 +170,21 @@ function tabs(){
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="search-computers"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"ocs.search.php?start=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"ocs.search.php?start=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		
+		if($num=="nmap"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"nmap.index.php?tabs=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_browse_computers style='width:100%;height:650px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_browse_computers').tabs();
-				});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_browse_computers");
+	
 
 	
 }
@@ -402,7 +410,7 @@ function js($nostartReturn=false){
 	
 	function browse_computers_start(){
 		YahooLogWatcherHide();
-		YahooLogWatcher(750,'$page?tabs=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&OnlyOCS={$_GET["OnlyOCS"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}','$title');
+		YahooLogWatcher(930,'$page?tabs=yes&mode={$_GET["mode"]}&value={$_GET["value"]}&callback={$_GET["callback"]}&OnlyOCS={$_GET["OnlyOCS"]}&CorrectMac={$_GET["CorrectMac"]}&fullvalues={$_GET["fullvalues"]}','$title');
 		{$prefix}demarre();
 	
 	}
@@ -553,10 +561,10 @@ function index(){
 	$edit_networks=$tpl->_ENGINE_parse_body("{edit_networks}");
 	$ADD_COMPUTER=$tpl->_ENGINE_parse_body("{ADD_COMPUTER}");
 	$periodic_scan=$tpl->_ENGINE_parse_body("{periodic_scan}");
-	$findcomputer="{name: '$scan_your_network', bclass: 'ScanNet', onpress : ScanNet},";
+	
 	$networks=$tpl->_ENGINE_parse_body('{edit_networks}');
 	
-	$networs="{name: '$edit_networks', bclass: 'Net', onpress : ViewNetwork},";
+	
 	$addComp="{name: '$ADD_COMPUTER', bclass: 'Add', onpress : AddCompz},";
 
 	
@@ -657,7 +665,7 @@ $('#COMPUTER_BROWSE_TABLE').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 423,
 	singleSelect: true
 	
@@ -782,7 +790,7 @@ for($i=0;$i<$hash["count"];$i++){
 	$hash[$i]["uid"][0]=str_replace('$','',$hash[$i]["uid"][0]);
 	$js=MEMBER_JS($realuid,1);
 	$Alreadyrealuid[$realuid]=true;
-	if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.gif',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
+	if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.png',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
 	if($_GET["mode"]=="selection"){$js="{$_GET["callback"]}('$realuid');";}
 	$ip=$hash[$i][strtolower("ComputerIP")][0];
 	$os=$hash[$i][strtolower("ComputerOS")][0];
@@ -826,7 +834,7 @@ for($i=0;$i<$hash["count"];$i++){
 			$hash2[$i]["uid"][0]=str_replace('$','',$hash2[$i]["uid"][0]);
 			$js=MEMBER_JS($realuid,1);
 			$Alreadyrealuid[$realuid]=true;
-			if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.gif',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
+			if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.png',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
 			if($_GET["mode"]=="selection"){$js="{$_GET["callback"]}('$realuid');";}
 			$ip=$hash2[$i][strtolower("ComputerIP")][0];
 			$os=$hash2[$i][strtolower("ComputerOS")][0];
@@ -855,6 +863,12 @@ for($i=0;$i<$hash["count"];$i++){
 	
 		}		
 		
+	}
+	
+	
+	$data['total'] = $c;
+	if($c==0){
+		json_error_show("no item");
 	}
 	echo json_encode($data);		
 		
@@ -914,7 +928,7 @@ for($i=0;$i<$hash["count"];$i++){
 	
 	$js=MEMBER_JS($realuid,1);
 	$Alreadyrealuid[$realuid]=true;
-	if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.gif',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
+	if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.png',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
 	if($_GET["mode"]=="selection"){$js="{$_GET["callback"]}('$realuid');";}
 	$ip=$hash[$i][strtolower("ComputerIP")][0];
 	$os=$hash[$i][strtolower("ComputerOS")][0];
@@ -946,7 +960,7 @@ for($i=0;$i<$hash["count"];$i++){
 			$hash2[$i]["uid"][0]=str_replace('$','',$hash2[$i]["uid"][0]);
 			$js=MEMBER_JS($realuid,1);
 			$Alreadyrealuid[$realuid]=true;
-			if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.gif',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
+			if($_GET["mode"]=="dansguardian-ip-group"){$js_add="<td width=1%>" . imgtootltip('add-18.png',"{add_computer}","AddComputerToDansGuardian('$realuid','{$_GET["value"]}')")."</td>";}
 			if($_GET["mode"]=="selection"){$js="{$_GET["callback"]}('$realuid');";}
 			$ip=$hash2[$i][strtolower("ComputerIP")][0];
 			$os=$hash2[$i][strtolower("ComputerOS")][0];
@@ -1076,13 +1090,36 @@ $html="<div style='width:100%;height:230px;overflow:auto'>$html</div>";
 }
 
 
+function networks_tabs(){
+	if(GET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__)){return;}
+	$page=CurrentPageName();
+	
+	$array["browse-networks"]="{edit_networks}";
+	
+	
+	$fontsize="font-size:18px;";
+	while (list ($index, $ligne) = each ($array) ){
+		$eth=new system_nic($interface);
+		$html[]="<li><a href=\"$page?$index=yes\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+	}
+	
+	
+	$html=build_artica_tabs($html,'main_networks',995)."
+		<script>LeftDesign('256-networks-white-opac20.png');</script>";
+	
+	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
+	echo $html;	
+	
+}
+
+
 function networks(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
 	$networsplus=Paragraphe("64-win-nic-plus.png","{add_network}",'{add_network_text}',"javascript:AddNetwork()","add_network",210);
 	$importArtica=Paragraphe("64-samba-get.png","{import_artica_computers}",'{import_artica_computers_text}',"javascript:ImportComputers('')","import_artica_computers",210);
-	$importList=Paragraphe("64-samba-get.png","{import_artica_computers}",'{import_artica_computers_list_text}',"javascript:ImportListComputers()","import_artica_computers_list_text",210);
+	
 	$networks=$tpl->_ENGINE_parse_body("{networks}");
 	$import_artica_computers=$tpl->_ENGINE_parse_body("{import_artica_computers}");
 	
@@ -1098,7 +1135,7 @@ function networks(){
 	$autoscan_form="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top' class=legend><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('nmap.index.php');\" class=legend style='text-decoration:underline'>{allow_nmap_scanner}</a></td>
+		<td valign='top' class=legend>{allow_nmap_scanner}</td>
 		<td valign='top'>". Field_checkbox("ComputersAllowNmap",1,$ComputersAllowNmap,"ComputersAllowNmapCheck()")."</td>
 	</tr>
 	<tr>
@@ -1121,9 +1158,8 @@ function networks(){
 	";
 	
 	$users=new usersMenus();
-	$articas=artica_import_list();
+	//$articas=artica_import_list();
 	$height_artica=200;
-	if(strlen($articas)<5){$height_artica=0;}
 	$NMAP_INSTALLED=1;
 	$ARPD_INSTALLED=1;
 	if(!$users->nmap_installed){$NMAP_INSTALLED=0;}
@@ -1131,29 +1167,13 @@ function networks(){
 	
 	$html="
 	<div id='networks'>
-	<table style='width:100%'>
-	<tr>
-		<td valign='top' width=70%>
-				<div id='netlist'></div>
-				
-			$autoscan_form
-			<br>
-			<div style='width:100%;height:{$height_artica}px;overflow:auto'>
-				<div id='articas'>$articas</div>
-			</div>	
-		</td>
-		<td valign='top'>
-		$networsplus
-		$importArtica
-		$importList
-		</td>
-	</tr>
-	</table>
+		<div id='netlist'></div>
+		$autoscan_form
 	</div>
 	
 	<script>
 		function AddNetwork(){
-			YahooWin3(450,'$page?browse-networks-add=yes&t=$t','$networks');
+			YahooWin3(700,'$page?browse-networks-add=yes&t=$t','$networks');
 		}
 		
 		function ImportComputers(ip){
@@ -1162,7 +1182,7 @@ function networks(){
 		}		
 		
 	function ImportListComputers(){
-		YahooWin3('450','$page?artica-importlist-popup=yes','$import_artica_computers');
+		YahooWin3('700','$page?artica-importlist-popup=yes','$import_artica_computers');
 	
 	}
 
@@ -1237,28 +1257,28 @@ function networks_add(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=$_GET["t"];
-	$html="<span style='font-size:16px;margin:10px'>{add_network}</span>
-	<div id='networks_add'>
-		<table style='width:99%' class=form>
+	$html="<span style='font-size:22px;margin:10px;margin-bottom:20px'>{add_network}</span>
+	<div id='networks_add' style='width:98%' class=form>
+		<table style='width:99%'>
 			<tr>
-				<td class=legend>{ip_address}:</td>
-				<td valign='top'>".field_ipv4("ip_addr",null,'font-size:14px',null,'ClacNetmaskcdir()',null,false,"ClacNetmaskcdir()")."</td>
+				<td class=legend style='font-size:18px' nowrap>{ip_address}:</td>
+				<td valign='top'>".field_ipv4("ip_addr",null,'font-size:18px',null,'ClacNetmaskcdir()',null,false,"ClacNetmaskcdir()")."</td>
 			</tr>
-				<td class=legend>{netmask}:</td>
-				<td valign='top'>".field_ipv4("netmask","255.255.255.0",'font-size:14px',null,'ClacNetmaskcdir()',null,false,"ClacNetmaskcdir()")."</td>				
+				<td class=legend style='font-size:18px' nowrap>{netmask}:</td>
+				<td valign='top'>".field_ipv4("netmask","255.255.255.0",'font-size:18px',null,'ClacNetmaskcdir()',null,false,"ClacNetmaskcdir()")."</td>				
 			</tr>
 			
 			
 			<tr>
-				<td class=legend>{cdir}:</td>
+				<td class=legend style='font-size:18px' nowrap>{cdir}:</td>
 				<td valign='top' >
-				". Field_text('netmaskcdir',null,'width:190px;padding:3px;font-size:16px')."
+				". Field_text('netmaskcdir',null,'width:190px;padding:3px;font-size:18px')."
 				</td>
 				
 				
 			</tr>
 			<TR>
-				<td colspan=2 align='right'><hr>". button("{add}","AddNetworkPerform()")."</td>
+				<td colspan=2 align='right'><hr>". button("{add}","AddNetworkPerform()",24)."</td>
 			</tr>
 		</table>
 		</div>
@@ -1417,12 +1437,15 @@ function artica_import_save(){
 
 function artica_importlist_popup(){
 	$page=CurrentPageName();
-	$html="<div class=explain>{computer_popup_import_explain}</div>
-	<div id='popup_import_div' class=form>
-	<textarea id='popup_import_list' style='width:99%;height:450px;overflow:auto'></textarea>
+	$html="<div class=explain style='font-size:16px'>{computer_popup_import_explain}</div>
+	<div id='popup_import_div' class=form style='width:95%'>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:99%;height:546px;border:5px solid #8E8E8E;
+	overflow:auto;font-size:14px !important' id='popup_import_list'></textarea>
+	
 	<div style='text-align:right'>
 		<hr>
-			". button("{import}","ImportListComputersPerform()")."
+			". button("{import}","ImportListComputersPerform()",22)."
 	</div>
 	</div>
 <script>
@@ -1437,7 +1460,6 @@ function artica_importlist_popup(){
 	function ImportListComputersPerform(){
 			var XHR = new XHRConnection();
 			XHR.appendData('popup_import_list',document.getElementById('popup_import_list').value);
-		 	document.getElementById('popup_import_div').innerHTML='<div style=\"width:100%\"><center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center></div>';
 			XHR.sendAndLoad('$page', 'POST',x_ImportListComputersPerform); 
 	}
 </script>		
@@ -1473,6 +1495,8 @@ function networkslist($noecho=1){
 	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
 	$settings=$tpl->_ENGINE_parse_body("{parameters}");
 	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
+	$import_artica_computers=$tpl->javascript_parse_text("{import_artica_computers}");
+	$apply_firewall_rules=$tpl->javascript_parse_text("{apply_firewall_rules}");
 	
 	$t=$_GET["t"];
 	$html="
@@ -1491,6 +1515,8 @@ function networkslist($noecho=1){
 	
 	buttons : [
 	{name: '$new_network', bclass: 'add', onpress : NewNetwork$t},
+	{name: '$import_artica_computers', bclass: 'add', onpress : Import$t},
+	{name: '$apply_firewall_rules', bclass: 'Apply', onpress : FW$t},
 	{separator: true},
 	
 	],
@@ -1502,20 +1528,28 @@ function networkslist($noecho=1){
 	sortname: 'ipaddr',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$networks',
+	title: '<span style=font-size:18px>$networks</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: true,
-	width: 600,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
 	});
 	});
 	
-	function NewNetwork$t(){
-		AddNetwork();
-	}
+function NewNetwork$t(){
+	AddNetwork();
+}
+
+function FW$t(){
+	Loadjs('firewall.restart.php');
+}
+	
+function Import$t(){
+	YahooWin3('700','$page?artica-importlist-popup=yes','$import_artica_computers');
+}
 	
 var x_NetWorksDisable$t= function (obj) {
 		$('#flexRT$t').flexReload();

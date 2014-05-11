@@ -37,7 +37,7 @@ private
        function   MYSQL_EXEC_BIN_PATH():string;
        procedure  ZARAFA_INSTALL_MENU();
        procedure  ZARAFA_INSTALL_PERFORM();
-       function   GET_INFO(key:string):string;
+
        function   LOCATE_GENERIC_BIN(StrProgram:string):string;
        procedure  set_INFO(key:string;val:string);
        function   CPU_NUMBER():integer;
@@ -51,6 +51,7 @@ public
       DirListFiles:TstringList;
       constructor Create();
       procedure Free;
+      function   GET_INFO(key:string):string;
       function DirDir(FilePath: string):TstringList;
       function WGET_DOWNLOAD_FILE(uri:string;file_path:string):boolean;
       function COMPILE_GENERIC_APPS(package_name:string;onlydownload:boolean=false):string;
@@ -96,6 +97,7 @@ public
       function ExcludeTrailingBackslash(const S: string): string;
       function CheckKVM():boolean;
       procedure CheckResolvConf();
+
 END;
 
 implementation
@@ -103,7 +105,7 @@ implementation
 constructor tlibs.Create();
 begin
 if not DirectoryExists('/opt/artica/tmp') then forceDirectories('/opt/artica/tmp');
-index_file:='http://www.artica.fr/auto.update.php';
+index_file:='http://www.articatech.net/auto.update.php';
 local_folder:='';
 
   sexport:=' LD_LIBRARY_PATH="/lib:/lib64:/usr/lib:/usr/lib64:/usr/local/lib:/usr/lib/libmilter"';
@@ -219,6 +221,7 @@ m.SaveToFile('/etc/resolv.conf');
 
 end;
 //#########################################################################################
+
 procedure tlibs.EXPORT_PATH();
 var
 l:TstringList;
@@ -689,10 +692,18 @@ exit(MD5Print(Digest));
 end;
 //##############################################################################
 function tlibs.FILE_TEMP():string;
+var
+   stmp:string;
+   mypid:string;
+   SysTmpDir:string;
 begin
-result:='/opt/artica/tmp/'+ MD5FromString(DateTimeNowSQL()+IntToStr(random(2548)));
+stmp:=MD5FromString(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
+SysTmpDir:=trim(GET_INFO('SysTmpDir'));
+if length(SysTmpDir)=0 then SysTmpDir:='/home/artica/tmp';
+if not DirectoryExists(SysTmpDir) then forceDirectories(SysTmpDir);
+result:=GetTempFileName(SysTmpDir,ExtractFileName(ParamStr(0))+'-'+stmp+'-');
+
 end;
-//##############################################################################
 function tlibs.DateTimeNowSQL():string;
 begin
    result:=FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
@@ -988,16 +999,16 @@ begin
     if not FileExists('/etc/artica-postfix/artica-update.conf') then fpsystem('/bin/touch /etc/artica-postfix/artica-update.conf');
     if FileExists('/etc/artica-postfix/artica-update.conf') then begin
         updeconf:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-        index_file:=updeconf.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php?datas='+uriplus);
+        index_file:=updeconf.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php?datas='+uriplus);
         remote_uri:=EXtractFilePath(index_file)+'download';
      end else begin
            local_folder:='';
-           remote_uri:='http://www.artica.fr/download';
-           index_file:='http://www.artica.fr/auto.update.php?datas='+uriplus
+           remote_uri:='http://www.articatech.net/download';
+           index_file:='http://www.articatech.net/auto.update.php?datas='+uriplus
      end;
 
-     if length(trim(remote_uri))=0 then remote_uri:='http://www.artica.fr/download';
-     if length(trim(index_file))=0 then index_file:='http://www.artica.fr/auto.update.php';
+     if length(trim(remote_uri))=0 then remote_uri:='http://www.articatech.net/download';
+     if length(trim(index_file))=0 then index_file:='http://www.articatech.net/auto.update.php';
 
      updeconf.free;
 
@@ -1289,7 +1300,7 @@ begin
 
 
     local_folder:='';
-    remote_uri:='http://www.artica.fr/download';
+    remote_uri:='http://www.articatech.net/download';
 
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;
@@ -1389,8 +1400,8 @@ begin
 
     package_name:=trim(package_name);
     local_folder:='';
-    remote_uri:='http://www.artica.fr/download';
-    index_file:='http://www.artica.fr/auto.update.php';
+    remote_uri:='http://www.articatech.net/download';
+    index_file:='http://www.articatech.net/auto.update.php';
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;
 
@@ -1793,13 +1804,13 @@ procedure tlibs.InstallArtica();
 var
    my:TiniFile;
    articaversion:string;
-
+   php5bin:string;
 begin
 ForceDirectories('/etc/artica-postfix');
 fpsystem('/bin/touch /etc/artica-postfix/FROM_SETUP');
 writeln('Getting index file');
 if fileexists('/tmp/artica.ini') then fpsystem('/bin/rm -f /tmp/artica.ini');
-if not WGET_DOWNLOAD_FILE('http://www.artica.fr/auto.update.php','/tmp/artica.ini') then begin
+if not WGET_DOWNLOAD_FILE('http://www.articatech.net/auto.update.php','/tmp/artica.ini') then begin
    writeln('Failed to get artica version...');
    exit;
 end;
@@ -1821,7 +1832,7 @@ end;
 writeln('Downloading '+articaversion + ' artica version');
 
 if FileExists('/tmp/'+articaversion+'.tgz') then fpsystem('/bin/rm -f /tmp/'+articaversion+'.tgz');
-if not WGET_DOWNLOAD_FILE('http://www.artica.fr/download/artica-'+articaversion+'.tgz','/tmp/'+articaversion+'.tgz') then begin
+if not WGET_DOWNLOAD_FILE('http://www.articatech.net/download/artica-'+articaversion+'.tgz','/tmp/'+articaversion+'.tgz') then begin
    writeln('Failed to get artica package...');
    exit;
 end;
@@ -1839,20 +1850,21 @@ if FileExists('/usr/share/artica-postfix/bin/install/libmysqlclient.so.15') then
       fpsystem('/bin/cp /usr/share/artica-postfix/bin/install/libmysqlclient.so.15 /usr/lib/libmysqlclient.so.15');
    end;
 end;
+
 writeln('Installing  '+articaversion + ' artica version');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --init-from-repos');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --perl-addons-repos');
 fpsystem('/usr/share/artica-postfix/bin/artica-install -awstats-reconfigure');
 fpsystem('/usr/share/artica-postfix/bin/artica-install -awstats generate');
+fpsystem('php /usr/share/artica-postfix/exec.initslapd.php --build --force');
 fpsystem('/etc/init.d/artica-postfix stop daemon');
 fpsystem('/etc/init.d/artica-postfix start daemon');
 fpsystem('/etc/init.d/artica-postfix stop');
 fpsystem('/etc/init.d/artica-postfix start');
 fpsystem('/etc/init.d/artica-postfix start all');
-fpsystem('/etc/init.d/artica-postfix stop mysql');
-fpsystem('/etc/init.d/artica-postfix start mysql');
-
-
+fpsystem('/etc/init.d/mysql restart');
+fpsystem('/etc/init.d/artica-webconsole restart');
+fpsystem('/etc/init.d/artica-status restart');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --init-from-repos');
 end;
 //#########################################################################################

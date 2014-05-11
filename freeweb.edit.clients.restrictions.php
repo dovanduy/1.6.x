@@ -265,7 +265,7 @@ function Query(){
 		
 		
 $jscat="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.categorize.php?www={$ligne["pattern"]}');\"
+		OnClick=\"javascript:Loadjs('squid.categorize.php?www={$ligne["pattern"]}',true);\"
 		style='font-size:14px;text-decoration:underline'>";		
 		
 	$data['rows'][] = array(

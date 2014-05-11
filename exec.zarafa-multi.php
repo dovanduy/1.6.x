@@ -92,7 +92,7 @@ function multi_get_pid($ID){
 	if(is_numeric($pid)){
 		if($unix->process_exists($pid)){return $pid;}
 	}
-	if($GLOBALS["VERBOSE"]){echo "Starting......: zarafa-server instance id:$ID $pidfile ($pid) not running\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." zarafa-server instance id:$ID $pidfile ($pid) not running\n";}
 	if(!isset($GLOBALS["pgrepbin"])){$GLOBALS["pgrepbin"]=$unix->find_program("pgrep");}
 	$cmd="{$GLOBALS["pgrepbin"]} -l -f \"--config=/etc/zarafa-$ID\" 2>&1";
 	exec($cmd,$results);
@@ -148,11 +148,11 @@ function DAEMONS_PID($binary,$ID){
 
 
 function multi_stop_server($ID){
-	if(!is_numeric($ID)){echo "Stopping......: zarafa-server instance no id specified\n";return;}
+	if(!is_numeric($ID)){echo "Stopping......: ".date("H:i:s")."zarafa-server instance no id specified\n";return;}
 	$PID=multi_get_pid($ID);
-	echo "Stopping......: zarafa-server instance id:$ID PID:$PID..\n";
+	echo "Stopping......: ".date("H:i:s")."zarafa-server instance id:$ID PID:$PID..\n";
 	$unix=new unix();
-	if(!$unix->process_exists($PID)){echo "Stopping......: zarafa-server instance id:$ID already stopped..\n";return;}
+	if(!$unix->process_exists($PID)){echo "Stopping......: ".date("H:i:s")."zarafa-server instance id:$ID already stopped..\n";return;}
 	$kill=$unix->find_program("kill");
 	
 	
@@ -164,21 +164,21 @@ function multi_stop_server($ID){
 		if(!$unix->process_exists($PID)){break;}
 		if(is_numeric($PID)){
 			$cmd="$kill -9 $PID";
-			echo "Stopping......: zarafa-server instance id:$ID killing PID: $PID\n";
+			echo "Stopping......: ".date("H:i:s")."zarafa-server instance id:$ID killing PID: $PID\n";
 			shell_exec($cmd);
 			sleep(1);
 		}
 	}
 	$PID=multi_get_pid($ID);
-	if(!$unix->process_exists($PID)){echo "Stopping......: zarafa-licensed instance id:$ID success..\n";return;}	
-	echo "Stopping......: zarafa-licensed instance id:$ID failed..\n";
+	if(!$unix->process_exists($PID)){echo "Stopping......: ".date("H:i:s")."zarafa-licensed instance id:$ID success..\n";return;}	
+	echo "Stopping......: ".date("H:i:s")."zarafa-licensed instance id:$ID failed..\n";
 }
 function multi_stop_daemons($binary,$ID){
-	if(!is_numeric($ID)){echo "Stopping......: zarafa-$binary instance no id specified\n";return;}
+	if(!is_numeric($ID)){echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance no id specified\n";return;}
 	$PID=DAEMONS_PID($binary,$ID);
-	echo "Stopping......: zarafa-$binary instance id:$ID PID:$PID..\n";
+	echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID PID:$PID..\n";
 	$unix=new unix();
-	if(!$unix->process_exists($PID)){echo "Stopping......: zarafa-$binary instance id:$ID already stopped..\n";return;}
+	if(!$unix->process_exists($PID)){echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID already stopped..\n";return;}
 	$kill=$unix->find_program("kill");
 	
 	
@@ -188,12 +188,12 @@ function multi_stop_daemons($binary,$ID){
 	for($i=0;$i<10;$i++){
 		$PID=DAEMONS_PID($binary,$ID);
 		if(!$unix->process_exists($PID)){break;}
-		if(is_numeric($PID)){$cmd="$kill -9 $PID";echo "Stopping......: zarafa-$binary instance id:$ID killing PID: $PID\n";shell_exec($cmd);sleep(1);}
+		if(is_numeric($PID)){$cmd="$kill -9 $PID";echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID killing PID: $PID\n";shell_exec($cmd);sleep(1);}
 	}
 	
 	$PID=DAEMONS_PID($binary,$ID);
-	if(!$unix->process_exists($PID)){echo "Stopping......: zarafa-$binary instance id:$ID success..\n";return;}	
-	echo "Stopping......: zarafa-$binary instance id:$ID failed..\n";
+	if(!$unix->process_exists($PID)){echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID success..\n";return;}	
+	echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID failed..\n";
 }
 
 function multi_start($ID){
@@ -204,7 +204,7 @@ function multi_start($ID){
 	@file_put_contents($pidfile,getmypid());
 	
 	$sf=new zarafamulti($ID);
-	if($sf->enabled==0){echo "Starting......: zarafa-server instance is disabled, stop it\n";multi_stop($ID);return;}	
+	if($sf->enabled==0){echo "Starting......: ".date("H:i:s")." zarafa-server instance is disabled, stop it\n";multi_stop($ID);return;}	
 	
 	multi_start_server($ID);
 	multi_start_daemons("licensed",$ID);
@@ -293,17 +293,17 @@ function multi_start_server($ID){
 		
 	
 	$q=new zarafamulti($ID);
-	echo "Starting......: zarafa-server instance id:$ID..\n";
+	echo "Starting......: ".date("H:i:s")." zarafa-server instance id:$ID..\n";
 
 	$q->Build();
 	$unix=new unix();
-	if($unix->process_exists(multi_get_pid($ID))){echo "Starting......: zarafa-server instance id:$ID already running...\n";return;}
+	if($unix->process_exists(multi_get_pid($ID))){echo "Starting......: ".date("H:i:s")." zarafa-server instance id:$ID already running...\n";return;}
 	$chmod=$unix->find_program("chmod");
 	$zarafa_server=$unix->find_program("zarafa-server");
 	$cmd="$zarafa_server --config=/etc/zarafa-$ID/server.cfg";
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	exec($cmd,$results);
-	while (list ($index, $ligne) = each ($results) ){echo "Starting......: zarafa-server instance id:$ID $ligne\n";}
+	while (list ($index, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." zarafa-server instance id:$ID $ligne\n";}
 	
 	for($i=0;$i<4;$i++){
 		sleep(1);
@@ -311,22 +311,22 @@ function multi_start_server($ID){
 	}
 	
 	if(!$unix->process_exists(multi_get_pid($ID))){
-		echo "Starting......: zarafa-server instance id:$ID failed..\n";
+		echo "Starting......: ".date("H:i:s")." zarafa-server instance id:$ID failed..\n";
 		return;
 	}
-	echo "Starting......: zarafa-server instance success..\n";
+	echo "Starting......: ".date("H:i:s")." zarafa-server instance success..\n";
 	
 }
 function multi_start_daemons($binary,$ID){
 	
 	
 	$unix=new unix();
-	if($unix->process_exists(DAEMONS_PID($binary,$ID))){echo "Starting......: $binary: instance id:$ID already running...\n";return;}
+	if($unix->process_exists(DAEMONS_PID($binary,$ID))){echo "Starting......: ".date("H:i:s")." $binary: instance id:$ID already running...\n";return;}
 	$chmod=$unix->find_program("chmod");
 	$daemon=$unix->find_program("zarafa-$binary");
 	
 	if(!is_file("/etc/zarafa-$ID/$binary.cfg")){
-		echo "Starting......: $binary: instance id:$ID /etc/zarafa-$ID/$binary.cfg no such file\n";
+		echo "Starting......: ".date("H:i:s")." $binary: instance id:$ID /etc/zarafa-$ID/$binary.cfg no such file\n";
 		return;
 	}
 	
@@ -336,7 +336,7 @@ function multi_start_daemons($binary,$ID){
 	
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	exec($cmd,$results);
-	while (list ($index, $ligne) = each ($results) ){echo "Starting......: $binary: instance id:$ID $ligne\n";}
+	while (list ($index, $ligne) = each ($results) ){echo "Starting......: ".date("H:i:s")." $binary: instance id:$ID $ligne\n";}
 	
 	for($i=0;$i<4;$i++){
 		sleep(1);
@@ -344,10 +344,10 @@ function multi_start_daemons($binary,$ID){
 	}
 	
 	if(!$unix->process_exists(DAEMONS_PID($binary,$ID))){
-		echo "Starting......: $binary: instance id:$ID failed..\n";
+		echo "Starting......: ".date("H:i:s")." $binary: instance id:$ID failed..\n";
 		return;
 	}
-	echo "Starting......: $binary: instance success..\n";
+	echo "Starting......: ".date("H:i:s")." $binary: instance success..\n";
 }
 
 

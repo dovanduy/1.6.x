@@ -73,21 +73,18 @@ public
     function    CYRUS_LMTPD_BIN_PATH():string;
     function    CYRUS_VERSION():string;
     function    CYRADM_PATH():string;
-    function    CYRUS_PID_PATH():string;
+
     FUNCTION    CYRUS_STATUS():string;
-    function    CYRUS_PID():string;
-    procedure   CYRUS_DAEMON_START();
-    procedure   CYRUS_DAEMON_RELOAD();
+
     procedure   WRITE_CYRUS_CONF();
-    procedure   WRITE_IMAPD_CONF();
-    procedure   CYRUS_DAEMON_STOP();
+
     function    cyrquota():string;
     function    cyr_expire_path():string;
     function    SASLAUTHD_PATH():string;
     function    SASLAUTHD_CONF_PATH():string;
     procedure   SASLAUTHD_CONFIGURE();
     function    SASLAUTHD_INITD_PATH():string;
-    function    SASLAUTHD_GET(key:string):string;
+
     function    UserInfos(uid:string):string;
     procedure   CYRUS_CERTIFICATE();
     procedure   Cyrus_set_sasl_pwcheck_method(val:string);
@@ -108,7 +105,7 @@ public
     function    CREATE_USER(uid:string):string;
 
     function    LMTPD_PATH():string;
-    function    MON():string;
+
     function    REPAIR_CYRUS():string;
     procedure   REPAIR_CYRUS_SEEN_FILE(path:string);
     function    reconstruct_path():string;
@@ -171,7 +168,7 @@ begin
        if not tryStrToint(SYS.GET_INFO('EnableCyrusReplicaCluster'),EnableCyrusReplicaCluster) then EnableCyrusReplicaCluster:=0;
        if not tryStrToint(SYS.GET_INFO('CyrusEnableiPurge'),CyrusEnableiPurge) then CyrusEnableiPurge:=0;
        if not tryStrToint(SYS.GET_INFO('CyrusEnableLMTPUnix'),CyrusEnableLMTPUnix) then CyrusEnableLMTPUnix:=1;
-       if not tryStrToint(SYS.GET_INFO('DisableIMAPVerif'),DisableIMAPVerif) then DisableIMAPVerif:=0;
+
 
 
        CyrusLMTPListen:=SYS.GET_INFO('CyrusLMTPListen');
@@ -241,15 +238,7 @@ end;
 //#############################################################################
 
 
-function Tcyrus.CYRUS_PID_PATH():string;
-var  path:string;
-begin
-   if FileExists('/var/run/cyrus-master.pid') then path:='/var/run/cyrus-master.pid';
-   if FileExists('/var/run/cyrmaster.pid') then path:='/var/run/cyrmaster.pid';
-   if FileExists('/var/run/cyrus.pid') then path:='/var/run/cyrus.pid';
-   result:=path;
-end;
-//##############################################################################
+
 function Tcyrus.CYRUS_IMAPD_BIN_PATH():string;
 begin
     if FileExists('/usr/lib/cyrus/bin/imapd') then exit('/usr/lib/cyrus/bin/imapd');
@@ -395,19 +384,7 @@ begin
 end;
 //##############################################################################
 
-function TCyrus.CYRUS_PID():string;
-var
-   pid:string;
-   zsys:tsystem;
-begin
-    zsys:=Tsystem.Create();
-    pid:=zsys.GET_PID_FROM_PATH(CYRUS_PID_PATH());
-    if not zsys.PROCESS_EXIST(pid) then begin
-       pid:=zsys.PIDOF(CYRUS_DAEMON_BIN_PATH());
-    end;
-    exit(pid);
-end;
-//#############################################################################
+
 function Tcyrus.CYRUS_GET_INITD_PATH:string;
 begin
    if FileExists('/etc/init.d/cyrus') then result:='/etc/init.d/cyrus';
@@ -450,12 +427,12 @@ begin
 
 if FileExists(SYS.LOCATE_ctl_cyrusdb()) then begin
    logs.WriteToFile('#','/etc/artica-postfix/stop.cyrus.imapd');
-   CYRUS_DAEMON_STOP();
-   CYRUS_DAEMON_STOP();
+   fpsystem('/etc/init.d/cyrus-imapd stop');
+
    logs.Debuglogs('su - cyrus -c "'+SYS.LOCATE_ctl_cyrusdb()+' -r"');
    fpsystem('su - cyrus -c "'+SYS.LOCATE_ctl_cyrusdb()+' -r"');
    logs.DeleteFile('/etc/artica-postfix/stop.cyrus.imapd');
-   CYRUS_DAEMON_START();
+   fpsystem('/etc/init.d/cyrus-imapd start');
 end;
 
 end;
@@ -468,7 +445,7 @@ begin
 
 configdirectory:=IMAPD_GET('configdirectory');
 writeln('Stopping cyrus');
-CYRUS_DAEMON_STOP();
+fpsystem('/etc/init.d/cyrus-imapd stop');
 if not DirectoryExists(configdirectory) then begin
    writeln('Unable to stat "'+configdirectory+'"');
    exit;
@@ -494,7 +471,7 @@ writeln('su - cyrus -c "diff '+configdirectory+'/mailboxes.db*"');
 fpsystem('su - cyrus -c "diff '+configdirectory+'/mailboxes.db*"');
 writeln('done...');
 writeln('Starting cyrus daemon...');
-CYRUS_DAEMON_START();
+fpsystem('/etc/init.d/cyrus-imapd start');
 writeln('Recover databases');
 writeln('su - cyrus -c "'+ctl_cyrusdb_path()+' -r"');
 fpsystem('su - cyrus -c "'+ctl_cyrusdb_path()+' -r"');
@@ -938,43 +915,8 @@ begin
 end;
 //##############################################################################
 procedure TCyrus.SASLAUTHD_CONFIGURE();
-var
-   list2:TstringList;
-   EnableMechCramMD5:integer;
-   EnableMechDigestMD5:integer;
-   EnableMechLogin:integer;
-   EnableMechPlain:integer;
-   mech_list:string;
 begin
-EnableMechDigestMD5:=0;
-EnableMechLogin:=1;
-EnableMechPlain:=1;
-EnableMechCramMD5:=0;
-if not TryStrToInt(SYS.GET_INFO('EnableMechLogin'),EnableMechLogin) then EnableMechLogin:=1;
-if not TryStrToInt(SYS.GET_INFO('EnableMechPlain'),EnableMechPlain) then EnableMechPlain:=1;
-if not TryStrToInt(SYS.GET_INFO('EnableMechDigestMD5'),EnableMechDigestMD5) then EnableMechDigestMD5:=0;
-if not TryStrToInt(SYS.GET_INFO('EnableMechCramMD5'),EnableMechCramMD5) then EnableMechCramMD5:=0;
-if(EnableMechLogin=1) then mech_list:=mech_list+' LOGIN';
-if(EnableMechPlain=1) then mech_list:=mech_list+' PLAIN';
-if(EnableMechCramMD5=1) then mech_list:=mech_list+' CRAM-MD5';
-if(EnableMechDigestMD5=1) then mech_list:=mech_list+' DIGEST-MD5';
-mech_list:=trim(mech_list);
-
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.saslauthd.php');
-
-  list2:=TstringList.Create;
-  list2.Add('pwcheck_method: saslauthd');
-  list2.Add('mech_list: '+mech_list);
-  list2.Add('minimum_layer: 0');
-  list2.Add('log_level: 5');
-
-  forcedirectories('/etc/postfix/sasl');
-  list2.SaveToFile('/etc/postfix/sasl/smtpd.conf');
-
-  if not FileExists('/usr/lib/sasl2/smtpd.conf') then fpsystem('/bin/ln -s /etc/postfix/sasl/smtpd.conf  /usr/lib/sasl2/smtpd.conf');
-
-  list2.free;
-
+   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.saslauthd.php --build');
 end;
 //##############################################################################
 function Tcyrus.cyrquota():string;
@@ -1439,32 +1381,7 @@ RegExpr.Free;
 
 end;
 //##############################################################################
-function Tcyrus.SASLAUTHD_GET(key:string):string;
-var
-   l            :TstringList;
-   RegExpr      :TRegExpr;
-   i            :integer;
-begin
-   if not FileExists('/etc/saslauthd.conf') then begin
-      logs.Syslogs('Starting......: saslauthd, unable to stat /etc/saslauthd.conf configuration file');
-      exit();
-   end;
-   l:=TstringList.Create;
-   l.LoadFromFile('/etc/saslauthd.conf');
-   RegExpr:=TRegExpr.Create;
-   RegExpr.Expression:='^'+key+':(.+)';
-   for i:=0 to l.Count-1 do begin
-       if RegExpr.Exec(l.Strings[i]) then begin
-           result:=trim(RegExpr.Match[1]);
-           break;
-       end;
-   end;
-if length(result)=0 then logs.Syslogs('Starting......: saslauthd, unable to find "'+key+'" in /etc/saslauthd.conf');
-l.Free;
-RegExpr.Free;
 
-end;
-//##############################################################################
 
 
 function Tcyrus.IMAPD_GET_ARTICA(key:string):string;
@@ -1618,9 +1535,9 @@ begin
     end;
 
     logs.NOTIFICATION('Stopping cyrus server in order to repair a mailbox','Cyrus will be stopped in order to repair ' + path + ' file','system');
-    CYRUS_DAEMON_STOP();
+    fpsystem('/etc/init.d/cyrus-imapd stop');
     fpsystem('/bin/mv ' + path + ' '+ path+'.old');
-    CYRUS_DAEMON_START();
+    fpsystem('/etc/init.d/cyrus-imapd start');
 end;
  //#############################################################################
 function Tcyrus.MAILBOX_EXISTS(user:string):boolean;
@@ -1878,8 +1795,7 @@ end;
    logs.Debuglogs('Configure -> CYRUS_CERTIFICATE()');
    CYRUS_CERTIFICATE();
    logs.Debuglogs('Configure -> IMPAD_CONF()');
-   WRITE_IMAPD_CONF();
-   logs.Debuglogs('Configure -> CYRUS_CONF()');
+
    WRITE_CYRUS_CONF();
    logs.DebugLogs('Starting......: Cleaning...');
    CLEAN();
@@ -1982,7 +1898,7 @@ FUNCTION Tcyrus.CYRUS_STATUS():string;
 var
   pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_CYRUS');
+
 if not FileExists(CYRUS_DAEMON_BIN_PATH()) then exit;
 
 pidpath:=logs.FILE_TEMP();
@@ -1992,225 +1908,6 @@ logs.DeleteFile(pidpath);
 
 end;
 //#########################################################################################
-procedure Tcyrus.CYRUS_DAEMON_RELOAD();
-var
-   pid:string;
-begin
-
-pid:=CYRUS_PID();
-if SYS.PROCESS_EXIST(pid) then begin
-   fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.check-cyrus-account.php --check-adms');
-   fpsystem('/bin/kill -HUP '+pid);
-end else begin
-   CYRUS_DAEMON_START();
-end;
-end;
-//#########################################################################################
-
-
-procedure Tcyrus.CYRUS_DAEMON_START();
-var
-   m_cyrus_pid:string;
-   count:integer;
-   config_directory:string;
-
-   servername:string;
-   cur_domain:string;
-   cyr_domain:string;
-   cmd_daemon:string;
-   ldap_member_base:string;
-   ldap_member_base_config:string;
-   lmtpsocket:string;
-
-begin
-
-  if FIleExists('/etc/artica-postfix/stop.cyrus.imapd') then begin
-       logs.DebugLogs('Starting......: cyrus-imapd Locked, aborting');
-       exit;
-  end;
-   if not FIleExists(CYRUS_DAEMON_BIN_PATH()) then begin
-      logs.DebugLogs('Starting......: cyrus-imapd not installed...');
-      exit;
-   end;
-
-  if DisableIMAPVerif=0 then begin
-     if FileExists(SYS.LOCATE_GENERIC_BIN('zarafa-server')) then begin
-         logs.DebugLogs('Starting......: cyrus-imapd Zarafa server is installed, aborting');
-         CYRUS_DAEMON_STOP();
-         exit;
-     end;
-  end;
-
-
-  if FileExists('/etc/artica-postfix/cyrus-stop') then begin
-       logs.DebugLogs('Starting......: cyrus-imapd is locked');
-       exit;
-  end;
-
-
-  if SYS.PROCESS_EXIST(SYS.GET_PID_FROM_PATH('/etc/artica-postfix/artica-backup.pid')) then begin
-     logs.DebugLogs('Starting......: cyrus-imapd a backup task currently is in use');
-  end;
-
-  if not FileExists(ctl_cyrusdb_path()) then begin
-      logs.Syslogs('warning, unable to stat ctl_cyrusdb');
-  end;
-
-  if not SYS.IsUserExists('cyrus') then sys.AddUserToGroup('cyrus','cyrus','','');
-
-   m_cyrus_pid:=CYRUS_PID();
-   count:=0;
-
-
-
-   if SYS.PROCESS_EXIST(m_cyrus_pid) then begin
-      logs.DebugLogs('Starting......: cyrus-imapd already running using PID ' +m_cyrus_pid+ '...');
-      exit;
-   end;
-
-
-   if not FIleExists('/usr/bin/cyradm') then begin
-      if FIleExists(CYRADM_PATH()) then begin
-         logs.OutputCmd('/bin/ln -s '+CYRADM_PATH()+' /usr/bin/cyradm');
-      end;
-   end;
-
-   config_directory:=IMAPD_GET('configdirectory');
-   logs.DebugLogs('CYRUS_DAEMON_START:: PID='+m_cyrus_pid);
-   logs.DebugLogs('CYRUS_DAEMON_START:: configdirectory='+config_directory);
-
-   if FileExists('/usr/share/artica-postfix/exec.imapd.conf.php') then logs.OutputCmd(SYS.LOCATE_PHP5_BIN()+ ' /usr/share/artica-postfix/exec.imapd.conf.php >/dev/null 2>&1 &');
-   if not FileExists('/etc/artica-postfix/cyrus.check.time') then CheckRightsAndConfig();
-
-   cur_domain:=SYS.DomainName();
-   cyr_domain:=trim(IMAPD_GET('defaultdomain'));
-   if EnableVirtualDomainsInMailBoxes=1 then begin
-      if  cyr_domain=cur_domain then begin
-           logs.Syslogs('Starting......: cyrus-imapd change  defaultdomain to localhost.localdomain current : "'+ cyr_domain+'"');
-           WRITE_IMAPD_CONF();
-           WRITE_CYRUS_CONF();
-      end;
-   end;
-
-   logs.DebugLogs('Starting......: Checking server name...');
-   servername:=trim(IMAPD_GET('servername'));
-   logs.Syslogs('Starting......: cyrus-imapd servername is : "'+ servername+'"');
-   if length(trim(servername))=0 then begin
-     servername:=SYS.HOSTNAME_g();
-     logs.Syslogs('Starting......: cyrus-imapd corrupted value "servername" try to set "'+servername+'"');
-     WRITE_IMAPD_CONF();
-     WRITE_CYRUS_CONF();
-   end;
-
-
-   ldap_member_base:='dc=organizations,' + ldapserver.suffix;
-   ldap_member_base_config:=trim(IMAPD_GET('ldap_member_base'));
-
-   if ldap_member_base<>ldap_member_base_config then begin
-     logs.Syslogs('Starting......: cyrus-imapd corrupted value "ldap_member_base" try to set "'+ldap_member_base+'"');
-     WRITE_IMAPD_CONF();
-   end;
-    if ExtractFileName(ParamStr(0))<>'artica-backup' then logs.NOTIFICATION('[ARTICA]: ('+sys.HOSTNAME_g()+'): cyrus-imap daemon is stopped','Artica will try to start it','system');
-
-    if not DirectoryExists('/var/lib/cyrus/db') then begin
-    forceDirectories('/var/lib/cyrus/db');
-    forceDirectories('/var/lib/cyrus/socket');
-    ForceDirectories('/var/lib/cyrus/proc');
-    ForceDirectories('/var/run/cyrus/socket');
-
-    ForceDirectories(POSTFIX_QUEUE_DIRECTORY()+'/var/run/cyrus/socket');
-
-
-    end;
-
-    logs.Syslogs('Starting......: cyrus-imapd checking chown /var/lib/cyrus');
-    fpsystem('/bin/chown -R cyrus /var/lib/cyrus');
-    ForceDirectories('/var/run/cyrus/socket');
-    logs.OutputCmd('/bin/chmod -R 0755 /var/run/cyrus');
-    logs.OutputCmd('/bin/chmod -R 0755 '+POSTFIX_QUEUE_DIRECTORY()+'/var/run/cyrus');
-
-
-    if not FIleExists('/var/lib/cyrus/user_deny.db') then begin
-       logs.OutputCmd('/bin/touch /var/lib/cyrus/user_deny.db');
-       logs.OutputCmd('/bin/chown cyrus:mail /var/lib/cyrus/user_deny.db');
-    end;
-
-    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.check-cyrus-account.php --check-adms');
-
-    cmd_daemon:=CYRUS_DAEMON_BIN_PATH +' -M /etc/cyrus.conf -C /etc/imapd.conf -p /var/run/cyrmaster.pid -d &';
-    logs.Debuglogs(cmd_daemon);
-    fpsystem(cmd_daemon);
-
-
-  count:=0;
-  while not SYS.PROCESS_EXIST(CYRUS_PID()) do begin
-     sleep(150);
-     inc(count);
-     if count>30 then begin
-        writeln('');
-        logs.DebugLogs('Starting......: cyrus-imapd (timeout!!!)');
-        break;
-     end;
-     write('.');
-  end;
-
-   if not SYS.PROCESS_EXIST(CYRUS_PID()) then begin
-      If FileExists(CYRUS_GET_INITD_PATH()) then begin
-         logs.OutputCmd(CYRUS_GET_INITD_PATH() + ' start');
-      end;
-
-      if not SYS.PROCESS_EXIST(CYRUS_PID()) then begin
-       logs.DebugLogs('Starting......: cyrus-imapd (failed)');
-       logs.NOTIFICATION('[ARTICA]: ('+sys.HOSTNAME_g()+'): Unable to start cyrus-imapd daemon !','Artica is unable to start the imap/pop3 server','system');
-       exit;
-      end;
-   end;
-
-
-
-  if SYS.PROCESS_EXIST(CYRUS_PID()) then begin
-      logs.DebugLogs('Starting......: cyrus-imapd succes PID '+CYRUS_PID());
-      if ExtractFileName(ParamStr(0))<>'artica-backup' then logs.NOTIFICATION('[ARTICA]: ('+sys.HOSTNAME_g()+'): cyrus-imap was successfully started','Service is now running PID number '+CYRUS_PID(),'system');
-  end;
-
-
-     forceDirectories('/var/spool/postfix/var/run/cyrus/socket');
-     lmtpsocket:=trim(IMAPD_GET('lmtpsocket'));
-     logs.DebugLogs('Starting......: cyrus-imapd lmtpsocket:'+lmtpsocket);
-     if lmtpsocket='/var/spool/postfix' then lmtpsocket:='/var/spool/postfix/var/run/cyrus/socket/lmtp';
-
-     if lmtpsocket<>'/var/spool/postfix/var/run/cyrus/socket/lmtp' then begin
-        logs.DebugLogs('Starting......: Linking lmtp socket');
-        if not FileExists('/var/spool/postfix/var/run/cyrus/socket/lmtp') then logs.OutputCmd('/bin/ln -s '+lmtpsocket+' /var/spool/postfix/var/run/cyrus/socket/lmtp');
-     end;
-     logs.OutputCmd('/bin/chown -R postfix:postfix /var/spool/postfix/var/run');
-
-
-
-
-
-end;
- //#############################################################################
-function Tcyrus.MON():string;
-var
-l:TstringList;
-begin
-      exit;
-if not FileExists(CYRUS_DAEMON_BIN_PATH()) then begin
-   logs.DebugLogs('Starting......: cyrus-imapd is not installed, abort');
-   exit;
-end;
-l:=TstringList.Create;
-l.Add('check process cyrus with pidfile '+CYRUS_PID_PATH());
-l.Add('group mail');
-l.Add('start program = "/etc/init.d/artica-postfix start imap"');
-l.Add('stop program = "/etc/init.d/artica-postfix stop imap"');
-l.Add('if 5 restarts within 5 cycles then timeout');
-result:=l.Text;
-l.free;
-
-end;
-//##############################################################################
 function Tcyrus.REPAIR_CYRUS():string;
 var
    pid:string;
@@ -2220,7 +1917,7 @@ result:='';
 Writeln('Lock the watchdog daemon');
 fpsystem('/bin/touch /etc/artica-postfix/cyrus-stop');
 writeln('Stopping cyrus ');
-CYRUS_DAEMON_STOP();
+fpsystem('/etc/init.d/cyrus-imapd stop');
 
 if FileExists(ctl_cyrusdb_path()) then begin
    Writeln('Launch '+ctl_cyrusdb_path());
@@ -2241,98 +1938,10 @@ if FileExists(reconstruct_path()) then begin
 end;
 
 logs.DeleteFile('/etc/artica-postfix/cyrus-stop');
-CYRUS_DAEMON_START();
+fpsystem('/etc/init.d/cyrus-imapd start');
 
 end;
 //##############################################################################
-
- procedure Tcyrus.CYRUS_DAEMON_STOP();
-var
-
-   count:integer;
-   PID:string;
-   binpath:string;
-begin
-   binpath:=CYRUS_DAEMON_BIN_PATH();
-   if not FIleExists(binpath) then begin
-      writeln('Stopping cyrus-imap..........: Not installed ('+binpath+')');
-      exit;
-   end;
-
-   PID:=trim(CYRUS_PID());
-   if not SYS.PROCESS_EXIST(PID) then begin
-      writeln('Stopping cyrus-imap..........: Already stopped');
-      exit;
-   end;
-
-
-   count:=0;
-   writeln('Stopping cyrus-imap..........: ' + CYRUS_PID() + ' PID..');
-    PID:=trim(CYRUS_PID());
-    if length(PID)>0 then fpsystem('/bin/kill ' + PID);
-    while SYS.PROCESS_EXIST(PID) do begin
-          sleep(100);
-
-          if length(PID)>0 then begin
-             if SYS.PROCESS_EXIST(PID) then fpsystem('/bin/kill ' + PID);
-          end;
-
-          Inc(count);
-          if count>20 then begin
-             writeln('');
-             writeln('killing cyrus-imap...........: ' + PID + ' PID.. (timeout)');
-              if length(PID)>0 then fpsystem('/bin/kill -9 ' + PID);
-             break;
-          end;
-          PID:=trim(CYRUS_PID());
-    end;
-
-
-
-    if count>0 then  writeln('');
-    if SYS.PROCESS_EXIST(CYRUS_PID()) then begin
-        writeln('Stopping cyrus-imap..........: ' + CYRUS_PID() + ' PID (failed)');
-        exit;
-    end;
-
-    if FIleExists(CYRUS_SYNC_CLIENT_BIN_PATH()) then begin
-       writeln('Stopping cyrus-imap..........: checking sync_client');
-       PID:=trim(CYRUS_SYNC_CLIENT_PID());
-       if length(PID)>0 then fpsystem('/bin/kill ' + PID);
-       PID:=trim(CYRUS_SYNC_CLIENT_PID());
-       while SYS.PROCESS_EXIST(PID) do begin
-          sleep(100);
-
-          if length(PID)>0 then begin
-             if SYS.PROCESS_EXIST(PID) then fpsystem('/bin/kill ' + PID);
-          end;
-          Inc(count);
-          if count>20 then begin
-             writeln('');
-             writeln('killing cyrus-imap...........: sync_client: ' + PID + ' PID.. (timeout)');
-              if length(PID)>0 then fpsystem('/bin/kill -9 ' + PID);
-             break;
-          end;
-          PID:=trim(CYRUS_SYNC_CLIENT_PID());
-       end;
-     end;
-
-PID:=trim(CYRUS_PID());
-   if not SYS.PROCESS_EXIST(PID) then begin
-      writeln('Stopping cyrus-imap..........: Main services: Done...');
-      SYS.MONIT_DELETE('APP_CYRUS');
-   end;
- if FIleExists(CYRUS_SYNC_CLIENT_BIN_PATH()) then begin
-      PID:=trim(CYRUS_PID());
-      if not SYS.PROCESS_EXIST(PID) then begin
-         writeln('Stopping cyrus-imap..........: Cluster client Done...');
-      end;
-end;
-
-
-end;
-
- //#############################################################################
 procedure Tcyrus.DB_CONFIG();
 var
    db_recover,configdirectory:string;
@@ -2352,317 +1961,16 @@ begin
 
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.cyrus.php --DB_CONFIG');
    logs.WriteToFile('#','/etc/artica-postfix/stop.cyrus.imapd');
-   CYRUS_DAEMON_STOP();
-   CYRUS_DAEMON_STOP();
+   fpsystem('/etc/init.d/cyrus-imapd stop');
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.cyrus.php --DB_CONFIG');
    logs.DebugLogs('Starting......: '+db_recover +' -h '+configdirectory);
    fpsystem(db_recover +' -h '+configdirectory);
    logs.DeleteFile('/etc/artica-postfix/stop.cyrus.imapd');
-   CYRUS_DAEMON_START();
+   fpsystem('/etc/init.d/cyrus-imapd start');
 
 end;
 
 
-procedure Tcyrus.WRITE_IMAPD_CONF();
-var
-   list2:TstringList;
-   cur_domain:string;
-   cur_email:string;
-
-   maxmessagesize:string;
-   CyrusAdmPlus:string;
-   quotawarn:string;
-   allowallsubscribe:string;
-   duplicatesuppression:string;
-   popminpoll:string;
-   autocreateinboxfolders,allowanonymouslogin,createonpost:string;
-   murderConf:TiniFIle;
-   backend_server_name,sasl_mech_list:string;
-   MURDER_BACKEND:string;
-   CyrusClusterID,EnableMechCramMD5,EnableMechDigestMD5,EnableMechLogin,EnableMechPlain:integer;
-   configdirectory:string;
-   partition_default:string;
-   srvtab:string;
-   CyrusImapDisableCluster:integer;
-   cyrus_id:integer;
-begin
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.cyrus.php --cyrusadm-ad');
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.cyrus.php --DB_CONFIG');
-CyrusAdmPlus:=trim(logs.ReadFromFile('/etc/artica-postfix/CyrusAdmPlus'));
-if length(CyrusAdmPlus)>0 then CyrusAdmPlus:=' '+CyrusAdmPlus;
-maxmessagesize:=IMAPD_GET_ARTICA('maxmessagesize');
-autocreateinboxfolders:=IMAPD_GET_ARTICA('autocreateinboxfolders');
-quotawarn:=IMAPD_GET_ARTICA('quotawarn');
-allowallsubscribe:=IMAPD_GET_ARTICA('allowallsubscribe');
-duplicatesuppression:=IMAPD_GET_ARTICA('duplicatesuppression');
-popminpoll:=IMAPD_GET_ARTICA('popminpoll');
-createonpost:=IMAPD_GET_ARTICA('createonpost');
-allowanonymouslogin:=IMAPD_GET_ARTICA('allowanonymouslogin');
-partition_default:=trim(SYS.GET_INFO('CyrusPartitionDefault'));
-if length(partition_default)=0 then partition_default:='/var/spool/cyrus/mail';
-
-if not TryStrToInt(SYS.GET_INFO('EnableMechCramMD5'),EnableMechCramMD5) then EnableMechCramMD5:=0;
-if not TryStrToInt(SYS.GET_INFO('EnableMechDigestMD5'),EnableMechDigestMD5) then EnableMechDigestMD5:=0;
-if not TryStrToInt(SYS.GET_INFO('EnableMechLogin'),EnableMechLogin) then EnableMechLogin:=1;
-if not TryStrToInt(SYS.GET_INFO('EnableMechPlain'),EnableMechPlain) then EnableMechPlain:=1;
-
-if EnableMechLogin=1 then sasl_mech_list:=sasl_mech_list+'LOGIN';
-if EnableMechPlain=1 then sasl_mech_list:=sasl_mech_list+' PLAIN';
-if EnableMechDigestMD5=1 then sasl_mech_list:=sasl_mech_list+' DIGEST-MD5';
-if EnableMechCramMD5=1 then sasl_mech_list:=sasl_mech_list+' CRAM-MD5';
-if length(trim(sasl_mech_list))=0 then sasl_mech_list:='LOGIN PLAIN';
-
-if not TryStrToInt(SYS.GET_INFO('CyrusImapDisableCluster'),CyrusImapDisableCluster) then CyrusImapDisableCluster:=0;
-if not TryStrToInt(SYS.GET_CLUSTER('cyrus_id'),cyrus_id) then cyrus_id:=0;
-
-
-if EnableCyrusMasterCluster=1 then begin
-    logs.DebugLogs('Starting......: cyrus-imapd change imapd.conf, this server is a "master server"');
-    logs.DebugLogs('Starting......: cyrus-imapd '+SYS.CHANGE_SERVICES_IP('csync',SYS.GET_INFO('CyrusClusterPort')));
-end;
-
-if EnableCyrusReplicaCluster=1 then begin
-    logs.DebugLogs('Starting......: cyrus-imapd change imapd.conf, this server is a "replica server"');
-    logs.DebugLogs('Starting......: cyrus-imapd '+SYS.CHANGE_SERVICES_IP('csync',SYS.GET_INFO('CyrusReplicaClusterPort')));
-end;
-    logs.DebugLogs('Starting......: cyrus-imapd Mech list: '+sasl_mech_list);
-
-
-//usermod -u 10000 tom
-
-   list2:=TstringList.Create;
-if CyrusEnableBackendMurder=1 then begin
-   list2.Add('configdirectory: /var/lib/cyrus-murder');
-   list2.Add('partition-default: '+partition_default);
-   list2.Add('ldap_uri: ldap://' + ldapserver.servername + ':' + ldapserver.Port);
-   list2.Add('sasl_mech_list: '+sasl_mech_list);
-   list2.Add('admins: murder');
-   logs.WriteToFile(list2.Text,'/etc/imap-murder.conf');
-   forcedirectories('/var/lib/cyrus-murder/socket');
-   forceDirectories('/var/lib/cyrus-murder/db');
-   logs.OutputCmd('/bin/chown -R cyrus:mail /var/lib/cyrus-murder');
-   logs.OutputCmd('/bin/echo "'+ldapserver.password+'"|/usr/sbin/saslpasswd2 -c murder');
-end;
-
-  configdirectory:='/var/lib/cyrus';
-  srvtab:='/var/lib/cyrus/srvtab';
-
-
-if CyrusImapDisableCluster=0 then begin
-  if FIleExists('/usr/sbin/glusterfsd') then begin
-     if SYS.IS_GLFS_MOUNTED('/var/lib/cyrus-clustered') then begin
-           logs.DebugLogs('Starting......: cyrus-imapd running in cluster GLFS mode');
-           configdirectory:='/var/lib/cyrus-clustered';
-           partition_default:='/var/spool/cyrus/mail-clustered';
-           srvtab:='/var/lib/cyrus-clustered/srvtab';
-
-
-
-           if cyrus_id>0 then begin
-                logs.DebugLogs('Starting......: Change cyrus id to '+IntToStr(cyrus_id));
-                fpsystem('usermod -o -u '+IntToStr(cyrus_id)+' cyrus');
-           end;
-
-           if sys.IsUserExists('bind') then begin
-              sys.AddUserToGroup('cyrus','bind','','');
-              sys.AddUserToGroup('bind','mail','','');
-           end;
-
-     end else begin
-         logs.DebugLogs('Starting......: /var/lib/cyrus-clustered is not mounted');
-     end;
-  end;
-end;
-
-
-
-   list2.Clear;
-   list2.Add('configdirectory: '+configdirectory);
-   list2.Add('defaultpartition: default');
-   list2.Add('partition-default: '+partition_default);
-   list2.Add('partition-news: /var/spool/cyrus/news');
-   list2.Add('srvtab: '+srvtab);
-   list2.Add('newsspool: '+ExtractFilePath(partition_default)+'news');
-   list2.Add('sievedir: '+ExtractFilePath(partition_default)+'sieve');
-   list2.Add('');
-   list2.Add('');
-   list2.Add('idlesocket: /var/run/cyrus/socket/idle');
-   list2.Add('notifysocket: /var/run/cyrus/socket/notify');
-   list2.Add('lmtpsocket: '+ trim(POSTFIX_QUEUE_DIRECTORY())+'/var/run/cyrus/socket/lmtp');
-   list2.Add('sasl_saslauthd_path:/var/run/saslauthd/mux');
-   list2.Add('');
-   list2.Add('');
-   list2.Add('altnamespace: no');
-   list2.Add('unixhierarchysep: yes');
-   list2.Add('lmtp_downcase_rcpt: yes');
-   list2.Add('umask: 077');
-   list2.Add('sieveusehomedir: false');
-   list2.Add('hashimapspool: true');
-   list2.Add('');
-   list2.Add('');
-   list2.Add('allowplaintext: yes');
-   list2.Add('sasl_pwcheck_method: saslauthd');
-   list2.Add('sasl_auto_transition: no');
-   list2.Add('sasl_minimum_layer: 0');
-   list2.Add('ldap_member_base:dc=organizations,' + ldapserver.suffix);
-   list2.Add('');
-   list2.Add('');
-   list2.Add('idlemethod: poll');
-   list2.Add('syslog_prefix: cyrus');
-   list2.Add('servername: ' + sys.HOSTNAME_g());
-
-if CyrusEnableBackendMurder=1 then begin
-   list2.Add('mupdate_server: '+sys.HOSTNAME_g());
-   list2.Add('mupdate_port: 3905');
-   list2.Add('mupdate_authname: murder');
-   list2.Add('mupdate_username: murder');
-   list2.Add('mupdate_password: '+ldapserver.password);
-   list2.Add('proxyservers: murder');
-end;
-
-
-
-if CyrusEnableImapMurderedFrontEnd=1 then begin
-   murderConf:=TiniFile.Create('/etc/artica-postfix/settings/Daemons/CyrusMurderBackendServer');
-   logs.DebugLogs('Starting......: cyrus-imapd change imapd.conf, enable murdered frontend server');
-   MURDER_BACKEND:=murderConf.ReadString('MURDER_BACKEND','servername','');
-   list2.Add('mupdate_server: '+MURDER_BACKEND);
-   list2.Add('mupdate_port: 3905');
-   list2.Add('mupdate_authname: murder');
-   list2.Add('mupdate_username: murder');
-   list2.Add('mupdate_password: '+ldapserver.password);
-   list2.Add('#mupdate_config: standard');
-   list2.Add('allowusermoves: true');
-   backend_server_name:=ansiReplaceText(MURDER_BACKEND,'.','_');
-   list2.Add(backend_server_name+'_authname: murder');
-   list2.Add(backend_server_name+'_password: '+ldapserver.password);
-   list2.Add('proxy_authname: murder');
-end;
-
-if EnableCyrusMasterCluster=1 then begin
-     murderConf:=TiniFile.Create('/etc/artica-postfix/settings/Daemons/CyrusClusterReplicaInfos');
-     logs.DebugLogs('Starting......: cyrus-imapd change imapd.conf, enable cluster Master server (notify '+murderConf.ReadString('REPLICA','servername',''));
-     if not TryStrToInt(SYS.GET_INFO('CyrusClusterID'),CyrusClusterID) then CyrusClusterID:=1;
-     list2.Add('sync_host: '+murderConf.ReadString('REPLICA','servername',''));
-     list2.Add('sync_authname: cyrus');
-     list2.Add('sync_password: '+murderConf.ReadString('REPLICA','password',''));
-     list2.Add('guid_mode: sha1');
-     list2.Add('sync_log: yes');
-     list2.Add('sync_repeat_interval: 60');
-     list2.Add('sync_batch_size: 1000');
-     list2.Add('sync_machineid: '+IntToStr(CyrusClusterID));
-end;
-
-
-   cur_domain:=SYS.DomainName();
-   if length(cur_domain)>0 then cur_email:=' cyrus@'+cur_domain;
-
-
-
-
-   if EnableVirtualDomainsInMailBoxes=1 then begin
-      logs.DebugLogs('Starting......: cyrus-imapd change imapd.conf, enable multi-domains..');
-      list2.Add('virtdomains: userid');
-      list2.Add('defaultdomain: localhost.localdomain');
-      list2.Add('sasl_mech_list: '+sasl_mech_list);
-   end else begin
-         list2.Add('virtdomains: no');
-         list2.Add('sasl_mech_list: '+sasl_mech_list);
-   end;
-
-
-if CyrusEnableBackendMurder=1 then cur_email:=cur_email+' murder';
-if CyrusEnableImapMurderedFrontEnd=1 then cur_email:=cur_email+' murder';
-
-   list2.Add('admins: cyrus'+cur_email+CyrusAdmPlus);
-   list2.Add('username_tolower: 1');
-   list2.Add('ldap_uri: ldap://' + ldapserver.servername + ':' + ldapserver.Port);
-
-
-if length(popminpoll)=0 then popminpoll:='0';
-if length(maxmessagesize)=0 then maxmessagesize:='0';
-if length(autocreateinboxfolders)=0 then autocreateinboxfolders:='sent|drafts|spam|templates';
-if length(quotawarn)=0 then quotawarn:='90';
-if length(allowallsubscribe)=0 then allowallsubscribe:='1';
-if length(duplicatesuppression)=0 then duplicatesuppression:='0';
-if length(allowanonymouslogin)=0 then allowanonymouslogin:='0';
-if length(createonpost)=0 then createonpost:='1';
-
-
-
-
-   logs.DebugLogs('Starting......: cyrus-imapd popminpoll............:'+popminpoll);
-   logs.DebugLogs('Starting......: cyrus-imapd maxmessagesize........:'+maxmessagesize);
-   logs.DebugLogs('Starting......: cyrus-imapd autocreateinboxfolders:'+autocreateinboxfolders);
-   logs.DebugLogs('Starting......: cyrus-imapd quotawarn.............:'+quotawarn);
-   logs.DebugLogs('Starting......: cyrus-imapd allowallsubscribe.....:'+allowallsubscribe);
-   logs.DebugLogs('Starting......: cyrus-imapd duplicatesuppression..:'+duplicatesuppression);
-   logs.DebugLogs('Starting......: cyrus-imapd allowanonymouslogin...:'+allowanonymouslogin);
-   logs.DebugLogs('Starting......: cyrus-imapd createonpost..........:'+createonpost);
-
-
-
-   list2.Add('');
-   list2.Add('');
-   list2.Add('autocreatequota: 0');
-   list2.Add('popminpoll: '+ popminpoll);
-   list2.Add('maxmessagesize: '+ maxmessagesize);
-   list2.Add('autocreateinboxfolders: '+ autocreateinboxfolders);
-   list2.Add('quotawarn: '+ quotawarn);
-   list2.Add('allowallsubscribe: '+ allowallsubscribe);
-   list2.Add('duplicatesuppression: '+ duplicatesuppression);
-   list2.Add('allowanonymouslogin: '+ allowanonymouslogin);
-   list2.Add('createonpost: '+ createonpost);
-   list2.Add('sieve_maxscriptsize: 1024');
-   list2.Add('');
-
-   if FIleExists('/etc/ssl/certs/cyrus.pem') then begin
-         list2.Add('tls_cert_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_key_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_imap_cert_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_imap_key_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_pop3_cert_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_pop3_key_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_lmtp_cert_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_lmtp_key_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('sieve_tls_key_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_sieve_cert_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_sieve_key_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_ca_file: /etc/ssl/certs/cyrus.pem');
-         list2.Add('tls_ca_path: /etc/ssl/certs');
-         list2.Add('tls_session_timeout: 1440');
-         list2.Add('tls_cipher_list: TLSv1+HIGH:!aNULL:@STRENGTH');
-   end;
-
-   list2.Add('tls_require_cert: false');
-   list2.Add('tls_imap_require_cert: false');
-   list2.Add('tls_pop3_require_cert: false');
-   list2.Add('tls_lmtp_require_cert: false');
-   list2.Add('tls_sieve_require_cert: false');
-
-   SYS:=Tsystem.Create;
-   if SYS.IsGroupExists('mail') then begin
-             logs.Debuglogs('IMPAD_CONF:: adding postfix user into mail group');
-      SYS.AddUserToGroup('postfix','mail','','');
-   end else begin
-
-       logs.Debuglogs('IMPAD_CONF:: mail group does not exists');
-   end;
-
-
-   logs.DebugLogs('Starting......: cyrus-imapd change imapd.conf done..');
-
-
-
-   try
-      logs.WriteToFile(list2.Text,'/etc/imapd.conf');
-   except
-   logs.Syslogs('Starting......: cyrus-imapd Fatal error, unable to change imapd.conf (CYRUS_IMAPD_CONFIGURE)..');
-   end;
-   list2.free;
-
-end;
- //#############################################################################
 
 
 procedure Tcyrus.WRITE_CYRUS_CONF();

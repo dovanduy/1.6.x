@@ -17,7 +17,7 @@ $GLOBALS["NOHUP"]=$unix->find_program("nohup");
 if($unix->process_exists($oldpid)){
 	$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
 	events("artica-background already executed pid $oldpid since $ProcessTime Minutes",__FUNCTION__,__LINE__);
-	echo("Starting......: artica-background Already executed pid $oldpid\n");
+	echo("Starting......: ".date("H:i:s")." artica-background Already executed pid $oldpid\n");
 	die();
 }
 
@@ -36,7 +36,7 @@ if($GLOBALS["TOTAL_MEMORY_MB"]<400){
 	$oldpid=@file_get_contents($GLOBALS["EXEC_PID_FILE"]);
 	if($unix->process_exists($oldpid,basename(__FILE__))){events("Process Already exist pid $oldpid");die();}	
 	$childpid=posix_getpid();
-	echo("Starting......: artica-background lower config, remove fork\n");
+	echo("Starting......: ".date("H:i:s")." artica-background lower config, remove fork\n");
 	@file_put_contents($GLOBALS["EXEC_PID_FILE"],$childpid);
 	FillMemory();
 	$renice_bin=$GLOBALS["CLASS_UNIX"]->find_program("renice");
@@ -62,7 +62,7 @@ if(function_exists("pcntl_signal")){
 	pcntl_signal(SIGCHLD,'sig_handler');
 	pcntl_signal(SIGHUP, 'sig_handler');
 }else{
-	print "Starting......: artica-background undefined function \"pcntl_signal\"\n";
+	print "Starting......: ".date("H:i:s")." artica-background undefined function \"pcntl_signal\"\n";
 	die();
 }
 
@@ -76,9 +76,9 @@ $pid=pcntl_fork();
 
 
 	if ($pid == -1) {
-	     die("Starting......: artica-background fork() call asploded!\n");
+	     die("Starting......: ".date("H:i:s")." artica-background fork() call asploded!\n");
 	} else if ($pid) {
-	     print "Starting......: artica-background fork()ed successfully.\n";
+	     print "Starting......: ".date("H:i:s")." artica-background fork()ed successfully.\n";
 	     die();
 	}
 
@@ -144,44 +144,7 @@ function MemoryInstances(){
 	
 	
 	
-$Toremove["exec.parse-orders.php"]=true;
-$Toremove["exec.syslog.php"]=true;
-$Toremove["exec.maillog.php"]=true;
-$Toremove["exec.status.php"]=true;
-$Toremove["exec.executor.php"]=true;
-$Toremove["exec.ufdbguard-tail.php"]=true;
-$Toremove["exec.squid-tail.php"]=true;
-$Toremove["exec.fetmaillog.php"]=true;
-$Toremove["exec.dansguardian-tail.php"]=true;	
-$Toremove["exec.cache-logs.php"]=true;
-$Toremove["exec.auth-tail.php"]=true;
-$Toremove["exec.artica-filter-daemon.php"]=true;	
-$Toremove["exec.postfix-logger.php"]=true;
-$Toremove["exec.squid2.logger.php"]=true;
-$Toremove["exec.openvpn.php"]=true;	
-$Toremove["exec.squid.blacklists.php"]=true;
-$Toremove["exec.parse-orders.php"]=true;
-$Toremove["exec.syslog.php"]=true;
-$Toremove["exec.maillog.php"]=true;
-$Toremove["exec.status.php"]=true;
-$Toremove["exec.executor.php"]=true;
-$Toremove["exec.ufdbguard-tail.php"]=true;
-$Toremove["exec.squid-tail.php"]=true;
-$Toremove["exec.fetmaillog.php"]=true;
-$Toremove["exec.dansguardian-tail.php"]=true;
-$Toremove["exec.auth-tail.php"]=true;
-$Toremove["exec.logfile_daemon.php"]=true;
-$Toremove["exec.cache-logs.php"]=true;
-$Toremove["exec.artica-filter-daemon.php"]=true;
-$Toremove["exec.postfix-logger.php"]=true;
-$Toremove["exec.squid2.logger.php"]=true;
-$Toremove["exec.openvpn.php"]=true;
-$Toremove["exec.schedules.php"]=true;
-$Toremove["exec.smtp-senderadv.php"]=true;
-$Toremove["external_acl_squid.php"]=true;
-$Toremove["exec.offlineimap.php"]=true;
-$Toremove["exec.mailbox.migration.php"]=true;
-$Toremove["exec.pdns.pipe.php"]=true;	
+	
 if(!is_file($pgrep)){return;}
 	
 	
@@ -333,172 +296,11 @@ if(!is_file($pgrep)){return;}
 	
 }
 
-function ParseLocalQueue(){
-		if(system_is_overloaded()){events("[OVERLOAD]:: running in max overload mode, aborting queue");return;}
-		$EnableArticaBackground=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableArticaBackground");
-		if(!is_numeric($EnableArticaBackground)){$EnableArticaBackground=1;}	
-	
-	if($EnableArticaBackground==0){
-		$mef=basename(__FILE__);
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,$mef)){events("Process Already exist pid $oldpid line:".__LINE__);return;}	
-		@file_put_contents($pidfile, getmypid());	
-	}
-	
-	$MemoryInstances=MemoryInstances();
-	if($MemoryInstances>4){events("Too much php processes in memory, aborting");return;}
-	if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
-
-	if(is_file("/etc/artica-postfix/orders.queue")){
-		$size=@filesize("/etc/artica-postfix/orders.queue");
-		if($size>0){
-			events("Loading /etc/artica-postfix/orders.queue $size bytes");
-			$orders_queue=explode("\n",@file_get_contents("/etc/artica-postfix/orders.queue"));
-			if(is_array($orders_queue)){
-				while (list ($num, $ligne) = each ($orders_queue) ){
-					if(trim($ligne)==null){continue;}
-					$orders[md5($ligne)]=$ligne;
-				}	
-			}
-		}
-		@unlink("/etc/artica-postfix/orders.queue");	
-	}
 
 
-if(is_file("/etc/artica-postfix/background")){
-		$size=@filesize("/etc/artica-postfix/background");
-		if($size>0){
-			events("Loading /etc/artica-postfix/background $size bytes");
-			$background=explode("\n",@file_get_contents("/etc/artica-postfix/background"));
-			if(is_array($background)){
-				while (list ($num, $ligne) = each ($background) ){
-					if(trim($ligne)==null){continue;}
-					$orders[md5($ligne)]=$ligne;
-				}
-			}
-		}
-		@unlink("/etc/artica-postfix/background");
-		
-}
 
-	if(is_file("/var/log/artica-postfix/executor-daemon.log")){
-		$time_exec=file_time_min("/var/log/artica-postfix/executor-daemon.log");
-		events("executor-daemon.log $time_exec Min");
-		if($time_exec>5){
-			events("artica-executor is freeze ($time_exec minutes), restart it (see /tmp/watchdog.executor.log)");
-			system(trim("/etc/init.d/artica-postfix restart artica-exec >/tmp/watchdog.executor.log 2>&1"));
-			events("done...");
-		}
-	}
-	$nice=$GLOBALS["EXEC_NICE"];
-	$nohup=$GLOBALS["NOHUP"];	
-	
-	if(is_file("/usr/share/artica-postfix/ressources/logs/global.status.ini")){
-		$time_status=file_time_min("/usr/share/artica-postfix/ressources/logs/global.status.ini");
-		events("global.status.ini $time_exec Min");
-		if($time_status>5){
-			events("artica-status is freeze ($time_status minutes for /usr/share/artica-postfix/ressources/logs/global.status.ini), restart it (see /tmp/watchdog.status.log)");
-			system(trim("/etc/init.d/artica-postfix restart artica-status >/tmp/watchdog.status.log 2>&1"),$results);
-			$cmd=trim($nice.$nohup." ".$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.status.php --all >/dev/null 2>&1 &");
-			events("$cmd done...");
-		}	
-	}
-	events("artica-executor: {$time_exec}mn; artica-status: {$time_status}mn ");
 
-	
-	if(count($orders)==0){
-		events("artica-executor: queue is empty...");
-		artica_exec();
-		return null;
-	}
-	
-	
-	
-	//events("[NORMAL]:: NICE={$GLOBALS["NICE"]}");
-	$nice=$GLOBALS["NICE"];
-	$orders_number=count($orders);
-	$count_max=$orders_number;
-	if($count_max>4){$count_max=4;}
-	if($orders_number>10){if(!$GLOBALS["OVERLOAD"]){$count_max=10;}}
-	$count=0;
-	
 
-	
-	if($count_max+$MemoryInstances>10){$count_max=10-$MemoryInstances;}
-	
-	if($GLOBALS["TOTAL_MEMORY_MB"]<400){
-		events("Lower config switch to 2 max processes...mem:{$GLOBALS["TOTAL_MEMORY_MB"]}MB");
-		$count_max=2;
-	}
-
-	while (list ($num, $cmd) = each ($orders) ){
-		if(trim($cmd)==null){continue;}
-		
-		$devnull=" >/dev/null 2>&1";
-		if(strpos($cmd,">")>0){$devnull=null;}
-		
-		if(preg_match("#artica-make#", $cmd)){
-			events("artica-make detected \"$cmd\", execute this task first...");
-			shell_exec("$nice$cmd$devnull");
-			unset($orders[$num]);
-		}
-	}
-	reset($orders);
-	
-	
-	events("Orders:$orders_number Loaded instances:$MemoryInstances Max to order:$count_max");
-	
-	while (list ($num, $cmd) = each ($orders) ){
-		usleep(2000);
-		if(trim($cmd)==null){continue;}
-		
-		$devnull=" >/dev/null 2>&1";
-		if(strpos($cmd,">")>0){$devnull=null;}
-
-		if(system_is_overloaded(__FILE__)){
-			events("Overloaded system, return....");
-			flush_queue($orders);
-			continue;
-		}
-		$count++;
-		events("[NORMAL]:: running in normal mode $nice$cmd$devnull &");
-		shell_exec("$nice$cmd$devnull &");
-		events("[NORMAL]::[$num] $cmd was successfully executed, parse next");
-		unset($orders[$num]);
-		if($count>=$count_max){break;}
-	}
-	
-	
-	events("$count/$orders_number order(s) executed...end;");
-	flush_queue($orders);
-}
-
-function flush_queue($orders){
-	$order_file="/etc/artica-postfix/background";
-	if(!is_array($orders)){@unlink($order_file);return;}
-	if(count($orders)==0){@unlink($order_file);return;}
-	reset($orders);
-	$fh = fopen("/etc/artica-postfix/background", 'w') or die("can't open file");
-	while (list ($num, $cmd) = each ($orders) ){
-		$datas="$cmd\n";
-		fwrite($fh, $datas);
-	}
-	fclose($fh);
-	events("Queued ". count($orders)." order(s)");	
-	
-}
-
-function artica_exec(){
-	if($GLOBALS["EXECUTOR_DAEMON_ENABLED"]==0){
-		$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
-		$nice=$GLOBALS["NICE"];
-		$cmd=trim($nice.$nohup." ".$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.executor.php --all >/dev/null 2>&1");
-		events("Executor disabled execute it \"$cmd\"");
-				
-		shell_exec($cmd);
-	}
-}
 
 function events($text){
 		

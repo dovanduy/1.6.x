@@ -53,7 +53,7 @@ echo $tpl->_ENGINE_parse_body($html);
 	
 function main_page(){
 	
-
+$page=CurrentPageName();
 	if($_GET["hostname"]==null){
 		$user=new usersMenus();
 		$_GET["hostname"]=$user->hostname;}
@@ -306,7 +306,7 @@ function main_config_pureftpd($returned=0){
 	<tr>
 		<td $style class=legend  colspan=3 aling='right'>
 		<hr>
-		". button("{apply}","javascript:Loadjs('$page?pure-js=yes')")."	
+		". button("{apply}","Loadjs('$page?pure-js=yes')")."	
 	</td>
 	</tr>
 	</tbody>

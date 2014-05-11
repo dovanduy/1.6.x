@@ -170,7 +170,7 @@ function blocked_uid_parse_array($array){
 		// $f[$uid][]="('$md5','$zdate','$sitename','$category','$hits')";
 		$sql="CREATE TABLE IF NOT EXISTS `blocked_$uidtable` ( `zmd5` varchar(90)  NOT NULL,
 		`zDate` date  NOT NULL,
-		`hits`  BIGINT(100)  NOT NULL,
+		`hits`  BIGINT UNSIGNED  NOT NULL,
 		`sitename` varchar(255)  NOT NULL,
 		`category` varchar(255),
 		PRIMARY KEY (`zmd5`),
@@ -213,7 +213,6 @@ function blocked_macuid($tablename){
 
 	while (list ($mac, $uid) = each ($array) ){
 		if($GLOBALS["VERBOSE"]){echo "$tablename, $mac -> $uid\n";}
-		if(IsCompressed($tablename)){Uncompress($tablename);}
 		$uid=mysql_escape_string2($uid);
 		$q->QUERY_SQL("UPDATE $tablename SET uid='$uid' WHERE MAC='$mac'");
 

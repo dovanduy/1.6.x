@@ -57,14 +57,16 @@ function FetchMailStatus(){
 	$datas=implode("\n",unserialize(base64_decode($sock->getFrameWork('cmd.php?fetchmail-status=yes'))));
 	$ini->loadString($datas);
 	$status=
-	"<table style='width:90%' class=form>
+	"
+	<div style='width:98%' class=form>
+	<table style='width:90%'>
 	<tr>
 	<td>".DAEMON_STATUS_ROUND("FETCHMAIL",$ini,null)."</td>
 	</tr>
 	<tr>
 	<td>".DAEMON_STATUS_ROUND("FETCHMAIL_LOGGER",$ini,null)."</td>
 	</tr>	
-	</table>";
+	</table></div>";
 	echo $tpl->_ENGINE_parse_body($status);
 	}
 
@@ -77,17 +79,19 @@ function fetch_quicklinks_start(){
 		$title=$tpl->javascript_parse_text('{ERROR_NOT_INSTALLED_REDIRECT}');
 		$html="
 		<center>
-		<table style='width:80%' class=form>
+		<div style='width:98%' class=form>
+		<table style='width:80%'>
 		<tr>
 			<td valign='top' width=1%><img src='img/software-remove-128.png'></td>
 			<td valign='top' width=99%><div style='font-size:18px'>{ERROR_NOT_INSTALLED_REDIRECT}</div>
 			<div style='float:right'>". imgtootltip("48-refresh.png","{refresh}","LoadAjax('BodyContent','fetchmail.index.php?quicklinks=yes');")."</div>
-			<p style='font-size:14px'>{fetchmail_about}
+			<p style='font-size:16px'>{fetchmail_about}
 			</p>
-			<div style='text-align:right'><hr>". button("{install}","InstallFetchmail()",18)."</div>
+			<div style='text-align:right'><hr>". button("{install}","InstallFetchmail()",24)."</div>
 		</td>
 		</tr>
 		</table>
+		</div>
 		</center>
 			<script>
 				function InstallFetchmail(){
@@ -216,7 +220,8 @@ function fetch_popup(){
 	
 	
 	$height="680px";	
-	if($_GET["newinterface"]<>null){ $style="style='font-size:14px'";$styleG="margin-top:8px;";$height="680px";}
+	$style="style='font-size:18px'";
+	$styleG="margin-top:8px;";$height="680px";
 
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -244,7 +249,7 @@ function fetch_popup(){
 		}	
 	
 		
-	return build_artica_tabs($html, "main_config_fetchmail");	
+	return build_artica_tabs($html, "main_config_fetchmail",990);	
 	
 	
 	
@@ -308,7 +313,7 @@ $html="
 	
 	
 	<tr>
-		<td colspan=2><div class=explain style='text-align:left;font-size:14px'>{fetchmail_about}</div></td>
+		<td colspan=2><div class=explain style='text-align:left;font-size:16px'>{fetchmail_about}</div></td>
 	</tr>
 	</table>
 	
@@ -348,19 +353,21 @@ function fetch_popup_enable(){
 	$t=time();
 	$html="
 	<div id='div-$t' style='width:99%' class=form>
-	<div style='font-size:18px;text-align:left'>{enable_fetchmail}</div>
-	<br><br>
-	<table style='width:100%'>
-	<tr>
-		<td valign='top'>
-		<div id='fetchFormEnable'>
-			" . Paragraphe_switch_img('{enable_fetchmail}','{enable_fetchmail_text}','enable_fetchmail',$EnableFetchmail)."
-		</div>
-		</td>
-		<td valign='top'><input type='button' value='{apply}&nbsp;&raquo&raquo;' 
-		OnClick=\"javascript:FetchMailEnable$t();\" style='font-size:16px;padding:15px;font-weight:bold'><hr><br>
-		<div class=explain>{fetchmail_about}</div>
-	</tr>
+	<div style='font-size:30px;text-align:left'>{enable_fetchmail}</div>
+	<p>&nbsp;</p>
+		<table style='width:100%'>
+		<tr>
+			<td valign='top'>
+			<div id='fetchFormEnable'>
+				" . Paragraphe_switch_img('{enable_fetchmail}',
+						'{enable_fetchmail_text}','enable_fetchmail',$EnableFetchmail,null,700)."
+			</div>
+			<div style='text-align:right'><hr>
+			". button("{apply}","FetchMailEnable$t()",42)."</div>
+			
+			<div class=explain style='font-size:18px;margin-top:30px'>{fetchmail_about}</div>
+			</td>
+		</tr>
 	</table>
 	</div>
 	<script>

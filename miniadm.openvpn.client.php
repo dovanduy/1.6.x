@@ -16,13 +16,13 @@ $tpl=new templates();
 $downloadvinvin=Paragraphe("setup-icon-64.png",
 		"{DOWNLOAD_OPENVPN_CLIENT}",
 		"{DOWNLOAD_OPENVPN_CLIENT_TEXT}",
-		"javascript:s_PopUp('http://www.artica.fr/download/openvpn-2.1.4-install.exe')",
+		"javascript:s_PopUp('http://www.articatech.net/download/openvpn-2.1.4-install.exe')",
 		"{DOWNLOAD_OPENVPN_CLIENT_TEXT}");
 
 $downloadapple=Paragraphe("apple-logo-64.png",
 		"{DOWNLOAD_OPENVPN_CLIENT_APPLE}",
 		"{DOWNLOAD_OPENVPN_CLIENT_TEXT}",
-		"javascript:s_PopUp('http://www.artica.fr/download/Tunnelblick_3.1.7.dmg')",
+		"javascript:s_PopUp('http://www.articatech.net/download/Tunnelblick_3.1.7.dmg')",
 		"{DOWNLOAD_OPENVPN_CLIENT_TEXT}");
 
 $build=Paragraphe("user-config-download-64.png",

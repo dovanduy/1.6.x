@@ -302,7 +302,7 @@ function graph1(){
 
 	$c=0;
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){senderror("$q->mysql_error<br>$sql");}
+	if(!$q->ok){$tpl->javascript_senderror($q->mysql_error,$_GET["container"]);}
 	if(mysql_num_rows($results)>0){
 
 		$nb_events=mysql_num_rows($results);

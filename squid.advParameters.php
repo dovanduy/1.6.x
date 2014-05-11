@@ -39,6 +39,8 @@
 	if(isset($_GET["allow_squid_localhost"])){allow_squid_localhost_save();exit;}
 	
 	if(isset($_GET["request_header_max_size"])){sizelimit_save();exit;}
+	if(isset($_GET["other"])){other();exit;}
+	if(isset($_POST["SquidStoreLogLogging"])){SquidStoreLogLogging_save();exit;}
 
 	
 js();
@@ -52,7 +54,7 @@ function js(){
 	if(isset($_GET["OnLyPorts"])){$OnLyPorts="&OnLyPorts=yes&t={$_GET["t"]}";}
 	$html="
 	function SquidAVParamStart(){
-		YahooWin6('650','$page?popup=yes$OnLyPorts','$title');
+		YahooWin6('880','$page?popup=yes$OnLyPorts','$title');
 	}
 	SquidAVParamStart()";
 	
@@ -415,44 +417,99 @@ function WCCP_SAVE(){
 	$squid->SaveToLdap();
 }
 
+function other(){
+	
+	
+	$t=time();
+	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$SquidStoreLogLogging=$sock->GET_INFO("SquidStoreLogLogging");
+	if(!is_numeric($SquidStoreLogLogging)){$SquidStoreLogLogging=0;}
+	
+	$html="
+
+	<H3>{other}</H3>
+	
+	
+	<div id='dic-$t' style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td style='font-size:16px;' class=legend>{enable_store_logging}:</td>
+		<td>". Field_checkbox("SquidStoreLogLogging-$t",1,$SquidStoreLogLogging)."</td>
+		<td>". help_icon("{enable_store_logging_explain}")."</td>
+	</tr>
+	
+	
+	
+	<tr>
+		<td colspan=3 align='right'>
+			<hr>
+				". button("{apply}","Save$t()",16)."
+		</td>
+	</tr>
+</table>
+</div>	
+		<script>
+	
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	RefreshTab('main_squid_adv');
+}
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('SquidStoreLogLogging-$t').checked){
+		XHR.appendData('SquidStoreLogLogging',1);
+	}else{
+		XHR.appendData('SquidStoreLogLogging',0);
+	}
+	
+	
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+	
+</script>
+	";
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($html);	
+	
+	
+}
+
+function SquidStoreLogLogging_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("SquidStoreLogLogging", $_POST["SquidStoreLogLogging"]);
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?reload-squid=yes");
+	
+}
+
 
 function popup(){
-	
+	$fontsize=16;
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["sizelimit"]=$tpl->_ENGINE_parse_body('{squid_sizelimit}');
+	$array["other"]=$tpl->_ENGINE_parse_body('{other}');
 	$array["http-safe-ports"]=$tpl->_ENGINE_parse_body('{http_safe_ports}');
 	$array["http-safe-ports-ssl"]=$tpl->_ENGINE_parse_body('{http_safe_ports} (SSL)');
 	$array["WCCP"]=$tpl->_ENGINE_parse_body('WCCP');
 	
 	if(isset($_GET["OnLyPorts"])){
+		unset($array["other"]);
 		unset($array["sizelimit"]);
 		unset($array["WCCP"]);
+		$fontsize=18;
 	}
 
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 	}
 	
 	
-	echo "
-	<div id=main_squid_adv style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_squid_adv').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_squid_adv");
+	
 	
 }
 
@@ -466,7 +523,7 @@ function http_safe_ports_popup(){
 	$new_port=$tpl->_ENGINE_parse_body("{new_port}");
 	$t=time();
 	$html="
-	<div class=explain>{HTTP_SAFE_PORTS_EXPLAIN}</div>
+	<div class=explain style='font-size:16px'>{HTTP_SAFE_PORTS_EXPLAIN}</div>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 	
 <script>
@@ -477,7 +534,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$ports', name : 'ID', width : 90, sortable : true, align: 'left'},
-		{display: '$note', name : 'TaskType', width : 394, sortable : false, align: 'left'},
+		{display: '$note', name : 'TaskType', width : 628, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'none', width : 50, sortable : false, align: 'center'},
 
 	],
@@ -493,7 +550,7 @@ buttons : [
 	useRp: false,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 590,
+	width: 825,
 	height: 300,
 	singleSelect: true
 	
@@ -550,7 +607,7 @@ function http_safe_ports_ssl_popup(){
 	$new_port=$tpl->_ENGINE_parse_body("{new_port}");
 	$t=time();	
 	$html="
-	<div class=explain>{HTTP_SAFE_PORTS_EXPLAIN} <strong>SSL/HTTPS</strong></div>
+	<div class=explain style='font-size:16px'>{HTTP_SAFE_PORTS_EXPLAIN} <strong>SSL/HTTPS</strong></div>
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 	
 	<script>
@@ -562,7 +619,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$ports', name : 'ID', width : 90, sortable : true, align: 'left'},
-		{display: '$note', name : 'TaskType', width : 394, sortable : false, align: 'left'},
+		{display: '$note', name : 'TaskType', width : 609, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'none', width : 50, sortable : false, align: 'center'},
 
 	],
@@ -578,7 +635,7 @@ buttons : [
 	useRp: false,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 590,
+	width: '95%',
 	height: 300,
 	singleSelect: true
 	

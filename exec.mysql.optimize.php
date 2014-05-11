@@ -16,6 +16,7 @@ $unix=new unix();
 
 if($argv[1]=="--cron"){set_cron();die();}
 if($argv[1]=="--optimize"){optimize();die();}
+if($argv[1]=="--repair"){repair_all();die();}
 
 
 
@@ -45,27 +46,34 @@ function set_cron(){
 		unset($f);	
 }
 
-function optimize(){
+function optimize($aspid=false){
 		$sock=new sockets();
 		$unix=new unix();
 		$q=new mysql();
 		$basename=basename(__FILE__);
 		$unix=new unix();
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
-		$pid=@file_get_contents($pidfile);
-		if($unix->process_exists($pid,$basename)){mysql_admin_events("Already running pid $pid, aborting",__FUNCTION__,__FILE__,__LINE__);return;}	
-		$t=0;			
+		if(!$aspid){
+			$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
+			$pid=@file_get_contents($pidfile);
+			if($unix->process_exists($pid,$basename)){mysql_admin_events("Already running pid $pid, aborting",__FUNCTION__,__FILE__,__LINE__);return;}	
+			$t=0;
+			
+			
+			$EnableMysqlOptimize=$sock->GET_INFO("EnableMysqlOptimize");
+			if(!is_numeric($EnableMysqlOptimize)){$EnableMysqlOptimize=0;}
+			if($GLOBALS["VERBOSE"]){echo "EnableMysqlOptimize= $EnableMysqlOptimize \n";}
+			if($EnableMysqlOptimize==0){return;}			
+			
+		}			
 		
-		
-		if($GLOBALS["VERBOSE"]){echo "Start ok ->CheckTables() \n";}
-		$q->BuildTables();	
-		$EnableMysqlOptimize=$sock->GET_INFO("EnableMysqlOptimize");
-		if(!is_numeric($EnableMysqlOptimize)){$EnableMysqlOptimize=0;}	
-		if($GLOBALS["VERBOSE"]){echo "EnableMysqlOptimize= $EnableMysqlOptimize \n";}
-		if($EnableMysqlOptimize==0){return;}
+
+
 		$t1=time();
 		$ARRAY=unserialize(base64_decode($sock->GET_INFO("MysqlOptimizeDBS")));
 		if($GLOBALS["VERBOSE"]){echo "MysqlOptimizeDBS= ".count($ARRAY)." \n";}
+		$ARRAY["artica_backup"]=1;
+		$ARRAY["artica_events"]=1;
+		$ARRAY["squidlogs"]=1;
 		
 		mysql_admin_events("Starting optimize ". count($ARRAY)." databases ",__FUNCTION__,__FILE__,__LINE__,"defrag");
 		$c=0;
@@ -75,7 +83,10 @@ function optimize(){
 			
 			if($enabled==1){
 				$c++;
-				optimize_tables($database);}
+				optimize_tables($database);
+				if(system_is_overloaded()){ mysql_admin_events("Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__); return; }
+				
+			}
 			
 		}
 	
@@ -106,3 +117,135 @@ function optimize_tables($database){
 		mysql_admin_events("Table $database/`$TableName` optimized $time",__FUNCTION__,__FILE__,__LINE__,"defrag");
 	}
 }
+
+function repair_all(){
+	
+	$unix=new unix();
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	if($GLOBALS["VERBOSE"]){echo "repair_all Loading done...\nTimeFile:$timefile\n";}
+	$unix=new unix();
+	
+	if(system_is_overloaded()){
+		mysql_admin_events("Overloaded system, aborting task",__FILE__,__LINE__);
+		return;
+	}
+	
+	
+	$oldpid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($oldpid<100){$oldpid=null;}
+	
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+			return;
+		}
+	
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<120){
+			if($GLOBALS["VERBOSE"]){echo "{$timeexec} <> 120...\n";}
+			return;
+		}
+	}
+	
+	$q=new mysql();
+	
+	
+	$myisamchk=$unix->find_program("myisamchk");
+	$sql="SHOW TABLE STATUS FROM `artica_backup`";
+	$q=new mysql();
+	
+	$MYSQL_DATA_DIR=$unix->MYSQL_DATA_DIR();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$TableName=$ligne["Name"];
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("ANALYZE TABLE $TableName","artica_backup"));
+		$comment=$ligne["Comment"];
+		echo "$TableName: {$ligne2["Msg_type"]} - {$ligne2["Msg_text"]} ($comment)\n$myisamchk --safe-recover $MYSQL_DATA_DIR/artica_backup/$TableName.MYI\n";
+		if($TableName=="squid_caches_center"){$ligne2["Msg_type"]="error";}
+		
+		if($ligne2["Msg_type"]=="error"){
+			if(is_file("$MYSQL_DATA_DIR/artica_backup/$TableName.MYI")){
+				mysql_admin_events("Repair: $MYSQL_DATA_DIR/artica_backup/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/artica_backup/$TableName.MYI");
+			}
+			continue;
+		}
+		
+		echo "$TableName -> $comment\n";
+		if(trim($comment)==null){continue;}
+		
+	}
+	
+	$sql="SHOW TABLE STATUS FROM `artica_events`";
+	$results=$q->QUERY_SQL($sql,"artica_events");
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$TableName=$ligne["Name"];
+		$comment=$ligne["Comment"];
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("ANALYZE TABLE $TableName","artica_events"));
+		$comment=$ligne["Comment"];
+		echo "$TableName: {$ligne2["Msg_type"]} - {$ligne2["Msg_text"]} ($comment)\n";
+		
+		if($ligne2["Msg_type"]=="error"){
+			if(is_file("$MYSQL_DATA_DIR/artica_events/$TableName.MYI")){
+				mysql_admin_events("Repair: $MYSQL_DATA_DIR/artica_events/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/artica_events/$TableName.MYI");
+			}
+			continue;
+		}
+		
+		if(trim($comment)==null){continue;}
+		
+		if(preg_match("#Incorrect key file for table#", $comment)){
+			if(is_file("$MYSQL_DATA_DIR/artica_events/$TableName.MYI")){
+				mysql_admin_events("Repair: $MYSQL_DATA_DIR/artica_events/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/artica_events/$TableName.MYI");
+			}
+			
+		}
+		
+		
+	}
+
+	$sock=new sockets();
+	$WORKDIR=$sock->GET_INFO("SquidStatsDatabasePath");
+	if($WORKDIR==null){$WORKDIR="/opt/squidsql";}	
+	if(is_dir($WORKDIR)){
+		$q=new mysql_squid_builder();
+		$sql="SHOW TABLE STATUS FROM `squidlogs`";
+		$results=$q->QUERY_SQL($sql);
+		$TableName=$ligne["Name"];
+		$comment=$ligne["Comment"];
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("ANALYZE TABLE $TableName","squidsql"));
+		
+		if($ligne2["Msg_type"]=="error"){
+			if(is_file("$MYSQL_DATA_DIR/squidsql/$TableName.MYI")){
+				mysql_admin_events("Repair: $MYSQL_DATA_DIR/squidsql/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidsql/$TableName.MYI");
+			}
+			continue;
+		}
+		
+		if(trim($comment)==null){continue;}
+		
+		if(preg_match("#Incorrect key file for table#", $comment)){
+			if(is_file("$MYSQL_DATA_DIR/squidsql/$TableName.MYI")){
+				mysql_admin_events("Repair: $MYSQL_DATA_DIR/squidsql/$TableName.MYI",__FUNCTION__,__FILE__,__LINE__);
+				shell_exec("$myisamchk --safe-recover $MYSQL_DATA_DIR/squidsql/$TableName.MYI");
+			}
+		}
+		
+		
+	}else{
+		echo "$WORKDIR no such dir\n";
+	}
+	
+	optimize(true);
+	
+}
+
+
+

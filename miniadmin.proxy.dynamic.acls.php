@@ -169,11 +169,11 @@ function ruleid_save(){
 	}
 	
 	if(!$q->FIELD_EXISTS("webfilter_aclsdynamic", "maxtime")){
-		$q->QUERY_SQL("ALTER TABLE `webfilter_aclsdynamic` ADD `maxtime` INT( 100 ) NOT NULL ,
+		$q->QUERY_SQL("ALTER TABLE `webfilter_aclsdynamic` ADD `maxtime` INT UNSIGNED ,
 					ADD INDEX ( `maxtime` )");
 	}
 	if(!$q->FIELD_EXISTS("webfilter_aclsdynamic", "duration")){
-		$q->QUERY_SQL("ALTER TABLE `webfilter_aclsdynamic` ADD `duration` INT( 100 ) NOT NULL ,
+		$q->QUERY_SQL("ALTER TABLE `webfilter_aclsdynamic` ADD `duration` INT UNSIGNED ,
 					ADD INDEX ( `duration` )");
 	}
 	
@@ -430,7 +430,7 @@ function rule_search(){
 		$urljsSIT="<a href=\"javascript:blur();\"
 		OnClick=\"javascript:$settings_js\"
 		style='font-size:16px;text-decoration:underline;color:$color'>";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$ligne["description"]=utf8_encode($ligne["description"]);
 	
 		$enabled=Field_checkbox("enable_{$ligne["ID"]}", 1,$ligne["enabled"],"DynAclEnable('{$ligne["ID"]}')");

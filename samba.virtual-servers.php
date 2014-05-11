@@ -216,7 +216,7 @@ function virtual_servers_list(){
 		if($ligne["hostname"]=="master"){continue;}
 		$md5=md5(serialize($ligne));
 		$color="black";
-		if($EnableSambaVirtualsServers==0){$color="#CCCCCC";}
+		if($EnableSambaVirtualsServers==0){$color="#8a8a8a";}
 		
 		$select="<a href=\"javascript:blur();\" OnClick=\"javascript:SambaVirtalServer('{$ligne["hostname"]}')\"
 		style='font-size:16px;text-decoration:underline;color:$color'>";
@@ -283,7 +283,7 @@ function virtual_servers_list_old(){
 		$select2=imgtootltip("32-network-server.png","{edit}","SambaVirtalServer('{$ligne["hostname"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","SambaVirtalDel('{$ligne["hostname"]}')");
 		$color="black";
-		if($EnableSambaVirtualsServers==0){$color="#CCCCCC";}
+		if($EnableSambaVirtualsServers==0){$color="#8a8a8a";}
 		$html=$html."
 		<tr class=$classtr>
 			<td width=1%>$select2</td>

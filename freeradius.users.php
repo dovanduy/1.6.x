@@ -22,6 +22,10 @@ ini_set('error_append_string',"</p>");
 	if(isset($_POST["EnableLocalLDAPServer"])){EnableLocalLDAPServer();exit;}
 	if(isset($_POST["member-delete"])){member_delete();exit;}
 	if(isset($_POST["EnableDisable"])){connection_enable();exit;}
+	if(isset($_GET["tab"])){tabs();exit;}
+	if(isset($_GET["page"])){page();exit;}
+	
+	
 	page();
 function member_id_js(){
 	$tpl=new templates();
@@ -40,6 +44,22 @@ function member_id_js(){
 	
 	echo "YahooWin2('650','$page?username-form-id=$id&t=$t','$title')";
 	
+}
+
+function tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["page"]='{administrators}';
+
+	while (list ($num, $ligne) = each ($array) ){
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=*\"><span>$ligne</span></a></li>\n");
+
+	}
+
+
+	echo build_artica_tabs($html, "administrators_tabs",1050)."<script>LeftDesign('users-search-opac20.png');</script>";
+
+
 }
 
 
@@ -67,25 +87,25 @@ function member_id(){
 	}	
 	
 	$groups=Field_array_Hash($GROUPS, "gpid-$t",$gpid,
-			"blur()",null,0,"font-size:16px");
+			"blur()",null,0,"font-size:22px");
 	
 	$html="<div id='anim-$t'></div>
-	<div style='width:95%' class=form>	
+	<div style='width:98%' class=form>	
 	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{username}:</td>
-		<td>". Field_text("username-$t",$ligne["username"],"font-size:16px;width:220px")."</td>		
+		<td class=legend style='font-size:22px'>{username}:</td>
+		<td>". Field_text("username-$t",$ligne["username"],"font-size:22px;width:220px")."</td>		
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td>". Field_password("value-$t",$ligne["value"],"font-size:16px;width:220px")."</td>		
+		<td class=legend style='font-size:22px'>{password}:</td>
+		<td>". Field_password("value-$t",$ligne["value"],"font-size:22px;width:220px")."</td>		
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{group}:</td>
+		<td class=legend style='font-size:22px'>{group}:</td>
 		<td>$groups</td>		
 	</tr>					
 	<tr>
-		<td colspan=2 align=right><hr>".button("$btname","Save$t()",18)."</td>
+		<td colspan=2 align=right><hr>".button("$btname","Save$t()",32)."</td>
 	</tr>	
 	</table>	
 	</div>
@@ -158,6 +178,7 @@ function page(){
 		$connection=$tpl->javascript_parse_text("{connection}");
 		$add=$tpl->javascript_parse_text("{new_member}");
 		$groups=$tpl->javascript_parse_text("{groups2}");
+		$members=$tpl->javascript_parse_text("{members}");
 		$freeradius_users_explain=$tpl->_ENGINE_parse_body("{freeradius_users_explain}");
 		$tablewidht=883;
 		$t=time();
@@ -179,9 +200,9 @@ echo "
 			url: '$page?query=yes&t=$t',
 			dataType: 'json',
 			colModel : [
-			{display: '&nbsp;', name : 'none2', width : 40, sortable : false, align: 'center'},
+			{display: '&nbsp;', name : 'none2', width : 62, sortable : false, align: 'center'},
 			{display: '$shortname', name : 'username', width : 740, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'none3', width : 40, sortable : false, align: 'center'},
+			{display: '&nbsp;', name : 'none3', width : 62, sortable : false, align: 'center'},
 		],
 		$buttons
 		searchitems : [
@@ -192,11 +213,11 @@ echo "
 		sortname: 'username',
 		sortorder: 'asc',
 		usepager: true,
-		title: '',
+		title: '<span style=font-size:18px>$members</span>',
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
-		width: $tablewidht,
+		width: '99%',
 		height: 450,
 		singleSelect: true
 		});
@@ -309,22 +330,30 @@ function connection_list(){
 	$data['page'] = $page;
 	$data['total'] = $total;
 	
+	if(mysql_num_rows($results)==0){
+		json_error_show("{no_member_stored_in_this_area}",1);
+	}
+	
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
 		$color="black";
-		$delete=imgsimple("delete-24.png",null,"ConnectionDelete$t('{$ligne['id']}')");
 		
 		
+		$delete=imgsimple("delete-48.png",null,"ConnectionDelete$t('{$ligne['id']}')");
+		
+		$GetGroup=GetGroup($ligne['username']);
 
 		$data['rows'][] = array(
 				'id' => $ligne['id'],
 				'cell' => array("
-						<img src='img/user-32.png'>",
+						<img src='img/user-48.png'>",
 						"<a href=\"javascript:blur();\" 
 						OnClick=\"javascript:Loadjs('$MyPage?member-id-js={$ligne['id']}&t=$t');\" 
-						style=\"font-size:16px;text-decoration:underline;color:$color\">
-						{$ligne['username']}</a>",
+						style=\"font-size:22px;text-decoration:underline;color:$color\">
+						{$ligne['username']}</a>
+						<div style='font-size:16px'><i>$GetGroup</i></div>
+						",
 						$delete
 				)
 		);
@@ -333,6 +362,18 @@ function connection_list(){
 	
 	echo json_encode($data);	
 	
+}
+
+function GetGroup($uid){
+	
+	$q=new mysql();
+	$results=$q->QUERY_SQL("SELECT groupname FROM radusergroup WHERE username='$uid'","artica_backup");
+
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$groupnames[]=$ligne["groupname"];
+	}
+	
+	return @implode(", ", $groupnames);
 }
 
 

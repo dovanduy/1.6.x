@@ -218,7 +218,7 @@ function Tpureftpd.PURE_FTPD_STATUS:string;
 var
 pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_PUREFTPD');
+
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --pure-ftpd >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

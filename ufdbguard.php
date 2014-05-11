@@ -68,7 +68,7 @@ function client_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{client_parameters}");
-	$html="YahooWin3('730','$page?ufdbclient=yes','$title');";
+	$html="YahooWin3('730','$page?ufdbclient=yes','$title',true);";
 	echo $html;
 	
 	
@@ -79,7 +79,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_UFDBGUARD}");
-	$html="YahooWin3('730','$page?tabs=yes','$title');";
+	$html="YahooWin3('730','$page?tabs=yes','$title',true);";
 	echo $html;
 	}
 	
@@ -132,7 +132,7 @@ function ufdbclient_popup(){
 	<div class=explain style='font-size:13px'>{ufdbclient_parms_explain}</div>
 	
 	<div id='$t-sock'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 		<table >
 		<tr>
 			<td class=legend style='font-size:14px'>{UseRemoteUfdbguardService}:</td>
@@ -156,7 +156,13 @@ function ufdbclient_popup(){
 	<script>
 	var x_SaveufdbGuardClient=function (obj) {
 		RefreshTab('main_ufdbguard_config');
-		RefreshTab('main_dansguardian_mainrules');
+		
+		var flexRT;
+		if( document.getElementById('WebFilteringMainTableID') ){
+			flexRT=document.getElementById('WebFilteringMainTableID').value;
+			$('#flexRT'+flexRT).flexReload();
+		}
+		
 		document.getElementById('$t').innerHTML='';
 		Loadjs('squid.compile.progress.php?ask=yes');
 	}	
@@ -270,7 +276,7 @@ function ufdbperf(){
 	
 	$html="
 	<div id='anim-$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<div class=explain style='font-size:16px'>{ufdb_perfs_explain}</div>
 	<table style='width:100%'>
 	
@@ -349,6 +355,13 @@ function popup(){
 	if(!is_numeric($datas["refreshuserlist"])){$datas["refreshuserlist"]=15;}
 	if(!is_numeric($datas["refreshdomainlist"])){$datas["refreshdomainlist"]=15;}
 	if(!is_numeric($datas["NoMalwareUris"])){$datas["NoMalwareUris"]=1;}
+	if(!is_numeric($datas["DisableExpressionList"])){$datas["DisableExpressionList"]=1;}
+	
+	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
+	$UfdbGuardThreads=$sock->GET_INFO("UfdbGuardThreads");
+	
+	
+	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	
 	
 	if(!is_numeric($UfdbDatabasesInMemory)){$UfdbDatabasesInMemory=0;}
@@ -380,10 +393,14 @@ function popup(){
 	$as27=0;
 	if($squid->IS_27){$as27=1;}
 	
+	if($UseRemoteUfdbguardService==1){$UseRemoteUfdbguardService_error="<p class=text-error>{warn_ufdbguard_remote_use}</p>";}
+	
 	$ips["all"]="{all}";
 	$html="
+	$UseRemoteUfdbguardService_error
+	<div id='From-ufdbguard'>
 	<div id='GuardSSL'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 	<td colspan=2><span style='font-size:16px'>{ssl}:</span>
@@ -411,7 +428,7 @@ function popup(){
 	
 	</table>
 	</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 	
@@ -423,7 +440,12 @@ function popup(){
 		<td class=legend style='font-size:14px'>{UfdbDatabasesInMemory}:</td>
 		<td>". Field_checkbox("UfdbDatabasesInMemory",1,$UfdbDatabasesInMemory)."</td>
 		<td width=1%>". help_icon("{UfdbDatabasesInMemory_explain}")."</td>
-	</tr>					
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{DisableExpressionLists}:</td>
+		<td>". Field_checkbox("DisableExpressionList",1,$datas["DisableExpressionList"])."</td>
+		<td width=1%>". help_icon("{DisableExpressionLists_explain}")."</td>
+	</tr>								
 	<tr>
 		<td class=legend style='font-size:14px'>{bypass_iffailed}:</td>
 		<td>". Field_checkbox("url_rewrite_bypass",1,$url_rewrite_bypass,"url_rewrite_bypassCheck()")."</td>
@@ -438,7 +460,14 @@ function popup(){
 		<td class=legend style='font-size:14px'>{minimum_reload_interval}:</td>
 		<td style='font-size:14px'>". Field_text("ufdbguardReloadTTL",$ufdbguardReloadTTL,"font-size:14px;width:90px")."&nbsp;{minutes}</td>
 		<td width=1%>&nbsp;</td>
-	</tr>		
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>Threads:</td>
+		<td style='font-size:14px'>". Field_text("UfdbGuardThreads",$UfdbGuardThreads,"font-size:14px;width:90px")."&nbsp;{minutes}</td>
+		<td width=1%>&nbsp;</td>
+	</tr>
+				
+				
 	<tr>
 		<td class=legend style='font-size:14px'>{enable_tcpsockets}:</td>
 		<td>". Field_checkbox("tcpsockets",1,$datas["tcpsockets"],"tcpsocketsCheck()")."</td>
@@ -504,6 +533,7 @@ function popup(){
 	</table>
 	</div>
 	</div>
+	</div>
 	<script>
 	var x_SaveufdbGuardSSLl=function (obj) {
 		RefreshTab('main_ufdbguard_config');
@@ -511,7 +541,11 @@ function popup(){
 
 	function CHECKWEBSTATS_APPLIANCE(){
 		var WEBSTATS_APPLIANCE=$WEBSTATS_APPLIANCE;
+		var UseRemoteUfdbguardService=$UseRemoteUfdbguardService;
 		if(WEBSTATS_APPLIANCE==1){document.getElementById('tcpsockets').disabled=true;}
+		if(UseRemoteUfdbguardService==1){
+			DisableFieldsFromId('From-ufdbguard');	
+		}
 	}
 
 	function tcpsocketsCheck(){
@@ -533,6 +567,8 @@ function popup(){
 	}
 	
 	function SaveufdbGuardSSL(){
+		var UseRemoteUfdbguardService=$UseRemoteUfdbguardService;
+		if(UseRemoteUfdbguardService==1){return;}
 		var XHR = new XHRConnection();
 		
 		
@@ -556,6 +592,10 @@ function popup(){
 		if(document.getElementById('allow-unknown-protocol-over-https').checked){
     		XHR.appendData('allow-unknown-protocol-over-https',1);}else{
     		XHR.appendData('allow-unknown-protocol-over-https',0);}     		
+
+		if(document.getElementById('DisableExpressionList').checked){
+    		XHR.appendData('DisableExpressionList',1);}else{
+    		XHR.appendData('DisableExpressionList',0);}    
     		
     		
 
@@ -598,6 +638,7 @@ function popup(){
     	XHR.appendData('ufdbguardReloadTTL',document.getElementById('ufdbguardReloadTTL').value);
     	XHR.appendData('refreshuserlist',document.getElementById('refreshuserlist').value);
     	XHR.appendData('refreshdomainlist',document.getElementById('refreshdomainlist').value);
+    	XHR.appendData('UfdbGuardThreads',document.getElementById('UfdbGuardThreads').value);
     	
     	
     		
@@ -646,6 +687,11 @@ function save_ssl(){
 		}
 	}
 	
+	if(isset($_POST["UfdbGuardThreads"])){
+		writelogs("SET_INFO UfdbGuardThreads= {$_POST["UfdbGuardThreads"]}",__FUNCTION__,__FILE__,__LINE__);
+		$sock->SET_INFO('UfdbGuardThreads', $_POST["UfdbGuardThreads"]);
+	}
+	
 	if(isset($_POST["ufdbguardReloadTTL"])){
 		writelogs("SET_INFO ufdbguardReloadTTL= {$_POST["ufdbguardReloadTTL"]}",__FUNCTION__,__FILE__,__LINE__);
 		$sock->SET_INFO('ufdbguardReloadTTL', $_POST["ufdbguardReloadTTL"]);
@@ -680,7 +726,7 @@ function import_export(){
 	$import=Paragraphe("64-import.png", "{import_rules}", "{import_acl_rules_explain}",
 			"javascript:Loadjs('dansguardian2.import.php')");
 	$html="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 	<td align='center'>$export</td>

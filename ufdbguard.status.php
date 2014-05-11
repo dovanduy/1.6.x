@@ -54,7 +54,11 @@ function service_cmds_perform(){
 	$html="<textarea style='height:450px;overflow:auto;width:100%;font-size:14px'>".@implode("\n", $datas)."</textarea>
 <script>
 	 document.getElementById('pleasewait-$t').innerHTML='';
-	RefreshTab('main_dansguardian_mainrules');
+	var flexRT;
+	if( document.getElementById('WebFilteringMainTableID') ){
+		flexRT=document.getElementById('WebFilteringMainTableID').value;
+		$('#flexRT'+flexRT).flexReload();
+	}
 </script>
 
 ";
@@ -65,14 +69,10 @@ function page(){
 	$tpl=new templates();
 	$t=time();
 	
-	$html="<table style='width:100%'>
-	<tr>
-		<td valign='top' width=5%>
-			<div id='service-status-$t'></div>
-		</td>
-		<td valign='top' width=99%><div id='main-status-$t'></div></td>
-	</tr>
-	</table>
+	$html="
+	<div id='service-status-$t'></div>
+	<div id='main-status-$t'>
+	
 	<script>
 		LoadAjax('service-status-$t','$page?service-status=yes&t=$t');
 	</script>
@@ -89,7 +89,7 @@ function main(){
 	$tpl=new templates();		
 	$t=time();
 	$html="
-		<div style='font-size:18px'>{webfilter}::{service_status}</div>
+		
 		<table style='width:99%' style='margin:10px'>
 		<tr>
 		<td valign='top'>
@@ -106,13 +106,7 @@ function main(){
 
 		
 		<script>
-			LoadAjaxTiny('ufdb-main-toolbox-status','dansguardian2.mainrules.php?rules-toolbox-left=yes');
-			setTimeout('dbstatus$t()',3000);
-			
-			function dbstatus$t(){
-				LoadAjaxTiny('artica-status-databases-$t','dansguardian2.databases.php?global-artica-status-databases=yes&t=$t');
-				
-			}			
+			LoadAjaxTiny('artica-status-databases-$t','dansguardian2.databases.php?global-artica-status-databases=yes&t=$t',false);
 		</script>
 		
 		";
@@ -129,8 +123,12 @@ function service_status(){
 	$ini=new Bs_IniHandler();
 	$sock=new sockets();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?ufdb-ini-status=yes')));
-	$APP_SQUIDGUARD_HTTP=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
-	$APP_UFDBGUARD=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
+	$tr[]=DAEMON_STATUS_ROUND("APP_UFDBGUARD",$ini,null,1);
+	$tr[]=DAEMON_STATUS_ROUND("APP_UFDBGUARD_CLIENT",$ini,null,1);
+	$tr[]=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
+
+	
+	$status=CompileTr3($tr);
 	
 	$html="
 		<center style='margin-top:10px;margin-bottom:10px;width:100%'>
@@ -146,16 +144,9 @@ function service_status(){
 		</tbody>
 		</table>
 		</center>	
-	<table style='width:245px' class=form>
-	<tr>
-		<td valign='top'>$APP_UFDBGUARD</td>
-	</tr>
-	<tr>
-		<td valign='top'>$APP_SQUIDGUARD_HTTP</td>
-	</tr>	
-	</table>
+	$status
 	<br>
-	<div id='ufdb-main-toolbox-status'></div>
+	<div id='main-status-$t'></div>
 	<script>
 		LoadAjax('main-status-$t','$page?main=yes&t=$t');
 	</script>	

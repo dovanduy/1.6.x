@@ -59,7 +59,7 @@ function Status(){
 $kav=new kav4mailservers();
 $linkPattern=texttooltip($kav->pattern_date,'{time_date_com_text_moscow}','http://www.timeanddate.com/worldclock/city.html?n=166');
 $page=CurrentPageName();
-if($kav->pid==null){$img1="status_critical.gif";}else{$img1="status_ok.gif";}
+if($kav->pid==null){$img1="status_critical.png";}else{$img1="status_ok.png";}
 
 $status=RoundedLightGreen("
 <H4>Status</H4>
@@ -76,17 +76,17 @@ $status=RoundedLightGreen("
 </tr>
 
 <tr>
-	<td valign='top' align='center'><img src='img/icon_info.gif'></td>
+	<td valign='top' align='center'><img src='img/16-infos.png'></td>
 	<td align=right valign='top'><strong>{version}:</strong></td>
 	<td valign='top'>$kav->version</td>
 </tr>
 <tr>
-<td valign='top' align='center'><img src='img/icon_info.gif'></td>
+<td valign='top' align='center'><img src='img/16-infos.png'></td>
 <td nowrap align=right valign='top'><strong>{pattern_ver}:</strong></td>
 <td><strong>$linkPattern</strong></td>
 
 </tr>
-<tr><td colspan=3 align='right'>" . imgtootltip('icon_refresh-20.gif','{refresh}',"LoadAjax('servinfos','$page?Status=yes');")."</td></tr>
+<tr><td colspan=3 align='right'>" . imgtootltip('20-refresh.png','{refresh}',"LoadAjax('servinfos','$page?Status=yes');")."</td></tr>
 </table>");
 $tpl=new templates();
 echo $tpl->_ENGINE_parse_body($status);	

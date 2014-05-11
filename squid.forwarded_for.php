@@ -24,6 +24,7 @@
 	
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("x-Forwarded-For");
 	$page=CurrentPageName();
@@ -45,8 +46,9 @@ function popup(){
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
 	
-	
-	$arrayParams["transparent"]="{default}";
+	$arrayParams["on"]="{enabled}";
+	$arrayParams["off"]="{unknown}";
+	$arrayParams["transparent"]="{disabled}";
 	$arrayParams["delete"]="{anonymous}";
 	$arrayParams["truncate"]="{hide}";
 	$t=time();
@@ -55,7 +57,8 @@ function popup(){
 	
 	$html="
 	<div id='$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 		<tr>
 			<td class=legend style='font-size:16px'>x-Forwarded-For:</td>
 			<td>". Field_array_Hash($arrayParams,"x-Forwarded-For",$squid->forwarded_for,null,null,0,"font-size:16px")."</td>
@@ -69,13 +72,14 @@ function popup(){
 			</td>
 		</tr>
 	</table>
-	
+	</div>
 	<script>
 	var x_SaveSNMP$t=function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue);}
 		document.getElementById('$t').innerHTML='';
 		YahooWin3Hide();
+		Loadjs('squid.restart.php?onlySquid=yes&onlyreload=yes&ApplyConfToo=yes&ask=yes',true);
 	}	
 	
 	function SaveSNMP$t(){
@@ -97,6 +101,6 @@ function popup(){
 function save(){
 	$squid=new squidbee();
 	$squid->forwarded_for=$_POST["forwarded_for"];
-	$squid->SaveToLdap();
+	$squid->SaveToLdap(true);
 	
 }

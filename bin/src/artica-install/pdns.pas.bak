@@ -37,7 +37,7 @@ public
     procedure   RECURSOR_STOP();
     procedure   RECURSOR_START();
     function    STATUS:string;
-    function    MYSQL_EXISTS():boolean;
+
 
 END;
 

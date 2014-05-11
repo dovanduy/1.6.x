@@ -37,7 +37,7 @@ function build(){
 	@unlink("/etc/artica-postfix/croassroads.cmdline");
 
 	if(!is_array($MAIN["BACKENDS"])){
-		echo "Starting......: Crossroads Daemon no backend server\n";
+		echo "Starting......: ".date("H:i:s")." Crossroads Daemon no backend server\n";
 		return;
 	}
 		
@@ -75,7 +75,7 @@ function multiples_start(){
 	$xr=$GLOBALS["CLASS_UNIX"]->find_program("xr");
 	
 	if(!is_file($xr)){
-		if($GLOBALS["VERBOSE"]){echo "Starting......: Crossroads multiple xr no such binary\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Crossroads multiple xr no such binary\n";}
 		return;
 	} 
 		
@@ -83,8 +83,8 @@ function multiples_start(){
 	$sql="SELECT * FROM crossroads_smtp";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "Starting......: Crossroads multiple $q->mysql_error\n";return;}
-	if(mysql_num_rows($results)==0){echo "Starting......: Crossroads multiple no interfaces set\n";return;}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." Crossroads multiple $q->mysql_error\n";return;}
+	if(mysql_num_rows($results)==0){echo "Starting......: ".date("H:i:s")." Crossroads multiple no interfaces set\n";return;}
 	
 	
 	$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
@@ -105,7 +105,7 @@ function multiples_start(){
 		$cd=array();
 		$cd[]=$xr;
 		if(count($arrayConf["INSTANCES"])==0){
-			echo "Starting......: Crossroads multiple \"$ipaddr\" No clients set\n";
+			echo "Starting......: ".date("H:i:s")." Crossroads multiple \"$ipaddr\" No clients set\n";
 			continue;
 		}		
 		
@@ -127,10 +127,10 @@ function multiples_start(){
 			while (list ($ip, $none) = each ($arrayConf["INSTANCES"]) ){
 				if(!is_numeric($instancesParams["MAXCONS"][$ip])){$instancesParams["MAXCONS"][$ip]=0;}
 				if(!is_numeric($instancesParams["WEIGTH"][$ip])){$instancesParams["WEIGTH"][$ip]=1;}						
-				echo "Starting......: Crossroads multiple round-robbin to $ip:25{$instancesParams["MAXCONS"][$ip]}:{$instancesParams["WEIGTH"][$ip]}...\n";
+				echo "Starting......: ".date("H:i:s")." Crossroads multiple round-robbin to $ip:25{$instancesParams["MAXCONS"][$ip]}:{$instancesParams["WEIGTH"][$ip]}...\n";
 				$cd[]="--backend $ip:25:{$instancesParams["MAXCONS"][$ip]}:{$instancesParams["WEIGTH"][$ip]}";
 			}
-			echo "Starting......: Crossroads multiple \"$ipaddr\"...\n";
+			echo "Starting......: ".date("H:i:s")." Crossroads multiple \"$ipaddr\"...\n";
 			$cmdline=trim($nohup." ".@implode(" ",$cd)." >/dev/null 2>&1 &");
 			if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 			shell_exec($cmdline);
@@ -138,24 +138,24 @@ function multiples_start(){
 				sleep(1);
 				$pid=multiples_pid($ipaddr);
 				if($pid>0){
-					echo "Starting......: Crossroads multiple \"$ipaddr\" Success PID $pid...\n";
+					echo "Starting......: ".date("H:i:s")." Crossroads multiple \"$ipaddr\" Success PID $pid...\n";
 					break;
 				}
 			}
 		
 			if(multiples_pid($ipaddr)==0){
-				echo "Starting......: Crossroads multiple \"$ipaddr\" Failed...\n";
+				echo "Starting......: ".date("H:i:s")." Crossroads multiple \"$ipaddr\" Failed...\n";
 				if(!isset($GLOBALS["INET_I"][$ipaddr])){
-					echo "Starting......: Crossroads multiple \"$ipaddr\" seems not exists on this system, remove it...\n";
+					echo "Starting......: ".date("H:i:s")." Crossroads multiple \"$ipaddr\" seems not exists on this system, remove it...\n";
 					$sql="DELETE FROM crossroads_smtp WHERE ipaddr='$ipaddr'";
 					$q->QUERY_SQL($sql,"artica_backup");
 				}
-				echo "Starting......: Crossroads multiple \"$cmdline\"\n";
+				echo "Starting......: ".date("H:i:s")." Crossroads multiple \"$cmdline\"\n";
 			
 			}
 		}else{
 			
-			echo "Starting......: Crossroads multiple $ipaddr Already running PID: $pid\n";
+			echo "Starting......: ".date("H:i:s")." Crossroads multiple $ipaddr Already running PID: $pid\n";
 		}
 
 	}
@@ -229,12 +229,12 @@ function multiples_pid($ipaddr){
 function multiples_status(){
 	$GLOBALS["CLASS_UNIX"]=new unix();
 	$xr=$GLOBALS["CLASS_UNIX"]->find_program("xr");
-	if(!is_file($xr)){echo "Starting......: Crossroads multiple xr no such binary\n";return;} 
+	if(!is_file($xr)){echo "Starting......: ".date("H:i:s")." Crossroads multiple xr no such binary\n";return;} 
 	$version=crossroad_version();
 	$sql="SELECT * FROM crossroads_smtp";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(mysql_num_rows($results)==0){echo "Starting......: Crossroads multiple no interfaces set\n";return;}
+	if(mysql_num_rows($results)==0){echo "Starting......: ".date("H:i:s")." Crossroads multiple no interfaces set\n";return;}
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$arrayConf=unserialize($ligne["parameters"]);

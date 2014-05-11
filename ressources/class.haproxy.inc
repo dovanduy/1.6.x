@@ -38,7 +38,9 @@ class haproxy{
 		$sql="SELECT * FROM haproxy WHERE enabled=1";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,'artica_backup');
-		if(!$q->ok){if($GLOBALS["AS_ROOT"]){echo "Starting......: HAProxy building configuration failed $q->mysql_error\n";return;}}
+		if(!$q->ok){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building configuration failed $q->mysql_error\n";return;}}
+		if(mysql_num_rows($results)==0){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} No backend defined\n";return;}}
+		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$options=array();
 			$transparent_text=null;
@@ -137,6 +139,7 @@ class haproxy{
 	
 	
 	private function build_backends($servicename,$UseCookies=0){
+		
 		$sql="SELECT * FROM haproxy_backends WHERE enabled=1 AND servicename='$servicename'";
 		$q=new mysql();
 		if(!is_numeric($UseCookies)){$UseCookies=0;}
@@ -155,9 +158,36 @@ class haproxy{
 			if($UseCookies==1){$UseCookiesText=" cookie $servMD";}
 			if($MainConfig["maxconn"]>0){$maxconn=" maxconn $maxconn";}
 			if($MainConfig["postfix-send-proxy"]==1){$smtp_proxy=" send-proxy";}
-			$t[]="\tserver {$ligne["backendname"]} {$ligne["listen_ip"]}:{$ligne["listen_port"]}$smtp_proxy$UseCookiesText weight {$ligne["bweight"]}$maxconn check $check_params";
+			$t[]="\tserver {$ligne["backendname"]} {$ligne["listen_ip"]}:{$ligne["listen_port"]}$smtp_proxy$UseCookiesText weight {$ligne["bweight"]}$maxconn check $check_params".$this->outgoing_address($ligne["localInterface"]);
+			
+			
+				
+			
 		}
 		return @implode("\n",$t)."\n";
+		
+	}
+	
+	private function outgoing_address($localInterface=null){
+		if($localInterface==null){return;}
+		
+		if(!class_exists("unix")){
+			return " source [of $localInterface] usesrc clientip";
+		}
+		
+		if(!isset($GLOBALS["NETWORK_ALL_INTERFACES"])){
+			$unix=new unix();
+			$GLOBALS["NETWORK_ALL_INTERFACES"]=$unix->NETWORK_ALL_INTERFACES();
+		}
+		
+		$IPADDR=$GLOBALS["NETWORK_ALL_INTERFACES"][$localInterface]["IPADDR"];
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $localInterface = $IPADDR\n";}
+		if($IPADDR==null){return;}
+		if($IPADDR=="0.0.0.0"){return;}
+		if($IPADDR=="127.0.0.1"){return;}
+		return " source $IPADDR";
+		
+		
 		
 	}
 	
@@ -215,7 +245,8 @@ class haproxy_multi{
 		$q=new mysql();
 		
 		if(!$q->FIELD_EXISTS("haproxy", "tunnel_mode", "artica_backup")){		
-			$sql2="ALTER TABLE `haproxy` ADD `tunnel_mode` SMALLINT( 1 ) NOT NULL DEFAULT '0',ADD INDEX (`tunnel_mode`)"; 
+			$sql2="ALTER TABLE `haproxy` ADD `tunnel_mode` SMALLINT( 1 ) NOT NULL DEFAULT '0',
+					ADD INDEX (`tunnel_mode`)"; 
 			$q->QUERY_SQL($sql,"artica_backup");
 			if(!$q->ok){writelogs("$q->mysql_error\n$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}			
 		}
@@ -245,7 +276,7 @@ class haproxy_multi{
 		$q=new mysql();
 		if(!$q->TABLE_EXISTS("haproxy", "artica_backup")){$q->BuildTables();}
 		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo $q->mysql_error;
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $q->mysql_error\n";
 		writelogs("$q->mysql_error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		return;}
 		$this->CheckService();
@@ -255,7 +286,7 @@ class haproxy_multi{
 		$q=new mysql();
 		$sql="DELETE FROM haproxy_backends WHERE servicename='$this->servicename'";
 		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){echo $q->mysql_error;return;}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $q->mysql_error\n";return;}
 		$sql="DELETE FROM haproxy WHERE servicename='$this->servicename'";
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return;}		
@@ -278,6 +309,7 @@ class haproxy_backends{
 	var $dispatch_mode=null;
 	var $enabled=0;
 	var $MainConfig=array();
+	var $localInterface=null;
 	function haproxy_backends($servicename,$backendname){
 		
 		if($servicename<>null){
@@ -298,6 +330,7 @@ class haproxy_backends{
 		$this->listen_port=$ligne["listen_port"];
 		$this->enabled=$ligne['enabled'];
 		$this->bweight=$ligne["bweight"];
+		$this->localInterface=$ligne["localInterface"];
 		$this->MainConfig=unserialize(base64_decode($ligne["MainConfig"]));
 		
 	}
@@ -313,8 +346,8 @@ class haproxy_backends{
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(trim($ligne["backendname"])==null){
-			$sql="INSERT IGNORE INTO haproxy_backends (servicename,backendname,listen_ip,listen_port,bweight) 
-			VALUES ('$this->servicename','$this->backendname','$this->listen_ip','$this->listen_port','$this->bweight')";
+			$sql="INSERT IGNORE INTO haproxy_backends (servicename,backendname,listen_ip,listen_port,bweight,localInterface) 
+			VALUES ('$this->servicename','$this->backendname','$this->listen_ip','$this->listen_port','$this->bweight','$this->localInterface')";
 			
 		}else{
 			$sql="UPDATE haproxy_backends SET 
@@ -322,6 +355,7 @@ class haproxy_backends{
 				listen_port='$this->listen_port',
 				bweight='$this->bweight',
 				enabled='$this->enabled',
+				localInterface='$this->localInterface',
 				MainConfig='$MainConfig'
 				WHERE servicename='$this->servicename' AND  backendname='$this->backendname'
 				";

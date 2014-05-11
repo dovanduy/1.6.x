@@ -24,7 +24,7 @@ if($argv[1]=="--fsck"){fsck();exit;}
 function build(){
 	@unlink("/etc/greyhole.conf");
 	if(!checkdb()){
-		echo "Starting......: Checking database failed\n";
+		echo "Starting......: ".date("H:i:s")." Checking database failed\n";
 		return;
 	
 	}
@@ -35,7 +35,7 @@ function build(){
 	if(!is_numeric($EnableGreyHoleDebug)){$EnableGreyHoleDebug=0;}
 	
 	if($EnableGreyHoleDebug==1){$DEBUG="DEBUG";}else{$DEBUG="INFO";}
-	echo "Starting......: greyhole verbosity $DEBUG\n";
+	echo "Starting......: ".date("H:i:s")." greyhole verbosity $DEBUG\n";
 	$unix=new unix();
 	$q=new mysql();
 	$f[]="db_engine = mysql";
@@ -65,12 +65,12 @@ function build(){
 		}	
 		
 	$count=mysql_num_rows($results);
-	if($count==0){echo "Starting......: greyhole no pool defined\n";return;}
+	if($count==0){echo "Starting......: ".date("H:i:s")." greyhole no pool defined\n";return;}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$array=$autofs->hash_by_dn[$ligne["dn"]];
 		$FOLDER=$array["FOLDER"];
 		$size=$ligne["free_g"];
-		echo "Starting......: greyhole storage pool directory $FOLDER  min_free: {$size}gb\n";
+		echo "Starting......: ".date("H:i:s")." greyhole storage pool directory $FOLDER  min_free: {$size}gb\n";
 		$f[]="storage_pool_directory = /automounts/$FOLDER, min_free: {$size}gb";
 		if(!is_file("/automounts/$FOLDER/.greyhole_uses_this")){
 			@file_put_contents("/automounts/$FOLDER/.greyhole_uses_this","#");
@@ -82,7 +82,7 @@ function build(){
 	
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		echo "Starting......: greyhole {$ligne["shared_dir"]} with {$ligne["num_copies"]} num_copies\n";
+		echo "Starting......: ".date("H:i:s")." greyhole {$ligne["shared_dir"]} with {$ligne["num_copies"]} num_copies\n";
 		$f[]="num_copies[{$ligne["shared_dir"]}] = {$ligne["num_copies"]}";
 	}
 	
@@ -105,16 +105,16 @@ function checkdb(){
 	$q=new mysql();
 	if(!$q->DATABASE_EXISTS("greyhole")){
 		$createtable=true;
-		echo "Starting......: greyhole creating mysql database \"greyhole\"\n";
+		echo "Starting......: ".date("H:i:s")." greyhole creating mysql database \"greyhole\"\n";
 		$q->CREATE_DATABASE("greyhole");
 		if(!$q->ok){
-			echo "Starting......: greyhole $q->mysql_error\n";
+			echo "Starting......: ".date("H:i:s")." greyhole $q->mysql_error\n";
 			return false;
 		}
 	}
 	
 if(!$q->TABLE_EXISTS("settings","greyhole")){	
-	echo "Starting......: greyhole create table \"settings\"\n";
+	echo "Starting......: ".date("H:i:s")." greyhole create table \"settings\"\n";
 		$sql="CREATE TABLE `settings` (
 		`name` TINYTEXT NOT NULL,
 		`value` TEXT NOT NULL,
@@ -131,7 +131,7 @@ if(!$q->TABLE_EXISTS("settings","greyhole")){
 	
 	
 if(!$q->TABLE_EXISTS("tasks","greyhole")){	
-	echo "Starting......: greyhole create table \"tasks\"\n";
+	echo "Starting......: ".date("H:i:s")." greyhole create table \"tasks\"\n";
 		$sql="CREATE TABLE `tasks` (
 		`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 		`action` VARCHAR( 10 ) NOT NULL,
@@ -147,7 +147,7 @@ if(!$q->TABLE_EXISTS("tasks","greyhole")){
 }
 	
 if(!$q->TABLE_EXISTS("tasks_completed","greyhole")){	
-	echo "Starting......: greyhole create table \"tasks_completed\"\n";
+	echo "Starting......: ".date("H:i:s")." greyhole create table \"tasks_completed\"\n";
 		$sql="CREATE TABLE `tasks_completed` (
 		`id` BIGINT UNSIGNED NOT NULL,
 		`action` VARCHAR( 10 ) NOT NULL,
@@ -158,10 +158,10 @@ if(!$q->TABLE_EXISTS("tasks_completed","greyhole")){
 		`event_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		) ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,"greyhole");	
-		if(!$q->ok){echo "Starting......: greyhole $q->mysql_error\n";} 
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." greyhole $q->mysql_error\n";} 
 	}
 	
-	echo "Starting......: greyhole checking database and table done\n";
+	echo "Starting......: ".date("H:i:s")." greyhole checking database and table done\n";
 	return true;
 }
 

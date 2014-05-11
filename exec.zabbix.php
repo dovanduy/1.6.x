@@ -15,21 +15,21 @@ function TestDatabase(){
 	
 	$sql=new mysql();
 	if(!$sql->DATABASE_EXISTS("zabbix")){
-		echo "Starting......: Zabbix server daemon creating database\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix server daemon creating database\n";
 		$sql->CREATE_DATABASE("zabbix");
 		CreateTables();
 	}
 	
 	if(!$sql->DATABASE_EXISTS("zabbix")){
-		echo "Starting......: Zabbix server daemon creating database FAILED\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix server daemon creating database FAILED\n";
 		die();
 	}
 	
 	
 	$TablesCount=TablesCount();
-	echo "Starting......: Zabbix server $TablesCount tables\n";
+	echo "Starting......: ".date("H:i:s")." Zabbix server $TablesCount tables\n";
 	if($TablesCount<66){CreateTables();}
-	echo "Starting......: Zabbix server daemon database success\n";
+	echo "Starting......: ".date("H:i:s")." Zabbix server daemon database success\n";
 	UpdateAdmin();
 }
 
@@ -46,7 +46,7 @@ function CreateTables(){
 	
 	while (list ($num, $file) = each ($f) ){
 		if($file==null){continue;}
-		echo "Starting......: Zabbix server daemon importing ". basename($file)."\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix server daemon importing ". basename($file)."\n";
 		shell_exec($cmd.$file);
 	}	
 	
@@ -156,7 +156,7 @@ if($EnableZabbixServer==1){
 		$f[]="DBPassword=$q->mysql_password";
 		$f[]="#DBSocket=/tmp/mysql.sock";
 		@file_put_contents(server_conf_path(),implode("\n",$f));	
-		echo "Starting......: Zabbix server configuration file done\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix server configuration file done\n";
 		
 		unset($f);
 		$f[]="<?php";
@@ -190,7 +190,7 @@ if($EnableZabbixServer==1){
 		$f[]="##";
 		$f[]="?>";
 		@file_put_contents("/usr/share/zabbix/conf/zabbix.conf.php",implode("\n",$f));
-		echo "Starting......: Zabbix web configuration file done\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix web configuration file done\n";
 		shell_exec($unix->find_program("ln")." -s /usr/share/zabbix /usr/share/artica-postfix/zabbix >/dev/null 2>&1");		
 	}
 unset($f);
@@ -208,7 +208,7 @@ if($EnableZabbixAgent==1){
 		$f[]="UserParameter=mysql.qps,mysqladmin -u{$q->mysql_admin} -p{$q->mysql_password} status|cut -f9 -d\":\"";
 		$f[]="UserParameter=mysql.version,mysql -V";
 		@file_put_contents("/etc/zabbix/zabbix_agent.conf",implode("\n",$f));	
-		echo "Starting......: Zabbix agent configuration file done\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix agent configuration file done\n";
 		unset($f);
 		$user=new usersMenus();
 		$f[]="Server=$ZabbixAgentServerIP";
@@ -234,7 +234,7 @@ if($EnableZabbixAgent==1){
 		$f[]="#LogFileSize=1";
 		$f[]="Timeout=3";
 		@file_put_contents("/etc/zabbix/zabbix_agentd.conf",implode("\n",$f));
-		echo "Starting......: Zabbix agent configuration daemon file done\n";
+		echo "Starting......: ".date("H:i:s")." Zabbix agent configuration daemon file done\n";
 	}
 
 }

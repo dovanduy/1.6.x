@@ -406,13 +406,17 @@ function main_tabs(){
 	$array["service"]='{servicew}';
 	$array["mailbox"]='{mailbox_settings}';
 	$array["transport_settings"]='{transport_settings}';
-	$array["transport_table"]="{transport_table}";
+	//$array["transport_table"]="{transport_table}";
 	
 	
 	//$array["filters"]=$filters_settings;
 	//$array["filters-connect"]="{filters_connect}";
 	
-
+	$style="style='font-size:14px'";
+	
+	if(isset($_GET["font-size"])){
+		$style="style='font-size:{$_GET["font-size"]}px'";
+	}
 	
 	if($EnablePostfixMultiInstance==1){
 		unset($array["security_settings"]);
@@ -424,26 +428,26 @@ function main_tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="synthesis"){
-			$html[]= "<li><a href=\"postfix.synthesis.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $style><a href=\"postfix.synthesis.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		
 		if($num=="service"){
-			$html[]= "<li><a href=\"postfix.service.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $style><a href=\"postfix.service.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 
 		if($num=="transport_table"){
-			$html[]= "<li><a href=\"postfix.transport.table.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $style><a href=\"postfix.transport.table.php?hostname=$hostname\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		
 		
-		$html[]= "<li><a href=\"$page?main=$num&hostname=$hostname\"><span>$ligne</span></a></li>\n";
+		$html[]= "<li $style><a href=\"$page?main=$num&hostname=$hostname\"><span>$ligne</span></a></li>\n";
 	}
 	
 	
-	return build_artica_tabs($html, "main_config_postfix",950)."<script> QuickLinkShow('quicklinks-APP_POSTFIX'); </script>";		
+	return build_artica_tabs($html, "main_config_postfix",1000)."<script>LeftDesign('messaging-service-256-opac20.png');</script>";		
 }
 
 
@@ -579,16 +583,17 @@ function backup_save(){
 function sasl_script(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$sasl_title=$tpl->_ENGINE_parse_body("{sasl_title}");
 	
 	$html="
 	function sals_script_start(){
-		YahooWin2(700,'$page?popup-auth=yes','$sasl_title'); 
+		YahooWin2(1000,'$page?popup-auth=yes','$sasl_title'); 
 	}
 	
 
 	function SaslStatus(){
-		YahooWin3(650,'$page?popup-auth-status=yes','$sasl_title'); 
+		YahooWin3(750,'$page?popup-auth-status=yes','$sasl_title'); 
 	}
 	
 	function SasladvOptions(){
@@ -835,35 +840,22 @@ function sasl_popup(){
 	
 	$page=CurrentPageName();
 	$array["popup-auth-status"]="{status}";
+	$array["popup-auth-adv"]="{advanced_options}";
 	$array["popup-auth-mech"]='{auth_mechanism}';
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]="<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 			
 		}	
 	
-	$tab="<div id=main_popup_sasl_auth style='width:100%;height:700px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_popup_sasl_auth').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
 	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($tab);	
+	
+	echo build_artica_tabs($html, "main_popup_sasl_auth",950)."
+	
+	<script>LeftDesign('authentication-white-256-opac20.png');</script>";
+
 	
 }
 
@@ -892,33 +884,33 @@ function sasl_popup_auth(){
 	if(!is_numeric($EnableMechPlain)){$EnableMechPlain=1;}	
 	
 $html="
-	<div id='sasl-auth-div'>
-	<table style='width:99%' class=form>
+	<div id='sasl-auth-div'  style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-	<td align='right' class=legend style='font-size:13px'>plain:</stong></td>
+	<td align='right' class=legend style='font-size:18px'>plain:</stong></td>
 	<td>" . Field_checkbox('plain',1,$EnableMechPlain)."</td>
 	<td width=1%></td>
 	</tr>
 
 	<tr>
-	<td align='right' class=legend style='font-size:13px'>login:</stong></td>
+	<td align='right' class=legend style='font-size:18px'>login:</stong></td>
 	<td>" . Field_checkbox('login',1,$EnableMechLogin)."</td>
 	<td width=1%></td>
 	</tr>	
 
 	<tr>
-	<td align='right' class=legend style='font-size:13px'>cram-md5:</stong></td>
+	<td align='right' class=legend style='font-size:18px'>cram-md5:</stong></td>
 	<td>" . Field_checkbox('cram-md5',1,$EnableMechCramMD5)."</td>
 	<td width=1%></td>
 	</tr>	
 	
 	<tr>
-	<td align='right' class=legend style='font-size:13px'>digest-md5:</stong></td>
+	<td align='right' class=legend style='font-size:18px'>digest-md5:</stong></td>
 	<td>" . Field_checkbox('digest-md5',1,$EnableMechDigestMD5)."</td>
 	<td width=1%></td>
 	</tr>	
 	<tr>
-		<td colspan=3 align='right'><hr>". button('{apply}',"SaveSMTPAuthMech()")."</td>
+		<td colspan=3 align='right'><hr>". button('{apply}',"SaveSMTPAuthMech()",24)."</td>
 	</tr>
 	</table>
 	</div>
@@ -933,7 +925,6 @@ $html="
 	
 		function SaveSMTPAuthMech(){
 			var XHR=XHRParseElements('sasl-auth-div');
-			document.getElementById('sasl-auth-div').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
 			XHR.sendAndLoad('$page', 'GET',x_SaveSMTPAuthMech);
 		}
 	
@@ -950,23 +941,29 @@ function sasl_popup_status(){
 	$page=CurrentPageName();
 	$ldap=new clladp();
 	$main=new smtpd_restrictions();
-	
 	$sock=new sockets();
+	$PostfixEnableMasterCfSSL=intval($sock->GET_INFO("PostfixEnableMasterCfSSL"));
+	
 	$PostfixEnableSubmission=$sock->GET_INFO("PostfixEnableSubmission");
 	$PostFixSmtpSaslEnable=$sock->GET_INFO("PostFixSmtpSaslEnable");
 	$TrustMyNetwork=$sock->GET_INFO("TrustMyNetwork");
 	if(!is_numeric($TrustMyNetwork)){$TrustMyNetwork=1;}
 	$enabled=$PostFixSmtpSaslEnable;
-	$sasl=Paragraphe_switch_img('{sasl_title}','{sasl_intro}','enable_auth',$enabled,'{enable_disable}',390);
-	$settings=Paragraphe("rouage-64.png","{advanced_options}","{advanced_options}","javascript:SasladvOptions()");
+	$sasl=Paragraphe_switch_img('{sasl_title}','{sasl_intro}','enable_auth',$enabled,'{enable_disable}',550);
+	
 	
 	$smtpd_sasl_exceptions_networks=Paragraphe("64-white-computer.png",
 	"{smtpd_sasl_exceptions_networks}","{smtpd_sasl_exceptions_networks_text}","javascript:Loadjs('smtpd_sasl_exceptions_networks.php')");
 	
 	
-	$PostfixEnableSubmission_field=Paragraphe_switch_img('{PostfixEnableSubmission}','{PostfixEnableSubmission_text}','PostfixEnableSubmission',$PostfixEnableSubmission,'{enable_disable}',390);
+	$PostfixEnableSubmission_field=Paragraphe_switch_img('{PostfixEnableSubmission}','{PostfixEnableSubmission_text}','PostfixEnableSubmission',$PostfixEnableSubmission,'{enable_disable}',550);
 	
-	$TrustMyNetwork_field=Paragraphe_switch_img('{TrustMyNetwork}','{TrustMyNetwork_text}','TrustMyNetwork',$TrustMyNetwork,'{enable_disable}',390);
+	$TrustMyNetwork_field=Paragraphe_switch_img('{TrustMyNetwork}','{TrustMyNetwork_text}','TrustMyNetwork',$TrustMyNetwork,'{enable_disable}',550);
+	
+	
+	
+	$ENABLE_SMTPS=Paragraphe_switch_img('{ENABLE_SMTPS}','{SMTPS_TEXT}','PostfixEnableMasterCfSSL',$PostfixEnableMasterCfSSL,null,550);
+	
 	
 $html="
 	<div id='sasl-id'>
@@ -976,15 +973,15 @@ $html="
 			$sasl
 			<hr>$TrustMyNetwork_field
 			<hr>$PostfixEnableSubmission_field
-			
+			<hr>$ENABLE_SMTPS
 			<div style='text-align:right'>
+			<hr>". button("{apply}","enable_auth()",24). "
 			</div>
 		</td>
 	<td valign='top'>
-		" . Paragraphe("64-settings-black.png","{SASL_STATUS}","{SASL_STATUS_TEXT}","javascript:SaslStatus();")."
-			$settings
+		
 			$smtpd_sasl_exceptions_networks
-			<hr><center>". button("{apply}","enable_auth()",18). "</center>
+			
 	</td>
 	</tr>
 	</table>
@@ -1002,7 +999,7 @@ $html="
 		XHR.appendData('save_auth',document.getElementById('enable_auth').value);
 		XHR.appendData('PostfixEnableSubmission',document.getElementById('PostfixEnableSubmission').value);
 		XHR.appendData('TrustMyNetwork',document.getElementById('TrustMyNetwork').value);
-		AnimateDiv('sasl-id');
+		XHR.appendData('PostfixEnableMasterCfSSL',document.getElementById('PostfixEnableMasterCfSSL').value);
 		XHR.sendAndLoad('$page', 'GET',X_enable_auth);	
 	
 	}
@@ -1214,6 +1211,7 @@ function sasl_save(){
 	$socks->SET_INFO('PostfixEnableSubmission',$_GET["PostfixEnableSubmission"]);
 	$socks->SET_INFO('PostFixSmtpSaslEnable',$_GET["save_auth"]);
 	$socks->SET_INFO('TrustMyNetwork',$_GET["TrustMyNetwork"]);
+	if(isset($_GET["PostfixEnableMasterCfSSL"])){$socks->SET_INFo('PostfixEnableMasterCfSSL',$_GET["PostfixEnableMasterCfSSL"]);}
 	$socks->getFrameWork("cmd.php?postfix-smtp-sasl=yes");
 	$socks->getFrameWork("cmd.php?postfix-ssl=yes");
 	
@@ -1414,7 +1412,7 @@ function filters_connect_section(){
 	if($hostname==null){$hostname=$users->hostname;}
 	
 	if($users->DkimFilterEnabled==1){
-		$dkim=Paragraphe('folder-64-certified.png','{APP_DKIM_FILTER}','{dkim_filter}','dkim.index.php',null,210,null,0,true);
+		$dkim=Paragraphe('certified-64.png','{APP_DKIM_FILTER}','{dkim_filter}','dkim.index.php',null,210,null,0,true);
 	}
 	
 	if($users->OPENDKIM_INSTALLED){
@@ -1444,9 +1442,9 @@ function filters_connect_section(){
 	if($users->AMAVIS_INSTALLED){
 		if($AmavisFilterEnabled==1){
 			if($users->MAIL_DKIM_VERSION<>null){
-				$dkim=Paragraphe('folder-64-certified.png','{APP_DKIM_FILTER}','{dkim_filter}',"javascript:Loadjs('amavis.dkim.php?ou=". base64_encode("postfix-master")."&hostname=". $sock->GET_INFO("myhostname")."')",null,210,null,0,true);
+				$dkim=Paragraphe('certified-64.png','{APP_DKIM_FILTER}','{dkim_filter}',"javascript:Loadjs('amavis.dkim.php?ou=". base64_encode("postfix-master")."&hostname=". $sock->GET_INFO("myhostname")."')",null,210,null,0,true);
 			}else{
-				$dkim=Paragraphe('folder-64-certified-grey.png','{APP_DKIM_FILTER}:error_notinstalled','{not_enabled_in_amavis}<br>MAIL_DKIM_VERSION = null',null,210,null,0,true);
+				$dkim=Paragraphe('certified-64-grey.png','{APP_DKIM_FILTER}:error_notinstalled','{not_enabled_in_amavis}<br>MAIL_DKIM_VERSION = null',null,210,null,0,true);
 				
 			}
 			
@@ -1454,7 +1452,7 @@ function filters_connect_section(){
 			"javascript:Loadjs('spamassassin.dnsbl.php?ou=". base64_encode("postfix-master")."&hostname=". $sock->GET_INFO("myhostname")."')",null,210,null,0,true);
 			
 		}else{
-			$dkim=Paragraphe('folder-64-certified-grey.png','{APP_DKIM_FILTER}:error_notinstalled','{not_enabled_in_amavis}',null,null,210,null,0,true);
+			$dkim=Paragraphe('certified-64-grey.png','{APP_DKIM_FILTER}:error_notinstalled','{not_enabled_in_amavis}',null,null,210,null,0,true);
 		}
 	}
 	
@@ -1472,13 +1470,8 @@ function filters_connect_section(){
 
 	
 		
-	$miltergreylist=Paragraphe('64-milter-greylist.png','{APP_MILTERGREYLIST}','{APP_MILTERGREYLIST_TEXT}',
-	"javascript:Loadjs('milter.greylist.index.php?js=yes')",null,210,null,0,true);	
+	
 
-	if(!$users->MILTERGREYLIST_INSTALLED){
-		$miltergreylist=Paragraphe('64-milter-greylist-grey.png','{APP_MILTERGREYLIST}:error_notinstalled','{APP_MILTERGREYLIST_TEXT}',null,null,210,null,0,true);		
-		
-	}
 	
 		
 	
@@ -1487,8 +1480,7 @@ function filters_connect_section(){
 	$whitelist=Buildicon64("DEF_ICO_POSTFIX_WHITELIST");
 	$postfixInstantIptables=Buildicon64("DEF_ICO_MAIL_IPABLES");
 	
-	$APP_POSTFWD2=Paragraphe("Firewall-Secure-64.png","{APP_POSTFWD2}","{APP_POSTFWD2_ICON_TEXT}",
-	"javascript:Loadjs('postfwd2.php?instance=master&with-popup=yes')",null,210,null,0,true);
+
 	
 	if($EnablePostfixMultiInstance==1){
 		$miltergreylist=null;
@@ -1553,7 +1545,7 @@ function filter_connect_warning(){
 		$html="<div class=explain>
 		<table style='width:80%'>
 		<tr>
-		<td width=1%><img src='img/status_warning.gif'></rd>
+		<td width=1%><img src='img/status_warning.png'></rd>
 		<td style='font-size:13px;'>{enabled}: {RestrictToInternalDomains}</td>
 		<td width=1%>". help_icon("{RestrictToInternalDomains_text}")."</td>
 		</tr>
@@ -1832,8 +1824,6 @@ function icon_backup(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$page=CurrentPageName();
-	$backup=Paragraphe('folder-64-backup-grey.png','{backupemail_behavior}','{feature_disabled}',"",null,210,100);
-	$backup=Paragraphe('folder-64-backup.png','{backupemail_behavior}','{backupemail_behavior_text}',"javascript:Loadjs('$page?script=backup')",null,210,100,0,true);
 	
 	if($users->AMAVIS_INSTALLED){
 			if($users->EnableAmavisDaemon==1){
@@ -2165,7 +2155,8 @@ function tweaks(){
 		
 
 
-	$postfixStop=Paragraphe('pause-64.png','{stop_messaging}','{stop_messaging_text}',"javascript:Loadjs('postfix.stop.php')",90);
+	$postfixStop=Paragraphe('pause-64.png','{stop_messaging}','{stop_messaging_text}',
+			"javascript:Loadjs('postfix.stop.php',true)",90);
 	//$postfix_restrictions_classes=Paragraphe('folder-64-restrictions-classes.png','{postfix_restrictions_classes}','{restriction_classes_minitext}',"javascript:Loadjs('postfix.restrictions.classes.php?js=yes')",90);
 	$events=Paragraphe('64-mailevents.png','{postfix_events}','{logs_viewer_text}',"javascript:s_PopUp('postfix.events.php?pop=true',450,400)",90);
 	//$storage=Paragraphe('folder-storage2-64.png','{storage_rules}','{storage_rules_text}',"javascript:Loadjs('postfix.storage.rules.php')",90);
@@ -2173,9 +2164,14 @@ function tweaks(){
 	
 	
 	//$main_src=Paragraphe('folder-script-database-64.png','{main_ldap}','{main_ldap_explain}',"javascript:s_PopUp(\"postfix.report.php\",500,500,true)",90);
+	$watchdog_queue=Paragraphe('folder-watch-64.png','{watchdog_queue}','{watchdog_queue_text}',"javascript:Loadjs('postfix.postqueuep.php',true)",90);
 	$postmaster=Paragraphe('postmaster-64.png','{postmaster}','{postmaster_text}',"javascript:Loadjs('postfix.postmaster.php')",90);
-	$postmaster_identity=Paragraphe('postmaster-identity.png','{postmaster_identity}','{postmaster_identity_text}',"javascript:Loadjs('postfix.postmaster-ident.php')",90);
-	$UnknownUsers=Paragraphe('unknown-user-64.png','{unknown_users}','{postfix_unknown_users_tinytext}',"javascript:Loadjs('postfix.luser_relay.php')",90);
+	$postmaster_identity=Paragraphe('postmaster-identity.png','{postmaster_identity}','{postmaster_identity_text}',"javascript:Loadjs('postfix.postmaster-ident.php',true)",90);
+	$UnknownUsers=Paragraphe('unknown-user-64.png','{unknown_users}','{postfix_unknown_users_tinytext}',"javascript:Loadjs('postfix.luser_relay.php',true)",90);
+	$RemoveMessaging=Paragraphe('delete-64.png','{disable_messaging}','{disable_messaging_text}',
+			"javascript:Loadjs('postfix.disable.php',true)",90);
+	
+	
 	
 	
 	$ActiveDirectory=Paragraphe('wink-64.png','{active_directory_link}','{active_directory_linkmail_text}',
@@ -2185,7 +2181,7 @@ function tweaks(){
 	
 	//$massmailing=ParagrapheTEXT_disabled('mass-mailing-postfix-48.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',null,90);
 	if($users->EMAILRELAY_INSTALLED){
-		$massmailing=Paragraphe('mass-mailing-postfix-64.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',"javascript:Loadjs('postfix.massmailing.php')",90);
+		$massmailing=Paragraphe('mass-mailing-postfix-64.png','{emailings}','{ENABLE_MASSMAILING_TEXT}',"javascript:Loadjs('postfix.massmailing.php',true)",90);
 	}		
 	//$multi_infos=ParagrapheTEXT_disabled('postfix-multi-48-info.png','{POSTFIX_MULTI_INSTANCE_INFOS}',
 	///'{POSTFIX_MULTI_INSTANCE_INFOS_TEXT}',null,90);
@@ -2219,6 +2215,8 @@ function tweaks(){
 		$tr[]=$multi;
 		$tr[]=$multi_infos;
 		$tr[]=$postfixStop;
+		$tr[]=$RemoveMessaging;
+		$tr[]=$watchdog_queue;
 		$tr[]=$massmailing;
 		$tr[]=$pommo;
 		
@@ -2262,7 +2260,7 @@ $refresh
 <tbody>
 <tr>
 	<td style='width:99%'>$icons</td>
-	<td valign='top'><div id='Postfixservinfos'></div>
+	<td valign='top'><div id='Postfixservinfos' style='width:450px'></div>
 </tr>
 </tbody>
 </table>
@@ -2312,7 +2310,7 @@ function security2(){
 	$messages_restriction=Paragraphe('folder-message-restriction.png',
 	'{messages_restriction}','{messages_restriction_text}',"javascript:Loadjs('postfix.messages.restriction.php?script=yes')",null,210,null,0,true);
 	
-	$sasl=Paragraphe('64-smtp-auth.png','{SASL_TITLE}','{SASL_TEXT}',"javascript:Loadjs('postfix.index.php?script=auth');",null,210,null,0,true);
+	
 	
 	$internet_deny=Paragraphe('64-internet-deny.png','{INTERNET_DENY}','{INTERNET_DENY_TEXT}',"javascript:Loadjs('postfix.internet.deny.php')",null,210,100,0,true);	
 	

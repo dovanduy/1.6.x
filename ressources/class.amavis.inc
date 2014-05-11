@@ -223,9 +223,14 @@ class amavis{
 		if(!is_numeric($this->main_array["BEHAVIORS"]["admin_maps_by_ccat_cc_virus"])){$this->main_array["BEHAVIORS"]["admin_maps_by_ccat_cc_virus"]=1;}
 		
 		if(!is_numeric($this->main_array["BEHAVIORS"]["max_servers"])){
-			if($GLOBALS["AS_ROOT"]){echo "Starting......: amavisd-new max_servers is not set, define to 5\n";}
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new max_servers is not set, define to 5\n";}
 			$this->main_array["BEHAVIORS"]["max_servers"]="5";
 		}
+		if(intval($this->main_array["BEHAVIORS"]["max_servers"])<1){
+			$this->main_array["BEHAVIORS"]["max_servers"]=5;
+		}
+		
+		
 		if($this->main_array["BEHAVIORS"]["child_timeout"]==null){$this->main_array["BEHAVIORS"]["child_timeout"]="5*600";}
 		if($this->main_array["BEHAVIORS"]["max_requests"]==null){$this->main_array["BEHAVIORS"]["max_requests"]="30";}	
 		
@@ -311,7 +316,7 @@ function BuildNetworks(){
 			if($tcp->isIPAddressOrRange($val)){
 				$net[]=$val; 	
 			}else{
-				if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new Wrong Network value !isIPAddressOrRange(`$val`)\n";}
+				if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new Wrong Network value !isIPAddressOrRange(`$val`)\n";}
 			}
 			
 			
@@ -333,7 +338,7 @@ function BuildNetworks(){
 	
 	if(is_array($net)){
 		while (list ($num, $val) = each ($net) ){
-			if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new Network :$val\n";}
+			if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new Network :$val\n";}
 		}
 	}
 	
@@ -413,7 +418,7 @@ function buildconf(){
 	$users=new usersMenus();
 	$ldap=new clladp();
 	if($ldap->ldapFailed){
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new LDAP Failed, aborting and die()\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new LDAP Failed, aborting and die()\n";}
 		writelogs("Fatal: LDAP Failed, aborting and die",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
@@ -438,7 +443,7 @@ function buildconf(){
 		while (list ($num, $ligne) = each ($tb) ){if(preg_match("#myversion_id.*?=.*?([0-9\.]+)';#", $ligne,$re)){$vv=explode(".",$re[1]);$major=$vv[0];$minor=$vv[1];break;}}}
 	}
 	
-	if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new buildconf() EnablePostfixMultiInstance=$EnablePostfixMultiInstance MAJOR: $major, MINOR:$minor\n";} 
+	if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new buildconf() EnablePostfixMultiInstance=$EnablePostfixMultiInstance MAJOR: $major, MINOR:$minor\n";} 
 	
 	
 	if(!preg_match("#\..+?$#",$myhostname)){
@@ -524,9 +529,9 @@ function buildconf(){
 		if(trim($this->main_array["HEADERS"]["X_HEADER_LINE"])==null){$this->main_array["HEADERS"]["X_HEADER_LINE"]='$myproduct_name $myversion_id ($myversion_date) at $mydomain';}		
 		
 		
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new build configuration loglevel:{$this->main_array["BEHAVIORS"]["log_level"]}\n";}
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new build configuration myhostname:$myhostname\n";}
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new Amavis debug mode::$AmavisDebugSpamassassin\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new build configuration loglevel:{$this->main_array["BEHAVIORS"]["log_level"]}\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new build configuration myhostname:$myhostname\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new Amavis debug mode::$AmavisDebugSpamassassin\n";}
 		
 		
 		if($GLOBALS["EXECUTED_AS_ROOT"]){
@@ -672,7 +677,7 @@ function buildconf(){
 		
 		
 		if($EnablePostfixMultiInstance==1){
-			echo "Starting......: amavisd-new multiple instances is enabled\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new multiple instances is enabled\n";
 			$conf=$conf .$multiple_policies;
 		}
 		
@@ -1099,7 +1104,7 @@ private function whitelist_sender_maps(){
 	$sql="SELECT * FROM postfix_global_whitelist WHERE enabled=1 ORDER BY sender";	
 	$q=new mysql();
 	if(!$q->TestingConnection()){
-		echo "Starting......: amavisd-new whitelisted senders Connection to MySQL server failed\n";
+		echo "Starting......: ".date("H:i:s")." amavisd-new whitelisted senders Connection to MySQL server failed\n";
 		return;
 	}
 	$results=$q->QUERY_SQL($sql,"artica_backup");
@@ -1117,7 +1122,7 @@ private function whitelist_sender_maps(){
 	
 	
 	if(count($f)==0){return;}
-	echo "Starting......: amavisd-new whitelisted senders ". count($f)." items\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new whitelisted senders ". count($f)." items\n";
 	$final[]="@whitelist_sender_maps = ( new_RE(\n";
    	$final[]=@implode(",",$f);
 	$final[]="));";
@@ -1142,7 +1147,7 @@ private function LoadMultiPolicies(){
 		$ip_address=$ligne["ip_address"];
 		$port=$ligne["value"];
 		if(!is_numeric($port)){
-			echo "Starting......: amavisd-new \"$ip_address\" ($uuid) no defined port !\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new \"$ip_address\" ($uuid) no defined port !\n";
 			continue;
 		}
 		
@@ -1151,14 +1156,14 @@ private function LoadMultiPolicies(){
 		$hostname=$main->myhostname;
 		$hostname_plicy=$hostname;
 		if(trim($hostname)==null){
-			echo "Starting......: amavisd-new $ip_address:$port in ou $ou have no defined hostname !!!\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new $ip_address:$port in ou $ou have no defined hostname !!!\n";
 			continue;
 		}
 		
 		
-		echo "Starting......: amavisd-new $ip_address:$port for $hostname\n";
+		echo "Starting......: ".date("H:i:s")." amavisd-new $ip_address:$port for $hostname\n";
 		$interfaces[]="\$interface_policy{'$port'} = '$hostname_plicy';";
-		if(posix_getuid()==0){echo "Starting......: amavisd-new bin port:$port\n";} 
+		if(posix_getuid()==0){echo "Starting......: ".date("H:i:s")." amavisd-new bin port:$port\n";} 
 		
 		$LoadMultiplePoliciesConfig=$this->LoadMultiplePoliciesConfig($hostname);
 		if($LoadMultiplePoliciesConfig<>null){
@@ -1173,11 +1178,11 @@ private function LoadMultiPolicies(){
 }
 
 private function LoadMultiplePoliciesConfig($hostname){
-	echo "Starting......: amavisd-new $hostname: building policy bank.\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new $hostname: building policy bank.\n";
 	$sock=new sockets();
 	$main=new maincf_multi($hostname);
 	if(trim($main->ip_addr)==null){
-		echo "Starting......: amavisd-new $hostname: ip_addr is null for this host, aborting\n";
+		echo "Starting......: ".date("H:i:s")." amavisd-new $hostname: ip_addr is null for this host, aborting\n";
 		return;
 	}
 	$params=unserialize(base64_decode($main->GET_BIGDATA("amavis_config")));
@@ -1192,7 +1197,7 @@ private function LoadMultiplePoliciesConfig($hostname){
 	$conf[]="\tlocalhost_name => 'amavis.$main->myhostname',";
 	$conf[]="\toriginating => 1,";
 	
-	echo "Starting......: amavisd-new $hostname: Enable DKIM signing=$enable_dkim_signing\n";
+	echo "Starting......: ".date("H:i:s")." amavisd-new $hostname: Enable DKIM signing=$enable_dkim_signing\n";
 	
 	if($enable_dkim_signing==1){
 		$ldap=new clladp();
@@ -1330,17 +1335,17 @@ private function hash_banned_filename_maps(){
 	
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){
-			echo "Starting......: amavisd-new EXT: banned_filename_maps -> $q->mysql_error\n-------\n$sql\n-------\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new EXT: banned_filename_maps -> $q->mysql_error\n-------\n$sql\n-------\n";
 	}}
 	
 	$tot=mysql_num_rows($results);
 	if($tot==0){
 		if($GLOBALS["VERBOSE"]){
-			echo "Starting......: amavisd-new EXT: banned_filename_maps no row !!\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new EXT: banned_filename_maps no row !!\n";
 		}
 	}else{
 		if($GLOBALS["VERBOSE"]){
-			echo "Starting......: amavisd-new EXT: banned_filename_maps $tot rows\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new EXT: banned_filename_maps $tot rows\n";
 		}	
 	}
 	
@@ -1363,7 +1368,7 @@ private function banned_filename_maps_items($gpid){
 	$r=array();
 	$sql="SELECT member FROM amavisd_ext_members WHERE gpid=$gpid";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: amavisd-new EXT: banned_filename_maps_items -> $q->mysql_error\n";}}
+	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." amavisd-new EXT: banned_filename_maps_items -> $q->mysql_error\n";}}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
 		$rulesCompiled=$this->banned_filename_maps_rules($gpid);
@@ -1383,11 +1388,11 @@ private function banned_filename_maps_rules($gpid){
 	$q=new mysql();
 	$sql="SELECT ruleid FROM amavisd_ext_link WHERE gpid=$gpid";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: amavisd-new EXT: banned_filename_maps_items -> $q->mysql_error\n";}}
+	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." amavisd-new EXT: banned_filename_maps_items -> $q->mysql_error\n";}}
 	while ($ligne = mysql_fetch_assoc($results)) {	
 		$rulename="RULE{$ligne["ruleid"]}";
 		if(!isset($GLOBALS["banned_rules_maps"][$rulename])){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: amavisd-new EXT: $rulename (no such rule)\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." amavisd-new EXT: $rulename (no such rule)\n";}
 			continue;
 		}
 		$RR[$rulename]=true;
@@ -1411,8 +1416,8 @@ private function banned_rules_maps_mysql(){
 	$q=new mysql();
 	$sql="SELECT *  FROM amavisd_ext_rules WHERE enabled=1";
 	$results = $q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: amavisd-new EXT: amavisd_ext_rules -> $q->mysql_error\n";}}
-	if($GLOBALS["VERBOSE"]){echo "Starting......: amavisd-new EXT: amavisd_ext_rules -> ".mysql_num_rows($results)." rules\n";}
+	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." amavisd-new EXT: amavisd_ext_rules -> $q->mysql_error\n";}}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." amavisd-new EXT: amavisd_ext_rules -> ".mysql_num_rows($results)." rules\n";}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$rulename="RULE{$ligne["ID"]}";
@@ -1586,7 +1591,11 @@ private function per_recip_whitelist_sender_lookup_mysql(){
 	
 }
 private function per_recip_blacklist_sender_lookup_mysql(){
-	$sql="SELECT *  FROM contacts_blacklist WHERE `enabled`=1";
+	
+	
+	
+	
+	$sql="SELECT *  FROM contacts_blacklist WHERE `enabled`=1 AND `Junk`=1";
 	$q=new mysql();
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	$ARRAY=array();
@@ -1663,7 +1672,7 @@ private function DKIM_outgoing_list(){
 		
 		
 		if(!is_array($domains)){
-			echo "Starting......: amavisd-new DKIM no domains set\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new DKIM no domains set\n";
 			return null;
 			}
 			while (list ($domain, $line) = each ($domains)){
@@ -1671,10 +1680,10 @@ private function DKIM_outgoing_list(){
 				if(is_file("/etc/amavis/dkim/$md5.key.pem")){
 					$domain_name=str_replace(".","_",$domain);
 					$array[]="dkim_key('$domain', '$domain_name', '/etc/amavis/dkim/$md5.key.pem');";
-					echo "Starting......: amavisd-new DKIM ($domain) $md5.key.pem OK\n";
+					echo "Starting......: ".date("H:i:s")." amavisd-new DKIM ($domain) $md5.key.pem OK\n";
 					
 				}else{
-					echo "Starting......: amavisd-new ERROR !!! DKIM ($domain) /etc/amavis/dkim/$md5.key.pem no such file\n";
+					echo "Starting......: ".date("H:i:s")." amavisd-new ERROR !!! DKIM ($domain) /etc/amavis/dkim/$md5.key.pem no such file\n";
 				}
 			}
 	if(!is_array($array)){return "\$enable_dkim_signing = 0;";}
@@ -1689,7 +1698,7 @@ public function CheckDKIM(){
 		$enable_dkim_verification=$sock->GET_INFO("enable_dkim_verification");
 		$enable_dkim_signing=$sock->GET_INFO("enable_dkim_signing");
 		if($enable_dkim_signing==0){
-			echo "Starting......: amavisd-new DKIM signing is not activated\n";
+			echo "Starting......: ".date("H:i:s")." amavisd-new DKIM signing is not activated\n";
 			return;
 		}
 		
@@ -1699,7 +1708,7 @@ public function CheckDKIM(){
 			while (list ($domain, $line) = each ($domains)){
 				$md5=md5($domain);
 				if(!is_file("/etc/amavis/dkim/$md5.key.pem")){
-					echo "Starting......: amavisd-new DKIM build key for $domain\n";
+					echo "Starting......: ".date("H:i:s")." amavisd-new DKIM build key for $domain\n";
 					$cmd="/usr/local/sbin/amavisd -c /usr/local/etc/amavisd.conf genrsa /etc/amavis/dkim/$md5.key.pem";
 					shell_exec("$cmd >/dev/null 2>&1");		
 				}

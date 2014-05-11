@@ -40,7 +40,7 @@ $conf[]="    use_node_name yes";
 $conf[]="";	
 
 @file_put_contents("/etc/munin/munin.conf",@implode("\n",$conf));
-echo "Starting......: munin server /etc/munin/munin.conf done\n";	
+echo "Starting......: ".date("H:i:s")." munin server /etc/munin/munin.conf done\n";	
 }
 
 function build_node(){
@@ -96,5 +96,5 @@ $conf[]="port 4949";
 $conf[]="";	
 
 @file_put_contents("/etc/munin/munin-node.conf",@implode("\n",$conf));
-echo "Starting......: munin-node /etc/munin/munin-node.conf done\n";	
+echo "Starting......: ".date("H:i:s")." munin-node /etc/munin/munin-node.conf done\n";	
 }

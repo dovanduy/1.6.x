@@ -667,7 +667,7 @@ function pptpd_status(){
 	
 	if(is_array($array)){
 		while (list ($num, $ligne) = each ($array) ){
-			$p[]=Paragraphe("network-connection2.png","{nic}:&nbsp;$num","<strong style=font-size:13px>{$ligne["INET"]}<hr>{$ligne["REMOTE"]} {$ligne["MASK"]}</strong>",null,null,270);
+			$p[]=Paragraphe("folder-network-64.png","{nic}:&nbsp;$num","<strong style=font-size:13px>{$ligne["INET"]}<hr>{$ligne["REMOTE"]} {$ligne["MASK"]}</strong>",null,null,270);
 		}
 	}
 	

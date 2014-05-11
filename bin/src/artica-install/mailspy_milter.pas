@@ -180,7 +180,6 @@ begin
        writeln('Stopping mailspy.........: ' + pid + ' PIDs');
        fpsystem('/bin/kill -9 ' + pid);
     end;
-    SYS.MONIT_DELETE('APP_MAILSPY');
 end;
 //##############################################################################
 function tmailspy.STATUS():string;
@@ -202,13 +201,7 @@ begin
    if  EnableMilterSpyDaemon=0 then begin
       result:=ini.Text;
       ini.free;
-      SYS.MONIT_DELETE('APP_MAILSPY');
-      exit;
-   end;
 
-   if SYS.MONIT_CONFIG('APP_MAILSPY',pid_path,'mailspy') then begin
-      result:=ini.Text;
-      ini.free;
       exit;
    end;
 

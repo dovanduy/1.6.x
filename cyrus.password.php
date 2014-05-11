@@ -61,25 +61,19 @@ function popup(){
 	$cyruspass=$ldap->CyrusPassword();
 	
 	$html="
-	<div id='change_cyrus_password'>
+	<div id='change_cyrus_password' style='width:98%' class=form>
+	<div class=explain style='font-size:16px'>{change_cyrus_password}</div>
 	<table style='width:99%'>
 	<tr>
-		<td valign='top' width=1%><img src='img/cyrus-password-120.png'></td>
-		<td valign='top'><div class=explain style='font-size:16px'>{change_cyrus_password}</div>
-		<br>
-			<table style='width:99%' class=form>
-			<tr>
-				<td class=legend style='font-size:16px'>{password}:</td>
-				<td>" . Field_password('cyruspassword',$cyruspass,"font-size:16px")."</td>
-			</tr>
-			<tr>
-				<td colspan=2 align='right'><hr>
-				". button("{apply}","SaveCyrusPassword()","18px")."</td>
-			</tr>
-		</table>
-		</td>
-		</tr>
-		</table></div>";
+	<td class=legend style='font-size:16px'>{password}:</td>
+	<td>" . Field_password('cyruspassword',$cyruspass,"font-size:16px")."</td>
+	</tr>
+	<tr>
+	<td colspan=2 align='right'><hr>
+		". button("{apply}","SaveCyrusPassword()","22px")."</td>
+	</tr>
+	</table>
+	</div>";
 	
 	$tp=new templates();
 	echo $tp->_ENGINE_parse_body($html,'cyrus.index.php');

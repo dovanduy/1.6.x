@@ -18,9 +18,9 @@ if($argv[1]=="--sets"){GreensqlDaemonsSettings();die();}
 
 
 function build(){
-	echo "Starting......: GreenSQL checking Database....\n";
+	echo "Starting......: ".date("H:i:s")." GreenSQL checking Database....\n";
 	$q=new mysql();
-	if(!$q->DATABASE_EXISTS("greensql")){echo "Starting......: GreenSQL creating database greensql\n";$q->CREATE_DATABASE("greensql");}
+	if(!$q->DATABASE_EXISTS("greensql")){echo "Starting......: ".date("H:i:s")." GreenSQL creating database greensql\n";$q->CREATE_DATABASE("greensql");}
 	checkGreenTables();
 	buildconfig();
 	
@@ -40,7 +40,7 @@ function checkGreenTables(){
 	
 	$q=new mysql();
 	if(!$q->TABLE_EXISTS("query", "greensql")){
-		echo "Starting......: GreenSQL creating query table\n";
+		echo "Starting......: ".date("H:i:s")." GreenSQL creating query table\n";
 		$sql="CREATE table query(
 		queryid int unsigned NOT NULL auto_increment primary key,
 		proxyid        int unsigned NOT NULL default '0',
@@ -51,12 +51,12 @@ function checkGreenTables(){
 		) DEFAULT CHARSET=utf8;
 		";
 		$q->QUERY_SQL($sql,"greensql");
-		if(!$q->ok){echo "Starting......: GreenSQL failed $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." GreenSQL failed $q->mysql_error\n";}
 	}
 
 
 	if(!$q->TABLE_EXISTS("proxy", "greensql")){
-		echo "Starting......: GreenSQL creating proxy table\n";
+		echo "Starting......: ".date("H:i:s")." GreenSQL creating proxy table\n";
 		$sql="
 			CREATE table proxy
 			(
@@ -71,14 +71,14 @@ function checkGreenTables(){
 			status         smallint unsigned NOT NULL default '1'
 			) DEFAULT CHARSET=utf8;";
 		$q->QUERY_SQL($sql,"greensql");
-		if(!$q->ok){echo "Starting......: GreenSQL failed $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." GreenSQL failed $q->mysql_error\n";}
 		$q->QUERY_SQL("insert into proxy values (1,'Default MySQL Proxy','127.0.0.1',3305,'localhost','127.0.0.1',3306,'mysql',1);","greensql");
 		$q->QUERY_SQL("insert into proxy values (2,'Default PgSQL Proxy','127.0.0.1',5431,'localhost','127.0.0.1',5432,'pgsql',1);","greensql");
 	}
 
 
 	if(!$q->TABLE_EXISTS("db_perm", "greensql")){
-		echo "Starting......: GreenSQL creating db_perm table\n";
+		echo "Starting......: ".date("H:i:s")." GreenSQL creating db_perm table\n";
 		$sql="CREATE table db_perm
 			(
 			dbpid          int unsigned NOT NULL auto_increment primary key,
@@ -93,7 +93,7 @@ function checkGreenTables(){
 			) DEFAULT CHARSET=utf8;";
 		
 		$q->QUERY_SQL($sql,"greensql");
-		if(!$q->ok){echo "Starting......: GreenSQL failed $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." GreenSQL failed $q->mysql_error\n";}
 		$q->QUERY_SQL("insert into db_perm (dbpid, proxyid, db_name, sysdbtype) values (1,0,'default mysql db', 'default_mysql');","greensql");
 		$q->QUERY_SQL("insert into db_perm (dbpid, proxyid, db_name, sysdbtype) values (2,0,'no-name mysql db', 'empty_mysql');","greensql");
 		$q->QUERY_SQL("insert into db_perm (dbpid, proxyid, db_name, sysdbtype) values (3,0,'default pgsql db', 'default_pgsql');","greensql");
@@ -101,7 +101,7 @@ function checkGreenTables(){
 	
 	
 	if(!$q->TABLE_EXISTS("admin", "greensql")){
-		echo "Starting......: GreenSQL creating admin table\n";
+		echo "Starting......: ".date("H:i:s")." GreenSQL creating admin table\n";
 		$sql= "CREATE table admin(
 			adminid         int unsigned NOT NULL auto_increment primary key,
 			name           char(50) NOT NULL default '',
@@ -110,13 +110,13 @@ function checkGreenTables(){
 			) DEFAULT CHARSET=utf8;";
 		
 		$q->QUERY_SQL($sql,"greensql");
-		if(!$q->ok){echo "Starting......: GreenSQL failed $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." GreenSQL failed $q->mysql_error\n";}
 		$q->QUERY_SQL("insert into admin values(1,'admin',sha1('pwd'),'');","greensql");
 
 	}
 
 	if(!$q->TABLE_EXISTS("alert", "greensql")){
-		echo "Starting......: GreenSQL creating alert table\n";
+		echo "Starting......: ".date("H:i:s")." GreenSQL creating alert table\n";
 		$sql= "CREATE table alert
 			(
 			alertid             int unsigned NOT NULL auto_increment primary key,
@@ -131,13 +131,13 @@ function checkGreenTables(){
 			INDEX (agroupid)
 			) DEFAULT CHARSET=utf8;";
 		$q->QUERY_SQL($sql,"greensql");
-		if(!$q->ok){echo "Starting......: GreenSQL failed $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." GreenSQL failed $q->mysql_error\n";}
 	}
 
 
 
 	if(!$q->TABLE_EXISTS("alert_group", "greensql")){
-		echo "Starting......: GreenSQL creating alert_group table\n";
+		echo "Starting......: ".date("H:i:s")." GreenSQL creating alert_group table\n";
 		$sql= "CREATE table alert_group(
 			agroupid            int unsigned NOT NULL auto_increment primary key,
 			proxyid             int unsigned NOT NULL default '1',
@@ -148,9 +148,9 @@ function checkGreenTables(){
 			INDEX(update_time)
 			)";	
 			$q->QUERY_SQL($sql,"greensql");
-		if(!$q->ok){echo "Starting......: GreenSQL failed $q->mysql_error\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." GreenSQL failed $q->mysql_error\n";}
 	}	
-	echo "Starting......: GreenSQL check tables done...\n";
+	echo "Starting......: ".date("H:i:s")." GreenSQL check tables done...\n";
 }
 
 function Greensqlversion(){
@@ -215,9 +215,9 @@ $f[]="# Risk of SQL commands that can used to bruteforce database content.";
 $f[]="risk_bruteforce=15";
 @mkdir("/etc/greensql",644,true);
 @file_put_contents("/etc/greensql/greensql.conf", @implode("\n", $f));
-echo "Starting......: GreenSQL check greensql.conf done...\n";
+echo "Starting......: ".date("H:i:s")." GreenSQL check greensql.conf done...\n";
 unset($f);
-echo "Starting......: GreenSQL v$version\n";
+echo "Starting......: ".date("H:i:s")." GreenSQL v$version\n";
 $f[]="<?php";
 $f[]="\$version = \"$version\";";
 $f[]="\$db_type = \"mysql\";";
@@ -235,7 +235,7 @@ $f[]="";
 $f[]="?>";
 @file_put_contents("/usr/share/greensql-console/config.php", @implode("\n", $f));
 shell_exec("/bin/chmod 0777 /usr/share/greensql-console/templates_c");
-echo "Starting......: GreenSQL check config.php done...\n";
+echo "Starting......: ".date("H:i:s")." GreenSQL check config.php done...\n";
 
 
 }

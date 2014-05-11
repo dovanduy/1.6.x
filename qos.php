@@ -592,7 +592,7 @@ function class_list(){
 			$edit="YahooWin3(650,'$page?class-add=yes&service_id={$_GET["service_id"]}&class_id={$ligne["ID"]}','{$ligne["name"]}')";
 			$color="black";
 			if($qos_master->master_service_enabled==0){
-				$color="#CCCCCC";
+				$color="#8a8a8a";
 			}
 			
 			$html=$html."

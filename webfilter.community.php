@@ -37,9 +37,9 @@ function status(){
 	$sql="SELECT count(*) as tcount FROM `dansguardian_sitesinfos` WHERE `dbpath` = ''";	
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
 	
-	
-	$pp=Paragraphe("64-categories.png",$ligne["tcount"]." {websites_not_categorized}",
-	"{websites_not_categorized_text}","javascript:Loadjs('squid.visited.php')",null,300,76);	
+	$websites_not_categorized=$tpl->_ENGINE_parse_body("{websites_not_categorized}");
+	$pp=$tpl->_ENGINE_parse_body(Paragraphe("64-categories.png",$ligne["tcount"]." $websites_not_categorized",
+	"{websites_not_categorized_text}","javascript:Loadjs('squid.visited.php')",null,300,76));	
 	
 	
 	$html="

@@ -15,7 +15,7 @@ if($argv[1]=='--org'){
 		CheckInstall($argv[2]);
 		$ass=new assp_multi($argv[2]);
 		$ass->WriteConf();
-		echo "Starting......: ASSP writing configuration done\n";
+		echo "Starting......: ".date("H:i:s")." ASSP writing configuration done\n";
 		if(!$ass->running){
 			$instance=str_replace(" ","-",$ass->ou);
 			@chdir("/usr/share/assp-$instance");
@@ -50,7 +50,7 @@ function CheckInstall($ou){
 	$dirs[]="tmp";
 	while (list ($nul, $Dirname) = each ($dirs) ){
 		if(!is_dir("$root/$Dirname")){
-			echo "Starting......: ASSP ($instance) Creating \"$root/$Dirname\" directory\n";
+			echo "Starting......: ".date("H:i:s")." ASSP ($instance) Creating \"$root/$Dirname\" directory\n";
 			@mkdir("$root/$Dirname",0666,true);
 		}
 	}
@@ -59,7 +59,7 @@ function CheckInstall($ou){
 	while (list ($nul, $filename) = each ($f) ){
 		if($filename==null){continue;}
 		if(!is_file("$root/$filename")){
-			echo "Starting......: ASSP ($instance) installing \"$filename\" file\n";
+			echo "Starting......: ".date("H:i:s")." ASSP ($instance) installing \"$filename\" file\n";
 			@copy("/usr/share/assp/$filename","$root/$filename");
 			}
 	}

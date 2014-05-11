@@ -127,8 +127,8 @@ begin
 
 
     local_folder:='';
-    remote_uri:='http://www.artica.fr/download';
-    index_file:='http://www.artica.fr/auto.update.php';
+    remote_uri:='http://www.articatech.net/download';
+    index_file:='http://www.articatech.net/auto.update.php';
     LOG:=Tlogs.Create;
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;

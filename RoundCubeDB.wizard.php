@@ -127,7 +127,7 @@ function Next1(){
 	
 
 	$html="<div class=explain style='font-size:14px'>{MYSQLROUNDCUBE_TYPE_EXPLAIN}</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
 			<td align='middle'>". Field_array_Hash($array, "MySQLSyslogType-$t",$MySQLSyslogType,null,null,0,"font-size:32px")."</td>
@@ -149,6 +149,7 @@ function Next1(){
 		}		
 
 		function Close$tt(){
+			var XHR = new XHRConnection();
 			XHR.appendData('CloseWizard','yes');
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',xClose$t);
@@ -202,7 +203,7 @@ function Next2_client(){
 	
 	
 	$html="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
 			<td align='right' nowrap class=legend style='font-size:18px'>{mysqlserver}:</strong></td>
@@ -280,7 +281,7 @@ function Next2_server(){
 
 
 	$html="<div class=explain style='font-size:14px'>{MYSQLROUNDCUBE_TYPE_EXPLAIN}</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:16px'>{listen_port}:</td>
@@ -333,7 +334,7 @@ function Next3(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$sock=new sockets();
-	$results[]="<div style='width:95%' class=form>
+	$results[]="<div style='width:98%' class=form>
 		<table style='width:100%'>";
 
 	

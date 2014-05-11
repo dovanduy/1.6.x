@@ -37,6 +37,7 @@ class mysql_status{
 		$mysql_server=trim(@file_get_contents("/etc/artica-postfix/settings/Mysql/mysql_server"));
 		if($mysql_server==null){$mysql_server="127.0.0.1";}
 		if($mysql_server=="localhost"){$mysql_server="127.0.0.1";}
+		if($database_admin==null){$database_admin="root";}
 		if($mysql_server<>"127.0.0.1"){if($GLOBALS["VERBOSE"]){echo "*** $mysql_server is not 127.0.0.1 - ABORT -\n";}return true;}
 		if($database_password<>null){
 			$database_password=$GLOBALS["CLASS_UNIX"]->shellEscapeChars($database_password);

@@ -93,7 +93,7 @@ $html="<div style='font-size:22px;margin-bottom:30px'>$dev ( $uuid )</div>
 		<td valign='top' width=1%><center><img src='img/database-connect-128.png'></center></td>
 		<td valign='top' width=99%>
 			<div id='fstab'><div class=explain style='font-size:16px'>{CONNECT_HD_TEXT}</div>
-				<div style='width:95%' class=form>
+				<div style='width:98%' class=form>
 				<table>
 				<tr>
 					<td valign='middle' class=legend nowrap style='font-size:16px'>{mount_point}:</td>
@@ -137,7 +137,7 @@ function listfstab($dev){
 	}
 	
 	$html="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>";
 	if(is_array($fstab->fstab_array[$dev])){
 			while (list ($num, $array) = each ($fstab->fstab_array[$dev])){
@@ -145,9 +145,9 @@ function listfstab($dev){
 				
 				$mount_point=$array["mount"];
 				if(trim($sock->getFrameWork("cmd.php?disk-ismounted=yes&dev=$mount_point"))=="TRUE"){
-					$mounted=imgtootltip('status_ok.gif','{umount}',"fstabumount('$mount_point')");
+					$mounted=imgtootltip('status_ok.png','{umount}',"fstabumount('$mount_point')");
 				}else{
-					$mounted=imgtootltip('status_critical.gif','{mount}',"fstabmount('$mount_point')");	
+					$mounted=imgtootltip('status_critical.png','{mount}',"fstabmount('$mount_point')");	
 				}
 				
 				

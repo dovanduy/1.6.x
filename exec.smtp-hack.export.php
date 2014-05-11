@@ -36,9 +36,10 @@ include_once("HTTP/Request.php");
 		$ArticaProxyServerUserPassword=$ini->_params["PROXY"]["ArticaProxyServerUserPassword"];
 	}
 
-	
-	$req =new HTTP_Request("http://www.artica.fr/smtphack-import.php?export=yes");  
-	$req->setURL("http://www.artica.fr/smtphack-import.php?export=yes");	
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();	
+	$req =new HTTP_Request("$URIBASE/smtphack-import.php?export=yes");  
+	$req->setURL("$URIBASE/smtphack-import.php?export=yes");	
 	$req->setMethod(HTTP_REQUEST_METHOD_GET);
 	if($ArticaProxyServerEnabled=="yes"){$req->setProxy($ArticaProxyServerName, $ArticaProxyServerPort, $ArticaProxyServerUsername, $ArticaProxyServerUserPassword);}
 	
@@ -118,8 +119,8 @@ function export_datas_to_repo(){
 	$ArticaProxyServerUsername=$ini->_params["PROXY"]["ArticaProxyServerUsername"];
 	$ArticaProxyServerUserPassword=$ini->_params["PROXY"]["ArticaProxyServerUserPassword"];
 		
-	$req =new HTTP_Request("http://www.artica.fr/smtphack-import.php");  
-	$req->setURL("http://www.artica.fr/smtphack-import.php");	
+	$req =new HTTP_Request("http://www.articatech.net/smtphack-import.php");  
+	$req->setURL("http://www.articatech.net/smtphack-import.php");	
 	$req->setMethod('POST');
 	if($ArticaProxyServerEnabled=="yes"){
 			$req->setProxy($ArticaProxyServerName, $ArticaProxyServerPort, $ArticaProxyServerUsername, $ArticaProxyServerUserPassword); 

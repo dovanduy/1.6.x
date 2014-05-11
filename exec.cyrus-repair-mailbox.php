@@ -83,7 +83,7 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 	}
 	
 	events("restart mailbox server...");
-	shell_exec("/etc/init.d/artica-postfix restart imap");
+	shell_exec("/etc/init.d/cyrus-imapd restart");
 	@chmod("/usr/share/artica-postfix/ressources/logs/cyr.repair.{$GLOBALS["uid"]}",0755);
 
 

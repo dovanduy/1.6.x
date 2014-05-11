@@ -223,7 +223,7 @@ function main_status(){
 	$ini->loadString($sock->getfile('bind9status',$_GET["hostname"]));	
 	if($ini->_params["$key_service"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$status="{stopped}";
 	}else{
 		$img="ok32.png";

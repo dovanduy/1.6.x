@@ -25,19 +25,19 @@ function fstabmount(){
 	
 	if($ext=="ext4"){
 		$kernel=$unix->KERNEL_VERSION_BIN();
-		error_log("framework::".__FUNCTION__." kernel: $kernel");
+		error_log("[{$_SESSION["uid"]}]::framework::".__FUNCTION__." kernel: $kernel");
 		if($kernel<20629){
 			$ext="ext4dev";
 		}
 	}
 	
 	$cmd="/bin/mount -t $ext $dev $fstabmount >$tmp 2>&1";
-	error_log("framework::".__FUNCTION__." $cmd");
+	error_log("[{$_SESSION["uid"]}]::framework::".__FUNCTION__." $cmd");
 	shell_exec("/bin/mount -t $ext $dev $fstabmount >$tmp 2>&1");
 	$results=@file_get_contents($tmp);
 	@unlink($tmp);
 	
-	error_log("framework::".__FUNCTION__." mount point is \"$dev\" ($ext)=$results line ".__LINE__);
+	error_log("[{$_SESSION["uid"]}]::framework::".__FUNCTION__." mount point is \"$dev\" ($ext)=$results line ".__LINE__);
 	if(strlen($results)>0){echo "<articadatascgi>$results</articadatascgi>";}
 }
 

@@ -139,17 +139,8 @@ function tabs(){
 	
 	$menus=GetMenus();
 	
-	echo "$menus
-	<div id=main_statskav4tabs style='width:100%;height:500px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_statskav4tabs').tabs();
-			
-			
-			});
-		</script>";	
+	echo $menus.build_artica_tabs($html, "main_statskav4tabs");
+	
 	
 	
 }

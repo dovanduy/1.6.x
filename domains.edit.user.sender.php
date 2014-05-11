@@ -167,53 +167,57 @@ function zarafaSendAsPrivilege_search(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$u=new user($_GET["uid"]);
-	$jsToken="?Zarafa=1&prepend=no&OnlyUsers=1&organization=$u->ou&OnlyGUID=1&callback=zarafaSendAsPrivilegeAdd";
-	if($_GET["search"]<>null){
-		$_GET["search"]=str_replace(".", "\.", $_GET["search"]);
-		$_GET["search"]=str_replace("*", ".*?", $_GET["search"]);
-	}
-$addg=imgtootltip("plus-24.png","{add}","Loadjs('MembersBrowse.php$jsToken')");
+	reset($u->zarafaSendAsPrivilege);
+	$table=$u->zarafaSendAsPrivilege;
+
 	
-		$html="
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-	<th width=1%>$addg</th>
-	<th>{from}:</th>
-	<th>&nbsp;</th>
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = count($table);
+	$data['rows'] = array();
+	$fontsize="18";
+	$color="black";
 	
+	if(count($table)==0){json_error_show(null);}
 	
-	</tr>
-</thead>";
-		
-		reset($u->zarafaSendAsPrivilege);
-		$table=$u->zarafaSendAsPrivilege;
-		while (list ($num, $ligne) = each ($table) ){
+	$search=string_to_flexregex();
+	
+	$c=0;
+	while (list ($num, $ligne) = each ($table) ){
 			$u=new user();
 			$uid=$u->GetUidFromUidNumber($num);
-			if($uid<>null){
-				if($_GET["search"]<>null){if(!preg_match("#{$_GET["search"]}#", $uid)){continue;}}
-			}
-			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
+			$u=new user($uid);
+			$email=$u->mail;
 			
+			if($search<>null){
+				if(!preg_match("#$search#i", $uid)){
+					if(!preg_match("#$search#i", $email)){
+						if(!preg_match("#$search#i", $num)){
+							continue;
+						}
+					}
+				}
+			}
+			$c++;
 			$numE=base64_encode($num);
-			$delete=imgtootltip("delete-32.png","{delete} $num","zarafaSendAsPrivilegeDel('$numE')");
-			$html=$html."
-			<tr class=$classtr>
-			<td width=100% colspan=2><div style='font-size:14px;font-weight:bold'>$uid <span style='font-size:11px'>($num)</span></td>
-			<td width=1%>$delete</td>
-			</tr>
-			";
+			$delete=imgsimple("delete-32.png","{delete} $num","zarafaSendAsPrivilegeDel('$numE')");
+			
+			
+			$data['rows'][] = array(
+					'id' => $ligne['ID'],
+					'cell' => array(
+							"<span style='font-size:{$fontsize}px;font-weight:bold;color:$color'>$uid ($email)</span>",
+							"<span style='font-size:{$fontsize}px;font-weight:normal;color:$color'>$delete</span>",)
+			);			
+
 		}
 		
-			$html=$html."<tbody class='tbody'>
-
-</tbody>
-</table>";
+		if($c==0){
+			if($search<>null){echo json_error_show("No match $search");}
+		}
 		
-		
-		
-	echo $tpl->_ENGINE_parse_body($html);	
+		$data['total'] = $c;
+		echo json_encode($data);
 }
 
 function zarafaSendAsPrivilege_popup(){
@@ -221,55 +225,98 @@ function zarafaSendAsPrivilege_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-	$html="
-	<div class=explain style='font-size:13px'>{zarafaSendAsPrivilege_text}</div>
-	<center>
-	<table style='width:99%' class=form style='width:50%'>
-	<tr>
-	<td class=legend>{search}:</td>
-	<td>". Field_text("zarafaSendAsPrivilege-search",null,"font-size:14px;padding:3px",null,null,null,false,"zarafaSendAsPrivilegeSearchCheck(event)")."</td>
-	</tr>
-	</table>
-	</center>
-	<div id='$t'></div>
-	<script>
-		function zarafaSendAsPrivilegeSearchCheck(e){
-			if(checkEnter(e)){zarafaSendAsPrivilegeSearch();}
-		}
-		function zarafaSendAsPrivilegeSearch(){
-			var se=escape(document.getElementById('zarafaSendAsPrivilege-search').value);
-			LoadAjax('$t','$page?zarafaSendAsPrivilege-search=yes&search='+se+'&uid={$_GET["uid"]}');
-		}
-		
-		var x_zarafaSendAsPrivilegeAdd= function (obj) {
-			var results=obj.responseText;
-			if (results.length>0){alert(results);}
-			zarafaSendAsPrivilegeSearch();
-		}		
-		
-		function zarafaSendAsPrivilegeAdd(uid,prepend){
-			var XHR = new XHRConnection();
-			XHR.appendData('zarafaSendAsPrivilege-add',uid);	
-			XHR.appendData('uid','{$_GET["uid"]}');	
-			AnimateDiv('$t');
-			XHR.sendAndLoad('$page', 'POST',x_zarafaSendAsPrivilegeAdd);		
-		
-		}
-		
-		function zarafaSendAsPrivilegeDel(uid){
-			var XHR = new XHRConnection();
-			XHR.appendData('zarafaSendAsPrivilege-del',uid);	
-			XHR.appendData('uid','{$_GET["uid"]}');	
-			AnimateDiv('$t');
-			XHR.sendAndLoad('$page', 'POST',x_zarafaSendAsPrivilegeAdd);		
-		
-		}		
-			
-		zarafaSendAsPrivilegeSearch();	
-	</script>
 	
-	";
-	echo $tpl->_ENGINE_parse_body($html);
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$tt=time();
+	$t=$_GET["t"];
+	$_GET["ruleid"]=$_GET["ID"];
+	$groups=$tpl->javascript_parse_text("{groups}");
+	$from=$tpl->_ENGINE_parse_body("{from}");
+	$to=$tpl->javascript_parse_text("{to}");
+	$rule=$tpl->javascript_parse_text("{rule}");
+	$delete=$tpl->javascript_parse_text("{delete} {zone} ?");
+	$rewrite_rules_fdb_explain=$tpl->javascript_parse_text("{rewrite_rules_fdb_explain}");
+	$linkgroup=$tpl->javascript_parse_text("{link_member}");
+	$comment=$tpl->javascript_parse_text("{comment}");
+	$rules=$tpl->javascript_parse_text("{rules}");
+	$rule=$tpl->javascript_parse_text("{rule}");
+	$apply=$tpl->javascript_parse_text("{apply}");
+	$action=$tpl->javascript_parse_text("{action}");
+	$groupname=$tpl->javascript_parse_text("{groupname}");
+	$items=$tpl->javascript_parse_text("{items}");
+
+	$title=$tpl->javascript_parse_text("{members}");
+	$zarafaSendAsPrivilege_text=$tpl->_ENGINE_parse_body("{zarafaSendAsPrivilege_text}");
+	$u=new user($_GET["uid"]);
+
+	
+	
+	$jsToken="?Zarafa=1&NOComputers=1&prepend=no&OnlyUsers=1&organization=$u->ou&OnlyGUID=1&callback=zarafaSendAsPrivilegeAdd";
+	
+	$buttons="
+	buttons : [
+	{name: '$linkgroup', bclass: 'add', onpress : NewRule$tt},
+	],";
+	
+	$html="
+	<div class=explain style='font-size:14px'>$zarafaSendAsPrivilege_text</div>
+	<table class='flexRT$tt' style='display: none' id='flexRT$tt' style='width:100%'></table>
+	<script>
+	function Start$tt(){
+	$('#flexRT$tt').flexigrid({
+	url: '$page?zarafaSendAsPrivilege-search=yes&t=$t&uid={$_GET["uid"]}',
+	dataType: 'json',
+		colModel : [
+	
+		{display: '$from', name : 'groupname', width :654, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'center'},
+		],
+		$buttons
+	searchitems : [
+	{display: '$groupname', name : 'groupname'},
+	],
+	sortname: 'groupname',
+	sortorder: 'asc',
+	usepager: true,
+	title: '$title::$u->DisplayName',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: 350,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200]
+	
+	});
+}
+function NewRule$tt(){
+	Loadjs('MembersBrowse.php$jsToken')
+}
+
+var x_zarafaSendAsPrivilegeAdd= function (obj) {
+	var results=obj.responseText;
+	if (results.length>0){alert(results);}
+	$('#flexRT$tt').flexReload();
+}		
+		
+function zarafaSendAsPrivilegeAdd(uid,prepend){
+	var XHR = new XHRConnection();
+	XHR.appendData('zarafaSendAsPrivilege-add',uid);	
+	XHR.appendData('uid','{$_GET["uid"]}');	
+	XHR.sendAndLoad('$page', 'POST',x_zarafaSendAsPrivilegeAdd);		
+}
+
+function zarafaSendAsPrivilegeDel(uid){
+	var XHR = new XHRConnection();
+	XHR.appendData('zarafaSendAsPrivilege-del',uid);	
+	XHR.appendData('uid','{$_GET["uid"]}');	
+	XHR.sendAndLoad('$page', 'POST',x_zarafaSendAsPrivilegeAdd);		
+}
+Start$tt();
+
+</script>";
+echo $tpl->_ENGINE_parse_body($html);
 	
 }
 
@@ -632,7 +679,7 @@ if(trim($user->SenderCanonical)<>null){
 }
 
 
-if($user->AllowedSMTPTroughtInternet==1){$img="status_ok.gif";}else{$img="lock.gif";}
+if($user->AllowedSMTPTroughtInternet==1){$img="status_ok.png";}else{$img="lock.gif";}
 $AllowedSMTPTroughtInternet_text=$tpl->_ENGINE_parse_body("{AllowedSMTPTroughtInternet}");	
 if(strlen($AllowedSMTPTroughtInternet_text)>30){$AllowedSMTPTroughtInternet_text=substr($AllowedSMTPTroughtInternet_text,0,27)."...";}
 

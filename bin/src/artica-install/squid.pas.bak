@@ -326,7 +326,7 @@ begin
         end;
      logs.Syslogs('tsquid.ERROR_FD():: Error FD Found, restart all server !!!');
      logs.NOTIFICATION(LastLog + ' Artica will be restarted','Fatal error...','system');
-     fpsystem('/etc/init.d/artica-postfix restart');
+
      halt(0);
     end;
   end;
@@ -339,7 +339,7 @@ if RegExpr.Exec(LastLog) then begin
         end;
      logs.Syslogs('tsquid.ERROR_FD():: Error FD Found, restart all server !!!');
      logs.NOTIFICATION(LastLog + ' Artica will be restarted','Fatal error...','system');
-     fpsystem('/etc/init.d/artica-postfix restart');
+
      halt(0);
     end;
   end;
@@ -697,7 +697,7 @@ end;
      logs.DebugLogs('Starting......: Squid System is overloaded');
      exit;
 end;
-  SYS.MONIT_DELETE('APP_DANSGUARDIAN');
+
   if is32Ver() then TAIL_SOCK_START(false);
   TAIL_SQUIDCLAMAV_START();
   ERROR_FD();
@@ -1004,23 +1004,10 @@ begin
     result:='';
     binpath:=SQUID_BIN_PATH();
     if not FileExists(binpath) then exit;
-    pidpath:=SQUID_GET_CONFIG('pid_filename');
-
-     if length(pidpath)=0 then begin
-       SQUID_SET_CONFIG('pid_filename',SQUID_DETERMINE_PID_PATH());
-       SQUID_STOP();
-       SQUID_START();
-       pidpath:=SQUID_GET_CONFIG('pid_filename');
-    end;
-
+    pidpath:='/var/run/squid/squid.pid';
     if Not FileExists(pidpath) then exit(SYS.PIDOF(binpath));
-
     result:=SYS.GET_PID_FROM_PATH(pidpath);
     if not SYS.PROCESS_EXIST(result) then result:=SYS.PIDOF(binpath);
-
-    
-
-
 end;
 //##############################################################################
 PROCEDURE tsquid.REMOVE();
@@ -1266,7 +1253,7 @@ logs.WriteToFile(MyPID,MyPidPath);
 count:=0;
 binpath:=SQUID_BIN_PATH();
 configpath:=SQUID_CONFIG_PATH();
-SYS.MONIT_DELETE('APP_SQUID');
+
 killbin:=SYS.LOCATE_GENERIC_BIN('kill');
 if not FileExists(binpath) then exit;
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.watchdog.php  --stop --bydaemon');
@@ -1326,7 +1313,7 @@ var
   pidpath:string;
 begin
  if not FileExists(SQUID_BIN_PATH()) then exit;
- SYS.MONIT_DELETE('APP_SQUID');
+
  pidpath:=logs.FILE_TEMP();
  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --all-squid >'+pidpath +' 2>&1');
  result:=logs.ReadFromFile(pidpath);
@@ -1354,7 +1341,7 @@ begin
       if SYS.verbosed then writeln('tsquid.SQUID_VERSION():not installed');
       exit;
    end;
-   fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.squid.php --compilation-params');
+
    tmpstr:=logs.FILE_TEMP();
    fpsystem(squidbin + ' -v >'+tmpstr+' 2>&1');
    tmp:=SYS.ReadFileIntoString(tmpstr);
@@ -1831,58 +1818,6 @@ end;
 //#####################################################################################
 procedure tsquid.TAIL_STOP();
 begin
-
-pid:=TAIL_PID();
-
-
-
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping squid RealTime log: Already stopped');
-      CountTail:=Tstringlist.Create;
-      try
-         CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/access.log'));
-         writeln('Stopping squid RealTime log: Tail processe(s) number '+IntToStr(CountTail.Count));
-      except
-        logs.Debuglogs('Stopping squid RealTime log: fatal error on SYS.PIDOF_PATTERN_PROCESS_LIST() function');
-      end;
-
-      count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping squid RealTime log: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-      exit;
-end;
-
-writeln('Stopping squid RealTime log: Stopping pid '+pid);
-fpsystem('/bin/kill '+pid);
-
-pid:=TAIL_PID();
-if not SYS.PROCESS_EXIST(pid) then begin
-      writeln('Stopping squid RealTime log: Stopped');
-end;
-
-
-CountTail:=Tstringlist.Create;
-CountTail.AddStrings(SYS.PIDOF_PATTERN_PROCESS_LIST('/usr/bin/tail -f -n 0 /var/log/squid/access.log'));
-writeln('Stopping squid RealTime log: Tail processe(s) number '+IntToStr(CountTail.Count));
-count:=0;
-     for i:=0 to CountTail.Count-1 do begin;
-          pid:=CountTail.Strings[i];
-          if count>100 then break;
-          if not TryStrToInt(pid,pidint) then continue;
-          writeln('Stopping squid RealTime log: Stop tail pid '+pid);
-          if pidint>0 then  fpsystem('/bin/kill '+pid);
-          sleep(100);
-          inc(count);
-      end;
-
-
 end;
 //####################################################################################
 procedure tsquid.TAIL_CACHE_STOP();

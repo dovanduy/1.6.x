@@ -37,23 +37,18 @@ function js(){
 	$field=$_GET["field"];
 	$value=$_GET["value"];
 	$title="{member}::$field - $value - {$_GET["familysite"]}";
-	$title=$tpl->_ENGINE_parse_body($title);
-	if(isset($_GET["table"])){
-		$q=new mysql_squid_builder();
-		$tablejs="&table={$_GET["table"]}";
-			if(preg_match("#_week#", $_GET["table"])){
-			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-		}
-			
-		if(preg_match("#_day$#", $_GET["table"])){
-			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-		}
-			
-		if(preg_match("#_hour$#", $_GET["table"])){
-			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
-		}	
-	
+	$q=new mysql_squid_builder();
+	$month_table="quotamonth_".date("Ym");
+	$month_text=date("{F}");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_text=date("{F}",strtotime('first day of previous month'));
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
 	}
+	
+	$title=$tpl->_ENGINE_parse_body("$month_text - $title");
+	
+	
+	
 	$html="YahooWin2('750','$page?tabs=yes&field=$field&value=$value$tablejs&familysite={$_GET["familysite"]}','$title$title_add')";
 	echo $html;
 }
@@ -61,11 +56,8 @@ function tabs(){
 $page=CurrentPageName();
 	$tpl=new templates();
 	$array["history"]='{history}';
-	if(preg_match("#_hour$#", $_GET["table"])){
-		$array["sitenames"]='{websites}';
-	}else{
-		$array["days"]='{days}';
-	}
+	
+	
 	
 	
 	$field=$_GET["field"];
@@ -77,17 +69,8 @@ $page=CurrentPageName();
 	}
 	
 	
-	echo $tpl->_ENGINE_parse_body( "
-	<div id=squid_members_stats_zoom-family style='width:100%;font-size:14px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#squid_members_stats_zoom-family').tabs();
-			
-			
-			});
-		</script>");		
+	echo build_artica_tabs($html, "squid_members_stats_zoom-family");
+	
 }
 function history_content(){
 	$page=CurrentPageName();
@@ -100,94 +83,31 @@ function history_content(){
 	$familysite=$_GET["familysite"];
 	
 	
-		
-	if(isset($_GET["table"])){
-		if($field=="ipaddr"){$field="client";}
-		$groupby="day";
-		$maintitle="downloaded_size_per_day";
-		$maintitle2="requests_per_day";			
-		
-		if(preg_match("#_week$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-			$time=$q->WEEK_TIME_FROM_TABLENAME($_GET["table"]);
-			$month=date("m",$time);
-			$year=date("Y",$time);
-			
-		}
-		if(preg_match("#_day$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-			$year=substr($_GET["table"], 0,4);
-			$month=substr($_GET["table"],4,2);						
-		}	
-
-		
-		if(preg_match("#_day$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-			$year=substr($_GET["table"], 0,4);
-			$month=substr($_GET["table"],4,2);						
-		}
-
-		if(preg_match("#_hour$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
-			$year=substr($_GET["table"], 0,4);
-			$month=substr($_GET["table"],4,2);	
-			$groupby="hour";
-			$maintitle="downloaded_size_per_hour";
-			$maintitle2="requests_per_hour";								
-		}			
-		
-		$sql="SELECT $groupby as tday,SUM(size) as QuerySize,SUM(hits) as hits FROM 
-		`{$_GET["table"]}`  WHERE `$field`='$value' AND familysite='$familysite' GROUP BY tday ORDER BY tday";		
-		
-		
+	$month_table="quotamonth_".date("Ym");
+	$month_text=date("{F}");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_text=date("{F}",strtotime('first day of previous month'));
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
 	}
+	
+		$sql="SELECT `day`,`familysite`,`$field`,SUM(size) as QuerySize FROM 
+		`$month_table`  GROUP BY `day`,`familysite` ,`$field`
+		HAVING `$field`='$value' AND familysite='$familysite' ORDER BY `day`";		
+		
+		
+	
 	
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){
-		echo "<H3>Warning<hr>$sql<hr>$q->mysql_error<br>Table:{$_GET["table"]}</H3>";
-	}
-	
-	if(mysql_num_rows($results)<2){
-		
-		if(mysql_num_rows($results)==1){
-			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$size=FormatBytes($ligne["QuerySize"]/1024);
-			$timstr=strtotime("$year-$month-$day 00:00:00");
-			$dateT=date('{l} d {F}', $timstr);
-			if(preg_match("#_hour$#", $_GET["table"])){
-				$hour=$ligne["tday"];
-				$dateT=$title_add." <span style='color:#DF0000;'>{$hour}h</span>";
-			}
-			
-			
-			
-			
-			$html=$html."<div style='width:99%' class=form>
-				<p style='font-size:18px;font-weight:bold'>
-				$field:$value&nbsp;&raquo; {website}:$familysite<br>{size}:$size {$ligne["hits"]} {hits}<br>$dateT
-				<br><span style='color:#DF0000;font-weight:normal'>{only_one_value_no_graph}</span>
-				</p>
-				
-			
-			</div>";
-			}
-				echo $tpl->_ENGINE_parse_body($html);
-				return;
-			
-		}
-		
-		echo FATAL_ERROR_SHOW_128("{this_request_contains_no_data}");
-		return;
-		
-	}
+	if(!$q->ok){echo $q->mysql_error_html();}
+
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=round(($ligne["QuerySize"]/1024)/1000);
-		$day=$ligne["tday"];
+		$day=$ligne["day"];
 		$xdata[]=$day;
-		$xdata2[]=$day;
+		
 		$ydata[]=$size;
-		$ydata2[]=$ligne["hits"];
+	
 		
 	}	
 	
@@ -208,36 +128,20 @@ function history_content(){
 	$gp->color="146497";
 	$gp->line_green();
 	
-	$gp2=new artica_graphs();
-	$gp2->width=650;
-	$gp2->height=350;
-	$gp2->filename="$targetedfile2";
-	$gp2->xdata=$xdata2;
-	$gp2->ydata=$ydata2;
-	$gp2->y_title=$tpl->_ENGINE_parse_body("{hits}");;
-	$gp2->x_title=$tpl->_ENGINE_parse_body("{days}");
-	$gp2->title=null;
-	$gp2->margin0=true;
-	$gp2->Fillcolor="blue@0.9";
-	$gp2->color="146497";	
-	$gp2->line_green();
+	
 	
 	if(!is_file($targetedfile)){
 		writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);
 	
 	}else{
 		$html=$html."
-		<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;|&nbsp;$familysite&nbsp;|&nbsp;$title_add</div>
+		<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;|&nbsp;$familysite&nbsp;|&nbsp;$month_text</div>
 		<center>
 			<div style='width:99%' class=form>
-				<div style='font-size:18px;margin:8px'>{{$maintitle}} (MB)</div>
+				
 				<img src='$targetedfile'>
 			</div>
-			
-			<div style='width:99%' class=form>
-				<div style='font-size:18px;margin:8px'>{{$maintitle2}}</div>
-				<img src='$targetedfile2'>
-			</div>			
+	
 		</center>
 		
 		";
@@ -256,37 +160,11 @@ function days_popup(){
 	$field=$_GET["field"];
 	$value=$_GET["value"];
 	$familysite=$_GET["familysite"];	
-	if(preg_match("#_week#", $_GET["table"])){
-		if($field=="ipaddr"){$field="client";}	
-		$dayZ=$q->WEEK_HASHTIME_FROM_TABLENAME($table);
-		$title_add=$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-	}
-
-	if(preg_match("#_day#", $_GET["table"])){
-		if($field=="ipaddr"){$field="client";}
-		$title_add=$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-		$sql="SELECT `day` FROM {$_GET["table"]} WHERE $field='$value' AND familysite='$familysite' GROUP BY `day` ORDER BY `day` ";
-		$results=$q->QUERY_SQL($sql);
-		$Cyear=substr($_GET["table"], 0,4);
-		$month=substr($_GET["table"],4,2);		
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$time=strtotime("$Cyear-$month-{$ligne["day"]} 00:00:00");
-			$dayZ[$time]=date('{l} d {F}', $time);
-		}
-		
-	}		
-		
 	
-	$fieldz=Field_array_Hash($dayZ, "daytime-$t",null,"ChangeInterval$t()",null,0,"font-size:16px");
+	
+	
 $t=time();	
 $html="
-<table style='width:99%' class=form>
-<tr>
-	<td class=legend style='font-size:16px'>{day}:</td>
-	<td style='font-size:16px'>$fieldz</td>
-	
-</tr>
-</table>
 <div id='$t-content'></div>
 
 
@@ -297,9 +175,7 @@ $html="
 
 function ChangeInterval$t(){
 	var table='{$_GET["table"]}';
-	if(table.length==0){document.getElementById('daytime-$t').disabled=true;}
-	var days=document.getElementById('daytime-$t').value;
-	LoadAjax('$t-content','$page?zoom-day=yes&field=$field&value=$value&familysite={$_GET["familysite"]}&table={$_GET["table"]}&daytime='+days);
+	LoadAjax('$t-content','$page?zoom-day=yes&field=$field&value=$value&familysite={$_GET["familysite"]}&table={$_GET["table"]}&daytime=');
 	}
 	ChangeInterval$t();
 </script>
@@ -320,48 +196,14 @@ function zoom_day(){
 	$daytitle=date("{l} d {F}",$daytime);
 	$q=new mysql_squid_builder();
 	
-	
-	if(isset($_GET["table"])){
-		if($field=="ipaddr"){$field="client";}
-		$groupby="day";
-		$maintitle="downloaded_size_per_day";
-		$maintitle2="requests_per_day";			
-		
-		if(preg_match("#_week$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-			$time=$q->WEEK_TIME_FROM_TABLENAME($_GET["table"]);
-
-		}
-		if(preg_match("#_day$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-			$time=$q->WEEK_TIME_FROM_TABLENAME($_GET["table"]);					
-		}	
-
-		
-		if(preg_match("#_month$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-			$time=$q->TIME_FROM_MONTH_TABLE($_GET["table"]);
-			$QueryTable=date("YW")."_week";		
-		}
-
-		if(preg_match("#_hour$#", $_GET["table"])){
-			$title_add=$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
-			$time=$q->TIME_FROM_DAY_TABLE($_GET["table"]);
-			$table_name=$_GET["table"];
-			
-		}	
-		
+	$month_table="quotamonth_".date("Ym");
+	$month_text=date("{F}");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_text=date("{F}",strtotime('first day of previous month'));
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
 	}
 	
 	
-	
-	if(!$q->TABLE_EXISTS($table_name)){
-		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{sorry_table_is_missing}:$table_name"));
-		return;
-	}	
-	
-	
-	if($field=="ipaddr"){$field="client";}
 	$sql="SELECT `hour` as thour,SUM(size) as QuerySize,SUM(hits) as hits FROM 
 	`$table_name`  WHERE `$field`='$value' AND familysite='$familysite' GROUP BY thour ORDER BY thour";
 		

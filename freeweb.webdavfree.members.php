@@ -191,7 +191,7 @@ function users_list(){
 	$t=$_GET["t"];
 
 
-	$icon="user7-32.png";
+	$icon="user-32.png";
 	
 	$mdkey=$_GET["mdkey"];
 	$q=new mysql();

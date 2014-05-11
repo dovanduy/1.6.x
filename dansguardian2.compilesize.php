@@ -133,7 +133,7 @@ function categories_search(){
 
 	if(isset($_GET["artica"])){$artica=true;}
 	$tablename="webfilters_dbstats";
-	if(!$q->TestingConnection()){json_error_show("Testing connection to MySQL server failed...",1);}
+	if(!$q->BD_CONNECT()){json_error_show("Testing connection to MySQL server failed...",1);}
 	
 	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){$q->CheckTables();}
 	$dans=new dansguardian_rules();
@@ -220,7 +220,7 @@ function categories_search(){
 		if($dans->array_pics[$categoryname]<>null){$pic="<img src='img/{$dans->array_pics[$categoryname]}'>";}else{$pic="&nbsp;";}
 	
 
-		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t')\"
+		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t',true)\"
 		style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		$text_category=$dans->array_blacksites[$categoryname];
 		
@@ -230,13 +230,13 @@ function categories_search(){
 		if(isset($PERSONALSCATS[$categoryname])){
 			$text_category=utf8_encode($PERSONALSCATS[$categoryname]);
 			if($pic=="&nbsp;"){$pic="<img src='img/20-categories-personnal.png'>";}
-			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t')\"
+			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t',true)\"
 			style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		}
 		
 		
 		
-		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");		
+		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}',true)");		
 		
 		$categoryText=$tpl->_ENGINE_parse_body("<div style='font-size:14px';font-weight:bold'>$linkcat$categoryname</div>
 		</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div>");

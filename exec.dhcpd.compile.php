@@ -45,16 +45,16 @@ function BuildDHCP($nopid=false){
 	}
 	
 	$ldap=new clladp();
-	if($ldap->ldapFailed){echo "Starting......: [INIT]: $LOGBIN ldap connection failed,aborting\n";return;}
-	if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){echo "Starting......: DHCP SERVER dc=organizations,$ldap->suffix no such branch, aborting\n";return;	}
-	echo "Starting......: [INIT]: $LOGBIN ldap connection success\n";
+	if($ldap->ldapFailed){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN ldap connection failed,aborting\n";return;}
+	if(!$ldap->ExistsDN("dc=organizations,$ldap->suffix")){echo "Starting......: ".date("H:i:s")." DHCP SERVER dc=organizations,$ldap->suffix no such branch, aborting\n";return;	}
+	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN ldap connection success\n";
 	$dhcpd=new dhcpd();
 	$conf=$dhcpd->BuildConf();
 	$confpath=dhcp3Config();
 	$unix=new unix();
 	@mkdir(dirname($confpath),null,true);
 	@file_put_contents($confpath,$conf);
-	echo "Starting......: [INIT]: $LOGBIN saving \"$confpath\" (". strlen($conf)." bytes) done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN saving \"$confpath\" (". strlen($conf)." bytes) done\n";
 	
 	if(!$unix->UnixUserExists("dhcpd")){
 		$unix->CreateUnixUser("dhcpd","dhcpd");
@@ -72,6 +72,11 @@ function BuildDHCP($nopid=false){
 	@unlink($timefile);
 	@file_put_contents($timefile, time());
 	
+	$sock=new sockets();
+	$sock->getFrameWork("dnsmasq.php?restart=yes");
+	$sock->getFrameWork("services.php?restart-monit=yes");
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	
 }
 
 function compile_bind(){
@@ -86,7 +91,7 @@ function start($aspid=false){
 	$LOGBIN="DHCP Server";
 	$binpath=$unix->DHCPD_BIN_PATH();
 	if(!is_file($binpath)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN, not installed\n";}
 		return;
 	}
 	
@@ -95,7 +100,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN, Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN, Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -104,7 +109,7 @@ function start($aspid=false){
 	$pid=PID_NUM();	
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN Service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 	
@@ -116,8 +121,8 @@ function start($aspid=false){
 	
 	
 	
-	if($EnableChilli==1){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN replaced by HotSpot feature...\n";}$EnableDHCPServer=0;}
-	if($EnableDHCPServer==0){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service disabled\n";}return;}	
+	if($EnableChilli==1){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN replaced by HotSpot feature...\n";}$EnableDHCPServer=0;}
+	if($EnableDHCPServer==0){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service disabled\n";}return;}	
 	
 	@mkdir("/var/run/dhcp3-server",0755,true);
 	@mkdir("/var/lib/dhcp3",0755,true);
@@ -126,19 +131,23 @@ function start($aspid=false){
 	if(!is_file("/var/lib/dhcp3/dhcpd.leases")){@file_put_contents("/var/lib/dhcp3/dhcpd.leases", "#");}
 	$unix->SystemCreateUser("dhcpd","dhcpd");
 	$unix->chown_func("dhcpd", "dhcpd","/var/run/dhcp3-server");
+	$unix->chown_func("dhcpd", "dhcpd","/var/lib/dhcp3/dhcpd.leases");
 	$unix->chown_func("dhcpd", "dhcpd","/var/lib/dhcp3/dhcpd.leases~");
 	
 	
 	$DHCP3ListenNIC=$sock->GET_INFO('DHCP3ListenNIC');
 	if($DHCP3ListenNIC==null){$DHCP3ListenNIC="eth0";}
-	echo "Starting......: [INIT]: $LOGBIN Listen $DHCP3ListenNIC\n";
-	echo "Starting......: [INIT]: $LOGBIN building settings...\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN Listen $DHCP3ListenNIC\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN building settings...\n";
 	BuildDHCP(true);
 	
+	$CMD[]="$binpath -q -pf ".PID_PATH();
+	$CMD[]="-cf ".dhcp3Config();
+	$CMD[]="-lf /var/lib/dhcp3/dhcpd.leases";
+	$CMD[]=$DHCP3ListenNIC;
+	$cmd=@implode(" ", $CMD);
 	
-	
-	$cmd="$binpath -q -pf ".PID_PATH()." -cf ".dhcp3Config()." -lf /var/lib/dhcp3/dhcpd.leases";
-	echo "Starting......: [INIT]: $LOGBIN service..\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service..\n";
 	
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);
@@ -146,17 +155,17 @@ function start($aspid=false){
 	for($i=0;$i<6;$i++){
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service waiting $i/6...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service waiting $i/6...\n";}
 		sleep(1);
 	}
 	
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service Success service started pid:$pid...\n";}
 		return;
 	}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service failed...\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: `$cmd`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: `$cmd`\n";}
 	
 	
 }
@@ -168,7 +177,7 @@ function restart(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -192,7 +201,7 @@ function reload(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -202,7 +211,7 @@ function reload(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$kill=$unix->find_program("kill");
 	BuildDHCP(true);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN reloading PID $pid since {$time}mn\n";}	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN reloading PID $pid since {$time}mn\n";}	
 	stop(true);
 	start(true);
 
@@ -216,7 +225,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -226,7 +235,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service already stopped...\n";}
 		return;
 	}
 	$pid=PID_NUM();
@@ -236,36 +245,36 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $LOGBIN service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $LOGBIN service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $LOGBIN service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $LOGBIN service failed...\n";}
 
 }
 //##############################################################################

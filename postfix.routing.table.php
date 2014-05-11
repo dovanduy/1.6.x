@@ -1045,7 +1045,7 @@ $form="<div style='font-size:16px'>{relayhost}</div>
 					<tr>
 						<td valign='top'>
 						<input type='hidden' name='relayhostSave' value='yes'>
-						<div style='width:95%' class=form>
+						<div style='width:98%' class=form>
 						<table style='width:99%'>
 							<td align='right' nowrap class=legend>{relay_address}:</strong></td>
 							<td style='font-size:12px'>" . Field_text('relay_address',$relayT[1],"font-size:13px;padding:3px") . "</td>	
@@ -1474,8 +1474,8 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 833,
-	height: 600,
+	width: '99%',
+	height: '600',
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -1514,13 +1514,6 @@ function SenderTableLoad_list(){
 	
 	$sender=new sender_dependent_relayhost_maps();
 	$h=$sender->sender_dependent_relayhost_maps_hash;	
-	
-	
-
-	
-
-	
-
 	$Tdomain=new DomainsTools();
 		
 	$data = array();
@@ -1568,6 +1561,7 @@ function SenderTableLoad_list(){
 		
 	}
 
+	if($c==0){json_error_show("no data");}
 	$data['page'] = 1;
 	$data['total'] = $c;
 	echo json_encode($data);	
@@ -1602,7 +1596,7 @@ if($_GET["domainName"]<>null){
 	if($main->main_array["smtp_sasl_auth_enable"]=="yes"){
 		$tls_table=$ldap->hash_Smtp_Tls_Policy_Maps();
 		$tls_value=$tls_table[$relay_address];
-		writelogs("server \"{$Table[$domainName]}\"=>$smtp_server_line=>".$tls_table[$smtp_server_line] ."($tls_value)",__FUNCTION__,__FILE__);
+		writelogs("server \"{$table[$domainName]}\"=>$smtp_server_line=>".$tls_table[$smtp_server_line] ."($tls_value)",__FUNCTION__,__FILE__);
 		
 		$field=Field_array_Hash($main->array_field_relay_tls,'smtp_tls_policy_maps',$tls_value,null,null,0,"font-size:16px;",false);
 		$sasl="
@@ -1672,6 +1666,7 @@ function PostfixAddNewSenderTable$t(){
 
 function SenderTableSave(){
 	$tpl=new templates();
+	
 	if($_GET["domain"]==null && $_GET["email"]==null){echo $tpl->_ENGINE_parse_body('{error_give_email_or_domain}');exit;}
 	if($_GET["domain"]<>null && $_GET["email"]<>null){echo $tpl->_ENGINE_parse_body('{error_choose_email_or_domain}');exit;}			
 	if($_GET["relay_address"]==null){echo $tpl->_ENGINE_parse_body('{error_no_server_specified}');exit;}
@@ -1686,6 +1681,7 @@ function SenderTableSave(){
 	}
 	
 	if(isset($_GET["smtp_tls_policy_maps"])){
+		$ldap=new clladp();
 		$ldap->smtp_tls_policy_maps_add($_GET["domain"],null,$_GET["MX_lookups"],$_GET["smtp_tls_policy_maps"]);
 	}
 	

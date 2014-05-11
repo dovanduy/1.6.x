@@ -62,7 +62,7 @@ if(!$_GET["FORCE"]){
 	
 if($argv[1]=='--setup'){
 	setup_center();
-	error_log("setup_center() die in ".__FILE__);
+	error_log("[{$_SESSION["uid"]}]::setup_center() die in ".__FILE__);
 	die();	
 }
 	
@@ -163,6 +163,8 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	$statusSpamassassinUpdateFile="/usr/share/artica-postfix/ressources/logs/sa-update-status.html";
 	$statusSpamassassinUpdateText=null;$service=null;$blacklist=null;$no_orgs=null;$zabbix=null;$samba=null;$computers=null;$nobackup=null;$check_apt=null;$services=null;
 	
+	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+	if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;}
 	
 	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
@@ -374,7 +376,7 @@ function kavproxyInfos(){
 
 function squid_filters_infos(){
 	$sock=new sockets();
-if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
+	if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
 	if(!$users->SQUID_INSTALLED){return null;}
 	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
@@ -390,7 +392,10 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	if($EnableUfdbGuard==1){$filtered=true;}
 	if($squidGuardEnabled==1){$filtered=true;}
 	if($DansGuardianEnabled==1){$filtered=true;}
-	if($users->SQUID_ICAP_ENABLED){$filtered=true;}
+	$IsIcapClient=trim($sock->getFrameWork("squid.php?IsIcapClient=yes"));
+	if($IsIcapClient=='TRUE'){$filtered=true;}
+	
+	
 	if(!$filtered){
 		if($GLOBALS["VERBOSE"]){echo "DEBUG:squid_filters_infos():: Not filtered\n";}
 		return null;}
@@ -476,7 +481,7 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	}
 	
 	if(!$notify){return;}	
-	return NotifyAdmin("bad-parameter-64.png",'{BAD_CONFIGURATION_CICAP}',
+	return NotifyAdmin("bad-parameters-64.png",'{BAD_CONFIGURATION_CICAP}',
 	"{BAD_CONFIGURATION_CICAP_BAD_PARAM}: {VirHTTPServer}",
 	"javascript:Loadjs('c-icap.index.php?runthis=cicap_daemons');","{VirHTTPServer}",300,76,1);
 	
@@ -533,6 +538,8 @@ if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLAS
 	$sock=new sockets();
 	$tpl=new templates();
 	$status=new status();
+	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+	if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;}
 	
 	
 	$SAMBA_INSTALLED=0;
@@ -614,7 +621,7 @@ function setup_center(){
 		include_once(dirname(__FILE__).'/setup.index.php');
 		
 	
-		error_log("Starting ". __FUNCTION__." in ".__FILE__);
+		error_log("[{$_SESSION["uid"]}]::Starting ". __FUNCTION__." in ".__FILE__);
 	
 		
 		BuildingExecStatus("Setup center:: statistics...",52);

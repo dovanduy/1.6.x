@@ -1,4 +1,10 @@
 <?php
+/*
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");
+$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;
+$GLOBALS["VERBOSE_SYSLOG"]=true;
+*/
 if(function_exists("posix_getuid")){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}}
 if(!$GLOBALS["AS_ROOT"]){session_start();unset($_SESSION["MINIADM"]);unset($_COOKIE["MINIADM"]);}
 header("Pragma: no-cache");
@@ -7,13 +13,13 @@ header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 header("Cache-Control: no-cache, must-revalidate");
 $GLOBALS["AS_ROOT"]=false;
 $GLOBALS["VERBOSE"]=false;
-if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;include_once("ressources/logs.inc");}
+if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;}
 if(isset($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}}
 $GLOBALS["ICON_FAMILY"]="SYSTEM";
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
+include_once("ressources/logs.inc");
 include_once('ressources/class.templates.inc');
-if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.cyrus.inc');
 include_once('ressources/class.main_cf.inc');
@@ -21,9 +27,17 @@ include_once('ressources/charts.php');
 include_once('ressources/class.syslogs.inc');
 include_once('ressources/class.system.network.inc');
 include_once('ressources/class.os.system.inc');
+if($GLOBALS["VERBOSE"]){echo "Memory:(".__LINE__.") " .round(memory_get_usage(true)/1024)."Ko<br>\n";}
+
 
 if($GLOBALS["AS_ROOT"]){
-	if($argv[1]=="--status-right"){status_right();status_computer();main_admin_tabs();exit;}
+	if($argv[1]=="--status-right"){
+			status_right();
+			if($GLOBALS["VERBOSE"]){echo " **** **** status_computer() **** ****\n";}
+			status_computer();
+			main_admin_tabs();
+			exit;
+	}
 }
 
 //ini_set('display_errors', 1);
@@ -32,11 +46,34 @@ if($GLOBALS["AS_ROOT"]){
 if(isset($_GET["HideTips"])){HideTips();exit;}
 
 $users=new usersMenus();
+
 if(!$users->AsSystemAdministrator){
-	error_log("[{$_SESSION["uid"]}]::Redirect to miniadm.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
+	error_log("[{$_SESSION["uid"]}]::[{$_SESSION["uid"]}]::Redirect to miniadm.php in ".__FUNCTION__." file " .basename(__FILE__)." line ".__LINE__);
 	writelogs("[{$_SESSION["uid"]}]Redirect to miniadm.php",__FUNCTION__,__FILE__,__LINE__);header('location:miniadm.php');
 	exit;
 }
+
+if(isset($_GET["CurrentTime"])){
+	$t=time();
+	$script="<script>
+		function Clock$t(){ 
+			
+			IndexHorloge();
+		  } 
+			setTimeout('Clock$t()',10000);
+	</script>";
+	
+	if(time()-$_SESSION["CurrentTime"]<9){$script=null;}
+	
+	if(function_exists("date_default_timezone_get")){$timezone=date_default_timezone_get();}
+	
+	echo date("H:i:s")." ($timezone)"
+	.$script;	
+	$_SESSION["CurrentTime"]=time();	
+	die();
+}
+
+
 if(isset($_GET["admin-index-status-mysql"])){echo status_mysql();exit;}
 if(isset($_GET["status_right_image"])){status_right_image();exit;}
 if(isset($_GET["warnings"])){warnings_js();exit;}
@@ -58,7 +95,7 @@ if($_GET["status"]=="left"){die("<H1>Not supported</H1>");}
 if($_GET["status"]=="right"){status_right();exit;}
 
 
-
+if(isset($_GET["status"])){STATUS();exit;}
 if(isset($_GET["postfix-status"])){POSTFIX_STATUS();exit;}
 if(isset($_GET["AdminDeleteAllSqlEvents"])){warnings_delete_all();exit;}
 if(isset($_GET["ShowFileLogs"])){ShowFileLogs();exit;}
@@ -66,6 +103,10 @@ if(isset($_GET["buildtables"])){CheckTables();exit;}
 if(isset($_GET["CheckDaemon"])){CheckDaemon();exit;}
 if(isset($_GET["EmergencyStart"])){EmergencyStart();exit;}
 if(isset($_GET["memcomputer"])){status_computer();exit;}
+
+
+
+if(isset($_GET["mem-dump-js"])){status_memdump_load();exit;}
 if(isset($_GET["mem-dump"])){status_memdump();exit;}
 if(isset($_GET["memory-status"])){status_memdump_js();exit;}
 if(isset($_GET["artica-meta"])){artica_meta();exit;}
@@ -79,13 +120,29 @@ function HideTips(){
 	$sock->SET_INFO($_GET["HideTips"],1);
 }
 
+function status_memdump_load(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$processes_memory=$tpl->javascript_parse_text("{processes_memory}");
+	echo "YahooWinBrowse(750,'$page?mem-dump=yes','$processes_memory',true)";
+	
+}
+
+function status_right_image(){
+	
+	include("admin.index.right-image.php");
+}
+
 function warnings_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{$_GET["count"]} {warnings}");
 	echo "YahooWinS('330','$page?warnings-popup=yes','$title');";
 }
 function json_error_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{error}");
@@ -132,7 +189,7 @@ function StartStopService_popup(){
 	</div>
 	
 	<script>
-		LoadAjax('StartStopService_popup','$page?StartStopService-perform=yes&cmd={$_GET["cmd"]}&typ={$_GET["typ"]}&apps={$_GET["apps"]}');
+		LoadAjax('StartStopService_popup','$page?StartStopService-perform=yes&cmd={$_GET["cmd"]}&typ={$_GET["typ"]}&apps={$_GET["apps"]}',true);
 	</script>
 	";
 	$tpl=new templates();
@@ -205,14 +262,14 @@ if(isset($_GET["admin-ajax"])){
 }
 $ldap=new clladp();
 $page=CurrentPageName();
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
+error_log(basename(__FILE__)." ".__FUNCTION__."() [{$_SESSION["uid"]}] line ". __LINE__);
 $hash=$ldap->UserDatas($_SESSION["uid"]);
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
+error_log(basename(__FILE__)." ".__FUNCTION__."() [{$_SESSION["uid"]}] line ". __LINE__);
 if($hash["displayName"]==null){$hash["displayName"]="{Administrator}";}
 $sock=new sockets();
 $ou=$hash["ou"];
 $users=new usersMenus();
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
+error_log(basename(__FILE__)." ".__FUNCTION__."() [{$_SESSION["uid"]}] line ". __LINE__);
 
 if(isset($_COOKIE["artica-template"])){
 	if(is_file("ressources/templates/{$_COOKIE["artica-template"]}/JQUERY_UI")){
@@ -222,7 +279,7 @@ if(isset($_COOKIE["artica-template"])){
 
 if($users->KASPERSKY_SMTP_APPLIANCE){
 	if($sock->GET_INFO("KasperskyMailApplianceWizardFinish")<>1){
-		$wizard_kaspersky_mail_appliance="Loadjs('wizard.kaspersky.appliance.php');";
+		$wizard_kaspersky_mail_appliance="Loadjs('wizard.kaspersky.appliance.php',true);";
 	}
 }
 
@@ -231,7 +288,7 @@ if($users->KASPERSKY_SMTP_APPLIANCE){
 		//$GLOBALS["JQUERY_UI"]="kavweb";
 	}
 
-	if(isset($_GET["admin-ajax"])){$left_menus="LoadAjax('TEMPLATE_LEFT_MENUS','/admin.tabs.php?left-menus=yes');";}
+	if(isset($_GET["admin-ajax"])){$left_menus="LoadAjax('TEMPLATE_LEFT_MENUS','/admin.tabs.php?left-menus=yes',true);";}
 
 
 $html="
@@ -245,7 +302,7 @@ $html="
 	
 	
 $tpl=new template_users($title,$html,$_SESSION,0,0,0,$cfg);
-error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
+error_log(basename(__FILE__)." ".__FUNCTION__."() [{$_SESSION["uid"]}] line ". __LINE__);
 $html=$tpl->web_page;
 SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
 echo $html;	
@@ -311,9 +368,7 @@ function Loop(){
 		document.getElementById('progression_js_left').innerHTML=tempvalue;
 		}		
 	
-function LoadMemDump(){
-		YahooWin(500,'$page?mem-dump=yes');
-	}
+
 
 
 
@@ -351,7 +406,7 @@ if(isset($_GET["admin-ajax"])){
 error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
 $tpl=new templates();
 error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
-$title=$tpl->_ENGINE_parse_body("<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('admin.chHostname.php');\" style='text-transform:lowercase;font-size:12px' >[<span id='hostnameInFront'>$usersmenus->hostname</span>]</a>&nbsp;{WELCOME} <span style='font-size:12px'>{$hash["displayName"]} </span>");
+$title=$tpl->_ENGINE_parse_body("<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('admin.chHostname.php',true);\" style='text-transform:lowercase;font-size:12px' >[<span id='hostnameInFront'>$usersmenus->hostname</span>]</a>&nbsp;{WELCOME} <span style='font-size:12px'>{$hash["displayName"]} </span>");
 
 error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
 if($users->KASPERSKY_SMTP_APPLIANCE){
@@ -380,31 +435,33 @@ error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
 
 
 function main_admin_tabs(){
-	
-
-	
-	if(!$GLOBALS["AS_ROOT"]){
-		if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
-	}
-	
-	if($GLOBALS["VERBOSE"]){echo "<li>".__FUNCTION__." line:".__LINE__."</li>";}
-	$array["t:frontend"]="{status}";
-	$array["t:orgs"]="{organizations}";
+	if(!$GLOBALS["AS_ROOT"]){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}}
+	$ldap=new clladp();
 	$users=new usersMenus();
 	$sys=new syslogs();
 	$artica=new artica_general();
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$array["t:graphs"]='{graphs}';	
+	if($GLOBALS["VERBOSE"]){echo "<li>".__FUNCTION__." line:".__LINE__."</li>";}
+	$array["t:frontend"]="{status}";
+	
+	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+	if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;}
+	
+	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){$users->SQUID_INSTALLED=false;}
+	
+	if($ldap->IsKerbAuth()){$array["t:orgs"]="{active_directory}";}else{$array["t:orgs"]="{organizations}";}
+	
+	$array["t:BANDWITH-STATS"]="{bandwith}";
+	
 	
 	if($users->VPS_OPENVZ){$array["t:openvz"]='OpenVZ';}
 	
 	if($artica->EnableMonitorix==1){$array["t:monitorix"]='{monitorix}';}
-	if($users->WEBSTATS_APPLIANCE){
-		$users->POSTFIX_INSTALLED=false;
-		$array["t:remote-web-appliances"]='{appliances}';
-	}
+	
 	
 	
 	if($users->POSTFIX_INSTALLED){
@@ -429,7 +486,7 @@ function main_admin_tabs(){
 		$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
 		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 		if($SQUIDEnable==1){
-			
+			$array["t:TOP-WEB"]="{top_web}";
 			if(!$users->PROXYTINY_APPLIANCE){
 				if(!$users->SQUID_REVERSE_APPLIANCE){
 					if($users->APP_UFDBGUARD_INSTALLED){
@@ -448,20 +505,20 @@ if($users->KASPERSKY_SMTP_APPLIANCE){
 }	
 
 if(count($array)<8){
-	$array["t:cnx"]="{connections}";
+	if($users->SQUID_INSTALLED){
+		$array["t:starting-guide-squid"]="{starting_guide}";
+	}
 }
-if(count($array)<8){
-	$array["t:members"]="Admins";
-}
+
 $count=count($array);
 //if($count<7){$array["add-tab"]="{add}&nbsp;&raquo;";}
 
 
-
+$width="800px";
 		
 $page=CurrentPageName();	
-	if($GLOBALS["AS_ROOT"]){$_GET["tab-font-size"]="14px";}
-	$width="800px";
+if($GLOBALS["AS_ROOT"]){$_GET["tab-font-size"]="14px";}
+	$t=time();
 if(isset($_GET["tab-font-size"])){
 	if($_GET["tab-font-size"]=="14px"){$_GET["tab-font-size"]="12px";}
 	$style="style=font-size:{$_GET["tab-font-size"]}";
@@ -470,10 +527,28 @@ if(isset($_GET["tab-width"])){$width=$_GET["tab-width"];}
 if(isset($_GET["newfrontend"])){$newfrontend="&newfrontend=yes";}
 if(count($array)>7){$style="style=font-size:11px";}
 
+
+$style="style=font-size:16px";
+
 	while (list ($num, $ligne) = each ($array) ){
 		if(preg_match("#t:(.+)#",$num,$re)){
 			$ligne=$tpl->javascript_parse_text($ligne);
-			if(strlen($ligne)>15){$ligne=substr($ligne,0,12)."...";}
+			
+			if($re[1]=="TOP-WEB"){
+				$html[]= "<li ><a href=\"admin.index.load.top-web.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}
+			
+			if($re[1]=="BANDWITH-STATS"){
+				$html[]= "<li ><a href=\"admin.index.load.bandwith.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
+			if($re[1]=="starting-guide-squid"){
+				$html[]= "<li ><a href=\"admin.index.startingguide.squid.php\"><span $style>$ligne</span></a></li>\n";
+				continue;
+			}			
+			
 			
 			if($re[1]=="cnx"){
 				$html[]= "<li ><a href=\"admin.cnx.php?t=0$newfrontend\"><span $style>$ligne</span></a></li>\n";
@@ -513,7 +588,9 @@ if(count($array)>7){$style="style=font-size:11px";}
 	
 $t=time();	
 
-return build_artica_tabs($html, "admin_perso_tabs");
+return build_artica_tabs($html, "admin_perso_tabs-$t")."
+		<div id='admin_perso_tabs-ID' value='admin_perso_tabs-$t'>
+		<script>LeftDesign('dashboard-256-opac20.png');</script>";
 
 		
 }
@@ -542,6 +619,34 @@ function POSTFIX_STATUS(){
 	}	
 }
 
+function STATUS(){
+	$tpl=new templates();
+	$ini=new Bs_IniHandler();
+	
+	$SQUID["SQUID"]=true;
+	$SQUID["APP_CNTLM"]=true;
+	$SQUID["DANSGUARDIAN"];
+	$SQUID["KAV4PROXY"];
+	$SQUID["C-ICAP"];
+	$SQUID["APP_PROXY_PAC"];
+	$SQUID["APP_SQUIDGUARD_HTTP"];
+	$SQUID["APP_UFDBGUARD"];
+	$SQUID["APP_FRESHCLAM"];
+	$SQUID["APP_ARTICADB"];
+	$SQUID["APP_HAARP"];
+	$SQUID["APP_FTP_PROXY"];
+	
+	if(isset($SQUID[$_GET["KEY"]])){
+		$sock=new sockets();
+		$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
+		echo $tpl->_ENGINE_parse_body(DAEMON_STATUS_ROUND($_GET["KEY"],$ini,null,0,0,1));
+		return;
+		
+	}
+	$ini->loadFile("/usr/share/artica-postfix/ressources/logs/global.status.ini");
+	echo $tpl->_ENGINE_parse_body(DAEMON_STATUS_ROUND($_GET["KEY"],$ini,null,0,0,1));
+}
+
 function status_computer_mysql_memory_check(){
 	include_once('ressources/class.mysql-server.inc');
 	$t=time();
@@ -550,6 +655,8 @@ function status_computer_mysql_memory_check(){
 	$tpl=new templates();
 	$mysql=new mysqlserver();
 	$users=new usersMenus();
+	if($users->MEM_TOTAL_INSTALLEE<624288){return;}
+	
 	$serverMem=round(($users->MEM_TOTAL_INSTALLEE-300)/1024);	
 	$color="black";
 	$VARIABLES=$mysql->SHOW_VARIABLES();
@@ -613,7 +720,7 @@ function status_computer_mysql_memory_check(){
 		<table style='width:99%' class=form>
 		<tr>
 			<td valign='top'><img src='img/database-error-64.png'>
-			<td valign='top'><a href=\"javascript:blur();\" OnClick=\"Loadjs('mysql.perfs.php');\" 
+			<td valign='top'><a href=\"javascript:blur();\" OnClick=\"Loadjs('mysql.perfs.php',true);\" 
 			style='font-size:12px;color:#C72727;text-decoration:underline'>$text</a>
 			</td>
 		</tr>
@@ -673,7 +780,7 @@ function status_computer(){
 	
 	var content=document.getElementById('left_status').innerHTML;
 	if(content.length<5){
-		LoadAjax('left_status','$page?status=left$ajaxadd');
+		LoadAjax('left_status','$page?status=left$ajaxadd',true);
 	}
 	</script>
 	
@@ -699,6 +806,10 @@ function status_mysql(){
 	$sock=new sockets();
 	$page=CurrentPageName();
 	include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
+	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	
 	
 	$MySqlMemoryCheck=$sock->GET_INFO("MySqlMemoryCheck");
 	if(!is_numeric($MySqlMemoryCheck)){$MySqlMemoryCheck=0;}
@@ -708,19 +819,21 @@ function status_mysql(){
 	}
 	
 	OutputDebugVerbose("Init");
-	$syslog=new mysql_storelogs();
-	OutputDebugVerbose("mysql_storelogs() initlized");
-	if($syslog->EnableSyslogDB==1){
-		OutputDebugVerbose("EnableSyslogDB is OK testing the connection... syslog->THIS_BD_CONNECT()");
-		if(!$syslog->THIS_BD_CONNECT()){
-			OutputDebugVerbose("syslog->THIS_BD_CONNECT() DONE");
-			
-			echo "<center>".$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"Syslog:{mysql_error}",$q->mysql_error))."</center>";
-		}
+	if($MySQLSyslogType<>3){
+		if($EnableSyslogDB==1){
+			$syslog=new mysql_storelogs();
+			OutputDebugVerbose("mysql_storelogs() initlized");
+			if($syslog->EnableSyslogDB==1){
+				OutputDebugVerbose("EnableSyslogDB is OK testing the connection... syslog->THIS_BD_CONNECT()");
+				if(!$syslog->THIS_BD_CONNECT()){
+					OutputDebugVerbose("syslog->THIS_BD_CONNECT() DONE");
+					echo "<center>".$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"Syslog:{mysql_error}", $syslog->mysql_error,"Loadjs('MySQLSyslog.wizard.php')",null,420,80))."</center>";
+				}
+				
+			}
 		
+		}
 	}
-	
-	
 
 	
 	if(is_file("ressources/logs/zarafa.notify.MySQLIssue")){
@@ -747,21 +860,28 @@ function status_mysql(){
 			return "
 			$status_computer_mysql_memory_check
 			<script>
-				Loadjs('admin.mysql.error.php?error=$error');
+				Loadjs('admin.mysql.error.php?error=$error',true);
 			</script>
-			";return;
+			";
+			
 		}
 		
 		if(preg_match("#Unknown database.+?artica_.+?#",$q->mysql_error)){
+			$q->CREATE_DATABASE("artica_events");
+			$q->QUERY_SQL($sql,"artica_events");
+		}
+			
+		if(preg_match("#Unknown database.+?artica_.+?#",$q->mysql_error)){	
 			$q->BuildTables();
 			$q=new mysql();
 			$sql="SELECT count(*) FROM admin_cnx";
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
 				$t2=time();
+				$error=urlencode(base64_encode($q->mysql_error));
 				return $status_computer_mysql_memory_check."<center>".$tpl->_ENGINE_parse_body(
-				Paragraphe('danger64.png',"{mysql_error}",
-				"$q->mysql_error",null,"$q->mysql_error",420,80))."</center>
+				Paragraphe('danger64.png',"{mysql_error} [".__LINE__."]",
+				"$q->mysql_error","javascript:Loadjs('admin.mysql.error.php?error=$error',true);","$q->mysql_error",420,80))."</center>
 				<br>
 				<script>
 					function RefreshMySQL$t2(){ LoadAjaxTiny('admin-index-status-mysql','$page?admin-index-status-mysql=yes'); }
@@ -773,24 +893,42 @@ function status_mysql(){
 			}
 		}
 		
-		if(preg_match("#table.+?admin_cnx.+?exist#",$q->mysql_error)){
-			$q->BuildTables();
+		if(preg_match("#table.+?admin_cnx.+?doesn.*?exist#i",$q->mysql_error)){
 			$q=new mysql();
+			$q->BuildTables();
 			$sql="SELECT count(*) FROM admin_cnx";
 			$q->QUERY_SQL($sql,"artica_events");
 			if(!$q->ok){
 				return $status_computer_mysql_memory_check."<center>".
-				$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}",
-						"$q->mysql_error","Loadjs('StartStopServices.php?APP=APP_MYSQL_ARTICA&cmd=". urlencode("/etc/init.d/mysql")."&action=start&CacheOff=yes')","$q->mysql_error",420,80)).
+				$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error} [".__LINE__."]",
+						"$q->mysql_error","Loadjs('StartStopServices.php?APP=APP_MYSQL_ARTICA&cmd=". urlencode("/etc/init.d/mysql")."&action=start&CacheOff=yes',true)","$q->mysql_error",420,80)).
 				"</center><br>";
 				return;
-			}			
+			}
+
+			
+			
+			
+			
 			
 		}
 		
 		
 		if(trim($q->mysql_error)<>null){
-			return $status_computer_mysql_memory_check."<center>".RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"{mysql_error}","$q->mysql_error",null,"$q->mysql_error",330,80)))."</center><br>";
+			$t2=time();
+			$error=urlencode(base64_encode($q->mysql_error));
+			return $status_computer_mysql_memory_check."
+				<center>".
+				RoundedLightGrey($tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"nowrap:{mysql_error} [".__LINE__."]","
+						$q->mysql_error<br>{please_wait}...","javascript:Loadjs('admin.mysql.error.php?error=$error',true);","$q->mysql_error",330,80)))."
+				</center>
+				<script>
+					function RefreshMySQL$t2(){
+						LoadAjaxTiny('admin-index-status-mysql','$page?admin-index-status-mysql=yes');
+					}
+					setTimeout('RefreshMySQL$t2()',5000);
+				</script>
+				<br>";
 		}
 		
 	}
@@ -799,119 +937,7 @@ function status_mysql(){
 	
 }
 
-function status_right_image(){
-	$page=CurrentPageName();
-	$users=new usersMenus();
-	$tpl=new templates();
-	$users=new usersMenus();
-	
-	$newfrontend=false;
-	$sock=new sockets();
-	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
-	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
-	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
-	$NOCACHE=false;
-	if(isset($_GET["nocache"])){$NOCACHE=true;}
-	$script="
-	<script>
-		LoadAjax('mem_status_computer','$page?memcomputer=yes');
-	</script>
-	";
 
-
-	if($users->WEBSTATS_APPLIANCE){
-			$status=new status();
-			if($GLOBALS["VERBOSE"]){echo "<strong>status->WEBSTATS()</strong><br>\n";}
-			$html=$tpl->_ENGINE_parse_body($status->WEBSTATS()).$script;
-			echo $html."</div>";
-			SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-			return;	
-		}
-	
-	
-	if($users->ZARAFA_APPLIANCE){
-		if($GLOBALS["VERBOSE"]){echo "*** status->ZARAFA() ***\n";}
-		$status=new status();
-		$html=$tpl->_ENGINE_parse_body($status->ZARAFA()).$script;
-		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-		echo $html;
-		return;
-	}
-	
-	if($GLOBALS["VERBOSE"]){echo "[DEBUG] ". __FUNCTION__." $page LINE:".__LINE__."\n";}
-	
-	if($users->HAPRROXY_APPLIANCE){
-		$status=new status();
-		$html=$tpl->_ENGINE_parse_body($status->haproxy_status()).$script;
-		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-		echo $html;
-		return;
-	}		
-	
-	if($users->LOAD_BALANCE_APPLIANCE){
-		$status=new status();
-		$html=$tpl->_ENGINE_parse_body($status->xr_status()).$script;
-		echo $html;
-		return;
-	}	
-	
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	
-//if($GLOBALS["VERBOSE"]){writelogs("[DEBUG] -> Not an administrator, aborting !",__FUNCTION__,__FILE__,__LINE__);}
-	
-	
-	if($users->POSTFIX_INSTALLED){
-			if($GLOBALS["VERBOSE"]){echo "$page -> status_postfix() LINE:".__LINE__."\n";}
-			$html= status_postfix().$script;
-			echo $html;	
-			return null;
-		}
-	
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-		
-	
-	if($users->SQUID_INSTALLED){
-		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
-		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-		if($SQUIDEnable==0){
-			if($users->KASPERSKY_WEB_APPLIANCE){
-				$html=status_kav4proxy($NOCACHE).$script;
-				echo $html;	
-				return null;
-			}
-			
-		}
-		
-		if($users->KASPERSKY_WEB_APPLIANCE){
-			if($GLOBALS["VERBOSE"]){echo "<strong>status->status_squid_kav()</strong><br>\n";}
-			echo status_squid_kav($NOCACHE).$script;return;}
-			$html=status_squid($NOCACHE);
-		echo $html;				
-		return null;
-	}else{
-		if($users->KASPERSKY_WEB_APPLIANCE){
-			$html=status_kav4proxy($NOCACHE).$script;
-			SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-			echo $html;	
-			return;}
-		
-		
-	}
-	
-	if($users->SAMBA_INSTALLED){
-		$html=StatusSamba().$script;
-		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-		echo $html;
-		return;
-	}
-	
-	
-	if($users->APACHE_INSTALLED){
-		$html=StatusApache().$script;
-		SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$html);
-		echo $html;
-		return;}
-}
 
 
 function status_right(){
@@ -943,14 +969,14 @@ function status_right(){
 	}
 	
 	echo "
-	<div id='mem_status_computer' style='text-align:center;width:100%;margin:10px'></div>
+	<div id='mem_status_computer' style='text-align:center;width:100%;margin:10px;margin-top:0px'></div>
 	<div id='right-status-infos'></div>
-	<div id='IMAGE_STATUS_INFO' style='width:100%;min-height:295px' class=form></div>	
+	<div id='IMAGE_STATUS_INFO' style='width:100%;min-height:405px' class=form></div>	
 	<script>
-	LoadAjax('mem_status_computer','$page?memcomputer=yes$ajaxadd');
+	LoadAjax('mem_status_computer','$page?memcomputer=yes$ajaxadd',true);
 	
 	function IMAGE_STATUS_INFO_$t(){
-		LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t');
+		LoadAjax('IMAGE_STATUS_INFO','admin.index.right-image.php',true);
 	}
 	
 	setTimeout('IMAGE_STATUS_INFO_$t()',1500);
@@ -975,70 +1001,15 @@ function StatusSamba(){
 }
 
 
-function StatusApache(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$status=new status();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$html=$status->Apache_status();
-	return $tpl->_ENGINE_parse_body($html);		
-	
-}
 
 
-function status_kav4proxy(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$status=new status();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$html=$status->kav4proxy_status();
-	return $tpl->_ENGINE_parse_body($html);		
-}
 
-function status_squid($NOCACHE=false){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$page LINE:".__LINE__."</strong><br>\n";}
-	$status=new status();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$html=$status->Squid_status($NOCACHE);
-	return $tpl->_ENGINE_parse_body($html);	
-}
 
-function status_squid_kav(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$status=new status();
-	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
-	$html=$status->Squid_status();
-	return $tpl->_ENGINE_parse_body($html);	
-}
 	
 
 
 
-function status_postfix(){
-	$users=new usersMenus();
-	
-	$page=CurrentPageName();
-	$tpl=new templates();
 
-		$status=new status();
-		$users=new usersMenus();
-		$postfix=$status->Postfix_satus($users->ZARAFA_INSTALLED);	
-	
-	return $counter.$tpl->_ENGINE_parse_body($postfix)
-	."<script>
-		LoadAjax('mem_status_computer','$page?memcomputer=yes');
-	</script>";
-	
-	
-	;
-	
-}
 
 function DateDiff($debut, $fin) {
 
@@ -1241,7 +1212,7 @@ function artica_meta(){
 		if($SambaEnabled==1){
 			$count=$q->COUNT_ROWS("smbstatus_users", "artica_events");
 			if($count>0){
-				$p1=ParagrapheTEXT("user-group-32.png", "$count {members_connected}", "{members_connected_samba_text}","javascript:Loadjs('samba.smbstatus.php')",null,300);
+				$p1=ParagrapheTEXT("user-group-32.png", "$count {members_connected}", "{members_connected_samba_text}","javascript:Loadjs('samba.smbstatus.php',true)",null,300);
 			}
 		}
 	}

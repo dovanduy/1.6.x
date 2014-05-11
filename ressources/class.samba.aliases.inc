@@ -50,7 +50,7 @@ class samba_aliases{
 	}		
 		
 		$this->buildGlobalDefault();
-		if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] v.$users->SAMBA_VERSION loading settings done...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] v.$users->SAMBA_VERSION loading settings done...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 	}
 	
 	private function buildGlobalDefault(){
@@ -97,22 +97,22 @@ class samba_aliases{
 	private function CheckListenIP(){
 		if(!$this->ASROOT){return;}
 		if($this->ipaddr==null){return;}
-		echo "Starting......: Samba [$this->hostname]: checks network settings for $this->ipaddr\n";
+		echo "Starting......: ".date("H:i:s")." Samba [$this->hostname]: checks network settings for $this->ipaddr\n";
 		$unix=new unix();
 		$ips=$unix->ifconfig_all_ips();
 		$q=new mysql();
-		if(isset($ips[$this->ipaddr])){echo "Starting......: Samba [$this->hostname]: checks network settings OK\n";return;}
+		if(isset($ips[$this->ipaddr])){echo "Starting......: ".date("H:i:s")." Samba [$this->hostname]: checks network settings OK\n";return;}
 		$sql="SELECT * FROM nics_virtuals WHERE ipaddr='$this->ipaddr'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 		if($ligne["ipv6"]==1){return;}	
-		if($ligne["ID"]==0){echo "Starting......: Samba [$this->hostname]: unable to stat infos for '$this->ipaddr'\n";return;}
-		echo "Starting......: Samba [$this->hostname]: Apply network configuration for {$ligne["nic"]}:{$ligne["ID"]}\n";
+		if($ligne["ID"]==0){echo "Starting......: ".date("H:i:s")." Samba [$this->hostname]: unable to stat infos for '$this->ipaddr'\n";return;}
+		echo "Starting......: ".date("H:i:s")." Samba [$this->hostname]: Apply network configuration for {$ligne["nic"]}:{$ligne["ID"]}\n";
 		$ifconfig=$unix->find_program("ifconfig");
 		$route=$unix->find_program("route");		
 		exec("$ifconfig {$ligne["nic"]}:{$ligne["ID"]} $this->ipaddr 2>&1",$results);
 		exec("$route add -host $this->ipaddr dev {$ligne["nic"]}:{$ligne["ID"]} 2>&1",$results);	
 		while (list ($num, $ligne) = each ($results) ){
-			echo "Starting......: Samba [$this->hostname]:$ligne\n";
+			echo "Starting......: ".date("H:i:s")." Samba [$this->hostname]:$ligne\n";
 		}	
 	}
 	
@@ -214,11 +214,11 @@ class samba_aliases{
 		$q=new mysql();
 		$sql="SELECT ID FROM samba_hosts_share WHERE hostname='$this->hostname'";
 		$results=$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
-		if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] ". mysql_num_rows($results)." rows",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if(!$q->ok){if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
+		if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] ". mysql_num_rows($results)." rows",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			
-			if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] loading folder [{$ligne["ID"]}]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] loading folder [{$ligne["ID"]}]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$ss=new samba_virtuals_folders($ligne["ID"]);
 			$f[]=$ss->compile();	
 			
@@ -227,7 +227,7 @@ class samba_aliases{
 		
 		
 		$f[]="";
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: Samba [$this->hostname] build configuration done\n";}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Samba [$this->hostname] build configuration done\n";}
 		@file_put_contents("/etc/samba/virtual/smb.conf.$this->hostname", @implode("\n", $f));
 		if($this->ipaddr<>null){@file_put_contents("/etc/samba/virtual/smb.conf.$this->ipaddr", @implode("\n", $f));}
 	}

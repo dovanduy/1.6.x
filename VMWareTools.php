@@ -48,7 +48,7 @@ function popup(){
 			</tr>
 			
 			</table>
-			<table style='width:95%' class=form>
+			<table style='width:98%' class=form>
 			<tr>
 				<td style='font-size:18px;font-weight:bold' nowrap>{install_from_sourcepackage}:</td>
 			</tr>

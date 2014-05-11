@@ -498,6 +498,7 @@ class settings_inc {
 	public $APP_SQUIDDB_INSTALLED=false;
 	public $APP_CHILLI_INSTALLED=false;
 	public $ISCSID_INSTALLED=false;
+	public $RDPPROXY_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -512,6 +513,9 @@ class settings_inc {
 	
 	function settings_inc(){
 			$_GLOBAL=array();
+			if(!class_exists("sockets")){include_once("/usr/share/artica-postfix/ressources/class.sockets.inc");}
+			if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
+			
 			if($GLOBALS["VERBOSE"]){
 					$trace=debug_backtrace();
 					if(isset($trace[1])){
@@ -530,7 +534,7 @@ class settings_inc {
 					$GLOBALS["SETTINGS_FILES"]=$_GLOBAL;
 					if(!is_array($this->GLOBAL_CONFIG)){echo "Settings unable stat";return false;}
 					}else{
-					die("Unable to stat $settings");
+					die(__CLASS__."/".__FUNCTION__."::Unable to stat $settings\n");
 			}
 
 			if(isset($_GLOBAL["squid_kerb_auth_path"])){$this->squid_kerb_auth_path=$_GLOBAL["squid_kerb_auth_path"];}
@@ -607,6 +611,7 @@ class settings_inc {
 			if(isset($_GLOBAL["ETTERCAP_INSTALLED"])){$this->ETTERCAP_INSTALLED=$_GLOBAL["ETTERCAP_INSTALLED"];}
 			if(isset($_GLOBAL["APP_ZARAFADB_INSTALLED"])){$this->APP_ZARAFADB_INSTALLED=$_GLOBAL["APP_ZARAFADB_INSTALLED"];}
 			if(isset($_GLOBAL["APP_CHILLI_INSTALLED"])){$this->APP_CHILLI_INSTALLED=$_GLOBAL["APP_CHILLI_INSTALLED"];}
+			if(isset($_GLOBAL["RDPPROXY_INSTALLED"])){$this->RDPPROXY_INSTALLED=$_GLOBAL["RDPPROXY_INSTALLED"];}
 			
 			
 			if(isset($_GLOBAL["MPM_ITK_MODULE"])){$this->MPM_ITK_MODULE=$_GLOBAL["MPM_ITK_MODULE"];}
@@ -991,7 +996,10 @@ class settings_inc {
 				$this->BACKUPPC_INSTALLED=false;
 				$this->KAV4PROXY_INSTALLED=true;
 				
-			}			
+			}
+
+			$data=trim(@file_get_contents(base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2EvLmxpYw==")));
+			if($data=="TRUE"){$this->CORP_LICENSE=true;}
 			
 		}
 		
@@ -999,7 +1007,34 @@ class settings_inc {
 		if(!$this->POSTMULTI){return false;}
 		$vers=explode(".",$this->POSTFIX_VERSION);
 		if($vers[0]>=2){if($vers[1]>=5){return true;}}
-	}		
+	}	
+
+	public function EnablePDNS(){
+		
+		$EnablePDNS=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePDNS");
+		if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+		if(!$this->POWER_DNS_INSTALLED){return 0;}
+		if($this->EnableDNSMASQ()==1){return 0;}
+	
+	
+		if($this->APP_CHILLI_INSTALLED){
+			$EnableChilli=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableChilli");
+			if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+			if($EnableChilli==1){return 0;}
+		}
+	
+		return $EnablePDNS;
+	}
+	public function EnableDNSMASQ(){
+		
+		if(!$this->dnsmasq_installed){return 0;}
+		$EnableDNSMASQ=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableDNSMASQ");
+		$DHCPDEnableCacheDNS=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("DHCPDEnableCacheDNS");
+		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+		if($DHCPDEnableCacheDNS==1){return 1;}
+		if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
+		return $EnableDNSMASQ;
+	}	
 	
 }
 

@@ -113,6 +113,9 @@ function sources_group_auth(){
 			break;
 		
 		case 4:$form=sources_group_auth_url($groupid,$params);
+			break;
+			
+		case 5:$form=sources_group_auth_jasigcas($groupid,$params);
 		break;
 		
 	}
@@ -158,6 +161,42 @@ function sources_group_auth_activedirectory($groupid,$params){
 	$boot->set_field("LDAP_SERVER","{hostname}",$params["LDAP_SERVER"],array("ENCODE"=>true));
 	$boot->set_field("LDAP_PORT", "{ldap_port}", $params["LDAP_PORT"],array("ENCODE"=>true));
 	$boot->set_field("WINDOWS_DNS_SUFFIX", "{WINDOWS_DNS_SUFFIX}", $params["WINDOWS_DNS_SUFFIX"],array("ENCODE"=>true));
+	
+	
+	$boot->set_button($title_button);
+	$AdminPrivs=AdminPrivs();
+	if(!$AdminPrivs){$boot->set_form_locked();}
+	$boot->set_RefreshSearchs();
+	return $boot->Compile();
+		
+}
+
+function sources_group_auth_jasigcas($groupid,$params){
+	
+	$boot=new boostrap_form();
+	$sock=new sockets();
+	$users=new usersMenus();
+	$ldap=new clladp();
+	
+	$ID=$_GET["groupid"];
+	$title_button="{apply}";
+	$title="{CAS_AUTH_LABEL}";
+	
+	
+	// Path to the ca chain that issued the cas server certificate
+	$cas_server_ca_cert_path = '/path/to/cachain.pem';
+	
+	
+	if(!is_numeric($params["CAS_PORT"])){$params["CAS_PORT"]=443;}
+	
+	
+	$boot->set_formtitle($title);
+	$boot->set_hidden("PARAMS_SAVE", "yes");
+	$boot->set_hidden("groupid", $groupid);
+	$boot->set_field("CAS_HOST","{hostname}",$params["CAS_HOST"],array("ENCODE"=>true));
+	$boot->set_field("CAS_PORT", "{remote_port}", $params["CAS_PORT"],array("ENCODE"=>true));
+	$boot->set_field("CAS_CONTEXT", "{CAS_CONTEXT}", $params["CAS_CONTEXT"],array("ENCODE"=>true));
+	//$boot->set_field("CAS_CERT", "{certificate_path}", $params["CAS_CERT"],array("TOOLTIP"=>"{cas_certificate_path_explain}","ENCODE"=>true));
 	
 	
 	$boot->set_button($title_button);

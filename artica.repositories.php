@@ -267,7 +267,7 @@ function packages_status(){
 	
 	$html="<table style='width:100%'>
 	<tr>
-	<td width=1%><img src='img/icon_info.gif'></td>
+	<td width=1%><img src='img/16-infos.png'></td>
 		<td nowrap width=1% nowrap><strong>{num_packages_installed}:</strong></td>
 		<td nowrap align='left'><strong style='color:red'>$count</strong></td>
 	</tr>
@@ -387,7 +387,7 @@ function main_package_list(){
 			$uri="<a href='#' OnClick=\"javascript:PackageInfos('{$ligne["package_name"]}')\" style='font-size:14px'>";
 			switch ($r) {
 				case 'rc':$img=imgtootltip('icon_mini_off.gif','{removed_package}');$uri=null;break;
-				case "ii":$img=imgtootltip('icon-mini-ok.gif','{installed_package}');break;
+				case "ii":$img=imgtootltip('ok13.png','{installed_package}');break;
 				case "a-uu":$img=imgtootltip('icon_mini_read_off.gif','{to_be_uninstalled}');break;
 				case "a-ii":$img=imgtootltip('icon_mini_info.jpg','{to_be_installed}');break;
 				default:
@@ -616,7 +616,7 @@ $html="<table style='width:100%'>";
 			$html=$html."
 			<tr ". CellRollOver_jaune().">
 			<td width=1%><img src='img/fw_bold.gif'></td>
-			<td width=1%><img src='img/icon-mini-ok.gif'></td>
+			<td width=1%><img src='img/ok13.png'></td>
 			<td width=1% nowrap><strong>$uri{$re[1]}</strong></a></td>
 			<td width=99% nowrap><strong>$uri{$re[2]}...</strong></a></td>
 			</tr>";

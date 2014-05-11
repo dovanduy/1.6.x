@@ -45,7 +45,8 @@ function js(){
 
 	
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin4('650','$page?popup=yes&blk={$_GET["blk"]}','$title')";
+	$title_table=urlencode($title);
+	$html="YahooWin4('650','$page?popup=yes&blk={$_GET["blk"]}&table-title=$title_table','$title')";
 	echo $html;
 }
 
@@ -76,13 +77,14 @@ function popup(){
 	if($SQUID_ARP_ACL_ENABLED==1){if($users->DANSGUARDIAN_INSTALLED){$squid=new squidbee();if($squid->enable_dansguardian==1){$no_acl_arp_text=$tpl->javascript_parse_text("{no_arp_acl_dansguardian}");$SQUID_ARP_ACL_ENABLED=0;}}}
 	$add_mime_type_explain=$tpl->javascript_parse_text("{add_mime_type_white_explain}");
 	$add_default_mimetypes=$tpl->_ENGINE_parse_body("{default_rules}");
-	
+	$apply=$tpl->javascript_parse_text("{apply}");
 	
 	$buttons="
 	buttons : [
 	{name: '$AddMAC', bclass: 'add', onpress : AddByMac},
 	{name: '$addr', bclass: 'add', onpress : AddByIPAdr},
 	{name: '$squidGroup', bclass: 'add', onpress : AddBySquidGroup},
+	{name: '$apply', bclass: 'apply', onpress : SquidBuildNow$t},
 	],";		
 		
 	if(($_GET["blk"]==2) OR ($_GET["blk"]==3)){
@@ -90,6 +92,7 @@ function popup(){
 		buttons : [
 		{name: '$AddWWW', bclass: 'add', onpress : AddByWebsite},
 		{name: '$squidGroup', bclass: 'add', onpress : AddBySquidGroupWWW},
+		{name: '$apply', bclass: 'apply', onpress : SquidBuildNow$t},
 		],";
 	}
 
@@ -98,6 +101,7 @@ if($_GET["blk"]==4){
 		buttons : [
 		{name: '$AddWWW', bclass: 'add', onpress : AddByWebsite},
 		{name: '$squidGroup', bclass: 'add', onpress : AddBySquidGroupWWW},
+		{name: '$apply', bclass: 'apply', onpress : SquidBuildNow$t},
 		],";
 	}
 
@@ -106,6 +110,7 @@ if($_GET["blk"]==5){
 	$buttons="
 		buttons : [
 		{name: '$AddUserAgent', bclass: 'add', onpress : AddByUserAgent},
+		{name: '$apply', bclass: 'apply', onpress : SquidBuildNow$t},
 		],";
 	}	
 	
@@ -115,10 +120,11 @@ if($_GET["blk"]==6){
 		buttons : [
 		{name: '$new_mime_type', bclass: 'add', onpress : AddByMimeType},
 		{name: '$add_default_mimetypes', bclass: 'add', onpress : AddDefaultMimeType},
+		{name: '$apply', bclass: 'apply', onpress : SquidBuildNow$t},
 		],";
 	}	
 	
-if($explain<>null){$explain="<div class=explain style='font-size:13px'>$explain</div>";}	
+if($explain<>null){$explain="<div class=explain style='font-size:16px'>$explain</div>";}	
 $html="
 $explain
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
@@ -134,7 +140,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$pattern', name : 'pattern', width :150, sortable : true, align: 'left'},
 		{display: '$description', name : 'description', width :210, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'enabled', width : 25, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 44, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -144,11 +150,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'pattern',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '{$_GET["table-title"]}',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 632,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -166,6 +172,10 @@ $('#flexRT$t').flexigrid({
 	function FlexReloadblk(){
 		$('#flexRT$t').flexReload();
 	}
+	
+function SquidBuildNow$t(){
+	Loadjs('squid.compile.php');
+}	
 
 function AddByMac(){
 	var SQUID_ARP_ACL_ENABLED=$SQUID_ARP_ACL_ENABLED;
@@ -238,6 +248,7 @@ function AddByWebsite(){
 function BlksProxyDelete(pattern){
 		var XHR = new XHRConnection();
 		XHR.appendData('delete-pattern',pattern);
+		XHR.setLockOff();
 		XHR.sendAndLoad('$page', 'POST',x_AddByMac);
 }
 
@@ -245,6 +256,7 @@ function BlksProxyEnable(pattern,id){
 		var XHR = new XHRConnection();
 		if(document.getElementById(id).checked){XHR.appendData('enabled',1);}else{XHR.appendData('enabled',0);}
 		XHR.appendData('enable-pattern',pattern);
+		XHR.setLockOff();
 		XHR.sendAndLoad('$page', 'POST');
 }
 
@@ -262,8 +274,7 @@ function delete(){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}		
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
-	$sock->getFrameWork("webfilter.php?compile-rules=yes");	
+	$sock->getFrameWork("squid.php?quick-ban=yes");	
 }
 
 function squid_useragent(){
@@ -314,8 +325,8 @@ function enable(){
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}	
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
-	$sock->getFrameWork("webfilter.php?compile-rules=yes");		
+	$sock->getFrameWork("squid.php?quick-ban=yes");	
+		
 	
 }
 
@@ -440,13 +451,13 @@ function SaveBlks(){
 		}
 	}
 	
-	
+	$zmd5=md5(serialize($_POST));
 	$description=mysql_escape_string2($description);
 	$_POST["pattern"]=mysql_escape_string2(trim($_POST["pattern"]));
 	
 	
-	$sql="INSERT IGNORE INTO webfilters_blkwhlts (description,enabled,PatternType,blockType,pattern)
-	VALUES('$description',1,{$_POST["PatternType"]},{$_POST["blk"]},'{$_POST["pattern"]}')";
+	$sql="INSERT IGNORE INTO webfilters_blkwhlts (zmd5,description,enabled,PatternType,blockType,pattern)
+	VALUES('$zmd5','$description',1,{$_POST["PatternType"]},{$_POST["blk"]},'{$_POST["pattern"]}')";
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){if(strpos($q->mysql_error, "doesn't exist")>0){$q->BuildTables();}}
@@ -455,8 +466,8 @@ function SaveBlks(){
 	
 	
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
-	if($restartfilters){$sock->getFrameWork("webfilter.php?compile-rules=yes");}
+	$sock->getFrameWork("squid.php?quick-ban=yes");	
+	
 	
 	
 }
@@ -575,20 +586,16 @@ function popup_list(){
 	
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){ json_error_show($q->mysql_error); }
+	if(mysql_num_rows($results)==0){json_error_show("no data"); }
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	

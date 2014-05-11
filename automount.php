@@ -275,7 +275,7 @@ function mount_list(){
 		$js=null;
 		$delete=imgtootltip('ed_delete.gif','{delete}',"AutoMountDelete('$mount')");
 		if($field<>null){
-			$delete=imgtootltip('add-18.gif','{SELECT_RESSOURCE}',"AutoMountSelect('$mount')");
+			$delete=imgtootltip('add-18.png','{SELECT_RESSOURCE}',"AutoMountSelect('$mount')");
 			$js="AutoMountSelect('$mount')";
 		}
 		$html=$html . "<tr " . CellRollOver($js).">

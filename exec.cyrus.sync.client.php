@@ -21,11 +21,12 @@ if(!is_file($users->cyrus_sync_client_path)){
 	events("Unable to stat sync_client");
 	die();
 }
-
+$unix=new unix();
+$tempdir=$unix->TEMP_DIR();
 events("Exporting mailbox list");
-system("su - cyrus -c \"$users->ctl_mboxlist -d\" >/tmp/ctl_mboxlist");
+system("su - cyrus -c \"$users->ctl_mboxlist -d\" >$tempdir/ctl_mboxlist");
 
-$datas=file_get_contents("/tmp/ctl_mboxlist");
+$datas=file_get_contents("$tempdir/ctl_mboxlist");
 $tbl=explode("\n",$datas);
 if(!is_array($tbl)){
 	events("FATAL ERROR");

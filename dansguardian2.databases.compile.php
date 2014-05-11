@@ -79,7 +79,7 @@ if(count($f)>50){echo "<hr><center>".imgtootltip("refresh-32.png","Refresh","Lll
 		$c++;	
 		$ligne=str_replace("/usr/share/artica-postfix/ressources", "", $ligne);
 		$color="black";$weight="normal";
-		if(preg_match("#Notice:#", $ligne)){$color="red";}
+		if(preg_match("#Notice:#", $ligne)){$color="#CC0A0A";}
 		if(preg_match("#Starting#", $ligne)){$weight="bold";}
 		if(preg_match("#took#i", $ligne)){$weight="bold";}
 		if(preg_match("#warning:#i", $ligne)){$color="#B10000";}

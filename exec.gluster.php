@@ -376,15 +376,15 @@ function BuildLocalConf(){
 	$gluser=new gluster_samba();
 	$conf=$gluser->build();
 	if(trim($conf)==null){
-		echo "Starting......: Gluster Daemon glusterfs-server.vol no settings...\n";
+		echo "Starting......: ".date("H:i:s")." Gluster Daemon glusterfs-server.vol no settings...\n";
 		return;
 	}
 	system_admin_events("Gluster Daemon glusterfs-server.vol rebuilded..." , __FUNCTION__, __FILE__, __LINE__, "cluster");
 	@file_put_contents($configfile,$conf);
 	if(is_file($configfile)){
-		echo "Starting......: Gluster Daemon `glusterfs-server.vol` done\n";
+		echo "Starting......: ".date("H:i:s")." Gluster Daemon `glusterfs-server.vol` done\n";
 	}else{
-		echo "Starting......: Gluster Daemon `glusterfs-server.vol` failed\n";
+		echo "Starting......: ".date("H:i:s")." Gluster Daemon `glusterfs-server.vol` failed\n";
 	}
 	
 
@@ -670,7 +670,7 @@ function CLIENT_MOUNT_FOLDERS(){
 		if(!$glfs->ismounted($path,$volume)){
 			if($glfs->CheckPath($path)){
 				system_admin_events("mouting " .basename($filename), __FUNCTION__, __FILE__, __LINE__, "cluster");
-				echo "Starting......: Gluster clients ".basename($filename)." mount it\n";
+				echo "Starting......: ".date("H:i:s")." Gluster clients ".basename($filename)." mount it\n";
 				$glfs->mount($path,$filename);
 				if($glfs->ismounted($path)){
 					NOTIFY_ALL_MASTERS("Success connect $path",__FUNCTION__,__FILE__,__LINE__);
@@ -683,7 +683,7 @@ function CLIENT_MOUNT_FOLDERS(){
 				NOTIFY_ALL_MASTERS("Unable to mount $path".@implode("\n", $GLOBALS["GLUSTERS_EV"]),__FUNCTION__,__FILE__,__LINE__);
 			}
 		}else{
-			echo "Starting......: Gluster clients ".basename($filename)." already mounted\n";
+			echo "Starting......: ".date("H:i:s")." Gluster clients ".basename($filename)." already mounted\n";
 		}
 		
 	}

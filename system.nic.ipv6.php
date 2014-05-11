@@ -42,7 +42,7 @@ function popup(){
 	<tr>
 		<td valign='top' width=1%><img src='img/ipv6-128.png'></td>
 		<td valign='top'>
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			". Paragraphe_switch_img("{enable_ipv6}", "{enable_ipv6_text}","EnableipV6",$EnableipV6,null,350).
 			"<hr>
 			<div style='text-align:right'>". button("{apply}","EnableipV6Save()","18px")."</div>

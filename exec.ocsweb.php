@@ -46,16 +46,16 @@ function build_certificate($hostname){
 function MysqlCheck(){
 $db_file = "/usr/share/ocsinventory-reports/ocsreports/files/ocsbase.sql";
 if(!is_file($db_file)){
-	echo "Starting......: OCS web Engine unable to stat $db_file\n";
+	echo "Starting......: ".date("H:i:s")." OCS web Engine unable to stat $db_file\n";
 	return;
 }
 
 $q=new mysql();
 if(!$q->DATABASE_EXISTS("ocsweb")){
-	echo "Starting......: OCS web Engine creating ocsweb\n";
+	echo "Starting......: ".date("H:i:s")." OCS web Engine creating ocsweb\n";
 	$q->CREATE_DATABASE("ocsweb");
 	if(!$q->DATABASE_EXISTS("ocsweb")){
-		echo "Starting......: OCS web Engine unable to create ocsweb mysql database\n";
+		echo "Starting......: ".date("H:i:s")." OCS web Engine unable to create ocsweb mysql database\n";
 		return;
 	}
 }
@@ -97,7 +97,7 @@ while (list ($num, $sql) = each ($array_commands) ){
 	
 	$q->QUERY_SQL($sql,"ocsweb");
 	if(!$q->ok){
-	echo "Starting......: OCS web Engine $q->mysql_error $sql\n";	
+	echo "Starting......: ".date("H:i:s")." OCS web Engine $q->mysql_error $sql\n";	
 	}
 }
 
@@ -185,11 +185,11 @@ $f[]="virtualmachines";
 $q=new mysql();
 while (list ($num, $table) = each ($f) ){
 		if(!$q->TABLE_EXISTS($table,"ocsweb")){
-			echo "Starting......: OCS web Engine $table does not exists !!\n";	
+			echo "Starting......: ".date("H:i:s")." OCS web Engine $table does not exists !!\n";	
 			return false;
 		}
 	}
-	echo "Starting......: OCS web Engine ". count($f)." tables OK\n";	
+	echo "Starting......: ".date("H:i:s")." OCS web Engine ". count($f)." tables OK\n";	
 	return true;
 
 }
@@ -253,7 +253,7 @@ function CreateOnpenSSLCOnf(){
 	if($GLOBALS["VERBOSE"]){echo "-> OCSCertDomainName `{$OCSCertInfos["OCSCertDomainName"]}`\n";}
 	
 	if($OCSCertInfos["OCSCertDomainName"]==null){
-		echo "Starting......: OCS web Engine Warning domain name is null !!!, aborting\n";	
+		echo "Starting......: ".date("H:i:s")." OCS web Engine Warning domain name is null !!!, aborting\n";	
 		return;
 	}
 	
@@ -315,7 +315,7 @@ function CreateOnpenSSLCOnf(){
 
 	
 	$ini->saveFile($conf);
-	echo "Starting......: OCS web Engine certificate, writing $conf done\n";
+	echo "Starting......: ".date("H:i:s")." OCS web Engine certificate, writing $conf done\n";
 	
 }
 
@@ -406,7 +406,7 @@ shell_exec("/bin/cp $path/server.crt /etc/artica-postfix/settings/Daemons/OCSSer
 function CreateCertificate(){
 	CreateOnpenSSLCOnf();
 	if(!is_file($conf)){
-		echo "Starting......: OCS web Engine certificate, unable to stat $conf\n";
+		echo "Starting......: ".date("H:i:s")." OCS web Engine certificate, unable to stat $conf\n";
 		return;
 	}
 	$cmd=" openssl genrsa -out $path/server.key 1024";
@@ -420,9 +420,9 @@ function CreateCertificate(){
 function CreateFinalCertificate(){
 	$sock=new sockets();
 	$certs=$sock->GET_INFO("OCSServerDotCrt");
-	echo "Starting......: OCS web Engine OCSServerDotCrt = `$certs`\n";
+	echo "Starting......: ".date("H:i:s")." OCS web Engine OCSServerDotCrt = `$certs`\n";
 	if(strlen($certs)<50){
-		echo "Starting......: OCS web Engine aborting...\n";
+		echo "Starting......: ".date("H:i:s")." OCS web Engine aborting...\n";
 		if(is_file("/etc/ocs/cert/cacert.pem")){return null;}
 	}
 	$curl=new ccurl("http://www.cacert.org/certs/root.crt");
@@ -526,7 +526,7 @@ function AutomaticInjectionAdd($MAC){
 
 function builddbinc(){
 	if(!is_dir("/usr/share/ocsinventory-reports/ocsreports")){
-		echo "Starting......: OCS web Engine /usr/share/ocsinventory-reports/ocsreports no such directory\n";
+		echo "Starting......: ".date("H:i:s")." OCS web Engine /usr/share/ocsinventory-reports/ocsreports no such directory\n";
 		return;
 	}
 	$q=new mysql();
@@ -541,7 +541,7 @@ function builddbinc(){
 	$f[]="define(\"PSWD_BASE\",\"$q->mysql_password\");";
 	$f[]="?>";
 	@file_put_contents("/usr/share/ocsinventory-reports/ocsreports/dbconfig.inc.php", @implode("\n", $f));
-	echo "Starting......: OCS web Engine dbconfig.inc.php done\n"; 
+	echo "Starting......: ".date("H:i:s")." OCS web Engine dbconfig.inc.php done\n"; 
 	if(!is_file("etc/ocs/cert/cacert.pem")){	
 		CreateSelfSignedCertificate();
 	}

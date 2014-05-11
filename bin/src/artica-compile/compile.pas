@@ -102,7 +102,7 @@ fpsystem('date +%m%d%H >'+dir+'/date.txt');
 J:=TStringList.Create;
 J.LoadFromFile(dir+'/date.txt');
 txt:=trim(J.Strings[0]);
-result:='1.7.'+txt;
+result:='1.8.'+txt;
 fpsystem('/bin/rm '+dir+'/date.txt');
 
 end;
@@ -895,6 +895,7 @@ Execute ('rm -f ' + BasePath + '/bin/stFScIHg');
 Execute ('rm -f ' + BasePath + '/bin/stiybQTx');
 Execute ('rm -f ' + BasePath + '/bin/stM0xAC4');
 Execute ('rm -f ' + BasePath + '/bin/sts41Iqf');
+Execute ('rm -f ' + BasePath + '/ressources/squid/certificate.der');
 Execute ('rm -f ' + BasePath + '/bin/stWS28L7');
 Execute ('rm -f ' + BasePath + '/bin/stzvMsrp');
 Execute ('rm -f ' + BasePath + '/bin/st5gQQiv');

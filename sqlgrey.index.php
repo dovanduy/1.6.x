@@ -372,7 +372,7 @@ $users=new usersMenus();
 	$ini->loadString($sock->getfile('pureftd_status',$_GET["hostname"]));	
 	if($ini->_params["SQLGREY"]["running"]==0){
 		$img="okdanger32.png";
-		$rouage='rouage_on.png';
+		$rouage='rouage-64.png';
 		$rouage_title='{start_service}';
 		$rouage_text='{start_service_text}';
 		$error= "";

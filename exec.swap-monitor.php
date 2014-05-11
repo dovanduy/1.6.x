@@ -16,7 +16,7 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 	die();
 }
 
-include_once("ressources/class.os.system.tools.inc");
+include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
 $os=new os_system();
 $mem=$os->memory();
 
@@ -54,14 +54,14 @@ function FreeSync(){
 	if(!Build_pid_func(__FILE__,__FUNCTION__)){return null;}
 	$unix=new unix();
 	$sync=$unix->find_program("sync");
-	@file_put_contents("/proc/sys/vm/drop_cache","1");
+	@file_put_contents("/proc/sys/vm/drop_caches","1");
 	shell_exec($sync);
-	@file_put_contents("/proc/sys/vm/drop_cache","2");
+	@file_put_contents("/proc/sys/vm/drop_caches","2");
 	shell_exec($sync);	
-	@file_put_contents("/proc/sys/vm/drop_cache","3");
+	@file_put_contents("/proc/sys/vm/drop_caches","3");
 	shell_exec($sync);		
 	shell_exec("swapoff -a && swapon -a");
-	@file_put_contents("/proc/sys/vm/drop_cache","0");
+	@file_put_contents("/proc/sys/vm/drop_caches","0");
 	
 }
 

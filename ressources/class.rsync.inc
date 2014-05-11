@@ -169,7 +169,7 @@
 			$d++;
 			}
 	
-		if(posix_getuid()==0){echo "Starting......: Rsync $d users for $ou $mounted\n";}
+		if(posix_getuid()==0){echo "Starting......: ".date("H:i:s")." Rsync $d users for $ou $mounted\n";}
 	}
 
 	private function GetComputers($user_id){

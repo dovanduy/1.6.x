@@ -581,7 +581,7 @@ function iscsi_list(){
 if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		if($ligne["useSSL"]==1){$ssl="check2.gif";}else{$ssl="check1.gif";}
 		$color="black";
-		if($EnableISCSI==0){$color="#CCCCCC";}
+		if($EnableISCSI==0){$color="#8a8a8a";}
 		$html=$html."
 			<tr class=$classtr>
 			<td width=1%>". imgtootltip("48-idisk-server.png","{edit}","Addiscsi('{$ligne["ID"]}')")."</td>

@@ -9,11 +9,16 @@ class highcharts{
 	public $Title='Chart title';
 	public $yAxisTtitle='Y Axis title';
 	public $xAxisTtitle="X Axis title";
+	public $xAxis_labels=true;
+	public $LegendPrefix=null;
+	public $LegendSuffix=null;
 	public $AreaColor="#005447";
 	public $PieDatas=array();
 	public $PiePlotTitle=null;
 	public $TitleFontSize="18px";
 	public $AxisFontsize="14px";
+	public $subtitle=null;
+	public $OnErrorEvent=null;
 	public function highcharts($params=array()){
 		
 		while (list ($key, $value) = each ($params) ){
@@ -54,8 +59,14 @@ class highcharts{
 		$f[]="function $FunctioName(){";
 		$f[]="if(!document.getElementById('$this->container')){return;}";
 		$f[]="if($ChartString){ $ChartString.destroy(); }";
+		$f[]="LockPage();";
 		$f[]="\tvar $ChartString = new Highcharts.Chart({";
 		$f[]="\t\tchart: {";
+		$f[]="\t\tevents: {";
+		$f[]="\t\t\tload: function(event) {";
+		$f[]="\t\t\t\tUnlockPage();";
+		$f[]="\t\t\t}";
+		$f[]="\t\t},";
 		$f[]="\t\t\ttype: '$this->ChartType',";
 		$f[]="\t\t\trenderTo: '$this->container',";
 		if($this->ChartType=="areaspline"){	$f[]="\t\t\tstyle:{	color: '#$borderColor'}";}
@@ -70,7 +81,21 @@ class highcharts{
 		
 		$f[]="\t\t\tcredits: { enabled: false },";	
 			
-		$f[]="\t\t\ttitle: { text: '$this->Title' ,style:{	color: '#$borderColor', fontSize: '$this->TitleFontSize'} },";	
+		$f[]="\t\t\ttitle: { ";
+		$f[]="\t\t\t\ttext: '$this->Title' ,";
+		$f[]="\t\t\t\tstyle:{	color: '#$borderColor', fontSize: '$this->TitleFontSize'}";
+		$f[]="\t\t\t},";
+			
+		$this->subtitle=$tpl->_ENGINE_parse_body(str_replace("'", "\'", $this->subtitle));
+		
+		if($this->subtitle<>null){
+		$f[]="\t\t\tsubtitle: {";
+        $f[]="\t\t\t\tuseHTML:true,";
+        $f[]="\t\t\t\ttext: '$this->subtitle',";
+        $f[]="\t\t\t\tstyle:{	color: '#$borderColor', fontSize: '".($this->TitleFontSize-2)."'}";
+        $f[]="\t\t\t},";	
+		
+		}
 		if($this->ChartType=="areaspline"){	
 			
 			if(count($this->xAxis)==0){return $this->NoreturnedValue($this->xAxis,__LINE__);}
@@ -86,11 +111,18 @@ class highcharts{
 				
 			}
 			
+			
+			$xlabels=true;
+			if(!$this->xAxis_labels){$xlabels="false";}
+			
 			$f[]="\t\t\txAxis: {";
 			$f[]="\t\t\t\tcategories: [". @implode(",", $this->xAxis)."],";
 			$f[]="\t\t\t\ttitle: {";
 			$f[]="\t\t\t\t\ttext: '$this->xAxisTtitle',style:{	color: '#$borderColor', fontSize: '$this->AxisFontsize'}";
-			$f[]="\t\t\t}";
+			$f[]="\t\t\t},";
+			$f[]="\t\t\t\tlabels: {";
+			$f[]="\t\t\t\t\tenabled: $xlabels";
+			$f[]="\t\t\t\t}";
 			$f[]="\t\t},";
 		}
 
@@ -130,8 +162,8 @@ class highcharts{
 		
 	$f[]=" tooltip: {
 					useHTML: true,
-					headerFormat: '<center><strong style\"font-size:16px\">{point.key}</strong><hr style=\"border:1px solid #CCCCCC\"></center>',
-	                pointFormat: '<strong style\"font-size:16px\">{series.name}</strong> <b>{point.y:,.0f}</b><br/>'
+					headerFormat: '<center><strong style\"font-size:16px\">$this->LegendPrefix{point.key}</strong>&nbsp;',
+	                pointFormat: '<strong style\"font-size:16px\">{series.name}</strong> <b>{point.y:,.0f}$this->LegendSuffix</b><br/>'
 	            },
 	           ";	
 	$f[]=" legend: {
@@ -235,7 +267,8 @@ class highcharts{
 			
 		}
 		$value=$tpl->javascript_parse_text(@implode(" ", $c));
-		
+		$onlionetext=str_replace("'", "`", $onlionetext);
+		$value=str_replace("'", "`", $value);
 		return "
 		document.getElementById('$this->container').style.height='auto';
 		document.getElementById('$this->container').style.width='auto';		
@@ -253,7 +286,8 @@ class highcharts{
 			}
 		}		
 		$tpl=new templates();
-		$onlionetext=$tpl->javascript_parse_text("{no_value_cannot_generate_graph}");
+		$onlionetext=$tpl->javascript_parse_text("{no_value_cannot_generate_graph}<br>".$this->OnErrorEvent);
+		$onlionetext=str_replace("'", "`", $onlionetext);
 		
 		return "
 		document.getElementById('$this->container').style.height='auto';

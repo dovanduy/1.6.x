@@ -36,7 +36,7 @@ function BuildSystem(){
 		$items=$items . "{\n";
 		$items=$items . "\t\t'id' : 'server:interfaces',\n";
 		$items=$items . "\t\t'txt' : 'Interfaces',\n";
-		$items=$items . "\t\t'img' : 'tree-network.gif',\n";
+		$items=$items . "\t\t'img' : 'tree-folder-network-24.png',\n";
 		$items=$items . "\t\t'onopenpopulate' : myOpenPopulate,\n";
 		$items=$items . "\t\t'openlink' : 'ldapTree.php',\n";
 		$items=$items . "\t\t'canhavechildren' : false\n";
@@ -309,7 +309,7 @@ function BuildLevelPostfix(){
 		$items=$items . "{\n";
 		$items=$items . "\t\t'id' : 'settings:postfix:network',\n";
 		$items=$items . "\t\t'txt' : 'Network',\n";
-		$items=$items . "\t\t'img' : 'tree-network.gif',\n";
+		$items=$items . "\t\t'img' : 'tree-folder-network-24.png',\n";
 		$items=$items . "\t\t'onopenpopulate' : myOpenPopulate,\n";
 		$items=$items . "\t\t'openlink' : 'ldapTree.php',\n";
 		$items=$items . "\t\t'onbeforeopen' : myBeforeOpen,\n";

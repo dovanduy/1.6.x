@@ -10,63 +10,140 @@ include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 
 if($argv[1]=="update-white-32-tr"){update_white_32_tr();exit;}
 if(isset($_GET["update-white-32-tr"])){update_white_32_tr();exit;}
-if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}
+if(isset($_GET["account-identity"])){account_identity();exit;}
+$sock=new sockets();
+$ActAsSMTPGatewayStatistics=$sock->GET_INFO("ActAsSMTPGatewayStatistics");
+if(!is_numeric($ActAsSMTPGatewayStatistics)){$ActAsSMTPGatewayStatistics=0;}
+
 $page=CurrentPageName();
 $users=new usersMenus();
-	if(!$users->AsArticaAdministrator){
-					$menus["{account}"]="javascript:Loadjs(\"users.account.php?js=yes\")";
-					//if($this->AllowEditAsWbl){$menus["{white list} & {black list}"]="users.aswb.php";}
+$postfixadded=false;
+$AsSquid=false;
+$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+if($DisableMessaging==1){$users->POSTFIX_INSTALLED=false;$ActAsSMTPGatewayStatistics=0;}
+
+$tr[]=BuildIcons("dashboard-white-32.png","dashboard-white-32.png","{dashboard}","ConfigureYourserver()");
+
+
+if($users->SQUID_INSTALLED){
+	$AsSquid=true;
+	if($users->AsSquidAdministrator){
+		$tr[]=BuildIcons("proxy-white-32.png","proxy-white-32.png","{PROXY_SERVICE}","MessagesTopshowMessageDisplay('quicklinks_proxy');");
+		$tr[]=BuildIcons("action-white-32.png","action-white-32.png","{action}","MessagesTopshowMessageDisplay('quicklinks_proxy_action');");
 	}
+}
+
+if($users->KAV4PROXY_INSTALLED){
+	$tr[]=BuildIcons("Kaspersky-32-white.png","Kaspersky-32-white.png","{APP_KAV4PROXY}","LoadAjax('BodyContent','kav4proxy.php?inline=yes');");
+}
+
+if($users->POSTFIX_INSTALLED){
+	$postfixadded=true;
+	$tr[]=BuildIcons("messaging-service-32.png","messaging-server-white-32.png","{messaging}","MessagesTopshowMessageDisplay('quicklinks_postfix');");
+	$tr[]=BuildIcons("mail-secu-32.png","mail-secu-32.png","{security}","MessagesTopshowMessageDisplay('quicklinks_postfix_secu');");
+	
+}
+
+if($ActAsSMTPGatewayStatistics==1){
+	if(!$postfixadded){
+		$tr[]=BuildIcons("messaging-service-32.png","messaging-server-white-32.png","{messaging}","MessagesTopshowMessageDisplay('quicklinks_postfix');");
+	}
+}
+
+
+if(!$users->AsArticaAdministrator){
+	$menus["{account}"]="javascript:Loadjs(\"users.account.php?js=yes\")";
+}
+
+if($users->POSTFIX_INSTALLED){
+	if($users->AsPostfixAdministrator){
+		$tr[]=BuildIcons("fleche-32-white-tr.png","fleche-32-white.png","{compile_postfix}","Loadjs('postfix.compile.php')");
+	}
+}
 				
 				
-				if($users->AsSystemAdministrator){
-					$tr[]=BuildIcons("explorer-32-white-tr.png","explorer-32-white.png","{explorer}","Loadjs('tree.php')");
-					$tr[]=BuildIcons("top-48-mycomp-tr.png","top-48-mycomp.png","{manage_your_server}","ConfigureYourserver()");
-					$tr[]=BuildIcons("32-settings-white-tr.png","32-settings-white.png","{advanced_options}","Loadjs('admin.left.php?old-menu=yes')");
-					$tr[]=BuildIcons("32-cd-scan-white-tr.png","32-cd-scan-white.png","{install_upgrade_new_softwares}","Loadjs('setup.index.php?js=yes')");
-					$tr[]=BuildIcons("services-32-white-tr.png","services-32-white.png","{display_running_services}","Loadjs('admin.index.services.status.php?js=yes')");
-				}
+if($users->AsSystemAdministrator){
+	$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));
+	if($hostname==null){$hostname=$users->hostname;}
+	$x=explode(".",$hostname);
+	$netbiosname=$x[0];
+	$tr[]=BuildIcons("top-48-mycomp-tr.png","top-48-mycomp.png",$netbiosname,"MessagesTopshowMessageDisplay('quicklinks_section_server')");
+	//$tr[]=BuildIcons("32-settings-white-tr.png","32-settings-white.png","{advanced_options}","Loadjs('admin.left.php?old-menu=yes')");
+	//$tr[]=BuildIcons("32-cd-scan-white-tr.png","32-cd-scan-white.png","{install_upgrade_new_softwares}","Loadjs('setup.index.php?js=yes')");
+	//$tr[]=BuildIcons("services-32-white-tr.png","services-32-white.png","{display_running_services}","Loadjs('admin.index.services.status.php?js=yes')");
+}
 				
-				if($users->POSTFIX_INSTALLED){
-					if($users->AsPostfixAdministrator){
-						$tr[]=BuildIcons("fleche-32-white-tr.png","fleche-32-white.png","{compile_postfix}","Loadjs('postfix.compile.php')");
-						
-					}
-				}
+
+
+if(!$AsSquid){
+	if($users->AsSambaAdministrator){
+		if($users->SAMBA_INSTALLED){
+			$tr[]=BuildIcons("filesharing-32-white.png","filesharing-32-white.png","{file_sharing_services}","LoadAjax('BodyContent','quicklinks.fileshare.php');");
+		}
+		
+	}
+	
+	if($users->AsSystemAdministrator){
+		if($users->HAPROXY_INSTALLED){
+			$tr[]=BuildIcons("load-balance-white-32.png","load-balance-white-32.png","{load_balancing}","AnimateDiv('BodyContent');Loadjs('haproxy.php');");
+		}
+	}
+	
+}
+
+
+
 				
-				if($users->AsSystemAdministrator){
-					$tr[]=BuildIcons("network-32-white-tr.png","network-32-white.png","{network}","LoadAjax('BodyContent','quicklinks.network.php?newinterface=yes');");		
-				}
-				
-				$tr[]="<div id='update-white-32-tr'></div>";
-				$tr[]=BuildIcons("close-white-32-tr.png","close-white-32.png","{empty_console_cache}","CacheOff()");
+
+				//$tr[]="<div id='update-white-32-tr'></div>";
+				$tr[]=BuildIcons("network-white-32.png","network-white-32.png","{networks}","MessagesTopshowMessageDisplay('quicklinks_section_networks');");
+				$tr[]=BuildIcons("users-white-32.png","users-white-32.png","{members}","MessagesTopshowMessageDisplay('quicklinks_members');");
 
 //32-settings-white.png
 //close-white-32.png
-
+				
+				
+				
+				
 $html[]="
-<center>
-<table style='width:50%'>
-<tbody>
-<tr>
-";
-while (list ($num, $line) = each ($tr)){
-	$html[]= "<td align='center'>". $line."</td>\n";
-}
-$html[]= "
+<table style='width:100%;'>
+		<tr>
+		<td style='margin:0;padding:0;vertical-align:middle;' width=1% nowrap>
+			<img src='/css/images/logo.gif' style='margin:0px;padding:0px;cursor:pointer'>
+		</td>
+		
+		<td valign='middle' 
+		style='border-left:1px solid white;padding-left:15px;padding-right:15px;margin:0;vertical-align:middle'
+		onmouseout=\"javascript:this.className='TopObjectsOut';\" 
+		onmouseover=\"javascript:this.className='TopObjectsOver';\"
+		OnClick=\"javascript:MessagesTopshowMessageDisplay('quicklinks_main_menu');\"
+		>
+		<img src='img/mini-arrow-down.png'>
+		</td>";
 
+$html[]= "<td width=99% nowrap align='left'>
+<table style='width:5%'><tr>";
+while (list ($num, $line) = each ($tr)){
+	$html[]= $line."\n";
+}
+$html[]= "</tr></table>
+
+<td align='center' style='margin:0;padding:0;vertical-align:middle' width=1% nowrap><span id='account-identity'></span></td>
 </tr>
 </tbody>
 </table>
+		
 </center>
+
+
 <script>
+	LoadAjaxTiny('account-identity','$page?account-identity=yes');
 	initMessagesTop();
-	AjaxTopMenu('update-white-32-tr','$page?update-white-32-tr=yes');
+	//
 </script>
 
 ";
 $datas=@implode("\n", $html);
-SET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__,$datas);
 echo $datas;
 
 function update_white_32_tr(){
@@ -151,6 +228,26 @@ function update_white_32_tr(){
 
 function BuildIcons($imageoff,$imageon,$help,$js){
 	
+	$id=md5("$help$js");
+	$tpl=new templates();
+	$help=$tpl->_ENGINE_parse_body($help);
+	return "<td align='center' style='margin:0;padding-right:10px;padding-left:10px;border-left:1px solid white;vertical-align:middle' width=1% nowrap
+	onmouseout=\"javascript:this.className='TopObjectsOut';\" 
+	onmouseover=\"javascript:this.className='TopObjectsOver';\" id=\"$id\" 
+	OnClick=\"javascript:$js\"
+	>
+	
+	<table style='width:100%'>
+	<tr>
+		<td align='center' style='margin:0;padding:0;vertical-align:middle;padding-right:10px' width=1% nowrap><img src='img/$imageon'></td>
+		<td align='center' style='margin:0;padding:0;vertical-align:middle' width=1% nowrap>
+			<span style='color:white;font-size:14px'>$help</span>
+		</td>
+	</tr>
+	</table>
+	
+	</td>";
+	
 			$tpl=new templates();	
 			$help=str_replace("[br][br]","[br]",$help);
 			$help=str_replace("\n","",$help);
@@ -174,6 +271,46 @@ function BuildIcons($imageoff,$imageon,$help,$js){
 	style='width:45px'
 	><center><img src='img/$imageoff' id='$md5'></center>";
 	return $html;
+}
+
+function account_identity(){
+	$ldap=new clladp();
+	
+	if($_SESSION["uid"]==-100){
+		$uid=$ldap->ldap_admin;
+		
+	}
+	
+	if($uid==null){
+		if(isset($_SESSION["RADIUS_ID"])){
+			if($_SESSION["RADIUS_ID"]>0){
+				$uid=$_SESSION["uid"];
+			}
+		}
+		
+	}
+	
+	
+	$html="<table style='width:100%;padding:0;border:0;margin:0'>
+	<tr>
+		<td nowrap style='font-size:14px;color:#FFFFFF'
+		onmouseout=\"javascript:this.className='TopObjectsOut';\" 
+		onmouseover=\"javascript:this.className='TopObjectsOver';\"
+		OnClick=\"javascript:MessagesTopshowMessageDisplay('quicklinks_account');\"
+		>$uid</td>
+		<td width=1% nowrap
+		onmouseout=\"javascript:this.className='TopObjectsOut';\" 
+		onmouseover=\"javascript:this.className='TopObjectsOver';\"
+		OnClick=\"javascript:MessagesTopshowMessageDisplay('quicklinks_account');\"
+		
+		><img src='img/unknown-user-32.png'></td>
+	</tr>
+	</table>		
+			
+	";
+	
+	
+	echo $html;
 	
 	
 }

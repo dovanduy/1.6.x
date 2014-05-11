@@ -397,7 +397,7 @@ function popup_acls(){
 	}
 //AclChangeSubitems
 	$group_img="img/wingroup.png";
-	$user_img="img/winuser.png";
+	$user_img="img/user-18.png";
 	
 	$html="
 	
@@ -416,7 +416,7 @@ function popup_acls(){
 </table>
 </center>
 </div>	
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
 	<tr>
@@ -434,7 +434,7 @@ function popup_acls(){
 	
 	
 	$group_img="img/wingroup.png";
-	$user_img="img/winuser.png";	
+	$user_img="img/user-18.png";	
 if(is_array($aclsClass->acls_array["GROUPS"])){
 	while (list ($groupname, $array) = each ($aclsClass->acls_array["GROUPS"]) ){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
@@ -502,7 +502,7 @@ function popup_main(){
 	}
 
 	$group_img="img/wingroup.png";
-	$user_img="img/winuser.png";
+	$user_img="img/user-18.png";
 	
 	$html="$error_acl
 <div style='font-size:14px;margin-bottom:10px'>{unix_permissions} <span id='chmod-octal' style='font-size:14px;font-weight:bold'>$aclsClass->chmod_octal&nbsp;|&nbsp;$aclsClass->chmod_strings</span><span style='font-size:14px;font-weight:bold'>&nbsp;|&nbsp;$aclsClass->chmod_owner</div>
@@ -934,7 +934,7 @@ function list_users(){
 			$Displayname=$ligne;
 			$js="AddAclUser('".base64_encode($Displayname)."');";
 			if(strlen($Displayname)>30){$Displayname=substr($Displayname,0,27)."...";}
-			$img="winuser.png";
+			$img="user-18.png";
 			
 		}
 		

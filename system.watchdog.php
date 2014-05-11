@@ -67,7 +67,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'>
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{EnableLoadAvgUser} (1mn):</td>
 		<td>". Field_checkbox("EnableLoadAvg1mnUser",1,$EnableLoadAvg1mnUser,"EnableLoadAvgcheck()")."</td>

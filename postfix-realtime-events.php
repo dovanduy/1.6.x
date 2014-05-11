@@ -138,7 +138,7 @@ function main_list(){
 		$img="icon_mini_read.gif";
 		
 		if($ligne["delivery_success"]=="no"){$img="icon_err.gif";}
-		if($ligne["SPAM"]=="1"){$img="icon_mini_warning.gif";}
+		if($ligne["SPAM"]=="1"){$img="status_warning.png";}
 		
 		
 		if(strlen($from)>30){$from=texttooltip(substr($from,0,27).'...',$from);}

@@ -16,7 +16,6 @@ if(!$users->awstats_installed){"echo awstats not installed....\n";die();}
 if($argv[1]=="--single"){exectute_awstats($argv[2],true);exit;}
 if($argv[1]=="--postfix"){awstats_mail();exit;}
 if($argv[1]=="--postfix-parse"){artica_parse($argv[2],false);exit;}
-if($argv[1]=="--cleanlogs"){clean_maillogs();exit;}
 if($argv[1]=="--cron"){awstats_cron();exit;}
 if($argv[1]=="--rotate"){rotate($argv[2]);exit;}
 
@@ -199,11 +198,13 @@ function awstats_mail(){
 	$sock=new sockets();
 	$ArticaMetaEnabled=trim($sock->GET_INFO("ArticaMetaEnabled"));
 	if(!is_numeric($ArticaMetaEnabled)){$ArticaMetaEnabled=0;}
-	
+	$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
+	if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	
+	if($EnableArticaSMTPStatistics==0){return;}
 	
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	
@@ -424,6 +425,10 @@ function artica_parse(){
 	if($GLOBALS["artica_parse_exectued"]){return true;}
 	$GLOBALS["artica_parse_exectued"]=true;
 	$unix=new unix();
+	$sock=new sockets();
+	$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
+	if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
+	if($EnableArticaSMTPStatistics==0){return;}
 	$php=$unix->LOCATE_PHP5_BIN();
 	if($GLOBALS["VERBOSE"]){$verbosed=" --verbose";}
 	$cmd="$php ".dirname(__FILE__)."/exec.postfix.parse.awstats.php$verbosed";
@@ -437,14 +442,8 @@ function artica_parse(){
 function awstats_cron(){
 	
 	if(is_file("/etc/cron.d/sendmail")){@unlink("/etc/cron.d/sendmail");}
-	if(is_file("/etc/cron.d/php5")){
-		$f[]="MAILTO=\"\"";
-		$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
-		$f[]="09,39 * * * *     root   [ -x /usr/lib/php5/maxlifetime ] && [ -d /var/lib/php5 ] && find /var/lib/php5/ -type f -cmin +$(/usr/lib/php5/maxlifetime) -delete >/dev/null 2>&1";
-		$f[]="";
-		@file_put_contents("/etc/cron.d/php5", @implode("\n", $f));
-		shell_exec("/bin/chmod 640 /etc/cron.d/awstats >/dev/null 2>&1");
-	}
+	if(is_file("/etc/cron.d/php5")){@unlink("/etc/cron.d/php5");}
+	
 	
 	
 	unset($f);

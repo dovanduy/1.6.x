@@ -113,7 +113,10 @@ function popup(){
 				if(!is_numeric($zarafa_innodb_log_file_size)){$zarafa_innodb_log_file_size=round($zarafa_innodb_buffer_pool_size*0.25);}
 				if(!is_numeric($zarafa_innodb_log_buffer_size)){$zarafa_innodb_log_buffer_size=32;}
 				if(!is_numeric($zarafa_max_allowed_packet)){$zarafa_max_allowed_packet=16;}
-				if(!is_numeric($zarafa_query_cache_size)){$zarafa_query_cache_size=8;}			
+				if(!is_numeric($zarafa_query_cache_size)){$zarafa_query_cache_size=8;}
+
+				
+				if($zarafa_innodb_log_file_size>4000){$zarafa_innodb_log_file_size=2000;}
 				
 				$mysql->main_array["innodb_buffer_pool_size"]=$zarafa_innodb_buffer_pool_size;
 				$mysql->main_array["innodb_log_file_size"]=$zarafa_innodb_log_file_size;
@@ -134,7 +137,8 @@ function popup(){
 	$hover=CellRollOver();
 $form="	
 <input type='hidden' value='instance-id' id='instance-id' value='$instance_id'>
-<table style='width:99%' class=form>
+<center style='width:90%' class=form>
+<table >
 	<tr $hover>
 		<td class=legend style='font-size:14px'>{skip-name-resolve}:</td>
 		<td style='font-size:14px'>". Field_yesno_checkbox("$t-skip-name-resolve",$mysql->main_array["skip_name_resolve"])."</td>
@@ -333,7 +337,7 @@ $form="
 		
 		</td>
 	</tr>
-	</table>";	
+	</table></div>";	
 	
 	$html="<div style='font-size:16px'>{mysql_settings} v. $mysql->mysql_version_string ($mysql->mysqlvbin)
 	&nbsp;|&nbsp;<a href=\"javascript:blur();\" OnClick=\"Loadjs('mysql.perfs.php?instance-id=$instance_id')\" style='font-size:16px;text-decoration:underline'>{mysql_performancesM}</a></div>

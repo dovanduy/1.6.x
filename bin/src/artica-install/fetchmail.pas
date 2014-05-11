@@ -485,8 +485,7 @@ var
 pidpath:string;
 pid:string;
 begin
-SYS.MONIT_DELETE('APP_FETCHMAIL');
-SYS.MONIT_DELETE('APP_FETCHMAIL_LOGGER');
+
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --fetchmail >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

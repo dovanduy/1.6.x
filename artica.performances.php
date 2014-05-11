@@ -147,6 +147,13 @@ function save_index_page(){
 	$sock->SET_INFO("DisableSpecialCharacters", $_GET["DisableSpecialCharacters"]);
 	$sock->SET_INFO("DenyMiniWebFromStandardPort", $_GET["DenyMiniWebFromStandardPort"]);
 	
+	if(isset($_GET["DoNotutf8EncodeJS"])){
+		$sock->SET_INFO("DoNotutf8EncodeJS", $_GET["DoNotutf8EncodeJS"]);
+		$_SESSION["DoNotutf8EncodeJS"]=$_GET["DoNotutf8EncodeJS"];
+	}
+	
+	
+	
 	if(is_numeric($_GET["ArticaTabsTimeout"])){
 		unset($_SESSION["build_artica_tabs_timeout"]);
 		$_SESSION["build_artica_tabs_timeout"]=$_GET["ArticaTabsTimeout"];}
@@ -187,11 +194,12 @@ function cron_index(){
 	$DisableTimeCapsuleToolBox=$sock->GET_INFO('DisableTimeCapsuleToolBox');
 	$EnableWebPageDebugging=$sock->GET_INFO("EnableWebPageDebugging");
 	$ArticaTabsTimeout=$sock->GET_INFO("ArticaTabsTimeout");
+	$DoNotutf8EncodeJS=$sock->GET_INFO("DoNotutf8EncodeJS");
 	if(!is_numeric($ArticaTabsTimeout)){$ArticaTabsTimeout=800;}
 	
 	//no_organization
-	
-	if($DisableWarnNotif==null){$DisableWarnNotif=0;}
+	if(!is_numeric($DoNotutf8EncodeJS)){$DoNotutf8EncodeJS=0;}
+	if(!is_numeric($DisableWarnNotif)){$DisableWarnNotif=0;}
 	if($DisableJGrowl==null){$DisableJGrowl=0;}
 	if($jgrowl_no_clamav_update==null){$jgrowl_no_clamav_update=0;}
 	if($DisableFrontEndArticaEvents==null){$DisableFrontEndArticaEvents=0;}
@@ -202,6 +210,9 @@ function cron_index(){
 	
 	if(!is_numeric($DisableJqueryDropDown)){$DisableJqueryDropDown=0;}
 	
+	
+	
+	$DoNotutf8EncodeJS=Field_checkbox("DoNotutf8EncodeJS",1,$DoNotutf8EncodeJS);
 	$DisableWarnNotif=Field_checkbox("DisableWarnNotif",1,$DisableWarnNotif);
 	$DisableJGrowl=Field_checkbox("DisableJGrowl",1,$DisableJGrowl);
 	$jgrowl_no_clamav_update=Field_checkbox("jgrowl_no_clamav_update",1,$jgrowl_no_clamav_update);
@@ -252,7 +263,7 @@ function cron_index(){
 	<div class=explain style='font-size:14px'>{frontend_disables_options_explain}</div>
 	<div id='articaschedulesdiv'></div>
 	<div id='$t'></div>
-	<div style='width:95%' class=form>	
+	<div style='width:98%' class=form>	
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>font:</td>
@@ -267,7 +278,7 @@ function cron_index(){
 	</table>
 	</div>
 	
-<div style='width:95%' class=form>	
+<div style='width:98%' class=form>	
 <table style='width:100%'>
 <tr>
 		<td class=legend style='font-size:14px'>{EnableWebPageDebugging}:</td>
@@ -277,6 +288,12 @@ function cron_index(){
 		<td class=legend style='font-size:14px'>{disable}:{icon_artica_events_front_end}:</td>
 		<td valign='top'>$DisableFrontEndArticaEvents</tD>
 	</tr>
+	
+	<tr>
+		<td class=legend style='font-size:14px'>{DoNotutf8EncodeJS}:</td>
+		<td valign='top'>$DoNotutf8EncodeJS</tD>
+	</tr>	
+	
 	<tr>
 		<td class=legend style='font-size:14px'>{disable_jgrowl}:</td>
 		<td valign='top'>$DisableJGrowl</tD>
@@ -414,6 +431,10 @@ function SaveArticaIndexPage$t(){
 	if(document.getElementById('EnableWebPageDebugging').checked){XHR.appendData('EnableWebPageDebugging',1);}else{XHR.appendData('EnableWebPageDebugging',0);}
 	if(document.getElementById('DisableSpecialCharacters').checked){XHR.appendData('DisableSpecialCharacters',1);}else{XHR.appendData('DisableSpecialCharacters',0);}
 	if(document.getElementById('DenyMiniWebFromStandardPort').checked){XHR.appendData('DenyMiniWebFromStandardPort',1);}else{XHR.appendData('DenyMiniWebFromStandardPort',0);}
+	if(document.getElementById('DoNotutf8EncodeJS').checked){XHR.appendData('DoNotutf8EncodeJS',1);}else{XHR.appendData('DoNotutf8EncodeJS',0);}
+	
+	
+	
 	
 	AnimateDiv('$t');
 
@@ -495,7 +516,7 @@ function cron_popup(){
 	<td valign='top' width=1%><img src='img/cron-128.png'></td>
 	<td valign='top'>
 	<div class=explain style='font-size:14px'>{ARTICA_PROCESS_SCHEDULE_EXPLAIN}</div>
-	<div id='articaschedulesdiv' style='width:95%' class=form>
+	<div id='articaschedulesdiv' style='width:98%' class=form>
 			<table style='width:100%'>
 				<tr>
 					<td class=legend style='font-size:16px'>{ADMIN_COVER_PAGE_STATUS}:</td>
@@ -735,7 +756,8 @@ function main_config_artica(){
 	
 	$DisableLoadAVGQueue=$sock->GET_INFO('DisableLoadAVGQueue');
 	$oom_kill_allocating_task=$sock->GET_INFO("oom_kill_allocating_task");
-		
+	$SysTmpDir=$sock->GET_INFO("SysTmpDir");
+	if($SysTmpDir==null){$SysTmpDir="/home/artica/tmp";}
 	
 	$cgroupsEnabled=$sock->GET_INFO("cgroupsEnabled");
 	$CGROUPS_INSTALLED=0;
@@ -933,7 +955,7 @@ $html="
 		<tr>
 			<td nowrap width=1% align='right' class=legend>{oom_kill_allocating_task}:</td>
 			<td>" . Field_checkbox("oom_kill_allocating_task",1,$oom_kill_allocating_task)."</td>
-			<td>/td>
+			<td>
 		</tr>
 					
 					
@@ -948,7 +970,12 @@ $html="
 			<td nowrap width=1% align='right' class=legend>{MaxEventsInDatabase} (mail):</td>
 			<td nowrap>". Field_text("MaxMailEventsLogs",$MaxMailEventsLogs,"width:90px;font-size:13px;padding:3px")."</td>
 			<td></td>
-		</tr>		
+		</tr>	
+		<tr>
+			<td nowrap width=1% align='right' class=legend>{temp_dir}:</td>
+			<td nowrap>". Field_text("SysTmpDir",$SysTmpDir,"width:190px;font-size:13px;padding:3px")."</td>
+			<td></td>
+		</tr>	
 			<td colspan=3 align='right'><hr>". button("{edit}","SavePerformancesMasterForm()",14)."</td>
 		</tr>
 		</tbody>
@@ -1300,7 +1327,7 @@ if(isset($_POST["DisableLoadAVGQueue"])){$sock->SET_INFO('DisableLoadAVGQueue',$
 if(isset($_POST["SystemLoadNotif"])){$sock->SET_INFO('SystemLoadNotif',$_POST["SystemLoadNotif"]);}
 if(isset($_POST["EnableBandwithCalculation"])){$sock->SET_INFO('EnableBandwithCalculation',$_POST["EnableBandwithCalculation"]);}
 if(isset($_POST["oom_kill_allocating_task"])){$sock->SET_INFO('oom_kill_allocating_task',$_POST["oom_kill_allocating_task"]);}
-
+if(isset($_POST["SysTmpDir"])){$sock->SET_INFO("SysTmpDir",$_POST["SysTmpDir"]);}
 	
 	while (list ($num, $val) = each ($_POST) ){
 		if(strpos($val, "javascript")>0){continue;}
@@ -1478,7 +1505,7 @@ function cron_logon(){
 	
 	
 	$html="
-	<div id='cron-logon-div' style='width:95%' class=form>
+	<div id='cron-logon-div' style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{remove_language_selector}</td>

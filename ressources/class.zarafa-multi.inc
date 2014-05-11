@@ -55,8 +55,8 @@ class zarafamulti{
 	}
 	
 	public function Build(){
-		if($this->etcpath==null){echo "Starting......: zarafa-server build failed\n";return;}
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: zarafa-server building configuration `$this->etcpath`...\n";}
+		if($this->etcpath==null){echo "Starting......: ".date("H:i:s")." zarafa-server build failed\n";return;}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." zarafa-server building configuration `$this->etcpath`...\n";}
 		$this->server_cfg();
 		$this->ldap_cfg();
 		$this->licensed_cfg();
@@ -164,7 +164,7 @@ class zarafamulti{
 			$f[]="disabled_features 	= ";
 			$f[]="";
 			@file_put_contents("$this->etcpath/server.cfg", @implode("\n", $f));
-			echo "Starting......: zarafa-server server.cfg success..\n";
+			echo "Starting......: ".date("H:i:s")." zarafa-server server.cfg success..\n";
 	}
 	
 	
@@ -182,7 +182,7 @@ class zarafamulti{
 		$f[]="log_level			= 2";
 		$f[]="log_timestamp		= 1";		
 		@file_put_contents("$this->etcpath/licensed.cfg", @implode("\n", $f));
-		echo "Starting......: zarafa-licensed licensed.cfg success..\n";		
+		echo "Starting......: ".date("H:i:s")." zarafa-licensed licensed.cfg success..\n";		
 	}
 	
 private function dagent_cfg(){	
@@ -195,7 +195,7 @@ private function dagent_cfg(){
 		$f[]="lmtp_port  		= $this->lmtp_port";
 		$f[]="log_method		= syslog";
 		@file_put_contents("$this->etcpath/dagent.cfg", @implode("\n", $f));
-		echo "Starting......: zarafa-licensed dagent.cfg success..\n";		
+		echo "Starting......: ".date("H:i:s")." zarafa-licensed dagent.cfg success..\n";		
 
 }
 
@@ -231,7 +231,7 @@ private function gateway_cfg(){
 		$f[]="log_file				= /var/log/zarafa/gateway-$this->instance_id.log";
 		$f[]="log_timestamp			= 1";	
 		@file_put_contents("$this->etcpath/gateway.cfg", @implode("\n", $f));
-		echo "Starting......: zarafa-gateway gateway.cfg success..\n";	
+		echo "Starting......: ".date("H:i:s")." zarafa-gateway gateway.cfg success..\n";	
 }
 	
 	
@@ -262,7 +262,7 @@ private function gateway_cfg(){
 		$f[]="companyquota_hard_template      =   $this->etcpath/quotamail/companyhard.mail";
 		$f[]="";	
 		@file_put_contents("$this->etcpath/monitor.cfg", @implode("\n", $f));
-		echo "Starting......: zarafa-monitor monitor.cfg success..\n";
+		echo "Starting......: ".date("H:i:s")." zarafa-monitor monitor.cfg success..\n";
 	}
 	
 	private function spooler_cfg(){
@@ -289,7 +289,7 @@ private function gateway_cfg(){
 			$f[]="copy_delegate_mails = yes";
 			$f[]="always_send_tnef = yes";	
 			@file_put_contents("$this->etcpath/spooler.cfg", @implode("\n", $f));
-			echo "Starting......: zarafa-spooler spooler.cfg success..\n";				
+			echo "Starting......: ".date("H:i:s")." zarafa-spooler spooler.cfg success..\n";				
 	}
 	
 	
@@ -378,7 +378,7 @@ private function gateway_cfg(){
 			$f[]="ldap_addresslist_filter_attribute = zarafaFilter";
 			$f[]="ldap_addresslist_name_attribute = cn";		
 			@file_put_contents("$this->etcpath/ldap.openldap.cfg", @implode("\n", $f));
-			echo "Starting......: zarafa-server ldap.openldap.cfg success..\n";
+			echo "Starting......: ".date("H:i:s")." zarafa-server ldap.openldap.cfg success..\n";
 	}
 
 

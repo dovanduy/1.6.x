@@ -26,6 +26,7 @@ js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
@@ -35,9 +36,17 @@ function js(){
 		echo "alert('$error')";
 		die();
 	}
+	$t=time();
 	
 	$title=$tpl->_ENGINE_parse_body('{apply config}',"postfix.index.php");
-	$html="YahooUser(500,'$page?popup=yes','$title');";
+	$postfix_compile_ask=$tpl->javascript_parse_text("{postfix_compile_ask}");
+	$html="
+	function Start$t(){	
+		if(!confirm('$postfix_compile_ask')){return;}
+		YahooUser(700,'$page?popup=yes','$title');
+	}
+	
+	Start$t()";
 	echo $html;
 	}
 	
@@ -58,7 +67,7 @@ function popup(){
 	
 	$color="#5DD13D";
 	$html="
-	<div class=explain>{APPLY_SETTINGS_POSTFIX}</div>
+	<div class=explain style='font-size:16px'>{APPLY_SETTINGS_POSTFIX}</div>
 		<div id='please-wait'></div>
 		<table style='width:100%'>
 		<tr>

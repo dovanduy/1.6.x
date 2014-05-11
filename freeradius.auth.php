@@ -216,7 +216,7 @@ function connection_form_mysql_local(){
 	$html="
 	<div style='font-size:16px' class=explain>{radius_local_mysqldb_explain}</div>
 	<div id='$tt'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 	<tr>
@@ -542,7 +542,7 @@ function connection_list(){
 	
 	if($searchstring==null){
 		$color="black";
-		if($FreeRadiusEnableLocalLdap==0){$color="#9C9C9C";}
+		if($FreeRadiusEnableLocalLdap==0){$color="#8a8a8a";}
 		$disable=Field_checkbox("sessionid_00", 1,$FreeRadiusEnableLocalLdap,"EnableLocalLDAPServer$t()");
 		$data['rows'][] = array(
 				'id' => "acl00",
@@ -610,7 +610,7 @@ function connection_list(){
 		}		
 		$ligne['connectiontype']=$tpl->javascript_parse_text($CONNECTIONS_TYPE[$ligne['connectiontype']]);
 		$delete=imgsimple("delete-24.png",null,"ConnectionDelete$t('{$ligne['ID']}')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 	
 
 		$data['rows'][] = array(

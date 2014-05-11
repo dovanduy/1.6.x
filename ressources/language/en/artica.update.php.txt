@@ -2,9 +2,9 @@
 If you choose to disable auto-installation, update agent will wait your order to perform auto-install.</autoupdate_text>
 <CheckEveryMinutes>Check update every x minutes</CheckEveryMinutes>
 <current_version>Current version</current_version>
-<enable_autoinstall>Enable auto-install</enable_autoinstall>
-<enable_autoupdate>Enable auto-update feature</enable_autoupdate>
-<enable_nightlybuild>Enable nightly build updates</enable_nightlybuild>
+<enable_autoinstall>Apply updates</enable_autoinstall>
+<enable_autoupdate>Download updates</enable_autoupdate>
+<enable_nightlybuild>Download nightly builds</enable_nightlybuild>
 <front_page_notify>Notify new updates on front-page</front_page_notify>
 <install_package>Install Package...</install_package>
 <install_package_text>Are you sure to upgrade Artica Core using this package ?

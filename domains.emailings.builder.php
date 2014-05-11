@@ -657,10 +657,10 @@ function mailer_link_infos(){
 	$ct=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$ct=$ct+1;
-		$img="status_ok.gif";
+		$img="status_ok.png";
 		$size=FormatBytes($ligne["massmailing_size"]/1024);
 		if($ligne["task_success"]==0){
-			$img="status_critical.gif";
+			$img="status_critical.png";
 		}
 		
 		$template=emailing_get_template_name($ligne["template_id"]);

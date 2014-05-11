@@ -3,6 +3,7 @@ session_start ();
 include_once ('ressources/class.templates.inc');
 include_once ('ressources/class.ldap.inc');
 include_once ('ressources/class.users.menus.inc');
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 
 
 	$user=new usersMenus();
@@ -97,7 +98,7 @@ $('#events-table-$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height:$TB_HEIGHT ,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -159,11 +160,13 @@ $pattern=base64_encode($_GET["search"]);
 	if($_GET["query"]<>null){
 
 		$search=base64_encode($_POST["query"]);
-		$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}")));	
+		$sock->getFrameWork("cmd.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}");	
+		$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total = count($array);
 		
 	}else{
-		$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}")));	
+		$sock->getFrameWork("cmd.php?syslog-query=&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}");
+		$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total = count($array);
 	}
 	
@@ -179,6 +182,11 @@ $pattern=base64_encode($_GET["search"]);
 	}
 	$today=$tpl->_ENGINE_parse_body("{today}");
 	$c=0;
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "<H1>Array of ".count($array)." Lines</H1>\n";}
+	
+	
 	while (list ($key, $line) = each ($array) ){
 		if(trim($line)==null){continue;}
 			$date=null;
@@ -186,7 +194,7 @@ $pattern=base64_encode($_GET["search"]);
 			$service=null;
 			$pid=null;
 			$color="black";
-			if(preg_match("#(ERROR|WARN|FATAL|UNABLE|Failed|not found|denied)#i", $line)){$color="#D61010";}
+			if(preg_match("#(ERROR|WARN|FATAL|UNABLE|Failed|not found|denied|OVERLOAD)#i", $line)){$color="#D61010";}
 				
 			$style="<span style='color:$color'>";
 			$styleoff="</span>";
@@ -249,6 +257,9 @@ $pattern=base64_encode($_GET["search"]);
 		
 
 	}
+	
+	if($c==0){json_error_show("no data");}
+	
 	$data['total'] = $c;
 	
 echo json_encode($data);		

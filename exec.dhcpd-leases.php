@@ -10,32 +10,29 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 include_once(dirname(__FILE__) . '/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__) . '/ressources/class.dhcpd.inc');
 include_once(dirname(__FILE__) . '/ressources/class.computers.inc');
+include_once(dirname(__FILE__) . '/ressources/class.tcpip.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 
 if($argv[1]=="--parse-leases"){parseLeases();die();}
 
 if($argv[1]=="commit"){
+	dhcpd_logs("commit: {$argv[2]} {$argv[3]} {$argv[4]}");
 	update_commit($argv[2],$argv[3],$argv[4]);
 	die(0);
 }
-	if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$unix=new unix();
+
+if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+$unix=new unix();
 	
-	if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
-		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
-		die();
-	}
-	@file_put_contents($pidfile, getmypid());
-
-
-
-
-
+if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){
+	if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}
+	die();
+}
+@file_put_contents($pidfile, getmypid());
 
 $GLOBALS["nmblookup"]=$unix->find_program("nmblookup");
-
 if($argv[1]=="lookup"){echo "{$argv[2]}:".nmblookup($argv[2],$argv[3])."\n";die();}
 
 if($argv[1]=='--single-computer'){die();}
@@ -49,28 +46,45 @@ $sock=new sockets();
 $EnableDHCPServer=$sock->GET_INFO('EnableDHCPServer');
 $ComputersAllowDHCPLeases=$sock->GET_INFO("ComputersAllowDHCPLeases");
 if($ComputersAllowDHCPLeases==null){$ComputersAllowDHCPLeases=1;}
-
 if($EnableDHCPServer==0){writelogs("EnableDHCPServer is disabled, aborting...","MAIN",__FILE__,__LINE__);die();}
-
-
-
 if($ComputersAllowDHCPLeases==0){
 	if($GLOBALS["VERBOSE"]){echo " -->ComputersAllowDHCPLeases is disabled -> die()\n";}
 	writelogs("ComputersAllowDHCPLeases is disabled, aborting...","MAIN",__FILE__,__LINE__);
 	die();
 }
 
-localsyslog("Check changed leases...");
-
-if(!$GLOBALS["FORCE"]){if($GLOBALS["VERBOSE"]){echo " -->Changed()\n";}if(!Changed()){die();}}
 
 $cache_file="/etc/artica-postfix/dhcpd.leases.dmp";
+
+
+
+if(!$GLOBALS["FORCE"]){
+	$TimeFile=$unix->file_time_min($cache_file);
+	if($TimeFile<30){
+		if($GLOBALS["VERBOSE"]){echo " {$TimeFile}Mn, require 30mn\n";}
+		die();
+	}
+}
+
+
+
+localsyslog("Check changed leases...");
+if(!$GLOBALS["FORCE"]){if($GLOBALS["VERBOSE"]){echo " -->Changed()\n";}if(!Changed()){die();}}
+
 $datas=@file_get_contents("/var/lib/dhcp3/dhcpd.leases");
-$md5Tampon=md5($datas);
-$md5Local=md5(trim(@file_get_contents("/etc/artica-postfix/dhcpd.leases.dmp")));
+$md5Tampon=md5_file($datas);
+
+
+$md5Local=md5_file("/etc/artica-postfix/dhcpd.leases.dmp");
+
+
+
+
+dhcpd_logs("dhcpd.leases.dmp: $md5Local / $md5Tampon");
+
 if($GLOBALS["VERBOSE"]){echo " -->$md5Local / $md5Tampon\n";}
 if(!$GLOBALS["FORCE"]){if($md5Local==$md5Tampon){if($GLOBALS["VERBOSE"]){echo " -->$md5Local == $md5Tampon, abort\n";}die();}}
-if(!$GLOBALS["FORCE"]){if(file_time_min($cache_file)<10){die();}}
+
 @unlink($cache_file);
 @file_put_contents($cache_file,$md5Tampon);
 
@@ -237,6 +251,7 @@ function Changed(){
 		return false;
 	}
 	$sock=new sockets();
+	@chown("/var/lib/dhcp3/dhcpd.leases", "dhcpd");
 	$DHCPLeaseMD5=$sock->GET_INFO('DHCPLeaseMD5');
 	if($DHCPLeaseMD5==null){return true;}
 	$datas=@file_get_contents("/var/lib/dhcp3/dhcpd.leases");
@@ -275,7 +290,12 @@ function update_computer($ip,$mac,$name){
 	if($ip==null){return;}
 	if($mac==null){return;}
 	if($name==null){return;}
-	if(preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $name)){localsyslog("`$name` is a TCP IP address, aborting updating the LDAP database");return;}
+	$mac=strtolower(str_replace("-", ":", $mac));
+	$ipClass=new IP();
+	if($ipClass->isIPAddress($name)){
+		localsyslog("`$name` is a TCP IP address, aborting updating the LDAP database");return;
+	}
+	
 	
 	
 	$ip=nmblookup($name,$ip);
@@ -284,20 +304,22 @@ function update_computer($ip,$mac,$name){
 	
 	$comp=new computers();
 	$uid=$comp->ComputerIDFromMAC($mac);
-	if(preg_match("#^(.+?)\.(.+?)$#", $name,$re)){
-		$name=$re[1];
-		$GLOBALS["domain"]=$re[2];
+	
+	if(strpos($name, ".")>0){
+		$NAMETR=explode(".",$name);
+		$name=$NAMETR[0];
+		unset($NAMETR[0]);
+		$GLOBALS["domain"]=@implode(".", $NAMETR);
 	}
 	
-	
-	
-	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $uid)){
+	if($ipClass->isIPAddress($uid)){	
 		$comp=new computers($uid);
 		localsyslog("Removing computer ($uid) $mac");
 		$comp->DeleteComputer();
 		$uid=null;
 		$uid=$comp->ComputerIDFromMAC($mac);
 	}
+	
 	localsyslog("$mac -> uid:`$uid`");
 	
 	if($uid==null){
@@ -310,16 +332,21 @@ function update_computer($ip,$mac,$name){
 		$comp->DnsZoneName=$GLOBALS["domain"];
 		$comp->uid=$uid;
 		$ComputerRealName=$name;
-		localsyslog("Adding new computer $name[$ip] ($uid) $mac in domain $comp->DnsZoneName");
+		localsyslog("Create new computer $name[$ip] ($uid) $mac in domain $comp->DnsZoneName");
 		$comp->Add();
 
 	}else{
 		$comp=new computers($uid);
+		if(strpos($comp->ComputerRealName, ".")>0){
+			$NAMETR=explode(".",$name);
+			$comp->ComputerRealName=$NAMETR[0];
+		}
+		
 		if($comp->ComputerRealName==null){$comp->ComputerRealName=$name;}
-		if(preg_match("#[0-9]+\.[0-9]+\.#",$comp->ComputerRealName)){$comp->ComputerRealName=$name;}
+		if($ipClass->isIPAddress($comp->ComputerRealName)){$comp->ComputerRealName=$name;}
 		$comp->ComputerIP=$ip;
 		$comp->DnsZoneName=$GLOBALS["domain"];
-		localsyslog("Editing computer $comp->ComputerRealName[$ip] ($uid) $mac in domain $comp->DnsZoneName");
+		localsyslog("Update computer $comp->ComputerRealName[$ip] ($uid) $mac in domain $comp->DnsZoneName");
 		$comp->Edit();
 		
 	}
@@ -372,10 +399,7 @@ function nmblookup($hostname,$ip){
 
 
 function localsyslog($text){
-	if(!function_exists("syslog")){return;}
-	openlog(basename(__FILE__), LOG_PID , LOG_SYSLOG);
-	syslog(LOG_INFO, $text);
-	closelog();	
+	dhcpd_logs($text);
 	
 }
 
@@ -426,7 +450,14 @@ function parseLeases(){
 	
 	
 }
-
+function dhcpd_logs($text){
+	
+	if(!function_exists("syslog")){return;}
+	$LOG_SEV=LOG_INFO;
+	openlog("dhcpd-leases", LOG_PID , LOG_SYSLOG);
+	syslog($LOG_SEV, $text);
+	closelog();
+}
 
 
 ?>

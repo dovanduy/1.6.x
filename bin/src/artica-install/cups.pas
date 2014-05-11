@@ -369,7 +369,7 @@ pidpath:string;
 begin
    if not FileExists(Daemon_bin_path()) then exit;
    if not FileExists(cups_config_path()) then  exit;
-   SYS.MONIT_DELETE('APP_CUPS');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --cups >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);

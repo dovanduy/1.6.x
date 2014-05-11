@@ -134,11 +134,11 @@ function popup_spamass_check_perform(){
 	while (list ($num, $ligne) = each ($datas) ){
 		$color="#000000";
 		if(preg_match("#error#i",$ligne)){
-			$color="red";
+			$color="#CC0A0A";
 		}
 		
 	if(preg_match("#failed#i",$ligne)){
-			$color="red";
+			$color="#CC0A0A";
 		}		
 		
 		

@@ -907,8 +907,6 @@ var
    pidpath:string;
 begin
 if not FileExists(SPAMASSASSIN_BIN_PATH()) then exit;
-SYS.MONIT_DELETE('APP_SPAMASSASSIN');
-SYS.MONIT_DELETE('SPAMASS_MILTER');
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --spamassassin >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

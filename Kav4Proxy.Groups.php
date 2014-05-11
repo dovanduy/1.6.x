@@ -111,7 +111,7 @@ function groups_list(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$delete=imgtootltip("delete-32.png","{delete}:{$ligne["groupname"]}","Kav4ProxyGroupDelete('{$ligne["groupname"]}')");
 		$select="<a href=\"javascript:blur();\" OnClick=\"javascript:GroupEdit('{$ligne["groupname"]}');\" style='font-size:16px;text-decoration:underline'>";
 		$html=$html."
@@ -379,7 +379,7 @@ function Field_deny_skip_checkbox_img($name,$value,$tooltip=null){
 	$tooltip=ParseTooltip($tooltip);
 	if($value==null){$value="no";}
 	if($tooltip<>null){$tooltip="onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
-	if($value=='skip'){$img='img/status_ok.gif';}else{$img='img/status_critical.gif';}
+	if($value=='skip'){$img='img/status_ok.png';}else{$img='img/status_critical.png';}
 	$html="
 	<input type='hidden' name='$name' id='$name' value='$value'><a href=\"javascript:SwitchDenySkip('$name');\"><img src='$img' id='img_$name' $tooltip></a>";
 	return $html;

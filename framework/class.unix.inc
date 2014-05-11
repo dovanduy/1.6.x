@@ -1,27 +1,34 @@
 <?php
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate instantiate class class.ini-frame.inc...\n";}
+if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+if(!isset($GLOBALS["OUTPUT"])){$GLOBALS["OUTPUT"]=false;}
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
+
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." class.unix.inc instantiate class.ini-frame.inc...\n";}
 include_once(dirname(__FILE__).'/class.ini-frame.inc');
 include_once("/usr/share/artica-postfix/ressources/class.sockets.inc");
 include_once("/usr/share/artica-postfix/ressources/class.ini.inc");
+include_once("/usr/share/artica-postfix/ressources/class.process.inc");
 include_once("/usr/share/artica-postfix/ressources/class.os.system.inc");
+include_once("/usr/share/artica-postfix/framework/class.monit.inc");
 include_once(dirname(__FILE__)."/class.hd.inc");
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate instantiate classes done...\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." class.unix.inc instantiate classes done...\n";}
 $GLOBALS["SSLKEY_PATH"]="/etc/ssl/certs/apache";
 $GLOBALS["MAX_RECUSIVE_DIRS"]=400;
 $GLOBALS["RECURSVIVE_INC"]=0;
+
 if(!isset($GLOBALS["DEBUG_GREP"])){$GLOBALS["DEBUG_GREP"]=false;}
-define( 'RE_IP_BYTE', '(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|0?[0-9]?[0-9])');
-define( 'RE_IP_ADD' , RE_IP_BYTE . '\.' . RE_IP_BYTE . '\.' . RE_IP_BYTE . '\.' . RE_IP_BYTE );
-define( 'RE_IP_PREFIX', '(3[0-2]|[12]?\d)');
-define( 'RE_IP_BLOCK', RE_IP_ADD . '\/' . RE_IP_PREFIX);
-define( 'RE_IPV6_WORD', '([0-9A-Fa-f]{1,4})' );
-define( 'RE_IPV6_GAP', ':(?:0+:)*(?::(?:0+:)*)?' );
-define( 'RE_IPV6_V4_PREFIX', '0*' . RE_IPV6_GAP . '(?:ffff:)?' );
-define( 'RE_IPV6_PREFIX', '(12[0-8]|1[01][0-9]|[1-9]?\d)');
-define( 'RE_IPV6_ADD', '(:(:' . RE_IPV6_WORD . '){1,7}|' . RE_IPV6_WORD . '(:{1,2}' . RE_IPV6_WORD . '|::$){1,7})' );
-define( 'RE_IPV6_BLOCK', RE_IPV6_ADD . '\/' . RE_IPV6_PREFIX );
-define( 'IP_ADDRESS_STRING','(?:' .RE_IP_ADD . '(\/' . RE_IP_PREFIX . '|)'.'|'.RE_IPV6_ADD . '(\/' . RE_IPV6_PREFIX . '|)' .')' );
+if(!defined("RE_IP_BYTE")){define( 'RE_IP_BYTE', '(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|0?[0-9]?[0-9])');}
+if(!defined("RE_IP_ADD")){define( 'RE_IP_ADD' , RE_IP_BYTE . '\.' . RE_IP_BYTE . '\.' . RE_IP_BYTE . '\.' . RE_IP_BYTE );}
+if(!defined("RE_IP_PREFIX")){define( 'RE_IP_PREFIX', '(3[0-2]|[12]?\d)');}
+if(!defined("RE_IP_BLOCK")){define( 'RE_IP_BLOCK', RE_IP_ADD . '\/' . RE_IP_PREFIX);}
+if(!defined("RE_IPV6_WORD")){define( 'RE_IPV6_WORD', '([0-9A-Fa-f]{1,4})' );}
+if(!defined("RE_IPV6_GAP")){define( 'RE_IPV6_GAP', ':(?:0+:)*(?::(?:0+:)*)?' );}
+if(!defined("RE_IPV6_V4_PREFIX")){define( 'RE_IPV6_V4_PREFIX', '0*' . RE_IPV6_GAP . '(?:ffff:)?' );}
+if(!defined("RE_IPV6_PREFIX")){define( 'RE_IPV6_PREFIX', '(12[0-8]|1[01][0-9]|[1-9]?\d)');}
+if(!defined("RE_IPV6_ADD")){define( 'RE_IPV6_ADD', '(:(:' . RE_IPV6_WORD . '){1,7}|' . RE_IPV6_WORD . '(:{1,2}' . RE_IPV6_WORD . '|::$){1,7})' );}
+if(!defined("RE_IPV6_BLOCK")){define( 'RE_IPV6_BLOCK', RE_IPV6_ADD . '\/' . RE_IPV6_PREFIX );}
+if(!defined("IP_ADDRESS_STRING")){define( 'IP_ADDRESS_STRING','(?:' .RE_IP_ADD . '(\/' . RE_IP_PREFIX . '|)'.'|'.RE_IPV6_ADD . '(\/' . RE_IPV6_PREFIX . '|)' .')' );}
 
 
 class unix {
@@ -29,8 +36,11 @@ class unix {
 	var $proc_status;
 	
 	function unix(){
+		if(!isset($GLOBALS["GET_TIME_ZONE"])){if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." class.unix.inc Get local time..\n";}}
 		$getLocalTimezone=$this->getLocalTimezone();
+		if(!isset($GLOBALS["GET_TIME_ZONE"])){if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." class.unix.inc $getLocalTimezone..\n";}}
 		@date_default_timezone_set($getLocalTimezone);
+		
 	}
 	
 
@@ -43,8 +53,76 @@ class unix {
 	}
 	
 	
-	private function getLocalTimezone(){
+	
+	public function IsProxy(){
+		$ini=new iniFrameWork();
+		$sock=new sockets();
+		$datas=$sock->GET_INFO("ArticaProxySettings");
+		if(trim($datas)==null){return false;}
+		$ini->loadString($datas);
+		$ArticaProxyServerEnabled=trim(strtolower($ini->_params["PROXY"]["ArticaProxyServerEnabled"]));
+		$ArticaProxyServerName=trim($ini->_params["PROXY"]["ArticaProxyServerName"]);
+	
+		if($ArticaProxyServerEnabled=="yes"){
+			if($ArticaProxyServerName<>null){return true;}
+		}
+		return false;
+	}	
+	
+	public function Process1($force=true){
+		if(isset($GLOBALS["CLASS_UNIX_PROCESS1_EXEC"])){return;}
+		$GLOBALS["CLASS_UNIX_PROCESS1_EXEC"]=true;
+		if(!is_file("/etc/init.d/artica-process1")){return;}
+		if(isset($GLOBALS["NO_PROCESS1_CHECK"])){return;}
+		if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){$force=true;}
+		if(function_exists("system_is_overloaded")){if(system_is_overloaded()){return;}}
+		if(!$force){
+			$time=$this->file_time_min("/usr/share/artica-postfix/ressources/settings.inc");
+			if($time<2){return;}
+		}
 		
+		@shell_exec("/etc/init.d/artica-process1 start");
+	}
+	
+	
+	
+	public function MAIN_URI(){
+		$ini=new iniFrameWork();
+		$ini->loadFile('/etc/artica-postfix/artica-update.conf');
+		if(trim($ini->_params["AUTOUPDATE"]["autoinstall"])==null){$ini->_params["AUTOUPDATE"]["autoinstall"]="yes";}
+		if($ini->_params["AUTOUPDATE"]["autoinstall"]<>"yes"){$autoinstall=false;}
+		$uri=$ini->_params["AUTOUPDATE"]["uri"];
+		if($uri==null){$uri="http://www.articatech.net/auto.update.php";}
+		$arrayURI=parse_url($uri);
+		
+		if($this->IsProxy()){
+			
+			if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] Proxy is enabled, return {$arrayURI["scheme"]}://{$arrayURI["host"]}\n";}
+			return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";}
+		
+		$hostname=$arrayURI["host"];
+		if($this->isIPAddress($hostname)){
+			if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] $hostname = IP ADDRESS, return {$arrayURI["scheme"]}://{$arrayURI["host"]}\n";}
+			return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";
+		}
+		$ipaddress=gethostbyname($hostname);
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] $hostname = $ipaddress\n";}
+		
+		if(!$this->isIPAddress($ipaddress)){
+			if($hostname<>"www.artica.fr"){return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";}
+			$ipaddress=gethostbyname("www.articatech.net");
+			if(!$this->isIPAddress($ipaddress)){return "{$arrayURI["scheme"]}://93.88.245.88";}
+			$ini->_params["AUTOUPDATE"]["uri"]="http://www.articatech.net/auto.update.php";
+			$ini->saveFile('/etc/artica-postfix/artica-update.conf');
+			return "{$arrayURI["scheme"]}://www.articatech.net";
+		}
+		
+		return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";
+	}
+	
+	
+	private function getLocalTimezone(){
+		if(isset($GLOBALS["GET_TIME_ZONE"])){return $GLOBALS["GET_TIME_ZONE"];}
 		if(is_file("/etc/artica-postfix/FROM_ISO")){
 			if(!is_file("/etc/artica-postfix/artica-iso-setup-launched")){
 				$GLOBALS["GET_TIME_ZONE"]="Europe/Dublin";
@@ -54,7 +132,7 @@ class unix {
 		
 		
 		if(isset($GLOBALS["GET_TIME_ZONE"])){if($GLOBALS["GET_TIME_ZONE"]<>null){return $GLOBALS["GET_TIME_ZONE"];}}
-		if(function_exists("debug_mem")){debug_mem();}else{if($GLOBALS["VERBOSE"]){print "Starting......: debug_mem no such function...\n";}}
+		if(function_exists("debug_mem")){debug_mem();}else{if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." debug_mem no such function...\n";}}
 		$page=$this->CurrentPageName();
 		if($page=="exec.artica-filter.php"){return;}
 		
@@ -105,6 +183,54 @@ class unix {
 		if(is_file("/etc/ssh/sshd_config")){return "/etc/ssh/sshd_config";}
 		
 	}	
+	
+	
+	public function MONIT_RELOAD(){
+		$monit=new monit_unix();
+		$monit->RELOAD();
+	}
+	
+	
+public function maillog_to_backupdir($fullpath){
+	
+	$IsMaillog=false;
+	$file=basename($fullpath);
+	if(preg_match("#^mail\.(log|warn|info)-#", $file)){$IsMaillog=true;}
+	if(preg_match("#^mail\.(log|warn|info)\.([0-9]+)#", $file)){$IsMaillog=true;}
+	
+	if(!$IsMaillog){return false;}
+	
+	
+	if(!isset($GLOBALS["maillogToMysql"])){
+		$GLOBALS["maillogToMysql"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/maillogToMysql"));
+	}
+	
+	if(!is_numeric($GLOBALS["maillogToMysql"])){return false;}
+	if($GLOBALS["maillogToMysql"]==0){return false;}
+	
+	if(!isset($GLOBALS["maillogStoragePath"])){
+		$GLOBALS["maillogStoragePath"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/maillogStoragePath"));
+	}
+	
+	if(!isset($GLOBALS["maillogMaxDays"])){
+		$GLOBALS["maillogMaxDays"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/maillogMaxDays"));
+	}	
+	if($GLOBALS["maillogStoragePath"]==null){$GLOBALS["maillogStoragePath"]="/home/postfix/maillog";}
+	if(!is_numeric($GLOBALS["maillogMaxDays"])){$GLOBALS["maillogMaxDays"]=7;}
+	
+	$maillogStoragePath=$GLOBALS["maillogStoragePath"];
+	$maillogMaxMin=$GLOBALS["maillogMaxDays"]*24;
+	$maillogMaxMin=$maillogMaxMin*60;
+	if(!is_dir($maillogStoragePath)){ @mkdir($maillogStoragePath,0755,true); }
+	$timef=$this->file_time_min($fullpath);
+	if($timef>$maillogMaxMin){@unlink($fullpath);return true;}
+	if(@copy($fullpath, "$maillogStoragePath/$file")){
+		@unlink($fullpath);
+		return true;
+	}
+	return false;
+	
+}	
 	
 	
 public function LOCATE_VBoxHeadless(){
@@ -276,7 +402,30 @@ public function LOCATE_VBoxHeadless(){
 		}
 		return $RES;
 	}
+	public function PIDOF_BY_PORT_UDP($port){
+		$fuser=$this->find_program("fuser");
+		$PIDLINE=null;
+		$RES=array();
+		exec("$fuser $port/udp 2>&1",$results);
+		while (list ($index, $val) = each ($results) ){
+			if(preg_match("#udp:\s+(.+)#", $val,$re)){
+				if($GLOBALS["VERBOSE"]){echo "PIDOF_BY_PORT: Found {$re[1]}\n";}
+				$PIDLINE=$re[1];
+			}
+		}
 	
+		if($PIDLINE<>null){
+			$tr=explode(" ",$PIDLINE);
+			while (list ($a, $b) = each ($tr) ){
+				$b=trim($b);
+				if($b==null){continue;}
+				if(!is_numeric($b)){continue;}
+				if($b<5){continue;}
+				$RES[$b]=$b;
+			}
+		}
+		return $RES;
+	}	
 	
 	public function NGINX_COMPILE_PARAMS(){
 		if(isset($GLOBALS[__CLASS__.".".__FUNCTION__])){return $GLOBALS[__CLASS__.".".__FUNCTION__];}
@@ -510,7 +659,34 @@ public function LOCATE_VBoxHeadless(){
 		return false;
 		
 	}
-	
+	public function CYRUS_PID_PATH(){
+		if(is_file('/var/run/cyrus-master.pid')){return '/var/run/cyrus-master.pid';}
+		if(is_file('/var/run/cyrmaster.pid')){return '/var/run/cyrmaster.pid';}
+		if(is_file('/var/run/cyrus.pid')){return '/var/run/cyrus.pid';}
+		return "/var/run/cyrmaster.pid";
+	}
+public function CYRUS_DAEMON_BIN_PATH(){
+	$cyrmaster=$this->find_program("cyrmaster");
+	if(is_file($cyrmaster)){return $cyrmaster;}
+	if(is_file('/usr/lib/cyrus-imapd/cyrus-master') ){return '/usr/lib/cyrus-imapd/cyrus-master';}
+   if (is_file('/usr/lib/cyrus/bin/master') ){return '/usr/lib/cyrus/bin/master';}
+    if (is_file('/usr/sbin/cyrmaster') ){return '/usr/sbin/cyrmaster';}
+    if (is_file('/usr/sbin/cyrmaster') ){return '/usr/sbin/cyrmaster';}
+    if (is_file('/opt/artica/cyrus/bin/master') ){return '/opt/artica/cyrus/bin/master';}
+}	
+public function CYRADM_PATH(){
+
+	if (is_file('/usr/bin/cyradm') ){return '/usr/bin/cyradm';}
+	if (is_file('/usr/share/bin/cyradm') ){return '/usr/share/bin/cyradm';}
+	if (is_file('/opt/artica/bin/cyradm') ){return '/opt/artica/bin/cyradm';}
+}
+function CYRUS_SYNC_CLIENT_BIN_PATH(){
+	$sync_client=$this->find_program("sync_client");
+	if(is_file($sync_client)){return $sync_client;}
+	if(is_file('/usr/lib/cyrus-imapd/sync_client')){return '/usr/lib/cyrus-imapd/sync_client';}
+	if(is_file('/usr/lib/cyrus/bin/sync_client')){return '/usr/lib/cyrus/bin/sync_client';}
+	if(is_file('/usr/sbin/sync_client')){return '/usr/sbin/sync_client';}
+}
 	
 	public function JAVA_HOME_GET(){
 		$f=explode("\n", @file_get_contents("/etc/environment"));
@@ -609,6 +785,31 @@ public function LOCATE_VBoxHeadless(){
 		return false;
 	}
 	
+	function ldap_GET_CONFS(){
+	
+		$SLAPD_CONF=$this->SLAPD_CONF_PATH();
+		$f=explode("\n",@file_get_contents($SLAPD_CONF));
+		while (list ($index, $line) = each ($f) ){
+			if(preg_match("#suffix.*?\"(.+?)\"#", $line,$re)){
+				$ARRAY["SUFFIX"]=$re[1];
+				continue;
+			}
+	
+			if(preg_match("#rootdn.*?\"(.+?)\"#", $line,$re)){
+				$ARRAY["DN"]=$re[1];
+				continue;
+			}
+			if(preg_match("#rootpw.*?\"(.+?)\"#", $line,$re)){
+				$ARRAY["PWD"]=$re[1];
+				continue;
+			}
+	
+		}
+	
+		return $ARRAY;
+	
+	}
+	
 	public function file_ext($path){
 		$path_info = pathinfo($path);
 		return $path_info['extension'];
@@ -616,24 +817,8 @@ public function LOCATE_VBoxHeadless(){
 	}
 	
 	public function GetMyHostId(){
+		return $this->GetUniqueID();
 		
-		$hostid=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/HOSTID"));
-		if($hostid<>null){return $hostid;}
-	
-		
-		$hostidbin=$this->find_program("hostid");
-		if(is_file($hostidbin)){
-			exec("$hostidbin 2>&1",$results);
-			$hostid=md5(trim(@implode("", $results).time()));
-			if($hostid<>"00000000"){
-				@file_put_contents("/etc/artica-postfix/settings/Daemons/HOSTID", $hostid);
-				return $hostid;
-			}
-		}
-	
-		$hostid=md5(time());
-		@file_put_contents("/etc/artica-postfix/settings/Daemons/HOSTID", $hostid);
-		return $hostid;
 	}	
 	
 	
@@ -680,7 +865,7 @@ public function LOCATE_VBoxHeadless(){
 		if(!is_file("/etc/artica-postfix/settings/Daemons/SquidMgrListenPort")){
 			$php5=$this->LOCATE_PHP5_BIN();
 			shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force");
-			shell_exec("/etc/init.d/squid restart");
+			shell_exec("/etc/init.d/squid restart --class-unix=".__LINE__);
 		}
 		
 		if(!is_file("/etc/artica-postfix/settings/Daemons/SquidMgrListenPort")){
@@ -956,6 +1141,28 @@ public function PingHost($cible,$nocache=false){
 		return $result;
 	}
 	
+function NETWORK_DEFAULT_IP_ADDR(){	
+	$NETWORK_ALL_INTERFACES=$this->NETWORK_ALL_INTERFACES();
+	for($i=0;$i<5;$i++){
+		if(isset($NETWORK_ALL_INTERFACES["eth$i"])){
+			if($NETWORK_ALL_INTERFACES["eth$i"]["IPADDR"]<>"0.0.0.0"){
+				return $NETWORK_ALL_INTERFACES["eth$i"]["IPADDR"];
+				
+			}
+		}
+	}
+	
+	for($i=0;$i<5;$i++){
+		if(isset($NETWORK_ALL_INTERFACES["br$i"])){
+			if($NETWORK_ALL_INTERFACES["br$i"]["IPADDR"]<>"0.0.0.0"){
+				return $NETWORK_ALL_INTERFACES["br$i"]["IPADDR"];
+				
+			}
+		}
+	}
+}	
+	
+	
 	function NETWORK_REPORT(){
 		
 		$results[]="Report....:";
@@ -1186,6 +1393,21 @@ public function PingHost($cible,$nocache=false){
 		
 	}
 	
+public function TCP_TUNE_SQUID_DEFAULT(){
+	$echo = $this->find_program("echo");
+	$sysctl=$this->find_program("sysctl");
+	shell_exec("$sysctl -w vm.vfs_cache_pressure=50 >/dev/null 2>&1");
+	
+	$DisableTCPEn=@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableTCPEn");
+	if(!is_numeric($DisableTCPEn)){$DisableTCPEn=0;}
+	if($DisableTCPEn==1){
+		shell_exec("$echo 0 > /proc/sys/net/ipv4/tcp_ecn >/dev/null 2>&1");
+	}else{
+		shell_exec("$echo 2 > /proc/sys/net/ipv4/tcp_ecn >/dev/null 2>&1");
+	}
+	//shell_exec("$echo 0 >/proc/sys/net/ipv4/tcp_window_scaling"); // will quite noticeably degrade TCP performance. 
+}
+	
 function THREAD_COMMAND_SET($zcommands){
 	  $md5command=md5(trim($zcommands));
 	  $FileDataCommand=@file_get_contents('/etc/artica-postfix/background');
@@ -1218,8 +1440,9 @@ public function GetMemoriesOfChild($pid){
 		$vm=$this->PROCESS_CACHE_MEMORY($pid,true);
 
 
-		if($count==0){$count=1;}
+		$count=1;
 		if($this->process_exists($pid)){$l[]="installed=1";$l[]="running=1";}
+		$l[]="threads_socket=".$this->PROCESS_SOCKETS_NUM($pid);
 		$l[]="application_installed=1";
 		$l[]="master_pid=$pid";
 		$l[]="master_memory=$rss";
@@ -1386,7 +1609,7 @@ function vhosts_BuildCertificate($hostname){
 	$ini->loadFile("/etc/artica-postfix/ssl.certificate.conf");
 	$conf="/etc/ssl/certs/apache/$hostname.conf";
 	$openssl=$this->find_program("openssl");
-	echo "Starting......: Certificate \"$conf\" ". count($ini->_params) ." Keys\n";
+	echo "Starting......: ".date("H:i:s")." Certificate \"$conf\" ". count($ini->_params) ." Keys\n";
 	
 	unset($ini->_params["HOSTS_ADDONS"]);
 	$ini->_params["default_db"]["default_days"]=$CertificateMaxDays;
@@ -1444,7 +1667,7 @@ function KERNEL_CONFIG(){
 	if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__." kernelver = $kernelver\n";}
 	$file="/boot/config-$kernelver";
 	if(!is_file($file)){if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__." $file no such file\n";}}
-	$t=file($file);
+	$t=explode("\n",@file_get_contents($file));
 	while (list ($num, $ligne) = each ($t) ){
 		if(preg_match("#^([A-Z_\-]+)=(.+)#", $ligne,$re)){
 			if(trim($re[2])=="y"){$re[2]=1;}
@@ -1506,7 +1729,7 @@ function MYSQL_BIN_PARSE_ERROR($text){
 
 function RESTART_SYSLOG_FORMAIL($onlysyslog=false){
 	$this->RESTART_SYSLOG(true);
-	shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
+	shell_exec("/etc/init.d/postfix-logger restart");
 	
 }
 
@@ -1540,8 +1763,8 @@ function RESTART_SYSLOG($onlysyslog=false){
 			}
 			if($onlysyslog){return;}
 
-			shell_exec("/etc/init.d/artica-postfix restart sysloger");
-			shell_exec("/etc/init.d/artica-postfix restart postfix-logger");
+			shell_exec("/etc/init.d/artica-syslog restart");
+			shell_exec("/etc/init.d/postfix-logger restart");
 			shell_exec("/etc/init.d/artica-postfix restart squid-tail");
 			shell_exec("/etc/init.d/artica-postfix restart ocsweb");
 			shell_exec("/etc/init.d/artica-postfix restart apachesrc");
@@ -1709,7 +1932,7 @@ function send_email_events($subject,$text,$context,$date=null,$attached_files=ar
 	$ini->set('LOG','subject',"[$datesubject]: [ARTICA]: ($users->hostname) : $subject$internal_load");
 	$ini->set('LOG','recipient',$recipient);
 	$ini->set('LOG','text',$textNocrlf.$internal_load.$function);
-	$filename="/var/log/artica-postfix/events/".md5(serialize($ini->_params));
+	$filename="{$GLOBALS["ARTICALOGDIR"]}/events/".md5(serialize($ini->_params));
 	if(is_file($filename)){return null;}
 	$ini->saveFile($filename);
 	$datas=@file_get_contents($filename);
@@ -1838,8 +2061,7 @@ public function shellEscapeChars($path){
 	
 	  $conffile=$this->SLAPD_CONF_PATH();
 	  if(!is_file($conffile)){return "/var/run/slapd/slapd.pid";}
-	 
-	  $f=file($conffile);
+	  $f=explode("\n",@file_get_contents($conffile));
 	  while (list ($num, $line) = each ($f)){
 	 	 if(preg_match('#pidfile\s+(.+)#',$line,$re)){return trim($re[1]);}
 	  }
@@ -1876,7 +2098,7 @@ public function shellEscapeChars($path){
 	
 	
 	public function APACHE_MODULES_PATH(){
-		
+		if(isset($GLOBALS["APACHE_MODULES_PATH"])){return $GLOBALS["APACHE_MODULES_PATH"];}
 		$DIRS[]="/usr/lib/apache2/modules";
 		$DIRS[]="/usr/lib/apache/modules";
 		$DIRS[]="/usr/lib64/apache/modules";
@@ -1894,6 +2116,7 @@ public function shellEscapeChars($path){
 				if($GLOBALS["VERBOSE"]){echo "APACHE_MODULES_PATH:: Checking \"$directory/$filename\"\n";}
 				if(is_file("$directory/$filename")){
 					if($GLOBALS["VERBOSE"]){echo "APACHE_MODULES_PATH:: Found \"$directory\"\n";}
+					$GLOBALS["APACHE_MODULES_PATH"]=$directory;
 					return $directory;}
 			}
 		}
@@ -1901,6 +2124,12 @@ public function shellEscapeChars($path){
 	}
 	
 	public function APACHE_SRC_ACCOUNT(){
+		if(isset($GLOBALS["APACHE_SRC_ACCOUNT"])){return $GLOBALS["APACHE_SRC_ACCOUNT"];}
+		$GLOBALS["APACHE_SRC_ACCOUNT"]=$this->_APACHE_SRC_ACCOUNT();
+		return $GLOBALS["APACHE_SRC_ACCOUNT"];
+	}
+	
+	private function _APACHE_SRC_ACCOUNT(){
 		if(is_file("/etc/artica-postfix/settings/Daemons/ApacheSRCAccount")){
 			$data=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ApacheSRCAccount"));
 			if(strlen($data)>3){return $data;}
@@ -1938,6 +2167,13 @@ public function shellEscapeChars($path){
 	}	
 	
 	public function APACHE_SRC_GROUP(){
+		if(isset($GLOBALS["APACHE_SRC_GROUP"])){return $GLOBALS["APACHE_SRC_GROUP"];}
+		$GLOBALS["APACHE_SRC_GROUP"]=$this->_APACHE_SRC_GROUP();
+		return $GLOBALS["APACHE_SRC_GROUP"];
+	}
+	
+	
+	private function _APACHE_SRC_GROUP(){
 		if(is_file("/etc/artica-postfix/settings/Daemons/ApacheSRCGroup")){
 			$data=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ApacheSRCGroup"));
 			if(strlen($data)>3){
@@ -1957,14 +2193,26 @@ public function shellEscapeChars($path){
 		
 		if(is_file("/etc/apache2/uid.conf")){
 			$tbl=explode("\n",@file_get_contents("/etc/apache2/uid.conf"));
-			while (list ($num, $line) = each ($tbl)){if(preg_match("#^Group\s+(.+)#",$line,$re)){return trim("{$re[1]}");}}	
+			while (list ($num, $line) = each ($tbl)){
+				if(preg_match("#^Group\s+(.+)#",$line,$re)){
+					$data=trim("{$re[1]}");
+					if($data=='${APACHE_RUN_GROUP}'){$data="www-data";}
+					return $data;
+				}
+			}	
 		}
 		
 		$tbl=explode("\n",@file_get_contents("/etc/passwd"));
-		while (list ($num, $line) = each ($tbl)){if(preg_match("#^(.+?):x:[0-9]+:[0-9]+:(.+?):\/var\/www:#",$line,$re)){return trim("{$re[1]}");}}
+		while (list ($num, $line) = each ($tbl)){
+			if(preg_match("#^(.+?):x:[0-9]+:[0-9]+:(.+?):\/var\/www:#",$line,$re)){
+				$data=trim("{$re[1]}");
+				if($data=='${APACHE_RUN_GROUP}'){$data="www-data";}
+				return $data;
+			}
+		}
 				
 
-		return $this->APACHE_SRC_ACCOUNT();
+		return $this->_APACHE_SRC_ACCOUNT();
 		
 	}
 	
@@ -1976,19 +2224,19 @@ public function shellEscapeChars($path){
 		while (list ($num, $line) = each ($results)){
 			if(preg_match("#inet addr.*?([0-9\.]+)#", $line,$re)){
 					
-				if($GLOBALS["VERBOSE"]){echo "Starting......: available network: {$re[1]}\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." available network: {$re[1]}\n";}
 				$GLOBALS["GetAvailableListenIP"][$re[1]]=$re[1];
 				continue;
 			}
 			if(preg_match("#inet6 addr:\s+(.*?)\/#", $line,$re)){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: available network: {$re[1]}\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." available network: {$re[1]}\n";}
 				$GLOBALS["GetAvailableListenIP"][$re[1]]=$re[1];
 				continue;
 			}
 	
 			if($GLOBALS["VERBOSE"]){echo "GetAvailableListenIP() no match `$line`\n";}
 		}
-		if(count($GLOBALS["GetAvailableListenIP"])==0){echo "Starting......: No IP ????\n";}
+		if(count($GLOBALS["GetAvailableListenIP"])==0){echo "Starting......: ".date("H:i:s")." No IP ????\n";}
 		return $GLOBALS["GetAvailableListenIP"];
 	
 	}
@@ -2031,13 +2279,14 @@ public function shellEscapeChars($path){
 	
 	public function IsSquidReverse(){
 		if(isset($GLOBALS["SQUID_IsSquidReverse"])){return $GLOBALS["SQUID_IsSquidReverse"];}
-		if(is_file("/etc/artica-postfix/SQUID_REVERSE_APPLIANCE")){$GLOBALS["SQUID_IsSquidReverse"]=true;return true;}
+		if(is_file("/etc/artica-postfix/SQUID_REVERSE_APPLIANCE")){
+			$GLOBALS["SQUID_IsSquidReverse"]=true;return true;}
 		
 		
 		
 		$squid=$this->LOCATE_SQUID_BIN();
 		if(!is_file($squid)){$GLOBALS["SQUID_IsSquidReverse"]=false;return false;}
-		$SquidActHasReverse=trim(file_get_contents("/etc/artica-postfix/settings/Daemons/SquidActHasReverse"));
+		$SquidActHasReverse=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidActHasReverse"));
 		if(!is_numeric($SquidActHasReverse)){$GLOBALS["SQUID_IsSquidReverse"]=false;return false;}
 		if($SquidActHasReverse==1){$GLOBALS["SQUID_IsSquidReverse"]=true;return true;}
 	}
@@ -2075,10 +2324,10 @@ public function shellEscapeChars($path){
 	
 	
 	function dskspace_bytes($dir_name){
-		
+		$EXEC_NICE=$this->EXEC_NICE();
 		$du=$this->find_program("du");
 		if(is_file($du)){
-			exec("$du -bs $dir_name 2>&1",$results);
+			exec("$EXEC_NICE$du -bs $dir_name 2>&1",$results);
 			while (list ($num, $ligne) = each ($results) ){
 				$ligne=trim($ligne);
 				if($ligne==null){continue;}
@@ -2114,6 +2363,18 @@ public function shellEscapeChars($path){
 	
 	
 	
+	public function is_interface_available($INTERFACE){
+		if(!isset($GLOBALS["INTERFACES"])){$GLOBALS["INTERFACES"]=$this->NETWORK_ALL_INTERFACES();}
+		if(!isset($GLOBALS["INTERFACES"][$INTERFACE]["IPADDR"])){return false;}
+		$STATE=$GLOBALS["INTERFACES"][$INTERFACE]["STATE"];
+		if($STATE=="DOWN"){return false;}
+		return true;
+		
+		
+	}
+	
+	
+	
 	public function NETWORK_ALL_INTERFACES($OnlyIPS=false){
 		include_once(dirname(__FILE__)."/class.tcpip-parser.inc");
 		$ip=$this->find_program("ip");
@@ -2131,40 +2392,69 @@ public function shellEscapeChars($path){
 				$array[$re[1]]["INTERFACE"]=$re[1];
 				if(preg_match("#PROMISC#", $ligne)){$array[$Interface]["IPADDR"]="0.0.0.0";}
 				if(preg_match("#POINTOPOINT#", $ligne)){$array[$Interface]["MAC"]="00:00:00:00:00:00";}
+				if(preg_match("#state\s+([A-Z]+)#", $ligne,$re)){$array[$Interface]["STATE"]=$re[1];}
 				continue;
 			}
 			
 			
 			if(preg_match("#inet\s+([0-9\.]+)\/([0-9]+)\s+brd\s+([0-9\.]+)\s+scope global\s+([a-z0-9]+):([0-9]+)#", $ligne,$re)){
+				$Interface="{$re[4]}:{$re[5]}";
+				$IPTABLE[$re[1]]=true;
+				$this->debug("****** Found Interface:$Interface *******");
 				$array["{$re[4]}:{$re[5]}"]["INTERFACE"]="{$re[4]}:{$re[5]}";
 				$array["{$re[4]}:{$re[5]}"]["IPADDR"]=$re[1];
 				$array["{$re[4]}:{$re[5]}"]["CDIR"]=$re[1]."/".$re[2];
 				$array["{$re[4]}:{$re[5]}"]["SCOPE"]=$re[3];
+				$tcp=new Unixipv4($re[1], $re[2]);
+				$parseCIDR=$tcp->netmask();
+				$array[$Interface]["NETMASK"]=$parseCIDR;
+				if(isset($array[$re[4]]["MAC"])){$array["{$re[4]}:{$re[5]}"]["MAC"]=$array[$re[4]]["MAC"];}
 				continue;
 				
 			}
+			
+			if(preg_match("#inet\s+([0-9\.]+)\/([0-9]+)\s+brd\s+([0-9\.]+)\s+scope global\s+secondary\s+([a-z0-9]+):([0-9]+)#", $ligne,$re)){
+				$Interface="{$re[4]}:{$re[5]}";
+				$IPTABLE[$re[1]]=true;
+				$this->debug("****** Found Interface:$Interface *******");
+				$array["{$re[4]}:{$re[5]}"]["INTERFACE"]="{$re[4]}:{$re[5]}";
+				$array["{$re[4]}:{$re[5]}"]["IPADDR"]=$re[1];
+				$array["{$re[4]}:{$re[5]}"]["CDIR"]=$re[1]."/".$re[2];
+				$array["{$re[4]}:{$re[5]}"]["SCOPE"]=$re[3];
+				$tcp=new Unixipv4($re[1], $re[2]);
+				$parseCIDR=$tcp->netmask();
+				$array[$Interface]["NETMASK"]=$parseCIDR;
+				if(isset($array[$re[4]]["MAC"])){$array["{$re[4]}:{$re[5]}"]["MAC"]=$array[$re[4]]["MAC"];}
+				continue;
+				
+			}
+					
 			
 	
 			
 			if(preg_match("#inet\s+([0-9\.]+)\/([0-9]+)\s+brd\s+([0-9\.]+)\s+#", $ligne,$re)){
 				$IPTABLE[$re[1]]=true;
-				$array[$Interface]["IPADDR"]=$re[1];
-				$array[$Interface]["CDIR"]=$re[1]."/".$re[2];
-				$array[$Interface]["SCOPE"]=$re[3];
-				$tcp=new Unixipv4($re[1], $re[2]);
-				$parseCIDR=$tcp->netmask();
-				$array[$Interface]["NETMASK"]=$parseCIDR;
+				if(!isset($array[$Interface]["IPADDR"])){ $array[$Interface]["IPADDR"]=$re[1]; }
+				if(!isset($array[$Interface]["CDIR"])){ $array[$Interface]["CDIR"]=$re[1]."/".$re[2];}
+				if(!isset($array[$Interface]["SCOPE"])){ $array[$Interface]["SCOPE"]=$re[3];}
+				if(!isset($array[$Interface]["NETMASK"])){
+					$tcp=new Unixipv4($re[1], $re[2]);
+					$parseCIDR=$tcp->netmask();
+					$array[$Interface]["NETMASK"]=$parseCIDR;
+				}
 				continue;
 			}
 			
 			if(preg_match("#inet\s+([0-9\.]+)\/([0-9]+)\s+scope\s+global\s+#", $ligne,$re)){
 				$IPTABLE[$re[1]]=true;
-				$array[$Interface]["IPADDR"]=$re[1];
-				$array[$Interface]["CDIR"]=$re[1]."/".$re[2];
-				$array[$Interface]["SCOPE"]="0.0.0.0/0";
-				$tcp=new Unixipv4($re[1], $re[2]);
-				$parseCIDR=$tcp->netmask();
-				$array[$Interface]["NETMASK"]=$parseCIDR;
+				if(!isset($array[$Interface]["IPADDR"])){ $array[$Interface]["IPADDR"]=$re[1];}
+				if(!isset($array[$Interface]["CDIR"])){ $array[$Interface]["CDIR"]=$re[1]."/".$re[2];}
+				if(!isset($array[$Interface]["SCOPE"])){ $array[$Interface]["SCOPE"]="0.0.0.0/0";}
+				if(!isset($array[$Interface]["NETMASK"])){ 
+					$tcp=new Unixipv4($re[1], $re[2]);
+					$parseCIDR=$tcp->netmask();
+					$array[$Interface]["NETMASK"]=$parseCIDR;
+				}
 				continue;
 			}
 			
@@ -2172,7 +2462,7 @@ public function shellEscapeChars($path){
 			
 			if(preg_match("#link\/ether\s+([0-9a-z:]+)\s+#", $ligne,$re)){
 				
-				$array[$Interface]["MAC"]=$re[1];
+				if(!isset($array[$Interface]["MAC"])){$array[$Interface]["MAC"]=$re[1];}
 				continue;
 			}
 		
@@ -2183,10 +2473,10 @@ public function shellEscapeChars($path){
 			}
 			
 			if(preg_match("#state UP#", $ligne,$re)){
-				$array[$Interface]["STATE"]="yes";
+				if(!isset($array[$Interface]["STATE"])){$array[$Interface]["STATE"]="yes";}
 			}
 			if(preg_match("#state DOWN#", $ligne,$re)){
-				$array[$Interface]["STATE"]="no";
+				if(!isset($array[$Interface]["STATE"])){$array[$Interface]["STATE"]="no";}
 			}	
 
 			
@@ -2210,6 +2500,23 @@ public function shellEscapeChars($path){
 
 		return $array;
 		
+	}
+	
+	
+	function NETWORK_INTERFACE_OK($eth){
+		$ip=$this->find_program("ip");
+		exec("$ip link show $eth 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(!preg_match("#^[0-9]+.*?state\s+([A-Z]+)#", $ligne,$re)){continue;}
+			$state=$re[1];
+			if($state=="DOWN"){return false;}
+		}
+		return true;
+	}
+	
+	function NMAP_CMDLINE($net,$tmpfile){
+		$nmap=$this->find_program("nmap");
+		return "$nmap $net -oG $tmpfile -F -R -O -A --system-dns -p1 --min-hostgroup 30 --min-parallelism 30 --osscan-guess --host-timeout 5000";
 	}
 	
 	
@@ -2260,7 +2567,7 @@ public function shellEscapeChars($path){
 		if($GLOBALS["APACHE_ListenDefaultAddress"]==null){$GLOBALS["APACHE_ListenDefaultAddress"]="*";}
 		if($GLOBALS["APACHE_ListenDefaultAddress"]<>"*"){
 			if(is_numeric($GLOBALS["APACHE_ListenDefaultAddress"])){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Apache WARNING `{$GLOBALS["APACHE_ListenDefaultAddress"]}` is not a valid network address...\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Apache WARNING `{$GLOBALS["APACHE_ListenDefaultAddress"]}` is not a valid network address...\n";}
 				$GLOBALS["APACHE_ListenDefaultAddress"]="*";
 			}
 		}
@@ -2269,7 +2576,7 @@ public function shellEscapeChars($path){
 		if($GLOBALS["APACHE_ListenDefaultAddress"]=="*"){return $GLOBALS["APACHE_ListenDefaultAddress"];}
 		$GetAvailableListenIP=$this->GetAvailableListenIP();
 		if(!isset($GetAvailableListenIP[$GLOBALS["APACHE_ListenDefaultAddress"]])){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Apache WARNING `{$GLOBALS["APACHE_ListenDefaultAddress"]}` does not exists...\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Apache WARNING `{$GLOBALS["APACHE_ListenDefaultAddress"]}` does not exists...\n";}
 			$GLOBALS["APACHE_ListenDefaultAddress"]="*";
 			return $GLOBALS["APACHE_ListenDefaultAddress"];
 		}
@@ -2305,7 +2612,7 @@ public function shellEscapeChars($path){
 		
 		if($PidFile=='${APACHE_PID_FILE}'){
 			if(is_file("/etc/apache2/envvars")){
-				$f=file("/etc/apache2/envvars");
+				$f=explode("\n",@file_get_contents("/etc/apache2/envvars"));
 				while (list ($num, $line) = each ($f)){
 					if(preg_match("#^export APACHE_PID_FILE=(.+)#",$line,$re)){
 						$PidFile=trim($re[1]);
@@ -2574,6 +2881,7 @@ public function EXEC_NICE(){
 	}
 	
 	private function NETWORK_ADD_ROUTE_REDHAT($nic,$array){
+		return;
 		$count=0;
 	if(is_array($array)){
 	   	 while (list ($ip, $ip_array) = each ($array) ){
@@ -2596,6 +2904,7 @@ public function EXEC_NICE(){
 	}
 	
 	public function NETWORK_ADD_ROUTE($nic,$array){
+		return;
 		if(!is_file("/etc/network/interfaces")){$this->NETWORK_ADD_ROUTE_REDHAT($nic,$array);return;}
 		$start=false;
 		$newf=array();
@@ -2727,6 +3036,7 @@ public function EXEC_NICE(){
 			
 			$f[]="";
 			$f[]="auto $eth";
+			$NETWORK_INTERFACES[]="auto $eth";
 			$f[]="iface $eth inet {$array["BOOTPROTO"]}";
 			if($array["BOOTPROTO"]=="dhcp"){continue;}
 			
@@ -2754,7 +3064,6 @@ public function EXEC_NICE(){
 	        
 		}
 		$f[]="";
-		@file_put_contents("/etc/network/interfaces",@implode("\n",$f));
 		if(is_file("/etc/network/if-up.d/sendmail")){@unlink("/etc/network/if-up.d/sendmail");}
 		if(is_file("/etc/network/if-up.d/mountnfs")){@unlink("/etc/network/if-up.d/mountnfs");}
 		
@@ -2764,27 +3073,16 @@ public function EXEC_NICE(){
 	}
 	
 public function NETWORK_DEBIAN_RESTART(){
-	return;
 	$nohup=$this->find_program("nohup");
-	if(is_file("/etc/init.d/networking")){
-		shell_exec("/etc/init.d/networking stop");
-		shell_exec("/etc/init.d/networking start");
-	}
-	if(is_file("/etc/init.d/network")){
-		shell_exec("/etc/init.d/network stop");
-		shell_exec("/etc/init.d/network start");
-	}
+	$this->ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
+	shell_exec("$nohup /etc/init.d/artica-ifup start >/dev/null 2>&1 &");
 	
 }
 
 public function NETWORK_REDHAT_RESTART(){
-	
-	if(is_file("/etc/init.d/NetworkManager")){
-		$this->NETWORK_REDHAT_NETWORKMANAGER_DISABLE();
-	}
-	
 	$nohup=$this->find_program("nohup");
-	if(is_file("/etc/init.d/network")){shell_exec(trim("$nohup /etc/init.d/network stop  && /etc/init.d/network start >/dev/null 2>&1 &"));}
+	$this->ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
+	shell_exec("$nohup /etc/init.d/artica-ifup start >/dev/null 2>&1 &");
 }
 
 public function KILL_PROCESS($pid,$signal=0){
@@ -2892,7 +3190,9 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		if(isset($GLOBALS["CACHE_VERSIONS"][$KEY])){return $GLOBALS["CACHE_VERSIONS"][$KEY];} 
 		if(!is_file("/usr/share/artica-postfix/ressources/logs/global.versions.conf")){return null;}
 		
-		if(!isset($GLOBALS["CACHE_VERSIONS"]["global.versions.conf"])){$GLOBALS["CACHE_VERSIONS"]["global.versions.conf"]=file("/usr/share/artica-postfix/ressources/logs/global.versions.conf");}
+		if(!isset($GLOBALS["CACHE_VERSIONS"]["global.versions.conf"])){
+			$GLOBALS["CACHE_VERSIONS"]["global.versions.conf"]=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/global.versions.conf"));
+			}
 		
 		while (list ($num, $val) = each ($GLOBALS["CACHE_VERSIONS"]["global.versions.conf"])){
 			if(preg_match('#\[$KEY\]\s+"(.+?)"#',$val,$re)){$GLOBALS["CACHE_VERSIONS"][$KEY]=$re[1];return $re[1];}
@@ -2943,12 +3243,28 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 	}
 
 	public function hostname_g(){
-		$uname=posix_uname();
- 		return $uname["nodename"]; 
+		
+		if(is_file("/etc/artica-postfix/settings/Daemons/myhostname")){
+			$results=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/myhostname"));
+			if(strlen($results)>2){return $results;}
+		}
+		
+		
+		$uname=trim(posix_uname());
+		$domainname=trim($uname["domainname"]);
+		if($domainname=="(none)"){$domainname="localhost.localdomain";}
+		
+ 		$hostname=trim($uname["nodename"]);
+ 		if(strpos($hostname, ".")==0) {
+ 			if($domainname<>null){$hostname=trim("$hostname.$domainname");}
+ 		}
+ 		return trim($hostname); 
+ 		
+ 		
+ 		
 		}
 	public function hostname_simple(){
-		$uname=posix_uname();
- 		$host=$uname["nodename"]; 
+ 		$host=$this->hostname_g();
  		if(strpos($host, ".")>0){$tt=explode(".",$host);$host=$tt[0];}
  		return $host;
 		}		
@@ -2975,9 +3291,58 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		
 		
 	}
+	private function ToSyslog($text,$error=false){
 	
+		if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
+		if(function_exists("openlog")){openlog("framework", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+		if(function_exists("closelog")){closelog();}
+	}	
 	
-	function chown_func($user,$group=null,$dir){
+	private function Tologs($file,$text){
+		
+		@mkdir(dirname($file));
+		$logFile=$file;
+		
+		if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
+   		if (is_file($logFile)) { 
+   			$size=filesize($logFile);
+		    if($size>100000){unlink($logFile);}
+   		}
+		$logFile=str_replace("//","/",$logFile);
+		$f = @fopen($logFile, 'a');
+		
+		$time=date("H:i:s");
+		@fwrite($f, "$time: $text\n");
+		@fclose($f);
+	}
+	
+	function chown_func($user,$group=null,$dir=null){
+		if($user==null){return;}
+		$chown=$this->find_program("chown");
+		
+	
+		if(!isset($GLOBALS["DEBUG_CHOWN"])){ 
+			$GLOBALS["DEBUG_CHOWN"]=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DebugChownFunc")));
+		}
+
+		if(function_exists("debug_backtrace")){
+			$trace=@debug_backtrace();
+			if(isset($trace[1])){
+				$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+			}
+		}
+		
+		if($GLOBALS["DEBUG_CHOWN"]){
+			$this->Tologs("/var/log/artica.chown.debug","$user:$group \"$dir\" $called");
+		}		
+		
+		
+		
+		if(trim($dir)==null){
+			$this->ToSyslog("Warning, wan to chown $user:$group with no directory $called");
+			return;
+		}
 		if($group=='${APACHE_RUN_GROUP}'){$group="www-data";}
 		if(isset($GLOBALS["chown_func"][md5("$user$group$dir")])){return;}
 		$dir=trim($dir);
@@ -2996,8 +3361,10 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 			}
 		}
 		
-		if(strpos("/", $group)){
-			if((is_file($group)) OR is_dir(is_file($group)) ){$dir=$group;$group=$user;}
+		if(strlen($group)>1){
+			if(strpos("/", $group)){
+				if((is_file($group)) OR is_dir(is_file($group)) ){$dir=$group;$group=$user;}
+			}
 		}
 		
 		if(preg_match("#(.*?):(.+)#", $user,$re)){
@@ -3006,42 +3373,52 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		}
 		
 		if($recursive){
-			$array=$this->dirdir($dir);
-			chown($dir, $user);
-			chgrp($dir, $group);	
+			shell_exec("$chown -R $user:$group $dir >/dev/null");
 			
-			while (list ($directory, $ligne) = each ($array) ){
-				chown($directory, $user);
-				chgrp($directory, $group);				
-			}
-			
-			$array=$this->DirFiles($dir);
-			while (list ($filesname, $ligne) = each ($array) ){
-				$finale="$dir/$filesname";
-				$finale=str_replace("//", "/", $finale);
-				chown("$finale", $user);
-				chgrp("$finale", $group);				
-			}			
 			
 		}else{		
-			chown($dir, $user);
-			chgrp($dir, $group);
+			shell_exec("$chown $user:$group $dir >/dev/null");
 		}
 		
 		$GLOBALS["chown_func"][md5("$user$group$dir")]=true;
 		
 	}
 	
-	
-	
-	
-	
 	function chmod_func($bit,$dir){
+		$findbit=false;
+		if($bit=="493"){$bit="0755";$findbit=true;}
+		if($bit=="511"){$bit="0777";$findbit=true;}
+		if($bit=="416"){$bit="0640";$findbit=true;}
+		
+		if($bit=="0755"){$bit="0755";$findbit=true;}
+		if($bit=="0777"){$bit="0777";$findbit=true;}
+		if($bit=="0640"){$bit="0640";$findbit=true;}
+		
+		if($bit=="755"){$bit="0755";$findbit=true;}
+		if($bit=="777"){$bit="0777";$findbit=true;}
+		if($bit=="640"){$bit="0640";$findbit=true;}		
+		
+		if(!$findbit){return;}
+		
 		if(isset($GLOBALS["chmod_func"][md5("$bit$dir")])){return;}
 		$dir=trim($dir);
 		$recursive=false;
+		$chmod=$this->find_program("chmod");
 		
+		if(!isset($GLOBALS["DEBUG_CHOWN"])){
+			$GLOBALS["DEBUG_CHOWN"]=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DebugChownFunc")));
+		}
 		
+		if(function_exists("debug_backtrace")){
+			$trace=@debug_backtrace();
+			if(isset($trace[1])){
+				$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+			}
+		}
+		
+		if($GLOBALS["DEBUG_CHOWN"]){
+			$this->Tologs("/var/log/artica.chown.debug","bit $bit \"$dir\" $called");
+		}		
 		
 		if(substr($dir, strlen($dir)-1,1)=="*"){
 			$dir=substr($dir, 0,strlen($dir)-1);
@@ -3050,26 +3427,11 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		
 		if(!is_dir($dir)){if(!is_file($dir)){return;}}	
 			
-	if($recursive){
-			$dir=substr($dir, 0,strlen($dir)-1);
-			@chmod("$dir", $bit);
-			$array=$this->dirdir($dir);
-			while (list ($directory, $ligne) = each ($array) ){
-				@chmod($directory, $bit);
-							
-			}
-			
-			$array=$this->DirFiles($dir);
-			while (list ($filesname, $ligne) = each ($array) ){
-				$finale="$dir/$filesname";
-				$finale=str_replace("//", "/", $finale);				
-				@chmod("$finale", $bit);
-								
-			}			
-			
-	}else{
-		@chmod("$dir", $bit);
-	}		
+		if($recursive){
+				shell_exec("$chmod -R $bit $dir >/dev/null");
+		}else{
+			shell_exec("$chmod $bit $dir >/dev/null");
+		}		
 					
 		$GLOBALS["chmod_func"][md5("$bit$dir")]=true;
 		
@@ -3180,12 +3542,22 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		
 		
 	public function DISK_LIST(){
+		if(!isset($GLOBALS["DEBUG_DISK"])){$GLOBALS["DEBUG_DISK"]=false;}
 		$tmp=$this->FILE_TEMP();
 		$results=array();
 		exec($this->find_program("df") ." -P -h -B G",$returns);
-		$pattern="#(.+)\s+([0-9]+)([A-Z])\s+([0-9]+)([A-Z])\s+([0-9]+)([A-Z])\s+([0-9]+)\%\s+(.+?)$#";
+		$pattern="#(.+)\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)\%\s+(.+?)$#";
 		while (list ($num, $ligne) = each ($returns) ){
 			if(!preg_match($pattern,$ligne,$re)){continue;}
+			if($GLOBALS["DEBUG_DISK"]){echo trim($re[1])." = {$re[2]}{$re[3]}\n";}
+			
+			if(preg_match("#\/by-uuid\/(.+)#", trim($re[1]),$ri)){
+				$uuid=trim($ri[1]);
+				$UUIDS=$this->BLKID_UUIDs();
+				if(isset($UUIDS[$uuid]["DEV"])){$re[1]=$UUIDS[$uuid]["DEV"];}
+			}
+			
+			if($GLOBALS["DEBUG_DISK"]){echo trim($re[1])." = {$re[2]}{$re[3]}\n";}
 			$results[trim($re[1])]=array("SIZE"=>$re[2],"UNIT"=>$re[3],"USED"=>$re[4],"DISP"=>$re[6],"POURC"=>trim($re[8]));
 			
 		}
@@ -3193,9 +3565,97 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		return $results;
 	}
 	
-public function file_size($path){
+	public function DISK_INODES(){
+		$tmp=$this->FILE_TEMP();
+		$results=array();
+		exec($this->find_program("df") ." -i -h",$returns);
+		$pattern="#^(.+?)\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)%\s+#";
+		//Filesystem                                             Inodes IUsed IFree IUse%
+		while (list ($num, $ligne) = each ($returns) ){
+			if(!preg_match($pattern,$ligne,$re)){
+				if(preg_match("#^(.+?)\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)\s+([0-9,\.]+)([A-Z])\s+([0-9,\.]+)%\s+#", $ligne,$re)){
+					
+					if(preg_match("#\/by-uuid\/(.+)#", trim($re[1]),$ri)){
+						$uuid=trim($ri[1]);
+						$UUIDS=$this->BLKID_UUIDs();
+						if(isset($UUIDS[$uuid]["DEV"])){$re[1]=$UUIDS[$uuid]["DEV"];}
+					}
+					
+					$results[trim($re[1])]=array("INODES"=>$re[2].$re[3],"USED"=>$re[4],"FREE"=>$re[5].$re[6],"POURC"=>trim($re[7]));
+					continue;
+				}
+				continue;}
+				
+				if(preg_match("#\/by-uuid\/(.+)#", trim($re[1]),$ri)){
+					$uuid=trim($ri[1]);
+					$UUIDS=$this->BLKID_UUIDs();
+					if(isset($UUIDS[$uuid]["DEV"])){$re[1]=$UUIDS[$uuid]["DEV"];}
+				}				
+				
+			$results[trim($re[1])]=array("INODES"=>$re[2].$re[3],"USED"=>$re[4].$re[5],"FREE"=>$re[6].$re[7],"POURC"=>trim($re[8]));
+				
+		}
+	
+		return $results;
+	}
+	
+	
+	public function CHECK_PERL_MODULE($ModulesToCheck){
+		$perlbin=$this->find_program("perl");
+		$cmd="$perlbin -M{$ModulesToCheck} -e 'print \"\$$ModulesToCheck::VERSION\\n\"' 2>&1";
+		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+		exec($cmd,$returns);
+		while (list ($num, $ligne) = each ($returns) ){
+			if($GLOBALS["VERBOSE"]){echo "\"$ligne\"\n";}
+			if(preg_match("#Can't locate#i", $ligne)){return false;}
+			if(preg_match("#([0-9\.]+)#", $ligne,$re)){
+				if(trim($re[1])=="."){return false;}
+				if($GLOBALS["VERBOSE"]){echo "SUCCESS {$re[1]}\n";}
+				return true;
+			}
+			
+		}
+		
+		return false;
+		
+	}
+	
+	public FUNCTION SQUID_PARMAZ(){
+		if(isset($GLOBALS["SQUID_PARMAZ"])){
+			if(count($GLOBALS["SQUID_PARMAZ"])>0){return $GLOBALS["SQUID_PARMAZ"];}
+		}
+		$squid=$this->LOCATE_SQUID_BIN();
+		exec("$squid -v 2>&1",$results);
+		if(preg_match("#configure options:(.+)#", @implode(" ", $results),$re)){
+			$re[1]=str_replace("'", "", $re[1]);
+			$opts=explode(" ",trim($re[1]));
+			while (list ($num, $ligne) = each ($opts) ){
+				$ligne=trim($ligne);
+				if($ligne==null){continue;}
+				if(preg_match("#(.+?)=(.*)#", $ligne,$re)){
+					$GLOBALS["SQUID_PARMAZ"][$re[1]]=trim($re[2]);
+					continue;
+				}
+				$GLOBALS["SQUID_PARMAZ"][$ligne]=true;
+			}
+				
+		}
 
-	exec($this->find_program("stat")." $path ",$results);
+		return $GLOBALS["SQUID_PARMAZ"];
+		
+	}
+
+	public function SQUID_ICAP_ENABLED(){
+		$ARRAY=$this->SQUID_PARMAZ();
+		if(isset($ARRAY["--enable-icap-client"])){return true;}
+		if(isset($ARRAY["--enable-icap-support"])){return true;}
+	}
+	
+
+	
+public function file_size($path){
+	if(!is_file($path)){return 0;}
+	exec($this->find_program("stat")." $path 2>&1",$results);
 	while (list ($num, $line) = each ($results)){
 		if(preg_match("#Size:\s+([0-9]+)\s+Blocks#",$line,$re)){
 			return $re[1];break;
@@ -3205,7 +3665,7 @@ public function file_size($path){
 }
 
 public function file_size_human($path){
-
+	if(!is_file($path)){if(!is_dir($path)){return 0;}}
 	exec($this->find_program("du")." -h $path ",$results);
 	while (list ($num, $line) = each ($results)){
 		if(preg_match("#^([0-9A-Z,]+)\s+#",$line,$re)){
@@ -3216,7 +3676,7 @@ public function file_size_human($path){
 }
 
 public function file_extension($filename){
-	return pathinfo($filename, PATHINFO_EXTENSION);
+	return @pathinfo($filename, PATHINFO_EXTENSION);
 }
 
 public function compress($source,$dest){
@@ -3237,32 +3697,73 @@ public function compress($source,$dest){
 	    gzclose($fp_out);
 		return true;
 	}
-	
+	function getSystemMemInfo(){
+		$data = explode("\n", file_get_contents("/proc/meminfo"));
+		$meminfo = array();
+		foreach ($data as $line) {
+			list($key, $val) = explode(":", $line);
+			$val=trim($val);
+			if(preg_match("#^([0-9\.]+)\s+#", $val,$re)){$val=$re[1];}
+			$meminfo[$key] = trim($val);
+		}
+		return $meminfo;
+	}
+
+	function GetMemFreePourc(){
+		$array=$this->getSystemMemInfo();
+		$MemTotal=$array["MemTotal"];
+		$MemFree=$array["MemFree"];
+		if(!is_numeric($MemFree)){return;}
+		if(!is_numeric($MemTotal)){return;}
+		$percent=$MemFree/$MemTotal;
+		$percent=$percent*100;
+		$percent=round($percent);
+		return $percent;
+	}
 
 	
 public function uncompress($srcName, $dstName) {
+	$srcNameText=basename($srcName);
+	$GLOBALS["UNCOMPRESS"]=array();
 		if(!function_exists("gzopen")){
 			$called=null;if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
+			if($GLOBALS["VERBOSE"]){echo "uncompress:: FATAL!! gzopen no such function ! $called in\n";}
+			$GLOBALS["UNCOMPRESS"][]="$srcNameText FATAL!! gzopen no such function";
 			$this->_syslog("FATAL!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
 			return false;
 		}
 		$dir=dirname($dstName);
-		if(!is_dir($dir)){if($GLOBALS["VERBOSE"]){echo "$dir no such directory\n";}return false;}
+		if(!is_dir($dir)){if($GLOBALS["VERBOSE"]){echo "uncompress:: $dir no such directory\n";}return false;}
 		$dstNameTMP="$dstName.tests";
 	    $sfp = gzopen($srcName, "rb");
-	    if(!$sfp){if($GLOBALS["VERBOSE"]){echo "gzopen($srcName) return false\n";}return false;}
+	    
+	    if(!$sfp){
+	    	$GLOBALS["UNCOMPRESS"][]="gzopen($srcName) return false";
+	    	if($GLOBALS["VERBOSE"]){
+	    	
+	    	echo "gzopen($srcName) return false";}
+	    	return false;
+	    }
 	    $fp = fopen($dstNameTMP, "w");
-		if(!$sfp){if($GLOBALS["VERBOSE"]){echo "fopen($dstNameTMP) Permission denied.\n";}return false;}
+	    $GLOBALS["UNCOMPRESS"][]="fopen($dstNameTMP) Permission denied.";
+		if(!$sfp){if($GLOBALS["VERBOSE"]){
+			
+			echo "fopen($dstNameTMP) Permission denied.\n";}
+			return false;}
 	    
 	    while ($string = gzread($sfp, 4096)) {fwrite($fp, $string, strlen($string));}
 	    gzclose($sfp);
 	    fclose($fp);
 	    $size=$this->file_size($dstNameTMP);
 	    if($size==0){
+	    	$GLOBALS["UNCOMPRESS"][]="$dstNameTMP size = 0";
+	    	if($GLOBALS["VERBOSE"]){echo "$dstNameTMP $size = 0 !!\n";}
 	    	@unlink($dstNameTMP);
 	    	return false;
 	    }
 	    @unlink($dstName);
+	     $GLOBALS["UNCOMPRESS"][]="$dstNameTMP - > $dstName";
+	    if($GLOBALS["VERBOSE"]){echo "$dstNameTMP - > $dstName\n";}
 	    @copy($dstNameTMP, $dstName);
 	    @unlink($dstNameTMP);
 	    return true;
@@ -3484,11 +3985,15 @@ public function alt_stat($file) {
 	return false;}
 	
 	public function MOUNTED_PATH($dev){
+		if(strpos($dev,"by-uuid")==0){
 		$dev=$this->MapperDetect($dev);
+		}
 		$dev=$this->folder_to_regex($dev);
 		$datas=explode("\n",@file_get_contents("/proc/mounts"));
+		$pattern="#^$dev\s+(.+?)\s+(btrfs|ext|rw|fusectl|rpc_pipefs|reiserfs|xfs)";
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__.":: $pattern\n";}
 		while (list ($num, $ligne) = each ($datas) ){
-			if(preg_match("#^$dev\s+(.+?)\s+(btrfs|ext|rw)#",$ligne,$re)){
+			if(preg_match("#^$dev\s+(.+?)\s+(btrfs|ext|rw|fusectl|rpc_pipefs|reiserfs|xfs)#",$ligne,$re)){
 				return trim($re[1]);	
 			}
 		}
@@ -3538,7 +4043,7 @@ public function alt_stat($file) {
 		
 	}
 	
-	public function PROCCESS_TIME_MIN($pid){
+	public function PROCCESS_TIME_MIN($pid,$killOnTTL=0){
 		$sec=null;
 		if($pid<5){return 0;}
 		if($pid==null){return 0;}
@@ -3547,12 +4052,24 @@ public function alt_stat($file) {
 			if(preg_match("#start_time:.+?\(([0-9]+)#",$ligne,$re)){
 				$sec=$re[1];
 			}
-			
-			
 		}
 		
-		if($sec==null){$sec=0;}
-		if($sec>0){$sec=$sec/60;return trim(round($sec));}
+		if($sec==null){return 0;}
+		
+		
+		if($sec>0){
+			$sec=$sec/60;
+			$return=intval(trim(round($sec)));
+			if($killOnTTL>0){
+				if($return>$killOnTTL){
+					$kill=$this->find_program("kill");
+					shell_exec("$kill -9 $pid >/dev/null 2>&1");
+					return 0;
+				}
+			}
+			
+			return $return;
+		}
 		return 0;
 	}
 	
@@ -3571,6 +4088,22 @@ public function alt_stat($file) {
 		}
 		
 	}
+	
+	public function isMaxInstances(){
+	
+		$MaxInstnaces=11;
+		$MaxInstancesToDie=16;
+		$unix=new unix();
+		$php5=$this->LOCATE_PHP5_BIN();
+		$p=new processes_php();
+		$MemoryInstances=$p->MemoryInstances();
+		if(!is_numeric($MemoryInstances)){$MemoryInstances=0;}
+		if($MemoryInstances>$MaxInstancesToDie){return true;}
+		if($MemoryInstances>$MaxInstnaces){return true;}
+		return false;
+	
+	}
+	
 	
 	public function PROCESS_CACHE_MEMORY($pid,$noMo=false){
 		//$PPID=$this->PROCESS_PPID();
@@ -3606,6 +4139,20 @@ public function alt_stat($file) {
 		}
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":: not Found return $pid\n";}
 		return $pid;
+		
+	}
+	
+	public function PROCESS_SOCKETS_NUM($pid){
+		if(!is_dir("/proc/$pid/fd")){return 0;}
+		$list = @glob("/proc/$pid/fd/*");
+		$c=0;
+		while (list ($index, $line) = each ($list)){
+			if(!is_link($line)){continue;}
+			$line =@readlink($line);
+			if(!preg_match("#^socket:#", $line)){continue;}
+			$c++;
+			
+		}
 		
 	}
 	
@@ -3691,56 +4238,30 @@ public function alt_stat($file) {
 	}	
 	
 	
-	public function IpToMac($ipaddr){
-		$ipaddr=trim($ipaddr);
-		if(!$this->isIPAddress($ipaddr)){return;}
+public function IpToMac($ipaddr){
+	$ipaddr=trim($ipaddr);
+	
+	if(!is_file("/usr/bin/arping")){return;}
+	$ttl=date('YmdH');
+	if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
+	if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
+
+	$cmd="/usr/bin/arping -f -c 1 $ipaddr 2>&1";
+	exec($cmd,$results);
+	while (list ($num, $line) = each ($results)){
+		if(!preg_match("#reply from.*?\[(.+?)\]#", $line,$re)){ continue; }
+		$re[1]=trim(strtolower($re[1]));
 		
-		$ttl=date('YmdH');
-		if(count($GLOBALS["CACHEARP"])>3){unset($GLOBALS["CACHEARP"]);}
-		if(isset($GLOBALS["CACHEARP"][$ttl][$ipaddr])){return $GLOBALS["CACHEARP"][$ttl][$ipaddr];}
-		
-		if(!isset($GLOBALS["SBIN_ARP"])){$GLOBALS["SBIN_ARP"]=$this->find_program("arp");}
-		if(!isset($GLOBALS["SBIN_ARPING"])){$GLOBALS["SBIN_ARPING"]=$this->find_program("arping");}
-		
-		if(strlen($GLOBALS["SBIN_ARPING"])>3){
-			$cmd="{$GLOBALS["SBIN_ARPING"]} $ipaddr -c 1 -r 2>&1";
-			exec($cmd,$results);
-			while (list ($num, $line) = each ($results)){
-				if(preg_match("#^([0-9a-zA-Z\:]+)#", $line,$re)){
-					if(!$this->IsvalidMAC($re[1])){continue;}
-					$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-					return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
-				}
-			}
+		if($this->IsvalidMAC($re[1])){
+			$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
+			return;
+		}else{
+			$GLOBALS["CACHEARP"][$ttl][$ipaddr]="00:00:00:00:00:00";
+			return "00:00:00:00:00:00";
 		}
-		
-		
-		$results=array();
-			
-		if(strlen($GLOBALS["SBIN_ARP"])<4){return;}
-		if(!isset($GLOBALS["SBIN_PING"])){$GLOBALS["SBIN_PING"]=$this->find_program("ping");}
-		if(!isset($GLOBALS["SBIN_NOHUP"])){$GLOBALS["SBIN_NOHUP"]=$this->find_program("nohup");}
-		
-		$cmd="{$GLOBALS["SBIN_ARP"]} -n \"$ipaddr\" 2>&1";
-		
-		exec($cmd,$results);
-		while (list ($num, $line) = each ($results)){
-			if(preg_match("#^[0-9\.]+\s+.+?\s+([0-9a-z\:]+)#", $line,$re)){
-				if($re[1]=="no"){continue;}
-				if(!$this->IsvalidMAC($re[1])){continue;}
-				$GLOBALS["CACHEARP"][$ttl][$ipaddr]=$re[1];
-				return $GLOBALS["CACHEARP"][$ttl][$ipaddr];
-			}
-			
-		}
-		
-		if(!isset($GLOBALS["PINGEDHOSTS"][$ipaddr])){
-			shell_exec("{$GLOBALS["SBIN_NOHUP"]} {$GLOBALS["SBIN_PING"]} $ipaddr -c 3 >/dev/null 2>&1 &");
-			$GLOBALS["PINGEDHOSTS"][$ipaddr]=true;
-		}
-			
-		
+
 	}
+}
 	
 	public static function isIPAddress( $ip ) {
 		if ( !$ip ) return false;
@@ -3750,7 +4271,7 @@ public function alt_stat($file) {
 		// IPv6 IPs with two "::" strings are ambiguous and thus invalid
 		return preg_match( '/^' . IP_ADDRESS_STRING . '$/', $ip) && ( substr_count($ip, '::') < 2 );
 	}	
-	private static function IsvalidMAC($MAC){
+private static function IsvalidMAC($MAC){
 		$MAC=str_replace(":", "-", $MAC);
 		If(strlen($MAC) > 17) return false;
 		If($MAC == "") return false;
@@ -3813,6 +4334,87 @@ public function alt_stat($file) {
 	
 	}
 	
+	
+	function SendEmailConfigured($arrayParams,$subject=null,$content=null){
+		include_once('/usr/share/artica-postfix/ressources/class.mail.inc');
+		include_once('/usr/share/artica-postfix/ressources/smtp/class.phpmailer.inc');
+	
+		if(function_exists("debug_backtrace")){
+			$trace=debug_backtrace();
+			if(isset($trace[1])){
+				$file=basename($trace[1]["file"]);
+				$function=$trace[1]["function"];
+				$line=$trace[1]["line"];
+					
+			}
+				
+		}
+		if($subject==null){$subject="No subject...";}
+		$smtp_dest=$arrayParams["smtp_dest"];
+		if($smtp_dest==null){echo "No recipient\n";return false;}
+		if(trim($arrayParams["smtp_server_name"])==null){echo "No valid SMTP server\n";return false;}
+	
+		$array_load=sys_getloadavg();
+		$internal_load=$array_load[0];
+		$content=str_replace("\n", "\r\n", $content);
+		$content=$content."#---------------------\r\nCurrent load:$internal_load\r\nFrom: $file in line $line function $function()\r\n";
+	
+	
+		$hostname=$this->hostname_g();
+		$addresses=array();
+		if(strpos($smtp_dest, ";")>0){
+			$destZ=explode(";",$smtp_dest);
+			while (list ($num, $email) = each ($destZ) ){
+				if(preg_match("#^(.+?)@([a-z0-9\.\-\_]+)$#", $email,$re)){$addresses[]="{$re[1]}@{$re[2]}";}
+			}
+		}
+	
+	
+		if(strpos($smtp_dest, ",")>0){
+			$destZ=explode(",",$smtp_dest);
+			while (list ($num, $email) = each ($destZ) ){
+				if(preg_match("#^(.+?)@([a-z0-9\.\-\_]+)$#", $email,$re)){$addresses[]="{$re[1]}@{$re[2]}";}
+			}
+	
+		}
+	
+	
+		if(count($addresses)==0){$addresses[]=$smtp_dest;}
+		if(!is_numeric($arrayParams["smtp_server_port"])){$arrayParams["smtp_server_port"]=25;}
+		$smtp_sender=$arrayParams["smtp_sender"];
+		if($smtp_sender==null){$smtp_sender="root@$hostname";}
+	
+		$results=true;
+		$subject="[$hostname]: $subject";
+		while (list ($num, $DESTINATAIRE) = each ($addresses) ){
+			$mail = new PHPMailer(true);
+			$mail->IsSMTP();
+			$mail->AddAddress($DESTINATAIRE,$DESTINATAIRE);
+			$mail->AddReplyTo($smtp_sender,$smtp_sender);
+			$mail->From=$smtp_sender;
+			$mail->FromName=$smtp_sender;
+			
+			$mail->Subject=$subject;
+			$mail->Body=$content;
+			$mail->Hostname=$hostname;
+			$mail->Host=$arrayParams["smtp_server_name"];
+			$mail->Port=$arrayParams["smtp_server_port"];
+	
+			if(($arrayParams["smtp_auth_user"]<>null) && ($arrayParams["smtp_auth_passwd"]<>null)){
+				$mail->SMTPAuth=true;
+				$mail->Username=$arrayParams["smtp_auth_user"];
+				$mail->Password=$arrayParams["smtp_auth_passwd"];
+				if($arrayParams["tls_enabled"]==1){$mail->SMTPSecure = 'tls';}
+				if($arrayParams["ssl_enabled"]==1){$mail->SMTPSecure = 'ssl';}
+			}
+	
+			if(!$mail->Send()){$results=false;continue;}
+	
+		}
+		return $results;
+	
+	}	
+	
 	public function TOTAL_MEMORY_MB(){
 		if(isset($GLOBALS["TOTAL_MEMORY_MB"])){return $GLOBALS["TOTAL_MEMORY_MB"];}
 		$unix=new unix();
@@ -3850,6 +4452,14 @@ public function alt_stat($file) {
 	
 	}
 	public function DIRECTORY_FREEM($dir){
+		
+		if(is_link($dir)){$dir=readlink($dir);}
+		if(!is_dir($dir)){
+			$directory_tmp=dirname($dir);
+			if(is_link($directory_tmp)){$directory_tmp=readlink($directory_tmp);}
+			if(is_dir($directory_tmp)){$dir=$directory_tmp;}
+		}
+		
 		$df=$this->find_program("df");
 		exec("$df -B MB $dir",$results);
 		while (list ($num, $ligne) = each ($results) ){
@@ -3858,6 +4468,22 @@ public function alt_stat($file) {
 		}
 		
 	}
+	public function DIRECTORY_FREE_FILES($dir){
+		$df=$this->find_program("df");
+		exec("df -i $dev 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#^.*?\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%\s+(.+)#", $ligne,$re)){
+				$array["INODES_MAX"]=$re[1];
+				$array["INODES_USED"]=$re[2];
+				$array["INODES_AVAILABLE"]=$re[3];
+				$array["INODES_POURC"]=$re[4];
+				break;
+			}
+		}
+	
+		return $array["INODES_AVAILABLE"];
+	
+	}	
 
 	public function DF_SATUS_K($dir){
 		$df=$this->find_program("df");
@@ -3883,16 +4509,67 @@ public function alt_stat($file) {
 	}	
 	
 	
+	public function process_number_me($argv=array()){
+		$cmdlines=null;
+		if(count($argv)==0){return;}
+		while (list ($num, $ligne) = each ($argv) ){
+			if($num==0){
+				$myScript=basename($ligne);
+				continue;
+			}
+			if($ligne=="--verbose"){continue;}
+			if($ligne=="--force"){continue;}
+			if($ligne=="--simulate"){continue;}
+			if($ligne=="--notime"){continue;}
+			if(preg_match("#schedule-id#", $ligne)){continue;}
+			$t[]=$ligne;
+		}
+		
+		if(count($t)>0){$cmdlines=".*?".@implode($t, ".*?");}
+		$miPid=getmypid();
+		
+		
+		if($GLOBALS["VERBOSE"]){
+			//$miPidCmd=@file_get_contents("/proc/$miPid/cmdline");
+			//echo "[$miPid]: myScript: $myScript$cmdlines\n[$miPid]: $miPidCmd\n";
+		}
+		$pgrep=$this->find_program("pgrep");
+		$c=0;
+		$f=array();
+		exec("$pgrep -l -f \"$myScript$cmdlines\" 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#pgrep#", $ligne)){continue;}
+			if(!preg_match("#^([0-9]+)\s+(.+)#", $ligne,$re)){continue;}
+			If(preg_match("#(^|\s+|\/)sh\s+-c#", $ligne)){continue;}
+			//if($GLOBALS["VERBOSE"]){echo "[$miPid]: {$re[2]}\n";}
+			$pid=$re[1];
+			if($pid==$miPid){if($GLOBALS["VERBOSE"]){echo "[$miPid]: $pid==$miPid OK\n";}continue;}
+			$ppid=$this->PROCESS_PPID($pid);
+			/*if($GLOBALS["VERBOSE"]){
+				$miPidCmd=@file_get_contents("/proc/$ppid/cmdline");
+				echo "[$pid]: PPID: $ppid $miPidCmd\n";}
+			if($GLOBALS["VERBOSE"]){echo "[$pid]: $pid ++Z\n";}
+			*/
+			$f[]=$pid;
+			$c++;
+		}
+		
+		return count($f);
+		
+	}
+	
 	
 	public function process_exists($pid,$filename=null){
 		$pid=trim($pid);
 		$pid=trim($pid);
 		$pid=str_replace("\r", "", $pid);
-		$pid=str_replace("\n", "", $pid);		
+		$pid=str_replace("\n", "", $pid);	
+		$status=array();
 		$filename=trim($filename);
 		$cmdline=null;
 		if($pid==null){return false;}
 		if(!is_numeric($pid)){return false;}
+		if($pid==0){return false;}
 		if($this->PID_IS_CHROOTED($pid)){
 			if($GLOBALS["VERBOSE"]){echo "PID_IS_CHROOTED = TRUE RETURN FALSE\n";}
 			return false;
@@ -3920,7 +4597,7 @@ public function alt_stat($file) {
 			if($filename<>null){
 				if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) filename: `$filename`, PROCESS_STATUS:$status '{$status[0]}' Line:".__LINE__."\n";}
 			}
-			if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) PROCESS_STATUS:$status '{$status[0]}' Line:".__LINE__."\n";} 
+			if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) PROCESS_STATUS: '{$status[0]}' Line:".__LINE__."\n";} 
 			if($status[0]=="Z"){
 				
 				if($GLOBALS["VERBOSE"]){echo "unix/process_exists($pid) -> Z = SOMBIE ::: Line:".__LINE__."\n";}
@@ -3973,17 +4650,42 @@ public function alt_stat($file) {
 		
 		return false;
 	}
+	public function file_time_set($filename){
+		if(!is_dir("/etc/artica-postfix/pids")){@mkdir("/etc/artica-postfix/pids",0755,true);}
+		@unlink("/etc/artica-postfix/pids/$filename");
+		@file_put_contents("/etc/artica-postfix/pids/$filename", time());
+	}
+	
+	public function file_time_get($filename){
+		return $this->file_time_min("/etc/artica-postfix/pids/$filename");
+	}
+	
+	public function dir_time_min($path){
+		$last_modified=0;
+	
+		if(!is_dir($path)){return 1;}
+		$data1 = filemtime($path."/.");
+		$data2 = time();
+		$difference = ($data2 - $data1);
+		$results=intval(round($difference/60));
+		if($results<0){$results=1;}
+		return $results;
+	}	
+	
 	
 	public function file_time_min($path){
-		if(!is_dir($path)){
-			if(!is_file($path)){return 100000;}
-			}
-	 		$last_modified = filemtime($path);
-	 		$data1 = $last_modified;
-			$data2 = time();
-			$difference = ($data2 - $data1); 	 
-			return round($difference/60);	 
-		}
+		$last_modified=0;
+	
+		if(is_dir($path)){return 10000;}
+		if(!is_file($path)){return 100000;}
+			
+		$data1 = filemtime($path);
+		$data2 = time();
+		$difference = ($data2 - $data1); 	 
+		$results=intval(round($difference/60));	 
+		if($results<0){$results=1;}
+		return $results;
+	}
 		
 	public function file_time_sec($path){
 		if(!is_dir($path)){
@@ -3993,7 +4695,7 @@ public function alt_stat($file) {
 	 		$data1 = $last_modified;
 			$data2 = time();
 			$difference = ($data2 - $data1); 	 
-			return round($difference);	 
+			return $difference;
 		}
 		
 		
@@ -4167,6 +4869,12 @@ public function alt_stat($file) {
 	}
 	
 	public function LOCATE_APACHE_CONF_PATH(){
+		if(isset($GLOBALS["LOCATE_APACHE_CONF_PATH"])){return $GLOBALS["LOCATE_APACHE_CONF_PATH"];}
+		$GLOBALS["LOCATE_APACHE_CONF_PATH"]=$this->_LOCATE_APACHE_CONF_PATH();
+		return $GLOBALS["LOCATE_APACHE_CONF_PATH"];
+	}
+	
+	private function _LOCATE_APACHE_CONF_PATH(){
 		$bin=$this->LOCATE_APACHE_BIN_PATH();
 		if(strlen($bin)<3){
 			if($GLOBALS["VERBOSE"]){echo "\n\nWARNING !!! LOCATE_APACHE_BIN_PATH return a non value !!\n";}
@@ -4220,12 +4928,26 @@ public function alt_stat($file) {
 	
 	public function LOCATE_APACHE_VERSION(){
 		if($GLOBALS[__FUNCTION__]<>null){return $GLOBALS[__FUNCTION__];}
+		
 		$bin_path=$this->LOCATE_APACHE_BIN_PATH();
+		$md5=md5_file($bin_path);
+		
+		if(is_file("/etc/artica-postfix/apache2_version")){
+			$array=unserialize(@file_get_contents("/etc/artica-postfix/apache2_version"));
+			if($array["MD5"]==$md5){
+				return $array["VERSION"];
+			}
+		}
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "LOCATE_APACHE_VERSION : \"$bin_path\"\n";}
 		exec("$bin_path -v 2>&1",$results);
 		while (list ($num, $ligne) = each ($results) ){
 			if(preg_match('#^Server version:.+?([0-9\.]+)#',$ligne,$re)){
 				$GLOBALS[__FUNCTION__]=$re[1];
+				$array["MD5"]=$md5;
+				$array["VERSION"]=$GLOBALS[__FUNCTION__];
+				@file_put_contents("/etc/artica-postfix/apache2_version", serialize($array));
 				return $GLOBALS[__FUNCTION__];
 			}
 			if($GLOBALS["VERBOSE"]){echo "NO MATCH:: \"^Server version:.+?([0-9\.]+)\" -> \"$ligne\"\n";}
@@ -4235,7 +4957,7 @@ public function alt_stat($file) {
 	
 
 	public function IMAPD_GET($key){
-		if($GLOBALS["IMAPD_GET"]==null){
+		if(!isset($GLOBALS["IMAPD_GET"])){
 			$GLOBALS["IMAPD_GET"]=@file_get_contents("/etc/imapd.conf");
 		}
 		$datas=explode("\n",$GLOBALS["IMAPD_GET"]);
@@ -4292,7 +5014,7 @@ public function ServicesCMDArray(){
 		$f[]="dhcp";
 		$f[]="cicap";
 		$f[]="openvpn";
-		$f[]="postfix-logger";
+		
 		$f[]="dansguardian-tail";
 		$f[]="apache-groupware";
 		$f[]="cups";
@@ -4307,7 +5029,6 @@ public function ServicesCMDArray(){
 		$f[]="pdns";
 		$f[]="gluster";
 		$f[]="gluster-cli";
-		$f[]="sysloger";
 		$f[]="zabbix";
 		$f[]="smartd";
 		return $f;	
@@ -4315,57 +5036,9 @@ public function ServicesCMDArray(){
 
 
 public function monit_array(){
-	exec("/usr/share/artica-postfix/bin/artica-install --monit-status",$array);
-	if(!is_array($array)){return array();}
-	while (list ($num, $ligne) = each ($array) ){
-		if(preg_match("#Process\s+'(.+)'#",$ligne,$re)){
-			$product=$re[1];
-			$ARR[$product]["monit"]=true;
-			continue;
-		}
-		
-	if(preg_match("#status\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["status"]=$re[1];
-			continue;
-		}
+	$monit=new monit_unix();
+	return $monit->all_status();
 
-		
-		if(preg_match("#monitoring status\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["monitoring status"]=$re[1];
-			continue;
-		}
-
-		if(preg_match("#uptime\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["uptime"]=$re[1];
-			continue;
-		}		
-		if(preg_match("#children\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["children"]=$re[1];
-			continue;
-		}
-	
-		
-		if(preg_match("#memory kilobytes total\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["memory kilobytes total"]=$re[1];
-			continue;
-		}
-		
-		if(preg_match("#^pid\s+([0-9]+)$#",trim($ligne),$re)){
-			$ARR[$product]["pid"]=$re[1];
-			continue;
-		}		
-
-		if(preg_match("#memory percent total\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["memory percent total"]=$re[1];
-			continue;
-		}
-			if(preg_match("#cpu percent total\s+(.+)#",$ligne,$re)){
-			$ARR[$product]["cpu percent total"]=$re[1];
-			continue;
-		}			
-	}
-	
-	return $ARR;
 	
 }
 	
@@ -4504,11 +5177,13 @@ public function IsProtectedDirectory($folder,$nopreg=false){
 	
 	
 	public function LOCATE_SYSLOG_PATH(){
+		if(!is_file("/etc/artica-postfix/settings/Daemons/syslog_path")){shell_exec("/usr/share/artica-postfix/bin/artica-install --write-syslog");}
 		if(is_file("/etc/artica-postfix/settings/Daemons/syslog_path")){
 			$datas=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/syslog_path"));
 			if(!is_file($datas)){$datas="/var/log/syslog";}
 			
 		}
+		
 		return $datas;
 		
 	}
@@ -4518,12 +5193,25 @@ public function IsProtectedDirectory($folder,$nopreg=false){
 		$this->events("Unable to stat du !");
 		
 	}
+	
+	
+	public function TEMP_DIR(){
+		$SysTmpDir=@file_get_contents("/etc/artica-postfix/settings/Daemons/SysTmpDir");
+		if($SysTmpDir==null){$SysTmpDir="/home/artica/tmp";}
+		if($SysTmpDir=="/tmp"){if(function_exists("sys_get_temp_dir")){$SysTmpDir=sys_get_temp_dir();}}
+		if(!is_dir($SysTmpDir)){@mkdir($SysTmpDir,0777,true);}
+		return $SysTmpDir;
+	}
 
 	public function FILE_TEMP(){
-		if(function_exists("sys_get_temp_dir")){
-			return tempnam(sys_get_temp_dir(), 'artica-php');
+		
+		
+		if(function_exists("tempnam")){
+			return tempnam($this->TEMP_DIR(), 'artica-php');
 		}
-		return "/tmp/artica-php-".md5(date("Y-m-d H:i:s"));
+		
+		
+		return $this->TEMP_DIR()."/artica-php-".md5(date("Y-m-d H:i:s"));
 		
 	}
 	
@@ -4540,7 +5228,129 @@ public function IsProtectedDirectory($folder,$nopreg=false){
 		
 	}
 	
+public	function BLKID_ARRAY(){
+		$unix=new unix();
+		$unix->find_program("blkid");
+		$df=$unix->find_program("df");
+		exec("blkid 2>&1",$results);
+		$udevinfo=$this->udevinfo_disks();
+
+		
+		while (list ($index, $line) = each ($results) ){
+			if(!preg_match("#^(.+?):(.+)#", $line,$re)){continue;}
+			$DEV=$re[1];
+			$line=$re[2];
+			$t=explode(" ",$line);
+			while (list ($a, $b) = each ($t) ){
+				if(!preg_match("#([A-Z\_]+)=\"(.+?)\"#", $b,$re)){continue;}
+				$ARRAY[$DEV][trim($re[1])]=trim($re[2]);
+			}
+			$ARRAY[$DEV]["PATH"]=$DEV;
+			
+			if(isset($udevinfo[$DEV])){
+				while (list ($a, $b) = each ($udevinfo[$DEV]) ){
+					$ARRAY[$DEV][$a]=$b;
+				}
+			}
 	
+	
+	
+		}
+		
+		
+		while (list ($dev, $sif) = each ($ARRAY) ){
+			$UUIDZ[$sif["UUID"]]=$dev;
+		}
+		
+		
+		
+		exec("$df -h 2>&1",$results2);
+		while (list ($index, $line) = each ($results2) ){
+			if(preg_match("#(.+?)\s+(.+?)\s+#", $line,$re)){
+				$DEV=$re[1];
+				if(preg_match("#by-uuid\/(.+)#", $DEV,$ri)){
+					$UUID=$ri[1];
+					$DEV=$UUIDZ[$UUID];
+				}
+				
+				
+				$ARRAY[$DEV]["SIZE"]=$re[2];
+			}
+			
+		}
+		
+		return $ARRAY;
+	
+	}
+	
+	private function udevinfo_disks_query_all($dev){
+		if(is_file('/usr/bin/udevinfo')){
+			$cmd="/usr/bin/udevinfo -a -p `/usr/bin/udevinfo -q path -n $dev`";
+		}
+		$ARRAY=array();
+		
+		if(is_file('/sbin/udevadm')){
+			$cmd="/sbin/udevadm info --query=all --path=`/sbin/udevadm info --query=path --name=$dev`";
+		}
+	
+		exec("$cmd 2>&1",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#E:\s+([A-Z\_]+)=(.+)#", $line,$re)){
+				$ARRAY[$re[1]]=trim($re[2]);
+			}
+		}
+		
+		return $ARRAY;
+		
+	}
+	
+
+	private function udevinfo_disks(){
+	
+	
+		if(is_file('/usr/bin/udevinfo')){$cmd='/usr/bin/udevinfo -e';}
+		if(is_file('/sbin/udevadm')){$cmd='/sbin/udevadm info -e';}
+	
+		exec("$cmd 2>&1",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#P:\s+(.+)$#", $line,$re)){$DEV=$re[1];continue;}
+			if(preg_match("#E:\s+([A-Z\_]+)=(.+)#", $line,$re)){
+				$ARRAY[$DEV][$re[1]]=trim($re[2]);
+			}
+	
+		}
+		
+		
+		
+		while (list ($dev, $ar) = each ($ARRAY) ){
+			
+			if(!isset($ar["DEVNAME"])){
+					//if($GLOBALS["VERBOSE"]){echo "$dev -> NO DEVNAME\n";}
+					continue;
+			}
+			
+			if(isset($ar["DEVTYPE"])){
+			$NewArray=$this->udevinfo_disks_query_all($ar["DEVNAME"]);
+				
+				while (list ($a, $b) = each ($NewArray) ){
+					$ARRAY[$dev][$a]=$b;
+				}
+				
+
+				while (list ($key, $val) = each ($ARRAY[$dev]) ){
+					$NEWARRAY[$ar["DEVNAME"]][$key]=$val;
+					
+				}
+				
+			}
+
+	
+			}
+	
+
+		return $NEWARRAY;
+	
+	}	
 	
 	public function LINUX_VERS(){
 		$distriname=$this->LINUX_DISTRIBUTION();
@@ -4550,6 +5360,16 @@ public function IsProtectedDirectory($folder,$nopreg=false){
 		
 		return array(0,0);
 		
+	}
+	
+	function LINUX_ARCHITECTURE(){
+		$unix=new unix();
+		$uname=$this->find_program("uname");
+		exec("$uname -m 2>&1",$results);
+		while (list ($num, $val) = each ($results)){
+			if(preg_match("#i[0-9]86#", $val)){return 32;}
+			if(preg_match("#x86_64#", $val)){return 64;}
+		}
 	}
 	
 	
@@ -4677,7 +5497,7 @@ public function IsProtectedDirectory($folder,$nopreg=false){
 		 	file_put_contents($ConfigurationFile,implode("\n",$tbl));
 		 	return false;
 		 }
-		 echo "Starting......: milter-greylist Config...: error, removing  \"{$tbl[$line_number]}\" line $line_number";
+		 echo "Starting......: ".date("H:i:s")." milter-greylist Config...: error, removing  \"{$tbl[$line_number]}\" line $line_number";
 		 unset($tbl[$line_number]);
 		 file_put_contents($ConfigurationFile,implode("\n",$tbl));
 		 return true;
@@ -4745,17 +5565,57 @@ public function IsProtectedDirectory($folder,$nopreg=false){
 		}
 	}
 	
+	public function DIRPART_OF($directory){
+		$df=$this->find_program("df");
+		exec("$df $directory 2>&1",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(preg_match("#(.*?)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)%\s+(.*)#",$line,$re)){
+				return $re[1];
+				
+			}
+		}
+	}
+	
 	public function DIRSIZE_KO($directory){
-		if(is_link($directory)){$dir=readlink($directory);}
+		if(is_link($directory)){$directory=readlink($directory);}
 		$res=$this->dskspace_bytes($directory);
 		if($res==0){return 0;}
 		return round($res/1024);
 	}
+	
+	public function DIRSIZE_MB($directory){
+		if(is_link($directory)){$directory=readlink($directory);}
+		$EXEC_NICE=$this->EXEC_NICE();
+		$du=$this->find_program("du");
+		exec("$EXEC_NICE$du -m -s $directory 2>&1",$results);
+		
+		while (list ($num, $ligne) = each ($results) ){
+			$ligne=trim($ligne);
+			if($ligne==null){continue;}
+			if(preg_match("#^([0-9]+)\s+#",$ligne,$re)){return $re[1];}
+		}
+	}	
 
 	public function DIRSIZE_BYTES($directory){
-		if(is_link($directory)){$dir=readlink($directory);}
+		if(is_link($directory)){$directory=readlink($directory);}
+		
+		if(!is_dir($directory)){
+			$directory_tmp=dirname($directory);
+			if(is_link($directory_tmp)){$dir=readlink($directory_tmp);}
+			if(is_dir($directory_tmp)){$directory=$directory_tmp;}
+		}
 		return $this->dskspace_bytes($directory);
 	}	
+	
+	public function DIR_COUNT_OF_FILES($directory){
+		if(is_link($directory)){$directory=readlink($directory);}
+		if(!is_dir($directory)){return 0;}
+		$find=$this->find_program("find");
+		$nice=$this->EXEC_NICE();
+		$wc=$this->find_program("wc");
+		exec(trim("$nice $find \"$directory\" -type f  | $wc -l 2>&1"),$results);
+		return trim(@implode("",$results));
+	}
 	
 	public function LOCATE_PHP5_BIN(){
 	  if(isset($GLOBALS["LOCATE_PHP5_BIN"])){if(strlen($GLOBALS["LOCATE_PHP5_BIN"])>3){return $GLOBALS["LOCATE_PHP5_BIN"];}}
@@ -4807,18 +5667,32 @@ public function LIGHTTPD_PHP5_CGI_BIN_PATH(){
 	
 }
 
-public function GetUniqueID(){
-	$uuid=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID"));
-	if($uuid==null){
-		$uuid=$this->gen_uuid();
-		@file_put_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID",$uuid);
+function CREATE_NEW_UUID(){
+	if(is_file("/etc/artica-postfix/settings/Daemons/SYSTEMID_CREATED")){
+		@chmod("/etc/artica-postfix/settings/Daemons/SYSTEMID", 0755);
+		return;
 	}
 	
-	return $uuid;	
+	$chattr=$this->find_program("chattr");
+	shell_exec("$chattr -i /etc/artica-postfix/settings/Daemons/SYSTEMID");
+	$uuid=trim($this->gen_uuid());
+	if(strlen($uuid)>5){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID", $uuid);
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID_CREATED", time());
+		@chmod("/etc/artica-postfix/settings/Daemons/SYSTEMID", 0755);
+		shell_exec("$chattr +i /etc/artica-postfix/settings/Daemons/SYSTEMID");
+		
+	}
+}
+
+public function GetUniqueID(){
+	if(isset($GLOBALS["MYUUID"])){return $GLOBALS["MYUUID"];}
+	$GLOBALS["MYUUID"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SYSTEMID"));
+	return $GLOBALS["MYUUID"];	
 	
 }
 
-private function gen_uuid(){
+public function gen_uuid(){
     return sprintf(
         '%08x-%04x-%04x-%02x%02x-%012x',
         mt_rand(),
@@ -4974,10 +5848,50 @@ return $this->LOCATE_STUNNEL();
 		if(is_file($dhcpd)){return $dhcpd;}
 	}
 	
+	public function SessionPathInMemoryInfos(){
+		$session_path=ini_get('session.save_path');
+		
+		$df=$this->find_program("df");
+		$cmd="$df 2>&1";
+		exec($cmd,$results);
+		
+		while (list ($num, $line) = each ($results)){
+			if(preg_match("#tmpfs\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)%\s+$session_path#", $line,$re)){
+				$array["MAX"]=$re[1];
+				$array["USE"]=$re[2];
+				$array["FREE"]=$re[3];
+				$array["POURC"]=$re[4];
+				break;
+			}
+		}
+		return $array;
+		
+	}
+	
+	public function DEBIAN_INSTALL_PACKAGE($package){
+		$aptget=$this->find_program("apt-get");
+		if(!is_file($aptget)){return;}
+		$apttime="/etc/artica-postfix/APT_GET_UPDATE_TIME";
+		$time=$this->file_time_min($apttime);
+		if($time>1880){
+			$php=$this->LOCATE_PHP5_BIN();
+			shell_exec("$php /usr/share/artica-postfix/exec.apt-get.php --sources-list");
+			shell_exec("$aptget update -y -q");
+			@unlink("/etc/artica-postfix/APT_GET_UPDATE_TIME");
+			@file_put_contents("/etc/artica-postfix/APT_GET_UPDATE_TIME", time());
+		}
+		
+		exec("DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -fuy install $package 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." apt-get: $ligne\n";}
+		}
+		
+	}
+	
 	
 	public function find_program($strProgram) {
 	  $key=md5($strProgram);
-	  if(!isset($_SESSION["find_program"])){$_SESSION["find_program"]=array();}
+	 
 	  if(isset($GLOBALS["find_program"][$key])){return $GLOBALS["find_program"][$key];}
 	  if(function_exists("apc_store")){$value=trim(apc_fetch("LOCATE_PROGRAM_$key"));if($value<>null){if(basename($value)==$strProgram){$GLOBALS["find_program"][$key]=trim($value);return trim($value);}}}
 	  if(!isset($GLOBALS["find_program"]["$key"])){$GLOBALS["find_program"]["$key"]=null;}
@@ -4985,9 +5899,22 @@ return $this->LOCATE_STUNNEL();
 	  if(isset($GLOBALS["find_program"]["$key"])){if($GLOBALS["find_program"]["$key"]<>null){return $GLOBALS["find_program"]["$key"];}	}
 	  $value=trim($this->internal_find_program($strProgram));
 	  if(function_exists("apc_store")){apc_store("LOCATE_PROGRAM_$key",$value);$GLOBALS["find_program"]["$key"]=$value;return $value;}	
-	  $_SESSION["find_program"]["$key"]=$value;
+	  
 	  $GLOBALS["find_program"]["$key"]=$value;
       return $value;
+		
+	}
+	
+	public 	function CleanOldLibs(){
+		if(is_file("/usr/lib/x86_64-linux-gnu/libtalloc.so.2")){
+			if(is_file("/usr/lib/libtalloc.so.2")){@unlink("/usr/lib/libtalloc.so.2");}
+		}
+		if(is_file("/usr/lib/libicapapi.so.3.0.1")){
+			if(!is_link("/usr/lib/libicapapi.so.3")){
+				$ln=$this->find_program("ln");
+				shell_exec("$ln -s /usr/lib/libicapapi.so.3.0.1 /usr/lib/libicapapi.so.3 >/dev/null 2>&1");
+			}
+		}
 		
 	}
 	
@@ -5007,7 +5934,8 @@ return $this->LOCATE_STUNNEL();
 		$f=explode("\n", @file_get_contents("/etc/iproute2/rt_tables"));
 		while (list ($index, $line) = each ($f) ){
 			if(!preg_match("#([0-9]+)\s+(.+)#", $line,$re)){continue;}
-			if($re[1]>253){continue;}
+			if($re[1]>0){continue;}
+			if($re[1]>252){continue;}
 			if($re[1]>$c){$c=$re[1];}
 		}
 	
@@ -5050,6 +5978,89 @@ return $this->LOCATE_STUNNEL();
 		}
 		return $array;		
 		
+	}
+	
+	public function DIR_STATUS($path){
+		
+		$df=$this->find_program("df");
+	
+		
+		$results=array();
+		$devRgx=str_replace("/", "\/", $path);
+		$devRgx=str_replace(".", "\.", $path);
+		exec("$df \"$path\" 2>&1",$results);
+		
+		$pattern="#.*?\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9A-Z\.]+)\s+([0-9\.]+)%\s+(.+)#";
+		
+		while (list ($num, $ligne) = each ($results) ){
+			if(!preg_match($pattern, $ligne,$re)){
+				writelogs_framework("No match \"$ligne\" $pattern",__FUNCTION__,__FILE__,__LINE__);
+				continue;
+			}
+				$array["SIZE"]=$re[1];
+				$array["USED"]=$re[2];
+				$array["AIVA"]=$re[3];
+				$array["POURC"]=$re[4];
+				$array["MOUNTED"]=$re[5];
+		}
+		return $array;
+	
+	}	
+	
+	public function BLKID_UUIDs(){
+		if(isset($GLOBALS["BLKID_UUIDs"])){return $GLOBALS["BLKID_UUIDs"];}
+		$cachefile="/usr/share/artica-postfix/ressources/logs/web/blkid-uuid.db";
+		$unix=new unix();
+		if(!$GLOBALS["VERBOSE"]){
+			if(is_file($cachefile)){
+				if($unix->file_time_min($cachefile)<3){$GLOBALS["BLKID_UUIDs"]=unserialize(@file_get_contents($cachefile));return $GLOBALS["BLKID_UUIDs"];}
+			}
+		}
+		$GLOBALS["BLKID_UUIDs"]=array();
+		$blkid=$unix->find_program("blkid");
+		exec("$blkid 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			$ligne=trim($ligne);
+				
+			if(preg_match("#^(.+?):#", $ligne,$re)){$dev=$re[1];}
+			if(preg_match("#UUID=\"(.+?)\"#", $ligne,$re)){$uuid=$re[1];}
+			if(preg_match("#LABEL=\"(.+?)\"#", $ligne,$re)){$label=$re[1];}
+			if($GLOBALS["VERBOSE"]){echo "$ligne uuid=$uuid; label=$label;\n";}
+			$GLOBALS["BLKID_UUIDs"][$uuid]["DEV"]=$dev;
+			$GLOBALS["BLKID_UUIDs"][$uuid]["LABEL"]=$label;
+		}
+	
+		@file_put_contents($cachefile, serialize($GLOBALS["BLKID_UUIDs"]));
+		@chmod($cachefile,0755);
+		return $GLOBALS["BLKID_UUIDs"];
+	
+	}	
+	
+	public function BLKID_ALL(){
+		$cachefile="/usr/share/artica-postfix/ressources/logs/web/blkid.db";
+		$unix=new unix();
+		if(!$GLOBALS["VERBOSE"]){
+			if(is_file($cachefile)){
+				if($unix->file_time_min($cachefile)<3){return unserialize(@file_get_contents($cachefile));}
+			}
+		}
+		$blkid=$unix->find_program("blkid");
+		exec("$blkid 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			$ligne=trim($ligne);
+			
+			if(preg_match("#^(.+?):#", $ligne,$re)){$dev=$re[1];}
+			if(preg_match("#UUID=\"(.+?)\"#", $ligne,$re)){$uuid=$re[1];}
+			if(preg_match("#LABEL=\"(.+?)\"#", $ligne,$re)){$label=$re[1];}
+			if($GLOBALS["VERBOSE"]){echo "$ligne uuid=$uuid; label=$label;\n";}
+			$array[$dev]["UUID"]=$uuid;
+			$array[$dev]["LABEL"]=$label;
+		}
+	
+		@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/blkid.db", serialize($array));
+		@chmod($cachefile,0755);
+		return $array;
+	
 	}
 	
 	public function SYSTEMS_ALL_PARTITIONS(){
@@ -5315,7 +6326,7 @@ return $this->LOCATE_STUNNEL();
 		
 
 		$line="$date [$pid] $sourcefile: $text  - function:$sourcefunction in line:$sourceline Mem:{$mem}MB Load:$internal_load\n";
-		if($logFile==null){$logFile="/var/log/artica-postfix/syslog.log";}
+		if($logFile==null){$logFile="{$GLOBALS["ARTICALOGDIR"]}/syslog.log";}
 		
 		
 		$size=@filesize($logFile);
@@ -5325,13 +6336,14 @@ return $this->LOCATE_STUNNEL();
 	
 		
 		if($GLOBALS["VERBOSE"]){echo $line;}
-		if($phplog){error_log("$line");}	
+		if($phplog){error_log("[{$_SESSION["uid"]}]::$line");}	
 		@fwrite($h,$line);
 		@fclose($h);
 	}	
 
 	public function dirdir($path){
 		$array=array();
+		if(is_link($path)){$path=readlink($path);}
 		foreach (glob("$path/*",GLOB_ONLYDIR) as $directory) {
 			$directory=utf8_decode($directory);
 			$directory=str_replace('//', "/", $directory);
@@ -5343,6 +6355,7 @@ return $this->LOCATE_STUNNEL();
 	
 	
 	public function COUNT_FILES($directory){
+		if(is_link($directory)){$directory=readlink($directory);}
 		if(!is_dir($directory)){return 0;}
 		if (!$handle = @opendir($directory)) {return 0;}
 		$c=0;
@@ -5357,11 +6370,12 @@ return $this->LOCATE_STUNNEL();
 	}
 	
 public	function getDirectories($directory){
+	if(is_link($directory)){$directory=readlink($directory);}
 	$GLOBALS["RECURSVIVE_INC"]=$GLOBALS["RECURSVIVE_INC"]+1;
 	if($GLOBALS["MAX_RECUSIVE_DIRS"]<50){$GLOBALS["MAX_RECUSIVE_DIRS"]=400;}
 	if($GLOBALS["RECURSVIVE_INC"]>$GLOBALS["MAX_RECUSIVE_DIRS"]){
 		$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}	
-		error_log("PHP Fatal: cannot parse directory [instance {$GLOBALS["RECURSVIVE_INC"]}], maximum recursive of {$GLOBALS["MAX_RECUSIVE_DIRS"]} has been reached $called");
+		error_log("[{$_SESSION["uid"]}]::PHP Fatal: cannot parse directory [instance {$GLOBALS["RECURSVIVE_INC"]}], maximum recursive of {$GLOBALS["MAX_RECUSIVE_DIRS"]} has been reached $called");
 		return;
 	}
 	$array_items = array();
@@ -5540,8 +6554,9 @@ public function LOCATE_SQUID_PID(){
 		while (list ($num, $ligne) = each ($results) ){
 			if(preg_match("#pgrep\s+#",$ligne)){continue;}		
 			if(!preg_match("#^([0-9]+)\s+#",$ligne,$re)){continue;}
-			if($GLOBALS["VERBOSE"]){echo "PIDOF_PATTERN_ALL():: Found $pid \"$ligne\"\n";}
 			$pid=$re[1];
+			if($GLOBALS["VERBOSE"]){echo "PIDOF_PATTERN_ALL():: Found $pid \"$ligne\"\n";}
+			
 			if($pid==$mypid){continue;}
 			$LIST[$pid]=$pid;
 				
@@ -5672,6 +6687,38 @@ public function LOCATE_SQUID_PID(){
 	
 }
 
+
+
+function Mysql_TestDump($array,$container){
+	while (list ($a, $b) = each ($resultsZ)){
+		if(preg_match("#Got error:#i", $b)){
+			if(function_exists("events_repair")){events_repair("Dump failed $b,...");}
+			if($GLOBALS["VERBOSE"]){echo "Dump failed $b,...\n";}
+			return false;
+
+		}
+	}
+
+	if(!is_file($container)){
+		if($GLOBALS["VERBOSE"]){echo "Dump failed $container, no such file ...\n";}
+		ufdbguard_admin_events("Fatal Error: day: Dump failed $container, no such file",__FUNCTION__,__FILE__,__LINE__,"backup");
+		return;
+			
+	}
+
+	$size=@filesize($container);
+
+	if($size<100){
+		if($GLOBALS["VERBOSE"]){echo "Dump failed $container size too low ( $size bytes) ...\n";}
+		ufdbguard_admin_events("Fatal Error: day: Dump failed $container size too low ( $size bytes) ... ",__FUNCTION__,__FILE__,__LINE__,"backup");
+		@unlink($container);
+		return;
+	}
+
+
+	return true;
+}
+
 private function squid_is31(){
 	if(isset($GLOBALS["squid_is31"])){return $GLOBALS["squid_is31"];}
 	$root_squid_version=$this->squid_version();
@@ -5691,6 +6738,12 @@ private function squid_is31(){
 		
 		return trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
 		
+		
+	}
+	
+	public function squid_internal_port(){
+		$array=$this->squid_get_internal_addrport();
+		return $array[1];
 		
 	}
 	
@@ -5717,6 +6770,7 @@ private function squid_is31(){
 	
 	
 	private function squidclient_http($cmd){
+		if(isset($GLOBALS["SQUIDCLIENT_HTTP_FAILED"])){return $this->squidclient_cmd($cmd);}
 		$t0=time();
 		include_once("/usr/share/artica-postfix/ressources/class.ccurl.inc");
 		$PP=$this->squid_get_internal_addrport();
@@ -5727,11 +6781,18 @@ private function squid_is31(){
 		$curl->interface="127.0.0.1";
 		$curl->Timeout=5;
 		$curl->UseDirect=true;
+		if($GLOBALS["OUTPUT"]){echo "squidclient_http(): [{{$PP[0]}:{$PP[1]}}]\n";}
 		if(!$curl->get()){
+			if($GLOBALS["OUTPUT"]){echo "[".__LINE."]: squidclient_http(): $curl->error\n";}
 			writelogs_framework("$curl->error",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-			return;}
-		
-			
+			if($GLOBALS["OUTPUT"]){echo " ******************************* squidclient ***********************\n";}
+			$GLOBALS["SQUIDCLIENT_HTTP_FAILED"]=true;
+			return $this->squidclient_cmd($cmd);
+		}
+		if($GLOBALS["OUTPUT"]){echo " ******************************* DATA ***********************\n";}
+		if($GLOBALS["OUTPUT"]){echo @implode("\n", $GLOBALS["CURLDEBUG"])."\n";}
+		if($GLOBALS["OUTPUT"]){echo "squidclient_http(): CURLINFO_HTTP_CODE:".strlen($curl->CURLINFO_HTTP_CODE)." code\n";}
+		if($GLOBALS["OUTPUT"]){echo "squidclient_http(): ".strlen($curl->data)." bytes length\n";}	
 		writelogs_framework(strlen($curl->data)." bytes lenght",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		return $curl->data;
 		
@@ -5739,10 +6800,14 @@ private function squid_is31(){
 	}
 	
 	public function squidclient($cmd){
+		
+		
+		
 		if($this->squid_is31()){
 			if($GLOBALS["VERBOSE"]){echo "Only squid 3.1x = > \"$cmd\"...\n";}
 			return $this->squidclient_cmd($cmd);
 		}
+		if($GLOBALS["OUTPUT"]){echo "squidclient_http [$cmd]\n";}
 		writelogs_framework("squidclient_http($cmd)",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		return $this->squidclient_http($cmd);
 		
@@ -5809,9 +6874,17 @@ private function squid_is31(){
 	
 	
 	public function squid_get_cache_infos(){
-		$path=null;
-		$array=array();
-	$results=explode("\n",$this->squidclient("storedir"));
+	$path=null;
+	$array=array();
+	$MAINCONTENT=$this->squidclient("storedir");
+	
+	if($GLOBALS["VERBOSE"]){echo "******** storedir: ".strlen($MAINCONTENT)." Bytes ********\n";}
+	$results=explode("\n",$MAINCONTENT);
+	if($GLOBALS["VERBOSE"]){echo "******** storedir: ".count($results)." Rows ********\n";}
+	if($GLOBALS["VERBOSE"]){
+		if(count($results)<10){echo "################## \n\n$MAINCONTENT\n\n##################\n";}
+	}
+	
 	while (list ($index, $line) = each ($results) ){
 		if(preg_match("#Connection refused#",$line)){
 			writelogs_framework($line,__FUNCTION__,__LINE__);;
@@ -5822,6 +6895,9 @@ private function squid_is31(){
 			if($GLOBALS["VERBOSE"]){echo "Store Directory -> {$re[2]}\n";}
 			$path=trim($re[2]);
 			$array[$path]["index"]=$re[1];
+			$array[$path]["PARTITION"]=$this->DIRPART_OF($path);
+			$array[$path]["DIRPART_INFO"]=$this->DIRPART_INFO($path);
+			$array[$path]["FULL_SIZE"]=$this->DIRSIZE_BYTES($path);
 			continue;
 		}
 		
@@ -6028,21 +7104,30 @@ private function squid_is31(){
 		@file_put_contents("/etc/hostname", $hostname);
 		@file_put_contents("/etc/HOSTNAME", $hostname);
 		@file_put_contents("/etc/mailname", $hostname);
+		@file_put_contents("/etc/artica-postfix/FULL_HOSTNAME", $hostname);
 		
 		$sysctl=$this->find_program("sysctl");
 		$hostnamebin=$this->find_program("hostname");
 		$nohup=$this->find_program("nohup");
+		$php5=$this->LOCATE_PHP5_BIN();
+		
+		shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts >/dev/null 2>&1");
+		
 		if(strlen($sysctl)>3){
 			shell_exec("$sysctl -w kernel.domainname=$domainName >/dev/null 2>&1");
 			shell_exec("$sysctl -w kernel.hostname=$strippedHost >/dev/null 2>&1");
 			shell_exec("$sysctl -p >/dev/null 2>&1");
 		}
+		
+		
+		
+		
 		if(strlen($hostnamebin)>3){
 			shell_exec("$hostnamebin $hostname  >/dev/null 2>&1");
 		}
 		
 		
-		if(is_file("/etc/init.d/hostname.sh")){shell_exec("/etc/init.d/hostname.sh stop && /etc/init.d/hostname.sh start");}
+		
    		if(is_file("/usr/share/artica-postfix/bin/artica-install")){shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus >/dev/null 2>&1 &");}
 	}	
 	
@@ -6070,20 +7155,35 @@ function uptime(){
      
    }	
    
-   function TARGZ_TEST_CONTAINER($container){
+   function TARGZ_TEST_CONTAINER($container,$nogzip=false){
 	   	$size=@filesize($container);
+	   	$resultsZ=array();
 	   	if($size<100){return false;}
 		$tar=$this->find_program("tar");
-	   	exec("$tar ztvf $container 2>&1");
+		$z="z";
+		if($nogzip){$z=null;}
+		$cmdline="$tar {$z}tvf $container";
+	   	exec("$cmdline 2>&1",$resultsZ);
 	   	while (list ($a, $b) = each ($resultsZ)){
+	   		
+	   		if(preg_match("#gzip: stdin: not in gzip format#", $b)){
+	   			if(function_exists("events")){events("TARGZ_TEST_CONTAINER:: $cmdline gzip: stdin: not in gzip format");}
+	   			if($GLOBALS["VERBOSE"]){echo "gzip: stdin: not in gzip format\n";}
+	   			return true;
+	   		}
+	   		
 	   		if(preg_match("#does not look like a tar#", $b)){
+	   			if(function_exists("events")){events("TARGZ_TEST_CONTAINER:: does not look like a tar");}
+	   			$GLOBALS["TARGZ_TEST_CONTAINER_ERROR"]=@implode("\n", $resultsZ);
 	   			if($GLOBALS["VERBOSE"]){echo "tar $container failed $b\n";}
 	   			return;
 	   		}
 	   	
 	   		if(preg_match("#tar: Error#", $b)){
+	   			if(function_exists("events")){events("TARGZ_TEST_CONTAINER:: $b");}
+	   			$GLOBALS["TARGZ_TEST_CONTAINER_ERROR"]=@implode("\n", $resultsZ);
 	   			if($GLOBALS["VERBOSE"]){echo "tar $container failed $b\n";}
-	   			return;
+	   			return false;
 	   		}
 	   	}
 
@@ -6237,6 +7337,8 @@ function BuildingExecRightStatus($text,$pourc){
 }
 
 
+
+
 function cpulimit($forced=0){
 	return;
 	$unix=new unix();
@@ -6300,6 +7402,7 @@ function cpulimitProcessNameKill($processName){
 
 
 function writelogs_framework($text=null,$function=null,$file_source=null,$line=null){
+	
 	if($file_source==null){$file_source= __FILE__ ;}
 	if(posix_getuid()==0){$prefix="[DAEMON]";}else{$prefix="[CONSOLE]";}
 	if(function_exists("getmypid")){$pid=getmypid();}
@@ -6309,7 +7412,7 @@ function writelogs_framework($text=null,$function=null,$file_source=null,$line=n
 	$file_source=str_replace("/home/dtouzeau/developpement/artica-postfix/","",$file_source);
 	if($GLOBALS["VERBOSE"]){echo "[$pid] $prefix::$function:: $text in $file_source$line\n";}
 	$text="$date [$pid] $prefix::$function:: $text in $file_source$line";
-	writeFrameOtherlogs('/var/log/artica-postfix/framework.debug',$text);
+	writeFrameOtherlogs("{$GLOBALS["ARTICALOGDIR"]}/framework.debug",$text);
 }
 function writeFrameOtherlogs($file,$text=null){
 			@mkdir(dirname($file));
@@ -6442,6 +7545,14 @@ function system_admin_events($text=null,$function=null,$file=null,$line=null,$ca
 			
 	}
 	
+	if($category==null){
+		if(isset($GLOBALS["SYS_CAT"])){
+			if($GLOBALS["SYS_CAT"]<>null){$category=$GLOBALS["SYS_CAT"];}
+		}
+	}
+			
+			
+	
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
@@ -6460,9 +7571,55 @@ function system_admin_events($text=null,$function=null,$file=null,$line=null,$ca
 	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events/$md5.log", $serialize);
 }
+
+function rotate_admin_events($text=null,$function=null,$file=null,$line=null,$category=null,$taskid=0){
+	if($text==null){return;}
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){$file=basename($trace[1]["file"]);}
+			if($function==null){$function=$trace[1]["function"];}
+			if($line==0){$line=$trace[1]["line"];}
+		}
+			
+	}
+	
+	if($category==null){
+		if(isset($GLOBALS["SYS_CAT"])){
+			if($GLOBALS["SYS_CAT"]<>null){$category=$GLOBALS["SYS_CAT"];}
+		}
+	}
+		
+		
+	
+	$mem=round(((memory_get_usage()/1024)/1000),2);
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];
+	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";
+	if($taskid>0){$GLOBALS["SCHEDULE_ID"]=$taskid;}
+	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file ".basename($file)."\n";}
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["text"]=$text;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["category"]=$category;
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/rotate_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/rotate_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/rotate_admin_events/$md5.log", $serialize);	
+	
+	
+}
+
+
 function system_failover_events($text=null,$function=null,$file=null,$line=null,$category=null,$taskid=0){
 	if($text==null){return;}
 	if(function_exists("debug_backtrace")){
@@ -6493,8 +7650,8 @@ function system_failover_events($text=null,$function=null,$file=null,$line=null,
 	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/system_failover_events")){@mkdir("/var/log/artica-postfix/system_failover_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/system_failover_events/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/system_failover_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/system_failover_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/system_failover_events/$md5.log", $serialize);
 }
 function rotate_events($text=null,$function=null,$file=null,$line=null,$category=null,$taskid=0){
 	if($text==null){return;}
@@ -6526,12 +7683,117 @@ function rotate_events($text=null,$function=null,$file=null,$line=null,$category
 	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/rotate_events")){@mkdir("/var/log/artica-postfix/rotate_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/rotate_events/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/rotate_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/rotate_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/rotate_events/$md5.log", $serialize);
 }
 
-function squid_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+function hotspot_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	if(!is_numeric($line)){$line=0;}
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+
+
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $subject);
+		closelog();
+	}
+
+
+
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
 	
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text;
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/hotspot_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/hotspot_admin_mysql",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/hotspot_admin_mysql/$md5.log", $serialize);
+}
+function rdpproxy_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	if(!is_numeric($line)){$line=0;}
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+
+
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $subject ." [$line]");
+		closelog();
+	}
+
+	$unix=new unix();
+	$unix->events($subject,"/var/log/squid/artica.watchdog.log",false,$function,$line,$file);
+
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+
+
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text;
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/rdpproxy_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/rdpproxy_admin_mysql",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/rdpproxy_admin_mysql/$md5.log", $serialize);
+	
+
+
+
+}
+
+
+function squid_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	if(!is_numeric($line)){$line=0;}
 	// 0 -> RED, 1 -> WARN, 2 -> INFO
 	
 	if(function_exists("debug_backtrace")){
@@ -6547,7 +7809,27 @@ function squid_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 		}
 			
 	}
+	
+	
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $subject ." [$line]");
+		closelog();	
+	}
+	
+	$unix=new unix();
+	$unix->events($subject,"/var/log/squid/artica.watchdog.log",false,$function,$line,$file);
+	
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+	
+	
 	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	$UfdbguardSMTPNotifs=_LoadSquidWatchdogNotif();
 	
 	$array["zdate"]=date("Y-m-d H:i:s");
 	$array["subject"]=$subject;
@@ -6560,13 +7842,149 @@ function squid_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/squid_admin_mysql")){@mkdir("/var/log/artica-postfix/squid_admin_mysql",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/squid_admin_mysql/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_mysql",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_mysql/$md5.log", $serialize);
+	if($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]==1){squid_admin_notifs($text,$function,$file,$line,"proxy",$GLOBALS["SCHEDULE_ID"],$severity,true);}
+	
+	
+	
+}
+function squid_admin_purge($severity,$subject,$text,$file=null,$line=0){
+
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text."\nLoad: $internal_load, Free Memory:".round($MemFree/1024);
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_purge")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_purge",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_purge/$md5.log", $serialize);
+
+}
+function stats_admin_events($severity,$subject,$text,$file=null,$line=0){
+
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+	
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+	
+	
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text."\nLoad: $internal_load, Free Memory:".round($MemFree/1024);
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/stats_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/stats_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/stats_admin_events/$md5.log", $serialize);
+
+}
+function artica_update_event($severity,$subject,$text,$file=null,$line=0){
+
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+	if(!is_numeric($line)){$line=0;}
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text;
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/artica_update_task")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/artica_update_task",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/artica_update_task/$md5.log", $serialize);
+
+}
+
+function _LoadSquidWatchdogNotif(){
+	if(!isset($GLOBALS["UfdbguardSMTPNotifs"])){
+		$GLOBALS["UfdbguardSMTPNotifs"]=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbguardSMTPNotifs")));
+	}else{
+		return $GLOBALS["UfdbguardSMTPNotifs"];
+	}
+	if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["smtp_info"])){$GLOBALS["UfdbguardSMTPNotifs"]["smtp_info"]=0;}
+	if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["smtp_warn"])){$GLOBALS["UfdbguardSMTPNotifs"]["smtp_warn"]=0;}
+	if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["smtp_critic"])){$GLOBALS["UfdbguardSMTPNotifs"]["smtp_critic"]=1;}
+	
+	if(!is_numeric($GLOBALS["UfdbguardSMTPNotifs"]["smtp_warn"])){$GLOBALS["UfdbguardSMTPNotifs"]["smtp_warn"]=0;}
+	if(!is_numeric($GLOBALS["UfdbguardSMTPNotifs"]["smtp_info"])){$GLOBALS["UfdbguardSMTPNotifs"]["smtp_info"]=0;}
+	if(!is_numeric($GLOBALS["UfdbguardSMTPNotifs"]["smtp_critic"])){$GLOBALS["UfdbguardSMTPNotifs"]["smtp_critic"]=1;}
+	$GLOBALS["UfdbguardSMTPNotifs"]["SELECTED_TOT"]=$GLOBALS["UfdbguardSMTPNotifs"]["smtp_warn"]+$GLOBALS["UfdbguardSMTPNotifs"]["smtp_info"]+$GLOBALS["UfdbguardSMTPNotifs"]["smtp_critic"];
+	if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED_SQUID_WATCHDOG"])){$GLOBALS["UfdbguardSMTPNotifs"]["ENABLED_SQUID_WATCHDOG"]=0;}
+	if(!is_numeric($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED_SQUID_WATCHDOG"])){$GLOBALS["UfdbguardSMTPNotifs"]["ENABLED_SQUID_WATCHDOG"]=0;}
 	
 }
 
-function squid_admin_notifs($text,$function,$file,$line,$category,$taskid=0){
-
+function squid_admin_notifs($text,$function,$file,$line,$category,$taskid=0,$severity=0,$CheckSeverity=false){
+	if(!is_numeric($line)){$line=0;}
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
@@ -6586,16 +8004,38 @@ function squid_admin_notifs($text,$function,$file,$line,$category,$taskid=0){
 	if(isset($GLOBALS["ARGVS"])){$array["ARGVS"]=$GLOBALS["ARGVS"];}else{$array["ARGVS"]=@implode(" ",$argv);}
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/squid_admin_notifs")){@mkdir("/var/log/artica-postfix/squid_admin_notifs",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/squid_admin_notifs/$md5.log", $serialize);
-	$UfdbguardSMTPNotifs=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbguardSMTPNotifs")));
-	if(!isset($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
-	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
+	
+	$UfdbguardSMTPNotifs=_LoadSquidWatchdogNotif();
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs",0755,true);}
+	
+	if($UfdbguardSMTPNotifs["SELECTED_TOT"]==3){
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs/$md5.log", $serialize);
+	}else{
+		// 0 -> RED, 1 -> WARN, 2 -> INFO
+		if($CheckSeverity){
+			if($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]==1){
+				if($GLOBALS["UfdbguardSMTPNotifs"]["smtp_warn"]==1){
+					if($severity==1){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs/$md5.log", $serialize);}
+				}
+				
+				if($GLOBALS["UfdbguardSMTPNotifs"]["smtp_info"]==1){
+					if($severity==2){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs/$md5.log", $serialize);}
+				}			
+				
+				if($GLOBALS["UfdbguardSMTPNotifs"]["smtp_critic"]==1){
+					if($severity==0){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs/$md5.log", $serialize);}
+				}	
+			}		
+		return;
+		}
+	}
+	
+
 	if($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]==0){
 		$subject=substr($text, 0,80);
 		$unix=new unix();
 		$text=$text."Date: {$array["zdate"]}\nFunction:{$array["function"]}\nFile:{$array["file"]}\nLine:{$array["line"]}\n";
-		$unix->send_email_events("[Proxy Service]: $subject", "$text", "system");
+		$unix->send_email_events("[Proxy Service]: $subject", "$text", "proxy");
 		
 	}
 	
@@ -6603,12 +8043,11 @@ function squid_admin_notifs($text,$function,$file,$line,$category,$taskid=0){
 	$unix=new unix();
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}
 	$unix->events($text,"/var/log/squid.watchdog.log",false,$sourcefunction,$sourceline);
-	
-	
-	
-	
-	
 }
+
+
+
+
 function system_user_events($uid,$text,$function,$file,$line,$category,$taskid=0){
 	$mem=round(((memory_get_usage()/1024)/1000),2);
 	$array_load=sys_getloadavg();
@@ -6627,9 +8066,55 @@ function system_user_events($uid,$text,$function,$file,$line,$category,$taskid=0
 	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/system_users_events")){@mkdir("/var/log/artica-postfix/system_users_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/system_users_events/$md5.log", $serialize);	
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/system_users_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/system_users_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/system_users_events/$md5.log", $serialize);	
 	
+}
+
+function sarg_admin_events($text,$function,$file=null,$line=0,$category=null,$taskid=0){
+	$date=date("Y-m-d H:i:s");
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){$file=basename($trace[1]["file"]);}
+			if($function==null){$function=$trace[1]["function"];}
+			if($line==0){$line=$trace[1]["line"];}
+		}
+			
+	}
+	
+	$mem=round(((memory_get_usage()/1024)/1000),2);
+	$array_load=sys_getloadavg();
+	$internal_load=$array_load[0];
+	$text=$text."\nMemory used for this script:{$mem}M; System Load: $internal_load";
+	
+	if(!isset($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	if($taskid>0){$GLOBALS["SCHEDULE_ID"]=$taskid;}
+	if($GLOBALS["VERBOSE"]){echo "$function:: $text in line $line in file $file\n";}
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["text"]=$text;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["category"]=$category;
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/sarg_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sarg_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sarg_admin_events/$md5.log", $serialize);
+}
+
+
+function squid_status_sub_percentage($text,$purc){
+
+
+	$array["TITLE"]=$text;
+	$array["POURC"]=$purc;
+
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.sub.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.sub.progress.inc",0755);
+
+
 }
 
 function ufdbguard_admin_events($text,$function,$file=null,$line=0,$category=null,$taskid=0){
@@ -6646,11 +8131,22 @@ function ufdbguard_admin_events($text,$function,$file=null,$line=0,$category=nul
 			
 	}	
 	
-	if($file=="exec.sarg.php"){$category="sarg";}
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $text ." [$function/$line]");
+		closelog();
+	}
+	
+	if($file=="exec.sarg.php"){
+		sarg_admin_events($text,$function,$file,$line,$category,$taskid);
+		return;
+	}
 
 	if($category=="sarg"){
-		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
-		$GLOBALS["CLASS_UNIX"]->events($text,"/var/log/sarg-exec.log",false,$function,$line,$file);
+		sarg_admin_events($text,$function,$file,$line,$category,$taskid);
+		return;
 	}
 	
 	
@@ -6691,22 +8187,22 @@ function ufdbguard_admin_events($text,$function,$file=null,$line=0,$category=nul
 	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/ufdbguard_admin_events")){@mkdir("/var/log/artica-postfix/ufdbguard_admin_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/ufdbguard_admin_events/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard_admin_events/$md5.log", $serialize);
 	
 	$update["exec.update.squid.tlse.php"]=true;
 	$update["exec.update.blacklist.instant.php"]=true;
 	$update["exec.squid.blacklists.php"]=true;
 	
 	if($file=="exec.squidlogs.purge.php"){
-		if(!is_dir("/var/log/artica-postfix/squid-stats-purge")){@mkdir("/var/log/artica-postfix/squid-stats-purge",0755,true);}
-		@file_put_contents("/var/log/artica-postfix/squid-stats-purge/$md5.log", $serialize);
+		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/squid-stats-purge")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/squid-stats-purge",0755,true);}
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/squid-stats-purge/$md5.log", $serialize);
 	}
 	
 	if(!isset($update[basename($file)])){return;}
 	if($update[basename($file)]){
-		if(!is_dir("/var/log/artica-postfix/ufdbguard_update_events")){@mkdir("/var/log/artica-postfix/ufdbguard_update_events",0755,true);}
-		@file_put_contents("/var/log/artica-postfix/ufdbguard_update_events/$md5.log", $serialize);
+		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard_update_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard_update_events",0755,true);}
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard_update_events/$md5.log", $serialize);
 	
 	}	
 	
@@ -6723,8 +8219,8 @@ function mysql_admin_events($text,$function,$file,$line,$category=null){
 	$array["category"]=$category;
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/mysql_admin_events")){@mkdir("/var/log/artica-postfix/mysql_admin_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/mysql_admin_events/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/mysql_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/mysql_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/mysql_admin_events/$md5.log", $serialize);
 	
 	
 }
@@ -6739,9 +8235,11 @@ function update_events($text,$function,$file,$line,$category=null){
 	$array["category"]=$category;
 	$serialize=serialize($array);
 	$md5=md5($serialize);
-	if(!is_dir("/var/log/artica-postfix/update_admin_events")){@mkdir("/var/log/artica-postfix/update_admin_events",0755,true);}
-	@file_put_contents("/var/log/artica-postfix/update_admin_events/$md5.log", $serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/update_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/update_admin_events",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/update_admin_events/$md5.log", $serialize);
 }
+
+
 
 
 ?>

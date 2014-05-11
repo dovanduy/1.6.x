@@ -47,7 +47,7 @@ function popup(){
 	
 	$html="
 	<div id='$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 			$p
 	<div style='width:100%;text-align:right'>".button("{apply}","Save$t();",18)."</div>
 	<script>

@@ -40,6 +40,14 @@ function start($xtime=0){
 	
 	if($GLOBALS["VERBOSE"]){"echo Loading...\n";}
 	$unix=new unix();
+	
+	$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__));
+	if(count($pids)>5){
+		die();
+	}
+	
+	
+	
 	if($xtime==0){
 		if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -123,27 +131,17 @@ function start($xtime=0){
 			$q->QUERY_SQL($sql);	
 
 			
-			if(!$q->TABLE_EXISTS($members_table)){
-				$cmd="$nohup $php /usr/share/artica-postfix/exec.squid.stats.members.hours.php $tablename $members_table >/dev/null 2>&1 &";
-				if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-				shell_exec($cmd);
-			}else{
-				if($q->COUNT_ROWS($members_table)==0){
-					$cmd="$nohup $php /usr/share/artica-postfix/exec.squid.stats.members.hours.php $tablename $members_table >/dev/null 2>&1 &";
-					if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
-					shell_exec($cmd);
-					
-				}else{
-					$MembersField=which_filter($members_table,true);
-					if($GLOBALS["VERBOSE"]){echo "Table members Calculate Members by $MembersField\n";}
-					if($MembersField<>null){
-						$MembersCount=CalculateElements($members_table,$MembersField);
-						$sql="UPDATE tables_day SET `MembersCount`=$MembersCount WHERE tablename='$tablename'";
-						if($GLOBALS["VERBOSE"]){echo $sql."\n";}
-						$q->QUERY_SQL($sql);
-					}				
-				}
-			}
+			if(!$q->TABLE_EXISTS($members_table)){continue;}
+			$MembersField=which_filter($members_table,true);
+			if($GLOBALS["VERBOSE"]){echo "Table members Calculate Members by $MembersField\n";}
+			if($MembersField<>null){
+				$MembersCount=CalculateElements($members_table,$MembersField);
+				$sql="UPDATE tables_day SET `MembersCount`=$MembersCount WHERE tablename='$tablename'";
+				if($GLOBALS["VERBOSE"]){echo $sql."\n";}
+				$q->QUERY_SQL($sql);
+			}				
+				
+		
 
 		}
 		
@@ -154,10 +152,7 @@ function start($xtime=0){
 			$YouTubeHits=$ligne2["tcount"];
 			$sql="UPDATE tables_day SET `YouTubeHits`=$YouTubeHits WHERE tablename='$tablename'";
 			$q->QUERY_SQL($sql);
-		}else{
-			$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /exec.squid.stats.youtube.days.php --xtime $myXtime >/dev/null 2>&1 &";
-			shell_exec($cmdline);
-		}		
+		}	
 		
 		
 		if($q->TABLE_EXISTS($KeyWordsTable)){
@@ -170,10 +165,8 @@ function start($xtime=0){
 
 	}
 	
-	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /exec.squid.stats.youtube.days.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
-	shell_exec($cmdline);
-	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.stats.global.categories.php >/dev/null 2>&1 &");
-	shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.stats.dangerous.php  >/dev/null 2>&1 &");
+	
+
 	
 }
 function CalculateElements($tablename,$groupby){

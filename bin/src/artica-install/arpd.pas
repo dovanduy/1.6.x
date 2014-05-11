@@ -28,7 +28,7 @@ public
     function    BIN_PATH():string;
     function    PID_NUM():string;
    procedure    RELOAD();
-   procedure    INSTALL_INIT_D();
+
 
 
 END;
@@ -48,69 +48,6 @@ end;
 procedure tarpd.free();
 begin
     logs.Free;
-end;
-//##############################################################################
-procedure tarpd.INSTALL_INIT_D();
-var
-   l:Tstringlist;
-begin
-l:=Tstringlist.Create;
-l.add('#!/bin/sh');
- if fileExists('/sbin/chkconfig') then begin
-    l.Add('# chkconfig: 2345 11 89');
-    l.Add('# description: Artica-status Daemon');
- end;
-l.add('### BEGIN INIT INFO');
-l.add('# Provides:          Artica-status ');
-l.add('# Required-Start:    $local_fs');
-l.add('# Required-Stop:     $local_fs');
-l.add('# Should-Start:');
-l.add('# Should-Stop:');
-l.add('# Default-Start:     2 3 4 5');
-l.add('# Default-Stop:      0 1 6');
-l.add('# Short-Description: Start Artica status daemon');
-l.add('# chkconfig: 2345 11 89');
-l.add('# description: Artica status Daemon');
-l.add('### END INIT INFO');
-l.add('');
-l.add('case "$1" in');
-l.add(' start)');
-l.add('    /usr/share/artica-postfix/bin/artica-install -watchdog arpd $2');
-l.add('    ;;');
-l.add('');
-l.add('  stop)');
-l.add('    /usr/share/artica-postfix/bin/artica-install -shutdown arpd $2');
-l.add('    ;;');
-l.add('');
-l.add(' restart)');
-l.add('     /usr/share/artica-postfix/bin/artica-install -shutdown arpd $2');
-l.add('     sleep 3');
-l.add('     /usr/share/artica-postfix/bin/artica-install -watchdog arpd $2');
-l.add('    ;;');
-l.add('');
-l.add('  *)');
-l.add('    echo "Usage: $0 {start|stop|restart}"');
-l.add('    exit 1');
-l.add('    ;;');
-l.add('esac');
-l.add('exit 0');
-
-logs.WriteToFile(l.Text,'/etc/init.d/arpd');
- fpsystem('/bin/chmod +x /etc/init.d/arpd >/dev/null 2>&1');
-
- if FileExists('/usr/sbin/update-rc.d') then begin
-    fpsystem('/usr/sbin/update-rc.d -f arpd defaults >/dev/null 2>&1');
- end;
-
-  if FileExists('/sbin/chkconfig') then begin
-     fpsystem('/sbin/chkconfig --add arpd >/dev/null 2>&1');
-     fpsystem('/sbin/chkconfig --level 2345 arpd on >/dev/null 2>&1');
-  end;
-
-   LOGS.Debuglogs('Starting......: ARP Daemon install init.d scripts........:OK (/etc/init.d/arpd {start,stop,restart})');
-
-
-
 end;
 //##############################################################################
 procedure tarpd.STOP();
@@ -215,7 +152,7 @@ begin
          exit;
    end;
 
-   if not FileExists('/etc/init.d/arpd') then  INSTALL_INIT_D();
+
 
 if EnableArpDaemon=0 then begin
    logs.DebugLogs('Starting......: ARP Daemon is disabled');

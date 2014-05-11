@@ -11,8 +11,8 @@ include_once(dirname(__FILE__).'/ressources/class.user.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__) . '/framework/frame.class.inc');
 
-$GLOBALS["deflog_start"]="Starting......: [INIT]: iSCSI target";
-$GLOBALS["deflog_sstop"]="Stopping......: [INIT]: iSCSI target";
+$GLOBALS["deflog_start"]="Starting......: ".date("H:i:s")." [INIT]: iSCSI target";
+$GLOBALS["deflog_sstop"]="Stopping......: ".date("H:i:s")." [INIT]: iSCSI target";
 
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}

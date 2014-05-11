@@ -5,6 +5,8 @@ if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 @header("Expires: 0");
 @header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
 @header("Cache-Control: no-cache, must-revalidate");
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
+if(isset($GLOBALS["DEBUG_PROCESS"])){include_once(dirname(__FILE__)."/logs.inc");}
 
 if(!isset($GLOBALS["EXECUTED_AS_ROOT"])){if(function_exists("posix_getuid")){$GLOBALS["posix_getuid"]=posix_getuid();if($GLOBALS["posix_getuid"]==0){$GLOBALS["EXECUTED_AS_ROOT"]=true;}else{$GLOBALS["EXECUTED_AS_ROOT"]=false;}}}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
@@ -20,7 +22,7 @@ if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUN
 include_once(dirname(__FILE__) . "/class.sockets.inc");
 debug_mem();
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-date_default_timezone_set(getLocalTimezone());
+getLocalTimezone();
 debug_mem();
 include_once(dirname(__FILE__) . '/class.ldap.inc');
 debug_mem();
@@ -35,6 +37,7 @@ debug_mem();
 if(is_file(dirname(__FILE__) . '/class.html.tools.inc')){include_once(dirname(__FILE__).  '/class.html.tools.inc');}
 debug_mem();
 include_once(dirname(__FILE__).  '/class.ini.inc');
+include_once(dirname(__FILE__).  '/class.tcpip.inc');
 debug_mem();
 if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 include_once(dirname(__FILE__).  '/class.mysql.inc');
@@ -123,18 +126,14 @@ class templates{
 		
 			$GLOBALS["CURRENT_PAGE"]=CurrentPageName();
 			if(!isset($GLOBALS["DEBUG_TEMPLATE"])){$GLOBALS["DEBUG_TEMPLATE"]=false;}
-			if(!is_file(dirname(__FILE__) . '/settings.inc')){
-				if($GLOBALS["EXECUTED_AS_ROOT"]){
-					shell_exec("/usr/share/artica-postfix/bin/process1 --force");
-				}
-			}
+			$this->SettingsInc();
 			
 			if(is_file(dirname(__FILE__) . '/settings.inc')){@include(dirname(__FILE__) . '/settings.inc');$this->GLOBAL_CONFIG=$_GLOBAL;}
 			if(!isset($this->GLOBAL_CONFIG["AutomaticConfig"])){$this->GLOBAL_CONFIG["AutomaticConfig"]=0;}
 			$this->AutomaticConfig=$this->GLOBAL_CONFIG["AutomaticConfig"];
 			$this->array_config=$arrayConfig;
 			if($do_nothing==1){
-				if(isset($GLOBALS["DEBUG_TEMPLATE"])){if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}=> DO NOTHING... class".__CLASS__ ."(".__FUNCTION__.") in " . basename(__FILE__). " line ".__LINE__);}}else{$GLOBALS["DEBUG_TEMPLATE"]=false;}
+				if(isset($GLOBALS["DEBUG_TEMPLATE"])){if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}=> DO NOTHING... class".__CLASS__ ."(".__FUNCTION__.") in " . basename(__FILE__). " line ".__LINE__);}}else{$GLOBALS["DEBUG_TEMPLATE"]=false;}
 				return false;
 			}
 			
@@ -144,7 +143,7 @@ class templates{
 			if($this->language==null){
 				if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				$this->language=$this->_detect_lang();
-				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." _detect_lang() return `$this->language` in " . basename(__FILE__). " line ".__LINE__);}
+				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." _detect_lang() return `$this->language` in " . basename(__FILE__). " line ".__LINE__);}
 			} 
 			
 			$this->headers();
@@ -154,21 +153,17 @@ class templates{
 			$this->_parse_body();
 			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			}
+			
+	private function SettingsInc(){
+		if(is_file(dirname(__FILE__) . '/settings.inc')){return;}
+		if(!$GLOBALS["EXECUTED_AS_ROOT"]){return;}
+		if(!class_exists("unix")){return;}
+		$unix=new unix();
+		$unix->Process1(true);
 	
-	function search_menus(){
-		if(isset($_SESSION["uid"])){
-			if(!isset($_GET["finduser"])){$_GET["finduser"]="";}
-		$html="<div class=search><strong style='color:#CCCCCC' >{members}:</strong>&nbsp;
-		<input type='text' value='{$_GET["finduser"]}' id='finduser' style='border:1px solid #000000;width:120px' OnKeyPress=\"javascript:Findusr(event);\">
-		&nbsp;<input type='submit' value='{search}&nbsp;&raquo' style='margin-bottom:0px;font-size:12px' OnClick=\"javascript:FindUser();\">
-		</div>";
-		if(is_file("ressources/templates/{$_COOKIE["artica-template"]}/SEARCH_MENU")){$html=@file_get_contents("ressources/templates/{$_COOKIE["artica-template"]}/SEARCH_MENU");}
-		
-		
-		return $this->_ENGINE_parse_body($html);
-		}
-		
 	}
+	
+	function search_menus(){}
 	
 	function headers($array=array()){
 		if(!isset($array["TITLE"])){$array["TITLE"]=null;}
@@ -237,9 +232,22 @@ class templates{
 		$content=str_replace("<br>", "\n", $content);
 		$content=str_replace("\n\n", "\n", $content);
 		$content=str_replace("\n\n", "\n", $content);
+		$content=str_replace("&nbsp;", " ", $content);
 		//$content=replace_accents($content);
 		$content=html_entity_decode($content);
-		$content=utf8_encode($content);
+		$content=replace_accents($content);
+		if(!isset($_SESSION["DoNotutf8EncodeJS"])){
+			$sock=new sockets();
+			$_SESSION["DoNotutf8EncodeJS"]=$sock->GET_INFO("DoNotutf8EncodeJS");
+			if(!is_numeric($_SESSION["DoNotutf8EncodeJS"])){$_SESSION["DoNotutf8EncodeJS"]=0;}
+		}
+		
+		$DoNotutf8EncodeJS=$_SESSION["DoNotutf8EncodeJS"];
+		if($this->language=="fr"){$DoNotutf8EncodeJS=1;}
+		
+		if($DoNotutf8EncodeJS==0){
+			$content=utf8_encode($content);
+		}
 		
 		if($noremovecrlf==0){
 			$content=nl2br($content);
@@ -254,6 +262,7 @@ class templates{
 		}
 		return $content;
 	}
+
 	
 	private function get_cached_text($text){
 		if(strpos(" $text", " document.getElementById")>0){return;}
@@ -290,34 +299,29 @@ class templates{
 		}
 		
 		if($this->language==null){
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." undefined language, language will be en " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." undefined language, language will be en " . basename(__FILE__). " line ".__LINE__);}
 			$this->language="en";
 		}
 		
 		$_SESSION["detected_lang"]=$this->language;
-		if(!isset($_SESSION["translation"])){$_SESSION["translation"]=array();}
-		if(count($_SESSION["translation"])<100){
-			if(count($GLOBALS["translation"])>100){
-				$_SESSION["translation"]=$GLOBALS["translation"];
-			}
-		}
+		if(!isset($GLOBALS["translation"])){$GLOBALS["translation"]=array();}
 		
-		if(count($_SESSION["translation"])<100){
-			writelogs("Dumping $this->language translation=".count($_SESSION["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			$_SESSION["translation"]=$sock->LANGUAGE_DUMP($this->language);
-			$GLOBALS["translation"]=$_SESSION["translation"];
-			writelogs("Dumping $this->language DONE: translation=".count($_SESSION["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." Load ". count($_SESSION["translation"])." rows into $this->language session language" . basename(__FILE__). " line ".__LINE__);} 
+		if(count($GLOBALS["translation"])<100){
+			writelogs("Dumping $this->language translation=".count($GLOBALS["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$GLOBALS["translation"]=$sock->LANGUAGE_DUMP($this->language);
+			
+			writelogs("Dumping $this->language DONE: translation=".count($GLOBALS["translation"])." items..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." Load ". count($GLOBALS["translation"])." rows into $this->language session language" . basename(__FILE__). " line ".__LINE__);} 
 			
 		}
 		
 		$value=null;
-		if(!isset($_SESSION["translation-en"])){$_SESSION["translation-en"]=array();}
-		if(isset($_SESSION["translation"][$text])){$value=$_SESSION["translation"][$text];}
+		if(!isset($GLOBALS["translation-en"])){$GLOBALS["translation-en"]=array();}
+		if(isset($GLOBALS["translation"][$text])){$value=$GLOBALS["translation"][$text];}
 		if($value==null){
 		//	writelogs("Warning !! _SESSION[\"translation\"][$text] as no translation... choose the en traslation",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-			if(count($_SESSION["translation-en"])<100){$_SESSION["translation-en"]=$sock->LANGUAGE_DUMP("en");}
-			if(isset($_SESSION["translation-en"][$text])){$value=$_SESSION["translation-en"][$text];}
+			if(count($GLOBALS["translation-en"])<100){$GLOBALS["translation-en"]=$sock->LANGUAGE_DUMP("en");}
+			if(isset($GLOBALS["translation-en"][$text])){$value=$GLOBALS["translation-en"][$text];}
 		}
 		
 		return $value;
@@ -355,7 +359,12 @@ class templates{
 	
 	
 	
+	
+	
+	
+	
 	function _ENGINE_parse_body($content=null,$currpage=null){
+		if(isset($GLOBALS["AS_ROOT"])){if($GLOBALS["AS_ROOT"]){return $content;}}
 		if(is_array($content)){return ;}
 		if(!isset($content)){return;}
 		if(empty($content)){return;}
@@ -366,8 +375,7 @@ class templates{
 			if(isset($GLOBALS["_ENGINE_parse_body"][$key])){return $GLOBALS["_ENGINE_parse_body"][$key];}
 		}
 		
-		$content=str_replace("valign='top'", "valign='top' style='vertical-align:top'", $content);
-		$content=str_replace("valign=\"top\"", "valign=\"top\" style=\"vertical-align:top\"", $content);
+
 		
 		
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
@@ -385,10 +393,10 @@ class templates{
 		}
 		
 		if($this->language==null){
-				if($GLOBALS["DEBUG_TEMPLATE"]){writelogs("Language is null...",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
-				
+			if($GLOBALS["DEBUG_TEMPLATE"]){writelogs("Language is null...",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		}
-		if($GLOBALS["DEBUG_TEMPLATE"]){writelogs("Language: $this->language",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		
+		
 		if(is_array($content)){$content=implode(" ",$content);}
 		
 		if(preg_match_all('#{(.+?)}#is',$content,$regs)){
@@ -479,7 +487,7 @@ class templates{
 			return $content; 
 			return null;
 			}else{
-				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." Error while open $filepath  in " . basename(__FILE__). " line ".__LINE__);}
+				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." Error while open $filepath  in " . basename(__FILE__). " line ".__LINE__);}
 			}
 		
 	}
@@ -491,11 +499,7 @@ class templates{
 	
 	
 	function build_left_menus(){
-		if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/class.menus.inc\n";}
-		include_once(dirname(__FILE__) . "/class.menus.inc");
-		$menus=new leftmenus();
-		return $menus->html;
-		
+		return;
 		
 	}
 	
@@ -503,53 +507,16 @@ class templates{
 
 	
 	function BuildMenusBarr($menus){
-		return "<div id='template-top-menus'></div><script>AjaxTopMenu('template-top-menus','admin.top.menus.php');</script>";
-		if(!isset($_SESSION["uid"])){unset($_SESSION["TEMPLATE_TOP_MENUS"]);return null;}
-		if(isset($_SESSION["TEMPLATE_TOP_MENUS"])){return $_SESSION["TEMPLATE_TOP_MENUS"];}
-		if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
-		$tpl=new templates(null,null,null,1);
-		while (list ($num, $ligne) = each ($menus)){
-			$text=$this->_ENGINE_parse_body($num);
-			if(strlen($text)>20){$text=texttooltip(substr($text,0,17).'...',$text,null,null,1);}
-			$newarray[$num]=array("URI"=>$ligne,"TEXT"=>$text);
-		}
-		reset($menus);
-		
-		if(file_exists("ressources/templates/{$_COOKIE["artica-template"]}/menus-top-in-line")){
-			while (list ($num, $ligne) = each ($newarray) ){
-			if($page==$ligne){
-				$class="id='current'";
-			}else{$class=null;}
-			$html=$html . "\t\t<a href=\"{$ligne["URI"]}\" title=\"$num\">{$ligne["TEXT"]}</a><span>|</span>\n";
-			}
-			$this->menus= $html;
-			return ;
-		}
-		
-		
-		
-		$html="<div id='template-top-menus'></div><script>LoadAjax('template-top-menus','admin.top.menus.php');</script>";
-		return $html;
-		$html="
-		<div id=menu_top>
-		<ul>";
-		while (list ($num, $ligne) = each ($newarray) ){
-			if($page==$ligne){
-				$class="id='current'";
-			}else{$class=null;}
-			$html=$html . "\t\t<li $class><a href='{$ligne["URI"]}'>{$ligne["TEXT"]}</a></li>\n";
-			
-		}
-		$html=$html."<li id='topemnucurrentdate'></li>\n";
-		$html=$html . "</ul>
-		</div>";
-		$_SESSION["TEMPLATE_TOP_MENUS"]=$html;
-		return $html;
+		return "<div id='template-top-menus' style='position:static;min-width:768px;height:45px;background-color:#005447;color:white' >
+				</div>
+					<script>AjaxTopMenu('template-top-menus','admin.top.menus.php');</script>";
+
 		}	
 	
 	
 	function Build_high_menus(){
-		return "<div id='div-high-menus'>
+		return null;
+		return "<div id='div-high-menus' style='margin-top:-7px'>
 			<table style='width:80%;padding:0px;margin:0px;border:0px;margin-top:2px'>
 			<tr>
 				<td>&nbsp;</td>
@@ -582,10 +549,10 @@ class templates{
 			$GLOBALS["CHANGE_TEMPLATE"]="default";
 		}
 		
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}:::LANG:[{$_SESSION["detected_lang"]}]::".__FUNCTION__." open $template_path in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:::LANG:[{$_SESSION["detected_lang"]}]::".__FUNCTION__." open $template_path in " . basename(__FILE__). " line ".__LINE__);}
 		if(strlen($_SESSION["detected_lang"])<2){
 				$_SESSION["detected_lang"]=$this->_detect_lang();
-				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}:::LANG:[{$_SESSION["detected_lang"]}] new LANG IS NOW {$_SESSION["detected_lang"]}::".__FUNCTION__." open $template_path ". strlen($template)." bytes in " . basename(__FILE__). " line ".__LINE__);}
+				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:::LANG:[{$_SESSION["detected_lang"]}] new LANG IS NOW {$_SESSION["detected_lang"]}::".__FUNCTION__." open $template_path ". strlen($template)." bytes in " . basename(__FILE__). " line ".__LINE__);}
 		}
 		if($GLOBALS["VERBOSE"]){echo "Template: open $template_path\n";if(function_exists("debug_mem")){debug_mem();}}
 		$template=$this->_readfile($template_path);
@@ -605,7 +572,7 @@ class templates{
 		if($GLOBALS["DEBUG_TEMPLATE"]){
 			$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
 			if(function_exists("getmypid")){$getmypid="PID:".getmypid()." ";}
-			error_log("{$GLOBALS["CURRENT_PAGE"]}::$getmypid:LANG:[{$_SESSION["detected_lang"]}]".__FUNCTION__." finish ". strlen($template)." bytes $called in " . basename(__FILE__). " line ".__LINE__);
+			error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::$getmypid:LANG:[{$_SESSION["detected_lang"]}]".__FUNCTION__." finish ". strlen($template)." bytes $called in " . basename(__FILE__). " line ".__LINE__);
 		}
 		$this->body=$template;
 	}
@@ -619,9 +586,11 @@ function _get_env_var($Var){
 function _detect_lang(){
 		if(!isset($_COOKIE["artica-language"])){$_COOKIE["artica-language"]=null;}
 	
-		if(!isset($_SESSION["MINIADM"])){
-				$_SESSION["MINIADM"]=false;
-				setcookie("MINIADM", "NO", time()+1000);
+		if(!$GLOBALS["AS_ROOT"]){
+			if(!isset($_SESSION["MINIADM"])){
+					$_SESSION["MINIADM"]=false;
+					setcookie("MINIADM", "NO", time()+1000);
+			}
 		}
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 		if($GLOBALS["EXECUTED_AS_ROOT"]){
@@ -636,18 +605,18 @@ function _detect_lang(){
 		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>artica-language {$_COOKIE["artica-language"]}</strong><br>\n";}
 		if(isset($_COOKIE["artica-language"])){return $_COOKIE["artica-language"];}
 		$GLOBALS["CURRENT_PAGE"]=CurrentPageName();
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}] => language: _COOKIE=`{$_COOKIE["artica-language"]}` _SESSION=`{$_SESSION["detected_lang"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		if(!isset($_SESSION["detected_lang"])){$_SESSION["detected_lang"]=null;}
 		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>detected_lang {$_SESSION["detected_lang"]}</strong><br>\n";}
 		
 		
 		if($_SESSION["detected_lang"]<>null){
 			$this->language=$_SESSION["detected_lang"];
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::return _SESSION[detected_lang] {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::return _SESSION[detected_lang] {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			return $_SESSION["detected_lang"];
 		}
 		if($_COOKIE["artica-language"]<>null){
-		  	if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::return _COOKIE[artica-language] {$_COOKIE["artica-language"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		  	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::return _COOKIE[artica-language] {$_COOKIE["artica-language"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			$this->language=$_COOKIE["artica-language"];
 			return $_COOKIE["artica-language"];
 		}
@@ -656,20 +625,20 @@ function _detect_lang(){
 		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>language $this->language</strong><br>\n";}
 	 if($this->language==null){
 	 	if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/class.langages.inc");}
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::this->language is null function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::this->language is null function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	 	if(!$GLOBALS["EXECUTED_AS_ROOT"]){
 				if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 				$disk_session_language=$sock->GET_INFO("session_language");
-	 			if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::disk_session_language return `$disk_session_language` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	 			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::disk_session_language return `$disk_session_language` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 				if($disk_session_language==null){
 					$langAutodetect=new articaLang();
 					$DetectedLanguage=$langAutodetect->get_languages();
-					if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::->get_languages() return `$DetectedLanguage` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+					if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::->get_languages() return `$DetectedLanguage` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 					if($DetectedLanguage<>null){$disk_session_language=$DetectedLanguage;}
 				}
 				
 				if($disk_session_language==null){
-					if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::-disk_session_language return NULL, force to EN LANG function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+					if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::-disk_session_language return NULL, force to EN LANG function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 				    $disk_session_language="en";
 				}
 				$this->language=$disk_session_language;
@@ -680,7 +649,7 @@ function _detect_lang(){
 	if(isset($_SESSION["detected_lang"])){
 		$langfile=dirname(__FILE__)  ."/language/{$_SESSION["detected_lang"]}.db";
 		if(!is_file($langfile)){
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE:Unable to stat $langfile, return EN  has default language function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE:Unable to stat $langfile, return EN  has default language function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			writelogs("LANGUAGE:Unable to stat $langfile, return en language has default",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return "en";}else{return $_SESSION["detected_lang"];
 		}
@@ -689,18 +658,18 @@ function _detect_lang(){
 	 
 	if(isset($_SESSION["OU_LANG"])){
 		if(trim($_SESSION["OU_LANG"])<>null){
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." OU_LANG=`{$_SESSION["OU_LANG"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);} 
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::".__FUNCTION__." OU_LANG=`{$_SESSION["OU_LANG"]}` function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);} 
 			$_SESSION["detected_lang"]=$_SESSION["OU_LANG"];
 			return $_SESSION["OU_LANG"];
 		}
 	}
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE:Unable to define language.... function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE:Unable to define language.... function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	
 	
 	include_once(dirname(__FILE__)."/class.langages.inc");
 	$lang=new articaLang();
 	$_SESSION["detected_lang"]=$lang->get_languages();
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::LANGUAGE: lang->get_languages() return {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::LANGUAGE: lang->get_languages() return {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	writelogs("LANGUAGE: lang->get_languages() return {$_SESSION["detected_lang"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 	setcookie("artica-language", $_SESSION["detected_lang"], time()+172800);
 	if(strlen($_SESSION["detected_lang"])>1){return $_SESSION["detected_lang"];}
@@ -871,9 +840,8 @@ $tpl=new templates();
 		$rand=base_convert($n, 10, 36);	
 		$id=md5($help.$rand);
 		$help_source=$help;
-		$help_source=str_replace('{','',$help_source);
-		$help_source=str_replace('}','',$help_source);
-		$help_source=base64_encode($help_source);
+		
+		$help_source=urlencode(base64_encode($help_source));
 		$myfloat="float:right";
 		if($no_float>0){$myfloat=null;}
 		if($additional_langfile==null){$additional_langfile=CurrentPageName();}
@@ -908,6 +876,7 @@ $tpl=new templates();
 
 
 $help_source=$help;
+$help_source1=urlencode(base64_encode($help));
 		$help_source=str_replace('{','',$help_source);
 		$help_source=str_replace('}','',$help_source);
 		$help=str_replace("[br][br]","[br]",$help);
@@ -932,7 +901,7 @@ return "
 		OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" 
 		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
 		style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\" 
-		OnClick=\"javascript:LoadHelp('$help_source','$additional_langfile',false);\">
+		OnClick=\"javascript:Loadjs('admin.help.php?text=$help_source1');\">
 		</div>";	
 	
 }
@@ -946,21 +915,57 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	$size=null;
 	$disa=null;
 	$jsAddInside=null;
+	$jsCheck=null;
+	$watermark="{$_SERVER["REMOTE_ADDR"]}";
+	$width=160;
+	if(preg_match("#font-size:([0-9]+)px#", $style,$re)){
+		$defined_size=intval($re[1]);
+		if($defined_size>16){$width=170;}
+	}
 	
 	
-	$FocusCss="onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class";
+	if(preg_match("#(netmask)#", $field_name)){
+		$watermark="255.255.255.0";
+	}
+	if(preg_match("#(cdir|network)#", $field_name)){
+		$t=explode(".",$_SERVER["REMOTE_ADDR"]);
+		unset($t[count($t)-1]);
+		$ipaddr=@implode(".", $t).".0";
+		$watermark="$ipaddr/32";
+	}
+	
+	if(preg_match("#(broadcast)#", $field_name)){
+		$t=explode(".",$_SERVER["REMOTE_ADDR"]);
+		unset($t[count($t)-1]);
+		$watermark=@implode(".", $t).".255";
+	}
+	
+	if(preg_match("#(gateway)#", $field_name)){
+		$t=explode(".",$_SERVER["REMOTE_ADDR"]);
+		unset($t[count($t)-1]);
+		$watermark=@implode(".", $t).".1";
+	}	
+	
+	$FocusCss="onfocus=\"this.setAttribute('class','active')\" 
+	onblur=\"this.removeAttribute('class');\" style='$style' $class";
 	if($_SESSION["MINIADM"]==true){
 		$FocusCss=null;
 	}
 	
 	if(preg_match("#.+?:(.+)#",$jsAdd)){$jsAddInside=$jsAdd;}
+	if(preg_match("#\(event\)#",$jsAdd)){$jsCheck=$jsAdd;}
+	
+	if($jsCheck<>null){
+		$jsCheck="OnKeyPress=\"$jsCheck\"";
+	}
 	
 	return "$help
-	<input type='text' id='$field_name' name='$field_name' $jsAddInside value=\"$defaultvalue\" style=\"$style;min-width:145px\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>
+	<input type='text' id='$field_name' name='$field_name' $jsAddInside$jsCheck value=\"$defaultvalue\" 
+	style=\"$style;min-width:145px;width:{$width}px\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>
 <script>
 	
 	$(function(){
-    	$('#$field_name').ipAddress();
+    	  $('#$field_name').watermark('$watermark');
 	});
 	
 	</script>	
@@ -994,7 +999,7 @@ $html="
 	<td width=1% nowrap class='FieldIpv4'>" . Field_text($field_name.'_2',$re[3],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 	<td style='font-size:13px;padding:0px;margin:0px;height:auto;width:auto' width=1% nowrap>.</td>
 	<td width=1% nowrap class='FieldIpv4'>" . Field_text($field_name.'_3',$re[4],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
-	<td width=1% nowrap><span id='ico-ipv4-$field_name'><img src=img/icon_ok.gif></span></td>
+	<td width=1% nowrap><span id='ico-ipv4-$field_name'><img src=img/ok16.png></span></td>
 	
 </tr>
 </table>
@@ -1025,10 +1030,10 @@ $('input[id^={$field_name}_]').keypress(function(event){
     	if(document.getElementById('{$field_name}_'+next)){ $('#{$field_name}_'+next).focus();}
    	 	document.getElementById('$field_name').value=document.getElementById('{$field_name}_0').value+'.'+document.getElementById('{$field_name}_1').value+'.'+document.getElementById('{$field_name}_2').value+'.'+document.getElementById('{$field_name}_3').value;
     	$jsAdd;
-    	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_ok.gif>';
+    	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/ok16.png>';
    	 	if(!ValidateIPAddress(document.getElementById('$field_name').value)){
    	 		document.getElementById('$field_name').value='';
-			document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_mini_warning.gif>';
+			document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/status_warning.png>';
 		}
     	return false;
     } 
@@ -1044,12 +1049,12 @@ $('input[id^={$field_name}_]').keypress(function(event){
   
   
 $('input[id^={$field_name}_]').change(function () {
-	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_ok.gif>';
+	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/ok16.png>';
 	document.getElementById('$field_name').value=document.getElementById('{$field_name}_0').value+'.'+document.getElementById('{$field_name}_1').value+'.'+document.getElementById('{$field_name}_2').value+'.'+document.getElementById('{$field_name}_3').value;
 	$jsAdd;
 	if(!ValidateIPAddress(document.getElementById('$field_name').value)){
 		document.getElementById('$field_name').value='';
-		document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_mini_warning.gif>';
+		document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/status_warning.png>';
 	}
    
 })
@@ -1088,7 +1093,7 @@ $html="
 	<td width=1% nowrap>" . Field_text($field_name.'_2',$re[3],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 	<td style='font-size:{$fontsize}px;padding:0px;margin:0px;height:auto;width:auto' width=1% nowrap>.</td>
 	<td width=1% nowrap>" . Field_text($field_name.'_3',$re[4],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
-	<td width=1% nowrap><span id='ico-ipv4-$field_name'><img src=img/icon_ok.gif></span></td>
+	<td width=1% nowrap><span id='ico-ipv4-$field_name'><img src=img/ok16.png></span></td>
 	<td width=1% style='font-size:{$fontsize}px;padding:0px;margin:0px;height:auto;width:auto' width=1% nowrap>/</td>
 	<td width=1% nowrap>" . Field_text($field_name.'_4',$re[5],"width:{$withPX}px;$style;padding:3px;text-align:center")."</td>
 </tr>
@@ -1125,14 +1130,14 @@ $('input[id^={$field_name}_]').keypress(function(event){
    	 	document.getElementById('$field_name').value=document.getElementById('{$field_name}_0').value+'.'+document.getElementById('{$field_name}_1').value+'.'+document.getElementById('{$field_name}_2').value+'.'+document.getElementById('{$field_name}_3').value;
    	 	document.getElementById('$field_name-show').innerHTML=document.getElementById('$field_name').value;
     	$jsAdd;
-    	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_ok.gif>';
+    	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/ok16.png>';
    	 	if(!ValidateIPAddress(document.getElementById('$field_name').value)){
    	 		document.getElementById('$field_name').value='';
-			document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_mini_warning.gif>';
+			document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/status_warning.png>';
 		}
 		if(cdir.length==0){
    	 		document.getElementById('$field_name').value='';
-			document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_mini_warning.gif>';		
+			document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/status_warning.png>';		
 		}
 		
     	return false;
@@ -1150,7 +1155,7 @@ $('input[id^={$field_name}_]').keypress(function(event){
   
 $('input[id^={$field_name}_]').change(function () {
 	var cdir=document.getElementById('{$field_name}_4').value;
-	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_ok.gif>';
+	document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/ok16.png>';
 	document.getElementById('$field_name').value=document.getElementById('{$field_name}_0').value+'.'+document.getElementById('{$field_name}_1').value+'.'+document.getElementById('{$field_name}_2').value+'.'+document.getElementById('{$field_name}_3').value;
 	document.getElementById('$field_name').value=document.getElementById('$field_name').value+'/'+cdir;
 	document.getElementById('$field_name-show').innerHTML=document.getElementById('$field_name').value;
@@ -1158,7 +1163,7 @@ $('input[id^={$field_name}_]').change(function () {
 	
 	if(cdir.length==0){
    		document.getElementById('$field_name').value='';
-		document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/icon_mini_warning.gif>';		
+		document.getElementById('ico-ipv4-$field_name').innerHTML='<img src=img/status_warning.png>';		
 	}	
    
 })
@@ -1324,6 +1329,13 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	$OnMouseOut=null;
 	$size=null;
 	$disa=null;
+	$shadow=null;
+	if(preg_match("#^shadow:(.*)#", $value,$re)){
+		$shadow=$re[1];
+		$value=null;
+	}
+	
+	
 	if($class<>null){
 		if(preg_match("#script:(.+)#",$class,$re)){$class=null;$jsPressKey=$re[1];}
 	}
@@ -1370,8 +1382,15 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	}
 	
 	if($DISABLED){$disa=" DISABLED";}
+	
+	if($shadow<>null){
+		$shadowjs=" <script> $(function(){ $('#$name').watermark('$shadow'); }); </script>";
+	}
+	
+	
+	
 	return "$help
-	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>";
+	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>$shadowjs";
 }
 
 
@@ -1429,6 +1448,11 @@ function Field_password($name,$value=null,$style=null,$class=null,$OnChange=null
 }
 
 function imgsimple($img,$tooltip=null,$js=null,$align=null,$imgid=null){
+	$size=null;
+	if(preg_match("#-48\.#", $img)){$size=";width:48px;max-width:48px;";}
+	if(preg_match("#-64\.#", $img)){$size=";width:64px;max-width:64px;";}
+	if(preg_match("#-32\.#", $img)){$size=";width:32px;max-width:32px;";}
+	if(preg_match("#-24\.#", $img)){$size=";width:24px;max-width:24px;";}
 	if(preg_match("#javascript:(.+)#", $js,$re)){$js=$re[1];}
 	if(preg_match("#javascript:(.+)#", $js,$re)){$js=$re[1];}
 	$md5=md5("$img$tooltip$js$align$imgid".time());
@@ -1440,7 +1464,7 @@ function imgsimple($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 	if(is_file($img)){$image_path=$img;}
 	if($js<>null){$js="OnClick=\"javascript:$js;\"";}	
 	if($js==null){$js="OnClick=\"javascript:Blurz();\"";}
-	$IMAGE="<a href=\"javascript:Blurz();\" $js><img src=\"$image_path\" style=\"border:0px\" $id></a>";
+	$IMAGE="<a href=\"javascript:Blurz();\" $js><img src=\"$image_path\" style=\"border:0px;$size\" $id></a>";
 	return $IMAGE;
 		
 	
@@ -1516,6 +1540,7 @@ function string_to_flexquery($searchindix=null){
 	
 	$REGEXP=false;
 	if(preg_match("#^regex\s+(.+)#", $_POST["query"],$re)){$search=$re[1];$REGEXP=true;}
+	if(preg_match("#^regex:(.+)#", $_POST["query"],$re)){$search=$re[1];$REGEXP=true;}
 	
 	if(!$REGEXP){$search=string_to_sql_search($_POST["query"]);}
 	if($search==null){return null;}
@@ -1641,6 +1666,7 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 		
 	}
 	if($DisableToolTips==1){$jsTool=null;}
+	if(!isset($_SESSION["MINIADM"])){$_SESSION["MINIADM"]=false;}
 	if($_SESSION["MINIADM"]==true){$jsTool=null;}
 	if(isset($_COOKIE["MINIADM"])){
 		if($_COOKIE["MINIADM"]=="YES"){$jsTool=null;}
@@ -1921,7 +1947,7 @@ function Field_yesno_checkbox_img($name,$value,$tooltip=null){
 	$tooltip=ParseTooltip($tooltip);
 	if($value==null){$value="no";}
 	if($tooltip<>null){$tooltip="onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
-	if($value=='yes'){$img='img/status_ok.gif';}else{$img='img/status_critical.gif';}
+	if($value=='yes'){$img='img/status_ok.png';}else{$img='img/status_critical.png';}
 	$html="
 	<input type='hidden' name='$name' id='$name' value='$value'><a href=\"javascript:SwitchOnOff('$name');\"><img src='$img' id='img_$name' $tooltip></a>";
 	return $html;
@@ -1936,7 +1962,7 @@ function Field_onoff_checkbox_img($name,$value,$tooltip=null){
 	$tooltip=ParseTooltip($tooltip);
 	if($value==null){$value="off";}
 	if($tooltip<>null){$tooltip="onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
-	if($value=='on'){$img='img/status_ok.gif';}else{$img='img/status_critical.gif';}
+	if($value=='on'){$img='img/status_ok.png';}else{$img='img/status_critical.png';}
 	$html="
 	<input type='hidden' name='$name' id='$name' value='$value'><a href=\"javascript:SwitchOnOff_on('$name');\"><img src='$img' id='img_$name' $tooltip></a>";
 	return $html;
@@ -1951,7 +1977,7 @@ function Field_numeric_checkbox_img($name,$value,$tooltip=null,$OnClick=null){
 	
 	if($OnClick<>null){$click="$OnClick('$name');";}
 	
-	if($value=='1'){$img='img/status_ok.gif';}else{$img='img/status_critical.gif';}
+	if($value=='1'){$img='img/status_ok.png';}else{$img='img/status_critical.png';}
 	$html="
 	<div OnClick=\"javascript:SwitchNumeric('$name');{$click}\" $tooltip style='width:22px;height:22px'>
 		<input type='hidden' name='$name' id='$name' value='$value'>
@@ -1980,7 +2006,7 @@ function Field_key_checkbox_img($name,$value,$tooltip=null){
 	$tooltip=ParseTooltip($tooltip);
 	if($value==null){$value="nokey";}
 	if($tooltip<>null){$tooltip="onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
-	if($value=='justkey'){$img='img/status_ok.gif';}else{$img='img/status_critical.gif';}
+	if($value=='justkey'){$img='img/status_ok.png';}else{$img='img/status_critical.png';}
 	$html="
 	<input type='hidden' name='$name' id='$name' value='$value'><a href=\"javascript:SwitchKeyOnOff('$name');\"><img src='$img' id='img_$name' $tooltip></a>";
 	return $html;
@@ -2023,10 +2049,10 @@ function Field_TRUEFALSE_checkbox_img($name,$value,$tooltip=null){
 	$tooltip=ParseTooltip($tooltip);
 	$value=strtoupper($value);
 	if($value==null){$value="FALSE";}
-	if($value==TRUE){$img='img/status_ok.gif';}
-	if($value=='TRUE'){$img='img/status_ok.gif';}
-	if($value=='FALSE'){$img='img/status_critical.gif';}
-	if($value==false){$img='img/status_critical.gif';}
+	if($value==TRUE){$img='img/status_ok.png';}
+	if($value=='TRUE'){$img='img/status_ok.png';}
+	if($value=='FALSE'){$img='img/status_critical.png';}
+	if($value==false){$img='img/status_critical.png';}
 	
 	if($tooltip<>null){$tooltip="onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
 	
@@ -2307,26 +2333,26 @@ function statusLogs($line){
 	switch ($img) {
 		case "AR":return 'img/cab_small.gif';break;
 		case "BC":return 'img/status_bad_config.jpg';break;
-		case "UK":return 'img/status_unknow_user.png';break;
+		case "UK":return 'img/unknown-user-22.png';break;
 		case "PERM":return 'img/status_permission.gif';break;
 		case "STAT":return 'img/status_statistics.jpg';break;
 		case "SR":return 'img/status_service_run.png';break;
 		case "S":return 'img/status_service_run.png';break;
 		case "ST":return 'img/status_service_wait.png';break;
 		case"SS":return 'img/status_service_removed.png';break;
-		case "C":return 'img/status_critical.gif';break;
-		case "W":return 'img/status_warning.gif';break;
-		case "MBX":return 'img/mailbox_hd.gif';break;
+		case "C":return 'img/status_critical.png';break;
+		case "W":return 'img/status_warning.png';break;
+		case "MBX":return 'img/mailbox_hd.png';break;
 		case "MBXR":return 'img/mailbox_hd_ed.gif';break;
 		case "MDA":return 'img/mailbox-2-arrow.gif';break;
-		case 'NET':return 'img/tree-network.gif';break;
+		case 'NET':return 'img/tree-folder-network-24.png';break;
 		case 'NETSTOP':return 'img/tree-network-delete.gif';break;
 		case 'NETINFOS':return 'img/tree-network-infos.gif';break;
 		case 'MAIL':return 'img/mailbox_storage.gif';break;
-		case "INFO":return 'img/icon_info.gif';break;
+		case "INFO":return 'img/16-infos.png';break;
 		case "DELETE":return "img/ed_delete.gif";break;
 		case "K":return 'img/k.gif';break;
-		default:return 'img/status_ok.gif';break;
+		default:return 'img/status_ok.png';break;
 
 	}
 	
@@ -2344,7 +2370,7 @@ class template_users{
 	var $nogbPopup;
 	function template_users($title=null,$html=null,$nosession=0,$Popup=0,$nogbPopup=0,$refresh=0,$cfg=array()){
 		$GLOBALS["CURRENT_PAGE"]=CurrentPageName();
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]}:template_users()=>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]}:template_users()=>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		if(!isset($GLOBALS["template_users_no_cache"])){$GLOBALS["template_users_no_cache"]=false;}
 		
 		if($html<>null){
@@ -2355,30 +2381,30 @@ class template_users{
 				return $datas;
 				}
 			}
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log(":LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]} =>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]} =>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			$tpl=new templates(null,null,null,1,$cfg);
 			$this->body=$html;
 			$this->nogbPopup=$nogbPopup;
 			$this->title=$tpl->_ENGINE_parse_body($title,$cfg["LANG_FILE"]);
 			
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}]:::Title  =>$this->title function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}]:::Title  =>$this->title function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			
 			$cfg["refresh"]=$refresh;
 			$cfg["TITLE"]=$this->title;
 			$this->language=$tpl->_detect_lang();
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG:::LANG:[{$_SESSION["detected_lang"]}]:: {$GLOBALS["CURRENT_PAGE"]}:language  =>$this->language function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG:::LANG:[{$_SESSION["detected_lang"]}]:: {$GLOBALS["CURRENT_PAGE"]}:language  =>$this->language function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			$this->head="<!-- Artica head template_users  -->\n".$tpl->headers($cfg);
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG:::LANG:[{$_SESSION["detected_lang"]}]:: {$GLOBALS["CURRENT_PAGE"]}:head  =>" .strlen($this->head). " bytes function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG:::LANG:[{$_SESSION["detected_lang"]}]:: {$GLOBALS["CURRENT_PAGE"]}:head  =>" .strlen($this->head). " bytes function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			$this->body=$tpl->_ENGINE_parse_body($this->body,$cfg["LANG_FILE"]);		
 			
 			if($Popup==1){
-				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG:::LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]}:Body  =>" .strlen($this->body). " bytes (popup=$Popup) function  ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG:::LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]}:Body  =>" .strlen($this->body). " bytes (popup=$Popup) function  ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 				$this->_BuildPopUp($html,$title);}else{
-					if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG:::LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]}:->_BuildBody() function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+					if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG:::LANG:[{$_SESSION["detected_lang"]}]::{$GLOBALS["CURRENT_PAGE"]}:->_BuildBody() function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 					$this->_BuildBody();
 			}
 			
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}]:: finish =>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}]:: finish =>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 			$this->web_page=$tpl->_ENGINE_parse_body($this->body);
 			SET_CACHED(__FILE__,__FUNCTION__,$title,$this->web_page);
 		}
@@ -2453,17 +2479,17 @@ class template_users{
 		$cuurentpage=CurrentPageName();
 		$template_file="index.html";
 		if(isset($GLOBALS["CHANGE_TEMPLATE"])){$template_file=$GLOBALS["CHANGE_TEMPLATE"];}
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::->new templates(); function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::->new templates(); function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		$tpl=new templates();
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::menus->BuildUsersTabs(); function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::menus->BuildUsersTabs(); function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		$buildtabs=$menus->BuildUsersTabs();
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::menus->BuildMenusBarr(menus->menus); function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::menus->BuildMenusBarr(menus->menus); function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		$top_menus=$tpl->BuildMenusBarr($menus->menus);
 		$template_users_menus_h=$menus->template_users_menus_h;
 		$template_user_addr=$menus->template_user_addr;
 		
 		
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}]:: OK function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:LANG:[{$_SESSION["detected_lang"]}]:: OK function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		if($cuurentpage=="logon.php"){writelogs("$cuurentpage ->"._FUNCTION__.'/'.__LINE__." file ".__FILE__);}
 		if(!isset($_SESSION["uid"])){
 			$menus->menus=null;
@@ -2475,7 +2501,7 @@ class template_users{
 			
 		if(!isset($_SESSION["template"])){$_SESSION["template"]="default";}
 			
-		if($cuurentpage=="logon.php"){error_log(":LANG:[{$_SESSION["detected_lang"]}]::_SESSION[\"template\"]={$_SESSION["template"]} function ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}	
+		if($cuurentpage=="logon.php"){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::_SESSION[\"template\"]={$_SESSION["template"]} function ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}	
 		$template_path=dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/$template_file";
 		
 			
@@ -2487,10 +2513,10 @@ class template_users{
 		
 		$template=file_get_contents($template_path);
 
-		if($cuurentpage=="logon.php"){error_log(":LANG:[{$_SESSION["detected_lang"]}]::$template_file =>". strlen($template)." bytes function ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::tpl->search_menus() ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($cuurentpage=="logon.php"){error_log("[{$_SESSION["uid"]}]:::LANG:[{$_SESSION["detected_lang"]}]::$template_file =>". strlen($template)." bytes function ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]::tpl->search_menus() ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		$template=str_replace("{TEMPLATE_SEARCH}",$tpl->search_menus(),$template);
-		if($cuurentpage=="logon.php"){error_log("$cuurentpage:LANG:[{$_SESSION["detected_lang"]}]:: $template_file =>{TEMPLATE_SEARCH} done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($cuurentpage=="logon.php"){error_log("[{$_SESSION["uid"]}]::$cuurentpage:LANG:[{$_SESSION["detected_lang"]}]:: $template_file =>{TEMPLATE_SEARCH} done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$template=str_replace("{TEMPLATE_HEAD}",$this->head,$template);
 		if($cuurentpage=="404.php"){
 			$template=str_replace("{TEMPLATE_LEFT_MENUS}","",$template);
@@ -2504,14 +2530,14 @@ class template_users{
 			
 		}
 		$template=str_replace("{TEMPLATE_LEFT_MENUS}","<div id='TEMPLATE_LEFT_MENUS'></div><script>LoadAjax('TEMPLATE_LEFT_MENUS','/admin.tabs.php?left-menus=yes');</script>",$template);
-		if($cuurentpage=="logon.php"){error_log("$cuurentpage:: $template_file =>{TEMPLATE_LEFT_MENUS} done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($cuurentpage=="logon.php"){error_log("[{$_SESSION["uid"]}]::$cuurentpage:: $template_file =>{TEMPLATE_LEFT_MENUS} done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$template=str_replace("{TEMPLATE_TOP_MENUS}",$top_menus,$template);
 		$template=str_replace('{TEMPLATE_RIGHT_MENUS}',$tpl->_ENGINE_parse_body($menus->menusright),$template);
 		$template=str_replace("{TEMPLATE_CONTENT}",$tpl->_ENGINE_parse_body($this->body),$template);
 		$template=str_replace("{TEMPLATE_TOP_LINKS}",$tpl->_ENGINE_parse_body($menus->toplinks),$template);
 		$template=str_replace("{TEMPLATE_TITLE_HEAD}",strip_tags($this->title),$template);
 		$template=str_replace("{TEMPLATE_TITLE}",$this->title,$template);
-		if($cuurentpage=="logon.php"){error_log("$cuurentpage:: $template_file =>{TEMPLATE_TITLE} done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($cuurentpage=="logon.php"){error_log("[{$_SESSION["uid"]}]::$cuurentpage:: $template_file =>{TEMPLATE_TITLE} done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$template=str_replace("{TEMPLATE_USER_MENUS}",$tpl->_ENGINE_parse_body($buildtabs),$template);
 		$template=str_replace("{TEMPLATE_USER_MENUS_H}",$tpl->_ENGINE_parse_body($template_users_menus_h),$template);
 		$template=str_replace("{ACCOUNT}",$_SESSION["uid"],$template);
@@ -2526,7 +2552,7 @@ class template_users{
 			if($GLOBALS["VERBOSE"]){echo dirname(__FILE__) . "/templates/{$_COOKIE["artica-template"]}/img/logo.png no such file\n";}
 			
 		}
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:Checking Administrator privileges ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:Checking Administrator privileges ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		if($menus->AsSystemAdministrator==true){
 			writelogs("AsSystemAdministrator=\"$menus->AsSystemAdministrator\" = TRUE",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			$right="" .imgtootltip('rght-cut.gif','{logoff}',"javascript:/logoff()")."";
@@ -2535,9 +2561,9 @@ class template_users{
 		}
 		if(!isset($_SESSION["uid"])){$right=null;}
 		$template=str_replace("{RIGHT}",$right,$template);
-		if($cuurentpage=="logon.php"){error_log("$cuurentpage: $template_file FINISH=>". strlen($template)." bytes function ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($cuurentpage=="logon.php"){error_log("[{$_SESSION["uid"]}]::$cuurentpage: $template_file FINISH=>". strlen($template)." bytes function ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}: this->body=finish function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}: this->body=finish function ".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		$this->body=$template;
 		}
 		
@@ -2828,34 +2854,57 @@ function my_mkdir($dir, $chmod = 0777){
 	}
 	
 
-function Paragraphe_switch_disable($title,$text,$tooltip=null,$width="220"){	
-$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
+	
+function Paragraphe_switch_disable($title,$text,$field_name=null,$value=null,$tips=null,$width="220"){
+	$MINIADM=false;
+	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
+	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
+	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
 	$hrf="<a href='$link' class='nostylea'>";
 
-	if($tooltip==null){$tooltip='{click_enable_disable}';}
+	if(trim($tooltip)==null){$tooltip='{click_enable_disable}';}
 	$tooltip=ParseTooltip($tooltip);
+	if($value==null){$value="0";}
 	if($tooltip<>null){$tooltip="
-	onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this, 100);\" 
+	onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this,100);\" 
 	OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\" 
 	style=\"filter:alpha(opacity=50);-moz-opacity:0.5;border:0px;\"";}
 	
-
-	$img="<img src='img/64-grey.png' id='img_$field_name' $tooltip>";
+	
+	$img='img/64-grey.png';
+	$field="<input type='hidden' name='$field_name' id='$field_name' value='$value'>";
 	
 	
 	
-	$html="<div style='width:{$width}px;' class=BodyContent>
-	<table style='width:100%'>
-	<tr>
-	<td width=1% valign='top' style='background-image:url(img/bg_pic-2.png);background-position:top center;background-repeat:no-repeat'><div style='min-height: 120px;'>$img</a></div></td>
-	<td valign='top' id='$id'><h3 style='font-size:16px'>$title</h3>
-	<p class='legend' style='text-align:left;font-size:12px' id='text_$id'>$text</p>
-	</td>
+	
+	
+	$img="<div OnClick=\"javascript:blur();\" OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >
+			<img src='$img' id='img_$field_name'  $tooltip>
+		</div>";
+	$margin=0;
+	$fontsize=12;
+	$fontsize_title=14;
+	if($width>400){$fontsize=14;$fontsize_title=16;}
+	if($width>550){$fontsize=16;$fontsize_title=18;$margin="margin-bottom:15px;";}
+	$class="BodyContent";
+	if($MINIADM){$class="MiniAdmParagrapheSwitchIm";}
+	$html="
+	<div style='width:{$width}px;$margin' class=$class>
+		<table style='width:100%;'>
+		<tr>
+			<td width=1% valign='top' style='line-height:normal;'><div style='min-height: 120px;'>$img</a></div></td>
+			<td valign='top' id='$id' style='line-height:normal;;padding-left:5px'><h3 style='font-size:{$fontsize_title}px;color:black;text-transform:capitalize'>$title</h3>
+			<div 
+				style='text-align:left;
+				font-size:{$fontsize}px; 
+				id='text_$id'>$field$text</div>
+		</td>
 	</tr>
 	</table>
 	
 	</div>";
-	return $htm;	
+	return $html;
+	
 	
 }
 	
@@ -2941,14 +2990,15 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	$img="<div OnClick=\"javascript:SwitchBigNumeric('$field_name');\" OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >
 			<img src='$img' id='img_$field_name'  $tooltip>
 		</div>";
-	
+	$margin=0;
 	$fontsize=12;
 	$fontsize_title=14;
 	if($width>400){$fontsize=14;$fontsize_title=16;}
+	if($width>550){$fontsize=16;$fontsize_title=18;$margin="margin-bottom:15px;";}
 	$class="BodyContent";
 	if($MINIADM){$class="MiniAdmParagrapheSwitchIm";}
 	$html="
-	<div style='width:{$width}px;' class=$class>
+	<div style='width:{$width}px;$margin' class=$class>
 		<table style='width:100%;'>
 		<tr>
 			<td width=1% valign='top' style='line-height:normal;'><div style='min-height: 120px;'>$img</a></div></td>
@@ -3075,12 +3125,19 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 	
 	$fontsizeDef=12;
 	
+	if(preg_match("#^noacco:(.+)#is",trim($text),$re)){
+			$text=$re[1];
+	}else{
+		if(strpos($text, "}")==0){ $text="{{$text}}"; }
+	}
+	
 	if(preg_match("#noacco:(.+)#",$title,$re)){
 		$title=$re[1];
 		
 	}else{
-		if(!preg_match("#noacco:(.+)#",$text,$re)){$text="{{$text}}";}else{$text=$re[1];}
+		if(strpos($title, "}")==0){
 		$title="{{$title}}";
+		}
 	}
 	
 		$id=md5($js);
@@ -3094,7 +3151,7 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 			<tr>
 			<td width=32px valign='top' style='vertical-align:top';>
 			<input type='hidden' name='{$img_id}_org' id='{$img_id}_org' value='img/$img'>
-			" . imgtootltip($img,"{{$text}}","$js",null,$img_id)."</td>
+			" . imgtootltip($img,"{$text}","$js",null,$img_id)."</td>
 			<td style='text-align:left'>
 				<strong style='font-size:14px;line-height:normal'>$title</strong>
 				<div style='font-size:12px;line-height:normal'>$text</div><!-- replace -->
@@ -3127,7 +3184,7 @@ function Paragraphe32($title,$text,$js,$img,$size=220){
 	<tr>
 	<td width=1% valign='top' style='vertical-align:top';>
 	<input type='hidden' name='{$img_id}_org' id='{$img_id}_org' value='img/$img'>
-	" . imgtootltip($img,"{{$text}}","$js",null,$img_id)."</td>
+	" . imgtootltip($img,"{$text}","$js",null,$img_id)."</td>
 	<td>
 	<strong style='font-size:{$fontsizeDef}px;line-height:normal'>$title</strong>
 	<div style='min-height:75px'>
@@ -3172,7 +3229,7 @@ function hide_ressources($pattern){
 }
 
 
-function ParagrapheTEXT($img,$title,$text,$link=null,$minheight=0){
+function ParagrapheTEXT($img,$title,$text,$link=null,$minheight=0,$nomax=false){
 	$MDKEY=md5("$img$title$text$link$minheight");
 	$datasCache=GET_CACHED(__FILE__, __FUNCTION__, $MDKEY,true);
 	if($datasCache<>null){return $datasCache;}
@@ -3207,8 +3264,9 @@ function ParagrapheTEXT($img,$title,$text,$link=null,$minheight=0){
 			}
 		}		
 		
-		
-		if($len_text_caracts>$max_text_caracts){$text=substr($text, 0,$max_text_caracts-3)."...";}
+		if(!$nomax){
+			if($len_text_caracts>$max_text_caracts){$text=substr($text, 0,$max_text_caracts-3)."...";}
+		}
 	}
 	if($minheight>0){$minheight_css="min-height:{$minheight}px;";}
 	$link="<a href=\"javascript:Blurz();\" 
@@ -3532,6 +3590,48 @@ function Paragraphe_tips($img,$title,$text,$link=null,$width=210){
 	
 }
 
+function paragrapheWin($img,$title,$link){
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body($title);
+	$html="<div style='width:120px;height:120px;text-align:center;vertical-align:bottom;background-color:#0C9C86;padding:10px;border:2px solid #ABABAB'
+	onmouseout=\"javascript:this.BorderColor='#ABABAB';this.style.cursor='default'\" 
+		onmouseover=\"javascript:this.BorderColor='#FFFFFF';this.style.cursor='pointer'\"
+		OnClick=\"javascript:$link\">
+		<table style='width:100%'>
+		<tr>
+			<td style='text-align:center;vertical-align:middle;height:90px;'>
+				<center style='margin-5px;'><img src='img/$img'></center>
+			</td>
+		</tr>
+		<tr>
+			<td style='text-align:left;vertical-align:bottom;'>
+				<div style='text-align:left;color:#FFFFFF;font-size:14px'>$title</div>
+			</td>
+		</tr>
+		</table>
+		</div>
+			";
+	return $html;
+	
+}
+
+
+function paragraph_youtube($title,$uri){
+	$OnMouseOver="OnMouseOver=\"this.style.cursor='pointer';\"";
+	$OnMouseOut="OnMouseOut=\"this.style.cursor='default';\"";
+	$uri=urlencode($uri);
+	$OnClick="OnClick=\"javascript:DisplayYoutube('$uri');\"";
+	
+	return "
+		<center $OnMouseOver $OnMouseOut $OnClick style='margin:5px;min-height:173px;border:3px solid #A0A0A0;padding:5px;margin;5px;border-radius:5px 5px 5px 5px;-moz-border-radius:5px;-webkit-border-radius:5px;'>
+		<center style='font-size:18px;margin-bottom:20px;min-height:42px;'>Video &raquo; $title</center>
+		<img src='img/youtube-play-64.png' style='margin:20px'>
+		</center>	
+			
+		";
+	
+}
+
 
 	
 function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="210",$height=null,$nowrap=0,$float=false,$nojs=false){
@@ -3539,6 +3639,10 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if($_COOKIE["MINIADM"]=="YES"){$MINIADM=true;}	
 	$styleFloat='';
+	if(preg_match("#^nowrap:(.+)#", $title,$re)){
+		$title=$re[1];
+		$nowrap=1;
+	}
 	if(preg_match("#(.+?):(.+)#", $img,$re)){$img=$re[1];$next_image=$re[2];}
 	$nomysql=false;
 	if($link==null){$link="javascript:Blurz()";$nomysql=true;}
@@ -3726,9 +3830,15 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	}
 	
 	}
-		
+	
+	
+	
+	$titlefontsize=14;
+	$textfontsize=12;
 	$max_caracts=30;
 	$max_text_caracts=110;
+	
+	
 	if($width>290){
 		$max_caracts=40;
 		$max_text_caracts=150;
@@ -3737,6 +3847,8 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	if($width>350){
 		$max_caracts=80;
 		$max_text_caracts=250;
+		$titlefontsize=18;
+		$textfontsize=16;
 	}	
 	
 	$title_entity_decode=html_entity_decode($title);
@@ -3755,7 +3867,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		$title_lenght=strlen($title);
 		if($title_lenght<25){$min_height_title=null;}
 		//supprimé, $min_height_title
-		$title="<h3 style=';text-transform:none;$H3_STYLE_TITLE_FONT_COLOR'>$title</h3>";
+		$title="<h3 style='text-transform:none;$H3_STYLE_TITLE_FONT_COLOR;font-size:{$titlefontsize}px'>$title</h3>";
 
 		if($nowrap==0){
 			if(strlen($text)>$max_text_caracts){
@@ -3769,7 +3881,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		}
 		
 		$text="
-		<div id='text_$id' style='font-size:11px;margin-top:5px'>
+		<div id='text_$id' style='font-size:{$textfontsize}px;margin-top:5px'>
 			$text
 		</div>";
 		}else{
@@ -3814,8 +3926,8 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 		</td>
 		<td style='padding-left:5px'>
 		<div >
-			<strong style='font-size:14px;line-height:normal'>$titleSrc</strong>
-			<div style='font-size:12px;line-height:normal'>$text</div><!-- replace -->
+			<strong style='font-size:{$titlefontsize}px;line-height:normal'>$titleSrc</strong>
+			<div style='font-size:{$textfontsize}px;line-height:normal'>$text</div><!-- replace -->
 		</div>
 		</td>
 		</tr>
@@ -4011,7 +4123,7 @@ function BuildSessionAuth(){
 			if($GLOBALS["VERBOSE"]){echo "Page:$page -> DEBUG\n";}
 		}
 	}
-	error_log("BuildSessionAuth.. in".__FUNCTION__." line ".__LINE__);
+	error_log("[{$_SESSION["uid"]}]::BuildSessionAuth.. in".__FUNCTION__." line ".__LINE__);
 	if(!isset($_SERVER['PHP_AUTH_USER'])){
 		if($debug){echo "<li>Verify ->PHP_AUTH_USER'] -> FALSE</li>\n";}
 		return false;
@@ -4067,7 +4179,7 @@ ini_set("session.cookie_lifetime", "0");
 
 }
 
-function BuildSession($uid){
+function BuildSession($uid,$nominiadm=false){
 	writelogs("Building session",__FUNCTION__,__FILE__,__LINE__);
 	if(isset($GLOBALS[__FILE__][__FUNCTION__])){return;}
 	$GLOBALS[__FILE__][__FUNCTION__]=true;
@@ -4101,7 +4213,7 @@ function BuildSession($uid){
 	$_SESSION["groupid"]=$ldap->UserGetGroups($uid,1);
 	$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
 	$_SESSION["MailboxActive"]=$u->MailboxActive;
-	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+	if(!$nominiadm){$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";}
 	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
 	$_SESSION["CORP"]=$users->CORP_LICENSE;
 	$_SESSION["privileges"]["ArticaGroupPrivileges"]=$privs->content;
@@ -4113,7 +4225,7 @@ function BuildSession($uid){
 	$_SESSION["groupid"]=$ldap->UserGetGroups($_POST["username"],1);
 	$_SESSION["DotClearUserEnabled"]=$u->DotClearUserEnabled;
 	$_SESSION["MailboxActive"]=$u->MailboxActive;
-	$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+	if(!$nominiadm){$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";}
 	$_SESSION["ou"]=$u->ou;
 	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
 	$_SESSION["AsWebStatisticsAdministrator"]=$users->AsWebStatisticsAdministrator;
@@ -4148,9 +4260,9 @@ function CheckSessions(){
 		if($GLOBALS["DEBUG_TEMPLATE"]){
 			if(function_exists("getmypid")){$getmypid="PID:".getmypid()." ";}
 			$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}
-			error_log("$page:{$getmypid}CheckSessions() language=\"{$_SESSION["detected_lang"]}\" $called function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
+			error_log("[{$_SESSION["uid"]}]::$page:{$getmypid}CheckSessions() language=\"{$_SESSION["detected_lang"]}\" $called function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
 		}
-		if($page=="exec.squidguard.php"){error_log("$page:CheckSessions()=>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+		if($page=="exec.squidguard.php"){error_log("[{$_SESSION["uid"]}]::$page:CheckSessions()=>".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 		
 		if($_SESSION["uid"]==null){
 			if(isset($_GET["session"])){
@@ -4168,6 +4280,7 @@ function CheckSessions(){
 		$noback["TestsClasses.php"]=true;
 		$noback["cron.obm.synchro.php"]=true;
 		$noback["logon.php"]=true;
+		$noback["squid.urgency.php"]=true;
 		$noback["404.php"]=true;
 		$noback["obm.export.php"]=true;
 		$noback["auto-account.php"]=true;
@@ -4177,6 +4290,7 @@ function CheckSessions(){
 		$noback["cyrus.murder.listener.php"]=true;
 		$noback["cluster.listener.php"]=true;
 		$noback["exec.squidguard.php"]=true;
+		$noback["proxy.pac.php"]=true;
 		$noback["logon.form.php"]=true;
 		$noback["squid.logon.php"]=true;
 		$noback["miniadm.php"]=true;
@@ -4216,6 +4330,8 @@ function CheckSessions(){
 		$noback["external_acl_squid_quota.php"]=true;
 		$noback["exec.logfile_daemon.php"]=true;
 		$noback["external_acl_squid.php"]=true;
+		$noback["hotspot.php"]=true;
+		$noback["squid.access.log.php"]=true;
 		
 		
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
@@ -4286,7 +4402,7 @@ function CheckSessions(){
 						if(isset($GLOBALS["STOP_SESSION_JS"])){echo "document.location.href='logoff.php'";die();}
 						if($GLOBALS["DEBUG_INCLUDES"]){echo basename(__FILE__)."::".dirname(__FILE__)."/logs.inc\n";}
 						include_once(dirname(__FILE__).'/logs.inc');
-						error_log("$page is not allowed, no session, die.. in ".__FILE__." line ". __LINE__);
+						error_log("[{$_SESSION["uid"]}]::$page is not allowed, no session, `{$_SESSION["uid"]}` die.. in ".__FILE__." line ". __LINE__);
 						if(isset($_GET["in-front-ajax"])){echo "document.location.href='logoff.php'";die();}
 						
 						if(preg_match("#^android\.#", $page)){$suffixLogoff="android.";}
@@ -4437,7 +4553,7 @@ if($width==null){$width="98%";}
 if($monit==1){
 if(!isset($GLOBALS["MONIT_ARRAY"])){
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
-		$GLOBALS["MONIT_ARRAY"]=unserialize(base64_decode($sock->getFrameWork("cmd.php?monit-status=yes")));
+		$GLOBALS["MONIT_ARRAY"]=unserialize(base64_decode($sock->getFrameWork("monit.php?monit-status=yes")));
 	}
 	
 	
@@ -4504,7 +4620,7 @@ return "<table style='width:$width;margin:0px;' " .CellRollOver($js_service).">
 
 function icon_mysql_error($error){
 	
-	return imgtootltip("status_warning.gif",$error);
+	return imgtootltip("status_warning.png",$error);
 }
 
 
@@ -4559,10 +4675,22 @@ echo $html;
 
 function button_browse($field_name){
 	
+	$btid=md5($field_name.time());
+	return "<a href=\"javascript:blur()\"  OnClick=\"javascript:Loadjs('SambaBrowse.php?no-shares=yes&field=$field_name');\"
+	id='$btid' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:12px;text-transform:capitalize\"
+	data-loading-text=\"{browse}...\" >{browse}...&nbsp;&raquo;</a>";
+	
 	$button="&nbsp;<input type='button' OnClick=\"javascript:Loadjs('SambaBrowse.php?no-shares=yes&field=$field_name');\" value='{browse}...&nbsp;'>";
 	$button=button("{browse}...&nbsp;", "Loadjs('SambaBrowse.php?no-shares=yes&field=$field_name');");
 	return $button;
 	}
+	
+function button_browse_ldap_group($function){
+	$button="&nbsp;<input type='button' OnClick=\"javascript:Loadjs('browse-ldap-groups.php?function=$function');\" value='{browse}...&nbsp;'>";
+	$button=button("{browse}...&nbsp;", "Loadjs('browse-ldap-groups.php?function=$function');");
+	return $button;	
+	
+}	
 	
 function button_browse_computer($computer,$field_name){
 	$button="&nbsp;<input type='button' OnClick=\"javascript:Loadjs('ComputerBrowse.php?&computer=$computer&field=$field_name');\" value='{browse}...&nbsp;'>";
@@ -4829,7 +4957,7 @@ function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text');";
+	$js="{$java}YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text',true);";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}
@@ -5169,8 +5297,8 @@ function _admin_event($text,$function,$file,$line,$category){
 	
 	if($GLOBALS["EXECUTED_AS_ROOT"]){
 		$md5=md5($serialize);
-		if(!is_dir("/var/log/artica-postfix/system_admin_events")){@mkdir("/var/log/artica-postfix/system_admin_events",0755,true);}
-		@file_put_contents("/var/log/artica-postfix/system_admin_events/$md5.log", $serialize);	
+		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events",0755,true);}
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events/$md5.log", $serialize);	
 		return;
 	}
 	
@@ -5196,7 +5324,7 @@ function _udfbguard_admin_events($text,$function,$file,$line,$category){
 function infected_queue($TaskName,$InfectedPath,$ComputerName,$virusname){
 	$date=date('Y-m-d H:i:s');
 	$md5=md5($date.$product.$from.$virusname);
-	$filename="/var/log/artica-postfix/infected-queue/$md5.sql";
+	$filename="{$GLOBALS["ARTICALOGDIR"]}/infected-queue/$md5.sql";
 	if(is_file($filename)){return null;}
 	if($TaskName=="kavmilter"){$TaskName="eMail Scan Kaspersky";}
 	$sql="INSERT INTO antivirus_events (zDate,TaskName,VirusName,InfectedPath,ComputerName,zmd5) VALUES('$date','$TaskName','$virusname','$InfectedPath','$ComputerName','$md5');";
@@ -5302,14 +5430,22 @@ class tweak_array{
 } 
 function button($text,$js,$fontsize=12.5){
 	$fontsizeSrc=$fontsize;
+	$tpl=new templates();
 	if(is_numeric($fontsize)){if($fontsize>0){$fontsize="{$fontsize}px";}}
 	if($fontsize==null){$fontsize="12px";}
-	
-	if($_SESSION["MINIADM"]==true){
-		$tpl=new templates();
-		$Loading=$tpl->javascript_parse_text("{loading}");
+	$miniadm=false;
+	if($_SESSION["MINIADM"]){$miniadm=true;}
+	$page=CurrentPageName();
+	$Loading=$tpl->javascript_parse_text("{loading}");
+	if(preg_match("#^miniadm#", $page)){$miniadm=true;}
 		
-		$btid=md5("$text$js$fontsize".time());
+	if(preg_match("#^([0-9]+)px#", $fontsize,$re)){$fontsize=$re[1];}
+	$btid=md5("$text$js$fontsize".time());
+	if($miniadm){
+		
+		
+		
+		
 		$script="<script> $('#$btid').on('click', function (e) { $js }) </script>";
 		if(preg_match("#^([0-9]+)#", $fontsize,$re)){$fontsize=$re[1];}
 		
@@ -5325,6 +5461,13 @@ function button($text,$js,$fontsize=12.5){
 		
 		return "<button class=\"btn btn-primary\" type=\"button\">$text</button>$script";
 	}
+	
+	
+	return "<a href=\"javascript:blur()\" OnClick=\"javascript:$js\" 
+	id='$btid' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:{$fontsize}px;text-transform:capitalize\" 
+	data-loading-text=\"$Loading...\" >&laquo;&nbsp;$text&nbsp;&raquo;</a>";
+	
+	
 	
 	$over="OnMouseOut=\"javascript:this.className='ui-state-default ui-corner-all';this.style.cursor='auto'\"";
 	$out="OnMouseOver=\"javascript:this.className='ui-state-active ui-corner-all';this.style.cursor='pointer'\"";
@@ -5342,11 +5485,18 @@ return"<div style='width:100px;background-color:white;padding-left:0px;border:1p
 	
 }
 
-function pourcentage($pourc,$submargin=0){
+function pourcentage($pourc,$submargin=0,$color="red"){
 	$pourc=str_replace('%','',$pourc);
 	$orginal_pourc=$pourc;
 	$pourc=round($pourc);
+	$back="percentImage_back4.png";
+	if($color=="red"){
+		$back="percentImage_back4.png";
+	}
 	
+	if($color=="green"){
+		$back="percentImage_back1.png";
+	}
 	
 	if($pourc<0){$pourc=0;}
 	if($pourc==0){$int=-119;}
@@ -5355,11 +5505,12 @@ function pourcentage($pourc,$submargin=0){
 	if($submargin>0){$marginTop="margin-top:-{$submargin}px;";}
 	
 	$precent="
-		<table style=\"border:0px;background-color:transparent;$marginTop\">
+		<table style=\"border:0px;background-color:transparent;$marginTop;width:5%\">
 			<tbody>
 			<tr style=\"border:0px;background-color:transparent;\">
-				<td style=\"border:0px;background-color:transparent;padding:3px\"><img style=\"background:white url(img/percentImage_back4.png) no-repeat scroll 1px 0;margin:5px 0 0;padding:0;background-position:{$int}px 0pt;\" src=\"img/percentImage.png\"></td>
-				<td width=1% nowrap style=\"font-size:12px !important;border:0px;background-color: transparent;\">$orginal_pourc%</td>
+				<td style=\"border:0px;background-color:transparent;padding:3px\">
+					<img style=\"background:white url(img/$back) no-repeat scroll 1px 0;margin:5px 0 0;padding:0;background-position:{$int}px 0pt;\" src=\"img/percentImage.png\" width=123px ></td>
+				<td width=1% nowrap style=\"font-size:12px !important;border:0px;background-color: transparent;vertical-align:bottom\">$orginal_pourc%</td>
 			</tr>
 		</tbody>
 		</table>";
@@ -5367,100 +5518,170 @@ function pourcentage($pourc,$submargin=0){
 	return $precent;
 }
 
+/*
+ * Array
+(
+    [unix:///var/run/memcached.sock:0] => Array
+        (
+            [pid] => 28040
+            [uptime] => 15
+            [time] => 1394840023
+            [version] => 1.4.17
+            [libevent] => 2.0.19-stable
+            [pointer_size] => 64
+            [rusage_user] => 0.000000
+            [rusage_system] => 0.000000
+            [curr_connections] => 1
+            [total_connections] => 8
+            [connection_structures] => 2
+            [reserved_fds] => 20
+            [cmd_get] => 3
+            [cmd_set] => 4
+            [cmd_flush] => 0
+            [cmd_touch] => 0
+            [get_hits] => 0
+            [get_misses] => 3
+            [delete_misses] => 0
+            [delete_hits] => 0
+            [incr_misses] => 0
+            [incr_hits] => 0
+            [decr_misses] => 0
+            [decr_hits] => 0
+            [cas_misses] => 0
+            [cas_hits] => 0
+            [cas_badval] => 0
+            [touch_hits] => 0
+            [touch_misses] => 0
+            [auth_cmds] => 0
+            [auth_errors] => 0
+            [bytes_read] => 10828
+            [bytes_written] => 3198
+            [limit_maxbytes] => 67108864
+            [accepting_conns] => 1
+            [listen_disabled_num] => 0
+            [threads] => 4
+            [conn_yields] => 0
+            [hash_power_level] => 16
+            [hash_bytes] => 524288
+            [hash_is_expanding] => 0
+            [malloc_fails] => 0
+            [bytes] => 10882
+            [curr_items] => 4
+            [total_items] => 4
+            [expired_unfetched] => 0
+            [evicted_unfetched] => 0
+            [evictions] => 0
+            [reclaimed] => 0
+        )
+
+)
+
+*/
+
+
 function GET_CACHED($file,$function,$token=null,$return=false,$maxmin=0){
+	
 	if($GLOBALS["VERBOSE"]){return;}
-	if($GLOBALS["AS_ROOT"]){return;}
-	$browser=md5($_SERVER['HTTP_USER_AGENT']);
+	if($GLOBALS["AS_ROOT"]){return false;}
+	$MD5=GET_CACHED_KEY($file,$function,$token);
+	
+
+	$tpl=new templates();
+	if(class_exists("Memcache")){
+		if(_is_socket("/var/run/memcached.sock")){	
+			$memcache = new Memcache();
+			if($memcache->connect('unix:///var/run/memcached.sock', 0)){
+				$data=$memcache->get($MD5);
+				if(trim($data)<>null){ 
+					if($return){ return $tpl->_ENGINE_parse_body($data);  }	
+					echo $tpl->_ENGINE_parse_body($data);
+					return true;
+				}
+			}
+		}
+	}	
+	
+	
+	
+	$dir=dirname(__FILE__)."/logs/web/cache";
+	$targetFile="$dir/$MD5.cache";
+	if(!is_file($targetFile)){return false;}
+	$data=trim(@file_get_contents($targetFile));
+	if(trim($data)==null){return false;}
+	if($return){return $tpl->_ENGINE_parse_body($data);}
+	echo $tpl->_ENGINE_parse_body($data);
+	return true;
+	
+	
+	
+}
+
+function _alt_stat($file) {
+	$ss=@stat($file);
+	if(!$ss) return false; 
+	$ts=array( 0140000=>'ssocket', 0120000=>'llink', 0100000=>'-file', 0060000=>'bblock', 0040000=>'ddir', 0020000=>'cchar', 0010000=>'pfifo');
+	$p=$ss['mode'];
+	$t=decoct($ss['mode'] & 0170000); // File Encoding Bit
+	$str =(array_key_exists(octdec($t),$ts))?$ts[octdec($t)]{0}:'u';
+	$str.=(($p&0x0100)?'r':'-').(($p&0x0080)?'w':'-');
+	$str.=(($p&0x0040)?(($p&0x0800)?'s':'x'):(($p&0x0800)?'S':'-'));
+	$str.=(($p&0x0020)?'r':'-').(($p&0x0010)?'w':'-');
+	$str.=(($p&0x0008)?(($p&0x0400)?'s':'x'):(($p&0x0400)?'S':'-'));
+	$str.=(($p&0x0004)?'r':'-').(($p&0x0002)?'w':'-');
+	$str.=(($p&0x0001)?(($p&0x0200)?'t':'x'):(($p&0x0200)?'T':'-'));
+	$s=array(	'filetype'=>array( 'type'=>substr($ts[octdec($t)],1)));
+	return $s;
+}
+
+function _is_socket($socketpath){
+	if(isset($GLOBALS["_is_socket"][$socketpath])){return $GLOBALS["_is_socket"][$socketpath];}
+	$stat=_alt_stat($socketpath);
+	$type=$stat["filetype"]["type"];
+	if($type=="socket"){
+		$GLOBALS["_is_socket"][$socketpath]=true;
+		return true;
+	}
+	$GLOBALS["_is_socket"][$socketpath]=false;
+	return false;
+}
+
+function GET_CACHED_KEY($file,$function,$token){
 	if(trim($token)==null){$token=$function;}
 	$file=basename($file);
 	$token=md5($token);
 	$uid=$_SESSION["uid"];
-	if($uid==-100){$uid="RootMaster";}		
-	if(!isset($_SESSION["detected_lang"])){
-		$tpl=new templates();
-		$_SESSION["detected_lang"]=$tpl->_detect_lang();
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: define the session with the new language {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
-	}
+	if($GLOBALS["AS_ROOT"]){$uid=-100;}
+	if($uid==-100){$uid="RootMaster";}
+	return md5("$uid$file$function$token");
 	
-	$sock=new sockets();
-	if($GLOBALS["MEMCACHE_ENABLED"]==1){
-		if(class_exists("Memcache")){
-			$memcache = new Memcache();
-			$memcache->connect('unix:///var/run/memcached.sock', 0);
-			$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
-			$data=$ARRAY[$uid][$file][$function][$token][$browser][$_SESSION["detected_lang"]];
-			if(is_array($data)){return false;}
-			
-			if($return){
-				if($GLOBALS["VERBOSE"]){writelogs("Memcache -> RETURN ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
-				if(strlen($data)>20){
-					return $data;
-				}else{
-					return false;
-				}
-			}	
-			if(trim($data)==null){return false;}
-			if(strlen($data)<20){return false;}
-			if($GLOBALS["VERBOSE"]){writelogs("Memcache -> ECHO ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
-			echo $data;
-			return true;
-		}	
-	}
-	
-	$dir=dirname(__FILE__)."/logs/web/cache/$uid";
-	$targetFile="$dir/$file.$function.$token.$browser.{$_SESSION["detected_lang"]}.object.cache";
-	if(!is_file($targetFile)){return false;}
-	$data=trim(@file_get_contents($targetFile));
-	if(strlen($data)<20){return false;}
-	
-	if($data<>null){
-		if($GLOBALS["VERBOSE"]){writelogs("Disk ".strlen($data)." bytes length",__FUNCTION__,__FILE__,__LINE__);}
-		if($return){return $data;}
-		if($data==null){return false;}
-		echo $data;
-		return true;
-	}
-	
-	if(trim($data)==null){return false;}
-	if($return){return $data;}
-	if($data==null){return false;}
-	echo $data;
-	return true;
 }
 
 function SET_CACHED($file,$function,$token,$datas){
-	if(strlen($datas)<20){return;}
-	$browser=md5($_SERVER['HTTP_USER_AGENT']);
+	if(strlen($datas)<5){return;}
+	if($GLOBALS["AS_ROOT"]){$uid=-100;}
+	
+	
 	if(trim($token)==null){$token=$function;}
 	$file=basename($file);
 	$token=md5($token);
-	$uid=$_SESSION["uid"];
-	if($uid==-100){$uid="RootMaster";}		
-	if(!isset($_SESSION["detected_lang"])){
-			$tpl=new templates();
-			$_SESSION["detected_lang"]=$tpl->_detect_lang();
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: define the session with the new language {$_SESSION["detected_lang"]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	$MD5=GET_CACHED_KEY($file,$function,$token);
 	
-		}
 	
-if($GLOBALS["MEMCACHE_ENABLED"]==1){	
+
 	if(class_exists("Memcache")){
-		$memcache = new Memcache();
-		$memcache->connect('unix:///var/run/memcached.sock', 0);
-		$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
-		$ARRAY[$uid][$file][$function][$token][$browser][$_SESSION["detected_lang"]]=$datas;
-		//writelogs("Memcache SET ".strlen(serialize($ARRAY))." bytes length",__FUNCTION__,__FILE__,__LINE__);
-		$memcache->set('ARTICACACHEARRAY', serialize($ARRAY), 0, 300); 
-		return;
+		if(_is_socket("/var/run/memcached.sock")){	
+			$memcache = new Memcache();
+			if($memcache->connect('unix:///var/run/memcached.sock', 0)){
+				if($memcache->set($MD5, $datas, 0, 300)){ return; } 
+			}
+		}
 	}
-}
 	
-	
-	
-	$dir=dirname(__FILE__)."/logs/web/cache/$uid";
-	if(!is_dir($dir)){@mkdir($dir,644,true);}
-	$targetFile="$dir/$file.$function.$token.$browser.{$_SESSION["detected_lang"]}.object.cache";
-	@file_put_contents($targetFile,$datas);	
+	$dir=dirname(__FILE__)."/logs/web/cache";
+	if(!is_dir($dir)){@mkdir($dir,0755,true);}
+	$targetFile="$dir/$MD5.cache";
+	@file_put_contents($targetFile,$datas);
+	@chmod($targetFile, 0777);	
 }
 
 
@@ -5477,7 +5698,7 @@ FUNCTION REMOVE_CACHED($file=null){
 	}
 	
 	if(class_exists("Memcache")){
-		if($GLOBALS["MEMCACHE_ENABLED"]==1){
+		if(_is_socket("/var/run/memcached.sock")){	
 			$memcache = new Memcache();
 			$memcache->connect('unix:///var/run/memcached.sock', 0);
 			$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
@@ -5497,6 +5718,7 @@ function finduser_format($array,$faltomde=false){
 	$organization=$tpl->_ENGINE_parse_body("{organization}");
 	if(strpos($array["sn"], ',')>0){$array["sn"]=null;}
 	
+	$uid=$array["uid"];
 	
 	$disp="{$array["givenname"]} {$array["sn"]}";
 	if(trim($disp)=="{unknown}"){$disp=null;}
@@ -5508,14 +5730,14 @@ function finduser_format($array,$faltomde=false){
 	if($array["JS"]<>null){
 		if(isset($array["employeenumber"])){
 			$array["JS"]="javascript:Loadjs('contact.php?employeeNumber={$array["employeenumber"]}')";
-			if($array["img"]=="img/contact-unknown-user.png"){$array["img"]="img/contact-unknown-user-ident.png";}
+			if($array["img"]=="img/contact-unknown-user.png"){$array["img"]="img/contact-60.png";}
 			$keyimg="employeeNumber={$array["employeenumber"]}";	
 			
 		}
 		
 	}	
 	if(is_numeric($array["uidNumber"])){
-	$uidn="ID:&nbsp;<b>{$array["uidNumber"]}</b><br>";
+		$uidn="ID:&nbsp;<b>{$array["uidNumber"]}</b><br>";
 	}
 	if(trim($array["ou"])<>null){
 		$ou="$organization:<b>{$array["ou"]}</b><br>";
@@ -5536,7 +5758,7 @@ function finduser_format($array,$faltomde=false){
 	
 	if($faltomde){
 		$html="
-		<div style='width:95%' class=form>		
+		<div style='width:98%' class=form>		
 		<table style='width:100%'>
 		<tr>
 			<td valign='top' width=1%><a href=\"javascript:Blurz();\" OnClick=\"javascript:s_PopUp('edit.thumbnail.php?$keyimg',550,250);\"><img src='{$array["img"]}'></a></td>
@@ -5563,14 +5785,19 @@ function finduser_format($array,$faltomde=false){
 		
 	}
 	
-	
+	$color="black";
 return array(
 		'id' => "$uidn",
 		'cell' => array(
-		"<a href=\"javascript:Blurz();\" OnClick=\"javascript:s_PopUp('edit.thumbnail.php?$keyimg',550,250);\"><img src='{$array["img"]}'></a>",
-		"<a href=\"javascript:Blurz();\"  OnClick=\"{$array["JS"]};\" style='font-size:16px;text-decoration:underline;color:$color'>$disp<br></a>
+		"<a href=\"javascript:Blurz();\" 
+				OnClick=\"javascript:s_PopUp('edit.thumbnail.php?$keyimg',550,250);\">
+				<img src='{$array["img"]}'></a>",
+		"<a href=\"javascript:Blurz();\"  OnClick=\"{$array["JS"]};\" 
+		style='font-size:18px;text-decoration:underline;color:$color'>$uid</a>
+		<div style='font-size:16px;margin-bottom:-10px;text-transform:capitalize'>$disp</div>
 		<div style='font-size:12px'><i>$ou$title$phone$uidn</i>",
-		"<a href=\"javascript:Blurz();\"  OnClick=\"{$array["JS"]};\" style='font-size:16px;text-decoration:underline;color:$color'>$mail</a>",
+		"<a href=\"javascript:Blurz();\"  OnClick=\"{$array["JS"]};\" 
+			style='font-size:18px;text-decoration:underline;color:$color'>$mail</a>",
 		
 		
 		)
@@ -5841,76 +6068,8 @@ function IsPhysicalAddress($address){
 }
 
 function getLocalTimezone(){
-	if(function_exists("debug_mem")){debug_mem();}
-	$page=CurrentPageName();
-	if($page=="exec.artica-filter.php"){return;}
-	if(isset($GLOBALS["GET_TIME_ZONE"])){
-		if($GLOBALS["GET_TIME_ZONE"]<>null){return $GLOBALS["GET_TIME_ZONE"];}
-	}
-	if(isset($_SESSION["GET_TIME_ZONE"])){
-		if($_SESSION["GET_TIME_ZONE"]<>null){return $_SESSION["GET_TIME_ZONE"];}
-	}
+	if(!class_exists("sockets")){return;}
 	$sock=new sockets();
-	$timezones=$sock->GET_INFO('timezones');
-	if($timezones<>null){
-		$GLOBALS["GET_TIME_ZONE"]=$timezones;
-		$_SESSION["GET_TIME_ZONE"]=$timezones;
-		if(function_exists("debug_mem")){debug_mem();}
-		return $timezones;
-	}
-	
-	
-    $iTime = time();
-    $arr = localtime($iTime);
-    $arr[5] += 1900;
-    $arr[4]++;
-    $iTztime = gmmktime($arr[2], $arr[1], $arr[0], $arr[4], $arr[3], $arr[5]);
-    $offset = doubleval(($iTztime-$iTime)/(60*60));
-    $zonelist =
-    array
-    (
-        'Kwajalein' => -12.00,
-        'Pacific/Midway' => -11.00,
-        'Pacific/Honolulu' => -10.00,
-        'America/Anchorage' => -9.00,
-        'America/Los_Angeles' => -8.00,
-        'America/Denver' => -7.00,
-        'America/Tegucigalpa' => -6.00,
-        'America/New_York' => -5.00,
-        'America/Caracas' => -4.30,
-        'America/Halifax' => -4.00,
-        'America/St_Johns' => -3.30,
-        'America/Argentina/Buenos_Aires' => -3.00,
-        'America/Sao_Paulo' => -3.00,
-        'Atlantic/South_Georgia' => -2.00,
-        'Atlantic/Azores' => -1.00,
-        'Europe/Dublin' => 0,
-        'Europe/Belgrade' => 1.00,
-        'Europe/Minsk' => 2.00,
-        'Asia/Kuwait' => 3.00,
-        'Asia/Tehran' => 3.30,
-        'Asia/Muscat' => 4.00,
-        'Asia/Yekaterinburg' => 5.00,
-        'Asia/Kolkata' => 5.30,
-        'Asia/Katmandu' => 5.45,
-        'Asia/Dhaka' => 6.00,
-        'Asia/Rangoon' => 6.30,
-        'Asia/Krasnoyarsk' => 7.00,
-        'Asia/Brunei' => 8.00,
-        'Asia/Seoul' => 9.00,
-        'Australia/Darwin' => 9.30,
-        'Australia/Canberra' => 10.00,
-        'Asia/Magadan' => 11.00,
-        'Pacific/Fiji' => 12.00,
-        'Pacific/Tongatapu' => 13.00
-    );
-    $index = array_keys($zonelist, $offset);
-    if(sizeof($index)!=1){return;}
-    $GLOBALS["GET_TIME_ZONE"]=$index[0];
-    $_SESSION["GET_TIME_ZONE"]=$index[0];
-    $sock->SET_INFO('timezones',$index[0]);
-	if(function_exists("debug_mem")){debug_mem();}
-    return $index[0];
 }
 
   function artica_get_memory_usage() {
@@ -6014,6 +6173,33 @@ function CompileTrGen($array,$title=null,$rowNumber=5){
 	return implode("\n",$tables);
 }
 
+function CompileTr5_win($array){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
+	
+	
+	$tables[]="<table style='width:765px' cellspacing='15px' cellpadding='15px'><tr>";
+	
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td width=25% valign='top'>$line</td>";
+		if($t==5){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<5){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td width=25% valign='top'>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</tr>
+			</table>";
+	return implode("\n",$tables);
+}
+
 
 function CompileTr4($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}
@@ -6112,8 +6298,8 @@ function NotifyAdmin($img,$title,$text,$js,$critical=0){
 	if(!is_numeric($critical)){$critical=0;}
 	$sql="INSERT IGNORE INTO adminevents(zmd5,zDate,subject,text,jslink,icon,critical,enabled)
 	VALUES ('$zmd5','$date','$title','$text','$js','$img','$critical',1);";
-	if(!is_dir("/var/log/artica-postfix/adminevents")){@mkdir("/var/log/artica-postfix/adminevents",644,true);}
-	@file_put_contents("/var/log/artica-postfix/adminevents/$zmd5",$sql);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/adminevents")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/adminevents",644,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/adminevents/$zmd5",$sql);
 }
 function quicklinks_paragraphe($img,$title,$text,$link){
 	
@@ -6173,6 +6359,10 @@ function table_error_showZoom($error,$underline=1){
 function json_error_show($error,$indexColumn=0,$full=false){
 	$error=str_replace("no data", "{this_request_contains_no_data}", $error);
 	$error=str_replace("Not found...", "{this_request_contains_no_data}", $error);
+	$error=str_replace("no item", "{this_request_contains_no_data}", $error);
+	$error=str_replace("no schedule", "{no_schedule}", $error);
+	
+	
 	$tpl=new templates();
 	$id=md5($error);
 	$error=$tpl->javascript_parse_text($error);
@@ -6267,6 +6457,7 @@ function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 	$classform="class=form";
 	if($noform){$classform=null;$width="99%";}
 	if(!$nomargin){$margin="margin:30px";}
+	$text=$tpl->_ENGINE_parse_body($text);
 	$html="
 	<center style='$margin'>
 	<div style='width:95%' $classform>
@@ -6275,7 +6466,7 @@ function FATAL_ERROR_SHOW_128($text,$noform=false,$nomargin=false){
 		<td valign='top' style='width:1%'>
 			<img src='img/error-128.png'>
 		</td>
-		<td><div style='font-size:18px;color:#E41717'>$text</div></td>
+		<td><div style='font-size:18px;color:#ed0d0d'>$text</div></td>
 	</tr>
 	</table>
 	</div>
@@ -6295,10 +6486,11 @@ function FATAL_WARNING_SHOW_128($text){
 	<td valign='top' style='width:1%'>
 	<img src='img/light-bulb-warning-128.png'>
 	</td>
-	<td><div style='font-size:18px;color:#E41717'>$text</div></td>
+	<td><div style='font-size:18px;color:#ed0d0d'>$text</div></td>
 	</tr>
 	</table>
 	</center>
+	<script>UnlockPage();</script>
 	";
 	return $tpl->_ENGINE_parse_body($html);
 
@@ -6424,15 +6616,63 @@ function build_artica_tabs($tabsArray,$id,$width=0){
 	$width_text="100%";
 	if($width>0){$width_text="{$width}px";}
 	$md=md5(serialize($tabsArray).",$id,$t");
+	
+	//Stuff cool: $('#$id').tabs({ fx: { opacity: 'toggle' } }).tabs('rotate', 3000);
+	
 	$html="
-		<div id='$id' style='margin-left:0px;width:$width_text !important'>
+		<div id='$id' style='margin-left:0px;min-height:450px;width:$width_text !important'>
 			<ul>
 			". implode("\n",$tabsArray). "
 			</ul>
 		</div>
 <script>
-	function tab$md(){
-		$('#$id').tabs();
+function tab$md(){
+    $.ajaxSetup({
+        cache:false
+
+        }); 
+
+    $(function() {
+        $( \"#$id\" ).tabs({
+        	fx: { opacity: 'toggle' },
+            ajaxOptions: {
+                success:function(){
+                   
+                },
+                error: function( xhr, status, index, anchor ) {
+                	if(xhr.status==0){
+                		setTimeout('tab$md()',{$_SESSION["build_artica_tabs_timeout"]});
+                	}
+                
+                    $( anchor.hash ).html(
+                        \"Couldn't load this tab, Error \"+xhr.status+ \"[\"+xhr.statusText+\"] We'll try to fix this as soon as possible. \" + \"If this wouldn't be a demo.\" );
+                }
+            }
+        });
+
+
+
+    });
+
+}
+
+	function tab2$md(){
+	
+		var tabAjaxOpts = { 
+			beforeSend: function(){ $( anchor.hash ).html('<img src=\"img/wait_verybig_mini_red.gif\">');},
+	   	 	success:function(){UnlockPage();}, 
+	    	error:function(){UnlockPage();alert('onFail');}
+		};
+
+		$('#$id').tabs({
+		    fx: { opacity: 'toggle' },
+		    select: function () {
+		        $(this).tabs(\"option\", { ajaxOptions: tabAjaxOpts});
+		    },
+		    ajaxOptions: tabAjaxOpts
+		});
+	
+// $('#$id').tabs({ fx: { opacity: 'toggle' } });
 	}
 		
 	setTimeout('tab$md()',{$_SESSION["build_artica_tabs_timeout"]});
@@ -6459,4 +6699,59 @@ if(isset($GLOBALS["DEBUG_PROCESS"])){
 	if(!function_exists("writelogs")){include_once(dirname(__FILE__) . '/logs.inc');}
 	writelogs("OK FOR THAT",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 }
+
+function header_location($returnpage){
+	if(strpos($_SERVER["HTTP_ACCEPT"], "/javascript")>0){
+		header("content-type: application/x-javascript");
+		echo "document.location.href='$returnpage';";
+		die();
+		
+	}
+	header("location:$returnpage");
+	die();
+}
+
+function ip2Long2($dottedFormatAddress){
+	return  sprintf("%u", ip2long($dottedFormatAddress));
+	
+}
+
+function strip_bad_characters($servername){
+	$servername=replace_accents($servername);
+	$servername=str_replace('/', '.', $servername);
+	$servername=str_replace('\\', '.', $servername);
+	$servername=str_replace(' ', '.', $servername);
+	$servername=str_replace('$', '.', $servername);
+	$servername=str_replace('!', '.', $servername);
+	$servername=str_replace('(', '.', $servername);
+	$servername=str_replace(')', '.', $servername);
+	$servername=str_replace('[', '.', $servername);
+	$servername=str_replace(']', '.', $servername);
+	$servername=str_replace('}', '.', $servername);
+	$servername=str_replace('{', '.', $servername);
+	$servername=str_replace('&', '.', $servername);
+	$servername=str_replace('|', '.', $servername);
+	$servername=str_replace('^', '.', $servername);
+	$servername=str_replace('@', '.', $servername);
+	$servername=str_replace('=', '.', $servername);
+	$servername=str_replace('+', '.', $servername);
+	$servername=str_replace('?', '.', $servername);
+	$servername=str_replace('*', '.', $servername);
+	$servername=str_replace('#', '.', $servername);
+	$servername=str_replace('"', '.', $servername);
+	$servername=str_replace('%', '.', $servername);
+	$servername=str_replace('*', '.', $servername);
+	$servername=str_replace(',', '.', $servername);
+	$servername=str_replace(',', '.', $servername);
+	$servername=str_replace(';', '.', $servername);
+	$servername=str_replace(':', '.', $servername);
+	$servername=str_replace('..', '.', $servername);
+	$servername=str_replace('..', '.', $servername);
+	$servername=str_replace('..', '.', $servername);
+	$servername=str_replace('..', '.', $servername);
+	$servername=str_replace('...', '.', $servername);
+	return $servername;
+	
+}
+
 ?>

@@ -60,7 +60,7 @@ function popup(){
 		
 	$html="
 	<div id='$t'></div>
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:14px'>{EnableWatchdog}:</td>
 		<td>". Field_checkbox("EnableWatchdog-$t",1,$EnableWatchdog,"EnableWatchMemoryUsageCheck$t()")."</td>

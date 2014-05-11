@@ -445,7 +445,7 @@ function samba(){
 
 			$array["DEF_ICO_NTPOL_HOWTO"]=array(
 			"IMG"=>"64-howto.png",
-			 "JS"=>"javascript:s_PopUpFull('http://www.artica.fr/index.php/samba-file-sharing/53-domains-a-administration/246-define-windows-clients-policies-trough-your-pdc-',800,800,'')",
+			 "JS"=>"javascript:s_PopUpFull('http://www.articatech.net/index.php/samba-file-sharing/53-domains-a-administration/246-define-windows-clients-policies-trough-your-pdc-',800,800,'')",
 			 "TITLE"=>"NTconfig_howto_title",
 			 "TEXT"=>"NTconfig_howto_title_text",
 			 "CLASS"=>"FILE_SHARE",
@@ -1078,15 +1078,7 @@ function network(){
 			 "LANG"=>"mysql.index.php"
 			);				
 	
-	if($users->OPENVPN_INSTALLED){
-			$array["DEF_ICO_OPENVPN"]=array(
-			"IMG"=>"64-openvpn.png",
-			 "JS"=>"Loadjs('index.openvpn.php')",
-			 "TITLE"=>"APP_OPENVPN",
-			 "TEXT"=>"APP_OPENVPN_TEXT",
-			 "CLASS"=>"NETWORK"
-			);
-	}
+
 	
 	if($users->dhcp_installed){
 		$array["DEF_ICO_DHCP"]=array(
@@ -1578,14 +1570,7 @@ function mailsecu(){
 			 "LANG"=>"postfix.index.php"
 			);		
 
-		$array["DEF_ICO_POSTFIX_REGEX"]=array(
-			"IMG"=>"bg_regex-64.png",
-			 "JS"=>"Loadjs('postfix.headers-body-checks.php?ou=master&hostname=master')",
-			 "TITLE"=>"global_smtp_rules",
-			 "TEXT"=>"global_smtp_rules_text",
-			 "CLASS"=>"MAIL_SECU",
-			 "LANG"=>"postfix.index.php"
-			);				
+		
 			
 			$global_smtp_rules=Paragraphe('64-administrative-tools.png','{global_smtp_rules}','{global_smtp_rules_text}',
 			"javascript:Loadjs('postfix.headers-body-checks.php?ou=master&hostname=master')",null,210,null,0,true);

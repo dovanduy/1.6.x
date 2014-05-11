@@ -73,7 +73,7 @@ function group_id(){
 	}
 	
 	$html="<div id='anim-$t'></div>
-	<div style='width:95%' class=form>	
+	<div style='width:98%' class=form>	
 	<table style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{name}:</td>
@@ -154,9 +154,9 @@ echo "
 			url: '$page?query=yes&t=$t',
 			dataType: 'json',
 			colModel : [
-			{display: '&nbsp;', name : 'none2', width : 40, sortable : false, align: 'center'},
-			{display: '$shortname', name : 'groupname', width : 550, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'none3', width : 40, sortable : false, align: 'center'},
+			{display: '&nbsp;', name : 'none2', width : 52, sortable : false, align: 'center'},
+			{display: '$shortname', name : 'groupname', width : 510, sortable : false, align: 'left'},
+			{display: '&nbsp;', name : 'none3', width : 52, sortable : false, align: 'center'},
 		],
 		$buttons
 		searchitems : [
@@ -170,7 +170,7 @@ echo "
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
-		width: $tablewidht,
+		width: '99%',
 		height: 450,
 		singleSelect: true
 		});
@@ -283,17 +283,17 @@ function connection_list(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
 		$color="black";
-		$delete=imgsimple("delete-24.png",null,"ConnectionDelete$t('{$ligne['id']}')");
+		$delete=imgsimple("delete-48.png",null,"ConnectionDelete$t('{$ligne['id']}')");
 		
 		
 
 		$data['rows'][] = array(
 				'id' => $ligne['id'],
 				'cell' => array("
-						<img src='img/user-32.png'>",
+						<img src='img/group-48.png'>",
 						"<a href=\"javascript:blur();\" 
 						OnClick=\"javascript:Loadjs('$MyPage?group-id-js={$ligne['id']}&t=$t');\" 
-						style=\"font-size:16px;text-decoration:underline;color:$color\">
+						style=\"font-size:22px;text-decoration:underline;color:$color\">
 						{$ligne['groupname']}</a>",
 						$delete
 				)

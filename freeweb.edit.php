@@ -241,7 +241,7 @@ function js(){
 	
 	
 	$title=$tpl->_ENGINE_parse_body("{free_web_servers}::{$ligne["ou"]}&nbsp;&raquo;&nbsp;{$_GET["hostname"]}$gpwr");
-	echo "YahooWin5('1070','$page?popup-tabs=yes&servername={$_GET["hostname"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}','$title');";
+	echo "YahooWin5('1241','$page?popup-tabs=yes&servername={$_GET["hostname"]}&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}','$title');";
 	}
 	
 function groupwares_save(){
@@ -275,7 +275,7 @@ function groupwares_index(){
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));		
 	if($ligne["groupware"]<>null){
 		echo $tpl->_ENGINE_parse_body("
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 		<table>
 		<tr>
 			<td width=1% valign='top'><img src='img/{$h->IMG_ARRAY_64[$ligne["groupware"]]}'></td>
@@ -1393,11 +1393,19 @@ function popup(){
 			<tr> 
 				<td class=legend nowrap>{www_forward}:</td>
 				<td width=1%>". Field_checkbox("Forwarder", 1,$ligne["Forwarder"],"CheckForwarder()")."</td>
+				<td>&nbsp;</td>
 			</tr>				
 			<tr> 
 				<td class=legend nowrap>{reverse_proxy}:</td>
 				<td width=1%>". Field_checkbox("UseReverseProxy", 1,$ligne["UseReverseProxy"],"CheckUseReverseProxy()")."</td>
+				<td>&nbsp;</td>
 			</tr>		
+			
+			<tr> 
+				<td class=legend nowrap>{directory}:</td>
+				<td>". Field_text("www_dir",$ligne["www_dir"],"font-size:13px;padding:3px;")."</td>
+				<td>". button_browse("www_dir")."</td>
+			</tr>			
 			
 			$sizelimit
 			<tr>
@@ -1619,6 +1627,8 @@ function popup(){
 			RefreshTab('main_config_freewebedit');
 			if(document.getElementById('container-www-tabs')){RefreshTab('container-www-tabs');}
 			if(document.getElementById('main_config_freeweb')){RefreshTab('main_config_freeweb');}
+			if(document.getElementById('sarg_tabs')){RefreshTab('sarg_tabs');}
+			
 			if(NewServer==1){YahooWin5Hide();}
 			
 		}	
@@ -1681,6 +1691,11 @@ function popup(){
 			if(document.getElementById('UseReverseProxy').checked){XHR.appendData('UseReverseProxy',1);}else{XHR.appendData('UseReverseProxy',0);}
 			if(document.getElementById('Forwarder').checked){XHR.appendData('Forwarder',1);}else{XHR.appendData('Forwarder',0);}
 			XHR.appendData('ForceInstanceZarafaID','{$_GET["ForceInstanceZarafaID"]}');
+			
+			if(document.getElementById('www_dir')){
+				XHR.appendData('www_dir',document.getElementById('www_dir').value);
+			}
+			
 			
 			
 			if(document.getElementById('LoopMounts')){
@@ -1945,6 +1960,7 @@ function Save(){
 			lvm_size='{$_GET["vg_size"]}',
 			UseLoopDisk='{$_GET["UseLoopDisk"]}',
 			LoopMounts='{$_GET["LoopMounts"]}',
+			www_dir='{$_GET["www_dir"]}',
 			UseReverseProxy='{$_GET["UseReverseProxy"]}',
 			ProxyPass='{$_GET["ProxyPass"]}',
 			useSSL='$useSSL',
@@ -1986,15 +2002,20 @@ function Save(){
 			$groupware_value=",'{$_GET["force-groupware"]}'";
 		}
 		
+		if($_GET["www_dir"]<>null){
+			$www_dir_field=",www_dir";
+			$www_dir_value=",'{$_GET["www_dir"]}'";			
+		}
+		
 		$sock->getFrameWork("freeweb.php?force-resolv=yes");
 		$sql="INSERT INTO freeweb (mysql_password,mysql_username,ftpuser,ftppassword,useSSL,servername,mysql_database,
 		uid,gpid,useMysql,useFTP,lvm_vg,lvm_size,UseLoopDisk,LoopMounts,ou,domainname,www_dir,ServerPort,UseReverseProxy,
-		ProxyPass,Forwarder,ForwardTo,ForceInstanceZarafaID,mysql_instance_id,ServerIP$groupware_field)
+		ProxyPass,Forwarder,ForwardTo,ForceInstanceZarafaID,mysql_instance_id,ServerIP$groupware_field$www_dir_field)
 		VALUES('$mysql_password','$mysql_username','$ftpuser','$ftppassword','$useSSL','$servername','$mysql_database',
 		'$uid','{$_GET["gpid"]}','{$_GET["useMysql"]}',
 		'{$_GET["useFTP"]}','{$_GET["lvm_vg"]}','{$_GET["vg_size"]}','{$_GET["UseLoopDisk"]}','{$_GET["LoopMounts"]}','$ou',
 		'{$_GET["domainname"]}','$FreewebsStorageDirectory','$ServerPort','{$_GET["UseReverseProxy"]}','{$_GET["ProxyPass"]}',
-		'{$_GET["Forwarder"]}','{$_GET["ForwardTo"]}','{$_GET["ForceInstanceZarafaID"]}','{$_GET["mysql_instance_id"]}','$ServerIP'$groupware_value
+		'{$_GET["Forwarder"]}','{$_GET["ForwardTo"]}','{$_GET["ForceInstanceZarafaID"]}','{$_GET["mysql_instance_id"]}','$ServerIP'$groupware_value$www_dir_value
 		)";
 	}
 	
@@ -2101,7 +2122,7 @@ function uid_check(){
 	$sock=new sockets();
 	$datas=trim($sock->getFrameWork("freeweb.php?getidof=$uid"));
 	if($datas=="FALSE"){
-		$html=imgtootltip("status_warning.gif","{FREEWEB_WRONG_USER_SYSTEM_TEXT}");
+		$html=imgtootltip("status_warning.png","{FREEWEB_WRONG_USER_SYSTEM_TEXT}");
 		$tpl=new templates();
 		echo $tpl->_ENGINE_parse_body($html);
 	}
@@ -2119,9 +2140,15 @@ function webserver_aliases_list(){
 		$f[]=$host;
 	}
 	
+	if(count($f)==0){
+		$none=$tpl->_ENGINE_parse_body("{none}");
+		echo $tpl->_ENGINE_parse_body("<a href=\"javascript:Loadjs('freeweb.edit.ServerAlias.php?servername=$servername')\" style='font-size:14px;text-decoration:underline'>$none<i></a>");
+		return;
+	}
+	
 	$aliases=@implode(", ",$f);
 	
-	$html="<table><tbody><tr><td style='font-size:11px'><i>$aliases</i></td><td width=1%>". imgtootltip("edit.gif","{edit}","Loadjs('freeweb.edit.ServerAlias.php?servername=$servername')")."</td></tr></tbody></table>";
+	$html="<a href=\"javascript:Loadjs('freeweb.edit.ServerAlias.php?servername=$servername')\" style='font-size:14px;text-decoration:underline'><i>$aliases</i></a>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 

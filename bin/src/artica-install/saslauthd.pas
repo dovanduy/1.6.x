@@ -29,9 +29,9 @@ private
 public
     procedure   Free;
     constructor Create(const zSYS:Tsystem);
-    procedure   START();
+
     function    SASLAUTHD_PID():string;
-    procedure   STOP();
+
     function    VERSION():string;
     function    STATUS():string;
     function    SASLAUTHD_PATH():string;
@@ -82,93 +82,6 @@ begin
     if FileExists('/etc/init.d/saslauthd') then exit('/etc/init.d/saslauthd');
 end;
  //#############################################################################
-procedure tsaslauthd.STOP();
-begin
-if not FileExists(SASLAUTHD_PATH()) then begin
-   writeln('Stopping SaslAuthd...........: Not installed');
-   exit;
-end;
-if SYS.PROCESS_EXIST(SASLAUTHD_PID()) then begin
-   writeln('Stopping SaslAuthd...........: ' + SASLAUTHD_PID() + ' PID..');
-   fpsystem('/bin/kill ' + SASLAUTHD_PID());
-end else begin
-   writeln('Stopping SaslAuthd...........: Already stopped');
-end;
-
-CHANGE_INITD();
-end;
- //##############################################################################
-
-procedure tsaslauthd.START();
-var
-   count:integer;
-   mechanism:string;
-   moinsr:string;
-   cmd:string;
-   ldap_search_base:string;
-   ldap_search_base_conf:string;
-   instances:integer;
-begin
-   if not FileExists(SASLAUTHD_PATH()) then begin
-      logs.Debuglogs('SASLAUTHD_PATH() return null, aborting there is no saslauthd binary here...');
-      exit;
-   end;
-   moinsr:='';
-
-if SYS.PROCESS_EXIST(SASLAUTHD_PID()) then begin
-   logs.DebugLogs('Starting......: saslauthd already running using PID ' +SASLAUTHD_PID()+ '...');
-   exit;
-end;
-   forceDirectories('/var/run/saslauthd');
-   logs.DebugLogs('Starting......: Configure cyrus...');
-   SYS.TEST_MECHANISM();
-   CHANGE_INITD();
-
-   ldap_search_base:='dc=organizations,'+CCYRUS.ldapserver.suffix;
-   ldap_search_base_conf:=CCYRUS.SASLAUTHD_GET('ldap_search_base');
-   CCYRUS.SASLAUTHD_CONFIGURE();
-
-    mechanism:=SYS.GET_ENGINE('MECHANISM');
-    if length(mechanism)=0 then mechanism:='ldap';
-    if EnableVirtualDomainsInMailBoxes=1 then begin
-       moinsr:='-r ';
-       logs.DebugLogs('Starting......: saslauthd enable authentification for multi-domains');
-    end;
-
-
-    if CyrusToAD=1 then begin
-         mechanism:='pam';
-         logs.DebugLogs('Starting......: saslauthd enable pam authentifications');
-         fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.cyrus.php --kinit >/dev/null 2>&1');
-    end;
-       instances:=5;
-       if SYS.MEM_TOTAL_INSTALLEE()<400000 then instances:=2;
-       logs.DebugLogs('Starting......: saslauthd authentification "'+mechanism+'"');
-       cmd:=SASLAUTHD_PATH() + ' '+moinsr+' -a ' +mechanism+' -c -m /var/run/saslauthd -n '+IntTOStr(instances);
-       logs.OutputCmd(cmd);
-       count:=0;
-        while not SYS.PROCESS_EXIST(SASLAUTHD_PID()) do begin
-              sleep(150);
-              inc(count);
-              if count>100 then begin
-                 logs.DebugLogs('Starting......: saslauthd daemon. (timeout!!!)');
-                 break;
-              end;
-        end;
-   if not SYS.PROCESS_EXIST(SASLAUTHD_PID()) then begin
-       logs.DebugLogs('Starting......: saslauthd daemon. (failed!!!)');
-   end else begin
-       logs.DebugLogs('Starting......: saslauthd daemon. PID '+SASLAUTHD_PID());
-       logs.DebugLogs('Starting......: saslauthd symlink from /var/run/saslauthd to /var/run/sasl2');
-       fpsystem('/bin/ln -sf /var/run/saslauthd /var/run/sasl2 >/dev/null 2>&1');
-       forceDirectories('/var/spool/postfix/var');
-       fpsystem('/bin/ln -sf /var/run /var/spool/postfix/var/run >/dev/null 2>&1');
-       fpsystem('/bin/chmod 0755 /var/run/saslauthd >/dev/null 2>&1');
-       fpsystem('/bin/chmod 0777 /var/run/saslauthd/* >/dev/null 2>&1');
-   end;
-
-end;
-//##############################################################################
 function tsaslauthd.VERSION():string;
 var
     RegExpr:TRegExpr;
@@ -196,7 +109,7 @@ function tsaslauthd.STATUS():string;
 var
 pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_SASLAUTHD');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --saslauthd >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);

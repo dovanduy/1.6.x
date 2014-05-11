@@ -517,7 +517,7 @@ function schedules(){
 	}
 	
 	if(is_array($f)){
-		echo "Starting......: Daemon (fcron) ". count($f)." scheduled reports\n";
+		echo "Starting......: ".date("H:i:s")." Daemon (fcron) ". count($f)." scheduled reports\n";
 		@file_put_contents("/etc/artica-postfix/reports.tasks",@implode("\n",$f));
 	}
 	

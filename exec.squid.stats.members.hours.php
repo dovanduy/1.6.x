@@ -61,6 +61,7 @@ function members_hours_perfom_bytime($xtime){
 
 
 function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false){
+	$t=time();
 	if($tabledata==null){
 		events_tail("Processing alert (no tabledata)");
 		return;
@@ -121,6 +122,8 @@ function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false
 	}
 
 	$q=new mysql_squid_builder();
+	
+	
 	if($q->COUNT_ROWS($nexttable)>0){
 		$sql="SELECT `hour` FROM $nexttable ORDER BY `hour` DESC LIMIT 0,1";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -145,12 +148,12 @@ function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false
 	$results=$q->QUERY_SQL($sql);
 	
 	if(!$q->ok){
-		events_tail("Processing failed from $tabledata $q->mysql_error");
+		stats_admin_events(0,"Processing failed with $tabledata",$q->mysql_error,__FILE__,__LINE__);
 		return;
 	}
 	
 	$num_rows=mysql_num_rows($results);
-	events_tail("Processing $tabledata -> $nexttable CLOSE:$CloseTable (today is $todaytable) filter:'$filter_hour_2' $num_rows  rows in line ".__LINE__);
+	
 	if($num_rows<10){$output_rows=true;}
 
 	if($num_rows==0){
@@ -199,7 +202,10 @@ function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false
 		events_tail("Processing ". count($f)." rows");
 		if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $nexttable {$GLOBALS["Q"]->mysql_error}");return;}
 	}
-	events_tail("Processing success");
+	
+	
+	
+	stats_admin_events(2,"$tabledata -> $nexttable took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 	echo "SUCCESS\n";
 	return true;
 }

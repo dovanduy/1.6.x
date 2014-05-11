@@ -328,7 +328,7 @@ function BrowseContener(){
 	 $html="
 	 <table style='width:100%;padding:3px;'>
 	 <tr ".CellRollOver().">
- 			<td width=1%><img src='img/mailbox.gif'></td>
+ 			<td width=1%><img src='img/mailbox.png'></td>
  			<td valign='top' style='font-size:13px'><strong>INBOX</strong></td>
  			<td>". imgtootltip("22-backup.png","{restore} $path_1","RestoreMailbox($taskid,'$target_dir','INBOX')")."</td>
  		</tr>
@@ -344,7 +344,7 @@ function BrowseContener(){
 		<table style='width:100%;padding:3px;'>
  		<tr >
  			<td>&nbsp;&nbsp;</td>
- 			<td width=1%><img src='img/mailbox.gif'></td>
+ 			<td width=1%><img src='img/mailbox.png'></td>
  			<td ".CellRollOver()." width=99% valign='top' style='font-size:11px'><strong>$path_1_text</strong></td>
  			<td>". imgtootltip("22-backup.png","{restore} $path_1","RestoreMailbox($taskid,'$target_dir','INBOX/$path_1')")."</td>
  		</tr>
@@ -384,7 +384,7 @@ function ListDirectory(){
 		<table style='width:100%;padding:3px;'>
  		<tr >
  			<td>&nbsp;&nbsp;</td>
- 			<td width=1%><img src='img/mailbox.gif'></td>
+ 			<td width=1%><img src='img/mailbox.png'></td>
  			<td ".CellRollOver()." width=99% valign='top' style='font-size:11px'><strong>$path_1_text</strong></td>
  			<td>". imgtootltip("22-backup.png","{restore} $path_1","RestoreMailbox($taskid,'$target_dir','INBOX/$path_1')")."</td>
  		</tr>

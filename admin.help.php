@@ -10,14 +10,14 @@
 	if(isset($_GET["loadhelp"])){loadhelp();exit;}
 	
 	$title=$tpl->javascript_parse_text("{help}");
-	$loadhelp=$_GET["text"];
+	$loadhelp=urlencode($_GET["text"]);
+	header("content-type: application/x-javascript");
 	echo "YahooWinT(600,'$page?loadhelp=$loadhelp','$title');";
 	
 	
-	function loadhelp(){
-			$tpl=new templates();
-		
-		$text=$tpl->_ENGINE_parse_body(base64_decode($_GET["loadhelp"]));
-		if(substr($text, 0,1)<>'{'){$text="{{$text}}";$text=$tpl->_ENGINE_parse_body($text);}
-		echo "<div class=explain style='font-size:14px;width:90%'>$text</div>";
-	}
+function loadhelp(){
+	$tpl=new templates();
+	$text=$tpl->_ENGINE_parse_body(base64_decode($_GET["loadhelp"]));
+	
+	echo "<div class=explain style='font-size:14px;width:90%'>$text</div>";
+}

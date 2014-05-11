@@ -193,7 +193,7 @@ function acl_group_settings(){
 	$acltpl=$ligne["acltpl"];
 	$t=time();
 	
-	$html="	<div style='width:95%' class=form>
+	$html="	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{rule_name}:</td>
@@ -258,11 +258,25 @@ function acl_rule_settings(){
 	$acltpl=$ligne["acltpl"];
 	$aclgpid=$ligne["aclgpid"];
 	$PortDirection=$ligne["PortDirection"];
+	
+	
+	
 	if(!is_numeric($PortDirection)){$PortDirection=0;}
 	$PortDirectionS[0]="{all_methods}";
 	$PortDirectionS[1]="{standard_method}";
 	$PortDirectionS[2]="{transparent_method}";
 	$PortDirectionS[3]="{smartphones_port}";
+	
+	$sql="SELECT * FROM proxy_ports WHERE enabled=1";
+	$resultsPorts = $q->QUERY_SQL($sql);
+	while ($lignePorts = mysql_fetch_assoc($resultsPorts)) {
+		$ipaddr=$lignePorts["ipaddr"];
+		$port=$lignePorts["port"];
+		$IDPort=$lignePorts["ID"];
+		$PortDirectionS[$IDPort]="{port} $ipaddr:$port";
+	}
+	
+
 	
 	
 	$squid=new squidbee();
@@ -402,7 +416,7 @@ function acl_rule_settings(){
 	<div id='FormToParse$t'>
 	<div id='divid$t' ></div> 
 	
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%' class=TableRemove>
 	<tr>
 		<td class=legend style='font-size:14px'>{rule_name}:</td>
@@ -846,9 +860,12 @@ function acl_main_rule_edit(){
 		$ID=$_POST["ID"];
 		$aclname=$_POST["aclrulename"];
 		
+		
 		if(isset($_POST["PortDirection"])){$PortDirection=",`PortDirection`='{$_POST["PortDirection"]}'";}
 		
-		$sql="UPDATE webfilters_sqacls SET aclname='$aclname',`aclgpid`='{$_POST["aclgpid"]}'$PortDirection WHERE ID='$ID'";
+		$sql="UPDATE webfilters_sqacls SET aclname='$aclname',
+		`aclgpid`='{$_POST["aclgpid"]}'$PortDirection WHERE ID='$ID'";
+		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){echo $q->mysql_error;return;}
 		if(!$acl->aclrule_edittype($ID,"access_allow",$_POST["access_allow"])){return;}
@@ -939,7 +956,7 @@ function acl_rule_save(){
 		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclgroup` smallint(1) NOT NULL,ADD INDEX(`aclgroup`)");
 	}
 	if(!$q->FIELD_EXISTS("webfilters_sqacls", "aclgpid")){
-		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclgpid` INT(100) NOT NULL,ADD INDEX(`aclgpid`)");
+		$q->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclgpid` INT UNSIGNED NOT NULL,ADD INDEX(`aclgpid`)");
 	}	
 	
 	if(!$q->FIELD_EXISTS("webfilters_sqacls", "aclport")){
@@ -1127,7 +1144,7 @@ function page(){
 	
 	$table_width=905;
 	$newgroup_bt="{name: '$new_group', bclass: 'add', onpress : AddAclGroup},";
-	$apply_paramsbt="{separator: true},{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},";
+	$apply_paramsbt="{separator: true},{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},";
 	$optionsbt="{separator: true},{name: '$options', bclass: 'Settings', onpress : AclOptions$t},";
 	
 	$bandwithbt=",{name: '$bandwith', bclass: 'Network', onpress : BandwithSection$t}";
@@ -1144,6 +1161,7 @@ function page(){
 	}
 	
 	$html="
+	<input type='hidden' name='ACL_ID_MAIN_TABLE' id='ACL_ID_MAIN_TABLE' value='table-$t'>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var DeleteSquidAclGroupTemp=0;
@@ -1181,7 +1199,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $table_width,
+	width: '99%',
 	height: 550,
 	singleSelect: true
 	
@@ -1359,12 +1377,17 @@ function acl_list(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"]+1;
 		$default=$tpl->_ENGINE_parse_body("{default}");
+		$default2=$tpl->_ENGINE_parse_body("{blacklist}");
 		$ports_restrictions=$tpl->_ENGINE_parse_body("{ports_restrictions}");
 		$http_safe_ports=$tpl->_ENGINE_parse_body("{http_safe_ports}");
 		$deny_ports_expect=$tpl->_ENGINE_parse_body("{deny_ports_expect}");
 		$q2=new mysql();
 		$items=$q2->COUNT_ROWS("urlrewriteaccessdeny", "artica_backup");
+		$items2=$q->COUNT_ROWS("deny_websites");
 		$explain=$tpl->_ENGINE_parse_body("{urlrewriteaccessdeny_explain} <strong>$items {items}</strong>");
+		$explain2=$tpl->_ENGINE_parse_body("{blocked_sites_acl_explain} <strong>$items2 {items}</strong>");
+		
+		
 		$data['rows'][] = array(
 				'id' => "aclNone1",
 				'cell' => array("<a href=\"javascript:blur();\"  
@@ -1374,6 +1397,16 @@ function acl_list(){
 				"<span style='font-size:12px;color:black'>$explain</span>",
 				"&nbsp;","&nbsp;","&nbsp;","&nbsp;","&nbsp;")
 		);
+		
+		$data['rows'][] = array(
+				'id' => "aclNone2",
+				'cell' => array("<a href=\"javascript:blur();\"
+						OnClick=\"javascript:Loadjs('squid.www-blacklist.php?t={$_GET["t"]}');\"
+						style='font-size:16px;text-decoration:underline;color:black'>$default2</span></A>
+						",
+		"<span style='font-size:12px;color:black'>$explain2</span>",
+		"&nbsp;","&nbsp;","&nbsp;","&nbsp;","&nbsp;")
+		);		
 
 		$color="black";
 		$colored="#0AAB3D";
@@ -1381,7 +1414,7 @@ function acl_list(){
 		$smartphones_port=$sock->GET_INFO("smartphones_port");
 		if(!is_numeric($SquidAllowSmartPhones)){$SquidAllowSmartPhones=0;}
 		
-		if($SquidAllowSmartPhones==0){$color="#9C9C9C";$colored=$color;}
+		if($SquidAllowSmartPhones==0){$color="#8a8a8a";$colored=$color;}
 		$AllowSmartphonesRuleText=$tpl->javascript_parse_text("{AllowSmartphonesRuleText}");
 		$AllowSmartphonesRuleExplain=$tpl->_ENGINE_parse_body("{AllowSmartphonesRuleExplain}");
 		
@@ -1405,7 +1438,7 @@ function acl_list(){
 		
 		$color="black";
 		$colored="#A71A05";
-		if($EnableSquidPortsRestrictions==0){$color="#9C9C9C";$colored=$color;}
+		if($EnableSquidPortsRestrictions==0){$color="#8a8a8a";$colored=$color;}
 		$sslp="$deny_ports_expect: $http_safe_ports SSL: ".@implode(", ", $bbcSSL);
 		$http="$deny_ports_expect: $http_safe_ports: ".@implode(", ", $bbcHTTP);
 		$enableSSL=Field_checkbox("EnableSquidPortsRestrictions", 1,$EnableSquidPortsRestrictions,
@@ -1455,7 +1488,7 @@ function acl_list(){
 		$disable=Field_checkbox("aclid_{$ligne['ID']}", 1,$ligne["enabled"],"EnableDisableAclRule$t('{$ligne['ID']}')");
 		$ligne['aclname']=utf8_encode($ligne['aclname']);
 		$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		
 		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"],$ligne["aclgroup"]));
 		

@@ -29,7 +29,7 @@ function check(){
 	
 	
 	if($EnableEmergingThreats<>1){
-		echo "Starting......: Emerging Threats: Disabled\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: Disabled\n";
 		@unlink("/usr/share/artica-postfix/ressources/logs/EnableEmergingThreatsBuild.db");
 		die();
 	}
@@ -43,12 +43,12 @@ function check(){
 	
 	
 	if(!is_file($GLOBALS["iptables"])){
-		echo "Starting......: Emerging Threats: iptables no such file\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: iptables no such file\n";
 		return;
 	}
 	
 	if(!is_file($GLOBALS["ipset"])){
-		echo "Starting......: Emerging Threats: ipset no such file\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: ipset no such file\n";
 		$unix->send_email_events("Could not update Emerging Threats (ipset no such file)","You have enabled Emerging Threats, but it seems that\nipset binary is not installed on your system.\ntry to install it by using setup-ubuntu stored in /usr/share/artica-postfix/bin\nArtica will disable Emerging Threats to remove this notification");
 		$sock->SET_INFO("EnableEmergingThreats",0);
 		return;
@@ -76,33 +76,33 @@ function check(){
 	$http=new ccurl("http://rules.emergingthreats.net/fwrules/FWrev");
 	$tmp=$unix->FILE_TEMP();
 	if(!$http->GetFile("$tmp")){
-		echo "Starting......: Emerging Threats: http error $http->error\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: http error $http->error\n";
 		return;
 	}
 	
 	$pattern_number_internet=trim(@file_get_contents($tmp));
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Emerging Threats: $tmp\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Emerging Threats: $tmp\n";}
 	if(!is_numeric($pattern_number_internet)){
-		echo "Starting......: Emerging Threats: corrupted pattern\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: corrupted pattern\n";
 		return;
 	}
 	if($pattern_number_internet==$pattern_number){
-		echo "Starting......: Emerging Threats: No new Pattern current is $pattern_number\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: No new Pattern current is $pattern_number\n";
 		return;
 		
 	}
 	
-	echo "Starting......: Emerging Threats: new Pattern $pattern_number_internet\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: new Pattern $pattern_number_internet\n";
 	$tmp=$unix->FILE_TEMP();
 	$http=new ccurl("http://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt");
 	if(!$http->GetFile("$tmp")){
-		echo "Starting......: Emerging Threats: http error $http->error\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: http error $http->error\n";
 		return;
 	}
 	
 	$tbl=explode("\n",@file_get_contents("$tmp"));
 	if(count($tbl)==0){
-		echo "Starting......: Emerging Threats: corrupted file\n";
+		echo "Starting......: ".date("H:i:s")." Emerging Threats: corrupted file\n";
 		return;	
 	}
 	
@@ -113,33 +113,33 @@ function check(){
 	$iptables=$GLOBALS["iptables"];
 	$ipset=$GLOBALS["ipset"];
 	
-	echo "Starting......: Emerging Threats: flush $iptables_drop_chain\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: flush $iptables_drop_chain\n";
 	shell_exec("$iptables -F $iptables_drop_chain 2>/dev/null 1>/dev/null");
 	
-	echo "Starting......: Emerging Threats: flush $iptables_att_chain\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: flush $iptables_att_chain\n";
 	shell_exec("$iptables -F $iptables_att_chain 2>/dev/null 1>/dev/null");
 	
-	echo "Starting......: Emerging Threats: delete $iptables_att_chain from FORWARD chain\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: delete $iptables_att_chain from FORWARD chain\n";
 	shell_exec("$iptables -D FORWARD -j $iptables_att_chain 2>/dev/null 1>/dev/null");
 	
-	echo "Starting......: Emerging Threats: delete $iptables_att_chain from INPUT chain\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: delete $iptables_att_chain from INPUT chain\n";
 	shell_exec("$iptables -D INPUT -j $iptables_att_chain 2>/dev/null 1>/dev/null");
 
-	echo "Starting......: Emerging Threats: delete $ipset_botccnet\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: delete $ipset_botccnet\n";
 	shell_exec("$ipset -X $ipset_botccnet 2>/dev/null 1>/dev/null");
 	
-	echo "Starting......: Emerging Threats: delete $ipset_botcc\n";                
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: delete $ipset_botcc\n";                
 	shell_exec("$ipset -X $ipset_botcc 2>/dev/null 1>/dev/null");
 	
 	
-	echo "Starting......: Emerging Threats: Create attacker and drop chains\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: Create attacker and drop chains\n";
 	
 	shell_exec("$iptables -N $iptables_att_chain 2>/dev/null 1>/dev/null");
 	
-	echo "Starting......: Emerging Threats: insert $iptables_att_chain chain into FOWARD chain\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: insert $iptables_att_chain chain into FOWARD chain\n";
 	shell_exec("$iptables -I FORWARD 1 -j $iptables_att_chain 2>/dev/null 1>/dev/null");
 	
-	echo "Starting......: Emerging Threats: insert $iptables_att_chain chain into INPUT chain\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats: insert $iptables_att_chain chain into INPUT chain\n";
 	shell_exec("$iptables -I INPUT 1 -j $iptables_att_chain 2>/dev/null 1>/dev/null");
 	
 	shell_exec("$iptables -N $iptables_drop_chain 2>/dev/null 1>/dev/null");
@@ -148,7 +148,7 @@ function check(){
 	shell_exec("$ipset -N $ipset_botccnet nethash 2>/dev/null 1>/dev/null");
     shell_exec("$ipset -N $ipset_botcc iphash 2>/dev/null 1>/dev/null");
 	
-    echo "Starting......: Emerging Threats: Starting blocklist ". count($tbl). " ip(s) in population\n";
+    echo "Starting......: ".date("H:i:s")." Emerging Threats: Starting blocklist ". count($tbl). " ip(s) in population\n";
     
     $count=0;
     while (list ($num, $ligne) = each ($tbl) ){
@@ -201,13 +201,13 @@ function check(){
 
 function delete_rules(){
 	$unix=new unix();
-	echo "Starting......: Emerging Threats:  Deleting old rules\n";
+	echo "Starting......: ".date("H:i:s")." Emerging Threats:  Deleting old rules\n";
 	$iptables_save=$unix->find_program("iptables-save");
 	$iptables_restore=$unix->find_program("iptables-restore");
 	
 	
 	$cmd="$iptables_save > /etc/artica-postfix/iptables.conf";
-	if($GLOBALS["VERBOSE"]){echo "Starting......: $cmd\n";}		
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $cmd\n";}		
 	shell_exec($cmd);
 
 	
@@ -218,16 +218,16 @@ function delete_rules(){
 while (list ($num, $ligne) = each ($datas) ){
 		if($ligne==null){continue;}
 		if(preg_match($pattern,$ligne)){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Delete $ligne\n";}		
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Delete $ligne\n";}		
 			$count++;continue;}
 			$conf=$conf . $ligne."\n";
 		}
 
 file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
 $cmd="$iptables_restore < /etc/artica-postfix/iptables.new.conf";
-if($GLOBALS["VERBOSE"]){echo "Starting......: $cmd\n";}
+if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $cmd\n";}
 shell_exec("$cmd");
-echo "Starting......: Emerging Threats: cleaning iptables $count rules\n";
+echo "Starting......: ".date("H:i:s")." Emerging Threats: cleaning iptables $count rules\n";
 return $count;	
 }
 

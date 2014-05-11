@@ -224,14 +224,14 @@ function websites_search(){
 				$ligneDrup=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
 				if($ligne["ID"]>0){
 				$edit=imgtootltip("folder-tasks-32.png","{delete}");
-				$color="#CCCCCC";
+				$color="#8a8a8a";
 						$delete=imgtootltip("delete-48-grey.png","{delete} {scheduled}");
 							
 				}
 				$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='INSTALL_GROUPWARE' AND `servername`='{$ligne["servername"]}'";
 				if($ligne["ID"]>0){
 				$edit=icon_href("folder-tasks-32.png","Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}')");
-				$color="#CCCCCC";
+				$color="#8a8a8a";
 				$delete=icon_href("delete-48-grey.png");
 				$groupware=div_groupware("({installing} {{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})",$ligne["enabled"]);
 					
@@ -469,7 +469,7 @@ var FreeWebIDMEM$t='';
 	
 	
 }
-function div_groupware($text,$enabled){
+function div_groupware($text,$enabled=1){
 	$color_orange="#B64B13";
 	if($enabled==0){$color_orange="#8C8C8C";}
 

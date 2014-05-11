@@ -63,11 +63,16 @@ function enable_user(){
 
 function perform_orders(){
 	$servername=$_GET["servername"];
+	
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=$nohup." ". $unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.freeweb.php --drupal-schedules >/dev/null 2>&1 &";
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=$nohup." $php5 /usr/share/artica-postfix/exec.freeweb.php --drupal-schedules >/dev/null 2>&1 &";
 	shell_exec(trim($cmd));
-	writelogs_framework("$cmd = " . count($results)." rows",__FUNCTION__,__FILE__,__LINE__);	
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
+	$cmd=$nohup." /etc/init.d/nginx restart >/dev/null 2>&1 &";
+	shell_exec(trim($cmd));
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 }
 
 function modules_refresh(){

@@ -34,16 +34,19 @@ function popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$t=$_GET["t"];
-	$array=unserialize(@file_get_contents("ressources/logs/web/squidlogs.stats"));
-	if(!isset($array["syslogstore"])){@unlink("ressources/logs/web/squidlogs.stats");}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/squidlogs.stats";
+	$array=unserialize(@file_get_contents($cachefile));
+	if(!isset($array["squidlogs"])){@unlink($cachefile);}
 
-	if(!is_file("ressources/logs/web/squidlogs.stats")){
+	$array=unserialize(@file_get_contents($cachefile));
+	
+	if(!is_array($array)){
 		$sock=new sockets();
 		$sock->getFrameWork("squid.php?squidlogs-stats=yes");
 		$tt=time();
 		$html="<center>
 				<p style='font-size:18px;font-weight:bold'>{please_wait_while_calculate_informations}</p>
-				<p>&nbsp;</p>
+				<p>squidlogs.stats no such file...</p>
 				<img src='img/wait_verybig_mini_red.gif'></center>
 			</center>
 				<script>
@@ -88,18 +91,7 @@ function popup(){
 			</table>
 		</td>
 		<td>
-				<table style='width:100%' class=form>
-				<tr>
-					<td width=1%><img src='img/database-32-delete.png'></td>
-					<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('mysql.empty.database.php?db=squidlogs');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>{empty_database}</a></td>
-				<tr>
-					<td width=1%><img src='img/arrow-blue-left-32.png'></td>
-					<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('mysql.mv.database.php?db=squidlogs');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>{move_database_disk}</a></td>
-				</tr>				
-				
-				
-				
-				</table>		
+	
 		</td>
 		</tr>
 	</table>
@@ -128,16 +120,7 @@ function popup(){
 			</table>
 		</td>
 			<td valign='top'>
-				<table style='width:100%' class=form>
-				<tr>
-					<td width=1%><img src='img/database-32-delete.png'></td>
-					<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('mysql.empty.database.php?db=syslogstore');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>{empty_database}</a></td>
-				<tr>						
-				<tr>
-					<td width=1%><img src='img/arrow-blue-left-32.png'></td>
-					<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('mysql.mv.database.php?db=syslogstore');\" style='font-size:14px;font-weight:bold;text-decoration:underline'>{move_database_disk}</a></td>
-				</tr>
-				</table>		
+	
 			</td>
 		</tr>
 	</table>													

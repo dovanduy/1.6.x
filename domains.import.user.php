@@ -154,7 +154,7 @@ function popup_list(){
 		
 		$color="black";
 		$add=imgsimple("arrow-right-24.png","{add}:$uid",$js);
-		if($exist){$add="&nbsp;";$color="#CCCCCC";}
+		if($exist){$add="&nbsp;";$color="#8a8a8a";}
 		
 		$data['rows'][] = array(
 				'id' => "uidS$md",

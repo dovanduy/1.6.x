@@ -165,7 +165,7 @@ public function READ_QUEUE($queuename){
 }
 
   private function events($text,$function){
-		error_log("framework:: $function $text in ". basename(__FILE__));
+		error_log("[{$_SESSION["uid"]}]::framework:: $function $text in ". basename(__FILE__));
 		}
 	
 	

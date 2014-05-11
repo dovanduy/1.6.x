@@ -131,7 +131,7 @@ $html="
 	$tabs
 	<table style='margin:0px;padding:0px;border:0px;margin-top:5px'>
 	<tr>
-	<td valign='top' width=1%><img src='img/user-group-90.gif'></td>
+	<td valign='top' width=1%><img src='img/user-group-90.png'></td>
 	<td width=50% valign='top'>$USER_GLIST</td>
 	<td width=50% valign='top'>$USER_LIST</td>
 	</tr>
@@ -341,7 +341,7 @@ function GroupLists(){
 	while (list ($num, $ligne) = each ($hash) ){
 		if($class=='rowA'){$class='rowB';}else{$class="rowA";}
 		$html=$html . "<tr class=$class OnMouseOver=\"javascript:this.className='rowH'\" onmouseout=\"javascript:this.className='$class'\">
-		<td width=1%'><img src='img/user-group-22.gif'></td>
+		<td width=1%'><img src='img/user-group-22.png'></td>
 		<td><a href='#' OnClick=\"javascript:GroupEdit({$ligne["gid"]},0);\"> {$num}</td>
 		<td>{$ligne["description"]}</td>
 		<td width=1%'><a href='#' OnClick=\"javascript:GroupDelete({$ligne["gid"]});\"><img src='img/x.gif'></a></td>

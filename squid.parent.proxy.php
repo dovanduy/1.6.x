@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -16,10 +17,24 @@
 	}	
 	
 	
-
+	
+	if(isset($_GET["move-item-js"])){move_items_js();exit;}
+	if(isset($_POST["move-item"])){move_items();exit;}
+	if(isset($_POST["enable-item"])){enable_save();exit;}
+	if(isset($_GET["status"])){status();exit;}
+	if(isset($_GET["parent-js"])){parent_js();exit;}
+	if(isset($_GET["enable-js"])){enable_js();exit;}
+	
 	if(isset($_GET["popup"])){popup();exit;}
-	if(isset($_GET["edit-proxy-parent"])){parent_config();exit;}
+	if(isset($_GET["edit-proxy-parent"])){parent_tab();exit;}
+	if(isset($_GET["parent-delete-js"])){parent_delete_js();exit;}
+	
+	
+	if(isset($_GET["edit-proxy-parent-popup"])){parent_config();exit;}
 	if(isset($_GET["SaveParentProxy"])){parent_save();exit;}
+	
+	if(isset($_GET["edit-proxy-parent-optionslist"])){parent_options_table();exit;}
+	
 	if(isset($_GET["edit-proxy-parent-options"])){parent_options_popup();exit;}
 	if(isset($_GET["edit-proxy-parent-options-explain"])){parent_options_explain();exit;}
 	if(isset($_GET["extract-options"])){extract_options();exit;}
@@ -28,10 +43,247 @@
 	if(isset($_GET["parent-list"])){popup_list();exit;}
 	if(isset($_GET["DeleteSquidParent"])){parent_delete();exit;}
 	if(isset($_GET["EnableParentProxy"])){EnableParentProxy();exit;}
-	if(isset($_GET["prefer_direct"])){prefer_direct();exit;}
-	if(isset($_GET["nonhierarchical_direct"])){nonhierarchical_direct();exit;}
 	if(isset($_GET["parent-list-options"])){extract_options();exit;}
-		js();
+	
+	tabs();
+	
+function tabs(){
+	
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["status"]='{status}';
+	$array["popup"]='{proxy_parents}';
+	$array["master"]='{master_proxy}';
+	
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="caches"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+				
+		}
+		
+		if($num=="master"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-proxy.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+	}
+	
+	echo build_artica_tabs($html, "main_squid_prents_tabs",950);
+	
+	
+	
+}
+
+function enable_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	header("content-type: application/x-javascript");
+	$html="
+	var xSave$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){ alert(results); return; }
+		$('#flexRT{$_GET["t"]}').flexReload();
+	}
+	function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('enable-item','{$_GET["ID"]}');
+		XHR.appendData('t','{$_GET["t"]}');
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
+	
+Save$t();
+";
+echo $html;	
+	
+}
+
+function move_items_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	header("content-type: application/x-javascript");
+	$html="
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){ alert(results); return; }
+	$('#flexRT{$_GET["t"]}').flexReload();
+}
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('move-item','{$_GET["ID"]}');
+	XHR.appendData('t','{$_GET["t"]}');
+	XHR.appendData('dir','{$_GET["dir"]}');
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+
+Save$t();
+";
+
+	echo $html;
+
+}
+
+function enable_save(){
+	$q=new mysql();
+	$ID=$_POST["enable-item"];
+	$t=$_POST["t"];
+	$q=new mysql();
+	$sql="SELECT enabled FROM squid_parents WHERE ID=$ID";
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$enabled=$ligne["enabled"];
+	if($enabled==0){$enabled=1;}else{$enabled=0;}
+	$q->QUERY_SQL("UPDATE squid_parents SET enabled=$enabled WHERE ID=$ID","artica_backup");
+	if(!$q->ok){echo "$q->mysql_error\n$sql";return;}
+}
+
+function move_items(){
+	$q=new mysql();
+	$ID=$_POST["move-item"];
+	$t=$_POST["t"];
+	$dir=$_POST["dir"];
+	
+	if(!$q->FIELD_EXISTS("squid_parents", "zOrder", "artica_backup")){
+		$sql="ALTER TABLE `squid_parents` ADD `zOrder` SMALLINT( 20 ) NOT NULL DEFAULT '1',ADD INDEX ( `zOrder` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";return;}
+	}
+	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT zOrder FROM squid_parents WHERE ID='$ID'","artica_backup"));
+	if(!$q->ok){echo $q->mysql_error;}
+
+	
+	$CurrentOrder=$ligne["zOrder"];
+
+	if($dir==0){
+		$NextOrder=$CurrentOrder-1;
+	}else{
+		$NextOrder=$CurrentOrder+1;
+	}
+
+	$sql="UPDATE squid_parents SET weight=$CurrentOrder WHERE zOrder='$NextOrder'";
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+
+
+	$sql="UPDATE squid_parents SET weight=$NextOrder WHERE ID='$ID'";
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+
+	$results=$q->QUERY_SQL("SELECT ID FROM squid_parents ORDER by weight","artica_backup");
+	if(!$q->ok){echo $q->mysql_error;}
+	$c=1;
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ID=$ligne["ID"];
+		$sql="UPDATE squid_parents SET weight=$c WHERE ID='$ID'";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;}
+		$c++;
+	}
+
+
+}
+
+
+function parent_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$ID=$_GET["ID"];
+	header("content-type: application/x-javascript");
+	$title=$tpl->javascript_parse_text("{add_a_parent_proxy}");
+	
+	if($ID>0){
+		$q=new mysql();
+		$sql="SELECT servername FROM squid_parents WHERE ID=$ID";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$title=$ligne["servername"];
+	}
+	
+	
+	echo "YahooWin4('700','$page?edit-proxy-parent=$ID&t={$_GET["t"]}','$title');";
+	
+}
+
+
+function parent_delete_js(){
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$ID=$_GET["ID"];
+	header("content-type: application/x-javascript");
+	$title=$tpl->javascript_parse_text("{add_a_parent_proxy}");
+	$ID=$_GET["ID"];
+	$t=time();
+	if($ID>0){
+		$q=new mysql();
+		$sql="SELECT servername FROM squid_parents WHERE ID=$ID";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$title=$tpl->javascript_parse_text("{delete} {$ligne["servername"]} ?");
+	}
+echo "
+var x_DeleteSquidParent$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);return;}
+	$('#flexRT{$_GET["t"]}').flexReload();
+	$('#'+document.getElementById('proxy-parent-flexigrid').value).flexReload();
+}
+	
+	
+function DeleteSquidParent$t(){
+	if(!confirm('$title')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('DeleteSquidParent','$ID');
+	XHR.sendAndLoad('$page', 'GET',x_DeleteSquidParent$t);
+	}	
+	
+DeleteSquidParent$t();";
+	
+}
+
+
+function parent_tab(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$ID=$_GET["edit-proxy-parent"];
+	$title=$tpl->javascript_parse_text("{add_a_parent_proxy}");
+	
+	if($ID>0){
+		$q=new mysql();
+		$sql="SELECT servername FROM squid_parents WHERE ID=$ID";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$title=$ligne["servername"];
+	}
+	
+	$array["popup"]=$title;
+	
+	if($ID>0){
+		$array["optionslist"]="{options}";
+		
+	}
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+	
+		
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?edit-proxy-parent-$num=$ID&t={$_GET["t"]}\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+	}
+	
+	echo build_artica_tabs($html, "main_squid_prents_tabs_$ID");	
+	
+	
+	
+}
+
+
 	
 function js(){
 	$t=time();
@@ -48,51 +300,9 @@ function js(){
 			YahooWin3('650','$page?popup=yes&t=$t','$title');
 		
 		}
-		
-		function EditSquidParent(ID){
-		
-		
-			YahooWin4('520','$page?edit-proxy-parent='+ID,'$title2');
-		}
-		
-		var x_DeleteSquidParent= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);return;}
-			$('#rowPPROXY-'+PPROXYMEM).remove();
-		}		
-		
-		
-		function DeleteSquidParent(ID){
-			PPROXYMEM=ID;
-			var XHR = new XHRConnection();
-			XHR.appendData('DeleteSquidParent',ID);
-			XHR.sendAndLoad('$page', 'GET',x_DeleteSquidParent);
-		}
-		
-		
-		var x_EditSquidParentSaveReturn= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);}
-			YahooWin4Hide();
-			RefreshParentList();
-		}			
-		
-		function EditSquidParentSave(ID){
-			var XHR = new XHRConnection();
-			XHR.appendData('ID',ID);
-			XHR.appendData('SaveParentProxy',ID);
-			XHR.appendData('servername',document.getElementById('servername').value);
-			XHR.appendData('server_port',document.getElementById('server_port').value);
-			XHR.appendData('server_type',document.getElementById('server_type').value);
-			XHR.appendData('icp_port',document.getElementById('icp_port').value);
-			document.getElementById('SquidParentOptions').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-			XHR.sendAndLoad('$page', 'GET',x_EditSquidParentSaveReturn);			
-		
-		}
-		
-		function ExtractSquidOptions(){
-			YahooWin5('500','$page?edit-proxy-parent-options='+document.getElementById('SquidParentOptions').value,'$title3');
-		}
+function ExtractSquidOptions(){
+	YahooWin5('500','$page?edit-proxy-parent-options='+document.getElementById('SquidParentOptions').value,'$title3');
+}
 		
 		
 		var x_AddSquidOption= function (obj) {
@@ -117,60 +327,7 @@ function js(){
 			$('#flexRT$t').flexReload();
 			
 		}
-
-		function EnableParentProxy(){
-			var XHR = new XHRConnection();
-			if(document.getElementById('EnableParentProxy').checked){
-				XHR.appendData('EnableParentProxy',1);
-			}else{
-				XHR.appendData('EnableParentProxy',0);
-			}
-			EnableParentProxyCheck();
-			
-			XHR.sendAndLoad('$page', 'GET');
-			setTimeout('RefreshParentList()',2000);
-			
-			
-		}
-		
-		function EnableParentProxyCheck(){
-			document.getElementById('nonhierarchical_direct').disabled=true;
-			document.getElementById('prefer_direct').disabled=true;
-			if(document.getElementById('EnableParentProxy').checked){
-				document.getElementById('nonhierarchical_direct').disabled=false;
-				document.getElementById('prefer_direct').disabled=false;			
-			}
-		
-		}
-		
-		
-		function nonhierarchical_direct(){
-			var XHR = new XHRConnection();
-			if(document.getElementById('nonhierarchical_direct').checked){
-				XHR.appendData('nonhierarchical_direct',1);
-			}else{
-				XHR.appendData('nonhierarchical_direct',0);
-			}
-			
-			XHR.sendAndLoad('$page', 'GET');
-			
-		}
-
-		function prefer_direct(){
-			var XHR = new XHRConnection();
-			if(document.getElementById('prefer_direct').checked){
-				XHR.appendData('prefer_direct',1);
-			}else{
-				XHR.appendData('prefer_direct',0);
-			}
-			
-			XHR.sendAndLoad('$page', 'GET');
-			
-		}		
-		
-		 
-		
-		SquidParentProxyStart();";
+	";
 		
 		echo $html;
 
@@ -183,7 +340,7 @@ function parent_delete(){
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
+	
 
 	
 }
@@ -198,22 +355,109 @@ function parent_save(){
 		servername='{$_GET["servername"]}',
 		server_port='{$_GET["server_port"]}',
 		server_type='{$_GET["server_type"]}',
-		icp_port='{$_GET["icp_port"]}'
+		icp_port='{$_GET["icp_port"]}',
+		weight='{$_GET["weight"]}',
+		zOrder='{$_GET["weight"]}'
 		WHERE ID=$ID";
 	
 	
 	$q=new mysql();
+	
+	if(!$q->FIELD_EXISTS("squid_parents", "zOrder", "artica_backup")){
+		$sql="ALTER TABLE `squid_parents` ADD `zOrder` SMALLINT( 20 ) NOT NULL DEFAULT '1',ADD INDEX ( `zOrder` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";}
+	}
+	
+	if(!$q->FIELD_EXISTS("squid_parents", "weight", "artica_backup")){
+		$sql="ALTER TABLE `squid_parents` ADD `weight` SMALLINT( 20 ) NOT NULL DEFAULT '1',ADD INDEX ( `weight` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";}
+	}	
+	
+	
 	$sql=$sql_add;
 	if($ID>0){$sql=$sql_edit;}
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){
-		echo $q->mysql_error."\n$sql";
-		return;
-	}
-	$sock=new sockets();
+	if(!$q->ok){ echo $q->mysql_error."\n$sql"; return; }
+}
 
+function status(){
+	$squid=new squidbee();
+	$page=CurrentPageName();
+	$tpl=new templates();	
+	$t=$_GET["t"];
+	if(!is_numeric($t)){$t=time();}
+	
+	$p=Paragraphe_switch_img("{enable_squid_parent}", "{EnableParentProxy_explain}","EnableParentProxy",$squid->EnableParentProxy,null,600);
+	$p1=Paragraphe_switch_img("{prefer_direct}", "{squid_prefer_direct}","prefer_direct",$squid->prefer_direct,null,600);
+	$p2=Paragraphe_switch_img("{nonhierarchical_direct}", "{squid_nonhierarchical_direct}","nonhierarchical_direct",$squid->nonhierarchical_direct,null,600);
+	
+	
+	$arrayParams["on"]="{enabled}";
+	$arrayParams["off"]="{unknown}";
+	$arrayParams["transparent"]="{disabled}";
+	$arrayParams["delete"]="{anonymous}";
+	$arrayParams["truncate"]="{hide}";
+	
+	$html="
+	<div class=form style='width:95%'>
+		<table style='width:100%'>
+			<tr>
+			<td>$p</td>
+			</tr>
+			<tr>
+			<td>$p1</td>
+			</tr>
+			<tr>			
+			<td>$p2</td>
+			</tr>
+			<tr>			
+			<td style='padding-left:80px'>
+				<h3 style='font-size:16px;color:black;text-transform:capitalize';margin-top:15px>x-Forwarded-For</h3>
+				<div style='font-size:14px'>{x-Forwarded-For_explain}</div>
+				<table style='width:99%'>
+					<tr>
+						<td class=legend style='font-size:16px'>x-Forwarded-For:</td>
+						<td>". Field_array_Hash($arrayParams,"x-Forwarded-For-$t",$squid->forwarded_for,null,null,0,"font-size:16px")."</td>
+					</tr>
+				</table>
+			</td>
+			</tr>
+		<tr>			
+			
+			<tr>			
+			<td align='right'><hr>". button("{apply}","Save$t()",22)."</td>
+			</tr>
+		</table>
+	</div>
+<script>
+
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);return;}
+	Loadjs('squid.compile.php');
+}
+
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('EnableParentProxy',document.getElementById('EnableParentProxy').value);
+	XHR.appendData('prefer_direct',document.getElementById('prefer_direct').value);
+	XHR.appendData('nonhierarchical_direct',document.getElementById('nonhierarchical_direct').value);
+	XHR.appendData('forwarded_for',document.getElementById('x-Forwarded-For-$t').value);
+	
+	
+	
+	XHR.sendAndLoad('$page', 'GET',xSave$t);
+}		
+</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
 	
 }
+
 
 function popup(){
 	
@@ -228,30 +472,14 @@ function popup(){
 	$add_a_parent_proxy=$tpl->_ENGINE_parse_body("{add_a_parent_proxy}");
 	$enable_squid_parent=$tpl->_ENGINE_parse_body("{enable_squid_parent}");
 	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
-	$t=$_GET["t"];
-$html="
-
-<div>
-	<table style='width:99%' class=form>
-	<tr>
-		<td class=legend style='font-size:13px'>$enable_squid_parent:</td>
-		<td>". Field_checkbox("EnableParentProxy",1,$squid->EnableParentProxy,"EnableParentProxy()")."</td>
-		<td width=1%>". help_icon("{EnableParentProxy_explain}")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:13px'>{prefer_direct}:</td>
-		<td>". Field_checkbox("prefer_direct",1,$squid->prefer_direct,"prefer_direct()")."</td>
-		<td width=1%>". help_icon("{squid_prefer_direct}")."</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:13px'>{nonhierarchical_direct}:</td>
-		<td>". Field_checkbox("nonhierarchical_direct",1,$squid->nonhierarchical_direct,"nonhierarchical_direct()")."</td>
-		<td width=1%>". help_icon("{squid_nonhierarchical_direct}")."</td>
-	</tr>	
+	$status=$tpl->_ENGINE_parse_body("{status}");
+	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
+	if(isset($_GET["t"])){ $t=$_GET["t"]; }
+	if(!is_numeric($t)){$t=time();}
 	
-	</table>
-
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+$html="
+<input type='hidden' id='proxy-parent-flexigrid' value='flexRT$t'>
+<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 </div>
 <script>
 $(document).ready(function(){
@@ -259,30 +487,34 @@ $('#flexRT$t').flexigrid({
 	url: '$page?parent-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
+		{display: '$status', name : 'icon', width :75, sortable : true, align: 'center'},
 		{display: '$servername', name : 'servername', width :343, sortable : true, align: 'left'},
 		{display: '$listen_port', name : 'server_port', width : 84, sortable : true, align: 'left'},
 		{display: '$server_type', name : 'server_type', width : 103, sortable : true, align: 'left'},
-		{display: 'delete', name : 'hits', width : 31, sortable : false, align: 'left'}
+		{display: '$enabled', name : 'enabled', width : 50, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'zOrder', width : 50, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'down', width : 50, sortable : false, align: 'center'},
+		{display: 'delete', name : 'delete', width : 50, sortable : false, align: 'center'}
 
 		],
 		
 buttons : [
 		{name: '$add_a_parent_proxy', bclass: 'add', onpress : add_a_parent_proxy},
-		{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
+		{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},
 		],			
 	
 	searchitems : [
 		{display: '$servername', name : 'servername'},
 		],
-	sortname: 'servername',
+	sortname: 'weight',
 	sortorder: 'asc',
 	usepager: true,
 	title: '',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 625,
-	height: 200,
+	width: '99%',
+	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -293,9 +525,10 @@ buttons : [
 	}
 
 function add_a_parent_proxy(){
-	EditSquidParent(0);
+	Loadjs('$page?parent-js=yes&ID=0&t=$t');
+	
 }
-EnableParentProxyCheck();
+
 </script>
 ";	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -307,26 +540,30 @@ function popup_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql();
 	$squid=new squidbee();
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	
+	if(!$q->FIELD_EXISTS("squid_parents", "weight", "artica_backup")){
+		$sql="ALTER TABLE `squid_parents` ADD `weight` SMALLINT( 20 ) NOT NULL DEFAULT '1',ADD INDEX ( `weight` )";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "$q->mysql_error\n$sql";return;}
+	}
 	
 	$search='%';
 	$table="squid_parents";
 	$MySQLbase="artica_backup";
 	$page=1;
-	$ORDER="ORDER BY zDate DESC";
+	$ORDER="ORDER BY zOrder";
 	
 	$total=0;
-	if($q->COUNT_ROWS($table,$MySQLbase)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,$MySQLbase)==0){json_error_show("no data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	$searchstring=string_to_flexquery();
+	
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$MySQLbase));
 		$total = $ligne["TCOUNT"];
@@ -338,18 +575,19 @@ function popup_list(){
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
-	
+	if(!is_numeric($rp)){$rp=50;}
 
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$results = $q->QUERY_SQL($sql,$MySQLbase);
-	if(!$q->ok){
-		
-	}
+
+	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
+	$ini->loadString($sock->GET_INFO('ArticaSquidParameters'));
+	$EnableParentProxy=intval($ini->_params["NETWORK"]["EnableParentProxy"]);
 	
 	
 	$data = array();
@@ -357,29 +595,51 @@ function popup_list(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){ json_error_show("$q->mysql_error"); }	
+	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	$domains=$tpl->_ENGINE_parse_body("{domains}");
 	$all=$tpl->_ENGINE_parse_body("{all}");
+	
+	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/squid.peers.db";
+	$STATUS=unserialize(@file_get_contents($cacheFile));
+	$fetchesWord=$tpl->_ENGINE_parse_body("{fetches}");
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
-		if($squid->EnableParentProxy==0){$color="#CACACA";}
+		
+		$fetches=null;
+		$options=null;
+		$arrayT=array();
+		$img="48-server.png";
+		$Check="check-48.png";
+		
+		if(is_numeric($STATUS[$ligne["servername"]]["FETCHES"])){
+			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$ligne["servername"]]["FETCHES"]).")</span>";
+		}
+		
+		if(!isset($STATUS[$ligne["servername"]]["STATUS"])){
+			$img="42-server-grey.png";
+			$STATUS[$ligne["servername"]]["STATUS"]="{unknown}";
+		}else{
+			if($STATUS[$ligne["servername"]]["STATUS"]=="Down"){
+				$STATUS[$ligne["servername"]]["STATUS"]="{stopped}";
+				$img="42-server-red.png";
+			}else{
+				$STATUS[$ligne["servername"]]["STATUS"]="{running}";
+			}
+		}
 		
 		
-		$ahref="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:EditSquidParent({$ligne["ID"]})\" 
-		style='font-size:16px;text-decoration:underline;font-weight:bold;color:$color'>";
+		if($EnableParentProxy==0){
+			$color="#CACACA";
+			$img="42-server-grey.png";
+		}
+		
+		
 
-		$delete="<a href=\"javascript:blur();\" 
-		OnClick=\"javascript:DeleteSquidParent({$ligne["ID"]})\">
-		<img src='img/delete-24.png' style='border:0px;color:$color'>
-		</a>";
 		
 		if($ligne["icp_port"]>0){$ligne["server_port"]=$ligne["server_port"]."/".$ligne["icp_port"];}
 		
@@ -387,14 +647,45 @@ function popup_list(){
 		$countDeDomains=$ligne3["tcount"];
 		if($countDeDomains==0){$countDeDomains=$all;}
 		
+		$up=imgsimple("arrow-up-42.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=0&t={$_GET["t"]}')");
+		$down=imgsimple("arrow-down-42.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=1&t={$_GET["t"]}')");
+		
+		if($ligne["enabled"]==0){
+			$color="#CACACA";
+			$Check="check-48-grey.png";
+		}
+		
+		$arrayT=unserialize(base64_decode($ligne["options"]));
+		if(is_array($arrayT)){
+			if(count($arrayT)>0){
+				$opts=array();
+				while (list($num,$val)=each($arrayT)){ $opts[]=$num; }
+				if(count($opts)>0){ $options="<div style='font-size:14px'>".@implode(", ", $opts)."</div>"; }
+			}
+		}
+		
+		$ahref="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('$MyPage?parent-js=yes&ID={$ligne["ID"]}&t=$t');\"
+		style='font-size:18px;text-decoration:underline;font-weight:bold;color:$color'>";
+		
+		$delete="<a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('$MyPage?parent-delete-js=yes&ID={$ligne["ID"]}&t=$t');\">
+		<img src='img/delete-42.png' style='border:0px;color:$color'>
+		</a>";
+		
+		$enabled=imgsimple($Check,null,"Loadjs('$MyPage?enable-js=yes&ID={$ligne["ID"]}&t=$t')");
+		
+		$STATUS[$ligne["servername"]]["STATUS"]=$tpl->_ENGINE_parse_body($STATUS[$ligne["servername"]]["STATUS"]);
+		
 	$data['rows'][] = array(
 		'id' =>"PPROXY-". $ligne['ID'],
 		'cell' => array(
+				"<img src='img/$img'><br>{$STATUS[$ligne["servername"]]["STATUS"]}",
 				"$ahref{$ligne["servername"]}</a> <a href=\"javascript:Loadjs('squid.cache_peer_domain.php?servername={$ligne["servername"]}&t=$t')\" 
-				style='font-weight:bold;color:$color;text-decoration:underline;font-size:14px'>($countDeDomains $domains)</a>",
+				style='font-weight:bold;color:$color;text-decoration:underline;font-size:18px'>($countDeDomains $domains)</a>$options",
+				
 				"$ahref{$ligne["server_port"]}</a>",
-				"$ahref{$ligne["server_type"]}</a>",
-				$delete )
+				"$ahref{$ligne["server_type"]}</a>",$enabled,$up,$down,$delete )
 		);
 	}
 	
@@ -410,7 +701,7 @@ echo json_encode($data);
 function parent_config(){
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$ID=$_GET["edit-proxy-parent"];
+	$ID=$_GET["edit-proxy-parent-popup"];
 	$array_type["parent"]="parent";
 	$array_type["sibling"]="sibling";
 	$array_type["multicast"]="multicast";
@@ -424,101 +715,182 @@ function parent_config(){
 	if($ID<1){$button="{add}";$addoptions=null;}
 	if(strlen(trim($ligne["icp_port"]))==0){$ligne["icp_port"]=0;}
 	$options=$tpl->_ENGINE_parse_body("{options}");
+	
+	if(!is_numeric($ligne["weight"])){$ligne["weight"]=1;}
+	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
+	
 	$html="
 	
 	<input type='hidden' id='SquidParentOptions' name='SquidParentOptions' value=\"{$ligne["options"]}\">
 	<div id='EditSquidParentSaveID'>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:16px'>{hostname}:</td>
-		<td>". Field_text("servername",$ligne["servername"],"font-size:16px;padding:3px;width:220px")."</td>
+		<td class=legend style='font-size:18px'>{hostname}:</td>
+		<td>". Field_text("servername",$ligne["servername"],"font-size:18px;padding:3px;width:220px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{listen_port}:</td>
-		<td>". Field_text("server_port",$ligne["server_port"],"font-size:16px;padding:3px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{enabled}:</td>
+		<td>". Field_checkbox("enabled-$t",1,$ligne["enabled"],"Enabled$t()")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:18px'>{weight}:</td>
+		<td>". Field_text("weight-$t",$ligne["weight"],"font-size:18px;padding:3px;width:90px")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:18px'>{listen_port}:</td>
+		<td>". Field_text("server_port",$ligne["server_port"],"font-size:18px;padding:3px;width:90px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{icp_port}:</td>
-		<td>". Field_text("icp_port",$ligne["icp_port"],"font-size:16px;padding:3px;width:50px")."</td>
+		<td class=legend style='font-size:18px'>{icp_port}:</td>
+		<td>". Field_text("icp_port",$ligne["icp_port"],"font-size:18px;padding:3px;width:90px")."</td>
 		<td>". help_icon("{icp_port_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{server_type}:</td>
-		<td>". Field_array_Hash($array_type,"server_type",$ligne["server_type"],null,null,0,"font-size:16px")."</td>
+		<td class=legend style='font-size:18px'>{server_type}:</td>
+		<td>". Field_array_Hash($array_type,"server_type",$ligne["server_type"],null,null,0,"font-size:18px")."</td>
 		<td>". help_icon("{squid_parent_sibling_how_to}")."</td>
 	</tr>
 	<tr>
 	
-		<td colspan=3 align='right'><hr>". button("$button","EditSquidParentSave($ID)",18)."
+		<td colspan=3 align='right'><hr>". button("$button","EditSquidParentSave$t()",26)."
 	</td>
 	
 	</table>
-
-				<table class='parent-options-$t' style='display: none' id='parent-options-$t' style='width:100%'></table>
-
-	</div>
+</div>
 	<script>
-	var rowmem='';
-$(document).ready(function(){
-$('#parent-options-$t').flexigrid({
-	url: '$page?parent-list-options=yes&t=$t&ID=$ID',
-	dataType: 'json',
-	colModel : [
-		{display: '&nbsp;', name : 'none', width :24, sortable : true, align: 'left'},
-		{display: '$options', name : 'server_port', width : 384, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'left'}
-
-		],
-		
-buttons : [
-		{name: '$add', bclass: 'add', onpress : add_a_parent_option},
-		],			
+var xEditSquidParentSave$t= function (obj) {
+	var results=obj.responseText;
+	var ID='$ID';
+	if(results.length>0){alert(results);}
 	
-
-	sortname: 'servername',
-	sortorder: 'asc',
-	usepager: true,
-	title: '$addoptions',
-	useRp: false,
-	rp: 50,
-	showTableToggleBtn: false,
-	width: 499,
-	height: 150,
-	singleSelect: true,
-	rpOptions: [10, 20, 30, 50,100,200]
+	if(document.getElementById('proxy-parent-flexigrid')){
+		$('#'+document.getElementById('proxy-parent-flexigrid').value).flexReload();
+	}
+	$('#flexRT{$_GET["t"]}').flexReload();
+	if(ID==0){ YahooWin4Hide(); }
+}			
+		
+function EditSquidParentSave$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ID','$ID');
+	XHR.appendData('SaveParentProxy','$ID');
 	
-	});   
-});
-		function add_a_parent_option(){ 
-			YahooWin5('450','$page?edit-proxy-parent-options=yes&ID=$ID&t=$t','$addoptions');
-		
-		}
-		
-		var x_AddSquidOption$t= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);return;}
-			$('#row'+rowmem).remove();
-			$('#parent-options-$t').flexReload();
-		}		
+	XHR.appendData('servername',document.getElementById('servername').value);
+	XHR.appendData('server_port',document.getElementById('server_port').value);
+	XHR.appendData('server_type',document.getElementById('server_type').value);
+	XHR.appendData('weight',document.getElementById('weight-$t').value);
+	XHR.appendData('icp_port',document.getElementById('icp_port').value);
+	XHR.appendData('enabled',document.getElementById('enabled-$t').value);
+	XHR.sendAndLoad('$page', 'GET',xEditSquidParentSave$t);			
+}	
 
-		function DeleteSquidOption(key,ID){
-			var rowmem=ID;
-			var XHR = new XHRConnection();
-			XHR.appendData('DeleteSquidOption',key);
-			XHR.appendData('ID',$ID);
-			XHR.sendAndLoad('$page', 'POST',x_AddSquidOption$t);
-		}
-
-
-	</script>
+function Enabled$t(){
+	document.getElementById('servername').disabled=true;
+	document.getElementById('server_port').disabled=true;
+	document.getElementById('server_type').disabled=true;
+	document.getElementById('weight-$t').disabled=true;
+	document.getElementById('icp_port').disabled=true;
+	if(document.getElementById('enabled-$t').checked){
+		document.getElementById('servername').disabled=false;
+		document.getElementById('server_port').disabled=false;
+		document.getElementById('server_type').disabled=false;
+		document.getElementById('weight-$t').disabled=false;
+		document.getElementById('icp_port').disabled=false;	
+	}
+}
+ Enabled$t();
+</script>
 	";
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);	
 	
 }
+
+function parent_options_table(){
+	$squid=new squidbee();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$servername=$tpl->_ENGINE_parse_body("{hostname}");
+	$listen_port=$tpl->_ENGINE_parse_body("{listen_port}");
+	$server_type=$tpl->_ENGINE_parse_body("{server_type}");
+	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
+	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
+	$options=$tpl->_ENGINE_parse_body("{options}");
+	$new_option=$tpl->_ENGINE_parse_body("{new_option}");
+	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
+	$title=$tpl->javascript_parse_text("{proxy_parent_options}");
+	$t=time();
+	$ID=$_GET["edit-proxy-parent-optionslist"];
+	
+$html="			
+
+<table class='parent-options-$t' style='display: none' id='parent-options-$t' style='width:100%'></table>
+<script>
+var rowmem='';
+$(document).ready(function(){
+$('#parent-options-$t').flexigrid({
+	url: '$page?parent-list-options=yes&t=$t&ID=$ID',
+	dataType: 'json',
+	colModel : [
+		{display: '&nbsp;', name : 'none', width :48, sortable : true, align: 'center'},
+		{display: '$options', name : 'server_port', width : 491, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 48, sortable : false, align: 'center'}
+
+		],
+		
+buttons : [
+		{name: '$new_option', bclass: 'add', onpress : add_a_parent_option},
+		],			
+	
+
+	sortname: 'servername',
+	sortorder: 'asc',
+	usepager: true,
+	title: '$title',
+	useRp: false,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: 300,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200]
+	
+	});   
+});
+function add_a_parent_option(){ 
+	YahooWin5('650','$page?edit-proxy-parent-options=yes&ID=$ID&t=$t','$new_option');
+}
+		
+var x_AddSquidOption$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);return;}
+	$('#row'+rowmem).remove();
+	$('#parent-options-$t').flexReload();
+	if(document.getElementById('proxy-parent-flexigrid')){ $('#'+document.getElementById('proxy-parent-flexigrid').value).flexReload(); }
+	
+}		
+
+function DeleteSquidOption(key,ID){
+	var rowmem=ID;
+	var XHR = new XHRConnection();
+	XHR.appendData('DeleteSquidOption',key);
+	XHR.appendData('ID',$ID);
+	XHR.sendAndLoad('$page', 'POST',x_AddSquidOption$t);
+}
+</script>
+	";
+	
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($html);		
+	
+}
+
+
 
 function parent_options_popup(){
 	$tt=time();
@@ -551,7 +923,7 @@ function parent_options_popup(){
 	$html="
 	<table style='width:100%'>
 	<tr>	
-		<td class=legend style='font-size:13px'>{squid_parent_options}:</td>
+		<td class=legend style='font-size:16px'>{squid_parent_options}:</td>
 		<td>". Field_array_Hash($options,"squid_parent_options_f",base64_encode("proxy-only"),"FillSquidParentOptions$tt()",null,0,
 		"font-size:16px;padding:5px")."</td>
 	</tr>
@@ -569,7 +941,7 @@ function parent_options_popup(){
 			if(results.length>0){alert(results);}
 			YahooWin5Hide();
 			$('#parent-options-$t').flexReload();
-			
+			if(document.getElementById('proxy-parent-flexigrid')){ $('#'+document.getElementById('proxy-parent-flexigrid').value).flexReload(); }
 		}		
 	
 	
@@ -594,10 +966,7 @@ function parent_options_popup(){
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
-function parent_options_explain(){
-	$tt=$_GET["tt"];
-	if($_GET["edit-proxy-parent-options-explain"]==null){return null;}
-	$page=CurrentPageName();
+function parent_option_explain_text($key){
 	$options[base64_encode("proxy-only")]="{parent_options_proxy_only}";
 	$options[base64_encode("Weight=n")]="{parent_options_proxy_weight}";
 	$options[base64_encode("ttl=n")]="{parent_options_proxy_ttl}";
@@ -614,6 +983,16 @@ function parent_options_explain(){
 	$options[base64_encode("login=PASS")]="{parent_options_login_pass}";
 	$options[base64_encode("connect-timeout=nn")]="{parent_options_proxy_connect_timeout}";
 	$options[base64_encode("digest-url=url")]="{parent_options_proxy_digest_url}";
+	return $options[$key];
+}
+
+
+
+function parent_options_explain(){
+	$tt=$_GET["tt"];
+	if($_GET["edit-proxy-parent-options-explain"]==null){return null;}
+	$page=CurrentPageName();
+
 
 	
 	$options_forms[base64_encode("digest-url=url")]=true;
@@ -627,17 +1006,18 @@ function parent_options_explain(){
 		$form="
 		<table style='width:99%' class=form>
 		<tr>
-			<td class=legend style='font-size:14px'>". base64_decode($_GET["edit-proxy-parent-options-explain"]).":</td>
-			<td>". Field_text("parent_proxy_add_value",null,"font-size:14px;padding:3px")."</td>
+			<td class=legend style='font-size:16px'>". base64_decode($_GET["edit-proxy-parent-options-explain"]).":</td>
+			<td>". Field_text("parent_proxy_add_value",null,"font-size:16px;padding:3px")."</td>
 		</tr>
 		</table>";
 		
 	}
 	
-	$html="<div class=explain style='font-size:14px'>{$options[$_GET["edit-proxy-parent-options-explain"]]}</div>
+	$explain=parent_option_explain_text($_GET["edit-proxy-parent-options-explain"]);
+	$html="<div class=explain style='font-size:16px'>$explain</div>
 	$form
 	<div style='text-align:right'><hr>
-	". button("{add} ".base64_decode($_GET["edit-proxy-parent-options-explain"]),"AddSquidOption$tt()",16)."</div>";
+	". button("{add} ".base64_decode($_GET["edit-proxy-parent-options-explain"]),"AddSquidOption$tt()",22)."</div>";
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
@@ -648,26 +1028,29 @@ function extract_options(){
 	$q=new mysql();
 	$sql="SELECT options FROM squid_parents WHERE ID={$_GET["ID"]}";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	
+	$tpl=new templates();
 	$array=unserialize(base64_decode($ligne["options"]));
 	if(!is_array($array)){json_error_show("No data");}
 	
 	
 	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total;
+	$data['page'] = 1;
+	
 	$data['rows'] = array();
 	
 		$c=0;
 		while (list($num,$val)=each($array)){
 			$c++;	
 			$md5=md5("PPROXY-OPTION-$ID-$num");
+			
+			$explain=$tpl->_ENGINE_parse_body(parent_option_explain_text(base64_encode($num)));
+			
 			$data['rows'][] = array(
 					'id' =>"$md5",
 					'cell' => array(
-							"<img src='img/arrow-right-24.png'>",
-							"<strong style='font-size:14px'>$num</strong>",
-							imgsimple("delete-24.png","{delete}","DeleteSquidOption('$num','$md5')") )
+							"<img src='img/arrow-blue-left-32.png'>",
+							"<strong style='font-size:22px'>$num</strong><div style='font-size:14px;font-weight:normal'>$explain</div>",
+							imgsimple("delete-32.png","{delete}","DeleteSquidOption('$num','$md5')") )
 					);			
 			}
 		
@@ -764,26 +1147,22 @@ function EnableParentProxy(){
 	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
 	$ini->loadString($ArticaSquidParameters);
 	$ini->_params["NETWORK"]["EnableParentProxy"]=$_GET["EnableParentProxy"];
-	$sock->SET_INFO("ArticaSquidParameters",$ini->toString());
-
-	
-}
-function prefer_direct(){
-	$sock=new sockets();
-	$ini=new Bs_IniHandler();
-	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
-	$ini->loadString($ArticaSquidParameters);
 	$ini->_params["NETWORK"]["prefer_direct"]=$_GET["prefer_direct"];
-	$sock->SET_INFO("ArticaSquidParameters",$ini->toString());
-	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
-}function nonhierarchical_direct(){
-	$sock=new sockets();
-	$ini=new Bs_IniHandler();
-	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
-	$ini->loadString($ArticaSquidParameters);
 	$ini->_params["NETWORK"]["nonhierarchical_direct"]=$_GET["nonhierarchical_direct"];
 	$sock->SET_INFO("ArticaSquidParameters",$ini->toString());
-
+	$sock->SET_INFO("EnableParentProxy", $_GET["EnableParentProxy"]);
+	
+	$squid=new squidbee();
+	$squid->forwarded_for=$_GET["forwarded_for"];
+	$squid->SaveToLdap(true);
+	
+	$sock->getFrameWork("cmd.php?squidnewbee=yes");	
+}
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+	$tmp1 = round((float) $number, $decimals);
+	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+		$tmp1 = $tmp2;
+	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
 }
 
 

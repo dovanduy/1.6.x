@@ -97,8 +97,8 @@ $resultat=$my->QUERY_SQL($sql,'artica_events');
 	while($ligne=@mysql_fetch_array($resultat,MYSQL_ASSOC)){
 	
 	switch ($ligne["event_type"]) {
-		case 0:$img="icon_mini_warning.gif";break;
-		case 1:$img="icon-mini-ok.gif";break;
+		case 0:$img="status_warning.png";break;
+		case 1:$img="ok13.png";break;
 		case 2:$img="icon-mini-info.gif";break;
 		default:$img="icon-mini-info.gif";break;
 	}

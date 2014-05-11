@@ -110,7 +110,7 @@ function installbyPath($SourceFile){
 
 	if(is_dir("/root/VMwareArticaInstall")){shell_exec("$rm -rf /root/VMwareArticaInstall");}
 	events("Indexing softwares database");
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force");
+	shell_exec("/etc/init.d/artica-process1 start");
 	
 }
 
@@ -146,7 +146,7 @@ function is_media_mounted(){
 
 function events($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		
 		if($GLOBALS["VERBOSE"]){echo "$date [$pid]:".basename(__FILE__).": $text\n";}
 		$size=@filesize($GLOBALS["LOGFILE"]);

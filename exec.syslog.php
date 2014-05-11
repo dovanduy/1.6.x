@@ -1,5 +1,4 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-syslog Waiting Artica-CD to finish\n";die();}}
 $mem=round(((memory_get_usage()/1024)/1000),2);events("START WITH {$mem}MB ","MAIN",__LINE__);
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
@@ -8,8 +7,14 @@ include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 $mem=round(((memory_get_usage()/1024)/1000),2);events("{$mem}MB before class.users.menus.inc","MAIN",__LINE__);
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/framework/class.syslogger.inc");
+include_once(dirname(__FILE__)."/ressources/class.mysql.shorewall.inc");
+include_once(dirname(__FILE__)."/ressources/class.c-icap.monitor.inc");
+include_once(dirname(__FILE__)."/ressources/class.rdpproxy.monitor.inc");
 $mem=round(((memory_get_usage()/1024)/1000),2);events("{$mem}MB after class.settings.inc","MAIN",__LINE__);
-
+if(!isset($GLOBALS["ARTICALOGDIR"])){
+		$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); 
+		if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } 
+}
 
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -21,13 +26,14 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 
 $pid=getmypid();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-@mkdir("/var/log/artica-postfix/xapian",0755,true);
-@mkdir("/var/log/artica-postfix/infected-queue",0755,true);
-@mkdir("/var/log/artica-postfix/snort-queue",0755,true);
-@mkdir("/var/log/artica-postfix/pdns-hack-queue",0755,true);
-@mkdir("/var/log/artica-postfix/dansguardian-stats4",0755,true);
-@mkdir("/var/log/artica-postfix/haproxy-rtm",0755,true);
-if(!is_dir("/var/log/artica-postfix/dhcpd")){echo "Starting......: sysloger Creating dhcpd queue\n";@mkdir("/var/log/artica-postfix/dhcpd",0755,true);}
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/xapian",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/infected-queue",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/snort-queue",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/pdns-hack-queue",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/dansguardian-stats4",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/haproxy-rtm",0755,true);
+@mkdir("/etc/artica-postfix/croned.1",0755,true);
+if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/dhcpd")){echo "Starting......: ".date("H:i:s")." sysloger Creating dhcpd queue\n";@mkdir("{$GLOBALS["ARTICALOGDIR"]}/dhcpd",0755,true);}
 events("running $pid ");
 file_put_contents($pidfile,$pid);
 $sock=new sockets();
@@ -35,6 +41,8 @@ $EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 $users=new settings_inc();
 $unix=new unix();
+$GLOBALS["SQUID_INSTALLED"]=false;
+$GLOBALS["CORP_LICENSE"]=$users->CORP_LICENSE;
 $GLOBALS["RSYNC_RECEIVE"]=array();
 $GLOBALS["LOCATE_PHP5_BIN"]=$unix->LOCATE_PHP5_BIN();
 $GLOBALS["PS_BIN"]=$unix->find_program("ps");
@@ -48,8 +56,15 @@ $GLOBALS["sysctl"]=$unix->find_program("sysctl");
 $GLOBALS["CHMOD_BIN"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN_BIN"]=$unix->find_program("chown");
 $GLOBALS["REBOOT_BIN"]=$unix->find_program("reboot");
+$GLOBALS["DF_BIN"]=$unix->find_program("df");
 $GLOBALS["COUNT-LINES"]=0;
 $GLOBALS["COUNT-LINES-TIME"]=0;
+$GLOBALS["ufdbguardd_path"]=$unix->find_program("ufdbguardd");
+$GLOBALS["PGREP_BIN"]=$unix->find_program("pgrep");
+$GLOBALS["SHUTDOWN_BIN"]=$unix->find_program("shutdown");
+$GLOBALS["UCARP_MASTER"]=null;
+if(is_file($GLOBALS["SQUIDBIN"])){ $GLOBALS["SQUID_INSTALLED"]=true; }
+if(is_file("/usr/share/ucarp/Master")){ $GLOBALS["UCARP_MASTER"]=@file_get_contents("/usr/share/ucarp/Master"); }
 					
 $GLOBALS["ROUNDCUBE_HACK"]=0;
 $GLOBALS["PDNS_HACK"]=$sock->GET_INFO("EnablePDNSHack");
@@ -61,11 +76,11 @@ $GLOBALS["PDNS_HACK_DB"]=array();
 $unix=new unix();
 $GLOBALS["NODRYREBOOT"]=$sock->GET_INFO("NoDryReboot");
 $GLOBALS["NOOUTOFMEMORYREBOOT"]=$sock->GET_INFO("NoOutOfMemoryReboot");
+if(!is_numeric($GLOBALS["NOOUTOFMEMORYREBOOT"])){$GLOBALS["NOOUTOFMEMORYREBOOT"]=0;}
 $GLOBALS["CLASS_SOCKET"]=$sock;
 $GLOBALS["CLASS_UNIX"]=$unix;
 $GLOBALS["CLEANCMD"]="{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.clean.logs.php --urgency >/dev/null 2>&1 &";
-
-
+$GLOBALS["CLASS_C_ICAP_MONITOR"]=new c_icap_monitor();
 
 $sock=null;
 $unix=null;
@@ -116,9 +131,10 @@ function Parseline($buffer){
 	if($dust->MailDustbin($buffer)){return;}
 //kernel dustbin
 	if(strpos($buffer,"ext4_dx_add_entry: Directory index full")>0){return true;}
-	
+	if(strpos($buffer,"] ll header:")>0){return true;}
 	
 	//squid dustbin
+	if(strpos($buffer,"exec.syslog-engine.php")>0){return true;}
 	if(strpos($buffer,"exec.postfix-logger.php")>0){return true;}
 	if(strpos($buffer,"]: WARNING: ")>0){return true;}
 	if(strpos($buffer," epmd running")>0){return true;}
@@ -169,7 +185,16 @@ function Parseline($buffer){
 	if(strpos($buffer,"User supplied password using program zarafa-gateway")>0){return true;}
 	if(strpos($buffer,"authenticated through User supplied password using program")>0){return true;}
 	if(strpos($buffer,"authenticated through Pipe socket using program")>0){return true;}
-	
+	if(strpos($buffer,"conntrack-tools[")>0){return true;}
+	if(strpos($buffer,"]: (root) CMD (")>0){return true;}
+	if(strpos($buffer,"]: MemoryInstances")>0){return true;}
+	if(strpos($buffer,"]: launch_all_status(")>0){return true;}
+	if(strpos($buffer,"]: PROCESS IN MEMORY")>0){return true;}
+	if(strpos($buffer,">/dev/null 2>&1 &")>0){return true;}
+	if(strpos($buffer,"executed...end")>0){return true;}
+	if(strpos($buffer,"requests per minute")>0){return true;}
+	if(strpos($buffer,"Ask all status to MONIT")>0){return true;}
+	if(strpos($buffer,"exec.status.php[")>0){return true;}
 	
 	if(preg_match("#slapd.+?conn=[0-9]+\s+fd=.+?closed#",$buffer)){return true;}
 	if(strpos($buffer,"msmtp: ")>0){return true;}
@@ -371,12 +396,142 @@ function Parseline($buffer){
 	if(strpos($buffer,": monit HTTP server started")>0){return;}
 	if(strpos($buffer,"Awakened by the")>0){return;}
 	
+//Crash kernel
+
+	
+if(preg_match("#kernel:.*?squid\[.*?segfault at.*?error.*?in squid#",$buffer)){
+	squid_admin_mysql(0, "Fatal, proxy service was crashed !!!","Here it is the report\n$buffer\nService is automatically started\n",__FILE__,__LINE__);
+	shell_exec(trim("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.watchdog.php --start --crashed --cache-logs >/dev/null 2>&1 &"));
+	return;
+}
+	
+if(strpos($buffer,"rdpproxy:")>0){
+	if(!isset($GLOBALS["CLASS_RDPPROXY_MONITOR"])){ $GLOBALS["CLASS_RDPPROXY_MONITOR"]=new rdpproxy_monitor(); }
+	$GLOBALS["CLASS_RDPPROXY_MONITOR"]->parse($buffer);
+	return;
+	
+}
+	
+	
+
+	if(strpos($buffer,"C-ICAP")>0){
+		if($GLOBALS["CLASS_C_ICAP_MONITOR"]->parse($buffer)){return;}
+	}
+	
+	
+	
+//UCARP
+
+	if(preg_match("#ucarp\[.*?Switching to state:\s+BACKUP#",$buffer)){
+		if(!is_file("/usr/share/ucarp/Master")){
+			foreach (glob("/usr/share/ucarp/vip-*-down.sh") as $filename) {
+				$tt[]=$filename;
+				shell_exec("{$GLOBALS["nohup"]} $filename >/dev/null 2>&1 &");
+			}
+			squid_admin_mysql(0, "FailOver: Slave switch to backup mode", "Executed\n".@implode("\n", $tt),__FILE__,__LINE__);
+		}else{
+			squid_admin_mysql(0, "FailOver: Master shutdown connections transfered to slave", "\n",__FILE__,__LINE__);
+		}
+		return;
+	}
+	
+	if(preg_match("#ucarp\[.*?Switching to state:\s+MASTER#",$buffer)){
+		if(!is_file("/usr/share/ucarp/Master")){
+			squid_admin_mysql(0, "FailOver: Slave switch to Master mode and accept connections", "\n",__FILE__,__LINE__);
+		}else{
+			squid_admin_mysql(0, "FailOver: Master return back and accept connections", "\n",__FILE__,__LINE__);
+		}
+		return;
+	}	
+	
+// SHOREWALL
+
+if(preg_match("#Shorewall:(.+?)2(.+?):(.+?):IN=(.*?)\s+OUT=(.*?)\s+MAC=(.*?)\s+SRC=(.*?)\s+DST=(.*?)\s+.*?PROTO=(.*?)\s+.*?DPT=([0-9]+)#", $buffer,$re)){
+	$ZONE_FROM=$re[1];
+	$ZONE_TO=$re[2];
+	$ACTION=$re[2];
+	$NIC_IN=$re[4];
+	$NIC_OUT=$re[5];
+	$MAC_SRC=strtolower($re[6]);
+	$IP_SRC=$re[7];
+	$IP_DST=$re[8];
+	$PROTO=$re[9];
+	$PORT=$re[10];
+	$DATE=date("Y-m-d H:i:s");
+	$currentHour=date("YmdH");
+	if(!isset($GLOBALS["MYSQL_SHOREWALL"])){$GLOBALS["MYSQL_SHOREWALL"]=new mysql_shorewall();}
+	if(!isset($GLOBALS["MYSQL_SHOREWALL_T"][date("YmdH")])){$GLOBALS["MYSQL_SHOREWALL"]->BuildHourTable();}
+	$sql="INSERT IGNORE INTO `FWH_$currentHour` (`ZDATE`,`ZONE_FROM`,`ZONE_TO`,`ACTION`,`NIC_IN`,`NIC_OUT`,`MAC_SRC`,`IP_SRC`,`IP_DST`,`PROTO`,`PORT`) VALUES
+	('$DATE','$ZONE_FROM','$ZONE_TO','$ACTION','$NIC_IN','$NIC_OUT','$MAC_SRC','$IP_SRC','$IP_DST','$PROTO','$PORT')";
+	$GLOBALS["MYSQL_SHOREWALL"]->QUERY_SQL($sql);
+	if(count($GLOBALS["MYSQL_SHOREWALL_T"])>10){unset($GLOBALS["MYSQL_SHOREWALL_T"]);}
+	return;
+	
+}
+
+if(preg_match("#kernel:.*?:\s+(.+?):\s+link down#", $buffer,$re)){
+	system_admin_events("{$re[1]}: Network Interface Down\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
+	squid_admin_mysql(0, "{$re[1]}: Network Interface Down", $buffer);
+	return;
+}
+	
+if(preg_match("#kernel:.*?\]\s+ADDRCONF.*?:\s+(.+?):\s+link is not ready#", $buffer,$re)){
+	system_admin_events("{$re[1]}: Network Interface not ready\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
+	squid_admin_mysql(0, "{$re[1]}: Network Interface not ready", $buffer);	
+	return;
+}
+
+if(preg_match("#kernel:.*?\]\s+ADDRCONF.*?:\s+(.+?):\s+link becomes ready#", $buffer,$re)){
+	system_admin_events("{$re[1]}: Network Interface becomes ready\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
+	squid_admin_mysql(0, "{$re[1]}: Network Interface becomes ready", $buffer);
+	return;
+}
+
+if(preg_match("#kernel:.*?:\s+(.+?):\s+link up#", $buffer,$re)){
+	system_admin_events("{$re[1]}: Network Interface Up\n$buffer", __FUNCTION__, __FILE__, __LINE__, "network");
+	squid_admin_mysql(2, "{$re[1]}: Network Interface Up", $buffer);
+	return;
+}
+
+if(preg_match("#FATAL ERROR: unable to open remote file .*?framework\.sock#", $buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/lighttpd.framework.sock.error";
+	if(IfFileTime($file,1)){
+		system_admin_events("Framework issue, restarting framework service\n$buffer", __FUNCTION__, __FILE__, __LINE__, "artica");
+		$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-framework restart >/dev/null 2>&1 &";
+		shell_exec($cmd);
+	}
+	return;
+}
+
+if(preg_match("#lighttpd\[.*?connect failed: No such file or directory on unix:\/var\/run\/php-fpm\.sock#", $buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/lighttpd.phpfpm.sock.error";
+	if(IfFileTime($file,1)){
+		system_admin_events("PHP-FPM issue, starting PHP-FPM service\n$buffer", __FUNCTION__, __FILE__, __LINE__, "artica");
+		$cmd="{$GLOBALS["nohup"]} /etc/init.d/php5-fpm start >/dev/null 2>&1 &";
+		shell_exec($cmd);
+	}
+	return;
+}
+
+	
+
+	
+	
+// LIGTTPD
+if(preg_match("#lighttpd.*?connections\.c.*?SSL.*?error.*?Broken pipe#",$buffer,$re)){
+	$file="/etc/artica-postfix/croned.1/lighttpd.connections.Broken.pipe";
+	if(IfFileTime($file,2)){ shell_exec("{$GLOBALS["nohup"]} /etc/init.d/artica-webconsole restart >/dev/null 2>&1 &"); }
+	return;
+}
+	
+	
 
 	if(dhcpd($buffer)){return;}
-	if(preg_match("#squid\[[0-9]+\]:#",$buffer)){squid_parser($buffer);return;}
-	if(preg_match("#nss_wins\[[0-9]+\]:#",$buffer)){nss_parser($buffer);return;}
-	if(preg_match("#haproxy\[[0-9]+\]:#",$buffer)){haproxy_parser($buffer);return;}
-	
+	if(preg_match("#squid.*?\[[0-9]+\]:#",$buffer)){squid_parser($buffer);return;}
+	if(preg_match("#\(squid-.*?\):#",$buffer)){squid_parser($buffer);return;}
+	if(preg_match("#nss_wins.*?\[[0-9]+\]:#",$buffer)){nss_parser($buffer);return;}
+	if(preg_match("#haproxy.*?\[[0-9]+\]:#",$buffer)){haproxy_parser($buffer);return;}
+	if(preg_match("#kernel.*?\[#",$buffer)){Kernel_parser($buffer);return;}
 	
 	
 	
@@ -388,6 +543,7 @@ function Parseline($buffer){
 			events("HotSpot Failed to bin address, disable hotSpot system!");
 			system_admin_events("HotSpot Failed to bin address, disable hotSpot system!", __FUNCTION__, __FILE__, __LINE__, "system");
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableChilli", 0);
+			ToSyslog("kernel: [  Artica-Net] Start Network [artica-ifup] (".basename(__FILE__)."/".__LINE__.")" );
 			$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-ifup start >/dev/null 2>&1 &";
 			shell_exec($cmd);
 			$cmd="{$GLOBALS["nohup"]} /etc/init.d/chilli stop >/dev/null 2>&1 &";
@@ -444,16 +600,36 @@ function Parseline($buffer){
 	}
 	
 	if(preg_match("#haarp.*?munmap_chunk.*?invalid pointer#",$buffer)){
+		$GLOBALS["HAARP_FATAL"]++;
+		if(haarp_remove()){return;}
 		$file="/etc/artica-postfix/croned.1/haarp.invalid.pointer";
 		events("invalid pointer haarp:".__LINE__);
+		squid_admin_mysql(1,"Haarp issue: {$GLOBALS["HAARP_FATAL"]}/5 invalid pointer","Proxy service have issues with haarp,\n$buffer\n the service will be restarted",__FILE__,__LINE__);
 		if(IfFileTime($file,3)){
-			squid_admin_mysql(0,"Haarp issues","Proxy service have issues with haarp,\n$buffer\n the service will be restarted");
 			squid_admin_notifs("Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
-			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/haarp restart >/dev/null 2>&1 &");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/haarp start >/dev/null 2>&1 &");
+			WriteFileCache($file);
 		}
 		return;
 		
 	}
+	
+	if(preg_match("#kernel:\s+\[.*?haarp.*?general protection.*?libmysqlclient\.#",$buffer)){
+		$GLOBALS["HAARP_FATAL"]++;
+		if(haarp_remove()){return;}
+		$file="/etc/artica-postfix/croned.1/haarp.general.protection";
+		events("general protection haarp:".__LINE__);
+		squid_admin_mysql(1,"Haarp issue: {$GLOBALS["HAARP_FATAL"]}/5 general protection libmysqlclient","Proxy service have issues with haarp,\n$buffer\n the service will be restarted",__FILE__,__LINE__);
+		if(IfFileTime($file,1)){
+			squid_admin_notifs("Warning, Haarp issues.\nProxy service have issues with haarp,\n$buffer\n the service will be restarted");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/haarp start >/dev/null 2>&1 &");
+			WriteFileCache($file);
+		}
+		return;
+		
+	}
+	
+	if(preg_match("#monit\[.+?APP_UFDBGUARD.+?start:#", $buffer)){return;}
 	
 	
 	if(preg_match("#monit\[.+?system statistic error.+?cannot get real memory buffers amount#", $buffer)){
@@ -486,12 +662,15 @@ function Parseline($buffer){
 	}
 	
 	if(preg_match("#cron\[.+?Fork error : could not exec.+?Cannot allocate memory#",$buffer)){
-		$reboot=$GLOBALS["CLASS_UNIX"]->find_program("reboot");
-		$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
-		email_events("Memory full: System will be rebooted after running after $uptime","System claim \"$buffer\" the operating system will be rebooted ($reboot).",'proxy');
-		shell_exec($reboot);
-		return;		
-		
+		if($GLOBALS["NOOUTOFMEMORYREBOOT"]<>1){
+			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
+			exec("{$GLOBALS["PS_BIN"]} aux 2>&1",$resultsa);
+			email_events("Memory full: System will be rebooted after running after $uptime","System claim \"$buffer\" the operating system will be rebooted ($reboot).",'proxy');
+			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);}
+			UcarpDown();
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			return;		
+		}
 	}
 	
 	
@@ -503,7 +682,20 @@ function Parseline($buffer){
 	}
 	
 	
-	
+	if(preg_match("#Cannot open.*?\/var\/log\/squid\/store\.log.*?No space left on device#is",$buffer,$re)){
+		$file="/etc/artica-postfix/croned.1/varlogfull";
+		if(IfFileTime($file,5)){
+			$results[]="\n\n--------------   SPACE AVAILABLE   -------------\n\n";
+			exec("{$GLOBALS["DF_BIN"]} -h 2>&1",$results);
+			$results[]="\n\n--------------   INODES AVAILABLE   -------------\n\n";
+			exec("{$GLOBALS["DF_BIN"]} -i 2>&1",$results);
+			squid_admin_mysql(0, "Fatal: no space left on log partition", "A specific procedure as been executed to make more free space.\nHere it is the current status\n".@implode("\n", $results),__FILE__,__LINE__);
+			$cmd="{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} ". dirname(__FILE__)."/exec.varlog-urgency.php --squid >/dev/null 2>&1 &";
+			shell_exec($cmd);
+			WriteFileCache($file);
+		}
+		
+	}
 	
 	
 
@@ -535,96 +727,17 @@ function Parseline($buffer){
 			$table=date('Ymd')."_blocked";	
 			$md5=md5("$date,$local_ip,$rulename,$category,$www,$public_ip");
 			$sql="('$local_ip','$www','$category','$rulename','$public_ip','THREAT $virus DETECTED','Security issue','unknown')";
-			if(!is_dir("/var/log/artica-postfix/ufdbguard-queue")){@mkdir("/var/log/artica-postfix/ufdbguard-queue",0755,true);}
-			@file_put_contents("/var/log/artica-postfix/ufdbguard-queue/$md5.sql",$sql);
+			if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-queue")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-queue",0755,true);}
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-queue/$md5.sql",$sql);
 			eventsAuth("[KHSE]: blocked THREAT $virus DETECTED IN $uri");
 			return;
 			}
 	}
 	
-	if(preg_match("#C-ICAP.*?Unable to find specified template#i", $buffer)){
-		$file="/etc/artica-postfix/croned.1/cicap_templates";
-		events("Not template for C-ICAP...");
-		if(IfFileTime($file,10)){
-			$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.c-icap.php --template >/dev/null 2>&1 &");
-			events("$cmd");
-			WriteFileCache($file);
-		}
-		
-	}
+
 	
 
-	if(preg_match("#C-ICAP.*?general.*?VIRUS DETECTED: (.+?)\s+, http client ip: (.+?),\s+http user: (.*?), http url: (.+)#",$buffer,$re)){
-		$user=trim($re[3]);
-		if($user=="-"){$user=null;}
-		$local_ip=$re[2];
-		$virus=$re[1];
-		$uri=$re[4];
-		$uri=str_replace("#012", "", $uri);
-		$uri=trim($uri);
-		$array=parse_url($uri);
-		$www=$array["host"];
-		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
-		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
-		if(strpos($www,"/")>0){$tb=explode("/",$www);$www=$tb[0];}
-		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
-		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
-		
-		$array["uid"]=$user;
-		$array["uri"]=$uri;
-		$array["MAC"]=$MAC;
-		$array["TIME"]=time();
-		$array["category"]="C-ICAP ClamAV";
-		$array["rulename"]="Antivirus ClamAV";
-		$array["public_ip"]=gethostbyname($www);
-		$array["blocktype"]="Security issue";
-		$array["why"]="THREAT $virus DETECTED";
-		$array["hostname"]=$Clienthostname;
-		$array["website"]=$www;
-		$array["client"]=$local_ip;
-		$serialize=serialize($array);
-		$md5=md5($serialize);
-		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
-		eventsAuth("[CLAMAV]: blocked THREAT $virus DETECTED IN $uri");
-		return;	
-	}
 	
-	if(preg_match("#C-ICAP.*?VIRUS DETECTED:\s+(.+?)\s+,\s+.*?ip:\s+(.+?),\s+.*?user:\s+(.+?),\s+.*?url:\s+(.+)#",$buffer,$re)){
-		$user=trim($re[3]);
-		if($user=="-"){$user=null;}
-		$local_ip=$re[2];
-		$virus=$re[1];
-		$uri=$re[4];
-		$uri=str_replace("#012", "", $uri);
-		$uri=trim($uri);
-		$array=parse_url($uri);
-		$www=$array["host"];
-		if(strpos($www, ":")>0){$t=explode(":", $www);$www=$t[0];}
-		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
-		if(strpos($www,"/")>0){$tb=explode("/",$www);$www=$tb[0];}
-		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
-		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
-		
-		$array["uid"]=$user;
-		$array["uri"]=$uri;
-		$array["MAC"]=$MAC;
-		$array["TIME"]=time();
-		$array["category"]="C-ICAP ClamAV";
-		$array["rulename"]="Antivirus ClamAV";
-		$array["public_ip"]=gethostbyname($www);
-		$array["blocktype"]="Security issue";
-		$array["why"]="THREAT $virus DETECTED";
-		$array["hostname"]=$Clienthostname;
-		$array["website"]=$www;
-		$array["client"]=$local_ip;
-		$serialize=serialize($array);
-		$md5=md5($serialize);
-		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
-		eventsAuth("[CLAMAV]: blocked THREAT $virus DETECTED IN $uri");
-		return;
-	}	
 	
 	
 
@@ -645,7 +758,7 @@ function Parseline($buffer){
 			$array["RULEID"]=$re[9];
 			$array["TIME"]=date('Y-m-d H:i:s');
 			eventsAuth("[Dansguardian]: blocked {$array["uri"]} {$array["BLOCKTYPE"]} {$array["RULEID"]}");
-			@file_put_contents("/var/log/artica-postfix/dansguardian-stats4/".md5(serialize($array)), serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/dansguardian-stats4/".md5(serialize($array)), serialize($array));
 		}
 		return;
 	}
@@ -674,10 +787,27 @@ function Parseline($buffer){
 		return true;
 	}
 	
+	if(preg_match("#winbindd\[.*?Could not fetch our SID - did we join#", $buffer,$re)){
+		$file="/etc/artica-postfix/croned.1/ntlm.samba.could.not.fetch.our.SID.join.error";
+		if(IfFileTime($file,3)){
+			squid_admin_mysql(0, "NTLM: not joinded", $buffer,__FILE__,__LINE__);
+			$cmd="{$GLOBALS["LOCATE_PHP5_BIN"]} ". dirname(__FILE__)."/exec.kerbauth.php --join";
+			events("Active Directory: NTLM:: not joinded -> $cmd");
+			shell_exec("{$GLOBALS["nohup"]} $cmd >/dev/null 2>&1 &");
+			WriteFileCache($file);
+		}else{
+			events("Active Directory: NTLM: not joinded -> WAIT");
+		}
+		
+		return;
+	}
+	
+	
 	
 	if(preg_match("#\(ntlm_auth\): could not obtain winbind domain name\!#", $buffer,$re)){
 		$file="/etc/artica-postfix/croned.1/ntlm.samba.could.not.obtain.winbind.domain.name.error";
 		if(IfFileTime($file,3)){
+			squid_admin_mysql(0, "NTLM: could not obtain winbind domain name", $buffer,__FILE__,__LINE__);
 			$cmd="{$GLOBALS["LOCATE_PHP5_BIN"]} ". dirname(__FILE__)."/exec.kerbauth.php --join";
 			events("Active Directory: NTLM:: could not obtain winbind domain name -> $cmd");
 			shell_exec("{$GLOBALS["nohup"]} $cmd >/dev/null 2>&1 &");
@@ -698,6 +828,7 @@ function Parseline($buffer){
 	if(preg_match("#kerberos_kinit_password\s+(.+?)\s+failed:\s+Preauthentication failed#i", $buffer,$re)){
 		$file="/etc/artica-postfix/croned.1/samba.". md5("kerberos_kinit_password+Preauthentication failed").".error";
 		if(IfFileTime($file,2)){
+			squid_admin_mysql(0, "NTLM: Preauthentication failed", $buffer,__FILE__,__LINE__);
 			$cmd="{$GLOBALS["LOCATE_PHP5_BIN"]} ". dirname(__FILE__)."/exec.kerbauth.php --ping --force";
 			email_events("Active Directory: Preauthentication failed","System claims:\n$buffer\nThere is link problem with your Active Directory\nArtica will try to relink the system by executing $cmd --verbose\nbut you should try to investigate if this server is able to resolve the Active Directory server",'system');
 			events("Active Directory: Preauthentication failed -> $cmd");
@@ -728,7 +859,7 @@ function Parseline($buffer){
 				}
 				email_events("dnsmasq: Permission denied on $targetedfile","dnmasq claims:\n$buffer\nArtica will change permission of this file to 0755 in order to fix this issue and put it into aa-complain mode",'system');
 				shell_exec("/bin/chmod 755 \"$targetedfile\"");
-				shell_exec(trim("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix restart dnsmasq >/dev/null 2>&1 &"));
+				shell_exec(trim("{$GLOBALS["nohup"]} /etc/init.d/dnsmasq restart >/dev/null 2>&1 &"));
 				@unlink($file);	
 				WriteFileCache($file);
 			}
@@ -767,7 +898,7 @@ function Parseline($buffer){
 		$file="/etc/artica-postfix/croned.1/pdns.Can.t.contact.LDAP.server";
 		if(IfFileTime($file,10)){
 			email_events("PowerDNS: DNS server is unable to contact the LDAP server","PDNS claims:\n$buffer\nArtica will restart PowerDNS service",'system');
-			shell_exec(trim("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix restart pdns >/dev/null 2>&1 &"));
+			shell_exec(trim("{$GLOBALS["nohup"]} /etc/init.d/pdns restart >/dev/null 2>&1 &"));
 			@unlink($file);	
 			WriteFileCache($file);
 		}
@@ -793,7 +924,7 @@ function Parseline($buffer){
 			$GLOBALS["PDNS_HACK_DB"][$re[2]]=$GLOBALS["PDNS_HACK_DB"][$re[2]]+1;
 			if($GLOBALS["PDNS_HACK_DB"][$re[2]]>$GLOBALS["PDNS_HACK_MAX"]){
 				events("--> PDNS Hack {$re[2]} will be banned");
-				@file_put_contents("/var/log/artica-postfix/pdns-hack-queue/".time(), $re[2]);
+				@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/pdns-hack-queue/".time(), $re[2]);
 				unset($GLOBALS["PDNS_HACK_DB"][$re[2]]);
 			}
 		}
@@ -818,7 +949,7 @@ function Parseline($buffer){
 	
 	if(preg_match("#snort\[[0-9]+\]:\s+\[.+?\]\s+(.+?)\s+\[Classification: (.+?)\]\s+\[Priority:\s+([0-9]+)\]:\/s+\{(.+?)\}\s+(.+?):([0-9]+)\s+->\s+(.+?):([0-9]+)#",$buffer,$re)){
 		$md5=md5($buffer);
-		$filename="/var/log/artica-postfix/snort-queue/".time().".$md5.snort";
+		$filename="{$GLOBALS["ARTICALOGDIR"]}/snort-queue/".time().".$md5.snort";
 		@file_put_contents($filename,serialize($re));
 		return;
 	}
@@ -845,7 +976,7 @@ function Parseline($buffer){
 		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.samba.php --fix-etc-hosts >/dev/null 2>&1 &");
 		$file="/etc/artica-postfix/croned.1/net-ldap-bind";
 		if(IfFileTime($file,5)){
-			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix start ldap >/dev/null 2>&1 &");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
 			WriteFileCache($file);
 			return;	
 		}	
@@ -873,6 +1004,7 @@ function Parseline($buffer){
 		events("SQUID: winbindd_pam_auth_crap --> exec.kerbauth.php --winbindfix");
 		$file="/etc/artica-postfix/croned.1/winbindd_pam_auth_crap";
 		if(IfFileTime($file,5)){
+			squid_admin_mysql(0, "NTLM: client not authorized to use winbindd_pam_auth_crap", $buffer,__FILE__,__LINE__);
 			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.kerbauth.php --winbindfix");
 			@unlink($file);
 			WriteFileCache($file);
@@ -903,7 +1035,7 @@ function Parseline($buffer){
 			events("WINBIND: Could not receive trustdoms -> restart Winbind");
 			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("restart winbindd", basename(__FILE__));}
 			email_events("Samba: Could not receive trustdoms","samba claims:\n$buffer\nArtica will try to restart winbindd service",'system');
-			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix restart winbindd >/dev/null 2>&1 &");
+			shell_exec("{$GLOBALS["nohup"]} /etc/init.d/winbind restart >/dev/null 2>&1 &");
 			@unlink($file);
 			}
 			WriteFileCache($file);
@@ -917,6 +1049,7 @@ function Parseline($buffer){
 		events("WINBINDD: ADS uninitialized: No logon servers");
 		if($GLOBALS["EnableKerbAuth"]==1){
 			if(IfFileTime($file,3)){
+				squid_admin_mysql(0, "NTLM: No logon servers", $buffer,__FILE__,__LINE__);
 				events("WINBINDD: EnableKerbAuth:: exec.kerbauth.php --build (do nothing new patch 2012-05-04)");
 				
 				//shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.kerbauth.php --build &");
@@ -1042,7 +1175,8 @@ function Parseline($buffer){
 	}
 	
 	if(preg_match("#slapd\[(.+?)\]:.+?OpenLDAP: slapd\s+([0-9\.]+)#",$buffer,$re)){
-		email_events("OpenLDAP service version {$re[2]} successfully started PID {$re[1]}","$buffer",'system');
+		$file="/etc/artica-postfix/croned.1/openldap-started";
+		events("OpenLDAP service version {$re[2]} successfully started PID {$re[1]}","$buffer",'system');
 		return;
 	}
 	
@@ -1065,7 +1199,7 @@ if(strpos($buffer,"pam_ldap: ldap_simple_bind Can't contact LDAP server")>0){
 		events("pam_ldap -> LDAP FAILED");
 		email_events("LDAP server is unavailable","System claim \"$buffer\" artica will try to restart LDAP server ",'system');
 		WriteFileCache($file);
-		shell_exec('/etc/init.d/artica-postfix restart ldap --monit &');
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
 		return;	
 	}	
 }
@@ -1076,7 +1210,7 @@ if(preg_match("#net:\s+failed to bind to server.+?Error:\s+Can.?t\s+contact LDAP
 		events("NET -> LDAP FAILED");
 		email_events("LDAP server is unavailable","System claim \"$buffer\" artica will try to restart LDAP server ",'system');
 		WriteFileCache($file);
-		shell_exec('/etc/init.d/artica-postfix restart ldap --monit &');
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
 		return;	
 	}	
 }
@@ -1087,7 +1221,7 @@ if(preg_match("#winbindd\[.+?failed to bind to server\s+(.+?)\s+with dn.+?Error:
 		events("winbindd -> LDAP FAILED");
 		email_events("LDAP server is unavailable","Samba claim \"$buffer\" artica will try to restart LDAP server ",'system');
 		WriteFileCache($file);
-		shell_exec('/etc/init.d/artica-postfix restart ldap --monit &');
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
 		return;	
 	}
 }
@@ -1275,7 +1409,9 @@ if(preg_match("#kernel:.+?Out of memory:\s+kill\s+process\s+#",$buffer,$re)){
 			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
 			email_events("Out of memory: reboot action performed Uptime:$uptime","Kernel claim \"$buffer\" the server will be rebooted",'system');
 			WriteFileCache($file);
-			shell_exec("{$GLOBALS["REBOOT_BIN"]}");
+			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
+			UcarpDown();
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
 			return;	
 		}else{
 			email_events("Out of memory: your system hang !","Kernel claim \"$buffer\" I suggest rebooting the system",'system');
@@ -1294,8 +1430,9 @@ if(preg_match("#kernel:\s+\[.+?Out of memory\s+\(oom_kill_allocating_task#",$buf
 			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
 			email_events("Out of memory: reboot action performed uptime:$uptime","Kernel claim \"$buffer\" the server will be rebooted",'system');
 			WriteFileCache($file);
-			
-			shell_exec("{$GLOBALS["REBOOT_BIN"]}");
+			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
+			UcarpDown();
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
 			return;	
 		}else{
 			email_events("Out of memory: your system hang !","Kernel claim \"$buffer\" I suggest rebooting the system",'system');
@@ -1312,6 +1449,7 @@ if(preg_match("#kernel:.+?ata.+?status:\s+{\s+DRDY#",$buffer,$re)){
 	}
 	$file="/etc/artica-postfix/croned.1/kernel.DRDY";
 	if(IfFileTime($file,5)){
+		
 		events("DRDY -> REBOOT !!!");
 		exec("/bin/dmesg 2>&1",$results);
 		$array["buffer"]=$buffer;
@@ -1319,7 +1457,9 @@ if(preg_match("#kernel:.+?ata.+?status:\s+{\s+DRDY#",$buffer,$re)){
 		@mkdir("/etc/artica-postfix/reboot",644,true);
 		@file_put_contents("/etc/artica-postfix/reboot/".time(),serialize($array));
 		email_events("Hard Disk issue: reboot action performed","Kernel claim \"$buffer\" the server will be rebooted\n".@implode("\n",$results),'system');
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET($GLOBALS["REBOOT_BIN"]);
+		if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
+		UcarpDown();
+		shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
 		return;
 	}
 }
@@ -1424,7 +1564,10 @@ if(preg_match("#monit\[.+?'(.+?)'\s+process is not running#",$buffer,$re)){
 	$file="/etc/artica-postfix/croned.1/restart.{$re[1]}.monit";
 	if(IfFileTime($file,5)){
 				events("{$re[1]} was stopped");
-				$processname=$re[1];if(preg_match("#mysqlmulti([0-9]+)#", $processname,$ri)){$tt=unserialize(@file_get_contents("/etc/artica-postfix/mysql_multi_names.cache"));$instancenem=$tt[$ri[1]];$re[1]="Mysql Instance {$ri[1]} ($instancenem)";}
+				$processname=$re[1];if(preg_match("#mysqlmulti([0-9]+)#", $processname,$ri)){
+					$tt=unserialize(@file_get_contents("/etc/artica-postfix/mysql_multi_names.cache"));
+					$instancenem=$tt[$ri[1]];$re[1]="Mysql Instance {$ri[1]} ($instancenem)";
+				}
 				
 				WriteFileCache($file);
 				return;
@@ -1574,7 +1717,7 @@ if(preg_match("#lmtp.+?status=deferred.+?lmtp\]:.+?(No such file or directory|To
 		if(IfFileTime($file)){
 			email_events("cyrus-imapd socket error","Postfix claim \"$buffer\", Artica will restart cyrus",'system');
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart imap');
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/cyrus-imapd restart');
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("{$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.main.cf.php --imap-sockets");
 			cyrus_socket_error($buffer,$re[1]."lmtp");
 			WriteFileCache($file);
@@ -1588,11 +1731,11 @@ if(preg_match("#lmtp.+?status=deferred.+?lmtp\]:.+?(No such file or directory|To
 
 if(preg_match("#rsyncd\[.+?:\s+recv.+?\[(.+?)\].+?([0-9]+)$#",$buffer,$re)){
 	$file=md5($buffer);
-	@mkdir('/var/log/artica-postfix/rsync',null,true);
+	@mkdir('{$GLOBALS["ARTICALOGDIR"]}/rsync',null,true);
 	$f["IP"]=$re[1];
 	$f["DATE"]=date('Y-m-d H:00:00');
 	$f["SIZE"]=$re[2];
-	@file_put_contents("/var/log/artica-postfix/rsync/$file",serialize($f));
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/rsync/$file",serialize($f));
 }
 
 if(preg_match("#kavmilter.+?Can.+?t load keys: No active key#",$buffer,$re)){
@@ -1751,7 +1894,7 @@ events_not_filtered("Not Filtered:\"$buffer\" (line ".__LINE__.") memory: {$mem}
 function IfFileTime($file,$min=10){
 	$time=file_time_min($file);
 	events("$file = {$time}Mn Max:$min");
-	if($time>$min){return true;}
+	if($time>$min){return WriteFileCache($file);return true;}
 	return false;
 }
 
@@ -1818,7 +1961,7 @@ function Roundcubehack($instance,$account,$ip){
 
 function events($text){
 		$filename=basename(__FILE__);
-		$logFile="/var/log/artica-postfix/syslogger.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/syslogger.debug";
 		if(!isset($GLOBALS["CLASS_UNIX"])){
 			include_once(dirname(__FILE__)."/framework/class.unix.inc");
 			$GLOBALS["CLASS_UNIX"]=new unix();
@@ -1828,7 +1971,7 @@ function events($text){
 		
 function WriteXapian($path){
 	$md=md5($path);
-	$f="/var/log/artica-postfix/xapian/$md.queue";
+	$f="{$GLOBALS["ARTICALOGDIR"]}/xapian/$md.queue";
 	if(is_file($f)){return null;}
 	@file_put_contents($f,$path);
 	
@@ -1868,7 +2011,7 @@ function dhcpd($buffer){
 		$day=date('Y-m-d H:i:s');
 		$text=addslashes($re[1]);
 		$sqlcontent="('$day','$text')";
-		@file_put_contents("/var/log/artica-postfix/dhcpd/".md5($sqlcontent),$sqlcontent);
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/dhcpd/".md5($sqlcontent),$sqlcontent);
 		return true;
 	}
 	
@@ -1959,6 +2102,21 @@ function squid_parser($buffer){
 	}
 	
 	
+	if(preg_match("#squid.*?Write failure -- check your disk space#",$buffer)){
+		events("Write failure -- check your disk space");
+		squid_admin_mysql(0, "Write failure !!!\n",null,__FILE__,__LINE__);
+		$file="/etc/artica-postfix/croned.1/check-disk-space";
+		if(IfFileTime($file,5)){
+			squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
+			$cmd="/etc/init.d/squid reload --script=".basename(__FILE__);
+			shell_exec("{$GLOBALS["nohup"]} $cmd >/dev/null 2>&1 &");
+			WriteFileCache($file);
+		}
+		return;
+		
+	}
+	
+	
 	if(preg_match("#squid\[.+?:\s+(.+?):\s+\(2\)\s+No such file or directory#i",$buffer,$re)){
 		events("--> Repair squid dir '{$re[1]}'...");
 		@mkdir($re[1],0755,true);@chmod($re[1],0755);@chown($re[1], "squid");@chgrp($re[1], "squid");
@@ -1968,10 +2126,11 @@ function squid_parser($buffer){
 	}
 	
 	if(preg_match("#ipcCreate: fork:.+?Cannot allocate memory#", $buffer)){
-		$reboot=$GLOBALS["CLASS_UNIX"]->find_program("reboot");
 		$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
 		email_events("Memory full: System will be rebooted after $uptime uptime","SQUID claim \"$buffer\" the operating system will be rebooted ($reboot).",'proxy');
-		shell_exec($reboot);
+		if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: System will be rebooted after running after $uptime", "System claim \"$buffer\" the operating system will be rebooted",__FILE__,__LINE__);}
+		UcarpDown();
+		shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
 	}
 	
 
@@ -2167,7 +2326,7 @@ function haproxy_parser($buffer){
 		$GLOBALS["haproxy_parser_size"]=$GLOBALS["haproxy_parser_size"]+$ARRAY["BYTES"];
 		$GLOBALS["haproxy_parser_COUNT"]++;
 		if($GLOBALS["haproxy_parser_COUNT"]>500){events_not_filtered("haproxy:: 500 connections:\"{$GLOBALS["haproxy_parser_size"]} bytes transfered\"");$GLOBALS["haproxy_parser_COUNT"]=0;}
-		@file_put_contents("/var/log/artica-postfix/haproxy-rtm/$md5.log",$line);
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/haproxy-rtm/$md5.log",$line);
 		return true;
 	}
 	
@@ -2194,7 +2353,7 @@ function amavis_sa_update($buffer){
 
 
 function events_not_filtered($text){
-		$common="/var/log/artica-postfix/syslogger.debug";
+		$common="{$GLOBALS["ARTICALOGDIR"]}/syslogger.debug";
 		$size=@filesize($common);
 		$pid=getmypid();
 		$date=date("Y-m-d H:i:s");
@@ -2208,13 +2367,101 @@ function events_not_filtered($text){
 }
 function eventsAuth($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
-		$logFile="/var/log/artica-postfix/auth-tail.debug";
+		$date=@date("H:i:s");
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/auth-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
 		@fwrite($f, "$pid ".basename(__FILE__)." $text\n");
 		@fclose($f);	
 		}
+		
+function haarp_remove(){
+	if($GLOBALS["HAARP_FATAL"]<5){
+		squid_admin_mysql(0,"Haarp Fatal: {$GLOBALS["HAARP_FATAL"]}/5 waiting 5 times..",
+		"after 5 times, the service will be disabled\n"
+				,__FILE__,__LINE__);
+		return false;}
+	
+		$file="/etc/artica-postfix/croned.1/haarp.haarp_remove";
+	if($GLOBALS["HAARP_FATAL"]<8){
+		if(IfFileTime($file,5)){return;}
+	}
+	
+	squid_admin_mysql(0,"Haarp Fatal: Too many errors on this service, disable it",
+	"Too many errors as been detected on StreamCache system.\nArtica will disable this service in order to continue production\n"
+	,__FILE__,__LINE__);
+	$GLOBALS["CLASS_SOCKET"]->SET_INFO("EnableHaarp", "0");
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
+	$GLOBALS["HAARP_FATAL"]=0;
+	WriteFileCache($file);
+}
 
+function Kernel_parser($buffer){
+	//   KERNEL //
+	
+	if(preg_match("#kernel:\s+\[([0-9]+)\..*?\]\s+.*?invoked oom-killer#",$buffer,$re)){
+		if($GLOBALS["NOOUTOFMEMORYREBOOT"]<>1){
+			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
+			exec("{$GLOBALS["PS_BIN"]} aux 2>&1",$resultsa);
+			email_events("Memory full: System will be rebooted after running after $uptime",
+			"System claim \"$buffer\" the operating system will be rebooted.\n".@implode("\n", $resultsa),'system');
+			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full: [".__LINE__."] System will be rebooted after running after $uptime", 
+			"System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);}
+			UcarpDown();
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			return;
+		}
+			
+	}
+	
+	if(preg_match("#kernel.*?Out of memory: kill process#",$buffer,$re)){
+		if($GLOBALS["NOOUTOFMEMORYREBOOT"]<>1){
+			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
+			exec("{$GLOBALS["PS_BIN"]} aux 2>&1",$resultsa);
+			email_events("Memory full: System will be rebooted after running after $uptime",
+			"System claim \"$buffer\" the operating system will be rebooted.\n".@implode("\n", $resultsa),'system');
+			if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, "Memory full:[".__LINE__."] System will be rebooted after running after $uptime", 
+			"System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);}
+			UcarpDown();
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			return;
+		}
+	}
+	
+	if(preg_match("#kernel.*?invoked oom-killer#",$buffer,$re)){
+		if($GLOBALS["NOOUTOFMEMORYREBOOT"]<>1){
+			$uptime=$GLOBALS["CLASS_UNIX"]->uptime();
+			exec("{$GLOBALS["PS_BIN"]} aux 2>&1",$resultsa);
+			email_events("Memory full: System will be rebooted after running after $uptime",
+			"System claim \"$buffer\" the operating system will be rebooted.\n".@implode("\n", $resultsa),'system');
+				if($GLOBALS["SQUID_INSTALLED"]){squid_admin_mysql(0, 
+				"Memory full: [".__LINE__."] System will be rebooted after running after $uptime", 
+				"System claim \"$buffer\" the operating system will be rebooted\n".@implode("\n", $resultsa),__FILE__,__LINE__);
+				}
+			UcarpDown();
+			shell_exec("{$GLOBALS["SHUTDOWN_BIN"]} -r now");
+			return;
+		}
+	}	
+}
+
+
+
+function UcarpDown(){
+	if(!$GLOBALS["CORP_LICENSE"]){return;}
+	if($GLOBALS["UCARP_MASTER"]==null){return;}
+	$downfile="/usr/share/ucarp/vip-{$GLOBALS["UCARP_MASTER"]}-down.sh";
+	if(!is_file($downfile)){return;}
+	ToSyslog("Shutdown VIP {$GLOBALS["UCARP_MASTER"]}");
+	shell_exec("{$GLOBALS["nohup"]} $downfile >/dev/null 2>&1 &");
+}
+function ToSyslog($text){
+	if(!function_exists("syslog")){return;}
+	$file=basename(__FILE__);
+	$LOG_SEV=LOG_INFO;
+	openlog("syslog-watch", LOG_PID , LOG_SYSLOG);
+	syslog($LOG_SEV, $text);
+	closelog();
+}
 ?>

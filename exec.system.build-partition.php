@@ -8,10 +8,100 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 
 
-if($argv[1]=="--full"){disk_build_unique_partition($argv[2],$argv[3]);die();}
+if($argv[1]=="--unlink"){disk_unlink($argv[2]);die();}
+if($argv[1]=="--full"){disk_build_unique_partition($argv[2],$argv[3],$argv[4]);die();}
 
 
-function disk_build_unique_partition($dev,$label){
+
+function disk_unlink($dev){
+	$unix=new unix();
+	$fdisk=$unix->find_program("fdisk");
+	$umount=$unix->find_program("umount");
+	exec("$fdisk -l $dev 2>&1",$results);
+	$parts=array();
+	while (list ($num, $val) = each ($results) ){
+		if(preg_match("#^(.+?)\s+.*?Linux#", $val,$re)){
+			$parts[$re[1]]=true;
+		}
+	
+	}	
+while (list ($dev, $val) = each ($parts) ){
+		echo "Umount $dev\n";
+		shell_exec("$umount -l $dev");
+		echo "Remove $dev from fstab\n";
+		disk_remove_fstab($dev);
+	}
+	
+	
+	
+}
+
+function disk_remove_fstab($dev=null){
+	$unix=new unix();
+	if($dev==null){
+		events("disk_remove_fstab():: No target specified...");
+		return;
+	}
+	$UUID_TABLE=array();
+	$uuidregex=null;
+	$array=$unix->BLKID_ARRAY();
+	
+	while (list ($dev, $subarray) = each ($array) ){
+		if($subarray["UUID"]<>null){
+			$UUID_TABLE[$subarray["UUID"]]=$dev;
+		}
+	}
+	
+	reset($array);
+	$UUID=$array[$dev]["UUID"];
+	
+
+	
+	
+	
+	if($UUID<>null){
+		$uuidregex="UUID=$UUID";
+	}
+	$f=explode("\n",@file_get_contents("/etc/fstab"));
+	$t=array();
+	$devRegex=str_replace("/", "\/", $dev);
+	$devRegex=str_replace(".", "\.", $dev);
+	
+	
+	
+	$found=false;
+	while (list ($num, $val) = each ($f) ){
+		$val=trim($val);
+		if($val==null){continue;}
+		if(count($UUID_TABLE)>0){
+			if(preg_match("#UUID=(.+?)\s+#", $val,$re)){
+				if(!isset($UUID_TABLE[$re[1]])){
+					if($GLOBALS["VERBOSE"]){echo "**** REMOVE {$re[1]} ****\n";}
+					continue;
+				}
+			}
+		}
+		
+		if(preg_match("#^$devRegex\s+#", $val)){
+			if($GLOBALS["VERBOSE"]){echo "**** REMOVE $val ****\n";}
+			continue;}
+		if($uuidregex<>null){
+			if(preg_match("#^$uuidregex\s+#", $val)){
+				if($GLOBALS["VERBOSE"]){echo "**** REMOVE $val ****\n";}
+				continue;}
+			
+		}
+		if($GLOBALS["VERBOSE"]){echo "NO MATCH #^$uuidregex\s+# or #^$devRegex\s+# $val \n";}
+		$t[]=$val;
+	}
+	
+	@file_put_contents("/etc/fstab", @implode("\n", $t)."\n");	
+	
+	
+}
+
+
+function disk_build_unique_partition($dev,$label,$fs_type=null){
 	
 	
 	$unix=new unix();
@@ -44,25 +134,44 @@ function disk_build_unique_partition($dev,$label){
 	$dd=$unix->find_program("dd");
 	$sfdisk=$unix->find_program("sfdisk");
 	$mkfs=$unix->find_program("mkfs.ext4");
-	$e2label=$unix->find_program("e2label");
+	$btrfs=$unix->find_program("mkfs.btrfs");
+	$xfs=$unix->find_program("mkfs.xfs");
 	$mount=$unix->find_program("mount");
-	if(!is_file($mkfs)){
-		$mkfs=$unix-find_program("mkfs.ext3");
-		$mkfs="$mkfs -b 4096 ";
-		$extV="ext3";
-	}else{
-		$mkfs="$mkfs -Tlargefile4 ";
-		$extV="ext4";
+
+	events("$dev filesystem $fs_type");
+	$extV=$fs_type;
+	$e2label=$unix->find_program("e2label");
+	$e2label_EX=true;
+	
+	$MKFS["ext3"]="-b 4096 -L \"$disk_label\"";
+	$MKFS["ext4"]="-L \"$disk_label\" -i 8096 -I 256 -Tlargefile4";
+	$MKFS["btrfs"]="--label \"$disk_label\"";
+	$MKFS["xfs"]="-f -L \"$disk_label\"";
+	$MKFS["reiserfs"]="-q --label \"$disk_label\"";
+	
+	
+	if($fs_type==null){$fs_type="ext4";}
+	$pgr=$unix->find_program("mkfs.$fs_type");
+	events("mkfs.$fs_type = $pgr");
+	
+	if(is_file($pgr)){
+		$mkfs="$pgr {$MKFS[$fs_type]} ";
+		$extV="$fs_type";
+		$e2label_EX=false;
 	}
-	$cmd="$dd if=/dev/zero of=$dev bs=512 count=1 2>&1";
-	events($cmd);
-	$results=array();
-	exec($cmd,$results);
-	while (list ($num, $val) = each ($results) ){events($val);}
+		
+
 	
 	events("Cleaning $dev..., please wait...");
 	$cmd="$sfdisk -f $dev <$tmpfile 2>&1";
 	
+	events($cmd);
+	$results=array();
+	exec($cmd,$results);
+	while (list ($num, $val) = each ($results) ){events($val);}	
+	
+	
+	$cmd="$dd if=/dev/zero of=$dev bs=512 count=1 2>&1";
 	events($cmd);
 	$results=array();
 	exec($cmd,$results);
@@ -82,13 +191,14 @@ function disk_build_unique_partition($dev,$label){
 	exec($cmd,$results);
 	while (list ($num, $val) = each ($results) ){events($val);}
 
-	
-	events("Set label to $disk_label");
-	$cmd="$e2label $FindFirstPartition $disk_label 2>&1";
-	events($cmd);
-	$results=array();
-	exec($cmd,$results);
-	while (list ($num, $val) = each ($results) ){events($val);}
+	if($e2label_EX){
+		events("Set label to $disk_label");
+		$cmd="$e2label $FindFirstPartition $disk_label 2>&1";
+		events($cmd);
+		$results=array();
+		exec($cmd,$results);
+		while (list ($num, $val) = each ($results) ){events($val);}
+	}
 
 	events("Change fstab to include new media $FindFirstPartition to /media/$disk_label");
 	disk_change_fstab($FindFirstPartition,$extV,"/media/$disk_label");
@@ -116,11 +226,30 @@ function FindFirstPartition($dev){
 }
 
 function disk_change_fstab($dev,$ext,$target){
+	$unix=new unix();
 	if($target==null){
 		events("disk_change_fstab():: No target specified...");
 		return;
 	}
-	$line="$dev\t$target\t$ext\trw,async,relatime,errors=remount-ro,user_xattr,acl  0    1";
+	$uuidregex=null;
+	$array=$unix->BLKID_ARRAY();
+	$UUID=$array[$dev]["UUID"];
+	
+	$optionsZ["ext3"]="defaults,relatime,errors=remount-ro";	
+	$optionsZ["ext4"]="defaults,rw,noatime,data=writeback,barrier=0,commit=100,nobh,errors=remount-ro";	
+	$optionsZ["reiserfs"]="defaults,notail,noatime,user_xattr,acl,barrier=none";
+	$optionsZ["btrfs"]="defaults,noatime";
+	$optionsZ["xfs"]="defaults,noatime,nodiratime,nosuid,nodev,allocsize=64m,quota";
+	
+	$options=$optionsZ[$ext];
+	$tune2fs=$unix->find_program("tune2fs");
+	if($ext=="ext4"){shell_exec("$tune2fs -o journal_data_writeback $dev");}
+	
+	$line="$dev\t$target\t$ext\t$options  0    1";
+	if($UUID<>null){
+		$line="UUID=$UUID\t$target\t$ext\t$options  0    1";
+		$uuidregex="UUID=$UUID";
+	}
 	$f=explode("\n",@file_get_contents("/etc/fstab"));
 	
 	$devRegex=str_replace("/", "\/", $dev);
@@ -133,7 +262,16 @@ function disk_change_fstab($dev,$ext,$target){
 		if(preg_match("#^$devRegex\s+#", $val)){
 			$f[$num]=$line;
 			$found=true;
+			continue;
 		}
+		if($uuidregex<>null){
+			if(preg_match("#^$uuidregex\s+#", $val)){
+				$f[$num]=$line;
+				$found=true;
+				continue;
+			}
+		}
+		
 	}
 	if(!$found){$f[]=$line."\n";}
 	@file_put_contents("/etc/fstab", @implode("\n", $f));
@@ -141,7 +279,7 @@ function disk_change_fstab($dev,$ext,$target){
 //##############################################################################
 function events($text){
 	$pid=@getmypid();
-	$date=@date("h:i:s");
+	$date=@date("H:i:s");
 	$logFile=$GLOBALS["FILELOG"];
 
 	$size=@filesize($logFile);

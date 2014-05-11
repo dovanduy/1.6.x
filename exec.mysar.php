@@ -10,7 +10,7 @@ if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDU
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 writelogs("Task::{$GLOBALS["SCHEDULE_ID"]}:: Executed with ".@implode(" ", $argv)." ","MAIN",__FILE__,__LINE__);
-
+if($argv[1]=="--mysql"){CheckSql();exit;}
 build();
 
 
@@ -20,24 +20,32 @@ function build(){
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
-	
+	if($GLOBALS["VERBOSE"]){
+		echo "$timefile = $timefile\n";
+	}
 	
 	$unix=new unix();
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid)){echo "Already PID $pid is running\n";die();}
 	@file_put_contents($pidfile, getmypid());
 	
-	$mysar=$unix->find_program("mysar");
-	if(!is_file($mysar)){echo "mysar, no such binary...\n";return;}
-	
-	if($GLOBALS["VERBOSE"]){echo "TimeFile: $timefile\n";}
 	
 	if(!$GLOBALS["VERBOSE"]){
 		$time=$unix->file_time_min($timefile);
-		if($time<60){echo "Only each 60mn\n";die();}
+		if($time<50){echo "Only each 50mn\n";die();}
 		@unlink($timefile);
 		@file_put_contents($timefile, time());
 	}
+	
+	$mysar=$unix->find_program("mysar");
+	if(!is_file($mysar)){
+		echo "mysar, no such binary...\n";
+		return;
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo "TimeFile: $timefile\n";}
+	
+
 	
 	
 	$BaseWorkDir="/var/log/squid";
@@ -78,7 +86,7 @@ function build(){
 	
 
 	$q=new mysql_squid_builder();
-	
+	if($q->mysql_port<>3306){$q->EnableSquidRemoteMySQL=0;}
 	echo "Build config Use remote MySQL server = $q->EnableSquidRemoteMySQL\n";
 	
 	$f[]="username=$q->mysql_admin";
@@ -100,7 +108,7 @@ function build(){
 	@file_put_contents("/etc/mysar.conf", @implode("\n", $f));
 	CheckSql();
 	echo "Done...\n";
-	$NICE=EXEC_NICE();
+	$NICE=$unix->EXEC_NICE();
 	@mkdir("/home/squid/access_logs",0755,true);
 	if ($handle = opendir("/home/squid/access_logs")) {
 		while (false !== ($file = readdir($handle))) {
@@ -110,6 +118,7 @@ function build(){
 				$results=array();
 				exec($cmdline,$results);
 				while (list ($index, $line) = each ($results) ){if(preg_match("#Total runtime#", $line)){squid_admin_mysql(2, "MySar: $line", "Filename: ".basename($path));}}
+				rotate_admin_events("Insert into MySQL file $path",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
 				$syslog->ROTATE_ACCESS_TOMYSQL($path, null);
 			}
 			

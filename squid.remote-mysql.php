@@ -233,7 +233,7 @@ function squid_mysql_status(){
 	$button=button("{migrate_local_datas}", "Loadjs('$page?migrate-localdata-js=yes')",16);
 	$button="<hr><center style='margin:5px'>$button</center>";
 	
-	if(!$q->TestingConnection()){
+	if(!$q->BD_CONNECT()){
 		$img="danger64.png";
 		$title="{MYSQL_ERROR}";
 		$text=$text."<br>".$q->mysql_error;

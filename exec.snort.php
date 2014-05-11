@@ -32,15 +32,15 @@ function start_service(){
 	$sock=new sockets();
 	$snortInterfaces=unserialize(base64_decode($sock->GET_INFO("SnortNics")));
 	if(count($snortInterfaces)==0){
-		echo "Starting......: Snort Daemon version No interfaces to listen set...\n";
+		echo "Starting......: ".date("H:i:s")." Snort Daemon version No interfaces to listen set...\n";
 		return;
 	}	
-	echo "Starting......: Snort Daemon building configuration...\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon building configuration...\n";
 	build();
-	echo "Starting......: Snort Daemon building configuration done...\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon building configuration done...\n";
 	
 	while (list ($eth, $ligne) = each ($snortInterfaces) ){
-		echo "Starting......: Snort Daemon for Interface \"$eth\"...\n";
+		echo "Starting......: ".date("H:i:s")." Snort Daemon for Interface \"$eth\"...\n";
 		start_interface($eth);
 	}
 	
@@ -53,7 +53,7 @@ function start_interface($eth){
 	$pidpath="/var/run/snort_$eth.pid";
 	$pid=@file_get_contents($pidpath);
 	if($unix->process_exists($pid)){
-		echo "Starting......: Snort Daemon for Interface \"$eth\" Already running PID $pid\n";
+		echo "Starting......: ".date("H:i:s")." Snort Daemon for Interface \"$eth\" Already running PID $pid\n";
 		return;
 	}
 	
@@ -71,15 +71,15 @@ function start_interface($eth){
 	for($i=0;$i<6;$i++){
 		$pid=@file_get_contents($pidpath);
 		if($unix->process_exists($pid)){
-			echo "Starting......: Snort Daemon for Interface \"$eth\" success PID $pid\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon for Interface \"$eth\" success PID $pid\n";
 			return;
 		}
 		sleep(1);
 		
 	}
 	
-	echo "Starting......: Snort Daemon for Interface \"$eth\" failed\n";
-	echo "Starting......: Snort $cmd\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon for Interface \"$eth\" failed\n";
+	echo "Starting......: ".date("H:i:s")." Snort $cmd\n";
 	
 	
 }
@@ -112,10 +112,10 @@ function build(){
 	if(preg_match("#([0-9]+)\.([0-9]+)\.#",$snort_version,$re)){
 		$inver="{$re[1]}{$re[2]}";
 	}
-	echo "Starting......: Snort Daemon version $snort_version ($inver)\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon version $snort_version ($inver)\n";
 	
 	$HOME_NET=snort_NetWorks();
-	echo "Starting......: Snort Daemon HOME_NET $HOME_NET\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon HOME_NET $HOME_NET\n";
 	
 	
 	
@@ -487,7 +487,7 @@ $conf[]="";
 $conf[]="# site specific rules";
 
 foreach (glob("/etc/snort/rules/*.rules") as $filename) {
-	echo "Starting......: Snort Daemon adding rule ".basename($filename)."\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon adding rule ".basename($filename)."\n";
 	$conf[]="include $filename";
 	
 }
@@ -548,7 +548,7 @@ if(is_file("/etc/snort/snort.debian.conf")){
 	$debianConf[]="DEBIAN_SNORT_STATS_THRESHOLD=\"1\"";
 	@file_put_contents("/etc/snort/snort.debian.conf",@implode("\n",$debianConf));
 }
-echo "Starting......: Snort Daemon Testing configuration....\n";
+echo "Starting......: ".date("H:i:s")." Snort Daemon Testing configuration....\n";
 TestConfig();
 
 }
@@ -566,46 +566,46 @@ function snort_version(){
 function snort_dynamicpreprocessor_path(){
 	if(is_file("/usr/lib/snort_dynamicpreprocessor/libsf_dns_preproc.so")){return "/usr/lib/snort_dynamicpreprocessor";}
 	if(is_file("/usr/lib64/snort_dynamicpreprocessor/libsf_dns_preproc.so")){return "/usr/lib64/snort_dynamicpreprocessor";}
-	echo "Starting......: Snort Daemon unable to stat snort_dynamicpreprocessor directory !!\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon unable to stat snort_dynamicpreprocessor directory !!\n";
 }
 function snort_dynamicengine_path(){
 	if(is_file("/usr/lib/snort_dynamicengine/libsf_engine.so")){return "/usr/lib/snort_dynamicengine";}
 	if(is_file("/usr/lib64/snort_dynamicengine/libsf_engine.so")){return "/usr/lib64/snort_dynamicengine";}
-	echo "Starting......: Snort Daemon unable to stat snort_dynamicengine directory !!\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon unable to stat snort_dynamicengine directory !!\n";
 }
 function snort_dynamicrules_path(){
 	if(is_file("/usr/lib/snort_dynamicrules/lib_sfdynamic_example_rule.so")){return "/usr/lib/snort_dynamicrules";}
 	if(is_file("/usr/lib64/snort_dynamicrules/lib_sfdynamic_example_rule.so")){return "/usr/lib64/snort_dynamicrules";}
-	echo "Starting......: Snort Daemon unable to stat snort_dynamicrules directory !!\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon unable to stat snort_dynamicrules directory !!\n";
 }
 
 
 function TestConfig(){
 	
 	if(!isset($GLOBALS["SNORT_PATH"])){$unix=new unix();$GLOBALS["SNORT_PATH"]=$unix->find_program("snort");}
-	if(!is_file($GLOBALS["SNORT_PATH"])){echo "Starting......: Snort Daemon snort, no such binary\n";return; }
+	if(!is_file($GLOBALS["SNORT_PATH"])){echo "Starting......: ".date("H:i:s")." Snort Daemon snort, no such binary\n";return; }
 	$results=array();
 	exec("{$GLOBALS["SNORT_PATH"]} -T -c /etc/snort/snort.conf 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){	
 		
 		if(preg_match("#ERROR:\s+(.+?)\(([0-9]+)\)\s+Unknown rule option#",$line,$re)){
-			echo "Starting......: Snort Daemon \"$line\"\n";
-			echo "Starting......: Snort Daemon \"Unknown rule option\" error detected file {$re[1]} line {$re[2]} remove it\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon \"$line\"\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon \"Unknown rule option\" error detected file {$re[1]} line {$re[2]} remove it\n";
 			CleanFile($re[1],$re[2]);
 		}		
 		
 		if(preg_match("#ERROR:\s+(.+?)\(([0-9]+)\)\s+=>.+?does not take an argument#",$line,$re)){
-			echo "Starting......: Snort Daemon \"$line\"\n";
-			echo "Starting......: Snort Daemon \"does not take an argument\" error detected file {$re[1]} line {$re[2]} remove it\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon \"$line\"\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon \"does not take an argument\" error detected file {$re[1]} line {$re[2]} remove it\n";
 			CleanFile($re[1],$re[2]);
 		}
 
 		if(preg_match("#Snort successfully loaded all rules#",$line)){
-			echo "Starting......: Snort Daemon testing config success\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon testing config success\n";
 		}
 		
 		if(preg_match("#successfully validated the configuration#",$line)){
-			echo "Starting......: Snort Daemon testing config success\n";
+			echo "Starting......: ".date("H:i:s")." Snort Daemon testing config success\n";
 		}
 		
 	}
@@ -615,7 +615,7 @@ function TestConfig(){
 function CleanFile($filename,$rulenumber){
 	$rulenumber=$rulenumber-1;
 	$f=explode("\n",@file_get_contents($filename));
-	echo "Starting......: Snort Daemon removing line {$f[$rulenumber]}\n";
+	echo "Starting......: ".date("H:i:s")." Snort Daemon removing line {$f[$rulenumber]}\n";
 	unset($f[$rulenumber]);
 	@file_put_contents($filename,@implode("\n",$f));
 	TestConfig();

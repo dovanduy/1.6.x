@@ -32,7 +32,7 @@ function mysql_db_restart(){
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	
-	$cmd=trim("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	

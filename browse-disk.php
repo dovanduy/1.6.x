@@ -398,6 +398,12 @@ function browseFolder(){
 }
 
 function Folders_interdis($folder){
+	if($folder=="/lib64"){return true;}
+	if($folder=="/selinux"){return true;}
+	if($folder=="/run"){return true;}
+	if($folder=="/lib32"){return true;}
+	if(preg_match("#\{.*?\$#", $folder)){return true;}
+	
 	if(!isset($_SESSION[__FUNCTION__])){
 		$disk=new harddrive();
 		$array=$disk->Folders_interdis();

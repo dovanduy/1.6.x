@@ -150,7 +150,7 @@ $html="
 
 		$html=$html . "
 		<tr class=rowB>
-			<td width=1%><img src='img/network.gif'></td>
+			<td width=1%><img src='img/folder-network-24.png'></td>
 			<td >$val</td>
 			<td  width=1%><a href=\"#\" OnClick=\"javascript:Delete_Inet_Interface($num);\"><img src='img/x.gif'  border=0></td>
 		</tr>";

@@ -37,7 +37,7 @@ function popup(){
 	$time=time();
 	
 	
-	echo "<div style='width:95%' class=form>";
+	echo "<div style='width:98%' class=form>";
 	$sql="SELECT DATE_FORMAT(zDate,'%H') as tdate,AVG(download) as tbandwith FROM speedtests 
 	WHERE DATE_FORMAT(zDate,'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-%d') 
 	GROUP BY DATE_FORMAT(zDate,'%H')

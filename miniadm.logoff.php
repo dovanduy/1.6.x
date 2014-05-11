@@ -18,6 +18,9 @@ unset($_SESSION["TRANSLATE"]);
 unset($_SESSION["translation"]);
 unset($_SESSION["__CLASS-USER-MENUS"]);
 unset($_SESSION["CORP"]);
+unset($_SESSION["dynamic_acls_auth"]);
+unset($_SESSION["SQUID_DYNAMIC_ACLS"]);
+
 $_COOKIE["username"]="";
 $_COOKIE["password"]="";
 

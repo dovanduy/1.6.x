@@ -146,7 +146,7 @@ if(preg_match("#^(?:[^/]+://)?([^/:]+)#",$uri,$re)){
 
 function events($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/dansguardian-logger.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}

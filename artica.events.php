@@ -138,7 +138,7 @@ $('#events-table-$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -194,7 +194,9 @@ function events_table(){
 	$ORDER="ORDER BY zDate DESC";
 	
 	$total=0;
-	if($q->COUNT_ROWS($table,"artica_events")==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,"artica_events")==0){
+		json_error_show("no data");
+	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
@@ -222,12 +224,16 @@ function events_table(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){
-		
+		if(strpos($q->mysql_error, "is marked as crashed and should be repaired")>0){
+			$q->QUERY_SQL("DROP TABLE $table","artica_events");
+			$q->BuildTables();
+		}
+		json_error_show($q->mysql_error);
 	}
 	
 	
@@ -236,14 +242,9 @@ function events_table(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
 	
-	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
+	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		if($ligne["process"]==null){$ligne["process"]="{unknown}";}

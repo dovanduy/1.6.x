@@ -1662,7 +1662,7 @@ end;
 function tamavis.AMAVISD_STATUS():string;
 var pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_AMAVISD_NEW');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --amavis >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);
@@ -1672,7 +1672,7 @@ end;
 function tamavis.AMAVISD_MILTER_STATUS():string;
 var pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_AMAVISD_MILTER');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --amavis-milter >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);

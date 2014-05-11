@@ -4,6 +4,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.squid.inc');
+	include_once('ressources/class.system.network.inc');
 	
 $GLOBALS["POLICY_DEFAULT"]="Company retains the right, at its sole discretion, to refuse new service to any individual, group, or business.
 Company also reserves the right to monitor Internet access to its services by authorized users and clients, as part of the normal course of its business practice. 
@@ -20,16 +21,21 @@ if(!$usersmenus->AsSquidAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
+	if(isset($_GET["status"])){status();exit;}
+	if(isset($_GET["cas"])){cas_auth();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["options"])){options();exit;}
-	if(isset($_POST["EnableSplashScreen"])){SaveConfig();exit;}
+	if(isset($_POST["EnableArticaHotSpot"])){SaveEnable();exit;}
+	if(isset($_POST["ArticaHotSpotPort"])){EnableArticaHotSpot();exit;}
+	if(isset($_POST["EnableArticaHotSpotCAS"])){EnableArticaHotSpotCAS();exit;}
 	if(isset($_GET["terme-of-use"])){echo terme_of_use();exit;}
 	if(isset($_POST["USETERMSTEXT"])){xSaveOptions();exit;}
 	if(isset($_POST["USELDAP"])){xSaveOptions();exit;}
 	if(isset($_GET["add-freeweb-js"])){add_freeweb_js();exit;}
 	if(isset($_GET["radius"])){radius_config();exit;}
 	if(isset($_POST["RAD_SERVER"])){xSaveOptions();exit;}
+	if(isset($_GET["hostspot-status"])){services_status();exit;}
 
 js();
 
@@ -47,8 +53,58 @@ function js(){
 		YahooWin2Hide();
 		YahooWin6Hide();
 	}	
-	YahooWin$YahooWin('700','$page?tabs=yes$YahooWinUri','$title')";
+	YahooWin$YahooWin('950','$page?tabs=yes$YahooWinUri','$title')";
 	echo $html;
+}
+
+function status(){
+	$t=time();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$EnableArticaHotSpot=intval($sock->GET_INFO("EnableArticaHotSpot"));
+	$html="
+	<table style='width:100%'>
+	<tr>
+		<td valign='top'>
+		<div style='width:370px'>
+		<div style='width:98%' class=form id='hostspot-status'></div>
+		</div>
+		</td>
+		<td valign='top' style='padding-left:15px'>		
+			<div style='font-size:40px;margin-bottom:20px'>{captive_portal}</div>
+			<div style='width:98%' class=form>
+			<div id='$t' class=explain style='font-size:14px'>{captive_portal_explain}</div>
+			".Paragraphe_switch_img("{activate_hostpot}","{activate_hostpot_explain}",
+					"EnableArticaHotSpot",$EnableArticaHotSpot,null,"650")."
+				<div style='text-align:right;margin:15px'>". button("{apply}", "Save$t()",28)."</div>
+			</div>
+			</td>
+	</tr>
+	</table>
+	<script>
+	var xsave$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		Loadjs('squid.compile.progress.php');
+		
+	}
+
+
+function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('EnableArticaHotSpot',document.getElementById('EnableArticaHotSpot').value);
+		XHR.sendAndLoad('$page', 'POST',xsave$t);
+	}
+
+LoadAjax('hostspot-status','$page?hostspot-status=yes');	
+</script>						
+						
+						
+";
+echo $tpl->_ENGINE_parse_body($html);	
+	
+	
 }
 
 
@@ -97,31 +153,31 @@ function options(){
 	<tr>
 		<td colspan=3 style='font-size:18px'>{authentication}:<hr></td>
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'>{use_ldap_database}:</td>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{use_ldap_database}:</td>
 		<td>". Field_checkbox("USELDAP", 1,$HotSpotConfig["USELDAP"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'>{use_dedicated_database}:</td>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{use_dedicated_database}:</td>
 		<td>". Field_checkbox("USEMYSQL", 1,$HotSpotConfig["USEMYSQL"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'>{use_active_directory}:</td>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{use_active_directory}:</td>
 		<td>". Field_checkbox("USEAD-$t", 1,$HotSpotConfig["USEAD"])."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'><a href=\"javascript:blur();\" 
+		<td class=legend style='font-size:18px;text-transform:capitalize'><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:YahooWin3('600','$page?radius=yes','{use_radius}');\"
-		style='font-size:16px;text-decoration:underline'>{use_radius}</a>:</td>
+		style='font-size:18px;text-decoration:underline'>{use_radius}</a>:</td>
 		<td>". Field_checkbox("USERAD-$t", 1,$HotSpotConfig["USERAD"])."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'><a href=\"javascript:blur();\" 
+		<td class=legend style='font-size:18px;text-transform:capitalize'><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:YahooWin3('600','$page?terme-of-use=yes','{use_terme_of_use}');\"
-		style='font-size:16px;text-decoration:underline'>{use_terme_of_use}</a>:</td>
+		style='font-size:18px;text-decoration:underline'>{use_terme_of_use}</a>:</td>
 		<td>". Field_checkbox("USETERMS", 1,$HotSpotConfig["USETERMS"])."</td>
 		<td>&nbsp;</td>
 	</tr>
@@ -129,19 +185,19 @@ function options(){
 				
 				
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'>{label}</a>:</td>
-		<td style='font-size:16px'>". Field_text("USETERMSLABEL",$HotSpotConfig["USETERMSLABEL"],
-		"font-size:16px;width:220px")."</td>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{label}</a>:</td>
+		<td style='font-size:18px'>". Field_text("USETERMSLABEL",$HotSpotConfig["USETERMSLABEL"],
+		"font-size:18px;width:220px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'>{verif_auth_each}:</td>
-		<td style='font-size:16px'>". Field_text("CACHE_TIME",$HotSpotConfig["CACHE_TIME"],"font-size:16px;width:90px")."&nbsp;{seconds}</td>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{verif_auth_each}:</td>
+		<td style='font-size:18px'>". Field_text("CACHE_TIME",$HotSpotConfig["CACHE_TIME"],"font-size:18px;width:90px")."&nbsp;{seconds}</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px;text-transform:capitalize'>{re_authenticate_each} ({default}):</td>
-		<td style='font-size:16px'>". Field_array_Hash($Timez,"CACHE_AUTH",$HotSpotConfig["CACHE_AUTH"],null,null,0,"font-size:16px")."</td>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{re_authenticate_each} ({default}):</td>
+		<td style='font-size:18px'>". Field_array_Hash($Timez,"CACHE_AUTH",$HotSpotConfig["CACHE_AUTH"],null,null,0,"font-size:18px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	
@@ -220,61 +276,158 @@ function xSaveOptions(){
 	$sock->getFrameWork("squid.php?build-smooth=yes");
 }
 
+function cas_auth(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$squid=new squidbee();
+	$EnableArticaHotSpotCAS=$sock->GET_INFO("EnableArticaHotSpotCAS");
+	if(!is_numeric($EnableArticaHotSpotCAS)){$EnableArticaHotSpotCAS=0;}
+	$ArticaHotSpotCASHost=$sock->GET_INFO("ArticaHotSpotCASHost");
+	$ArticaHotSpotCASPort=$sock->GET_INFO("ArticaHotSpotCASPort");
+	$ArticaHotSpotCASContext=$sock->GET_INFO("ArticaHotSpotCASContext");
+	if(!is_numeric($ArticaHotSpotCASPort)){$ArticaHotSpotCASPort=443;}
+	if($ArticaHotSpotCASHost==null){$ArticaHotSpotCASHost="yourcasserver.domain.tld";}
+	$t=time();
+	$html="
+	
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
+	<tr>
+	<td colspan=2>". Paragraphe_switch_img("{CAS_AUTH_LABEL}","{cas_HotSpot_text}",
+		"EnableArticaHotSpotCAS",$EnableArticaHotSpotCAS,null,"450")."
+	</td>
+		</tr>
+		
+		<tr>
+			<td class=legend style='font-size:18px'>{hostname}:</td>
+			<td>". Field_text("ArticaHotSpotCASHost",$ArticaHotSpotCASHost,"font-size:18px;width:290px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{listen_port} (SSL):</td>
+			<td>". Field_text("ArticaHotSpotCASPort",$ArticaHotSpotCASPort,"font-size:18px;width:90px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{CAS_CONTEXT}:</td>
+			<td>". Field_text("ArticaHotSpotCASContext",$ArticaHotSpotCASContext,"font-size:18px;width:150px")."</td>
+		</tr>
+		<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveHotSpot$t()","18px")."</td>
+	</tr>
+	</table>
+</div>
+<script>
+	var x_SaveHotSpot$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+	}
+	
+	
+function SaveHotSpot$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('EnableArticaHotSpotCAS',document.getElementById('EnableArticaHotSpotCAS').value);
+	XHR.appendData('ArticaHotSpotCASHost',document.getElementById('ArticaHotSpotCASHost').value);
+	XHR.appendData('ArticaHotSpotCASPort',document.getElementById('ArticaHotSpotCASPort').value);
+	XHR.appendData('ArticaHotSpotCASContext',document.getElementById('ArticaHotSpotCASContext').value);
+	XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot$t);
+}
+
+document.getElementById('ArticaHotSpotCASPort').disabled=true;
+</script>
+";
+echo $tpl->_ENGINE_parse_body($html);
+	
+		
+}
+
+function EnableArticaHotSpotCAS(){
+	$sock=new sockets();
+	
+	$sock->SET_INFO("ArticaHotSpotCASHost", $_POST["ArticaHotSpotCASHost"]);
+	$sock->SET_INFO("ArticaHotSpotCASPort", $_POST["ArticaHotSpotCASPort"]);
+	$sock->SET_INFO("ArticaHotSpotCASContext", $_POST["ArticaHotSpotCASContext"]);
+	
+	$ipCalss=new IP();
+	if(!$ipCalss->isValid($_POST["ArticaHotSpotCASHost"])){
+		$ipaddr=gethostbyname($_POST["ArticaHotSpotCASHost"]);
+		if(!$ipCalss->isValid($ipaddr)){
+			echo "Unable to resolve {$_POST["ArticaHotSpotCASHost"]}\n";
+			return;
+		}
+	}
+	
+	$sock->SET_INFO("EnableArticaHotSpotCAS", $_POST["EnableArticaHotSpotCAS"]);
+	$sock->getFrameWork("hostpot.php?restart-firewall=yes");
+}
+
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$users=new usersMenus();
-	if($users->APP_CHILLI_INSTALLED){
-		$proto="https";
-		if($_SERVER["HTTPS"]<>"on"){
-			$proto="http";
-		}
-		
-		$uri="<a href=\"javascript:blur();\" OnClick=\"javascript:document.location.href='logoff.php?goto=miniadm.logon.php';\"
-		style='text-decoration:underline;font-size:16px'>$proto://{$_SERVER["HTTP_HOST"]}/miniadm.logon.php</a>";
-		$APP_CHILLI_INSTALLED_FTHOWTO=$tpl->_ENGINE_parse_body("{APP_CHILLI_INSTALLED_FTHOWTO}");
-		$APP_CHILLI_INSTALLED_FTHOWTO=str_replace("%S", $uri, $APP_CHILLI_INSTALLED_FTHOWTO);
-		$html="
-		<center style='margin:10px'><img src='img/hotspot-logo.png'></center>		
-		<div class=explain style='font-size:16px'>$APP_CHILLI_INSTALLED_FTHOWTO</div>";
-		echo $tpl->_ENGINE_parse_body($html);
-		return;
-		
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	$array["status"]='{status}';
 	$array["popup"]='{service_parameters}';
-	$array["options"]='{options}';
+	$array["hotspot"]='{networks}';
+	$array["hotspot_whitelist"]='{whitelist}';
+	
+	
+	
+	$array["members"]='{members} MySQL';
+	$array["cas"]='{CAS_AUTH_LABEL}';
+	$array["tweaks"]='{skin}';
+	
+	
+	$array["sessions"]='{sessions}';
+	
+	$array["events"]='{events}';
+	
+	//$array["options"]='{options}';
 	if(isset($_GET["YahooWin"])){$YahooWin=$_GET["YahooWin"];$YahooWinUri="&YahooWin={$_GET["YahooWin"]}";}
 	
 	
 	$fontsize=14;
-	if(count($array)>6){$fontsize=12.5;}
+	if(count($array)>9){$fontsize=12.5;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="members"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"miniadmin.hotspot.php?members=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="sessions"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"miniadmin.hotspot.php?sessions=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
+		if($num=="events"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.events.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="hotspot_whitelist"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.www.whitelist.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+				
+		if($num=="tweaks"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.tweaks.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
+		
+		
+		if($num=="hotspot"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.webauth.hotspots.php\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t$YahooWinUri\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
 	
+	echo build_artica_tabs($html, "squid_hotspot")."<script>LeftDesign('wifi-white-256-opac20.png');</script>";
 	
-	
-	echo "
-	<div id=squid_hotspot style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#squid_hotspot').tabs();
-			});
-		</script>";		
 	
 	
 }
@@ -324,126 +477,228 @@ echo $html;
 
 }
 
-
-
-
 function popup(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$page=CurrentPageName();
 	$users=new usersMenus();
-	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
-	$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
-	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$SplashScreenURI=$sock->GET_INFO("SplashScreenURI");
-	$PdnsHotSpot=$sock->GET_INFO("PdnsHotSpot");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	if(!is_numeric($EnableSplashScreenAsObject)){$EnableSplashScreenAsObject=0;}
-	if(!is_numeric($PdnsHotSpot)){$PdnsHotSpot=0;}	
+	$squid=new squidbee();
+	$EnableArticaHotSpot=$sock->GET_INFO("EnableArticaHotSpot");
+	$SquidHotSpotPort=$sock->GET_INFO("SquidHotSpotPort");
+	$ArticaHotSpotPort=$sock->GET_INFO("ArticaHotSpotPort");
+	$ArticaSSLHotSpotPort=$sock->GET_INFO("ArticaSSLHotSpotPort");
+	$ArticaSplashHotSpotPort=$sock->GET_INFO("ArticaSplashHotSpotPort");
+	$ArticaSplashHotSpotPortSSL=$sock->GET_INFO("ArticaSplashHotSpotPortSSL");
+	$ArticaSplashHotSpotCacheAuth=$sock->GET_INFO("ArticaSplashHotSpotCacheAuth");
+	$ArticaSplashHotSpotCertificate=$sock->GET_INFO("ArticaSplashHotSpotCertificate");
+	$ArticaSplashHotSpotEndTime=$sock->GET_INFO("ArticaSplashHotSpotEndTime");
+	
+	if(!is_numeric($ArticaSplashHotSpotCacheAuth)){$ArticaSplashHotSpotCacheAuth=60;}
+	if(!is_numeric($ArticaSplashHotSpotEndTime)){$ArticaSplashHotSpotEndTime=0;}
+	
+	$ArticaHotSpotInterface=$sock->GET_INFO("ArticaHotSpotInterface");
+	
+	if(!$users->CONNTRACK_INSTALLED){
+		echo FATAL_WARNING_SHOW_128("{conntrackd_not_installed}");
+	}
+	
+	$Timez[60]="1 {hour}";
+	$Timez[120]="2 {hours}";
+	$Timez[180]="3 {hours}";
+	$Timez[360]="6 {hours}";
+	$Timez[720]="12 {hours}";
+	$Timez[1440]="1 {day}";
+	$Timez[2880]="2 {days}";
+	$Timez[10080]="1 {week}";
+	
+	
+	$Timez[0]="{unlimited}";
+	$Timez[30]="30 {minutes}";
+	$Timez[60]="1 {hour}";
+	$Timez[120]="2 {hours}";
+	$Timez[180]="3 {hours}";
+	$Timez[360]="6 {hours}";
+	$Timez[720]="12 {hours}";
+	$Timez[1440]="1 {day}";
+	$Timez[2880]="2 {days}";
+	$Timez[10080]="1 {week}";
+	$Timez[20160]="2 {weeks}";
+	$Timez[40320]="1 {month}";
 	
 	
 	
-	$sql="SELECT servername FROM freeweb WHERE groupware='SPLASHSQUID'";
+	if(!is_numeric($ArticaHotSpotPort)){$ArticaHotSpotPort=0;}
+	if(!is_numeric($ArticaSplashHotSpotPort)){$ArticaSplashHotSpotPort=16080;}
+	if(!is_numeric($ArticaSplashHotSpotPortSSL)){$ArticaSplashHotSpotPortSSL=16443;}
 	
+	
+	$ArticaSplashHotSpotTitle=$sock->GET_INFO("ArticaSplashHotSpotTitle");
+	if($ArticaSplashHotSpotTitle==null){$ArticaSplashHotSpotTitle="Artica HotSpot system";}
+	
+	if($ArticaHotSpotPort==0){
+		$ArticaHotSpotPort=rand(38000, 64000);
+		$sock->SET_INFO("ArticaHotSpotPort", $ArticaHotSpotPort);
+	}
+	
+	if($ArticaSSLHotSpotPort==0){
+		$ArticaSSLHotSpotPort=rand(38500, 64000);
+		$sock->SET_INFO("ArticaSSLHotSpotPort", $ArticaSSLHotSpotPort);
+	}
+	
+	$tcp=new networking();
+	$interfaces=$tcp->Local_interfaces();
+	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
 	$q=new mysql();
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	$hash[null]="{select}";
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$servername=$ligne["servername"];
-		$hash[$servername]=$servername;
-	
-	}	
-	
-	
-	$PDNSHotSpot=Paragraphe_switch_img("{force_dns_redirection}","{PDNSHotSpot_explain}",
-		"PdnsHotSpot",$PdnsHotSpot,null,"450");
-	
-	if(!$users->POWER_DNS_INSTALLED){
-		$PDNSHotSpot=Paragraphe_switch_disable("{force_dns_redirection}", "{PDNSHotSpot_explain}");
+	$sslcertificates[null]="{select}";
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
 	}
 	
 	
 	$t=time();
 	$html="
 	
-	<div id='$t-animate'></div>
-	<div id='$t' class=explain style='font-size:14px'>{HotSpot_text}</div>
 	
-	<table style='width:99%' class=form>
+	<div id='$t' class=explain style='font-size:14px'>{HotSpot_text}</div>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-		<td colspan=2>". Paragraphe_switch_img("{activate_hostpot}","{activate_hostpot_explain}",
-		"EnableSplashScreen",$EnableSplashScreen,null,"450")."
+		<td colspan=2>
+		<center><img src='img/hotspot-howto.png' align=center></center>
 		</td>
+	</tr>
+	<tr>
+		<td  style='font-size:22px' colspan>{webserver}:</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:18px'>{interface}:</td>
+		<td>". Field_array_Hash($interfaces,"ArticaHotSpotInterface", $ArticaHotSpotInterface,"style:font-size:18px")."</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:18px'>{listen_port} (Proxy):</td>
+		<td>". Field_text("ArticaHotSpotPort",$ArticaHotSpotPort,"font-size:18px;width:90px")."</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:18px'>{listen_port} (SSL):</td>
+		<td>". Field_text("ArticaSSLHotSpotPort",$ArticaSSLHotSpotPort,"font-size:18px;width:90px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{listen_port} (splash):</td>
+		<td>". Field_text("ArticaSplashHotSpotPort",$ArticaSplashHotSpotPort,"font-size:18px;width:90px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{listen_port} (splash/SSL):</td>
+		<td>". Field_text("ArticaSplashHotSpotPortSSL",$ArticaSplashHotSpotPortSSL,"font-size:18px;width:90px")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{re_authenticate_each} ({default}):</td>
+		<td style='font-size:18px'>". Field_array_Hash($Timez,"ArticaSplashHotSpotCacheAuth",$ArticaSplashHotSpotCacheAuth,null,null,0,"font-size:18px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px;text-transform:capitalize'>{endtime} ({default}):</td>
+		<td style='font-size:18px'>". Field_array_Hash($Timez,"ArticaSplashHotSpotEndTime",$ArticaSplashHotSpotEndTime,null,null,0,"font-size:18px")."</td>
 	</tr>
 				
 	<tr>
-		<td colspan=2>$PDNSHotSpot</td>
-	</tr>				
-				
+		<td  style='font-size:22px' colspan>{web_page}:</td>
+	</tr>
 	<tr>
-		<td colspan=2>". Paragraphe_switch_img("{EnableSplashScreenAsObject}","{EnableSplashScreenAsObject_explain}",
-		"EnableSplashScreenAsObject",$EnableSplashScreenAsObject,null,"450")."
-		
-		<div style='width:100%;text-align:right'>
-			<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:s_PopUp('http://proxy-appliance.org/index.php?cID=297',1024,900);\"
-			style='font-size:18px;text-decoration:underline'>{online_help}</a>
-		</div>		
-		</td>
-	</tr>				
+		<td class=legend style='font-size:18px'>{title2}:</td>
+		<td>". Field_text("ArticaSplashHotSpotTitle",$ArticaSplashHotSpotTitle,"font-size:18px;width:190px")."</td>
+	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px' valign='top'>{redirect_to}:</td>
-		<td>". Field_array_Hash($hash, "SplashScreenURI",$SplashScreenURI,null,null,0,"font-size:16px")."
-		
-		
-		<div style='text-align:right'>
-		<table style='width:100%'>
-			<tr>
-			<td width=1%><img src='img/plus-24.png'></td>
-			<td width=100%>
-		<a href=\"javascript:blur();\" 
-							OnClick=\"javascript:Loadjs('$page?add-freeweb-js=yes&t=$t');\"
-					 		style=\"font-size:14px;text-decoration:underline;font-weight:bold\">{add_a_web_service}</a>
-			</td>
-			</tr>
-			</table>
-					 		
-		</div>
-		</td>
+		<td class=legend nowrap style='font-size:18px;'>{certificate}:</td>
+		<td >". Field_array_Hash($sslcertificates, "ArticaSplashHotSpotCertificate",$ArticaSplashHotSpotCertificate,null,null,0,"font-size:18px")."</td>
+	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveHotSpot()","16px")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveHotSpot()","18px")."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	var x_SaveHotSpot= function (obj) {
 		var results=obj.responseText;
 		if(results.length>3){alert(results);}
-		document.getElementById('$t-animate').innerHTML='';
-		Loadjs('squid.compile.progress.php');
 		
 	}
 
 
 function SaveHotSpot(){
-		var lock=$EnableRemoteStatisticsAppliance;
-		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
 		var XHR = new XHRConnection();
-		XHR.appendData('EnableSplashScreen',document.getElementById('EnableSplashScreen').value);
-		XHR.appendData('SplashScreenURI',document.getElementById('SplashScreenURI').value);
-		XHR.appendData('EnableSplashScreenAsObject',document.getElementById('EnableSplashScreenAsObject').value);				
+		XHR.appendData('ArticaHotSpotPort',document.getElementById('ArticaHotSpotPort').value);
+		XHR.appendData('ArticaSSLHotSpotPort',document.getElementById('ArticaSSLHotSpotPort').value);
+		XHR.appendData('ArticaSplashHotSpotPort',document.getElementById('ArticaSplashHotSpotPort').value);
+		XHR.appendData('ArticaSplashHotSpotPortSSL',document.getElementById('ArticaSplashHotSpotPortSSL').value);
+		XHR.appendData('ArticaHotSpotInterface',document.getElementById('ArticaHotSpotInterface').value);
+		XHR.appendData('ArticaSplashHotSpotCertificate',document.getElementById('ArticaSplashHotSpotCertificate').value);
+		XHR.appendData('ArticaSplashHotSpotEndTime',document.getElementById('ArticaSplashHotSpotEndTime').value);
 		
-		if(document.getElementById('PdnsHotSpot')){
-			XHR.appendData('PdnsHotSpot',document.getElementById('PdnsHotSpot').value);
-		}
-		
-		AnimateDiv('$t-animate');
+		var ArticaSplashHotSpotTitle=encodeURIComponent(document.getElementById('ArticaSplashHotSpotTitle').value);
+		XHR.appendData('ArticaSplashHotSpotTitle',document.getElementById('ArticaSplashHotSpotTitle').value);
 		XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot);
 	}		
 	</script>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+}
+
+function SaveEnable(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableArticaHotSpot", $_POST["EnableArticaHotSpot"]);
+	$sock->getFrameWork("hotspot.php?restart-firewall=yes");
+	$sock->getFrameWork("hotspot.php?restart-web=yes");
+	if($_POST["EnableArticaHotSpot"]==0){
+		$sock->getFrameWork("hotspot.php?stop-firewall=yes");
+		$sock->getFrameWork("hotspot.php?stop-web=yes");
+	}
+	
+}
+
+
+function EnableArticaHotSpot(){
+	$sock=new sockets();
+	
+	
+	if( ($_POST["ArticaHotSpotPort"]==443) OR ($_POST["ArticaHotSpotPort"]==80) ){		
+		echo "Cannot use 80/443 port\n";
+		return;
+	}
+	
+	if( ($_POST["ArticaSSLHotSpotPort"]==443) OR ($_POST["ArticaSSLHotSpotPort"]==80) ){
+		echo "Cannot use 80/443 port\n";
+		return;
+	}
+
+	if( ($_POST["ArticaSplashHotSpotPortSSL"]==443) OR ($_POST["ArticaSplashHotSpotPortSSL"]==80) ){
+		echo "Cannot use 80/443 port\n";
+		return;
+	}	
+	
+	if( ($_POST["ArticaSplashHotSpotPort"]==443) OR ($_POST["ArticaSplashHotSpotPort"]==80) ){
+		echo "Cannot use 80/443 port\n";
+		return;
+	}	
+	
+	
+	$sock->SET_INFO("ArticaHotSpotPort", $_POST["ArticaHotSpotPort"]);
+	$sock->SET_INFO("ArticaSSLHotSpotPort", $_POST["ArticaSSLHotSpotPort"]);
+	$sock->SET_INFO("ArticaHotSpotInterface", $_POST["ArticaHotSpotInterface"]);
+	$sock->SET_INFO("ArticaSplashHotSpotPort", $_POST["ArticaSplashHotSpotPort"]);
+	$sock->SET_INFO("ArticaSplashHotSpotPortSSL", $_POST["ArticaSplashHotSpotPortSSL"]);
+	$sock->SET_INFO("ArticaSplashHotSpotTitle", $_POST["ArticaSplashHotSpotTitle"]);
+	$sock->SET_INFO("ArticaSplashHotSpotCertificate", $_POST["ArticaSplashHotSpotCertificate"]);
+	$sock->SET_INFO("ArticaSplashHotSpotEndTime", $_POST["ArticaSplashHotSpotEndTime"]);
+	
+	
+	
+	
+	$sock->getFrameWork("hostpot.php?restart-firewall=yes");
+	$sock->getFrameWork("hostpot.php?restart-web=yes");
+	
 	
 	
 }
@@ -464,7 +719,7 @@ $html="
 <div id='$t-animate'></div>
 <textarea 
 	style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:450px;
-	border:5px solid #8E8E8E;overflow:auto;font-size:16px' 
+	border:5px solid #8E8E8E;overflow:auto;font-size:18px' 
 	id='$t'>$USETERMSTEXT</textarea>
 	<center style='margin:20px'>
 	". button("{apply}", "SaveTermsOfUse$t()","18px")."
@@ -487,6 +742,7 @@ function SaveTermsOfUse$t(){
 		XHR.sendAndLoad('$page', 'POST',x_SaveHotSpot$t);
 	}
 </script>	
+
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 }
@@ -526,16 +782,16 @@ function radius_config(){
 	<div id='$tt'></div>
 	<table style='width:99%' class=form>
 	<tr>
-	<td class=legend style='font-size:16px'>{radius_server}:</td>
-	<td>". Field_text("RAD_SERVER-$tt",$array["RAD_SERVER"],"font-size:16px;padding:3px;width:190px")."</td>
+	<td class=legend style='font-size:18px'>{radius_server}:</td>
+	<td>". Field_text("RAD_SERVER-$tt",$array["RAD_SERVER"],"font-size:18px;padding:3px;width:190px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{listen_port}:</td>
-		<td>". Field_text("RAD_PORT-$tt",$array["RAD_PORT"],"font-size:16px;padding:3px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{listen_port}:</td>
+		<td>". Field_text("RAD_PORT-$tt",$array["RAD_PORT"],"font-size:18px;padding:3px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td>". Field_password("RAD_PASSWORD-$tt",$array["RAD_PASSWORD"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{password}:</td>
+		<td>". Field_password("RAD_PASSWORD-$tt",$array["RAD_PASSWORD"],"font-size:18px;padding:3px;width:190px")."</td>
 	</tr>
 	<tr>
 		<td colspan=2 align='right'><hr>". button("{apply}","Save$tt()","18px")."</td>
@@ -560,6 +816,20 @@ function radius_config(){
 	</script>";
 	
 		echo $tpl->_ENGINE_parse_body($html);
+}
+
+function services_status(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ini=new Bs_IniHandler();
+	$data=base64_decode($sock->getFrameWork("hotspot.php?services-status=yes"));
+	$ini->loadString($data);
+	$f[]=DAEMON_STATUS_ROUND("HOTSPOT_WWW", $ini);
+	$f[]=DAEMON_STATUS_ROUND("HOTSPOT_FW", $ini);
+	$f[]="<div style='text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('hostspot-status','$page?hostspot-status=yes');")."</div>";
+	echo $tpl->_ENGINE_parse_body(@implode("<p>&nbsp;</p>", $f));
 	
-	
-	}
+}
+
+

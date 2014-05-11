@@ -138,7 +138,7 @@ $tpl=new templates();
 	</script>
 	";
 	
-	$html="<div style='width:95%' class=form>$freeweb<hr>$Roundcube</div>$form";
+	$html="<div style='width:98%' class=form>$freeweb<hr>$Roundcube</div>$form";
 	
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -509,12 +509,12 @@ function main_mysql(){
 	<table style='width:100%'>
 	<tr>
 	<td style='vertical-align:top'>
-			<div style='width:95%' class=form id='$t'></div>
+			<div style='width:98%' class=form id='$t'></div>
 			<div style='text-align:right'>". imgtootltip("refresh-32.png",null,"LoadAjax('$t','$page?mysql-status=yes');")."</div>
 	</td>
 	<td style='vertical-align:top'>
 
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			<table style='width:100%'>
 			<tr>
 				<td valign='top' nowrap align='right' class=legend style='font-size:14px' style='font-size:14px'>{RoundCubePath}:</strong></td>

@@ -159,6 +159,7 @@ class user{
 			if(!isset($trace[1]["class"])){$trace[1]["class"]=null;}
 			if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["class"]}/{$trace[1]["function"]}() line {$trace[1]["line"]}";}
 		}
+		
 		if($GLOBALS["VERBOSE"]){echo "Loading $uid, $dn $called<br>\n";}
 		if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 		$users=new usersMenus();
@@ -995,8 +996,9 @@ class user{
 	
 	}
 	
-	function SaveZarafaMbxLang($lang){
-		$this->UserArticaClass();
+	function SaveZarafaMbxLang($lang=null){
+		if($lang<>null){$this->zarafaMbxLang=$lang;}
+		$this->UserArticaClass($lang);
 	}
 	
 	
@@ -1642,11 +1644,12 @@ class user{
 		
 		if($OnlyCheckAD==0){
 		if(!$nogetent){
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>nogetent=FALSE,OnlyCheckAD=0</strong><br>\n";}
 			include_once(dirname(__FILE__)."/class.mysql.inc");
 			$q=new mysql();
 			if($OnlyGroups==0){
-				
 					$sql="SELECT uid FROM getent_users WHERE uid LIKE '$usersqsql' ORDER BY uid LIMIT 0,$MaxItems_sql";
+					if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$sql</strong><br>\n";}
 					$results=$q->QUERY_SQL($sql,"artica_backup");	
 					while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 						$uid=trim($ligne["uid"]);
@@ -1658,6 +1661,7 @@ class user{
 			
 			if($OnlyUsers==0){	
 				$sql="SELECT `group`,`gpid` FROM getent_groups WHERE `group` LIKE '$usersqsql' ORDER BY `group` LIMIT 0,$MaxItems_sql";
+				if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>$sql</strong><br>\n";}
 				$results=$q->QUERY_SQL($sql,"artica_backup");	
 				while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 					$uid=trim($ligne["group"]);
@@ -1677,6 +1681,7 @@ class user{
 			if($OnlyCheckAD==0){
 				$sr =@ldap_search($ldap->ldap_connection,$suffix,"(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users)))",
 				array("displayname","uid"),null,$MaxItems);
+				if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>ldap_search(...,$suffix,(&(objectClass=userAccount)(|(uid=$users)(cn=$users)(displayName=$users))))</strong><br>\n";}
 				if($sr){
 						$result = ldap_get_entries($ldap->ldap_connection, $sr);
 						for($i=0;$i<$result["count"];$i++){
@@ -2608,7 +2613,7 @@ function FTPSettingsEdit(){
 	}
 	
 	private function organizationalPerson(){
-
+		$upd=array();
 		$ldap=new clladp();
 		//destinationIndicator,facsimileTelephoneNumber,internationaliSDNNumber,l,ou,
 		//physicalDeliveryOfficeName,postOfficeBox,postalAddress,postalCode,preferredDeliveryMethod,
@@ -2815,7 +2820,17 @@ function FTPSettingsEdit(){
 		if(strlen($this->jpegPhoto_datas)>0){$upd["jpegPhoto"][0]=$this->jpegPhoto_datas;}
 		if($this->DisplayName<>null){$upd["displayName"][0]=$this->DisplayName;}
 		if($this->mobile<>null){$upd["mobile"][0]=$this->mobile;}
-		if($this->mail<>null){$upd["mail"][0]=$this->mail;}
+		if($this->mail<>null){
+			$uidmail=null;$domain=null;
+			if(!preg_match("#(.+?)@(.+)#", $this->mail)){
+				if(preg_match("#@(.+)#", $this->mail,$re)){$domain=$re[1];}
+				if(preg_match("#(.+)@#", $this->mail,$re)){$uidmail=$re[1];}
+				if($uidmail==null){$uidmail=$this->uid;}
+				if($domain==null){$domain="localhost.localdomain";}
+				$this->mail="$uidmail@$domain";
+			}
+			$upd["mail"][0]=$this->mail;
+		}
 		
 		$res=$ldap->Ldap_modify($this->dn,$upd);
 		if(!$res){writelogs("Warning $ldap->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
@@ -2834,8 +2849,7 @@ function FTPSettingsEdit(){
 			
 		}
 				
-		$res=$ldap->Ldap_modify($this->dn,$upd);
-		if(!$res){writelogs("Warning $ldap->ldap_last_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
+		
 		
 	}
 	
@@ -2928,7 +2942,7 @@ function FTPSettingsEdit(){
 			if($this->ou==null){
 				if(preg_match('#ou=(.+?),#',$group->dn,$res)){$this->ou=$res[1];}
 			}
-			writelogs("*** $this->uid in organization $this->ou ***",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			writelogs("*** $this->uid in organization $this->ou / $this->group_id***",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			
 			
 			if(trim($this->ou)==null){
@@ -3214,6 +3228,11 @@ function FTPSettingsEdit(){
 	}
 	
 	private function CreateHome(){
+		if($GLOBALS["AS_ROOT"]){
+			@mkdir($this->homeDirectory,0755,true);
+			@chown($this->homeDirectory,$this->uid);
+			return;
+		}
 		$sock=new sockets();
 		$sock->getFrameWork("services.php?makedir=".urlencode(base64_encode($this->homeDirectory)));
 		
@@ -3554,59 +3573,85 @@ function UsersInterfaceDatasDelete(){
 
 	
 	Function UpdatePlugins(){
-		$users=new usersMenus();
-		writelogs("Check OBM",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		include_once(dirname(__FILE__).'/class.obm.inc');
-		$obm=new obm_export_single($this->uid);
-		$obm->Export();	
+		if(!isset($GLOBALS["CLASS_USERSMENUS"])){$GLOBALS["CLASS_USERSMENUS"]=new usersMenus();}
+		$sock=new sockets();
+		
+		
+		if( ( $GLOBALS["CLASS_USERSMENUS"]->OBM2_INSTALLED) OR ( $GLOBALS["CLASS_USERSMENUS"]->OBM2_INSTALLED ) ){
+			writelogs("Check OBM",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			include_once(dirname(__FILE__).'/class.obm.inc');
+			$obm=new obm_export_single($this->uid);
+			$obm->Export();	
+		}
 		$q=new mysql();
 		
-		writelogs("Check DotClear",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
-		$this->DotClear();
+		if($GLOBALS["CLASS_USERSMENUS"]->DOTCLEAR_INSTALLED){
+			writelogs("Check DotClear",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
+			$this->DotClear();
+		}
 		
 		writelogs("Check Samba",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if($this->AsAnSambaAccount==1){$this->Samba_edit_user();}
 		
-		include_once(dirname(__FILE__).'/class.main_cf.inc');
-		$main=new main_cf();
-		$main->check_sender_access();
-		$this->AutoAliases();
-		writelogs("Check SaveSaslDB2",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$this->SaveSaslDB2();
-		writelogs("Check SieveScripts",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$this->SieveScripts();
-		writelogs("Check opengoo",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$this->opengoo();
-		$this->GroupOffice();
-		writelogs("Check obm",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$this->obm();
-		writelogs("Check joomla",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		$this->joomla();
-		$sock=new sockets();
 		
-		if($users->ZARAFA_INSTALLED){
+		if($GLOBALS["CLASS_USERSMENUS"]->POSTFIX_INSTALLED){
+			include_once(dirname(__FILE__).'/class.main_cf.inc');
+			$main=new main_cf();
+			$main->check_sender_access();
+			$this->AutoAliases();
+			writelogs("Check SaveSaslDB2",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->SaveSaslDB2();
+			writelogs("Check SieveScripts",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			if($GLOBALS["CLASS_USERSMENUS"]->cyrus_imapd_installed){ $this->SieveScripts(); }
+		}
+		
+		if($GLOBALS["CLASS_USERSMENUS"]->OPENGOO_INSTALLED){
+			writelogs("Check opengoo",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->opengoo();
+		}
+		
+		if($GLOBALS["CLASS_USERSMENUS"]->GROUPOFFICE_INSTALLED){
+			$this->GroupOffice();
+		}
+		
+		$this->obm();
+		if( ( $GLOBALS["CLASS_USERSMENUS"]->JOOMLA_INSTALLED ) OR ($GLOBALS["CLASS_USERSMENUS"]->JOOMLA17_INSTALLED) ){
+			writelogs("Check joomla",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->joomla();
+		}
+		
+		
+		
+		
+		if($GLOBALS["CLASS_USERSMENUS"]->ZARAFA_INSTALLED){
 			writelogs("Save Zarafa informations....",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->zarafaSaveInfos();
 		}
 		
-		
-		$sock->getFrameWork("system.php?uidNumber=yes");
-		
-		if(!$GLOBALS["NO_COMPILE_POSTFIX"]){
+		if(!isset($GLOBALS["CHECK_UID_NUMBER"])){
+			$sock->getFrameWork("system.php?uidNumber=yes");
 			$sock->getFrameWork("cmd.php?rsync-reconfigure=yes");
 			$sock->getFrameWork("cmd.php?roundcube-sync=yes&ou=$this->ou");
-			$sock->getFrameWork("cmd.php?postfix-hash-aliases=yes");
-			$sock->getFrameWork("cmd.php?cluebringer-passwords=yes");
 			$sock->getFrameWork("cmd.php?sarg-passwords=yes");
 			$sock->getFrameWork("cmd.php?pure-ftpd-users=yes");
+			$GLOBALS["CHECK_UID_NUMBER"]=true;
+		}
 		
-		
-		if($users->ARTICA_META_ENABLED){
+		if(!isset($GLOBALS["NO_COMPILE_POSTFIX"])){$GLOBALS["NO_COMPILE_POSTFIX"]=false;}
+		if(!$GLOBALS["NO_COMPILE_POSTFIX"]){
+			if($GLOBALS["CLASS_USERSMENUS"]->POSTFIX_INSTALLED){
+				$sock->getFrameWork("cmd.php?postfix-hash-aliases=yes");
+				$sock->getFrameWork("cmd.php?cluebringer-passwords=yes");
+			}
+			
+		}
+			
+		if($GLOBALS["CLASS_USERSMENUS"]->ARTICA_META_ENABLED){
 			$sock->getFrameWork("cmd.php?artica-meta-user=$this->uid");
 			$sock->getFrameWork("cmd.php?artica-meta-ovpn=yes&uid=$this->uid");
 		}
 		
-		if($users->MAILMAN_INSTALLED){
+		if($GLOBALS["CLASS_USERSMENUS"]->MAILMAN_INSTALLED){
 			$sql="SELECT COUNT(`list`) as tcount FROM mailmaninfos WHERE `adminmail`='$this->mail'";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 			if($ligne["tcount"]>0){
@@ -3615,25 +3660,28 @@ function UsersInterfaceDatasDelete(){
 		}
 		
 		
-		if(posix_getuid()<>0){
-				$sock->getFrameWork("cmd.php?home-single-user=". base64_encode($this->uid));
-		
-			}
+		if(!$GLOBALS["AS_ROOT"]){
+			$sock->getFrameWork("cmd.php?home-single-user=". base64_encode($this->uid));
 		}
+		
 		
 		
 	}
 	
 	
 	function CreateMailbox(){
-		$users=new usersMenus();
-		if($users->cyrus_imapd_installed){
+		
+		if(!isset($GLOBALS["CLASS_USERSMENUS"])){$GLOBALS["CLASS_USERSMENUS"]=new usersMenus();}
+		
+		
+		
+		if($GLOBALS["CLASS_USERSMENUS"]->cyrus_imapd_installed){
 			include_once(dirname(__FILE__)."/class.cyrus.inc");
 			$cyr=new cyrus();
 			$cyr->CreateMailbox($this->uid);
 		}
 		
-		if($users->ZARAFA_INSTALLED){
+		if($GLOBALS["CLASS_USERSMENUS"]->ZARAFA_INSTALLED){
 			
 			$sock=new sockets();
 			$EnableZarafaMulti=$sock->GET_INFO("EnableZarafaMulti");

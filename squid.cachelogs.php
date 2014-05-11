@@ -29,9 +29,8 @@ function page(){
 	
 	$t=time();
 	$html="
-	<div style='margin:-10px;margin-left:-15px'>
+	
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
 	
 <script>
 function flexRTStart$t(){
@@ -53,7 +52,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 942,
+	width: '99%',
 	height: 420,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -119,7 +118,9 @@ $sock=new sockets();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	
+	if(count($datas)==0){
+		json_error_show("no data",1);
+	}
 	while (list ($key, $line) = each ($datas) ){
 		
 		$date="&nbsp;";

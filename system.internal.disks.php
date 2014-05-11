@@ -9,6 +9,8 @@
 	if(!$user->AsSystemAdministrator){echo "alert('no privileges');";die();}
 	
 	
+	if(isset($_GET["unlink-disk-js"])){unlink_disk_js();exit;}
+	if(isset($_POST["unlink-disk"])){unlink_disk();exit;}
 	if(isset($_GET["partinfos-js"])){js();exit;}
 	if(isset($_GET["display2"])){hd_index();exit;}
 	if(isset($_GET["display"])){tabs();exit;}
@@ -47,10 +49,7 @@ function tabs(){
 	$tpl=new templates();
 	$array["display2"]='{disks}';
 	
-	if($users->BTRFS_INSTALLED){
-		$array["BTRFS"]='BtrFS';
-		
-	}
+	
 	
 	if($users->LVM_INSTALLED){
 		$array["LVM"]='LVM';
@@ -127,28 +126,55 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_internal_disks style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_internal_disks\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_internal_disks");
+		
 		
 	
 }
 
+function unlink_disk_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$macro_remove_disk_explain=$tpl->javascript_parse_text("{macro_remove_disk_explain}");
+	$dev=$_GET["unlink-disk-js"];
+	$t=time();
+	$thml="
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);}
+	UnlockPage();
+	RefreshTab('partinfosdiv');
+}
+
+
+function Save$t(){
+	if(!confirm('$dev\\n$macro_remove_disk_explain')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('unlink-disk','{$_GET["dev"]}');
+	LockPage();
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+Save$t();";
+	echo $thml;
+}
+function unlink_disk(){
+	$dev=$_POST["unlink-disk"];
+	$sock=new sockets();
+	$dev=urlencode($dev);
+	$sock->getFrameWork("hd.php?unlink-disk=$dev");
+}
+
 
 function js(){
-	
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body('{internal_hard_drives}');
 	$APP_SMARTMONTOOLS=html_entity_decode($tpl->_ENGINE_parse_body('{APP_SMARTMONTOOLS}'));
 	$change_label_text=html_entity_decode($tpl->_ENGINE_parse_body('{change_label_text}'));
+	
 	$macro_build_bigpart_warning=$tpl->javascript_parse_text('{macro_build_bigpart_warning}');
-	$macro_build_bigpart_text=$tpl->javascript_parse_text('{macro_build_bigpart_text}');
 	$vgcreate_dev_text=$tpl->javascript_parse_text('{vgcreate_dev_text}');
 	$ADD_VG=$tpl->_ENGINE_parse_body('{ADD_VG}');
 	$unlink_hard_drive_confirm=$tpl->javascript_parse_text('{unlink_hard_drive_confirm}');
@@ -161,6 +187,8 @@ function js(){
 	if(isset($_GET["partinfos-js"])){
 		$start="PartInfos('{$_GET["partinfos-js"]}')";
 	}
+	
+	if(isset($_GET["no-start"])){$start=null;}
 	
 	
 	$html="
@@ -235,21 +263,7 @@ function js(){
 		}
 		
 		function BuildBigPartition(dev){
-			if(confirm(dev+'\\n$macro_build_bigpart_warning')){
-				var label=prompt('$macro_build_bigpart_text');
-				if(label.length>0){
-					
-					var XHR = new XHRConnection();
-					XHR.appendData('BuildBigPartition',dev);
-					XHR.appendData('label',label);
-					AnimateDiv('partitions');
-					AnimateDiv('HardDrivesTasksSection');
-					XHR.sendAndLoad('$page', 'GET',x_LastLogsFormat);
-				
-				}
-				
-			}
-		
+			Loadjs('system.internal.disks.BuildBigPartition.php?dev='+encodeURIComponent(dev));
 		}
 		
 	var x_pvcreate_dev= function (obj) {
@@ -553,7 +567,7 @@ function hd_index(){
 	$p=CurrentPageName();
 	$iscsi=imgtootltip("net-disk-add-32.png","{add_iscsi_disk}","Loadjs('system.iscsi.client.php?add=yes')");
 	$rescan=imgtootltip("disk-infos-scan-32.png","{rescan-disk-system}","Loadjs('system.rescanhds.php');");
-	
+	$page=CurrentPageName();
 	
 	$users=new usersMenus();
 	if(!$users->ISCSI_CLIENT_INSTALLED){$iscsi="&nbsp;";}
@@ -571,6 +585,7 @@ function hd_index(){
 	
 	<script>
 		LoadAjax('hd-display','$p?hd-index-list=yes');
+		Loadjs('$page?no-start=yes');
 	</script>
 	";
 	
@@ -614,18 +629,8 @@ function hd_partinfos(){
 			
 		}
 	
-	
-	echo $tpl->_parse_body("
-	<div id=partinfosdiv style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#partinfosdiv').tabs();
-			
-			
-			});
-		</script>");		
+	echo build_artica_tabs($html, "partinfosdiv");
+		
 	
 	
 }
@@ -691,7 +696,7 @@ function hd_tasks(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	$sock=new sockets();
-	
+	$page=CurrentPageName();
 	
 	if(!is_file('ressources/usb.scan.inc')){$sock->getFrameWork("cmd.php?usb-scan-write=yes");}	
 	
@@ -701,20 +706,33 @@ function hd_tasks(){
 		return $tpl->_ENGINE_parse_body("<center><H2>{UNABLE_TO_OBTAIN_INFORMATIONS_FROM}:$dev</H2></center>");
 	}
 	
-	
+	$dev_enc=urlencode($dev);
 	$array=$_GLOBAL["disks_list"];
-	$mounted=$array["PARTITIONS"]["{$dev}1"]["MOUNTED"];
+	$mounted=$array["{$dev}"]["PARTITIONS"]["{$dev}1"]["MOUNTED"];
 	
+	//print_r($array);
 	
-	$BuildBigParts=Paragraphe("hd-toolbar-add-64.png","{macro_build_bigpart}","{macro_build_bigpart_explain}","javascript:BuildBigPartition('$dev')");
+	$remove_disk=null;
+	
+	$BuildBigParts=Paragraphe("hd-toolbar-add-64.png","{macro_build_bigpart}",
+			"{macro_build_bigpart_explain}","javascript:BuildBigPartition('$dev')");
 	$lvm_master_disabled=Paragraphe("hd-toolbar-lvm-add-64-grey.png","{macro_build_lvm}","{macro_build_lvm_explain}");
 	$buildPartition_disabled=Paragraphe("hd-toolbar-add-64-grey.png","{macro_build_bigpart}","{macro_build_bigpart_explain}");
+	
+	if($mounted<>null){
+		if($mounted<>"/"){
+			$remove_disk=Paragraphe("disk-64-delete.png","{macro_remove_disk}","{macro_remove_disk_explain}",
+					"javascript:Loadjs('$page?unlink-disk-js=$dev_enc',true)"
+				
+			);
+		}
+	}
 	
 	
 	$intro[]="<table style='width:99%' class=form>";
 	while (list ($xdevPart, $ligne) = each ($_GLOBAL["disks_list"][$dev]["PARTITIONS"]) ){
 		$blkidArray=unserialize(base64_decode($sock->getFrameWork("services.php?blkid=$xdevPart")));
-		$icon=imgtootltip("mailbox_hd.gif","Loadjs('system.internal.partition.php?dev=$xdevPart')","$xdevPart");
+		$icon=imgtootltip("mailbox_hd.png","Loadjs('system.internal.partition.php?dev=$xdevPart')","$xdevPart");
 		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('system.internal.partition.php?dev=$xdevPart')\"
 		style='font-size:13px;font-weight:bold;text-decoration:underline'>";
 		$intro[]="<tr>
@@ -758,31 +776,19 @@ function hd_tasks(){
 	$tpl=new templates();
 	
 		$tr[]=$BuildBigParts;
+		$tr[]=$remove_disk;
 		$tr[]=$lvm_master;
+		
 
 	
-$tables[]="<table style='width:99%;margin-top:15px' class=form><tr>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==3){$t=0;$tables[]="</tr><tr>";}
-		}
-
-if($t<3){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
-}	
+$tables=CompileTr3($tr);
 	
 	
 $html="
 $introImpl
 <div id='HardDrivesTasksSection'></div>
 <center>
-<div style='width:700px'>". implode("\n",$tables)."</div>
+<div style='width:700px'>$tables</div>
 </center>";
 
 	$tpl=new templates();
@@ -1189,7 +1195,7 @@ function partitions_scan($array){
 					</tr>
 					<tr><td colspan=2>&nbsp;</td></tr>
 					<tr>
-					<td width=1%><img src='img/mailbox_hd.gif'></td>
+					<td width=1%><img src='img/mailbox_hd.png'></td>
 					<td ". CellRollOver("vg_refresh_list('{$lvm_dev["$dev_path"]["GROUP"]}')")." style='font-size:13px'>{vgmanage}:{$lvm_dev["$dev_path"]["GROUP"]}</td>
 					</tr>
 					<tr>
@@ -1486,6 +1492,7 @@ function Lastlogs(){
 		function time$t(){
 			var XHR = new XHRConnection();
 			XHR.appendData('RedLogs','$dev');
+			XHR.setLockOff();
 			XHR.appendData('t','$t');
 			XHR.sendAndLoad('$page', 'POST',x_time$t);			
 		

@@ -35,11 +35,11 @@ function reload(){
 	
 function build_backends($crossroads_id){
 	$sql="SELECT * FROM crossroads_backend WHERE enabled=1 and `crossroads_id`='$crossroads_id'";
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Crossroads instance {$crossroads_id} [DEBUG] -> $sql\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Crossroads instance {$crossroads_id} [DEBUG] -> $sql\n";}
 	$q=new mysql();
 	$cd=array();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "Starting......: Crossroads $q->mysql_error\n";return array();}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." Crossroads $q->mysql_error\n";return array();}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$comp=new computers($ligne["uid"]);
 		$cd[]="--backend $comp->ComputerIP:{$ligne["listen_port"]}:{$ligne["max_connections"]}:{$ligne["backend_weight"]}";
@@ -55,7 +55,7 @@ function build(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	$unix=new unix();
@@ -64,8 +64,8 @@ function build(){
 	$q=new mysql();
 	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	echo "Starting......: Crossroads ". mysql_num_rows($results)." instance(s)\n";
-	if(!$q->ok){echo "Starting......: Crossroads $q->mysql_error\n";return;}
+	echo "Starting......: ".date("H:i:s")." Crossroads ". mysql_num_rows($results)." instance(s)\n";
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." Crossroads $q->mysql_error\n";return;}
 	if(!is_dir("/var/run/crossroads")){@mkdir("/var/run/crossroads",0755,true);}
 	if(!is_dir("/var/log/crossroads")){@mkdir("/var/log/crossroads",0755,true);}
 	if(!is_dir("/etc/artica-postfix/crossroads")){@mkdir("/etc/artica-postfix/crossroads",0755,true);}
@@ -105,15 +105,15 @@ function instance_build($crossroads_id){
 	if(is_file("/etc/artica-postfix/crossroads/$crossroads_id.cmd")){@unlink("/etc/artica-postfix/crossroads/$crossroads_id.cmd");}
 	$sql="SELECT * FROM crossroads_main WHERE ID=$crossroads_id";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if($ligne["enabled"]==0){echo "Starting......: Crossroads instance $crossroads_id is disabled\n";stop_instance($crossroads_id);remove_initd($crossroads_id);return;}
+	if($ligne["enabled"]==0){echo "Starting......: ".date("H:i:s")." Crossroads instance $crossroads_id is disabled\n";stop_instance($crossroads_id);remove_initd($crossroads_id);return;}
 	$cd=array();
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Crossroads instance $crossroads_id [DEBUG] -> build_backends({$crossroads_id})\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Crossroads instance $crossroads_id [DEBUG] -> build_backends({$crossroads_id})\n";}
 	
 	$backends=build_backends($ligne["ID"]);
 	if(count($backends)==0){
 		crossroads_events("This instance have no backend",$crossroads_id,__FUNCTION__,__LINE__);
-		echo "Starting......: Crossroads instance $crossroads_id no backend\n";
+		echo "Starting......: ".date("H:i:s")." Crossroads instance $crossroads_id no backend\n";
 		remove_initd($crossroads_id);
 		return;
 	}
@@ -138,7 +138,7 @@ function instance_build($crossroads_id){
 	}
 	$cmdline=$xrbin." ". @implode(" ", $cd)." >/var/log/crossroads/cross_{$ligne["ID"]}.log 2>&1 &";
 	crossroads_events("Instance successfully reconfigured",$crossroads_id,__FUNCTION__,__LINE__);
-	if($GLOBALS["VERBOSE"]){echo "Starting......: Crossroads instance {$ligne["ID"]} cmdline=$cmdline\n";} 
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Crossroads instance {$ligne["ID"]} cmdline=$cmdline\n";} 
 	@file_put_contents("/etc/artica-postfix/crossroads/{$ligne["ID"]}.cmd", $cmdline);
 	build_init_d($ligne["ID"]);
 	
@@ -149,26 +149,26 @@ function start(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	foreach (glob("/etc/artica-postfix/crossroads/*.cmd") as $filename) {
 		$basename=basename($filename);
-		if(!preg_match("#^([0-9]+)\.#", $basename,$re)){echo "Starting......: Crossroads $basename ?? aborting\n";continue;}
+		if(!preg_match("#^([0-9]+)\.#", $basename,$re)){echo "Starting......: ".date("H:i:s")." Crossroads $basename ?? aborting\n";continue;}
 		$ID=$re[1];
-		echo "Starting......: Crossroads ID:$ID\n";
+		echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID\n";
 		start_instance($ID);
 	}
-	echo "Starting......: Crossroads finish\n";
+	echo "Starting......: ".date("H:i:s")." Crossroads finish\n";
 }
 function stop(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	$sql="SELECT * FROM crossroads_main";
@@ -203,7 +203,7 @@ function status(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());
 
 
@@ -221,7 +221,7 @@ function stop_instance($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	$unix=new unix();
@@ -268,7 +268,7 @@ function status_instance($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,(basename(__FILE__)))){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	$unix=new unix();
@@ -315,7 +315,7 @@ function start_instance($ID){
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
 	$xr=$unix->find_program("xr");
-	if($unix->process_exists($pid,$xr)){echo "Starting......: load-balancer engine Already executed PID $pid...\n";return;}	
+	if($unix->process_exists($pid,$xr)){echo "Starting......: ".date("H:i:s")." load-balancer engine Already executed PID $pid...\n";return;}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	$unix=new unix();
@@ -326,13 +326,13 @@ function start_instance($ID){
 	if(!is_file($filename)){instance_build($ID);}
 	if(!is_file($filename)){
 		crossroads_events("Cannot start instance, it is not correctly set",$ID,__FUNCTION__,__LINE__);
-		echo "Starting......: Crossroads ID:$ID Not correctly set...\n";
+		echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID Not correctly set...\n";
 	
 	return;}
 	
-	if($unix->process_exists($pid)){echo "Starting......: Crossroads ID:$ID already running pid $pid\n";return;}
+	if($unix->process_exists($pid)){echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID already running pid $pid\n";return;}
 	
-	echo "Starting......: Crossroads ID:$ID executing daemon (1x)\n";
+	echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID executing daemon (1x)\n";
 	
 	$cmdline=@file_get_contents($filename);
 	$cmdline=trim("$nohup $cmdline");
@@ -342,21 +342,21 @@ function start_instance($ID){
 		$pid=cross_pid($ID);
 		if($unix->process_exists($pid,$xr)){
 			crossroads_events("Instance ID:$ID successfully started running pid $pid",$ID,__FUNCTION__,__LINE__);
-			echo "Starting......: Crossroads ID:$ID success running pid $pid\n";
+			echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID success running pid $pid\n";
 			return;
 		}
 		
 	}
 	$pid=cross_pid($ID);
 	if(!$unix->process_exists($pid,$xr)){
-		echo "Starting......: Crossroads ID:$ID executing daemon (2x)\n"; 	
+		echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID executing daemon (2x)\n"; 	
 		shell_exec($cmdline);
 		for($i=0;$i<6;$i++){
 			sleep(2);
 			$pid=cross_pid($ID);
 			if($unix->process_exists($pid,$xr)){
 				crossroads_events("Instance ID:$ID successfully started running pid $pid",$ID,__FUNCTION__,__LINE__);
-				echo "Starting......: Crossroads ID:$ID success running pid $pid\n";
+				echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID success running pid $pid\n";
 				return;
 			}
 			
@@ -371,8 +371,8 @@ function start_instance($ID){
 		crossroads_events("Instance ID:$ID failed to start\n".@implode("\n", @file_get_contents("/var/log/crossroads/cross_$ID.log")),$ID,__FUNCTION__,__LINE__);
 		crossroads_events("Schedule to start instance in few times",$ID,__FUNCTION__,__LINE__);
 		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --start-instance $ID");
-		echo "Starting......: Crossroads ID:$ID failed\n";
-		echo "Starting......: Crossroads ID:$ID with command line $cmdline\n";
+		echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID failed\n";
+		echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID with command line $cmdline\n";
 		
 	}	
 	
@@ -405,7 +405,7 @@ function build_init_d($ID){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$chmod=$unix->find_program("chmod");
-	echo "Starting......: Crossroads ID:$ID adding init.d/xr-$ID\n";
+	echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID adding init.d/xr-$ID\n";
 	$f[]="#!/bin/bash";
 	$f[]="#";
 	$f[]="### BEGIN INIT INFO";
@@ -460,7 +460,7 @@ function remove_initd($ID){
 	$unix=new unix();
 	$debianbin=$unix->find_program("update-rc.d");
 	$redhatbin=$unix->find_program("chkconfig");
-	echo "Starting......: Crossroads ID:$ID remove init.d/xr-$ID\n";	
+	echo "Starting......: ".date("H:i:s")." Crossroads ID:$ID remove init.d/xr-$ID\n";	
 	if(is_file($redhatbin)){
 		shell_exec("$redhatbin --del xr-$ID >/dev/null 2>&1");
 		shell_exec("$redhatbin --level 2345 xr-$ID off >/dev/null 2>&1");

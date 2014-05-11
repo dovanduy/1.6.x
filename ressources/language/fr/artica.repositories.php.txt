@@ -18,6 +18,6 @@
 <to_be_installed>Ce paquet est marqu&eacute; comme &eacute;tant &agrave; installer</to_be_installed>
 <to_be_uninstalled>A d&eacute;sinstaller</to_be_uninstalled>
 <to_install_on_system>Paquets qui peuvent &ecirc;tre install&eacute;s sur ce syst&egrave;me</to_install_on_system>
-<uninstall>d&eacute;sinstaller</uninstall>
+<uninstall>D&eacute;sinstaller</uninstall>
 <uninstall_packages_list>Op&eacute;rations de la liste des paquets</uninstall_packages_list>
 <uninstall_text>D&eacute;sinstaller cette application et ce paquet de votre syst&egrave;me</uninstall_text>

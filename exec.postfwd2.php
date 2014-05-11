@@ -19,7 +19,7 @@ include_once(dirname(__FILE__) . '/ressources/class.maincf.multi.inc');
 
 
 $_GET["LOGFILE"]="/usr/share/artica-postfix/ressources/logs/web/interface-postfix.log";
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--nowachdog#",implode(" ",$argv))){$GLOBALS["NOWATCHDOG"]=true;}
@@ -37,6 +37,9 @@ if($argv[1]=="--single-status"){StatusInstance($argv[2]);die();}
 if($argv[1]=="--all-status"){$GLOBALS["SILENT"]=true;StatusAllInstances($argv[2]);die();}
 
 function startInstances(){
+	
+	
+	
 	checksConfigs();
 	reset($GLOBALS["postfwd2_instances"]);
 	@mkdir("/etc/postfwd2");
@@ -104,11 +107,11 @@ function startSingleInstance($instance){
 	@mkdir("/var/run/postfwd2");
 	@chmod("/var/run/postfwd2",0755);
 	@chown("/var/run/postfwd2","postfix");
-	echo "Starting......: postfwd2 instance:$instance\n";
+	echo "Starting......: ".date("H:i:s")." postfwd2 instance:$instance\n";
 	$pidfile="/var/run/postfwd2/$instance.pid";
 	$master_pid=@file_get_contents("/var/run/postfwd2/$instance.pid");
 	if($unix->process_exists($master_pid)){
-		echo "Starting......: postfwd2 instance:$instance already running PID $master_pid\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 instance:$instance already running PID $master_pid\n";
 		return;
 	}
 
@@ -124,10 +127,10 @@ function startSingleInstance($instance){
 	}	
 	$master_pid=@file_get_contents("/var/run/postfwd2/$instance.pid");
 	if(!$unix->process_exists($master_pid)){
-		echo "Starting......: postfwd2 failed\n";
-		echo "Starting......: postfwd2 \"$cmd\"\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 failed\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 \"$cmd\"\n";
 	}else{
-		echo "Starting......: postfwd2 success with new PID $master_pid\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 success with new PID $master_pid\n";
 	}
 	
 	
@@ -140,7 +143,7 @@ function buildcmdlines($instance){
 		$listen_ip=$main->ip_addr;
 	}
 	if($GLOBALS["OUTPUT_START"]){	
-		echo "Starting......: postfwd2 instance:$instance listen $listen_ip:10040\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 instance:$instance listen $listen_ip:10040\n";
 	}
 	$pidfile="/var/run/postfwd2/$instance.pid";
 	$parms[]="/usr/share/artica-postfix/bin/postfwd2.pl";
@@ -165,7 +168,7 @@ function RestartSingleInstance($instance){
 	$pidfile="/var/run/postfwd2/$instance.pid";
 	$master_pid=@file_get_contents("/var/run/postfwd2/$instance.pid");
 	if($unix->process_exists($master_pid)){
-		echo "Starting......: postfwd2 instance:$instance reloading\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 instance:$instance reloading\n";
 		$suffix=" --reload";}else{
 			startSingleInstance($instance);
 			return;
@@ -184,7 +187,7 @@ function ReloadSingleInstance($instance){
 	$pidfile="/var/run/postfwd2/$instance.pid";
 	$master_pid=@file_get_contents("/var/run/postfwd2/$instance.pid");
 	if($unix->process_exists($master_pid)){
-		echo "Starting......: postfwd2 instance:$instance reloading\n";
+		echo "Starting......: ".date("H:i:s")." postfwd2 instance:$instance reloading\n";
 		$suffix=" --reload";}
 		else{
 			startSingleInstance($instance);
@@ -212,7 +215,7 @@ function BuildObjects($instance){
 	$sql="SELECT ID,ObjectName FROM postfwd2_objects WHERE instance='$instance'"; 
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,'artica_backup');		
-	if(!$q->ok){echo "Starting......: postfwd2 $q->mysql_error -> BuildObjects()\n";return;}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." postfwd2 $q->mysql_error -> BuildObjects()\n";return;}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$sql="SELECT * FROM postfwd2_items WHERE objectID='{$ligne["ID"]}'";
 		$results2=$q->QUERY_SQL($sql,'artica_backup');
@@ -243,7 +246,7 @@ function Buildconfig($instance){
 		$array_filters=unserialize(base64_decode($main->GET_BIGDATA("PluginsEnabled")));
 		$ENABLE_POSTFWD2=$array_filters["APP_POSTFWD2"];
 		if(!is_numeric($ENABLE_POSTFWD2)){$ENABLE_POSTFWD2=0;}
-		if($ENABLE_POSTFWD2==0){echo "Starting......: postfwd2 $instance is disabled\n";return;}
+		if($ENABLE_POSTFWD2==0){echo "Starting......: ".date("H:i:s")." postfwd2 $instance is disabled\n";return;}
 
 		
 		$GBRULES[]=BuildObjects($instance);
@@ -252,7 +255,7 @@ function Buildconfig($instance){
 		$sql="SELECT * FROM postfwd2 WHERE enabled=1 AND instance='$instance' ORDER BY rank";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,'artica_backup');		
-		if(!$q->ok){echo "Starting......: postfwd2 $q->mysql_error\n";return;}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." postfwd2 $q->mysql_error\n";return;}
 		
 		$ms["eq"]="=";
 		$ms["eq2"]="==";
@@ -317,7 +320,7 @@ function Buildconfig($instance){
 		}
 		
 		if(count($GBRULES)>0){
-			echo "Starting......: postfwd2 $instance ".count($GBRULES)." rules\n";
+			echo "Starting......: ".date("H:i:s")." postfwd2 $instance ".count($GBRULES)." rules\n";
 			@file_put_contents("/etc/postfwd2/$instance.conf",@implode("\n",$GBRULES)."\n");
 			@chown("/etc/postfwd2/$instance.conf","postfix");
 		}
@@ -348,14 +351,14 @@ function checksConfigs(){
 	$sql="SELECT * FROM postfwd2 WHERE enabled=1 ";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,'artica_backup');
-	if(!$q->ok){echo "Starting......: postfwd2 $q->mysql_error\n";return;}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." postfwd2 $q->mysql_error\n";return;}
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$GLOBALS["postfwd2_instances"][$ligne["instance"]]=true;
 	}
 	
 	if($GLOBALS["VERBOSE"]){$GLOBALS["SILENT"]=false;}
-	if(!$GLOBALS["SILENT"]){echo "Starting......: postfwd2 ". count($GLOBALS["postfwd2_instances"]). " instance(s)\n";}
+	if(!$GLOBALS["SILENT"]){echo "Starting......: ".date("H:i:s")." postfwd2 ". count($GLOBALS["postfwd2_instances"]). " instance(s)\n";}
 	
 }
 

@@ -328,7 +328,7 @@ function page_list_old(){
 			
 			if($EnablePostfixMultiInstance==1){
 				if(trim($ligne["smtp_host"])==null){
-					$warn=imgtootltip("icon_mini_warning.gif","{smtp_host_not_set}");
+					$warn=imgtootltip("status_warning.png","{smtp_host_not_set}");
 					$execute=imgtootltip("mailbox-32-grey.png","{execute_in_debug}");
 				}
 			}
@@ -440,7 +440,7 @@ function page_modify_rule(){
 	
 	$warn="&nbsp;";
 	if($sock->GET_INFO("EnablePostfixMultiInstance")==1){
-		if($array["smtp_host"]==null){$warn="<img src='img/icon_mini_warning.gif'>";}
+		if($array["smtp_host"]==null){$warn="<img src='img/status_warning.png'>";}
 		$smtp_sender=
 		"<tr>
 			<td width=1%>$warn</td>
@@ -487,7 +487,7 @@ $html="
 	
 	<input type='hidden' name='is' id='is' value='$user->mail'>
 	
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 	<td valign='top'>
 			<table style='width:450px;'>

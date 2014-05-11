@@ -67,10 +67,6 @@ function tabs(){
 	$array["caches"]='{caches}';
 	if($DisableAnyCache==0){
 		$array["parameters"]='{parameters}';
-		if(!$byminiadm){
-			$array["cache_control"]='{cache_control}';
-			$array["cache_websites"]='{cache_control}:{websites}';
-		}
 		$array["main_parameters"]='{main_parameters}';
 	}
 	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
@@ -142,19 +138,16 @@ function parameters_main(){
 	unset($caches_types["rock"]);
 	$cache_type=Field_array_Hash($caches_types,'master_cache_type',$squid->CACHE_TYPE,"style:font-size:14px");
 	$squidCacheSize=FormatBytes($squid->CACHE_SIZE*1000);
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
+	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+	
 	
 	
 	$tr[]="<td width=1% nowrap>". button("{reconstruct_caches}","Loadjs('squid.rebuildcahes.php')",14)."</td>";
 	
 	if($squid->IS_32){
-		if($DisableSquidSNMPMode==0){
-			$tr[]="<td width=1% nowrap>". button("{disable_smp}","Loadjs('squid.caches.smp.php?disable-js=yes')",14)."</td>";
-		}
-		
+		$tr[]="<td width=1% nowrap>". button("{disable_smp}","Loadjs('squid.caches.smp.php?disable-js=yes')",14)."</td>";
 	}
 	
 	
@@ -188,12 +181,12 @@ $cache_settings="
 		<td align='right' class=legend nowrap style='font-size:14px'>{cache_swap_low}:</strong></td>
 		<td style='font-size:14px'>" . Field_text('cache_swap_low',$squid->global_conf_array["cache_swap_low"],'width:70px;font-size:14px')."&nbsp;%</td>
 		<td>" . help_icon('{cache_swap_low_text}',false,'squid.index.php')."</td>
-		</tr>
+</tr>
 <tr>
 		<td align='right' class=legend nowrap style='font-size:14px'>{cache_swap_high}:</strong></td>
 		<td style='font-size:14px'>" . Field_text('cache_swap_high',$squid->global_conf_array["cache_swap_high"],'width:70px;font-size:14px')."&nbsp;%</td>
 		<td>" . help_icon('{cache_swap_high_text}',false,'squid.index.php')."</td>
-		</tr>
+</tr>
 <tr>
 		<td align='right' class=legend nowrap style='font-size:14px'>{maximum_object_size}:</strong></td>
 		<td>" . Field_text('maximum_object_size',$squid->global_conf_array["maximum_object_size"],'width:70px;font-size:14px')."</td>

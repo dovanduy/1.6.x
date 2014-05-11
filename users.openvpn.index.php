@@ -41,7 +41,7 @@ function index(){
 	$page=CurrentPageName();
 	//openvpn-2.0.9-gui-1.0.3-install.exe
 	$downloadvinvin=Paragraphe('64-vinvin.png','{DOWNLOAD_OPENVPN_CLIENT}','{DOWNLOAD_OPENVPN_CLIENT_TEXT}',
-	'http://www.artica.fr/download/openvpn-2.0.9-gui-1.0.3-install.exe','{DOWNLOAD_OPENVPN_CLIENT}',null,210,null,false,true);
+	'http://www.articatech.net/download/openvpn-2.0.9-gui-1.0.3-install.exe','{DOWNLOAD_OPENVPN_CLIENT}',null,210,null,false,true);
 
 	$build=Paragraphe('64-openvpn-ext.png','{DOWNLOAD_CONFIG_FILES}','{DOWNLOAD_CONFIG_FILES_TEXT}',
 	"javascript:YahooWin3(500,'$page?generate-files=yes','{DOWNLOAD_CONFIG_FILES}')",'{DOWNLOAD_CONFIG_FILES}',null,210,null,false,false);

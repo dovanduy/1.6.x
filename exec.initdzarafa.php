@@ -1,5 +1,6 @@
 <?php
 $GLOBALS["VERBOSE"]=false;
+$GLOBALS["NOLANG"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
@@ -7,6 +8,21 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 
 
+$GLOBALS["ZARAFA_LOCALE"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ZARAFA_LANG"));
+if($GLOBALS["ZARAFA_LOCALE"]==null){$GLOBALS["ZARAFA_LOCALE"]="C";}
+
+if($argv[1]=="--lang"){
+	$GLOBALS["NOLANG"]=true;
+	ZarafaInit();
+	shell_exec("/etc/init.d/zarafa-dagent restart");
+	shell_exec("/etc/init.d/zarafa-gateway  restart");
+	shell_exec("/etc/init.d/zarafa-ical restart");      
+	shell_exec("/etc/init.d/zarafa-licensed restart");  
+	shell_exec("/etc/init.d/zarafa-monitor restart");   
+	shell_exec("/etc/init.d/zarafa-search restart");    
+	shell_exec("/etc/init.d/zarafa-server restart");
+	die();
+}
 
 
 ZarafaInit();
@@ -17,8 +33,10 @@ $servicebin=$unix->find_program("update-rc.d");
 if(!is_file($servicebin)){return;}
 $binary=$unix->find_program("zarafa-server");
 if(!is_file($binary)){return;}
-$php5=$unix->LOCATE_PHP5_BIN();
-$localgen="$php5 /usr/share/artica-postfix/exec.locale.gen.php --force";
+if(!$GLOBALS["NOLANG"]){
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$localgen="$php5 /usr/share/artica-postfix/exec.locale.gen.php --force";
+}
 
 
 
@@ -49,9 +67,7 @@ $f[]="MONITOR_ENABLED=\"yes\"";
 $f[]="";
 $f[]="test -x \$MONITOR || exit 0";
 $f[]="";
-$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-$f[]="	ZARAFA_LOCALE=\"C\"";
-$f[]="fi";
+$f[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 $f[]="";
 $f[]="if [ -e \"\$MONITOR_CONFIG\" ]; then";
 $f[]="	MONITOR_OPTS=\"\$MONITOR_OPTS -c \$MONITOR_CONFIG\"";
@@ -140,9 +156,7 @@ $f[]="GATEWAY_ENABLED=\"yes\"";
 $f[]="";
 $f[]="test -x \$GATEWAY || exit 0";
 $f[]="";
-$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-$f[]="	ZARAFA_LOCALE=\"C\"";
-$f[]="fi";
+$f[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 $f[]="";
 $f[]="if [ -e \"\$GATEWAY_CONFIG\" ]; then";
 $f[]="	GATEWAY_OPTS=\"\$GATEWAY_OPTS -c \$GATEWAY_CONFIG\"";
@@ -161,6 +175,7 @@ $f[]="	fi";
 $f[]="	log_begin_msg \"Starting \$DESC: \$NAME\"";
 $f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 $f[]="	export LANG=\$ZARAFA_LOCALE";
+$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 $f[]="	start-stop-daemon --start \$QUIETDAEMON --pidfile \$PIDFILE --exec \$GATEWAY -- \$GATEWAY_OPTS";
 $f[]="	log_end_msg \$?";
 $f[]="	unset LC_ALL LANG";
@@ -171,6 +186,7 @@ $f[]="	start-stop-daemon --stop \$QUIETDAEMON --pidfile \$PIDFILE --retry TERM/1
 $f[]="	RETVAL=\$?";
 $f[]="	rm -f \$PIDFILE";
 $f[]="	log_end_msg \$RETVAL";
+$f[]="	$php5 /usr/share/artica-postfix/exec.zarafa-gateway.php --stop";
 $f[]="	;;";
 $f[]="  restart)";
 $f[]="	\$0 stop";
@@ -239,9 +255,6 @@ $f[]="";
 $f[]="MONITORCONFIG_OPT=\"\"";
 $f[]="[ ! -z \$MONITORCONFIG -a -f \$MONITORCONFIG ] && MONITORCONFIG_OPT=\"-c \$MONITORCONFIG\"";
 $f[]="";
-$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-$f[]="	ZARAFA_LOCALE=\"C\"";
-$f[]="fi";
 $f[]="";
 $f[]="# Source function library.";
 $f[]=". /etc/rc.d/init.d/functions";
@@ -262,8 +275,10 @@ $f[]="  else";
 $f[]="		echo \"locales are correctly generated...\"";
 $f[]="	fi";
 $f[]="	echo -n \$\"Starting \$monitor: \"";
+$f[]="	ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 $f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 $f[]="	export LANG=\$ZARAFA_LOCALE";
+$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 $f[]="	daemon \$MONITORPROGRAM \$MONITORCONFIG_OPT";
 $f[]="	RETVAL=\$?";
 $f[]="	unset LC_ALL LANG";
@@ -385,6 +400,7 @@ $f[]="	# Start in background, always succeeds";
 $f[]="	echo -n \$\"Starting \$gateway: \"";
 $f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 $f[]="	export LANG=\$ZARAFA_LOCALE";
+$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 $f[]="	daemon \$GATEWAYPROGRAM \$GATEWAYCONFIG_OPT";
 $f[]="	RETVAL=\$?";
 $f[]="	unset LC_ALL LANG";
@@ -461,35 +477,39 @@ echo "Zarafa Gateway init.d RedHat mode done\n";
 function ZarafaInit(){
 	
 	$unix=new unix();
-	$redhatbin=$unix->find_program("chkconfig");	
+	$redhatbin=$unix->find_program("chkconfig");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	
 	if(is_file($redhatbin)){
 		echo "Zarafa updating RedHat mode\n";
 		zarafa_monitor_redhat();
-		ZarafaSearch_redhat();
 		zarafa_dagent_redhat();
 	}
 	$servicebin=$unix->find_program("update-rc.d");
 	if(is_file($servicebin)){
 		echo "Zarafa updating Debian mode\n";
 		zarafa_monitor_debian();
-		ZarafaSearch_debian();
 		zarafa_dagent_debian();
 	
 	}
 	
+	ZarafaSearch();
 	zarafa_server_all();
+	zarafa_web();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.monit.php --build >/dev/null 2>&1");
 }
-function ZarafaSearch_debian(){
-	if(!is_file("/usr/bin/zarafa-search")){return;}
-	$sock=new sockets();
-	$page=CurrentPageName();
-	$EnableZarafaSearch=$sock->GET_INFO("EnableZarafaSearch");
-	if(!is_numeric($EnableZarafaSearch)){$EnableZarafaSearch=1;}
-	$SEARCH_ENABLED="no";
-	if($EnableZarafaSearch==1){$SEARCH_ENABLED="yes";}
-	$unix=new unix();
-	$servicebin=$unix->find_program("update-rc.d");
+function ZarafaSearch(){
 	
+	$unix=new unix();
+	
+	
+	$zarafa_search=$unix->find_program("zarafa-search");
+	if(!is_file($zarafa_search)){return;}
+	$sock=new sockets();
+	
+	$unix=new unix();
+	
+	$php=$unix->LOCATE_PHP5_BIN();
 	
 		$f[]="#! /bin/sh";
 		$f[]="#";
@@ -507,203 +527,59 @@ function ZarafaSearch_debian(){
 		$f[]="### END INIT INFO";
 		$f[]="";
 		$f[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
-		$f[]="SEARCH=/usr/bin/zarafa-search";
-		$f[]="DESC=\"Zarafa search\"";
-		$f[]="NAME=`basename \$SEARCH`";
-		$f[]="#QUIETDAEMON=--quiet";
-		$f[]="PIDFILE=/var/run/\$NAME.pid";
-		$f[]="SEARCH_CONFIG=\"/etc/zarafa/search.cfg\"";
-		$f[]="SEARCH_OPTS=\" -c \$SEARCH_CONFIG\"";
-		$f[]="SEARCH_ENABLED=\"$SEARCH_ENABLED\"";
-		$f[]="";
-		$f[]="test -x \$SEARCH || exit 0";
-		$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-		$f[]="	ZARAFA_LOCALE=\"C\"";
-		$f[]="fi";
-		$f[]="#set -e";
-		$f[]="";
-		$f[]=". /lib/lsb/init-functions";
+		$f[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 		$f[]="";
 		$f[]="case \"\$1\" in";
 		$f[]="  start)";
-		$f[]="	if [ \"\$SEARCH_ENABLED\" = \"no\" ]; then";
-		$f[]="		log_warning_msg \"Zarafa Search daemon not enabled in /etc/default/zarafa ... not starting\"";
-		$f[]="		exit 0";
-		$f[]="	fi";
-		$f[]="	log_begin_msg \"Starting \$DESC: \$NAME\"";
 		$f[]=" 	mkdir -p /var/lib/zarafa/index";
 		$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 		$f[]="	export LANG=\$ZARAFA_LOCALE";
-		$f[]="	start-stop-daemon --start \$QUIETDAEMON --pidfile \$PIDFILE --exec \$SEARCH -- \$SEARCH_OPTS";
-		$f[]="	log_end_msg \$?";
+		$f[]="   $php ".dirname(__FILE__)."/exec.zarafa-search.php --start \$2 \$3";
 		$f[]="	unset LC_ALL LANG";
+		$f[]="  exit 0";
 		$f[]="	;;";
 		$f[]="  stop)";
-		$f[]="	log_begin_msg \"Stopping \$DESC: \$NAME\"";
-		$f[]="	start-stop-daemon --stop \$QUIETDAEMON --pidfile \$PIDFILE --retry TERM/15/KILL --exec \$SEARCH";
-		$f[]="	RETVAL=\$?";
-		$f[]="	rm -f \$PIDFILE";
-		$f[]="	log_end_msg \$RETVAL";
+		$f[]="   $php ".dirname(__FILE__)."/exec.zarafa-search.php --stop \$2 \$3";
+		$f[]="  exit 0";		
 		$f[]="	;;";
 		$f[]="  restart)";
-		$f[]="	\$0 stop";
-		$f[]="	\$0 start";
+		$f[]="   $php ".dirname(__FILE__)."/exec.zarafa-search.php --restart \$2 \$3";
 		$f[]="	;;";
-		$f[]="  status)";
-		$f[]="	status_of_proc \"\$SEARCH\" \"\$NAME\" && exit 0 || exit \$?";
+		$f[]="  clean)";
+		$f[]="   $php ".dirname(__FILE__)."/exec.zarafa-search.php --clean \$2 \$3";
 		$f[]="	;;";
 		$f[]="  reload|force-reload)";
-		$f[]="	log_begin_msg \"Reloading \$DESC: \$NAME\"";
-		$f[]="	start-stop-daemon --stop \$QUIETDAEMON --signal HUP --pidfile \$PIDFILE --exec \$SEARCH";
-		$f[]="	log_end_msg \$?";
+		$f[]="   $php ".dirname(__FILE__)."/exec.zarafa-search.php --reload \$2 \$3";
 		$f[]="	;;";
 		$f[]="  *)";
 		$f[]="	N=/etc/init.d/\$NAME";
-		$f[]="	echo \"Usage: \$N {start|stop|restart|reload|force-reload|status}\" >&2";
+		$f[]="	echo \"Usage: \$N {start|stop|restart|reload|force-reload|clean}\" >&2";
 		$f[]="	exit 1";
 		$f[]="	;;";
 		$f[]="esac";
 		$f[]="";
 		$f[]="exit 0";	
-		@file_put_contents("/etc/init.d/zarafa-search", @implode("\n", $f));
-		@chmod("/etc/init.d/zarafa-search", 0755);
-		shell_exec("$servicebin -f zarafa-search defaults >/dev/null 2>&1");
-		echo "Zarafa Search init.d debian mode done\n";	
+		
+
+		
+		$INITD_PATH="/etc/init.d/zarafa-search";
+		echo "Zarafa: [INFO] Writing $INITD_PATH with new config\n";
+		@unlink($INITD_PATH);
+		@file_put_contents($INITD_PATH, @implode("\n", $f));
+		@chmod($INITD_PATH,0755);
+		
+		if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+		}
+		
+		if(is_file('/sbin/chkconfig')){
+			shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+			shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+		}		
+		
 }
 
-function ZarafaSearch_redhat(){
-	if(!is_file("/usr/bin/zarafa-search")){return;}
-	$sock=new sockets();
-	$page=CurrentPageName();
-	$EnableZarafaSearch=$sock->GET_INFO("EnableZarafaSearch");
-	if(!is_numeric($EnableZarafaSearch)){$EnableZarafaSearch=0;}
-	$SEARCH_ENABLED="no";
-	if($EnableZarafaSearch==1){$SEARCH_ENABLED="yes";}
-	$unix=new unix();
-	$servicebin=$unix->find_program("chkconfig");
-	$f[]="#!/bin/bash";
-	$f[]="#";
-	$f[]="# zarafa-search The Search Indexer of the Zarafa Collaboration Platform";
-	$f[]="#";
-	$f[]="# chkconfig: 345 86 24";
-	$f[]="# description: The Zarafa search is an indexer daemon for full-text search through all objects (including attachments)";
-	$f[]="# processname: /usr/bin/zarafa-search";
-	$f[]="# config: /etc/zarafa/search.cfg";
-	$f[]="# pidfile: /var/run/zarafa-search.pid";
-	$f[]="";
-	$f[]="### BEGIN INIT INFO";
-	$f[]="# Provides: zarafa-search";
-	$f[]="# Required-Start: \$local_fs \$network \$remote_fs \$syslog";
-	$f[]="# Required-Stop: \$local_fs \$network \$remote_fs \$syslog";
-	$f[]="# Should-Start: zarafa-server";
-	$f[]="# Should-Stop: zarafa-server";
-	$f[]="# Short-Description: The Search Indexer of the Zarafa Collaboration Platform";
-	$f[]="# Description: The Zarafa search is an indexer daemon for full-text search ";
-	$f[]="#              through all objects (including attachments)";
-	$f[]="### END INIT INFO";
-	$f[]="";
-	$f[]="SEARCHCONFIG=/etc/zarafa/search.cfg";
-	$f[]="SEARCHPROGRAM=/usr/bin/zarafa-search";
-	$f[]="";
-	$f[]="# Sanity checks.";
-	$f[]="[ -x \$SEARCHPROGRAM ] || exit 0";
-	$f[]="";
-	$f[]="SEARCHCONFIG_OPT=\"\"";
-	$f[]="[ ! -z \$SEARCHCONFIG -a -f \$SEARCHCONFIG ] && SEARCHCONFIG_OPT=\"-c \$SEARCHCONFIG\"";
-	$f[]="";
-	$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-	$f[]="	ZARAFA_LOCALE=\"C\"";
-	$f[]="fi";
-	$f[]="";
-	$f[]="# Source function library.";
-	$f[]=". /etc/rc.d/init.d/functions";
-	$f[]="";
-	$f[]="RETVAL=0";
-	$f[]="SEARCH_ENABLED=\"$SEARCH_ENABLED\"";
-	$f[]="search=`basename \$SEARCHPROGRAM`";
-	$f[]="lockfile=/var/lock/subsys/\$search";
-	$f[]="pidfile=/var/run/\$search.pid";
-	$f[]="";
-	$f[]="start() {";
-	$f[]="	# Start in background, always succeeds";
-	$f[]="	echo -n \$\"Starting \$search: \"";
-	$f[]="	if [ \"\$SEARCH_ENABLED\" = \"no\" ]; then";
-	$f[]="		echo -n \"Zarafa Search daemon not enabled ... not starting\"";
-	$f[]="		exit 0";
-	$f[]="	fi";
-	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
-	$f[]="	export LANG=\$ZARAFA_LOCALE";
-	$f[]="	daemon \$SEARCHPROGRAM \$SEARCHCONFIG_OPT";
-	$f[]="	RETVAL=\$?";
-	$f[]="	unset LC_ALL LANG";
-	$f[]="	echo";
-	$f[]="	[ \$RETVAL -eq 0 ] && touch \$lockfile";
-	$f[]="";
-	$f[]="	return \$RETVAL";
-	$f[]="}";
-	$f[]="";
-	$f[]="stop() {";
-	$f[]="	echo -n \$\"Stopping \$search: \"";
-	$f[]="	killproc \$SEARCHPROGRAM";
-	$f[]="	RETVAL=\$?";
-	$f[]="	echo";
-	$f[]="	[ \$RETVAL -eq 0 ] && rm -f \$lockfile \$pidfile";
-	$f[]="";
-	$f[]="	return \$RETVAL";
-	$f[]="}";
-	$f[]="";
-	$f[]="restart() {";
-	$f[]="	stop";
-	$f[]="	start";
-	$f[]="}";
-	$f[]="";
-	$f[]="reload() {";
-	$f[]="	echo -n \$\"Restarting \$search: \"";
-	$f[]="	killproc \$SEARCHPROGRAM -SIGHUP";
-	$f[]="	RETVAL=\$?";
-	$f[]="	echo";
-	$f[]="";
-	$f[]="	return \$RETVAL";
-	$f[]="}";
-	$f[]="";
-	$f[]="# See how we were called.";
-	$f[]="case \"\$1\" in";
-	$f[]="    start)";
-	$f[]="		start";
-	$f[]="		;;";
-	$f[]="    stop)";
-	$f[]="		stop";
-	$f[]="		;;";
-	$f[]="    status)";
-	$f[]="		status \$search";
-	$f[]="		RETVAL=\$?";
-	$f[]="		;;";
-	$f[]="    restart|force-reload)";
-	$f[]="		restart";
-	$f[]="		;;";
-	$f[]="    condrestart|try-restart)";
-	$f[]="		if [ -f \${pidfile} ]; then";
-	$f[]="			stop";
-	$f[]="			start";
-	$f[]="		fi";
-	$f[]="		;;";
-	$f[]="    reload)";
-	$f[]="		reload";
-	$f[]="		;;";
-	$f[]="    *)";
-	$f[]="		echo \$\"Usage: \$search {start|stop|status|reload|restart|condrestart|force-reload|try-restart}\"";
-	$f[]="		RETVAL=1";
-	$f[]="		;;";
-	$f[]="esac";
-	$f[]="";
-	$f[]="exit \$RETVAL";
 
-	@file_put_contents("/etc/init.d/zarafa-search", @implode("\n", $f));
-	@chmod("/etc/init.d/zarafa-search", 0755);
-	if(is_file($servicebin)){shell_exec("$servicebin --add zarafa-search >/dev/null 2>&1");
-	shell_exec("$servicebin --level 2345 zarafa-search on >/dev/null 2>&1");}	
-	echo "Zarafa Search init.d RedHat mode done\n";
-}
 
 function zarafa_dagent_debian(){
 	$sock=new sockets();
@@ -737,12 +613,7 @@ function zarafa_dagent_debian(){
 	$f[]="DAGENT_CONFIG=\"/etc/zarafa/dagent.cfg\"";
 	$f[]="test -x \$DAGENT || exit 0";
 	$f[]="DAGENT_OPTS=\"-d\"";
-	$f[]="";
-	$f[]="# Include zarafa defaults if available";
-	$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-	$f[]="	ZARAFA_LOCALE=\"C\"";
-	$f[]="fi";
-	$f[]="";
+	$f[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 	$f[]="DAGENT_OPTS=\"\$DAGENT_OPTS -c \$DAGENT_CONFIG\"";
 	$f[]="";
 	$f[]="#set -e";
@@ -754,6 +625,7 @@ function zarafa_dagent_debian(){
 	$f[]="	log_begin_msg \"Starting \$DESC: \$NAME\"";
 	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 	$f[]="	export LANG=\$ZARAFA_LOCALE";
+	$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 	$f[]="	start-stop-daemon --start \$QUIETDAEMON --pidfile \$PIDFILE --exec \$DAGENT -- \$DAGENT_OPTS";
 	$f[]="	log_end_msg \$?";
 	$f[]="	unset LC_ALL LANG";
@@ -831,9 +703,7 @@ $f[]="# the -d option is required to run LMTP mode deamonized";
 $f[]="DAGENTCONFIG_OPT=\"-d\"";
 $f[]="[ ! -z \$DAGENTCONFIG -a -f \$DAGENTCONFIG ] && DAGENTCONFIG_OPT=\"\$DAGENTCONFIG_OPT -c \$DAGENTCONFIG\"";
 $f[]="";
-$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-$f[]="	ZARAFA_LOCALE=\"C\"";
-$f[]="fi";
+$f[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 $f[]="";
 $f[]="# Source function library.";
 $f[]=". /etc/rc.d/init.d/functions";
@@ -848,6 +718,7 @@ $f[]="	# Start in background, always succeeds";
 $f[]="	echo -n \$\"Starting \$dagent: \"";
 $f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 $f[]="	export LANG=\$ZARAFA_LOCALE";
+$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 $f[]="	daemon \$DAGENTPROGRAM \$DAGENTCONFIG_OPT";
 $f[]="	RETVAL=\$?";
 $f[]="	unset LC_ALL LANG";
@@ -981,9 +852,7 @@ function zarafa_server_redhat(){
 	$f[]="";
 	$f[]="# Source function library.";
 	$f[]=". /etc/rc.d/init.d/functions";
-	$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-	$f[]="	ZARAFA_LOCALE=\"C\"";
-	$f[]="fi";
+	$f[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 	$f[]="";
 	$f[]="RETVAL=0";
 	$f[]="server=`basename \$SERVERPROGRAM`";
@@ -996,6 +865,7 @@ function zarafa_server_redhat(){
 	$f[]="	echo -n \$\"Starting \$server: \"";
 	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 	$f[]="	export LANG=\$ZARAFA_LOCALE";
+	$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 	$f[]="	daemon \$SERVERPROGRAM \$SERVERCONFIG_OPT";
 	$f[]="	RETVAL=\$?";
 	$f[]="	unset LC_ALL LANG";
@@ -1110,6 +980,67 @@ function zarafa_server_redhat(){
 	
 }
 
+function zarafa_web(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+
+	$zbdb=null;
+	$sock=new sockets();
+
+
+	$f=array();
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          zarafa-web";
+	$f[]="# Required-Start:    \$local_fs \$remote_fs \$syslog \$named \$network \$time";
+	$f[]="# Required-Stop:     \$local_fs \$remote_fs \$syslog \$named \$network";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Zarafa-WebMail Engine";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Zarafa-WebMail Engine";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $zbdb";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-apache.php --start --byinitd \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-apache.php --stop --byinitd --force \$2 \$3";
+	$f[]="    ;;";
+	$f[]="  reload)";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-apache.php --reload --byinitd --force \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-apache.php --restart --byinitd --force \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} {ldap|} (+ 'debug' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	@file_put_contents("/etc/init.d/zarafa-web", @implode("\n", $f));
+	@chmod("/etc/init.d/zarafa-web",0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec('/usr/sbin/update-rc.d -f zarafa-web defaults >/dev/null 2>&1');
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec('/sbin/chkconfig --add zarafa-web >/dev/null 2>&1');
+		shell_exec('/sbin/chkconfig --level 2345 zarafa-web on >/dev/null 2>&1');
+	}
+}
+
+
 function zarafa_server_all(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -1141,6 +1072,11 @@ function zarafa_server_all(){
 	$f[]="case \"\$1\" in";
 	$f[]=" start)";
 	$f[]="    $zbdb";
+	$f[]="	ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
+	$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
+	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
+	$f[]="	export LANG=\$ZARAFA_LOCALE";	
+	$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --start --byinitd \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";
@@ -1153,8 +1089,8 @@ function zarafa_server_all(){
 	$f[]="";
 	$f[]=" restart)";
 	
-	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --stop --byinitd --force \$2 \$3";
-	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --start --byinitd \$2 \$3";
+	$f[]="    $php ". dirname(__FILE__)."/exec.zarafa-server.php --restart --byinitd --force \$2 \$3";
+	
 	$f[]="    ;;";
 	$f[]="";
 	$f[]="  *)";
@@ -1217,9 +1153,7 @@ function zarafa_server_debian(){
 	$f[]="";
 	$f[]="test -x \$SERVER || exit 0";
 	
-	$f[]="if [ -z \"\$ZARAFA_LOCALE\" ]; then";
-	$f[]="	ZARAFA_LOCALE=\"C\"";
-	$f[]="fi";
+	$f[]="	ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
 	$f[]="";
 	$f[]="SERVER_OPTS=\"$options\"";
 	$f[]="SERVER_ENABLED=\"yes\"";
@@ -1237,6 +1171,7 @@ function zarafa_server_debian(){
 	$f[]="	log_begin_msg \"Starting \$DESC: \$NAME\"";
 	$f[]="	export LC_ALL=\$ZARAFA_LOCALE";
 	$f[]="	export LANG=\$ZARAFA_LOCALE";
+	$f[]="	export ZARAFA_USERSCRIPT_LOCALE=\$ZARAFA_LOCALE";
 	$f[]="	start-stop-daemon --start \$QUIETDAEMON --pidfile \$PIDFILE --exec \$SERVER -- \$SERVER_OPTS";
 	$f[]="	log_end_msg \$?";
 	$f[]="	unset LC_ALL LANG";
@@ -1258,6 +1193,8 @@ function zarafa_server_debian(){
 	$f[]="	;;";
 	$f[]="  restart)";
 	$f[]="	\$0 stop";
+	$f[]="	log_begin_msg \"reconfiguring \$DESC: \$NAME\"";
+	$f[]="	/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure";
 	$f[]="	\$0 start";
 	$f[]="	;;";
 	$f[]="  status)";

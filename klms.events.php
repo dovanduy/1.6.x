@@ -136,11 +136,13 @@ function search(){
 	if($_POST["query"]<>null){
 
 		$search=base64_encode(string_to_regex($_POST["query"]));
-		$array=unserialize(base64_decode($sock->getFrameWork("klms.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}&maillog=$maillogpath")));	
+		$sock->getFrameWork("klms.php?syslog-query=$search&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}&maillog=$maillogpath");
+		$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total = count($array);
 		
 	}else{
-		$array=unserialize(base64_decode($sock->getFrameWork("klms.php?syslog-query=&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}&maillog=$maillogpath")));	
+		$sock->getFrameWork("klms.php?syslog-query=&prepend={$_GET["prepend"]}&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}&maillog=$maillogpath");
+		$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total = count($array);
 	}
 	

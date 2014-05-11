@@ -15,8 +15,8 @@ include_once(dirname(__FILE__)."/ressources/class.fetchmail.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.maincf.multi.inc");
 
-$GLOBALS["deflog_start"]="Starting......: [INIT]: Milter Greylist Daemon";
-$GLOBALS["deflog_sstop"]="Stopping......: [INIT]: Milter Greylist Daemon";
+$GLOBALS["deflog_start"]="Starting......: ".date("H:i:s")." [INIT]: Milter Greylist Daemon";
+$GLOBALS["deflog_sstop"]="Stopping......: ".date("H:i:s")." [INIT]: Milter Greylist Daemon";
 $GLOBALS["ROOT"]=true;
 $GLOBALS["FORCE"]=false;
 if(preg_match("#--verbose#",@implode(" ", $argv))){$GLOBALS["FORCE"]=true;}
@@ -186,7 +186,7 @@ function SingleInstance_start($nopid=false){
 	$pid=SingleInstance_pid();
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 	if($MilterGreyListEnabled==0){echo "{$GLOBALS["deflog_start"]} is not enabled ( see MilterGreyListEnabled)\n";return;}

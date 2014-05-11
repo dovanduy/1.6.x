@@ -27,13 +27,13 @@ class privileges{
 				$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
 		}
 		
-		if($GLOBALS["VERBOSE"]){$this->SearchPrivileges();}
+		//if($GLOBALS["VERBOSE"]){$this->SearchPrivileges();}
 		if(!isset($_SESSION["privileges_array"])){$this->SearchPrivileges();}
 		if(!isset($_SESSION["privileges_array"])){$_SESSION["privileges_array"]=array();}
 		
 			if(count($_SESSION["privileges_array"])==0){
 				$this->ldap=new clladp();
-				if($GLOBALS["DEBUG"]){echo "->SearchPrivileges($uid,$privilegesuid)\n";}
+				//if($GLOBALS["DEBUG"]){echo "->SearchPrivileges($uid,$privilegesuid)\n";}
 				$this->SearchPrivileges();
 				if($GLOBALS["VERBOSE"]){$this->DebugPrivs();}
 			
@@ -125,7 +125,7 @@ $spec",1);
 			return;
 		}
 
-		
+		$_SESSION["privileges_array"]=array();
 		if($this->radiusid>0){
 			$q=new mysql();
 			$results=$q->QUERY_SQL("SELECT groupname FROM radusergroup WHERE username='$this->uid'","artica_backup");

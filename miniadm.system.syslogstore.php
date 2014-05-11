@@ -399,7 +399,7 @@ function status_client(){
 	
 	$html="
 	<div id='title-$t' style='font-size:16px;font-weight:bold'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 	<td valign='top' style='width:100%'>
@@ -465,7 +465,7 @@ function status_server(){
 	
 	$html="
 	<div id='title-$t' style='font-size:16px;font-weight:bold'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 	<td valign='top' style='width:35%'>$APP_SQUID_DB</td>
@@ -588,7 +588,7 @@ function engine_params(){
 		
 	}
 	
-	$boot->set_Newbutton("{test_connection}", "Loadjs('$page?test-nas-js=yes')");
+	$boot->set_Newbutton("{test_connection}", "Loadjs('miniadm.system.syslogstore.php?test-nas-js=yes')");
 	
 	echo $boot->Compile()."<hr style='margin-bottom:10px'>";
 	
@@ -724,7 +724,7 @@ function settings_save(){
 	
 	
 	$sock=new sockets();
-	if(!isset($_POST["BackupSquidLogsNASPassword"])){$_POST["BackupSquidLogsNASPassword"]=url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]);}
+	if(isset($_POST["BackupSquidLogsNASPassword"])){$_POST["BackupSquidLogsNASPassword"]=url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]);}
 
 	while (list ($key, $value) = each ($_POST) ){
 		$sock->SET_INFO($key, $value);

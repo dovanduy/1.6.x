@@ -27,7 +27,7 @@ faux causes la suppression de messages  de fa&ccedil;on permanente si il n'y a p
 <managesieve>filtres dans le style de Thunderbird</managesieve>
 <markasjunk>mark the selected message as Junk and move it to the Junk folder</markasjunk>
 <mysql>Configurations Mysql</mysql>
-<new_user_dialog>Present identities settings dialog to new users</new_user_dialog>
+<new_user_dialog>Pr&eacute;sente les param&egrave;tres d'identification aux nouveaux utilisateurs</new_user_dialog>
 <PHP_FCGI_CHILDREN>Le nombre de processus php-cgi</PHP_FCGI_CHILDREN>
 <PHP_FCGI_MAX_REQUESTS>Demandes maximales avant reprise de processus php-cgi</PHP_FCGI_MAX_REQUESTS>
 <product_name>Titre des pages</product_name>

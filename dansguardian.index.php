@@ -420,16 +420,7 @@ function popup_tabs(){
 		//$html=$html . "<li><a href=\"javascript:LoadAjax('squid_main_config','$page?main=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
 			
 		}
-	echo "
-	<div id=dansguardian_main_config style='width:100%;height:730px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#dansguardian_main_config').tabs();
-				});
-		</script>";		
-	
+	echo build_artica_tabs($html, "dansguardian_main_config");
 	
 }
 
@@ -539,7 +530,7 @@ function popup_dansguardian_main(){
 	$page=CurrentPageName();
 	$performances=Paragraphe("folder-tasks2-64.png","{performances}",'{performances_text}',"javascript:YahooWin(500,'$page?main=performances');");
 	$content_scanner=Paragraphe("64-webscanner.png","{content_scanner}",'{content_scanner_text}',"javascript:YahooWin(651,'$page?main=scanner');");
-	$download=Paragraphe("icon-download.gif","{download}",'{download_text}',"javascript:YahooWin(600,'$page?main=download');");
+	$download=Paragraphe("icon-download.png","{download}",'{download_text}',"javascript:YahooWin(600,'$page?main=download');");
 	$rules=Paragraphe("folder-rules2-64.png","{rules}",'{rules_text}',"javascript:YahooWin(600,'$page?popup-rules=yes');");
 	$apply=applysettings_dansguardian();
 	$squidguardweb=Paragraphe("parameters2-64-grey.png","{banned_page_webservice}","{banned_page_webservice_text}",null);
@@ -925,7 +916,7 @@ function main_download(){
 		$enable_clamav="<tr>
 				<td align='right' nowrap valign='top' class=legend>{enable_clamav}:</strong></td>
 				<td valign='top'><input type='hidden' id='enable_clamav' value='0' name='enable_clamav'></td>
-				<td valign='top'><img src='img/status_warning.gif'> {CLAMD_NOT_INSTALLED_TEXT}</td>
+				<td valign='top'><img src='img/status_warning.png'> {CLAMD_NOT_INSTALLED_TEXT}</td>
 				</tr>";
 		
 		$warn_clamav=Paragraphe("dansguardian-warning.png","{CLAMD_NOT_INSTALLED}","{CLAMD_NOT_INSTALLED_TEXT}");
@@ -935,7 +926,7 @@ function main_download(){
 		$enable_clamav="<tr>
 				<td align='right' nowrap valign='top' class=legend>{enable_clamav}:</strong></td>
 				<td valign='top'><input type='hidden' id='enable_clamav' value='0' name='enable_clamav'></td>
-				<td valign='top'><img src='img/status_warning.gif'> {MEM_TOTAL_INF_700_TEXT}</td>
+				<td valign='top'><img src='img/status_warning.png'> {MEM_TOTAL_INF_700_TEXT}</td>
 				</tr>";
 		
 		$warn_clamav=Paragraphe("dansguardian-warning.png","{MEM_TOTAL_INF_700}","{MEM_TOTAL_INF_700_TEXT}");
@@ -1249,7 +1240,7 @@ echo main_rules();
 function popup_authentication(){
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+	
 	
 	$squid=new squidbee();
 	$LDAP_AUTH=$squid->LDAP_AUTH;

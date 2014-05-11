@@ -513,7 +513,7 @@ private function seems_utf8($Str) {
 			$update_array["objectClass"][]="organizationalUnit";
 			$update_array["ou"][]="groups";
 			if(!$ldap->ldap_add($dn_master_branch,$update_array)){
-				echo "Unable to add master branch\n$dn_master_branch\n$this->ldap_last_error";
+				echo "Unable to add master branch\n$dn_master_branch\n$ldap->ldap_last_error";
 				return false;
 			}
 			unset($update_array);
@@ -581,10 +581,11 @@ private function seems_utf8($Str) {
 	
 	
 	function user_add_to_group($uid){
-		$ldap=new clladp();
-		if($this->members_array[$uid]==true){return true;}
 		
-		writelogs("$uid is not a member of $this->group_id ($this->dn)",__CLASS__.'/'.__FUNCTION__,__FILE__);
+		if(isset($this->members_array[$uid])){return true;}
+		if($this->members_array[$uid]==true){return true;}
+		$ldap=new clladp();
+		
 		$update_array["memberUid"]=$uid;
 		writelogs("add memberUid=$uid",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		

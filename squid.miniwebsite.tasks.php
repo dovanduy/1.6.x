@@ -48,6 +48,15 @@ function white_params_js(){
 	
 }
 
+function black_params_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{white_wwww}::{$_GET["sitename"]}");
+	$html="YahooWin5('480','$page?white-params-popup=yes&sitename={$_GET["sitename"]}&t={$_GET["t"]}&table-t={$_GET["table-t"]}&TasksCallBacks={$_GET["TasksCallBacks"]}','$title')";
+	echo $html;	
+}
+
+
 function white_params_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -64,7 +73,7 @@ function white_params_popup(){
 	if(!is_numeric($t)){$t=time();}
 	if($_GET["TasksCallBacks"]<>null){$TasksCallBacks="{$_GET["TasksCallBacks"]}();";}
 	
-	$html="<div style='width:95%' class=form>
+	$html="<div style='width:98%' class=form>
 	$p
 	<div style='text-align:right'><hr>". button("{apply}","Savewww$t()",16)."</div>
 	<script>
@@ -128,26 +137,37 @@ function page(){
 	if($_GET["gen-thumbnail"]=="yes"){
 		
 		$genthumbnail="$trtr
-		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td width=1%>
+			<img src='img/arrow-right-24.png'></td>
 		<td><a href=\"javascript:blur();\"
 		OnClick=\"javascript:ReGenerateThumbs();\"
-		style='font-size:13px;text-decoration:underline;font-weight:bold'>{regenerate_thumbnail}</a></td>";
+		style='font-size:16px;text-decoration:underline;font-weight:bold'>{regenerate_thumbnail}</a></td>";
 		
 	}
 	
 	$html="
-	<div style='width:95%' class=form>
+	<div style='width:95%;margin-top:30px'>
 	<table>
 	<tr>
-		<td width=1%><img src='img/arrow-right-16.png'></td>
+		<td width=1%><img src='img/arrow-right-24.png'></td>
 		<td><a href=\"javascript:blur();\"
 		OnClick=\"javascript:Loadjs('$page?cache-params-js=yes&sitename={$_GET["sitename"]}&t={$_GET["t"]}&table-t={$_GET["table-t"]}&TasksCallBacks={$_GET["TasksCallBacks"]}');\"
-		style='font-size:13px;text-decoration:underline;font-weight:bold'>{cache_parameters}$enabled</a></td>
+		style='font-size:16px;text-decoration:underline;font-weight:bold'>{cache_parameters}$enabled</a></td>
 		$trtr
-		<td width=1%><img src='img/arrow-right-16.png'></td>
-		<td><a href=\"javascript:blur();\"
-		OnClick=\"javascript:Loadjs('$page?white-params-js=yes&sitename={$_GET["sitename"]}&t={$_GET["t"]}&table-t={$_GET["table-t"]}&TasksCallBacks={$_GET["TasksCallBacks"]}');\"
-		style='font-size:13px;text-decoration:underline;font-weight:bold'>{whitelist_this_website}$enabledW</a></td>
+		<td width=1%><img src='img/arrow-right-24.png'></td>
+		<td>
+			<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('$page?white-params-js=yes&sitename={$_GET["sitename"]}&t={$_GET["t"]}&table-t={$_GET["table-t"]}&TasksCallBacks={$_GET["TasksCallBacks"]}');\"
+			style='font-size:16px;text-decoration:underline;font-weight:bold'>{whitelist_this_website}$enabledW</a>
+		</td>
+		$trtr
+		<td width=1%><img src='img/arrow-right-24.png'></td>
+		<td>
+			<a href=\"javascript:blur();\"
+			OnClick=\"javascript:Loadjs('squid.urlrewriteaccessdeny.php?add-black-js=yes&sitename={$_GET["sitename"]}');\"
+			style='font-size:16px;text-decoration:underline;font-weight:bold'>{blacklist_this_website}$enabledW</a>
+		</td>		
+		
 	</tr>	
 	$genthumbnail
 	</table>
@@ -208,7 +228,7 @@ if($_GET["with-enable"]=="yes"){$enabled=1;}
 	$html="
 	<div id='animate-$t'></div>
 	<div style='font-size:18px;font-weight:bold'>{$_GET["sitename"]} {cache_parameters}</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table >
 	
 	

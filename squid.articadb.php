@@ -30,6 +30,8 @@
 	if(isset($_POST["per_thread_buffers"])){per_thread_buffers();exit;}
 	if(isset($_POST["server_buffers"])){server_buffers();exit;}
 	if(isset($_POST["total_memory"])){total_memory();exit;}
+	if(isset($_GET["squid-db-status"])){status_service();exit;}
+	if(isset($_GET["squid-db-mysql"])){status_mysql();exit;}
 js();
 
 function js(){
@@ -37,7 +39,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{mysql_statistics_engine}");
-	$html="YahooWin('821','$page?tabs=yes','$title');";
+	$html="YahooWin('900','$page?tabs=yes','$title');";
 	echo $html;	
 	
 }
@@ -50,12 +52,19 @@ function tabs(){
 	$array["status"]='{status}';
 	$array["popup"]='{parameters}';
 	$array["members"]='{members}';
+	$array["purge"]='{purge}';
 	
 	
 	
 	//$array["restored"]='{restored}';
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="purge"){
+			$html[]= "<li><a href=\"squid.artica.statistics.purge.php?tabs=yes\"><span>$ligne</span></a></li>\n";
+			continue;
+		}		
+		
 		if($num=="members"){
 			$html[]= "<li><a href=\"squid.articadb.mysql.php?members=yes\"><span>$ligne</span></a></li>\n";
 			continue;
@@ -77,15 +86,24 @@ function tabs(){
 });
 			</script>");
 }
-function status(){
+
+function status_service(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
-	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
-	$t=time();
+	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);	
+	echo $tpl->_ENGINE_parse_body($APP_SQUID_DB)
+	."<script>LoadAjaxTiny('squid-db-mysql','$page?squid-db-mysql=yes&t=$t');</script>";
+}
+
+function status_mysql(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$sock=new sockets();
 	$q=new mysql_squid_builder(true);
 	$sql="SHOW VARIABLES LIKE '%version%';";
 	$results=$q->QUERY_SQL($sql);
@@ -105,33 +123,50 @@ function status(){
 	$tt[]="
 	<tr>
 	<td colspan=2><div style='font-size:14px'>{Created_tmp_tables}:&nbsp;{$STATUS["Created_tmp_tables"]}</a></div></td>
-	</tr>";	
+	</tr>";
 	$tt[]="
 	<tr>
 	<td colspan=2><div style='font-size:14px'>{Max_used_connections}:&nbsp;{$STATUS["Max_used_connections"]}</a></div></td>
-	</tr>";	
+	</tr>";
 	
-		
-	$html="
-	<div id='title-$t' style='font-size:16px;font-weight:bold'></div>
-	<table style='width:99%' class=form>
-	<tr>
-	<td valign='top'>$APP_SQUID_DB</td>
-	<td valign='top'>
-	<table style='width:100%'>
+	
+	$html="<table style='width:100%'>
 	<tbody>
 	<tr>
 	<td colspan=2><div style='font-size:16px;font-weight:bold;margin-top:10px'>{mysql_engine}:</div></td>
 	</tr>
 	".@implode("", $tt)."
 	</tbody>
-	</table>
+	</table>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+
+function status(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$sock=new sockets();
+	$t=time();
+
+	
+		
+	$html="
+	<div id='title-$t' style='font-size:16px;font-weight:bold'></div>
+	<table style='width:99%' class=form>
+	<tr>
+	<td valign='top'><div id='squid-db-status'></div></td>
+	<td valign='top'><div id='squid-db-mysql'>
+		<div class=explain style='font-size:14px'>{squiddb_howitis}</div>
 	</td>
 	</tr>
 	</table>
 	<script>
 		function RefreshTableTitle$t(){
 			LoadAjaxTiny('title-$t','squid.artica.statistics.purge.php?title=yes&t=$t');
+			LoadAjaxTiny('squid-db-status','$page?squid-db-status=yes&t=$t');
 		}
 		RefreshTableTitle$t();
 	</script>
@@ -159,8 +194,14 @@ function popup(){
 	$serverMem=round(($users->MEM_TOTAL_INSTALLEE-300)/1024);
 	
 	$VARIABLES=$q->SHOW_VARIABLES();
+	if(!$q->ok){echo $q->mysql_error_html();}
+	
+	
 	while (list ($key, $value) = each ($SquidDBTuningParameters) ){
-		if($VARIABLES[$key]==null){$VARIABLES=$SquidDBTuningParameters[$key];}
+		if($VARIABLES[$key]==null){
+			if(isset($SquidDBTuningParameters[$key])){
+				$VARIABLES[$key]=$SquidDBTuningParameters[$key];}
+		}
 	
 	}
 	

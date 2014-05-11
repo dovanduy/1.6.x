@@ -13,12 +13,39 @@ function left_infos_1(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$ldap=new clladp();
-	if(!$users->AsArticaAdministrator){die("<H2 style='color:red'>Privileges error; Permission denied<br>Please logoff</H2>");}
+	if(!$users->AsArticaAdministrator){die();}
 	$page=CurrentPageName();	
 	$SambaEnabled=$sock->GET_INFO("SambaEnabled");
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}	
 	$DisablePurchaseInfo=$sock->GET_INFO("DisablePurchaseInfo");
 	if(!is_numeric($DisablePurchaseInfo)){$DisablePurchaseInfo=0;}
+	
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork("monit.php?status=yes")));
+	
+	$running=$ini->_params["APP_MONIT"]["running"];
+	if(!is_numeric($running)){$running=0;}
+	$cmd=urlencode($ini->_params["APP_MONIT"]["service_cmd"]);
+	$monit_cmdline="
+		<table style='width:54px;float:right;margin-top:-10px;'>
+			<tr>
+				<td width=18px>". imgtootltip("16-run.png","{start}","Loadjs('system.services.cmd.php?APPNAME=APP_MONIT&action=start&cmd={$ini->_params["APP_MONIT"]["service_cmd"]}&id=&appcode=APP_MONIT')")."</td>
+				<td width=18px>". imgtootltip("restart-16.png","{restart}","Loadjs('system.services.cmd.php?APPNAME=APP_MONIT&action=restart&cmd={$ini->_params["APP_MONIT"]["service_cmd"]}&id=&appcode=APP_MONIT')")."</td>
+				<td width=18px>". imgtootltip("16-stop.png","{stop}","Loadjs('system.services.cmd.php?APPNAME=APP_MONIT&action=stop&cmd={$ini->_params["APP_MONIT"]["service_cmd"]}&id=&appcode=APP_MONIT')")."</td>
+			</tr>
+		</table>";
+	
+	
+	if($running<>1){
+		echo $tpl->_ENGINE_parse_body(ParagrapheTEXT("warn-red-32.png",'{APP_MONIT}',"{APP_MONIT_NOT_RUNNING_TEXT}<div style=text-align:right>$monit_cmdline</div>",
+				"javascript:Loadjs('system.services.cmd.php?APPNAME=APP_MONIT&action=start&cmd=%2Fetc%2Finit.d%2Fmonit&appcode=APP_MONIT');"));
+	}else{
+		$text="{running} PID: {$ini->_params["APP_MONIT"]["master_pid"]} {since} {$ini->_params["APP_MONIT"]["uptime"]}<br>{APP_MONIT_RUNNING_TEXT}";
+		echo $tpl->_ENGINE_parse_body(ParagrapheTEXT("ok32.png",'{APP_MONIT}',$text."<div style=\"text-align:right\">$monit_cmdline</div>","javascript:Loadjs('monit.php');",0,true));
+	}
+	
+	
+	
 	if($DisablePurchaseInfo==0){
 		echo $tpl->_ENGINE_parse_body(ParagrapheTEXT("technical-support-32.png",'{ARTICA_P_SUPPORT}','{ARTICA_P_SUPPORT_TEXT}',"javascript:Loadjs('artica.subscription.php');"));
 	}
@@ -38,7 +65,7 @@ function left_infos_1(){
 		echo ParagrapheTEXT("no-ie-32.png",'{NOIEPLEASE} !!','{NOIEPLEASE_TEXT}',"javascript:s_PopUp('http://www.mozilla-europe.org/en/firefox/','800',800);",null,330);
 	}
 	
-	if($sock->GET_INFO("EnableNightlyInFrontEnd")==1){NightlyNotifs();}
+
 	
 	if($users->VMWARE_HOST){
 		if(!$users->VMWARE_TOOLS_INSTALLED){
@@ -75,9 +102,15 @@ function left_infos_1(){
 		}
 	}
 	
+	if($users->SQUID_INSTALLED){
+		if(!$users->KAV4PROXY_INSTALLED){
+			echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS}",'{INSTALL_OCS_TEXT}',"javascript:Loadjs('ocs.install.php');",null,330);
+		}
+	}
+	
 	if(!$users->OCS_LNX_AGENT_INSTALLED){
 		if($sock->GET_INFO("DisableOCSClientPub")<>1){
-			echo ParagrapheTEXT("48-install-soft.png","{INSTALL_OCS_CLIENT}",'{INSTALL_OCS_CLIENT_TEXT}',"javascript:Loadjs('ocs.clientinstall.php');",null,330);	
+			echo ParagrapheTEXT("bigkav-48.png","Kaspersky For Artica",'{kaspersky_pub1}',"javascript:Loadjs('artica.pubs.php?KasperskyPromo-022014-show=yes');",null,330);	
 		}
 	}
 	
@@ -91,10 +124,14 @@ function left_infos_1(){
 			if(leftcontent.length<70){
 				LoadAjax('admin-left-infos','admin.index.status-infos.php');
 			}
+		}else{
+			UnlockPage();
 		}
+		
 	}
 	
 	 Start$t();
+	 UnlockPage();
 </script>";
 	
 	

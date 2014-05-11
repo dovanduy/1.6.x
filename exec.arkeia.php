@@ -49,13 +49,13 @@ function build(){
 	$unix=new unix();
 	$hostname=$unix->hostname_g();
 	if(!is_file("/opt/arkeia/arkeiad/admin.cfg")){
-		echo "Starting......: Arkeia Network Backup writing admin.cfg for ($hostname)\n";
+		echo "Starting......: ".date("H:i:s")." Arkeia Network Backup writing admin.cfg for ($hostname)\n";
 		@file_put_contents("/opt/arkeia/arkeiad/admin.cfg", $unix->hostname_g());
 		
 	}
 	
 	if(!is_file("/opt/arkeia/server/dbase/f3sec/license.lst")){
-		echo "Starting......: Arkeia Network Backup adding Free version license...\n";
+		echo "Starting......: ".date("H:i:s")." Arkeia Network Backup adding Free version license...\n";
 		@file_put_contents("/opt/arkeia/server/dbase/f3sec/license.lst", @implode("\n", $lic));
 		
 	}
@@ -63,7 +63,7 @@ function build(){
 	$users=ParseUsers();
 	if(!isset($users["root"])){
 		if($users["root"]["PASSWORD"]==null){
-			echo "Starting......: Arkeia Network Backup root as no password, delete it...\n";
+			echo "Starting......: ".date("H:i:s")." Arkeia Network Backup root as no password, delete it...\n";
 			unset($users["root"]);
 		}
 	}
@@ -78,7 +78,7 @@ function build(){
 	$users[$ldap->ldap_admin]["ROLE"]="ADMINISTRATOR";
 	$users[$ldap->ldap_admin]["NAME"]="$ldap->ldap_admin";
 	SetUsers($users);
-	echo "Starting......: Arkeia Network Backup edit/add $ldap->ldap_admin done..\n";
+	echo "Starting......: ".date("H:i:s")." Arkeia Network Backup edit/add $ldap->ldap_admin done..\n";
 	
 	$arc[]="NODE	\"localhost\"";
 	$arc[]="LOGIN	\"$ldap->ldap_admin\"";
@@ -86,7 +86,7 @@ function build(){
 	$arc[]="ENCODING	\"1\"";
 	$arc[]="LANG	\"EN\"";
 	@file_put_contents("/opt/arkeia/arkc/arkc.param", @implode("\n", $arc));
-	echo "Starting......: Arkeia Network Backup edit arkc.param done..\n";
+	echo "Starting......: ".date("H:i:s")." Arkeia Network Backup edit arkc.param done..\n";
 	
 	$akeiad[]="ARKEIADLOGLEVEL\t\"10\"	";
 	$akeiad[]="PORT_NUMBER\t\"617\"";
@@ -95,7 +95,7 @@ function build(){
 	$akeiad[]="DONT_USE_PS\t\"1\"";
 	$akeiad[]="";
 	@file_put_contents("/opt/arkeia/arkeiad/arkeiad.cfg", @implode("\n", $arc));
-	echo "Starting......: Arkeia Network Backup edit arkeiad.cfg done..\n";
+	echo "Starting......: ".date("H:i:s")." Arkeia Network Backup edit arkeiad.cfg done..\n";
 	
 	
 	
@@ -127,7 +127,7 @@ function SetDefaultStorage(){
 	}
 	
 	if(count($array)>0){return;}
-	echo "Starting......: Arkeia Network Backup creating the default storage with 249.5G\n";
+	echo "Starting......: ".date("H:i:s")." Arkeia Network Backup creating the default storage with 249.5G\n";
 	shell_exec("/opt/arkeia/bin/arkc -vtl -create -D name=DefaultStorage capacity=249500 path=/home/arkeia/backup media_server=localhost");
 	
 	

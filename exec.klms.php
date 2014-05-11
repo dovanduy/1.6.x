@@ -6,7 +6,7 @@ include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
@@ -116,11 +116,11 @@ $f[]="";
 $f[]="# filter integration mode: prequeue | afterqueue";
 $f[]="integration=prequeue";
 @file_put_contents("/etc/opt/kaspersky/klms/klms_filters.conf", @implode("\n", $f));	
-echo "Starting......: klms8 klms_filters.conf done\n";	
+echo "Starting......: ".date("H:i:s")." klms8 klms_filters.conf done\n";	
 ChecksPermissions();
-echo "Starting......: klms8 Check permissions done\n";
+echo "Starting......: ".date("H:i:s")." klms8 Check permissions done\n";
 ldap_cnx();
-echo "Starting......: klms8 Check LDAP settings done\n";
+echo "Starting......: ".date("H:i:s")." klms8 Check LDAP settings done\n";
 }
 
 
@@ -165,7 +165,7 @@ function watchdog(){
 	if($EnableKlms==0){$EnableWatchdog=0;}
 	
 	if($EnableWatchdog==0){
-		echo "Starting......: klms8 Monit is not enabled ($EnableWatchdog)\n";
+		echo "Starting......: ".date("H:i:s")." klms8 Monit is not enabled ($EnableWatchdog)\n";
 		if(is_file($monit_file)){
 			@unlink($monit_file);
 			@unlink("/etc/monit/conf.d/klms8db.monitrc");
@@ -179,7 +179,7 @@ function watchdog(){
 	
 	if($EnableWatchdog==1){
 		$pidfile="/var/run/klms/klms.pid";
-		echo "Starting......: klms8 Monit is enabled check pid `$pidfile`\n";
+		echo "Starting......: ".date("H:i:s")." klms8 Monit is enabled check pid `$pidfile`\n";
 		$reloadmonit=true;
 		$f[]="check process klms8";
    		$f[]="with pidfile $pidfile";
@@ -270,14 +270,14 @@ function _test_setup(){
 	if(!is_file("/var/opt/kaspersky/klms/postgresql/postgresql.conf")){return false;}
 	if(!is_file("/var/opt/kaspersky/klms/postgresql/PG_VERSION")){return false;}
 	if(!is_file("/var/opt/kaspersky/klms/postgresql/pg_ident.conf")){return false;}	
-	echo "Starting......: Kaspersky Mail security Suite: postgresql.conf,PG_VERSION,pg_ident.conf OK\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite: postgresql.conf,PG_VERSION,pg_ident.conf OK\n";
 	
 	$dirs[]="base";
 	$dirs[]="global";
 	
 	while (list ($key, $directory) = each ($dirs) ){
 		if(!is_dir("/var/opt/kaspersky/klms/postgresql/$directory")){return false;}
-		echo "Starting......: Kaspersky Mail security Suite: dir:$directory OK\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite: dir:$directory OK\n";
 	}
 	return true;
 	
@@ -297,24 +297,24 @@ function setup(){
 	}
 	
 	if(file_exists("/var/opt/kaspersky/klms/installer.dat")){
-		echo "Starting......: Kaspersky Mail security Suite install already done...\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite install already done...\n";
 		return;
 	}	
 	
 	$unix=new unix();
 	$local_gen=$unix->find_program("locale-gen");
-	echo "Starting......: Kaspersky Mail security Suite generating en_US.UTF-8\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite generating en_US.UTF-8\n";
 	shell_exec("$local_gen en_US.UTF-8");
 	
 	
-	echo "Starting......: Kaspersky Mail security Suite starting installation..\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite starting installation..\n";
 	$chmod=$unix->find_program("chmod");
 	$chown=$unix->find_program("chown");
 	$su=$unix->find_program("su");
 	$cp=$unix->find_program("cp");
 	@mkdir("/var/opt/kaspersky/klms/postgresql",0755,true);
 	shell_exec("$chown kluser:klusers /var/opt/kaspersky/klms/postgresql");
-	echo "Starting......: Kaspersky Mail security Suite creating database....\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite creating database....\n";
 	if(!is_file("/var/opt/kaspersky/klms/postgresql/postgresql.conf")){@unlink("/var/opt/kaspersky/klms/postgresql/postgresql.conf");}
 	$cmd="su -m -l kluser -c \"/opt/kaspersky/klms/libexec/postgresql/initdb -L /opt/kaspersky/klms/share/postgresql --pgdata=/var/opt/kaspersky/klms/postgresql --encoding=utf-8 --locale=C\"";
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
@@ -322,7 +322,7 @@ function setup(){
 	$cmd="$cp -fp /opt/kaspersky/klms/share/postgresql.conf.skel /var/opt/kaspersky/klms/postgresql/postgresql.conf";
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);
-	echo "Starting......: Kaspersky Mail security Suite starting Database service...\n";	
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite starting Database service...\n";	
 	shell_exec("/etc/init.d/klmsdb start");
 	
 	$f[]="configurator";
@@ -334,17 +334,17 @@ function setup(){
 	$f[]="personal_settings";
 	
 	while (list ($index, $table) = each ($f) ){
-		echo "Starting......: Kaspersky Mail security Suite creating table \"$table\"\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite creating table \"$table\"\n";
 		$cmd="su -m -l kluser -c \"/opt/kaspersky/klms/libexec/postgresql/createdb -h /var/run/klms -O kluser -E UTF8 $table\"";
 		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 		shell_exec($cmd);
 	}
-	echo "Starting......: Kaspersky Mail security Suite creating default password \"$table\"\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite creating default password \"$table\"\n";
 	@copy("/usr/share/artica-postfix/bin/install/klms.db.password","/var/opt/kaspersky/klms/db/password");
-	echo "Starting......: Kaspersky Mail security Suite fixing settings\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite fixing settings\n";
 	$t=exec("/opt/kaspersky/klms/libexec/generate_uuid");
 	if(preg_match("#.*?:(.+)#", $t,$re)){$generate_uuid=$re[1];}
-	echo "Starting......: Kaspersky Mail security Suite identifier:$generate_uuid\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite identifier:$generate_uuid\n";
 	
 
 	$file[]="INSTALL_DATE=".time();
@@ -355,9 +355,9 @@ function setup(){
 	$file[]="POSTFIX_INTEGRATION_TYPE=milter";
 	$file[]="POSTGRESQL_INSTALLED=YES";
 	@file_put_contents("/var/opt/kaspersky/klms/installer.dat", @implode("\n", $file));
-	echo "Starting......: Kaspersky Mail security Suite creating watchdog...\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite creating watchdog...\n";
 	watchdog();
-	echo "Starting......: Kaspersky Mail security Suite installation done...\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite installation done...\n";
 	buildConf();
 	
 }
@@ -436,7 +436,7 @@ function ruleslist(){
 
 function default_outgoing_rule(){
 	if(!is_file("/opt/kaspersky/klms/bin/klms-control")){
-		echo "Starting......: Kaspersky Mail security Suite `klms-control` no such binary\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite `klms-control` no such binary\n";
 		return;
 	}
 	
@@ -445,7 +445,7 @@ function default_outgoing_rule(){
 	
 	$ID=$ruleslist["From Local Network"];
 	if(!is_numeric($ID)){$ID=0;}
-	echo "Starting......: Kaspersky Mail security Suite default rule ID:$ID\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite default rule ID:$ID\n";
 	$sock=new sockets();
 	$MynetworksInISPMode=$sock->GET_INFO("MynetworksInISPMode");
 	$PostfixBadNettr=unserialize(base64_decode($sock->GET_INFO("PostfixBadNettr")));
@@ -850,10 +850,10 @@ function default_outgoing_rule(){
 	$cmd="/opt/kaspersky/klms/bin/klms-control --create-rule \"From Local Network\" -f $filetemp";
 	if($ID>0){$cmd="/opt/kaspersky/klms/bin/klms-control --set-rule-settings $ID -f $filetemp";}
 	
-	echo "Starting......: Kaspersky Mail security Suite `$cmd`\n";
+	echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite `$cmd`\n";
 	exec($cmd,$results);
 	while (list ($key, $line) = each ($results) ){
-		echo "Starting......: Kaspersky Mail security Suite \"$line\"\n";
+		echo "Starting......: ".date("H:i:s")." Kaspersky Mail security Suite \"$line\"\n";
 	}
 	
 }

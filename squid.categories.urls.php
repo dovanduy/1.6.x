@@ -225,7 +225,7 @@ $rowebsite=461;
 if(isset($_GET["rowebsite"])){$rowebsite=$_GET["rowebsite"];$rowebsite=$rowebsite-40;}
 
 	if(!$users->CORP_LICENSE){
-		$title=$title."<img src='img/status_warning.gif'>".$tpl->_ENGINE_parse_body("{license_inactive}!")."";
+		$title=$title."<img src='img/status_warning.png'>".$tpl->_ENGINE_parse_body("{license_inactive}!")."";
 	}
 	
 echo "
@@ -254,7 +254,7 @@ $searchitem
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 300,
 	singleSelect: true
 	
@@ -266,16 +266,16 @@ $searchitem
 	}
 
 	function MoveCategorizedWebsite(zmd5,website,category,category_table){
-		YahooWin5(550,'$page?move-category-popup=yes&website='+website+'&zmd5='+zmd5+'&category-source='+category+'&table-source='+category_table,'$movetext::'+website);
+		YahooWinBrowse(550,'$page?move-category-popup=yes&YahooWin=YahooWinBrowse&website='+website+'&zmd5='+zmd5+'&category-source='+category+'&table-source='+category_table,'$movetext::'+website);
 	}
 
 	function MoveAllCategorizedWebsite(){
-		YahooWin5(550,'$page?move-category-popup=yes&website=&zmd5=&category-source={$_GET["category"]}&table-source=$table&bysearch={$_GET["search"]}','$movetext::{$_GET["search"]}');
+		YahooWinBrowse(550,'$page?move-category-popup=yes&YahooWin=YahooWinBrowse&website=&zmd5=&category-source={$_GET["category"]}&table-source=$table&bysearch={$_GET["search"]}','$movetext::{$_GET["search"]}');
 		
 	}
 	
 	function MoveAllCategorizedWebsite2(category,table,search){
-		YahooWin5(550,'$page?move-category-popup=yes&website=&zmd5=&category-source='+category+'&table-source='+table+'&bysearch='+search+'&t=$t','$movetext::'+search);
+		YahooWinBrowse(550,'$page?move-category-popup=yes&YahooWin=YahooWinBrowse&website=&zmd5=&category-source='+category+'&table-source='+table+'&bysearch='+search+'&t=$t','$movetext::'+search);
 		
 	}
 

@@ -89,7 +89,7 @@ function start(){
 			useRp: true,
 			rp: 15,
 			showTableToggleBtn: false,
-			width: 853,
+			width: '99%',
 			height: 450,
 			singleSelect: true
 		});

@@ -1,5 +1,5 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
@@ -22,6 +22,7 @@ if($argv[1]=='--phpfpm'){php_fpm();die();}
 if($argv[1]=='--phpfpm-daemon'){php_fpm(true);die();}
 if($argv[1]=='--nginx'){check_nginx(true);die();}
 if($argv[1]=='--pkg-upgrade'){UPGRADE_FROM_INTERFACE();die();}
+if($argv[1]=='--ubuntu'){CheckSourcesList_ubuntu();die();}
 
 
 if(system_is_overloaded(basename(__FILE__))){
@@ -65,6 +66,7 @@ function clean_upgrade(){
 }
 
 function GetUpdates(){
+	
 	if(system_is_overloaded(basename(__FILE__))){system_admin_events("This system is too many overloaded, die()",__FUNCTION__,__FILE__,__LINE__,"system-update");die();}	
 	$sock=new sockets();
 	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
@@ -75,6 +77,7 @@ function GetUpdates(){
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/debian.update.html");
 
 	$unix=new unix();
+	if(is_file("/etc/artica-postfix/FROM_ISO")){$time=$unix->file_time_min("/etc/artica-postfix/FROM_ISO");if($time<60){return;}}
 	$tmpf=$unix->FILE_TEMP();
 	exim_remove();
 	CheckSourcesList();
@@ -605,6 +608,7 @@ function exim_remove(){
 	$f[]="/usr/sbin/exim4";
 	$f[]="/etc/init.d/exim4";
 	$f[]="/usr/sbin/exim";
+	
 	$removeexim=false;
 	while (list ($num, $val) = each ($f) ){
 		if(is_file($val)){
@@ -635,34 +639,115 @@ function exim_remove(){
 }
 
 function sendmail_remove(){
+	$unix=new unix();
+	$aptget=$unix->find_program("apt-get");
+	
+	if(is_file("/etc/init.d/xmail")){
+		if(is_file($aptget)){
+			$cmd="DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -y remove xmail* 2>&1";
+			shell_exec($cmd);
+		}
+	}
+	
 	
 	$f[]="/etc/init.d/sendmail";
+	$f[]="/etc/init.d/xmail";
+	
+	
+	
 	$removeexim=false;
 	while (list ($num, $val) = each ($f) ){
 		if(is_file($val)){
-			$removeexim=true;
+			shell_exec("$val stop");
+			shell_exec("/usr/sbin/update-rc.d -f ".basename($val)." remove");
+			@unlink($val);
 		}
 	
 	}
-	if($removeexim){
-		shell_exec("/etc/init.d/sendmail stop");
-		shell_exec("/usr/sbin/update-rc.d -f sendmail remove");
-	}	
+	
+}
+
+function CheckSourcesList_ubuntu(){
+	$f=explode("\n",@file_get_contents("/etc/lsb-release"));
+	while (list ($num, $val) = each ($f) ){
+		if(preg_match("#([A-Z_]+).*?=(.+)#", $val,$re)){
+			$ARRAY[trim($re[1])]=trim($re[2]);
+		}
+		
+	}
+	
+	if(strtolower($ARRAY["DISTRIB_ID"])<>"ubuntu"){return;}
+	$version=$ARRAY["DISTRIB_RELEASE"];
+	if($version=="9.10"){check_karmic();return;}
+	
+//	print_r($ARRAY);
+}
+
+function check_karmic(){
+	$f[]="deb http://old-releases.ubuntu.com/ubuntu/ karmic main  restricted";
+	$f[]="deb-src http://old-releases.ubuntu.com/ubuntu/ karmic main  restricted";
+	$f[]="deb http://old-releases.ubuntu.com/ubuntu/ karmic-updates main restricted";
+	$f[]="deb-src http://old-releases.ubuntu.com/ubuntu/ karmic-updates main  restricted";
+	$f[]="deb http://old-releases.ubuntu.com/ubuntu/ karmic universe";
+	$f[]="deb-src http://old-releases.ubuntu.com/ubuntu/ karmic universe";
+	$f[]="deb http://old-releases.ubuntu.com/ubuntu/ karmic-updates universe";
+	$f[]="deb-src http://old-releases.ubuntu.com/ubuntu/ karmic-updates universe";
+	$f[]="deb http://old-releases.ubuntu.com/ubuntu/ karmic multiverse";
+	$f[]="deb-src http://old-releases.ubuntu.com/ubuntu/ karmic multiverse";
+	$f[]="deb http://old-releases.ubuntu.com/ubuntu/ karmic-updates multiverse";
+	$f[]="deb-src http://old-releases.ubuntu.com/ubuntu/ karmic-updates multiverse";
+	$f[]="deb http://security.ubuntu.com/ubuntu karmic-security main restricted";
+	$f[]="deb-src http://security.ubuntu.com/ubuntu karmic-security main restricted";
+	$f[]="deb http://security.ubuntu.com/ubuntu karmic-security universe";
+	$f[]="deb-src http://security.ubuntu.com/ubuntu karmic-security universe";
+	$f[]="deb http://security.ubuntu.com/ubuntu karmic-security multiverse";
+	$f[]="deb-src http://security.ubuntu.com/ubuntu karmic-security multiverse";	
+	@file_put_contents("/etc/apt/sources.list",@implode("\n",$f));
+	echo "CheckSourcesList:  /etc/apt/sources.list Ubuntu Karmic OK\n";
+	return;
+	
 }
 
 
 function CheckSourcesList(){
-if(is_file("/etc/lsb-release")){if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system, aborting\n";}}	
+if(is_file("/etc/lsb-release")){
+	if($GLOBALS["VERBOSE"]){ "CheckSourcesList: Ubuntu system -> Check-ubuntu\n";}
+	return CheckSourcesList_ubuntu();
+}	
 if(!is_file("/etc/debian_version")){return;}
 $ver=trim(@file_get_contents("/etc/debian_version"));
 preg_match("#^([0-9]+)\.#",$ver,$re);
 if(preg_match("#squeeze\/sid#",$ver)){$Major=6;}
 $Major=$re[1];
 echo "CheckSourcesList: Debian version $Major\n";
+@mkdir("/var/lib/dpkg/updates",0755,true);
+@mkdir("/var/lib/dpkg/info",0755,true);
+@mkdir("/var/lib/dpkg/config",0755,true);
+
+if(!is_file("/var/lib/dpkg/status")){@touch("/var/lib/dpkg/status");}
+if(!is_file("/var/lib/dpkg/available")){@touch("/var/lib/dpkg/available");}
+
+
 if(!is_numeric($Major)){ echo "CheckSourcesList: Debian version failed \"$ver\"\n";return;}
 
-$f=@explode("\n",@file_get_contents("/etc/apt/sources.list"));
+
 $detected=false;
+
+if($Major==7){
+	$f[]="deb http://http.debian.net/debian wheezy main";
+	$f[]="deb-src http://http.debian.net/debian wheezy main";
+	$f[]="deb http://http.debian.net/debian wheezy-updates main";
+	$f[]="deb-src http://http.debian.net/debian wheezy-updates main";
+	$f[]="deb http://security.debian.org/ wheezy/updates main";
+	$f[]="deb-src http://security.debian.org/ wheezy/updates main";
+	$f[]="deb-src http://packages.dotdeb.org wheezy all";
+	$f[]="deb http://packages.dotdeb.org wheezy all";
+	@file_put_contents("/etc/apt/sources.list",@implode("\n",$f));
+	return;
+}
+
+
+$f=@explode("\n",@file_get_contents("/etc/apt/sources.list"));
 while (list ($num, $val) = each ($f) ){
 	if($Major==5){
 		if(preg_match("#deb\s+http:.+?archive#",$val)){
@@ -704,6 +789,7 @@ if($Major==6){
 }
 
 }
+
 
 function CheckYum(){
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/debian.update.html");
@@ -844,16 +930,27 @@ function php_fpm($aspid=false){
 	if(is_file($phpfpm)){
 		$php=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$php /usr/share/artica-postfix/exec.initslapd.php --phppfm");
+		APTToSyslog("Restarting PHP-FPM");
 		shell_exec("/etc/init.d/php5-fpm restart");
 		shell_exec("/etc/init.d/artica-postfix restart apache");
-		shell_exec("/etc/init.d/artica-postfix restart artica-status");
+		shell_exec("/etc/init.d/artica-status reload");
 		shell_exec("/etc/init.d/artica-framework restart");
+		shell_exec("/etc/init.d/monit restart");
 		shell_exec("$php /usr/share/artica-postfix/exec.freeweb.php --build");
 	}
 	
 	
 	
 }
+
+function APTToSyslog($text){
+
+	$LOG_SEV=LOG_INFO;
+	if(function_exists("openlog")){openlog("exec.apt-get", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
+}
+
 function nginx($aspid=false){
 
 	$unix=new unix();

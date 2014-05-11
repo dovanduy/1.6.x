@@ -51,11 +51,14 @@ function monitor_parameters_popup(){
 	$buttonname="{apply}";
 	
 	$SquidMonitorParms=unserialize(base64_decode($sock->GET_INFO("SquidMonitorParms")));
+
 	
 	$server_all_kbytes_in=$SquidMonitorParms["server_all_kbytes_in"];
 	$server_all_kbytes_out=$SquidMonitorParms["server_all_kbytes_out"];
 	$HttpRequests=$SquidMonitorParms["HttpRequests"];
 	$ActiveRequests=$SquidMonitorParms["ActiveRequests"];
+	
+
 	if(!is_numeric($server_all_kbytes_in)){$server_all_kbytes_in=250;}
 	if(!is_numeric($server_all_kbytes_out)){$server_all_kbytes_out=250;}
 	if(!is_numeric($HttpRequests)){$HttpRequests=150;}
@@ -187,6 +190,8 @@ function proxy_service(){
 	$server_all_kbytes_in=$tpl->javascript_parse_text("{server_all_kbytes_in}");
 	$server_all_kbytes_out=$tpl->javascript_parse_text("{server_all_kbytes_out}");
 	$active_requests=$tpl->javascript_parse_text("{active_requests}");
+	$members=$tpl->_ENGINE_parse_body("{members}");
+	$ipaddr=$tpl->_ENGINE_parse_body("{ipaddr}");
 	$cpunum=intval($users->CPU_NUMBER);
 	$maxload=$cpunum+1;	
 	$parameters_link=null;
@@ -211,6 +216,15 @@ function proxy_service(){
 	$ActiveRequests="<canvas id='ActiveRequests' width='$defaultsize' height='$defaultsize ' style='margin:10px'></canvas>
 	<center style='font-size:16px'>$active_requests<span id='ActiveRequests-title' style='padding-left:5px;font-weight:bold'></span></center>";
 	
+	$ActiveRequestsMembers="<canvas id='ActiveRequestsMembers' width='$defaultsize' height='$defaultsize ' style='margin:10px'></canvas>
+	<center style='font-size:16px'>$active_requests $members<span id='ActiveRequestsMembers-title' style='padding-left:5px;font-weight:bold'></span></center>";
+	
+	$ActiveRequestsIpaddr="<canvas id='ActiveRequestsIpaddr' width='$defaultsize' height='$defaultsize ' style='margin:10px'></canvas>
+	<center style='font-size:16px'>$active_requests $ipaddr<span id='ActiveRequestsIpaddr-title' style='padding-left:5px;font-weight:bold'></span></center>";
+	
+	
+	
+	
 	$server_all_kbytes_inTR="<canvas id='server_all_kbytes_in' width='$defaultsize' height='$defaultsize ' style='margin:10px'></canvas>
 	<center style='font-size:16px'>$server_all_kbytes_in/$seconds<span id='server_all_kbytes_in-title' style='padding-left:5px;font-weight:bold'></span></center>";
 	
@@ -225,6 +239,8 @@ function proxy_service(){
 	$f[]=$Memory;
 	$f[]=$cpuUSage;
 	$f[]=$ActiveRequests;
+	$f[]=$ActiveRequestsMembers;
+	$f[]=$ActiveRequestsIpaddr;
 	$f[]=$TotalAccounted;
 	$f[]=$FilesDescriptors;
 	$f[]=$HttpRequests;
@@ -263,14 +279,28 @@ function proxy_service(){
 		style='font-size:16px;text-decoration:underline;font-weight:bold;color:#DF0000'>$parameters</a></div>";
 	}
 	
+	if(isset($_GET["loadjs"])){
+		$loadthis="<script type='text/javascript' language='javascript' src='/js/tween-min.js'></script>";	
+		
+		$parameters_link="<div style='width:1160;text-align:right'>
+				<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$page?monitor-parameters=yes&t=$t')\" 
+	id='none' class=\"Button2014 Button2014-success Button2014-lg\"  style=\"font-size:30px;text-transform:capitalize\" 
+	>&laquo;&nbsp;$parameters&nbsp;&raquo;</a></div>";
+				
+			
+	}
+	
 	$html="
+		$loadthis
 		<script type='text/javascript' language='javascript' src='/js/steelseries-min.js'></script>		
 		$parameters_link
 		<div id='counter-$t'>
+		
 		$storages
 		</div>	
 			
 <script>
+	
 	var sections = [steelseries.Section(0, 25, 'rgba(0, 0, 220, 0.3)'),
     	steelseries.Section(25, 50, 'rgba(0, 220, 0, 0.3)'),
         steelseries.Section(50, 75, 'rgba(220, 220, 0, 0.3)') ],
@@ -330,7 +360,34 @@ function proxy_service(){
                             threshold: 2,
                             maxValue: '150',
                             lcdVisible: true
-                        });                          
+                        });   
+                        
+                
+         ActiveRequestsMembers = new steelseries.Radial('ActiveRequestsMembers', {
+                            gaugeType: steelseries.GaugeType.TYPE1,
+                            size: $defaultsize,
+                            section: sections,
+                            area: areas,
+                            titleString: 'Files',
+                            threshold: 2,
+                            maxValue: '150',
+                            lcdVisible: true
+                        });    
+
+                        
+         ActiveRequestsIpaddr = new steelseries.Radial('ActiveRequestsIpaddr', {
+                            gaugeType: steelseries.GaugeType.TYPE1,
+                            size: $defaultsize,
+                            section: sections,
+                            area: areas,
+                            titleString: 'Files',
+                            threshold: 2,
+                            maxValue: '150',
+                            lcdVisible: true
+                        });                        
+
+                        
+                       
                         
 
                         
@@ -441,7 +498,7 @@ function proxy_service_values(){
 	
 	$StorageCapacity=unserialize(base64_decode($sock->getFrameWork("squid.php?StorageCapacity=yes")));
 	
-	$ActiveRequestsNumber=$sock->getFrameWork("squid.php?ActiveRequestsNumber=yes");
+	
 	
 	$countStorages=count($StorageCapacity);
 	for($i=0;$i<$countStorages;$i++){
@@ -461,11 +518,24 @@ function proxy_service_values(){
 	if(!is_numeric($ActiveRequests)){$ActiveRequests=150;}
 	
 	if(!isset($squid5mn["cpu_usage"])){$squid5mn["cpu_usage"]=0;}
-	if(!is_numeric($ActiveRequestsNumber)){$ActiveRequestsNumber=0;}
+	
 	$squid5mn["cpu_usage"]=round($squid5mn["cpu_usage"],2);
 	$squid5mn["client_http.requests"]=round($squid5mn["client_http.requests"],2);
 	$squid5mn["server.all.kbytes_in"]=round($squid5mn["server.all.kbytes_in"],2);
 	$squid5mn["server.all.kbytes_out"]=round($squid5mn["server.all.kbytes_out"],2);
+	
+	$sock->getFrameWork("squid.php?active-requests=yes");
+	$ActiveRequestsR=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/active_requests.inc"));
+	$ActiveRequestsNumber=count($ActiveRequestsR["CON"]);
+	$ActiveRequestsIpaddr=count($ActiveRequestsR["IPS"]);
+	$ActiveRequestsMembers=count($ActiveRequestsR["USERS"]);
+	
+	if(!is_numeric($ActiveRequestsNumber)){$ActiveRequestsNumber=0;}
+	if(!is_numeric($ActiveRequestsIpaddr)){$ActiveRequestsIpaddr=0;}
+	if(!is_numeric($ActiveRequestsMembers)){$ActiveRequestsMembers=0;}
+	
+	      
+	
 	
 	echo "
 	CpuUsageRadial.setValueAnimated('{$squid5mn["cpu_usage"]}');
@@ -483,7 +553,25 @@ function proxy_service_values(){
 	ActiveRequests.setValueAnimated('$ActiveRequestsNumber');
 	if(document.getElementById('ActiveRequests-title')){
 		document.getElementById('ActiveRequests-title').innerHTML='$ActiveRequestsNumber';
-	}		
+	}
+
+	ActiveRequests.setMaxValue('$ActiveRequests');
+	ActiveRequests.setValueAnimated('$ActiveRequestsNumber');
+	if(document.getElementById('ActiveRequests-title')){
+		document.getElementById('ActiveRequests-title').innerHTML='$ActiveRequestsNumber';
+	}
+
+	ActiveRequestsIpaddr.setMaxValue('$ActiveRequests');
+	ActiveRequestsIpaddr.setValueAnimated('$ActiveRequestsIpaddr');
+	if(document.getElementById('ActiveRequestsIpaddr-title')){
+		document.getElementById('ActiveRequestsIpaddr-title').innerHTML='$ActiveRequestsIpaddr';
+	}	
+	
+	ActiveRequestsMembers.setMaxValue('$ActiveRequests');
+	ActiveRequestsMembers.setValueAnimated('$ActiveRequestsMembers');
+	if(document.getElementById('ActiveRequestsMembers-title')){
+		document.getElementById('ActiveRequestsMembers-title').innerHTML='$ActiveRequestsMembers';
+	}	
 	
 	LoadCurrent.setValueAnimated('$org_load');
 	if(document.getElementById('CurrentLoad-title')){
@@ -696,7 +784,9 @@ $html="
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.cookie.js\"></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/fileuploader.js\"></script>  
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/tween-min.js\"></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
 	<script type=\"text/javascript\" language=\"javascript\" src=\"/js/steelseries-min.js\"></script>	
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
     <title>$APP_ARTICA_PRXYLOGS</title>
 </head>
 <body>". $p->YahooBody()."
@@ -918,8 +1008,7 @@ function services_status(){
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
@@ -984,29 +1073,22 @@ function services_status(){
 		if(!is_numeric($CicapEnabled)){$CicapEnabled=0;}
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> $DisableSquidSNMPMode<br>\n";}
+	$squid_status=null;
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
 	
-	if($DisableSquidSNMPMode==0){
-		$squid_status=null;
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::DisableSquidSNMPMode -> squid.php?smp-status=yes<br>\n";}
-		$ini=new Bs_IniHandler();
-		$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
-	
-		while (list ($index, $line) = each ($ini->_params) ){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
-			$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
-				
-		}
-	
+	while (list ($index, $line) = each ($ini->_params) ){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
+		$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
 	}
 	
 	
 	
+	
+	
 	if($SquidBoosterMem>0){
-		if($DisableSquidSNMPMode==0){
-			if($DisableAnyCache==0){
-				$tr[]=squid_booster_smp();
-			}
+		if($DisableAnyCache==0){
+			$tr[]=squid_booster_smp();
 		}
 	}
 	

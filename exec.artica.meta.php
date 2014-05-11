@@ -47,7 +47,7 @@ function emergency($NotExecuteStatus=false){
 	$status_pid_path="/etc/artica-postfix/exec.status.php.pid";
 	if(!$unix->process_exists(@file_get_contents($status_pid_path))){
 		events("status did not running in memory, start it",__FUNCTION__,__FILE__,__LINE__);
-		shell_exec("/etc/init.d/artica-postfix start artica-status");
+		shell_exec("/etc/init.d/artica-status reload");
 	}	
 	$sock=new sockets();
 	$ArticaMetaEnabled=$sock->GET_INFO("ArticaMetaEnabled");
@@ -365,7 +365,7 @@ function SendStatus(){
 	
 	if($EnableSargGenerator==1){
 	$push_sarg=false;
-	$sock=new sockets();$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	$sock=new sockets();$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	if(is_file("$SargOutputDir/index.html")){
 		if(!is_file("/etc/artica-postfix/sarg.tgz")){
 			shell_exec("cd $SargOutputDir && tar -cjf /etc/artica-postfix/sarg.tgz ./*");

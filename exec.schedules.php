@@ -16,7 +16,11 @@ include_once(dirname(__FILE__).'/ressources/class.tasks.inc');
 include_once(dirname(__FILE__).'/ressources/class.process.inc');
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
 include_once(dirname(__FILE__)."/ressources/class.os.system.tools.inc");
-if($GLOBALS["VERBOSE"]){$GLOBALS["OUTPUT"]=true;$GLOBALS["WITHOUT_RESTART"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if($GLOBALS["VERBOSE"]){
+		$GLOBALS["OUTPUT"]=true;
+		$GLOBALS["WITHOUT_RESTART"]=true;
+		ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+}
 if($argv[1]=="--run-schedules"){run_schedules($argv[2]);die();}
 
 if($argv[1]=="--defaults"){Defaults($argv[2]);die();}
@@ -28,7 +32,9 @@ build_schedules();
 
 function Defaults(){
 	$task=new system_tasks();
+	if($GLOBALS["VERBOSE"]){echo "CheckDefaultSchedules()\n";}
 	$task->CheckDefaultSchedules();
+	build_schedules();
 	
 }
 
@@ -61,7 +67,7 @@ function build_schedules(){
 	if(!$q->TABLE_EXISTS("system_schedules","artica_backup")){$task->CheckDefaultSchedules();}
 	
 	if($q->COUNT_ROWS("system_schedules","artica_backup")==0){
-		echo "Starting......: artica-postfix watchdog (fcron) system_schedules is empty !!\n";
+		echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) system_schedules is empty !!\n";
 		die();
 	}
 	
@@ -70,7 +76,7 @@ function build_schedules(){
 	
 	$results = $q->QUERY_SQL($sql,"artica_backup");	
 	if(!$q->ok){
-		echo "Starting......: artica-postfix watchdog (fcron) $q->mysql_error on line ". __LINE__."\n";
+		echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) $q->mysql_error on line ". __LINE__."\n";
 		return;
 	}	
 	
@@ -93,7 +99,7 @@ function build_schedules(){
 	foreach (glob("/etc/cron.d/*") as $filename) {
 		$file=basename($filename);
 		if(preg_match("#syssch-[0-9]+#", $filename)){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) remove $filename\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) remove $filename\n";}
 			@unlink($filename);}
 	}
 	@unlink("/etc/artica-postfix/TASKS_CACHE.DB");
@@ -110,6 +116,7 @@ function build_schedules(){
 	$TRASNCODE["0,10,20,30,40,50 * * * *"]="10";
 	
 	$nice=$unix->EXEC_NICE();
+	build_system_defaults();
 	$me=__FILE__;
 	
 	
@@ -119,16 +126,16 @@ function build_schedules(){
 		if($TaskType==0){continue;}
 		if($ligne["TimeText"]==null){continue;}
 		$md5=md5("$TimeText$TaskType");
-		if(isset($alreadydone[$md5])){if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog task {$ligne["ID"]} already set\n";}continue;}
+		if(isset($alreadydone[$md5])){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix watchdog task {$ligne["ID"]} already set\n";}continue;}
 		$alreadydone[$md5]=true;
 		
 		if(!isset($task->tasks_processes[$TaskType])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) Unable to stat task process of `$TaskType`\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix watchdog (fcron) Unable to stat task process of `$TaskType`\n";}
 			continue;
 		}
 		
 		if(isset($task->task_disabled[$TaskType])){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix`$TaskType` disabled\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." artica-postfix`$TaskType` disabled\n";}
 			continue;
 		}
 		
@@ -137,36 +144,123 @@ function build_schedules(){
 		
 		
 		$f=array();
-		if($GLOBALS["OUTPUT"]){echo "Starting......: scheduling $script\n";} 
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." scheduling $script\n";} 
 		$cmdline=trim("$nice $php5 $me --run {$ligne["ID"]}");
 		$f[]="MAILTO=\"\"";
 		$f[]="{$ligne["TimeText"]}  root $cmdline >/dev/null 2>&1";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/syssch-{$ligne["ID"]}", @implode("\n", $f));
-		continue;		
-		
-		
-		
-		if(isset($TRASNCODE[trim($ligne["TimeText"])])){
-			$f[]="@nice({$settings["max_nice"]}),lavg5({$settings["max_load_avg5"]}),until($max_load_wait),mail(false) {$TRASNCODE[trim($ligne["TimeText"])]} $php5 $WorkingDirectory/$script --schedule-id={$ligne["ID"]} >/dev/null 2>&1";
-			continue;
-		}
 	
-		
-		$f[]="&nice({$settings["max_nice"]}),lavg5({$settings["max_load_avg5"]}),until($max_load_wait),mail(false) {$ligne["TimeText"]} $php5 $WorkingDirectory/$script --schedule-id={$ligne["ID"]} >/dev/null 2>&1";
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) Saving ".count($f)." schedules\n";}
-	@file_put_contents("/etc/artica-postfix/system.schedules",implode("\n",$f));
-	if(!$GLOBALS["WITHOUT_RESTART"]){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: artica-postfix watchdog (fcron) restarting fcron..\n";}
-		if($GLOBALS["OUTPUT"]){system("/etc/init.d/artica-postfix restart fcron");}else{
-			$nohup=$unix->find_program("nohup");
-			shell_exec("$nohup /etc/init.d/artica-postfix restart fcron >/dev/null 2>&1 &");
+	
+	
+}
+
+function build_system_defaults(){
+	
+	$unix=new unix();
+	$sock=new sockets();
+	$nice=$unix->EXEC_NICE();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$ArticaBackupEnabled=intval($sock->GET_INFO("ArticaBackupEnabled"));
+	$users=new usersMenus();
+	@unlink("/etc/cron.d/artica-cron-backup");
+	@unlink("/etc/cron.d/artica-cron-pflogsumm");
+	
+	if(is_file('/etc/artica-postfix/artica-backup.conf')){
+		if($ArticaBackupEnabled==1){
+			$ini=new Bs_IniHandler();
+			$ini->loadFile('/etc/artica-postfix/artica-backup.conf');
+			if(!isset($ini->_params["backup"]["backup_time"])){$ini->_params["backup"]["backup_time"]="03:00";}
+			if(preg_match("#([0-9]+):([0-9]+)#", $ini->_params["backup"]["backup_time"],$re)){
+				$backup_hour=intval($re[1]);
+				$backup_min=intval($re[2]);
+				$f[]="MAILTO=\"\"";
+				$f[]="$backup_min $backup_hour * * * root $nice /usr/share/artica-postfix/bin/artica-backup --backup >/dev/null 2>&1";
+				$f[]="";
+				@file_put_contents("/etc/cron.d/artica-cron-backup", @implode("\n", $f));
+				$f=array();
+			}
+		}
+	}
+	
+	if(is_file('/etc/artica-postfix/settings/Daemons/pflogsumm')){
+		$ini=new Bs_IniHandler();
+		$ini->loadFile('/etc/artica-postfix/settings/Daemons/pflogsumm');
+		$schedule_time=trim($ini->_params['SETTINGS']['schedule']);
+		if ($schedule_time<>null){
+			$f[]="MAILTO=\"\"";
+			$f[]="$schedule_time root $nice $php /usr/share/artica-postfix/exec.postfix.reports.php >/dev/null 2>&1";
+			$f[]="";
+			@file_put_contents("/etc/cron.d/artica-cron-pflogsumm", @implode("\n", $f));
+			$f=array();
 		}	
 	}
 	
+	$prefix="/usr/share/artica-postfix";
+	$f=array();
+	$f[]="MAILTO=\"\"";
+	$f[]="@reboot root $nice /sbin/modprobe cifs && echo 0 > /proc/fs/cifs/OplockEnabled >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/cifs-fix", @implode("\n", $f));
+	$f=array();
+
+	$f[]="MAILTO=\"\"";
+	$f[]="@reboot root $nice $php $prefix/exec.schedules.php >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/schedules", @implode("\n", $f));
+	$f=array();	
+	
+	
+	$f[]="MAILTO=\"\"";
+	$f[]="3,6,9,12,15,18,21,25,27,30,33,36,39,41,45,50,55 0 * * * root $nice $prefix/bin/process1 >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/artica-process1", @implode("\n", $f));
+	$f=array();	
+	
+	$f[]="MAILTO=\"\"";
+	$f[]="7,14,21,28,35,42,49,56 0 * * * root $nice $php $prefix/exec.dnsmasq.php --varrun >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/artica-dnsmasqrun", @implode("\n", $f));
+	$f=array();
+	
+	$f[]="MAILTO=\"\"";
+	$f[]="10,34,51 0 * * * root $nice $php $prefix/exec.watchdog.php --monit >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/artica-dnsmasqrun", @implode("\n", $f));
+	$f=array();	
+	
+	$f[]="MAILTO=\"\"";
+	$f[]="0,2,4,6,8,10,12,14,16,18,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,58 * * * root $nice $php $prefix/exec.parse-orders.php >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.d/artica-parseorders", @implode("\n", $f));
+	$f=array();
+	
+	if($users->spamassassin_installed){
+		$f[]="MAILTO=\"\"";
+		$f[]="10 3,6,9,12,15,18,21,23 * * root $nice $php $prefix/exec.sa-learn-cyrus.php --execute >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/artica-salearn-cyrus", @implode("\n", $f));
+		$f=array();
+	}
+	
+
+	if($users->fetchmail_installed){
+		$f[]="MAILTO=\"\"";
+		$f[]="0,2,4,6,8,10,12,14,16,18,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54,58 * * * root $nice $php $prefix/exec.fetchmail.sql.php >/dev/null 2>&1";
+		$f[]="";
+		@file_put_contents("/etc/cron.d/artica-ftechmailsql", @implode("\n", $f));
+		$f=array();
+	}
+		
+	
+	
+	
 }
+
+
+
 function execute_task($ID){
 	$unix=new unix();
 	$tasks=new system_tasks();
@@ -174,23 +268,7 @@ function execute_task($ID){
 	$pgrep=$unix->find_program("pgrep");
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.pid";
-	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.lck";
 	$oldpid=$unix->get_pid_from_file($pidfile);
-	
-	if(systemMaxOverloaded()){
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-		return;
-	}
-	
-	
-	if(is_file($lockfile)){
-		$locktime=$unix->file_time_min($lockfile);
-		if($locktime<5){
-			system_admin_events("Task is $ID (since {$locktime}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-			return;
-		}
-		@unlink($lockfile);
-	}
 	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
@@ -199,30 +277,8 @@ function execute_task($ID){
 	}
 	
 	
-
 	
 	
-	
-	$pidtime=$unix->file_time_min($pidfile);
-	if($pidtime<1){
-		system_admin_events("last execution was already executed (since {$pidtime}mn )" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		return;
-	}
-
-	exec("$pgrep -l -f \"^$php5.*?".basename(__FILE__)." --run\" 2>&1",$results);
-	while (list ($num, $line) = each ($results) ){
-		if(preg_match("#pgrep#", $line)){continue;}
-		if(!preg_match("#^([0-9]+)\s+#", $line,$re)){continue;}
-		$pidz[]=$re[1];
-	}
-	
-	if(count($pidz)>6){
-		writelogs("Too many processes executed: ".@implode(", ", $pidz)." schedule this task on artica scheduler..." ,  __FUNCTION__,__FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-		die();
-	}
-	
-
 	@unlink($pidfile);
 	@file_put_contents($lockfile, "#");
 	@file_put_contents($pidfile, getmypid());
@@ -230,47 +286,15 @@ function execute_task($ID){
 	$internal_load=$array_load[0];	
 
 	$TASKS_CACHE=unserialize(@file_get_contents("/etc/artica-postfix/TASKS_CACHE.DB"));
+
 	if(isset($TASKS_CACHE[$ID])){
 		$TaskType=$TASKS_CACHE[$ID]["TaskType"];
 		if(isset($task->task_disabled[$TaskType])){
 			writelogs("Task $ID is disabled",__FUNCTION__,__FILE__,__LINE__);
-			@unlink($lockfile);
 			return;
 		}
 	}
 	
-	
-	
-	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}` lock:$lockfile ({$locktime}Mn)",__FUNCTION__,__FILE__,__LINE__);
-
-	if(systemMaxOverloaded()){
-		writelogs("Task $ID Load:$internal_load too much overloaded, aborting",__FUNCTION__,__FILE__,__LINE__);
-		system_admin_events("Task $ID Load:$internal_load too much overloaded, aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-		@unlink($lockfile);
-		return;		
-	}
-	
-	
-	if(isMaxInstances()){
-		system_admin_events("Too Many instances running, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-		@unlink($lockfile);
-		return;
-	}
-	
-	if(system_is_overloaded(basename(__FILE__))){
-		OverloadedCheckBadProcesses();
-		$os=new os_system();
-		$hash_mem=$os->realMemory();
-		writelogs("Task $ID Overloaded system:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]} memory {$hash_mem["ram"]["percent"]}%, aborting task",__FUNCTION__,__FILE__,__LINE__);
-		system_admin_events("Overloaded system:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]} memory {$hash_mem["ram"]["percent"]}%, aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run $ID");
-		@unlink($lockfile);
-		return;
-	}
-	
-
 	if(!isset($TASKS_CACHE[$ID])){
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM system_schedules WHERE ID=$ID","artica_backup"));
@@ -278,22 +302,20 @@ function execute_task($ID){
 		$TASKS_CACHE[$ID]["TaskType"]=$ligne["TaskType"];
 		@file_put_contents("/etc/artica-postfix/TASKS_CACHE.DB", serialize($TASKS_CACHE));
 	}	
-	if($TaskType==0){return;@unlink($lockfile);}
+	if($TaskType==0){return;}
 	if(!isset($tasks->tasks_processes[$TaskType])){system_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks");return;}
-	if(isset($task->task_disabled[$TaskType])){return;@unlink($lockfile);}
+	if(isset($task->task_disabled[$TaskType])){return;}
 	$script=$tasks->tasks_processes[$TaskType];
-	$nice=$unix->EXEC_NICE();
-	$nohup=$unix->find_program("nohup");
+	
 	
 	$WorkingDirectory=dirname(__FILE__);
-	$cmd="$nice $php5 $WorkingDirectory/$script --schedule-id=$ID >/dev/null";
-	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}
+	$cmd="$php5 $WorkingDirectory/$script --schedule-id=$ID";
+	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$WorkingDirectory/bin/{$re[1]}";}
 	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
 	$t=time();
-	shell_exec($cmd);	
-	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	system_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-	@unlink($lockfile);
+	$unix->THREAD_COMMAND_SET($cmd);	
+	system_admin_events("Task is scheduled `$cmd`" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+	
 }
 
 function events($text,$function,$line){
@@ -319,12 +341,12 @@ function run_schedules($ID){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$WorkingDirectory=dirname(__FILE__);
-	$cmd="$nohup $php5 $WorkingDirectory/$script --schedule-id=$ID >/dev/null 2>&1 &";
-	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}	
+	$cmd="$php5 $WorkingDirectory/$script --schedule-id=$ID";
+	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$WorkingDirectory/bin/{$re[1]}";}	
 	
-	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} is executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
-	system_admin_events("Task is executed with `$script`" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-	shell_exec($cmd);
+	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} is scheduled with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
+	$unix->THREAD_COMMAND_SET($cmd);
+	
 	
 }
 
@@ -351,12 +373,6 @@ function execute_task_squid($ID){
 		return;
 	}
 	
-	if(systemMaxOverloaded()){
-		writelogs("Task $ID Load:$internal_load too much overloaded, aborting",__FUNCTION__,__FILE__,__LINE__);
-		ufdbguard_admin_events("Task $ID Load:$internal_load too much overloaded, aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
-		return;
-	}	
 	
 		
 	$TASKS_CACHE=unserialize(@file_get_contents("/etc/artica-postfix/TASKS_SQUID_CACHE.DB"));
@@ -373,25 +389,7 @@ function execute_task_squid($ID){
 	@unlink($pidfile);
 	@file_put_contents($pidfile, getmypid());
 
-	
-	writelogs("Task $ID Load:$internal_load cmdline `{$GLOBALS["CMDLINES"]}`",__FUNCTION__,__FILE__,__LINE__);
-	$GLOBALS["SCHEDULE_ID"]=$ID;
-	if(isMaxInstances()){
-		ufdbguard_admin_events("Warning, Too much instances loaded, schedule this task for few minutes later", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
-		return;
-	}
-	
-	
-	if(system_is_overloaded(basename(__FILE__))){
-		OverloadedCheckBadProcesses();
-		$os=new os_system();
-		$hash_mem=$os->realMemory();
-		writelogs("Task $ID Overloaded with {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} (memory system {$hash_mem["ram"]["percent"]}%), aborting task",__FUNCTION__,__FILE__,__LINE__);
-		system_admin_events("Overloaded with {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} (memory system {$hash_mem["ram"]["percent"]}%), aborting task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
-		$unix->THREAD_COMMAND_SET("$php5 ".__FILE__." --run-squid $ID");
-		return;
-	}
+
 	
 	if(!isset($TASKS_CACHE[$ID])){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT TaskType FROM webfilters_schedules WHERE ID=$ID"));
@@ -403,19 +401,14 @@ function execute_task_squid($ID){
 	if(!isset($q->tasks_processes[$TaskType])){ufdbguard_admin_events("Unable to understand task type `$TaskType` For this task" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);return;}
 	if(isset($q->tasks_disabled[$TaskType])){ufdbguard_admin_events("Task type `$TaskType` is disabled" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);return;}
 	$script=$q->tasks_processes[$TaskType];
-	$nice=$unix->EXEC_NICE();
-	$nohup=$unix->find_program("nohup");
 	
 	$WorkingDirectory=dirname(__FILE__);
-	$cmd="$nice $php5 $WorkingDirectory/$script --schedule-id=$ID >/dev/null";
-	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$nice $WorkingDirectory/bin/{$re[1]} >/dev/null";}
+	$cmd="$php5 $WorkingDirectory/$script --schedule-id=$ID";
+	if(preg_match("#^bin:(.+)#",$script, $re)){$cmd="$WorkingDirectory/bin/{$re[1]}";}
 	
-	ufdbguard_admin_events("Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
-	writelogs("Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}: Task {$GLOBALS["SCHEDULE_ID"]} will be executed with `$cmd` ",__FUNCTION__,__FILE__,__LINE__);
-	$t=time();
-	shell_exec($cmd);	
-	$took=$unix->distanceOfTimeInWords($t,time(),true);
-	ufdbguard_admin_events("Task is executed took $took" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+	ufdbguard_admin_events("Task {$GLOBALS["SCHEDULE_ID"]} will be scheduled with `$cmd` ", __FUNCTION__, __FILE__, __LINE__, "scheduler",$ID);
+	$unix->THREAD_COMMAND_SET($cmd);
+	
 }
 
 function isMaxInstances(){
@@ -430,7 +423,7 @@ function isMaxInstances(){
 	writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> $MemoryInstances instances...",__FUNCTION__,__FILE__,__LINE__);
 	if($MemoryInstances>$MaxInstancesToDie){
 		writelogs("Task {$GLOBALS["SCHEDULE_ID"]} -> too much instances ($MemoryInstances) die ".@implode(",", $GLOBALS["INSTANCES_EXECUTED"]),__FUNCTION__,__FILE__,__LINE__);
-		return false;
+		return true;
 	}
 	
 	if($MemoryInstances>$MaxInstnaces){

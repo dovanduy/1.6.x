@@ -208,7 +208,7 @@ $conf[]="";
 	
 @mkdir("/etc/cluebringer",666,true);
 @file_put_contents("/etc/cluebringer/cluebringer.conf",@implode("\n",$conf));
-echo "Starting......: cluebringer /etc/cluebringer/cluebringer.conf done\n";
+echo "Starting......: ".date("H:i:s")." cluebringer /etc/cluebringer/cluebringer.conf done\n";
 
 $php[]="<?php";
 $php[]="\$DB_DSN=\"mysql:host=$q->mysql_server;dbname=policyd\";";
@@ -216,7 +216,7 @@ $php[]="\$DB_USER=\"$q->mysql_admin\";";
 $php[]="\$DB_PASS=\"$q->mysql_password\";";
 $php[]="?>";
 @file_put_contents("/usr/share/artica-postfix/cluebringer/includes/config.php",@implode("\n",$php));
-echo "Starting......: cluebringer includes/config.php done\n";
+echo "Starting......: ".date("H:i:s")." cluebringer includes/config.php done\n";
 $unix=new unix();
 $lighttpd=$unix->LIGHTTPD_USER();
 $chown=$unix->find_program("chown");
@@ -261,9 +261,9 @@ $f[]="session_tracking";
 if(!$rebuild){
 	while (list ($num, $val) = each ($f) ){
 		if($q->TABLE_EXISTS($val,"policyd")){
-			echo "Starting......: cluebringer mysql table $val OK\n";
+			echo "Starting......: ".date("H:i:s")." cluebringer mysql table $val OK\n";
 		}else{
-			echo "Starting......: cluebringer mysql table $val FAILED\n";
+			echo "Starting......: ".date("H:i:s")." cluebringer mysql table $val FAILED\n";
 			$rebuild=true;
 			break;
 		}
@@ -276,7 +276,7 @@ if(!$rebuild){
 	if($rebuild){
 		
 		$mysqlbin=$unix->find_program("mysql");
-		if(!is_file("$mysqlbin")){echo "Starting......: cluebringer mysql binary no such file\n";return;}
+		if(!is_file("$mysqlbin")){echo "Starting......: ".date("H:i:s")." cluebringer mysql binary no such file\n";return;}
 		$cmd="$mysqlbin --batch --host=$q->mysql_server --port=$q->mysql_port --user=$q->mysql_admin --password=$q->mysql_password --database=policyd";
 		$cmd=$cmd." <$dbfile";
 		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
@@ -295,7 +295,7 @@ function internal_domains(){
 	$hash=$ldap->hash_get_all_domains();
 	$clue=new cluebringer();
 	while (list ($domain, $val) = each ($hash) ){$clue->local_domain_add($domain);}
-	echo "Starting......: cluebringer ". count($hash)." domains updated\n";
+	echo "Starting......: ".date("H:i:s")." cluebringer ". count($hash)." domains updated\n";
 }
 
 function web_password(){
@@ -306,11 +306,11 @@ function web_password(){
 		if($uid==null){continue;}
 		$ct=new user($uid);
 		if($ct->password==null){continue;}
-		echo "Starting......: ClueBringer, access to $uid\n";
+		echo "Starting......: ".date("H:i:s")." ClueBringer, access to $uid\n";
 		$f[]="$uid:$ct->password";
 	}
 	
-	echo "Starting......: ClueBringer, access to $ldap->ldap_admin\n";
+	echo "Starting......: ".date("H:i:s")." ClueBringer, access to $ldap->ldap_admin\n";
 	$f[]="$ldap->ldap_admin:$ldap->ldap_password";
 	$f[]="";
 	@mkdir("/etc/lighttpd",666,true);

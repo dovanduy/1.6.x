@@ -62,5 +62,5 @@ will include DSL and cable customers pools, which are well known to be massively
 <urlcheck>Url in body</urlcheck>
 <urlcheck_text>milter-greylist is able to query external sources of information through various URL[br]
 Example:http://www.example.net/mgl-config?rcpt=%r</urlcheck_text>
-<whitelist>whitelist</whitelist>
+<whitelist>Whitelist</whitelist>
 <_text>Please select value in list</_text>

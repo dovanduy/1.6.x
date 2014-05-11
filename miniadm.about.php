@@ -1,6 +1,5 @@
 <?php
 session_start();
-$_SESSION["MINIADM"]=true;
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");

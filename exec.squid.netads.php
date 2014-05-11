@@ -99,4 +99,4 @@ $f[]="";
 @chmod("/etc/squid3/net_ads_group.pl",0755);
 @chown("/etc/squid3/net_ads_group.pl","squid");
 @chgrp("/etc/squid3/net_ads_group.pl","squid");
-echo "Starting......: Dynamic ADS group done...\n";
+echo "Starting......: ".date("H:i:s")." Dynamic ADS group done...\n";

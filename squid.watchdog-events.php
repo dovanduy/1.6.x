@@ -59,6 +59,7 @@ function popup(){
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$empty=$tpl->_ENGINE_parse_body("{empty}");
 	$daemon=$tpl->_ENGINE_parse_body("{daemon}");
+	$settings=$tpl->javascript_parse_text("{settings}");
 	$empty_events_text_ask=$tpl->javascript_parse_text("{empty_events_text_ask}");
 	$TB_HEIGHT=450;
 	$TB_WIDTH=927;
@@ -73,6 +74,7 @@ function popup(){
 	{name: 'Info', bclass: 'Help', onpress :  info$t},
 	{name: 'Crit.', bclass: 'Err', onpress :  Err$t},
 	{name: '$all', bclass: 'Statok', onpress :  All$t},
+	{name: '$settings', bclass: 'Script', onpress :  Params$t},
 	
 
 	],	";
@@ -82,7 +84,7 @@ function popup(){
 
 function BuildTable$t(){
 	$('#events-table-$t').flexigrid({
-		url: '$page?events-table=yes',
+		url: '$page?events-table=yes&text-filter={$_GET["text-filter"]}',
 		dataType: 'json',
 		colModel : [
 		{display: '', name : 'severity', width :31, sortable : true, align: 'center'},
@@ -102,7 +104,7 @@ function BuildTable$t(){
 		useRp: true,
 		rp: 50,
 		showTableToggleBtn: false,
-		width: $TB_WIDTH,
+		width: '99%',
 		height: $TB_HEIGHT,
 		singleSelect: true,
 		rpOptions: [10, 20, 30, 50,100,200,500]
@@ -135,6 +137,10 @@ function Err$t(){
 function All$t(){
 	$('#events-table-$t').flexOptions({url: '$page?events-table=yes'}).flexReload(); 
 }
+function Params$t(){
+	Loadjs('squid.watchdog.php');
+}
+
 function EmptyEvents(){
 	if(!confirm('$empty_events_text_ask')){return;}
 	var XHR = new XHRConnection();
@@ -160,6 +166,13 @@ function events_table(){
 	$ORDER="ORDER BY zDate DESC";
 	if(is_numeric($_GET["critical"])){
 		$FORCE="severity={$_GET["critical"]}";
+	}
+	
+	if($_GET["text-filter"]<>null){
+		$FORCE=" subject LIKE '%{$_GET["text-filter"]}%'";
+		if(is_numeric($_GET["critical"])){
+			$FORCE=$FORCE." AND severity={$_GET["critical"]}";
+		}
 	}
 
 	$total=0;
@@ -210,15 +223,15 @@ function events_table(){
 
 	$CurrentPage=CurrentPageName();
 
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		
-		
+		$hostname=$ligne["hostname"];
 		$ligne["zDate"]=str_replace($currentdate, "", $ligne["zDate"]);
 		$severity_icon=$severity[$ligne["severity"]];
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$CurrentPage?ShowID-js={$ligne["ID"]}')\" style='text-decoration:underline'>";
-		$text=$link.$tpl->_ENGINE_parse_body($ligne["subject"]."</a><div style='font-size:10px'>{function}:{$ligne["function"]}, {line}:{$ligne["line"]}</div>");
+		$text=$link.$tpl->_ENGINE_parse_body($ligne["subject"]."</a><div style='font-size:10px'>{host}:$hostname {function}:{$ligne["function"]}, {line}:{$ligne["line"]}</div>");
 		
 		
 		$data['rows'][] = array(

@@ -193,7 +193,7 @@ function postfixlogger_progress(){
 	$endtime=$ini->get("PROGRESS","time");
 	if($current==null){$current=0;}
 	if($type==null){$type="{scheduled}";}
-	if($endtime==null){$endtime=date("h:i:s");}
+	if($endtime==null){$endtime=date("H:i:s");}
 	
 	
 	if($max<>null){
@@ -350,6 +350,10 @@ function updategeo($ip,$country){
 
 
 function installgeoip(){
+		$unix=new unix();
+		if(is_file("/etc/artica-postfix/FROM_ISO")){$time=$unix->file_time_min("/etc/artica-postfix/FROM_ISO");if($time<60){return;}}
+	
+	
 	
 		if(is_file('/usr/bin/pecl')){
 			if(!is_file("/etc/artica-postfix/php-geoip-checked")){

@@ -471,7 +471,7 @@ function postfix_regex(){
 	<td align='right' width=1%>" . imgtootltip("icon_newest_reply.gif",'{import_headers_regex}',"import_headers_regex()") . "</td>
 	<td align='right' nowrap><a href=\"javascript:delete_headers_regex()\">{delete_headers_regex}</a></td>
 	<td align='right' width=1%>" . imgtootltip("x.gif",'{delete_headers_regex}',"delete_headers_regex()") . "</td>
-	<td align='right'>" . imgtootltip("add-18.gif","{add}","edit_postfix_regex_rule()")."</td>
+	<td align='right'>" . imgtootltip("add-18.png","{add}","edit_postfix_regex_rule()")."</td>
 	</tr>
 </table>";	
 	

@@ -158,7 +158,9 @@ function rows_table(){
 	$ORDER=null;
 	
 	$total=0;
-	if($q->COUNT_ROWS($table,$database)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table,$database)==0){
+		json_error_show("no data");
+	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
@@ -192,7 +194,7 @@ function rows_table(){
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
 	if(!$q->ok){
-		
+		json_error_show($q->mysql_error);
 	}
 	
 	
@@ -201,11 +203,8 @@ function rows_table(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+	if(mysql_num_rows($results)==0){
+		json_error_show("no data");
 	}	
 
 	while ($ligne = mysql_fetch_assoc($results)) {

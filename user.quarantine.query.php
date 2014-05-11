@@ -146,7 +146,7 @@ $html="
 		
 		$ligne["subject"]=substr($ligne["subject"],0,500);
 		$edit="OnClick=\"javascript:Loadjs('domains.quarantine.php?message-id={$ligne["MessageID"]}')\"";
-		if($color=="#CCCCCC"){$color="#FFFFFF";}else{$color="#CCCCCC";}
+		if($color=="#CCCCCC"){$color="#FFFFFF";}else{$color="#8a8a8a";}
 		
 		
 		

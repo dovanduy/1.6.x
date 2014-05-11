@@ -20,6 +20,7 @@ class amavisdb{
 	public $mysql_error;
 	public $last_id=0;
 	public $dbidsn="";
+	private $AmavisPerUser=0;
 	
 	
 	
@@ -34,6 +35,9 @@ class amavisdb{
 	}
 	
 	private function PrepareMySQLClass(){
+		$sock=new sockets();
+		$this->AmavisPerUser=$sock->GET_INFO("AmavisPerUser");
+		if(!is_numeric($this->AmavisPerUser)){$this->AmavisPerUser=0;}
 		$def["SocketPath"]="/var/run/mysqld/amavis-db.sock";
 		$def["mysql_admin"]="root";
 		$def["mysql_password"]=null;
@@ -55,15 +59,18 @@ class amavisdb{
 	}
 	
 	private function DATABASE_EXISTS($database){
+		if($this->AmavisPerUser==0){return;}
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->DATABASE_EXISTS($database);
 	}
 	private FUNCTION CREATE_DATABASE($database){
+		if($this->AmavisPerUser==0){return;}
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->CREATE_DATABASE($database);
 	}
 	
 	private function BD_CONNECT(){
+		if($this->AmavisPerUser==0){return;}
 		$this->PrepareMySQLClass();
 		$this->ok=true;
 		$results=$this->ClassSQL->BD_CONNECT();
@@ -78,6 +85,8 @@ class amavisdb{
 	}	
 	
 	public function QUERY_SQL($sql,$database=null){
+		
+		if($this->AmavisPerUser==0){return;}
 		if(!$this->BD_CONNECT()){return false;}
 		if($database==null){$database=$this->database;}
 		$results=$this->ClassSQL->QUERY_SQL($sql,$database);
@@ -88,6 +97,7 @@ class amavisdb{
 	}
 	
 	public function FIELD_EXISTS($table,$field,$database=null){
+		if($this->AmavisPerUser==0){return;}
 		$database=$this->database;
 		return $this->ClassSQL->FIELD_EXISTS($table,$field,$database);
 	}	
@@ -134,6 +144,7 @@ class amavisdb{
 			}
 
 	public function checkTables(){
+		if($this->AmavisPerUser==0){return;}
 		if(!$this->BD_CONNECT()){return false;}
 		$sql="CREATE TABLE IF NOT EXISTS users (
   			id         int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -318,7 +329,7 @@ class amavisdb{
 	}
 	
 	public function TABLE_EXISTS($table,$database=null){
-		
+		if($this->AmavisPerUser==0){return;}
 		if($database==null){$database=$this->database;}
 		if($database<>$this->database){$database=$this->database;}
 		return $this->ClassSQL->TABLE_EXISTS($table,$database);

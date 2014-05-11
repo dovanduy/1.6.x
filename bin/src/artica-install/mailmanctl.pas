@@ -242,7 +242,7 @@ function tmailman.STATUS():string;
 var pidpath:string;
 begin
 if not FileExists(BIN_PATH()) then exit;
-SYS.MONIT_DELETE('APP_MAILMAN');
+
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --mailman >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

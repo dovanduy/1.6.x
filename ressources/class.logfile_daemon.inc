@@ -5,6 +5,7 @@ class logfile_daemon{
 		$Youtuberegex[]="youtube.*?stream.*?&v=(.+?)&fmt";
 		$Youtuberegex[]="youtube.*?ptracking.*?&video_id=(.+?)$";
 		$Youtuberegex[]="youtube.*?user_watch.*?&video_id=(.+?)&";
+		$Youtuberegex[]="youtube.com.*?set_awesome.*?&video_id=(.+?)&";
 		$Youtuberegex[]="youtube.*?watchtime.*?&docid=(.+?)&";
 		$Youtuberegex[]="youtube\..*?\/watch\?v=(.+?)\&";
 		while (list ($index, $regex) = each ($Youtuberegex) ){
@@ -23,7 +24,7 @@ class logfile_daemon{
 	
 	private function events($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/squid/logfile_daemon.debug";
 	
 		$size=@filesize($logFile);
@@ -58,8 +59,8 @@ class logfile_daemon{
 		if(isset($searchWords["WORDS"])){
 			if(trim($searchWords["WORDS"]=="query")){unset($searchWords["WORDS"]);}
 			if(is_numeric($searchWords["WORDS"])){return;}
-			$searchWords["WORDS"]=str_replace('"', "", $searchWords["WORDS"]);
-			$searchWords["WORDS"]=str_replace("'", "", $searchWords["WORDS"]);
+			$searchWords["WORDS"]=str_replace('"', "`", $searchWords["WORDS"]);
+			$searchWords["WORDS"]=str_replace("'", "`", $searchWords["WORDS"]);
 		}
 		
 		if(isset($searchWords["WORDS"])){
@@ -74,7 +75,7 @@ class logfile_daemon{
 	
 	
 	public function codeToString($code){
-		
+		$squid_error["000"]="None";
 		$squid_error["100"]="Continue";
 		$squid_error["101"]="Switching Protocols";
 		$squid_error["102"]="Processing";
@@ -143,8 +144,6 @@ class logfile_daemon{
 			case "TCP_IMS_HIT":
 	
 			case "TCP_MEM_HIT":
-	
-			case "TCP_DENIED":
 	
 			case "TCP_IMS_MISS":
 	

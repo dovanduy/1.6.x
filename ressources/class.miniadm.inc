@@ -1,7 +1,6 @@
 <?php
 
-session_start();$_SESSION["MINIADM"]=true;
-setcookie("MINIADM", "YES", time()+1000);
+session_start();
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 include_once(dirname(__FILE__)."/class.browser.detection.inc");
 include_once(dirname(__FILE__)."/class.highcharts.inc");
@@ -127,73 +126,16 @@ class miniadm{
 	public function squid_load_dynamic_acls($force=false){
 		
 		if($_SESSION["VirtAclUser"]){
+			writelogs("VirtAclUser = TRUE, RETURN -> SQUID_DYNAMIC_ACLS_VIRTUALS",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			$_SESSION["SQUID_DYNAMIC_ACLS"]=$_SESSION["SQUID_DYNAMIC_ACLS_VIRTUALS"];
 			return;
 		}
-		if($GLOBALS["VERBOSE"]){echo "squid_load_dynamic_acls:: run()<br>\n";}
-		if(!$GLOBALS["VERBOSE"]){
-			if(!$force){
-				if(isset($_SESSION["SQUID_DYNAMIC_ACLS"])){return;}
-			}
-		}
-		if(!$this->IFItsProxy()){
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>squid_load_dynamic_acls::{$_SESSION["uid"]} Not a proxy...</span><br>\n";}
-			return array();
-		}
-	
-	
-			$sql="SELECT webfilters_sqitems.pattern,webfilters_sqgroups.ID
-			FROM webfilters_sqitems, webfilters_sqgroups
-			WHERE webfilters_sqitems.enabled =1
-			AND webfilters_sqitems.gpid = webfilters_sqgroups.ID
-			AND webfilters_sqgroups.GroupType = 'dynamic_acls'
-			AND webfilters_sqgroups.enabled =1";
-	
-			$q=new mysql_squid_builder();
-			$results=$q->QUERY_SQL($sql);
-			$ldap=new clladp();
-			$ADenabled=$ldap->IsKerbAuth();
-			if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>squid_load_dynamic_acls::IsKerbAuth() = $ADenabled</span><br>\n";}
-			if($ADenabled==1){
-				$ad=new external_ad_search();
-				$ct=new user($_SESSION["uid"]);
-				if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>squid_load_dynamic_acls::GroupsOfMember($ct->dn)</span><br>\n";}
-				$groupsofusers=$ad->GroupsOfMember($ct->dn);
-				if($GLOBALS["VERBOSE"]){
-					echo "<H3>$ct->dn</H3>\n";
-					while (list ($a, $b) = each ($groupsofusers) ){
-						echo "<li>Member of group: groupsofusers[<strong>$a</strong>]</li>\n";
-					}
-					
-				}
-			}
 		
-			$_SESSION["SQUID_DYNAMIC_ACLS"]=array();
-			if($GLOBALS["VERBOSE"]){echo "squid_load_dynamic_acls::{$_SESSION["uid"]} ".mysql_num_rows($results)." acls groups<br>\n";}
-			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-				if($GLOBALS["VERBOSE"]){
-						echo "<span style='color:blue'>squid_load_dynamic_acls::Pattern:{$ligne["pattern"]}</span><br>\n";
-				}
-				if(preg_match("#^AD:[0-9]+:(.+)#", $ligne["pattern"],$re)){
-					$DNGroup=base64_decode($re[1]);
-					if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>OK:squid_load_dynamic_acls::DNGroup:$DNGroup</span><br>\n";}
-					if($ADenabled==0){
-						if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>FAILED:squid_load_dynamic_acls::AD not enabled</span><br>\n";}
-						continue;
-					}
-					if(isset($groupsofusers[$DNGroup])){
-						$_SESSION["SQUID_DYNAMIC_ACLS"][$ligne["ID"]]=true;
-						if($GLOBALS["VERBOSE"]){echo "<span style='color:blue;font-weight:bold;font-size:14px'><strong>ADDED:</strong> squid_load_dynamic_acls::{$groupsofusers[$DNGroup]}:TRUE</span><br>\n";}
-					}else{
-						if($GLOBALS["VERBOSE"]){echo "<span style='color:red;font-weight:bold;font-size:14px'><strong>groupsofusers[$DNGroup]:</strong> No match</span><br>\n";}
-					}
-				}else{
-					if($GLOBALS["VERBOSE"]){echo "<span style='color:blue'>squid_load_dynamic_acls::No match...</span><br>\n";}
-				}
+		writelogs("squid_load_dynamic_acls:: run()",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		
-		
-			}
-			
+		include_once(dirname(__FILE__)."/class.squid.dynamic-acls.inc");
+		$dyn=new dynamic_acls_auth($_SESSION["uid"]);
+		$dyn->SQUID_DYNAMIC_ACLS();
 
 		
 			
@@ -276,10 +218,9 @@ class miniadm{
 	function leftmenu(){
 		$browser=browser_detection();
 		$tpl=new templates();
-		if(!$GLOBALS["VERBOSE"]){
-			if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}
-		}
 		if(!isset($_SESSION["SQUID_DYNAMIC_ACLS"])){$_SESSION["SQUID_DYNAMIC_ACLS"]=array();}
+		//if(!$GLOBALS["VERBOSE"]){if(isset($_SESSION[__FILE__][__FUNCTION__])){echo $_SESSION[__FILE__][__FUNCTION__];return;}}
+		writelogs("Building menu",__FUNCTION__,__FILE__,__LINE__);
 		$MAIL_ARCHIVE=true;
 		$AMAVIS_USERS=true;
 		$AMAVIS_ALL=true;
@@ -476,6 +417,9 @@ class miniadm{
 			
 			$this->squid_load_dynamic_acls();
 			$this->ProxyCategoriesPermissions();
+			
+			
+			
 			if(count($_SESSION["SQUID_DYNAMIC_ACLS"])>0){
 				$dynamic_acls_newbee_explain=str_replace("%s", count($_SESSION["SQUID_DYNAMIC_ACLS"]), $tpl->_ENGINE_parse_body("{dynamic_acls_newbee_explain}"));
 				$prxy["{dynamic_acls_newbee}"]="miniadmin.proxy.dynamic.acls.php";
@@ -685,6 +629,7 @@ class boostrap_form{
 	private $buttonname="{apply}";
 	private $CloseYahoo=null;
 	private $ExecuteByClassName='';
+	private $FlexID="";
 	private $ExecuteByClassNameForced=false;
 	private $title_form='';
 	private $ajax_page='';
@@ -722,6 +667,20 @@ class boostrap_form{
 		if(!is_numeric($this->DisableSpecialCharacters)){$this->DisableSpecialCharacters=0;}
 	}
 	
+	
+	public function time_to_date($xtime,$time=false){
+		$tpl=new templates();
+		$dateT=date("{l} {F} d",$xtime);
+		if($time){$dateT=date("{l} {F} d H:i:s",$xtime);}
+		if($tpl->language=="fr"){
+			$dateT=date("{l} d {F} ",$xtime);
+			if($time){$dateT=date("{l} d {F} H:i:s",$xtime);}
+		}
+		return $tpl->_ENGINE_parse_body($dateT);
+	
+	}	
+	
+	
 	public function trswitch($js){
 		$java="OnClick=\"javascript:$js\"";
 		return "$java OnMouseOver=\"javascript:this.style.cursor='pointer';\" OnMouseOut=\"javascript:this.style.cursor='default';\"";
@@ -739,9 +698,6 @@ class boostrap_form{
 	
 	}	
 	
-	public function time_to_date($time,$hoursSeconds=false){
-		return miniadm::time_to_date($time,$hoursSeconds);
-	}
 	
 	public function set_form_locked(){
 		$this->lockedForm=true;
@@ -792,6 +748,10 @@ class boostrap_form{
 	public function set_RefreshSearchs(){
 	
 		$this->ExecuteByClassName="SearchFunction";
+	}
+	
+	public function set_RefreshFlex($id){
+		$this->FlexID=$id;
 	}
 	
 	public function set_RefreshSearchsForced(){
@@ -853,7 +813,12 @@ class boostrap_form{
 		while (list ($key, $text) = each ($array) ){
 			$colspan=0;
 			$colspan_text=null;
+			$style=null;
 			if($key=="delete"){
+				$f[]="<th>&nbsp;</th>";
+				continue;
+			}
+			if($key=="choose"){
 				$f[]="<th>&nbsp;</th>";
 				continue;
 			}
@@ -864,6 +829,10 @@ class boostrap_form{
 			}
 			
 			if(preg_match("#(.+?):no#", $key,$re)){
+				if(preg_match("#([0-9]+)px#", $text,$re)){
+					$style="style='width:{$re[1]}px;vertical-align:top'";
+					$text=str_replace("{$re[1]}px", "",$text);
+				}
 				$text=$this->tpl->_ENGINE_parse_body($text);
 				$f[]="<th $colspan_text>$text</th>";
 				continue;
@@ -1202,6 +1171,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		$fieldsid=array();
 		$final0=null;
 		$btJSLOCK=0;
+		$final0=null;
 		$t=rand(50, time());
 		$page=CurrentPageName();
 		$tpl=new templates();
@@ -1211,6 +1181,10 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		$functionName="Submit$t";
 		if($this->ExecuteByClassName<>null){
 			$final0="ExecuteByClassName('$this->ExecuteByClassName');";
+		}
+		
+		if($this->FlexID<>null){
+			$final0=$final0."\n$('#$this->FlexID').flexReload();";
 		}
 		
 		if($this->form_error<>null){
@@ -1240,6 +1214,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$ClassPrepend=null;
 			$SCHEDULE=false;
 			$classField=null;
+			$MAXSIZE=false;
 			$FIELD_HEIGHT=0;
 			$TYPE=$array["TYPE"];
 			$jsipv4Validator=false;
@@ -1250,24 +1225,29 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$VALUE=$array["VALUE"];
 			$FIELDN=$array["FIELDN"];
 			$params=$array["PARAMS"];
+			
 			$checked=null;
+			$KEYPRESS=null;
+			$xzf=array();
+			
 			if(is_array($params)){
 				if(count($params)>0){
 					while (list ($index, $fieldIS) = each ($params) ){$xzf[]=$index;}
 					reset($params);
-					if($FIELDN<>null){$jsLog[]="// $FIELDN: ".@implode(",", $xzf);}
+					if($FIELDN<>null){$jsLog[]="// $fieldname: $FIELDN: ".@implode(",", $xzf);}
 				}
 			}
 			
-			
+			if(isset($params["MAXSIZE"])){$MAXSIZE=true;}
 			if(isset($params["HEIGHT"])){$FIELD_HEIGHT=$params["HEIGHT"];}
-			if(isset($params["MANDATORY"])){$MANDATORY=true;$jsLog[]="// $FIELDN -> Mandatory";}
+			if(isset($params["MANDATORY"])){$MANDATORY=true;$jsLog[]="// $fieldname: $FIELDN -> IS MANDATORY LINE:".__LINE__;}
 			if(isset($params["SCHEDULE"])){$SCHEDULE=true;}
 			if(isset($params["DISABLED"])){$disabled="disabled";}
 			if(isset($params["SPECIALSCHARS"])){$SPECIALSCHARS=true;}
 			if(isset($params["DISABLEALL"])){$DISABLEALL=true;}
 			if(isset($params["IPV4"])){$jsipv4Validator=true;}
 			if(isset($params["EXPLAIN"])){$params["TOOLIP"]=$params["EXPLAIN"];}
+			if(isset($params["KEYPRESS"])){$KEYPRESS=$params["KEYPRESS"];}
 			if(isset($params["TOOLIP"])){if(!isset($params["TOOLTIP"])){$params["TOOLTIP"]=$params["TOOLIP"];}}
 			$tooltip=null;
 			
@@ -1289,6 +1269,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			
 			if(isset($params["BUTTON"])){
 				$params["BUTTON"]["JS"]=str_replace("%f", $FIELDN, $params["BUTTON"]["JS"]);
+				$params["BUTTON"]["JS"]=str_replace("%s", $FIELDN, $params["BUTTON"]["JS"]);
 				//$ClassPrepend="input-append";
 				//$classField='span2';
 				$button="<button class='btn' type=\"button\" OnClick=\"{$params["BUTTON"]["JS"]}\">{$params["BUTTON"]["LABEL"]}</button>";
@@ -1438,7 +1419,8 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$this->js[]="\tdocument.getElementById('help-$t-$c').innerHTML='';";
 			
 			if($MANDATORY){
-				$this->js[]="\tif(!Mandatory$bootFormName('$FIELDN','Control-$t-$c','$CAPTIONjs')){return;}";
+				$jsLog[]="// $fieldname: $FIELDN -> MANDATORY function Mandatory$bootFormName";
+				$this->js[]="\tif(!Mandatory$bootFormName('$FIELDN','Control-$t-$c','$CAPTIONjs','help-$t-$c')){return;}";
 			}
 			
 
@@ -1463,7 +1445,11 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			}
 			
 			if($TYPE=="PASSWORD" OR $TYPE=="TEXT"){
-				$onKeyPress=" OnKeyPress=\"javascript:SendForm$t(event)\" ";
+				if($KEYPRESS<>null){
+					$onKeyPress=" OnKeyPress=\"javascript:$KEYPRESS(event,'$FIELDN');SendForm$t(event)\" ";
+				}else{
+					$onKeyPress=" OnKeyPress=\"javascript:SendForm$t(event)\" ";
+				}
 			}
 			
 			
@@ -1479,7 +1465,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 				$this->js[]="\t\t\treturn;";
 				$this->js[]="\t\t}";
 				$this->js[]="\t}";
-				$this->ToolTips[]="\t$(function(){ $('#{$FIELDN}').ipAddress(); });";
+				//$this->ToolTips[]="\t$(function(){ $('#{$FIELDN}').ipAddress(); });";
 			}
 			
 			if($TYPE=="TEXT"){
@@ -1694,19 +1680,19 @@ function {$functionName}MainButt(){
 
 
 
-function Mandatory$bootFormName(fieldid,controlid,captionjs){
+function Mandatory$bootFormName(fieldid,controlid,captionjs,helpid){
 	mandatory{$c}_fieldid=fieldid;
 	mandatory{$c}_controlid=controlid;
-	var field$c=document.getElementById('$FIELDN').value;
+	var field$c=document.getElementById(mandatory{$c}_fieldid).value;
 	if(field$c.length==0){
-		document.getElementById('Control-$t-$c').className='control-group error';
-		document.getElementById('help-$t-$c').innerHTML='$error_on_this_field';
+		document.getElementById(mandatory{$c}_controlid).className='control-group error';
+		document.getElementById(helpid).innerHTML='$error_on_this_field';
 		alert('$please_fill :`'+captionjs+'`');
-		document.getElementById('Control-$t-$c').classList.remove('error');
+		document.getElementById(mandatory{$c}_controlid).classList.remove('error');
 		
 		return false;
 	}
-	document.getElementById('help-$t-$c').innerHTML='';		
+	document.getElementById(helpid).innerHTML='';		
 	return true;
 }
 

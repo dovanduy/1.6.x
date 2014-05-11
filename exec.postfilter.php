@@ -29,9 +29,9 @@
 		$mysql=new mysql();
 		
 		if(!$mysql->CheckTablesPostfilter()){
-			echo "Starting......: PostFilter failed to build mysql tables\n";
+			echo "Starting......: ".date("H:i:s")." PostFilter failed to build mysql tables\n";
 		}else{
-			echo "Starting......: PostFilter mysql tables ok\n";
+			echo "Starting......: ".date("H:i:s")." PostFilter mysql tables ok\n";
 		}
 		}
 		
@@ -44,7 +44,7 @@
 		$cf[]="db_passwd = $mysql->mysql_password";
 		$cf[]="master_db_name = postfilter";
 		@file_put_contents("/etc/postfilter/root.cf",@implode("\n",$cf));
-		echo "Starting......: PostFilter building root.cf ok\n";
+		echo "Starting......: ".date("H:i:s")." PostFilter building root.cf ok\n";
 		}
 		
 		
@@ -352,9 +352,7 @@
 				$cf[]="";
 				$cf[]="# RBL and RHSBL policies";
 				$cf[]="policy_ordb = rbl:client_address:domain=relays.ordb.org";
-				$cf[]="policy_dsbl = rbl:client_address:domain=list.dsbl.org";
 				$cf[]="policy_spamhaus = rbl:client_address:domain=sbl.spamhaus.org";
-				$cf[]="policy_opm = rbl:client_address:domain=opm.blitzed.org";
 				$cf[]="policy_cbl = rbl:client_address:domain=cbl.abuseat.org";
 				$cf[]="";
 				$cf[]="# Recipient address ccepts senders from user whitelist ";
@@ -916,7 +914,7 @@
 				$cf[]="# eof";	
 				@file_put_contents("/etc/postfilter/main.cf",@implode("\n",$cf));
 				shell_exec("/usr/share/postfilter/sbin/pfadm upload config");
-				echo "Starting......: PostFilter building main.cf ok\n";	
+				echo "Starting......: ".date("H:i:s")." PostFilter building main.cf ok\n";	
 	}
 	
 	

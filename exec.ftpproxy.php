@@ -27,7 +27,7 @@ function start(){
 	$sock=new sockets();
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 		
@@ -41,7 +41,7 @@ function start(){
 
 	
 	if($EnableFTPProxy==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME is disabled...\n";}
 		stop();
 		return;		
 		
@@ -50,7 +50,7 @@ function start(){
 	
 	$daemonbin=$unix->find_program("ftp-proxy");
 	if(!is_file($daemonbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is not installed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME is not installed...\n";}
 		return;
 	}	
 	
@@ -58,14 +58,14 @@ function start(){
 	
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME already running pid $pid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME already running pid $pid since {$time}mn\n";}
 		return;
 	}	
 	
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: writing init.d\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: writing init.d\n";}
 	$cmd=trim("$php5 /usr/share/artica-postfix/exec.initslapd.php --ftp-proxy >/dev/null 2>&1");
 	
 	
@@ -73,31 +73,31 @@ function start(){
 	$cmdline="$daemonbin -d -f /etc/proxy-suite/ftp-proxy.conf";
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting $SERV_NAME\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting $SERV_NAME\n";}
 	shell_exec("$nohup $cmdline 2>&1 &");
 	sleep(1);
 	for($i=0;$i<10;$i++){
 		$pid=FTPD_PID();
-		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME started pid .$pid..\n";}break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME wait $i/10\n";}
+		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME started pid .$pid..\n";}break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME wait $i/10\n";}
 		sleep(1);
 	}	
 	sleep(1);
 	$pid=FTPD_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME failed to start\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME failed to start\n";}
 		$f=explode("\n",@file_get_contents($TMP));
 		while (list ($num, $ligne) = each ($TMP) ){
 			if(trim($ligne)==null){continue;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $ligne\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $ligne\n";}
 		}
 	
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME success\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME success\n";}
 		
 		
 	}
-	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmdline\n";}}
+	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmdline\n";}}
 	
 }
 
@@ -109,29 +109,29 @@ function stop(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 
 	$pid=FTPD_PID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME already stopped...\n";}
 		return;
 	}	
 	
 	$kill=$unix->find_program("kill");
 	$time=$unix->PROCCESS_TIME_MIN($pid);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Stopping $SERV_NAME with a ttl of {$time}mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping $SERV_NAME with a ttl of {$time}mn\n";}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Stopping $SERV_NAME smoothly...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping $SERV_NAME smoothly...\n";}
 	$cmd="$kill $pid >/dev/null";
 	shell_exec($cmd);
 
 	$pid=FTPD_PID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME success...\n";}
 		return;
 	}	
 	
@@ -139,21 +139,21 @@ function stop(){
 	for($i=0;$i<10;$i++){
 		$pid=FTPD_PID();
 		if($unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME kill pid $pid..\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME kill pid $pid..\n";}
 			shell_exec("$kill -9 $pid");
 		}else{
 			break;
 		}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $SERV_NAME wait $i/10\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME wait $i/10\n";}
 		sleep(1);
 	}	
 	$pid=FTPD_PID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME success...\n";}
 		return;
 	}	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: $SERV_NAME Failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Failed...\n";}
 }
 
 function FTPD_PID(){
@@ -508,7 +508,7 @@ function build(){
 	$f[]="";	
 	@mkdir("/etc/proxy-suite",0755,true);
 	@file_put_contents("/etc/proxy-suite/ftp-proxy.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: building /etc/proxy-suite/ftp-proxy.conf done...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: building /etc/proxy-suite/ftp-proxy.conf done...\n";}
 }
 
 

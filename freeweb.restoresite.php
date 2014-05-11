@@ -192,12 +192,12 @@ $page=CurrentPageName();
 		$textadd=null;
 		$evenement=$tpl->_ENGINE_parse_body("$evenement");
 		
-		$img="<img src='img/icon_info.gif'>";
+		$img="<img src='img/16-infos.png'>";
 		if(preg_match("#(failed|fatal|error|Notice)#i",$evenement)){
 			$img="<img src='img/warning-panneau-24.png'>";
 		}else{
 			if(preg_match("#(success)#i",$evenement)){
-				$img="<img src='img/status_ok.gif'>";
+				$img="<img src='img/status_ok.png'>";
 			}
 		}
 		

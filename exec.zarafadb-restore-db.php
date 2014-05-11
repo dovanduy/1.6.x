@@ -20,20 +20,20 @@ function zarafa_table_versions(){
 	$array=$q->TABLES_LIST();
 	
 	while (list ($tablename, $ar) = each ($array) ){
-		echo "Starting......: [INIT]: zarafa.$tablename OK\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: zarafa.$tablename OK\n";
 		
 	}
 	
 	return;
 	
 	if($q->TABLE_EXISTS("versions")){
-		echo "Starting......: [INIT]: zarafa.versions OK\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: zarafa.versions OK\n";
 		return;
 	}
 	
 	$Zarafa_server_version=Zarafa_server_version();
 	
-	echo "Starting......: [INIT]: zarafa.versions -> Create a new one ". @implode(",", $Zarafa_server_version)."\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: zarafa.versions -> Create a new one ". @implode(",", $Zarafa_server_version)."\n";
 	
 	$sql="CREATE TABLE `versions` (
 	`major` int(11) unsigned NOT NULL DEFAULT '0',
@@ -46,15 +46,15 @@ function zarafa_table_versions(){
 	
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){
-		echo "Starting......: [INIT]: zarafa.versions FAILED $q->mysql_error\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: zarafa.versions FAILED $q->mysql_error\n";
 		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return;}
 	}
 	
-	echo "Starting......: [INIT]: zarafa.versions building default values...\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: zarafa.versions building default values...\n";
 	$sql="INSERT INTO `versions` VALUES ({$Zarafa_server_version[0]},{$Zarafa_server_version[2]},{$Zarafa_server_version[3]},63,'2013-02-19 10:02:34');";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){
-		echo "Starting......: [INIT]: zarafa.versions FAILED $q->mysql_error\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: zarafa.versions FAILED $q->mysql_error\n";
 		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return;}
 		}
 	

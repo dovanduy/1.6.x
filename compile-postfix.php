@@ -135,7 +135,7 @@ if(!$GLOBALS["NO_COMPILE"]){
 	
 	if(is_file("/root/ftp-password")){
 		echo "Uploading $package...\n";
-		shell_exec("curl -T $package ftp://www.artica.fr/download/ --user ".@file_get_contents("/root/ftp-password"));
+		shell_exec("curl -T $package ftp://www.articatech.net/download/ --user ".@file_get_contents("/root/ftp-password"));
 		if(is_file("/root/rebuild-artica")){shell_exec("$wget \"".@file_get_contents("/root/rebuild-artica")."\" -O /tmp/rebuild.html");}
 		
 	}

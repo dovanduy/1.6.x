@@ -105,18 +105,18 @@ class squid_acls_quotas_time{
 	public function build(){
 		$binary=$this->locate_binary();
 		if(!is_file($binary)){
-			echo "Starting......: [ACL]: Quotas Time: ext_time_quota_acl, no such binary\n";
+			echo "Starting......: ".date("H:i:s")." [ACL]: Quotas Time: ext_time_quota_acl, no such binary\n";
 			return;}
 		$q=new mysql();
 		$sql="SELECT * FROM ext_time_quota_acl WHERE enabled=1";
 		$results = $q->QUERY_SQL($sql,'artica_backup');
 		$line=array();
 		if(mysql_num_rows($results)==0){
-			echo "Starting......: [ACL]: Quotas Time: ext_time_quota_acl, no enabled main rules\n";
+			echo "Starting......: ".date("H:i:s")." [ACL]: Quotas Time: ext_time_quota_acl, no enabled main rules\n";
 			return;}
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$ID=$ligne["ID"];
-			if(!$this->IsValid($ID)){echo "Starting......: [ACL]: Quotas Time: Rule [$ID] invalid\n";continue;}
+			if(!$this->IsValid($ID)){echo "Starting......: ".date("H:i:s")." [ACL]: Quotas Time: Rule [$ID] invalid\n";continue;}
 			$QuotaType["src"]="%SRC";
 			$QuotaType["uid"]="%LOGIN";
 			$QuotaType["MAC"]="%SRCEUI48";
@@ -236,7 +236,7 @@ class squid_acls_quotas_time{
 	
 	private function Output($text){
 		if(!$GLOBALS["VERBOSE"]){return;}
-		echo "Starting......: [ACL]: Quotas Time: $text\n";
+		echo "Starting......: ".date("H:i:s")." [ACL]: Quotas Time: $text\n";
 	}
 	
 	

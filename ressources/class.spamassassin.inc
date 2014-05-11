@@ -88,7 +88,7 @@ private function parse_internal_networks(){
 	$ldap=new clladp();
 	
 	if($ldap->ldapFailed){
-		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: amavisd-new LDAP Failed, aborting and die()\n";}
+		if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new LDAP Failed, aborting and die()\n";}
 		writelogs("Fatal: LDAP Failed, aborting and die",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}	
@@ -333,7 +333,7 @@ private function spamassassin_rules(){
 	$f=array();
 	$results = $q->QUERY_SQL($sql,$database);
 	if(mysql_num_rows($results)==0){
-		echo "Starting......: Spamassassin: no rules\n";
+		echo "Starting......: ".date("H:i:s")." Spamassassin: no rules\n";
 		return;
 	}
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -467,7 +467,7 @@ private function MaxRCPT(){
 		$sql="SELECT * FROM postfix_global_whitelist WHERE enabled=1 AND score>0 ORDER BY sender";	
 		
 		if(!$q->TestingConnection()){
-			echo "Starting......: WhiteScores() -> Connection to MySQL server failed\n";
+			echo "Starting......: ".date("H:i:s")." WhiteScores() -> Connection to MySQL server failed\n";
 			return;
 		}
 		

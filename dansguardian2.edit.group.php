@@ -6,6 +6,8 @@
 	include_once('ressources/class.mysql.inc');
 	include_once('ressources/class.dansguardian.inc');
 	include_once('ressources/class.ActiveDirectory.inc');
+	include_once('ressources/class.squid.inc');
+	
 	
 	
 $usersmenus=new usersMenus();
@@ -76,7 +78,11 @@ function tabs2(){
 		$array["blacklist"]='{blacklists}';
 		$array["whitelist"]='{whitelist}';
 		if($ligne["localldap"]==2){unset($array["members"]);$array["members-ad"]='{members}';}
-		
+		if($ligne["localldap"]==0){
+			if(preg_match("#^ExtLdap#", $dn)){
+				unset($array["members"]);
+			}
+		}
 	}
 
 	$gpid=$ligne["gpid"];
@@ -125,6 +131,7 @@ function group_edit(){
 	$t=$_GET["t"];
 	$tt=$_GET["tt"];
 	if($q2->COUNT_ROWS("adusers", "artica_backup")>0){$adgroup=true;}
+	$squid=new squidbee();
 	
 	$Yahoo=$_GET["yahoo"];
 	if($Yahoo==null){$closeYahoo="YahooWin3Hide()";}
@@ -170,12 +177,22 @@ function group_edit(){
 			}
 	}
 	
+	
+	if(preg_match("#^ExtLdap#", $ligne["dn"])){
+		$ligne["gpid"]=$ligne["dn"];
+	}
+	
+	
+	
 	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",16);
 	$bt_bt2=button("{apply}","SaveDansGUardianGroupRuleMinim()",16);
 	$LaunchBTBrowse=1;
 	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
 	if($ID>1){if($ligne["localldap"]==2){$bt_bt=$bt_bt2;$bt_browse=null;$LaunchBTBrowse=0;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
+	
+	$LDAP_EXTERNAL_AUTH=$squid->LDAP_EXTERNAL_AUTH;
+	if(!is_numeric($LDAP_EXTERNAL_AUTH)){$LDAP_EXTERNAL_AUTH=0;}
 	
 	$html="
 	<div id='dansguardinMainGroupDiv'>
@@ -242,13 +259,27 @@ function group_edit(){
 		
 	}
 	
+	function FillExtLdap(dn,prepend,displayname){
+		document.getElementById('groupname-$t').value=displayname;
+		document.getElementById('gpid').value=prepend+dn;
+		YahooUserHide();
+	}
+	
 	
 	function MemberBrowsePopup(){
 		var Selected=document.getElementById('localldap').value;
+		var LDAP_EXTERNAL_AUTH=$LDAP_EXTERNAL_AUTH;
+		
 		if(Selected==2){
-			Loadjs('BrowseActiveDirectory.php?field-user=gpid&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');
+			Loadjs('browse-ad-groups.php?field-user=gpid&field-type=2');
 			return;
 		}
+		
+		if( LDAP_EXTERNAL_AUTH == 1){
+			Loadjs('MembersBrowseExt.php?callback=FillExtLdap&OnlyGroups=1');
+			return;
+		}
+		
 		Loadjs('MembersBrowse.php?field-user=gpid&OnlyGroups=1&OnlyGUID=1');
 	
 	}
@@ -393,6 +424,15 @@ function group_edit_save(){
 		if($_POST["groupname"]==null){
 			echo $tpl->javascript_parse_text("{unable_to_resolve}:".base64_decode($dnEnc));
 			return;
+		}
+		
+	}
+	
+	if($_POST["localldap"]==0){
+		if(preg_match("#ExtLdap:(.+)#", $_POST["gpid"],$re)){
+			echo "match\n";
+			$_POST["dn"]=$_POST["gpid"];
+			$_POST["gpid"]=0;
 		}
 		
 	}
@@ -566,6 +606,9 @@ function members_search(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){json_error_show($q->mysql_error);}	
+	if(mysql_num_rows($results)==0){
+		json_error_show("no data");
+	}
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	
@@ -577,7 +620,7 @@ function members_search(){
 		$select=imgsimple("32-parameters.png",null,"DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		$delete=imgsimple("delete-32.png",null,"DansGuardianDeleteMember('{$ligne["ID"]}','$md')");
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 
 		
 	$data['rows'][] = array(
@@ -606,8 +649,10 @@ function member_check_already_exists(){
 
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		if(isset($AL[$ligne["groupid"]])){continue;}
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilter_group WHERE ID={$ligne["groupid"]}"));
 		echo $tpl->_ENGINE_parse_body("<li style='font-size:16px'>{alreadyexists}: {$ligne2["groupname"]}</li>");
+		$AL[$ligne["groupid"]]=true;
 	}
 	
 	
@@ -640,7 +685,7 @@ function members_edit(){
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}	
 	
 	$html="
-	<div id='members-edit-group'  style='width:95%' class=form>
+	<div id='members-edit-group'  style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{enabled}:</td>

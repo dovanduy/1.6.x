@@ -36,7 +36,7 @@ function popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$supportlink="http://www.artica.fr/support";
+	$supportlink="http://www.articatech.net/about.php";
 	$html="<table style='width:100%'>
 	<tbody>
 	<tr>

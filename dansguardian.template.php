@@ -135,6 +135,8 @@ function Dans2(){
 	<script type='text/javascript' language='javascript' src='XHRConnection.js'></script>
 	<script type='text/javascript' language='javascript' src='default.js'></script>
 	<script language=\"javascript\" type=\"text/javascript\" src=\"js/tiny_mce/tinymce.min.js\"></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 	</head>
 	<body width=100%> ";
 	
@@ -265,6 +267,8 @@ function Dans2Save(){
 	<script type='text/javascript' language='JavaScript' src='mouse.js'></script>
 	<script type='text/javascript' language='javascript' src='XHRConnection.js'></script>
 	<script type='text/javascript' language='javascript' src='default.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 		
 	</head>
 	<body width=100%> 

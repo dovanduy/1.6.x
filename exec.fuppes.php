@@ -13,7 +13,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 
 
 
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -264,7 +264,7 @@ $f[]="      </description_values>";
 $f[]="    </device>";
 $f[]="  </device_settings>";
 $f[]="</fuppes_config>";	
-echo "Starting......: fuppes building configuration done...\n";
+echo "Starting......: ".date("H:i:s")." fuppes building configuration done...\n";
 if(!is_dir("/etc/fuppes")){@mkdir("/etc/fuppes");}
 if(!is_dir("/var/db/fuppes")){@mkdir('/var/db/fuppes',644,true);}
 @file_put_contents("/etc/fuppes/fuppes.cfg", @implode("\n", $f));

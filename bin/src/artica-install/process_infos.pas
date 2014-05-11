@@ -326,7 +326,7 @@ begin
     end;
      
 
-GLOBAL_INI.BOA_STOP();
+
 articastatus:=tarticastatus.Create(SYS);
 articaexecutor:=tarticaexecutor.Create(SYS);
 articabackground:=tarticabackground.Create(SYS);
@@ -346,14 +346,7 @@ zarafa_server:=tzarafa_server.Create(SYS);
 zarafa_server.STOP();
 
 
-//DnsMasq
-dnsmasq.DNSMASQ_STOP_DAEMON();
-ldap.LDAP_STOP();
 
-//saslauthd;
-saslauthd:=tsaslauthd.Create(SYS);
-saslauthd.STOP();
-saslauthd.Free;
 GLOBAL_INI.ARTICA_STOP();
 
 end;

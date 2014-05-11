@@ -39,7 +39,7 @@ function PHP5SessionPath($dir){
 		$users=new usersMenus();
 		$memoire=$users->MEM_TOTAL_INSTALLEE;
 		$memoire=round($memoire/1024);
-		echo "Starting......: lighttpd: Try to calculate the memory available ({$memoire}M)\n";
+		echo "Starting......: ".date("H:i:s")." lighttpd: Try to calculate the memory available ({$memoire}M)\n";
 		if($memoire>512){$SessionPathInMemory=50;}
 		if($memoire>699){$SessionPathInMemory=90;}
 		if($memoire>999){$SessionPathInMemory=128;}
@@ -56,7 +56,7 @@ function PHP5SessionPath($dir){
 		$mountedMem=PHP5SessionPathIsMountedSizeMem($dir);
 		$log[]=__LINE__." $dir = {$mountedMem}M against {$SessionPathInMemory}M";
 		if($mountedMem==$SessionPathInMemory){return;}
-		echo "Starting......: lighttpd: unmounting $dir memory filesystem\n";
+		echo "Starting......: ".date("H:i:s")." lighttpd: unmounting $dir memory filesystem\n";
 		shell_exec("$umount -f $dir >/dev/null 2>&1");
 		if(is_dir($dir)){shell_exec("/bin/rm -rf $dir/*");}
 		$unix->send_email_events("Success cleaning session path in memory", @implode("\n", $log), "system");
@@ -64,7 +64,7 @@ function PHP5SessionPath($dir){
 	
 	if(!PHP5SessionPathIsMounted($dir)){
 		if($SessionPathInMemory>0){
-			echo "Starting......: lighttpd: mounting $dir memory filesystem\n";
+			echo "Starting......: ".date("H:i:s")." lighttpd: mounting $dir memory filesystem\n";
 			@mkdir($dir,0755,true);
 			if(is_dir($dir)){shell_exec("/bin/rm -rf $dir/*");}
 			$cmd="$mount -t tmpfs -o size={$SessionPathInMemory}M tmpfs \"$dir\" 2>&1";
@@ -74,14 +74,14 @@ function PHP5SessionPath($dir){
 			if(count($results_cmd)>0){while (list ($index, $line) = each ($results_cmd) ){$log[]=__LINE__." $line";}}
 			if(PHP5SessionPathIsMounted($dir)){
 				$unix->send_email_events("lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem success", @implode("\n", $log), "system");
-				echo "Starting......: lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem success\n";
+				echo "Starting......: ".date("H:i:s")." lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem success\n";
 			}else{
-				echo "Starting......: lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem failed\n";
+				echo "Starting......: ".date("H:i:s")." lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem failed\n";
 				$unix->send_email_events("lighttpd: mounting $dir {$SessionPathInMemory}M in memory filesystem FAILED", @implode("\n", $log), "system");
 			}
 		}
 	}else{
-		echo "Starting......: lighttpd: $dir Already mounted\n";
+		echo "Starting......: ".date("H:i:s")." lighttpd: $dir Already mounted\n";
 	}
 
 	
@@ -101,71 +101,14 @@ function PHP5SessionPathIsMountedSizeMem($dir){
 }
 
 function dump_pages(){
-		$debug=$GLOBALS["DEBUG"];
-		
-		if($debug){echo "open sockets()\n";}
-		$sock=new sockets();
-		
-		if($debug){echo "semaphores($sock->semaphore_key,$sock->semaphore_memory)\n";}
-		$sem=new semaphores($sock->semaphore_key,$sock->semaphore_memory);
-		$array=$sem->MyArray();
-		echo count($array)." rows ". str_replace("&nbsp;"," ",FormatBytes($taille/1024)). " memory use\n";
-		while (list ($num, $ligne) = each ($array) ){
-			$bytes=strlen($ligne);
-			echo "Cached pages: $num=".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."\n";
-		}
-		$sem->CLOSE();
-		$sem=new semaphores($sock->semaphore_key,$sock->semaphore_memory,2);
-		$array=$sem->MyArray();
-		$sem->CLOSE();
-		echo count($array)." Langages\n";
-		while (list ($num, $ligne) = each ($array) ){
-			$bytes=strlen(serialize($ligne));
-			echo "Langages: $num=".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."\n";
-		}		
+	
 		
 	
 }
 
 
 if($GLOBALS["DEBUG"]){echo "Starting..sockets()\n";}
-	
-			$sock=new sockets();
-			$xkey = "1376880652";
-			$memory=2024000;	
-			
-			if($GLOBALS["DEBUG"]){echo "->SHARED_INFO_BYTES($xkey,$memory)\n";}
-			$bytes=$sock->SHARED_INFO_BYTES($xkey,$memory);
-			
-			echo "\n";
-			echo "\n";
-			echo "-----------------------------------------\n";			
-			echo "Inter-process memory=".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($memory/1024))."\n";
-			echo "-----------------------------------------\n";
-			echo "\n";
-
-			
-		$xkey = "1376880653";
-		$memory=3024000;
-		$bytes=$sock->SHARED_INFO_BYTES($xkey,$memory);
 		
-			echo "\n";
-			echo "\n";
-			echo "-----------------------------------------\n";			
-			echo "DATA-process memory=".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($memory/1024))."\n";
-			echo "-----------------------------------------\n";
-			echo "\n";	
-			
-			$xkey = "1376880654";
-			$memory=5024000;
-			$bytes=$sock->SHARED_INFO_BYTES($xkey,$memory);
-		
-			echo "\n";
-			echo "\n";
-			echo "-----------------------------------------\n";			
-			echo "DATA-process memory=".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($memory/1024))."\n";
-			echo "-----------------------------------------\n";
-			echo "\n";				
 
 
 			
@@ -206,15 +149,7 @@ function remove_ipcs(){
 		
 	}
 	
-$shm=new semaphores($sock->semaphore_key,$sock->semaphore_memory,1);	
-$shm->removekey();
-$shm->Delete();
-$shm=new semaphores($sock->semaphore_key,$sock->semaphore_memory,2);	
-$shm->removekey();
-$shm->Delete();
-$shm=new semaphores($sock->semaphore_key,$sock->semaphore_memory,3);	
-$shm->removekey();
-$shm->Delete();
+
 
 reset($GLOBALS["langs"]);
 	while (list ($num, $ligne) = each ($GLOBALS["langs"]) ){
@@ -240,11 +175,6 @@ function output_ipcs(){
 	
 	
 			
-			$bytes=$sock->SHARED_INFO_BYTES(3);
-			$text=$text."Processes memory Cache............: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";
-
-			$bytes=$sock->SHARED_INFO_BYTES(1);
-			$text=$text."DATA Cache........................: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";
 
 			$bytes=$a;
 			$text=$text."Language Cache....................: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";

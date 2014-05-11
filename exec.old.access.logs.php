@@ -68,7 +68,7 @@ function events_tail($text){
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	//if($GLOBALS["VERBOSE"]){echo "$text\n";}
 	$pid=@getmypid();
-	$date=@date("h:i:s");
+	$date=@date("H:i:s");
 	$logFile="/var/log/artica-postfix/auth-tail.debug";
 	$size=@filesize($logFile);
 	if($size>1000000){@unlink($logFile);}

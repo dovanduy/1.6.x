@@ -27,6 +27,7 @@
 	
 function js(){
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body("SNMP");
 	$page=CurrentPageName();
 	$html="YahooWin3('600','$page?popup=yes','$title');";

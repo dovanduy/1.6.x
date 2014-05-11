@@ -260,9 +260,9 @@ if(trim($array["TopDir"])==null){$array["TopDir"]=locate_backuppc_TopDir();}
 
 
 $hostname=$users->hostname;
-echo "Starting......:  Backup-PC config dir: $ConfDir\n";
-echo "Starting......:  Backup-PC www user..: $wwuser\n";
-echo "Starting......:  Backup-PC Top dir...: {$array["TopDir"]}\n";
+echo "Starting......: ".date("H:i:s")."  Backup-PC config dir: $ConfDir\n";
+echo "Starting......: ".date("H:i:s")."  Backup-PC www user..: $wwuser\n";
+echo "Starting......: ".date("H:i:s")."  Backup-PC Top dir...: {$array["TopDir"]}\n";
 
 @mkdir($ConfDir,0755,true);
 @mkdir($array["TopDir"],0750,true);

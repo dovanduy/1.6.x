@@ -77,7 +77,7 @@ if(is_dir("/root/gluster-builder")){shell_exec("$rm -rf /root/gluster-builder");
 	if(is_file("/root/ftp-password")){
 		echo "Uploading sambac-$Architecture-$version.tar.gz Done...\n";
 		echo "/root/samba-builder/sambac-$Architecture-$version.tar.gz is now ready to be uploaded\n";
-		shell_exec("curl -T /root/samba-builder/sambac-$Architecture-$version.tar.gz ftp://www.artica.fr/download/ --user ".@file_get_contents("/root/ftp-password"));
+		shell_exec("curl -T /root/samba-builder/sambac-$Architecture-$version.tar.gz ftp://www.articatech.net/download/ --user ".@file_get_contents("/root/ftp-password"));
 		if(is_file("/root/rebuild-artica")){shell_exec("$wget \"".@file_get_contents("/root/rebuild-artica")."\" -O /tmp/rebuild.html");}
 		
 	}	

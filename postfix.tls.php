@@ -487,7 +487,7 @@ function postfix_tls_certificate(){
 		$download_cert=button("{download_certificates}","Loadjs('$page?windows-certificate=yes')");
 		}
 	
-	$CertificateInfos=button("{certificate_infos}","javascript:Loadjs('$page?view_certificate=yes')");
+	$CertificateInfos=button("{certificate_infos}","Loadjs('$page?view_certificate=yes')");
 	$hosts=button("{hosts}","javascript:Loadjs('$page?certificate-hosts-js=yes')");
 	
 		

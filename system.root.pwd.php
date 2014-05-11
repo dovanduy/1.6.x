@@ -37,7 +37,7 @@ function popup(){
 	<tr>
 		<td valign='top' width=1%><div id='animate-root'><img src='img/cop-lock-128.png' ></div></td>
 		<td valign='top'>
-		<table style='width:95%' class=form>
+		<table style='width:98%' class=form>
 		<tr>
 			<td class=legend style='font-size:16px'>{LDAP_PRIORITY}:</td>
 			<td>". Field_checkbox("PAMLdapPrio",1,$PAMLdapPrio)."</td>

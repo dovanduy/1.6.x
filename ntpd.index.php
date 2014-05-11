@@ -182,7 +182,7 @@ function index(){
 	</td>
 	<td valign='top'>
 		<div id='ntpd-status'></div>
-		<div id='enable-ntpd' style='width:95%' class=form></div>
+		<div id='enable-ntpd' style='width:98%' class=form></div>
 	</td>
 	</tr>
 	</table>
@@ -501,6 +501,8 @@ function main_logs(){
 	
 function ntpdAddCountry(){
 	$sock=new sockets();
+	$GLOBALS["TIMEZONES"]=$_POST["timezones"];
+	$_SESSION["TIMEZONES"]=$_POST["timezones"];
 	$sock->SET_INFO("timezones",$_POST["timezones"]);
 	$sock->getFrameWork("system.php?zoneinfo-set=".base64_encode($_POST["timezones"]));
 	

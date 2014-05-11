@@ -270,7 +270,7 @@ function privileges(){
 	
 	$ldap=new clladp();
 	$ht=array();
-	$ht[]="<div style='width:95%' class=form>";
+	$ht[]="<div style='width:98%' class=form>";
 	
 	$ht[]="<table style='width:99%'>";
 	if($ldap->IsKerbAuth()){

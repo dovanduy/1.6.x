@@ -350,7 +350,7 @@ function page(){
 	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
 	$compile_settings=$tpl->_ENGINE_parse_body("{compile_settings}");
 	$add_default=$tpl->javascript_parse_text("{add_defaults}");
-	
+	$t=time();
 	$qS=new mysql_squid_builder();
 	$q=new mysql();
 	if($q->COUNT_ROWS("ufdbguard_admin_events", "artica_events")>0){$q->QUERY_SQL("TRUNCATE TABLE ufdbguard_admin_events","artica_events");}
@@ -376,14 +376,14 @@ function page(){
 		$title=$tpl->_ENGINE_parse_body($qS->tasks_array[$_GET["TaskType"]]);
 	}
 	
-	$t=time();
+	
 	$html="
 	$explain_div
 
 
-	<div style='margin-left:-15px'>
+	
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
-	</div>
+	
 <script>
 var rowSquidTask='';
 function flexigridStarter$t(){
@@ -416,7 +416,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 897,
+	width: '100%',
 	height: 350,
 	singleSelect: true
 	

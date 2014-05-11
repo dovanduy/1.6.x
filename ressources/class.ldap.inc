@@ -1,4 +1,6 @@
 <?php
+if(isset($_SESSION["TIMEZONES"])){if(function_exists("getLocalTimezone")){@date_default_timezone_set($_SESSION["TIMEZONES"]);}}
+if(isset($GLOBALS["TIMEZONES"])){if(function_exists("getLocalTimezone")){@date_default_timezone_set($GLOBALS["TIMEZONES"]);}}
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 if(!isset($GLOBALS["DEBUG"])){$GLOBALS["DEBUG"]=false;}
 if(!isset($GLOBALS["DEBUG_TEMPLATE"])){$GLOBALS["DEBUG_TEMPLATE"]=false;}
@@ -126,7 +128,7 @@ class clladp{
 	
 	function clladp(){
 		$this->ldapFailed=false;
-		if(function_exists("getLocalTimezone")){@date_default_timezone_set(getLocalTimezone());}
+		
 		if(!isset($GLOBALS["VERBOSE++"])){$GLOBALS["VERBOSE++"]=false;}
 		if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
 		
@@ -190,11 +192,8 @@ class clladp{
 		$this->use_suse_schema=$_GLOBAL["USE_SUSE_SCHEMA"];
 		if($_GLOBAL["ldap_host"]==null){$this->ldap_host="127.0.0.1";}
 		if($_GLOBAL["ldap_host"]=='*'){$this->ldap_host="127.0.0.1";}
-		if($EnableOpenLdapProxy==1){
-			$this->suffix=$OpenLdapProxySuffix;
-		}
-
-		
+		if($this->ChangeToLocalhost_get()){$this->ChangeToLocalhost();}
+		if($EnableOpenLdapProxy==1){$this->suffix=$OpenLdapProxySuffix;}
 		
 		if($this->ldap_host=="127.0.0.1"){
 			if(!$_GLOBAL["openldap_installed"]){
@@ -204,44 +203,15 @@ class clladp{
 			}
 		}
 		
-		if($this->ldap_port==null){$this->ldap_port="389";}
+		if($this->ldap_port==null){$this->ldap_port=389;}
 		if(!isset($GLOBALS["VERIFLDAPTRUE"])){$GLOBALS["VERIFLDAPTRUE"]=false;}
 		
-			if(!isset($_SESSION["ASLDATESTED"][date('YmdHi')])){
-					if(!$GLOBALS["VERIFLDAPTRUE"]){
-						$fp=@fsockopen($this->ldap_host, $this->ldap_port, $errno, $errstr, 2);
-						if(!$fp){
-							$trace=debug_backtrace();
-							$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";		
-							if($GLOBALS["DEBUG"]){writelogs("Fatal: fsockopen -> $this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__);}
-							if($GLOBALS["DEBUG"]){writelogs("Fatal: ERROR unable to connect to ldap server in line ". __LINE__." $this->ldap_host, $this->ldap_port \"$errstr\" $called",__CLASS__."/" .__FUNCTION__,__FILE__);}
-							$this->ldap_last_error=$errstr;$this->ldapFailed=true;
-							$sock=new sockets();
-							if(!isset($GLOBALS["ASLDAPRESTARTED"])){
-								if(!isset($_SESSION[date('YmdHi')."ASLDAPRESTARTED"])){
-									if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
-										$sock->getFrameWork("cmd.php?ldap-restart=yes");
-										$GLOBALS["cmd.php?ldap-restart=yes"]=true;
-									}
-									$GLOBALS["ASLDAPRESTARTED"]=true;
-									$_SESSION[date('YmdHi')."ASLDAPRESTARTED"]=true;
-								}
-							}
-							
-							@fclose($fp);
-							return false;
-							$_SESSION["ASLDATESTED"][date('YmdHi')]=false;
-						}
-						@fclose($fp);
-					}
-				}
-			
-		
+		if(!$this->ldap_fsock()){return false;}
 		$GLOBALS["LDAP_COUNT_FAILED"]=0;
 		
-		if(!$this->ldap_perform_connection($ldapport)){
+		if(!$this->ldap_perform_connection($this->ldap_port)){
 			if(!function_exists("ldap_err2str")){return false;}
-			writelogs(PHP_VERSION." php version) Unable to connect to ldap server {$this->ldap_host}:$ldapport Error=`".ldap_err2str($this->ldap_connection)."`",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			writelogs(PHP_VERSION." php version) Unable to connect to ldap server {$this->ldap_host}:$this->ldap_port Error=`".ldap_err2str($this->ldap_connection)."`",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		 	$this->ldapFailed=true;
 		 	return null;
 		}
@@ -259,10 +229,10 @@ class clladp{
 						$trace=debug_backtrace();
 						$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";	
 						if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__);}
-						$errornumber= ldap_errno($this->ldap_connection);
-						$error_text=ldap_err2str($this->ldap_connection);
+						$errornumber=@ldap_errno($this->ldap_connection);
+						$error_text=@ldap_err2str($this->ldap_connection);
 						$error= "[$errornumber] `$error_text`";
-						writelogs("Fatal: unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} (cn=$this->ldap_admin,$this->suffix) $error $called"
+						writelogs("Fatal: line ". __LINE__." unable to connect to ldap server ldap://{$this->ldap_host}:{$this->ldap_port} (cn=$this->ldap_admin,$this->suffix) $error $called"
 						,__CLASS__."/" .__FUNCTION__,__FILE__);	
 						
 				switch (ldap_errno($this->ldap_connection)) {
@@ -312,6 +282,104 @@ class clladp{
 	
 		}
 		
+private function ldap_fsock(){
+	if(isset($_SESSION["ASLDATESTED"][date('YmdHi')])){return $_SESSION["ASLDATESTED"][date('YmdHi')];}
+	if($GLOBALS["VERIFLDAPTRUE"]){return true;}
+	
+	if(!$this->ldap_fsock_perform($this->ldap_host,$this->ldap_port)){
+		$trace=debug_backtrace();
+		$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";
+		if($GLOBALS["DEBUG"]){writelogs("Fatal: ERROR unable to connect to ldap server in line ". __LINE__." $this->ldap_host, $this->ldap_port $called",__CLASS__."/" .__FUNCTION__,__FILE__);}
+		if($this->ldap_host=="127.0.0.1"){
+			$sock=new sockets();
+			if(!isset($GLOBALS["ASLDAPRESTARTED"])){
+				if(!isset($_SESSION[date('YmdHi')."ASLDAPRESTARTED"])){
+					if(!isset($GLOBALS["cmd.php?ldap-restart=yes"])){
+						$sock->getFrameWork("cmd.php?ldap-restart=yes");
+						$GLOBALS["cmd.php?ldap-restart=yes"]=true;
+					}
+				$GLOBALS["ASLDAPRESTARTED"]=true;
+				$_SESSION[date('YmdHi')."ASLDAPRESTARTED"]=true;
+				}
+			}
+			$_SESSION["ASLDATESTED"][date('YmdHi')]=false;
+			
+			$this->ldapFailed=true;
+			return false;
+		}
+		
+		include_once(dirname(__FILE__)."/local_ldap.php");
+		$ARRAY=unserialize(base64_decode($GLOBALS["MAIN_LOCAL_LDAP_SETTINGS"]));
+		if(is_array($ARRAY)){
+			$binddn=$ARRAY["DN"];
+			$password=$ARRAY["PWD"];
+			$suffix=$ARRAY["SUFFIX"];
+		
+			if($this->ldap_fsock_perform("127.0.0.1",389)){
+				$this->ChangeToLocalhost();
+				$this->ChangeToLocalhost_set();
+				writelogs("Fatal: relink local ldap server 127.0.0.1:389",__CLASS__."/" .__FUNCTION__,__FILE__);
+				$_SESSION["ASLDATESTED"][date('YmdHi')]=true;
+				$GLOBALS["VERIFLDAPTRUE"]=true;
+				$this->ldapFailed=false;
+				return true;
+			}else{
+				writelogs("Fatal: Unable to connect to local ldap server 127.0.0.1:389",__CLASS__."/" .__FUNCTION__,__FILE__);
+				$this->ldapFailed=true;
+				$_SESSION["ASLDATESTED"][date('YmdHi')]=false;
+				return false;
+			}
+
+		}else{
+			writelogs("Fatal: line ". __LINE__." ".dirname(__FILE__)."/local_ldap.php no such array",__CLASS__."/" .__FUNCTION__,__FILE__);
+		}
+		
+	}
+	$this->ldapFailed=false;
+	$_SESSION["ASLDATESTED"][date('YmdHi')]=true;	
+	$GLOBALS["VERIFLDAPTRUE"]=true;
+	return true;
+}
+
+private function ChangeToLocalhost_get(){
+	if(isset($_SESSION["CHANGE_LDAP_TO_LOCALHOST"][date('YmdHi')])){return true;}
+	if(isset($GLOBALS["CHANGE_LDAP_TO_LOCALHOST"][date('YmdHi')])){return true;}
+}
+private function ChangeToLocalhost_set(){
+	$GLOBALS["CHANGE_LDAP_TO_LOCALHOST"][date('YmdHi')]=true;
+	$_SESSION["CHANGE_LDAP_TO_LOCALHOST"][date('YmdHi')]=true;
+	
+}
+
+private function ChangeToLocalhost(){
+	include_once(dirname(__FILE__)."/local_ldap.php");
+	$ARRAY=unserialize(base64_decode($GLOBALS["MAIN_LOCAL_LDAP_SETTINGS"]));
+	if(is_array($ARRAY)){
+		$binddn=$ARRAY["DN"];
+		$password=$ARRAY["PWD"];
+		$suffix=$ARRAY["SUFFIX"];
+		$this->ldap_host="127.0.0.1";
+		$binddnZ=explode(",",$binddn);
+		$this->suffix=$suffix;
+		$this->ldap_admin=$binddnZ[0];
+		$this->ldap_port=389;
+		$this->ldap_password=$password;
+		$this->ldapFailed=false;
+	}
+}
+
+private function ldap_fsock_perform($server,$port){
+	$fp=@fsockopen($server, $port, $errno, $errstr, 2);
+	if(!$fp){
+		$this->ldap_last_error=$errstr;
+		if($GLOBALS["DEBUG"]){writelogs("Fatal: fsockopen -> $server:$port",__CLASS__.'/'.__FUNCTION__,__FILE__);}
+		@fclose($fp);
+		return false;
+	}
+	@fclose($fp);
+	return true;
+}
+		
 function ldap_escape($str){
     $metaChars = array('\\', '(', ')', '#', '*');
     $quotedMetaChars = array();
@@ -333,6 +401,16 @@ public function ldap_perform_connection($ldapport=null){
 			return false;
 		}
 		
+		if(!$this->ldap_connection){
+			if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> cn=$this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			$this->ldap_connection=@ldap_connect($this->ldap_host, $this->ldap_port ) ;
+			if(!$this->ldap_connection){
+				if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldap_connect -> cn=$this->ldap_host:$this->ldap_port FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				@ldap_close();return false;
+			}
+				
+		}
+		
 		
 		ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 
@@ -342,19 +420,13 @@ public function ldap_perform_connection($ldapport=null){
 			$GLOBALS["LDAP_BIN_ID"]=$this->ldapbind;
 			return true;
 		}else{
-			if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__);}		
+			if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
 		}
 	}
 	
-	
-	if($ldapport==null){
-		if(!is_numeric($this->ldap_port)){
-				$ldapport=389;
-			}else{
-				$ldapport=$this->ldap_port;
-			}
-		}
-		if($GLOBALS["VERBOSE"]){
+	if(!is_numeric($this->ldap_port)){$this->ldap_port=389;}
+		
+	if($GLOBALS["VERBOSE"]){
 			if(function_exists("debug_backtrace")){
 				$trace=debug_backtrace();
 				$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			
@@ -366,7 +438,7 @@ public function ldap_perform_connection($ldapport=null){
 		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
 		return false;
 	}	
-	$this->ldap_connection=ldap_connect($this->ldap_host, $ldapport ) ;
+	$this->ldap_connection=ldap_connect($this->ldap_host, $this->ldap_port ) ;
 	$GLOBALS["LDAP_CONNECT_ID"]=$this->ldap_connection;
 	 if(!$this->ldap_connection){
 	 	
@@ -376,7 +448,7 @@ public function ldap_perform_connection($ldapport=null){
 	 	if($GLOBALS["LDAP_COUNT_FAILED"]>4){
 		 	return false;
 	 	}
-	 	return $this->ldap_perform_connection($ldapport);
+	 	return $this->ldap_perform_connection($this->ldap_port);
 	 }
 	 ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 	 ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 	
@@ -404,7 +476,7 @@ public function ldap_perform_connection($ldapport=null){
 		if(!$fp=@fsockopen($ldap_host, $ldap_port, $errno, $errstr, 2)){
 			$ldapClass->builderror($errstr);
 		}
-		fclose($fp);
+		@fclose($fp);
 	
 	
 		$ldap_connection=ldap_connect($ldap_host, $ldap_port );
@@ -778,11 +850,11 @@ public function ldap_perform_connection($ldapport=null){
 		$this->ldap_perform_connection();
 		$res=true;
 		$ou=$this->StripSpecialsChars($ou);
-		if($ou=="users"){echo "Error: Adding\n$ou words not permitted\n";exit;}
-		if($ou=="groups"){echo "Error: Adding\n$ou words not permitted\n";exit;}
-		if($ou=="computers"){echo "Error: Adding\n$ou words not permitted\n";exit;}
-		if($ou=="pureftpd"){echo "Error: Adding\n$ou words not permitted\n";exit;}
-		if($ou=="root"){echo "Error: Adding\n$ou words not permitted\n";exit;}
+		if($ou=="users"){echo "Error: Adding\n$ou words not permitted\n";return false;}
+		if($ou=="groups"){echo "Error: Adding\n$ou words not permitted\n";return false;;}
+		if($ou=="computers"){echo "Error: Adding\n$ou words not permitted\n";return false;;}
+		if($ou=="pureftpd"){echo "Error: Adding\n$ou words not permitted\n";return false; ;}
+		if($ou=="root"){echo "Error: Adding\n$ou words not permitted\n";return false;;}
 		
 		$this->BuildMasterTree();
 		$this->BuildOrganizationBranch();
@@ -1162,12 +1234,12 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 		
 		$this->IFcn_notexists_CreateIt('artica');
 		$array=array();
-		if($DebugThis){error_log("$CurrentPageName:: @ldap_read($this->ldap_connection,cn=artica,$this->suffix,'objectClass=ArticaSettings'".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($DebugThis){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: @ldap_read($this->ldap_connection,cn=artica,$this->suffix,'objectClass=ArticaSettings'".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$sr =@ldap_read($this->ldap_connection,"cn=artica,$this->suffix",'objectClass=ArticaSettings');
-		if($DebugThis){error_log("$CurrentPageName:: @ldap_read done..".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($DebugThis){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: @ldap_read done..".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$updatearray=array();
 		if ($sr) {
-			if($DebugThis){error_log("$CurrentPageName:: ldap_get_entries($this->ldap_connection,$sr)".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($DebugThis){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ldap_get_entries($this->ldap_connection,$sr)".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			$hash=ldap_get_entries($this->ldap_connection,$sr);
 			if(isset($hash[0]["postfixmaincf"][0])){$array["maincf"]=$hash[0]["postfixmaincf"][0];}
 			if(isset($hash[0][strtolower("PostfixHeadersRegex")])){
@@ -1227,7 +1299,7 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 			
 			
 			
-		if($DebugThis){error_log("$CurrentPageName:: return ARRAY DONE".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($DebugThis){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: return ARRAY DONE".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		return $array;
 	}
 	
@@ -1323,7 +1395,7 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 		if($GLOBALS["DEBUG_TEMPLATE"]){$DebugThis=true;}
 		$update_array=array();
 		$this->ldap_perform_connection();
-		if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]:: this->ExistsDN(cn=artica,$this->suffix)".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]:: this->ExistsDN(cn=artica,$this->suffix)".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if(!$this->ExistsDN("cn=artica,$this->suffix")){
 			//writelogs("Creating cn=artica,$this->suffix branch",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			$dn=$this->dn_escape("cn=artica,$this->suffix");
@@ -1331,10 +1403,10 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 			$update_array["objectClass"][]='organizationalRole';
 			$update_array["objectClass"][]='ArticaSettings';
 			$update_array["objectClass"][]='top';
-			if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]:: this->ldap_add($dn,$update_array) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]:: this->ldap_add($dn,$update_array) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			$this->ldap_add($dn,$update_array);
 		}else{
-			if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]:: this->ExistsDN(cn=artica,$this->suffix) -> OK".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}::LANG:[{$_SESSION["detected_lang"]}]:: this->ExistsDN(cn=artica,$this->suffix) -> OK".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		}
 		
 		if(!$this->ExistsDN("cn=artica,$this->suffix")){$this->ArticaBranchCorrupted=true;}
@@ -1349,11 +1421,11 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 		$update_array=array();
 	
 		if($this->ldapFailed){return null;}
-		if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}:: @ldap_search($this->ldap_connection,$this->suffix,(cn=$name))".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:: @ldap_search($this->ldap_connection,$this->suffix,(cn=$name))".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$sr =@ldap_search($this->ldap_connection,$this->suffix,"(cn=$name)");
-		if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}:: @ldap_search -> $sr".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:: @ldap_search -> $sr".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if ($sr) {
-			if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}: @ldap_get_entries($this->ldap_connection,$sr) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}: @ldap_get_entries($this->ldap_connection,$sr) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			$hash=@ldap_get_entries($this->ldap_connection,$sr);
 			if($hash["count"]==0){
 				$dn=$this->dn_escape("cn=artica,$this->suffix");
@@ -1362,11 +1434,11 @@ function EditRelayDomain($ou,$domain,$ip,$port){
 				$update_array["objectClass"][]='organizationalRole';
 				$update_array["objectClass"][]='ArticaSettings';
 				$update_array["objectClass"][]='top';
-				if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}: this->ldap_add($dn,$update_array) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+				if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}: this->ldap_add($dn,$update_array) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 				$this->ldap_add($dn,$update_array);
 				}
 			}else{
-				if($DebugThis){error_log("{$GLOBALS["CURRENT_PAGE"]}:: FAILED ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+				if($DebugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]}:: FAILED ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			}
 	}
 	
@@ -1556,20 +1628,20 @@ function Hash_GetALLUsers(){
 		$suffix="dc=organizations,$this->suffix";
 		$res=array();
 		$arr=array("ou");
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} @ldap_list($ld,$suffix,'(&(objectclass=organizationalUnit)(ou=*)) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} @ldap_list($ld,$suffix,'(&(objectclass=organizationalUnit)(ou=*)) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$sr = @ldap_list($ld,$suffix,'(&(objectclass=organizationalUnit)(ou=*))',$arr);
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} @ldap_list DONE ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} @ldap_list DONE ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if($debugThis){echo "<li>hash_get_ou()::  @ldap_list DONE line:".__LINE__."</li>\n";}
 		
 		if ($sr) {
-			if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ldap_get_entries($ld,$sr) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ldap_get_entries($ld,$sr) ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			$hash=ldap_get_entries($ld,$sr);
 			if(!is_array($hash)){
 				if($debugThis){echo "<li>hash_get_ou():: Not an array:".__LINE__."</li>\n";}
 				return $this->ActiveDirectoryOrganizations($has_key);
 				
 			}
-				
+			
 			while (list ($num, $ligne) = each ($hash) ){
 				if($ligne["ou"][0]<>null){
 					   if(!preg_match('#dc=samba,#',$ligne["dn"])){
@@ -1589,7 +1661,7 @@ function Hash_GetALLUsers(){
 			}else{
 				if($debugThis){echo "<li>hash_get_ou()::  LDAP ERROR:".__LINE__."</li>\n";}	
 				$error=ldap_err2str(ldap_errno($this->ldap_connection));
-				if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} LDAP ERROR $error".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+				if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} LDAP ERROR $error".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			}
 			
 		if($debugThis){echo "<li>hash_get_ou():: Array of ". count($res)." line:".__LINE__."</li>\n";}
@@ -2494,7 +2566,7 @@ function Hash_GetALLUsers(){
 		}
 
 		function hash_groups($ou,$fieldlist=0){
-			
+			$res=array();
 			if($this->IsKerbAuth()){
 				$ldap=new external_ad_search();
 				return $ldap->hash_groups($ou,$fieldlist);
@@ -2645,17 +2717,22 @@ function HashMembersFromOU($ou){
 }
 		
 	function UserSearch($ou=null,$tofind,$max=0){
-			
+
+		
 			if($this->EnableManageUsersTroughActiveDirectory){
 				$ldap=new ldapAD();
 				$hash=$ldap->UserSearch($ou,$tofind);
+				return array($hash,array());
 				
-				return $hash;
 			}
 		
 		
 			$uid=$_SESSION["uid"];
 			if($tofind==null){$tofind='*';}else{$tofind="*$tofind*";}
+			$tofind=str_replace("*****","*",$tofind);
+			$tofind=str_replace("****","*",$tofind);
+			$tofind=str_replace("***","*",$tofind);
+			$tofind=str_replace("**","*",$tofind);
 		
 			$filter="(&(objectClass=userAccount)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(uid=$tofind) (givenname=$tofind) ))";
 			$attrs=array("displayName","uid","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber");
@@ -2668,6 +2745,7 @@ function HashMembersFromOU($ou){
 			
 			$hash=$this->Ldap_search($dn,$filter,$attrs,$max);
 			
+			if($GLOBALS["OUTPUT_DEBUG"]){echo "HASH:Address book contains ".count($hash). " rows <br>";}
 			
 			
 			if($ou==null){$dn=$this->suffix;}else{$dn="ou=$uid,ou=People,dc=$ou,dc=NAB,$this->suffix";}
@@ -2676,8 +2754,8 @@ function HashMembersFromOU($ou){
 			if($GLOBALS["OUTPUT_DEBUG"]){echo "Search $dn<br>";}
 			if($GLOBALS["OUTPUT_DEBUG"]){echo "Filter $filter<br>";}			
 			$hash2=$this->Ldap_search($dn,$filter,$attrs,$max);
-			
-			if($GLOBALS["OUTPUT_DEBUG"]){echo "Address book contains ".count($hash2). " rows <br>";}	
+	
+			if($GLOBALS["OUTPUT_DEBUG"]){echo "HASH2:Address book contains ".count($hash2). " rows <br>";}	
 			return array($hash,$hash2);
 
 		}
@@ -3698,8 +3776,10 @@ function Hash_get_restrictions_classes_tables($class_name,$table_name){
 
 	
 function load_mynetworks(){
+		if(isset($GLOBALS["LDAP_".__FUNCTION__])){return $GLOBALS["LDAP_".__FUNCTION__];}
 		$this->ldap_perform_connection();
 		$Networks_disabled=array();
+		$array_mynetworks=array();
 		$nets=array();
 		$dn="cn=mynetworks_maps,cn=artica,$this->suffix";
 		$sr =@ldap_read($this->ldap_connection,$dn,'objectClass=PostfixMynetworks');
@@ -3742,7 +3822,7 @@ function load_mynetworks(){
 				$array_mynetworks[]=$myNetwork;
 			}
 		}
-	
+	   $GLOBALS["LDAP_".__FUNCTION__]=$array_mynetworks;
 	   return $array_mynetworks;
 }
 	
@@ -4239,6 +4319,7 @@ function getobjectDNClass($dn,$fulldn=0){
    		
    		
    	function ldap_event($ldap_number,$ldap_mseg,$ldap_action,$update_array,$dn){
+   		$d=null;
    		if($ldap_number==68){writelogs("$dn $ldap_mseg...",__CLASS__ . "/$ldap_action",__FILE__);return true;}
    		writelogs("$ldap_action ERROR $ldap_number ($ldap_mseg) on DN \"$dn\" entries: ",__CLASS__ . "/" . __FUNCTION__,__FILE__);
    		if(is_array($update_array)){

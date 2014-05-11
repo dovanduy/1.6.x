@@ -36,7 +36,7 @@ function restart() {
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -54,7 +54,7 @@ function start($aspid=false){
 	$Masterbin=$unix->find_program("lighttpd");
 
 	if(!is_file($Masterbin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
 		return;
 	}
 
@@ -63,7 +63,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -73,7 +73,7 @@ function start($aspid=false){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 	$EnableSquidGuardHTTPService=$sock->GET_INFO("EnableSquidGuardHTTPService");
@@ -90,7 +90,7 @@ function start($aspid=false){
 
 
 	if($EnableSquidGuardHTTPService==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service disabled\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled\n";}
 		return;
 	}
 
@@ -101,7 +101,7 @@ function start($aspid=false){
 
 	
 	build();
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 
 	
 	
@@ -115,7 +115,7 @@ function start($aspid=false){
 	shell_exec($cmd);
 
 	for($i=1;$i<6;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
@@ -123,14 +123,14 @@ function start($aspid=false){
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 		$f=explode("\n",@file_get_contents($TMPFILE));
-		while (list ($index, $line) = each ($f) ){if($GLOBALS["OUTPUT"]){echo "Starting......: [DEBUG]:1] $line\n";}}
+		while (list ($index, $line) = each ($f) ){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [DEBUG]:1] $line\n";}}
 		$f=explode("\n",@file_get_contents("/var/log/lighttpd/squidguard-lighttpd-error.log"));
-		while (list ($index, $line) = each ($f) ){if($GLOBALS["OUTPUT"]){echo "Starting......: [DEBUG]:2] $line\n";}}
+		while (list ($index, $line) = each ($f) ){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [DEBUG]:2] $line\n";}}
 	}
 
 
@@ -143,7 +143,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -153,7 +153,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		return;
 	}
 	$pid=PID_NUM();
@@ -164,32 +164,32 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 }
@@ -274,12 +274,15 @@ function build(){
 	
 	
 	$EnablePHPFPM=$sock->GET_INFO('EnablePHPFPM');
-	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=1;}
-	$EnablePHPFPM=1;
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
+
 	$PHP_STANDARD_MODE=true;
 	$phpcgi_path=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Run as: $username\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Run as: $username\n";}
 	
 	
 	$PHP_FCGI_CHILDREN=1;
@@ -391,17 +394,17 @@ if(!is_file("/opt/artica/ssl/certs/lighttpd.pem")){
 }
 // 
 
-if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Listen on: $SquidGuardApachePort\n";}
-if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Listen on: $SquidGuardApacheSSLPort SSL\n";}
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Listen on: $SquidGuardApachePort\n";}
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Listen on: $SquidGuardApacheSSLPort SSL\n";}
 
 $phpfpm=$unix->find_program('php5-fpm')  ;
 if(!is_file($phpfpm)){$phpfpm=$unix->find_program('php-fpm');}
 
 
 	if(is_file($phpfpm)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} PHP-FPM is installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} PHP-FPM is installed\n";}
 		if($EnablePHPFPM==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} PHP-FPM is enabled\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} PHP-FPM is enabled\n";}
 			$PHP_STANDARD_MODE=false;
 			$f[]='fastcgi.server = ( ".php" =>((';
 			$f[]='         "socket" => "/var/run/php-fpm.sock",';
@@ -414,10 +417,10 @@ if(!is_file($phpfpm)){$phpfpm=$unix->find_program('php-fpm');}
 		$f[]='fastcgi.server = ( ".php" =>((';
 		$f[]='         "bin-path" => "/usr/bin/php-cgi",';
 	if($LighttpdUseUnixSocket==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Fast-cgi server unix socket mode\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Fast-cgi server unix socket mode\n";}
 			$f[]='         "socket" => "/var/run/lighttpd/php.socket" + var.PID,';
 	}else{
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Fast-cgi server socket 127.0.0.1:$lighttpdPhpPort\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Fast-cgi server socket 127.0.0.1:$lighttpdPhpPort\n";}
 			$f[]='         "host" => "127.0.0.1","port" =>'.$lighttpdPhpPort.',';
 		}
 	}
@@ -449,6 +452,6 @@ if(!is_file($phpfpm)){$phpfpm=$unix->find_program('php-fpm');}
 
 
 	@file_put_contents("/etc/artica-postfix/squidguard-lighttpd.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} squidguard-lighttpd.conf done.\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} squidguard-lighttpd.conf done.\n";}
 	
 }

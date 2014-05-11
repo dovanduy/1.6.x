@@ -30,15 +30,15 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="tasks_events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.tasks.events.php\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.tasks.events.php\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html,"main_config_squid_stats_tasks");
+	echo build_artica_tabs($html,"main_config_squid_stats_tasks",935)."<script>LeftDesign('tasks-white-256-opac20.png');</script>";
 	
 }	
 

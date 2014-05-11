@@ -1,4 +1,4 @@
-*<?php
+<?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
@@ -36,7 +36,7 @@ function ToCopy($WORKDIR){
 	$f[]="host.MYI";
 	while (list ($key, $filename) = each ($results) ){
 		if(!is_file("$WORKDIR/mysql/$filename")){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: copy /var/lib/mysql/mysql/$filename $WORKDIR/mysql/$filename\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: copy /var/lib/mysql/mysql/$filename $WORKDIR/mysql/$filename\n";}
 			@copy("/var/lib/mysql/mysql/$filename $WORKDIR/mysql/$filename");
 		}
 		
@@ -73,7 +73,7 @@ function start(){
 	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 		
@@ -83,7 +83,7 @@ function start(){
 
 	
 	if($AmavisPerUser==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is disabled...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME is disabled...\n";}
 		stop();
 		die(0);		
 		
@@ -92,12 +92,12 @@ function start(){
 	
 	$mysqld=$unix->find_program("mysqld");
 	if(!is_file($mysqld)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME is not installed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME is not installed...\n";}
 		return;
 	}	
 	
 	if(!is_file($mysql_install_db)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME mysql_install_db no such binary...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME mysql_install_db no such binary...\n";}
 		return;
 	}	
 	
@@ -106,14 +106,14 @@ function start(){
 	
 	if($unix->process_exists($pid)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL Database Engine already running pid $pid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME MySQL Database Engine already running pid $pid since {$time}mn\n";}
 		return;
 	}	
 	
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME writing init.d\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME writing init.d\n";}
 	initd();
 	$TMP=$unix->FILE_TEMP();
 	$cmdline=$mysqlserv->BuildParams();
@@ -121,32 +121,32 @@ function start(){
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}	
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Starting MySQL daemon ($SERV_NAME)\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME Starting MySQL daemon ($SERV_NAME)\n";}
 	shell_exec("$nohup $cmdline >$TMP 2>&1 &");
 	sleep(1);
 	for($i=0;$i<10;$i++){
 		$pid=DBPID();
-		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) started pid .$pid..\n";}break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon wait $i/10\n";}
+		if($unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) started pid .$pid..\n";}break;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon wait $i/10\n";}
 		sleep(1);
 	}	
 	sleep(1);
 	$pid=DBPID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) failed to start\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) failed to start\n";}
 		$f=explode("\n",@file_get_contents($TMP));
 		while (list ($num, $ligne) = each ($TMP) ){
 			if(trim($ligne)==null){continue;}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME $ligne\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME $ligne\n";}
 		}
 	
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) success\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME MySQL daemon ($SERV_NAME) success\n";}
 		$q=new amavisdb();
 		$q->checkTables();
 		
 	}
-	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME $cmdline\n";}}
+	if(!$unix->process_exists($pid)){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]:$SERV_NAME $cmdline\n";}}
 	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__." --databasesize");
 }
 
@@ -159,29 +159,29 @@ function stop(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 
 	$pid=DBPID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: MySQL daemon ($SERV_NAME) already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) already stopped...\n";}
 		return;
 	}	
 	
 	
 	$time=$unix->PROCCESS_TIME_MIN($pid);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Stopping MySQL Daemon ($SERV_NAME) with a ttl of {$time}mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping MySQL Daemon ($SERV_NAME) with a ttl of {$time}mn\n";}
 	$mysqladmin=$unix->find_program("mysqladmin");
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Stopping MySQL Daemon ($SERV_NAME) smoothly...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping MySQL Daemon ($SERV_NAME) smoothly...\n";}
 	$cmd="$mysqladmin --socket=$MYSQL_SOCKET  --protocol=socket --user=root shutdown >/dev/null";
 	shell_exec($cmd);
 
 	$pid=DBPID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: MySQL daemon ($SERV_NAME) success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) success...\n";}
 		return;
 	}	
 	
@@ -189,21 +189,21 @@ function stop(){
 	for($i=0;$i<10;$i++){
 		$pid=DBPID();
 		if($unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: MySQL daemon ($SERV_NAME) kill pid $pid..\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) kill pid $pid..\n";}
 			shell_exec("$kill -9 $pid");
 		}else{
 			break;
 		}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MySQL daemon ($SERV_NAME) wait $i/10\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) wait $i/10\n";}
 		sleep(1);
 	}	
 	$pid=DBPID();
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: MySQL daemon ($SERV_NAME) success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) success...\n";}
 		return;
 	}	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: MySQL daemon ($SERV_NAME) Failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) Failed...\n";}
 }
 
 function DBPID(){
@@ -221,7 +221,7 @@ function changemysqldir($dir){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	
@@ -234,7 +234,7 @@ function changemysqldir($dir){
 	echo "Stopping Squid-db";
 	shell_exec("/etc/init.d/squid-db stop");
 	$Size=$unix->DIRSIZE_BYTES("/opt/squidsql/data");
-	echo "Copy /opt/zarafa-db/data content to next dir size=$Size";
+	echo "Copy /home/zarafa-db content to next dir size=$Size";
 	$cp=$unix->find_program("cp");
 	$rm=$unix->find_program("rm");
 	$ln=$unix->find_program("ln");
@@ -268,7 +268,7 @@ function initd(){
 	$AmavisPerUser=$sock->GET_INFO("AmavisPerUser");
 	if(!is_numeric($AmavisPerUser)){$AmavisPerUser=0;}
 	if($AmavisPerUser==0){
-		echo "Starting......: [INIT]:{$GLOBALS["SERV_NAME"]} feature (AmavisPerUser) is disabled\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]:{$GLOBALS["SERV_NAME"]} feature (AmavisPerUser) is disabled\n";
 		return;}
 
 	$f[]="#!/bin/sh";
@@ -307,7 +307,7 @@ function initd(){
 	$f[]="exit 0\n";
 	@file_put_contents("/etc/init.d/amavis-db", @implode("\n", $f));
 	@chmod("/etc/init.d/amavis-db",0755);
-	echo "Starting......: [INIT]:{$GLOBALS["SERV_NAME"]} /etc/init.d/amavis-db done..\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]:{$GLOBALS["SERV_NAME"]} /etc/init.d/amavis-db done..\n";
 	
 	if(is_file('/usr/sbin/update-rc.d')){
 		shell_exec('/usr/sbin/update-rc.d -f amavis-db defaults >/dev/null 2>&1');

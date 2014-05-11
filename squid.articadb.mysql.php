@@ -472,6 +472,7 @@ function members(){
 	$title=$tpl->javascript_parse_text("{hostname} ($q->mysql_server:$q->mysql_port)/{username}");	
 	if(!is_numeric($_GET["instance-id"])){$_GET["instance-id"]=0;}
 
+	$explain=$tpl->_ENGINE_parse_body("{squid_articadb_members_text}");
 
 	$buttons="
 	buttons : [
@@ -479,6 +480,7 @@ function members(){
 	],";
 
 	$html="
+	<div class=explain style='font-size:14px'>$explain</div>
 	<table class='mysql-users-$t' style='display: none' id='mysql-users-$t' style='width:100%;margin:-10px'></table>
 <script>
 memedb$t='';

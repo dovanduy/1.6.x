@@ -52,7 +52,7 @@ function page(){
 	<td width=100%' valign='top'>
 		<div class=explain>{smtpd_data_restrictions_explain}</div>
 	</td>
-	<td width=1%>". Paragraphe("apply-config-44.gif", "{compile_rules}", "{compile_rules_explain}","javascript:smtpd_data_restrictions_compile()")."</td>
+	<td width=1%>". Paragraphe("apply-config-44.png", "{compile_rules}", "{compile_rules_explain}","javascript:smtpd_data_restrictions_compile()")."</td>
 	</tr>
 	</table>
 		<div id='smtpd_data_restrictions_list' style='height:400px;overflow:auto'></div>
@@ -514,7 +514,7 @@ $html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style
 		$select=imgtootltip("32-parameters.png","{edit}","smtpd_data_restrictions_edit('{$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","smtpd_data_restrictions_del('{$ligne["ID"]}')");
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$textadd=null;
 		if(!is_array($GLOBALS["SMTP_DATA_RESTRICTIONS"][$ligne["restriction"]])){
 			$select=imgtootltip("help-32.png","{help}","smtpd_data_restrictions_edit('{$ligne["ID"]}')");

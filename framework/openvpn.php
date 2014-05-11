@@ -11,6 +11,10 @@ if(isset($_GET["client-events"])){vpn_client_events();exit;}
 if(isset($_GET["client-reconnect"])){vpn_client_hup();exit;}
 if(isset($_GET["client-reconfigure"])){vpn_client_reconfigure();exit;}
 if(isset($_GET["certificate-infos"])){certificate_infos();}
+if(isset($_GET["ifAllcaExists"])){ifAllcaExists();exit;}
+if(isset($_GET["RestartOpenVPNServer"])){RestartOpenVPNServer();exit;}
+
+
 
 function certificate_infos(){
 	$unix=new unix();
@@ -25,6 +29,19 @@ function certificate_infos(){
 		@unlink($l);
 	}
 	echo "<articadatascgi>". base64_encode(serialize($datas))."</articadatascgi>";
+}
+
+function ifAllcaExists(){
+	
+	if(is_file("/etc/artica-postfix/openvpn/keys/openvpn-ca.crt")){
+		echo "<articadatascgi>TRUE</articadatascgi>";
+	}
+}
+
+function RestartOpenVPNServer(){
+
+exec("/etc/init.d/artica-postfix restart openvpn --verbose",$results);
+echo "<articadatascgi>". base64_encode(@implode("\n", $results))."</articadatascgi>";
 }
 
 
@@ -116,7 +133,7 @@ function BuildWindowsClient(){
     chdir('/etc/artica-postfix/openvpn');
     $filetemp=$unix->FILE_TEMP();
     shell_exec("source ./vars");   
-    copy("/etc/artica-postfix/openvpn/keys/allca.crt","$workingDir/$commonname-ca.crt");
+    copy("/etc/artica-postfix/openvpn/keys/openvpn-ca.crt","$workingDir/$commonname-ca.crt");
     copy("/etc/artica-postfix/settings/Daemons/$commonname.ovpn","$workingDir/$commonname.ovpn"); 
     @unlink("/etc/artica-postfix/openvpn/$commonname.ovpn");
     @unlink("/etc/artica-postfix/openvpn/keys/index.txt");
@@ -136,7 +153,7 @@ function BuildWindowsClient(){
 	shell_exec("$cmd");       
 	echo @file_get_contents($filetemp);
     
-    $cmd="openssl req -batch -days 3650 -nodes -new -newkey rsa:1024 -keyout \"$workingDir/$commonname.key\" -out \"$workingDir/$commonname.csr\" -config \"$ssl_config_path\"";   
+    $cmd="openssl req -batch -days 3650 -nodes -new -newkey rsa:1024 -keyout \"$workingDir/$commonname.key\" -out \"$workingDir/$commonname.csr\" -config \"$config_path\"";   
     $cmd="openssl req -nodes -new -keyout \"$workingDir/$commonname.key\" -out \"$workingDir/$commonname.csr\" -batch -config $config_path";
     
     

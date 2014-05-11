@@ -61,6 +61,9 @@ function SinglePage($content){
 	<script type='text/javascript' language='JavaScript' src='mouse.js'></script>
 	<script type='text/javascript' language='javascript' src='XHRConnection.js'></script>
 	<script type='text/javascript' language='javascript' src='default.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
+	
 	</head>
 	<body width=100% style='background-color:white'> 
 	<center>

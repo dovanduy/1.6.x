@@ -71,6 +71,58 @@ class external_ad_search{
 		
 	}
 	
+	function UsersNumber(){
+		
+		
+	}
+	
+	private function timeminSince($fromtime){
+		if(!is_numeric($fromtime)){return 1000000;}
+		$data2 = time();
+		$difference = ($data2 - $fromtime);
+		$results=intval(round($difference/60));
+		if($results<0){$results=1;}
+		
+	}
+	
+	public function NumUsers(){
+		$NET_RPC_INFOS=$this->NET_RPC_INFOS();
+		if($GLOBALS["VERBOSE"]){print_r($NET_RPC_INFOS);}
+		return trim($NET_RPC_INFOS["Num users"]);
+		
+	}
+	
+	function NET_RPC_INFOS(){
+		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
+		$sock=new sockets();
+		$array=unserialize(base64_decode($sock->GET_INFO("NET_RPC_INFOS")));
+		if($GLOBALS["VERBOSE"]){echo "NET_RPC_INFOS count: ".count($array)."\n";}
+		if(is_array($array)){
+			if(count($array)>1){
+				$time=$this->timeminSince($array["TIME"]);
+				if($time<240){return $array;}
+			}
+		}
+		$unix=new unix();
+		$net=$unix->find_program("net");
+		$array["USER"]=$this->BuildAdUser();
+		$array["PASSWD"]=$unix->shellEscapeChars($this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
+	
+		if(!is_file($net)){return array();}
+		$cmd="$net rpc info -U {$array["USER"]}%{$array["PASSWD"]} 2>&1";
+		if($GLOBALS["VERBOSE"]){echo "NET_RPC_INFOS $cmd\n";}
+		exec($cmd,$results);
+		while (list ($key, $line) = each ($results)){
+			if(!preg_match("#(.+?):(.+)#", $line,$re)){continue;}
+			$ARRAY[trim($re[1])]=trim($re[2]);
+			
+		}
+		$ARRAY["TIME"]=time();
+		$sock->SaveConfigFile(base64_encode(serialize($ARRAY)), "NET_RPC_INFOS");
+		return $ARRAY;
+		
+	}	
+	
 	function PaseEncodedConnection(){
 		$array=unserialize(base64_decode($this->connectionEncoded));
 		
@@ -359,6 +411,105 @@ class external_ad_search{
 		
 	}
 	
+	public function DNinfos($dn){
+		$f=array();
+		if(!$this->connect()){
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}Connection failed</strong><br>\n";}
+			return array();
+		}
+		$searchFilter="(objectClass=*)";
+		$sr =@ldap_read($this->ldap_connection,$dn,"$searchFilter",$f);
+		return @ldap_get_entries($this->ldap_connection,$sr);
+	}
+	
+	public function SearchOuSimple($dn=null){
+		$func=__CLASS__."/".__FUNCTION__."::";
+		if(!$this->connect()){
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}Connection failed</strong><br>\n";}
+			return array();
+		}
+		if($this->KerbAuthInfos["LDAP_SUFFIX"]==null){ $this->LoadSambaInformations(); }
+		
+		if($dn==null){$dn=$this->KerbAuthInfos["LDAP_SUFFIX"];}
+		$searchFilter="(|(objectClass=organizationalUnit)(objectClass=container))";
+		
+		$filter=array();
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} DN &laquo;$dn&raquo; -$searchFilter</strong><br>\n";}
+		$sr =@ldap_list($this->ldap_connection,$dn,"$searchFilter",$filter);
+		if (!$sr) {
+			if(is_numeric(ldap_errno($this->ldap_connection))){
+				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
+				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}`$error` ($errstr)</strong><br>\n";}
+			return array();
+		}
+		$hash=ldap_get_entries($this->ldap_connection,$sr);
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$hash["count"]} items</strong><br>\n";}
+		
+		$FINAL=array();
+		if(!is_array($hash)){return array();}
+		for($i=0;$i<$hash["count"];$i++){
+			$tempar=$hash[$i];
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$tempar["dn"]}</strong><br>\n";}
+			$dn=$tempar["dn"];
+			$objectClass=array();
+			for($z=0;$z<$tempar["objectclass"]["count"];$z++){
+				$FINAL[$dn]["objectClass"][$tempar["objectclass"][$z]]=true;
+				
+			}
+			
+			if(isset($tempar["ou"])){
+				$FINAL[$dn]["NAME"]=$tempar["ou"][0];
+				continue;
+			}
+			
+			if(isset($tempar["name"])){
+				$FINAL[$dn]["NAME"]=$tempar["name"][0];
+			}
+			
+		}
+		return $FINAL;
+	}	
+	
+	public function searchGroupSimple($dn=null,$search=null){
+		$func=__CLASS__."/".__FUNCTION__."::";
+		if(!$this->connect()){
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}Connection failed</strong><br>\n";}
+			return array();
+		}
+		if($dn==null){$dn=$this->KerbAuthInfos["LDAP_SUFFIX"];}
+		$searchFilter="(objectClass=group)";
+		if($search<>null){
+			$searchFilter="(objectClass=group)";
+		}
+		$filter=array();
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}$dn -$searchFilter</strong><br>\n";}
+		$sr =@ldap_search($this->ldap_connection,$dn,"$searchFilter",$filter);
+		if (!$sr) {
+			if(is_numeric(ldap_errno($this->ldap_connection))){
+				$error=ldap_errno($this->ldap_connection);$errstr=@ldap_err2str($error);
+				writelogs("Error:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+			}
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func}`$error` ($errstr)</strong><br>\n";}
+			return array();
+		}
+		$hash=ldap_get_entries($this->ldap_connection,$sr);
+		
+		if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$hash["count"]} items</strong><br>\n";}
+		$FINAL=array();
+		if(!is_array($hash)){return array();}
+		for($i=0;$i<$hash["count"];$i++){
+			$tempar=$hash[$i];
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:red'>{$func} {$tempar["dn"]}</strong><br>\n";}
+			
+			$dn=$tempar["dn"];
+			if(isset($tempar["samaccountname"])){
+				$FINAL[$dn]=$tempar["samaccountname"][0];
+			}
+		}
+		return $FINAL;
+	}
 	
 	
 	public function SearchOu($ou){
@@ -386,7 +537,7 @@ class external_ad_search{
 				$q=new mysql();
 				$sql="SELECT CountDeUsers FROM activedirectory_ou WHERE `dn`='$dn' AND CountDeUsers>0";
 				writelogs("$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+				$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 				return $ligne["CountDeUsers"];
 			}
 			
@@ -401,7 +552,7 @@ class external_ad_search{
 				$ou=utf8_encode($ou);
 				$sql="SELECT CountDeUsers FROM activedirectory_ou WHERE `name`='$ou'";
 				writelogs("$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+				$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 				if($q->ok){
 					$GLOBALS[__FUNCTION__.__CLASS__.$ou]=$ligne["CountDeUsers"];
 					return $ligne["CountDeUsers"];
@@ -571,7 +722,7 @@ class external_ad_search{
 		$q=new mysql();
 		$sql="SELECT `content` FROM adgroupsprivs WHERE `DN`='$dn'";
 		writelogs("$sql",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$ArticaGroupPrivileges=$ligne["content"];
 		
 		if($GLOBALS["VERBOSE"]){echo "[".__FUNCTION__."::".$this->mem_getusage()."] ArticaGroupPrivileges -> `". strlen($ArticaGroupPrivileges)." bytes`<br>\n";}
@@ -599,7 +750,7 @@ class external_ad_search{
 	function SaveGroupPrivileges($content,$dn){
 		$q=new mysql();
 		$sql="SELECT `DN` FROM adgroupsprivs WHERE `DN`='$dn'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$content=addslashes($content);
 		$sql="UPDATE adgroupsprivs SET content='$content' WHERE DN='$dn'";
 		if($ligne["DN"]==null){
@@ -843,7 +994,7 @@ class external_ad_search{
 					$ou=utf8_encode($ou);
 					$sql="SELECT CountDeGroups FROM activedirectory_ou WHERE `name`='$ou'";
 					writelogs("$sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-					$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+					$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 					if($q->ok){
 						$GLOBALS[__FUNCTION__.__CLASS__.$ou]=$ligne["CountDeGroups"];
 						return $ligne["CountDeGroups"];
@@ -932,6 +1083,7 @@ class external_ad_search{
 			if(!is_numeric($EnableSambaActiveDirectory)){$EnableSambaActiveDirectory=0;}
 			
 			if($EnableKerbAuth==1){
+				if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>GET_INFO(KerbAuthInfos)</span>";}
 				$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 				$this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"]=$array["WINDOWS_DNS_SUFFIX"];
 				$this->KerbAuthInfos["WINDOWS_SERVER_NETBIOSNAME"]=$array["WINDOWS_SERVER_NETBIOSNAME"];
@@ -963,6 +1115,11 @@ class external_ad_search{
 				$this->KerbAuthInfos["LDAP_SERVER"]=$array["LDAP_SERVER"];
 			}
 			
+			if($this->KerbAuthInfos["LDAP_SUFFIX"]==null){
+				$SMB=$this->SAMBA_GetNetAdsInfos();
+				
+			}
+			
 			
 			if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $this->KerbAuthInfos["WINDOWS_DNS_SUFFIX"])){
 				$SMB=$this->SAMBA_GetNetAdsInfos();
@@ -979,6 +1136,46 @@ class external_ad_search{
 			}
 				
 		}
+		
+	public function SearchGroups($pattern,$dn,$maxitems=0){
+		if($maxitems==0){$maxitems=null;}
+		if(!$this->connect()){return array();}
+		if($pattern==null){$pattern="*";}
+		$searchFilter="(&(objectClass=group)(sAMAccountName=$pattern))";
+		$filter=array();
+		$sr =@ldap_list($this->ldap_connection,$dn,"$searchFilter",$filter,null, $maxitems, 20);
+		if (!$sr) {
+			if(is_numeric(ldap_errno($this->ldap_connection))){
+				$error=ldap_errno($this->ldap_connection);
+				$errstr=@ldap_err2str($error);
+				$this->error="flexRTGroups:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter in ".__CLASS__."/".__FUNCTION__." line:".__LINE__;
+				return array();
+			}
+		}
+		
+		return @ldap_get_entries($this->ldap_connection,$sr);
+		
+	}
+	
+	public function SearchUsers($pattern,$dn,$maxitems=0){
+		if($maxitems==0){$maxitems=null;}
+		if(!$this->connect()){return array();}
+		if($pattern==null){$pattern="*";}
+		$searchFilter="(&(objectClass=user)(sAMAccountName=$pattern))";
+		$filter=array();
+		$sr =@ldap_list($this->ldap_connection,$dn,"$searchFilter",$filter,null, $maxitems, 20);
+		if (!$sr) {
+			if(is_numeric(ldap_errno($this->ldap_connection))){
+				$error=ldap_errno($this->ldap_connection);
+				$errstr=@ldap_err2str($error);
+				$this->error="flexRTGroups:`$error` ($errstr) suffix:{$this->KerbAuthInfos["LDAP_SUFFIX"]} $searchFilter in ".__CLASS__."/".__FUNCTION__." line:".__LINE__;
+				return array();
+			}
+		}
+	
+		return @ldap_get_entries($this->ldap_connection,$sr);
+	
+	}	
 
 	public function flexRTGroups($pattern,$maxitems=0,$objectClass="group"){
 		if(!$this->connect()){return false;}
@@ -1209,8 +1406,21 @@ class external_ad_search{
 
 	private function SAMBA_GetNetAdsInfos(){
 		$sock=new sockets();
-		if(isset($_SESSION["CACHE_NETADS"])){return $_SESSION["CACHE_NETADS"];}
-		$_SESSION["CACHE_NETADS"]=unserialize(base64_decode($sock->getFrameWork("samba.php?GetNetAdsInfos=yes")));
+		
+		if(isset($GLOBALS["CACHE_NETADS"])){
+			if(trim($GLOBALS["CACHE_NETADS"]["KDC server"])<>null){
+				return $GLOBALS["CACHE_NETADS"];
+			}
+		}
+		
+		if(isset($_SESSION["CACHE_NETADS"])){
+				if(trim($_SESSION["CACHE_NETADS"]["KDC server"])<>null){
+					return $_SESSION["CACHE_NETADS"];
+			}
+		}
+		$GLOBALS["CACHE_NETADS"]=unserialize(base64_decode($sock->getFrameWork("samba.php?GetNetAdsInfos=yes")));
+		$_SESSION["CACHE_NETADS"]=$GLOBALS["CACHE_NETADS"];
+		return $GLOBALS["CACHE_NETADS"];
 	}
 
 	private function connect(){
@@ -1238,6 +1448,7 @@ class external_ad_search{
 			return false;
 		}
 		$this->UserConnected=$Username;
+		if($GLOBALS['VERBOSE']){echo "<strong style='color:red'>Bind as $Username/{$this->KerbAuthInfos["WINDOWS_SERVER_PASS"]}</strong><br>\n";}
 		$bind=ldap_bind($this->ldap_connection, $Username, $this->KerbAuthInfos["WINDOWS_SERVER_PASS"]);
 		
 		if(!$bind){

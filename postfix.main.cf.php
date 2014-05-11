@@ -49,30 +49,12 @@ function tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]="<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]="<li><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 			
-		}	
+		}
+
+	echo build_artica_tabs($html, "main_popup_maincf_auth");
 	
-	$tab="<div id=main_popup_sasl_auth style='width:100%;height:600px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_popup_sasl_auth').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
-	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($tab);	
 	
 }
 
@@ -83,10 +65,10 @@ function main_cf_page(){
 	
 	$html="
 	<center>
-	<table style='width:70%' class=form>
+	<table>
 	<tr>
-		<td class=legend style='font-size:14px'>{search}:</td>
-		<td>". Field_text("maincfsearch",null,"font-size:18px;width:320px",null,null,null,false,"PostFixMaincfSearchCK(event)")."</td>
+		<td class=legend style='font-size:22px'>{search}:</td>
+		<td>". Field_text("maincfsearch",null,"font-size:22px;width:320px",null,null,null,false,"PostFixMaincfSearchCK(event)")."</td>
 	</tr>
 	</table>
 	</center>

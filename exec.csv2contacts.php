@@ -25,11 +25,13 @@ $sock=new sockets();
 $ZarafaServerListenIP=$sock->GET_INFO('ZarafaServerListenIP');
 if(trim($ZarafaServerListenIP)==0){$ZarafaServerListenIP='localhost';}
 if($ZarafaServerListenIP=="127.0.0.1"){$ZarafaServerListenIP="localhost";}
+$ZarafaServerListenPort=intval($sock->GET_INFO("ZarafaServerListenPort"));
+if($ZarafaServerListenPort==0){$ZarafaServerListenPort=236;}
 // set username/password and the server location
 $username=$argv[1];
 
 #define("SERVER", "file:///var/run/zarafa");
-define("SERVER", "http://$ZarafaServerListenIP:236/zarafa");
+define("SERVER", "http://$ZarafaServerListenIP:$ZarafaServerListenPort/zarafa");
 
 // if EMPTY_FOLDER is true, than all current contacts are deleted
 define("EMPTY_FOLDER", true);

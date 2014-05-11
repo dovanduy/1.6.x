@@ -542,7 +542,7 @@ function synthesis(){
 	<table style='width:99%' class=form>
 	<tbody>
 	<tr>
-		<td width=1%><img src='img/user-black-48.png'></td>
+		<td width=1%><img src='img/postmaster-48.png'></td>
 		<td><div style='width:100%;font-size:16px;font-weight:bold'>$TITLE_PAGE</div></td>
 	</tr>
 	</tbody>

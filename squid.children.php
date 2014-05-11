@@ -47,7 +47,7 @@ function popup(){
 	
 	if($ENABLED<>"TRUE"){
 		$html="
-		<table style='width:95%' class=form>
+		<table style='width:98%' class=form>
 		<tr>
 			<td valign='top' width=1%><img src='img/error-128.png'></td>
 			<td valign='top'><div style='font-size:18px'>{X_FORWARDED_FOR_NOT_ENABLED_IN_SQUID}</td>
@@ -71,6 +71,7 @@ function popup(){
 	$new_proxy=$tpl->javascript_parse_text("{new_proxy}");
 	$proxy_child=$tpl->_ENGINE_parse_body("{proxy_child}");
 	$delete_this_child=$tpl->javascript_parse_text("{delete_this_child}");
+	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
 	$tt=$_GET["tt"];
 	$t=time();		
 
@@ -83,13 +84,15 @@ $('#table-$t').flexigrid({
 	url: '$page?proxies-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
+		{display: '&nbsp;', name : 'isnull', width : 50, sortable : false, align: 'center'},
 		{display: 'Proxys', name : 'ipsrc', width : 440, sortable : true, align: 'left'},
-		{display: '$enabled', name : 'enabled', width : 31, sortable : false, align: 'center'},
+		{display: '$enabled', name : 'enabled', width : 80, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 52, sortable : true, align: 'center'},
 		
 	],
 buttons : [
 	{name: '$new_proxy', bclass: 'add', onpress : AddProxyChild},
+	{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},
 
 		],	
 	searchitems : [
@@ -102,15 +105,18 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 580,
-	height: 300,
+	width: '99%',
+	height: 400,
 	singleSelect: true
 	
 	});   
 });	
+	function SquidBuildNow$t(){
+		Loadjs('squid.compile.php');
+	}
 	
 function AddProxyChild(){
-	YahooWin5('380','$page?add-proxy=yes&t=$t','$new_proxy');
+	YahooWin5('450','$page?add-proxy=yes&t=$t','$new_proxy');
 
 }
 
@@ -132,7 +138,7 @@ function AddProxyChild(){
 	var x_EnableDisableProxyClient$t= function (obj) {
 			var results=obj.responseText;
 			if(results.length>2){alert(results);return;}
-			
+			$('#table-$t').flexReload();
 		}		
 	
 	function EnableDisableProxyClient(ID){
@@ -196,11 +202,10 @@ function proxies_list(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
@@ -217,7 +222,7 @@ function proxies_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
@@ -228,23 +233,29 @@ function proxies_list(){
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){json_error_show("No rules....");}
+	if(mysql_num_rows($results)==0){json_error_show("No data....");}
 	
 	
 
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
+		$icon="42-server.png";
 		$color="black";
 		$disable=Field_checkbox("ProxyClient_{$ligne['ID']}", 1,$ligne["enabled"],"EnableDisableProxyClient('{$ligne['ID']}')");
-		$delete=imgsimple("delete-24.png",null,"DeleteSquidChild('{$ligne['ID']}')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		$delete=imgsimple("delete-42.png",null,"DeleteSquidChild('{$ligne['ID']}')");
+		if($ligne["enabled"]==0){
+			$color="#8a8a8a";
+			$icon="42-server-grey.png";
+		}
 		
 		
 		
 	$data['rows'][] = array(
 		'id' => "TSC{$ligne['ID']}",
-		'cell' => array("<span style='font-size:16px;color:$color'>{$ligne['ipsrc']}</span>",
-		 $disable,$delete)
+		'cell' => array(
+				"<img src='img/$icon'>",
+				"<div style='font-size:22px;color:$color;margin-top:4px'>{$ligne['ipsrc']}</div>",
+		"<div style='margin-top:4px'>$disable</div>","$delete")
 		);
 	}
 	
@@ -263,11 +274,11 @@ function proxies_add_popup(){
 	<div id='$t'>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:16px'>{source}:</td>
-		<td>". field_ipv4("ipsrc-$t", null,"font-size:16px")."</td>
+		<td class=legend style='font-size:18px'>{source}:</td>
+		<td>". field_ipv4("ipsrc-$t", null,"font-size:18px",false,"ChildEventAddCK$t(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align=right><hr>". button("{add}","ChildEventAdd$t()","18px")."</td>
+		<td colspan=2 align=right><hr>". button("{add}","ChildEventAdd$t()","22px")."</td>
 	</tr>
 	</table>
 	<script>
@@ -282,9 +293,14 @@ function proxies_add_popup(){
 		function ChildEventAdd$t(){
 			var XHR = new XHRConnection();
 			XHR.appendData('ipsrc',document.getElementById('ipsrc-$t').value);
-			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_ChildEventAdd$t);
 		}
+		
+		function ChildEventAddCK$t(e){
+			if(!checkEnter(e)){return;}
+			ChildEventAdd$t();
+		}
+		
 	</script>
 	";
 	

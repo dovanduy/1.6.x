@@ -298,7 +298,7 @@ function postfix_check_client_access(){
 	$hash=$ldap->Hash_get_restrictions_classes_tables("smtpd_client_restrictions","check_client_access");
 	
 	$html="<table style='width:100%'>
-	<tr><td align='right' colspan=3>" . imgtootltip("add-18.gif","{add}","check_client_access_add()")."</td></tr>";	
+	<tr><td align='right' colspan=3>" . imgtootltip("add-18.png","{add}","check_client_access_add()")."</td></tr>";	
 	
 	if(!is_array($hash)){return $tpl->_ENGINE_parse_body(RoundedLightGrey("$html</table><i>{no_rules}</i>"));}
 
@@ -434,7 +434,7 @@ function postfix_regex(){
 		
 	
 
-	<td align='right'>" . imgtootltip("add-18.gif","{add}","edit_postfix_regex_rule()")."</td></tr>
+	<td align='right'>" . imgtootltip("add-18.png","{add}","edit_postfix_regex_rule()")."</td></tr>
 	</table>";	
 	
 	

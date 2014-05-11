@@ -46,10 +46,13 @@ js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$wpad=null;
 	$title=$tpl->_ENGINE_parse_body("{proxy_objects}");
-	$html="YahooWinBrowse('600','$page?popup=yes&callback={$_GET["callback"]}&FilterType={$_GET["FilterType"]}','$title')";
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
+	$html="YahooWinBrowse('600','$page?popup=yes&callback={$_GET["callback"]}&FilterType={$_GET["FilterType"]}$wpad','$title')";
 	echo $html;
 	}
 
@@ -73,6 +76,7 @@ function AddGroup_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
 	if($ID>0){
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqgroups WHERE ID='$ID'"));
@@ -84,7 +88,7 @@ function AddGroup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWinT(450,'$page?EditGroup-popup=yes&ID=$ID&FilterType={$_GET["FilterType"]}','$title')";
+	$html="YahooWinT(450,'$page?EditGroup-popup=yes&ID=$ID&FilterType={$_GET["FilterType"]}$wpad','$title')";
 	echo $html;	
 	
 }
@@ -130,6 +134,7 @@ function EditGroup_popup(){
 		var res=obj.responseText;
 		YahooWinTHide();
 		if(document.getElementById('formulaire-choix-groupe-proxy')){RefreshFormulaireChoixGroupeProxy();}
+		if(document.getElementById('flexRT-refresh-1')){ $('#'+document.getElementById('flexRT-refresh-1').value).flexReload();}
 		RefreshSquidGroupTable();
 	}
 	
@@ -231,18 +236,8 @@ function EditGroup_tabs(){
 	
 	}
 
+	echo build_artica_tabs($html, "main_content_rule_editsquidgroup");
 	
-	echo "
-	<div id=main_content_rule_editsquidgroup style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_content_rule_editsquidgroup').tabs();
-			
-			
-			});
-		</script>";	
 }
 
 function items_js(){
@@ -293,6 +288,7 @@ function AddItem() {
 
 function RefreshSquidGroupItemsTable(){
 	$('#table-$t').flexReload();
+	if(document.getElementById('flexRT-refresh-1')){ $('#'+document.getElementById('flexRT-refresh-1').value).flexReload();}
 }
 
 
@@ -354,6 +350,9 @@ function page(){
 	$new_group=$tpl->_ENGINE_parse_body("{new_proxy_object}");
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$delete_group_ask=$tpl->javascript_parse_text("{inputbox delete group}");
+	$wpad=null;
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
+	
 	$t=time();	
 
 		$buttons="
@@ -367,7 +366,7 @@ function page(){
 var DeleteSquidAclGroupTemp=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?groups-list=yes&callback={$_GET["callback"]}&t=$t&FilterType={$_GET["FilterType"]}',
+	url: '$page?groups-list=yes&callback={$_GET["callback"]}&t=$t&FilterType={$_GET["FilterType"]}$wpad',
 	dataType: 'json',
 	colModel : [
 		{display: '$description', name : 'GroupName', width : 277, sortable : true, align: 'left'},
@@ -394,12 +393,13 @@ $('#table-$t').flexigrid({
 	});   
 });
 function AddGroup$t() {
-	Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=-1&table-acls-t=$t&FilterType={$_GET["FilterType"]}');
+	Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=-1&table-acls-t=$t&FilterType={$_GET["FilterType"]}$wpad');
 	
 }	
 
 function RefreshSquidGroupTable(){
 	$('#table-$t').flexReload();
+	if(document.getElementById('flexRT-refresh-1')){ $('#'+document.getElementById('flexRT-refresh-1').value).flexReload();}
 }
 
 
@@ -556,6 +556,8 @@ function group_list(){
 	$search='%';
 	$table="webfilters_sqgroups";
 	$page=1;
+	$wpad=false;
+	if(isset($_GET["wpad"])){$_GET["FilterType"]="WPAD";}
 	
 	if($_GET["FilterType"]<>null){
 			switch ($_GET["FilterType"]) {
@@ -573,7 +575,37 @@ function group_list(){
 				break;
 			case "ADMBR":
 				$FORCE_FILTER="AND ( GroupType='proxy_auth_ads' OR GroupType='proxy_auth')";
+				break;	
+			case "IPTABLES":
+				$f=$q->acl_GroupType_iptables;
+				while (list($a,$b)=each($f)){ $tz[]="GroupType='$a'"; }
+				$FORCE_FILTER="AND ( ".@implode(" OR ", $tz).")";
+				break;
+				
+			case "FW-IN":
+				$f=$q->acl_GroupType_Firewall_in;
+				while (list($a,$b)=each($f)){ $tz[]="GroupType='$a'"; }
+				$FORCE_FILTER="AND ( ".@implode(" OR ", $tz).")";
+				break;	
+
+			case "FW-OUT":
+				$f=$q->acl_GroupType_Firewall_out;
+				while (list($a,$b)=each($f)){ $tz[]="GroupType='$a'"; }
+				$FORCE_FILTER="AND ( ".@implode(" OR ", $tz).")";
+				break;	
+
+			case "FW-PORT":
+				$f=$q->acl_GroupType_Firewall_port;
+				while (list($a,$b)=each($f)){ $tz[]="GroupType='$a'"; }
+				$FORCE_FILTER="AND ( ".@implode(" OR ", $tz).")";
 				break;				
+				
+			case "WPAD":
+				$f=$q->acl_GroupType_WPAD;
+				while (list($a,$b)=each($f)){ $tz[]="GroupType='$a'"; }
+				$FORCE_FILTER="AND ( ".@implode(" OR ", $tz).")";
+				break;				
+				
 		}
 	}
 
@@ -666,12 +698,12 @@ function items_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$ID=$_GET["ID"];
-	
+	$FORCE_FILTER=null;
 	$search='%';
 	$table="webfilters_sqitems";
 	$page=1;
 
-	if($q->COUNT_ROWS($table)==0){$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();echo json_encode($data);return ;}
+	if($q->COUNT_ROWS($table)==0){json_error_show("no item");}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -681,11 +713,8 @@ function items_list(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE gpid=$ID $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -702,18 +731,18 @@ function items_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE gpid=$ID $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($q->mysql_error,"", "",""));json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error);}
 	
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
+	if(mysql_num_rows($results)==0){json_error_show("no item");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;

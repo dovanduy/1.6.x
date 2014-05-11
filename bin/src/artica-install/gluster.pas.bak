@@ -114,7 +114,7 @@ function tgluster.PID_NUM():string;
 var
    pid:string;
 begin
-    pid:=SYS.GET_PID_FROM_PATH('/var/run/glusterfsd');
+    pid:=SYS.GET_PID_FROM_PATH('/var/run/glusterd.pid');
     if not SYS.PROCESS_EXIST(pid) then pid:=SYS.PIDOF_PATTERN(BIN_PATH());
     result:=pid;
 end;

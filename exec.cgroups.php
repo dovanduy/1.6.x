@@ -46,9 +46,9 @@ function ismounted(){
 	reset($GLOBALS["CGROUPS_FAMILY"]);
 		while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 			if(!is_cgroup_structure_mounted($structure)){
-				echo "Starting......: cgroups: structure:$structure is not mounted\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: structure:$structure is not mounted\n";
 			}else{
-				echo "Starting......: cgroups: structure:$structure is mounted\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: structure:$structure is mounted\n";
 			}
 		}	
 }
@@ -93,28 +93,28 @@ function load_family(){
 
 function testStructure($group,$structure,$MyPid){
 	if(!isset($GLOBALS["CLASS_UNIX"])){include_once(dirname(__FILE__)."/framework/class.unix.inc");$GLOBALS["CLASS_UNIX"]=new unix();}
-	echo "Starting......: cgroups: testing structure $structure on group $group for my PID:$MyPid\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: testing structure $structure on group $group for my PID:$MyPid\n";
 	if(!is_dir("/cgroups/$structure/$group")){
-		echo "Starting......: cgroups: testing structure /cgroups/$structure/$group no such directory...\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: testing structure /cgroups/$structure/$group no such directory...\n";
 		return false; 
 	}
 	
 	if(!is_file("/cgroups/$structure/$group/tasks")){
-		echo "Starting......: cgroups: testing structure /cgroups/$structure/$group/tasks no such file...\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: testing structure /cgroups/$structure/$group/tasks no such file...\n";
 		return false; 		
 	}
 	
 	
 	$echobin=$GLOBALS["CLASS_UNIX"]->find_program("echo");
 	if(!is_file($echobin)){
-		echo "Starting......: cgroups: testing structure 'echo' no such binary...\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: testing structure 'echo' no such binary...\n";
 		return false; 
 	}
 
 	exec("$echobin $MyPid >/cgroups/$structure/$group/tasks 2>&1",$results);
 	$line=trim(@implode("", $results));
 	if(strlen($line)>5){
-		echo "Starting......: cgroups: testing structure failed \"$line\"...\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: testing structure failed \"$line\"...\n";
 		return false;
 	}
 	return true;
@@ -132,7 +132,7 @@ function build(){
 		$f[]="\nmount {";
 		
 		while (list ($num, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
-			echo "Starting......: cgroups: supported structure:$num\n";
+			echo "Starting......: ".date("H:i:s")." cgroups: supported structure:$num\n";
 			$f[]="\t$num = /cgroups/$num;";
 		}
 		$f[]="}\n";
@@ -157,7 +157,7 @@ function build(){
 			if($ligne["memory_memsw_limit_in_bytes"]<1){$ligne["memory_memsw_limit_in_bytes"]=-1;}	
 			if($ligne["memory_swappiness"]<1){$ligne["memory_swappiness"]=60;}
 			if($ligne["cpuset_cpus"]==null){$ligne["cpuset_cpus"]="0,1,2,3,4,5,6,7,8";}	
-			echo "Starting......: cgroups: Group \"{$ligne["groupname"]}\"\n";				
+			echo "Starting......: ".date("H:i:s")." cgroups: Group \"{$ligne["groupname"]}\"\n";				
 			writerules($ligne["ID"],$ligne["groupname"]);
 			
 					
@@ -211,9 +211,9 @@ function build(){
 		$f[]="}\n";
 		}
 		
-		echo "Starting......: cgroups: Writing /etc/cgconfig.conf\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: Writing /etc/cgconfig.conf\n";
 		@file_put_contents("/etc/cgconfig.conf", @implode("\n", $f));
-		echo "Starting......: cgroups: Writing /etc/cgrules.conf\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: Writing /etc/cgrules.conf\n";
 		@file_put_contents("/etc/cgrules.conf", @implode("\n", $GLOBALS["CGRULES_CONF"]));
 		if(file_exists("/etc/sysconfig/cgconfig")){@file_put_contents("/etc/sysconfig/cgconfig", @implode("\n", $f));}
 
@@ -247,18 +247,18 @@ function build(){
 }
 
 function stop(){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){echo "Starting......: cgroups: Already pid $pid is running, aborting\n";return;}
+	if($unix->process_exists($pid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." cgroups: Already pid $pid is running, aborting\n";return;}
 	@file_put_contents($pidfile, getmypid());
 	
 	
 	$GLOBALS["CGROUPS_FAMILY"]=array();
 	load_family();
-	echo "Starting......: cgroups: stopping daemons\n";
-	echo "Starting......: cgroups: stopping cgred\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: stopping daemons\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: stopping cgred\n";
 	if(is_file("/etc/init.d/cgred")){shell_exec("/etc/init.d/cgred stop");}
 	
 		
@@ -270,33 +270,33 @@ function stop(){
 	
 		while (list ($num, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 			if(is_cgroup_structure_mounted($num)){
-				echo "Starting......: cgroups: unmount structure:$num\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: unmount structure:$num\n";
 				$results=array();
 				exec("$umount -l /cgroups/$num  2>&1",$results);
-				if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: cgroups: $b\n";}}
+				if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: ".date("H:i:s")." cgroups: $b\n";}}
 			}else{
-				echo "Starting......: cgroups: structure:$num already dismounted\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: structure:$num already dismounted\n";
 			}
 		}
 		
 		$arrayDEB=is_old_debian_mounted();
 		while (list ($num, $mounted) = each ($arrayDEB)){
 			if(trim($mounted)==null){continue;}
-			echo "Starting......: cgroups: unmount $mounted\n";
+			echo "Starting......: ".date("H:i:s")." cgroups: unmount $mounted\n";
 			$results=array();
 			exec("$umount -l $mounted  2>&1",$results);
-			if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: cgroups: $b\n";}}
+			if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: ".date("H:i:s")." cgroups: $b\n";}}
 		}
 		
 		reset($GLOBALS["CGROUPS_FAMILY"]);
 		while (list ($num, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 			if(is_cgroup_structure_mounted($num)){
-				echo "Starting......: cgroups: unmount structure:$num failed\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: unmount structure:$num failed\n";
 			}
 		}		
 	$results=array();	
 	exec("$rm -rf /cgroups/* 2>&1",$results);	
-	if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: cgroups: $b\n";}}
+	if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: ".date("H:i:s")." cgroups: $b\n";}}
 	sleep(2);
 	cgred_stop();
 	
@@ -309,21 +309,21 @@ function reload(){
 }
 
 function start(){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){echo "Starting......: cgroups: Already pid $pid is running, aborting\n";return;}
+	if($unix->process_exists($pid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." cgroups: Already pid $pid is running, aborting\n";return;}
 	@file_put_contents($pidfile, getmypid());
 	$GLOBALS["CGROUPS_FAMILY"]=array();
 	
 	$sock=new sockets();
 	$cgroupsEnabled=$sock->GET_INFO("cgroupsEnabled");
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
-	if($cgroupsEnabled==0){echo "Starting......: cgroups: cgroups is disabled\n";stop();cgred_stop(true);return;}
+	if($cgroupsEnabled==0){echo "Starting......: ".date("H:i:s")." cgroups: cgroups is disabled\n";stop();cgred_stop(true);return;}
 	
 	load_family();
-	echo "Starting......: cgroups: starting daemons\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: starting daemons\n";
 	
 		$unix=new unix();
 		$umount=$unix->find_program("umount");
@@ -334,13 +334,13 @@ function start(){
 		
 		while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 			if(!is_cgroup_structure_mounted($structure)){
-				echo "Starting......: cgroups: mounting structure:$structure\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: mounting structure:$structure\n";
 				@mkdir("/cgroups/$structure",0775,true);
 				$results=array();
 				exec("$mount -t cgroup -o\"$structure\" none \"/cgroups/$structure\" 2>&1",$results);
-				if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: cgroups: $b\n";}}
+				if(count($results)>1){while (list ($a, $b) = each ($results)){ echo "Starting......: ".date("H:i:s")." cgroups: $b\n";}}
 			}else{
-				echo "Starting......: cgroups: structure:$structure already mounted\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: structure:$structure already mounted\n";
 			}
 		}		
 	
@@ -349,24 +349,24 @@ function start(){
 	reset($GLOBALS["CGROUPS_FAMILY"]);
 	if(is_array($GLOBALS["ArrayRULES"])){
 		while (list ($groupname, $array) = each ($GLOBALS["ArrayRULES"])){
-			echo "Starting......: cgroups: mounting group:$groupname\n";
+			echo "Starting......: ".date("H:i:s")." cgroups: mounting group:$groupname\n";
 			while (list ($structure, $array2) = each ($array)){
 				if(!isset($GLOBALS["CGROUPS_FAMILY"][$structure])){continue;}
-				echo "Starting......: cgroups: create :/cgroups/$structure/$groupname\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: create :/cgroups/$structure/$groupname\n";
 				@mkdir("/cgroups/$structure/$groupname",0775,true);
 				while (list ($key, $value) = each ($array2)){
-					echo "Starting......: cgroups:$groupname:$structure  $key = $value\n";
+					echo "Starting......: ".date("H:i:s")." cgroups:$groupname:$structure  $key = $value\n";
 					@file_put_contents("/cgroups/$structure/$groupname/$key", $value);
 				}
 			}
 				
 		}	
 	}else{
-	 echo "Starting......: cgroups: No rules...\n";	
+	 echo "Starting......: ".date("H:i:s")." cgroups: No rules...\n";	
 	}
 	
 	if(count($GLOBALS["PROCESSES"])>0){
-		echo "Starting......: cgroups checking processes\n";
+		echo "Starting......: ".date("H:i:s")." cgroups checking processes\n";
 		while (list ($process, $groupname) = each ($GLOBALS["PROCESSES"])){
 			$pid=intval($unix->PIDOF($process));
 			if($pid>0){
@@ -377,7 +377,7 @@ function start(){
 						shell_exec("$echo $pid >$directory/tasks");
 						$c++;
 					}else{
-						if($GLOBALS["VERBOSE"]){echo "Starting......: cgroups $directory no such directory\n";}
+						if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups $directory no such directory\n";}
 					}
 				}
 			}
@@ -386,7 +386,7 @@ function start(){
 	}	
 	
 	
-	echo "Starting......: cgroups: starting daemons and $c attached processes\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: starting daemons and $c attached processes\n";
 	cgred_start();
 }
 
@@ -399,11 +399,11 @@ function writerules($gpid,$gpname){
 	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo "$q->mysql_error\n";die();}
-	echo "Starting......: cgroups: Group \"$gpname\" [$gpid] ". mysql_num_rows($results). " Processe(s)\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: Group \"$gpname\" [$gpid] ". mysql_num_rows($results). " Processe(s)\n";
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$ligne["process_name"]=trim($ligne["process_name"]);
 		$ligne["user"]=trim($ligne["user"]);
-		echo "Starting......: cgroups: attach {$ligne["user"]}:{$ligne["process_name"]}	to $gpname\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: attach {$ligne["user"]}:{$ligne["process_name"]}	to $gpname\n";
 		$GLOBALS["CGRULES_CONF"][]="{$ligne["user"]}:\"{$ligne["process_name"]}\"\t*\t$gpname/";
 		$GLOBALS["PROCESSES"][$ligne["process_name"]]=$gpname;
 		
@@ -415,26 +415,26 @@ function writerules($gpid,$gpname){
 
 function services_check(){
 	if(is_file("/etc/init.d/cgconfig")){
-		echo "Starting......: cgroups: checks cgconfig service...\n";
-		if(!function_exists("is_link")){echo "Starting......: cgroups: is_link no such function\n";}
+		echo "Starting......: ".date("H:i:s")." cgroups: checks cgconfig service...\n";
+		if(!function_exists("is_link")){echo "Starting......: ".date("H:i:s")." cgroups: is_link no such function\n";}
 		if(!is_link("/etc/init.d/cgconfig")){
-			echo "Starting......: cgroups: installing specific Artica init.d/cgconfig script\n";
+			echo "Starting......: ".date("H:i:s")." cgroups: installing specific Artica init.d/cgconfig script\n";
 			shell_exec("/bin/mv /etc/init.d/cgconfig /etc/init.d/cgconfig.bak");
 			_write_cgconfig();
 		}
 	}else{
-		echo "Starting......: cgroups: /etc/init.d/cgconfig no such file\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: /etc/init.d/cgconfig no such file\n";
 	}
 	
 	if(is_file("/etc/init.d/cgred")){
 		if(!is_link("/etc/init.d/cgred")){
 			shell_exec("/etc/init.d/cgred stop");
-			echo "Starting......: cgroups: installing specific Artica init.d/cgred script\n";
+			echo "Starting......: ".date("H:i:s")." cgroups: installing specific Artica init.d/cgred script\n";
 			shell_exec("/bin/mv /etc/init.d/cgred /etc/init.d/cgred.bak");
 			_write_cgredconfig();
 		}
 	}else{
-		echo "Starting......: cgroups: /etc/init.d/cgred no such file\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: /etc/init.d/cgred no such file\n";
 	}
 	
 }
@@ -539,11 +539,11 @@ function _write_cgredconfig(){
 
 function cgred_start(){
 	if(!isset($GLOBALS["CLASS_UNIX"])){include_once(dirname(__FILE__)."/framework/class.unix.inc");$GLOBALS["CLASS_UNIX"]=new unix();}
-	if($GLOBALS["VERBOSE"]){echo "Starting......: cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){echo "Starting......: cgroups: cgred_start function Already running pid $pid is running, aborting\n";return;}
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." cgroups: cgred_start function Already running pid $pid is running, aborting\n";return;}
 	@file_put_contents($pidfile, getmypid());	
 	
 	$cgrulesengd=$GLOBALS["CLASS_UNIX"]->find_program("cgrulesengd");
@@ -551,7 +551,7 @@ function cgred_start(){
 	$cgroupsEnabled=$sock->GET_INFO("cgroupsEnabled");
 	if(!is_numeric($cgroupsEnabled)){$cgroupsEnabled=0;}
 	if($cgroupsEnabled==0){
-		echo "Starting......: cgroups: CGroup Rules Engine Daemon cgroups is disabled\n";return;
+		echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon cgroups is disabled\n";return;
 		if(is_file($cgrulesengd)){
 			$pid=$GLOBALS["CLASS_UNIX"]->PIDOF($cgrulesengd);
 			if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){cgred_stop(true);return;}
@@ -560,24 +560,24 @@ function cgred_start(){
 	
 	
 	if(!is_file($cgrulesengd)){
-		echo "Starting......: cgroups: CGroup Rules Engine Daemon no such binary\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon no such binary\n";
 		return;
 	}
 	
-	echo "Starting......: cgroups: CGroup Rules Engine Daemon\n";
+	echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon\n";
 	load_family();
 	$catBin=$GLOBALS["CLASS_UNIX"]->find_program("cat");
 	reset($GLOBALS["CGROUPS_FAMILY"]);
 		while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 			if(!is_cgroup_structure_mounted($structure)){
-				echo "Starting......: cgroups: CGroup Rules Engine Daemon structure:$structure is not mounted, aborting\n";
+				echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon structure:$structure is not mounted, aborting\n";
 				return;
 			}
 		}
 
 	$pid=$GLOBALS["CLASS_UNIX"]->PIDOF($cgrulesengd);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){
-		echo "Starting......: cgroups: CGroup Rules Engine Daemon already exists pid $pid\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon already exists pid $pid\n";
 		return;
 	}
 	
@@ -590,10 +590,10 @@ function cgred_start(){
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$group=$ligne["groupname"];
 			reset($GLOBALS["CGROUPS_FAMILY"]);
-			echo "Starting......: cgroups: CGroup Rules Engine Daemon checking group $group\n";
+			echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon checking group $group\n";
 			while (list ($structure, $ligne) = each ($GLOBALS["CGROUPS_FAMILY"])){
 				if(!is_dir("/cgroups/$structure/$group")){
-					echo "Starting......: cgroups: CGroup Rules Engine Daemon create structure $structure\n";
+					echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine Daemon create structure $structure\n";
 					@mkdir("/cgroups/$structure/$group",0755,true);
 				}
 			}
@@ -611,24 +611,24 @@ function cgred_start(){
 	}
 	$pid=$GLOBALS["CLASS_UNIX"]->PIDOF($cgrulesengd);
 	if($unix->process_exists($pid)){
-		echo "Starting......: cgroups: CGroup Rules Engine started pid $pid\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine started pid $pid\n";
 		TaskSave();
 	}else{
-		echo "Starting......: cgroups: CGroup Rules Engine failed to start with cmdline: $cmdline\n";
+		echo "Starting......: ".date("H:i:s")." cgroups: CGroup Rules Engine failed to start with cmdline: $cmdline\n";
 	}
 	
 	
 }
 function cgred_stop($nomypidcheck=false){
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." cgroups: DEBUG:: ". __FUNCTION__. " START\n";}
 	$unix=new unix();
 	if(!$nomypidcheck){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";			}
-			echo "Starting......: cgroups: cgred_stop() function Already running pid $pid, aborting $called\n";return;}
+			echo "Starting......: ".date("H:i:s")." cgroups: cgred_stop() function Already running pid $pid, aborting $called\n";return;}
 		@file_put_contents($pidfile, getmypid());	
 	}
 	

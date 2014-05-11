@@ -1,9 +1,17 @@
 <?php
-session_start();$_SESSION["MINIADM"]=true;
+session_start();
 
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"<p class=text-error>");ini_set('error_append_string',"</p>");
 ini_set('error_append_string',null);
-if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
+if(isset($_GET["verbose"])){
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',"<p class=text-error>");
+	ini_set('error_append_string',"</p>");
+	$GLOBALS["VERBOSE"]=true;
+}
+if(!isset($_SESSION["uid"])){header_location("location:miniadm.logon.php");}
+if($_SESSION["uid"]==-100){$_SESSION["AsWebStatisticsAdministrator"]=true;}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
@@ -11,8 +19,10 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.inc");
 include_once(dirname(__FILE__)."/ressources/class.calendar.inc");
-if(!$_SESSION["AsWebStatisticsAdministrator"]){header("location:miniadm.index.php");die();}
+if(!$_SESSION["AsWebStatisticsAdministrator"]){if($GLOBALS["VERBOSE"]){echo "header_location(miniadm.index.php)\n";}header_location("miniadm.index.php");}
 
+
+if(isset($_GET["db-status"])){database_status();exit;}
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["messaging-right"])){messaging_right();exit;}
 if(isset($_GET["webstats-left"])){webstats_left();exit;}
@@ -28,6 +38,7 @@ if(isset($_GET["search-www"])){search_websites();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["settings"])){settings();exit;}
 if(isset($_POST["WebstatisticsByMember"])){settings_save();exit;}
+if(isset($_GET["settings-tabs"])){settings_tabs();exit;}
 if(isset($_GET["settings-stats"])){settings_stats();exit;}
 if(isset($_GET["settings-db"])){settings_db();exit;}
 if(isset($_GET["settings-retention"])){settings_retention();exit;}
@@ -42,6 +53,21 @@ if(isset($_GET["generic-categories-table-search"])){generic_categories_table_sea
 if(isset($_GET["cached-graphs-js"])){cached_graph_js();exit;}
 if(isset($_GET["cached-graphs-popup"])){cached_graph_popup();exit;}
 if(isset($_GET["tabs-translate"])){tabs_translate();exit;}
+if(isset($_GET["remove-db-js"])){remove_database_js();exit;}
+if(isset($_POST["remove-all-data"])){remove_database_perform();exit;}
+
+if(isset($_GET["remove-numeric-members-js"])){remove_numeric_members_js();exit;}
+if(isset($_POST["remove-numeric-members"])){remove_numeric_members_perform();exit;}
+
+
+if(isset($_GET["backup-db-js"])){backup_db_js();exit;}
+if(isset($_POST["backup-db-perform"])){backup_db_perform();exit;}
+
+
+
+
+
+
 main_page();
 
 function main_page(){
@@ -70,7 +96,7 @@ function content(){
 	if($DisableArticaProxyStatistics==1){
 		$error=$tpl->_ENGINE_parse_body("<p class=text-error>{DisableArticaProxyStatistics_disabled_explain}</p>
 				<center style='margin:30px;font-size:18px;text-decoration:underline'>
-				<a href=\"javascript:Loadjs('squid.artica.statistics.php')\">{ARTICA_STATISTICS_TEXT}</a>
+				<a href=\"javascript:Loadjs('squid.artica.statistics.php',true)\">{ARTICA_STATISTICS_TEXT}</a>
 				</center>
 				");
 		$mainjs=null;
@@ -120,6 +146,93 @@ function cached_graph_js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{statistics}");
 	echo "YahooWin2(1200,'$page?cached-graphs-popup=yes','$title')";
+	
+}
+
+function remove_numeric_members_js(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
+	$tpl=new templates();
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$ask=$tpl->javascript_parse_text("{remove_numeric_members}?: {remove_numeric_members_text}");
+	$t=time();
+	$html="
+	
+	var xstart$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	UnlockPage();
+	CacheOff();
+	}
+	
+	
+	function start$t(){
+	LockPage();
+	if(!confirm('$ask ?')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('remove-numeric-members','yes');
+	XHR.sendAndLoad('$page', 'POST',xstart$t);
+	}
+	start$t()";
+	
+	echo $html;	
+	
+}
+
+function backup_db_js(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
+	$tpl=new templates();
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$ask=$tpl->javascript_parse_text("{backup_database}?");
+	$t=time();
+	$html="
+var xstart$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	UnlockPage();
+}
+	
+function start$t(){
+	LockPage();
+	if(!confirm('$ask ?')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('backup-db-perform','yes');
+	XHR.sendAndLoad('$page', 'POST',xstart$t);
+}
+start$t()";
+	
+	echo $html;	
+	
+}
+
+function remove_database_js(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
+	$tpl=new templates();
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$ask=$tpl->javascript_parse_text("{empty_database_explain}");
+	$t=time();
+	$html="
+
+	var xstart$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue)};
+		UnlockPage();
+		CacheOff();
+	}	
+	
+	
+	function start$t(){		
+		LockPage();
+		if(!confirm('$ask ?')){return;}
+		var XHR = new XHRConnection();	
+		XHR.appendData('remove-all-data','yes');
+		XHR.sendAndLoad('$page', 'POST',xstart$t);
+	}
+	start$t()";
+	
+	echo $html;
 	
 }
 
@@ -177,7 +290,7 @@ function tabs(){
 
 function settings(){
 	$page=CurrentPageName();
-	$array["{parameters}: {statistics}"]="$page?settings-stats=yes";
+	$array["{statistics_database}"]="$page?settings-tabs=yes";
 	$boot=new boostrap_form();
 	echo $boot->build_tab($array);
 }
@@ -188,6 +301,22 @@ function settings_db(){
 	$boot=new boostrap_form();
 	echo $boot->build_tab($array);	
 	
+}
+
+function settings_tabs(){
+	$sock=new sockets();
+	$ProxyUseArticaDB=$sock->GET_INFO("ProxyUseArticaDB");
+	if(!is_numeric($ProxyUseArticaDB)){$ProxyUseArticaDB=0;}
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$boot=new boostrap_form();
+
+	$array["{parameters}"]="$page?settings-stats=yes";
+	if($ProxyUseArticaDB==1){
+		$array["{mysql_statistics_engine}"]="miniadm.proxy.mysql.database.php?tabs=yes&title=yes";
+	}
+	$array["{database_maintenance}"]="miniadm.squiddb.php?tabs2=yes";
+	echo $boot->build_tab($array);
 }
 
 
@@ -203,17 +332,59 @@ function settings_stats(){
 	if(!is_numeric($PerMembersYoutubeDetails)){$PerMembersYoutubeDetails=0;}
 	if(!is_numeric($WebstatisticsByMember)){$WebstatisticsByMember=0;}
 	if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}	
-	
+	$t=time();
 	$boot=new boostrap_form();
 	$boot->set_checkbox("WebstatisticsByMember", "{WebstatisticsByMember}", $WebstatisticsByMember);
 	$boot->set_checkbox("PerMembersYoutubeDetails", "{PerMembersYoutubeDetails}", $PerMembersYoutubeDetails);
-	
-	
 	$boot->set_checkbox("EnableMacAddressFilter", "{enable_mac_squid_filters}", $EnableMacAddressFilter);
-	
 	$boot->set_button("{apply}");
-	echo $boot->Compile();
+	$form=$boot->Compile();
+	
+	$html="<div class=form style='width:95%'>
+		<table style='width:100%'>
+		<tr>
+			<td style='vertical-align:top;style='width:250px'><div id='$t'></div></td>
+			<td style='vertical-align:top;padding:10px;width:100%'>$form</td>
+		</tr>	
+	</div>
+	<script>
+		LoadAjax('$t','$page?db-status=yes',true);
+	</script>
+	";
+	echo $html;
+	
 }
+function database_status(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$arrayfile="/usr/share/artica-postfix/ressources/logs/web/squiddb.size.db";
+	if(!is_file($arrayfile)){return;}
+	$array=unserialize(@file_get_contents($arrayfile));
+	$DBSIZE=$array["DBSIZE"];
+	$TABLES_NUMBER=$array["TABLES_NUMBER"][0];
+	
+	$tr[]=Paragraphe32("empty_database", "empty_database_explain", "Loadjs('$page?remove-db-js=yes',true)", "database-32-delete.png");
+	
+	$tr[]=Paragraphe32("remove_numeric_members", "remove_numeric_members_explain", 
+			"Loadjs('$page?remove-numeric-members-js=yes',true)", "member-64-delete.png");
+	
+	
+	
+	
+	$ff="<div style='font-size:16px;margin-bottom:10px'>
+		$TABLES_NUMBER Tables (".FormatBytes($DBSIZE)."/".FormatBytes($array["SIZE"]).")
+		<div style='margin-top:15px;margin-bottom:10px'>
+		". pourcentage($array["POURC"])."</div>
+		</div>
+		<div style='margin-bottom:10px'>". @implode("<b>", $tr)."</div>
+				
+				
+	";
+	
+	echo $tpl->_ENGINE_parse_body($ff);
+}
+
+
 function settings_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableMacAddressFilter", $_POST["EnableMacAddressFilter"]);
@@ -731,5 +902,18 @@ GROUP BY familysite ORDER BY size DESC LIMIT 0,10";
 
 }
 
-
-
+function remove_database_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?purge-all-statistics=yes");
+	
+}
+function remove_numeric_members_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?purge-numeric-members-statistics=yes");	
+}
+function backup_db_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?backup-db-statistics=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{success}");	
+}

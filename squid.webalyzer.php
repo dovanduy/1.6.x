@@ -150,7 +150,7 @@ function analyze(){
 			$f++;
 			$cats="&nbsp;";
 			$mustcat=imgtootltip("add-database-32.png","{categorize}","Loadjs('squid.categorize.php?www=$num')");
-			$color="red";
+			$color="#CC0A0A";
 		
 		}else{$s++;}
 		$html=$html."

@@ -68,13 +68,7 @@ function DnsmasqDeleteListenAddress(num){
 
 	
 	
-function DnsmasqDeleteInterface(num){
-	var XHR = new XHRConnection();	
-	XHR.appendData('DnsmasqDeleteInterface',num);	
-	XHR.sendAndLoad(Working_page, 'GET');	
-	InterfacesReload();	
-	
-}
+
 
 
 

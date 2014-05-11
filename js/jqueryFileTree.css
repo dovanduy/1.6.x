@@ -33,6 +33,12 @@ UL.jqueryFileTree A:hover {
 .jqueryFileTree LI.file { background: url(images/file.png) left top no-repeat; }
 .jqueryFileTree LI.wait { background: url(images/spinner.gif) left top no-repeat; }
 .jqueryFileTree LI.root { background: url(images/root.png) left top no-repeat; }
+.jqueryFileTree LI.group { background: url(images/human-group.png) left top no-repeat; }
+.jqueryFileTree LI.ou { background: url(images/domain.png) left top no-repeat; }
+.jqueryFileTree LI.ouExpanded { background: url(domain-open.png) left top no-repeat; }
+.jqueryFileTree LI.container { background: url(images/domains.gif) left top no-repeat; }
+.jqueryFileTree LI.containerExpanded { background: url(images/domains.gif) left top no-repeat; }
+
 
 
 

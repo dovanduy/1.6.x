@@ -180,7 +180,7 @@ function Quanrantine_list(){
 		}
 		$style="style='border-bottom:1px dotted #CCCCCC'";
 		$html=$html . "<tr>
-		<td width=1%' $style><img src='img/mailbox_storage.gif'></td>
+		<td width=1%' $style><img src='img/mailbox.png'></td>
 		<td $style>$date</td>
 		<td $style>$time</td>
 		<td $style>$from</td>

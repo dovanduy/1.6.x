@@ -171,7 +171,7 @@ function memberslist(){
 		
 		if($Displayname==null){
 			if(preg_match("#^user:(.+)#",$num,$re)){
-				$img="winuser.png";
+				$img="user-18.png";
 				$Displayname="{$re[1]}";
 			}
 		}

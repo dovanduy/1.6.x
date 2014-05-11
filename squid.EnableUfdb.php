@@ -29,15 +29,8 @@ function js(){
 	$html="
 			
 	function xRefreshDisable$t(){
-			if(document.getElementById('rules-toolbox-left')){
-				LoadAjaxTiny('rules-toolbox-left','dansguardian2.mainrules.php?rules-toolbox-left=yes');
-			}
-			if(document.getElementById('ufdb-main-toolbox-status')){
-				LoadAjaxTiny('ufdb-main-toolbox-status','dansguardian2.mainrules.php?rules-toolbox-left=yes');
-			}
-				
-	
-		}
+			Loadjs('squid.compile.progress.php');
+	}
 	
 		var xEnable$t= function (obj) {
 			var res=obj.responseText;

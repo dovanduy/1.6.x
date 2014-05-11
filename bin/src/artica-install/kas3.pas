@@ -355,8 +355,7 @@ FUNCTION tkas3.STATUS():string;
 var
    pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_KAS3_MILTER');
-SYS.MONIT_DELETE('APP_KAS3');
+
 if not FileExists('/usr/local/ap-mailfilter3/bin/kas-milter') then exit;
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --kas3 >'+pidpath +' 2>&1');

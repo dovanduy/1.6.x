@@ -80,7 +80,7 @@ var
 
    xMEM_TOTAL_INSTALLEE:integer;
    xSYSTEMID:string;
-   LinuxDistributionFullName:string;
+   LinuxDistributionFullName,uuid:string;
 begin
   GLOBAL_INI:=myconf.Create;
   D:=GLOBAL_INI.COMMANDLINE_PARAMETERS('--verbose');
@@ -100,8 +100,9 @@ begin
   LinuxDistributionFullName:=SYS.GET_INFO('LinuxDistributionFullName');
   if length(LinuxDistributionFullName)=0 then LinuxDistributionFullName:='Linux default';
   if not FileExists('/etc/artica-postfix/dmidecode.cache.url') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.dmidecode.php --chassis >/dev/null 2>&1');
-
-  uriplus:=CheckSYSTEMID()+';'+ IntTostr(xMEM_TOTAL_INSTALLEE)+';'+IntTOstr(SYS.CPU_NUMBER())+';'+LinuxDistributionFullName+';'+trim(SYS.ARTICA_VERSION())+';'+trim(SYS.HOSTNAME_g())+';'+CheckUserCount()+';'+trim(logs.ReadFromFile('/etc/artica-postfix/dmidecode.cache.url'));
+  uuid:=CheckSYSTEMID();
+if(LENGTH(uuid)=0) then exit;
+  uriplus:=uuid+';'+ IntTostr(xMEM_TOTAL_INSTALLEE)+';'+IntTOstr(SYS.CPU_NUMBER())+';'+LinuxDistributionFullName+';'+trim(SYS.ARTICA_VERSION())+';'+trim(SYS.HOSTNAME_g())+';'+CheckUserCount()+';'+trim(logs.ReadFromFile('/etc/artica-postfix/dmidecode.cache.url'));
   uriplus:=AnsiReplaceText(uriplus,' ','%20');
 
   if D then writeln(uriplus);
@@ -117,67 +118,8 @@ begin
 end;
 //#############################################################################
 function tupdate.CheckSYSTEMID():string;
-var
-   blkid:string;
-   RegExpr:TRegExpr;
-   l:Tstringlist;
-   i:integer;
-   tmpstr,hostid:string;
 begin
   result:=trim(SYS.GET_INFO('SYSTEMID'));
-  if length(result)>3 then exit(result);
-  fpsystem(sys.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.web-community-filter.php --uuid');
-  result:=trim(SYS.GET_INFO('SYSTEMID'));
-  if length(result)>3 then exit(result);
-
-
-
-
-  blkid:=trim(SYS.LOCATE_GENERIC_BIN('blkid'));
-  hostid:=trim(SYS.LOCATE_GENERIC_BIN('hostid'));
-  if FileExists(hostid) then begin
-      tmpstr:=logs.FILE_TEMP();
-      result:=trim(SYS.MD5FromString(logs.ReadFromFile(hostid)+logs.DateTimeNowSQL()));
-      SYS.set_INFO('SYSTEMID',result);
-      if length(result)>3 then exit(result);
-  end;
-
-  if FileExists(blkid) then begin
-     fpsystem(blkid+' >'+tmpstr+' 2>&1');
-     result:=logs.MD5FromString(logs.ReadFromFile(tmpstr));
-     if(length(result)>3) then begin
-         SYS.set_INFO('SYSTEMID',result);
-        exit(result);
-     end;
-  end;
-
-  result:=trim(SYS.MD5FromString(logs.DateTimeNowSQL()));
-  SYS.set_INFO('SYSTEMID',result);
-  if length(result)>3 then exit(result);
-
-  tmpstr:=logs.FILE_TEMP();
-  fpsystem(blkid+' >'+tmpstr+' 2>&1');
-  if not fileExists(tmpstr) then exit;
-  l:=tstringlist.Create;
-  l.LoadFromFile(tmpstr);
-  RegExpr:=TRegExpr.Create;
-  logs.DeleteFile(tmpstr);
-  RegExpr.Expression:='UUID="(.+?)"';
-  for i:=0 to l.Count -1 do begin
-      if RegExpr.Exec(l.Strings[i]) then begin
-         result:=RegExpr.Match[1];
-         SYS.set_INFO('SYSTEMID',result);
-         break;
-      end;
-  end;
-
-  if length(result)=0 then begin
-     result:=logs.MD5FromString(logs.DateTimeNowSQL());
-     SYS.set_INFO('SYSTEMID',result);
-  end;
-  l.free;
-  RegExpr.free;
-  exit(result);
 
 end;
 //#############################################################################
@@ -230,9 +172,9 @@ begin
 
 
 
-   SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/auto.update.php?datas='+uriplus,tmpfile);
+   SYS.WGET_DOWNLOAD_FILE('http://www.articatech.net/auto.update.php?datas='+uriplus,tmpfile);
    tmpfile2:=logs.FILE_TEMP();
-   SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/routers.inject.php',tmpfile2,true);
+   SYS.WGET_DOWNLOAD_FILE('http://www.articatech.net/routers.inject.php',tmpfile2,true);
    logs.DeleteFile(tmpfile2);
 
    logs.Debuglogs('Checkindex: Testing index file...');
@@ -301,7 +243,7 @@ end;
 
 if EnableClamavUnofficial=1 then begin
    logs.Syslogs('EnableClamavUnofficial is on, downloading unofficial patterns');
-   clamav.CLAMAV_UNOFICIAL();
+
    logs.Syslogs('Writing configuration done...');
    logs.Syslogs('Executing...');
    if FileExists('/etc/artica-postfix/ClamavUnofficial_time') then begin
@@ -508,16 +450,8 @@ begin
 end;
 //#############################################################################
 PROCEDURE tupdate.perform_update_nightly();
-var  forcestr,debgustr:string;
-
 begin
-         D:=GLOBAL_INI.COMMANDLINE_PARAMETERS('--verbose');
-  if FORCED then forcestr:=' --force';
-  if D then debgustr:=' --verbose';
-  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.nightly.php'+forcestr+debgustr);
-
-
-
+Install_new_version('');
 end;
 //#############################################################################
 
@@ -663,7 +597,7 @@ kav4Proxy.free;
       Files.Add('CheckEveryMinutes=120');
       Files.Add('enable=yes');
       Files.Add('nightlybuild=no');
-      Files.Add('uri=http://www.artica.fr/auto.update.php');
+      Files.Add('uri=http://www.articatech.net/auto.update.php');
       ArticaAutoUpdateConfig:=files.Text
   end;
    if D then writeln('perform_update() -> Save to /etc/artica-postfix/artica-update.conf');
@@ -698,7 +632,7 @@ kav4Proxy.free;
 
   end;
      
-  uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php');
+  uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php');
   mini:=TiniFile.Create('/etc/artica-postfix/artica-update-schedule.conf');
   try
      StoredDate:=mini.ReadDateTime('UPDATE','time',StoredDate);
@@ -912,67 +846,23 @@ end;
 
 //#############################################################################
 function tupdate.Install_new_version(lastestfile:string):boolean;
-var
-   logs:Tlogs;
-   D:boolean;
-   lastest,current:integer;
-   RebootAfterArticaUpgrade:integer;
+var force,verbose,bycron:string;
 begin
-  result:=true;
-  logs:=Tlogs.Create;
-  D:=GLOBAL_INI.COMMANDLINE_PARAMETERS('--verbose');
-  lastest:=GetLatestVersion();
-  if not TryStrToInt(SYS.GET_INFO('RebootAfterArticaUpgrade'),RebootAfterArticaUpgrade) then RebootAfterArticaUpgrade:=0;
-
-  if D then Writeln('Install_new_version() -> Uncompress...');
-  logs.Debuglogs('Install_new_version() -> Uncompress file '+lastestfile);
-  logs.Debuglogs('Install_new_version() -> RebootAfterArticaUpgrade='+IntTostr(RebootAfterArticaUpgrade));
-  current:=GetCurrentVersion();
-
-  logs.OutputCmd('/etc/init.d/artica-postfix stop');
-  if length(SYS.AllPidsByPatternInPath('tar -xf /opt/artica/sources/auto-update/'+lastestfile))>0 then begin
-      logs.Debuglogs('Install_new_version() -> already decompressing task exists...');
-      halt(0);
+  force:='';
+  if GLOBAL_INI.COMMANDLINE_PARAMETERS('--force') then begin
+     logs.Debuglogs('perform_update() --force token detected');
+     force:=' --force';
   end;
-    fpsystem('killall artica-install >/dev/null 2>&1');
-    logs.OutputCmd('tar -xf /opt/artica/sources/auto-update/'+lastestfile +' -C /usr/share/');
-    logs.DeleteFile('/opt/artica/sources/auto-update/'+lastestfile);
-  
-  
-  current:=GetCurrentVersion();
-          if lastest=current then begin
-              logs.syslogs('Install_new_version() -> /etc/init.d/artica-postfix restart');
-              logs.Debuglogs('Install_new_version() -> success updated to version '+GLOBAL_INI.ARTICA_VERSION());
-
-              if D then writeln('Success ! -> remove file');
-              GLOBAL_INI.DeleteFile('/opt/artica/sources/auto-update/'+lastestfile);
-
-              logs.Syslogs('success update artica...');
-              fpsystem('/bin/rm -f /usr/share/artica-postfix/PATCH');
-              fpsystem('/bin/rm -f /usr/share/artica-postfix/PATCHS_HISTORY');
-              logs.NOTIFICATION('[ARTICA]:('+sys.HOSTNAME_g()+') success update new artica version ' + GLOBAL_INI.ARTICA_VERSION(),'your server is now up-to-date with the new version ' + GLOBAL_INI.ARTICA_VERSION(),'update');
-           end else begin
-              logs.Debuglogs('Install_new_version() -> Failed extract '+lastestfile);
-              GLOBAL_INI.DeleteFile('/opt/artica/sources/auto-update/'+lastestfile);
-              exit;
-           end;
-fpsystem('/usr/share/artica-postfix/bin/artica-make --empty-cache &');
-fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initslapd.php --force');
-fpsystem('/usr/share/artica-postfix/bin/artica-make APP_MONIT');
-fpsystem('/etc/init.d/artica-status restart');
-fpsystem('/etc/init.d/auth-tail restart');
-fpsystem('/usr/share/artica-postfix/bin/process1 -perm');
-if FileExists('/etc/init.d/nginx') then fpsystem('/etc/init.d/nginx restart');
-
-
- if RebootAfterArticaUpgrade=1 then begin
-    logs.Debuglogs('Install_new_version() -> REBOOT !');
-    logs.NOTIFICATION('[ARTICA]:('+sys.HOSTNAME_g()+') success update new official artica version ' + GLOBAL_INI.ARTICA_VERSION()+' system will be rebooted','your server is now up-to-date with the new version ' + GLOBAL_INI.ARTICA_VERSION(),'update');
-    fpsystem(SYS.LOCATE_GENERIC_BIN('reboot'));
+  if GLOBAL_INI.COMMANDLINE_PARAMETERS('--verbose') then begin
+     logs.Debuglogs('perform_update() --verbose token detected');
+     verbose:=' --verbose';
+  end;
+  if GLOBAL_INI.COMMANDLINE_PARAMETERS('--bycron') then begin
+     logs.Debuglogs('perform_update() --bycron token detected');
+     bycron:=' --bycron';
   end;
 
-
-logs.OutputCmd('/etc/init.d/artica-postfix restart');
+  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.nightly.php'+force+verbose+bycron);
 
 end;
 
@@ -1020,7 +910,7 @@ begin
  end;
 
  logs.Debuglogs('VerifAndReinstall():: Downloading new version ' + version);
-  uri:='http://www.artica.fr/nightbuilds/artica-'+version+'.tgz';
+  uri:='http://www.articatech.net/nightbuilds/artica-'+version+'.tgz';
   forceDirectories('/tmp/'+version);
 
   ArticaFileTemp:='/tmp/'+version+'/'+version+'.tgz';
@@ -1150,7 +1040,7 @@ begin
    result:=0;
    if not FileExists('/etc/artica-postfix/artica-update.conf') then perform_update();
    CONF:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-   uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php');
+   uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php');
    GLOBAL_INI.WGET_DOWNLOAD_FILE(uri,'/etc/artica-postfix/autoupdate.conf');
    if not FileExists('/etc/artica-postfix/autoupdate.conf') then exit;
    autoupdate:=TiniFile.Create('/etc/artica-postfix/autoupdate.conf');
@@ -1216,7 +1106,7 @@ begin
 
 
   CONF:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-  uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php');
+  uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php');
   localFile:='/usr/share/artica-postfix/ressources/index.ini';
   IF D then writeln('localFile..........:',localFile);
   IF D then writeln('uri................:',uri);
@@ -1236,13 +1126,13 @@ begin
          logs.Debuglogs('indexini() -> deleting /usr/share/artica-postfix/ressources/index.ini too old and download it');
          logs.DeleteFile('/usr/share/artica-postfix/ressources/index.ini');
          GLOBAL_INI.WGET_DOWNLOAD_FILE(uri+'?datas='+uriplus,localFile);
-         GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-squid/index.conf','/usr/share/artica-postfix/ressources/old-squid.ini');
-         GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-samba/index.conf','/usr/share/artica-postfix/ressources/old-samba.ini');
+         GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.articatech.net/download/old-squid/index.conf','/usr/share/artica-postfix/ressources/old-squid.ini');
+         GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.articatech.net/download/old-samba/index.conf','/usr/share/artica-postfix/ressources/old-samba.ini');
       end;
    end else begin
         GLOBAL_INI.WGET_DOWNLOAD_FILE(uri+'?datas='+uriplus,localFile);
-        GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-squid/index.conf','/usr/share/artica-postfix/ressources/old-squid.ini');
-                 GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/old-samba/index.conf','/usr/share/artica-postfix/ressources/old-samba.ini');
+        GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.articatech.net/download/old-squid/index.conf','/usr/share/artica-postfix/ressources/old-squid.ini');
+        GLOBAL_INI.WGET_DOWNLOAD_FILE('http://www.articatech.net/download/old-samba/index.conf','/usr/share/artica-postfix/ressources/old-samba.ini');
    end;
 
    logs.OutputCmd('/bin/rm -rf /usr/share/artica-postfix/ressources/install/*.ini');
@@ -1376,7 +1266,7 @@ var
   PatchArticaVersion:integer;
 begin
   CONF:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-  uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php');
+  uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php');
   localFile:='/usr/share/artica-postfix/ressources/index.ini';
   indexini();
  if CONF.ReadString('AUTOUPDATE','autoinstall','yes')<>'yes' then begin
@@ -1450,7 +1340,7 @@ result:=false;
 dev:=false;
 DirectoryName:=artica_version+'_P' + IntToStr(patchNumber);
 CONF:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php');
+uri:=CONF.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php');
 targetfolder:='/usr/share/artica-postfix/';
 WebFolder:=ExtractFilePath(uri)+'download/patch/'+DirectoryName+'/'+DirectoryName+'.tar';
 CONF.free;
@@ -1749,7 +1639,7 @@ begin
 
    if length(ETag_server)=0 then begin
         logs.Syslogs('tupdate.update_spamassassin_blacklist():: Last-Modified is null !');
-        logs.NOTIFICATION('Missing ETag for updating Spamassassin black lists','Artica could not detect Last-Modified from target server. Please refer to artica forum http://www.artica.fr','update');
+        logs.NOTIFICATION('Missing ETag for updating Spamassassin black lists','Artica could not detect Last-Modified from target server. Please refer to artica forum http://www.articatech.net','update');
         exit;
    end;
 
@@ -2087,7 +1977,7 @@ if length(LICENSE)=0 then begin
 end;
 tmp:=logs.FILE_TEMP();
 RegExpr:=TRegExpr.Create;
-SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/shalla-orders.php?check=yes&lic='+LICENSE+'&uuid='+SYSTEMID,tmp);
+SYS.WGET_DOWNLOAD_FILE('http://www.articatech.net/shalla-orders.php?check=yes&lic='+LICENSE+'&uuid='+SYSTEMID,tmp);
 l:=Tstringlist.Create;
 l.LoadFromFile(tmp);
 logs.DeleteFile(tmp);
@@ -2106,7 +1996,7 @@ if not checked then begin
    exit;
 end;
 tmp:=logs.FILE_TEMP();
-SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/shalla/shallalist.tar.gz.md5',tmp);
+SYS.WGET_DOWNLOAD_FILE('http://www.articatech.net/download/shalla/shallalist.tar.gz.md5',tmp);
 RegExpr.Expression:='(.+?)\s+';
 if RegExpr.Exec(logs.ReadFromFile(tmp)) then md5_out:=trim(RegExpr.Match[1]);
 logs.DeleteFile(tmp);
@@ -2114,7 +2004,7 @@ if RegExpr.Exec(logs.ReadFromFile('/etc/artica-postfix/filters.plus.md5')) then 
 logs.Debuglogs('update_webfilterplus:: remote: "'+md5_out+'" local: "'+md5_in+'"');
 if md5_in<>md5_out then begin
     tmp:=logs.FILE_TEMP();
-    SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/download/shalla/shallalist.tar.gz',tmp+'.tar.gz');
+    SYS.WGET_DOWNLOAD_FILE('http://www.articatech.net/download/shalla/shallalist.tar.gz',tmp+'.tar.gz');
     if not FileExists(tmp+'.tar.gz') then begin
       logs.Debuglogs('update_webfilterplus:: Extract failed (file does not exists)');
       exit;

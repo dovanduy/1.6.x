@@ -79,7 +79,7 @@ private
        function LOAD_CURRENT():string;
        function MAILLOG_REGEX_PATH(logconfig:string=''):string;
        function LOCATE_PHP5_EXTENSION_DIR_MANU():string;
-
+       function FILE_TEMP():string;
 
 
 public
@@ -174,7 +174,6 @@ public
        procedure OPENSSL_CERTIFCATE_CONFIG();
        function  OPENSSL_CERTIFCATE_HOSTS():string;
        function FILE_CHOWN(username:string;groupname:string;path:string):boolean;
-       function FILE_TEMP():string;
        function PROCESS_LIST_PID(processname:string):string;
        procedure RemoveService(servicename:string);
        function FOLDER_SIZE(path:string):integer;
@@ -433,10 +432,10 @@ public
         function VMWARE_HOST():boolean;
         procedure etc_ld_so_conf(path:string);
         function GET_CPU_POURCENT(PID:integer):integer;
-        function MONIT_CONFIG(internal_name:string;pidfile:string;commandToStart:string):boolean;
-        procedure MONIT_DELETE(internal_name:string);
-        procedure MONIT_CHECK(internal_name:string);
-        procedure MONIT_CHECK_ALL();
+
+
+
+
         procedure DetectVerbosed();
 
         function LIGHTTPD_GET_USER():string;
@@ -492,18 +491,18 @@ function Tsystem.LOCAL_IP_AVAILABLE(ipstring:string):boolean;
 var
    l:Tstringlist;
    i:integer;
-   binpath:string;
+   binpath,tmpstr:string;
    RegExpr:TRegExpr;
 begin
 result:=false;
-
-if not FileExists('/tmp/artica-ifconfig.tmp') then begin
+tmpstr:=FILE_TEMP();
+if not FileExists(tmpstr) then begin
    binpath:=LOCATE_GENERIC_BIN('ifconfig');
-   fpsystem(binpath+' -a >/tmp/artica-ifconfig.tmp 2>&1');
+   fpsystem(binpath+' -a >'+tmpstr+' 2>&1');
 end;
 
 l:=TstringList.Create;
-l.LoadFromFile('/tmp/artica-ifconfig.tmp');
+l.LoadFromFile(tmpstr);
 RegExpr:=TRegExpr.Create;
 ipstring:=trim(ipstring);
 ipstring:=AnsiReplaceText(ipstring,'.','\.');
@@ -548,35 +547,7 @@ end;
 
 
 procedure Tsystem.ETC_HOSTS_ADD(servername:string;ip:string);
-var
-   l:Tstringlist;
-   i:integer;
-   RegExpr:TRegExpr;
-   servernamehost:string;
 begin
-
-    if DisableEtcHosts=1 then exit;
-
-
-     servernamehost:=AnsiReplaceText(servername,'.','\.');
-     l:=Tstringlist.Create;
-     RegExpr:=TRegExpr.Create;
-     RegExpr.Expression:=servernamehost;
-     l.LoadFromFile('/etc/hosts');
-     for i:=0 to l.Count -1 do begin
-        if RegExpr.Exec(servernamehost) then begin
-           l.Strings[i]:=servername+chr(9)+ip;
-           l.SaveToFile('/etc/hosts');
-           l.Free;
-           RegExpr.Free;
-           exit;
-        end;
-     end;
-      l.Add(servername+chr(9)+ip);
-      l.SaveToFile('/etc/hosts');
-      l.Free;
-      RegExpr.Free;
-      exit;
 end;
 
 
@@ -1174,7 +1145,7 @@ begin
     catbin:=LOCATE_GENERIC_BIN('cat');
     grepbin:=LOCATE_GENERIC_BIN('grep');
     wcbin:=LOCATE_GENERIC_BIN('wc');
-    cutbin:LOCATE_CUT();
+    cutbin:=LOCATE_CUT();
     fileconf:='/etc/artica-postfix/settings/Daemons/SystemCpuNumber';
     if FileExists(fileconf) then begin
        if FILE_TIME_BETWEEN_MIN(fileconf)>500 then fpsystem('/bin/rm -f '+ fileconf);
@@ -1241,6 +1212,15 @@ begin
     ziulogs.DeleteFile(fileconf);
     RegExpr.free;
     ziulogs.free;
+end;
+//#########################################################################################
+function Tsystem.FILE_TEMP():string;
+var
+   ziulogs:Tlogs;
+begin
+ziulogs:=Tlogs.Create;
+result:=ziulogs.FILE_TEMP();
+ziulogs.free;
 end;
 //#########################################################################################
 function Tsystem.LOAD_CURRENT():string;
@@ -1548,6 +1528,7 @@ begin
     l.Add('/usr/local/sbin');
     l.add('/usr/kerberos/bin');
     l.add('/usr/share/artica-postfix/bin');
+    l.add('/usr/libexec');
 
 
     for i:=0 to l.Count-1 do begin
@@ -1720,206 +1701,6 @@ if FileExists('/usr/bin/lshw') then exit('/usr/bin/lshw');
 exit(LOCATE_GENERIC_BIN('lshw'));
 end;
 //##############################################################################
-function Tsystem.MONIT_CONFIG(internal_name:string;pidfile:string;commandToStart:string):boolean;
-
-var
-   l:Tstringlist;
-   MONIT_CONFIG_LOG:Tlogs;
-   conf:TiniFile;
-   md5_a:string;
-   md5_b:string;
-   tmpstr:string;
-begin
-   pidfile:=trim(pidfile);
-   pidfile:=AnsiReplaceText(pidfile,'"','');
-   if length(pidfile)=0 then exit;
-   forceDirectories('/etc/monit/conf.d');
-   l:=Tstringlist.Create;
-
-
-
-   if length(mem_monit_bin_path)=0 then begin
-      mem_monit_bin_path:=LOCATE_GENERIC_BIN('monit');
-      if length(mem_monit_bin_path)=0 then mem_monit_bin_path:='/usr/share/artica-postfix/bin/artica-monit';
-   end;
-
-   if not FileExists('/etc/artica-postfix/settings/Daemons/MonitServicesSettings') then fpsystem(LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.first.settings.php --monit >/dev/null 2>&1');
-   try
-      conf:=TiniFile.Create('/etc/artica-postfix/settings/Daemons/MonitServicesSettings');
-   Except
-   exit;
-   end;
-   if not FileExists('/usr/sbin/'+internal_name+'-start.sh') then begin
-      l.Add('#!/bin/sh');
-      l.Add('PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin');
-      l.add('/etc/init.d/artica-postfix start '+commandToStart);
-      l.add('exit 0');
-      l.SaveToFile('/usr/sbin/'+internal_name+'-start.sh');
-      l.clear;
-      fpsystem('/bin/chmod 777 /usr/sbin/'+internal_name+'-start.sh');
-   end;
-
-   if not FileExists('/usr/sbin/'+internal_name+'-stop.sh') then begin
-      l.Add('#!/bin/sh');
-      l.Add('PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin');
-      l.add('/etc/init.d/artica-postfix stop '+commandToStart);
-      l.add('exit 0');
-      l.SaveToFile('/usr/sbin/'+internal_name+'-stop.sh');
-      l.clear;
-      fpsystem('/bin/chmod 777 /usr/sbin/'+internal_name+'-stop.sh');
-   end;
-
-   if not FileExists('/usr/sbin/'+internal_name+'-restart.sh') then begin
-      l.Add('#!/bin/sh');
-      l.Add('PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin');
-      l.add('/etc/init.d/artica-postfix stop '+commandToStart);
-      l.add('/etc/init.d/artica-postfix start '+commandToStart);
-      l.add('exit 0');
-      l.SaveToFile('/usr/sbin/'+internal_name+'-restart.sh');
-      l.clear;
-      fpsystem('/bin/chmod 777 /usr/sbin/'+internal_name+'-stop.sh');
-   end;
-
-
-   l.Add('check process '+internal_name);
-   l.Add(chr(9)+'with pidfile "'+pidfile+'"');
-   l.Add(chr(9)+'start program = "/usr/sbin/'+internal_name+'-start.sh"');
-   l.Add(chr(9)+'stop program = "/usr/sbin/'+internal_name+'-stop.sh"');
-   l.Add(chr(9)+'if totalmem > '+IntToStr(conf.ReadInteger(internal_name,'totalmem',200))+' Mb then alert');
-   l.Add(chr(9)+'if children > '+IntToStr(conf.ReadInteger(internal_name,'children',200))+' for '+IntToStr(conf.ReadInteger(internal_name,'children_cycles',5))+' cycles then alert');
-   l.Add(chr(9)+'if cpu usage > '+IntToStr(conf.ReadInteger(internal_name,'totalcpu',95))+'% for '+IntToStr(conf.ReadInteger(internal_name,'totalcpu_cycles',5))+' cycles then alert');
-
-   if internal_name='APP_MILTERGREYLIST' then begin
-      l.Add(chr(9)+'if failed unixsocket /var/run/milter-greylist/milter-greylist.sock then restart');
-   end;
-
-   if internal_name='APP_AMAVISD_MILTER' then begin
-      l.Add(chr(9)+'if failed unixsocket /var/spool/postfix/var/run/amavisd-milter/amavisd-milter.sock then restart');
-   end;
-
-   MONIT_CONFIG_LOG:=Tlogs.Create;
-   if FileExists('/etc/monit/conf.d/' +internal_name+'.monitrc') then md5_a:=MONIT_CONFIG_LOG.MD5FromString(MONIT_CONFIG_LOG.ReadFromFile('/etc/monit/conf.d/' +internal_name+'.monitrc'));
-   tmpstr:=MONIT_CONFIG_LOG.FILE_TEMP();
-   MONIT_CONFIG_LOG.WriteToFile(l.Text,tmpstr);
-   md5_b:=MONIT_CONFIG_LOG.MD5FromString(MONIT_CONFIG_LOG.ReadFromFile(tmpstr));
-
-   if md5_a<>md5_b then begin
-      MONIT_CONFIG_LOG.Debuglogs('MONIT_CONFIG:: replicate /etc/monit/conf.d/' +internal_name+'.monitrc');
-      MONIT_CONFIG_LOG.WriteToFile(l.Text,'/etc/monit/conf.d/' +internal_name+'.monitrc');
-   end;
-
-   MONIT_CONFIG_LOG.DeleteFile(tmpstr);
-   l.free;
-   conf.free;
-
-   result:=true;
-   MONIT_CHECK(internal_name);
-   MONIT_CONFIG_LOG.free;
-   //if failed port 80 protocol http then restart
-end;
-//##############################################################################
-procedure Tsystem.MONIT_DELETE(internal_name:string);
-begin
-
-if not FIleExists('/etc/monit/conf.d/' +internal_name+'.monitrc') then exit;
-
-if FIleExists('/etc/monit/conf.d/' +internal_name+'.monitrc') then fpsystem('/bin/rm -f /etc/monit/conf.d/' +internal_name+'.monitrc');
-if FileExists('/usr/sbin/'+internal_name+'-start.sh') then fpsystem('/bin/rm -f /usr/sbin/'+internal_name+'-start.sh');
-if FileExists('/usr/sbin/'+internal_name+'-stop.sh') then fpsystem('/bin/rm -f /usr/sbin/'+internal_name+'-stop.sh');
-if FileExists('/usr/sbin/'+internal_name+'-restart.sh') then fpsystem('/bin/rm -f /usr/sbin/'+internal_name+'-restart.sh');
-   if length(mem_monit_bin_path)=0 then begin
-      mem_monit_bin_path:=LOCATE_GENERIC_BIN('monit');
-      if length(mem_monit_bin_path)=0 then mem_monit_bin_path:='/usr/share/artica-postfix/bin/artica-monit';
-   end;
-fpsystem(mem_monit_bin_path+' -c /etc/monit/monitrc -p /var/run/monit/monit.pid reload');
-end;
-//##############################################################################
-procedure Tsystem.MONIT_CHECK_ALL();
-Var
-    l:TstringList;
-    i:integer;
-    RegExpr:TRegExpr;
-    F:boolean;
-    monit_logs:Tlogs;
-    tmpstr:string;
-Begin
-    MONIT_DEBUG:=COMMANDLINE_PARAMETERS('debug');
-
-    DirFiles('/etc/monit/conf.d','*.monitrc');
-    RegExpr:=TRegExpr.Create;
-    RegExpr.Expression:='(.+?)\.monitrc';
-
-    for i:=0 to DirListFiles.Count-1 do begin;
-        if RegExpr.Exec(DirListFiles.Strings[i]) then MONIT_CHECK(RegExpr.Match[1]);
-    end;
-   RegExpr.free;
-
-end;
-//##############################################################################
-
-procedure Tsystem.MONIT_CHECK(internal_name:string);
-Var
-    l:TstringList;
-    i:integer;
-    RegExpr:TRegExpr;
-    F:boolean;
-    monit_logs:Tlogs;
-    tmpstr:string;
-    monitTime:integer;
-    mypid:string;
-Begin
-  F:=false;
-  mypid:=IntToStr(fpgetpid);
-  MONIT_CHECK_LIST:=Tstringlist.Create;
-  monit_logs:=Tlogs.Create;
-  if length(trim(mem_monit_bin_path))=0 then begin
-     mem_monit_bin_path:=LOCATE_GENERIC_BIN('monit');
-     if length(trim(mem_monit_bin_path))=0 then mem_monit_bin_path:='/usr/share/artica-postfix/bin/artica-monit';
-  end;
-
-  tmpstr:='/tmp/artica-install-monit.status.'+mypid+'.tmp';
-  if FileExists('/tmp/artica-monit.status.'+mypid) then begin
-        MONIT_CHECK_LIST.LoadFromFile('/tmp/artica-monit.status.'+mypid);
-  end;
-
-  if MONIT_CHECK_LIST.Count=0 then begin
-     fpsystem(mem_monit_bin_path+' -c /etc/monit/monitrc -p /var/run/monit/monit.pid summary >'+tmpstr +' 2>&1');
-     if not FileExists(tmpstr) then exit;
-     MONIT_CHECK_LIST.LoadFromFile(tmpstr);
-  end;
-
-  RegExpr:=TRegExpr.Create;
-  RegExpr.Expression:='Process.+?'+internal_name;
-  for i:=0 to MONIT_CHECK_LIST.Count-1 do begin
-     if RegExpr.Exec(MONIT_CHECK_LIST.Strings[i]) then begin
-        f:=true;
-        break;
-     end;
-     if MONIT_DEBUG then writeln('MONIT_CHECK: "',MONIT_CHECK_LIST.Strings[i],'" -> ',RegExpr.Expression,' false');
-  end;
-
-  RegExpr.free;
-
-  if not F then begin
-      if FIleExists('/etc/artica-postfix/cron.2/monit.reloaded') then monitTime:=FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/cron.2/monit.reloaded') else monitTime:=600;
-      monit_logs.Debuglogs('MONIT_CHECK:: ' + internal_name+' FALSE' + ' timestamp='+ IntTOStr(monitTime)+'mn');
-      if  monitTime>2 then begin
-          monit_logs.Debuglogs('***************** RELOAD MONIT ********************');
-          monit_logs.Debuglogs('MONIT_CHECK:: Reload monit for '+internal_name);
-          fpsystem(mem_monit_bin_path+' -c /etc/monit/monitrc -p /var/run/monit/monit.pid reload >/dev/null 2>&1');
-          monit_logs.DeleteFile('/etc/artica-postfix/cron.2/monit.reloaded');
-          monit_logs.WriteToFile(monit_logs.DateTimeNowSQL(),'/etc/artica-postfix/cron.2/monit.reloaded');
-      end;
-  end else begin
-     monit_logs.Debuglogs('MONIT_CHECK:: DO NOTHING ' +internal_name);
-
-  end;
-  monit_logs.Free;
-end;
-//##############################################################################
-
-
-
 function Tsystem.CHANGE_SERVICES_IP(servicename:string;port:string):string;
 Var
     l:TstringList;
@@ -5283,10 +5064,7 @@ begin
 
      verbosed:=COMMANDLINE_PARAMETERS('--verbose');
      forceDirectories('/etc/artica-postfix');
-    if not FileExists('/etc/artica-postfix/ifconfig.conf') then begin
-       if verbosed then writeln('txt_uris():: -> ifconfig()');
-       ifconfig('/etc/artica-postfix/ifconfig.conf');
-    end;
+     ifconfig('/etc/artica-postfix/ifconfig.conf');
 
     if verbosed then writeln('txt_uris():: -> File time=',FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/ifconfig.conf'),'mn');
 
@@ -6568,11 +6346,13 @@ function Tsystem.LOCATE_MKFIFO():string;
 begin
    if FileExists('/usr/bin/mkfifo') then exit('/usr/bin/mkfifo');
    if FileExists('/bin/mkfifo') then exit('/bin/mkfifo');
+   exit(LOCATE_GENERIC_BIN('mkfifo'));
 end;
 //##############################################################################
 //##############################################################################
 function Tsystem.LOCATE_PHP5_BIN():string;
 begin
+  if FileExists('/opt/articatech/bin/php') then exit('/opt/articatech/bin/php');
   if FileExists('/usr/bin/php5') then exit('/usr/bin/php5');
   if FIleExists('/usr/bin/php') then exit('/usr/bin/php');
   if FIleExists('/usr/local/apache-groupware/php5/bin/php') then exit('/usr/local/apache-groupware/php5/bin/php');
@@ -6584,6 +6364,7 @@ function Tsystem.LOCATE_PHP5_CONFIG_BIN():string;
 begin
   if FileExists('/usr/bin/php-config5') then exit('/usr/bin/php-config5');
   if FIleExists('/usr/bin/php-config') then exit('/usr/bin/php-config');
+  if FileExists('/opt/articatech/bin/php-config') then exit('/opt/articatech/bin/php-config');
   if FileExists('/opt/artica-agent/bin/php-config') then exit('/opt/artica-agent/bin/php-config');
 end;
 //##############################################################################
@@ -6592,6 +6373,7 @@ begin
    if FileExists('/usr/bin/php-cgi') then exit('/usr/bin/php-cgi');
    if FileExists('/opt/artica/lighttpd/bin/php-cgi') then exit('/opt/artica/lighttpd/bin/php-cgi');
    if FileExists('/usr/local/bin/php-cgi') then exit('/usr/local/bin/php-cgi');
+   if FileExists('/opt/articatech/bin/php-cgi') then exit('/opt/articatech/bin/php-cgi');
    if FileExists('/opt/artica-agent/bin/php-cgi') then exit('/opt/artica-agent/bin/php-cgi');
 end;
 //##############################################################################
@@ -6774,6 +6556,13 @@ if length(result)>5 then begin
        exit(result);
    end;
 end;
+
+if FileExists('/usr/lib/php5/20100525+lfs/mysql.so') then begin
+       if verbosed then writeln('tSystem.LOCATE_PHP5_EXTENSION_DIR:: Hard coded /usr/lib/php5/20100525+lfs mysql.so OK');
+       result:='/usr/lib/php5/20100525+lfs';
+       exit(result);
+end;
+
 
 
 if not FileExists(LOCATE_PHP5_CONFIG_BIN()) then begin
@@ -7026,12 +6815,6 @@ function Tsystem.LOCATE_STUNNEL():string;
 begin
 if FileExists('/usr/bin/stunnel4') then exit('/usr/bin/stunnel4');
 if FileExists('/usr/bin/stunnel') then exit('/usr/bin/stunnel');
-end;
-//#############################################################################
-function tsystem.FILE_TEMP():string;
-begin
-if not DirectoryExists('/opt/artica/tmp') then ForceDirectories('/opt/artica/tmp');
-result:='/opt/artica/tmp/'+ MD5FromString(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now)+IntToStr(random(2548)));
 end;
 //#############################################################################
 function Tsystem.DISKS_STATUS_DEV():string;

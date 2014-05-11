@@ -165,6 +165,8 @@ function page(){
 		<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery-ui-timepicker-addon.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"/js/ui.selectmenu.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.cookie.js\"></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 
 
 	

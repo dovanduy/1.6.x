@@ -1,5 +1,5 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
+
 $GLOBALS["VERBOSE"]=false;
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;echo "Starting verbose mode\n";}}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
@@ -7,6 +7,7 @@ $GLOBALS["FORCE"]=false;$GLOBALS["REINSTALL"]=false;
 $GLOBALS["NO_HTTPD_CONF"]=false;
 $GLOBALS["NO_HTTPD_RELOAD"]=false;
 $GLOBALS["NO_HTTPD_RESTART"]=false;
+$GLOBALS["NGINX_CONFIGURE"]=false;
 if(is_array($argv)){
 	if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
@@ -63,10 +64,12 @@ if($argv[1]=="--restore"){restore_container($argv[2],$argv[3],$argv[4]);die();}
 
 if($argv[1]=="--sync-squid"){sync_squid();die();}
 if($argv[1]=="--all-status"){mod_status_all();die();}
-if($argv[1]=="--httpd"){CheckHttpdConf();reload_apache();die();sync_squid();}
+if($argv[1]=="--httpd"){CheckHttpdConf();reload_apache();die();}
 if($argv[1]=="--build"){$GLOBALS["NO_HTTPD_RESTART"]=true;build();reload_apache();sync_squid();die();}
 if($argv[1]=="--apache-user"){apache_user();die();}
+
 if($argv[1]=="--sitename"){
+		$GLOBALS["NGINX_CONFIGURE"]=true;
 		buildHost(null,$argv[2]);
 		if(!$GLOBALS["NO_HTTPD_CONF"]){CheckHttpdConf();}
 		if(!$GLOBALS["NO_HTTPD_RELOAD"]){reload_apache();}
@@ -93,6 +96,8 @@ if($argv[1]=="--status"){mod_status($argv[2]);die();exit;}
 if($argv[1]=="--listwebs"){listwebs();die();exit;}
 if($argv[1]=="--reconfigure-all"){reconfigure_all_websites();die();exit;}
 if($argv[1]=="--reconfigure-webapp"){reconfigure_all_webapp();die();exit;}
+if($argv[1]=="--reconfigure-webaccess"){reconfigure_all_webaccess();die();exit;}
+if($argv[1]=="--reconfigure-webapp"){reconfigure_all_webapp();die();exit;}
 if($argv[1]=="--reconfigure-zpush"){reconfigure_all_zpush();die();exit;}
 if($argv[1]=="--reconfigure-updateutility"){reconfigure_all_updateutility();die();exit;}
 if($argv[1]=="--reconfigure-wpad"){reconfigure_all_wpad();die();exit;}
@@ -105,6 +110,13 @@ if($argv[1]=="--reload"){ReloadApache();die();exit;}
 if($argv[1]=="--backupsite"){backupsite($argv[2]);die();exit;}
 if($argv[1]=="--ScanSize"){ScanSize();die();exit;}
 if($argv[1]=="--remove-disabled"){remove_disabled();die();exit;}
+if($argv[1]=="--ttl"){echo "TTL: ".TTL_Apache()."Mn\n";die();exit;}
+if($argv[1]=="--restart-maintenance"){RestartApacheMaintenance();exit;}
+if($argv[1]=="--check"){TestingApacheConfigurationFile();exit;}
+
+
+	
+	
 
 help();
 
@@ -299,7 +311,9 @@ function reconfigure_all_wpad(){
 	
 	$sql="SELECT servername FROM freeweb WHERE groupware='WPAD' AND enabled=1";
 	$q=new mysql();
-		$results=$q->QUERY_SQL($sql,'artica_backup');
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	
+	
 	$count=mysql_num_rows($results);
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$hostname=$ligne["servername"];
@@ -307,7 +321,20 @@ function reconfigure_all_wpad(){
 			buildHost(null,$hostname);
 	}
 	
-	$php=$unix->LOCATE_PHP5_BIN();
+	$sql="SELECT servername FROM freeweb WHERE groupware='WPADDYN' AND enabled=1";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	
+	
+	$count=mysql_num_rows($results);
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		install_groupware($hostname);
+		buildHost(null,$hostname);
+	}	
+	
+	
+	
 	reload_apache();	
 }
 
@@ -339,6 +366,32 @@ function reconfigure_all_webapp(){
 	
 }
 
+function reconfigure_all_webaccess(){
+	$unix=new unix();
+	@mkdir("/etc/artica-postfix/pids",0755,true);
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		echo "Already instance executed pid $oldpid\n";
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	$sql="SELECT servername FROM freeweb WHERE groupware='ZARAFA' AND enabled=1";
+	$q=new mysql();
+		$results=$q->QUERY_SQL($sql,'artica_backup');
+	$count=mysql_num_rows($results);
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$hostname=$ligne["servername"];
+		install_groupware($hostname);
+			buildHost(null,$hostname);
+	}
+	
+	
+	reload_apache();	
+}
+
 
 function listwebs(){
 	$unix=new unix();
@@ -354,18 +407,18 @@ function listwebs(){
 	$mods_enabled=$DAEMON_PATH."/mods-enabled";
 	
 	
-	echo "Starting......: [INIT]: Apache daemon path: $d_path\n";
-	echo "Starting......: [INIT]: Apache mods path..: $mods_enabled\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache daemon path: $d_path\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache mods path..: $mods_enabled\n";
 	
 	if(!is_dir($d_path)){@mkdir($d_path,0666,true);}
 	if(!is_dir($mods_enabled)){@mkdir($mods_enabled,0666,true);}
 	
 	$count=mysql_num_rows($results);
-	echo "Starting......: [INIT]: Apache checking virtual web sites count:$count\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache checking virtual web sites count:$count\n";
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$hostname=$ligne["servername"];
-		echo "Starting......: available $hostname\n";
+		echo "Starting......: ".date("H:i:s")." available $hostname\n";
 		
 	}
 	
@@ -377,7 +430,7 @@ function apache_user(){
 	$unix=new unix();
 	$apacheusername=$unix->APACHE_SRC_ACCOUNT();
 	$sock=new sockets();
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache APACHE_SRC_ACCOUNT: $apacheusername\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache APACHE_SRC_ACCOUNT: $apacheusername\n";}
 	$sock->SET_INFO('APACHE_SRC_ACCOUNT',"$apacheusername");
 }
 
@@ -390,8 +443,8 @@ function reload_apache(){
 	
 	
 	if($GLOBALS["NO_HTTPD_RESTART"]==true){
-		echo "Starting......: [INIT]: Apache reloading \"graceful\"\n";
-		$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k graceful 2>&1";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache reloading \"graceful\"\n";
+		$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k restart 2>&1";
 		exec($cmd,$results);
 		while (list ($num, $ligne) = each ($results) ){
 			if(apachectl_line_skip($ligne)){continue;}
@@ -401,11 +454,11 @@ function reload_apache(){
 	
 	if(is_file($apache2ctl)){
 		$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k stop 2>&1";
-		echo "Starting......: [INIT]: Apache stopping \"$cmd\"\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache stopping \"$cmd\"\n";
 		exec($cmd,$results);
 		while (list ($num, $ligne) = each ($results) ){
 			if(apachectl_line_skip($ligne)){continue;}
-			echo "Stopping......: [INIT]: Apache $ligne\n";}
+			echo "Stopping......: ".date("H:i:s")." [INIT]: Apache $ligne\n";}
 		$results=array();
 		KillApacheProcesses();
 		startApache(false,true);
@@ -424,11 +477,11 @@ function StopApache(){
 		return;
 	}
 	$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k stop 2>&1";
-	echo "Stopping......: [INIT]: Apache stopping \"$cmd\"\n";
+	echo "Stopping......: ".date("H:i:s")." [INIT]: Apache stopping \"$cmd\"\n";
 	exec($cmd,$results);
 	while (list ($num, $ligne) = each ($results) ){
 		if(apachectl_line_skip($ligne)){continue;}
-		echo "Stopping......: [INIT]: Apache $ligne\n";}
+		echo "Stopping......: ".date("H:i:s")." [INIT]: Apache $ligne\n";}
 	KillApacheProcesses();	
 }
 
@@ -450,7 +503,7 @@ function KillApacheProcesses($binaddress=null){
 		while (list ($num, $ligne) = each ($results) ){
 			if(preg_match("#[a-z0-9]+\s+([0-9]+)\s+$APACHE_SRC_ACCOUNT#", $ligne,$re)){$ipcsT[$re[1]]=true;}
 		}
-		echo "Stopping......: [INIT]: Apache kill ". count($ipcsT)." semaphores created by $APACHE_SRC_ACCOUNT...\n";
+		echo "Stopping......: ".date("H:i:s")." [INIT]: Apache kill ". count($ipcsT)." semaphores created by $APACHE_SRC_ACCOUNT...\n";
 		while (list ($id, $ligne) = each ($ipcsT) ){
 			shell_exec("$ipcrm sem $id");
 		}
@@ -461,12 +514,12 @@ function KillApacheProcesses($binaddress=null){
 	$LOCATE_APACHE_CONF_PATH=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();	
 		$cmd="$pgrep -l -f \"$LOCATE_APACHE_CONF_PATH -k start\" 2>&1";
 		exec("$cmd",$results);
-		echo "Stopping......: [INIT]: Apache `$cmd` ". count($results) ." lines.\n";
+		echo "Stopping......: ".date("H:i:s")." [INIT]: Apache `$cmd` ". count($results) ." lines.\n";
 		while (list ($num, $ligne) = each ($results) ){
 			if(preg_match("#(is already loaded|has no VirtualHosts)#", $ligne)){continue;}
 			if(strpos($ligne, $pgrep)==0){
 				if(preg_match("#^([0-9]+)\s+#", $ligne,$re)){
-					echo "Stopping......: [INIT]: Apache killing PID {$re[1]}\n";
+					echo "Stopping......: ".date("H:i:s")." [INIT]: Apache killing PID {$re[1]}\n";
 					$GLOBALS["CLASS_UNIX"]->KILL_PROCESS($re[1],9);
 					
 				}
@@ -480,18 +533,18 @@ function KillApacheProcesses($binaddress=null){
 				if(preg_match("#(.+?):([0-9]+)#", $binaddress,$re)){$port=$re[2];}
 				if($port==0){if(preg_match("#([0-9]+)#", $binaddress,$re)){$port=$re[1];}}
 				if($port>0){
-					echo "Stopping......: [INIT]: Apache find which process use the port $port\n";
+					echo "Stopping......: ".date("H:i:s")." [INIT]: Apache find which process use the port $port\n";
 					$results=array();
 					$cmd="$fuser $port/tcp 2>&1";
 					exec("$cmd",$results);
-					echo "Stopping......: [INIT]: Apache `$cmd` ". count($results) ." lines.\n";
+					echo "Stopping......: ".date("H:i:s")." [INIT]: Apache `$cmd` ". count($results) ." lines.\n";
 					while (list ($num, $ligne) = each ($results) ){
 						if(preg_match("#$port\/tcp:(.+)#", $ligne,$re)){
 							$ff=explode(" ", $re[1]);
 							while (list ($index, $ligne2) = each ($ff) ){
 								$ligne2=trim($ligne2);
 								if(!is_numeric($ligne2)){continue;}
-								echo "Stopping......: [INIT]: Apache killing PID $ligne2\n";
+								echo "Stopping......: ".date("H:i:s")." [INIT]: Apache killing PID $ligne2\n";
 								$GLOBALS["CLASS_UNIX"]->KILL_PROCESS($ligne2,9);
 								
 							}
@@ -525,7 +578,7 @@ function ReloadApache($nocheck=false){
 	if(!is_file($apache2ctl)){$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apachectl");}
 	if(!is_file($apache2ctl)){return;}	
 	$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k restart 2>&1";
-	echo "Starting......: [INIT]: Apache \"$cmd\"\n";		
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$cmd\"\n";		
 	exec($cmd,$results);	
 	$nginx=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
 	if(is_file($nginx)){
@@ -540,15 +593,66 @@ function apachectl_line_skip($ligne){
 	return false;
 }
 
+function TTL_Apache(){
+	$APACHE_PID_PATH=$GLOBALS["CLASS_UNIX"]->APACHE_PID_PATH();
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($APACHE_PID_PATH);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){
+		return $GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($pid);
+		
+	}
+	return 0;
+}
+
+function RestartApacheMaintenance($aspid=false){
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+		if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){
+			$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}	
+	
+	StopApache();
+	startApache(false,true);
+	
+}
+
+//apt-get --reinstall install apache2.2-bin
+
+function APACHE_INSTALL_DEBIAN(){
+	$aptget=$GLOBALS["CLASS_UNIX"]->find_program("apt-get");
+	if(!is_file($aptget)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache not a Debian system, aborting\n";}
+		return;
+	}
+	
+	$timeStamp="/etc/artica-postfix/pids/APACHE_INSTALL_DEBIAN";
+	
+	if($GLOBALS["CLASS_UNIX"]->file_time_min($timeStamp)<15){return;}
+	@unlink($timeStamp);
+	@file_put_contents($timeStamp, time());
+	shell_exec("$aptget update -q -f");
+	@unlink("/usr/sbin/apache2");
+	shell_exec("$aptget --reinstall --quiet -f -q --force-yes install apache2.2-bin");
+	
+}
+
+
 function startApache($withoutkill=false,$aspid=false){
 	$unix=new unix();
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Apache Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -557,63 +661,83 @@ function startApache($withoutkill=false,$aspid=false){
 	
 	if(!isset($GLOBALS["startApacheCount"])){$GLOBALS["startApacheCount"]=0;}
 	$GLOBALS["startApacheCount"]=$GLOBALS["startApacheCount"]+1;
+	$EnableFreeWeb=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	
 	if(is_file("/etc/httpd/conf.d/ssl.conf")){@unlink("/etc/httpd/conf.d/ssl.conf");}
 	
 	
 	if($GLOBALS["startApacheCount"]>3){
-		echo "Starting......: [INIT]: Apache failed, too many start:{$GLOBALS["startApacheCount"]}...\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache failed, too many start:{$GLOBALS["startApacheCount"]}...\n";
 		return;
 	}
 	
+	if(!is_file("/usr/lib/apache2/mpm-prefork/apache2")){
+		$ln=$unix->find_program("ln");
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache failed, linking /usr/lib/apache2/mpm-prefork/apache2\n";
+		shell_exec("$ln -sf /usr/lib/apache2/mpm-prefork/apache2 /usr/sbin/apache2 >/dev/null 2>&1");
+	}
+	
+	
 	$APACHE_PID_PATH=$GLOBALS["CLASS_UNIX"]->APACHE_PID_PATH();
-	$pid=$unix->get_pid_from_file($APACHE_PID_PATH);
-	if($unix->process_exists($pid)){
+	$APACHE_BIN_PATH=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_BIN_PATH();
+	
+	if(!is_file($APACHE_BIN_PATH)){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache failed no binary found, re-install it ( if debian )\n";
+		APACHE_INSTALL_DEBIAN();
+		return;
+	}
+	
+	
+	$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apache2ctl");
+	if(!is_file($apache2ctl)){$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apachectl");}	
+	
+	
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($APACHE_PID_PATH);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){
 		$timep=$unix->PROCESS_UPTIME($pid);
-		echo "Starting......: [INIT]: Apache already started pid $pid $timep [$APACHE_PID_PATH]\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache already started pid $pid $timep [$APACHE_PID_PATH]\n";
+		if($EnableFreeWeb==0){StopApache();return;}
 		return;
 	}	
 	
-	
-	echo "Starting......: [INIT]: Apache {$GLOBALS["startApacheCount"]} time(s)\n";
-	
-
-	$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apache2ctl");
-	if(!is_file($apache2ctl)){$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apachectl");}
-	
+	if($EnableFreeWeb==0){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Disabled ( see EnableFreeWeb token )\n";return;}
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache {$GLOBALS["startApacheCount"]} time(s)\n";
 	
 	
 	if(!is_file($apache2ctl)){return;}
+	
+	apache_permissions();
 	$LOCATE_APACHE_CONF_PATH=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();
 	$kill=$GLOBALS["CLASS_UNIX"]->find_program("kill");
 	$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k start 2>&1";
-
-	echo "Starting......: [INIT]: apache2ctl \"$apache2ctl\"\n";
-	echo "Starting......: [INIT]: PID Path: \"$APACHE_PID_PATH\"\n";		
+	echo "Starting......: ".date("H:i:s")." [INIT]: apache2 bin \"$APACHE_BIN_PATH\"\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: apache2ctl: \"$apache2ctl\"\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: PID Path..: \"$APACHE_PID_PATH\"\n";		
 	exec($cmd,$results);
 
 	$hostname=$unix->hostname_g();
 	$hostname_ip=$unix->get_EtcHostsByName("$hostname");
-	echo "Starting......: [INIT]: Apache $hostname = $hostname_ip\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache $hostname = $hostname_ip\n";
 	if($hostname_ip==null){
 		$echo=$unix->find_program("echo");
-		echo "Starting......: [INIT]: Apache Add $hostname in /etc/hosts\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Add $hostname in /etc/hosts\n";
 		shell_exec("$echo \"127.0.0.1\t$hostname\" >>/etc/hosts");
 	}
 	
 	$hostname_ip=$unix->get_EtcHostsByName("localhost");
-	echo "Starting......: [INIT]: Apache localhost = $hostname_ip\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache localhost = $hostname_ip\n";
 	if($hostname_ip==null){
 		$echo=$unix->find_program("echo");
-		echo "Starting......: [INIT]: Apache Add localhost in /etc/hosts\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Add localhost in /etc/hosts\n";
 		shell_exec("$echo \"127.0.0.1\tlocalhost\" >>/etc/hosts");
 	}	
 		
 	while (list ($num, $ligne) = each ($results) ){
 		if(apachectl_line_skip($ligne)){continue;}
 		if(preg_match("#Cannot load .+?mod_dav_fs.+?into server#",$ligne)){
-			echo "Starting......: [INIT]: Apache $ligne\n";
-			echo "Starting......: [INIT]: Apache mod_dav_fs failed, disable it\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $ligne\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache mod_dav_fs failed, disable it\n";
 			$sock=new sockets();
 			$sock->SET_INFO("ApacheDisableModDavFS",1);
 			CheckHttpdConf();
@@ -623,7 +747,7 @@ function startApache($withoutkill=false,$aspid=false){
 		
 		if(preg_match("#Error retrieving pid file\s+(.+)#", $ligne,$re)){
 			$re[1]=trim($re[1]);
-			echo "Starting......: [INIT]: Apache, removing {$re[1]}\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache, removing {$re[1]}\n";
 			@unlink(trim($re[1]));
 			startApache(true,true);
 			return;
@@ -631,20 +755,20 @@ function startApache($withoutkill=false,$aspid=false){
 			
 		if(preg_match("#httpd.+?pid\s+([0-9]+)\) already running#",$ligne,$re)){
 			if(!$withoutkill){
-				echo "Starting......: [INIT]: Apache killing PID {$re[1]}\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache killing PID {$re[1]}\n";
 				shell_exec("$kill -9 {$re[1]}");
 				KillApacheProcesses();
 				startApache(true,true);
 				return;
 			}else{
-				echo "Starting......: [INIT]: Apache restart\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache restart\n";
 				shell_exec("$apache2ctl restart");
 				continue;
 			}
 		}
 		
 		if(preg_match("#Address already in use: make_sock:\s+could not bind to address\s+(.+)$#",$ligne,$re)){
-			echo "Starting......: [INIT]: Apache ERROR $ligne\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache ERROR $ligne\n";
 			sleep(1);
 			if(!$withoutkill){
 				KillApacheProcesses($re[1]);
@@ -654,7 +778,7 @@ function startApache($withoutkill=false,$aspid=false){
 			}
 		}
 			
-			echo "Starting......: [INIT]: Apache $ligne\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $ligne\n";
 		}
 
 		
@@ -665,10 +789,10 @@ function startApache($withoutkill=false,$aspid=false){
 	
 	$pid=$unix->get_pid_from_file($APACHE_PID_PATH);
 	if(!$unix->process_exists($pid)){
-		echo "Starting......: [INIT]: Apache Failed [$APACHE_PID_PATH]\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Failed [$APACHE_PID_PATH]\n";
 		return;
 	}	
-	echo "Starting......: [INIT]: Apache Success pid $pid\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache Success pid $pid\n";
 	$nginx=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
 	if(is_file($nginx)){shell_exec("/etc/init.d/nginx start");}
 	
@@ -756,51 +880,57 @@ function php5_fpm(){
 
 function build(){
 	$unix=new unix();
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
 	$mef=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,$mef)){
-		echo "Starting......: [INIT]: Apache building : Process Already exist pid $oldpid line:".__LINE__."\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache building : Process Already exist pid $oldpid line:".__LINE__."\n";
 		return;
 	}	
 	@file_put_contents($pidfile, getmypid());		
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache -> CheckHttpdConf();\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: Apache -> CheckHttpdConf();\n";}
 	CheckHttpdConf();
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache -> RemoveAllSites();\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: Apache -> RemoveAllSites();\n";}
 	RemoveAllSites();
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache -> create_cron_task();\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: Apache -> create_cron_task();\n";}
 	create_cron_task();
 	sync_squid();
 	$sock=new sockets();
+	$FreeWebDisableSSL=intval(trim($sock->GET_INFO("FreeWebDisableSSL")));
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$varWwwPerms=$sock->GET_INFO("varWwwPerms");
 	if($varWwwPerms==null){$varWwwPerms=755;}
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache -> remove_files();\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: Apache -> remove_files();\n";}
 	remove_files();
 	$sql="SELECT * FROM freeweb ORDER BY servername";
 	$httpdconf=$unix->LOCATE_APACHE_CONF_PATH();
 	$apacheusername=$unix->APACHE_SRC_ACCOUNT();
 	$GLOBALS["apacheusername"]=$apacheusername;
 	$DAEMON_PATH=$unix->getmodpathfromconf($httpdconf);
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache -> sql();\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: Apache -> sql();\n";}
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,'artica_backup');
-	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: Apache $q->mysql_error\n";return;}}
+	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: Apache $q->mysql_error\n";return;}}
 	$d_path=$unix->APACHE_DIR_SITES_ENABLED();
 	$mods_enabled=$DAEMON_PATH."/mods-enabled";
-	SSL_DEFAULT_VIRTUAL_HOST();
+	if($FreeWebDisableSSL==0){
+		SSL_DEFAULT_VIRTUAL_HOST();
+	}
 	
-	echo "Starting......: [INIT]: Apache daemon path: $d_path\n";
-	echo "Starting......: [INIT]: Apache mods path..: $mods_enabled\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache daemon path: $d_path\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache mods path..: $mods_enabled\n";
 	
 	if(!is_dir($d_path)){@mkdir($d_path,666,true);}
 	if(!is_dir($mods_enabled)){@mkdir($mods_enabled,666,true);}
 	
 	$count=mysql_num_rows($results);
-	echo "Starting......: [INIT]: Apache checking virtual web sites count:$count\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache checking virtual web sites count:$count\n";
 	if($count==0){
 		$users=new usersMenus();
-		echo "Starting......: [INIT]: Apache building default $users->hostname...\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache building default $users->hostname...\n";
 		
 		buildHost($unix->LIGHTTPD_USER(),$users->hostname,0,$d_path);
 	}
@@ -810,11 +940,12 @@ function build(){
 		$uid=$ligne["uid"];
 		$hostname=$ligne["servername"];
 		$ssl=$ligne["useSSL"];	
+		if($FreeWebDisableSSL==1){$ssl=0;}
 		
-		echo "Starting......: [INIT]: Apache \"$hostname\" starting\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" starting\n";
 		
 		$cmd="$php5 ".__FILE__." --sitename \"$hostname\" --no-httpd-conf --noreload$add_plus";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache \"$cmd\"\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$cmd\"\n";}
 		shell_exec($cmd);
 	}
 	
@@ -822,7 +953,7 @@ function build(){
 	$APACHE_MOD_AUTHNZ_LDAP=$users->APACHE_MOD_AUTHNZ_LDAP;
 	if(is_file($GLOBALS["a2enmod"])){
 		if($APACHE_MOD_AUTHNZ_LDAP){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache {$GLOBALS["a2enmod"]} authnz_ldap\n";} 
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache {$GLOBALS["a2enmod"]} authnz_ldap\n";} 
 			shell_exec("{$GLOBALS["a2enmod"]} authnz_ldap >/dev/null 2>&1");
 		}
 	} 
@@ -848,20 +979,21 @@ function RemoveAllSites(){
 	foreach (glob("$sites_enabled/artica-*.conf") as $filename) {
 		$file=basename($filename);
 		@unlink($filename);
-		echo "Starting......: [INIT]: Apache remove $file done\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache remove $file done\n";
 	}		
 }
 
 
 function SSL_DEFAULT_VIRTUAL_HOST(){
-
+	$ZarafaWebAccessInFrontEnd=0;
 	$sock=new sockets();
 	$free=new freeweb("_default_");
 	if($free->useSSL==1){return;}
 	$users=new usersMenus();
+	$unix=new unix();
 	
 	$workingDir=$free->WORKING_DIRECTORY;
-	if($workingDir==null){$workingDir="/var/www";}
+	if($workingDir==null){$workingDir="/usr/share/artica-postfix";}
 	@mkdir($workingDir,0755,true);
 	$unix=new unix();
 
@@ -873,42 +1005,60 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
+	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
+	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
 	
-	if($unix->IsSquidReverse()){$SquidActHasReverse=1;}
-	if($unix->isNGnx()){$SquidActHasReverse=1;}
-
-	if($SquidActHasReverse==1){
+	if($unix->isNGnx()){
 		$FreeWebListenSSLPort=447;
+		$FreeWebListenPort=82;
+	
 	}
-	echo "Starting......: [INIT]: Apache hostname = $hostname:$FreeWebListenSSLPort\n";
+	
+	if($unix->IsSquidReverse()){
+		$FreeWebListenSSLPort=447;
+		$FreeWebListenPort=82;
+	}
+	
+	
+	
+	if($users->ZARAFA_INSTALLED){
+		$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
+		if(!is_numeric($ZarafaWebAccessInFrontEnd)){$ZarafaWebAccessInFrontEnd=1;}
+		if($ZarafaWebAccessInFrontEnd==1){
+			$workingDir="/usr/share/zarafa-webaccess";
+		}
+	}
+	
+	
+	
+	
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache hostname = $hostname:$FreeWebListenSSLPort\n";
 	$f[]="<IfModule mod_ssl.c>";
 	$f[]="    <VirtualHost _default_:$FreeWebListenSSLPort>";
 	$f[]="            ServerAdmin webmaster@$hostname";
 	$f[]="            DocumentRoot $workingDir";
 	$f[]="            <Directory />";
-	$f[]="                    Options FollowSymLinks";
+	$f[]="                    Options -Indexes +FollowSymLinks";
 	$f[]="                    AllowOverride None";
 	$f[]="            </Directory>";
 	$f[]="            <Directory $workingDir/>";
 	$f[]="                    Options Indexes FollowSymLinks MultiViews";
+	if($ZarafaWebAccessInFrontEnd==1){
+		$f[]="\t\tphp_flag register_globals off";
+		$f[]="\t\tphp_flag magic_quotes_gpc off";
+		$f[]="\t\tphp_flag magic_quotes_runtime off";
+		$f[]="\t\tphp_value post_max_size 50M";
+		$f[]="\t\tphp_value upload_max_filesize 50M";
+		$f[]="\t\tphp_flag short_open_tag on";		
+	}
 	$f[]="                    AllowOverride None";
 	$f[]="                    Order allow,deny";
 	$f[]="                    allow from all";
 	$f[]="            </Directory>";
-	$f[]="            ScriptAlias /cgi-bin/ /usr/lib/cgi-bin/";
-	$f[]="            <Directory \"/usr/lib/cgi-bin\">";
-	$f[]="                    AllowOverride None";
-	$f[]="                    Options +ExecCGI -MultiViews +SymLinksIfOwnerMatch";
-	$f[]="                    Order allow,deny";
-	$f[]="                    Allow from all";
-	$f[]="            </Directory>";
+
 	$f[]="            ErrorLog /var/log/apache2/error.log";
-	$f[]="            # Possible values include: debug, info, notice, warn, error, crit,";
-	$f[]="            # alert, emerg.";
 	$f[]="            LogLevel warn";
 	$f[]="            CustomLog /var/log/apache2/ssl_access.log combined";
-	$f[]="            #   SSL Engine Switch:";
-	$f[]="            #   Enable/Disable SSL for this virtual host.";
 	$f[]="            SSLEngine on";
 	$f[]="			  SSLCertificateFile {$GLOBALS["SSLKEY_PATH"]}/_default_.crt";
 	$f[]="			  SSLCertificateKeyFile {$GLOBALS["SSLKEY_PATH"]}/_default_.key";	
@@ -920,6 +1070,21 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	if("$DAEMON_PATH/sites-enabled/default-ssl"<>"/etc/apache2/sites-enabled/default-ssl"){
 		@file_put_contents("$DAEMON_PATH/sites-enabled/default-ssl", @implode("\n", $f));
 	}
+	
+	$f=array();
+	$f[]="<VirtualHost _default_:$FreeWebListenPort>";
+	$f[]="ServerAdmin webmaster@_default_";
+	$f[]="ServerSignature On";	
+	$f[]="</VirtualHost>";
+	@file_put_contents("/etc/apache2/sites-enabled/000-default", @implode("\n", $f));
+	
+	$IPS=$unix->NETWORK_ALL_INTERFACES(true);
+	while (list ($ipadr, $none) = each ($IPS) ){
+		if($ipadr=="127.0.0.1"){continue;}
+		$path="/etc/apache2/sites-enabled/artica-$ipadr.conf";
+		@file_put_contents($path, @implode("\n", $f));
+	}
+	
 	
 }
 
@@ -1049,20 +1214,20 @@ function CheckHttpdConf(){
 	$sock=$GLOBALS["CLASS_SOCKETS"];
 	$unix=new unix();
 	$users=new usersMenus();
-
+	$GLOBALS["ToRestore"]=array();
 	$freeweb=new freeweb();
 	$chmod=$unix->find_program("chmod");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$httpdconf=$unix->LOCATE_APACHE_CONF_PATH();
-	if(!is_file($httpdconf)){echo "Starting......: [INIT]: Apache unable to stat configuration file\n";return;}
+	if(!is_file($httpdconf)){echo "Starting......: ".date("H:i:s")." [INIT]: Apache unable to stat configuration file\n";return;}
 	$d_path=$unix->APACHE_DIR_SITES_ENABLED();
 	$DAEMON_PATH=$unix->getmodpathfromconf($httpdconf);
 	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();	
 	
 	if(is_file("/etc/apache2/sites-available/default-ssl")){@unlink("/etc/apache2/sites-available/default-ssl");}
-	echo "Starting......: [INIT]: Apache daemon path: \"$DAEMON_PATH\" run has \"$APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP\"\n";
-	if($APACHE_SRC_ACCOUNT==null){echo "Starting......: [INIT]: Apache daemon unable to determine user that will run apache\n";die();}
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache daemon path: \"$DAEMON_PATH\" run has \"$APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP\"\n";
+	if($APACHE_SRC_ACCOUNT==null){echo "Starting......: ".date("H:i:s")." [INIT]: Apache daemon unable to determine user that will run apache\n";die();}
 	if(!is_dir("/var/log/apache2")){@mkdir("/var/log/apache2",0755,true);}
 	if(!is_dir("/usr/share/GeoIP")){@mkdir("/usr/share/GeoIP",0755,true);}
 	shell_exec("$chmod 755 /usr/share/GeoIP >/dev/null 2>&1");
@@ -1123,6 +1288,7 @@ function CheckHttpdConf(){
 	$toremove[]="status.conf";
 	$toremove[]="fcgid.load";
 	$toremove[]="fcgid.conf";
+	$toremove[]="fastcgi.conf";
 	$toremove[]="fastcgi.load";
 	$toremove[]="fastcgi.conf";
 	$toremove[]="log_sql.load";
@@ -1134,6 +1300,7 @@ function CheckHttpdConf(){
 	$toremove[]="log_sql_module.load";
 	$toremove[]="log_sql_mysql_module.load";
 	$toremove[]="log_sql_ssl.load";
+	$toremove[]="unique_id.load";
 	
 	$toremove[]="php5.conf";
 	$toremove[]="php5.load";
@@ -1146,7 +1313,15 @@ function CheckHttpdConf(){
 
 
 	
-	if(is_file("/etc/apache2/sites-enabled/000-default")){@unlink("/etc/apache2/sites-enabled/000-default");}
+	if(is_file("/etc/apache2/sites-enabled/000-default")){
+		$ToDeleteDefault=true;
+		$q=new mysql();
+		$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT servername,enabled FROM freeweb WHERE servername='_default_'",'artica_backup'));
+		if($q->ok){
+			if($ligne["servername"]=="_default_"){ if($ligne["enabled"]==1){ $ToDeleteDefault=false; } }
+			if($ToDeleteDefault){ @unlink("/etc/apache2/sites-enabled/000-default");}
+		}
+	}
 	if(is_file("/etc/apache2/conf.d/other-vhosts-access-log")){@unlink("/etc/apache2/conf.d/other-vhosts-access-log");}
 	@mkdir("/etc/apache2/htdocs",0755,true);
 	
@@ -1202,6 +1377,8 @@ function CheckHttpdConf(){
 	$conf[]="\tPHP_Fix_Pathinfo_Enable 1";
 	$conf[]="</IfModule>";
 	
+	
+	
 	$conf[]="<IfModule mod_fastcgi.c>";
 	$conf[]="\tAddHandler fastcgi-script .fcgi";
 	$conf[]="#FastCgiWrapper /usr/lib/apache2/suexec";
@@ -1223,31 +1400,20 @@ function CheckHttpdConf(){
 	
 	$conf[]="";
 	if(!is_dir("$DAEMON_PATH/sites-available")){@mkdir("$DAEMON_PATH/sites-available",666,true);}
+	
+	if(!is_dir("$DAEMON_PATH/BackupConf")){@mkdir("$DAEMON_PATH/BackupConf",666,true);}
+	
+	if(is_file("$DAEMON_PATH/ports.conf")){
+		@unlink("$DAEMON_PATH/BackupConf/ports.conf");
+		@copy("$DAEMON_PATH/ports.conf", "$DAEMON_PATH/BackupConf/ports.conf");
+		$GLOBALS["ToRestore"][]="$DAEMON_PATH/BackupConf/ports.conf";
+	}
+	
+	
 	@file_put_contents("$DAEMON_PATH/ports.conf",@implode("\n",$conf));
 	
-	echo "Starting......: [INIT]: Apache $DAEMON_PATH/ports.conf for NameVirtualHost $FreeWebListen:$FreeWebListenPort done\n";
-	if($FreeWebsEnableModSecurity==1){
-			$SecServerSignature=$sock->GET_INFO("SecServerSignature");
-			$f[]="<IfModule security2_module>";
-			$f[]="   SecRuleEngine On";
-			if($SecServerSignature<>null){
-				$f[]="   SecServerSignature\t\"{$SecServerSignature}\"";
-			}
-			//$f[]="   #SecFilterCheckURLEncoding {$Params["SecFilterCheckURLEncoding"]}";
-			//$f[]="   #SecFilterCheckUnicodeEncoding {$Params["SecFilterCheckUnicodeEncoding"]}";
-			//$f[]="   SecFilterForceByteRange 1 255";
-			//$f[]="   SecAuditEngine RelevantOnly";
-			$f[]="   SecAuditEngine RelevantOnly";
-			$f[]="   SecAuditLog /var/log/apache2/modsec_audit_log";
-			$f[]="   SecDebugLog /var/log/apache2/modsec_debug_log";
-			$f[]="   SecDebugLogLevel 0";
-			$f[]="   SecRequestBodyAccess Off";
-			$f[]="   SecDefaultAction \"phase:2,deny,log,status:'Hello World!'\"";
-			$f[]="</IfModule>\n\n";
-			echo "Starting......: [INIT]: Apache $DAEMON_PATH/mod_security.conf\n";
-			@file_put_contents("$DAEMON_PATH/mod_security.conf",@implode("\n",$f));
-			unset($f);
-	}
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache $DAEMON_PATH/ports.conf for NameVirtualHost $FreeWebListen:$FreeWebListenPort done\n";
+	mod_security();
 	
 	if($FreeWebsEnableModEvasive==1){
 			$Params=unserialize(base64_decode($sock->GET_INFO("modEvasiveDefault")));
@@ -1268,42 +1434,68 @@ function CheckHttpdConf(){
 			$f[]="   DOSLogDir  \"/var/log/apache2/mod_evasive.log\"";
 			$f[]="   DOSSystemCommand \"/bin/echo `date '+%F %T'` apache2  %s >> /var/log/apache2/dos_evasive_attacks.log\"";
 			$f[]="";
-			echo "Starting......: [INIT]: Apache $DAEMON_PATH/mod_evasive.conf\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $DAEMON_PATH/mod_evasive.conf\n";
+			
+			if(is_file("$DAEMON_PATH/mod_evasive.conf")){
+				@unlink("$DAEMON_PATH/BackupConf/mod_evasive.conf");
+				@copy("$DAEMON_PATH/ports.conf", "$DAEMON_PATH/BackupConf/mod_evasive.conf");
+				$GLOBALS["ToRestore"][]="$DAEMON_PATH/BackupConf/mod_evasive.conf";
+			}
+			
 			@file_put_contents("$DAEMON_PATH/mod_evasive.conf",@implode("\n",$f));
 			unset($f);		
 		
 	}
 	
 	@mkdir("/var/run/apache2",0775,true);	
-	$f[]="<IfModule mod_ssl.c>";
-	$f[]="	SSLRandomSeed connect builtin";
-	$f[]="	SSLRandomSeed connect file:/dev/urandom 512";
-	$f[]="	AddType application/x-x509-ca-cert .crt";
-	$f[]="	AddType application/x-pkcs7-crl    .crl";
-	$f[]="	SSLPassPhraseDialog  builtin";
-	$f[]="	SSLSessionCache        shmcb:/var/run/apache2/ssl_scache(512000)";
-	$f[]="	SSLSessionCacheTimeout  300";
-	$f[]="	SSLSessionCacheTimeout  300";
-	$f[]="	SSLMutex  sem";
-	//$f[]="	SSLMutex  file:/var/run/apache2/ssl_mutex";
-	$f[]="	SSLCipherSuite HIGH:MEDIUM:!ADH";
-	$f[]="	SSLProtocol all -SSLv2";
-	$f[]="</IfModule>";
-	$f[]="";	
-	@file_put_contents("$DAEMON_PATH/ssl.conf",@implode("\n",$f));	
-	unset($f);	
-
+	
+	if(is_file("$DAEMON_PATH/ssl.conf")){
+		@unlink("$DAEMON_PATH/BackupConf/ssl.conf");
+		@copy("$DAEMON_PATH/ports.conf", "$DAEMON_PATH/BackupConf/ssl.conf");
+		$GLOBALS["ToRestore"][]="$DAEMON_PATH/BackupConf/ssl.conf";
+	}
+	
+	
+	@unlink("$DAEMON_PATH/ssl.conf");
+	
+	if($FreeWebDisableSSL==0){
+		$f[]="<IfModule mod_ssl.c>";
+		$f[]="	SSLRandomSeed connect builtin";
+		$f[]="	SSLRandomSeed connect file:/dev/urandom 512";
+		$f[]="	AddType application/x-x509-ca-cert .crt";
+		$f[]="	AddType application/x-pkcs7-crl    .crl";
+		$f[]="	SSLPassPhraseDialog  builtin";
+		$f[]="	SSLSessionCache        shmcb:/var/run/apache2/ssl_scache(512000)";
+		$f[]="	SSLSessionCacheTimeout  300";
+		$f[]="	SSLSessionCacheTimeout  300";
+		$f[]="	SSLMutex  sem";
+		//$f[]="	SSLMutex  file:/var/run/apache2/ssl_mutex";
+		$f[]="	SSLCipherSuite HIGH:MEDIUM:!ADH";
+		$f[]="	SSLProtocol all -SSLv2";
+		$f[]="</IfModule>";
+		$f[]="";	
+		@file_put_contents("$DAEMON_PATH/ssl.conf",@implode("\n",$f));	
+		unset($f);	
+	}
 
 	
 	apache_security($DAEMON_PATH);
 	$httpdconf_data=@file_get_contents($httpdconf);
+	$httpdconf_basename=basename($httpdconf);
+	if(is_file($httpdconf)){
+		@unlink("$DAEMON_PATH/BackupConf/$httpdconf_basename");
+		@copy("$DAEMON_PATH/$httpdconf_basename", "$DAEMON_PATH/BackupConf/$httpdconf_basename");
+		$GLOBALS["ToRestore"][]="$DAEMON_PATH/BackupConf/$httpdconf_basename";
+	}
+	
+	
 	if(preg_match("#<Location \/server-status>(.+?)<\/Location>#is",$httpdconf_data,$re)){$httpdconf_data=str_replace($re[0], "", $httpdconf_data);}
 	
 	
 	
 	$f=explode("\n",$httpdconf_data);
 	while (list ($num, $ligne) = each ($f) ){
-		if(preg_match("#^Include\s+#",$ligne)){echo "Starting......: [INIT]: Apache removing {$f[$num]}\n";$f[$num]=null;}
+		if(preg_match("#^Include\s+#",$ligne)){echo "Starting......: ".date("H:i:s")." [INIT]: Apache removing {$f[$num]}\n";$f[$num]=null;}
 		if(preg_match("#\#.*?Include\s+#",$ligne)){$f[$num]=null;}
 		if(preg_match("#Listen\s+#",$ligne)){$f[$num]=null;}
 		if(preg_match("#ProxyRequests#",$ligne)){$f[$num]=null;}
@@ -1327,11 +1519,6 @@ function CheckHttpdConf(){
 		if(preg_match("#LogLevel#",$ligne)){$f[$num]=null;}
 		if(preg_match("#ServerName#",$ligne)){$f[$num]=null;}
 		if(preg_match("#DavLockDB#",$ligne)){$f[$num]=null;}
-		
-		
-		
-		
-		
 		if(trim($ligne)=="Loglevel info"){$f[$num]=null;}
 		
 	}
@@ -1341,18 +1528,18 @@ function CheckHttpdConf(){
 	if(!isset($FreeWebPerformances["KeepAlive"])){$FreeWebPerformances["KeepAlive"]=0;}
 	if(!isset($FreeWebPerformances["MaxKeepAliveRequests"])){$FreeWebPerformances["MaxKeepAliveRequests"]=100;}
 	if(!isset($FreeWebPerformances["KeepAliveTimeout"])){$FreeWebPerformances["KeepAliveTimeout"]=15;}
-	if(!isset($FreeWebPerformances["MinSpareServers"])){$FreeWebPerformances["MinSpareServers"]=5;}
-	if(!isset($FreeWebPerformances["MaxSpareServers"])){$FreeWebPerformances["MaxSpareServers"]=10;}
-	if(!isset($FreeWebPerformances["StartServers"])){$FreeWebPerformances["StartServers"]=5;}
+	if(!isset($FreeWebPerformances["MinSpareServers"])){$FreeWebPerformances["MinSpareServers"]=1;}
+	if(!isset($FreeWebPerformances["MaxSpareServers"])){$FreeWebPerformances["MaxSpareServers"]=2;}
+	if(!isset($FreeWebPerformances["StartServers"])){$FreeWebPerformances["StartServers"]=1;}
 	if(!isset($FreeWebPerformances["MaxClients"])){$FreeWebPerformances["MaxClients"]=50;}
 	if(!isset($FreeWebPerformances["MaxRequestsPerChild"])){$FreeWebPerformances["MaxRequestsPerChild"]=10000;}	
 	if(!is_numeric($FreeWebPerformances["Timeout"])){$FreeWebPerformances["Timeout"]=300;}
 	if(!is_numeric($FreeWebPerformances["KeepAlive"])){$FreeWebPerformances["KeepAlive"]=0;}
 	if(!is_numeric($FreeWebPerformances["MaxKeepAliveRequests"])){$FreeWebPerformances["MaxKeepAliveRequests"]=100;}
 	if(!is_numeric($FreeWebPerformances["KeepAliveTimeout"])){$FreeWebPerformances["KeepAliveTimeout"]=15;}
-	if(!is_numeric($FreeWebPerformances["MinSpareServers"])){$FreeWebPerformances["MinSpareServers"]=5;}
-	if(!is_numeric($FreeWebPerformances["MaxSpareServers"])){$FreeWebPerformances["MaxSpareServers"]=10;}
-	if(!is_numeric($FreeWebPerformances["StartServers"])){$FreeWebPerformances["StartServers"]=5;}
+	if(!is_numeric($FreeWebPerformances["MinSpareServers"])){$FreeWebPerformances["MinSpareServers"]=1;}
+	if(!is_numeric($FreeWebPerformances["MaxSpareServers"])){$FreeWebPerformances["MaxSpareServers"]=2;}
+	if(!is_numeric($FreeWebPerformances["StartServers"])){$FreeWebPerformances["StartServers"]=1;}
 	if(!is_numeric($FreeWebPerformances["MaxClients"])){$FreeWebPerformances["MaxClients"]=50;}
 	if(!is_numeric($FreeWebPerformances["MaxRequestsPerChild"])){$FreeWebPerformances["MaxRequestsPerChild"]=10000;}
 
@@ -1403,7 +1590,7 @@ function CheckHttpdConf(){
 		$q=new mysql();
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$CountDeGroupware=$ligne["tcount"];
-		echo "Starting......: $CountDeGroupware KLMS Groupware(s)\n";
+		echo "Starting......: ".date("H:i:s")." $CountDeGroupware KLMS Groupware(s)\n";
 		if($CountDeGroupware>0){
 			if(is_file("/opt/kaspersky/klmsui/share/htdocs/cgi-bin/klwi")){
 				@file_put_contents("$DAEMON_PATH/mods-enabled/klms.FastCgiExternalServer.conf", "FastCgiExternalServer /opt/kaspersky/klmsui/share/htdocs/cgi-bin/klwi -host 127.0.0.1:2711\n");
@@ -1413,18 +1600,57 @@ function CheckHttpdConf(){
 	
 	
 	//$dir_master=$unix->getmodpathfromconf();
+	if(is_file('/usr/lib/apache2/modules/libphp5.so')){
+		$httpd[]="LoadModule php5_module /usr/lib/apache2/modules/libphp5.so";
+	}
+	
+	if(is_file('/usr/lib/apache2/modules/mod_kav64.so')){
+		$sock=new sockets();
+		$ApacheEnableKavModule=intval($sock->GET_INFO("ApacheEnableKavModule"));
+		if($ApacheEnableKavModule==1){
+			$httpd[]="LoadModule kav_module /usr/lib/apache2/modules/mod_kav64.so";
+		}
+	}
+	
+	if(!is_file("$DAEMON_PATH/videocache.conf")){@touch("$DAEMON_PATH/videocache.conf");}
+	$httpd[]="Include $DAEMON_PATH/videocache.conf";
+	if(is_file("$DAEMON_PATH/security.conf")){
+		$httpd[]="Include $DAEMON_PATH/security.conf";	
+	}
+	
+	
 	$httpd[]="Include $DAEMON_PATH/mods-enabled/*.load";
 	$httpd[]="Include $DAEMON_PATH/mods-enabled/*.conf";
 	$httpd[]="Include $DAEMON_PATH/mods-enabled/*.init";
+	
+	$mod_php5[]="<IfModule mod_php5.c>";
+	$mod_php5[]="    <FilesMatch \"\.ph(p3?|tml)$\">";
+	$mod_php5[]="	SetHandler application/x-httpd-php";
+	$mod_php5[]="    </FilesMatch>";
+	$mod_php5[]="    <FilesMatch \"\.phps$\">";
+	$mod_php5[]="	SetHandler application/x-httpd-php-source";
+	$mod_php5[]="    </FilesMatch>";
+	$mod_php5[]="    # To re-enable php in user directories comment the following lines";
+	$mod_php5[]="    # (from <IfModule ...> to </IfModule>.) Do NOT set it to On as it";
+	$mod_php5[]="    # prevents .htaccess files from disabling it.";
+	$mod_php5[]="    <IfModule mod_userdir.c>";
+	$mod_php5[]="        <Directory /home/*/public_html>";
+	$mod_php5[]="            php_admin_value engine Off";
+	$mod_php5[]="        </Directory>";
+	$mod_php5[]="    </IfModule>";
+	$mod_php5[]="</IfModule>";
+	@file_put_contents("$DAEMON_PATH/mod_php5.conf", @implode("\n", $f));
+	$httpd[]="Include $DAEMON_PATH/mod_php5.conf";
+	
 	if(basename($httpdconf)<>"httpd.conf"){$httpd[]="Include $DAEMON_PATH/httpd.conf";}
 	$httpd[]="Include $DAEMON_PATH/ports.conf";
 	if($FreeWebsEnableModSecurity==1){$httpd[]="Include $DAEMON_PATH/mod_security.conf";}
 	if($FreeWebsEnableModEvasive==1){$httpd[]="Include $DAEMON_PATH/mod_evasive.conf";}
 	
-	echo "Starting......: [INIT]: Apache checks WebDav (ApacheDisableModDavFS = $ApacheDisableModDavFS)\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache checks WebDav (ApacheDisableModDavFS = $ApacheDisableModDavFS)\n";
 	$freeweb_tmp=new freeweb();
 	$WebDavContainers=$freeweb_tmp->WebDavContainers();
-	echo "Starting......: [INIT]: Apache checks WebDav ". strlen($WebDavContainers)." bytes\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache checks WebDav ". strlen($WebDavContainers)." bytes\n";
 	@file_put_contents("$DAEMON_PATH/webdavcontainers.conf", $WebDavContainers);
 	
 	if($ApacheDisableModDavFS==0){
@@ -1433,6 +1659,12 @@ function CheckHttpdConf(){
 		@chown("/var/www", $APACHE_SRC_ACCOUNT);
 		@chgrp("/var/www", $APACHE_SRC_GROUP);
 	}
+	
+	@mkdir("/var/lib/apache2/fastcgi",0755,true);
+	@chown("/var/lib/apache2/fastcgi", $APACHE_SRC_ACCOUNT);
+	@chgrp("/var/lib/apache2/fastcgi", $APACHE_SRC_GROUP);
+	
+	
 	$httpd[]='Loglevel info';
 	$httpd[]='ErrorLog /var/log/apache2/error.log';
 	$httpd[]='LogFormat "%h %l %u %t \"%r\" %<s %b" common';
@@ -1483,6 +1715,7 @@ function CheckHttpdConf(){
 	if(is_file("/etc/apache2/sysconfig.d/loadmodule.conf")){$httpd[]="Include /etc/apache2/sysconfig.d/loadmodule.conf";}
 	if(is_file("/etc/apache2/uid.conf")){$httpd[]="Include /etc/apache2/uid.conf";}
 	if(is_file("/etc/apache2/default-server.conf")){patch_suse_default_server();$httpd[]="Include /etc/apache2/default-server.conf";}
+	
 	$httpd[]="Include $DAEMON_PATH/conf.d/";
 	$httpd[]="Include $DAEMON_PATH/sites-enabled/";
 	$httpd[]="Include $DAEMON_PATH/webdavcontainers.conf";
@@ -1497,16 +1730,16 @@ function CheckHttpdConf(){
 	
 	
 	if($ApacheDisableModDavFS==0){
-			if(is_file("$APACHE_MODULES_PATH/mod_dav.so")){echo "Starting......: [INIT]: Apache module 'dav_module' enabled\n";$httpd[]="LoadModule dav_module $APACHE_MODULES_PATH/mod_dav.so";}		
-			if(is_file("$APACHE_MODULES_PATH/mod_dav_lock.so")){echo "Starting......: [INIT]: Apache module 'dav_lock_module' enabled\n";$httpd[]="LoadModule dav_lock_module $APACHE_MODULES_PATH/mod_dav_lock.so";}
-			if(is_file("$APACHE_MODULES_PATH/mod_dav_fs.so")){echo "Starting......: [INIT]: Apache module 'dav_fs_module' enabled\n";$httpd[]="LoadModule dav_fs_module $APACHE_MODULES_PATH/mod_dav_fs.so";}			
+			if(is_file("$APACHE_MODULES_PATH/mod_dav.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_module' enabled\n";$httpd[]="LoadModule dav_module $APACHE_MODULES_PATH/mod_dav.so";}		
+			if(is_file("$APACHE_MODULES_PATH/mod_dav_lock.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_lock_module' enabled\n";$httpd[]="LoadModule dav_lock_module $APACHE_MODULES_PATH/mod_dav_lock.so";}
+			if(is_file("$APACHE_MODULES_PATH/mod_dav_fs.so")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'dav_fs_module' enabled\n";$httpd[]="LoadModule dav_fs_module $APACHE_MODULES_PATH/mod_dav_fs.so";}			
 	}		
 	
 	$httpd[]="";
 	$httpd[]=YfiAdds();
 	
 	
-	echo "Starting......: [INIT]: Apache $httpdconf done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache $httpdconf done\n";
 	@file_put_contents($httpdconf,@implode("\n",$httpd));
 	
 	
@@ -1588,19 +1821,25 @@ function CheckHttpdConf(){
 		$net=new networking();
 		$ips=$net->ALL_IPS_GET_ARRAY();
 		while (list ($ip, $line) = each ($ips) ){$tip[]=$ip;}
-		$rpfmod[]="<IfModule mod_rpaf.c>";
-		$rpfmod[]="\tRPAFenable On";
-		$rpfmod[]="\tRPAFsethostname On";
-		$rpfmod[]="\tRPAFproxy_ips ".@implode(" ", $tip);
-		$rpfmod[]="\tRPAFheader X-Forwarded-For";
-		$rpfmod[]="</IfModule>";
+          $rpfmod[]="<IfModule mod_rpaf.c>";
+          $rpfmod[]="\tRPAFenable On";
+          $rpfmod[]="\tRPAFsethostname On";
+          $rpfmod[]="\tRPAFproxy_ips ".@implode(" ", $tip);
+          $rpfmod[]="\tRPAFheader X-Forwarded-For";
+          $rpfmod[]="</IfModule>";
+          $rpfmod[]="<IfModule rpaf_module>";
+          $rpfmod[]="\tRPAFenable On";
+          $rpfmod[]="\tRPAFsethostname On";
+          $rpfmod[]="\tRPAFproxy_ips ".@implode(" ", $tip);
+          $rpfmod[]="\tRPAFheader X-Forwarded-For";
+          $rpfmod[]="</IfModule>";
 		@file_put_contents("$DAEMON_PATH/mods-enabled/rpaf.conf",@implode("\n", $rpfmod));
 	}
 	
 	 
 	
 	if(is_file("$APACHE_MODULES_PATH/mod_pagespeed.so")){
-		echo "Starting......: [INIT]: Apache module 'mod_pagespeed' enabled\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_pagespeed' enabled\n";
 		$ppsped[]="LoadModule pagespeed_module $APACHE_MODULES_PATH/mod_pagespeed.so";
 		if(is_file("$APACHE_MODULES_PATH/mod_deflate.so")){
 			$ppsped[]="# Only attempt to load mod_deflate if it hasn't been loaded already.";
@@ -1610,10 +1849,10 @@ function CheckHttpdConf(){
 		}
 		@file_put_contents("$DAEMON_PATH/mods-enabled/mod_pagespeed.load",@implode("\n", $ppsped));
 	}else{
-		echo "Starting......: [INIT]: Apache module 'mod_pagespeed' $APACHE_MODULES_PATH/mod_pagespeed.so no such file\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_pagespeed' $APACHE_MODULES_PATH/mod_pagespeed.so no such file\n";
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG] Apache TOMCAT_INSTALLED -> $users->TOMCAT_INSTALLED\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG] Apache TOMCAT_INSTALLED -> $users->TOMCAT_INSTALLED\n";}
 	
 	if($users->TOMCAT_INSTALLED){
 		if($TomcatEnable==1){
@@ -1646,7 +1885,7 @@ function CheckHttpdConf(){
 		
 	}
 
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG] Apache cleaning mods...\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG] Apache cleaning mods...\n";}
 	
 	@unlink("$DAEMON_PATH/mods-enabled/mod-security.load");
 	@unlink("$DAEMON_PATH/mods-enabled/mod_security.load");
@@ -1665,7 +1904,7 @@ function CheckHttpdConf(){
 	
 	$sock=new sockets();
 	$FreeWebsDisableMOdQOS=$sock->GET_INFO("FreeWebsDisableMOdQOS");
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG] Apache FreeWebsDisableMOdQOS = $FreeWebsDisableMOdQOS ...\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG] Apache FreeWebsDisableMOdQOS = $FreeWebsDisableMOdQOS ...\n";}
 	if(!is_numeric($FreeWebsDisableMOdQOS)){$FreeWebsDisableMOdQOS=0;}
 	if($FreeWebsEnableModQOS==0){$FreeWebsDisableMOdQOS=1;}
 	
@@ -1675,34 +1914,25 @@ function CheckHttpdConf(){
 		@unlink("$DAEMON_PATH/mods-enabled/qos_module.load");
 	}
 	
-if($FreeWebsEnableModSecurity==1){
-		if(is_file("$APACHE_MODULES_PATH/mod_security2.so")){
-			$a[]="LoadFile /usr/lib/libxml2.so.2";
-			$a[]="LoadModule security2_module $APACHE_MODULES_PATH/mod_security2.so";
-			echo "Starting......: [INIT]: Apache module 'mod_security2' enabled\n";
-			@file_put_contents("$DAEMON_PATH/mods-enabled/mod_security.load",@implode("\n",$a));
-			unset($a);
-		}else{
-			echo "Starting......: [INIT]: Apache $APACHE_MODULES_PATH/mod_security2.so no such file\n";
-		}
-	}else{echo "Starting......: [INIT]: Apache module 'mod_security2' disabled\n";}
+
+
 	
 if($FreeWebsEnableModEvasive==1){
 		if(is_file("$APACHE_MODULES_PATH/mod_evasive20.so")){
 			$a[]="LoadModule evasive20_module $APACHE_MODULES_PATH/mod_evasive20.so";
-			echo "Starting......: [INIT]: Apache module 'mod_evasive2' enabled\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_evasive2' enabled\n";
 			@file_put_contents("$DAEMON_PATH/mods-enabled/mod_evasive.load",@implode("\n",$a));
 		}else{
-			echo "Starting......: [INIT]: Apache $APACHE_MODULES_PATH/mod_evasive20.so no such file\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache $APACHE_MODULES_PATH/mod_evasive20.so no such file\n";
 		}
-	}else{echo "Starting......: [INIT]: Apache module 'mod_evasive2' disabled\n";}
+	}else{echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_evasive2' disabled\n";}
 
 
 	$sql="SELECT COUNT(servername) as tcount FROM freeweb WHERE UseReverseProxy=1";
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG] Apache $sql\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG] Apache $sql\n";}
 	$q=new mysql();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));
-	echo "Starting......: [INIT]: Apache ". $ligne["tcount"]." Reverse Proxy\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache ". $ligne["tcount"]." Reverse Proxy\n";
 	
 		$proxys_mods["proxy_module"]="mod_proxy.so";
 		$proxys_mods["proxy_http_module"]="mod_proxy_http.so";
@@ -1729,7 +1959,7 @@ if($FreeWebsEnableModEvasive==1){
 		while (list ($module, $lib) = each ($proxys_orgs) ){if(is_file("$DAEMON_PATH/mods-enabled/$lib")){@unlink("$DAEMON_PATH/mods-enabled/$lib");}}
 		while (list ($module, $lib) = each ($proxys_mods) ){if(is_file("$DAEMON_PATH/mods-enabled/$module.load")){@unlink("$DAEMON_PATH/mods-enabled/$module.load");}}
 			
-	echo "Starting......: [INIT]: Apache {$ligne["tcount"]} reverse proxy(s)\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache {$ligne["tcount"]} reverse proxy(s)\n";
 	$countDeProxy=$ligne["tcount"];
 	if($FreeWebsEnableOpenVPNProxy==1){if($FreeWebsOpenVPNRemotPort<>null){$countDeProxy=$countDeProxy+1;}}
 	
@@ -1740,8 +1970,8 @@ if($FreeWebsEnableModEvasive==1){
 	if($countDeProxy>0){
 		reset($proxys_mods);
 		while (list ($module, $lib) = each ($proxys_mods) ){
-			if(!is_file("$APACHE_MODULES_PATH/$lib")){echo "Starting......: [INIT]: Apache module '$module' '$lib' no such file\n";continue;}
-			echo "Starting......: [INIT]: Apache module '$module' enabled\n";
+			if(!is_file("$APACHE_MODULES_PATH/$lib")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module '$module' '$lib' no such file\n";continue;}
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache module '$module' enabled\n";
 			$final_proxys[]="LoadModule $module $APACHE_MODULES_PATH/$lib";
 		}
 		
@@ -1750,13 +1980,92 @@ if($FreeWebsEnableModEvasive==1){
 	
 	
 	while (list ($module, $lib) = each ($array) ){
-		if(!is_file("$APACHE_MODULES_PATH/$lib")){echo "Starting......: [INIT]: Apache module '$module' '$lib' no such file\n";continue;}
-		echo "Starting......: [INIT]: Apache module '$module' enabled\n";
+		if(!is_file("$APACHE_MODULES_PATH/$lib")){echo "Starting......: ".date("H:i:s")." [INIT]: Apache module '$module' '$lib' no such file\n";continue;}
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache module '$module' enabled\n";
 		@file_put_contents("$DAEMON_PATH/mods-enabled/$module.load","LoadModule $module $APACHE_MODULES_PATH/$lib");
 		
 	}
-	echo "Starting......: [INIT]: Apache terminated... next process\n";	
+	ZarafaWebAccessInFrontEnd($DAEMON_PATH);
+	
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache testing configuration file\n";
+	if(!TestingApacheConfigurationFile()){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache testing configuration file FAILED !! restore old config\n";
+		while (list ($index, $restorefile) = each ($GLOBALS["ToRestore"]) ){
+			$basename=basename($restorefile);
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache Removing $DAEMON_PATH/$basename\n";
+			@unlink("$DAEMON_PATH/$basename");
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache Restoring $restorefile\n";
+			@copy($restorefile, "$DAEMON_PATH/$basename");
+		}
+	}
+	
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache terminated... next process\n";
+	
 }	
+
+function mod_security(){
+	$sock=new sockets();
+	$httpdconf=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();
+	$d_path=$GLOBALS["CLASS_UNIX"]->APACHE_DIR_SITES_ENABLED();
+	$DAEMON_PATH=$GLOBALS["CLASS_UNIX"]->getmodpathfromconf($httpdconf);
+	$APACHE_MODULES_PATH=$users->APACHE_MODULES_PATH;
+	
+	@unlink("$DAEMON_PATH/mods-enabled/mod_security.load");
+	
+	
+	
+	
+	$free=new freeweb();
+	if(!$free->mod_security_ifvailable()){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_security2' cannot be added\n";
+		return;
+	}
+	
+	
+
+	$a[]="LoadFile /usr/lib/libxml2.so.2";
+	$a[]="LoadModule security2_module $APACHE_MODULES_PATH/mod_security2.so";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_security2' enabled\n";
+	@file_put_contents("$DAEMON_PATH/mods-enabled/mod_security.load",@implode("\n",$a));
+	unset($a);
+	
+	$u[]="LoadModule unique_id_module   $APACHE_MODULES_PATH/mod_unique_id.so\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_unique_id' enabled\n";
+	@file_put_contents("$DAEMON_PATH/mods-enabled/mod_unique_id.load",@implode("\n",$u));
+	unset($u);
+	
+	$SecServerSignature=$sock->GET_INFO("SecServerSignature");
+	$f[]="<IfModule security2_module>";
+	$f[]="   SecRuleEngine On";
+	if($SecServerSignature<>null){
+		$f[]="   SecServerSignature\t\"{$SecServerSignature}\"";
+	}
+	//$f[]="   #SecFilterCheckURLEncoding {$Params["SecFilterCheckURLEncoding"]}";
+	//$f[]="   #SecFilterCheckUnicodeEncoding {$Params["SecFilterCheckUnicodeEncoding"]}";
+	//$f[]="   SecFilterForceByteRange 1 255";
+	//$f[]="   SecAuditEngine RelevantOnly";
+	$f[]="   SecAuditEngine RelevantOnly";
+	$f[]="   SecAuditLog /var/log/apache2/modsec_audit_log";
+	$f[]="   SecDebugLog /var/log/apache2/modsec_debug_log";
+	$f[]="   SecDebugLogLevel 0";
+	$f[]="   SecRequestBodyAccess Off";
+	$f[]="   SecDefaultAction \"phase:2,deny,log,status:'Hello World!'\"";
+	$f[]="</IfModule>\n\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache $DAEMON_PATH/mod_security.conf\n";
+	@file_put_contents("$DAEMON_PATH/mod_security.conf",@implode("\n",$f));
+	unset($f);
+	
+	
+	if(is_file("$DAEMON_PATH/mod_security.conf")){
+		@unlink("$DAEMON_PATH/BackupConf/mod_security.conf");
+		@copy("$DAEMON_PATH/ports.conf", "$DAEMON_PATH/BackupConf/mod_security.conf");
+		$GLOBALS["ToRestore"][]="$DAEMON_PATH/BackupConf/mod_security.conf";
+	}
+	
+	
+	
+}
+
 
 function YfiAdds(){
 	if(!is_file("/var/www/c2/index.php")){return;}
@@ -1805,22 +2114,35 @@ function YfiAdds(){
 	
 }
 
+function apache_permissions(){
+	$unix=new unix();
+	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
+	
+	$f[]="/var/log/apache2";
+	$f[]="/var/cache/apache2";
+	$f[]="/var/cache/apache2/mod_pagespeed";
+	$f[]="/etc/apache2/logs";
+	$f[]="/var/lib/apache2/fastcgi";
+	$f[]="/var/www";
+	while (list ($index, $dir) = each ($f)){
+		echo "Starting......: ".date("H:i:s")." [INIT]: apache2 apply permissions on `$dir`\n";
+		if(!is_dir($dir)){@mkdir($dir,0755,true);}
+		$unix->chown_func($APACHE_SRC_ACCOUNT,$APACHE_SRC_GROUP,"$dir/*");
+		$unix->chmod_func(0755, $dir);
+	}
+	
+}
+
 function apache_security($DAEMON_PATH){
 	$sock=new sockets();
 	$unix=new unix();
-	if(!is_dir("/var/cache/apache2/mod_pagespeed")){@mkdir("/var/cache/apache2/mod_pagespeed",0755,true);}
-	if(!is_dir("/etc/apache2/logs")){@mkdir("/etc/apache2/logs",0755,true);}
+	
 	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
-	shell_exec("/bin/chown $APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP /var/www");
-	shell_exec("/bin/chown -R $APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP /etc/apache2");
-	shell_exec("/bin/chown -R $APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP /var/cache/apache2");
 	
 	
-	@chmod("/var/www", 0755);
-	@chmod("/var/cache/apache2", 0755);
-	@chmod("/etc/apache2", 0755);
-	
+	apache_permissions();
 	$ApacheServerTokens=$sock->GET_INFO("ApacheServerTokens");
 	$ApacheServerSignature=$sock->GET_INFO("ApacheServerSignature");
 	if(!is_numeric($ApacheServerSignature)){$ApacheServerSignature=1;}
@@ -1830,12 +2152,27 @@ function apache_security($DAEMON_PATH){
 	$httpd[]="ServerTokens $ApacheServerTokens";
 	$httpd[]="ServerSignature $ServerSignature";
 	$httpd[]="";
-	@file_put_contents("$DAEMON_PATH/security",@implode("\n",$httpd));
+	
+	if(is_file("$DAEMON_PATH/security.conf")){
+		@unlink("$DAEMON_PATH/BackupConf/security.conf");
+		@copy("$DAEMON_PATH/security.conf", "$DAEMON_PATH/BackupConf/security.conf");
+		$GLOBALS["ToRestore"][]="$DAEMON_PATH/BackupConf/security.conf";
+	}
+	
+	
+	@file_put_contents("$DAEMON_PATH/security.conf",@implode("\n",$httpd));
 	
 }
 
 
 function EnableMods(){
+	$sock=new sockets();
+	$FreeWebDisableSSL=intval(trim($sock->GET_INFO("FreeWebDisableSSL")));
+	@unlink("/etc/apache2/mods-enabled/ssl.load");
+	@unlink("/etc/apache2/mods-enabled/ssl.conf");
+	if($FreeWebDisableSSL==1){return;}
+	
+	
 	if(is_file("/etc/apache2/mods-available/ssl.load")){
 		shell_exec("/bin/ln -s /etc/apache2/mods-available/ssl.load /etc/apache2/mods-enabled/ssl.load >/dev/null 2>&1");
 	}
@@ -1845,7 +2182,7 @@ function EnableMods(){
 }
 
 function CheckLibraries(){
-	$prefixOutput="Starting......: [INIT]: Apache \"Engine\"";
+	$prefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"Engine\"";
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$GLOBALS["CLASS_USERS_MENUS"]=new usersMenus();}
 	if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();}
@@ -1855,22 +2192,40 @@ function CheckLibraries(){
 	if(!isset($GLOBALS["CUT_BIN"])){$GLOBALS["CUT_BIN"]=$GLOBALS["CLASS_UNIX"]->find_program("cut");}
 	 
 	if($GLOBALS["CLASS_LDAP"]->ldapFailed){
-		echo "$prefixOutput [".__LINE__."] Apache Failed to connect to the LDAP system process will die()\n";
-		$GLOBALS["CLASS_UNIX"]->send_email_events("FreeWebs: Fatal: LDAP Failed, building configuration will be skipped", "LDAP Failed to connect $ldap->ldap_last_error", "system");
+		echo "$prefixOutput [".__LINE__."] OpenLDAP system not ready...\n";
 		die();
 	}
 	
 	$q=new mysql();
 	if(!$q->TestingConnection()){
-		echo "$prefixOutput [".__LINE__."] Failed to connect to the MySQL system process will die()\n";
-		$GLOBALS["CLASS_UNIX"]->send_email_events("FreeWebs: Fatal: MySQL Failed, building configuration will be skipped", "MySQL Failed to connect: $q->mysql_error", "system");
+		echo "$prefixOutput [".__LINE__."] MySQL system not ready...\n";
 		die();	
 	}
 	
 }
 
+function TestingApacheConfigurationFile(){
+	CheckLibraries();
+
+	$prefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache Check";
+	$httpdconf=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();
+	$apache2ctl=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CTL();
+	if(!is_file($apache2ctl)){return true;}
+	exec("$apache2ctl -f $httpdconf -S 2>&1",$results);
+	echo "$prefixOutput [".__LINE__."] verify configuration...\n";
+	
+	while (list ($index, $line) = each ($results) ){
+		if(preg_match("#Syntax OK#i", $line)){
+			echo "$prefixOutput [".__LINE__."] Syntax OK...\n";
+			return true;}
+	}
+	echo "$prefixOutput [".__LINE__."] Syntax Failed !!!...\n";
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/ApacheLastError", @implode("\n", $results));
+	
+}
+
 function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
-	$prefixOutput="Starting......: [INIT]: Apache \"$hostname\"";
+	$prefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\"";
 	echo "$prefixOutput [".__LINE__."] Building \"$hostname\"\n";
 	create_cron_task();
 	CheckLibraries();
@@ -1956,7 +2311,8 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	if($hostname=="_default_"){$FreeWebListen="_default_";}
 	$LoadModules=$freeweb->LoadModules();
 	
-	
+	if($unix->isNGnx()){$freeweb->SSL_enabled=0;}
+	if($FreeWebDisableSSL==1){$freeweb->SSL_enabled=0;}
 	
 	if($freeweb->SSL_enabled){
 		$unix->vhosts_BuildCertificate($hostname);
@@ -2054,6 +2410,8 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 			}
 		}
 	}
+	
+		$content_plus=$freeweb->content_plus;
 		$php_open_base_dir=$freeweb->open_basedir();
 		$geoip=$freeweb->mod_geoip();
 		$mod_status=$freeweb->mod_status();
@@ -2075,6 +2433,9 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$conf[]="\tServerAdmin $ServerAdmin";
 		$conf[]="\tServerSignature $ServerSignature";
 		$conf[]="\tDocumentRoot $freeweb->WORKING_DIRECTORY";
+		
+		
+		if($content_plus<>null){$conf[]="\n############## personal content #############\n$content_plus\n############################\n";}
 		if($ErrorDocument<>null){$conf[]=$ErrorDocument;}
 		if($mpm_itk_module<>null){$conf[]=$mpm_itk_module;}
 		if($mod_evasive<>null){   $conf[]=$mod_evasive;}
@@ -2086,7 +2447,9 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		if($Aliases<>null){	      $conf[]=$Aliases;}
 		if($mod_cache<>null){	  $conf[]=$mod_cache;}
 		if($geoip<>null){	      $conf[]=$geoip;}
-		if($mod_pagespedd<>null){ $conf[]=$mod_pagespedd;shell_exec("/bin/chown -R $apache_usr:$apache_group /var/cache/apache2/mod_pagespeed/$hostname");}
+		if($mod_pagespedd<>null){ $conf[]=$mod_pagespedd;
+		
+		shell_exec("/bin/chown -R $apache_usr:$apache_group /var/cache/apache2/mod_pagespeed/$hostname");}
 		if($mod_status<>null){    $conf[]=$mod_status;}
 		
 		
@@ -2104,7 +2467,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		
 		
 		if($AuthLDAP==1){
-			echo "Starting......: [INIT]: Apache \"$hostname\" ldap authentication enabled\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" ldap authentication enabled\n";
 			$ldap=$GLOBALS["CLASS_LDAP"];
 			$dn_master_branch="dc=organizations,$ldap->suffix";
 			if($uid<>null){
@@ -2142,18 +2505,27 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	$DirectorySecond=$freeweb->DirectorySecond();
 	if($mod_fcgid<>null){$OptionExecCGI=" +ExecCGI";}
 	$DirectoryContent=$freeweb->DirectoryContent();
-	
+	$SymLinksIfOwnerMatch=null;
+	$FollowSymLinks=null;
 	
 		$Indexes=" Indexes";
 		if($freeweb->Params["SECURITY"]["FreeWebsDisableBrowsing"]==1){$Indexes=" -Indexes";}
+		if($freeweb->Params["SECURITY"]["SymLinksIfOwnerMatch"]==1){$SymLinksIfOwnerMatch=" +SymLinksIfOwnerMatch";}
+		if($freeweb->Params["SECURITY"]["FollowSymLinks"]==1){$FollowSymLinks=" +FollowSymLinks";}
+		
+		
+		
+		
 		$conf[]="\n\t<Directory \"$freeweb->WORKING_DIRECTORY/\">";
 		if($Apache2_AuthenNTLM<>null){
 			$conf[]=$Apache2_AuthenNTLM;
 		}
+		
+		
 		if($DirectoryContent==null){
 			$DirectoryIndex=$freeweb->DirectoryIndex();
 			$conf[]="\t\tDirectoryIndex $DirectoryIndex";
-	   		$conf[]="\t\tOptions{$Indexes} +FollowSymLinks MultiViews$OptionExecCGI";
+	   		$conf[]="\t\tOptions{$Indexes}{$FollowSymLinks}{$SymLinksIfOwnerMatch} MultiViews$OptionExecCGI";
 	   		if($IndexIgnores<>null){$conf[]=$IndexIgnores;}
 		   	$conf[]="\t\tAllowOverride All";
 		   	if($WebDav<>null){$conf[]=$WebDav;}
@@ -2183,7 +2555,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 			$conf[]="\t\tOrder allow,deny";
 			$conf[]=$freeweb->AllowFrom();		
 			if($AuthLDAP==1){
-				echo "Starting......: [INIT]: Apache \"$hostname\" ldap authentication enabled\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" ldap authentication enabled\n";
 				$ldap=$GLOBALS["CLASS_LDAP"];
 				$dn_master_branch="dc=organizations,$ldap->suffix";
 				if($uid<>null){
@@ -2242,16 +2614,42 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	}
 		
 	
+	$FileConfigurationPath="$d_path/$prefix_filename$middle_filename$suffix_filename";
+	$FileConfigurationBackupPath="/root/$prefix_filename$middle_filename$suffix_filename";
+	
+	if(is_file($FileConfigurationPath)){
+		@unlink($FileConfigurationBackupPath);
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache backup old configuration\n";
+		@copy($FileConfigurationPath, $FileConfigurationBackupPath);
+	}
 	
 	if($GLOBALS["VERBOSE"]){
-		echo "Starting......: [INIT]: Apache saving *** $d_path/$prefix_filename$middle_filename$suffix_filename *** line ".__LINE__."\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache saving *** $d_path/$prefix_filename$middle_filename$suffix_filename *** line ".__LINE__."\n";
 	}
 	
 	
-	@file_put_contents("$d_path/$prefix_filename$middle_filename$suffix_filename",@implode("\n",$conf));
-	echo "Starting......: [INIT]: Apache \"$hostname\" filename: '". basename("$d_path/$prefix_filename$middle_filename$suffix_filename")."' done\n";
+	@file_put_contents($FileConfigurationPath,@implode("\n",$conf));
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" filename: '". basename("$d_path/$prefix_filename$middle_filename$suffix_filename")."' done\n";
+	
+	
+	
 	$freeweb->phpmyadmin();
-	@mkdir("$freeweb->WORKING_DIRECTORY",0755,true);
+	if(!is_dir("$freeweb->WORKING_DIRECTORY")){
+		@mkdir("$freeweb->WORKING_DIRECTORY",0755,true);
+	}
+	
+	if(!TestingApacheConfigurationFile()){
+		$freeweb->SetError(1);
+		@unlink($FileConfigurationPath);
+		if(is_file($FileConfigurationBackupPath)){
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache restore old configuration file\n";
+			@copy($FileConfigurationBackupPath,$FileConfigurationPath);
+		}
+	}else{
+		$freeweb->SetError(0);
+	}
+	
+	
 	@chmod("$freeweb->WORKING_DIRECTORY",0755);
 	if($apache_usr<>null){@chown("$freeweb->WORKING_DIRECTORY", $apache_usr);}
 	if($apache_group<>null){@chgrp("$freeweb->WORKING_DIRECTORY", $apache_group);}
@@ -2277,6 +2675,14 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		shell_exec("$nohup $nice $chown -R $apache_usr:$apache_group $freeweb->WORKING_DIRECTORY >/dev/null 2>&1 &");
 	}
 	$freeweb->update_groupware_version();
+	if($GLOBALS["NGINX_CONFIGURE"]){
+		$EnableNginx=$sock->GET_INFO("EnableNginx");
+		if(!is_numeric($EnableNginx)){$EnableNginx=1;}
+		if($EnableNginx==1){
+			$php=$unix->LOCATE_PHP5_BIN();
+			shell_exec("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure \"$hostname\"");
+		}
+	}
 	
 }
 
@@ -2335,7 +2741,7 @@ function FDpermissions($servername=null){
 	$results=$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return;}}
 	$count=mysql_num_rows($results);
-	echo "Starting......: [INIT]: Apache checking permission web sites count:$count\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache checking permission web sites count:$count\n";
 	if($count==0){return;}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$FDPermissions=unserialize(base64_decode($ligne["FDPermissions"]));	
@@ -2427,6 +2833,7 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 	}
 	
 	$hashListenAddr=unserialize(base64_decode($sock->GET_INFO("FreeWebsApacheListenTable")));
+	
 	if(is_array($hashListenAddr)){
 		while (list ($ipport, $array) = each ($hashListenAddr)){
 			if($GLOBALS["VERBOSE"]){echo "DEBUG:: FreeWebsApacheListenTable: $ipport Line:".__LINE__."\n";}
@@ -2455,7 +2862,13 @@ function VirtualHostsIPAddresses($StandardPort,$listenAddr,$SSLPORT){
 
 	$sql="SELECT servername,ServerIP,ServerPort,useSSL FROM freeweb";
 	$results=$q->QUERY_SQL($sql,'artica_backup');
-	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return array($Listen,$NameVirtualHost,$NameVirtualHostSSL);}}
+	if(!$q->ok){
+		if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";}
+		return array($Listen,$NameVirtualHost,$NameVirtualHostSSL);
+	}
+	
+	
+	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		//if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["servername"])){
 			//$ligne["ServerIP"]=$ligne["servername"];
@@ -2594,13 +3007,8 @@ function CheckFailedStart(){
 	$sock=new sockets();
 	$apache2ctl=$unix->find_program("apache2ctl");
 	if(!is_file($apache2ctl)){$apache2ctl=$unix->find_program("apachectl");}
-	if(!is_file($apache2ctl)){echo "Starting......: [INIT]: Apache apache2ctl no such file\n";}
+	if(!is_file($apache2ctl)){echo "Starting......: ".date("H:i:s")." [INIT]: Apache apache2ctl no such file\n";}
 
-	
-	
-	
-	
-	
 	exec("$apache2ctl -k start 2>&1",$results);
 	while (list ($index, $line) = each ($results)){
 		
@@ -2608,8 +3016,8 @@ function CheckFailedStart(){
 		if(apachectl_line_skip($ligne)){continue;}
 		
 		if(preg_match("#Cannot load .+?mod_qos\.so#", $line)){
-			echo "Starting......: [INIT]: Apache error on qos module, disable it..\n";
-			echo "Starting......: [INIT]: Apache error \"$line\"\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache error on qos module, disable it..\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache error \"$line\"\n";
 			$sock->SET_INFO("FreeWebsDisableMOdQOS",1);
 			CheckHttpdConf();
 			$unix->send_email_events("FreeWebs: QOS is disabled, cannot be loaded on your server","Apache claim $line,using this module is disabled","system");
@@ -2618,20 +3026,20 @@ function CheckFailedStart(){
 		}
 		
 		if(preg_match("#Could not open configuration file (.+?)sites-enabled#",$line,$re)){
-			echo "Starting......: [INIT]: Apache error {$re[1]}/sites-enabled\n";
-			echo "Starting......: [INIT]: Apache error \"$line\"\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache error {$re[1]}/sites-enabled\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache error \"$line\"\n";
 			$apacheusername=$unix->APACHE_SRC_ACCOUNT();
-			echo "Starting......: [INIT]: Apache creating directory {$re[1]}/sites-enabled\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache creating directory {$re[1]}/sites-enabled\n";
 			@mkdir("{$re[1]}/sites-enabled");
 			
-			echo "Starting......: [INIT]: Apache checking permissions on {$re[1]}/sites-enabled with user $apacheusername\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache checking permissions on {$re[1]}/sites-enabled with user $apacheusername\n";
 			@chown("{$re[1]}/sites-enabled",$apacheusername);
 			@chmod("{$re[1]}/sites-enabled",0755);
 			shell_exec("/etc/init.d/artica-postfix start apachesrc --no-repair");
 			return;
 		}
 		
-	 echo "Starting......: [INIT]: Apache $line\n";	
+	 echo "Starting......: ".date("H:i:s")." [INIT]: Apache $line\n";	
 	}
 	
 }
@@ -2640,11 +3048,11 @@ function install_groupware($servername,$rebuild=false){
 	
 	$free=new freeweb($servername);
 	if($free->groupware==null){
-		 writelogs("Starting......: [INIT]: Apache \"$servername\" no groupware set",__FUNCTION__,__FILE__,__LINE__);
+		 writelogs("Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" no groupware set",__FUNCTION__,__FILE__,__LINE__);
 		 return;
 	}
 	
-	writelogs("Starting......: [INIT]: Apache \"$servername\" -> \"$free->groupware\"",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" -> \"$free->groupware\"",__FUNCTION__,__FILE__,__LINE__);
 	
 	switch ($free->groupware) {
 		case "ARTICA_USR":
@@ -2760,7 +3168,7 @@ function install_groupware_ARTICA_USR($hostname){
 	$sql="SELECT * FROM freeweb WHERE servername='$hostname'";
 	$q=new mysql();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
-	echo "Starting......: [INIT]: Apache \"$hostname\" Rebuilding host configuration file\n";	
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Rebuilding host configuration file\n";	
 	buildHost($ligne["uid"],$hostname);
 	reload_apache();
 	shell_exec("/bin/ln -s /usr/share/artica-postfix/ressources/settings.inc /usr/share/artica-postfix/user-backup/ressources/settings.inc >/dev/null 2>&1");
@@ -2770,34 +3178,34 @@ function install_groupware_ARTICA_ADM($hostname){
 	$sql="SELECT * FROM freeweb WHERE servername='$hostname'";
 	$q=new mysql();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
-	echo "Starting......: [INIT]: Apache \"$hostname\" Rebuilding host configuration file\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Rebuilding host configuration file\n";
 	buildHost($ligne["uid"],$hostname);
 	reload_apache();
 }
 
 function install_EYEOS($hostname){
-	echo "Starting......: [INIT]: Apache \"$hostname\" Checking eyeOS installation....\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Checking eyeOS installation....\n";
 	
 	$freeweb=new freeweb($hostname);
 	$freeweb->CheckWorkingDirectory();
 	
 	
-	echo "Starting......: [INIT]: Apache \"$hostname\" Checking eyeOS installation....\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Checking eyeOS installation....\n";
 	if(!is_file(dirname(__FILE__)."/ressources/class.eyeos.inc")){echo "Fatal ".dirname(__FILE__)."/ressources/class.eyeos.inc no such file\n";}
 	include_once(dirname(__FILE__)."/ressources/class.eyeos.inc");
 	$eye=new eyeos($hostname);
 
 	if($eye->ValidateInstallation25()){
-		echo "Starting......: [INIT]: Apache \"$hostname\" Installing EyeOS (already installed)\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Installing EyeOS (already installed)\n";
 		$eye->Build_SettingsPHP();
 		return;
 	}
-	echo "Starting......: [INIT]: Apache \"$hostname\" Installing EyeOS in $freeweb->WORKING_DIRECTORY\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Installing EyeOS in $freeweb->WORKING_DIRECTORY\n";
 	$unix=new unix();
 	$cp=$unix->find_program("cp");
 	shell_exec("$cp -rf /usr/local/share/artica/eyeos_src/* $freeweb->WORKING_DIRECTORY/");
 	if($eye->ValidateInstallation25($freeweb->WORKING_DIRECTORY)){
-		echo "Starting......: [INIT]: Apache \"$hostname\" Installing EyeOS (FAILED)\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" Installing EyeOS (FAILED)\n";
 	}	
 	
 }
@@ -2878,38 +3286,33 @@ function drupal_add_user($uid,$servername){
 	$f=new drupal_vhosts($servername);
 	$f->add_user($uid);	
 }
-
 function drupal_deluser($uid,$servername){
 	if($servername==null){return;}
 	if($uid==null){return;}	
 	$f=new drupal_vhosts($servername);
 	$f->del_user($uid);		
 }
-
 function drupal_enuser($uid,$enable,$servername){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache \"$servername\" drupal_enuser() $uid enable->[$enable]\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" drupal_enuser() $uid enable->[$enable]\n";}
 	if($servername==null){return;}
 	if($uid==null){return;}	
 	$f=new drupal_vhosts($servername);
 	$f->active_user($uid,$enable);	
 }
-
 function drupal_privuser($uid,$priv,$servername){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache \"$servername\" drupal_privuser() $uid enable->[$priv]\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" drupal_privuser() $uid enable->[$priv]\n";}
 	if($servername==null){return;}
 	if($uid==null){return;}	
 	$f=new drupal_vhosts($servername);
 	$f->priv_user($uid,$priv);	
 }
-
 function drupal_dump_modules($servername){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache \"$servername\" drupal_dump_modules()\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" drupal_dump_modules()\n";}
 	if($servername==null){return;}
 	$f=new drupal_vhosts($servername);
 	$f->dump_modules();
 	
 }
-
 function drupal_cron(){
 	$users=new usersMenus();
 	if(!$users->DRUPAL7_INSTALLED){die();}
@@ -2929,7 +3332,7 @@ function drupal_cron(){
 	$results=$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";return;}}
 	$count=mysql_num_rows($results);
-	echo "Starting......: [INIT]: Apache checking drupal cron web sites count:$count\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache checking drupal cron web sites count:$count\n";
 	if($count==0){return;}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$dd=new drupal_vhosts($ligne["servername"]);
@@ -2937,9 +3340,8 @@ function drupal_cron(){
 		shell_exec("$drush7 --root=$dd->www_dir cron >/dev/null 2>&1");
 	}
 }
-
 function drupal_install_modules($servername){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache \"$servername\" drupal_install_modules()\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" drupal_install_modules()\n";}
 	if($servername==null){return;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$servername.pid";
 	$oldpid=@file_get_contents($pidfile);
@@ -2952,9 +3354,8 @@ function drupal_install_modules($servername){
 	$f=new drupal_vhosts($servername);
 	$f->install_modules();	
 }
-
 function drupal_reinstall($servername){
-	if($GLOBALS["VERBOSE"]){echo "Starting......: [INIT]: Apache \"$servername\" drupal_install_modules()\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" drupal_install_modules()\n";}
 	if($servername==null){return;}	
 	$unix=new unix();
 	$drush7=$unix->find_program("drush7");
@@ -2962,7 +3363,6 @@ function drupal_reinstall($servername){
 	$f=new drupal_vhosts($servername);
 	$f->DrushInstall();
 }
-
 function drupal_schedules(){
 	$q=new mysql();
 	$sql="SELECT * FROM drupal_queue_orders ORDER BY ID";
@@ -3066,7 +3466,6 @@ function drupal_schedules(){
 		
 	
 }
-
 function group_office_install($servername,$nobuildHost=false,$rebuild=false){
 	$sources="/usr/local/share/artica/group-office";
 	$unix=new unix();
@@ -3107,20 +3506,17 @@ function group_office_install($servername,$nobuildHost=false,$rebuild=false){
 	
 	
 }
-
 function install_JOOMLA17($servername){
 	include_once(dirname(__FILE__)."/ressources/class.joomla17.inc");
 	$joom=new joomla17($servername);
 	$joom->installsite();
 	
 }
-
 function install_wordpress($servername){
 	include_once(dirname(__FILE__)."/ressources/class.wordpress.inc");
 	$word=new wordpress($servername);
 	$word->CheckInstall();
 }
-
 function install_concrete5($servername){
 	include_once(dirname(__FILE__)."/ressources/class.concrete5.inc");
 	$word=new concrete5($servername);
@@ -3195,13 +3591,10 @@ function install_zarafa($servername){
 
 function install_piwigo($servername){
 	include_once(dirname(__FILE__)."/class.piwigo.inc");
-	if($this->AS_ROOT){echo "Starting......: [INIT]: Apache \"$servername\" Testing Piwigo installation\n";}
+	if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" Testing Piwigo installation\n";}
 	$sugar=new piwigo($servername);
 	$sugar->verifinstall();
 }
-
-
-
 function install_PIWIK($servername){
 	$sources="/usr/share/piwik";
 	$unix=new unix();
@@ -3230,7 +3623,6 @@ function install_PIWIK($servername){
 	
 	
 }
-
 function mod_status_htaccess($filename,$pattern){
 	$exp=explode("\n", @file_get_contents("$filename"));
 	while (list ($num, $ligne) = each ($exp) ){if(preg_match("#$pattern#",$ligne)){return;}}
@@ -3246,7 +3638,6 @@ function mod_status_htaccess($filename,$pattern){
 	}	
 	
 }
-
 function mod_status_all(){
 	$unix=new unix();
 	if(!$GLOBALS["VERBOSE"]){
@@ -3269,11 +3660,11 @@ function mod_status_all(){
 	`zDate` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
 	`servername` VARCHAR( 255 ) NOT NULL ,
 	`UPTIME` VARCHAR( 255 ) NOT NULL ,
-	`total_traffic` INT( 100 ) NOT NULL ,
-	`total_memory` INT( 100 ) NOT NULL ,
+	`total_traffic` INT UNSIGNED ,
+	`total_memory` INT UNSIGNED ,
 	`requests_second` DOUBLE( 100, 2 ) NOT NULL ,
-	`traffic_second` INT( 100 ) NOT NULL ,
-	`traffic_request` INT( 100 ) NOT NULL ,
+	`traffic_second` INT UNSIGNED ,
+	`traffic_request` INT UNSIGNED ,
 	 INDEX ( `zDate` , `total_traffic` , `total_memory` , `requests_second` , `traffic_second` , `traffic_request`),
 	 KEY `servername` (`servername`))
 	";
@@ -3298,8 +3689,6 @@ function mod_status_all(){
 	$q->QUERY_SQL($sql,"artica_events");
 	if(!$q->ok){echo $q->mysql_error;}
 }
-
-
 function mod_status($servername){
 	$servername=trim($servername);
 	if($servername=="_default_"){return;}
@@ -3411,7 +3800,6 @@ function mod_status($servername){
 	// voir //http://www.apache.org/server-status
 
 }
-
 function roundcube_plugins($servername){
 	$free=new freeweb($servername);
 	$unix=new unix();
@@ -3420,17 +3808,16 @@ function roundcube_plugins($servername){
 		echo basename($num)."\n";
 	}
 }
-
 function build_monit(){
 	$settings=new settings_inc();
 	$sock=new sockets();
 	$monit_file="/etc/monit/conf.d/apache.monitrc";
-	$start_file="/usr/sbin/apache-monit-start";
-	$stop_file="/usr/sbin/apache-monit-stop";
-	$processMonitName="apache";
+	$start_file="/etc/init.d/apache2 start --monit";
+	$stop_file="/etc/init.d/apache2 stop --monit";
+	$processMonitName="APP_APACHE_SRC";
 	
 	if(!$settings->MONIT_INSTALLED){
-		echo "Starting......: [INIT]: Apache Monit is not installed\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Monit is not installed\n";
 		return;
 	}
 	
@@ -3439,9 +3826,9 @@ function build_monit(){
 	$chmod=$unix->find_program("chmod");
 	
 	
-	echo "Starting......: [INIT]: Apache PidFile = `$pidfile`\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache PidFile = `$pidfile`\n";
 	if($pidfile==null){
-		echo "Starting......: [INIT]: Apache PidFile unable to locate\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache PidFile unable to locate\n";
 		return ;
 	}
 	
@@ -3455,7 +3842,7 @@ function build_monit(){
 	if($EnableFreeWeb==0){$MonitConfig["watchdog"]=0;}
 	
 	if($MonitConfig["watchdog"]==0){
-		echo "Starting......: [INIT]: Apache Monit is not enabled ($q->watchdog)\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Monit is not enabled ($q->watchdog)\n";
 		if(is_file($monit_file)){
 			@unlink($monit_file);
 			@unlink($start_file);
@@ -3464,7 +3851,7 @@ function build_monit(){
 	}
 	
 	if($MonitConfig["watchdog"]==1){
-		echo "Starting......: [INIT]: Apache Monit is enabled check pid `$pidfile`\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Monit is enabled check pid `$pidfile`\n";
 		$reloadmonit=true;
 		$f[]="check process $processMonitName";
    		$f[]="with pidfile $pidfile";
@@ -3499,7 +3886,6 @@ function build_monit(){
 		$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-install --monit-check");
 	}	
 }
-
 function watchdog($direction){
 	
 	
@@ -3524,14 +3910,11 @@ function watchdog($direction){
 	}
 	
 }
-
-
 function dumpconf($servername){
 	$free=new freeweb($servername);
 	echo $free->BackupConfig();
 	
 }
-
 function restore_container($servername,$path,$instance_id){
 	$unix=new unix();
 	$tmppath="/var/tmp/".time();
@@ -3665,8 +4048,6 @@ function restore_container($servername,$path,$instance_id){
 	writelogs("[$servername] Finish restoring the website took:$took",__FUNCTION__,__FILE__,__LINE__);
 	
 }
-
-
 function backupsite($servername){
 	$unix=new unix();
 	$free=new freeweb($servername);
@@ -3855,6 +4236,94 @@ function ScanSize(){
 		system_admin_events("$sitesNumber web site(s) scanned {$GLobalSize}M took:$took",__FUNCTION__,__FILE__,__LINE__,"freewebs");
 	}
 }
+function ZarafaWebAccessInFrontEnd($DAEMON_PATH){
+	$sock=new sockets();
+	$users=new usersMenus();
+	$unix=new unix();
+	@unlink("/etc/apache2/sites-enabled/default-www");
+	@unlink("/etc/apache2/sites-enabled/default-ssl");
+	if(!$users->ZARAFA_INSTALLED){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Zarafa not Installed\n";
+		return null;}
+	$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
+	if(!is_numeric($ZarafaWebAccessInFrontEnd)){$ZarafaWebAccessInFrontEnd=1;}
+	if($ZarafaWebAccessInFrontEnd==0){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Zarafa in frontend is disabled\n";
+	}
+	
+	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
+	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
+	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
+	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
+	
+	if($unix->isNGnx()){
+		$FreeWebListenSSLPort=447;
+		$FreeWebListenPort=82;
+	
+	}
+	
+	if($unix->IsSquidReverse()){
+		$FreeWebListenSSLPort=447;
+		$FreeWebListenPort=82;
+	}
+	
+	
 
+	
+	if($unix->IsSquidReverse()){$SquidActHasReverse=1;}
+	if($unix->isNGnx()){$SquidActHasReverse=1;}
+	
+	if($SquidActHasReverse==1){
+		$FreeWebListenSSLPort=447;
+	}
+	
+	$f[]="<VirtualHost _default_:$FreeWebListenPort>";
+	$f[]="\tServerAdmin webmaster@_default_";
+	$f[]="\tDocumentRoot /usr/share/zarafa-webaccess";
+	$f[]="\t<Directory /usr/share/zarafa-webaccess/>";
+	$f[]="\t\tOptions -Indexes +FollowSymLinks";
+	$f[]="\t\tphp_flag register_globals off";
+	$f[]="\t\tphp_flag magic_quotes_gpc off";
+	$f[]="\t\tphp_flag magic_quotes_runtime off";
+	$f[]="\t\tphp_value post_max_size 50M";
+	$f[]="\t\tphp_value upload_max_filesize 50M";
+	$f[]="\t\tphp_flag short_open_tag on";
+	$f[]="\t</Directory>";
+	$f[]="</VirtualHost>";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache /etc/apache2/sites-enabled/default-www done\n";
+	@file_put_contents("/etc/apache2/sites-enabled/default-www", @implode("\n", $f));
+	
+	$f=array();
+	$f[]="<IfModule mod_ssl.c>";
+	$f[]="\t<VirtualHost _default_:$FreeWebListenSSLPort>";
+	$f[]="\t\tServerAdmin webmaster@_default_";
+	$f[]="\t\tDocumentRoot /usr/share/zarafa-webaccess";
+	$f[]="\t<Directory />";
+	$f[]="\t\tOptions FollowSymLinks";
+	$f[]="\t\tAllowOverride None";
+	$f[]="\t</Directory>";
+	$f[]="\t<Directory /usr/share/zarafa-webaccess>";
+	$f[]="\t\tOptions -Indexes +FollowSymLinks";
+	$f[]="\t\tphp_flag register_globals off";
+	$f[]="\t\tphp_flag magic_quotes_gpc off";
+	$f[]="\t\tphp_flag magic_quotes_runtime off";
+	$f[]="\t\tphp_value post_max_size 50M";
+	$f[]="\t\tphp_value upload_max_filesize 50M";
+	$f[]="\t\tphp_flag short_open_tag on";
+	$f[]="\t</Directory>";
+	$f[]="\tErrorLog /var/log/apache2/error.log";
+
+	$f[]="\tLogLevel warn";
+	$f[]="\tCustomLog /var/log/apache2/ssl_access.log combined";
+	$f[]="\tSSLEngine on";
+	$f[]="\tSSLCertificateFile /etc/ssl/certs/apache/_default_.crt";
+	$f[]="\tSSLCertificateKeyFile /etc/ssl/certs/apache/_default_.key";
+	$f[]="\t</VirtualHost>";
+	$f[]="</IfModule>";
+	
+	
+	
+	
+}
 
 ?>

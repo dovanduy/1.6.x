@@ -33,12 +33,12 @@ function bigbuild(){
 	}
 	
 	if(!$squidconfigured){
-		echo "Starting......: Squid is not set with quota..";
+		echo "Starting......: ".date("H:i:s")." Squid is not set with quota..";
 		system("$php5 /usr/share/artica-postfix/exec.squid.php --build");
 		return;
 	}
 	build();
-	echo "Starting......: reloading squid";
+	echo "Starting......: ".date("H:i:s")." reloading squid";
 	system("$php5 /usr/share/artica-postfix/exec.squid.php --reload-squid");
 	
 	
@@ -75,7 +75,7 @@ if(!$q->TABLE_EXISTS($table)){
 	$q->CreateUserSizeRTT_day($table);
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build-schedules >/dev/null 2>&1 &");
 }
-shell_exec("$php5 /usr/share/artica-postfix/exec.squid.stats.php --users-size >/dev/null 2>&1");
+
 $sql="SELECT uid,ipaddr,hostname,account,MAC,SUM(size) as size FROM `$table` GROUP BY uid,ipaddr,hostname,account,MAC";
 $results = $q->QUERY_SQL($sql);	
 $array=array();
@@ -155,12 +155,12 @@ function iFBuildMacToUid(){
 	}
 
 	if(!$squidconfigured){
-		echo "Starting......: Squid is not set with quota..";
+		echo "Starting......: ".date("H:i:s")." Squid is not set with quota..";
 		system("$php5 /usr/share/artica-postfix/exec.squid.php --build");
 		return;
 	}
 
-	echo "Starting......: reloading squid";
+	echo "Starting......: ".date("H:i:s")." reloading squid";
 	system("$php5 /usr/share/artica-postfix/exec.squid.php --reload-squid");
 
 

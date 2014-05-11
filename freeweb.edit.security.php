@@ -64,6 +64,13 @@ function params(){
 	}
 
 	$FreeWebsDisableBrowsing=$Params["SECURITY"]["FreeWebsDisableBrowsing"];
+	$SymLinksIfOwnerMatch=$Params["SECURITY"]["SymLinksIfOwnerMatch"];
+	$FollowSymLinks=$Params["SECURITY"]["FollowSymLinks"];
+	
+	
+	if(!is_numeric($FollowSymLinks)){$FollowSymLinks=1;}
+	if(!is_numeric($SymLinksIfOwnerMatch)){$SymLinksIfOwnerMatch=1;}
+	
 	if(!is_numeric($FreeWebsDisableBrowsing)){$FreeWebsDisableBrowsing=0;}
 	$ApacheServerSignature=$Params["SECURITY"]["ServerSignature"];
 	$SecServerSignature=$Params["mod_security"]["SecServerSignature"];
@@ -158,12 +165,25 @@ $mod_geoip="
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:14px'>{SymLinksIfOwnerMatch}:</td>
+		<td width=1%>". Field_checkbox("SymLinksIfOwnerMatch",1,$SymLinksIfOwnerMatch)."</td>
+		<td width=1%>". help_icon("{SymLinksIfOwnerMatch_explain}")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{FollowSymLinks}:</td>
+		<td width=1%>". Field_checkbox("SymLinksIfOwnerMatch",1,$FollowSymLinks)."</td>
+		<td width=1%>&nbsp;</td>
+	</tr>
+				
+	<tr>
 		<td class=legend style='font-size:14px'>{FreeWebsDisableBrowsing}:</td>
 		<td width=1%>". Field_checkbox("FreeWebsDisableBrowsing",1,$FreeWebsDisableBrowsing)."&nbsp;
 		<a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.edit.IndexIgnore.php?servername={$_GET["servername"]}');\"
 		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
 		<td width=1%></td>
 	</tr>	
+	
+	
 	
 	
 	<tr>
@@ -198,6 +218,10 @@ $mod_geoip="
 			XHR.appendData('SecServerSignature',document.getElementById('SecServerSignature').value);
 			if(document.getElementById('ApacheServerSignature').checked){XHR.appendData('ApacheServerSignature',1);}else{XHR.appendData('ApacheServerSignature',0);}
 			if(document.getElementById('DisableHtAccess').checked){XHR.appendData('DisableHtAccess',1);}else{XHR.appendData('DisableHtAccess',0);}
+			
+			
+			
+			if(document.getElementById('SymLinksIfOwnerMatch').checked){XHR.appendData('SymLinksIfOwnerMatch',1);}else{XHR.appendData('SymLinksIfOwnerMatch',0);}
 			if(document.getElementById('FreeWebsDisableBrowsing').checked){XHR.appendData('FreeWebsDisableBrowsing',1);}else{XHR.appendData('FreeWebsDisableBrowsing',0);}
 			
 			
@@ -238,6 +262,14 @@ function SaveConf(){
 	$Params["SECURITY"]["ServerSignature"]=$_POST["ApacheServerSignature"];
 	$Params["SECURITY"]["DisableHtAccess"]=$_POST["DisableHtAccess"];
 	$Params["SECURITY"]["FreeWebsDisableBrowsing"]=$_POST["FreeWebsDisableBrowsing"];
+	$Params["SECURITY"]["FollowSymLinks"]=$_POST["FollowSymLinks"];
+	
+	
+	
+	$Params["SECURITY"]["SymLinksIfOwnerMatch"]=$_POST["SymLinksIfOwnerMatch"];
+	
+	
+	
 	$Params["mod_security"]["SecServerSignature"]=$_POST["SecServerSignature"];
 	
 	

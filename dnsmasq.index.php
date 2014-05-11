@@ -66,7 +66,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["params"]='{dnsmasq_DNS_cache_settings}';
-	if($EnableDNSMASQLDAPDB==1){$array["record-ldap"]='{ldap_records}';}
+	$array["dn_entries"]="{dns_items}";
 	$array["records"]='{dnsmasq_DNS_records}';
 	$array["hosts"]='{hosts}';
 	$array["logs"]='{events}';
@@ -93,6 +93,12 @@ $height="650px";
 	
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="dn_entries"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.items.php?bigsize=yes\"><span $style>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		if($num=="params"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dnsmasq.dns.settings.php\"><span $style>$ligne</span></a></li>\n");
 			continue;
@@ -121,14 +127,7 @@ $height="650px";
 	}
 	
 	
-	echo "
-	<div id=main_config_dnsmasq style='width:100%;height:$height;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_dnsmasq\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_dnsmasq");
 		
 	
 }

@@ -212,7 +212,7 @@ function FillGroupTable(){
 					<td width='1%'>$img</td>
 					<td width='90%'>". texttooltip($groupname,'{members}',"LoadMembers('$gid')")."</td>
 					<td align='center' width='10px'>$count_members</td>
-					<td align='center' width='10px'>" . imgtootltip('add-18.gif','{add_member}',"AddMemberIntoGroup('$gid');")."</td>
+					<td align='center' width='10px'>" . imgtootltip('add-18.png','{add_member}',"AddMemberIntoGroup('$gid');")."</td>
 					<td align='center' width='10px'>$edit</td>
 					<td align='center' width='10px'>$delete</td>
 				</tr>
@@ -559,32 +559,8 @@ function popup_tabs(){
 		}	
 	
 	
-	$html="
-	<div id='org_main' style='background-color:white;width:100%;height:630px;overflow:auto'>
-	<ul>
-		".implode("\n",$a)."
-	</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#org_main').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-			
-			LoadAjaxHidden('count-user-$time','$page?count-de-users={$_GET["ou"]}&ou={$_GET["ou"]}&dn=$dn');
-			
-		</script>
-	
-	";
-		
+
+	$html=build_artica_tabs($a, "org_main")."<script>LoadAjaxHidden('count-user-$time','$page?count-de-users={$_GET["ou"]}&ou={$_GET["ou"]}&dn=$dn');</script>";
 	$tpl=new templates();
 	$html=$tpl->_ENGINE_parse_body($html);
 	SET_CACHED(__FILE__,__FUNCTION__,"js:{$_GET["ou"]}",$html);
@@ -1354,7 +1330,7 @@ function organization_vhostslist($ou){
 	$ApacheGroupWarePort=$sock->GET_INFO("ApacheGroupWarePort");
 	$apache=new vhosts();
 	$hash=$apache->LoadVhosts($ou);
-	$html="<table style='width:95%' class=form>";
+	$html="<table style='width:98%' class=form>";
 	$server=$_SERVER['SERVER_NAME'];
 	if(preg_match("#(.+?):#",$server,$re)){$server=$re[1];}
 	while (list ($host, $wwwservertype) = each ($hash) ){
@@ -1373,7 +1349,7 @@ function organization_vhostslist($ou){
 		
 		$warn=null;
 		$ip=gethostbyname($host);
-		if($ip==$host){$warn=imgtootltip("status_warning.gif","{could_not_find_iphost}:$host");}
+		if($ip==$host){$warn=imgtootltip("status_warning.png","{could_not_find_iphost}:$host");}
 		$link=imgtootltip("alias-32.gif","<b><u>$host</u></b><br>$URI","s_PopUpFull('$URI',800,800)");
 		$js="Loadjs('domains.www.php?ou=$ou&add=yes&host=$host')";
 		$tr[]=Paragraphe(array($img,$warn,$link),$host,'{'.$apache->TEXT_ARRAY[$wwwservertype]["TITLE"].'}<br>{'.$apache->TEXT_ARRAY[$wwwservertype]["TEXT"].'}',"javascript:$js");

@@ -19,6 +19,7 @@ js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{artica_license}");
@@ -40,7 +41,8 @@ function popup(){
 	$ASWEB=false;
 	if($users->SQUID_INSTALLED){$ASWEB=true;}
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
-	$titleprice="<div style='font-size:18px;color:#D91515'>{start_99_euros}</div>";
+	if($users->KASPERSKY_WEB_APPLIANCE){$ASWEB=true;}
+	$titleprice="<strong>{start_99_euros}</strong><hr>";
 	if(!$users->CORP_LICENSE){
 
 		if($ASWEB){
@@ -61,15 +63,15 @@ function popup(){
 			<table style='width:100%'>
 			<tr>
 			 	<td class=legend>
-					<input type=\"hidden\" name=\"on0\" value=\"Buy a License\" class=legend style='font-size:16px'>{buy_a_license}</td>
-				<td >". Field_array_Hash($PAYPAL_TABLE, "os0","1 server 5 users","font-size:14px")."</td>
+					<input type=\"hidden\" name=\"on0\" value=\"Buy a License\" class=legend ><span style='font-size:16px'>{buy_a_license}:</span></td>
+				<td >". Field_array_Hash($PAYPAL_TABLE, "os0","1 server 5 users",null,null,0,"font-size:16px")."</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:14px'>
+				<td class=legend style='font-size:16px'>
 						
 						
-				<input type=\"hidden\" name=\"on1\" value=\"Reseller\">{reseller_company}</td>
-				<td>". Field_text("os1",null,'font-size:14px')."
+				<input type=\"hidden\" name=\"on1\" value=\"Reseller\">{reseller_company}:</td>
+				<td>". Field_text("os1",null,'font-size:16px')."
 				<input type=\"hidden\" name=\"on5\" value=\"Company Name\">
 				<input type=\"hidden\" name=\"on4\" value=\"email\">
 				
@@ -102,18 +104,14 @@ function popup(){
 		}
 		
 	if($ASWEB){
-		$explain="<div style='font-size:14px' class=explain>{CORP_LICENSE_EXPLAIN}</div>";
-		$quotation="
-		
-				
-		<div class=explain>
-			<div style='font-size:16px;font-weight:bold'>{price_quote}:</div>
-			<div>
+		$explain="{CORP_LICENSE_EXPLAIN}<br><a href=\"http://www.artica.fr/proxy.comparative.php\" target=_new style='font-weight:bold;text-decoration:underline'>{click_here_comparative}</a>";
+		$quotation="<div style='font-size:16px;font-weight:bold;margin-top:15px'>{price_quote}:</div>
+			
 					<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:s_PopUpFull('http://www.proxy-appliance.org/index.php?cID=292','1024','900');\"
 				style=\"font-size:14px;font-weight;bold;text-decoration:underline\">{click_here_price_quote}</a>
 			</div>
-		</div>";
+		";
 		}
 	}
 	
@@ -121,11 +119,16 @@ function popup(){
 
 	
 	if($LicenseInfos["license_status"]==null){
+		$step=1;
+		$step_text="{ask_a_quote}";
+		
 		$LicenseInfos["license_status"]="{waiting_registration}";
 		$star="{explain_license_free}";
 		$button_text="{request_a_quote}/{refresh}";
 		$paypal=null;
 	}else{
+		$step=2;
+		$step_text="{waiting_order}";
 		$button_text="{update_the_request}";
 		$star="{explain_license_order}";
 		$paypal=$paypalform;
@@ -137,14 +140,25 @@ function popup(){
 		$unlocklick="<td style='font-size:16px;font-weight:bold'><input type='hidden' id='UNLOCKLIC-$t' value='{$LicenseInfos["UNLOCKLIC"]}'>{$LicenseInfos["UNLOCKLIC"]}</td>";
 	}	
 	
-	if($users->CORP_LICENSE){$star=null;$titleprice=null;}
+	if($users->CORP_LICENSE){
+		$star=null;$titleprice=null;
+		$step=3;
+		$step_text="{license_active}";
+	}
 	
 	if(is_numeric($LicenseInfos["TIME"])){
 		$tt=distanceOfTimeInWords($LicenseInfos["TIME"],time());
-	$last_access="	<tr>
-		<td class=legend style='font-size:16px'>{last_update}:</td>
-		<td style='font-size:16px'>$tt</td>
-	</tr>";	
+		$last_access="
+		<tr>
+			<td class=legend style='font-size:16px'>{last_update}:</td>
+			<td style='font-size:16px'>{since} $tt</td>
+		</tr>";	
+	}
+	
+	if(trim($LicenseInfos["license_number"])<>null){
+		
+		$explain="{explain_license_order}";
+		
 	}
 	
 	
@@ -152,61 +166,70 @@ function popup(){
 	$textcolor="black";
 	$bt="<hr>".button($button_text,"RegisterSave$t()",18);
 	if($users->CORP_LICENSE){
-			$CORP_LICENSE=1;$bt=null;
-			$textcolor="#23A83E";
-	
+		$CORP_LICENSE=1;$bt=null;
+		$textcolor="#23A83E";
+		$paypal=null;
 	}
 
-	
+	if($explain<>null){
+		$explain="<div style='font-size:14px' class=explain>$titleprice<br>$explain$quotation</div>";
+	}	
 	
 	
 	$html="
-	$titleprice
+	
 	$explain
 	$paypal
-	$quotation
-	<div id='$t'></div>
-	<table style='width:99%' class=form>
+	
+	<div id='$t' ></div>
+	<div  style='width:98%' class=form>
+	<table >
+<tr>
+	<td class=legend style='font-size:16px'>{step}:</td>
+	<td style='font-size:22px;font-weight:bold'>$step: $step_text<br></td>
+</tr>	
 	$last_access
+	
 	<tr>
 		<td class=legend style='font-size:16px'>{uuid}:</td>
 		<td style='font-size:16px'>$uuid</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>{company}:</td>
-		<td>". Field_text("COMPANY-$t",$LicenseInfos["COMPANY"],"font-size:16px;width:240px")."</td>
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:16px'>{your_email_address}:</td>
-		<td>". Field_text("EMAIL-$t",$LicenseInfos["EMAIL"],"font-size:16px;width:240px")."</td>
-	</tr>	
-	</tr>
-		<td class=legend style='font-size:16px'>{nb_employees}:</td>
-		<td>". Field_text("EMPLOYEES-$t",$LicenseInfos["EMPLOYEES"],"font-size:16px;width:80px")."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>{license_number}:</td>
-		<td style='font-size:16px'>{$LicenseInfos["license_number"]}</td>
-	</tr>
-	</tr>
-		<td class=legend style='font-size:16px'>{unlock_license}:</td>
-		$unlocklick
-	</tr>	
-	<tr>
-		<td class=legend style='font-size:16px'>{license_status}:</td>
-		<td style='font-size:16px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
-	</tr>			
-	<tr>
-		<td colspan=2 align='right'>$bt</td>
-	</tr>	
-	</table>
-	<div style='margin-top:15px'><i style='font-size:14px;font-weight:bold;color:#D91515'>*&nbsp;$star</i></div>
+</tr>
+<tr>
+	<td class=legend style='font-size:16px'>{company}:</td>
+	<td>". Field_text("COMPANY-$t",$LicenseInfos["COMPANY"],"font-size:16px;width:240px")."</td>
+</tr>	
+<tr>
+	<td class=legend style='font-size:16px'>{your_email_address}:</td>
+	<td>". Field_text("EMAIL-$t",$LicenseInfos["EMAIL"],"font-size:16px;width:240px")."</td>
+</tr>	
+</tr>
+	<td class=legend style='font-size:16px'>{nb_employees}:</td>
+	<td>". Field_text("EMPLOYEES-$t",$LicenseInfos["EMPLOYEES"],"font-size:16px;width:80px")."</td>
+</tr>
+<tr>
+	<td class=legend style='font-size:16px'>{license_number}:</td>
+	<td style='font-size:16px'>{$LicenseInfos["license_number"]}</td>
+</tr>
+</tr>
+	<td class=legend style='font-size:16px'>{unlock_license}:</td>
+	$unlocklick
+</tr>	
+<tr>
+	<td class=legend style='font-size:16px'>{license_status}:</td>
+	<td style='font-size:16px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
+</tr>			
+<tr>
+	<td colspan=2 align='right'>$bt</td>
+</tr>	
+</table></div>
+	
 	<script>
 	var x_RegisterSave$t= function (obj) {
 		var tempvalue=obj.responseText;
 		document.getElementById('$t').innerHTML='';
-		if(tempvalue.length>3){alert(tempvalue);return;}
+		YahooWin3Hide();
 		Loadjs('$page');
+		if(tempvalue.length>3){alert(tempvalue);return;}
 		CacheOff();
 		}	
 	
@@ -240,10 +263,14 @@ function popup(){
 function REGISTER(){
 	$sock=new sockets();
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
+	$WizardSavedSettings=unserialize(base64_decode($sock->GET_INFO("WizardSavedSettings")));
+	
 	while (list ($num, $ligne) = each ($_POST) ){
 		$LicenseInfos[$num]=$ligne;
+		$WizardSavedSettings[$num]=$ligne;
 	}
 	
+	$sock->SaveConfigFile(base64_encode(serialize($WizardSavedSettings)), "WizardSavedSettings");
 	$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?license-register=yes")));
 	

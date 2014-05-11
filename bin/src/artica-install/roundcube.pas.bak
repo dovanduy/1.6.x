@@ -270,7 +270,7 @@ SourceCOnf:='/etc/artica-postfix/settings/Daemons/RoundCubeLightHTTPD';
              logs.OutputCmd('/bin/cp '+SourceCOnf+' '+confFile);
          end;
      end;
-     DEBIAN_CONFIG();
+
      PHP_CONFIG();
      SavePlugins();
 

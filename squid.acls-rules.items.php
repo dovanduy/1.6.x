@@ -21,6 +21,7 @@ if(isset($_GET["items-list"])){items_list();exit;}
 if(isset($_POST["acl-rule-link"])){items_link();exit;}
 if(isset($_POST["acl-rule-link-delete"])){items_unlink();exit;}
 if(isset($_POST["acl-rule-link-negation"])){items_negation();exit;}
+if(isset($_POST["acl-rule-link-order"])){items_link_order();exit;}
 
 items_js();
 
@@ -76,9 +77,12 @@ $('#table-items-$t').flexigrid({
 	url: '$page?items-list=yes&ID=$ID&t=$t&aclid={$_GET["aclid"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$objects', name : 'gpid', width : 415, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'zOrder', width :20, sortable : true, align: 'center'},	
+		{display: '$objects', name : 'gpid', width : 311, sortable : true, align: 'left'},
 		{display: '$reverse', name : 'negation', width : 31, sortable : false, align: 'center'},
 		{display: '$items', name : 'items', width : 69, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'up', width :20, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'down', width :20, sortable : false, align: 'center'},		
 		{display: '&nbsp;', name : 'del', width : 31, sortable : false, align: 'center'},
 		
 	],
@@ -89,7 +93,7 @@ buttons : [
 	searchitems : [
 		{display: '$items', name : 'GroupName'},
 		],
-	sortname: 'GroupName',
+	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
 	title: '',
@@ -111,13 +115,13 @@ function LinkAddAclItem(){
 	Loadjs('squid.acls.groups.php?AddGroup-js=-1&link-acl={$_GET["aclid"]}&table-acls-t=$t');
 }
 
-	var x_LinkAclRuleGpid{$_GET["aclid"]}= function (obj) {
-		var res=obj.responseText;
-		if(res.length>3){alert(res);return;}
-		$('#table-items-$t').flexReload();
-		$('#table-$t').flexReload();
-		ExecuteByClassName('SearchFunction');
-	}	
+var x_LinkAclRuleGpid{$_GET["aclid"]}= function (obj) {
+	var res=obj.responseText;
+	if(res.length>3){alert(res);return;}
+	$('#table-items-$t').flexReload();
+	$('#table-$t').flexReload();
+	ExecuteByClassName('SearchFunction');
+}	
 
 function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
 		var XHR = new XHRConnection();
@@ -142,6 +146,15 @@ function LinkAclRuleGpid{$_GET["aclid"]}(gpid){
 		XHR.appendData('value', value);
 		XHR.sendAndLoad('$page', 'POST',x_LinkAclRuleGpid{$_GET["aclid"]});
 	}
+	
+function AclGroupUpDown(mkey,direction){
+	var XHR = new XHRConnection();
+	XHR.appendData('acl-rule-link-order', mkey);
+	XHR.appendData('direction', direction);
+	XHR.appendData('aclid', '{$_GET["aclid"]}');
+	XHR.sendAndLoad('$page', 'POST',x_LinkAclRuleGpid{$_GET["aclid"]});
+
+}
 
 	var x_DeleteObjectLinks= function (obj) {
 		var res=obj.responseText;
@@ -181,7 +194,7 @@ function items_link(){
 	$aclid=$_POST["acl-rule-link"];
 	$gpid=$_POST["gpid"];
 	$md5=md5($aclid.$gpid);
-	$sql="INSERT IGNORE INTO webfilters_sqacllinks (zmd5,aclid,gpid) VALUES('$md5','$aclid','$gpid')";
+	$sql="INSERT IGNORE INTO webfilters_sqacllinks (zmd5,aclid,gpid,zOrder) VALUES('$md5','$aclid','$gpid',1)";
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
@@ -201,9 +214,12 @@ function items_list(){
 
 	
 	$search='%';
-	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqacllinks.zmd5 as mkey,
+	$table="(SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,
+	webfilters_sqacllinks.zOrder,webfilters_sqacllinks.zmd5 as mkey,
 	webfilters_sqgroups.* FROM webfilters_sqacllinks,webfilters_sqgroups 
-	WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$ID) as t";
+	WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$ID
+	ORDER BY webfilters_sqacllinks.zOrder
+	) as t";
 	
 	$page=1;
 
@@ -217,11 +233,8 @@ function items_list(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
@@ -249,7 +262,7 @@ function items_list(){
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
+	if(mysql_num_rows($results)==0){json_error_show($q->mysql_error);}
 	$rules=$tpl->_ENGINE_parse_body("{rules}");
 	$acl=new squid_acls_groups();
 	
@@ -259,16 +272,53 @@ function items_list(){
 		$arrayF=$acl->FlexArray($ligne['ID']);
 		$delete=imgsimple("delete-24.png",null,"DeleteObjectLinks('$mkey')");
 		$negation=Field_checkbox("negation-$mkey", 1,$ligne["negation"],"ChangeNegation('$mkey')");
-		
+		$up=imgsimple("arrow-up-16.png","","AclGroupUpDown('$mkey',0)");
+		$down=imgsimple("arrow-down-18.png","","AclGroupUpDown('$mkey',1)");
+		if($ligne["zOrder"]==1){$up=null;}
+		if($ligne["zOrder"]==0){$up=null;}
 		
 	$data['rows'][] = array(
 		'id' => "$mkey",
-		'cell' => array($arrayF["ROW"],
+		'cell' => array($ligne["zOrder"],$arrayF["ROW"],
 		$negation,"<span style='font-size:14px;font-weight:bold'>{$arrayF["ITEMS"]}</span>",
-		$delete)
+		$up,$down,$delete)
 		);
 	}
 	
 	
 	echo json_encode($data);	
 }
+
+function items_link_order(){
+	$mkey=$_POST["acl-rule-link-order"];
+	$direction=$_POST["direction"];
+	$aclid=$_POST["aclid"];
+	$table="webfilters_sqacllinks";
+	//up =1, Down=0
+	$q=new mysql_squid_builder();
+	$sql="SELECT zOrder FROM webfilters_sqacllinks WHERE zmd5='$mkey'";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	
+	$OlOrder=$ligne["zOrder"];
+	if($direction==1){$NewOrder=$OlOrder+1;}else{$NewOrder=$OlOrder-1;}
+	$sql="UPDATE webfilters_sqacllinks SET zOrder='$OlOrder' WHERE zOrder='$NewOrder' AND aclid='$aclid'";
+//	echo $sql."\n";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	$sql="UPDATE webfilters_sqacllinks SET zOrder='$NewOrder' WHERE zmd5='$mkey'";
+	$q->QUERY_SQL($sql);
+//	echo $sql."\n";
+	if(!$q->ok){echo $q->mysql_error;}
+	
+	$results=$q->QUERY_SQL("SELECT zmd5 FROM webfilters_sqacllinks WHERE aclid='$aclid' ORDER BY zOrder");
+	$c=1;
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$zmd5=$ligne["zmd5"];
+		$q->QUERY_SQL("UPDATE webfilters_sqacllinks SET zOrder='$c' WHERE zmd5='$zmd5'");
+		$c++;
+		
+	}
+	
+	
+}
+

@@ -72,7 +72,7 @@ class piwik{
 			$testfile="$path$xpath";
 			if(!is_file($testfile)){
 				if(!is_dir($testfile)){
-					echo "echo Starting......: Apache $testfile No such file or directory\n";
+					echo "echo Starting......: ".date("H:i:s")." Apache $testfile No such file or directory\n";
 					return false;
 				}
 			}

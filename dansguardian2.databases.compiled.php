@@ -61,8 +61,16 @@ if(isset($_POST["global-toulouse-enable-update"])){global_status_tlse_enable();e
 if(isset($_POST["global-artica-enable-update"])){global_status_articadb_enable();exit;}
 if(isset($_POST["ScanThumbnails"])){ScanThumbnails();exit;}
 
+if(isset($_GET["articaufdb"])){articaufdb_table();exit;}
+if(isset($_GET["articaufdb-search"])){articaufdb_search();exit;}
+
 
 if(isset($_GET["statusDB"])){statusDB();exit;}
+if(isset($_GET["articaufdb"])){articaufdb_table();exit;}
+if(isset($_GET["articaufdb-search"])){articaufdb_search();exit;}
+
+
+
 
 tabs();
 
@@ -121,10 +129,14 @@ function delete_category(){
 	$q->QUERY_SQL("DELETE FROM usersisp_blkcatz WHERE category='$category'");
 	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
 	$q->QUERY_SQL("DROP TABLE category_$category");
+	$q->QUERY_SQL("DELETE FORM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($category)."'");
+	
 	if(!$q->ok){echo $q->mysql_error."\nDROP TABLE category_$category\nline:".__LINE__."\n";return;}
-	if($q->TABLE_EXISTS("$tableURI")){
-		$q->QUERY_SQL("DROP TABLE $tableURI");
-	}
+	if($q->TABLE_EXISTS("$tableURI")){$q->QUERY_SQL("DROP TABLE $tableURI");}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE `webfilters_categories_caches`");
+	
+	
 	$sock=new sockets();
 	$sock->getFrameWork("webfilter.php?compile-rules=yes");
 }
@@ -138,7 +150,7 @@ function statusDB(){
 	
 	if(!$users->ARTICADB_INSTALLED){
 		$html=FATAL_ERROR_SHOW_128("{ARTICADB_NOT_INSTALLED_EXPLAIN}")."<center style='margin:80px'>
-		<hr>".button("{install}", "Loadjs('squid.blacklist.upd.php')",16)."</center>";
+		<hr>".button("{install_now}", "Loadjs('squid.blacklist.upd.php')",16)."</center>";
 		echo $tpl->_ENGINE_parse_body($html);
 		return;
 	}
@@ -162,7 +174,7 @@ function statusDB(){
 		}
 	
 	$arrayV=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
-	$REMOTE_VERSION=$arrayV["ARTICATECH"]["VERSION"];
+	$REMOTE_VERSION=$arrayV["TIME"];
 	if($REMOTE_VERSION>$date){
 		$REMOTE_SIZE=$arrayV["ARTICATECH"]["SIZE"];	
 		$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
@@ -188,35 +200,48 @@ function statusDB(){
 	</tr>";		
 	}
 	
+	$DB_STATUS=unserialize(base64_decode($sock->getFrameWork("ufdbguard.php?databases-percent=yes")));
+	$DB_STATUS_TIME=$DB_STATUS["ARTICA"]["LAST_TIME"];
+	$DB_STATUS_MAX=$DB_STATUS["ARTICA"]["MAX"];
+	$DB_STATUS_COUNT=$DB_STATUS["ARTICA"]["COUNT"];
+	$DB_STATUS_PERC=round(($DB_STATUS_COUNT/$DB_STATUS_MAX)*100);
+	
 	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
 	$html="
-	<table style='width:99%' class=form>
+<div style='width:95%;min-height:254px' class=form>
+	<table style='width:99%'>
 	<tr>
 	<td valign='top'>$APP_ARTICADB</td>
 	<td valign='top'>
-	<table style='width:100%'>
-	<tbody>
-	<tr>
-		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)</div></td>
-	</tr>
-	$nextcheck_text
-	<tr>
-		<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;".count($catz)."</a></div></td>
-		
-	</tr>
-	<tr>
-		<td colspan=2><div style='font-size:16px'>{categorized_websites}:&nbsp;$items&nbsp</div></td>
-	</tr>
-	<tr>
-		<td colspan=2><div style='font-size:16px;font-weight:bold;margin-top:10px'>{mysql_engine}:</div></td>
-	</tr>	
-	".@implode("", $tt)."
-	</tbody>
-	</table>
+		<table style='width:100%'>
+			<tbody>
+			<tr>
+				<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)</div></td>
+			</tr>
+			$nextcheck_text
+			<tr>
+				<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;".count($catz)."</a></div></td>
+				
+			</tr>
+			<tr>
+				<td colspan=2><div style='font-size:16px'>{categorized_websites}:&nbsp;$items&nbsp</div></td>
+			</tr>
+			<tr>
+				<td colspan=2><div style='font-size:16px;font-weight:bold;margin-top:10px'>{mysql_engine}:</div></td>
+			</tr>	
+			".@implode("", $tt)."
+					
+			</tbody>
+		</table>
 	</td>
 	</tr>
+		<tr>
+			<td class=legend style='font-size:12px;font-weight:bold;$color'>{update_status}:</td>
+			<td>". pourcentage($DB_STATUS_PERC,0,"green")."</td>
+		</tr>		
 	</table>
+</div>
 	$updaebutton
 	";
 	echo $tpl->_ENGINE_parse_body($html);
@@ -305,7 +330,7 @@ function tabs(){
 	
 	
 	$array["status"]='{status}';
-	$array["categories"]='{categories}';
+	$array["categories"]='{all_categories}';
 	
 	//$array["events-status"]='{update_status}';
 	//$array["stats"]='{statistics}';	
@@ -415,7 +440,7 @@ $('#dansguardian2-category-$t').flexigrid({
 	url: '$page?category-search=yes&minisize={$_GET["minisize"]}&t=$t$artica',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'icon1', width : 32, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'icon1', width : 32, sortable : false, align: 'center'},
 		{display: '$category', name : 'table_name', width : $categorysize, sortable : false, align: 'left'},
 		{display: '$size', name : 'category', width : $size_size, sortable : false, align: 'left'},
 		{display: '$items', name : 'TABLE_ROWS', width : $size_elemnts, sortable : true, align: 'left'},
@@ -441,7 +466,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $tablewith,
+	width: '99%',
 	height: 350,
 	singleSelect: true
 	
@@ -538,7 +563,7 @@ function categories_search($forceArtica=false){
 	$artica=$forceArtica;
 	if(isset($_GET["artica"])){$artica=true;}
 	$tableSchema="squidlogs";
-	if(!$q->TestingConnection()){json_error_show("Testing connection to MySQL server failed...",1);}
+	if(!$q->BD_CONNECT()){json_error_show("Testing connection to MySQL server failed...",1);}
 	
 	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){$q->CheckTables();}
 	$dans=new dansguardian_rules();
@@ -651,7 +676,7 @@ function categories_search($forceArtica=false){
 		$sizedb=FormatBytes($sizedb_org/1024);
 		
 		
-		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t')\"
+		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t',true)\"
 		style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		$text_category=$dans->array_blacksites[$categoryname];
 		
@@ -661,13 +686,13 @@ function categories_search($forceArtica=false){
 		if(isset($PERSONALSCATS[$categoryname])){
 			$text_category=utf8_encode($PERSONALSCATS[$categoryname]);
 			if($pic=="&nbsp;"){$pic="<img src='img/20-categories-personnal.png'>";}
-			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t')\"
+			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t',true)\"
 			style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		}
 		
 		if($EnableWebProxyStatsAppliance==0){if($sizedb_org<35){$pic="<img src='img/warning-panneau-32.png'>";}}
 		
-		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");		
+		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}',true)");		
 		
 		$categoryText=$tpl->_ENGINE_parse_body("<div style='font-size:14px';font-weight:bold'>$linkcat$categoryname</div>
 		</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div>");
@@ -1120,12 +1145,10 @@ function events(){
 	$q=new mysql_squid_builder();
 	$sql="SELECT category FROM updateblks_events GROUP BY category ORDER BY category";
 	$results=$q->QUERY_SQL($sql);	
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$cat[$ligne["category"]]=$ligne["category"];
-	}
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$cat[$ligne["category"]]=$ligne["category"];}
 	$cat[null]="{select}";
 	
-$page=CurrentPageName();
+	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
 	$date=$tpl->_ENGINE_parse_body("{date}");
@@ -1320,8 +1343,15 @@ function PurgeCategoryTable(){
 	if($q->TABLE_EXISTS($_POST["PurgeCategoryTable"])){
 		echo "{$_POST["PurgeCategoryTable"]} -> drop...\n";
 		$q->QUERY_SQL("DROP TABLE `{$_POST["PurgeCategoryTable"]}`");
-		if(!$q->ok){echo $q->mysql_error;}
+		if(!$q->ok){
+			if(!strpos(strtolower($q->mysql_error), "unknown table")==0){
+				echo $q->mysql_error;
+			}
+		}
 	}
+	
+	$q->QUERY_SQL("TRUNCATE TABLE `webfilters_categories_caches`");
+	$q->QUERY_SQL("DELETE FORM webfilter_blkcnt WHERE `category` = '".mysql_escape_string2($categoryname)."'");
 	//if($norestore){$q->CreateCategoryTable(null,$_POST["PurgeCategoryTable"]);}
 	
 }
@@ -1630,7 +1660,8 @@ function global_statistics_db(){
 	$CountDeTables=$ligne["TableCount"];
 	$DatabaseSize=$ligne["dbsize"];	
 	$DatabaseSize=FormatBytes($DatabaseSize/1024);
-	$CountDeTables=numberFormat($CountDeTables,0,""," ");	
+	$CountDeTables=numberFormat($CountDeTables,0,""," ");
+	$sock=new sockets();	
 	
 	$sql="SELECT * FROM `mysqldbtables` WHERE tablename='webfilters_thumbnails' AND databasename='squidlogs'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -1640,9 +1671,15 @@ function global_statistics_db(){
 	$TableSize=FormatBytes($TableSize/1024);
 
 	//$items=numberFormat($items,0,""," ");	
+	$DB_STATUS=unserialize(base64_decode($sock->getFrameWork("ufdbguard.php?databases-percent=yes")));
 	
+	$DB_STATUS_TIME=$DB_STATUS["CATZ"]["LAST_TIME"];
+	$DB_STATUS_MAX=$DB_STATUS["CATZ"]["MAX"];
+	$DB_STATUS_COUNT=$DB_STATUS["CATZ"]["COUNT"];
+	$DB_STATUS_PERC=round(($DB_STATUS_COUNT/$DB_STATUS_MAX)*100);
 	
-	$tableau="<table style='width:99%' class=form>
+	$tableau="<div style='width:95%;min-height:254px' class=form>
+<table style='width:99%'>
 	<tbody>
 		<tr>
 			<td colspan=2 style='font-size:16px'>{statistics_database}</td>
@@ -1676,9 +1713,13 @@ function global_statistics_db(){
 			</tbody>
 			</table>
 		</tr>
-			
+				<tr>
+			<td class=legend style='font-size:12px;font-weight:bold;$color'>{update_status}:</td>
+			<td>". pourcentage($DB_STATUS_PERC,0,"green")."</td>
+		</tr>	
 	</tbody>
 	</table>
+</div>	
 	<script>
 	var xScanThumbnails= function (obj) {
 			var tempvalue=obj.responseText;
@@ -1738,7 +1779,12 @@ function global_status_tlse_db(){
 	$scheduledAR=unserialize(base64_decode($sock->getFrameWork("squid.php?schedule-maintenance-tlse=yes")));
 	$running="<br><i style='font-size:12px'>{update_task_stopped}</i>";
 	if($scheduledAR["RUNNING"]){$running="<br><i style='font-size:12px;color:#BA0000'>{update_currently_running_since} {$scheduledAR["TIME"]}Mn</i>";}
-		
+
+	$DB_STATUS=unserialize(base64_decode($sock->getFrameWork("ufdbguard.php?databases-percent=yes")));
+	$DB_STATUS_TIME=$DB_STATUS["TLSE"]["LAST_TIME"];
+	$DB_STATUS_MAX=$DB_STATUS["TLSE"]["MAX"];
+	$DB_STATUS_COUNT=$DB_STATUS["TLSE"]["COUNT"];
+	$DB_STATUS_PERC=round(($DB_STATUS_COUNT/$DB_STATUS_MAX)*100);
 	
 	$logo="univ-toulouse-64.png";
 	
@@ -1758,7 +1804,10 @@ function global_status_tlse_db(){
 	$items=numberFormat($items,0,""," ");	
 	
 	
-	$tableau="<table style='width:99%' class=form>
+	$tableau="
+
+<div style='width:95%;min-height:254px' class=form>
+<table style='width:99%'>
 	<tbody>
 		<tr>
 			<td colspan=2 style='font-size:16px'>{toulouse_university}$running</td>
@@ -1784,13 +1833,18 @@ function global_status_tlse_db(){
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
 				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:TlseDisable();\" style='font-size:12px;$color;text-decoration:underline'>$disable_text</a></td>
-			</tr>						
+			</tr>
+									
 			</tbody>
 			</table>
 		</tr>
-			
+		<tr>
+			<td class=legend style='font-size:12px;font-weight:bold;$color'>{update_status}:</td>
+			<td>". pourcentage($DB_STATUS_PERC,0,"green")."</td>
+		</tr>		
 	</tbody>
 	</table>
+	</div>
 	<script>
 	var xToulouseDBUpdateNow= function (obj) {
 			var tempvalue=obj.responseText;
@@ -1841,6 +1895,7 @@ function global_status_artica_db(){
 	$page=CurrentPageName();
 	$date=GetLastUpdateDate();
 	$users=new usersMenus();
+	$sock=new sockets();
 	$q=new mysql();
 	$sql="SELECT avg(progress) as pourcent FROM updates_categories  WHERE filesize>0";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
@@ -1848,6 +1903,14 @@ function global_status_artica_db(){
 	$pourcent=round($ligne["pourcent"],2);
 	$purc=pourcentage($pourcent);
 	$t=$_GET["t"];
+	$dateDB=$sock->getFrameWork("squid.php?articadb-version=yes");
+	
+	
+	$DB_STATUS=unserialize(base64_decode($sock->getFrameWork("ufdbguard.php?databases-percent=yes")));
+	$DB_STATUS_TIME=$DB_STATUS["ARTICA"]["LAST_TIME"];
+	$DB_STATUS_MAX=$DB_STATUS["ARTICA"]["MAX"];
+	$DB_STATUS_COUNT=$DB_STATUS["ARTICA"]["COUNT"];
+	$DB_STATUS_PERC=round(($DB_STATUS_COUNT/$DB_STATUS_MAX)*100);
 	
 	
 	$color="color:black;";
@@ -1888,11 +1951,12 @@ function global_status_artica_db(){
 	$sql="SELECT SUM(size) as tszie FROM webfilters_backupeddbs";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	$backuped_items_size=FormatBytes($ligne["tszie"]/1024);
-	
 	$backuped_items_text="$backuped_items {backup_containers} ($backuped_items_size)";
 	
 	
-	$tableau="<table style='width:99%' class=form>
+	$tableau="
+	<div style='width:95%;min-height:254px' class=form>
+	<table style='width:99%'>
 	<tbody>
 		<tr>
 			<td colspan=2 style='font-size:16px;$color'>{artica_databases}$running</td>
@@ -1924,23 +1988,40 @@ function global_status_artica_db(){
 							OnClick=\"javascript:Loadjs('dansguardian2.restore.databases.php?empty-js=yes');\" 
 							style='font-size:12px;text-decoration:underline'>{empty_database}</a>
 							</td>
-						</tr>														
+						</tr>
+						<tr>
+							<td width=1%><img src='img/arrow-right-16.png'>
+							<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule');\" style='font-size:12px;text-decoration:underline;$color'>{compilation_schedule}</a></td>
+						</tr>																				
 				</table>
 			</td>			
 		<tr>
 			<td class=legend style='font-size:14px;font-weight:bold;$color'>{articaitems}:</td>
-			<td style='font-size:14px;font-weight:bold;$color'>$itemsArtica</td>
+			<td style='font-size:14px;font-weight:bold;$color'>$itemsArtica v.$dateDB</td>
 		</tr>
+		<tr>
+			<td class=legend style='font-size:12px;font-weight:bold;$color'>{update_status}:</td>
+			<td>". pourcentage($DB_STATUS_PERC,0,"green")."</td>
+		</tr>		
+
+		
 
 	
 		<tr>
 			<td colspan=2 style='font-size:14px' align='right'>
 			<table style='width:2%'>
 			<tbody>
-						<tr>
-							<td width=1%><img src='img/arrow-right-16.png'>
-							<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBDisable();\" style='font-size:12px;text-decoration:underline;$color'>$disable_text</a></td>
-						</tr>			
+			
+				<tr>
+					<td width=1%><img src='img/arrow-right-16.png'>
+					<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBDisable();\" style='font-size:12px;text-decoration:underline;$color'>$disable_text</a></td>
+				</tr>	
+				<tr>
+					<td width=1%><img src='img/arrow-right-16.png'>
+					<td nowrap><a href=\"javascript:blur();\" 
+						OnClick=\"javascript:Loadjs('squid.categories.php?onlyDB=yes',true);\" 
+						style='font-size:12px;text-decoration:underline;$color'>{status}/{schedule}</a></td>
+				</tr>						
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
 				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBUpdateNow();\" style='font-size:12px;text-decoration:underline;$color'>{update_now}</a></td>
@@ -1949,16 +2030,15 @@ function global_status_artica_db(){
 				<td width=1%><img src='img/arrow-right-16.png'>
 				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php');\" style='font-size:12px;text-decoration:underline;$color'>{display_update_events}</a></td>
 			</tr>	
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule');\" style='font-size:12px;text-decoration:underline;$color'>{compilation_schedule}</a></td>
-			</tr>						
+						
 			</tbody>
 			</table>
+			
 		</tr>
 			
 	</tbody>
 	</table>
+	</div>
 	<script>
 	var x_ArticaDBUpdateNow= function (obj) {
 			var tempvalue=obj.responseText;
@@ -2092,7 +2172,7 @@ function instant_update_weekly(){
 	$gp->line_green();
 	if(is_file($targetedfile)){
 		$html[]=$tpl->_ENGINE_parse_body("<center style='font-size:13px;margin-top:8px'>{graph_instant_update_squid_byday}</center>");
-		$html[]="<center style='width:95%' class=form><img src='$targetedfile?t=$t'></center>";
+		$html[]="<center style='width:98%' class=form><img src='$targetedfile?t=$t'></center>";
 		
 		
 	}	
@@ -2164,7 +2244,7 @@ function instant_update_daily(){
 	$gp->line_green();
 	if(is_file($targetedfile)){
 		$html[]=$tpl->_ENGINE_parse_body("<center style='font-size:13px;margin-top:8px'>{graph_instant_update_squid_byhour}</center>");
-		$html[]="<center style='width:95%' class=form><img src='$targetedfile'></center>";
+		$html[]="<center style='width:98%' class=form><img src='$targetedfile'></center>";
 	}
 	
 	}
@@ -2200,4 +2280,166 @@ function enable_clamav_global(){
 	
 }
 
-
+function articaufdb_table(){
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	
+	if(!$users->CORP_LICENSE){
+		echo $tpl->_ENGINE_parse_body("<p class=text-error>{onlycorpavailable}</p>");
+		return;
+		
+	}
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT category FROM updateblks_events GROUP BY category ORDER BY category";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){$cat[$ligne["category"]]=$ligne["category"];}
+	$cat[null]="{select}";
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$date=$tpl->javascript_parse_text("{date}");
+	$category=$tpl->javascript_parse_text("{category}");
+	$add=$tpl->javascript_parse_text("{add}");
+	
+	$verify=$tpl->javascript_parse_text("{analyze}");
+	$events=$tpl->javascript_parse_text("{events}");
+	$squid_test_categories_explain=$tpl->javascript_parse_text("{squid_test_categories_explain}");
+	$import=$tpl->javascript_parse_text("{import}");
+	$size=$tpl->javascript_parse_text("{size}");
+	
+	$title=$tpl->javascript_parse_text("Artica: {web_filtering}: {versions}");
+	
+	$buttons="
+	buttons : [
+	{name: '$category', bclass: 'Catz', onpress : ChangeCategory$t},
+	
+	],";
+	$buttons=null;
+	$html="
+	<table class='$t' style='display: none' id='$t' style='width:100%'></table>
+	<script>
+	var xsite='';
+	$(document).ready(function(){
+	$('#$t').flexigrid({
+	url: '$page?articaufdb-search=yes',
+			dataType: 'json',
+			colModel : [
+			{display: '&nbsp;', name : 'icon', width : 24, sortable : false, align: 'center'},
+			{display: '$category', name : 'category', width : 528, sortable : true, align: 'left'},
+			{display: '$date', name : 'filtime', width : 161, sortable : true, align: 'left'},
+			{display: '$size', name : 'size', width : 158, sortable : true, align: 'left'},
+			],
+			$buttons
+			searchitems : [
+			{display: '$category', name : 'category'},
+			],
+			sortname: 'filtime',
+			sortorder: 'desc',
+			usepager: true,
+			title: '$title',
+			useRp: true,
+			rp: 50,
+			showTableToggleBtn: false,
+			width: '99%',
+			height: 450,
+			singleSelect: true,
+			rpOptions: [10, 20, 30, 50,100,200]
+	
+	});
+	});
+	
+	function ChangeCategory$t(){
+	
+	}
+	
+	</script>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	//webfilters_databases_disk
+	
+}
+function articaufdb_search(){
+	$Mypage=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$table="webfilters_databases_disk";
+	$FORCE=1;
+	
+	if($q->COUNT_ROWS($table)==0){json_error_show("No data");}
+	
+	
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	
+	
+	if($_POST["query"]<>null){
+		$_POST["query"]="*".trim($_POST["query"])."*";
+		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
+		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
+		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
+		$search=$_POST["query"];
+		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+		$sql="SELECT * FROM $table WHERE $FORCE $searchstring";
+		$results=$q->QUERY_SQL($sql);
+		$total = mysql_num_rows($results);
+		writelogs("$sql = `$total`",__FUNCTION__,__FILE__,__LINE__);
+	}else{
+		$sql="SELECT COUNT(*) AS TCOUNT FROM $table WHERE $FORCE";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		$total = $ligne["TCOUNT"];
+	}
+	
+	$style="style='font-size:16px;'";
+	
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT * FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	$results = $q->QUERY_SQL($sql);
+	
+	
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	
+	if(!$q->ok){json_error_show($q->mysql_error."<br>$sql");}
+	$dans=new dansguardian_rules();
+	
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+	
+			$filtime=date("Y-m-d H:i:s",$ligne["filtime"]);
+			$size=FormatBytes($ligne["size"]/1024);
+			
+			$icon=$dans->array_pics[$ligne["category"]];
+			if(!is_file("img/$icon")){
+				$icon="info-18.png";
+			}
+			$explain=$tpl->javascript_parse_text($dans->array_blacksites[$ligne["category"]]);
+			$data['rows'][] = array(
+	'id' => md5("{$ligne["zDate"]}{$ligne["text"]}"),
+			'cell' => array(
+					"<img src='img/$icon'>",
+					 "<span $style>{$ligne["category"]}</span><div>$explain</div>",
+					 "<span $style>$filtime</span>",
+					 "<span $style>$size</span>",
+					 		
+						)
+					 );
+	
+	
+	}
+	 echo json_encode($data);	
+	
+}

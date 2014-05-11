@@ -83,7 +83,7 @@ class httpd{
 			$infos="Auth mode: PopUp\n";
 		}else{$infos="Auth mode: Form\n";}
 		
-		echo $tpl->javascript_parse_text("{success}\n$infos{interface_restarted}\n");
+		echo $tpl->javascript_parse_text("{success}\n$infos{interface_restarted}\n",1);
 		$sock=new sockets();
 		$sock->getFrameWork('services.php?restart-lighttpd=yes');
 		

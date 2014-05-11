@@ -98,6 +98,8 @@ $html="
 
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.blockUI.js\"></script>
 		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.treeview.min.js\"></script>
+		<script type=\"text/javascript\" language=\"javascript\" src=\"js/jquery.uilock.min.js\"></script>
+		<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 		<!-- js Artica  -->
 		
 

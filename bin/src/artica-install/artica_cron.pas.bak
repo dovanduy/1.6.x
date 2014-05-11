@@ -106,126 +106,7 @@ begin
      result:=pid;
 end;
 //##############################################################################
-procedure tcron.START();
-var
-   l:TstringList;
-   pid:string;
-   parms:string;
-   count:integer;
-   kas3:tkas3;
-   mem:integer;
-   processNumber:integer;
-   cpunum:integer;
-   systemForkProcessesNumber:integer;
-begin
-  WATCHDOG_START();
-  pid:=PID_NUM();
-  processNumber:=1;
-  if not  TryStrToInt(SYS.GET_INFO('systemForkProcessesNumber'),systemForkProcessesNumber) then systemForkProcessesNumber:=0;
-  count:=0;
 
-
-  if not SYS.TEST_IONICE() then begin
-      logs.DebugLogs('Starting......: it seems that ionice failed, artica will not use ionice');
-      SYS.set_INFO('useIonice','0');
-  end;
-
-
-   if SYS.PROCESS_EXIST(pid) then begin
-      logs.DebugLogs('Starting......: Daemon (fcron) is already running using PID ' + pid + '...');
-      exit;
-   end;
-   
-  kas3:=tkas3.Create(SYS);
-  kas3.CHANGE_CRONTAB();
-   
-   
-  logs.DebugLogs('Starting......: Daemon (fcron)');
-  fpsystem('/bin/rm -rf /etc/artica-postfix/spool');
-  forceDirectories('/etc/artica-cron/spool');
-  forceDirectories('/usr/share/artica-cron');
-  l:=Tstringlist.Create;
-  l.Add('fcrontabs=/etc/artica-cron/spool');
-  l.Add('pidfile=/var/run/artica-postfix.pid');
-  l.Add('fifofile=/etc/artica-cron/artica-postfix.fifo');
-  l.Add('fcronallow=/etc/artica-cron/artica-postfix.allow');
-  l.Add('fcrondeny=/etc/artica-cron/artica-postfix.deny');
-  l.Add('shell=/bin/sh');
-  l.SaveToFile('/etc/artica-cron/artica-cron.conf');
-  l.SaveToFile('/etc/artica-cron/fcron.conf');
-
-   l.free;
-  fpsystem('/bin/chown root:root /etc/artica-cron/artica-cron.conf');
-  fpsystem('/bin/chown root:root /etc/artica-cron/fcron.conf');
-  fpsystem('/bin/chown -R root:root /etc/artica-cron/spool');
-  fpsystem('/bin/chmod 600 /etc/artica-cron/artica-cron.conf');
-  fpsystem('/bin/chmod 600 /etc/artica-cron/fcron.conf');
-
-  mem:=SYS.MEM_TOTAL_INSTALLEE();
-  cpunum:=SYS.CPU_NUMBER();
-  if mem=0 then mem:=516300;
-  // 256 = 255436
-  // 512 = 516300
-  // 1G = 1002252
-
-if systemForkProcessesNumber=0 then begin
-  if mem>255436 then begin
-      if cpunum<2 then processNumber:=1;
-  end;
-
-   if mem>516300 then begin
-      processNumber:=3;
-      if cpunum<2 then processNumber:=1;
-  end;
-
-   if mem>1002252 then begin
-      processNumber:=4;
-      if cpunum<2 then processNumber:=2;
-  end;
-
-  if mem>2004504 then begin
-     processNumber:=6;
-     if cpunum<4 then processNumber:=4;
-  end;
-  if processNumber>4 then processNumber:=4;
-
-  SYS.SET_INFO('systemForkProcessesNumber',IntToStr(processNumber))
-
-end else begin
-   processNumber:=systemForkProcessesNumber;
-end;
-
-
-
-  parms:=artica_path + '/bin/artica-cron --configfile /etc/artica-cron/artica-cron.conf --background --savetime 1800 --maxserial '+intToStr(processNumber)+' --firstsleep 10';
-  Save_processes();
-
-  logs.DebugLogs('Starting......: Daemon (fcron) CPU(s):'+IntToStr(cpunum)+' Memory:'+IntTOstr(round(mem div 1024))+' Mb');
-  logs.DebugLogs('Starting......: Daemon (fcron) ' + intToStr(processNumber)+' processe(s) number at the same time');
-  logs.OutputCmd(SYS.EXEC_NICE()+artica_path + '/bin/artica-iso &');
-  
-  logs.OutputCmd(parms);
-  logs.DebugLogs('tcron.START(): delete root config');
-  logs.DeleteFile('/etc/artica-cron/spool/root');
-  
-  while not SYS.PROCESS_EXIST(PID_NUM()) do begin
-        sleep(500);
-        count:=count+1;
-        logs.DebugLogs('tcron.START(): wait sequence ' + intToStr(count));
-        if count>20 then begin
-            logs.DebugLogs('Starting......: Daemon (fcron) failed...');
-            exit;
-        end;
-  end;
-  logs.DebugLogs('Starting......: Installing crontab');
-  logs.OutputCmd(artica_path + '/bin/fcrontab -c /etc/artica-cron/artica-cron.conf -z root');
-  logs.Syslogs('Success starting artica-cron daemon...');
-  logs.DebugLogs('Starting......: Daemon (fcron) success...');
-  fpsystem('/usr/share/artica-postfix/bin/fcronsighup /etc/artica-cron/artica-cron.conf');
-  fpsystem('/usr/share/artica-postfix/bin/fcronsighup /etc/artica-cron/artica-watchdog.conf');
-
-end;
-//##############################################################################
 procedure tcron.WATCHDOG_START();
 var
    l:TstringList;
@@ -233,7 +114,7 @@ var
    parms:string;
    count:integer;
 begin
-
+  exit;
   pid:=WATCHDOG_PID_NUM();
   count:=0;
    if SYS.PROCESS_EXIST(pid) then begin
@@ -539,64 +420,6 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
       if systemMaxOverloaded<2 then systemMaxOverloaded:=6;
 
 
-     logs.WriteToFile('@reboot		root	/sbin/modprobe cifs && echo 0 > /proc/fs/cifs/OplockEnabled'+CRLF,'/etc/cron.d/cifs-fix');
-     logs.WriteToFile('@reboot		root	'+php5bin+' /usr/share/artica-postfix/exec.schedules.php >/dev/null 2>&1'+CRLF,'/etc/cron.d/schedules');
-
-
-
-      logs.DebugLogs('Starting......: Daemon (fcron) tasks will be stopped if load is up to '+INtTOStr(systemMaxOverloaded));
-
-      if FileExists('/etc/artica-postfix/artica-backup.conf') then begin
-         ini:=TiniFile.Create('/etc/artica-postfix/artica-backup.conf');
-          logs.DebugLogs('tcron.Save_processes() get ArticaBackupEnabled configuration');
-         if SYS.GET_INFO('ArticaBackupEnabled')='1' then begin
-            backup_time:=ini.ReadString('backup','backup_time','03:00');
-            RegExpr:=TRegExpr.Create;
-            RegExpr.Expression:='([0-9]+):([0-9]+)';
-
-
-            if RegExpr.Exec(backup_time) then begin
-               backup_hour:=RegExpr.Match[1];
-               backup_min:=RegExpr.Match[2];
-               if not TryStrToInt(backup_hour,backup_hour_int) then begin
-                     logs.DebugLogs('Starting......: Daemon (cron) failed to int ' + backup_hour + '(assume 3)');
-                     backup_hour_int:=3;
-               end;
-
-               if not TryStrToInt(backup_min,backup_min_int) then begin
-                     logs.DebugLogs('Starting......: Daemon (cron) failed to int ' + backup_min + '(assume 0)');
-                     backup_min_int:=0;
-               end;
-
-               logs.DebugLogs('Starting......: Daemon (cron) backup time every day at '+IntToStr(backup_hour_int) +'h'+IntToStr(backup_min_int)+'mn');
-               SYS.CRON_CREATE_SCHEDULE(IntToStr(backup_min_int)+' '+IntToStr(backup_hour_int)+' * * * ',cmdnice+artica_path+'/bin/artica-backup --backup >/dev/null 2>&1','artica-cron-backup');
-            end;
-
-         end;
-      end;
-
-
-      if FileExists('/etc/cron.d/artica-cron-pflogsumm') then logs.DeleteFile('/etc/cron.d/artica-cron-pflogsumm');
-
-      if FileExists('/etc/artica-postfix/settings/Daemons/pflogsumm') then begin
-           ini:=TiniFile.Create('/etc/artica-postfix/settings/Daemons/pflogsumm');
-           schedule_time:=ini.ReadString('SETTINGS','schedule','');
-           if length(schedule_time)>0 then begin
-             logs.DebugLogs('Starting......: Daemon (cron) set pflogsumm reports schedule...');
-             SYS.CRON_CREATE_SCHEDULE(schedule_time,cmdnice+php5bin +' '+artica_path+'/exec.postfix.reports.php','artica-cron-pflogsumm');
-           end;
-      end;
-
-
-      PostfixPostmaster:=SYS.GET_INFO('PostfixPostmaster');
-      if length(PostfixPostmaster)=0 then PostfixPostmaster:='root';
-      squid:=Tsquid.Create;
-
-      l.Add('!mailto('+PostfixPostmaster+')');
-      l.add('!serial(true),b(0)');
-      if length(backup_command)>0 then begin
-          l.Add(backup_command);
-      end;
 
 
 
@@ -609,138 +432,7 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
 
 
 
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 3  ' +cmdnice+artica_path+'/bin/process1');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.rsync.events.php');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 11 ' +cmdnice+ ' ' +artica_path+'/artica-install --usb-scan-write');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 15 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.ipband.php --status');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 7 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.dnsmasq.php --varrun');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 4 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.watchdog.php --monit');
-
-
-
-
-
-
-      if SYS.MEM_TOTAL_INSTALLEE()<400000 then begin
-          ArticaStatusadded:=true;
-          logs.DebugLogs('Starting......: Daemon (fcron) switch to very lower config');
-
-          l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 5 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.executor.php');
-          l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10s ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.parse-orders.php');
-      end;
-
-      if not ArticaStatusadded then begin
-         if EnableArticaStatus=0 then begin
-            logs.DebugLogs('Starting......: Daemon (fcron) execute periodically exec.status.php (Artica Status)');
-
-         end;
-
-         if EnableArticaExecutor=0 then begin
-             logs.DebugLogs('Starting......: Daemon (fcron) execute periodically exec.executor.php (Artica executor)');
-             l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 5 ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.executor.php');
-
-         end;
-         if EnableArticaBackground=0 then begin
-              logs.DebugLogs('Starting......: Daemon (fcron) execute periodically exec.parse-orders.php (Artica orders)');
-              l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10s ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.parse-orders.php --manual');
-         end;
-      end;
-
-
-// ---------------------------------- artica-learn ---------------------------------------------------------------------------------------------------------
-      spamass:=Tspamass.Create(SYS);
-      if FileExists(spamass.SPAMASSASSIN_BIN_PATH()) then begin
-         cyrus:=Tcyrus.Create(SYS);
-         if FIleExists(cyrus.CYRUS_DAEMON_BIN_PATH()) then begin
-             logs.DebugLogs('Starting......: Daemon (fcron) set sa-learn for cyrus each 3h');
-            l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 3h ' +cmdnice+php5bin+ ' ' +artica_path+'/exec.sa-learn-cyrus.php --execute');
-         end;
-      end;
-
-// ---------------------------------- fetchmail ---------------------------------------------------------------------------------------------------------
-
-      if FileExists('/etc/artica-postfix/fetchmail.schedules') then begin
-          fetchmailrcs:=Tstringlist.Create;
-          fetchmailrcs.LoadFromFile('/etc/artica-postfix/fetchmail.schedules');
-          logs.DebugLogs('Starting......: Daemon (fcron) set fetchmail '+IntTOStr(fetchmailrcs.Count) +' schedules');
-          for i:=0 to fetchmailrcs.Count-1 do begin
-               if length(trim(fetchmailrcs.Strings[i]))>0 then begin
-                   l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') '+fetchmailrcs.Strings[i]);
-               end;
-          end;
-      end;
-
-
-      fetchmail:=tfetchmail.Create(SYS);
-      if FileExists(fetchmail.FETCHMAIL_BIN_PATH()) then begin
-         logs.DebugLogs('Starting......: Daemon (fcron) set fetchmail injector schedule');
-         l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 2 '+cmdnice+php5bin+ ' ' +artica_path+'/exec.fetchmail.sql.php');
-      end;
-      fetchmail.free;
 // -------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// ---------------------------------- drupal -----------------------------
-   if DirectoryExists('/usr/share/drupal') then begin
-        logs.DebugLogs('Starting......: Daemon (fcron) set drupal maintenance each 5 Hours');
-       l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 5h '+cmdnice+php5bin+ ' ' +artica_path+'/exec.drupal.php --cron');
-   end;
-// -----------------------------------------------------------------------
-
-
-// ---------------------------------- BACKUP ---------------------------------------------------------------------------------------------------------
-
-      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.backup.php --no-reload');
-      if FileExists('/etc/artica-postfix/backup.tasks') then begin
-          backups:=Tstringlist.Create;
-          try
-             backups.LoadFromFile('/etc/artica-postfix/backup.tasks');
-             for i:=0 to backups.Count-1 do begin
-                  l.Add(backups.Strings[i]);
-             end;
-          except
-            logs.DebugLogs('Starting......: Daemon (fcron) Error set backup tasks');
-          end;
-          logs.DebugLogs('Starting......: Daemon (fcron) set ' +IntToStr(backups.Count)+' backup tasks');
-          backups.free;
-      end;
-
-// ------------------------------------------------REPORTS-------------------------------------------------------------------------------------------
-      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.report.director.php --schedules');
-      if FileExists('/etc/artica-postfix/reports.tasks') then begin
-          backups:=Tstringlist.Create;
-          try
-             backups.LoadFromFile('/etc/artica-postfix/reports.tasks');
-             for i:=0 to backups.Count-1 do begin
-                  l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+')  '+backups.Strings[i]);
-             end;
-          except
-            logs.DebugLogs('Starting......: Daemon (fcron) Error set report tasks');
-          end;
-          logs.DebugLogs('Starting......: Daemon (fcron) set ' +IntToStr(backups.Count)+' backup tasks');
-          backups.free;
-      end;
-
-// --------------------------------MLDONKEY-----------------------------------------------------------------------------------------------------
-
-
-      if FileExists(SYS.LOCATE_GENERIC_BIN('mlnet')) then begin
-            fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.fcron.php --schedules-mldonkey');
-            if FileExists('/etc/artica-postfix/mldonkey.tasks') then begin
-               backups:=Tstringlist.Create;
-               try
-                backups.LoadFromFile('/etc/artica-postfix/mldonkey.tasks');
-                for i:=0 to backups.Count-1 do begin
-                    if length(backups.Strings[i])>0 then begin
-                        l.Add('@'+nolog+'  '+backups.Strings[i]);
-                    end;
-                end;
-              except
-                    logs.DebugLogs('Starting......: Daemon (fcron) Error set MLDonkey settings tasks');
-              end;
-          logs.DebugLogs('Starting......: Daemon (fcron) set ' +IntToStr(backups.Count)+' MLDonkey settings tasks');
-          backups.free;
-      end;
-    end;
 
 
 
@@ -751,41 +443,10 @@ if Not FileExists('/root/fcron/bin/fcronsighup') then fpsystem(SYS.LOCATE_GENERI
           l.Add(trim(logs.ReadFromFile('/etc/artica-postfix/ad-import/'+SYS.DirListFiles.Strings[i])));
       end;
 
-// ---------------------------------- WIFI ---------------------------------------------------------------------------------------------------------
-if not TryStrToInt(SYS.GET_INFO('WifiAPEnable'),WifiAPEnable) then WifiAPEnable:=0;
-if WifiAPEnable=1 then begin
-      logs.DebugLogs('Starting......: Daemon (cron) Activate WIFI Client connection watchdog');
-      l.Add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 5 '+cmdnice+php5bin+ ' ' +artica_path+'/exec.wifi.detect.cards.php --checkap');
-end;
 
-
-l.add('@'+Nicet+nolog+',lavg1('+IntToStr(systemMaxOverloaded)+') 10 '+ SYS.LOCATE_GENERIC_BIN('nohup')+' /etc/init.d/artica-postfix start all >/dev/null 2>&1 &');
-
-
-
-      if EnableMilterSpyDaemon=1 then begin
-           logs.DebugLogs('Starting......: Daemon (fcron) enable mailspy statistics');
-           if FileExists('/usr/local/bin/cronspy.sh') then begin
-              fpsystem('/bin/chmod 777 /usr/local/bin/cronspy.sh');
-              l.Add('@'+Nicet+' 15 /usr/local/bin/cronspy.sh hourly');
-              l.Add('@'+Nicet+' 5h /usr/local/bin/cronspy.sh daily');
-              l.Add('@'+Nicet+' 10h /usr/local/bin/cronspy.sh weekly');
-           end;
-      end;
-      
-
-
-
-      if RetranslatorEnabled=1 then begin
-           logs.DebugLogs('Starting......: Daemon (fcron) enable kaspersky retranslator each '+IntToStr(RetranslatorCronMinutes)+' minutes');
-           l.Add('@'+Nicet+' '+IntToStr(RetranslatorCronMinutes) +' '+ artica_path+'/bin/artica-update --retranslator');
-      end;
 
       //tous les 5 jours Ã 2H30 
       SYS.CRON_CREATE_SCHEDULE('30 2 1,5,10,15,20,30 * *','/usr/share/artica-postfix/bin/artica-make APP_CLAMAV','artica-cron-clamvupd');
-
-      //A 23h00
-      //SYS.CRON_CREATE_SCHEDULE('0 23 * * *',cmdnice+artica_path+'/bin/artica-install --dansguardian-stats','artica-cron-dansguardian');
 
       //A 2H
       SYS.CRON_CREATE_SCHEDULE('0 2 * * *',cmdnice+php5bin+ ' ' +artica_path+'/exec.smtp.events.clean.php','artica-clean-smtplogs');
@@ -1092,8 +753,6 @@ function tcron.STATUS():string;
 var pidpath:string;
 begin
 
-SYS.MONIT_DELETE('APP_ARTICA');
-SYS.MONIT_DELETE('APP_ARTICA_WATCHDOG');
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --fcron >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

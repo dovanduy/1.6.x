@@ -39,7 +39,7 @@ function main_page(){
 	$tplfile="ressources/templates/endusers/index.html";
 	if(!is_file($tplfile)){echo "$tplfile no such file";die();}
 	$content=@file_get_contents($tplfile);
-	$content=str_replace("{SCRIPT}", "<script>LoadAjax('globalContainer','$page?content=yes&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}')</script>", $content);
+	$content=str_replace("{SCRIPT}", "<script>LoadAjax('globalContainer','$page?content=yes&year={$_GET["year"]}&month={$_GET["month"]}&day={$_GET["day"]}',true)</script>", $content);
 	echo $content;	
 }
 function content(){

@@ -11,14 +11,24 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["JUST_PING"]=false;
 $GLOBALS["OUTPUT"]=false;
 $GLOBALS["AS_ROOT"]=true;
+$GLOBALS["WRITEPROGRESS"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;echo "VERBOSED !!! \n";}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#--checks#",implode(" ",$argv))){$GLOBALS["CHECKS"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".pid";
+
 $unix=new unix();
+$sock=new sockets();
+
+if(isset($argv[1])){
+	$DisableWinbindd=$sock->GET_INFO("DisableWinbindd");
+	if(!is_numeric($DisableWinbindd)){$DisableWinbindd=0;}
+	if($DisableWinbindd==1){progress_logs(100,"{join_activedirectory_domain}","You have defined that the Winbindd daemon is disabled, this feature cannot be used");die();}
+}
+
 if($argv[1]=='--fstab'){winbindisacl();die();}
 
 if($argv[1]=="--klist"){ping_klist();die();}
@@ -39,11 +49,14 @@ if($argv[1]=='--refresh-ticket'){refresh_ticket();die();}
 if($argv[1]=='--disconnect'){disconnect();exit;}
 if($argv[1]=='--ntpdate'){sync_time(true);exit;}
 if($argv[1]=='--resolv'){PatchResolvConf($argv[2]);exit;}
+if($argv[1]=='--build-progress'){$GLOBALS["WRITEPROGRESS"]=true;build_progress();exit;}
+if($argv[1]=='--users'){GetUsersNumber();exit;}
+
 
 
 
 unset($argv[0]);
-echo "Unable to understand ".@implode(" ", $argv)."\n";
+progress_logs(100,"{join_activedirectory_domain}","Unable to understand ".@implode(" ", $argv)."");
 
 
 function refresh_ticket($nopid=false){
@@ -60,7 +73,7 @@ function refresh_ticket($nopid=false){
 		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 		if($timeExec>5){
 			$kill=$unix->find_program("kill");
-			system_admin_events("Starting......: killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
+			system_admin_events("killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
 			shell_exec("$kill -9 $oldpid >/dev/null");
 		}else{
 			return;
@@ -101,7 +114,7 @@ function refresh_ticket($nopid=false){
 }
 
 
-function build_kerberos(){
+function build_kerberos($progress=0){
 	$unix=new unix();
 	$sock=new sockets();
 	$function=__FUNCTION__;
@@ -114,7 +127,7 @@ function build_kerberos(){
 		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 		if($timeExec>5){
 			$kill=$unix->find_program("kill");
-			echo "Starting......: $function, killing old pid $oldpid (already exists since {$timeExec}Mn)\n";
+			progress_logs($progress,"{kerberaus_authentication}","killing old pid $oldpid (already exists since {$timeExec}Mn)");
 			shell_exec("$kill -9 $oldpid >/dev/null");
 		}else{
 			return;
@@ -122,7 +135,7 @@ function build_kerberos(){
 	}
 	$time=$unix->file_time_min($timefile);
 	
-	if($time<2){writelogs("2mn minimal to run this script currently ({$time}Mn)",__FUNCTION__,__FILE__,__LINE__);return;}
+	if($time<2){progress_logs($progress,"{kerberaus_authentication}","2mn minimal to run this script currently ({$time}Mn)");}
 	$mypid=getmypid();
 	@file_put_contents($pidfile, $mypid);
 	writelogs("Running PID $mypid",__FUNCTION__,__FILE__,__LINE__);
@@ -130,9 +143,10 @@ function build_kerberos(){
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	
-	sync_time();
-	krb5conf();
-	run_msktutils();
+	sync_time($progress);
+	krb5conf($progress);
+	progress_logs($progress,"{kerberaus_authentication}","run_msktutils() -> run in line ".__LINE__);
+	run_msktutils($progress);
 	
 }
 
@@ -150,7 +164,7 @@ function sync_time($aspid=false){
 			writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 			if($timeExec>5){
 				$kill=$unix->find_program("kill");
-				system_admin_events("Starting......: killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
+				system_admin_events("killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
 				shell_exec("$kill -9 $oldpid >/dev/null");
 			}else{
 				return;
@@ -166,14 +180,14 @@ function sync_time($aspid=false){
 	$hwclock=$unix->find_program("hwclock");
 	
 	
-	if(!is_file($ntpdate)){echo "Starting......: $function, ntpdate no such binary Line:".__LINE__."\n";return;}
-	echo "Starting......: $function, sync the time with the Active Directory $hostname [$ipaddr]...\n";
+	if(!is_file($ntpdate)){progress_logs(20,"{sync_time}","$function, ntpdate no such binary Line:".__LINE__."");return;}
+	progress_logs(20,"{sync_time}","$function, sync the time with the Active Directory $hostname [$ipaddr]...");
 	if($ipaddr<>null){$cmd="$ntpdate -u $ipaddr";}else{$cmd="$ntpdate -u $hostname";}
-	if($GLOBALS["VERBOSE"]){echo "$cmd line:".__LINE__."\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs(20,"{sync_time}","$cmd line:".__LINE__."");}
 	exec($cmd." 2>&1",$results);
-	while (list ($num, $a) = each ($results) ){echo "Starting......: $function, $a Line:".__LINE__."\n";}
+	while (list ($num, $a) = each ($results) ){progress_logs(20,"{sync_time}","$function, $a Line:".__LINE__."");}
 	if(is_file($hwclock)){
-		echo "Starting......: $function, sync the Hardware time with $hwclock\n";
+		progress_logs(20,"{sync_time}","$function, sync the Hardware time with $hwclock");
 		shell_exec("$hwclock --systohc");
 	}
 
@@ -181,7 +195,7 @@ function sync_time($aspid=false){
 }
 
 
-function krb5conf(){
+function krb5conf($progress=0){
 	$unix=new unix();
 	$sock=new sockets();
 	$nohup=$unix->find_program("nohup");
@@ -191,7 +205,7 @@ function krb5conf(){
 	$php5=$unix->LOCATE_PHP5_BIN();	
 	$function=__FUNCTION__;
 	$chmod=$unix->find_program("chmod");
-	if(!checkParams()){echo "Starting......: $function, misconfiguration failed\n";return;}
+	if(!checkParams()){progress_logs(10,"{kerberaus_authentication}","$function, misconfiguration failed");return;}
 	$msktutil=check_msktutil();
 	if(!is_file($msktutil)){return;}
 	@chmod($msktutil,0755);
@@ -208,7 +222,7 @@ function krb5conf(){
 	if(!isset($array["WINDOWS_SERVER_TYPE"])){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}
 	if($array["WINDOWS_SERVER_TYPE"]==null){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}	
 	
-	echo "Starting......: $function, Active Directory type `{$array["WINDOWS_SERVER_TYPE"]}`\n";
+	progress_logs($progress,"{kerberaus_authentication}","$function, Active Directory type `{$array["WINDOWS_SERVER_TYPE"]}`");
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$domainUp=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$domaindow=strtolower($array["WINDOWS_DNS_SUFFIX"]);
@@ -218,17 +232,17 @@ function krb5conf(){
 	$workgroup=$array["ADNETBIOSDOMAIN"];
 
 	
-	echo "Starting......: $function, Active Directory hostname `$hostname`\n";
-	echo "Starting......: $function, my domain: \"$mydomain\"\n";
-	echo "Starting......: $function, my hostname: \"$myFullHostname\"\n";
-	echo "Starting......: $function, my netbiosname: \"$myNetBiosName\"\n";
-	echo "Starting......: $function, my workgroup: \"$workgroup\"\n";		
+	progress_logs($progress,"{kerberaus_authentication}","$function, Active Directory hostname `$hostname`");
+	progress_logs($progress,"{kerberaus_authentication}","$function, my domain: \"$mydomain\"");
+	progress_logs($progress,"{kerberaus_authentication}","$function, my hostname: \"$myFullHostname\"");
+	progress_logs($progress,"{kerberaus_authentication}","$function, my netbiosname: \"$myNetBiosName\"");
+	progress_logs($progress,"{kerberaus_authentication}","$function, my workgroup: \"$workgroup\"");		
 	
 	
 	
 	
 	if($array["WINDOWS_SERVER_TYPE"]=="WIN_2003"){
-		echo "Starting......: $function, Active Directory type Windows 2003, adding default_tgs_enctypes\n";
+		progress_logs($progress,"{kerberaus_authentication}","$function, Active Directory type Windows 2003, adding default_tgs_enctypes");
 		$t[]="# For Windows 2003:";
 		$t[]=" default_tgs_enctypes = rc4-hmac des-cbc-crc des-cbc-md5";
 		$t[]=" default_tkt_enctypes = rc4-hmac des-cbc-crc des-cbc-md5";
@@ -238,7 +252,7 @@ function krb5conf(){
 	}
 
 	if($array["WINDOWS_SERVER_TYPE"]=="WIN_2008AES"){
-		echo "Starting......: $function, Active Directory type Windows 2008, adding default_tgs_enctypes\n";
+		progress_logs($progress,"{kerberaus_authentication}","$function, Active Directory type Windows 2008, adding default_tgs_enctypes");
 		$t[]="; for Windows 2008 with AES";
 		$t[]=" default_tgs_enctypes = aes256-cts-hmac-sha1-96 rc4-hmac des-cbc-crc des-cbc-md5";
 		$t[]=" default_tkt_enctypes = aes256-cts-hmac-sha1-96 rc4-hmac des-cbc-crc des-cbc-md5";
@@ -277,7 +291,7 @@ function krb5conf(){
 	$f[]=" forwardable = yes";
 	if($default_keytab_name<>null){$f[]="default_keytab_name = $default_keytab_name";}
 	$f[]="";
-	echo "Starting......: $function, ". count($t)." lines for default_tgs_enctypes\n";
+	progress_logs($progress,"{kerberaus_authentication}","$function, ". count($t)." lines for default_tgs_enctypes");
 	if( count($t)>0){
 		$f[]=@implode("\n", $t);
 	}
@@ -305,15 +319,15 @@ function krb5conf(){
 		$f[]="";
 	}	
 	@file_put_contents("/etc/krb.conf", @implode("\n", $f));
-	echo "Starting......: $function, /etc/krb.conf done\n";
+	progress_logs($progress,"{kerberaus_authentication}","$function, /etc/krb.conf done");
 	@file_put_contents("/etc/krb5.conf", @implode("\n", $f));
-	echo "Starting......: $function, /etc/krb5.conf done\n";	
+	progress_logs($progress,"{kerberaus_authentication}","$function, /etc/krb5.conf done");	
 	unset($f);
 	$f[]="lhs=.ns";
 	$f[]="rhs=.$mydomain";
 	$f[]="classes=IN,HS";
 	@file_put_contents("/etc/hesiod.conf", @implode("\n", $f));
-	echo "Starting......: $function, /etc/hesiod.conf done\n";
+	progress_logs($progress,"{kerberaus_authentication}","$function, /etc/hesiod.conf done");
 
 
 	unset($f);
@@ -338,8 +352,8 @@ function krb5conf(){
 	if(!is_dir("/usr/share/krb5-kdc")){@mkdir("/usr/share/krb5-kdc",644,true);}
 	@file_put_contents("/usr/share/krb5-kdc/kdc.conf", @implode("\n", $f));
 	@file_put_contents("/etc/kdc.conf", @implode("\n", $f));
-	echo "Starting......: $function, /usr/share/krb5-kdc/kdc.conf done\n";
-	echo "Starting......: $function, /etc/kdc.conf done Line:".__LINE__."\n";
+	progress_logs($progress,"{kerberaus_authentication}","$function, /usr/share/krb5-kdc/kdc.conf done");
+	progress_logs($progress,"{kerberaus_authentication}","$function, /etc/kdc.conf done Line:".__LINE__."");
 	
 	unset($f);
 
@@ -347,9 +361,12 @@ function krb5conf(){
 	@file_put_contents("/etc/kadm.acl"," ");
 	@file_put_contents("/usr/share/krb5-kdc/kadm.acl"," ");
 	@file_put_contents("/etc/krb5kdc/kadm5.acl"," ");
-	echo "Starting......: $function, /etc/kadm.acl done\n";	
-	RunKinit("{$array["WINDOWS_SERVER_ADMIN"]}@$domainUp",$array["WINDOWS_SERVER_PASS"]);
+	progress_logs($progress,"{kerberaus_authentication}","$function, /etc/kadm.acl done");	
+	$progress=$progress+1;
 	
+	progress_logs($progress,"{kerberaus_authentication}","Running Linit() from line:".__LINE__);
+	RunKinit("{$array["WINDOWS_SERVER_ADMIN"]}@$domainUp",$array["WINDOWS_SERVER_PASS"],$progress);
+	progress_logs($progress,"{kerberaus_authentication}",__FUNCTION__."() done from line:".__LINE__);
 }
 
 function check_msktutil(){
@@ -359,16 +376,16 @@ function check_msktutil(){
 	$tar=$unix->find_program("tar");
 	$function=__FUNCTION__;
 	if(is_file($msktutil)){return $msktutil;}
-	echo "Starting......: Kerberos, msktutil no such binary\n";
+	progress_logs(20,"{join_activedirectory_domain}","Kerberos, msktutil no such binary");
 	if(is_file("/home/artica/mskutils.tar.gz.old")){
-		echo "Starting......: $function, msktutil /home/artica/mskutils.tar.gz.old found, install it\n";
+		progress_logs(20,"{join_activedirectory_domain}","$function, msktutil /home/artica/mskutils.tar.gz.old found, install it");
 		shell_exec("$tar -xf /home/artica/mskutils.tar.gz.old -C /");
 	}
 
 	$msktutil=$unix->find_program("msktutil");	
 	if(is_file($msktutil)){return $msktutil;}	
 	shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make APP_MSKTUTIL >/dev/null 2>&1 &");
-	echo "Starting......: $function, msktutil no such binary\n";
+	progress_logs(20,"{join_activedirectory_domain}","$function, msktutil no such binary");
 	
 }
 
@@ -390,12 +407,12 @@ function resolve_kdc(){
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	if($ipaddr==null){		
-		echo "Starting......: $function, KDC $hostname no ip address set, aborting checking function\n";
+		progress_logs(20,"{join_activedirectory_domain}","$function, KDC $hostname no ip address set, aborting checking function");
 		return;
 	}
 
 	$newip=gethostbyname($hostname);
-	echo "Starting......: $function, KDC $hostname [$ipaddr] resolved to: $newip\n";
+	progress_logs(20,"{join_activedirectory_domain}","$function, KDC $hostname [$ipaddr] resolved to: $newip");
 	
 	
 	
@@ -414,14 +431,14 @@ function run_msktutils(){
 	
 	if(!is_file($msktutil)){
 		if(is_file("/home/artica/mskutils.tar.gz.old")){
-			echo "Starting......: $function, uncompress /home/artica/mskutils.tar.gz.old\n";
+			progress_logs(20,"{join_activedirectory_domain}","$function, uncompress /home/artica/mskutils.tar.gz.old");
 			shell_exec("tar xf /home/artica/mskutils.tar.gz.old -C /");
 		}
 	}
 	
 	$msktutil=$unix->find_program("msktutil");
 	if(!is_file($msktutil)){	
-		echo "Starting......: $function, msktutil not installed, you should use it..\n";
+		progress_logs(20,"{join_activedirectory_domain}","$function, msktutil not installed, you should use it..");
 		return;
 	}
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
@@ -431,10 +448,10 @@ function run_msktutils(){
 	$ipaddr=trim($array["ADNETIPADDR"]);
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	if(!isset($array["WINDOWS_SERVER_TYPE"])){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}
-	echo "Starting......: $function, computers branch `{$array["COMPUTER_BRANCH"]}`\n";
-	echo "Starting......: $function, my full hostname `$myFullHostname`\n";
-	echo "Starting......: $function, my netbios name `$myNetBiosName`\n";
-	echo "Starting......: $function, Active Directory hostname `$hostname` ($ipaddr)\n";
+	progress_logs(20,"{join_activedirectory_domain}","$function, computers branch `{$array["COMPUTER_BRANCH"]}`");
+	progress_logs(20,"{join_activedirectory_domain}","$function, my full hostname `$myFullHostname`");
+	progress_logs(20,"{join_activedirectory_domain}","$function, my netbios name `$myNetBiosName`");
+	progress_logs(20,"{join_activedirectory_domain}","$function, Active Directory hostname `$hostname` ($ipaddr)");
 	$kdestroy=$unix->find_program("kdestroy");
 	
 	$domain_controller=$hostname;
@@ -445,7 +462,7 @@ function run_msktutils(){
 		$enctypes=" --enctypes 28";
 	}
 	$msktutil_version=msktutil_version();
-	echo "Starting......: $function, msktutil version 0.$msktutil_version\n";
+	progress_logs(20,"{join_activedirectory_domain}","$function, msktutil version 0.$msktutil_version");
 	
 	$f[]="$msktutil -c -b \"{$array["COMPUTER_BRANCH"]}\"";
 	$f[]="-s HTTP/$myFullHostname -h $myFullHostname -k /etc/krb5.keytab";
@@ -457,64 +474,175 @@ function run_msktutils(){
 	
 	
 	$cmdline=@implode(" ", $f);
-	echo "Starting......: $function,`$cmdline`\n";
+	progress_logs(20,"{join_activedirectory_domain}","$function,`$cmdline`");
 	exec("$cmdline 2>&1",$results);
-	while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}echo "Starting......: $function, $a Line:".__LINE__."\n";}
+	while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}progress_logs(20,"{join_activedirectory_domain}","$function, $a Line:".__LINE__."");}
 	
 	if($msktutil_version==4){
 		$cmdline="$msktutil --auto-update --verbose --computer-name $myNetBiosName --server $domain_controller";
 		exec("$cmdline 2>&1",$results);
-		while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}echo "Starting......: $function, $a Line:".__LINE__."\n";}
+		while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}progress_logs(20,"{join_activedirectory_domain}","$function, $a Line:".__LINE__."");}
 	}
 			
 	
 	
 }
 
+function progress_logs($percent,$title,$log,$line=0){
+	
+	$date=date("H:i:s");
+	if(!isset($GLOBALS["LAST_PROGRESS"])){$GLOBALS["LAST_PROGRESS"]=0;}
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		$function="MAIN";
+		$line=0;
+		if(isset($trace[1]["file"])){
+			$filename=basename($trace[1]["file"]);
+		}
+		if(isset($trace[1]["function"])){
+			$function="{$trace[1]["function"]}()";
+		}
+		if(isset($trace[1]["line"])){
+			
+			if($line==0){
+				$function=$function." line {$trace[1]["line"]}";
+			}
+		}
+	}
+	$log="{$percent}%  $date : $log $function";
+	if($GLOBALS["VERBOSE"]){echo "$log\n";}
+	if(!$GLOBALS["WRITEPROGRESS"]){return;}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
+	if($percent==-1){@unlink($cachefile);return;}
+	
+	if($GLOBALS["LAST_PROGRESS"]==$percent){
+		$GLOBALS["LOGS"][]=$log;
+		return;
+		
+	}
+	
+	$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status"));
+	$array["PRC"]=$percent;
+	$array["TITLE"]=$title;
+	if(count($GLOBALS["LOGS"])>0){
+		while (list ($num, $a) = each ($GLOBALS["LOGS"]) ){
+			$array["LOGS"][]=$a;
+		}
+		$GLOBALS["LOGS"]=array();
+	}
+	
+	$array["LOGS"][]=$log;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile, 0755);
+	$GLOBALS["LAST_PROGRESS"]=$percent;
+	
+}
 
-function build(){
+
+function build_progress(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
+		if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","Process $oldpid already exists since {$timeExec}Mn");}
+		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+		if($timeExec<5){return;}
+		$kill=$unix->find_program("kill");
+		progress_logs(20,"{join_activedirectory_domain}","build_progress, killing old pid $oldpid (already exists since {$timeExec}Mn)");
+		shell_exec("$kill -9 $oldpid >/dev/null");
+	}
+		
+	progress_logs(1);
+	build();
+	progress_logs(66,"NssSwitch","Building nsswitch.... on line ".__LINE__);
+	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch --verbose  2>&1",$results2);
+	while (list ($index, $line) = each ($results2) ){
+		progress_logs(67,"NssSwitch",$line);
+	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	if(is_file($unix->LOCATE_SQUID_BIN())){
+		progress_logs(68,"Reconfiguring Squid-cache","...");
+		$results2=array();
+		exec("$php /usr/share/artica-postfix/exec.squid.php --build --force 2>&1",$results2);
+		while (list ($index, $line) = each ($results2) ){
+			progress_logs(68,"Reconfiguring Squid-cache",$line);
+		}
+		$results2=array();
+		progress_logs(69,"Restarting Squid-cache","...");
+		exec("/etc/init.d/squid restart --force 2>&1",$results2);
+		while (list ($index, $line) = each ($results2) ){
+			progress_logs(69,"Restarting Squid-cache",$line);
+		}
+		
+	}
+	
+	progress_logs(70,"{please_wait_restarting_artica_status}","...");
+	exec("/etc/init.d/artica-status restart --force 2>&1",$results2);
+	while (list ($index, $line) = each ($results2) ){
+		progress_logs(75,"{please_wait_restarting_artica_status}",$line);
+	}
+	
+	progress_logs(100,"{completed}","...");
+}
+
+
+function build($nopid=false){
+	if(isset($GLOBALS["BUILD_EXECUTED"])){
+		progress_logs(20,"{continue}","Already executed");
+		return;
+	}
+	$GLOBALS["BUILD_EXECUTED"]=true;
 	$unix=new unix();
 	$sock=new sockets();
 	$function=__FUNCTION__;
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	$EnableKerberosAuthentication=$sock->GET_INFO("EnableKerberosAuthentication");
 	if(!is_numeric("$EnableKerberosAuthentication")){$EnableKerberosAuthentication=0;}
-	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if($EnableKerberosAuthentication==1){
-		echo "Starting......: Kerberos, disabled\n";
-		build_kerberos();
+		progress_logs(100,"{finish}","Kerberos, disabled");
+		progress_logs(20,"{join_activedirectory_domain}","Kerberos, disabled");
+		build_kerberos(20);
 		return;}
 	if($EnableKerbAuth==0){
-		echo "Starting......: Auth Winbindd, disabled\n";
+		progress_logs(100,"{finish}","Auth Winbindd, disabled");
+		progress_logs(20,"{join_activedirectory_domain}","Auth Winbindd, disabled");
 		if(is_file("/etc/monit/conf.d/winbindd.monitrc")){@unlink("/etc/monit/conf.d/winbindd.monitrc");}
 		return;
 	}
-	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
-		if($GLOBALS["OUTPUT"]){echo "Process $oldpid already exists since {$timeExec}Mn\n";}
-		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
-		if($timeExec>5){
-			$kill=$unix->find_program("kill");
-			echo "Starting......: $function, killing old pid $oldpid (already exists since {$timeExec}Mn)\n";
-			shell_exec("$kill -9 $oldpid >/dev/null");
-		}else{
+	
+	if(!$nopid){
+		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
+			if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","Process $oldpid already exists since {$timeExec}Mn");}
+			writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+			if($timeExec>5){
+				$kill=$unix->find_program("kill");
+				progress_logs(20,"{join_activedirectory_domain}","killing old pid $oldpid (already exists since {$timeExec}Mn)");
+				shell_exec("$kill -9 $oldpid >/dev/null");
+			}else{
+				return;
+			}
+		}
+		
+		
+		$time=$unix->file_time_min($timefile);
+		if($time<2){
+			if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","2mn minimal to run this script currently ({$time}Mn)");}
+			writelogs("2mn minimal to run this script currently ({$time}Mn)",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
-	}
 	
-	
-	$time=$unix->file_time_min($timefile);
-	if($time<2){
-		if($GLOBALS["OUTPUT"]){echo "2mn minimal to run this script currently ({$time}Mn)\n";}
-		writelogs("2mn minimal to run this script currently ({$time}Mn)",__FUNCTION__,__FILE__,__LINE__);
-		return;
 	}
 	
 	$mypid=getmypid();
 	@file_put_contents($pidfile, $mypid);
+	progress_logs(20,"{join_activedirectory_domain}","Running PID $mypid",__LINE__);
 	writelogs("Running PID $mypid",__FUNCTION__,__FILE__,__LINE__);
 	
 	$wbinfo=$unix->find_program("wbinfo");
@@ -531,9 +659,17 @@ function build(){
 		$wbinfo=$unix->find_program("wbinfo");
 		
 	}
-	if(!is_file($wbinfo)){echo "Starting......: Auth Winbindd, samba is not installed\n";return;}
+	if(!is_file($wbinfo)){
+			progress_logs(20,"{join_activedirectory_domain}","Auth Winbindd, samba is not installed");
+			progress_logs(100,"{finish}","Auth Winbindd, samba is not installed");
+			return;
+	}
 	
-	if(!checkParams()){echo "Starting......: Auth Winbindd, misconfiguration failed\n";return;}
+	if(!checkParams()){
+		progress_logs(20,"{join_activedirectory_domain}","Auth Winbindd, misconfiguration failed");
+		progress_logs(100,"{finish}","Auth Winbindd, misconfiguration failed");
+		return;
+	}
 	$unix=new unix();
 	$chmod=$unix->find_program("chmod");
 	$msktutil=check_msktutil();
@@ -561,6 +697,7 @@ function build(){
 	if(!is_numeric($UseADAsNameServer)){$UseADAsNameServer=0;}
 	if($UseADAsNameServer==1){
 		if(preg_match("#[0-9\.]+#", $ipaddr)){
+			progress_logs(8,"{apply_settings}","Patching Resolv.conf");
 			PatchResolvConf($ipaddr);
 		}
 	
@@ -575,42 +712,52 @@ function build(){
 		$ipaddr=@implode(".", $ipaddrZ);
 	}
 	
+	progress_logs(9,"{apply_settings}","Synchronize time"." in line ".__LINE__);
 	sync_time();
-	krb5conf();
+	progress_logs(10,"{apply_settings}","Check kerb5..in line ".__LINE__);
+	krb5conf(12);
+	progress_logs(15,"{apply_settings}","Check msktutils in line ".__LINE__);
 	run_msktutils();
-	if($GLOBALS["VERBOSE"]){echo "netbin -> $netbin in line ".__LINE__."\n";}
+	progress_logs(15,"{apply_settings}","netbin -> $netbin in line ".__LINE__);
 	if(is_file($netbin)){
 		try {
-		if($GLOBALS["VERBOSE"]){echo "netbin -> SAMBA_PROXY() in line ".__LINE__."\n";}
+		progress_logs(15,"{apply_settings}","netbin -> SAMBA_PROXY()  in line ".__LINE__);
 		SAMBA_PROXY();
-		} catch (Exception $e) {echo 'Exception Error: Message: ' .$e->getMessage()."\n";}
+		} catch (Exception $e) {
+			progress_logs(15,"{failed}","Exception Error: Message: " .$e->getMessage());
+		}
 	}
 
-	if($GLOBALS["VERBOSE"]){echo "Next in line ".__LINE__."\n";}
+	progress_logs(20,"{apply_settings}","Next");
 	
-	if($GLOBALS["VERBOSE"]){"kdb5_util -> $kdb5_util in line ".__LINE__."\n";}
+	progress_logs(20,"{apply_settings}","kdb5_util -> $kdb5_util");
 	if(is_file("$kdb5_util")){
 		$cmd="$kdb5_util create -r $domainUp -s -P $kinitpassword";
-		if($GLOBALS["VERBOSE"]){echo "Starting......:  $cmd Line:".__LINE__."\n";}
+		progress_logs(20,"{apply_settings}","$cmd");
 		$results=array();
 		exec($cmd,$results);
-		while (list ($num, $a) = each ($results) ){echo "Starting......: kdb5_util, $a Line:".__LINE__."\n";}
+		while (list ($num, $a) = each ($results) ){progress_logs(15,"kdb5_util, $a");}
 	}
 	
-	if($GLOBALS["VERBOSE"]){"kadmin_bin -> $kadmin_bin in line ".__LINE__."\n";}
-	if(is_file("$kadmin_bin")){}
-	
-	
-	if($GLOBALS["VERBOSE"]){"netbin -> $netbin in line ".__LINE__."\n";}
+	progress_logs(20,"kadmin_bin -> $kadmin_bin");
+	progress_logs(20,"netbin -> $netbin ");
 	if(is_file("$netbin")){
-		if($GLOBALS["VERBOSE"]){"netbin -> JOIN_ACTIVEDIRECTORY() in line ".__LINE__."\n";}
+		progress_logs(20,"{join_activedirectory_domain}","netbin -> JOIN_ACTIVEDIRECTORY() ");
 		JOIN_ACTIVEDIRECTORY();
 	
 	}
-	winbind_priv();
+	progress_logs(51,"{restarting_winbind}","winbind_priv();");
+	winbind_priv(false,52);
+	progress_logs(60,"{restarting_winbind}","winbind_priv();");
 	winbindd_monit();
+	progress_logs(65,"{restarting_winbind}","winbind_priv();");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("/etc/init.d/winbind start");
+	
+	if(!is_file("/etc/init.d/winbind")){
+		shell_exec("$php5 /usr/share/artica-postfix/exec.initslapd.php --winbind");
+	}
+	progress_logs(65,"{restarting_winbind}","winbind_priv();");
+	shell_exec("/etc/init.d/winbind restart --force");
 
 
 
@@ -632,13 +779,13 @@ function PatchResolvConf($ipaddr){
 	while (list ($index, $line) = each ($f) ){
 		if(preg_match("#^nameserver\s+([0-9\.]+)#i", $line,$re)){
 			if($re[1]==$ipaddr){
-				echo "Starting......: [$function::".__LINE__."], DNS $ipaddr already set\n";
+				progress_logs(29,"{join_activedirectory_domain}"," DNS $ipaddr already set");
 				return;
 			}
 		}
 		
 	}
-	echo "Starting......: [$function::".__LINE__."], SET DNS $ipaddr as primary DNS server\n";
+	progress_logs(29,"{join_activedirectory_domain}"," SET DNS $ipaddr as primary DNS server");
 	$newdata="nameserver $ipaddr\n".@implode("\n", $f);
 	@file_put_contents("/etc/resolv.conf", $newdata);
 	
@@ -653,26 +800,29 @@ function JOIN_ACTIVEDIRECTORY(){
 	$nohup=$unix->find_program("nohup");
 	$tar=$unix->find_program("tar");
 	$function=__FUNCTION__;
-	if(!is_file($netbin)){echo "Starting......: [$function::".__LINE__."], net, no such binary\n";return;}
-	if(!$user->SAMBA_INSTALLED){echo "Starting......: [$function::".__LINE__."], Samba, no such software\n";return;}
+	if(!is_file($netbin)){progress_logs(29,"{join_activedirectory_domain}","net, no such binary");return;}
+	if(!$user->SAMBA_INSTALLED){progress_logs(29,"{join_activedirectory_domain}"," Samba, no such software");return;}
+	
+	
 	
 	
 	$winbindd_version=winbindd_version();
-	echo "Starting......: [$function::".__LINE__."], Version $winbindd_version\n";
+	progress_logs(29,"{join_activedirectory_domain}"," Version $winbindd_version");
 	if(preg_match("#^([0-9]+)\.([0-9]+)#", $winbindd_version,$re)){
-		echo "Starting......: [$function::".__LINE__."], Major:{$re[1]}, minor:{$re[2]}\n";
+		progress_logs(29,"{join_activedirectory_domain}"," Major:{$re[1]}, minor:{$re[2]}");
 		$MAJOR=$re[1];
 		$MINOR=$re[2];
 	}
 	
 	if(is_file("/home/artica/packages/samba.tar.gz.old")){
-		echo "Starting......: [$function::".__LINE__."], This is a proxy appliance...\n";
+		progress_logs(29,"{join_activedirectory_domain}"," This is a proxy appliance...");
 		if($MAJOR>2){
 			if($MINOR<6){
-				echo "Starting......: [$function::".__LINE__."], Bad samba version, was updated by the system, return back\n";
+				squid_admin_mysql(0, "NTLM: Bad samba version - $winbindd_version -, was updated by the system, return back", $buffer,__FILE__,__LINE__);
+				progress_logs(29,"{join_activedirectory_domain}"," Bad samba version, was updated by the system, return back");
 				shell_exec("$tar -xvf /home/artica/packages/samba.tar.gz.old -C /");
 				$winbindd_version=winbindd_version();
-				echo "Starting......: [$function::".__LINE__."], Version is now `$winbindd_version`\n";
+				progress_logs(29,"{join_activedirectory_domain}"," Version is now `$winbindd_version`");
 			}
 		}
 	}
@@ -696,64 +846,72 @@ function JOIN_ACTIVEDIRECTORY(){
 	$JOINEDRES=false;
 	@unlink("/etc/squid3/NET_ADS_INFOS");
 	
+	$buffer="$adminname@$domain_lower\nWorkgroup: $workgroup\nAD: $ad_server ($ipaddr)";
+	
+	squid_admin_mysql(1, "NTLM: Trying to relink this server with Active Directory $ad_server.$domain_lower server", $buffer,__FILE__,__LINE__);
+	
+	
 	if(!is_file("/etc/artica-postfix/PyAuthenNTLM2_launched")){
 		shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make APP_PYAUTHENNTLM >/dev/null 2>&1 &");
 		@file_put_contents("/etc/artica-postfix/PyAuthenNTLM2_launched", time());
 	}
 	
-	echo "Starting......: [$function::".__LINE__."], Administrator `$adminname`\n";
-	echo "Starting......: [$function::".__LINE__."], Workgroup `$workgroup`\n";
-	echo "Starting......: [$function::".__LINE__."], Active Directory `$ad_server` ($ipaddr)\n";	
-	echo "Starting......: [$function::".__LINE__."], [$adminname 0]: join as netrpc.. (without IP addr and without domain)\n";	
+	progress_logs(29,"{join_activedirectory_domain}"," Administrator `$adminname`");
+	progress_logs(29,"{join_activedirectory_domain}"," Workgroup `$workgroup`");
+	progress_logs(29,"{join_activedirectory_domain}"," Active Directory `$ad_server` ($ipaddr)");	
+	progress_logs(29,"{join_activedirectory_domain}"," [$adminname 0]: join as netrpc.. (without IP addr and without domain)");	
 	
 	$cmd="$netbin rpc join -U $adminname%$adminpassword 2>&1";
 	exec($cmd,$A2);
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], $cmd\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs(30,"{join_activedirectory_domain}"," [$function::".__LINE__."], $cmd");}
 	while (list ($index, $line) = each ($A2) ){
 		if(preg_match("#Joined#", $line)){
-			echo "Starting......:  $function, [$adminname]: join for $workgroup (without IP addr and without domain) success\n";
+			progress_logs(31,"{join_activedirectory_domain}"," $function, [$adminname]: join for $workgroup (without IP addr and without domain) success");
 			$JOINEDRES=true;
-			echo "Starting......:  $function, [$adminname]: join for $workgroup with ads method\n";
+			progress_logs(32,"{join_activedirectory_domain}"," $function, [$adminname]: join for $workgroup with ads method");
 			$cmd="$netbin ads join -U $adminname%$adminpassword 2>&1";
 			if($GLOBALS["VERBOSE"]){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$cmd);}
 			exec("$cmd",$A3);
 			while (list ($index, $line) = each ($A3) ){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);}
 			$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 			$KDC_SERVER=$NetADSINFOS["KDC server"];
-			if($KDC_SERVER==null){echo "Starting......:  $function, [$adminname]: unable to join the domain $domain_lower (KDC server is null)\n";}
+			if($KDC_SERVER==null){
+					progress_logs(20,"{join_activedirectory_domain}"," $function, [$adminname]: unable to join the domain $domain_lower (KDC server is null)");
+				}
 			break;
 		}
 		if(preg_match("#Unable to find a suitable server for domain#i", $line)){
-			echo "Starting......: [$function::".__LINE__."], [$adminname 0]: **** FATAL ****\n";
-			echo "Starting......: [$function::".__LINE__."], [$adminname 0]: $line\n";
-			echo "Starting......: [$function::".__LINE__."], [$adminname 0]: ***************\n";
+			progress_logs(33,"{join_activedirectory_domain}"," [$adminname 0]: **** FATAL ****");
+			progress_logs(34,"{join_activedirectory_domain}"," [$adminname 0]: $line");
+			progress_logs(35,"{join_activedirectory_domain}"," [$adminname 0]: ***************");
 			continue;
 		}
 		
-		echo "Starting......: [$function::".__LINE__."], [$adminname 0]: $line\n";
+		progress_logs(36,"{join_activedirectory_domain}"," [$adminname 0]: $line");
 			
 	}
 	
+	$ipcmdline=null;
+	
 	if(!$JOINEDRES){
-		echo "Starting......:  [$function::".__LINE__."], [$adminname]: Try to connect in ads mode with $ad_server.$domain_lower\n";
+		progress_logs(37,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: Try to connect in ads mode with $ad_server.$domain_lower");
 		if($ipaddr<>null){
-			echo "Starting......:  [$function::".__LINE__."], [$adminname]: Try to connect in ads mode with ip address $ipaddr too\n";
+			progress_logs(37,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: Try to connect in ads mode with ip address $ipaddr too");
 			$ipcmdline=" -I $ipaddr ";
 		}
-		$cmd="$netbin ads join -S $ad_server.$domain_lower{$ipcmdline}-U $adminname%$adminpassword 2>&1";
-		$cmdOutput=str_replace($adminpassword, "****", $cmd);
-		echo "Starting......:  [$function::".__LINE__."], $cmdOutput\n";
+		$cmd="$netbin ads join -S $ad_server.$domain_lower{$ipcmdline} -U $adminname%$adminpassword 2>&1";
+		$cmdOutput=$cmd;
+		progress_logs(38,"{join_activedirectory_domain}"," [$function::".__LINE__."], $cmdOutput");
 		$results=array();
 		exec("$cmd",$results);
 		while (list ($index, $line) = each ($results) ){
 			if(preg_match("#Joined#", $line)){
-				echo "Starting......:  [$function::".__LINE__."], [$adminname]: join for $workgroup in ads mode with $ad_server.$domain_lower success\n";
-				$cmd="$netbin rpc join -S $ad_server.$domain_lower{$ipcmdline}-U $adminname%$adminpassword 2>&1";
-				$cmdOutput=str_replace($adminpassword, "****", $cmd);
-				echo "Starting......:  [$function::".__LINE__."], $cmdOutput\n";
+				progress_logs(39,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: join for $workgroup in ads mode with $ad_server.$domain_lower success");
+				$cmd="$netbin rpc join -S $ad_server.$domain_lower{$ipcmdline} -U $adminname%$adminpassword 2>&1";
+				$cmdOutput=$cmd;
+				progress_logs(40,"{join_activedirectory_domain}"," [$function::".__LINE__."], $cmdOutput");
 				exec("$cmd",$results2);
-				while (list ($index, $line) = each ($results2) ){echo "Starting......:  [$function::".__LINE__."], [$adminname]:$line\n";}
-				
+				while (list ($index, $line) = each ($results2) ){progress_logs(41,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]:$line");}
 				$JOINEDRES=true;
 				break;
 			}
@@ -767,37 +925,37 @@ function JOIN_ACTIVEDIRECTORY(){
 	
 
 if(!$JOINEDRES){
-		echo "Starting......:  [$function::".__LINE__."], [$adminname]: Kdc server ads = `$KDC_SERVER`\n";
+		progress_logs(42,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: Kdc server ads = `$KDC_SERVER`");
 		if($KDC_SERVER==null){
 			$cmd="$netbin ads join -W $ad_server.$domain_lower -S $ad_server -U $adminname%$adminpassword 2>&1";
-			if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], $cmd\n";}
+			if($GLOBALS["VERBOSE"]){progress_logs(42,"{join_activedirectory_domain}"," [$function::".__LINE__."], $cmd");}
 			exec("$cmd",$results);
 			while (list ($index, $line) = each ($results) ){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);}	
 			$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 			$KDC_SERVER=$NetADSINFOS["KDC server"];
 		}
 		
-		if($KDC_SERVER==null){echo "Starting......:  [$function::".__LINE__."], [$adminname]: unable to join the domain $domain_lower (KDC server is null)\n";}
+		if($KDC_SERVER==null){progress_logs(43,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: unable to join the domain $domain_lower (KDC server is null)");}
 	
 		
 	
 		
-	echo "Starting......:  [$function::".__LINE__."], [$adminname]: setauthuser..\n";
+	progress_logs(44,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: setauthuser..");
 	$cmd="$netbin setauthuser -U $adminname%$adminpassword 2>&1";	
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs(44,"{join_activedirectory_domain}"," $function, $cmd");}
 	$results=array();
 	exec("$cmd",$results);
-	while (list ($index, $line) = each ($results) ){SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);}
+	while (list ($index, $line) = each ($results) ){progress_logs(44,"{join_activedirectory_domain}","$line");}
 		
 	if($ipaddr==null){
 		$JOINEDRES=false;
-		echo "Starting......:  [$function::".__LINE__."], [$adminname 0]: join for $workgroup (without IP addr)\n";	
-		if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+		progress_logs(45,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname 0]: join for $workgroup (without IP addr)");	
+		if($GLOBALS["VERBOSE"]){progress_logs(46,"{join_activedirectory_domain}"," $function, $cmd");}
 		$cmd="$netbin join -U $adminname%$adminpassword $workgroup 2>&1";
 		exec($cmd,$A1);
 		while (list ($index, $line) = each ($A1) ){
 			if(preg_match("#Joined#", $line)){
-				echo "Starting......:  [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success\n";
+				progress_logs(46,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success");
 				$JOINEDRES=true;
 				break;
 			}
@@ -805,47 +963,47 @@ if(!$JOINEDRES){
 		}
 		
 		if(!$JOINEDRES){
-			echo "Starting......:  [$function::".__LINE__."], [$adminname 0]: join as netrpc.. (without IP addr)\n";	
+			progress_logs(47,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname 0]: join as netrpc.. (without IP addr)");	
 			$cmd="$netbin rpc join -U $adminname%$adminpassword $workgroup 2>&1";
 			exec($cmd,$A2);
-			if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+			if($GLOBALS["VERBOSE"]){progress_logs(47,"{join_activedirectory_domain}"," $function, $cmd");}
 			while (list ($index, $line) = each ($A2) ){
 				if(preg_match("#Joined#", $line)){
-					echo "Starting......:  [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success\n";
+					progress_logs(47,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success");
 					$JOINEDRES=true;
 					break;
 				}
-				SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
+				progress_logs(47,"{join_activedirectory_domain}",$line);
 			}
 		}
 		
 	}
 	
 	if($ipaddr<>null){
-		echo "Starting......:  [$function::".__LINE__."], [$adminname 1]: ads '$netbin ads join -I $ipaddr -U $adminname%**** $workgroup'\n";
+		progress_logs(48,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname 1]: ads '$netbin ads join -I $ipaddr -U $adminname%**** $workgroup'");
 		//$cmd="$netbin ads join -S $ad_server.$domain_lower -I $ipaddr -U $adminname%$adminpassword 2>&1";
 		$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
-		if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
+		if($GLOBALS["VERBOSE"]){progress_logs(20,"{join_activedirectory_domain}"," Samba, $cmd");}
 		exec($cmd,$BIGRES2);	
 		while (list ($index, $line) = each ($BIGRES2) ){
 			if(preg_match("#Failed to join#i", $line)){
-				echo "Starting......:  [$function::".__LINE__."], [$adminname 1]: ads join failed ($line), using pure IP\n";
-				echo "Starting......:  [$function::".__LINE__."], [$adminname 1]: '$netbin ads join -I $ipaddr -U $adminname%*** $workgroup'\n";
+				progress_logs(48,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname 1]: ads join failed ($line), using pure IP");
+				progress_logs(48,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname 1]: '$netbin ads join -I $ipaddr -U $adminname%*** $workgroup'");
 				$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
-				if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd line:". __LINE__."\n";}
+				if($GLOBALS["VERBOSE"]){progress_logs(48,"{join_activedirectory_domain}"," $function, $cmd line:". __LINE__."");}
 				$BIGRESS=array();
 				exec($cmd,$BIGRESS);
 				
 				if(!is_array($BIGRESS)){$BIGRESS=array();}
 				if(count($BIGRESS)==0){
 					$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword 2>&1";
-					echo "Starting......:  [$function::".__LINE__."], $cmd\n";
+					progress_logs(48,"{join_activedirectory_domain}"," [$function::".__LINE__."], $cmd");
 					exec($cmd,$BIGRESS);
 				}
 				
 				if(count($BIGRESS)>0){
 					while (list ($index, $line) = each ($BIGRESS) ){
-						SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
+						progress_logs(48,"{join_activedirectory_domain}",$line);
 						if(preg_match("#(Failed to|Unable to|Error in)#i", $line)){$BIGRESS=array();}
 					}
 				}
@@ -853,18 +1011,18 @@ if(!$JOINEDRES){
 				
 				
 				
-				if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], ".count($BIGRESS)." lines line:".__LINE__."\n";}
+				if($GLOBALS["VERBOSE"]){progress_logs(49,"{join_activedirectory_domain}"," [$function::".__LINE__."], ".count($BIGRESS)." lines line:".__LINE__."");}
 				if(!is_array($BIGRESS)){$BIGRESS=array();}
 				if(count($BIGRESS)==0){
 					$cmd="$netbin rpc join -I $ipaddr -U $adminname%$adminpassword 2>&1";
-					if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], $cmd Line:".__LINE__."\n";}
+					if($GLOBALS["VERBOSE"]){progress_logs(49,"{join_activedirectory_domain}"," [$function::".__LINE__."], $cmd Line:".__LINE__."");}
 					exec($cmd,$BIGRESS);
 				}
 				
-				if($GLOBALS["VERBOSE"]){echo "Starting......:  [$function::".__LINE__."], ".count($BIGRESS)." lines line:".__LINE__."\n";}
+				if($GLOBALS["VERBOSE"]){progress_logs(49,"{join_activedirectory_domain}"," [$function::".__LINE__."], ".count($BIGRESS)." lines line:".__LINE__."");}
 				if(count($BIGRESS)>0){
 					while (list ($index, $line) = each ($BIGRESS) ){
-						SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
+						progress_logs(49,"{join_activedirectory_domain}",$line);
 						if(preg_match("#(Failed to|Unable to|Error in)#i", $line)){$BIGRESS=array();}
 					}
 				}			
@@ -873,63 +1031,67 @@ if(!$JOINEDRES){
 				if(!is_array($BIGRESS)){$BIGRESS=array();}
 				if(count($BIGRESS)==0){
 					$cmd="$netbin rpc join -S $ad_server -n $myNetbiosname -U $adminname%$adminpassword 2>&1";
-					echo "Starting......: [$function::".__LINE__."], $cmd Line:".__LINE__."\n";
+					progress_logs(50,"{join_activedirectory_domain}"," $cmd Line:".__LINE__."");
 					exec($cmd,$BIGRESS);
 				}			
 				
 				reset($BIGRESS);
 				while (list ($index, $line) = each ($BIGRESS) ){
-					SAMBA_OUTPUT_ERRORS("[$function::".__LINE__."]",$line);
-					if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  $function, $line", basename(__FILE__));}
+					progress_logs(49,"{join_activedirectory_domain}",$line);
 				}
 				
 				break;
 			}
-			echo "Starting......: [$function::".__LINE__."],[$adminname 1] $line\n";
+			progress_logs(49,"{join_activedirectory_domain}","[$adminname 1] $line");
 			
 		}
 		
 		
-		/*echo "Starting......:  Samba, [$adminname]: join with  IP Adrr:$ipaddr..\n";	
+		/*progress_logs(20,"{join_activedirectory_domain}"," Samba, [$adminname]: join with  IP Adrr:$ipaddr..");	
 		$cmd="$netbin join -U $adminname%$adminpassword -I $ipaddr";
-		if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
+		if($GLOBALS["VERBOSE"]){progress_logs(20,"{join_activedirectory_domain}"," Samba, $cmd");}
 		shell_exec($cmd);*/
 	
 	}
 }
 	if($KDC_SERVER==null){$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();$KDC_SERVER=$NetADSINFOS["KDC server"];}
-	if($KDC_SERVER==null){echo "Starting......:  Samba, [$adminname]: unable to join the domain $domain_lower\n";}	
+	if($KDC_SERVER==null){
+		squid_admin_mysql(0, "NTLM: unable to join the domain $domain_lower", $buffer,__FILE__,__LINE__);
+		progress_logs(50,"{join_activedirectory_domain}"," Samba, [$adminname]: unable to join the domain $domain_lower");
+	}else{
+		squid_admin_mysql(2, "NTLM: Success to join the domain $domain_lower", "KDC = $KDC_SERVER",__FILE__,__LINE__);
+	}	
 
-	echo "Starting......: [$function::".__LINE__."], [$adminname]: Kdc server ads : $KDC_SERVER Create keytap...\n";
+	progress_logs(50,"{join_activedirectory_domain}"," [$adminname]: Kdc server ads : $KDC_SERVER Create keytap...");
 	
 	unset($results);
 	$cmd="$netbin ads keytab create -P -U $adminname%$adminpassword 2>&1";
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs(50,"{join_activedirectory_domain}"," $function, $cmd");}
 	exec("$cmd",$results);
-	while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, keytab: [$adminname]: $line\n";}
+	while (list ($index, $line) = each ($results) ){progress_logs(50,"{join_activedirectory_domain}"," $function, keytab: [$adminname]: $line");}
 
 	$nohup=$unix->find_program("nohup");
 	$smbcontrol=$unix->find_program("smbcontrol");
 	
-	echo "Starting......: [$function::".__LINE__."], [$adminname]: restarting Samba\n";
+	progress_logs(50,"{join_activedirectory_domain}"," [$adminname]: restarting Samba");
 	$results=array();
 	exec("/etc/init.d/artica-postfix start samba 2>&1",$results);
-	while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, restarting: [$adminname]: $line\n";}
+	while (list ($index, $line) = each ($results) ){progress_logs(50,"{join_activedirectory_domain}","$line");}
 	
 	
-	echo "Starting......: [$function::".__LINE__."], [$adminname]: restarting Artica-status\n";
+	progress_logs(50,"{join_activedirectory_domain}"," [$adminname]: Reload Artica-status");
 	$results=array();
-	shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	if(is_file($smbcontrol)){
-		echo "Starting......: [$function::".__LINE__."], [$adminname]: reloading winbindd\n";
+		progress_logs(50,"{join_activedirectory_domain}"," [$adminname]: Reloading winbindd");
 		exec("$smbcontrol winbindd reload-config 2>&1",$results);
 		exec("$smbcontrol winbindd online 2>&1",$results);
-		while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, reloading: [$adminname]: $line\n";}
+		while (list ($index, $line) = each ($results) ){progress_logs(50,"{join_activedirectory_domain}"," [$adminname]: $line");}
 	}
 	$results=array();
-	echo "Starting......:  $function, [$adminname]: checks nsswitch\n";
+	progress_logs(20,"{join_activedirectory_domain}","[$adminname]: checks nsswitch");
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);
-	while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, nsswitch: [$adminname]: $line\n";}
+	while (list ($index, $line) = each ($results) ){progress_logs(50,"{join_activedirectory_domain}","[$adminname]: $line");}
 	
 
 }
@@ -948,24 +1110,24 @@ function SAMBA_VERSION(){
 
 function SAMBA_VERSION_DEBUG(){
 	$SAMBA_VERSION=SAMBA_VERSION();
-	echo "Samba Version (Winbind): $SAMBA_VERSION\n";
+	progress_logs(20,"{join_activedirectory_domain}","Samba Version (Winbind): $SAMBA_VERSION");
 	if(preg_match("#^3\.6\.#", $SAMBA_VERSION)){
-		echo "Samba 3.6 OK\n";
+		echo"Samba 3.6 OK\n";
 	}
 }
 
 
 function SAMBA_PROXY(){
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Reconfigure Samba for proxy commpliance", basename(__FILE__));}
-	if($GLOBALS["VERBOSE"]){"SAMBA_SPECIFIC_PROXY() start... in line ".__LINE__."\n";}
+	progress_logs(15,"SAMBA_SPECIFIC_PROXY() start... ");
 	$IsAppliance=false;
-	if($GLOBALS["VERBOSE"]){"users=new usersMenus(); in line ".__LINE__."\n";}
+	progress_logs(15,"users=new usersMenus(); ");
 	$user=new settings_inc();
 	$unix=new unix();
 	$sock=new sockets();
 	
 	
-	if(!$user->SAMBA_INSTALLED){echo "Starting......:  Samba, no such software\n";return;}
+	if(!$user->SAMBA_INSTALLED){progress_logs(16,"{APP_SAMBA}"," Samba, no such software");return;}
 	if($user->SQUID_APPLIANCE){$IsAppliance=true;}
 	if($user->KASPERSKY_WEB_APPLIANCE){$IsAppliance=true;}
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
@@ -973,8 +1135,8 @@ function SAMBA_PROXY(){
 	if($user->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}		
 	if($EnableWebProxyStatsAppliance==1){$IsAppliance=true;}
 	
-	if(!$IsAppliance){echo "Starting......:  Samba,This is not a Proxy appliance, i leave untouched smb.conf\n";return;}
-	echo "Starting......:  Samba, it is an appliance...\n";
+	if(!$IsAppliance){progress_logs(16,"{APP_SAMBA}"," Samba,This is not a Proxy appliance, i leave untouched smb.conf");return;}
+	progress_logs(16,"{APP_SAMBA}"," Samba, it is an appliance...");
 
 	
 
@@ -1000,10 +1162,11 @@ function SAMBA_PROXY(){
 	if(!is_numeric($KerbAuthTrusted)){$KerbAuthTrusted=1;}
 	
 	
+	
 	$workgroup=$array["ADNETBIOSDOMAIN"];
 	$realm=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 	$ipaddr=trim($array["ADNETIPADDR"]);
-	echo "Starting......:  Samba, [$adminname]: Kdc server ads : $ad_server workgroup `$workgroup` ipaddr:$ipaddr\n";	
+	progress_logs(16,"{APP_SAMBA}"," Samba, [$adminname]: Kdc server ads : $ad_server workgroup `$workgroup` ipaddr:$ipaddr");	
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$password_server=$hostname;
 	//if($ipaddr<>null){$password_server=$ipaddr;}
@@ -1018,7 +1181,7 @@ function SAMBA_PROXY(){
 		$MAJOR=intval($re[1]);
 		$MINOR=intval($re[2]);
 		$REV=intval($re[3]);
-		echo "Starting......:  Samba, V$MAJOR $MINOR $REV\n";
+		progress_logs(17,"{APP_SAMBA}"," Samba, V$MAJOR $MINOR $REV");
 		
 	}
 	
@@ -1030,21 +1193,21 @@ function SAMBA_PROXY(){
 	
 	
 	@file_put_contents("/etc/samba/smb.conf", @implode("\n", $f));
-	echo "Starting......:  Samba, [$adminname]: SMB.CONF DONE, restarting services\n";
+	progress_logs(18,"{APP_SAMBA}"," Samba, [$adminname]: SMB.CONF DONE, restarting services");
 	$net=$unix->find_program("net");
 	shell_exec("$net cache flush");
 	shell_exec("$net cache stabilize");
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --nsswitch");
 	$smbcontrol=$unix->find_program("smbcontrol");
 	if(!is_file($smbcontrol)){
-		echo "Starting......:  Samba, [$adminname]: Restarting Samba...\n";
+		progress_logs(19,"{APP_SAMBA}"," Samba, [$adminname]: Restarting Samba...");
 		shell_exec("/etc/init.d/artica-postfix restart samba");
 	}else{
-		echo "Starting......:  Samba, [$adminname]: Reloading Samba...\n";
+		progress_logs(19,"{APP_SAMBA}"," Samba, [$adminname]: Reloading Samba...");
 		shell_exec("$smbcontrol smbd reload-config");
 	}
 	
-	echo "Starting......:  Samba, [$adminname]: Restarting Winbind...\n";
+	progress_logs(19,"{APP_SAMBA}"," Samba, [$adminname]: Restarting Winbind...");
 	shell_exec("/etc/init.d/winbind stop");
 	shell_exec("/etc/init.d/winbind start");
 	
@@ -1052,7 +1215,7 @@ function SAMBA_PROXY(){
 	
 }
 
-function ping_klist(){
+function ping_klist($progress=0){
 	$sock=new sockets();
 	$unix=new unix();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
@@ -1065,11 +1228,11 @@ function ping_klist(){
 	$adminpassword=$unix->shellEscapeChars($adminpassword);
 	$adminname=$array["WINDOWS_SERVER_ADMIN"];
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];	
-	RunKinit($array["WINDOWS_SERVER_ADMIN"],$array["WINDOWS_SERVER_PASS"]);
+	RunKinit($array["WINDOWS_SERVER_ADMIN"],$array["WINDOWS_SERVER_PASS"],$progress);
 	
 }
 
-function RunKinit($username,$password){
+function RunKinit($username,$password,$progress=1){
 	$unix=new unix();
 	$kinit=$unix->find_program("kinit");
 	$klist=$unix->find_program("klist");
@@ -1087,29 +1250,37 @@ function RunKinit($username,$password){
 		echo2($line." -> initialize..");
 		$password=$unix->shellEscapeChars($password);
 		$cmd="$echo \"$password\"|$kinit {$username} 2>&1";
-		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-		echo "Starting......: $function, kinit `$username`\n";
+		progress_logs($progress,"{kerberaus_authentication}","$cmd");
+		progress_logs($progress,"{kerberaus_authentication}","$function, kinit `$username`");
 		exec("$echo \"$password\"|$kinit {$username} 2>&1",$res);
 		while (list ($num, $a) = each ($res) ){	
 			if(preg_match("#Password for#",$a,$re)){unset($res[$num]);}
+			progress_logs($progress,"{kerberaus_authentication}","$a");
 		}	
 		$line=@implode("",$res);	
 		if(strlen(trim($line))>0){
-			echo2($line." -> Failed..");
+			progress_logs($progress,"{kerberaus_authentication}",$line." -> Failed..");
 			return;
 		}
 		unset($res);
-		exec("$klist 2>&1",$res);	
+		progress_logs($progress,"{kerberaus_authentication}",$klist);
+		exec("$klist 2>&1",$res);
 	}
 
-while (list ($num, $a) = each ($res) ){	if(preg_match("#Default principal:(.+)#",$a,$re)){echo2(trim($re[1])." -> success");break;}}	
+while (list ($num, $a) = each ($res) ){	
+		progress_logs($progress,"{kerberaus_authentication}","$a");
+		if(preg_match("#Default principal:(.+)#",$a,$re)){
+				progress_logs($progress,"{kerberaus_authentication}","$a SUCCESS");
+				break;
+			}
+		}	
 	
 
-	
+		progress_logs($progress,"{kerberaus_authentication}","DONE LINE: ".__LINE__);	
 }
 
 function echo2($content){
-	echo "Starting......: $content\n";
+	progress_logs(10,"{kerberaus_authentication}","$content");
 	
 }
 
@@ -1127,13 +1298,13 @@ function ping_kdc(){
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$ttime=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: [PING]: Already executed pid $oldpid since {$ttime}Mn\n";
+		progress_logs(20,"{join_activedirectory_domain}","[PING]: Already executed pid $oldpid since {$ttime}Mn");
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
 	
-	if($EnableKerbAuth==0){echo "Starting......: [PING]: Kerberos, disabled\n";return;}
-	if(!checkParams()){echo "Starting......: [PING]: Kerberos, misconfiguration failed\n";return;}
+	if($EnableKerbAuth==0){progress_logs(20,"{ping_kdc}","[PING]: Kerberos, disabled");return;}
+	if(!checkParams()){progress_logs(20,"{ping_kdc}","[PING]: Kerberos, misconfiguration failed");return;}
 	$array["RESULTS"]=false;
 	
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));	
@@ -1141,7 +1312,7 @@ function ping_kdc(){
 	if(!$GLOBALS["FORCE"]){
 		if($time<10){
 			if(!$GLOBALS["VERBOSE"]){return;}
-			echo "$filetime ({$time}Mn)\n";
+			progress_logs(20,"{ping_kdc}","$filetime ({$time}Mn)");
 		}
 	}
 	$kinit=$unix->find_program("kinit");
@@ -1161,12 +1332,12 @@ function ping_kdc(){
 	
 	
 	$cmd="$echo $kinitpassword|$kinit {$array["WINDOWS_SERVER_ADMIN"]}@$domain -V 2>&1";
-	echo "$cmd\n";
+	progress_logs(20,"{ping_kdc}","$cmd");
 	exec("$cmd",$kinit_results);
 	while (list ($num, $ligne) = each ($kinit_results) ){
 		
 		if(preg_match("#Clock skew too great while getting initial credentials#", $ligne)){
-			if($GLOBALS["VERBOSE"]){echo "Clock skew too great while\n";}
+			if($GLOBALS["VERBOSE"]){progress_logs(20,"{ping_kdc}","Clock skew too great while");}
 			$array["RESULTS"]=false;
 			$array["INFO"]=$ligne;
 			$unix->send_email_events("Active Directory connection clock issue", 
@@ -1179,23 +1350,12 @@ function ping_kdc(){
 		if(preg_match("#Authenticated to Kerberos#", $ligne)){
 			$array["RESULTS"]=true;
 			$array["INFO"]=$ligne;
-			echo "starting......: [PING]: Kerberos, Success\n";
+			progress_logs(20,"{join_activedirectory_domain}","[PING]: Kerberos, Success");
 		}
-		if($GLOBALS["VERBOSE"]){echo "kinit: $ligne\n";}
+		if($GLOBALS["VERBOSE"]){progress_logs(20,"{ping_kdc}","kinit: $ligne");}
 	}
 
-	
-	//if(is_file($net)){
-		/*$kinit_results=array();
-		/*exec("$net ads status 2>&1",$kinit_results);
-		while (list ($num, $ligne) = each ($kinit_results) ){
-			if(preg_match("#No machine account for#", $ligne)){
-				$array["RESULTS"]=false;
-				$array["INFO"]=$array["INFO"]."<br><i>$ligne</i>";
-			}
-		}
-	}*/
-	
+
 	$TestJoin=true;
 	
 	if($array["RESULTS"]==true){
@@ -1223,20 +1383,24 @@ function ping_kdc(){
 		
 	}
 	
+	@unlink($filetime);
+	@file_put_contents($filetime, time());
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/kinit.array", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/logs/kinit.array",0777);
+	
+	if($GLOBALS["JUST_PING"]){return;}
+	
 	if(!$TestJoin){
 		shell_exec("$nohup $php5 ". __FILE__." --join >/dev/null 2>&1 &");
-		
 	}
 	
 	
 	
 	
-	@unlink($filetime);
-	@file_put_contents($filetime, time());
-	@file_put_contents("/usr/share/artica-postfix/ressources/logs/kinit.array", serialize($array));
-	@chmod(0777,"/usr/share/artica-postfix/ressources/logs/kinit.array");
+	
+
 	if($users->SQUID_INSTALLED){
-		if(!$GLOBALS["JUST_PING"]){winbind_priv();}
+		winbind_priv();
 		if(!is_dir("/var/lib/samba/smb_krb5")){@mkdir("/var/lib/samba/smb_krb5",0777,true);}
 		shell_exec("$chmod 1775 /var/lib/samba/smb_krb5 >/dev/null 2>&1");
 		shell_exec("$chmod 1775 /var/lib/samba >/dev/null 2>&1");
@@ -1248,54 +1412,54 @@ function ping_kdc(){
 function SAMBA_OUTPUT_ERRORS($prefix,$line){
 	
 	if(preg_match("#NT_STATUS_INVALID_LOGON_HOURS#", $line)){
-		echo "Starting......: \n";
-		echo "Starting......: ******************************\n";
-		echo "Starting......: ** ERROR NT_STATUS_INVALID_LOGON_HOURS\n";
-		echo "Starting......: ** account not allowed to logon during\n"; 
-		echo "Starting......: ** these logon hours\n";
-		echo "Starting......: ******************************\n";
-		echo "Starting......: \n";
+		progress_logs(20,"{join_activedirectory_domain}","");
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","** ERROR NT_STATUS_INVALID_LOGON_HOURS");
+		progress_logs(20,"{join_activedirectory_domain}","** account not allowed to logon during"); 
+		progress_logs(20,"{join_activedirectory_domain}","** these logon hours");
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","");
 		
 	}
 	
 	if(preg_match("#NT_STATUS_LOGON_FAILURE#", $line)){
-		echo "Starting......: \n";
-		echo "Starting......: ******************************\n";
-		echo "Starting......: ** ERROR NT_STATUS_LOGON_FAILURE\n";
-		echo "Starting......: ** inactive account with bad password specified\n"; 
-		echo "Starting......: ******************************\n";
-		echo "Starting......: \n";
+		progress_logs(20,"{join_activedirectory_domain}","");
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","** ERROR NT_STATUS_LOGON_FAILURE");
+		progress_logs(20,"{join_activedirectory_domain}","** inactive account with bad password specified"); 
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","");
 		
 	}	
 	if(preg_match("#NT_STATUS_ACCOUNT_EXPIRED#", $line)){
-		echo "Starting......: \n";
-		echo "Starting......: ******************************\n";
-		echo "Starting......: ** ERROR NT_STATUS_LOGON_FAILURE\n";
-		echo "Starting......: ** account expired\n"; 
-		echo "Starting......: ******************************\n";
-		echo "Starting......: \n";
+		progress_logs(20,"{join_activedirectory_domain}","");
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","** ERROR NT_STATUS_LOGON_FAILURE");
+		progress_logs(20,"{join_activedirectory_domain}","** account expired"); 
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","");
 		
 	}	
 	if(preg_match("#NT_STATUS_ACCESS_DENIED#", $line)){
-		echo "Starting......: \n";
-		echo "Starting......: ******************************\n";
-		echo "Starting......: ** ERROR NT_STATUS_ACCESS_DENIED\n";
-		echo "Starting......: ** Wrong administrator credentials (username or password)\n"; 
-		echo "Starting......: ******************************\n";
-		echo "Starting......: \n";
+		progress_logs(20,"{join_activedirectory_domain}","");
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","** ERROR NT_STATUS_ACCESS_DENIED");
+		progress_logs(20,"{join_activedirectory_domain}","** Wrong administrator credentials (username or password)"); 
+		progress_logs(20,"{join_activedirectory_domain}","******************************");
+		progress_logs(20,"{join_activedirectory_domain}","");
 		
 	}	
 	
 	
 	
-	echo "$prefix $line\n";
+	progress_logs(20,"{join_activedirectory_domain}","$prefix $line");
 }
 
 
-function winbind_priv($reloadservs=false){
+function winbind_priv($reloadservs=false,$progress=0){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
-	echo "starting......: winbindd_priv...\n";
+	progress_logs($progress,"WINBINDD {privileges}","winbindd_priv...");
 	if(!winbind_priv_is_group()){
 		xsyslog("winbindd_priv group did not exists...create it");
 		$groupadd=$unix->find_program("groupadd");
@@ -1308,48 +1472,48 @@ function winbind_priv($reloadservs=false){
 	$gpass=$unix->find_program('gpass');
 	$usermod=$unix->find_program("usermod");
 	if(is_file($gpass)){
-		echo "starting......: winbindd_priv group exists, add squid a member of winbindd_priv\n";
+		progress_logs($progress,"{join_activedirectory_domain}","winbindd_priv group exists, add squid a member of winbindd_priv");
 		$cmdline="$gpass -a squid winbindd_priv";
-		if($GLOBALS["VERBOSE"]){echo "$cmdline\n";}
+		if($GLOBALS["VERBOSE"]){progress_logs($progress,"WINBINDD {privileges}","$cmdline");}
 		exec("$cmdline",$kinit_results);
-		while (list ($num, $ligne) = each ($kinit_results) ){echo "starting......: winbindd_priv: $ligne\n";}
+		while (list ($num, $ligne) = each ($kinit_results) ){progress_logs(52,"WINBINDD {privileges}","winbindd_priv: $ligne");}
 	}else{
 		if(is_file($usermod)){
 			$cmdline="$usermod -a -G winbindd_priv squid";
-			if($GLOBALS["VERBOSE"]){echo "$cmdline\n";}
+			if($GLOBALS["VERBOSE"]){progress_logs($progress,"WINBINDD {privileges}","$cmdline");}
 			exec("$cmdline",$kinit_results);
-			while (list ($num, $ligne) = each ($kinit_results) ){echo "starting......: winbindd_priv: $ligne\n";}
+			while (list ($num, $ligne) = each ($kinit_results) ){progress_logs($progress,"WINBINDD {privileges}","winbindd_priv: $ligne");}
 		}
 
 	}
 	
 	
 	
-	winbind_priv_perform();
+	winbind_priv_perform(false,$progress);
 	
 	$pid_path=$unix->LOCATE_WINBINDD_PID();
 	$pid=$unix->get_pid_from_file($pid_path);
 	$res=array();
-	echo "starting......: winbindd_priv checks Samba Winbind Daemon pid: $pid ($pid_path)...\n";
+	progress_logs($progress,"WINBINDD {privileges}","winbindd_priv checks Samba Winbind Daemon pid: $pid ($pid_path)...");
 	if(!$unix->process_exists($pid)){
-		echo "starting......: winbindd_priv checks Samba Winbind configuring winbind init...\n";
-		shell_exec("$php5 /usr/share/artica-postfix/exec.winbindd.php 2>&1",$res);
-		while (list ($num, $ligne) = each ($res) ){echo "starting......: winbindd $ligne\n";}
-		echo "starting......: winbindd_priv checks Samba Winbind Daemon stopped, start it...\n";
+		progress_logs($progress,"WINBINDD {privileges}","winbindd_priv checks Samba Winbind configuring winbind init...");
+		exec("$php5 /usr/share/artica-postfix/exec.winbindd.php 2>&1",$res);
+		while (list ($num, $ligne) = each ($res) ){progress_logs(54,"WINBINDD {privileges}","winbindd $ligne");}
+		progress_logs($progress,"WINBINDD {privileges}","winbindd_priv checks Samba Winbind Daemon stopped, start it...");
 		start_winbind();
 		
 	}else{
-		echo "starting......: winbindd_priv checks Samba Winbind configuring winbind init...\n";
+		progress_logs($progress,"WINBINDD {privileges}","winbindd_priv checks Samba Winbind configuring winbind init...");
 		shell_exec("$php5 /usr/share/artica-postfix/exec.winbindd.php 2>&1",$res);
-		while (list ($num, $ligne) = each ($res) ){echo "starting......: winbindd $ligne\n";}		
-		echo "starting......: winbindd already running pid $pid.. reload it\n";
+		while (list ($num, $ligne) = each ($res) ){progress_logs(55,"WINBINDD {privileges}","winbindd $ligne");}		
+		progress_logs($progress,"WINBINDD {privileges}","winbindd already running pid $pid.. reload it");
 		$res=array();
 		exec("$php5 /usr/share/artica-postfix/exec.winbindd.php --restart 2>&1",$res);
-		while (list ($num, $ligne) = each ($res) ){echo "starting......: winbindd $ligne\n";}
+		while (list ($num, $ligne) = each ($res) ){progress_logs(56,"WINBINDD {privileges}","winbindd $ligne");}
 		
 	}
 	
-	
+	progress_logs($progress,"WINBINDD {privileges}","winbindd_monit()");
 	winbindd_monit();
 	
 	
@@ -1360,7 +1524,7 @@ function winbind_priv_is_group(){
 	return false;
 }
 
-function winbind_priv_perform($withpid=false){
+function winbind_priv_perform($withpid=false,$progress=0){
 	if(isset($GLOBALS[__FUNCTION__."EXECUTED"])){return;}
 	$sock=new sockets();
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
@@ -1378,12 +1542,12 @@ function winbind_priv_perform($withpid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			xsyslog("(". __FUNCTION__.") Already executed PID:$oldpid");
-			if($GLOBALS["VERBOSE"]){echo "Already executed PID:$oldpid\n";}
+			progress_logs($progress,"{kerberaus_authentication}","Already executed PID:$oldpid");
 		}
 		
 	}
 	
-	winbindd_set_acls_is_xattr_var();
+	winbindd_set_acls_is_xattr_var($progress);
 	if(strlen($setfacl)>5){winbindd_set_acls_mainpart();}
 	
 	
@@ -1420,11 +1584,15 @@ function winbind_priv_perform($withpid=false){
 		$nohup=$unix->find_program("nohup");
 		if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
 		if(is_file($squidbin)){
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("starting......: Reloading $squidbin",basename(__FILE__),false);}
-			squid_admin_mysql(2, "Winbindd: Reconfiguring squid-cache","Process executed for connection to Active Directory");
-			shell_exec("$squidbin -k reconfigure >/dev/null 2>&1 &");
+			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Reloading $squidbin",basename(__FILE__),false);}
+			squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
+			progress_logs($progress,"{kerberaus_authentication}","Reconfigure Squid-cache...");
+			$cmd="/etc/init.d/squid reload --script=".basename(__FILE__)." >/dev/null 2>&1 &";
+			shell_exec($cmd);
 		}
 	}
+	
+	
 	$GLOBALS[__FUNCTION__."EXECUTED"]=true;
 }
 
@@ -1437,12 +1605,12 @@ function start_winbind(){
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting winbindd", basename(__FILE__));}
 	exec("/etc/init.d/winbind start 2>&1",$res);
 	while (list ($num, $ligne) = each ($res) ){
-		echo "starting......: winbindd $ligne\n";
+		progress_logs(20,"{join_activedirectory_domain}","winbindd $ligne");
 	}
 }
 
 function winbindisacl(){
-	if($GLOBALS["VERBOSE"]){echo "winbindisacl() -> winbindd_set_acls_mainpart()\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs(20,"{join_activedirectory_domain}","winbindisacl() -> winbindd_set_acls_mainpart()");}
 	winbindd_set_acls_mainpart();
 }
 
@@ -1457,14 +1625,14 @@ function winbindd_set_acls_is_xattr(){
 	$f=file("/proc/mounts");
 	while (list ($num, $ligne) = each ($f) ){
 	if(preg_match("#^(.*)\s+\/\s+(.*?)\s+.*?,acl.*?\s+([0-9]+)#",$ligne,$re)){
-		echo "starting......: winbindd_priv main partition is already mounted with extended acls\n";
+		progress_logs(20,"{join_activedirectory_domain}","winbindd_priv main partition is already mounted with extended acls");
 		return true;
 		}
 	}
 	
 	return false;
 }
-function winbindd_set_acls_is_xattr_var(){
+function winbindd_set_acls_is_xattr_var($progress=0){
 	if(isset($GLOBALS["winbindd_set_acls_is_xattr_var_exectued"])){return;}
 	$GLOBALS["winbindd_set_acls_is_xattr_var_exectued"]=true;
 	$unix=new unix();
@@ -1472,13 +1640,13 @@ function winbindd_set_acls_is_xattr_var(){
 	$f=explode("\n",@file_get_contents("/etc/fstab"));
 	$mustchange=false;
 	$remountSlash=false;
-	if($GLOBALS["VERBOSE"]){echo "/etc/fstab -> ".count($f)." rows\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs($progress,"{kerberaus_authentication}","/etc/fstab -> ".count($f)." rows");}
 	while (list ($num, $ligne) = each ($f) ){
 		$options=array();
 		$optionsR=array();
 		
 		if(preg_match("#^(.*?)\/var\s+(.+)\s+(.+?)\s+([0-9]+)\s+([0-9]+)#",$ligne,$re)){
-			echo "starting......: /var partition exists with options `{$re[3]}`...\n";
+			progress_logs($progress,"{kerberaus_authentication}","/var partition exists with options `{$re[3]}`...");
 			$options=explode(",",$re[3]);
 			while (list ($a, $b) = each ($options) ){
 				if(is_numeric($b)){continue;}
@@ -1491,14 +1659,14 @@ function winbindd_set_acls_is_xattr_var(){
 				$options[]="acl";
 				$options[]="user_xattr";
 				$re[3]=@implode(",", $options);
-				echo "starting......: ACLS found {$re[1]} main partition `/var` was not extended attribute, fix it: `".@implode(",", $options)."`...\n";
+				progress_logs($progress,"{kerberaus_authentication}","ACLS found {$re[1]} main partition `/var` was not extended attribute, fix it: `".@implode(",", $options)."`...");
 				$f[$num]=trim($re[1])."\t/var\t".$re[2]."\t".$re[3]."\t".$re[4]."\t".$re[5];
 			}
 		}
 		
 		
 		if(preg_match("#^(.*?)\/\s+(.+)\s+(.+?)\s+([0-9]+)\s+([0-9]+)#",$ligne,$re)){
-			echo "starting......: / partition exists with options `{$re[3]}`...\n";
+			progress_logs($progress,"{kerberaus_authentication}","/ partition exists with options `{$re[3]}`...");
 			$options=explode(",",$re[3]);
 			while (list ($a, $b) = each ($options) ){
 				if(is_numeric($b)){continue;}
@@ -1511,7 +1679,7 @@ function winbindd_set_acls_is_xattr_var(){
 				$options[]="acl";
 				$options[]="user_xattr";
 				$re[3]=@implode(",", $options);
-				echo "starting......: ACLS found {$re[1]} main partition `/` was not extended attribute, fix it: `".@implode(",", $options)."`...\n";
+				progress_logs($progress,"{kerberaus_authentication}","ACLS found {$re[1]} main partition `/` was not extended attribute, fix it: `".@implode(",", $options)."`...");
 				$f[$num]=trim($re[1])."\t/\t".$re[2]."\t".$re[3]."\t".$re[4]."\t".$re[5];
 				$remountSlash=true;
 			}			
@@ -1527,6 +1695,8 @@ function winbindd_set_acls_is_xattr_var(){
 		}
 	}
 	
+	progress_logs($progress,"{kerberaus_authentication}",__FUNCTION__." done line ".__LINE__);
+	
 	
 }
 
@@ -1534,7 +1704,7 @@ function winbindd_set_acls_is_xattr_var(){
 
 function winbindd_set_acls_mainpart(){
 	if(winbindd_set_acls_is_xattr()){
-		if($GLOBALS["VERBOSE"]){echo "winbindd_set_acls_is_xattr() -> winbindd_set_acls_is_xattr_var()\n";}
+		if($GLOBALS["VERBOSE"]){progress_logs(20,"{join_activedirectory_domain}","winbindd_set_acls_is_xattr() -> winbindd_set_acls_is_xattr_var()");}
 		winbindd_set_acls_is_xattr_var();
 		return;
 	}
@@ -1542,13 +1712,13 @@ function winbindd_set_acls_mainpart(){
 	$setfacl=$unix->find_program("setfacl");
 	$mount=$unix->find_program("mount");
 	if(!is_file($setfacl)){
-		xsyslog("starting......: winbindd_priv setfacl no such binary");
+		xsyslog("winbindd_priv setfacl no such binary");
 		return;
 	}
 	
 	
 	if(!is_file($mount)){
-		xsyslog("starting......: winbindd_priv mount no such binary");
+		xsyslog("winbindd_priv mount no such binary");
 		return;
 	}
 	
@@ -1561,37 +1731,37 @@ function winbindd_set_acls_mainpart(){
 			while (list ($a, $b) = each ($options) ){
 				$b=trim(strtolower($b));
 				if($b==null){continue;}
-				echo "starting......: winbindd_priv found main partition {$re[1]} with option `$b`\n";
+				progress_logs(20,"{join_activedirectory_domain}","winbindd_priv found main partition {$re[1]} with option `$b`");
 				$MAINOPTIONS[trim($b)]=true;
 			}
 			if(!isset($MAINOPTIONS["acl"])){$mustchange=true;$options[]="acl";$options[]="user_xattr";}
 			if(!$mustchange){
-				echo "starting......: winbindd_priv found main partition {$re[1]} ACL user_xattr,acl\n";
+				progress_logs(20,"{join_activedirectory_domain}","winbindd_priv found main partition {$re[1]} ACL user_xattr,acl");
 			}else{
-				echo "starting......: winbindd_priv found main partition {$re[1]} Add ACL user_xattr options was ". @implode(";", $options)."\n";
+				progress_logs(20,"{join_activedirectory_domain}","winbindd_priv found main partition {$re[1]} Add ACL user_xattr options was ". @implode(";", $options)."");
 				$f[$num]="{$re[1]}\t/\t{$re[2]}\t".@implode(",", $options)."\t{$re[4]}\t{$re[5]}";
 				reset($f);
 				while (list ($c, $d) = each ($f) ){if(trim($d)==null){continue;}$cc[]=$d;}
 				if(count($cc)>1){
 					@file_put_contents("/etc/fstab", @implode("\n", $cc)."\n");
-					xsyslog("starting......: winbindd_priv remount system partition...");
+					xsyslog("winbindd_priv remount system partition...");
 					shell_exec("$mount -o remount /");
 				}
 			}
 		}
 	}
-	if($GLOBALS["VERBOSE"]){echo "winbindd_set_acls_is_xattr() -> winbindd_set_acls_is_xattr_var()\n";}
+	if($GLOBALS["VERBOSE"]){progress_logs(20,"{join_activedirectory_domain}","winbindd_set_acls_is_xattr() -> winbindd_set_acls_is_xattr_var()");}
 	winbindd_set_acls_is_xattr_var();
 }
 
 
 function winbindd_monit(){
 	  
-	  if(is_file("/etc/monit/conf.d/winbindd.monitrc")){echo "starting......: winbindd monit: Already set\n";return;}
+	  if(is_file("/etc/monit/conf.d/winbindd.monitrc")){progress_logs(20,"{join_activedirectory_domain}","winbindd monit: Already set");return;}
 	   $unix=new unix();
 	   $monit=$unix->find_program("monit");
 	   if(!is_file($monit)){
-	   	xsyslog("starting......: winbindd monit: no such binary");
+	   	xsyslog("winbindd monit: no such binary");
 	   	return;
 	   }
 	   
@@ -1599,13 +1769,13 @@ function winbindd_monit(){
 	   
  	   $fs[]="#!/bin/sh";
 	   $fs[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-	   $fs[]="/etc/init.d/artica-postfix start winbindd";
+	   $fs[]="/etc/init.d/winbind start";
 	   $fs[]="exit 0\n";	
 	   
 	   $fk[]="#!/bin/sh";
 	   $fk[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-	   $fk[]="/etc/init.d/artica-postfix stop winbindd";
-	   $fk[]="exit 0\n";	   
+	   $fk[]="/etc/init.d/winbind stop";
+	   $fk[]="exit 0\n"; 
 	
 		@file_put_contents("/usr/sbin/winbindd-monit-start", @implode("\n", $fs));
 		@file_put_contents("/usr/sbin/winbindd-monit-stop", @implode("\n", $fs));
@@ -1619,9 +1789,9 @@ function winbindd_monit(){
 		$fm[]="if totalmem > 900 MB for 5 cycles then alert";
 		$fm[]="if cpu > 95% for 5 cycles then alert";
 		$fm[]="if 5 restarts within 5 cycles then timeout";	
-		echo "starting......: winbindd monit: creating winbindd.monitrc\n";
+		progress_logs(20,"{join_activedirectory_domain}","winbindd monit: creating winbindd.monitrc");
 		@file_put_contents("/etc/monit/conf.d/winbindd.monitrc", @implode("\n", $fm));
-		echo "starting......: winbindd monit: restarting monit\n";
+		progress_logs(20,"{join_activedirectory_domain}","winbindd monit: restarting monit");
 		shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --monit-check >/dev/null 2>&1 &");
 }
 function disconnect(){
@@ -1646,8 +1816,8 @@ function disconnect(){
 	$ad_server=$array["WINDOWS_SERVER_NETBIOSNAME"];	
 	
 	$function=__FUNCTION__;
-	if(!is_file($netbin)){echo "Starting......:  net, no such binary\n";return;}
-	if(!$user->SAMBA_INSTALLED){echo "Starting......:  Samba, no such software\n";return;}	
+	if(!is_file($netbin)){progress_logs(100,"{join_activedirectory_domain}"," net, no such binary");return;}
+	if(!$user->SAMBA_INSTALLED){progress_logs(100,"{join_activedirectory_domain}"," Samba, no such software");return;}	
 	exec("$netbin ads keytab flush 2>&1",$results);
 	exec("$netbin ads leave -U $adminname%$adminpassword 2>&1",$results);
 	exec("$kdestroy 2>&1",$results);
@@ -1657,35 +1827,75 @@ function disconnect(){
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);
 	exec("/etc/init.d/artica-postfix restart samba 2>&1",$results);	
 	while (list ($num, $ligne) = each ($results) ){
-		echo "Leave......: $ligne\n";
+		progress_logs(90,"{join_activedirectory_domain}","Leave......: $ligne");
 	}	
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
+	progress_logs(100,"{join_activedirectory_domain}","Leave......: $ligne");
 }
 
 
 function checkParams(){
 	
+	progress_logs(5,"{apply_settings}","Checks settings..");
+	
 	$sock=new sockets();
 	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
-	if($array["WINDOWS_DNS_SUFFIX"]==null){return false;}
-	if($array["WINDOWS_SERVER_NETBIOSNAME"]==null){return false;}
-	if($array["WINDOWS_SERVER_TYPE"]==null){return false;}
-	if($array["WINDOWS_SERVER_ADMIN"]==null){return false;}
-	if($array["WINDOWS_SERVER_PASS"]==null){return false;}
+	if($array["WINDOWS_DNS_SUFFIX"]==null){
+		progress_logs(20,"{apply_settings}","Auth Winbindd, misconfiguration failed WINDOWS_DNS_SUFFIX = NULL");
+		return false;
+	}
+	if($array["WINDOWS_SERVER_NETBIOSNAME"]==null){
+		progress_logs(20,"{apply_settings}","Auth Winbindd, misconfiguration failed WINDOWS_SERVER_NETBIOSNAME = NULL");
+		return false;}
+	if($array["WINDOWS_SERVER_TYPE"]==null){
+		progress_logs(20,"{apply_settings}","Auth Winbindd, misconfiguration failed WINDOWS_SERVER_TYPE = NULL");
+		return false;}
+	if($array["WINDOWS_SERVER_ADMIN"]==null){
+		progress_logs(20,"{apply_settings}","Auth Winbindd, misconfiguration failed WINDOWS_SERVER_ADMIN = NULL");return false;}
+	if($array["WINDOWS_SERVER_PASS"]==null){progress_logs(20,"{apply_settings}","Auth Winbindd, misconfiguration failed WINDOWS_SERVER_PASS = NULL");return false;}
 	
-	
+	$ADNETIPADDR=$array["ADNETIPADDR"];
+	$UseADAsNameServer=$sock->GET_INFO("UseADAsNameServer");
+	if(!$UseADAsNameServer){$UseADAsNameServer=0;}
+	if($UseADAsNameServer==1){
+		$resolve=new resolv_conf();
+		progress_logs(20,"{apply_settings}","Auth Winbindd, SET $ADNETIPADDR as 1st DNS in line ". __LINE__);
+		$resolve->MainArray["DNS1"]=$ADNETIPADDR;
+		progress_logs(20,"{apply_settings}","Auth Winbindd, Building configuration ". __LINE__);
+		$REX=$resolve->build();
+		progress_logs(20,"{apply_settings}","Auth Winbindd, saving /etc/resolv.conf ". __LINE__);
+		@file_put_contents("/etc/resolv.conf",$resolve->build());
+		progress_logs(20,"{apply_settings}","Auth Winbindd, saving new configuration ". __LINE__);
+		$resolve->save();
+	}
 	
 	
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
+	
+	progress_logs(20,"{apply_settings}","Trying to resolve host $hostname ....". __LINE__);
 	$ip=gethostbyname($hostname);
-	if($ip==$hostname){return false;}
+	progress_logs(20,"{apply_settings}","host $hostname = $ip....". __LINE__);
+	
+	if($ip==$hostname){
+		progress_logs(7,"{apply_settings}","!!!!! $ip gethostbyname($hostname) failed !!!!!");
+		return false;
+		
+	}
+	
+	progress_logs(7,"{apply_settings}","Checks settings success..");
 	return true;
 }
 
 function xsyslog($text){
-	echo $text."\n";
+	
 	if(function_exists("WriteToSyslogMail")){WriteToSyslogMail($text, basename(__FILE__));}
 
+}
+function GetUsersNumber(){
+	include_once(dirname(__FILE__)."/ressources/class.external.ad.inc");
+	$ad=new external_ad_search();
+	$users=$ad->NumUsers();
+	echo "Users: $users\n";
 }

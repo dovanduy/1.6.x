@@ -16,6 +16,9 @@ if($argv[1]=="--sites-infos"){ParseSitesInfos();die();}
 if($argv[1]=="--streamget"){streamget();die();}
 if($argv[1]=="--notifs"){ufdguard_send_notifications();die();}
 if($argv[1]=="--blocked"){PaseUdfdbGuardnew();die();}
+if($argv[1]=="--errors"){ufdbguard_blocks_errors();die();}
+
+
 
 
 $pid=getmypid();
@@ -54,6 +57,7 @@ ParseSitesInfos();
 PaseUdfdbGuard();
 PaseUdfdbGuardnew();
 ParseUdfdbGuard_failed();
+ufdbguard_blocks_errors();
 $t2=time();
 $distanceOfTimeInWords=distanceOfTimeInWords($t1,$t2);
 
@@ -91,7 +95,7 @@ function ParseLogs(){
 
 
 function events($text){
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$pid=getmypid();
 		$logFile=$_GET["LOGFILE"];
 		$size=filesize($logFile);
@@ -269,6 +273,67 @@ function ParseLogsNew(){
   	
 }
 
+
+function ufdbguard_blocks_errors($nopid=false){
+	$unix=new unix();
+	if($nopid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
+		$t=0;
+
+	}
+
+	
+	if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks-errors")){return;}
+	
+	if (!$handle = opendir("/var/log/artica-postfix/ufdbguard-blocks-errors")) {
+		events_tail("ufdbguard_blocks_errors:: -> glob failed in Line: /var/log/artica-postfix/ufdbguard-blocks-errors ".__LINE__);
+		return ;
+	}
+	
+	$q=new mysql_squid_builder();
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="/var/log/artica-postfix/ufdbguard-blocks-errors/$filename";
+		$queries=unserialize(@file_get_contents($targetFile));
+		if(!is_array($queries)){
+			events_tail("PaseUdfdbGuard:: $targetFile, not an array....");
+			@unlink($targetFile);
+			continue;
+		}
+		
+		if(!preg_match("#(.+?)\.([0-9]+)#", $filename,$re)){
+			events_tail("PaseUdfdbGuard:: $targetFile, No compatible file");
+			@unlink($targetFile);
+			continue;
+		}
+		
+		$tablename=$re[1];
+		$q->CheckTablesBlocked_day(0,$tablename);
+		$prefix="INSERT IGNORE INTO `$tablename` (`zmd5`,`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`,`uri`,`zDate`) VALUES ";
+		if(!$q->QUERY_SQL($prefix.@implode(",", $queries))){
+			ToSyslog("Fatal line ".__LINE__." ".$q->mysql_error);
+			$time=$unix->file_time_min($targetFile);
+			if($time>5760){ @unlink($targetFile); }
+			continue;
+		}
+		@unlink($targetFile);
+		
+	}
+
+
+}
+
+function ToSyslog($text){
+
+	$LOG_SEV=LOG_INFO;
+	if(function_exists("openlog")){openlog("danguardian-injector", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
+}
+
 function PaseUdfdbGuardnew(){
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -296,6 +361,9 @@ function PaseUdfdbGuardnew(){
 		$q->CheckTables();
 	}	
 
+	
+	if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){return;}
+	
 	if (!$handle = opendir("/var/log/artica-postfix/ufdbguard-blocks")) {
 		events_tail("PaseUdfdbGuardnew:: -> glob failed in Line: /var/log/artica-postfix/ufdbguard-blocks ".__LINE__);
 		return ;
@@ -385,7 +453,7 @@ function PaseUdfdbGuardnew(){
 	$ev=0;
 	while (list ($tablename, $queries) = each ($BIGARRAY) ){
 		$q->CheckTablesBlocked_day(0,$tablename);
-		$prefix="INSERT INTO `$tablename` (`zmd5`,`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`,`uri`,`zDate`) VALUES ";
+		$prefix="INSERT IGNORE INTO `$tablename` (`zmd5`,`client`,`website`,`category`,`rulename`,`public_ip`,`why`,`blocktype`,`hostname`,`uid`,`MAC`,`uri`,`zDate`) VALUES ";
 		if(!$q->QUERY_SQL($prefix.@implode(",", $queries))){
 			events_tail("PaseUdfdbGuardnew:: Fatal $q->mysql_error");
 			@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks-errors/$tablename.".time(), serialize($queries));
@@ -613,7 +681,8 @@ function ParseSitesInfos(){
 
 function include_tpl_file($path,$category){
 	$sock=new sockets();
-	$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+	$unix=new unix();
+	$uuid=$unix->GetUniqueID();
 	if($uuid==null){echo "UUID=NULL; Aborting";return;}
 	if($category==null){echo "CATEGORY=NULL; Aborting";return;}				
 	if(!is_file($path)){echo "$path no such file\n";return;}
@@ -665,7 +734,7 @@ function events_tail($text){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		//if($GLOBALS["VERBOSE"]){echo "$text\n";}
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/auth-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}

@@ -94,23 +94,10 @@ while (list ($key, $line) = each ($GLOBALS["QUICKLINKS-ITEMS"]) ){
 }
 
 
-	$html="
-            <div id='QuickLinksTop' class=mainHeaderContent>
-                <ul class='kwicks'>
-					".@implode("\n", $f)."
-                    
-                </ul>
-            </div>
-	
-	<div id='BodyContent' style='width:900px'></div>
+	$html="<div id='BodyContent' style='width:100%'></div>
 	
 	
 	<script>
-		function LoadQuickTaskBar(){
-			$(document).ready(function() {
-				$('#QuickLinksTop .kwicks').kwicks({max: 205,spacing:  5});
-			});
-		}
 		
 		function QuickLinkCyrusInternal(){
 			Loadjs('quicklinks.postfix.multiple.php?js=yes');

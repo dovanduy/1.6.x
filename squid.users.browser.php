@@ -154,7 +154,7 @@ function yourbrowsers(){
 				<div style='font-size:16px'>Safari</div>
 				<p style='font-size:14px'>{safaripac_how_to}</p>
 				<div>
-				<a href=\"http://www.artica.fr/download/Proxy_Configuration_Mac_OSX_Leopard.pdf\" style='font-size:16px;color:#AC0909;text-decoration:underline'>Configuring your proxy settings – MAC OSX</a>
+				<a href=\"http://www.articatech.net/download/Proxy_Configuration_Mac_OSX_Leopard.pdf\" style='font-size:16px;color:#AC0909;text-decoration:underline'>Configuring your proxy settings – MAC OSX</a>
 				</div>
 				
 			</td>

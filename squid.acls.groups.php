@@ -10,7 +10,7 @@
 	include_once('ressources/class.ActiveDirectory.inc');
 	include_once('ressources/class.external.ad.inc');
 	
-	$GLOBALS["GroupType"]["src"]="{addr}";
+	$GLOBALS["GroupType"]["src"]="{src_addr}";
 	$GLOBALS["GroupType"]["arp"]="{ComputerMacAddress}";
 	$GLOBALS["GroupType"]["dstdomain"]="{dstdomain}";
 	$GLOBALS["GroupType"]["proxy_auth"]="{members}";	
@@ -58,10 +58,12 @@ if(isset($_POST["group-params"])){EditGroup_params_save();exit;}
 page();
 
 function js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
 	$title=$tpl->_ENGINE_parse_body("{proxy_objects}");
-	$html="YahooWin('750','$page?table-width=730&table-heigth=450&GroupName-width=360&GroupType-width=169&table-org={$_GET["toexplainorg"]}&ACLType={$_GET["ACLType"]}','$title')";
+	$html="YahooWin('750','$page?table-width=730&table-heigth=450&GroupName-width=360&GroupType-width=169&table-org={$_GET["toexplainorg"]}&ACLType={$_GET["ACLType"]}$wpad','$title')";
 	echo $html;
 	
 }
@@ -75,15 +77,16 @@ function item_popup_js(){
 	if($ID>0){
 		$title="{item}:$ID";
 	}
-	
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWin5(450,'$page?AddItem-tab=yes&item-id=$ID&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}&ACLType={$_GET["ACLType"]}','$title')";
+	$html="YahooWin5(670,'$page?AddItem-tab=yes&item-id=$ID&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}&ACLType={$_GET["ACLType"]}$wpad','$title')";
 	echo $html;
 }
 
 function AddGroup_js(){
 	$page=CurrentPageName();
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";$ASWPAD=true;}
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
 	if($ID>0){
@@ -98,13 +101,18 @@ function AddGroup_js(){
 	
 	if($ID<0){$title="{new_item}";}
 	$title=$tpl->_ENGINE_parse_body($title);
-	$html="YahooWinT(546,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}&table-org={$_GET["table-org"]}&FilterType={$_GET["FilterType"]}&ACLType={$_GET["ACLType"]}','$title')";
+	$html="YahooWinT(546,'$page?EditGroup-popup=yes&ID=$ID&link-acl={$_GET["link-acl"]}&table-acls-t={$_GET["table-acls-t"]}&table-org={$_GET["table-org"]}&FilterType={$_GET["FilterType"]}&TransParentMode={$_GET["TransParentMode"]}&ACLType={$_GET["ACLType"]}$wpad','$title')";
 	echo $html;	
 	
 }
 
 function EditGroup_popup(){
 	$ID=$_GET["ID"];
+	$ASWPAD=false;
+	$AsTransParent=false;
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";$ASWPAD=true;}
+	if($_GET["TransParentMode"]){$wpad="&wpad=yes&TransParentMode=1";$ASWPAD=true;$AsTransParent=true;}
+	
 	if(!is_numeric($ID)){$ID=0;}
 	if($ID>0){if(!isset($_GET["tab"])){EditGroup_tabs();return;}}
 	$page=CurrentPageName();
@@ -146,6 +154,8 @@ function EditGroup_popup(){
 	$t=time();
 	$tt=time();
 	$GroupType=$q->acl_GroupType;
+	if($ASWPAD){$GroupType=$q->acl_GroupType_WPAD;}
+	if($AsTransParent){$GroupType=$q->acl_GroupType_iptables;}
 	
 	$GroupeTypeField=Field_array_Hash($GroupType,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
 	
@@ -168,6 +178,23 @@ function EditGroup_popup(){
 				$ScriptAdd="TypeAddButton$tt()";
 				break;
 				
+			case "FW-IN":
+				$GroupType=array();
+				$GroupeTypeField=Field_array_Hash($q->acl_GroupType_Firewall_in,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
+				$ScriptAdd="TypeAddButton$tt()";
+				break;
+				
+			case "FW-OUT":
+				$GroupType=array();
+				$GroupeTypeField=Field_array_Hash($q->acl_GroupType_Firewall_out,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
+				$ScriptAdd="TypeAddButton$tt()";
+				break;		
+
+			case "FW-PORT":
+				$GroupType=array();
+				$GroupeTypeField=Field_array_Hash($q->acl_GroupType_Firewall_port,"GroupType-$tt",$ligne["GroupType"],"TypeAddButton$tt()",null,0,"font-size:14px");
+				$ScriptAdd="TypeAddButton$tt()";
+				break;				
 				
 			case "uid":
 				$GroupType=array();
@@ -196,6 +223,11 @@ function EditGroup_popup(){
 				{$GroupType["dstdomain"]}";
 				$ScriptAdd="TypeAddButton$tt()";
 				break;
+			case "srcdomain":
+				$GroupeTypeField="<input type='hidden' name='GroupType-$tt' id='GroupType-$tt' value='srcdomain'>
+				{$GroupType["srcdomain"]}";
+				$ScriptAdd="TypeAddButton$tt()";
+				break;				
 									
 			default:$GroupeTypeField=null;break;
 		}
@@ -238,7 +270,7 @@ if($ligne["GroupType"]=="dynamic_acls"){
 	
 	$html="
 	<div id='$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	
 	<table style='width:99%'>
 	<tbody>
@@ -278,6 +310,7 @@ if($ligne["GroupType"]=="dynamic_acls"){
 		if(tableaclt.length>3){ $('#table-items-'+tableaclt).flexReload();}
 		if(tableorg.length>3){ $('#'+tableorg).flexReload();}
 		ifFnExistsCallIt('RefreshSquidGroupTable');
+		RefreshAllAclsTables();
 		ExecuteByClassName('SearchFunction');
 	}
 	
@@ -311,6 +344,9 @@ if($ligne["GroupType"]=="dynamic_acls"){
 		      XHR.appendData('ACLType', '{$_GET["ACLType"]}');
 			  XHR.appendData('ID', '$ID');
 		      XHR.appendData('link-acl', '{$_GET["link-acl"]}');
+		      XHR.appendData('TransParentMode', '{$_GET["TransParentMode"]}');
+		      
+		      
 		      AnimateDiv('$t');
 		      XHR.sendAndLoad('$page', 'POST',x_SaveAclGroupMode);  		
 		}	
@@ -337,7 +373,8 @@ function GroupType_button(){
 	$GroupName=$_GET["GroupName"];
 	$tpl=new templates();
 	if($GroupType=="proxy_auth_ads"){
-		$js="Loadjs('MembersBrowse.php?OnlyGroups=1&field-user=$GroupName&OnlyAD=1&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1')";
+		//$js="Loadjs('MembersBrowse.php?OnlyGroups=1&field-user=$GroupName&OnlyAD=1&prepend-guid=0&prepend=0&OnlyGUID=0&OnlyName=1')";
+		$js="Loadjs('browse-ad-groups.php?field-user=$GroupName&field-type=3')";
 		echo $tpl->_ENGINE_parse_body(button("{browse}..",$js,"12"));
 	}	
 }
@@ -362,6 +399,10 @@ function EditGroup_delete(){
 	
 	$q->QUERY_SQL("DELETE FROM webfilter_aclsdynlogs WHERE gpid='$ID'");
 	if(!$q->ok){echo $q->mysql_error;return;}	
+	
+	$q->QUERY_SQL("DELETE FROM transparent_networks_groups WHERE gpid='$ID'");
+	if(!$q->ok){echo $q->mysql_error;return;}
+	
 	
 	
 	
@@ -422,13 +463,19 @@ function EditGroup_save(){
 		if($_POST["link-acl"]>0){
 			$aclid=$_POST["link-acl"];
 			$md5=md5($aclid.$gpid);
-			$sql="INSERT IGNORE INTO webfilters_sqacllinks (zmd5,aclid,gpid) VALUES('$md5','$aclid','$gpid')";
+			$sql="INSERT IGNORE INTO webfilters_sqacllinks (zmd5,aclid,gpid,zOrder) VALUES('$md5','$aclid','$gpid',1)";
 			$q=new mysql_squid_builder();
 			
 			if($_POST["ACLType"]=="session-time"){
 				$q=new mysql();
 				$sql="INSERT IGNORE INTO ext_time_quota_acl_link (zmd5,ruleid,groupid,enabled) VALUES('$md5','$aclid','$gpid',1)";
 			}
+			
+			if($_POST["TransParentMode"]==1){
+				$sql="INSERT IGNORE INTO transparent_networks_groups (zmd5,ruleid,gpid) VALUES('$md5','$aclid','$gpid')";
+				
+			}
+			
 			
 			$q->QUERY_SQL($sql);
 			if(!$q->ok){echo $q->mysql_error."\nin line:".__LINE__."\n".basename(__FILE__);}
@@ -443,10 +490,18 @@ function item_save(){
 	$tpl=new templates();	
 	$ID=$_POST["item-id"];
 	$gpid=$_POST["ID"];
+	$ECHO=false;
+	if(isset($_POST["ECHO"])){$ECHO=true;}
+	$_POST["item-pattern"]=url_decode_special_tool($_POST["item-pattern"]);
 	$q=new mysql_squid_builder();
-
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID='$gpid'"));
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupName,GroupType FROM webfilters_sqgroups WHERE ID='$gpid'"));
 	$GroupType=$ligne["GroupType"];
+	$GroupName=$ligne["GroupName"];
+	if($GroupType=="url_regex_extensions"){
+		if(preg_match("#\.(.+?)$#", $_POST["item-pattern"],$re)){$_POST["item-pattern"]=$re[1];}
+	}
+	
 	if($GroupType=="dstdomain"){
 		if(preg_match("#\/\/#", $_POST["item-pattern"])){
 			$URLAR=parse_url($_POST["item-pattern"]);
@@ -464,6 +519,11 @@ function item_save(){
 			return;
 		}
 	}
+	
+	if($GroupType=="arp"){
+		$_POST["item-pattern"]=trim(strtoupper( $_POST["item-pattern"]));
+		$_POST["item-pattern"]=str_replace("-", ":", $_POST["item-pattern"]);
+	}
 	 
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM webfilters_sqitems WHERE gpid='$gpid' AND pattern='{$_POST["item-pattern"]}'"));
 	if(trim($ligne["ID"])>0){return;}
@@ -472,11 +532,12 @@ function item_save(){
 	VALUES ('{$_POST["item-pattern"]}','$gpid','1','');";
 	
 	$sql="UPDATE webfilters_sqitems SET pattern='{$_POST["item-pattern"]}' WHERE ID='$ID'";	
-	if($ID<1){$sql=$sqladd;}
+	if($ID<1){$sql=$sqladd;
+		if($ECHO){echo "{$_POST["item-pattern"]} -> $GroupName Type $GroupType OK\n";}
+	}
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();	
-	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+	
 }
 function item_import(){
 	$page=CurrentPageName();
@@ -496,6 +557,10 @@ function item_import(){
 	while (list ($num, $pattern) = each (	$f)){
 		if(trim($pattern)==null){continue;}
 		
+		if($GroupType=="url_regex_extensions"){
+			if(preg_match("#\.(.+?)$#", $pattern,$re)){$pattern=$re[1];}
+		}
+		
 		if($GroupType=="dstdomain"){
 			if(preg_match("#\/\/#", $pattern)){
 				$URLAR=parse_url($pattern);
@@ -503,7 +568,12 @@ function item_import(){
 			}
 			if(preg_match("#^www.(.*)#",$pattern,$re)){$pattern=$re[1];}
 			if(preg_match("#(.*?)\/#", $pattern,$re)){$pattern=$re[1];}
-		}		
+		}
+
+		if($GroupType=="arp"){
+			$pattern=trim(strtoupper( $pattern));
+			$pattern=str_replace("-", ":", $pattern);
+		}
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM webfilters_sqitems WHERE gpid='$gpid' AND pattern='$pattern'"));
 		if(trim($ligne["ID"])>0){continue;}
@@ -979,17 +1049,23 @@ function items_js(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
 	$items=$tpl->_ENGINE_parse_body("{items}");
-	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
+	$new_item=$tpl->javascript_parse_text("{new_item}");
 	$t=time();		
 	
-	
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
 	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID=$ID"));	
 	if($ligne["GroupType"]=="radius_auth"){items_radius();return;}
 	if($ligne["GroupType"]=="ad_auth"){items_ad_auth();return;}	
 	if($ligne["GroupType"]=="ldap_auth"){items_openldap_auth();return;}	
 	
+	$Additem_js="Loadjs('$page?AddItem-js=yes&item-id=-1&ID=$ID&table-t=$t&table-org={$_GET["table-org"]}$wpad');";
 	
+	
+	if($ligne["GroupType"]=="categories"){
+		$Additem_js="Loadjs('squid.acls.categories.php?gpid=$ID&tablet=table-$t')";
+		$new_item=$tpl->javascript_parse_text("{choose_categories}");
+	}
 	
 	$html="
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
@@ -997,7 +1073,7 @@ function items_js(){
 var DeleteGroupItemTemp=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?items-list=yes&ID=$ID&table-org={$_GET["table-org"]}',
+	url: '$page?items-list=yes&ID=$ID&table-org={$_GET["table-org"]}$wpad',
 	dataType: 'json',
 	colModel : [
 		{display: '$items', name : 'pattern', width : 386, sortable : true, align: 'left'},
@@ -1025,7 +1101,7 @@ buttons : [
 	});   
 });
 function AddItem() {
-	Loadjs('$page?AddItem-js=yes&item-id=-1&ID=$ID&table-t=$t&table-org={$_GET["table-org"]}');
+	$Additem_js
 	
 }	
 
@@ -1103,7 +1179,8 @@ function page(){
 	if(isset($_GET["GroupType-width"])){$GroupType_width=$_GET["GroupType-width"];}
 	
 	
-	$html=$tpl->_ENGINE_parse_body("")."
+	$html="
+	<input type='hidden' name='ACL_ID_GROUP_TABLE' id='ACL_ID_GROUP_TABLE' value='table-$t'>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var DeleteSquidAclGroupTemp=0;
@@ -1158,12 +1235,14 @@ function RefreshSquidGroupTable(){
 		$('#rowtime'+TimeRuleIDTemp).remove();
 		var tableorg='{$_GET["table-org"]}';
 		if(tableorg.length>3){ $('#'+tableorg).flexReload();}
+		RefreshAllAclsTables();
 		ExecuteByClassName('SearchFunction');		
 	}
 	
 	var x_EnableDisableGroup= function (obj) {
 		var res=obj.responseText;
 		if(res.length>3){alert(res);return;}
+		RefreshAllAclsTables();
 		
 		
 	}	
@@ -1185,6 +1264,7 @@ function RefreshSquidGroupTable(){
 		var tableorg='{$_GET["table-org"]}';
 		if(tableorg.length>3){ $('#'+tableorg).flexReload();}	
 		ExecuteByClassName('SearchFunction');	
+		RefreshAllAclsTables();
 	}
 	
 	function EnableDisableGroup(ID){
@@ -1211,7 +1291,7 @@ function item_tab(){
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];
-	
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
 	
 	$array["AddItem-popup"]='{item}';
 	$array["AddItem-import"]='{import}';
@@ -1223,25 +1303,17 @@ function item_tab(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID=$ID"));
 	if($ligne["GroupType"]=="method"){unset($array["AddItem-import"]);}
 	if($ligne["GroupType"]=="dynamic_acls"){unset($array["AddItem-import"]);}
+	if($ligne["GroupType"]=="categories"){unset($array["AddItem-import"]);}
 
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&item-id={$_GET["item-id"]}&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&item-id={$_GET["item-id"]}&ID={$_GET["ID"]}&table-t={$_GET["table-t"]}&table-org={$_GET["table-org"]}$wpad\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 	
 	}
 
 	
-	echo "
-	<div id=squid_aclm_item_add style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#squid_aclm_item_add').tabs();
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "squid_aclm_item_add");
+
 }
 
 function item_form_import(){
@@ -1293,7 +1365,7 @@ function item_form_import(){
 	<div style='font-size:16px'>$GroupTypeText</div>
 	<div class=explain style='font-size:12px'>$explain</div>
 	<div id='$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
@@ -1325,12 +1397,14 @@ function item_form_import(){
 		}
 		var tableorg='{$_GET["table-org"]}';
 		if(tableorg.length>3){ $('#'+tableorg).flexReload();}	
+		RefreshAllAclsTables();
 		ExecuteByClassName('SearchFunction');		
 		
 	}
 	
 	function SaveItemsModeCheck(e){
-		if(checkEnter(e)){SaveItemsMode();}
+		if(!checkEnter(e)){return;}
+		SaveItemsMode$t();
 	}
 	
 	function SaveItemsMode$t(){
@@ -1352,6 +1426,7 @@ function item_form_import(){
 function item_form(){
 	$ID=$_GET["ID"];
 	$item_id=$_GET["item_id"];
+	if(isset($_GET["wpad"])){$wpad="&wpad=yes";}
 	$t=time();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -1366,13 +1441,14 @@ function item_form(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqitems WHERE ID='$item_id'"));
 	$buttonname="{add}";$jsadd=null;
 	if($ID<1){$buttonname="{add}";}
-	
+	$LOCK=0;
 	
 	
 	if($GroupType=="src"){
 		$explain="{acl_src_text}";
-		$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('squid.BrowseItems.php?field=$t-pattern&type=ipaddr');\" style='font-size:12px'>";
+		$browse=button("{browse}...","Loadjs('squid.BrowseItems.php?field=$t-pattern&type=ipaddr')");
 	}
+	if($GroupType=="dst"){$explain="{acl_dst_text}";}
 	if($GroupType=="arp"){$explain="{ComputerMacAddress}";}
 	if($GroupType=="dstdomain"){$explain="{squid_ask_domain}";}
 	if($GroupType=="maxconn"){$explain="{squid_aclmax_connections_explain}";}
@@ -1381,25 +1457,48 @@ function item_form(){
 	if($GroupType=="req_mime_type"){$explain="{req_mime_type_explain}";}
 	if($GroupType=="rep_mime_type"){$explain="{rep_mime_type_explain}";}
 	if($GroupType=="referer_regex"){$explain="{acl_squid_referer_regex_explain}";}
+	if($GroupType=="srcdomain"){$explain="{acl_squid_srcdomain_explain}";}
+	if($GroupType=="url_regex_extensions"){$explain="{url_regex_extensions_explain}";}
+	
+	$MAIN_BUTTON=button($buttonname, "SaveItemsMode$t()",16);
+	
+	if($GroupType=="categories"){
+		
+		$explain="{categories_acls_explain}";
+		$browse=button("{choose_categories}..","Loadjs('squid.acls.categories.php?gpid=$ID')");
+		$MAIN_BUTTON=null;
+		$LOCK=1;
+	}
 	
 	
 	if($GroupType=="browser"){
 		$explain="{acl_squid_browser_explain}";
-		$browse=button("{list}..","Loadjs('squid.browsers.php?ShowOnly=1')","12px");
+		$browse=button("{list}..","Loadjs('squid.browsers.php?ShowOnly=1')");
+	}
+	
+	if($GroupType=="arp"){
+		$browse=button("{list}..","Loadjs('computer-browse.php?callback=FillFieldMAC$t')","12px");
 	}
 	
 	if($GroupType=="method"){$explain="{acl_squid_method_explain}";}
 	
 	if($GroupType=="proxy_auth"){
-		if($EnableKerbAuth==1){$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=0&OnlyUsers=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";}
+		if($EnableKerbAuth==1){
+			$LOCK=1;
+			$browse=button("{browse}...","Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=0&OnlyUsers=1&OnlyAD=1&OnlyGUID=1');");
+		}
 		$explain="{acl_proxy_auth_explain}";
+		
 	}
 	
 	if($GroupType=="dynamic_acls"){
 		$explain="{acl_squid_ext_dynamic_acls_explain}";
 		$label_form="{group}";
-		$jsadd="LoadAjax('$t-to-add','$page?acl-dynamic-virtual-form=yes&ID=$ID&item-id=$item_id&animate=$t')";
-		if($EnableKerbAuth==1){$browse="<input type='button' value='{browse}...' OnClick=\"javascript:Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');\" style='font-size:12px'>";}
+		$jsadd="LoadAjax('$t-to-add','$page?acl-dynamic-virtual-form=yes&ID=$ID&item-id=$item_id&animate=$t$wpad')";
+		if($EnableKerbAuth==1){
+			$LOCK=1;
+			$browse=button("{browse}..","Loadjs('BrowseActiveDirectory.php?field-user=$t-pattern&OnlyGroups=1&OnlyAD=1&OnlyGUID=1');");
+		}
 	}
 	
 
@@ -1407,7 +1506,7 @@ function item_form(){
 	<div style='font-size:16px'>$GroupType:$GroupTypeText</div>
 	<div class=explain style='font-size:12px'>$explain</div>
 	<div id='$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tbody>
 	<tr>
@@ -1417,13 +1516,14 @@ function item_form(){
 	</tr>
 	
 	<tr>
-	<td colspan=3 align='right'><hr>". button($buttonname, "SaveItemsMode()",16)."</td>
+	<td colspan=3 align='right'><hr>$MAIN_BUTTON</td>
 	</tr>
-	<tr><td colspan=3><div id='$t-to-add'></td></tr>
+	
 	</table>
 	</div>
+	<div id='$t-to-add'></div>
 	<script>
-	var x_SaveItemsMode= function (obj) {
+	var x_SaveItemsMode$t= function (obj) {
 		var res=obj.responseText;
 		document.getElementById('$t').innerHTML='';
 		if(res.length>3){alert(res);return;}
@@ -1432,24 +1532,40 @@ function item_form(){
 		var tableorg='{$_GET["table-org"]}';
 		if(tableorg.length>3){ $('#'+tableorg).flexReload();}	
 		ifFnExistsCallIt('RefreshSquidGroupTable');	
+		RefreshAllAclsTables();
 		ExecuteByClassName('SearchFunction');	
+		RefreshAllAclsTables();
 		
+	}
+	
+	function FillFieldMAC$t(realuid,mac,ip){
+		document.getElementById('$t-pattern').value=mac;
 	}
 	
 	function SaveItemsModeCheck(e){
 		if(checkEnter(e)){SaveItemsMode();}
 	}
 	
-	function SaveItemsMode(){
-		      var XHR = new XHRConnection();
-		      XHR.appendData('item-pattern', document.getElementById('$t-pattern').value);
-		      XHR.appendData('item-id', '$item_id');
-		      XHR.appendData('ID', '$ID');		      
-		      AnimateDiv('$t');
-		      XHR.sendAndLoad('$page', 'POST',x_SaveItemsMode);  		
+	function SaveItemsMode$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('item-pattern', encodeURIComponent(document.getElementById('$t-pattern').value));
+		XHR.appendData('item-id', '$item_id');
+		XHR.appendData('ID', '$ID');		      
+		AnimateDiv('$t');
+		XHR.sendAndLoad('$page', 'POST',x_SaveItemsMode$t);  		
 	}
+	
+	
 		
 	$jsadd
+	
+	function CheckLock$t(){
+		var LOCK=$LOCK;
+		if(LOCK==1){
+			document.getElementById('$t-pattern').disabled=true;
+		}
+	}
+	CheckLock$t();
 	</script>
 	
 	";
@@ -1463,8 +1579,10 @@ function item_acldyn_member(){
 	$item_id=$_GET["item-id"];
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$MyT=time();
 	$html="
-	<table style='width:99%;margin-top:10px'>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px' nowrap width=99%>{virtual_user}:</td>
 		<td>". Field_text("$t-user",null,"font-size:14px;width:200px",null,null,null,false,"SaveItemsModeCheck$t(event)")."</td>	
@@ -1475,27 +1593,28 @@ function item_acldyn_member(){
 	</tr>	
 	<tr>
 	<tr>
-	<td colspan=2 align='right'>". button("{add}", "SaveItemsMode$t()",12)."</td>
+	<td colspan=2 align='right'>". button("{add}", "SaveItemsMode$MyT()",16)."</td>
 	</tr>	
-	</table>	
+	</table>
+	</div>	
 <script>
 
 	function SaveItemsModeCheck$t(e){
 		if(checkEnter(e)){SaveItemsMode();}
 	}
 	
-	function SaveItemsMode(){
-		      var XHR = new XHRConnection();
-		      var password=document.getElementById('$t-password').value;
-		      var uid=document.getElementById('$t-user').value;
-		      if(password.length==0){return;}
-		      if(uid.length==0){return;}
-		      password=MD5(password);
-		      XHR.appendData('item-pattern', uid+':'+password);
-		      XHR.appendData('item-id', '$item_id');
-		      XHR.appendData('ID', '$ID');		      
-		      AnimateDiv('$animate');
-		      XHR.sendAndLoad('$page', 'POST',x_SaveItemsMode);  		
+	function SaveItemsMode$MyT(){
+		var XHR = new XHRConnection();
+		var password=document.getElementById('$t-password').value;
+		var uid=document.getElementById('$t-user').value;
+		if(password.length==0){return;}
+		if(uid.length==0){return;}
+		password=MD5(password);
+		XHR.appendData('item-pattern', uid+':'+password);
+		XHR.appendData('item-id', '$item_id');
+		XHR.appendData('ID', '$ID');		      
+		AnimateDiv('$animate');
+		XHR.sendAndLoad('$page', 'POST',x_SaveItemsMode$animate);  		
 	}			
 </script>			
 	";
@@ -1534,7 +1653,7 @@ function item_acldyn_params(){
 	
 	$html="
 	<div id='$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 		<table style='width:99%'>
 			<tr>
 				<td class=legend style='font-size:14px'>{time_duration}:</td>
@@ -1558,7 +1677,8 @@ function item_acldyn_params(){
 		$('#table-{$_GET["table-t"]}').flexReload();
 		var tableorg='{$_GET["table-org"]}';
 		if(tableorg.length>3){ $('#'+tableorg).flexReload();}	
-		ifFnExistsCallIt('RefreshSquidGroupTable');	
+		ifFnExistsCallIt('RefreshSquidGroupTable');
+		RefreshAllAclsTables();	
 		ExecuteByClassName('SearchFunction');	
 		
 	}
@@ -1615,12 +1735,14 @@ function group_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$RULEID=$_GET["RULEID"];
-	
+	$FORCE_FILTER=null;
 	$search='%';
 	$table="webfilters_sqgroups";
 	$page=1;
 
-	if($q->COUNT_ROWS($table)==0){json_error_show("No data");}
+	if($q->COUNT_ROWS($table)==0){
+			json_error_show("No data");
+	}
 	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
@@ -1651,18 +1773,19 @@ function group_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
-	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($q->mysql_error,"", "",""));json_encode($data);return;}
+	if(!$q->ok){json_error_show($q->mysql_error);} 
+	if(mysql_num_rows($results)==0){json_error_show("no data");}	
 	
 	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));json_encode($data);return;}
+
 	$GroupType=$q->acl_GroupType;
 	$GroupType["src"]="{addr}";
 	$GroupType["arp"]="{ComputerMacAddress}";
@@ -1695,9 +1818,9 @@ function group_list(){
 		'id' => "group{$ligne['ID']}",
 		'cell' => array("<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('$MyPage?AddGroup-js=yes&ID={$ligne['ID']}');\" 
-		style='font-size:16px;text-decoration:underline'>{$ligne['GroupName']}</span>",
-		"<span style='font-size:16px;'>$GroupTypeText</span>",
-		"<span style='font-size:16px;'>{$ligne2['tcount']}</span>",
+		style='font-size:15px;text-decoration:underline'>{$ligne['GroupName']}</span>",
+		"<span style='font-size:15px;'>$GroupTypeText</span>",
+		"<span style='font-size:15px;'>{$ligne2['tcount']}</span>",
 	
 	$disable,$delete)
 		);
@@ -1746,7 +1869,7 @@ function EditGroup_events_search(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE gpid=$ID $searchstring $FORCE_FILTER $ORDER $limitSql";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
@@ -1757,7 +1880,7 @@ function EditGroup_events_search(){
 	$data['page'] = $page;
 	$data['total'] = $total;
 	$data['rows'] = array();
-	if(mysql_num_rows($results)==0){son_error_show("No data...",2);}
+	if(mysql_num_rows($results)==0){json_error_show("No data...",2);}
 	
 	
 	
@@ -1783,7 +1906,7 @@ function items_list(){
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
 	$ID=$_GET["ID"];
-	
+	$FORCE_FILTER=null;
 	$search='%';
 	$table="webfilters_sqitems";
 	$page=1;
@@ -1819,7 +1942,7 @@ function items_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE gpid=$ID $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);

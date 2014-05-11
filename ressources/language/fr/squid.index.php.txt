@@ -464,7 +464,7 @@ Si vous d&eacute;finissez ce param&egrave;tre &agrave; z&eacute;ro, il n'y aura 
 <ssl_ports>Ports SSL</ssl_ports>
 <switch_access_rules>basculer vers la r&egrave;gle:</switch_access_rules>
 <to_ip>Vers l'adresse TCP/IP</to_ip>
-<transparent_mode>proxy transparent</transparent_mode>
+<transparent_mode>Proxy transparent</transparent_mode>
 <transparent_mode_explain>Un cache transparent, est ainsi nomm&eacute; parce qu'il fonctionne en interceptant le trafic r&eacute;seau de mani&egrave;re transparente pour le navigateur. [Br]
 Dans ce mode, le cache court-circuite le processus de r&eacute;cup&eacute;ration si le fichier d&eacute;sir&eacute; est dans le cache.[br]
 Les caches en mode transparent sont particuli&egrave;rement utiles pour les FAI, car ils ne n&eacute;cessitent aucune modification de configuration du navigateur.</transparent_mode_explain>

@@ -195,7 +195,7 @@ function services_toolbox(){
 	$table=CompileTr2($tr);
 	
 	$html="
-	<div style='width:95%' class=form id='$t'>$p
+	<div style='width:98%' class=form id='$t'>$p
 		<div style='text-align:right'>". button("{apply}","EnableFreeRadius()",16)."</div>
 	</div>
 	<hr>

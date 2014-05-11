@@ -136,7 +136,7 @@ function popup(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-	<td valign='top'><a href='http://www.artica.fr/download/artica-bulk-imap-export.pdf'><img src='img/pdf-64.png'><center>{help}</center></a>
+	<td valign='top'><a href='http://www.articatech.net/download/artica-bulk-imap-export.pdf'><img src='img/pdf-64.png'><center>{help}</center></a>
 	<td valign='top'><div class=explain>{bulk_imap_export_explain}</div></td>
 	</tr>
 	</tbody>

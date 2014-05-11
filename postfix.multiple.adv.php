@@ -162,7 +162,7 @@ function params(){
 	$html="
 	<div id=$t>
 	$p
-	<div style='width:100%;text-align:right'><table style='width:30%'><tbody><tr><td width=1%><img src='img/pdf-24.png'></td><td width=99% nowrap><a href='http://www.artica.fr/download/artica-multiple-bubble.pdf' style='font-size:12px;font-weight:bold;text-decoration:underline'>&laquo;{help}&raquo;</a></td></tr></tbody></table></div>
+	<div style='width:100%;text-align:right'><table style='width:30%'><tbody><tr><td width=1%><img src='img/pdf-24.png'></td><td width=99% nowrap><a href='http://www.articatech.net/download/artica-multiple-bubble.pdf' style='font-size:12px;font-weight:bold;text-decoration:underline'>&laquo;{help}&raquo;</a></td></tr></tbody></table></div>
 	<div style='width:100%;text-align:right'><hr>". button("{apply}","SaveBubbleSettings()")."</div>
 	</div>
 	<hr>

@@ -4,9 +4,20 @@ include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
+include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+$GLOBALS["FORCE"]=false;
+$GLOBALS["VERBOSE"]=false;
+$GLOBALS["OUTPUT"]=false;
+$GLOBALS["RECONFIGURE"]=false;
 
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
+if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;$GLOBALS["RESTART"]=true;}
+
 if($argv[1]=="--kinit"){kinit_config();exit;}
 if($argv[1]=="--DirectorySize"){DirectorySize();exit;}
 if($argv[1]=="--cyrusadm-ad"){ExtractCyrusAdmAD();exit;}
@@ -89,7 +100,7 @@ function ExtractCyrusAdmAD(){
 		$array["password"]=$newconf["PASSWORD"];
 	}
 
-	echo "Starting......: cyrus-imapd new Active Directory Administrator ({$array["admin"]})\n";
+	echo "Starting......: ".date("H:i:s")." cyrus-imapd new Active Directory Administrator ({$array["admin"]})\n";
 	@file_put_contents("/etc/artica-postfix/CyrusAdmPlus",$array["admin"]);
 	
 }
@@ -295,7 +306,7 @@ $f[]="set_tx_max 200";
 
 $f[]="";
 
-echo "Starting......: cyrus-imapd define $configdirectory/DB_CONFIG\n";
+echo "Starting......: ".date("H:i:s")." cyrus-imapd define $configdirectory/DB_CONFIG\n";
 @file_put_contents("$configdirectory/DB_CONFIG",@implode("\n",$f));
 	
 	
@@ -303,41 +314,62 @@ echo "Starting......: cyrus-imapd define $configdirectory/DB_CONFIG\n";
 
 function DirectorySize(){
 	$unix=new unix();
-	$pid_path="/etc/artica-postfix/pids/".__FILE__.".".__FUNCTION__;
+	$pid_path="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__;
+	$timePath="/etc/artica-postfix/croned.1/".basename(__FILE__).".".__FUNCTION__.".time";
 	$oldpid=@file_get_contents($pid_path);
-	if($unix->process_exists($oldpid)){die();}
-	$childpid=posix_getpid();
-	@file_put_contents($pid_path,$childpid);
-	
-	$filetim=file_time_min("/etc/artica-postfix/croned.1/".__FILE__.".".__FUNCTION__);
-	if($filetim<240){die();}
+	if(!$GLOBALS["FORCE"]){
+		if($unix->process_exists($oldpid)){die();}
+		$childpid=posix_getpid();
+		@file_put_contents($pid_path,$childpid);
 	
 	
+		if(system_is_overloaded()){
+			if($GLOBALS["VERBOSE"]){echo "Overloaded system.\n";}
+			return;
+		}
+	}
+	
+	
+	$filetim=$unix->file_time_min($timePath);
+	
+	if($GLOBALS["VERBOSE"]){echo "Time File: $timePath ({$filetim}Mn)\n";}
+	
+	if(!$GLOBALS["FORCE"]){if($filetim<240){return;}}
 	$partition_default=$unix->IMAPD_GET("partition-default");
+	if(is_link($partition_default)){$partition_default=readlink($partition_default);}
+	@file_put_contents($timePath, time());
 	
+	
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "partition_default = $partition_default\n";}
 	artica_mysql_events("Starting calculate - $partition_default - disk size",null,__FILE__,"mailbox");
 	
 	if(strlen($partition_default)<3){return;}
 	if(!is_dir($partition_default)){return;}
 	
-	$GLOBALS["NICE"]=EXEC_NICE();
-	$du_bin=$unix->find_program("du");
-	exec("{$GLOBALS["NICE"]}$du_bin -h -s $partition_default 2>&1",$results);
-	$r=implode("",$results);
-	if(preg_match("#^(.+?)\s+#",$r,$re)){
-	$sock=new sockets();
-		$sock->SET_INFO("CyrusImapPartitionDefaultSize",$re[1]);
-		send_email_events("Mailboxes size on your server: $re[1]","Mailboxes size on your server: $re[1]","mailbox");
+	$currentsize=(($unix->DIRSIZE_BYTES($partition_default)/1024)/1024);
+	$PartInfo=$unix->DIRPART_INFO($partition_default);
+	$totalMB=$PartInfo["TOT"];
+	$totalMB=round($totalMB/1048576);
+	if($GLOBALS["VERBOSE"]){echo "partition_default = {$currentsize}MB/{$totalMB}MB\n";}
 	
-		if($partition_default=="/var/spool/cyrus/mail"){
-			$sock->SET_INFO("CyrusImapPartitionDefaultDirSize",$re[1]);
-			return;
-		}
-		unset($results);
-		exec("{$GLOBALS["NICE"]}$du_bin -h -s /var/spool/cyrus/mail 2>&1",$results);
-		$r=implode("",$results);
-		if(preg_match("#^(.+?)\s+#",$r,$re)){
-			$sock->SET_INFO("CyrusImapPartitionDefaultDirSize",$re[1]);
-		}
+	
+	
+	$sock=new sockets();
+	$currentsize=round($currentsize);
+	$sock->SET_INFO("CyrusImapPartitionDefaultSize",$currentsize);
+	$sock->SET_INFO("CyrusImapPartitionDefaultSizeTime",time());
+	$sock->SET_INFO("CyrusImapPartitionDiskSize",$totalMB);
+	send_email_events("Mailboxes size on your server: $currentsize MB","Mailboxes size on your server: $currentsize MB","mailbox");
+	
+	if($partition_default=="/var/spool/cyrus/mail"){
+		$sock->SET_INFO("CyrusImapPartitionDefaultDirSize",$currentsize);
+		return;
 	}
+		
+	$currentsize=(($unix->DIRSIZE_BYTES("/var/spool/cyrus/mail")/1024)/1024);
+	$sock->SET_INFO("CyrusImapPartitionDefaultDirSize",$currentsize);
+	
+	
 }

@@ -18,10 +18,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}	
 	if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	$user=new usersMenus();
-	if(!$user->spamassassin_installed){
-		writelogs("want to change spamassassin settings but not installed",__FUNCTION__,__FILE__,__LINE__);
-		die();
-	}
+	if(!$user->spamassassin_installed){ die();}
 	if($argv[1]=='--sa-update'){sa_update();die();}
 	
 	
@@ -42,13 +39,13 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 	if($argv[1]=='--spam-tests'){SpamTests($argv[2]);die();}
 	
 	
-echo "Starting......: spamassassin starting building configuration\n";	
+echo "Starting......: ".date("H:i:s")." spamassassin starting building configuration\n";	
 SaveConf();
-echo "Starting......: Check Relay Country plugin\n";	
+echo "Starting......: ".date("H:i:s")." Check Relay Country plugin\n";	
 RelayCountryPlugin();
-echo "Starting......: Check Decode Short urls\n";
+echo "Starting......: ".date("H:i:s")." Check Decode Short urls\n";
 DecodeShortURLs();
-echo "Starting......: Check Trusted networks\n";
+echo "Starting......: ".date("H:i:s")." Check Trusted networks\n";
 TrustedNetworks();
 WrongMX();
 FuzzyOcr();
@@ -112,10 +109,10 @@ function SaveConf(){
 	$datas=str_replace("Array","",$datas);
 	
 	if(strlen($user->spamassassin_conf_path)==null){
-		echo "Starting......: spamassassin unable to stat mail configuration path\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin unable to stat mail configuration path\n";
 		return;
 	}
-	echo "Starting......: spamassassin saving $user->spamassassin_conf_path\n";
+	echo "Starting......: ".date("H:i:s")." spamassassin saving $user->spamassassin_conf_path\n";
 	@unlink("$user->spamassassin_conf_path");
 	file_put_contents($user->spamassassin_conf_path,$datas);
 	
@@ -244,7 +241,7 @@ $f[]="focr_end_config";
 	
 @file_put_contents("/etc/spamassassin/FuzzyOcr.cf",@implode("\n",$f));
 
-echo "Starting......: spamassassin writing FuzzyOcr.cf done\n";
+echo "Starting......: ".date("H:i:s")." spamassassin writing FuzzyOcr.cf done\n";
 
 	
 }
@@ -344,7 +341,7 @@ $f[]="#loadplugin Mail::SpamAssassin::Plugin::AccessDB";
 
  @file_put_contents("/etc/spamassassin/v320.pre",@implode("\n",$f));
  if(is_dir("/etc/mail/spamassassin")){@file_put_contents("/etc/mail/spamassassin/v320.pre",@implode("\n",$f));}
- echo "Starting......: spamassassin v320.pre success\n";
+ echo "Starting......: ".date("H:i:s")." spamassassin v320.pre success\n";
 }
 
 function PhishTag(){
@@ -454,7 +451,7 @@ $conf[]="";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	
 	if(!$q->ok){
-		echo "Starting......: spamassassin Mysql fatal error !\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin Mysql fatal error !\n";
 		return; 
 	}
 	$count=0;
@@ -466,7 +463,7 @@ $conf[]="";
 $conf[]="endif";
 $conf[]="";	
 @file_put_contents("/etc/spamassassin/spf.pre",@implode("\n",$conf));
-echo "Starting......: spamassassin writing spf.pre done ($count whitelisted sender(s))\n";
+echo "Starting......: ".date("H:i:s")." spamassassin writing spf.pre done ($count whitelisted sender(s))\n";
 
 
 }
@@ -649,7 +646,7 @@ function DecodeShortURLs(){
 	if($EnableDecodeShortURLs==null){$EnableDecodeShortURLs=0;}	
 	if($EnableDecodeShortURLs<>1){
 		@file_put_contents("/etc/spamassassin/DecodeShortURLs.pre","");
-		echo "Starting......: spamassassin writing DecodeShortURLs.pre inbound verification disabled\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin writing DecodeShortURLs.pre inbound verification disabled\n";
 		return ;
 	}
 
@@ -660,7 +657,7 @@ function DecodeShortURLs(){
 	}
 	
 	if(!is_file("/etc/spamassassin/DecodeShortURLs.pm")){
-		echo "Starting......: spamassassin writing DecodeShortURLs.pre DecodeShortURLs.pm no such file\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin writing DecodeShortURLs.pre DecodeShortURLs.pm no such file\n";
 		return;
 	}
 	
@@ -718,7 +715,7 @@ DecodeShortURLsCheck();
 	
 @file_put_contents("/etc/spamassassin/DecodeShortURLs.pre",@implode("\n",$f));
 if(is_dir("/etc/mail/spamassassin")){@file_put_contents("/etc/mail/spamassassin/DecodeShortURLs.pre",@implode("\n",$f));}
-echo "Starting......: spamassassin writing DecodeShortURLs.pre ($count rows) done\n";		
+echo "Starting......: ".date("H:i:s")." spamassassin writing DecodeShortURLs.pre ($count rows) done\n";		
 	
 }
 
@@ -796,7 +793,7 @@ function dkim(){
 	@unlink("/etc/spamassassin/dkim.pre");
 	@unlink("/etc/mail/spamassassin/dkim.pre");
 	if($enable_dkim_verification<>1){
-		echo "Starting......: spamassassin writing dkim.pre inbound verification disabled\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin writing dkim.pre inbound verification disabled\n";
 		return ;
 	}
 $r[]="ifplugin Mail::SpamAssassin::Plugin::DKIM";	
@@ -817,7 +814,7 @@ $r[]="";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	
 	if(!$q->ok){
-		echo "Starting......: spamassassin Mysql fatal error ! (DKIM)\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin Mysql fatal error ! (DKIM)\n";
 		return; 
 	}
 	$count=0;
@@ -891,7 +888,7 @@ $r[]="endif";
 $r[]="";
 @file_put_contents("/etc/spamassassin/dkim.pre",@implode("\n",$r));
 if(is_dir("/etc/mail/spamassassin")){@file_put_contents("/etc/mail/spamassassin/dkim.pre",@implode("\n",$r));}
-echo "Starting......: spamassassin writing dkim.pre done ($count whitelisted sender(s))\n";	
+echo "Starting......: ".date("H:i:s")." spamassassin writing dkim.pre done ($count whitelisted sender(s))\n";	
 }
 
 function dnsbl(){
@@ -1052,7 +1049,6 @@ if($datas["Spamhaus"]==1){
 	$conf[]="# Spamhaus SBL+XBL";
 	$conf[]="#";
 	$conf[]="# Spamhaus XBL contains both the Abuseat CBL (cbl.abuseat.org) and Blitzed";
-	$conf[]="# OPM (opm.blitzed.org) lists so it's not necessary to query those as well.";
 	$conf[]="";
 	$conf[]="header __RCVD_IN_SBL_XBL	eval:check_rbl('sblxbl', 'sbl-xbl.spamhaus.org.')";
 	$conf[]="describe __RCVD_IN_SBL_XBL	Received via a relay in Spamhaus SBL+XBL";
@@ -1109,25 +1105,6 @@ if($datas["RFC-Ignorant"]==1){
 }
 
 
-if($datas["multihop.dsbl.org"]==1){
-$conf[]="";
-$conf[]="# ---------------------------------------------------------------------------";
-$conf[]="# Now, single zone BLs follow:";
-$conf[]="";
-$conf[]="# DSBL catches open relays, badly-installed CGI scripts and open SOCKS and";
-$conf[]="# HTTP proxies.  list.dsbl.org lists servers tested by \"trusted\" users,";
-$conf[]="# multihop.dsbl.org lists servers which open SMTP servers relay through,";
-$conf[]="# unconfirmed.dsbl.org lists servers tested by \"untrusted\" users.";
-$conf[]="# See http://dsbl.org/ for full details.";
-$conf[]="# transfers: yes - rsync and http, see http://dsbl.org/usage";
-$conf[]="# pay-to-use: no";
-$conf[]="# delist: automated/distributed";
-$conf[]="header RCVD_IN_DSBL		eval:check_rbl_txt('dsbl-notfirsthop', 'list.dsbl.org.')";
-$conf[]="describe RCVD_IN_DSBL		Received via a relay in list.dsbl.org";
-$conf[]="tflags RCVD_IN_DSBL		net";
-$conf[]="";
-$conf[]="########################################################################";
-}
 
 
 if($datas["rhsbl.ahbl.org"]==1){
@@ -1241,12 +1218,12 @@ if(is_dir("/etc/mail/spamassassin")){
 function x_bounce(){
 	$sock=new sockets();
 	if($sock->GET_INFO("SpamAssassinVirusBounceEnabled")<>1){
-		echo "Starting......: spamassassin Virus Bounce Ruleset is disabled\n";
+		echo "Starting......: ".date("H:i:s")." spamassassin Virus Bounce Ruleset is disabled\n";
 		@file_put_contents('/etc/spamassassin/20_vbounce.cf',"#");
 		return;
 	}
 	
-echo "Starting......: spamassassin Virus Bounce Ruleset is enabled\n";
+echo "Starting......: ".date("H:i:s")." spamassassin Virus Bounce Ruleset is enabled\n";
 x_bound_pm();	
 $f[]="# very frequent, using unrelated From lines; either spam or C/R, not yet";
 $f[]="# sure which";
@@ -1615,7 +1592,7 @@ function TrustedNetworks(){
 	
 	
 	$count=count($f);
-	echo "Starting......: spamassassin Whitelisted ($count rows) done\n";	
+	echo "Starting......: ".date("H:i:s")." spamassassin Whitelisted ($count rows) done\n";	
 	$user=new usersMenus();
 	$init_pre=dirname($user->spamassassin_conf_path)."/trusted_nets.pre";
 	$final=@implode("\n",$f)."\n";
@@ -1734,7 +1711,7 @@ if(is_dir("/etc/mail/spamassassin")){
 	@file_put_contents("/etc/mail/spamassassin/HitFreqsRuleTiming.pm",@implode("\n",$f));
 }
 
-echo "Starting......: spamassassin HitFreqsRuleTiming.pm done\n";	
+echo "Starting......: ".date("H:i:s")." spamassassin HitFreqsRuleTiming.pm done\n";	
 	
 	
 }

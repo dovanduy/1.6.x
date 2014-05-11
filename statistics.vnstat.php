@@ -74,7 +74,7 @@ function etch(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$EnableVnStat=$sock->GET_INFO("EnableVnStat");
-	if(!is_numeric($EnableVnStat)){$EnableVnStat=1;}
+	if(!is_numeric($EnableVnStat)){$EnableVnStat=0;}
 	$t=time();
 	if($EnableVnStat==0){
 		$html=FATAL_ERROR_SHOW_128("{APP_VNSTAT_DISABLED_EXPLAIN}")." <center style='margin:30px' id='$t'>".button("{activate}","EnableVnStat()","22px")."</center>

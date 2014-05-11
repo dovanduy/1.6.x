@@ -137,10 +137,6 @@ LoadTable$t();
 </script>";
 	
 	echo $html;	
-		
-	
-	
-	
 }	
 
 function nics_list(){
@@ -353,7 +349,7 @@ function add_form(){
 $html="
 <div id='animate-$t'></div>
 <div id='virtip'>". Field_hidden("ID","{$_GET["ID"]}")."
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table style='width:99%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{nic}:</td>
@@ -426,6 +422,7 @@ function CalcCdirVirt$t(recheck){
 	var cdir=document.getElementById('cdir-$t').value;
 	if(recheck==0){if(cdir.length>0){return;}}
 	var XHR = new XHRConnection();
+	XHR.setLockOff();
 	XHR.appendData('cdir-ipaddr',document.getElementById('ipaddr-$t').value);
 	XHR.appendData('netmask',document.getElementById('netmask-$t').value);
 	XHR.sendAndLoad('artica.settings.php', 'GET',X_CalcCdirVirt$t);

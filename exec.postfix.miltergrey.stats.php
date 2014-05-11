@@ -15,6 +15,10 @@ if(preg_match("#--unlimit#",implode(" ",$argv))){$GLOBALS["ULIMITED"]=true;}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--verb2#",implode(" ",$argv))){$GLOBALS["VERBOSE2"]=true;}
 
+$sock=new sockets();
+$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+if($DisableMessaging==1){die();}
+
 if($argv[1]=="--count"){count_tables_hours();die();}
 
 
@@ -28,11 +32,19 @@ function MiltergreyList_days(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
+	
+	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$oldpidTime=$unix->PROCCESS_TIME_MIN($oldpid);
 		system_admin_events("Already process PID: $oldpid running since $oldpidTime minutes", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 		return;
 	}
+	
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if(!$GLOBALS["VERBOSE"]){
+		if($unix->file_time_min($timeFile)<60){die();}
+	}
+	
 	
 	@file_put_contents($pidfile, getmypid());
 	if(!$GLOBALS["FORCE"]){
@@ -49,19 +61,19 @@ function MiltergreyList_days(){
 	}
 	$tables=$q->LIST_MILTERGREYLIST_HOUR_TABLES();
 	$currentHour=date("Y-m-d h");
-
+	$tt=0;
 	if(is_array($tables)){
 		while (list ($tablesource, $time) = each ($tables) ){
-			
+			$tt++;
 			if(date("Y",$time)=="1970"){
 				$q->QUERY_SQL("DROP TABLE $tablesource");
 				continue;
 			}
 			
-			if( date("Y-m-d H",$time)== $currentHour ){
-				if($GLOBALS["VERBOSE"]){echo "Skipping $currentHour\n";}
-				continue;}
+			if( date("Y-m-d H",$time)== $currentHour ){if($GLOBALS["VERBOSE"]){echo "Skipping $currentHour\n";}continue;}
 			if($GLOBALS["VERBOSE"]){echo "Processing $tablesource: ".date("Y-m-d H",$time)."\n";}
+			
+			
 			if(MiltergreyList_scan($tablesource,$time)){
 				if($GLOBALS["VERBOSE"]){echo "DUMP_TABLE $tablesource: ".date("Y-m-d H",$time)."\n";}
 				if($q->DUMP_TABLE($tablesource)){
@@ -69,9 +81,16 @@ function MiltergreyList_days(){
 				}
 			}
 			
+			if(system_is_overloaded(basename(__FILE__))){
+				system_admin_events("Overloaded system, aborting task after $tt processed tables ", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+				return;
+			}	
+			
 		}
 	
 	}
+	
+	
 	if(!$GLOBALS["FORCE"]){
 		if(system_is_overloaded(basename(__FILE__))){
 			system_admin_events("Overloaded system, aborting", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");

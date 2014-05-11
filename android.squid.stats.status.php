@@ -98,7 +98,7 @@ function page(){
 	
 	
 	$main_table="
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr><td style='font-size:16px'>{statistics}::{status}</td></tr>
 	$cachePerfText
 	<tr>

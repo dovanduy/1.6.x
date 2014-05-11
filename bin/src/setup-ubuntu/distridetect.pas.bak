@@ -141,7 +141,7 @@ begin
      if RegExpr.Exec(distri) then begin
         DISTRINAME_VERSION:=RegExpr.Match[1];
         TryStrtoInt(RegExpr.Match[1],DISTRI_MAJOR);
-             exit;
+        exit;
      end;
      exit;
   end;
@@ -150,8 +150,11 @@ begin
   if RegExpr.Exec(distri) then begin
      DISTRINAME_CODE:='DEBIAN';
      RegExpr.Expression:='Debian\s+([0-9]+)';
+
+     DISTRI_MINOR:=0;
      if RegExpr.Exec(distri) then begin
         DISTRINAME_VERSION:=RegExpr.Match[1];
+         TryStrtoInt(RegExpr.Match[1],DISTRI_MAJOR);
         RegExpr.Expression:='Debian\s+([0-9]+)\.([0-9]+)';
         if RegExpr.Exec(distri) then begin
              TryStrtoInt(RegExpr.Match[1],DISTRI_MAJOR);

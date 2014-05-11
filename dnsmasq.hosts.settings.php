@@ -172,7 +172,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 150,
 	showTableToggleBtn: false,
-	width: 865,
+	width: '99%',
 	height: 300,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -224,7 +224,7 @@ function SaveAddress(){
 	$conf=new dnsmasq();
 	$conf->array_address[$server]=$adip;
 	writelogs("save $server $adip",__FUNCTION__,__FILE__);
-	$conf->SaveConf();
+	$conf->SaveConf(true);
 	}
 	
 function import_dnsmasq_perform(){
@@ -245,7 +245,7 @@ function import_dnsmasq_perform(){
 		
 	}
 	
-	$conf->SaveConf();
+	$conf->SaveConf(true);
 	
 	
 }	
@@ -254,20 +254,17 @@ function import_dnsmasq_perform(){
 function DnsmasqDeleteAddress(){
 	$conf=new dnsmasq();
 	unset($conf->array_address[$_GET["DnsmasqDeleteAddress"]]);
-	$conf->SaveConf();	
+	$conf->SaveConf(true);	
 }
 
 function Loadaddresses(){
-		$conf=new dnsmasq();
+		$conf=new dnsmasq(true);
+		$conf->ldap_addesses();
+		$conf->ParseAddress();
 		$page=1;
 
-		if(!is_array($conf->array_address)){
-			writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-			$data['page'] = $page;$data['total'] = 0;$data['rows'] = array();
-			echo json_encode($data);
-			return ;		
-		}
-		
+		if(!is_array($conf->array_address)){json_error_show("no row");}
+		if(count($conf->array_address)==0){json_error_show("no row");}
 	
 	if($_POST["query"]<>null){
 		$_POST["query"]=str_replace(".", "\.", $_POST["query"]);
@@ -302,9 +299,10 @@ function Loadaddresses(){
 				);		
 			
 		}
+		if($c==0){json_error_show("no row");}
 	$data['page'] = $page;
 	$data['total'] = $c;
-		echo json_encode($data);
+	echo json_encode($data);
 	
 	
 }

@@ -262,7 +262,7 @@ $buttons
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $tablewidht,
+	width: '99%',
 	height: 300,
 	singleSelect: true
 	
@@ -320,7 +320,7 @@ $buttons
 	";
 	
 	
-	echo $tpl->_ENGINE_parse_body($html);
+	
 	}
 	
 	
@@ -393,11 +393,10 @@ function Query(){
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
 	$FreeWebListen=$sock->GET_INFO("FreeWebListen");
 	$FreeWebLeftMenu=$sock->GET_INFO("FreeWebLeftMenu");
-	$FreeWebDisableSSL=$sock->GET_INFO("FreeWebDisableSSL");
+	$FreeWebDisableSSL=intval($sock->GET_INFO("FreeWebDisableSSL"));
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	if($FreeWebListen==null){$FreeWebListen="*";}
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
-	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}
 	if($FreeWebListenPort==null){$FreeWebListenPort=80;}
 	if($FreeWebListenSSLPort==null){$FreeWebListenSSLPort=443;}	
 	$tcp=new networking();
@@ -425,7 +424,7 @@ function Query(){
 	
 	
 	
-	$defaultjs="<a href=\"javascript:blur();\" OnClick=\"javascript:FreeWebDefaultPort()\" style='font-size:18px;text-decoration:underline'>";
+	$defaultjs="<a href=\"javascript:blur();\" OnClick=\"javascript:FreeWebDefaultPort()\" style='font-size:22px;text-decoration:underline'>";
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
@@ -433,13 +432,20 @@ function Query(){
 	$data['page'] = $page;
 	$data['total'] = $total+1;
 	$data['rows'] = array();
+	$check="check-32.png";
+	$ssl_text="<span style='font-size:18px'>(SSL:$FreeWebListen:$FreeWebListenSSLPort)</span>";
+	if($FreeWebDisableSSL==1){
+		$ssl_text=null;
+		$check="check-32-grey.png";
+	}
 	
 	$data['rows'][] = array(
-		'id' => $id,
+		'id' => "00",
 		'cell' => array("
 		<img src='img/folder-network-32.png'>",
-		$tpl->_ENGINE_parse_body("<span style='font-size:18px'>$defaultjs$FreeWebListen:$FreeWebListenPort <span style='font-size:11px'>(SSL:$FreeWebListen:$FreeWebListenSSLPort)</span></a></span>"),
-		"<img src='img/20-check.png' style='margin-top:5px'>",
+		$tpl->_ENGINE_parse_body("<span style='font-size:22px'>$defaultjs$FreeWebListen:$FreeWebListenPort 
+				</a>$ssl_text</span>"),
+		"<img src='img/$check'>",
 		"&nbsp;")
 		);	
 	
@@ -448,19 +454,21 @@ function Query(){
 		if($ligne==null){continue;}
 		if($_POST["query"]<>null){if(!preg_match("#{$_POST["query"]}#", $num)){continue;}}
 		
-		$ssl="&nbsp;";
+		$ssl="<img src='img/check-32-grey.png' style='margin-top:5px'>";
 		$added=null;
 		$id=md5($num);
 		$delete=imgtootltip("delete-24.png","{delete}","ApacheListenDel('$num','$id')");
-		if($ligne["SSL"]==1){
-			$ssl="<img src='img/20-check.png' style='margin-top:5px'>";
+		if($FreeWebDisableSSL==0){
+			if($ligne["SSL"]==1){
+				$ssl="<img src='img/check-32.png'>";
+			}
 		}
 		
 	$data['rows'][] = array(
 		'id' => $id,
 		'cell' => array("
 		<img src='img/folder-network-32.png'>",
-		"<span style='font-size:18px'>$num</a></span>",
+		"<span style='font-size:22px'>$num</a></span>",
 		$ssl,
 		$delete)
 		);

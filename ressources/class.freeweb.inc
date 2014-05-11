@@ -56,10 +56,12 @@
 		public $ServerIP=null;
 		public $gpid=0;
 		public $groupware_version=null;
+		public $content_plus=null;
 		public $WebCopyID=0;
 		public $loading_error=false;
 		public $loading_error_text=null;
 		public $sslcertificate=null;
+		public $NginxFrontEnd=0;
 		public $PERL_AUTHNTLM=false;
 		public $enabled=1;
 		private $PrefixOutput;
@@ -75,12 +77,12 @@
 			$this->phpcgi=$users->phpcgi;
 			$this->APACHE_MOD_TOMCAT=$users->APACHE_MOD_TOMCAT;
 			$this->PERL_AUTHNTLM=$users->APP_PYAUTHENNTLM;
-			$this->PrefixOutput="Starting......: [INIT]: Apache \"Engine\"";
+			$this->PrefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"Engine\"";
 			
 			if($servername<>null){
 				$this->WORKING_DIRECTORY="/var/www/$servername";
 				$this->servername=$servername;
-				$this->PrefixOutput="Starting......: [INIT]: Apache \"$this->servername\"";
+				$this->PrefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"$this->servername\"";
 				$this->load();
 			}
 		}
@@ -102,7 +104,7 @@
 			$sql="SELECT * from freeweb WHERE servername='$this->servername'";
 			$q=new mysql();
 			$resData=$q->QUERY_SQL($sql,"artica_backup");
-			$ligne=mysql_fetch_array($resData);
+			$ligne=@mysql_fetch_array($resData);
 			
 		       $num_fields = mysql_num_fields($resData);
           	   for($j=0; $j < $num_fields; $j++){
@@ -120,7 +122,7 @@
 			$sql="SELECT * from freeweb WHERE servername='$this->servername'";
 			$q=new mysql();
 			$q->TestingConnection();
-			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+			$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 			if(!$q->ok){
 				$this->loading_error=true;
 				$this->loading_error_text=$q->mysql_error;
@@ -138,6 +140,9 @@
 			$this->useMysql=$ligne["useMysql"];
 			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] groupware:$this->groupware",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			if($ligne["useSSL"]==1){$this->SSL_enabled=true;}
+			
+			
+
 			if(isset($this->Params["LimitByIp"]["enabled"])){$this->LimitByIp=$this->Params["LimitByIp"]["enabled"];}
 			$this->mod_rewrite=base64_decode($ligne["mod_rewrite"]);
 			if($this->UseLoopDisk==1){$this->lvm_vg=null;$this->lvm_size=0;}
@@ -146,6 +151,7 @@
 			$this->mysql_username=$ligne["mysql_username"];
 			$this->ftpuser=$ligne["ftpuser"];
 			$this->ftppassword=$ligne["ftppassword"];
+			$this->AsError=$ligne["AsError"];
 			$this->useSSL=$ligne["useSSL"];
 			$this->uid=$ligne["uid"];
 			$this->gpid=$ligne["gpid"];
@@ -161,6 +167,7 @@
 			$this->mysql_instance_id=$ligne["mysql_instance_id"];
 			$this->ServerIP=$ligne["ServerIP"];
 			$this->groupware_version=$ligne["groupware_version"];
+			$this->content_plus=$ligne["content_plus"];
 			if(!isset($ligne["WebCopyID"])){$ligne["WebCopyID"]=0;}
 			$this->WebCopyID=$ligne["WebCopyID"];
 			
@@ -173,6 +180,22 @@
 			$this->ApacheAccount();
 			
 			
+		}
+		
+		public function SaveContentPlus($content){
+			$content=mysql_escape_string2($content);
+			$q=new mysql();
+			$q->QUERY_SQL("UPDATE freeweb SET `content_plus`='$content' WHERE servername='$this->servername'","artica_backup");
+			if(!$q->ok){echo $q->mysql_error;return;}
+			$sock=new sockets();
+			$encoded=urlencode($this->servername);
+			$sock->getFrameWork("freeweb.php?rebuild-vhost=yes&servername=$encoded");
+		}
+		
+		public function SetError($error){
+			if(!is_numeric($error)){return;}
+			$q=new mysql();
+			$q->QUERY_SQL("UPDATE freeweb SET `AsError`='$error' WHERE servername='$this->servername'","artica_backup");
 		}
 		
 		public function update_groupware_version(){
@@ -194,6 +217,9 @@
 		private function HasDefaults(){
 			if(!is_numeric($this->WebCopyID)){$this->WebCopyID=0;}
 			if(!isset($this->Params["SECURITY"]["FreeWebsDisableBrowsing"])){$this->Params["SECURITY"]["FreeWebsDisableBrowsing"]=0;}
+			
+			
+			
 			if(!isset($this->Params["DisableIndexPHPPage"])){$this->Params["DisableIndexPHPPage"]=0;}
 			if(!isset($this->Params["MOD_FCGID"]["enabled"])){$this->Params["MOD_FCGID"]["enabled"]=0;}
 			if(!isset($this->Params["MOD_FCGID"]["PHP_FCGI_MAX_REQUESTS"])){$this->Params["MOD_FCGID"]["PHP_FCGI_MAX_REQUESTS"]=5000;}
@@ -203,7 +229,13 @@
 			if(!isset($this->Params["MOD_FCGID"]["FcgidMaxRequestInMem"])){$this->Params["MOD_FCGID"]["FcgidMaxRequestInMem"]=65536;}
 			if(!isset($this->Params["MOD_FCGID"]["FcgidMaxProcessesPerClass"])){$this->Params["MOD_FCGID"]["FcgidMaxProcessesPerClass"]=100;}
 			if(!isset($this->Params["MOD_FCGID"]["FcgidMaxRequestLen"])){$this->Params["MOD_FCGID"]["FcgidMaxRequestLen"]=131072;}
-			if(!isset($this->Params["MOD_FCGID"]["FcgidOutputBufferSize"])){$this->Params["MOD_FCGID"]["FcgidOutputBufferSize"]=65536;}			
+			if(!isset($this->Params["MOD_FCGID"]["FcgidOutputBufferSize"])){$this->Params["MOD_FCGID"]["FcgidOutputBufferSize"]=65536;}
+			
+			if(!isset($this->Params["SECURITY"]["FreeWebsDisableBrowsing"])){$this->Params["SECURITY"]["FreeWebsDisableBrowsing"]=0;}
+			if(!isset($this->Params["SECURITY"]["SymLinksIfOwnerMatch"])){$this->Params["SECURITY"]["SymLinksIfOwnerMatch"]=1;}
+			if(!isset($this->Params["SECURITY"]["FollowSymLinks"])){$this->Params["SECURITY"]["FollowSymLinks"]=1;}
+			
+			
 			if(!is_numeric($this->Params["MOD_FCGID"]["enabled"])){$this->Params["MOD_FCGID"]["enabled"]=0;}
 			if(!is_numeric($this->Params["MOD_FCGID"]["PHP_FCGI_MAX_REQUESTS"])){$this->Params["MOD_FCGID"]["PHP_FCGI_MAX_REQUESTS"]=5000;}
 			if(!is_numeric($this->Params["MOD_FCGID"]["PHP_FCGI_CHILDREN"])){$this->Params["MOD_FCGID"]["PHP_FCGI_CHILDREN"]=8;}
@@ -214,6 +246,14 @@
 			if(!is_numeric($this->Params["MOD_FCGID"]["FcgidMaxRequestLen"])){$this->Params["MOD_FCGID"]["FcgidMaxRequestLen"]=131072;}
 			if(!is_numeric($this->Params["MOD_FCGID"]["FcgidOutputBufferSize"])){$this->Params["MOD_FCGID"]["FcgidOutputBufferSize"]=65536;}
 			if(!is_numeric($this->Params["SECURITY"]["FreeWebsDisableBrowsing"])){$this->Params["SECURITY"]["FreeWebsDisableBrowsing"]=0;}
+			if(!is_numeric($this->Params["SECURITY"]["SymLinksIfOwnerMatch"])){$this->Params["SECURITY"]["SymLinksIfOwnerMatch"]=1;}
+			if(!is_numeric($this->Params["SECURITY"]["FollowSymLinks"])){$this->Params["SECURITY"]["FollowSymLinks"]=1;}
+			
+			if(!isset($this->Params["NginxFrontEnd"])){$this->Params["NginxFrontEnd"]=0;}
+			if(!is_numeric($this->Params["NginxFrontEnd"])){$this->Params["NginxFrontEnd"]=0;}
+			$this->NginxFrontEnd=$this->Params["NginxFrontEnd"];
+			
+			
 			if(!is_numeric($this->Params["DisableIndexPHPPage"])){$this->Params["DisableIndexPHPPage"]=0;}
 			if(!isset($this->Params["ZARAFAWEB_PARAMS"])){$this->Params["ZARAFAWEB_PARAMS"]=array();}
 			if(!isset($this->Params["ZARAFAWEB_PARAMS"]["zPushInside"])){$this->Params["ZARAFAWEB_PARAMS"]["zPushInside"]=1;}
@@ -262,7 +302,16 @@
 				$f[]="\t\tAddType application/x-ns-proxy-autoconfig .pac";
 				$f[]="\t\tRedirect permanent /wpad.dat /proxy.pac";
 				
+				
 			}
+			
+			if($this->groupware=="WPADDYN"){
+				$f[]="\t\tRedirect permanent /wpad.dat /proxy.pac.php";
+				$f[]="\t\tRedirect permanent /proxy.pac /proxy.pac.php";
+				$f[]="\t\tRedirect permanent /wspad.dat /proxy.pac.php";
+				
+			}
+			
 			if($this->groupware=="UPDATEUTILITY"){
 				$f[]="\t\tAddType application/octet-stream .klz";
 				$f[]="\t\tAddType application/octet-stream .kdz";
@@ -415,6 +464,12 @@
 			
 			$sql="SELECT servername FROM freeweb WHERE servername='$this->servername'";
 			$q=new mysql();
+			
+			if(!$q->FIELD_EXISTS("freeweb","content_plus","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `freeweb` ADD `content_plus` longtext NULL",'artica_backup');
+			}
+			
+			
 			$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 			if($ligne["servername"]<>null){$sql=$sqledit;}else{$sql=$sqladd;}
 			if(!$q->QUERY_SQL($sql,"artica_backup")){
@@ -538,7 +593,7 @@
 			echo "$this->PrefixOutput [CLASS/".__LINE__."] GeoIP Enabled\n";
 			$goip=$this->locate_geoip_db();
 			if(!is_file($goip)){
-				echo "Starting......: WARNING Apache \"$this->servername\" GeoIP unable to locate GeoIP.dat !!!\n";
+				echo "Starting......: ".date("H:i:s")." WARNING Apache \"$this->servername\" GeoIP unable to locate GeoIP.dat !!!\n";
 				return null;
 			}
 			echo "$this->PrefixOutput [CLASS/".__LINE__."] GeoIP ". count($this->Params["GEOIP"]). " countries to block\n";
@@ -1045,7 +1100,7 @@
 			$sql="SELECT * FROM freewebs_whitelist WHERE servername='$this->servername' $qsearch ORDER BY ID DESC";
 			$results=$q->QUERY_SQL($sql,'artica_backup');
 			if(!$q->ok){echo "$q->mysql_error\n";}			
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 				$f[]="   DOSWhitelist {$ligne["ipaddr"]}";
 			}
 			
@@ -1080,7 +1135,7 @@
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,'artica_backup');
 			if(mysql_num_rows($results)==0){return;}
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				if(!preg_match("#(.+?)\s+(.+)#", $ligne["ProxyPass"],$re)){continue;}
 				$request_from=trim($re[1]);$redirect_to=trim($re[2]);
 				if(substr($request_from, strlen($request_from)-1)<>'/'){$request_from=$request_from."/";}
@@ -1092,10 +1147,59 @@
 			return @implode("\n", $f);
 		}
 		
+		private function LoadLibraries(){
+			if(!isset($GLOBALS["CLASS_SOCKETS"])){
+				$GLOBALS["CLASS_SOCKETS"]=new sockets();
+			}
+			if(!isset($GLOBALS["CLASS_UNIX"])){
+				$GLOBALS["CLASS_UNIX"]=new unix();
+			}
+			if(!isset($GLOBALS["CLASS_USERS"])){
+				$GLOBALS["CLASS_USERS"]=new usersMenus();
+			}
+		}
+		
+		
+		public function mod_security_ifvailable(){
+			
+			
+			$this->LoadLibraries();
+			$sock=$GLOBALS["CLASS_SOCKETS"];
+			$unix=$GLOBALS["CLASS_UNIX"];
+			$users=$GLOBALS["CLASS_USERS"];
+			
+			
+			$httpdconf=$unix->LOCATE_APACHE_CONF_PATH();
+			$d_path=$unix->APACHE_DIR_SITES_ENABLED();
+			$DAEMON_PATH=$unix->getmodpathfromconf($httpdconf);
+			$APACHE_MODULES_PATH=$users->APACHE_MODULES_PATH;
+			$FreeWebsEnableModSecurity=intval($sock->GET_INFO("FreeWebsEnableModSecurity"));
+			
+			if($FreeWebsEnableModSecurity==0){
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache module 'mod_security2' disabled\n";
+				return false;
+			}
+			if(!is_file("/usr/lib/libxml2.so.2")){
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache /usr/lib/libxml2.so.2 no such library\n";
+				return false;
+			}
+			if(!is_file("$APACHE_MODULES_PATH/mod_security2.so")){
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache $APACHE_MODULES_PATH/mod_security2.so no such file\n";
+				return false;
+			}
+			if(!is_file("$APACHE_MODULES_PATH/mod_unique_id.so")){
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache $APACHE_MODULES_PATH/mod_unique_id.so no such file\n";
+				return false;
+			}
+			
+		}
+		
 		
 		
 		public function mod_security(){
-			if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
+			$this->LoadLibraries();
+			$sock=$GLOBALS["CLASS_SOCKETS"];
+			
 			$FreeWebsEnableModSecurity=$sock->GET_INFO("FreeWebsEnableModSecurity");
 			if($FreeWebsEnableModSecurity<>1){return null;}
 			if(!isset($this->Params["mod_security"])){return null;}
@@ -1124,7 +1228,7 @@
 			$results=$q->QUERY_SQL($sql,'artica_backup');
 			if(!$q->ok){echo "$q->mysql_error\n";}
 	
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){	
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 					$ligne["value"]=str_replace("+","\+",$ligne["value"]);
 					$ligne["value"]=str_replace(".","\.",$ligne["value"]);
 					$ligne["value"]=str_replace("?","\?",$ligne["value"]);
@@ -1196,7 +1300,7 @@
 			if($this->groupware=="SARG"){
 				$sock=new sockets();
 				$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-				if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+				if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 				$this->WORKING_DIRECTORY=$SargOutputDir;
 				$this->CheckDirectoryRights();
 				return;
@@ -1277,7 +1381,7 @@
 			if($this->WebCopyID>0){
 				$sql="SELECT sitename,workingdir FROM httrack_sites WHERE ID=$this->WebCopyID";
 				$q=new mysql();
-				$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+				$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 				$urlEXt=parse_url($ligne["sitename"]);
 				$this->WORKING_DIRECTORY="{$ligne["workingdir"]}/{$urlEXt["host"]}";
 				return;
@@ -1286,7 +1390,11 @@
 			
 			if(trim($this->www_dir)<>null){
 				$this->WORKING_DIRECTORY="$this->www_dir";
-				if(strpos($this->WORKING_DIRECTORY,$this->servername)==0){$this->WORKING_DIRECTORY="$this->WORKING_DIRECTORY/$this->servername";}
+				if(!is_dir($this->www_dir)){
+					if(strpos($this->WORKING_DIRECTORY,$this->servername)==0){
+						$this->WORKING_DIRECTORY="$this->WORKING_DIRECTORY/$this->servername";
+					}
+				}
 				$this->CheckDirectoryRights();
 				return;
 			}
@@ -1344,6 +1452,7 @@
 			if($this->groupware=="ARTICA_PRXYLOGS"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="ERRSQUID"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			if($this->groupware=="UFDBGUARD"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
+			if($this->groupware=="WPADDYN"){$this->WORKING_DIRECTORY="/usr/share/artica-postfix";return true;}
 			
 			
 			
@@ -1380,6 +1489,8 @@
 
 			
 			}
+			
+			
 			
 			
 			if($this->groupware=="ARKEIA"){
@@ -1523,7 +1634,7 @@
 				
 				
 				if($this->Params["WEBDAV"]["ENABLED"]==0){return null;}
-				echo "Starting......: [INIT]: Apache WebDav Engine enabled, DavLock in $this->WORKING_DIRECTORY/DavLock\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache WebDav Engine enabled, DavLock in $this->WORKING_DIRECTORY/DavLock\n";
 				$conf[]="\tDavLockDB \"$this->WORKING_DIRECTORY/DavLock\"";
 				$conf[]=$this->WebDavBrowserMatches();
 				return @implode("\n",$conf);				
@@ -1537,8 +1648,12 @@
 				
 			
 				$f[]=$this->WORKING_DIRECTORY;
+				$f[]="/var/log/apache2";
 				$f[]="/var/log/apache2/$this->servername";
+				$f[]="/home/artica";
+				$f[]="/var/log";
 				$f[]="/var/run/mysqld";
+				$f[]="/tmp";
 				
 				if($this->AS_ROOT){
 					@chmod("/var/log/apache2/$this->servername", 0777);
@@ -1546,6 +1661,10 @@
 			
 				if($this->groupware=="KLMS"){return null;}
 				if($this->groupware=="CHILLI"){return null;}
+				
+				if($this->groupware=="WPADDYN"){
+					$f[]="/usr/share/artica-postfix";
+				}
 				
 			
 				if($this->groupware=="GROUPOFFICE"){
@@ -1571,6 +1690,7 @@
 				$f[]="/usr/share/php";
 				$f[]="/usr/share/php5";
 				$f[]="/var/lighttpd/upload";
+				$f[]="/var/lib/php5";
 				
 				
 			
@@ -1614,7 +1734,7 @@
 			$WorkingDirRegex=string_to_regex($this->WORKING_DIRECTORY);
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,'artica_backup');
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				if(preg_match("#^REGEX:(.+)#",$ligne["alias"])){continue;}
 				if(!preg_match("#$WorkingDirRegex#", $ligne["directory"])){
 					if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
@@ -1626,7 +1746,7 @@
 			$WorkingDirRegex=string_to_regex($this->WORKING_DIRECTORY);
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,'artica_backup');
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
 				$f[]=$ligne["directory"];
 			
@@ -1684,7 +1804,7 @@
 			
 			if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] SQL Query return ". mysql_num_rows($results). "rows\n";}
 			
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				$Alias=trim($ligne["alias"]);
 				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] check Alias:`$Alias` -> \"{$ligne["directory"]}\"\n";}
 				$directory=trim($ligne["directory"]);
@@ -1878,7 +1998,7 @@
 			
 		}
 		
-		public function php_values(){
+		public function php_values($nginx=false){
 			if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
 			if($this->WebCopyID>0){return null;}
 			if($this->groupware=="KLMS"){return null;}
@@ -1900,7 +2020,10 @@
 				$includes[]="$this->WORKING_DIRECTORY/plugins";
 			}
 			if(($this->groupware=="ZARAFA") OR ($this->groupware=="ZARAFA_MOBILE") OR ($this->groupware=="WEBAPP")){
-				if($this->Params["ZARAFAWEB_PARAMS"]["zPushInside"]==1){$includes[]="$this->WORKING_DIRECTORY/mobile";}
+				if($this->Params["ZARAFAWEB_PARAMS"]["zPushInside"]==1){
+					$includes[]="$this->WORKING_DIRECTORY/mobile";
+					$includes[]="$this->WORKING_DIRECTORY/server/PEAR";
+				}
 			}
 			
 			if($this->groupware=="OWNCLOUD"){
@@ -1913,7 +2036,7 @@
 			$WorkingDirRegex=string_to_regex($this->WORKING_DIRECTORY);
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,'artica_backup');
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				if(preg_match("#^REGEX:(.+)#",$ligne["alias"])){continue;}
 				if(!preg_match("#$WorkingDirRegex#", $ligne["directory"])){
 					if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
@@ -1925,7 +2048,7 @@
 			$WorkingDirRegex=string_to_regex($this->WORKING_DIRECTORY);
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,'artica_backup');
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 					if(is_file($ligne["directory"])){$ligne["directory"]=dirname($ligne["directory"]);}
 					$includes[]=$ligne["directory"];
 				
@@ -1972,6 +2095,7 @@
 				$this->Params["PHP_VALUES"]["upload_max_filesize"]="{$upload_max_filesize}M";
 				$this->Params["PHP_VALUES"]["magic_quotes_runtime"]="0";
 				$this->Params["PHP_VALUES"]["short_open_tag"]="1";
+				$this->Params["PHP_VALUES"]["safe_mode"]="0";
 			}
 			
 			if($this->groupware=="WEBAPP"){
@@ -1992,7 +2116,8 @@
 				$this->Params["PHP_VALUES"]["post_max_size"]="{$post_max_size}M";
 				$this->Params["PHP_VALUES"]["upload_max_filesize"]="{$upload_max_filesize}M";
 				$this->Params["PHP_VALUES"]["magic_quotes_runtime"]="0";
-				$this->Params["PHP_VALUES"]["short_open_tag"]="1";	
+				$this->Params["PHP_VALUES"]["short_open_tag"]="1";
+				$this->Params["PHP_VALUES"]["safe_mode"]="0";
 						
 			}
 			
@@ -2103,12 +2228,22 @@
 			
 		$sql="SELECT *  FROM freeweb_php WHERE servername='$this->servername'";
 		$results=$q->QUERY_SQL($sql,'artica_backup');
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$this->Params["PHP_VALUES"][$ligne["key"]]=$ligne["value"];
 		}
 			
 		if(is_array($this->Params["PHP_VALUES"])){
 			$array=$this->Params["PHP_VALUES"];
+			if($nginx){
+				while (list ($key, $val) = each ($array) ){
+					$f[]="set \$php_value \"$key $val\";";
+				}
+				$line=@implode("\n", $f);
+			//	$line=str_replace('"', "", $line);
+				return $line;
+			}
+			
+			
 			while (list ($key, $val) = each ($array) ){
 				$f[]="\tphp_value $key \"$val\"";
 			}
@@ -2128,6 +2263,8 @@
 			if($this->groupware=="ANDROWEB"){return "android.index.php";}
 			if($this->groupware=="ARTICA_REGISTER_OU"){return "miniadm.register.php";}
 			if($this->groupware=="ARTICA_MINIADM"){return "miniadm.php";}
+			if($this->groupware=="WPADDYN"){return "proxy.pac.php";}
+			
 			if($this->groupware=="ARTICA_ADMPRXY"){return "squid.users.logon.php";}
 			if($this->groupware=="MAILHOSTING"){return "mailattach.php";}
 			if($this->groupware=="SPLASHSQUID"){return "splashproxy.php";}
@@ -2245,6 +2382,11 @@
 				$array["logon.php"]="logon.php";
 				
 			}
+			if(($this->groupware=="WPADDYN")){
+				$array=$this->ParseArticaDirectory();
+				unset($array["proxy.pac.php"]);
+			}			
+			
 			
 			if( $this->groupware=="ARTICA_ADMPRXY"){
 				$array=$this->ParseArticaDirectory("squid\.users\..*?\.php");
@@ -2363,7 +2505,7 @@
 				$f[]="\t\tRewriteCond %{REQUEST_FILENAME} !-d";
 				$f[]="\t\tRewriteRule .* index.php [L]";
 				if($this->mod_rewrite<>null){$f[]=$this->mod_rewrite;}				
-				$f[]="\t\</IfModule>";
+				$f[]="\t</IfModule>";
 			   	return @implode("\n",$f);
 			}
 			if($this->groupware=="MAILHOSTING"){
@@ -2423,7 +2565,7 @@
 			$f[]="\t\tRewriteEngine On";
 			$f[]="\t\tRewriteCond %{REQUEST_URI} !=/". md5($this->servername);			
 			$f[]=$this->mod_rewrite;
-			$f[]="\t\</IfModule>";
+			$f[]="\t</IfModule>";
 			return @implode("\n",$f);
 			
 			
@@ -2545,7 +2687,7 @@
 		public function WebDavContainersCount(){
 			if(isset($GLOBALS["WebDavContainersCount"])){return $GLOBALS["WebDavContainersCount"];}
 			$q=new mysql();
-			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(container_id) as tcount FROM users_containers WHERE created=1 AND onerror=0 AND webdav=1","artica_backup"));
+			$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(container_id) as tcount FROM users_containers WHERE created=1 AND onerror=0 AND webdav=1","artica_backup"));
 			$NUM=$ligne["tcount"];
 			if(!is_numeric($NUM)){$NUM=0;}
 			$GLOBALS["WebDavContainersCount"]=$NUM;
@@ -2588,9 +2730,9 @@
 			$sql="SELECT * FROM users_containers WHERE created=1 AND onerror=0 AND webdav=1";
 			$q=new mysql();
 			$results=$q->QUERY_SQL($sql,"artica_backup");
-			echo "Starting......: [INIT]: Apache ".mysql_num_rows($results)." WebDav items...\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache ".mysql_num_rows($results)." WebDav items...\n";
 			$apacheusername=$unix->APACHE_SRC_ACCOUNT();
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				$ID=$ligne["container_id"];
 				$webdav_creds=unserialize(base64_decode($ligne["webdav_creds"]));
 				
@@ -2603,7 +2745,7 @@
 				}
 				@chown("$MountedPath/WebShared", $apacheusername);
 				@mkdir("/etc/htpass",0755,true);
-				echo "Starting......: [INIT]: Apache WebDav [disk$ID] `$MountedPath`\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache WebDav [disk$ID] `$MountedPath`\n";
 				$f[]="Alias /disk$ID $MountedPath/WebShared";
 				
 				$f[]="<Location /disk$ID>";
@@ -2617,7 +2759,7 @@
 				# Uncomment to turn off any existing rewrite rules
 				# Rewrite engine off
 				$f[]=$this->WebDavBrowserMatches();
-				echo "Starting......: [INIT]: Apache WebDav [disk$ID] Username: `{$webdav_creds["username"]}`\n";
+				echo "Starting......: ".date("H:i:s")." [INIT]: Apache WebDav [disk$ID] Username: `{$webdav_creds["username"]}`\n";
 				
 				
 				if(trim($webdav_creds["username"])<>null){
@@ -2630,7 +2772,7 @@
 					$f[]="\tAuthType digest";
 					$f[]="\t# {$ligne["container_name"]} - $AuthName";
 					$f[]="\tAuthName \"$AuthName\"";
-					echo "Starting......: [INIT]: Apache WebDav digest: [disk$ID] `$AuthName/{$webdav_creds["password"]}` ($digest)\n";
+					echo "Starting......: ".date("H:i:s")." [INIT]: Apache WebDav digest: [disk$ID] `$AuthName/{$webdav_creds["password"]}` ($digest)\n";
 					$f[]="\tAuthDigestProvider file";
 					$f[]="\tAuthUserFile /etc/htpass/disk$ID";
 					$f[]="\tRequire valid-user";
@@ -2640,7 +2782,7 @@
 				
 				
 			}
-			echo "Starting......: [INIT]: Apache WebDav ". count($f)." lines\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Apache WebDav ". count($f)." lines\n";
 			$GLOBALS["WebDavContainers"]=@implode("\n", $f);
 			return $GLOBALS["WebDavContainers"];
 			
@@ -2738,6 +2880,7 @@
 				$IsAuth=false;
 				$LOCATIONDONE=false;
 				$directory=$ligne["directory"];
+				@chmod($directory, 0755);
 				if(!is_dir($directory)){
 					if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] WebDav $directory no such directory\n";}
 					continue;
@@ -2745,13 +2888,13 @@
 				$params=unserialize(base64_decode($ligne["params"]));
 				
 				if(($params["connectiontype"]=="ad") OR ($params["connectiontype"]=="ldap")){$AuthLDAP=true;}
-				if($AuthLDAP){$IsAuth=true;}
-				
+
 				
 				$Alias["/{$ligne["alias"]}"]=$directory;
 				$AliasN[$ligne["alias"]]=$ligne["alias"];
 				$locations[]="\t<Location /{$ligne["alias"]}>";
-				$locations[]="\t\t# connectiontype = {$params["connectiontype"]}";
+				if(is_file('/usr/lib/apache2/modules/mod_kav64.so')){$locations[]="\tSetInputFilter KAV";}
+				$locations[]="\t\t# connectiontype = \"{$params["connectiontype"]}\"";
 				$locations[]="\t\tDAV On";
 				if(($params["connectiontype"]=="ad") OR ($params["connectiontype"]=="ldap")){
 					$locations[]="\t\tOrder deny,allow";
@@ -2939,7 +3082,7 @@
 			writelogs("Start Working directory = $this->WORKING_DIRECTORY",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			if(!is_dir($this->WORKING_DIRECTORY)){@mkdir($this->WORKING_DIRECTORY,0755,true);}
 			if(is_dir($this->WORKING_DIRECTORY)){shell_exec("/bin/rm -rf $this->WORKING_DIRECTORY/*");}
-			echo "Starting......: Apache $this->servername installing Zarafa WebAPP 7\n";
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername installing Zarafa WebAPP 7\n";
 			
 			shell_exec("/bin/cp -rf /usr/share/zarafa-webapp/* $this->WORKING_DIRECTORY/");
 			@mkdir($this->WORKING_DIRECTORY."/tmp",0755,true);
@@ -2947,7 +3090,7 @@
 			writelogs("Start InstallZarafaConfigWebAPP()",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			$this->InstallZarafaConfigWebAPP();
 			$this->InstallZPushInside();		
-			echo "Starting......: Apache $this->servername installing Zarafa WebAPP 7 done...\n";			
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername installing Zarafa WebAPP 7 done...\n";			
 			
 		}
 		
@@ -2958,15 +3101,17 @@
 			writelogs("Start Working directory = $this->WORKING_DIRECTORY",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			if(!is_dir($this->WORKING_DIRECTORY)){@mkdir($this->WORKING_DIRECTORY,0755,true);}
 			if(is_dir($this->WORKING_DIRECTORY)){shell_exec("/bin/rm -rf $this->WORKING_DIRECTORY/*");}
-			echo "Starting......: Apache $this->servername installing Zarafa\n";
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername installing Zarafa WebAccess\n";
 			shell_exec("/bin/rm -f /usr/share/zarafa-webaccess/zarafa-webaccess >/dev/null 2>&1");
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername /usr/share/zarafa-webaccess -> $this->WORKING_DIRECTORY\n";
 			shell_exec("/bin/cp -rf /usr/share/zarafa-webaccess/* $this->WORKING_DIRECTORY/");
 			@mkdir($this->WORKING_DIRECTORY."/tmp",0755,true);
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername remove $this->WORKING_DIRECTORY/config.php\n";
 			@unlink("$this->WORKING_DIRECTORY/config.php");
 		
 			writelogs("Start InstallZarafaConfigPHP()",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			$this->InstallZarafaConfigPHP();
-			echo "Starting......: Apache $this->servername installing Zarafa Webmail done...\n";
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername installing Zarafa Webmail done...\n";
 			$this->InstallZPushInside();
 		}
 		
@@ -2974,14 +3119,14 @@
 			if(!$this->AS_ROOT){return;}
 			if(!is_dir($this->WORKING_DIRECTORY)){@mkdir($this->WORKING_DIRECTORY,0755,true);}
 			if(is_dir($this->WORKING_DIRECTORY)){shell_exec("/bin/rm -rf $this->WORKING_DIRECTORY/*");}
-			echo "Starting......: Apache $this->servername installing Zarafa\n";
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername installing Zarafa\n";
 			shell_exec("/bin/rm -f /usr/share/zarafa-webaccess-mobile/zarafa-webaccess-mobile >/dev/null 2>&1");
 			@mkdir("$this->WORKING_DIRECTORY/cache",0755,true);
 			@mkdir("$this->WORKING_DIRECTORY/templates_c",0755,true);			
 			@mkdir($this->WORKING_DIRECTORY."/tmp",0755,true);
 			@mkdir($this->WORKING_DIRECTORY."/config",0755,true);
 			shell_exec("/bin/cp -rf /usr/share/zarafa-webaccess-mobile/* $this->WORKING_DIRECTORY/");
-			echo "Starting......: Apache $this->servername installing Zarafa-webaccess-mobile done...\n";	
+			echo "Starting......: ".date("H:i:s")." Apache $this->servername installing Zarafa-webaccess-mobile done...\n";	
 			$this->InstallZarafaMobileConfigPHP("$this->WORKING_DIRECTORY");	
 			
 		}
@@ -2992,7 +3137,7 @@
 			@chmod("$this->WORKING_DIRECTORY/mobile/state",0777);
 			@mkdir("$this->WORKING_DIRECTORY/mobile/log",0777,true);
 			@chmod("$this->WORKING_DIRECTORY/mobile/log",0777);		
-			echo "Starting......: Apache  installing Z-Push-inside on  $this->WORKING_DIRECTORY/mobile...\n";		
+			echo "Starting......: ".date("H:i:s")." Apache  installing Z-Push-inside on  $this->WORKING_DIRECTORY/mobile...\n";		
 			if(is_file("$this->WORKING_DIRECTORY/mobile/z-push-admin.php")){$this->InstallZarafaZpush("$this->WORKING_DIRECTORY/mobile/config.php");return;}
 			if(!is_dir("$this->WORKING_DIRECTORY/mobile")){@mkdir("$this->WORKING_DIRECTORY/mobile",0755,true);}
 			shell_exec("/bin/cp -rf /usr/share/z-push/* $this->WORKING_DIRECTORY/mobile/");
@@ -3007,7 +3152,7 @@
 			if($this->groupware<>"WEBAPP"){return null;}
 			$users=new usersMenus();
 			$sock=new sockets();
-			if(!$users->EJABBERD_INSTALLED){echo "Starting......: Apache $this->servername ejabberd not installed, aborting reverse Proxy\n";return;}
+			if(!$users->EJABBERD_INSTALLED){echo "Starting......: ".date("H:i:s")." Apache $this->servername ejabberd not installed, aborting reverse Proxy\n";return;}
 			$ejabberdInsideZarafa=$sock->GET_INFO("ejabberdInsideZarafa");
 			if(!is_numeric($ejabberdInsideZarafa)){$ejabberdInsideZarafa=0;}
 			if($ejabberdInsideZarafa==0){return;}
@@ -3079,14 +3224,14 @@
 				
 				
 				if(basename($indexPath)<>"config.php"){
-						if($this->AS_ROOT){echo "Starting......: Apache InstallZarafaZpush():: `$indexPath`: ". basename($indexPath). " is not config.php, aborting...\n";}	
+						if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." Apache InstallZarafaZpush():: `$indexPath`: ". basename($indexPath). " is not config.php, aborting...\n";}	
 						return ;
 					}
 				}else{
 					$Directory=$this->WORKING_DIRECTORY;
 				}
 				
-				if($this->AS_ROOT){echo "Starting......: Apache InstallZarafaZpush():: \"$this->servername\" install to `$Directory`\n";}
+				if($this->AS_ROOT){echo "Starting......: ".date("H:i:s")." Apache InstallZarafaZpush():: \"$this->servername\" install to `$Directory`\n";}
 				shell_exec("$cp -rf $DirectorySrc/* $Directory/");
 				
 				
@@ -3154,7 +3299,7 @@
 				$f[]="";
 				$f[]="?>";
 				if($indexPath==null){$indexPath="$this->WORKING_DIRECTORY/config.php";}
-				echo "Starting......: Apache  InstallZarafaZpush():: creating `$indexPath` configuration file\n";
+				echo "Starting......: ".date("H:i:s")." Apache  InstallZarafaZpush():: creating `$indexPath` configuration file\n";
 				@file_put_contents($indexPath, @implode("\n", $f));
 				$unix=new unix();
 				$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$this->WORKING_DIRECTORY/*");
@@ -3268,7 +3413,7 @@
 		
 		
 		
-		private function InstallZarafaConfigWebAPP($Otherdirectory=null){
+		public function InstallZarafaConfigWebAPP($Otherdirectory=null){
 				if(!$this->AS_ROOT){return;}
 				if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 				$unix=$GLOBALS["CLASS_UNIX"];
@@ -3575,23 +3720,14 @@
 				writelogs("[$this->servername]: DEFAULT_SERVER = $DEFAULT_SERVER",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 				writelogs("[$this->servername]: EnableDebugMode = $EnableDebugMode",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 				
+
 				
 				
-				$arraycp[]="pattern.png";
-				$arraycp[]="form.png";
-				$arraycp[]="input.png";
-				$arraycp[]="input_act.png";
-				$arraycp[]="btn_bg.png";
-				while(list($index,$filename) = each($arraycp)){
-					if(!is_file("$this->WORKING_DIRECTORY/client/layout/img/i/$filename")){
-						shell_exec("$cp -f /usr/share/artica-postfix/ressources/templates/myCosi/i/$filename $this->WORKING_DIRECTORY/client/layout/img/i/");
-					}
-				}
-				
+				/*
 				if(!is_file("$this->WORKING_DIRECTORY/client/layout/img/i/logo.png")){shell_exec("$cp -f /usr/share/artica-postfix/ressources/templates/zarafa/i/logo.png $this->WORKING_DIRECTORY/client/layout/img/i/");}
 				if(!is_file("$this->WORKING_DIRECTORY/client/login.bak.php")){shell_exec("$cp -f $this->WORKING_DIRECTORY/client/login.php $this->WORKING_DIRECTORY/client/login.back.php");}
 				shell_exec("$cp -f /usr/share/artica-postfix/ressources/templates/zarafa/login.php $this->WORKING_DIRECTORY/client/login.php");
-			
+				*/
 			
 				$conf[]="<?php";
 				$conf[]="ini_set(\"zend.ze1_compatibility_mode\", false);";
@@ -3830,9 +3966,13 @@
 				return;
 			}
 			
+			if(!is_dir("/usr/share/phpmyadmin")){
+				echo "Starting......: ".date("H:i:s")." Apache checks `/usr/share/phpmyadmin` no such sources\n";
+				return;}
+			
 			
 			echo "$this->PrefixOutput [CLASS/".__LINE__."] MySQL is enabled\n";
-			echo "Starting......: Apache checks $phpmyadmin_dir\n";
+			echo "Starting......: ".date("H:i:s")." Apache checks $phpmyadmin_dir\n";
 			
 			
 			$q=new mysql();

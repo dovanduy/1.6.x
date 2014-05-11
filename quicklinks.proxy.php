@@ -55,21 +55,7 @@ function tabs(){
 	
 	
 
-	$html="
-		<div id='main_squid_quicklinks_config' style='background-color:white;margin-top:10px'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_squid_quicklinks_config').tabs();
-			
-
-			});
-		</script>
-	
-	";	
+	$html=build_artica_tabs($tab, "main_squid_quicklinks_config");
 	
 	echo $tpl->_ENGINE_parse_body($html);
 
@@ -81,10 +67,10 @@ function section_services(){
 	$page=CurrentPageName();	
 	$sock=new sockets();
 	$plugins=Paragraphe('folder-lego.png','{activate_plugins}','{activate_plugins_text}',"javascript:Loadjs('squid.popups.php?script=plugins')");
-	$enable_squid_service=Paragraphe('bg-server-settings-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:Loadjs('squid.newbee.php?reactivate-squid=yes')");
+	$enable_squid_service=Paragraphe('shutdown-green-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:Loadjs('squid.newbee.php?reactivate-squid=yes')");
 	
 	$your_network=Paragraphe('folder-realyrules-64.png','{your_network}','{your_network_text}',"javascript:Loadjs('squid.popups.php?script=network')");
-	$listen_port=Paragraphe('network-connection2.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')");
+	$listen_port=Paragraphe('folder-network-64.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')");
 	$visible_hostname=Paragraphe('64-work-station-linux.png','{visible_hostname}','{visible_hostname_intro}',"javascript:Loadjs('squid.popups.php?script=visible_hostname')");
 	$performances_tuning=Paragraphe('performance-tuning-64.png','{tune_squid_performances}','{tune_squid_performances_text}',"javascript:Loadjs('squid.perfs.php')");
 	 

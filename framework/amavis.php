@@ -21,6 +21,7 @@ function reload_tenir(){
 	
 }
 function per_user_mysql(){
+	
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$cmd="$php /usr/share/artica-postfix/exec.amavis-db.php --init";

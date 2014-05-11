@@ -28,14 +28,25 @@ if(isset($_GET["week"])){week();exit;}
 if(isset($_GET["month"])){month();exit;}
 if(isset($_GET["year"])){year();exit;}
 if(isset($_POST["LoadAvgClean"])){LoadAvgClean();exit;}
+
+
+if(isset($_GET["cpustats"])){cpustats();exit;}
 if(isset($_GET["graph1"])){graph1();exit;}
 if(isset($_GET["graph2"])){graph2();exit;}
-if(isset($_GET["graph3"])){graph3();exit;}
+
+if(isset($_GET["graph4"])){graph4();exit;}
+
+
+if(isset($_GET["graph6"])){graph6();exit;}
+
+
+
 
 if($GLOBALS["AS_ROOT"]){@mkdir("/usr/share/artica-postfix/ressources/web/cache1",0755,true);}
 
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 MySqlSyslog();
+ZarafaWebAccess_wizard();
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 injectSquid();
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
@@ -50,16 +61,21 @@ function MySqlSyslog(){
 	if($GLOBALS["AS_ROOT"]){return;}
 	$sock=new sockets();
 	$tpl=new templates();
+	$MEM_TOTAL_INSTALLEE=$sock->getFrameWork("system.php?MEM_TOTAL_INSTALLEE=yes");
+	if($MEM_TOTAL_INSTALLEE<624288){return;}
 	$EnableMySQLSyslogWizard=$sock->GET_INFO("EnableMySQLSyslogWizard");
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
+	
 	if(!is_numeric($EnableMySQLSyslogWizard)){$EnableMySQLSyslogWizard=0;}
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
+	
+	
 	if($EnableMySQLSyslogWizard==1){return;}
 	if($EnableSyslogDB==1){return;}
 	
 	$html="<div style='margin-bottom:15px'>".
 			Paragraphe("warning-panneau-64.png", "{MySQL_SYSLOG_NOTSET}","{MySQL_SYSLOG_NOTSET_EXPLAIN}",
-			"javascript:Loadjs('MySQLSyslog.wizard.php')","go_to_section",300,132,1);
+			"javascript:Loadjs('MySQLSyslog.wizard.php')","go_to_section",665,132,1);
 	echo $tpl->_ENGINE_parse_body($html)."</div>";	
 	if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 	
@@ -67,20 +83,89 @@ function MySqlSyslog(){
 	
 }
 
+function ZarafaWebAccess_wizard(){
+	$users=new usersMenus();
+	if(!$users->ZARAFA_WEBAPP_INSTALLED){return;}
+	$sock=new sockets();
+	$ZarafaWebAPPWizard=$sock->GET_INFO("ZarafaWebAPPWizard");
+	if(!is_numeric($ZarafaWebAPPWizard)){$ZarafaWebAPPWizard=0;}
+	if($ZarafaWebAPPWizard==1){return;}
+	$tpl=new templates();
+	$html="<div style='margin-bottom:15px'>".
+			Paragraphe("zarafa-web-64.png", "{CREATE_YOUR_FIRST_WEBMAIL}","{CREATE_YOUR_FIRST_WEBMAIL_TEXT}",
+					"javascript:Loadjs('WebAPP.wizard.php')","go_to_section",665,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>";
+	if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
+	
+}
+
+
+
 function injectSquid(){
+	if($GLOBALS["VERBOSE"]){echo "<H1>injectSquid()</H1>\n";}
 	$sock=new sockets();
 	$users=new usersMenus();
+	$tpl=new templates();
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	$MyBrowsersSetupShow=$sock->GET_INFO("MyBrowsersSetupShow");
+	$SquidDebugAcls=intval($sock->GET_INFO("SquidDebugAcls"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if(!is_numeric($MyBrowsersSetupShow)){$MyBrowsersSetupShow=0;}
 	if($SQUIDEnable==0){return;}
 	$CategoriesDatabasesShowIndex=$sock->GET_INFO("CategoriesDatabasesShowIndex");
 	if(!is_numeric($CategoriesDatabasesShowIndex)){$CategoriesDatabasesShowIndex=1;}
 	if($CategoriesDatabasesShowIndex==0){return;}
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	if(!isset($WizardStatsAppliance["SERVER"])){$WizardStatsAppliance["SERVER"]=null;}
 	
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}
-	if($DisableArticaProxyStatistics==1){return;}
+	
+	if($MyBrowsersSetupShow==0){
+		if($users->SQUID_INSTALLED){
+			$html="<div style='margin-bottom:15px'>".
+					Paragraphe("64-info.png", "{my_browsers}","{how_to_connect_browsers}",
+							"javascript:Loadjs('squid.dashboard.php?mybrowsers-js=yes',true)","go_to_section",665,132,1);
+			echo $tpl->_ENGINE_parse_body($html)."</div>";
+		}
+		
+	}
+	
+	if($SquidDebugAcls==1){
+		if($users->SQUID_INSTALLED){
+			
+			$html="<div style='margin-bottom:15px'>".
+					Paragraphe("warning-panneau-64.png", "{acl_in_debug_mode}","{acl_in_debug_mode_explain}",
+							"javascript:Loadjs('squid.acls.options.php',true)","go_to_section",665,132,1);
+			echo $tpl->_ENGINE_parse_body($html)."</div>";
+			
+		}
+		
+	}
+	
+	if($users->KAV4PROXY_INSTALLED){
+		$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
+		if($licenseerror<>null){
+			$tpl=new templates();
+			$text=$tpl->_ENGINE_parse_body("{KAV_LICENSE_ERROR_EXPLAIN}");
+			$text=str_replace("%s", "«{$licenseerror}»", $text);
+			echo $tpl->_ENGINE_parse_body(Paragraphe("64-red.png", "Kaspersky {license_error}",$text,
+			"javascript:Loadjs('Kav4Proxy.license-manager.php',true)","go_to_section",665,132,1));
+		}
+	}
+	
+	
+	
+	if($DisableArticaProxyStatistics==1){
+		if($GLOBALS["VERBOSE"]){echo "<H1>DisableArticaProxyStatistics:{$DisableArticaProxyStatistics} -> return null</H1>\n";}
+		return;
+	}
+	
+	if($WizardStatsAppliance["SERVER"]<>null){
+		if($GLOBALS["VERBOSE"]){echo "<H1>WizardStatsAppliance:{$WizardStatsAppliance["SERVER"]} -> return null</H1>\n";}
+		return;
+	}
 	
 	$cacheFile="/usr/share/artica-postfix/ressources/web/cache1/injectSquid.".basename(__FILE__);
 	if($GLOBALS["AS_ROOT"]){
@@ -92,8 +177,8 @@ function injectSquid(){
 	
 	if(!$GLOBALS["AS_ROOT"]){
 		if(is_file($cacheFile)){
-			$tpl=new templates();
 			$data=@file_get_contents($cacheFile);
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>$cacheFile exists - ".strlen($data)." bytes</span><br>\n";}
 			if(strlen($data)>20){
 				echo $tpl->_ENGINE_parse_body($data);
 				return;
@@ -101,55 +186,35 @@ function injectSquid(){
 		}
 	}
 	
-	if($GLOBALS["VERBOSE"]){echo "InjectSquid ->\n<br>";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>InjectSquid -></span>\n<br>";}
 	
 	$run=false;
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	if($EnableWebProxyStatsAppliance==1){$users->WEBSTATS_APPLIANCE=true;}
-	if($users->WEBSTATS_APPLIANCE){$run=true;}
-	if($users->SQUID_INSTALLED){$run=true;}
-	if($users->SQUID_REVERSE_APPLIANCE){$run=false;}
-	if($GLOBALS["VERBOSE"]){echo "run -> $run\n<br>";}
+	if($users->WEBSTATS_APPLIANCE){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>WEBSTATS_APPLIANCE -> RUN = TRUE</span>\n<br>";}
+		$run=true;}
+	if($users->SQUID_INSTALLED){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>SQUID_INSTALLED -> RUN = TRUE</span>\n<br>";}
+		$run=true;
+	}
+	if($users->SQUID_REVERSE_APPLIANCE){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>SQUID_REVERSE_APPLIANCE -> RUN = FALSE</span>\n<br>";}
+		$run=false;}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>run -> $run</span>\n<br>";}
 	if(!$run){return;}	
 	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
-	if($GLOBALS["VERBOSE"]){echo "inf -> $inf\n<br>";}
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>inf -> $inf</span>\n<br>";}
 	if($inf<>null){
-		$tpl=new templates();
-	$html="<div style='margin-bottom:15px'>".
-	Paragraphe("tables-64-running.png", "{update_dbcatz_running}","{update_SQUIDAB_EXP}<hr><b>{since}:&nbsp;{$inf}&nbsp;{minutes}</b>", 
-	"javascript:Loadjs('squid.blacklist.upd.php')","go_to_section",300,132,1);
-	$html=$tpl->_ENGINE_parse_body($html)."</div>";	
-	
-	if($GLOBALS["AS_ROOT"]){
-		@file_put_contents($cacheFile, $html);
-		@chmod($cacheFile,0775);
-		
-	}else{
-		echo $html;
-	}
-	
-	return;	
-	}
-	
-	
-	
-
-	$LOCAL_VERSION=$sock->getFrameWork("squid.php?articadb-version=yes");
-	$array=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
-	$REMOTE_VERSION=$array["ARTICATECH"]["VERSION"];
-	$REMOTE_MD5=$array["ARTICATECH"]["MD5"];
-	$REMOTE_SIZE=$array["ARTICATECH"]["SIZE"];	
-	$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
-	
-	if($REMOTE_VERSION>$LOCAL_VERSION){
+		if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>inf <> Null</span>\n<br>";}
 		$tpl=new templates();
 		$html="<div style='margin-bottom:15px'>".
-		Paragraphe("64-download.png", "{new_database_available}","{new_database_available_category_text}<hr>{version}:$REMOTE_VERSION ($REMOTE_SIZE)", 
-		"javascript:Loadjs('squid.categories.php?onlyDB=yes')","go_to_section",300,132,1);
+		Paragraphe("tables-64-running.png", "{update_dbcatz_running}","{update_SQUIDAB_EXP}<hr><b>{since}:&nbsp;{$inf}&nbsp;{minutes}</b>", 
+		"javascript:Loadjs('squid.blacklist.upd.php')","go_to_section",665,132,1);
 		$html=$tpl->_ENGINE_parse_body($html)."</div>";	
-		
+	
 		if($GLOBALS["AS_ROOT"]){
 			@file_put_contents($cacheFile, $html);
 			@chmod($cacheFile,0775);
@@ -157,17 +222,13 @@ function injectSquid(){
 		}else{
 			echo $html;
 		}
-		
-		return;			
+	
+		return;	
 	}
 	
+	
+	$MEMORY=$users->MEM_TOTAL_INSTALLEE;
 }
-
-
-
-
-
-
 
 
 function js(){
@@ -175,7 +236,6 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{computer_load}");
-	
 	echo "YahooWin3('750','$page?tabs=yes','$title')";
 	
 	
@@ -185,7 +245,20 @@ function js(){
 function license(){
 	$users=new usersMenus();
 	$tpl=new templates();
-	if($users->CORP_LICENSE){return;}
+	$sock=new sockets();
+	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
+	if(is_numeric($CPU_NUMBER)){
+		if($CPU_NUMBER<2){
+			
+			$html="<div style='margin-top:15px'>".
+					Paragraphe("warning-panneau-64.png", "{performance_issue}","{performance_issue_cpu_number_text}",
+							"javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+			echo $tpl->_ENGINE_parse_body($html)."</div>";
+		}
+	}
+	
+	
+	if($users->CORP_LICENSE){Youtube();return;}
 	$ASWEB=false;
 	if($users->SQUID_INSTALLED){$ASWEB=true;}
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
@@ -202,8 +275,20 @@ function license(){
 		
 	$html="<div style='margin-top:15px'>".
 	Paragraphe("license-error-64.png", "{artica_license}",$text, 
-	"javascript:Loadjs('artica.license.php')","go_to_section",300,132,1);
-	echo $tpl->_ENGINE_parse_body($html)."</div>";
+	"javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>".Youtube();
+}
+
+function Youtube(){
+	$users=new usersMenus();
+	$tpl=new templates();
+	if(!$users->SQUID_INSTALLED){return;}
+	$youtubelink="http://www.youtube.com/playlist?list=PL6GqpiBEyv4q1GqpV5QbdYWbQdyxlWKGW";
+	$html="<div style='margin-top:15px'>".
+			Paragraphe("youtube-64.png", "{youtube_doc}","{youtube_doc_explain}",
+					"javascript:s_PopUpFull('$youtubelink',1024,1024)","go_to_section",665,132,1);
+	echo $tpl->_ENGINE_parse_body($html)."</div>";	
+	
 }
 
 function tabs(){
@@ -220,17 +305,7 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$time\"><span>$ligne</span></a></li>\n");
 	}
-	echo "
-	<div id=main_loadavgtabs style='width:100%;height:750px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_loadavgtabs').tabs();
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_loadavgtabs");
 }	
 
 	if($GLOBALS["VERBOSE"]){echo __LINE__." instanciate artica_graphs()<br>\n";}
@@ -563,7 +638,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$tpl=new templates();
 	$title=html_entity_decode($tpl->javascript_parse_text("Today: Server Load"));
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/loadavg_1.rrd");
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->graphTitle=$title;
 	$rrd->timestart="-1day";
@@ -581,7 +656,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("Today: memory"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1day";
 	$rrd->graphTitle=$title;
@@ -599,7 +674,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("Today: CPU"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1day";
 	$rrd->graphTitle=$title;
@@ -635,7 +710,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$tpl=new templates();
 	$title=html_entity_decode($tpl->javascript_parse_text("{server_load} {week}"));
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/loadavg_1.rrd");
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->graphTitle=$title;
 	$rrd->timestart="-1week";
@@ -653,7 +728,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("{memory} {week}"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1week";
 	$rrd->graphTitle=$title;
@@ -671,7 +746,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("{cpu} {week}"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1week";
 	$rrd->graphTitle=$title;
@@ -711,7 +786,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$tpl=new templates();
 	$title=html_entity_decode($tpl->javascript_parse_text("{server_load} {month}"));
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/loadavg_1.rrd");
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->graphTitle=$title;
 	$rrd->timestart="-1month";
@@ -729,7 +804,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("{memory} {month}"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1month";
 	$rrd->graphTitle=$title;
@@ -747,7 +822,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("{cpu} {month}"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1month";
 	$rrd->graphTitle=$title;
@@ -784,7 +859,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$tpl=new templates();
 	$title=html_entity_decode($tpl->javascript_parse_text("{server_load} {year}"));
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/loadavg_1.rrd");
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->graphTitle=$title;
 	$rrd->timestart="-1year";
@@ -802,7 +877,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/mem_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("{memory} {year}"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1year";
 	$rrd->graphTitle=$title;
@@ -820,7 +895,7 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	$sock->getFrameWork("services.php?chmod-rrd=yes");
 	$rrd=new rrdbuilder("/opt/artica/var/rrd/yorel/cpu_user.rrd");
 	$title=html_entity_decode($tpl->javascript_parse_text("{cpu} {year}"));
-	$rrd->width=680;
+	$rrd->width=645;
 	$rrd->height=250;
 	$rrd->timestart="-1year";
 	$rrd->graphTitle=$title;
@@ -848,29 +923,168 @@ $cpunum=$GLOBALS["CPU_NUMBER"]+1;
 	</center>		";		
 	
 }
+function NightlyNotifs(){
+	if($GLOBALS["VERBOSE"]){echo "<H1>NightlyNotifs()</H1>\n";}
+	$sock=new sockets();
+	$EnableNightlyInFrontEnd=$sock->GET_INFO("EnableNightlyInFrontEnd");
+	if(!is_numeric($EnableNightlyInFrontEnd)){$EnableNightlyInFrontEnd=1;}
+	if($EnableNightlyInFrontEnd==0){
+		if($GLOBALS["VERBOSE"]){echo "<span style=color:blue>EnableNightlyInFrontEnd=$EnableNightlyInFrontEnd</span><br>\n";}
+		return;
+	}
+	
+	
+	if(!is_file("ressources/index.ini"))	{
+		if($GLOBALS["VERBOSE"]){echo "<span style=color:blue>ressources/index.ini no such file</span><br>\n";}
+		return;
+	}
+		
+	$ini=new Bs_IniHandler("ressources/index.ini");
+	
+	if(!isset($ini->_params["NEXT"])){
+		$sock->getFrameWork("system.php?refresh-index-ini=yes");
+		$ini=new Bs_IniHandler("ressources/index.ini");
+	}
+	
+	$nightly=$ini->get("NEXT","artica-nightly");
+	$version=@file_get_contents("VERSION");
+
+	$nightlybin=str_replace('.','',$nightly);
+	$versionbin=str_replace('.','',$version);
+	
+	if($GLOBALS["VERBOSE"]){echo "<span style=color:blue>$nightlybin = $versionbin</span><br>\n";}
+	if($versionbin==0){return;}
+	if($nightlybin==0){return;}
+	
+	
+
+	if($nightlybin>$versionbin){
+		$tpl=new templates();
+		$html="<div style='margin-bottom:15px'>".
+				Paragraphe("download-info-64.png", "{NEW_NIGHTLYBUILD}: $nightly"
+				,"{NEW_NIGHTLYBUILD_TEXT}",
+				"javascript:Loadjs('artica.update.php?js=yes')","go_to_section",665,132,1);
+		$html=$tpl->_ENGINE_parse_body($html)."</div>";
+		echo $html;
+		return;
+	}
+	
+	
+}
+
+function OfficialRelease(){
+	
+	$sock=new sockets();
+	if(!is_file("ressources/index.ini"))	{
+		if($GLOBALS["VERBOSE"]){echo "<span style=color:blue>ressources/index.ini no such file</span><br>\n";}
+		return;
+	}
+	
+	$ini=new Bs_IniHandler("ressources/index.ini");
+	if(!isset($ini->_params["NEXT"])){$sock->getFrameWork("system.php?refresh-index-ini=yes");return;}
+	
+	$Lastest=trim(strtolower($ini->_params["NEXT"]["artica"]));
+	$version=@file_get_contents("VERSION");
+	
+	$nightlybin=str_replace('.','',$Lastest);
+	$versionbin=str_replace('.','',$version);
+	
+	if($GLOBALS["VERBOSE"]){echo "<span style=color:blue>$nightlybin = $versionbin</span><br>\n";}
+	if($versionbin==0){return;}
+	if($nightlybin==0){NightlyNotifs();return;}
+	
+	
+	
+	if($nightlybin>$versionbin){
+		$tpl=new templates();
+		$html="<div style='margin-bottom:15px'>".
+				Paragraphe("download-info-64.png", "{NEW_RELEASE}: $Lastest"
+						,"{NEW_RELEASE_TEXT}",
+						"javascript:Loadjs('artica.update.php?js=yes')","go_to_section",665,132,1);
+		$html=$tpl->_ENGINE_parse_body($html)."</div>";
+		echo $html;
+		return;
+	}
+	NightlyNotifs();
+	
+}
+
+
 function PageDeGarde(){
 	if($GLOBALS['VERBOSE']){echo date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 	$cacheFile=dirname(__FILE__)."/ressources/logs/web/".basename(__FILE__).".".__FUNCTION__;
 	if($GLOBALS["AS_ROOT"]){return;}
-	
+	OfficialRelease();
 	$page=CurrentPageName();
+	$users=new usersMenus();
+	$sock=new sockets();
 	
 	$time=time();
+	
+	
+	
+	
 	if(is_file("ressources/logs/web/INTERFACE_LOAD_AVG.db")){
-		$f1[]="<div style='width:299px;height:230px' id='$time-2'></div>";
+		$f1[]="<div style='width:665px;height:240px' id='$time-2'></div>";
 		$f2[]="function FDeux$time(){	
 				AnimateDiv('$time-2'); 
-				Loadjs('$page?graph2=yes&container=$time-2'); 
+				Loadjs('$page?graph2=yes&container=$time-2',true); 
 			} 
 		setTimeout(\"FDeux$time()\",500);";
 	}
 	
 	
+	if(is_file("ressources/logs/web/cpustats.db")){
+		$f1[]="<div style='width:665px;height:240px' id='$time-cpustats'></div>";
+		$f2[]="function Fcpustats$time(){AnimateDiv('$time-cpustats');Loadjs('$page?cpustats=yes&container=$time-cpustats',true);} setTimeout(\"Fcpustats$time()\",500);";
+		}else{
+			if($GLOBALS["VERBOSE"]){echo "<H1>ressources/logs/web/cpustats.db no such file</H1>\n";}
+		}
+	
+	
 	
 	if(is_file("ressources/logs/web/INTERFACE_LOAD_AVG2.db")){
-		$f1[]="<div style='width:299px;height:230px' id='$time-1'></div>$timeT";
-		$f2[]="function FOne$time(){AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1');} setTimeout(\"FOne$time()\",500);";
+		$f1[]="<div style='width:665px;height:240px' id='$time-1'></div>";
+		$f2[]="function FOne$time(){AnimateDiv('$time-1');Loadjs('$page?graph1=yes&container=$time-1',true);} setTimeout(\"FOne$time()\",500);";
+	}else{
+		if($GLOBALS["VERBOSE"]){echo "<H1>ressources/logs/web/INTERFACE_LOAD_AVG2.db no such file</H1>\n";}
 	}	
+	
+
+	
+	
+	//bandwith
+	
+	
+	
+
+
+	
+	
+	
+	
+	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_WEBFILTER_BLOCKED.db";
+	if(is_file($cacheFile)){
+		$f1[]="<div style='width:665px;height:240px' id='$time-6'></div>";
+		$f2[]="function Fsix$time(){
+		AnimateDiv('$time-6');
+		Loadjs('$page?graph6=yes&container=$time-6',true);
+	}
+	setTimeout(\"Fsix$time()\",800);";
+	}else{
+		if($GLOBALS["VERBOSE"]){echo "<H1>ressources/logs/web/INTERFACE_WEBFILTER_BLOCKED.db no such file</H1>\n";}
+	}
+	
+	
+	if($users->cyrus_imapd_installed){
+		$CyrusImapPartitionDefaultSize=$sock->GET_INFO("CyrusImapPartitionDefaultSize");
+		if(!is_numeric($CyrusImapPartitionDefaultSize)){$CyrusImapPartitionDefaultSize=0;}
+		if($CyrusImapPartitionDefaultSize>2){
+			$f1[]="<div style='width:665px;height:340px' id='$time-4'></div>";
+			$f2[]="function FQuatre$time(){AnimateDiv('$time-4');Loadjs('$page?graph4=yes&container=$time-4',true);} setTimeout(\"FQuatre$time()\",600);";
+		}
+	}
+	
 	
 	
 	if($GLOBALS['VERBOSE']){echo date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
@@ -885,6 +1099,29 @@ function LoadAvgClean(){
 	$q->DELETE_TABLE("loadavg", "artica_events");
 	$q->BuildTables();
 	
+}
+
+function cpustats(){
+	$filecache="ressources/logs/web/cpustats.db";
+	if(!is_file($filecache)){return;}
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];	
+	$title="% CPU {this_hour}";
+	$timetext="{minutes}";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title=$title;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->yAxisTtitle="{cpu}";
+	$highcharts->subtitle="<a href=\"javascript:Loadjs('system.cpustats.php')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix=date("H")."h";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->datas=array("%"=>$ydata);
+	echo $highcharts->BuildChart();	
 }
 
 function graph1(){
@@ -915,6 +1152,8 @@ function graph1(){
 	$highcharts->TitleFontSize="14px";
 	$highcharts->AxisFontsize="12px";
 	$highcharts->yAxisTtitle="{load}";
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix=date("H")."h";
 	$highcharts->xAxisTtitle=$timetext;
 	$highcharts->datas=array("{load}"=>$ydata);
 	echo $highcharts->BuildChart();
@@ -941,6 +1180,7 @@ function graph2(){
 		if($GLOBALS["VERBOSE"]){echo "ressources/logs/web/INTERFACE_LOAD_AVG2.db no such file\n<br>";}
 		return;}
 	$ARRAY=unserialize(@file_get_contents($filecache));
+	if($GLOBALS["VERBOSE"]){print_r($ARRAY);}
 	$xdata=$ARRAY[0];
 	$ydata=$ARRAY[1];
 		
@@ -954,10 +1194,71 @@ function graph2(){
 	$highcharts->Title=$title;
 	$highcharts->yAxisTtitle="{memory} (MB)";
 	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->LegendPrefix=date("H")."h";
+	$highcharts->LegendSuffix="MB";
+	$highcharts->xAxis_labels=false;
 	$highcharts->datas=array("{memory}"=>$ydata);
 	echo $highcharts->BuildChart();
 
 }
 
 
+
+function graph6(){
+	
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/INTERFACE_WEBFILTER_BLOCKED.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{blocked_websites}";
+	$timetext="{hour}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{hits}";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix=$tpl->_ENGINE_parse_body("{".date('F') ."} {day}:");
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("{hits}");
+	$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();
+	
+
+}
+
+
+
+
+// Cyrus IMAPD Taille sur le disque.
+function graph4(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$currentsize=$sock->GET_INFO("CyrusImapPartitionDefaultSize");
+	$CyrusImapPartitionDefaultSizeTime=$sock->GET_INFO("CyrusImapPartitionDefaultSizeTime");
+	$CyrusImapPartitionDiskSize=$sock->GET_INFO("CyrusImapPartitionDiskSize");
+	$tot=$CyrusImapPartitionDiskSize-$currentsize;
+	
+	$currentsizeT=FormatBytes($currentsize*1024);
+	$totT=FormatBytes($tot*1024);
+	$PieData["Mailboxes $currentsizeT"]=$currentsize;
+	$PieData["Disk $totT"]=$tot;
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{size}";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{mailboxes}");
+	echo $highcharts->BuildChart();	
+	
+}
+//if(!$users->ARTICADB_INSTALLED){ //ARTICADB_NOT_INSTALLED_EXPLAIN
 ?>

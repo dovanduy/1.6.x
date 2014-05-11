@@ -101,7 +101,7 @@ entre les les caract&egrave;res d'&eacute;chappement \..</ExcludeURLExplain>
 Voir le commentaire de &quot; option de Rotation de Connexion &quot;.</LogRotate_text>
 <MaxChildren>Nombre d'enfants maximum</MaxChildren>
 <MaxChildren_text>Nombre maximal de processus enfants cr&eacute;&eacute;</MaxChildren_text>
-<MaxConnections>Connections Max</MaxConnections>
+<MaxConnections>Connexions Max</MaxConnections>
 <MaxConnections_text>Le nombre maximum de connexions, que le serveur ICAP est capable de prendre en charge.[br]
 Si elle est d&eacute;finie, alors l'en-t&ecirc;te Max-Connexions est ajout&eacute; dans la r&eacute;ponse OPTIONS.[br] Si z&eacute;ro, alors ne ne place pas cet en-t&ecirc;te</MaxConnections_text>
 <MaxEnginesPerChild>Moteurs Man par enfant</MaxEnginesPerChild>

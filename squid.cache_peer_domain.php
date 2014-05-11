@@ -93,7 +93,7 @@ $('#flexRT$t').flexigrid({
 		
 buttons : [
 		{name: '$add_a_parent_proxy', bclass: 'add', onpress : newWebserver$t},
-		{name: '$apply_params', bclass: 'Reload', onpress : SquidBuildNow$t},
+		{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},
 		],			
 	
 	searchitems : [
@@ -266,7 +266,7 @@ function domain_reverse(){
 
 function domain_delete(){
 	$q=new mysql();
-	$sql="SELECT DELETE FROM cache_peer_domain WHERE `md5`='{$_POST["delete"]}'";
+	$sql="DELETE FROM cache_peer_domain WHERE `md5`='{$_POST["delete"]}'";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 	if(!$q->ok){echo $q->mysql_error;return;}
 }

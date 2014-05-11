@@ -70,32 +70,14 @@ if(function_exists("apc_clear_cache")){
 		
 	}
 	
-	foreach (glob("/usr/share/artica-postfix/ressources/logs/web/cache/{$_SESSION["uid"]}.*") as $filename) {
+	foreach (glob("/usr/share/artica-postfix/ressources/logs/web/*.cache") as $filename) {
 		@unlink($filename);
 		
 	}
-	
+	$sock->DeleteCache();	
 	$sock->getFrameWork("system.php?process1=yes");
 	
-	$Memcache=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMemcached"));
-	if(!is_numeric($Memcache)){$Memcache=0;}
-	
-	if($Memcache==1){
-		if(class_exists("Memcache")){
-			$memcache = new Memcache();
-			$memcache->connect('unix:///var/run/memcached.sock', 0);
-			$ARRAY=unserialize($memcache->get('ARTICACACHEARRAY'));
-			$memcacheBytes=strlen(serialize($ARRAY));
-			$memcache->set('ARTICACACHEARRAY', serialize(array()), 0, 300); 
-			if($memcacheBytes>1024){
-				$memcacheBytes=$memcacheBytes/1024;
-				$memcacheBytes=FormatBytes($memcacheBytes/1024);
-			}else{
-				$memcacheBytes=$memcacheBytes." bytes";
-			}
-	
-		}
-	}
+
 	
 	
 	while (list ($num, $val) = each ($GLOBALS["langs"]) ){
@@ -108,10 +90,7 @@ if(function_exists("apc_clear_cache")){
 	
 	
 			$dataSess=strlen(serialize($_SESSION));
-			$bytes=$sock->SHARED_INFO_BYTES(3);
-			$text=$text."Processes memory Cache............: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";
-			$bytes=$sock->SHARED_INFO_BYTES(1);
-			$text=$text."DATA Cache........................: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";
+
 			
 			$text=$text."Session Cache.....................: ".str_replace("&nbsp;"," ",FormatBytes($dataSess/1024))."\n";
 			$text=$text."Session Page Cache................: $cc page(s)\n";
@@ -121,7 +100,7 @@ if(function_exists("apc_clear_cache")){
 			$text=$text."Language Cache....................: ".str_replace("&nbsp;"," ",FormatBytes($bytes/1024))."/". str_replace("&nbsp;"," ",FormatBytes($sock->semaphore_memory/1024))."\n";
 			$text=$text.implode("\n",$tt)."\n";
 			$text=$text."Console Cache.....................: ".str_replace("&nbsp;"," ",FormatBytes(REMOVE_CACHED()))."\n";
-			$text=$text."Mem Cached........................: ".str_replace("&nbsp;"," ",$memcacheBytes)."\n";
+			
 			
 			
 			
@@ -149,9 +128,11 @@ if(function_exists("apc_clear_cache")){
 			unset($_SESSION["translation"]);
 			unset($_SESSION["ICON_MYSQL_CACHE"]);
 			unset($_SESSION["SETTINGS_FILES"]);
-			unset($_SESSION["CATZ"]);
+			
 			unset($_SESSION[md5("statusPostfix_satus")]);
 			unset($_SESSION["EnableWebPageDebugging"]);
+			unset($_SESSION["quicklinks_proxy_action"]);
+			unset($_SESSION["webfilters_sqgroups_iptables"]);
 			@unlink("ressources/logs/postfix.status.html");
 			
 

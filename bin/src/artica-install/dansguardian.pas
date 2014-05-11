@@ -664,10 +664,9 @@ begin
  logs.DeleteFile(pidpath);
 
  if CicapEnabled=0 then begin
- SYS.MONIT_DELETE('APP_C_ICAP');
+
  exit;
  end;
- SYS.MONIT_CONFIG('APP_C_ICAP','/var/run/c-icap/c-icap.pid','cicap');
 
 end;
 //##############################################################################
@@ -796,11 +795,6 @@ end;
 function tdansguardian.DANSGUARDIAN_TAIL_STATUS():string;
 begin
 result:='';
-       SYS.MONIT_DELETE('APP_ARTICA_DANSGUARDIAN_TAIL');
-if not FileExists(BIN_PATH()) then begin
- SYS.MONIT_DELETE('APP_ARTICA_DANSGUARDIAN_TAIL');
- exit;
-end;
 end;
 //#####################################################################################
 procedure tdansguardian.DANSGUARDIAN_TAIL_STOP();

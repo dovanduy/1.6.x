@@ -3,7 +3,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.sockets.inc');
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 
@@ -28,11 +28,11 @@ $unix=new unix();
 $mklessfs=$unix->find_program("mklessfs");
 $lessfs=$unix->find_program("lessfs");
 if(!is_file($mklessfs)){
-	echo "Starting......: LessFS mklessfs no such file\n";
+	echo "Starting......: ".date("H:i:s")." LessFS mklessfs no such file\n";
 	die();	
 }
 if(!is_file($mklessfs)){
-	echo "Starting......: LessFS lessfs no such file\n";
+	echo "Starting......: ".date("H:i:s")." LessFS lessfs no such file\n";
 	die();	
 }
 $arrayConf=unserialize(base64_decode($sock->GET_INFO("lessfsConf")));
@@ -125,10 +125,10 @@ if(!is_dir("{$arrayConf["MAIN_PATH"]}/dta")){mkdir("{$arrayConf["MAIN_PATH"]}/dt
 if(!is_dir("{$arrayConf["MAIN_PATH"]}/mta")){mkdir("{$arrayConf["MAIN_PATH"]}/mta");}
 
 @file_put_contents("/etc/lessfs.cfg",@implode("\n",$conf));
-echo "Starting......: LessFS configuration done\n";
+echo "Starting......: ".date("H:i:s")." LessFS configuration done\n";
 
 if(!is_file("{$arrayConf["MAIN_PATH"]}/mta/fileblock.tch")){
-	echo "Starting......: LessFS Building filesystem\n";
+	echo "Starting......: ".date("H:i:s")." LessFS Building filesystem\n";
 	shell_exec("$mklessfs /etc/lessfs.cfg");
 }
 
@@ -145,11 +145,11 @@ $mklessfs=$unix->find_program("mklessfs");
 $lessfs=$unix->find_program("lessfs");	
 $umount=$unix->find_program("umount");
 if(!is_file($mklessfs)){
-	echo "Starting......: LessFS not installed\n";
+	echo "Starting......: ".date("H:i:s")." LessFS not installed\n";
 	die();	
 }
 if(!is_file($mklessfs)){
-	echo "Starting......: LessFS not installed\n";
+	echo "Starting......: ".date("H:i:s")." LessFS not installed\n";
 	die();	
 }
 $arrayConf=unserialize(base64_decode($sock->GET_INFO("lessfsConf")));
@@ -158,11 +158,11 @@ if(!is_array($arrayConf["FOLDERS"])){return;}
 $mounted=$unix->LESSFS_ARRAY();
 while (list ($folder, $none) = each ($arrayConf["FOLDERS"]) ){
 	if($mounted[$folder]){
-		echo "Starting......: LessFS umount $folder\n";
+		echo "Starting......: ".date("H:i:s")." LessFS umount $folder\n";
 		shell_exec("$umount $folder");
 		$mounted=$unix->LESSFS_ARRAY();
 		if($mounted[$folder]){
-			echo "Starting......: LessFS force umount $folder\n";
+			echo "Starting......: ".date("H:i:s")." LessFS force umount $folder\n";
 			shell_exec("$umount -l $folder");
 		}
 	}
@@ -182,11 +182,11 @@ $mklessfs=$unix->find_program("mklessfs");
 $lessfs=$unix->find_program("lessfs");	
 $arrayConf=unserialize(base64_decode($sock->GET_INFO("lessfsConf")));
 if(!is_file($mklessfs)){
-	echo "Starting......: LessFS not installed\n";
+	echo "Starting......: ".date("H:i:s")." LessFS not installed\n";
 	die();	
 }
 if(!is_file($mklessfs)){
-	echo "Starting......: LessFS not installed\n";
+	echo "Starting......: ".date("H:i:s")." LessFS not installed\n";
 	die();	
 }
 $arrayConf=unserialize(base64_decode($sock->GET_INFO("lessfsConf")));
@@ -197,13 +197,13 @@ while (list ($folder, $none) = each ($arrayConf["FOLDERS"]) ){
 	if($mounted[$folder]){continue;}
 	if(!is_dir($folder)){@mkdir($folder,0755);}
 	$cmd="$lessfs /etc/lessfs.cfg \"$folder\" -o negative_timeout=0,entry_timeout=0,attr_timeout=0,use_ino,readdir_ino,default_permissions,allow_other,big_writes,max_read=65536,max_write=65536";
-	echo "Starting......: LessFS mounting $folder\n";
+	echo "Starting......: ".date("H:i:s")." LessFS mounting $folder\n";
 	exec($cmd." 2>&1",$results);
-	if(count($results)>0){while (list ($num, $line) = each ($results) ){echo "Starting......: LessFS $line\n";}}
+	if(count($results)>0){while (list ($num, $line) = each ($results) ){echo "Starting......: ".date("H:i:s")." LessFS $line\n";}}
 	$mounted=$unix->LESSFS_ARRAY();
 	if(!$mounted[$folder]){
-		echo "Starting......: LessFS mounting $folder failed\n";
-		echo "Starting......: LessFS try yourself $cmd\n";
+		echo "Starting......: ".date("H:i:s")." LessFS mounting $folder failed\n";
+		echo "Starting......: ".date("H:i:s")." LessFS try yourself $cmd\n";
 	}
 	
 	for($i=0;$i<3;$i++){
@@ -211,7 +211,7 @@ while (list ($folder, $none) = each ($arrayConf["FOLDERS"]) ){
 			sleep(1);
 			continue;
 		}else{
-			echo "Starting......: LessFS settings $folder/.lessfs/replication/enabled ({$arrayConf["REPLICATION"]}) done\n";
+			echo "Starting......: ".date("H:i:s")." LessFS settings $folder/.lessfs/replication/enabled ({$arrayConf["REPLICATION"]}) done\n";
 			@file_put_contents("$folder/.lessfs/replication/enabled",$arrayConf["REPLICATION"]);
 			break;
 		}

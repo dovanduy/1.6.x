@@ -20,7 +20,7 @@
 	if(isset($_GET["link-user-js"])){link_user_js();exit;}
 	if(isset($_GET["link-user-popup"])){link_user_popup();exit;}
 	if(isset($_POST["link-user-save"])){link_user_save();exit;}
-	
+	if(isset($_GET["tabs"])){tabs();exit;}
 	
 js();
 function link_user_js(){
@@ -43,9 +43,26 @@ function js(){
 		if($ligne["tcount"]>0){$_GET["filterby"]="uid";}else{$_GET["filterby"]="hostname";}
 	}
 	
-	$html="YahooWin4('592.6','$page?popup=yes&filterby={$_GET["filterby"]}','$title');";
+	$html="YahooWin4('1050','$page?tabs=yes','$title');";
 	echo $html;
 }
+
+
+function tabs(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["MAC"]="{MAC}";
+	$array["ipaddr"]="{ipaddr}";
+	$array["hostname"]="{hostname}";
+	$array["uid"]="{uid}";
+	$fontsize="font-size:16px";
+	while (list ($index, $ligne) = each ($array) ){
+		$html[]="<li><a href=\"$page?popup=yes&filterby=$index\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+	}
+	echo build_artica_tabs($html,'UsrAuthDBTabs');
+	
+}
+
 
 function node_infos_js(){
 	$page=CurrentPageName();
@@ -158,7 +175,7 @@ function node_infos_tabs(){
 	}		
 
 	if($num=="node-infos-RULES"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}\"><span>$ligne</span></a></li>\n");
+			//$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}			
 		
@@ -306,7 +323,8 @@ function popup(){
 	$new_category=$tpl->_ENGINE_parse_body("{new_category}");
 	$TB_WIDTH=570;
 	$t=time();
-	
+	if($_GET["filterby"]<>null){$title="{{$_GET["filterby"]}}";}
+	$title=$tpl->javascript_parse_text($title);
 	$html="
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
 <script>
@@ -316,7 +334,8 @@ $('#$t').flexigrid({
 	url: '$page?list=yes&filterby={$_GET["filterby"]}&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$ComputerMacAddress', name : '{$_GET["filterby"]}', width : 538, sortable : true, align: 'left'},
+		{display: '$ComputerMacAddress', name : '{$_GET["filterby"]}', width : 306, sortable : true, align: 'left'},
+		{display: 'uid', name : '$member', width : 215, sortable : false, align: 'left'},
 	],
 	searchitems : [
 		{display: '$ComputerMacAddress', name : '{$_GET["filterby"]}'},
@@ -325,11 +344,11 @@ $('#$t').flexigrid({
 	sortname: '{$_GET["filterby"]}',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '$title',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	
@@ -407,19 +426,31 @@ function nodes_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){json_error_show("$q->mysql_error");}
-	
+	$ipClass=new IP();
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$js=null;
+		$Link=null;
+		$TextDeco="none";
 		$value=utf8_encode($ligne[$filterby]);
 		$md5=md5($value);
 		$valueEnc=urlencode($ligne[$filterby]);
+		$member=$q->UID_FROM_ALL($ligne[$filterby]);
 		
+		if($filterby=="MAC"){
+			if(!$ipClass->IsvalidMAC($ligne[$filterby])){continue;}
+			$js="Loadjs('squid.nodes.php?node-infos-js=yes&MAC={$ligne[$filterby]}',true);";
+		}
 		
-		$js="Loadjs('squid.members.zoom.php?field=$filterby&value=$valueEnc')";
+		if($js<>null){
+			$Link="OnClick=\"javascript:$js\"";
+			$TextDeco="underline";
+		}
 		
 		$data['rows'][] = array(
 			'id' => $md5,
 			'cell' => array(
-				"<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;text-decoration:underline'>$value</a></span>",
+				"<a href=\"javascript:blur();\" $Link style='font-size:16px;text-decoration:$TextDeco'>$value</a></span>",
+				"<a href=\"javascript:blur();\" $Link style='font-size:16px;text-decoration:$TextDeco'>$member</a></span>",
 			
 			)
 		);

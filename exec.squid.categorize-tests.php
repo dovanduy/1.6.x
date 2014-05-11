@@ -13,28 +13,29 @@
 	include_once(dirname(__FILE__) . "/ressources/class.squid.categorize.generic.inc");
 	
 	if(is_array($argv)){
-	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
-	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
-	if(preg_match("#--reinstall#",implode(" ",$argv))){$GLOBALS["REINSTALL"]=true;}
-	if(preg_match("#--no-httpd-conf#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_CONF"]=true;}
-	if(preg_match("#--noreload#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_RELOAD"]=true;}
-	if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-}
+		if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
+		if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
+		if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+		if(preg_match("#--reinstall#",implode(" ",$argv))){$GLOBALS["REINSTALL"]=true;}
+		if(preg_match("#--no-httpd-conf#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_CONF"]=true;}
+		if(preg_match("#--noreload#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_RELOAD"]=true;}
+		if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+	}
 
-if($argv[1]=="--file-import"){file_import($argv[2]);die();}
-if($argv[1]=="--web-import"){web_import();die();}
-if($argv[1]=="--file-export"){file_export();die();}
-if($argv[1]=="--dbtrans"){dansguardian_community_nocat();die();}
-if($argv[1]=="--import-artica-cloud"){import_categories_cloud();die();}
-if($argv[1]=="--analyze"){GetPageInfos($argv[2]);die();}
-if($argv[1]=="--recat"){bright($argv[2]);die();}
+	if($argv[1]=="--file-import"){file_import($argv[2]);die();}
+	if($argv[1]=="--web-import"){web_import();die();}
+	if($argv[1]=="--file-export"){file_export();die();}
+	if($argv[1]=="--dbtrans"){dansguardian_community_nocat();die();}
+	if($argv[1]=="--import-artica-cloud"){import_categories_cloud();die();}
+	if($argv[1]=="--analyze"){GetPageInfos($argv[2]);die();}
+	if($argv[1]=="--recat"){bright($argv[2]);die();}
 
 
 	$unix=new unix();
 	$mef=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
 	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,$mef)){echo "Starting......: Process Already exist pid $oldpid line:".__LINE__."\n";die();}	
+	if($unix->process_exists($oldpid,$mef)){echo "Starting......: ".date("H:i:s")." Process Already exist pid $oldpid line:".__LINE__."\n";die();}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	
@@ -45,12 +46,12 @@ if($argv[1]=="--recat"){bright($argv[2]);die();}
 	
 	$sql="DELETE FROM webtests WHERE sitename='.'";
 	$results=$q->QUERY_SQL("$sql");	
-	
-	$sql="SELECT sitename FROM webtests WHERE checked=0 ORDER BY sitename";
+	if($GLOBALS["OUTPUT"]){echo "SELECT sitename FROM webtests WHERE checked=0 ORDER BY sitename LIMIT 0,5000\n";}
+	$sql="SELECT sitename FROM webtests WHERE checked=0 ORDER BY sitename LIMIT 0,5000";
 	$results=$q->QUERY_SQL("$sql");
-	
+	if($GLOBALS["OUTPUT"]){echo mysql_num_rows($results)." items\n";}
 	writelogs(mysql_num_rows($results)." items for $sql",__FUNCTION__,__FILE__,__LINE__);
-	
+	$IpClass=new IP();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$forcedelete=false;
 		$www=$ligne["sitename"];
@@ -58,11 +59,17 @@ if($argv[1]=="--recat"){bright($argv[2]);die();}
 		if(strpos($www, " ")>0){$forcedelete=true;}
 		if(strpos($www, ":")>0){$forcedelete=true;}
 		if(strpos($www, "%")>0){$forcedelete=true;}
+		if(strpos(" $www", "*")>0){$forcedelete=true;}
 		
-		if($forcedelete){$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");continue;}
+		if($forcedelete){
+			if($GLOBALS["OUTPUT"]){echo "$www -> DELETE\n";}
+			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");
+			continue;
+		}
+		
 		$articacats=null;
-		
 		$ligne["sitename"]=trim(strtolower($ligne["sitename"]));
+		
 		if(preg_match("#^www\.(.+)#", $www,$re)){
 			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='$www'");
 			$www=$re[1];
@@ -70,44 +77,54 @@ if($argv[1]=="--recat"){bright($argv[2]);die();}
 			$q->QUERY_SQL("INSERT IGNORE INTO webtests (sitename) ('{$re[1]}')");
 		}
 		$delete=false;
-		writelogs("CHECK: {$ligne["sitename"]}",__FUNCTION__,__FILE__,__LINE__);
 		
+		if($GLOBALS["OUTPUT"]){echo "$www -> SCANNING\n";}
+		
+		if($IpClass->isIPAddress($ligne["sitename"])){
+			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
+			$ligne["sitename"]=gethostbyaddr($ligne["sitename"]);
+		}
+		
+		$familysite=$q->GetFamilySites($ligne["sitename"]);
+		if($familysite==$ligne["sitename"]){$familysite=null;}
+		if($GLOBALS["OUTPUT"]){echo "$www -> STAMP\n";}
 		$q->QUERY_SQL("UPDATE webtests SET checked=1 WHERE sitename='{$ligne["sitename"]}'");
 		
-		
-		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT category FROM visited_sites WHERE sitename='{$ligne["sitename"]}'"));
-		if($ligne2["category"]<>null){
-			writelogs("SUCCESS: {$ligne["sitename"]}: already exists in visited_sites table",__FUNCTION__,__FILE__,__LINE__);
-			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
-			continue;
-		}
-		
+		if($GLOBALS["OUTPUT"]){echo "$www -> GET_CATEGORIES\n";}
 		$articacats=trim($q->GET_CATEGORIES($ligne["sitename"],true,false));
+		if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} -> \"$articacats\"\n";}
+		
+		
 		if($articacats<>null){
-			writelogs("SUCCESS: {$ligne["sitename"]} `$articacats` parse next",__FUNCTION__,__FILE__,__LINE__);
-			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
-			$q->ADD_CATEGORYZED_WEBSITE($ligne["sitename"], $articacats);
+			$q->categorize($ligne["sitename"], $articacats);
 			continue;
 		}	
-
-		if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $ligne["sitename"])){
-			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
-			continue;
+		
+		if($familysite<>null){
+			$articacats=trim($q->GET_CATEGORIES($familysite,true,false));
+			if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} $familysite -> $articacats\n";}
+			if($articacats<>null){
+				$q->categorize($ligne["sitename"], $articacats);
+				continue;
+			}
 		}
+
+
+		
 		
 		$ipaddr=gethostbyname($ligne["sitename"]);
-		if($ipaddr==$ligne["sitename"]){
+		if(!$IpClass->isIPAddress($ipaddr)){
 			$q->categorize_reaffected($ligne["sitename"]);
+			if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} -> Reaffected\n";}
 			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
 			continue;			
 		}		
 		
-		
-		writelogs("FAILED: {$ligne["sitename"]} No category",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} No category\n";}
 		$already[$ligne["sitename"]]=true;
 		
 		$familysite=$q->GetFamilySites($ligne["sitename"]);
-		$GetPageInfos=addslashes(GetPageInfos($sitename));
+		$GetPageInfos=addslashes(GetPageInfos($ligne["sitename"]));
 		$sql="UPDATE webtests SET ipaddr='$ipaddr',family='$familysite' WHERE sitename='{$ligne["sitename"]}'";
 		$q->QUERY_SQL($sql);
 		
@@ -281,7 +298,7 @@ function file_export(){
 }
 
 function web_import(){
-	$curl=new ccurl("http://www.artica.fr/shalla-orders.php");
+	$curl=new ccurl("http://www.articatech.net/shalla-orders.php");
 	$curl->parms["COMMUNITY_POST_CATEGORIZED"]=true;
 	if(!$curl->get()){echo $curl->error."\n";return;}
 	if(!preg_match("#<DATAS>(.*)</DATAS>#is", $curl->data,$rz)){echo "No preg_match\n\n";return;}
@@ -338,9 +355,9 @@ $sum=$count2-$count1;
 }
 
 function import_categories_cloud(){
-	$curl=new ccurl("http://www.artica.fr/categories.manage.php?ExportCLNoCats=yes");
+	$curl=new ccurl("http://www.articatech.net/categories.manage.php?ExportCLNoCats=yes");
 	$curl->NoHTTP_POST=true;
-	if(!$curl->get()){echo "http://www.artica.fr/categories.manage.php -> error: \n".$curl->error."\n";return;}
+	if(!$curl->get()){echo "http://www.articatech.net/categories.manage.php -> error: \n".$curl->error."\n";return;}
 	if(!preg_match("#<CATZ>(.*)</CATZ>#is", $curl->data,$rz)){echo "No preg_match\n$curl->data\n";return;}
 	$dd=$rz[1];
 	echo (strlen($dd)/1024)." Ko lenth\n";

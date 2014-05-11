@@ -48,11 +48,11 @@ class smtpd_data_restrictions{
 	
 	public function compile(){
 		$sql="SELECT * FROM smtpd_data_restrictions WHERE hostname='$this->hostname' and enabled=1 ORDER BY zorder";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> compile() \"$sql\"\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> compile() \"$sql\"\n";}
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){if($GLOBALS["VERBOSE"]){
-			echo "Starting......: Postfix -> smtpd_data_restrictions() $q->mysql_error\n";}
+			echo "Starting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions() $q->mysql_error\n";}
 			$this->error=true;
 			return;
 		}
@@ -64,20 +64,20 @@ class smtpd_data_restrictions{
 			}
 		}
 		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> compile() \"". mysql_num_rows($results)."\" entries\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> compile() \"". mysql_num_rows($results)."\" entries\n";}
 		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			
 			$arrayVal=unserialize(base64_decode($ligne["restrictions_datas"]));
 			
 			if(!is_array($GLOBALS["SMTP_DATA_RESTRICTIONS"][$ligne["restriction"]])){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> smtpd_data_restrictions() \"{$ligne["restriction"]}\"\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions() \"{$ligne["restriction"]}\"\n";}
 				$this->restriction_array[]=$ligne["restriction"];
 				continue;
 			}
 		
 			if($GLOBALS["SMTP_DATA_RESTRICTIONS"][$ligne["restriction"]]["TYPE"]=="VALUE"){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> smtpd_data_restrictions() \"{$ligne["restriction"]}\"\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions() \"{$ligne["restriction"]}\"\n";}
 				$VAL=$arrayVal["VALUE"];
 				if(trim($VAL)==null){continue;}
 				$this->restriction_array[]=$ligne["restriction"]." ".$VAL;
@@ -85,7 +85,7 @@ class smtpd_data_restrictions{
 			}
 			
 			if($GLOBALS["SMTP_DATA_RESTRICTIONS"][$ligne["restriction"]]["TYPE"]=="TABLE"){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> smtpd_data_restrictions() \"{$ligne["restriction"]}\"\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions() \"{$ligne["restriction"]}\"\n";}
 				$this->restriction_array[]=$ligne["restriction"]." hash:$this->config_dir/{$ligne["restriction"]}_{$ligne["ID"]}";
 				$this->CompileHASHTable($arrayVal,"$this->config_dir/{$ligne["restriction"]}_{$ligne["ID"]}");
 				continue;
@@ -97,7 +97,7 @@ class smtpd_data_restrictions{
 		
 		if(count($this->restriction_array)>0){
 			$this->restriction_final=@implode(", ", $this->restriction_array);
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Postfix -> smtpd_data_restrictions() \"$this->restriction_final\"\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Postfix -> smtpd_data_restrictions() \"$this->restriction_final\"\n";}
 		}
 		
 			

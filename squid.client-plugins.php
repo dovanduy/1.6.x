@@ -35,9 +35,7 @@ function popup(){
 	$sock=new sockets();
 	$SquidClientParams=unserialize(base64_decode($sock->GET_INFO("SquidClientParams")));
 	$warn_squid_restart=$tpl->javascript_parse_text("{warn_squid_restart}");
-	
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}	
+
 	
 	
 	$t=time();
@@ -49,11 +47,10 @@ function popup(){
 		$maxMem=$currentMem-500;
 	}
 	
-	if($DisableSquidSNMPMode==0){
 		$users=new usersMenus();
 		$CPUS=$users->CPU_NUMBER;
 		$CPUS_TEXT=" (X $CPUS)";
-	}
+
 		
 	if(!is_numeric($SquidClientParams["auth_param_ntlm_children"])){$SquidClientParams["auth_param_ntlm_children"]=20;}
 	if(!is_numeric($SquidClientParams["auth_param_ntlm_startup"])){$SquidClientParams["auth_param_ntlm_startup"]=0;}
@@ -81,7 +78,7 @@ function popup(){
 	<div id='$t-div'></div>
 	<div class=explain style='font-size:14px;'>{SquidClientParams_text}</div>
 	<div style='font-size:16px;font-weight:bold;text-align:center;color:#E71010' id='$t-multi'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	
 	<tr><td colspan=2 style='font-size:18px'>{authentication_modules}$CPUS_TEXT</td></tr>
@@ -147,7 +144,7 @@ function popup(){
 	<tr>	
 	</table>
 <script>
-	var x_SaveBooster$t=function(obj){
+	var xSave$t=function(obj){
      	var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);}
       	YahooWin3Hide();
@@ -172,7 +169,7 @@ function popup(){
 			XHR.appendData('external_acl_startup',document.getElementById('external_acl_startup-$t').value);
 			XHR.appendData('external_acl_idle',document.getElementById('external_acl_idle-$t').value);
 						
-			AnimateDiv('$t-div');
+			
 			XHR.sendAndLoad('$page', 'POST',xSave$t);		
 		}
 	

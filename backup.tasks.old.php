@@ -792,8 +792,8 @@ $html="<table style='width:99%'>
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_events");	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$img="status_ok.gif";
-		if($ligne["success"]==0){$img="status_critical.gif";}
+		$img="status_ok.png";
+		if($ligne["success"]==0){$img="status_critical.png";}
 		$array=$backup->ParseProto($ligne["remote_ressource"]);
 $html=$html.
 		"
@@ -933,7 +933,7 @@ $q=new mysql();
 		
 		switch ($status) {
 			case "INFO":$img="info-18.png";break;
-			case "ERROR":$img="status_warning.gif";break;
+			case "ERROR":$img="status_warning.png";break;
 			default:
 				;
 			break;

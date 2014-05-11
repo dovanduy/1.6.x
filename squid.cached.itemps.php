@@ -16,8 +16,34 @@ if(!$usersmenus->AsSquidAdministrator){
 
 if(isset($_POST["DELETE"])){DELETE_FROM_CACHE();exit;}
 if(isset($_GET["list"])){WEBSITES_SEARCH();exit;}
+if(isset($_GET["DeleteWebsiteZCached-js"])){DeleteWebsiteZCached_js();exit;}
 
 page();
+
+function DeleteWebsiteZCached_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$time=time();
+$html="
+var xDeleteWebsiteZCached$time= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);return;}
+	$('#row{$_GET["ID"]}').remove();			
+}	
+
+function DeleteWebsiteZCached$time(){
+	var XHR = new XHRConnection();
+	XHR.appendData('DELETE','{$_GET["sitename"]}');
+	XHR.appendData('hostid','{$_GET["hostid"]}');
+	XHR.sendAndLoad('$page', 'POST',xDeleteWebsiteZCached$time);
+}			
+DeleteWebsiteZCached$time();		
+";
+	
+	echo $html;
+	
+}
+
 
 function page(){
 	$page=CurrentPageName();
@@ -30,9 +56,8 @@ function page(){
 	
 	$t=time();
 	$html="
-	<div style='margin:-10px;margin-left:-15px'>
+	
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
-	</div>
 	
 <script>
 var websiteMem='';
@@ -57,26 +82,14 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 855,
+	width: '99%',
 	height: 420,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
 });
-	var DeleteWebsiteZCached$t= function (obj) {
-			var results=obj.responseText;
-			if(results.length>0){alert(results);return;}
-			$('#row'+websiteMem).remove();			
-				
-		}	
 
-		function DeleteWebsiteZCached$t(domain,id){
-			websiteMem=id;
-			var XHR = new XHRConnection();
-			XHR.appendData('DELETE',domain);
-			XHR.sendAndLoad('$page', 'POST',x_DeleteWebsiteZCached$t);
-		}
 </script>
 	
 	
@@ -97,23 +110,12 @@ function WEBSITES_SEARCH(){
 	$page=1;
 	$FORCE_FILTER=null;
 	
-	if($q->COUNT_ROWS($table,$database)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
-	}
+	if($q->COUNT_ROWS($table,$database)==0){json_error_show("No data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		$total = $ligne["TCOUNT"];
@@ -141,25 +143,26 @@ function WEBSITES_SEARCH(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){ json_error_show(0,$q->mysql_error); }	
 	
 	/*`sitename` varchar(255) NOT NULL,
 			`familysite` varchar(255) NOT NULL,
-			`size` BIGINT(100),`items` BIGINT(100),
+			`size` BIGINT UNSIGNED,`items` BIGINT UNSIGNED,
 			 PRIMARY KEY (`sitename`),
 			 KEY `familysite` (`familysite`),
 			 KEY `size` (`size`),
 			 KEY `items` (`items`)
 	*/
+	if(mysql_num_rows($results)==0){json_error_show(0,"no data"); }	
+	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=md5($ligne["sitename"]);
-		$delete=imgtootltip("delete-24.png","{delete}","DeleteWebsiteZCached{$_GET["t"]}('{$ligne["sitename"]}','$ID')");
+		$siteenc=$ligne["sitename"];
+		
+		
+		$delete=imgtootltip("delete-24.png","{delete}",
+				"Loadjs('$MyPage?DeleteWebsiteZCached-js=yes&t={$_GET["t"]}&sitename=$siteenc&ID=$ID&hostid={$_GET["hostid"]}')");
 		$ligne["size"]=FormatBytes($ligne["size"]/1024);
 	$data['rows'][] = array(
 		'id' => $ID,
@@ -178,7 +181,8 @@ echo json_encode($data);
 
 function DELETE_FROM_CACHE(){
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?purge-site={$_POST["DELETE"]}");
+	$delete_enc=urlencode($_POST["DELETE"]);
+	$sock->getFrameWork("squid.php?purge-site=$delete_enc");
 	$sql="DELETE FROM cacheitems_{$_POST["hostid"]} WHERE sitename='{$_POST["DELETE"]}'";
 	$q=new mysql_blackbox();
 	$q->QUERY_SQL($sql);

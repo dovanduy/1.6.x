@@ -50,7 +50,7 @@ function visited_sites(){
 	$pidfile="/etc/artica-postfix/pids/squid.visited_sites_rescan.pid";
 	$oldpid=@file_get_contents($pidfile);
 	if($oldpid<100){$oldpid=null;}
-	
+	$t=time();
 	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
@@ -60,14 +60,21 @@ function visited_sites(){
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	
-	
+	stats_admin_events(2, "Starting table visited_sites", "",__FILE__,__LINE__);
 	progress("Starting table visited_sites",5);
 	$q=new mysql_squid_builder();
 	$sql="SELECT sitename FROM visited_sites WHERE LENGTH(category)=0";
 	$results=$q->QUERY_SQL($sql);
 	$num_rows = mysql_num_rows($results);
+	$took=$unix->distanceOfTimeInWords($t,time());
+	stats_admin_events(2, "Query done $num_rows websites to scan", "took:$took",__FILE__,__LINE__);
+	
+	
 	if($num_rows==0){progress(null,100);return;}
 	progress("Query done $num_rows websites to scan",10);
+	
+
+	
 	$c=0;
 		$t=0;
 		$d=0;
@@ -128,13 +135,16 @@ function visited_sites(){
 		}
 		
 		progress($sitename,100);
+		
+		$took=$unix->distanceOfTimeInWords($t,time());
+		
+		
+		
 		if($d>0){
-			ufdbguard_admin_events("$d New categorized websites...", __FUNCTION__, __FILE__, __LINE__, "stats");
+			stats_admin_events(2, "$d New categorized websites...", "took:$took",__FILE__,__LINE__);
 		}
 		
-		$php5=$unix->LOCATE_PHP5_BIN();
-		$nohup=$unix->find_program("nohup");
-		shell_exec("$nohup $php5 ".dirname(__FILE__)."/exec.squid.stats.php --visited-sites --schedule-id={$GLOBALS["SCHEDULE_ID"]}");
+		
 		
 }
 

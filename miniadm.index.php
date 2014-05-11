@@ -1,5 +1,6 @@
 <?php
 session_start();
+setcookie("MINIADM", "YES", time()+1000);
 $_SESSION["MINIADM"]=true;
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
@@ -100,6 +101,7 @@ function ChangeHTMLTitleEndUsersPerform(){
 function left_menu(){
 	//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	$miniadm=new miniadm();
+	writelogs("->leftmenu()",__FUNCTION__,__FILE__,__LINE__);
 	echo $miniadm->leftmenu();
 }
 
@@ -187,7 +189,7 @@ function aero(){
 	$t=time();
 	header("content-type: application/x-javascript");
 	echo "
-	Loadjs('miniadm.about.php?graph1=yes&time=hour&container=herounit');
+	Loadjs('miniadm.about.php?graph1=yes&time=hour&container=herounit',true);
 	document.getElementById('herounit').className ='';		
 	";
 	

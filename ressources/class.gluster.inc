@@ -86,8 +86,8 @@ class gluster{
 		$count=0;
 		while (list ($folder, $array) = each ($directories)){			
 			$count++;
-			echo "Starting......: Gluster folder $folder\n";
-			echo "Starting......: Gluster replicator configuration file /etc/artica-cluster/dispatcher-$count.vol\n";
+			echo "Starting......: ".date("H:i:s")." Gluster folder $folder\n";
+			echo "Starting......: ".date("H:i:s")." Gluster replicator configuration file /etc/artica-cluster/dispatcher-$count.vol\n";
 			$this->BuildDispatcherClient($folder,$array,"dispatcher-$count.vol");
 		}
 		

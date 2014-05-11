@@ -17,13 +17,13 @@ function build(){
 	$suricataEnabled=$sock->GET_INFO("suricataEnabled");
 	$suricata_bin=$unix->find_program("suricata");
 	if(!is_file($suricata_bin)){
-		echo "Starting......: Suricata is not installed...\n";
+		echo "Starting......: ".date("H:i:s")." Suricata is not installed...\n";
 		return;
 	}
 	
 	$oinkmaster=$unix->find_program("oinkmaster");
 	if(!is_file($oinkmaster)){
-		echo "Starting......: oinkmaster is not installed...\n";
+		echo "Starting......: ".date("H:i:s")." oinkmaster is not installed...\n";
 		return;	
 	}
 	
@@ -40,7 +40,7 @@ $f[]="skipfile local.rules";
 $f[]="skipfile deleted.rules";
 $f[]="skipfile snort.conf";
 @file_put_contents("/etc/oinkmaster.conf", @implode("\n", $f));
-echo "Starting......: Suricata settings oinkmaster.conf done\n";
+echo "Starting......: ".date("H:i:s")." Suricata settings oinkmaster.conf done\n";
 
 	$files=$unix->DirFiles("/etc/suricata/rules","\.rules$");
 	if(count($files)==0){
@@ -48,7 +48,7 @@ echo "Starting......: Suricata settings oinkmaster.conf done\n";
 	}
 
 	@file_put_contents("/etc/suricata/suricata-artica.yaml", build_yaml());
-	echo "Starting......: Suricata settings suricata-artica.yaml done\n";
+	echo "Starting......: ".date("H:i:s")." Suricata settings suricata-artica.yaml done\n";
 }
 
 

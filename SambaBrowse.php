@@ -40,9 +40,9 @@
 	header("content-type: application/x-javascript");
 $html="
 var x_DeleteHiddenDisk= function (obj) {
-	var results=obj.responseText;
-	if(results.length>0){alert(results);}
-	Loadjs('SambaBrowse.php');
+		var results=obj.responseText;
+		if(results.length>0){alert(results);}
+		Loadjs('SambaBrowse.php');
 	}	
 
 	
@@ -54,13 +54,13 @@ var x_DeleteHiddenDisk= function (obj) {
 
 	function Browse(){
 		$('head').append( $('<link rel=\"stylesheet\" type=\"text/css\" />').attr('href', '/js/jqueryFileTree.css') );
-		LoadWinORG(776,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}','$title');
+		LoadWinORG(840,'$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}','$title');
 
 	}
 	
 	function Browse2(){
 		$('head').append( $('<link rel=\"stylesheet\" type=\"text/css\" />').attr('href', '/js/jqueryFileTree.css') );
-		$('#BodyContent').load('$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}');
+		$('#BodyContent').load('$page?main_disks_discover=yes&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}');
 	}	
 $start
 ";
@@ -98,7 +98,8 @@ function main_disks_discover(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$dd=new harddrive();
-	
+	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
+	if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
 	$arrayDisks=$dd->getDiskList();
 	$html="<tr>";
 	if(is_array($arrayDisks)){
@@ -108,7 +109,7 @@ function main_disks_discover(){
 					
 					$path=$ARRAY_FINAL["MOUNTED"];
 					if($path=="/boot"){continue;}
-					if($path=="/opt/articatech"){continue;}
+					if($path=="$ArticaDBPath"){continue;}
 					if($path=="/usr/share/artica-postfix"){continue;}
 					
 					if(isset($already[$path])){continue;}
@@ -118,7 +119,7 @@ function main_disks_discover(){
 					$label=$ARRAY_FINAL["LABEL"];
 					if($size==null){continue;}
 					$pourc=$ARRAY_FINAL["POURC"];
-					$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}')";
+					$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}')";
 					$disk_name=$disk;
 					if(preg_match("#mapper\/.+?\-(.+)#",$disk_name,$re)){
 						$disk_name=$re[1];
@@ -154,7 +155,7 @@ function main_disks_discover(){
 	
 	if(is_array($added_disks_array)){
 		while (list ($disk, $path) = each ($added_disks_array) ){
-			$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}')";
+			$js="Loadjs('SambaBrowse.php?jdisk=$disk&mounted=$path&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={&functionAfter={$_GET["functionAfter"]}}')";
 			$delete=imgtootltip("ed_delete.gif","{delete} $disk...","DeleteHiddenDisk('$disk')");
 			$FINALDISKS[]=Paragraphe32("noacco:$disk","$disk<br>",$js,"48-hd.png",220);
 	
@@ -322,13 +323,13 @@ function jdisk(){
 	}
 	
 	$js_add=file_get_contents("js/samba.js");
-	
+	if($_GET["functionAfter"]<>null){$functionAfter="{$_GET["functionAfter"]}()";}
 	$html="
 
 function initTree(){
 			$('#folderTree').fileTree({ 
 					root: '$mounted', 
-					script: '$page?mounted=$mounted&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}', 
+					script: '$page?mounted=$mounted&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}', 
 					folderEvent: 'click', 
 					expandSpeed: 750, 
 					collapseSpeed: 750, 
@@ -352,7 +353,7 @@ var x_TreeFolders= function (obj) {
 function TreeClick(branch){
      var branch_id=branch;
      if(document.getElementById('TreeRightInfos')){
-        LoadAjax('TreeRightInfos','$page?TreeRightInfos='+branch_id+'&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}');
+        LoadAjax('TreeRightInfos','$page?TreeRightInfos='+branch_id+'&t={$_GET["t"]}&homeDirectory={$_GET["homeDirectory"]}&no-shares={$_GET["no-shares"]}&field={$_GET["field"]}&protocol={$_GET["protocol"]}&no-hidden={$_GET["no-hidden"]}&functionAfter={$_GET["functionAfter"]}');
      }else{
     	alert('Unable to stat document.TreeRightInfos'); 
 	}
@@ -464,7 +465,7 @@ function UnShare(head){
  	if(document.getElementById('homeDirectory')){
  		document.getElementById('homeDirectory').value=path;
  		WinORGHide();
-	
+		$functionAfter;
  	}
  
  }
@@ -474,6 +475,7 @@ function UnShare(head){
  		
  		document.getElementById(field).value=path;
  		WinORGHide();
+ 		$functionAfter;
  	}else{
  		alert(field+':missing');
  	}
@@ -488,6 +490,7 @@ function UnShare(head){
 	if(!WinORGOpen()){LoadWinORG(650,'$page?null=yes');}
 	var XHR = new XHRConnection();
 	XHR.appendData('browsedisk_start','yes');
+	XHR.appendData('functionAfter','{$_GET["functionAfter"]}');
 	XHR.sendAndLoad('$page', 'GET',x_TreeFolders); 
 
 	
@@ -503,7 +506,7 @@ function browsedisk_start(){
 	<tr>
 	<td valign='top'>
 		<div style='overflow:auto;height:500px;width:100%'>
-			<div id='folderTree' class=form style='width:95%' class=form></div>
+			<div id='folderTree' class=form style='width:98%' class=form></div>
 		</div>
 	</td>
 	<td valign='top'>

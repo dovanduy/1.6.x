@@ -381,6 +381,8 @@ function browse_expressions_list(){
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	
+	if(mysql_num_rows($result)==0){json_error_show(1,"No data");}
+	
 	$data = array();
 	$data['page'] = $page;
 	$data['total'] = $total;

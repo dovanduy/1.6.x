@@ -14,6 +14,13 @@
 	include_once("$dirname/ressources/class.artica.graphs.inc");
 	include_once("$dirname/ressources/class.mysql.syslogs.inc");
 	
+	if($GLOBALS["AS_ROOT"]){
+		include_once("/usr/share/artica-postfix/framework/class.unix.inc");
+		$unix=new unix();
+		if(!$unix->is_socket("/var/run/mysqld/articadb.sock")){die();}
+	}
+	
+	
 	if(!$GLOBALS["AS_ROOT"]){
 		$users=new usersMenus();
 		if(!$users->AsWebStatisticsAdministrator){die("Permission denied");}
@@ -408,7 +415,9 @@ function general_status(){
 
 function squid_status_stats(){
 	
+
 	
+	$off="<script>UnlockPage();</script>";
 	
 	if(!$GLOBALS["AS_ROOT"]){
 		$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
@@ -416,7 +425,7 @@ function squid_status_stats(){
 			$tpl=new templates();
 			$cacheContent=@file_get_contents($cachefile);
 			if(strlen($cacheContent)>20){
-				echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile));
+				echo $tpl->_ENGINE_parse_body(@file_get_contents($cachefile)).$off;
 				return;
 				}
 			}
@@ -526,7 +535,7 @@ function squid_status_stats(){
 			$nodes="
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'></td>
-				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php')\"><b><span style='font-size:12px'>$Computers</span></b><span style='font-size:12px'> {computers}</td>
+				<td valign='top' $mouse style='font-size:12px;text-decoration:underline' OnClick=\"javascript:Loadjs('squid.nodes.php',true)\"><b><span style='font-size:12px'>$Computers</span></b><span style='font-size:12px'> {computers}</td>
 			</tr>";
 		
 		}else{
@@ -717,7 +726,7 @@ $html="
 	$addwebsites
 	</tbody>
 	</table>
-";
+$off";
 if($GLOBALS["VERBOSE"]){echo __LINE__." tpl->_ENGINE_parse_body<br>\n";}
 $html=$tpl->_ENGINE_parse_body($html);
 if(!$GLOBALS["AS_ROOT"]){

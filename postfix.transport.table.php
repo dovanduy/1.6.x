@@ -35,12 +35,11 @@ function main_tabs(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	$sock=new sockets();
+	$hostname=$_GET["hostname"];
 	if($hostname==null){$hostname="master";}
 	$page=CurrentPageName();
-	$height="850px";
-	$fontsize="font-size:13px;";
-	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
-	$array["organizations"]='{organizations}';
+	$fontsize="font-size:16px;";
+	$array["organizations"]='{domains}';
 	$array["relay-sender-table"]='{senders}';
 	$array["smtp-dest-table"]='{recipients}';
 	$array["mailboxes"]='{mailboxes}';
@@ -52,46 +51,40 @@ function main_tabs(){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="relay-sender-table"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.table.php?relay-sender-table=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li>
+						<a href=\"postfix.routing.table.php?relay-sender-table=yes&hostname=$hostname\">
+						<span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 			if($num=="mailboxes"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.lmtp.php?hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.lmtp.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="smtp-artica-sync"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.table.php?relay-recipient-table=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.table.php?relay-recipient-table=yes&hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="smtp-dest-table"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.recipient.php?hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.recipient.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="diff-dest-table"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.diffusion.php?hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"postfix.routing.diffusion.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}			
 		
 		
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_postfixrt_table style='width:100%;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_postfixrt_table\").tabs();});
+	echo build_artica_tabs($html, "main_config_postfixrt_table",1050).
+	"<script>LeftDesign('earth-256-transp-opac20.png');</script>";
 			
-			QuickLinkShow('quicklinks-APP_POSTFIX');
-			
-		</script>";		
 }	
 function relaydomain_js(){
 	$page=CurrentPageName();
@@ -187,33 +180,38 @@ function relaydomain_popup(){
 	ksort($ORG);	
 	$t=$_GET["t"];
 	$callback=null;
-	if(isset($_GET["callback"])){$callback="{$_GET["callback"]}();";}
+	$callback=null;
+	if(isset($_GET["callback"])){
+		if(trim($_GET["callback"])<>null){ $callback="{$_GET["callback"]}();";}
+	}	
 	
-	$organization=Field_array_Hash($ORG,"org-$t",$orgfound,"style:font-size:16px;padding:3px");
+	$organization=Field_array_Hash($ORG,"org-$t",$orgfound,"style:font-size:18px;padding:3px");
 	
 	$html="
 	<div id='wiat-$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{organization}:</td>
+		<td class=legend style='font-size:18px'>{organization}:</td>
 		<td>$organization</td>	
 	<tr>
-		<td class=legend style='font-size:16px'>{domain}:</td>
-		<td>". Field_text("domain-$t",null,"font-size:16px;width:300px;padding:3px;border:2px solid #717171",null,null,null,false,"AddRemoteDomainC$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{domain}:</td>
+		<td>". Field_text("domain-$t",null,"font-size:18px;width:300px;padding:3px;border:2px solid #717171",null,null,null,false,"AddRemoteDomainC$t(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{destination}:</td>
-		<td>". Field_text("dest-$t",null,"font-size:16px;width:300px;padding:3px;border:2px solid #717171",null,null,null,false,"AddRemoteDomainC$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{destination}:</td>
+		<td>". Field_text("dest-$t",null,"font-size:18px;width:300px;padding:3px;border:2px solid #717171",null,null,null,false,"AddRemoteDomainC$t(event)")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{port}:</td>
-		<td>". Field_text("port-$t",25,"font-size:16px;width:60px;padding:3px;border:2px solid #717171",null,null,null,false,"AddRemoteDomainC$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{port}:</td>
+		<td>". Field_text("port-$t",25,"font-size:18px;width:60px;padding:3px;border:2px solid #717171",null,null,null,false,"AddRemoteDomainC$t(event)")."</td>
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'>
-			<hr>". button("{add}","AddRemoteDomain$t()",18)."</td>
+			<hr>". button("{add}","AddRemoteDomain$t()",24)."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	var x_AddRemote$t= function (obj) {
 			var tempvalue=obj.responseText;
@@ -257,24 +255,28 @@ function localdomain_popup(){
 	ksort($ORG);	
 	$t=$_GET["t"];
 	$callback=null;
-	if(isset($_GET["callback"])){$callback="{$_GET["callback"]}();";}	
-	$organization=Field_array_Hash($ORG,"org-$t",$orgfound,"style:font-size:16px;padding:3px");
+	if(isset($_GET["callback"])){
+		if(trim($_GET["callback"])<>null){ $callback="{$_GET["callback"]}();";}
+	}	
+	$organization=Field_array_Hash($ORG,"org-$t",null,"style:font-size:18px;padding:3px");
 	
 	$html="
 	<div id='wiat-$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{organization}:</td>
+		<td class=legend style='font-size:18px'>{organization}:</td>
 		<td>$organization</td>	
 	<tr>
-		<td class=legend style='font-size:16px'>{domain}:</td>
-		<td>". Field_text("domain-$t",null,"font-size:16px;width:300px;padding:3px;border:2px solid #717171",null,null,null,false,"AddLocalDomainC$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{domain}:</td>
+		<td>". Field_text("domain-$t",null,"font-size:18px;width:300px;padding:3px;border:2px solid #717171",null,null,null,false,"AddLocalDomainC$t(event)")."</td>
 	</tr>
 	<tr>
 		<td colspan=2 align='right'>
-			<hr>". button("{add}","AddLocalDomain$t()",18)."</td>
+			<hr>". button("{add}","AddLocalDomain$t()",24)."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	var x_AddLocalDomain$t= function (obj) {
 			var tempvalue=obj.responseText;
@@ -313,7 +315,9 @@ function organizations(){
 	$users=new usersMenus();
 	$sock=new sockets();
 	$t=time();
-	$domain=$tpl->_ENGINE_parse_body("{domain}");
+	$ou=$_GET["ou"];
+	$domain=$tpl->_ENGINE_parse_body("{domains}");
+	$about=$tpl->javascript_parse_text("{about2}");
 	$are_you_sure_to_delete=$tpl->javascript_parse_text("{are_you_sure_to_delete}");
 	$autoaliases=$tpl->javascript_parse_text("{autoaliases}");
 	$disclaimer=$tpl->javascript_parse_text("{disclaimer}");
@@ -334,6 +338,7 @@ function organizations(){
 	
 	$localdomainButton="{name: '$add_local_domain', bclass: 'add', onpress : add_local_domain$t},";
 	$parametersButton="{name: '$parameters', bclass: 'Settings', onpress : parameters$t},";
+	$aboutButton="{name: '$about', bclass: 'Help', onpress : About$t},";
 	$LOCAL_MDA=false;
 	if($users->cyrus_imapd_installed){$LOCAL_MDA=true;}
 	if($users->ZARAFA_INSTALLED){$LOCAL_MDA=true;}
@@ -341,14 +346,13 @@ function organizations(){
 	$buttons="
 	buttons : [
 	$localdomainButton
-	{name: '$add_relay_domain', bclass: 'add', onpress : add_relay_domain$t},$parametersButton
+	{name: '$add_relay_domain', bclass: 'add', onpress : add_relay_domain$t},$parametersButton$aboutButton
 	],";		
 		
-	$explain=$tpl->_ENGINE_parse_body("{postfix_transport_table_explain}");
+	$explain=$tpl->javascript_parse_text("{postfix_transport_table_explain}");
 	
 $html="
 <input type='hidden' id='ou' value='$ou'>
-<div class=explain style='font-size:14px'>$explain</div>
 <table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 <script>
 $(document).ready(function(){
@@ -356,9 +360,9 @@ $('#flexRT$t').flexigrid({
 	url: '$page?organization-list=yes&hostname=$hostname&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$domain', name : 'domain', width : 416, sortable : true, align: 'left'},
+		{display: '$domain', name : 'domain', width : 546, sortable : true, align: 'left'},
 		{display: '$destination', name : 'description', width :309, sortable : true, align: 'left'},
-		{display: '$delete;', name : 'delete', width : 44, sortable : false, align: 'left'},
+		{display: '$delete', name : 'delete', width : 77, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -371,13 +375,17 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 833,
-	height: 600,
+	width: '99%',
+	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
 });
+
+function About$t(){
+	alert('$explain');
+}
 
 	function add_relay_domain$t(){
 		Loadjs('$page?relaydomain-js=yes&domain=&t=$t');
@@ -424,9 +432,10 @@ function organization_list(){
 	while (list ($domain, $ligne) = each ($localdomains) ){
 		$array[$domain]["DELETE"]="DeleteLocalDomain$t('$domain')";
 		$ou=$ldap->organization_name_from_localdomain($domain);
-		$array[$domain]["TEXT"]="{localdomain} ($ou)";
+		if($ou==null){$ou="{none}";}
+		$array[$domain]["TEXT"]="<span style='font-size:18px'>{localdomain}</span><br><span style='font-size:16px'>{organization}: <strong>$ou</strong>";
 		if($PostfixLocalDomainToRemote==1){
-			$array[$domain]["TEXT"]="{localdomain} ($ou) <br>$forwared -&raquo; smtp:$PostfixLocalDomainToRemoteAddr ";
+			$array[$domain]["TEXT"]="<span style='font-size:18px'>{localdomain}</span><br><span style='font-size:16px'>{organization}: <strong>$ou</strong></span><br>$forwared -&raquo; smtp:$PostfixLocalDomainToRemoteAddr ";
 		}
 		
 	}
@@ -449,14 +458,14 @@ function organization_list(){
 		if($search<>null){if(!preg_match("#$search#", $domain)){continue;}}
 		$c++;
 		$ligne["TEXT"]=$tpl->_ENGINE_parse_body($ligne["TEXT"]);
-		$delete=imgtootltip("delete-32.png",'{label_delete_transport}',$ligne["DELETE"]);
+		$delete=imgsimple("delete-48.png",'{label_delete_transport}',$ligne["DELETE"]);
 		$m5=md5($domain);
 	$data['rows'][] = array(
 		'id' => "dom$m5",
 		'cell' => array("
 		<a href=\"javascript:blur();\" 
 			OnClick=\"javascript:$js\" 
-			style='font-size:16px;font-weight:bold;'>$domain</span>",
+			style='font-size:24px;font-weight:bold;'>$domain</span>",
 		"<span style='font-size:14px'>{$ligne["TEXT"]}</span>",
 		$delete )
 		);

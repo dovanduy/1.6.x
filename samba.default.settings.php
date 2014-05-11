@@ -86,7 +86,7 @@ function admin_users(){
 			$gid=$re[2];
 		}else{
 			$Displayname=$uid;
-			$img="winuser.png";
+			$img="user-18.png";
 		}
 		
 		if(substr($uid,strlen($uid)-1,1)=='$'){

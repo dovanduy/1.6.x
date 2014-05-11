@@ -61,8 +61,9 @@ while (list ($num, $maks) = each ($tbl) ){
 		
 	
 function launchscanner($net){
+	$unix=new unix();
 	$tmp_file="/tmp/".md5(date('Y-m-d h:I:s'.__FILE__));
-	$cmd="/usr/bin/nmap -O $net -oN $tmp_file --system-dns -p1";
+	$cmd=$unix->NMAP_CMDLINE($net,$tmp_file);
 	compevents("Execute network scanning on $net...");
 	compevents("$cmd");
 	compevents("Create temporaty file $tmp_file");

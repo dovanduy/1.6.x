@@ -255,13 +255,13 @@ function status(){
 	if($CORP==1){
 		$CORP_TEXT="{license_active}";
 	}else{
-		$CORP_TEXT="&nbsp;<img src='img/status_warning-18.gif'><span style='font-weight:normal'>{license_invalid}</span>";
+		$CORP_TEXT="&nbsp;<img src='img/status_warning.png'><span style='font-weight:normal'>{license_invalid}</span>";
 	}
 	
 	if($blackbox->TotalMemoryMB>0){
 		$TotalMemoryMB=" <span style='font-weight:normal;font-size:13px'>({memory}: {$blackbox->TotalMemoryMB}M)";
 	}else{
-		$TotalMemoryMB="&nbsp;<img src='img/status_warning-18.gif'><span style='font-weight:normal'>No memory receive...</span>";
+		$TotalMemoryMB="&nbsp;<img src='img/status_warning.png'><span style='font-weight:normal'>No memory receive...</span>";
 	}
 	
 	$updateAgent="<tr>

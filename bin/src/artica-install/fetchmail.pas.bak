@@ -33,7 +33,7 @@ public
 
     function  FETCHMAIL_BIN_PATH():string;
     procedure FETCHMAIL_APPLY_CONF(conf_datas:string);
-    function  FETCHMAIL_DAEMON_STOP(nologger:boolean=false):string;
+
     function  FETCHMAIL_PID():string;
     procedure FETCHMAIL_APPLY_GETLIVE_CONF();
     procedure FETCHMAIL_APPLY_GETLIVE();

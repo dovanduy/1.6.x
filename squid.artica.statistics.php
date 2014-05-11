@@ -23,6 +23,7 @@
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["params"])){params();exit;}
 	if(isset($_POST["DisableArticaProxyStatistics"])){Save();exit;}
+	if(isset($_POST["EnableProxyLogHostnames"])){Save2();exit;}
 	
 js();
 
@@ -48,25 +49,7 @@ function popup(){
 	
 	$id=time();
 	
-	echo "
-	<div id='artica_stats_tabs' style='width:100%;height:590px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#artica_stats_tabs').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
-	
+	echo build_artica_tabs($html, "artica_stats_tabs");
 	
 }
 
@@ -76,25 +59,69 @@ function params(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	$EnableSquidRemoteMySQL=$sock->GET_INFO("EnableSquidRemoteMySQL");
 	$CleanArticaSquidDatabases=$sock->GET_INFO("CleanArticaSquidDatabases");
+	$EnableProxyLogHostnames=$sock->GET_INFO("EnableProxyLogHostnames");
+	$MacResolvInterface=$sock->GET_INFO("MacResolvInterface");
+	if(!is_numeric($EnableSquidRemoteMySQL)){$EnableSquidRemoteMySQL=0;}
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if(!is_numeric($CleanArticaSquidDatabases)){$CleanArticaSquidDatabases=0;}
-	$p=Paragraphe_switch_img("{DisableArticaProxyStatistics}", "{DisableArticaProxyStatistics_explain}","DisableArticaProxyStatistics",$DisableArticaProxyStatistics,null,450);
-	$p1=Paragraphe_switch_img("{CleanArticaSquidDatabases}", "{CleanArticaSquidDatabases_explain}","CleanArticaSquidDatabases",$CleanArticaSquidDatabases,null,450);
+	if(!is_numeric($EnableProxyLogHostnames)){$EnableProxyLogHostnames=0;}
+	
+	$net=new networking();
+	$interfaces=$net->Local_interfaces();
+	$array[null]="{none}";
+	while (list ($eth, $line) = each ($interfaces) ){
+		if($eth=="lo"){continue;}
+		$ip=new system_nic($eth);
+		$array[$eth]=$ip->IPADDR." (" .$ip->NICNAME .")";
+	}
+	
+	$p=Paragraphe_switch_img("{DisableArticaProxyStatistics}", "{DisableArticaProxyStatistics_explain}","DisableArticaProxyStatistics",$DisableArticaProxyStatistics,null,600);
+	$p1=Paragraphe_switch_img("{CleanArticaSquidDatabases}", "{CleanArticaSquidDatabases_explain}","CleanArticaSquidDatabases",$CleanArticaSquidDatabases,null,600);
+	$p2=Paragraphe_switch_img("{EnableProxyLogHostnames}", "{EnableProxyLogHostnames_explain}","EnableProxyLogHostnames",$EnableProxyLogHostnames,null,600);
+	
+	
+	if($EnableSquidRemoteMySQL==1){
+		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+		$error="<div style='font-size:16px' class=explain>{remote_mysqlsquidserver_text}<br><strong>mysql://{$TuningParameters["mysqlserver"]}:{$TuningParameters["RemotePort"]}</strong></div>";
+		$p=Paragraphe_switch_disable("{DisableArticaProxyStatistics}", "{DisableArticaProxyStatistics_explain}",null,600).
+		"".Field_hidden("DisableArticaProxyStatistics", 0);
+	}
+	
 	$html="
 	<div id=$t></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
+	$error
 	<table>
 	<tr>
-		<td colspan=2>$p</td>
+		<td colspan=3>$p</td>
 	</tr>
-	<tr><td colspan=2><hr></td></tr>
+	<tr><td colspan=3><hr></td></tr>
 	<tr>
-		<td colspan=2>$p1</td>
+		<td colspan=3>$p1</td>
+	</tr>
+
+	
+	<tr>
+		<td colspan=3 align='right'>". button("{apply}", "SaveStopArticaStats()",16)."</td>
+	</tr>
+	</table>
+	</div>
+	
+	<div style='width:98%' class=form>
+	<table>
+	<tr>
+		<td colspan=3>$p2</td>
+	</tr>
+		<tr>
+		<td class=legend style='font-size:16px'>{mac_resolv_interface}:</td>
+		<td>". Field_array_Hash($array, "MacResolvInterface",$MacResolvInterface,null,null,0,"font-size:16px")."</td>
+		<td width=1%>". help_icon("{mac_resolv_interface_help}")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'>". button("{apply}", "SaveStopArticaStats()",16)."</td>
-	</tr>
+		<td  align='right' colspan=3>". button("{apply}", "SaveOptions$t()",16)."</td>
+	</tr>	
 	</table>
 	</div>
 	<script>
@@ -109,13 +136,25 @@ function params(){
 		
 		
 	function SaveStopArticaStats(){
-			
 			var XHR = new XHRConnection();	
 			XHR.appendData('DisableArticaProxyStatistics',document.getElementById('DisableArticaProxyStatistics').value);
 			XHR.appendData('CleanArticaSquidDatabases',document.getElementById('CleanArticaSquidDatabases').value);
-			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_SaveStopArticaStats);
 			}
+			
+	var xSaveOptions$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue)};
+
+	}			
+			
+	function SaveOptions$t(){
+			var XHR = new XHRConnection();	
+			XHR.appendData('EnableProxyLogHostnames',document.getElementById('EnableProxyLogHostnames').value);
+			XHR.appendData('MacResolvInterface',document.getElementById('MacResolvInterface').value);
+			XHR.sendAndLoad('$page', 'POST',xSaveOptions$t);
+			}			
+			
 	</script>
 	
 	";
@@ -132,4 +171,12 @@ function Save(){
 	$sock->getFrameWork('cmd.php?restart-artica-status=yes');
 	
 	
+}
+function Save2(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableProxyLogHostnames", $_POST["EnableProxyLogHostnames"]);
+	$sock->SET_INFO("MacResolvInterface", $_POST["MacResolvInterface"]);
+	
+	
+	$sock->getFrameWork("squid.php?squid-k-reconfigure=yes");
 }

@@ -1,9 +1,12 @@
 <?php
 if(function_exists("date_default_timezone_set") and function_exists("date_default_timezone_get")){@date_default_timezone_set(@date_default_timezone_get());}
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
+ini_set("log_errors", 1);
+ini_set("error_log", "/var/log/php.log");
 
 
 function WriteToSyslogMail($text,$file=null,$error=false){
-	if(!function_exists("syslog")){return;}
+	if(!function_exists("syslog")){error_log($text);return;}
 	if($file==null){
 		if(function_exists("debug_backtrace")){
 			$trace=debug_backtrace();
@@ -19,12 +22,11 @@ function WriteToSyslogMail($text,$file=null,$error=false){
 
 
 function writeToFile($text,$filepath){
-	$f = @fopen($filepath, 'w');
+	$f = @fopen($filepath, 'a');
 	@fwrite($f,$text);
 	@fclose($f);
 }
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
-	
 	if(isset($_SESSION["EnableWebPageDebugging"])){$GLOBALS["EnableWebPageDebugging"]=$_SESSION["EnableWebPageDebugging"];}
 	
 	if(!isset($GLOBALS["EnableWebPageDebugging"])){
@@ -61,14 +63,10 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	
 	if(isset($_SERVER["SERVER_SOFTWARE"])){
 		if(preg_match("#^Apache#", $_SERVER["SERVER_SOFTWARE"])){
-			error_log("$text in $file_source function $function line $line");
+			error_log("[{$_SESSION["uid"]}]::$text in $file_source function $function line $line");
 			return;
 		}
 	}
-	
-
-	
-
 	
 	if(preg_match("#netagent#", $file_source)){
 		WriteToSyslogMail("[$function::$line]: $text","netagent");
@@ -78,7 +76,7 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	if(isset($_SESSION["uid"])){$name="[{$_SESSION["uid"]}]";}
 	if($file_source==null){$file_source= __FILE__ ;}
 	$prefix="[CONSOLE]::";
-	if(function_exists("posix_getuid")){if(posix_getuid()==0){$prefix="[DAEMON]::";}}
+	if(function_exists("posix_getuid")){if(posix_getuid()==0){$prefix="[ROOT]::";}}
 	if(function_exists("getmypid")){$pid=getmypid();}
 	$class=null;
 	if(preg_match("#(.+?)=>(.+)#",$function,$re)){$function="{$re[1]}/{$re[2]}";}
@@ -100,7 +98,7 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	
 	if(!isset($name)){$name=null;}
 	$text2=date('H:i:s')." $file_source [$IP]::$name $function:: $text line: $line source file:$SCRIPT_FILENAME";
-	$text=date('H:i:s')." [$pid] $prefix::$name:$function:: $text in $file_source$line";
+	$text="[$pid] $prefix::$name:$function:: $text in $file_source$line";
 	
 	if($EnableWebPageDebugging==1){
 		if(function_exists("CurrentPageName")){
@@ -109,21 +107,20 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 		}
 	}
 	
-	writeOtherlogs(dirname(__FILE__)."/logs/web/interface.debug",$text2);
+	
 	if(isset($GLOBALS["ADDLOG"])){writeOtherlogs($GLOBALS["ADDLOG"],$text2);}
 	if(isset($GLOBALS["AS_NET_AGENT"])){writeOtherlogs("/var/log/artica-netagent.log",$text2);}
 	
-	phpxlog("$text");
-	if(basename($file_source)=="exec.backup.php"){writeOtherlogs("/var/log/artica-postfix/exec.backup.".date("Y-m-d").".log",$text);}
+	error_log($text);
+	
+	if(basename($file_source)=="exec.backup.php"){writeOtherlogs("{$GLOBALS["ARTICALOGDIR"]}/exec.backup.".date("Y-m-d").".log",$text);}
 	$arr=explode("/",$function);
 	if(is_array($arr)){if(count($arr)>0){if(isset($arr[0])){$class=$arr[0];if(isset($arr[1])){$function=$arr[1];}}}}
 	writeClasslogs($text,$function,$class);
 
 }
 function phpxlog($text){
-	$f = @fopen("/var/log/php.log", 'a');
-	@fwrite($f, "$text\n");
-	@fclose($f);	
+	error_log($text);
 	
 }
 
@@ -133,7 +130,7 @@ function writeOtherlogs($file,$text=null){
 	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    	if (is_file($logFile)) { 
    		$size=filesize($logFile);
-   		if($size>1000000){unlink($logFile);}
+   		if($size>1000000){@unlink($logFile);}
    	}
 	$logFile=str_replace("//","/",$logFile);
 	$f = @fopen($logFile, 'a');
@@ -147,7 +144,7 @@ function writeOtherlogs($file,$text=null){
 	if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    	if (is_file($logFile)) { 
    			$size=filesize($logFile);
-		    	if($size>1000000){unlink($logFile);}
+		    	if($size>1000000){@unlink($logFile);}
    		}
 		 $logFile=str_replace("//","/",$logFile);
 		$f = @fopen($logFile, 'a');
@@ -163,7 +160,7 @@ if($file_source==null){$file_source= __FILE__ ;}
 		    if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    		if (is_file($logFile)) { 
    			$size=filesize($logFile);
-		    	if($size>1000000){unlink($logFile);}
+		    	if($size>1000000){@unlink($logFile);}
    		}
 		$logFile=str_replace("//","/",$logFile);
 		$f = @fopen($logFile, 'a');
@@ -181,7 +178,7 @@ if($file_source==null){$file_source= __FILE__ ;}
 		    if(!is_dir(dirname($logFile))){mkdir(dirname($logFile));}
    		if (is_file($logFile)) { 
    			$size=filesize($logFile);
-		    	if($size>1000000){unlink($logFile);}
+		    	if($size>1000000){@unlink($logFile);}
    		}
 		 $logFile=str_replace("//","/",$logFile);
 		$f = @fopen($logFile, 'a');

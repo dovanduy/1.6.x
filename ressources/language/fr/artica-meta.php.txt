@@ -1,6 +1,6 @@
 <activate_disclaimer>Activation de l'avis de non responsabilit&eacute;</activate_disclaimer>
 <AddressProxyServer>Adresse du Proxy</AddressProxyServer>
-<add_dns_entry>Ajouter une entr&eacute;e DNS</add_dns_entry>
+<add_dns_entry>Nouvelle entr&eacute;e DNS</add_dns_entry>
 <add_user_text>Cr&eacute;ez un nouvel utilisateur et une bo&icirc;te aux lettres sur ce serveur.</add_user_text>
 <administrate_this_server>Administrer ce serveur</administrate_this_server>
 <administration_tools>Outils d'administration</administration_tools>
@@ -93,7 +93,7 @@ Le co&ucirc;t 0 est utilis&eacute; pour d&eacute;sactiver le droit de pr&eacute;
 
 La seule raison pour laquelle 2 n'est pas la valeur par d&eacute;faut est qu'il affecte le livraison des listes de diffusion. Dans le pire des cas, leur temps de livraison peut prendre entre (co&ucirc;t 1/co&ucirc;t) et (co&ucirc;t/co&ucirc;t-1) plus de temps que si le droit de pr&eacute;emption est d&eacute;sactiv&eacute;. La valeur par d&eacute;faut 5 est un compromis raisonnable &eacute;vitant que les livraisons des listes de diffusions ne soient ralenties de 20 &agrave; 25% dans le pire des cas.</default_delivery_slot_cost_text>
 <default_delivery_slot_discount>moment d'une pr&eacute;emption de message</default_delivery_slot_discount>
-<default_delivery_slot_discount_text>param&egrave;tre:default_delivery_slot_discount[br]Ce param&egrave;tre d&eacute;termine le moment o&ugrave; une pr&eacute;emption de message peut avoir lieu. Au lieu d'attendre que le compteur ait atteint la valeur d&eacute;sir&eacute;e, la pr&eacute;emption peut arriver lorsque transport_delivery_slot_discount% de la valeur requise plus transport_delivery_slot_loan restent &agrave; accumuler. Notez que la valeur totale doit &ecirc;tre atteinte avant qu'une autre pr&eacute;emption puisse avoir lieu ult&eacute;rieurement.</default_delivery_slot_discount_text>
+<default_delivery_slot_discount_text>Param&egrave;tre:default_delivery_slot_discount[br]Ce param&egrave;tre d&eacute;termine le moment o&ugrave; une pr&eacute;emption de message peut avoir lieu. Au lieu d'attendre que le compteur ait atteint la valeur d&eacute;sir&eacute;e, la pr&eacute;emption peut arriver lorsque transport_delivery_slot_discount% de la valeur requise plus transport_delivery_slot_loan restent &agrave; accumuler. Notez que la valeur totale doit &ecirc;tre atteinte avant qu'une autre pr&eacute;emption puisse avoir lieu ult&eacute;rieurement.</default_delivery_slot_discount_text>
 <default_delivery_slot_loan>Pr&ecirc;t de slot de livraison</default_delivery_slot_loan>
 <default_delivery_slot_loan_text>param&egrave;tre:default_delivery_slot_loan[br]
 Ce param&egrave;tre d&eacute;termine le moment o&ugrave; une pr&eacute;emption de message peut avoir lieu. Au lieu d'attendre que le compteur ait atteint la valeur d&eacute;sir&eacute;e, la pr&eacute;emption peut arriver lorsque transport_delivery_slot_discount% de la valeur requise plus transport_delivery_slot_loan restent &agrave; accumuler. Notez que la valeur totale doit &ecirc;tre atteinte avant qu'une autre pr&eacute;emption puisse avoir lieu ult&eacute;rieurement.</default_delivery_slot_loan_text>
@@ -424,7 +424,7 @@ Il est &agrave; noter que le serveur distant &eacute;met un &eacute;tat ponctuel
 <wakeup_computer>R&eacute;veil par le r&eacute;seau</wakeup_computer>
 <wakeup_computer_text>D&eacute;marrer cet ordinateur en utilisant un message r&eacute;seau sp&eacute;cifique nomm&eacute; &quot;magic packet&quot;</wakeup_computer_text>
 <WARN_QUEUE_FREEZE>Attention, la file d'attente est gel&eacute;e</WARN_QUEUE_FREEZE>
-<webservers>serveurs web</webservers>
+<webservers>Serveurs web</webservers>
 <website>Site web</website>
 <websites_categorized>Sites web cat&eacute;goris&eacute;s</websites_categorized>
 <web_console_access>Acc&egrave;s &agrave; la console Web</web_console_access>

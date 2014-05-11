@@ -14,6 +14,7 @@ class squid_acls{
 	public $instancetime=null;
 	public $ASROOT=false;
 	private $hasProxyTransparent=0;
+	private $EnableTransparent27=0;
 
 	public function squid_acls(){
 		if(posix_getuid()==0){$this->ASROOT=true;}
@@ -21,10 +22,11 @@ class squid_acls{
 		$users=$GLOBALS["CLASS_USERS"];
 		$sock=new sockets();
 		$this->ACL_ARP_ENABLED=$users->SQUID_ARP_ACL_ENABLED;
-		$this->hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+		$this->hasProxyTransparent=intval($sock->GET_INFO("hasProxyTransparent"));
+		$this->EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
 		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
-		if(!is_numeric($this->hasProxyTransparent)){$this->hasProxyTransparent=0;}
+		
 		$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 		if(!is_numeric($this->EnableKerbAuth)){$this->EnableKerbAuth=0;}
 		$squid=new squidbee();
@@ -39,7 +41,7 @@ class squid_acls{
 
 	
 	public function Build_Acls(){
-		echo "Starting......: [ACLS]: Building ACLS (patched on 2012-10-08)\n";
+		echo "Starting......: ".date("H:i:s")." [ACLS]: Building ACLS (patched on 2012-10-08)\n";
 		$this->Build_Acls_Groups();
 		$this->Build_Acls_time();
 	}
@@ -156,12 +158,12 @@ class squid_acls{
 		$ReturnFirstValue=false;
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$acls_name="Group{$ligne["ID"]}";
-			echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]}\n";
+			echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]}\n";
 			
 			if($ligne["GroupType"]=="maxconn"){
 				$AclsValue=$this->buildItems($ligne["ID"],true);
 				$this->availableGroups[$ligne["ID"]]=true;
-				echo "Starting......: [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` maxconn $AclsValue max connection(s)\n";	
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` maxconn $AclsValue max connection(s)\n";	
 				$this->acls_array[]="acl $acls_name {$ligne["GroupType"]} $AclsValue";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
@@ -170,16 +172,15 @@ class squid_acls{
 			
 			if($ligne["GroupType"]=="arp"){
 				if(!$this->ACL_ARP_ENABLED){
-					echo "Starting......: !! *****\n";
-					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} will be not available (ARP is not compiled)\n";
-					echo "Starting......: !! *****\n";
+					echo "Starting......: ".date("H:i:s")." !! *****\n";
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} will be not available (ARP is not compiled)\n";
+					echo "Starting......: ".date("H:i:s")." !! *****\n";
 				}
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth_ads"){
-				if($this->EnableKerbAuth==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
-				if($this->UseDynamicGroupsAcls==0){echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP UseDynamicGroupsAcls = 0\n";continue;}
-				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
+				if($this->EnableKerbAuth==0){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP EnableKerbAuth = 0\n";continue;}
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:proxy_auth_ads $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ads_group ". utf8_encode($ligne["GroupName"]);
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
@@ -190,10 +191,10 @@ class squid_acls{
 			
 			if($ligne["GroupType"]=="dynamic_acls"){
 				if(!$isDynamicAcls){
-					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls No dynamic acl available\n";
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls No dynamic acl available\n";
 					continue;
 				}
-				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls $acls_name is available\n";
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:dynamic_acls $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external DynamicAcls ID{$ligne["ID"]}";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
@@ -204,7 +205,7 @@ class squid_acls{
 			
 			
 			if(isset($ARRAY_AUTH[$ligne["GroupType"]])){
-				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:AUTH: {$ligne["GroupType"]} $acls_name is available\n";
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:AUTH: {$ligne["GroupType"]} $acls_name is available\n";
 				if($this->IsObjectAuth()){
 					$this->availableGroups[$ligne["ID"]]=true;
 					$this->acls_array[]="acl $acls_name external BasicFakeAuth ID{$ligne["ID"]}";
@@ -214,15 +215,30 @@ class squid_acls{
 				}
 				continue;
 			
-			}			
-			
-			if($ligne["GroupType"]=="NudityScan"){
-				if(!$GLOBALS["ArtcExtrnNudeScanner"]){
-					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnNudeScanner is disabled !!! Why ???\n";
+			}	
+
+			if($ligne["GroupType"]=="categories"){
+				if(!$GLOBALS["ArtcExtrnCategoryScanner"]){
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnCategoryScanner is disabled !!! Why ???\n";
 					continue;
 				}
 				
-				echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name external ArtCatz{$ligne["ID"]}";
+				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
+				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
+				continue;
+				}			
+			
+			
+			
+			if($ligne["GroupType"]=="NudityScan"){
+				if(!$GLOBALS["ArtcExtrnNudeScanner"]){
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - ArtcExtrnNudeScanner is disabled !!! Why ???\n";
+					continue;
+				}
+				
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
 				$this->availableGroups[$ligne["ID"]]=true;
 				$this->acls_array[]="acl $acls_name external ArtcExtrnNudeScanner";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
@@ -232,16 +248,16 @@ class squid_acls{
 			
 			if($ligne["GroupType"]=="hotspot_auth"){
 					if($EnableSplashScreen==0){
-						echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreen =0 ???\n";
+						echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreen =0 ???\n";
 						continue;
 					}
 					
 					if($EnableSplashScreenAsObject==0){
-						echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreenAsObject =0 ???\n";
+						echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreenAsObject =0 ???\n";
 						continue;
 					}
 				
-					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
 					$this->availableGroups[$ligne["ID"]]=true;
 					$this->acls_array[]="acl $acls_name external SplashScreenAuthDef";
 					$this->acls_array[]="deny_info 303:$SplashScreenURI?request=%o $acls_name";
@@ -252,7 +268,7 @@ class squid_acls{
 			
 			
 			if($ligne["GroupType"]=="time"){
-					echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
 					$time=$this->ParseTimeAclsGroup($ligne["ID"]);
 					if($time<>null){
 						$this->availableGroups[$ligne["ID"]]=true;
@@ -260,14 +276,14 @@ class squid_acls{
 						$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 						if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
 					}else{
-						echo "Starting......: [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` SKIP with error\n";
+						echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` SKIP with error\n";
 					}
 				continue;								
 			}			
 			
 			if($ligne["GroupType"]=="proxy_auth"){
 				if($this->AUTH==0){
-					echo "Starting......: [ACLS]: `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";
+					echo "Starting......: ".date("H:i:s")." [ACLS]: `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} -> SKIP AUTH = 0\n";
 					continue;
 				}				
 				
@@ -291,7 +307,11 @@ class squid_acls{
 				$ligne["GroupType"]="referer_regex -i";
 			}
 			
-				
+			if($ligne["GroupType"]=="url_regex_extensions"){
+				$ligne["GroupType"]="url_regex -i";
+			}
+
+			
 			$AclsItemsCount=$this->buildItems($ligne["ID"],$ReturnFirstValue);
 			
 			if($ligne["GroupType"]=="all"){
@@ -300,12 +320,12 @@ class squid_acls{
 			}
 							
 			
-			echo "Starting......: [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` `$AclsItemsCount` item(s)\n";	
+			echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` `$AclsItemsCount` item(s)\n";	
 			
 			
 			if($AclsItemsCount>0){
 				$this->availableGroups[$ligne["ID"]]=true;
-				echo "Starting......: [ACLS]: ACL Engine Group: $acls_name is available\n";
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $acls_name is available\n";
 				$this->acls_array[]="acl $acls_name {$ligne["GroupType"]} \"/etc/squid3/acls/container_{$ligne["ID"]}.txt\" ";
 				$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 				if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
@@ -314,9 +334,9 @@ class squid_acls{
 				
 				
 			}else{
-				echo "Starting......: !! *****\n";
-				echo "Starting......: [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} will be not available (no item)\n";
-				echo "Starting......: !! *****\n";
+				echo "Starting......: ".date("H:i:s")." !! *****\n";
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]} will be not available (no item)\n";
+				echo "Starting......: ".date("H:i:s")." !! *****\n";
 			}
 		}
 	}
@@ -395,7 +415,7 @@ class squid_acls{
 		if(count($dd)>0){$days_text=@implode($dd, "");}
 		
 		if($acltime==null && $days_text==null){
-			echo "Starting......: [ACLS]: ACL Engine Group: $ID No time set.. SKIP!!!\n";
+			echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $ID No time set.. SKIP!!!\n";
 			return;
 		}
 		return "$days_text$acltime";
@@ -408,13 +428,14 @@ class squid_acls{
 		$filename="/etc/squid3/acls/container_$gpid.txt";
 		@unlink($filename);
 		$f=$this->GetItems($gpid);
-		if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, ".count($f)." items\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group$gpid, ".count($f)." items\n";}
 		if($returnFirstValue){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, returnFirstValue = true return ".$f[0]." items\n";}
-			return $f[0];}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group$gpid, returnFirstValue = true return ".$f[0]." items\n";}
+			return $f[0];
+		}
 		$c=count($f);
 		if($c>0){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, save $filename\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group$gpid, save $filename\n";}
 			@file_put_contents($filename, @implode("\n", $f)."\n");}
 		return $c;
 	}
@@ -450,9 +471,9 @@ class squid_acls{
 	
 	
 	public function build_http_access(){
-		echo "Starting......: [ACLS]: build_http_access() ACL Engine Rules:[$this->instancetime] ". count($this->http_access)." items (before)\n"; 
+		echo "Starting......: ".date("H:i:s")." [ACLS]: build_http_access() ACL Engine Rules:[$this->instancetime] ". count($this->http_access)." items (before)\n"; 
 		$this->build_http_access_time();
-		echo "Starting......: [ACLS]: build_http_access() ACL Engine Rules:[$this->instancetime] ". count($this->http_access)." items (after)\n"; 
+		echo "Starting......: ".date("H:i:s")." [ACLS]: build_http_access() ACL Engine Rules:[$this->instancetime] ". count($this->http_access)." items (after)\n"; 
 		return $this->http_access;
 		
 	}
@@ -477,12 +498,14 @@ class squid_acls{
 	
 	public function dstdomain_parse($website){
 		$website=trim(strtolower($website));
-		if(preg_match("#^http:\/\/\(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^https:\/\/\(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^ftp:\/\/\(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^ftps:\/\/\(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#(.*?)\.http$#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^http:\/\/(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^https:\/\/(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^ftp:\/\/(.*)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^ftps:\/\/(.*)#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^www\.(.*)#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^(.+?)\/#", $website,$re)){$website=$re[1];}	
+		if(preg_match("#^(.+?)\/#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^(.+?):([0-9]+)#", $website,$re)){$website=$re[1];}	
 		$website=str_replace('.*.', '.', $website);
 		$website=str_replace('*', '.', $website);
 		$website=str_replace('$', '', $website);
@@ -517,9 +540,9 @@ class squid_acls{
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType,enabled FROM webfilters_sqgroups WHERE ID='$gpid'"));
 		$GroupeType=$ligne["GroupType"];
 		$this->RequestedGroupeType=$GroupeType;
-		if($ligne["enabled"]==0){if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: ACL Engine Group:$gpid is disabled skip..\n";}return array();}
-		if($required<>null){if($GroupeType<>$required){if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: ACL Engine Group:$gpid {$ligne["GroupType"]} is different than required \"$required\" skip..\n";}return array();}}
-		if($GroupeType=="arp"){if(!$this->ACL_ARP_ENABLED){if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: ACL Engine Group:$gpid ARP is not compiled, skip..\n";}return array();}}
+		if($ligne["enabled"]==0){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:$gpid is disabled skip..\n";}return array();}
+		if($required<>null){if($GroupeType<>$required){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:$gpid {$ligne["GroupType"]} is different than required \"$required\" skip..\n";}return array();}}
+		if($GroupeType=="arp"){if(!$this->ACL_ARP_ENABLED){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:$gpid ARP is not compiled, skip..\n";}return array();}}
 		$sql="SELECT * FROM webfilters_sqitems WHERE enabled=1 AND gpid=$gpid";
 		$c=0;
 		$f=array();
@@ -531,7 +554,7 @@ class squid_acls{
 			$ligne["pattern"]=trim($ligne["pattern"]);
 			if($ligne["pattern"]==null){continue;}
 			
-			if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: ACL Engine Group: $gpid pattern is null, skip..\n";}continue;}
+			if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $gpid pattern is null, skip..\n";}continue;}
 			
 			if($GroupeType=="dstdomain"){
 				$WEBSITE=$ligne["pattern"];
@@ -543,7 +566,7 @@ class squid_acls{
 				if(substr($ligne["pattern"], 0,1)<>"."){$ligne["pattern"]=".{$ligne["pattern"]}";}
 
 				if(isset($MASTERDOMAINAL[$MASTERDOMAIN])){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group{$gpid}, dstdomain SKIP $MASTERDOMAIN -> $WEBSITE\n";}
+					if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group{$gpid}, dstdomain SKIP $MASTERDOMAIN -> $WEBSITE\n";}
 					continue;
 				}
 				
@@ -552,6 +575,14 @@ class squid_acls{
 				
 				
 			}
+			
+			if($GroupeType=="url_regex_extensions"){
+				$ligne["pattern"]=str_replace(".", "", $ligne["pattern"]);
+				$ligne["pattern"]=$this->string_to_regex($ligne["pattern"]);
+				$ligne["pattern"]="\.{$ligne["pattern"]}$";
+			}
+			
+			
 			
 			if($GroupeType=="arp"){
 				$ligne["pattern"]=str_replace("-", ":", $ligne["pattern"]);
@@ -591,7 +622,7 @@ class squid_acls{
 			
 			
 			if(isset($already[$ligne["pattern"]])){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]} SKIP (".__LINE__.")\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]} SKIP (".__LINE__.")\n";}
 				continue;}
 			$already[$ligne["pattern"]]=true;
 			
@@ -600,7 +631,7 @@ class squid_acls{
 				if($entries==null){continue;}
 				$ligne["pattern"]=$entries;
 			}	
-			//if($GLOBALS["VERBOSE"]){echo "Starting......: [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]}\n";}		
+			//if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]}\n";}		
 			$f[]=$ligne["pattern"];
 			$c++;
 		}
@@ -729,7 +760,7 @@ class squid_acls{
 			$Access="deny";
 			if($ligne["Allow"]==1){$Access="allow";}
 			if(!isset($this->availableGroups[$ligne["gpid"]])){
-				echo "Starting......: [ACLS]: ACL Engine Rules Group{$ligne["gpid"]} is empty for Time rule Time{$ligne["TimeRuleID"]}, skip it\n";
+				echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Rules Group{$ligne["gpid"]} is empty for Time rule Time{$ligne["TimeRuleID"]}, skip it\n";
 				continue;}
 			$this->http_access[]="http_access $Access Group{$ligne["gpid"]} Time{$ligne["TimeRuleID"]}";
 			if($ligne["Allow"]==0){

@@ -1,14 +1,19 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-". basename(__FILE__)." Waiting Artica-CD to finish\n";die();}}
+
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
+$GLOBALS["BYSCRIPT"]=false;
+$GLOBALS["MONIT"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
+if(preg_match("#--script#",implode(" ",$argv),$re)){$GLOBALS["BYSCRIPT"]=true;}
+if(preg_match("#--monit#",implode(" ",$argv),$re)){$GLOBALS["MONIT"]=true;}
+
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
@@ -23,15 +28,17 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 
 
 function restart(){
+	$scriptlog=null;if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
+	FrmToSyslog("Restarting framework$scriptlog");
 	stop(true);
 	start(true);	
 	
@@ -40,12 +47,17 @@ function restart(){
 	
 function stop($aspid=false){
 	$unix=new unix();
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
+	
+	$scriptlog=null;if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -55,10 +67,15 @@ function stop($aspid=false){
 	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Framework service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Framework service already stopped...\n";}
 		return;
 	}	
 	$pid=LIGHTTPD_PID();
+	if($GLOBALS["MONIT"]){
+		@file_put_contents("/var/run/lighttpd/framework.pid",$pid);
+		return; 
+	}
+	
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$lighttpd_bin=$unix->find_program("lighttpd");
@@ -66,37 +83,38 @@ function stop($aspid=false){
 	
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Framework shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Framework shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=LIGHTTPD_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}	
 	
 	$pid=LIGHTTPD_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Framework service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Framework service success...\n";}
 		killallphpcgi();
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Framework shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Framework shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=LIGHTTPD_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Framework service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Framework service success...\n";}
+		FrmToSyslog("Success service stopped $scriptlog");
 		killallphpcgi();
 		return;
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Framework service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Framework service failed...\n";}
 	}	
 }
 
@@ -107,26 +125,43 @@ function killallphpcgi(){
 	$kill=$unix->find_program("kill");
 	$array=$unix->PIDOF_PATTERN_ALL($phpcgi);
 	if(count($array)==0){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: No ghost processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: No ghost processes...\n";}
 		return;
 	}
 	$c=0;
 	while (list ($pid, $line) = each ($array) ){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time<2880){
+			FrmToSyslog("$phpcgi PID $pid ttl:{$time}mn");
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $phpcgi TTL:{$time}mn skip\n";}
+			continue;
+		}
+		
 		$username=$unix->PROCESS_GET_USER($pid);
 		if($username==null){continue;}
 		if($username<>"root"){continue;}
 		$c++;
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Stopping ghots processes $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping ghosts processes $pid\n";}
+		FrmToSyslog("killing $phpcgi PID $pid/$username/{$time}mn");
 		shell_exec("$kill -9 $pid 2>&1");
 	}
 	
 	if($c==0){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: No ghost processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: No ghost processes...\n";}
 	}
 	
 }
 
+function FrmToSyslog($text){
+
+	$LOG_SEV=LOG_INFO;
+	if(function_exists("openlog")){openlog("framework", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
+}
+
 function status(){
+
 	$unix=new unix();
 	$phpcgi=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -134,13 +169,13 @@ function status(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	
 	if(!$GLOBALS["VERBOSE"]){
 		$timeExec=$unix->file_time_min($pidtime);
-		if($timeExec<15){return;}
+		if($timeExec<240){return;}
 	}
 	@unlink($pidtime);
 	@file_put_contents($pidtime, time());
@@ -150,10 +185,11 @@ function status(){
 	$unix=new unix();
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service running $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service running $pid since {$timepid}Mn...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service stopped...\n";}
-		start();
+		FrmToSyslog("Framework service stopped");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service stopped...\n";}
+		start(true);
 		return;
 	}
 	$MAIN_PID=$pid;
@@ -161,7 +197,7 @@ function status(){
 	$kill=$unix->find_program("kill");
 	$array=$unix->PIDOF_PATTERN_ALL($phpcgi);
 	if(count($array)==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: no php-cgi processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: no php-cgi processes...\n";}
 		return;
 	}
 	while (list ($pid, $line) = each ($array) ){
@@ -179,7 +215,7 @@ function status(){
 		}
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: ".count($arrayPIDS)." php-cgi processes...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: ".count($arrayPIDS)." php-cgi processes...\n";}
 	
 }
 
@@ -187,25 +223,38 @@ function status(){
 
 function start($aspid=false){
 	$unix=new unix();
-	
+	$scriptlog=null;
+	if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}	
 	
 	$pid=LIGHTTPD_PID();
+	@mkdir("/usr/share/artica-postfix/ressources/web",0755,true);
+	if(!is_dir("/usr/share/artica-postfix/ressources/web")){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Framework service Warning !!! /usr/share/artica-postfix/ressources/web (permission denied !)\n";
+	}
 	
 	if($unix->process_exists($pid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service already started $pid since {$timepid}Mn...\n";}
-		return;
+		if(!$unix->is_socket("/usr/share/artica-postfix/ressources/web/framework.sock")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service framework.sock no such socket, stop framework\n";}
+			stop(true);
+		}else{
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework Service already started $pid since {$timepid}Mn...\n";}
+			return;
+		}
 	}
 		
 	
@@ -213,7 +262,7 @@ function start($aspid=false){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$lighttpd_bin=$unix->find_program("lighttpd");
 	if(!is_file($lighttpd_bin)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service lighttpd not found..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service lighttpd not found..\n";}
 		return;
 	}
 	
@@ -223,22 +272,36 @@ function start($aspid=false){
 	shell_exec($cmd);
 	buildConfig();
 	$cmd="$lighttpd_bin -f /etc/artica-postfix/framework.conf";
+	
+	
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	shell_exec($cmd);
 	
 	for($i=0;$i<6;$i++){
 		$pid=LIGHTTPD_PID();
-		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service waiting $i/6...\n";}
+		if($unix->process_exists($pid)){
+			if(!$unix->is_socket("/usr/share/artica-postfix/ressources/web/framework.sock")){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service waiting framework.sock\n";}
+			}else{
+				break;
+			}
+		}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service waiting $i/6...\n";}
 		sleep(1);
 	}
 	
 	$pid=LIGHTTPD_PID();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework Success service started pid:$pid...\n";}
+		FrmToSyslog("Success service started pid:$pid$scriptlog");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service apply permissions on framework.sock\n";}
+		@chmod("/usr/share/artica-postfix/ressources/web/framework.sock", 0777);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service apply permissions on Settings direcotry\n";}
+		$unix->chmod_alldirs(0755, "/etc/artica-postfix/settings/Daemons/*");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework Success service started pid:$pid...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service failed...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
+		
 	}
 	
 	
@@ -288,11 +351,15 @@ function buildConfig(){
 	$phpcgi=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
 	@mkdir("/usr/share/artica-postfix/framework",0755,true);
 	@mkdir("/usr/share/artica-postfix/ressources/sock",0755,true);
+	@mkdir("/usr/share/artica-postfix/ressources/web",0755,true);
 	@mkdir("/var/run/artica-framework",0755,true);
 	$LighttpdRunAsminimal=$sock->GET_INFO("LighttpdRunAsminimal");
 	$LighttpdArticaMaxProcs=$sock->GET_INFO("LighttpdArticaMaxProcs");
 	$LighttpdArticaMaxChildren=$sock->GET_INFO("LighttpdArticaMaxChildren");
 	$PHP_FCGI_MAX_REQUESTS=$sock->GET_INFO("PHP_FCGI_MAX_REQUESTS");
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+	
 	
 	if(!is_numeric($LighttpdRunAsminimal)){$LighttpdRunAsminimal=0;}
 	if(!is_numeric($LighttpdArticaMaxProcs)){$LighttpdArticaMaxProcs=0;}
@@ -312,31 +379,43 @@ function buildConfig(){
 		$PHP_FCGI_MAX_REQUESTS=1500;
 	}
 	
+	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+	if($MEMORY<624288){$LighttpdRunAsminimal=1;}
+	
 	if($LighttpdRunAsminimal==1){
 		$max_procs=1;
 		$PHP_FCGI_CHILDREN=2;
 		$PHP_FCGI_MAX_REQUESTS=500;
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: MAX Procs............: $max_procs\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Php5 processes.......: $PHP_FCGI_CHILDREN\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Max cnx/processes....: $PHP_FCGI_MAX_REQUESTS\n";}
+
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MAX Procs............: $max_procs\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Php5 processes.......: $PHP_FCGI_CHILDREN\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Max cnx/processes....: $PHP_FCGI_MAX_REQUESTS\n";}
 	
 	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
-	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
-	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+
+	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	
 	if(!is_file($phpfpm)){$EnablePHPFPM=0;}
 	$PHP_FPM_Params=PHP_FPM_Params();
 	if(!isset($ParseParams["allow-to-run-as-root"])){$EnablePHPFPMFrameWork=0;}
+	if($EnablePHPFPMFrameWork==0){$EnablePHPFPM=0;}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: php-fpm..............: $phpfpm\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: EnablePHPFPMFrameWork: $EnablePHPFPMFrameWork\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: EnablePHPFPM.........: $EnablePHPFPM\n";}
+	
 	
 	if($EnablePHPFPM==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Using PHP-FPM........: Yes\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Using PHP-FPM........: Yes\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Using PHP-FPM........: No\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Using PHP-FPM........: No\n";}
 	}
 	
 	$phpcgi_path=$unix->LIGHTTPD_PHP5_CGI_BIN_PATH();
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: php-cgi path.........: $phpcgi_path\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: php-cgi path.........: $phpcgi_path\n";}
 	$f[]="#artica-postfix saved by artica lighttpd.conf";
 	$f[]="";
 	$f[]="server.modules = (";
@@ -414,8 +493,8 @@ function buildConfig(){
 	$f[]="url.access-deny             = ( \"~\", \".inc\" )";
 	$f[]="";
 	$f[]="static-file.exclude-extensions = ( \".php\", \".pl\", \".fcgi\" )";
-	$f[]="server.port                 = 47980";
-	$f[]="server.bind                = \"127.0.0.1\"";
+	$f[]="#server.port                 = 47980";
+	$f[]="server.bind                = \"/usr/share/artica-postfix/ressources/web/framework.sock\"";
 	$f[]="#server.error-handler-404   = \"/error-handler.html\"";
 	$f[]="#server.error-handler-404   = \"/error-handler.php\"";
 	$f[]="server.pid-file             = \"/var/run/lighttpd/framework.pid\"";
@@ -465,6 +544,11 @@ function buildConfig(){
 	$f[]="	\".cgi\"  => \"/usr/bin/perl\",";
 	$f[]=")\n";
 	
+	@unlink("/var/log/artica-postfix/framework_error.log");
+	@unlink("/var/log/artica-postfix/framework.log");
+	@touch("/var/log/artica-postfix/framework_error.log");
+	@touch("/var/log/artica-postfix/framework.log");
+	
 	@file_put_contents("/etc/artica-postfix/framework.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: /etc/artica-postfix/framework.conf done\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: /etc/artica-postfix/framework.conf done\n";}
 }

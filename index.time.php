@@ -1,17 +1,21 @@
 <?php
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
-
+include_once(dirname(__FILE__)."/ressources/class.ntpd.inc");
 if(isset($_GET["about"])){about_section();exit;}
 if(isset($_GET["current-time"])){get_current_time();exit;}
 if(isset($_GET["settings"])){set_current_date_js();exit;}
 if(isset($_GET["date-settings"])){set_current_date_page();exit;}
 if(isset($_GET["year"])){save_currenttime();exit;}
-die("Wrong commands");
+if(isset($_POST["quick-change"])){quick_change();exit;}
+if(isset($_POST["timezone"])){SaveTimeZone();exit;}
+
+set_current_date_js();
 
 
 function set_current_date_js(){
 	$tpl=new templates();
+	$sock=new sockets();
 	$title=$tpl->_ENGINE_parse_body('{server_time2}');
 	$page=CurrentPageName();
 	$user=new usersMenus();
@@ -19,6 +23,9 @@ function set_current_date_js(){
 		echo $tpl->_ENGINE_parse_body("alert('{ERROR_NO_PRIVS}')");
 		die();
 	}
+	
+	$timezone_def=trim($sock->GET_INFO('timezones'));
+	
 	$html="
 	
 	var x_SaveServerTime= function (obj) {
@@ -30,7 +37,7 @@ function set_current_date_js(){
 	}	
 	
 		function LoadTimeParams(){
-			YahooWin6('500','$page?date-settings=yes','$title');
+			YahooWin6('650','$page?date-settings=yes','$title - $timezone_def');
 		
 		}
 		
@@ -55,6 +62,21 @@ function set_current_date_js(){
 	";
 	
 	echo $html;
+	
+}
+
+function quick_change(){
+	
+	if(!preg_match("#([0-9]+):([0-9]+):([0-9]+)#", $_POST["quick-change"],$re)){
+		echo "{$_POST["quick-change"]} Wrong value";
+		return;
+	}
+	$year=date('Y');
+	$month=date("m");
+	$day=date('d');
+	$newdate="$month$day{$re[1]}{$re[2]}$year.{$re[3]}";
+	$sock=new sockets();
+	echo $sock->getFrameWork("cmd.php?SetServerTime=$newdate");
 	
 }
 
@@ -89,6 +111,11 @@ function set_current_date_page(){
 	$sock=new sockets();
 	exec("/bin/date \"+%d-%m %H:%M:%S\"",$results);
 	$time=@implode("",$results);
+	$ntp=new ntpd(true);
+	$sock=new sockets();
+	
+	$arrayTimzone=$ntp->timezonearray();
+	$timezone_def=trim($sock->GET_INFO('timezones'));
 	
 	for($i=1;$i<13;$i++){
 		if($i<10){$month_text="0$i";}else{$month_text=$i;}
@@ -100,12 +127,12 @@ function set_current_date_page(){
 		$days[$day_text]=$day_text;
 	}
 
-	for($i=1;$i<24;$i++){
+	for($i=0;$i<24;$i++){
 		if($i<10){$hours_text="0$i";}else{$hours_text=$i;}
 		$hours[$hours_text]=$hours_text;
 	}
 
-	for($i=1;$i<60;$i++){
+	for($i=0;$i<60;$i++){
 		if($i<10){$mins_text="0$i";}else{$mins_text=$i;}
 		$mins[$mins_text]=$mins_text;
 		$secs[$mins_text]=$mins_text;
@@ -124,9 +151,11 @@ function set_current_date_page(){
 		$defmin=$re[4];
 		$defsec=$re[5];
 	}
+	
+	$t=time();
 	$headstyle="style='font-weight:bold;font-size:14px'";
 	$form="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 		<td $headstyle align='center'>{year}</th>
@@ -145,14 +174,23 @@ function set_current_date_page(){
 		<td align='center'>" . Field_array_Hash($secs,'seconds',$defsec,"style:font-size:20px;padding:5px")."</td>
 	</tr>
 	<tr>
-		<td colspan=6 align='right'>
-		<hr>". button("{apply}","SaveServerTime()","18px")."
-		</td>
-		
+		<td colspan=6 align='right' style='padding-top:10px'>". Field_text("quick-hour-$t","$defhour:$defmin:$defsec","font-size:22px;width:120px",null,null,null,false,"QuickChange$t(event)")."</td>
 	</tr>
-		
+	<tr>
+		<td colspan=6 align='right'><hr>". button("{apply}","SaveServerTime()","18px")."</td>
+	</tr>
 	</table>
-	
+	</div>		
+	<div style='width:98%' class=form>	
+	<table style='width:99%;margin-top:15px'>			
+	<tr>
+		<td valign='middle' class=legend nowrap style='font-size:20px'>{timezone}:</td>
+		<td valign='top'>".Field_array_Hash($arrayTimzone,"timezones$t",$timezone_def,null,null,"style:font-size:20px;padding:3px")."</td>
+	</tr>				
+	<tr>
+		<td colspan=6 align='right'><hr>". button("{apply}","SaveTimeZone$t()","18px")."</td>
+	</tr>
+	</table>				
 	</div>
 	<div style='text-align:right;width:100%'>". imgtootltip("20-refresh.png","{refresh}","LoadTimeParams()")."</div>";
 
@@ -179,6 +217,20 @@ function set_current_date_page(){
 			YahooWinBrowse('550','$page?about=yes','$titleabout');
 		
 		}
+		
+		function QuickChange$t(e){
+			if(!checkEnter(e)){return;}
+			var XHR = new XHRConnection();
+			XHR.appendData('quick-change',document.getElementById('quick-hour-$t').value);
+			XHR.sendAndLoad('$page', 'POST',x_SaveServerTime);
+			
+		}
+		
+		function SaveTimeZone$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('timezone',document.getElementById('timezones$t').value);
+			XHR.sendAndLoad('$page', 'POST',x_SaveServerTime);		
+		}
 	</script>
 	
 	";
@@ -190,5 +242,17 @@ function about_section(){
 	$tpl=new templates();
 	$html="<div class=explain style='font-size:13px'>{clocks_text}</div>";
 	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function SaveTimeZone(){
+	$sock=new sockets();
+	$GLOBALS["TIMEZONES"]=$_POST["timezone"];
+	$_SESSION["TIMEZONES"]=$_POST["timezone"];
+	$sock->SET_INFO('timezones',$_POST["timezone"]);
+	
+	$timezoneenc=urlencode(base64_encode(trim($_POST["timezone"])));
+	$data=$sock->getFrameWork("system.php?zoneinfo-set=$timezoneenc");
+	echo "PHP: New Time Zone: {$_POST["timezone"]}\nOS: $data\n";
+	
 }
 ?>

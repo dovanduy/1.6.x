@@ -7,6 +7,7 @@ include_once ('ressources/class.ldap.inc');
 include_once ('ressources/class.users.menus.inc');
 include_once ('ressources/class.user.inc');
 include_once ('ressources/class.ini.inc');
+include_once ('ressources/class.computers.inc');
 
 if(isset($_REQUEST["uid"])){$_GET["uid"]=$_REQUEST["uid"];$_GET["userid"]=$_REQUEST["uid"];}
 if(isset($_REQUEST["userid"])){$_GET["uid"]=$_REQUEST["userid"];$_GET["userid"]=$_REQUEST["userid"];}
@@ -134,6 +135,7 @@ function groups_list(){
 	$data['total'] = count($groups);
 	$data['rows'] = array();	
 	$search=string_to_flexregex();
+	if(count($groups)==0){json_error_show("no data");}
 	$c=0;
 	while ( list ( $num, $ligne ) = each ( $groups ) ) {
 		if($search<>null){if(!preg_match("#$search#i", $ligne)){continue;}}

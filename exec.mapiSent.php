@@ -26,7 +26,9 @@ function ScanMailBox($uid){
 	$zarafa_sock = "file:///var/run/zarafa";
 	$ZarafaServerListenIP=$sock->GET_INFO("ZarafaServerListenIP");
 	if($ZarafaServerListenIP==null){$ZarafaServerListenIP="127.0.0.1";}
-	$zarafaServer = "http://$ZarafaServerListenIP:236/zarafa";
+	$ZarafaServerListenPort=intval($sock->GET_INFO("ZarafaServerListenPort"));
+	if($ZarafaServerListenPort==0){$ZarafaServerListenPort=236;}
+	$zarafaServer = "http://$ZarafaServerListenIP:$ZarafaServerListenPort/zarafa";
 	$session = mapi_logon_zarafa($username, $password, $zarafaServer);
 	$hard_delete_messages = true;
 	$folder_to_process = 'Sent Items';

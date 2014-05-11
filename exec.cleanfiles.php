@@ -7,6 +7,7 @@
 	include_once(dirname(__FILE__).'/framework/frame.class.inc');
 	include_once(dirname(__FILE__).'/framework/class.unix.inc');
 	
+	if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="{$GLOBALS["ARTICALOGDIR"]}"; } }
 if($argv[1]=="--admin-events"){clean_admin_events();exit;}	
 $unix=new unix();
 $pidpath="/etc/artica-postfix/pids.3/".basename(__FILE__)."pid";
@@ -38,14 +39,41 @@ function CleanTempDirs(){
 		}
 		
 	}
+	if (!$handle = opendir("/")) {return;}
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="/$filename";
+		if(is_numeric($filename)){@unlink($targetFile);}
+	}
+	
+	CleanTimedFiles($unix->TEMP_DIR(),380);
+	CleanTimedFiles("/tmp",680);
+	CleanTimedFiles("/usr/share/artica-postfix/ressources/logs/jGrowl",240);
+	
+	
+}
+
+function CleanTimedFiles($directory,$maxtime){
+	
+	if (!$handle = opendir($directory)) {return;}
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$directory/$filename";
+		if(!is_file($targetFile)){continue;}
+		$file_time_min=file_time_min($filename);
+		if(file_time_min($filename)<$maxtime){continue;}
+		@unlink($filename);
+	}
 	
 }
 
 
 function CleanTinyProxy(){
 	if(!is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){return;}
-	$BaseWorkDirs[]="/var/log/artica-postfix/squid-usersize";
-	$BaseWorkDirs[]="/var/log/artica-postfix/ufdbguard-queue";
+	$BaseWorkDirs[]="{$GLOBALS["ARTICALOGDIR"]}/squid-usersize";
+	$BaseWorkDirs[]="{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-queue";
 	while (list ($num, $workdir) = each ($BaseWorkDirs) ){
 		if(!is_dir($workdir)){return;}
 		if (!$handle = opendir($workdir)) {continue;}
@@ -61,7 +89,7 @@ function CleanTinyProxy(){
 }
 
 function CleanArticaUpdateLogs(){
-	foreach (glob("/var/log/artica-postfix/artica-update-*.debug") as $filename) {
+	foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/artica-update-*.debug") as $filename) {
 		$file_time_min=file_time_min($filename);
 		if(file_time_min($filename)>5752){@unlink($filename);}
 		}
@@ -71,7 +99,7 @@ function CleanArticaUpdateLogs(){
 
 function ParseMysqlEventsQueue(){
 	$q=new mysql();
-	foreach (glob("/var/log/artica-postfix/sql-events-queue/*.sql") as $filename) {
+	foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/sql-events-queue/*.sql") as $filename) {
 			$sql=@file_get_contents($filename);
 			$q->QUERY_SQL($sql,"artica_events");
 			if($q->ok){
@@ -81,7 +109,7 @@ function ParseMysqlEventsQueue(){
 	}
 	
 function clean_admin_events(){
-	$BaseWorkDir="/var/log/artica-postfix/system_admin_events";
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/system_admin_events";
 	if (!$handle = opendir($BaseWorkDir)) {
 		echo "Failed open $BaseWorkDir\n";
 		return;

@@ -94,15 +94,8 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_cat_restore_backup style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_cat_restore_backup').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_cat_restore_backup");
+
 
 }
 

@@ -90,7 +90,7 @@ function settings_popup(){
 	$tt=time();
 	$html="
 	<div id='$tt'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px' nowrap>{public_mode}:</td>
@@ -179,7 +179,7 @@ function auth_popup(){
 	"ConnectTypeChangeForm$t()",null,0,"font-size:16px");
 	
 	$html="
-	<div style='width:95%' class=form>		
+	<div style='width:98%' class=form>		
 	<table style='width:100%'>
 	<tr>
 	<td class=legend style='font-size:16px'>{connection_type}:</td>

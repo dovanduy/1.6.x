@@ -22,7 +22,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-
+if(isset($_POST["ArticaDBPath"])){ArticaDBPathSave();exit;}
 if(isset($_GET["instant-update-daily"])){instant_update_daily();exit;}
 if(isset($_GET["instant-update-weekly"])){instant_update_weekly();exit;}
 if(isset($_POST["enable-clamav-global"])){enable_clamav_global();exit;}
@@ -115,6 +115,9 @@ function delete_category(){
 	$category=trim($_POST["delete-personal-cat"]);
 	if(strlen($category)==0){return;}
 	$q=new mysql_squid_builder();
+	
+	if($category=="UnkNown"){$category="";}
+	
 	$q->QUERY_SQL("DELETE FROM webfilter_blks WHERE category='$category'");
 	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
 	$q->QUERY_SQL("DELETE FROM usersisp_catztables WHERE category='$category'");
@@ -123,8 +126,14 @@ function delete_category(){
 	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
 	$q->QUERY_SQL("DELETE FROM usersisp_blkcatz WHERE category='$category'");
 	if(!$q->ok){echo $q->mysql_error."\nline:".__LINE__."\n";return;}
-	$q->QUERY_SQL("DROP TABLE category_$category");
-	if(!$q->ok){echo $q->mysql_error."\nDROP TABLE category_$category\nline:".__LINE__."\n";return;}
+	if($q->TABLE_EXISTS("category_$category")){
+		$q->QUERY_SQL("DROP TABLE category_$category");
+		if(!$q->ok){echo $q->mysql_error."\nDROP TABLE category_$category\nline:".__LINE__."\n";return;}
+	}
+	
+	$q->QUERY_SQL("DELETE FROM personal_categories WHERE category='$category'");
+	
+	if(!$q->ok){echo $q->mysql_error."\npersonal_categories\nline:".__LINE__."\n";return;}
 	$q->QUERY_SQL("TRUNCATE TABLE cwebfilters_categories_caches");
 	$sock=new sockets();
 	$sock->getFrameWork("webfilter.php?compile-rules=yes");
@@ -137,47 +146,118 @@ function CategoriesDatabasesByCron(){
 
 }
 
+function ArticaDBPathSave(){
+	$sock=new sockets();
+	$sock->SET_INFO("ArticaDBPath", $_POST["ArticaDBPath"]);
+	
+}
 
+function statusDB_not_installed(){
+	$tpl=new templates();
+	$sock=new sockets();
+	$t=time();
+	$ManualArticaDBPath=$sock->GET_INFO("ManualArticaDBPath");
+	if($ManualArticaDBPath==null){$ManualArticaDBPath="/home/manualupdate/articadb.tar.gz";}
+	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
+	if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
+	
+	$ArticaDBPathenc=urlencode($ArticaDBPath);
+	$arrayinfos=unserialize(base64_decode($sock->getFrameWork("services.php?dir-status=$ArticaDBPathenc")));
+	
+	$REQUIRE=round(1753076/1024);
+	$SIZE=round($arrayinfos["SIZE"]/1024);
+	
+	if($SIZE<$REQUIRE){
+		$error="<center style='color:red;font-weight:bold;font-size:16px;margin:20px'><span >".
+				$tpl->_ENGINE_parse_body("{no_enough_free_space_on_target}<br>&laquo;$ArticaDBPath&raquo;<br>({$SIZE}MB {require} {$REQUIRE}MB)</center>");
+	}
+	
+	
+	
+	$page=CurrentPageName();
+	$html=FATAL_ERROR_SHOW_128("{ARTICADB_NOT_INSTALLED_EXPLAIN}")."<center style='margin:80px'>
+		<hr>".button("{install_now}", "Loadjs('squid.blacklist.upd.php')",16)."
+		<hr>".button("{manual_update}", "Loadjs('squid.catzdb.manual-update.php')",16)."
+		<hr>$error
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+	
+	<tr>
+		<td class=legend style='font-size:16px'>{database_storage_path} ({$SIZE}MB):</td>
+		<td>". Field_text("ArticaDBPath-$t",$ArticaDBPath,"font-size:16px;width:320px")."</td>
+		<td width=1%>". button_browse("ArticaDBPath-$t")."</td>
+	</tr>				
+	<tr>
+		<td colspan=3 align='right'>". button("{apply}","Save$t()",18)."</td>
+	</tr>
+	</table>
+	</center>	
+<script>
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	Loadjs('squid.blacklist.upd.php');
+}	
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ArticaDBPath',document.getElementById('ArticaDBPath-$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);	
+}
+</script>";
+	echo $tpl->_ENGINE_parse_body($html);
+	
+}
 
 function statusDB(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$sock=new sockets();
-	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
-	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-	
-	
-	if($DisableArticaProxyStatistics==1){
-		$html=FATAL_ERROR_SHOW_128("{ARTICASTATISTICS_DISABLED}",16)."</center>";
-		echo $tpl->_ENGINE_parse_body($html);
-		return;		
 		
-	}
 	
-	if(!$users->ARTICADB_INSTALLED){
-		$html=FATAL_ERROR_SHOW_128("{ARTICADB_NOT_INSTALLED_EXPLAIN}")."<center style='margin:80px'>
-		<hr>".button("{install}", "Loadjs('squid.blacklist.upd.php')",16)."</center>";
-		echo $tpl->_ENGINE_parse_body($html);
-		return;
-	}
-	
-	
-	$date=$sock->getFrameWork("squid.php?articadb-version=yes");
 	$q=new mysql_catz();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
 	$catz=$q->LIST_TABLES_CATEGORIES();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?squid-ini-status=yes')));
-	$APP_ARTICADB=DAEMON_STATUS_ROUND("APP_ARTICADB",$ini,null,1);
+	
+	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+	$date=$CATZ_ARRAY["TIME"];
+	$LOCAL_VERSION=$CATZ_ARRAY["TIME"];
+	$title=$tpl->_ENGINE_parse_body("{APP_ARTICADB}");
+	$q=new mysql_catz();
+	
+	
+	unset($CATZ_ARRAY["TIME"]);
+	$CountDecategories=0;
+	while (list ($table, $items) = each ($CATZ_ARRAY) ){
+		$items=intval($items);
+		
+		$CountDecategories=$CountDecategories+$items;
+		if($GLOBALS["VERBOSE"]){echo "<li>$table - $items = $CountDecategories</li>";}
+	}
+	
+	
+	$CountDeDatabases=count($CATZ_ARRAY);
+	if(!is_numeric($CountDecategories)){$CountDecategories=0;}
+	$CountDecategories=numberFormat($CountDecategories,0,""," ");
+	
+	
 	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
-	$sql="SHOW VARIABLES LIKE '%version%';";
-	$results=$q->QUERY_SQL($sql);
 	
 	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
 	$CategoriesDatabasesShowIndex=$sock->GET_INFO("CategoriesDatabasesShowIndex");
-	if(!is_numeric($CategoriesDatabasesShowIndex)){$CategoriesDatabasesShowIndex=1;}	
+	if(!is_numeric($CategoriesDatabasesShowIndex)){$CategoriesDatabasesShowIndex=1;}
+	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
+	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}	
+	
+	$fbdize=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/categories-db.size.db"));
+	$DBSIZE=FormatBytes($fbdize["DBSIZE"]);
+	$POURC=$fbdize["POURC"];
+	if(is_numeric($POURC)){$POURC_TXT="&nbsp;{$POURC}% {used}";}
+	
 	
 	$tt0[]="<tr>
 			<td width=1%>". Field_checkbox("CategoriesDatabasesByCron", 1,$CategoriesDatabasesByCron,"CategoriesDatabasesByCron()")."</td>
@@ -190,29 +270,55 @@ function statusDB(){
 		</tr>";
 	
 	
-	if(!$q->ok){
-		$error=FATAL_ERROR_SHOW_128("$q->mysql_error");
-		writelogs("Fatal Error: $q->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		if($ligne["Variable_name"]=="slave_type_conversions"){continue;}
-		$tt[]="	<tr>
-					<td colspan=2><div style='font-size:14px'>{{$ligne["Variable_name"]}}:&nbsp;{$ligne["Value"]}</a></div></td>
-				</tr>";
-		}
+	
 		
 		$tt[]="<tr>
 		<td width=1%><img src='img/arrow-right-16.png'>
 		<td nowrap><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php');\" 
+		OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php&category=update');\" 
 		style='font-size:14px;text-decoration:underline;'>{display_update_events}</a></td>
 		</tr>";	
+		
+		/*$tt[]="<tr>
+		<td width=1%><img src='img/arrow-right-16.png'>
+		<td nowrap><a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.catzdb.manual-update.php');\"
+		style='font-size:14px;text-decoration:underline;'>{manual_update}</a></td>
+		</tr>";		
+		*/
+		
+		/*$tt[]="<tr>
+		<td width=1%><img src='img/arrow-right-16.png'>
+		<td nowrap><a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.catzdb.changedir.php');\"
+		style='font-size:14px;text-decoration:underline;'>{change_directory}</a></td>
+		</tr>";	
+		*/
+		
+		if($DisableArticaProxyStatistics==1){
+			$tt[]="<tr>
+		<td width=1%><img src='img/arrow-right-16.png'>
+		<td nowrap><a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.artica.statistics.php');\"
+		style='font-size:14px;text-decoration:underline;color:#D10000'>{ARTICA_STATISTICS} {disabled}</a></td>
+		</tr>";			
+			
+		}else{
+			$tt[]="<tr>
+		<td width=1%><img src='img/arrow-right-16.png'>
+		<td nowrap><a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.artica.statistics.php');\"
+		style='font-size:14px;text-decoration:underline;color:black'>{ARTICA_STATISTICS}</a></td>
+		</tr>";			
+		}
+
+		
+		
 	
 	$arrayV=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
-	$REMOTE_VERSION=$arrayV["ARTICATECH"]["VERSION"];
+	$REMOTE_VERSION=$arrayV["TIME"];
 	if($REMOTE_VERSION>$date){
-		$REMOTE_SIZE=$arrayV["ARTICATECH"]["SIZE"];	
-		$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
-		$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION ($REMOTE_SIZE)", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
+		$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
 	}
 	
 	$nextcheck=$sock->getFrameWork("squid.php?articadb-nextcheck=yes");
@@ -238,31 +344,29 @@ function statusDB(){
 	
 	$dbsize=$sock->getFrameWork("squid.php?articadbsize=yes");
 	$items=numberFormat($q->COUNT_CATEGORIES(),0,""," ");
-	$html="$error
-	<div style='width:95%' class=form>
+	$html="
+	<div style='width:98%' class=form>
 	<div class=explain style='font-size:14px'>{APP_ARTICADB_EXPLAIN}</div>
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'>$APP_ARTICADB$APP_SQUID_DB</td>
+	<td valign='top'>$APP_SQUID_DB</td>
 	<td valign='top'>
 	<table style='width:100%'>".@implode("\n", $tt0)."</table>
 	<hr>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)</div></td>
+		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)$POURC_TXT</div></td>
 	</tr>
 	$nextcheck_text
 	<tr>
-		<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;".count($catz)."</a></div></td>
-		
+		<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;$CountDeDatabases</a></div></td>
 	</tr>
 	<tr>
-		<td colspan=2><div style='font-size:16px'>{categorized_websites}:&nbsp;$items&nbsp</div></td>
+		<td colspan=2><div style='font-size:16px'>{categorized_websites}:&nbsp;
+		<a href=\"javascript:Loadjs('squid.catz.php');\" style='font-size:16px;text-decoration:underline'>
+		$CountDecategories</a>&nbsp</div></td>
 	</tr>
-	<tr>
-		<td colspan=2><div style='font-size:16px;font-weight:bold;margin-top:10px'>{mysql_engine}:</div></td>
-	</tr>	
 	".@implode("", $tt)."
 	</tbody>
 	</table>
@@ -300,6 +404,7 @@ function GetLastUpdateDate(){
 function compile_db_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$ask=$tpl->javascript_parse_text("{confirm_dnsg_compile_db} {$_GET["compile-db-js"]}");
 	$t=time();
 	$html="
@@ -320,6 +425,7 @@ function compile_all_db_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$ask=$tpl->javascript_parse_text("{confirm_dnsg_compileall_db}");
+	header("content-type: application/x-javascript");
 	$html="
 	
 	
@@ -439,8 +545,8 @@ function categories(){
 		$q->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");
 	}
 	
-	
-	
+	$q->QUERY_SQL("DELETE FROM personal_categories WHERE category='';");
+	$OnlyPersonal=null;
 	$dans=new dansguardian_rules();
 	$dans->LoadBlackListes();	
 	
@@ -494,6 +600,8 @@ function categories(){
 		$artica="&artica=yes";
 	}	
 	
+	if(isset($_GET["OnlyPersonal"])){$OnlyPersonal="&OnlyPersonal=yes";}
+	
 	$t=time();
 	$html="
 	<div style='margin-left:-15px'>
@@ -502,7 +610,7 @@ function categories(){
 <script>
 $(document).ready(function(){
 $('#dansguardian2-category-$t').flexigrid({
-	url: '$page?category-search=yes&minisize={$_GET["minisize"]}&t=$t$artica',
+	url: '$page?category-search=yes&minisize={$_GET["minisize"]}&t=$t$artica$OnlyPersonal',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'icon1', width : 32, sortable : false, align: 'left'},
@@ -528,9 +636,10 @@ buttons : [
 	usepager: true,
 	title: '',
 	useRp: true,
-	rp: 200,
+	rpOptions: [10, 20, 30, 50,100,200],
+	rp:50,
 	showTableToggleBtn: false,
-	width: $tablewith,
+	width: '99%',
 	height: 350,
 	singleSelect: true
 	
@@ -561,7 +670,7 @@ buttons : [
 		
 		function CategoryDansSearch(){
 			var se=escape(document.getElementById('category-dnas-search').value);
-			LoadAjax('dansguardian2-category-list','$page?category-search='+se);
+			LoadAjax('dansguardian2-category-list','$page?category-search='+se,false);
 		
 		}
 		
@@ -570,7 +679,7 @@ buttons : [
 		}
 		
 		function CheckStatsApplianceC(){
-			LoadAjax('CheckStatsAppliance','$page?CheckStatsAppliance=yes');
+			LoadAjax('CheckStatsAppliance','$page?CheckStatsAppliance=yes',false);
 		}
 		
 		var X_PurgeCategoriesDatabase= function (obj) {
@@ -624,26 +733,32 @@ function categories_search($forceArtica=false){
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}	
 	$t=$_GET["t"];
+	$OnlyPersonal=0;
 	$artica=$forceArtica;
+	if(isset($_GET["OnlyPersonal"])){$OnlyPersonal=1;}
 	$rp=200;
 	if(isset($_GET["artica"])){$artica=true;}
 	if($_POST["sortname"]=="table_name"){$_POST["sortname"]="categorykey";}
-	if(!$q->TestingConnection()){json_error_show("Testing connection to MySQL server failed...",1);}
+	if(!$q->BD_CONNECT()){json_error_show("Testing connection to MySQL server failed...",1);}
+	$table="webfilters_categories_caches";
+	$sql="SELECT * FROM personal_categories";
 	
-	if(!$q->TABLE_EXISTS("webfilters_categories_caches")){
-		$q->create_webfilters_categories_caches();
-	}
-		
+	if($OnlyPersonal==0){
+		if(!$q->TABLE_EXISTS($table)){ $q->create_webfilters_categories_caches(); }
 		$dans=new dansguardian_rules();
-		
-	if($q->COUNT_ROWS("webfilters_categories_caches")==0){
-		$dans->CategoriesTableCache();
-	}		
-		
-		
+		if($q->COUNT_ROWS($table)==0){ $dans->CategoriesTableCache(); }		
 		$dans->LoadBlackListes();
+	}else{
+		$table="personal_categories";
+		if($_POST["sortname"]=="categorykey"){$_POST["sortname"]="category";}
+	}
 	
-	
+	/*			$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`personal_categories` (
+				`category` VARCHAR( 15 ) NOT NULL ,
+				`category_description` VARCHAR( 255 ) NOT NULL ,
+				`master_category` VARCHAR( 50 ) NOT NULL ,
+				`sended` INT( 1 ) NOT NULL DEFAULT '0',
+	*/				
 	
 	$prefix="INSERT IGNORE INTO webfilters_categories_caches (`categorykey`,`description`,`picture`,`master_category`,`categoryname`) VALUES ";
 	
@@ -662,15 +777,14 @@ function categories_search($forceArtica=false){
 	
 
 	if($searchstring<>null){
-		
-		$sql="SELECT COUNT( * ) AS tcount FROM webfilters_categories_caches WHERE 1 $searchstring";
+		$sql="SELECT COUNT( * ) AS tcount FROM $table WHERE 1 $searchstring";
 		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){json_error_show("Mysql Error [".__LINE__."]: $q->mysql_error.<br>$sql",1);}
 		$total = $ligne["tcount"];
 		
 	}else{
-		$total = $q->COUNT_ROWS("webfilters_categories_caches");
+		$total = $q->COUNT_ROWS($table);
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -682,7 +796,7 @@ function categories_search($forceArtica=false){
 	
 	
 	
-	$sql="SELECT * FROM webfilters_categories_caches WHERE 1 $searchstring $ORDER $limitSql ";	
+	$sql="SELECT * FROM $table WHERE 1 $searchstring $ORDER $limitSql ";	
 	
 	writelogs("$q->mysql_admin:$q->mysql_password:$sql",__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
@@ -701,19 +815,40 @@ function categories_search($forceArtica=false){
 	
 	$enc=new mysql_catz();
 	
+	$field="categorykey";
+	$field_description="description";
+	if($OnlyPersonal==1){
+		$field="category";
+		$field_description="category_description";
+	}
+	
+	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+	
+	$TransArray=$enc->TransArray();
+	while (list ($tablename, $items) = each ($CATZ_ARRAY) ){
+		if(!isset($TransArray[$tablename])){continue;}
+		$CATZ_ARRAY2[$TransArray[$tablename]]=$items;
+	}
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
-		$categorykey=$ligne["categorykey"];
-		writelogs("Found  $categorykey",__FUNCTION__,__FILE__,__LINE__);
+	
+		$categorykey=$ligne[$field];
+		if($categorykey==null){$categorykey="UnkNown";}
+		//Array ( [category] => [category_description] => Ma catégorie [master_category] => [sended] => 1 )
+		if($GLOBALS["VERBOSE"]){echo "Found  $field:{$categorykey}<br>\n";}
 		$categoryname=$categorykey;
+		
+		
+		
 		$text_category=null;
 		
 		$table=$q->cat_totablename($categorykey);
-		writelogs("Scanning table $table",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "Scanning table $table<br>\n";}
 		$UnivToulouseItems=null;
 		
 		$itemsEncTxt=null;
 		$items=$q->COUNT_ROWS($table);
-		$itemsEnc=$enc->COUNT_ROWS($table);
+		$itemsEnc=$CATZ_ARRAY[$table];
 		
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		
@@ -729,48 +864,62 @@ function categories_search($forceArtica=false){
 		$sizedb=FormatBytes($sizedb_org/1024);
 		
 		
-		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t')\"
+		$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.categories.php?category={$categoryname}&t=$t',true)\"
 		style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
-		$text_category=$dans->array_blacksites[$categoryname];
 		
-		
-		
-		$text_category=$tpl->_ENGINE_parse_body($ligne["description"]);
+		$text_category=$tpl->_ENGINE_parse_body(utf8_decode($ligne[$field_description]));
 		$text_category=trim($text_category);
 		
 		
 		$pic="<img src='img/20-categories-personnal.png'>";
 		if($ligne["picture"]<>null){$pic="<img src='img/{$ligne["picture"]}'>";}
-					
-		if(!isset($dans->array_blacksites[$categoryname])){
-			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t')\"
+
+		if($OnlyPersonal==0){
+			if(!isset($dans->array_blacksites[$categoryname])){
+				$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t',true)\"
+				style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
+			}
+		}else{
+			$linkcat="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-perso-cat-js=yes&cat=$categoryname&t=$t',true)\"
 			style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		}
 		
 		if($EnableWebProxyStatsAppliance==0){if($sizedb_org<35){$pic="<img src='img/warning-panneau-32.png'>";}}
-		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}')");		
+		$viewDB=imgsimple("mysql-browse-database-32.png","{view}","javascript:Loadjs('squid.categories.php?category={$categoryname}',true)");		
 		
 		
 		$text_category=utf8_encode($text_category);
 		$categoryname_text=utf8_encode($categoryname);
-		
 		$categoryText=$tpl->_ENGINE_parse_body("<div style='font-size:14px';font-weight:bold'>$linkcat$categoryname_text</div>
 		</a><div style='font-size:11px;width:100%;font-weight:normal'>{$text_category}</div>");
 		$items=numberFormat($items,0,""," ");
+		$itemsEncTxt2=numberFormat($itemsEnc,0,""," ");
+
 		if($itemsEnc>0){
 			$itemsEncTxt="<br><span style='font-size:11px'>Artica:&nbsp;".numberFormat($itemsEnc,0,""," ");"</span>";
-			$itemsEncTxt2=numberFormat($itemsEnc,0,""," ");
+			
 		}
+		
+		if($OnlyPersonal==1){
+			$itemsEncTxt="<br><span style='font-size:11px'>".numberFormat($itemsEnc,0,""," ");"</span>";
+		}
+		
 		$compile=imgsimple("compile-distri-32.png",null,"DansGuardianCompileDB('$categoryname')");
 		$delete=imgsimple("delete-32.png","{delete}","TableCategoryPurge('$table')");
 		if($_GET["minisize"]=="yes"){$delete=null;}
 		
-		$q2=new mysql_squid_builder();
-		$ligneTLS=mysql_fetch_array($q2->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='$categoryname'"));
-		//writelogs("Toulouse, $categoryname -> {$ligneTLS["websitesnum"]}");
-		$UnivToulouse_websitesnum=$ligneTLS["websitesnum"];
-		if($UnivToulouse_websitesnum>0){
-			$UnivToulouseItems="<br><span style='font-size:11px'>University:&nbsp".numberFormat($UnivToulouse_websitesnum,0,""," ")."</span>";
+		if($OnlyPersonal==0){
+			$q2=new mysql_squid_builder();
+			$ligneTLS=mysql_fetch_array($q2->QUERY_SQL("SELECT websitesnum FROM univtlse1fr WHERE category='$categoryname'"));
+			$UnivToulouse_websitesnum=$ligneTLS["websitesnum"];
+			if($UnivToulouse_websitesnum>0){
+				$UnivToulouseItems="<br><span style='font-size:11px'>University:&nbsp".numberFormat($UnivToulouse_websitesnum,0,""," ")."</span>";
+			}
+		}
+		
+		if($categoryname=="UnkNown"){
+			$linkcat=null;
+			$delete=imgsimple("delete-32.png","{delete}","TableCategoryPurge('')");
 		}
 		
 		$cell=array();
@@ -954,10 +1103,10 @@ function add_category_js(){
 	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$widownsize=725;
+	$widownsize=995;
 	$t=$_GET["t"];
 	$title=$tpl->_ENGINE_parse_body("{add}::{personal_category}");
-	if($_GET["cat"]<>null){$title=$tpl->_ENGINE_parse_body("{$_GET["cat"]}::{personal_category}");$widownsize=750;}
+	if($_GET["cat"]<>null){$title=$tpl->_ENGINE_parse_body("{$_GET["cat"]}::{personal_category}");$widownsize=995;}
 	$html="YahooWin5('$widownsize','$page?add-perso-cat-tabs=yes&cat={$_GET["cat"]}&t=$t','$title');";
 	echo $html;
 }
@@ -1030,22 +1179,25 @@ function add_category_popup(){
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	
-	$actions="<table style='width:180px' class=form>
+	$actions="
+	<div style='width:98%' class=form>		
+	<table style='width:280px'>
 				<tr>
 					<td width=1%><img src='img/delete-24.png'></td>
 					<td width=99%><a href=\"javascript:blur();\" 
 					OnClick=\"javascript:DeletePersonalCat$t();\" 
-					style='font-size:12px;text-decoration:underline'>{delete_this_category}</a>
+					style='font-size:13px;text-decoration:underline'>{delete_this_category}</a>
 					</td>
 				</tr>
 				<tr>
 					<td width=1%><img src='img/database-connect-24-2.png'></td>
 					<td width=99%><a href=\"javascript:blur();\" 
 					OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category={$_GET["cat"]}&t=$t');\" 
-					style='font-size:12px;text-decoration:underline'>{compile_this_category}</a>
+					style='font-size:13px;text-decoration:underline'>{compile_this_category}</a>
 					</td>
 				</tr>				
-		</table>";
+		</table>
+</div>";
 	
 if($_GET["cat"]==null){$actions=null;}
 	
@@ -1053,8 +1205,10 @@ if($_GET["cat"]==null){$actions=null;}
 		$q=new mysql_squid_builder();
 		$sql="SELECT category_description,master_category FROM personal_categories WHERE category='{$_GET["cat"]}'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$titleBT="{apply}";
 	}else{
 		$action=null;
+		$titleBT='{add}';
 	}
 	
 	$groups=$dans->LoadBlackListesGroups();
@@ -1062,11 +1216,13 @@ if($_GET["cat"]==null){$actions=null;}
 	$field=Field_array_Hash($groups, "CatzByGroupL",null,$jsnull,null,0,"font-size:16px");
 	
 	$blacklists=$dans->array_blacksites;
-	$description="<textarea name='category_text' id='category_text' style='height:50px;overflow:auto;width:320px;font-size:16px'>"
+	$description="<textarea name='category_text' 
+			id='category_text-$t' style='height:50px;overflow:auto;width:99%;font-size:16px !important'>"
 	.utf8_encode($ligne["category_description"])."</textarea>";
 	
 	if(isset($blacklists[$_GET["cat"]])){
-		$description="<input type='hidden' id='category_text' value=''><div class=explain style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
+		$description="<input type='hidden' id='category_text-$t' value=''>
+		<div class=explain style='font-size:13px'>{$blacklists[$_GET["cat"]]}</div>";
 	}
 	
 	$html="
@@ -1078,7 +1234,7 @@ if($_GET["cat"]==null){$actions=null;}
 			<tbody>
 			<tr>
 				<td class=legend style='font-size:16px'>{category}:</td>
-				<td>". Field_text("category-to-add","{$_GET["cat"]}","font-size:16px;padding:3px;width:320px")."</td>
+				<td>". Field_text("category-to-add-$t","{$_GET["cat"]}","font-size:22px;padding:3px;width:99%;font-weight:bold")."</td>
 			</tr>
 			<tr>
 				<td class=legend style='font-size:16px'>{description}:</td>
@@ -1094,7 +1250,7 @@ if($_GET["cat"]==null){$actions=null;}
 			</tr>	
 			
 			<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","SavePersonalCategory()",16)."</td>
+			<td colspan=2 align='right'><hr>". button($titleBT,"SavePersonalCategory()",20)."</td>
 			</tr>
 			</tbody>
 			</table>
@@ -1108,7 +1264,6 @@ if($_GET["cat"]==null){$actions=null;}
 	<script>
 var X_SavePersonalCategory= function (obj) {
 		var results=obj.responseText;
-		document.getElementById('perso-cat-form').innerHTML='';
 		if(results.length>3){alert(results);return;};
 		$('#dansguardian2-category-$t').flexReload();
 		YahooWin5Hide();
@@ -1117,17 +1272,16 @@ var X_SavePersonalCategory= function (obj) {
 		
 	function SavePersonalCategory(){
 		var XHR = new XHRConnection();
-		var db=document.getElementById('category-to-add').value;
-		var expl=document.getElementById('category_text').value;
+		var db=document.getElementById('category-to-add-$t').value;
+		var expl=document.getElementById('category_text-$t').value;
 		if(db.length<5){alert('$error_category_nomore5');return;}
 		if(expl.length<5){alert('$error_category_textexpl');return;}
 		if(db.length>15){alert('$error_max_dbname: 15');return;}
 		XHR.appendData('personal_database',db);
-		var pp=encodeURIComponent(document.getElementById('category_text').value);
+		var pp=encodeURIComponent(document.getElementById('category_text-$t').value);
 		XHR.appendData('category_text',pp);
 		XHR.appendData('CatzByGroupA',document.getElementById('CatzByGroupA').value);
 		XHR.appendData('CatzByGroupL',document.getElementById('CatzByGroupL').value);
-		AnimateDiv('perso-cat-form');
 		XHR.sendAndLoad('$page', 'POST',X_SavePersonalCategory);				
 	}
 	
@@ -1160,7 +1314,7 @@ var X_SavePersonalCategory= function (obj) {
 	
 	function checkform(){
 		var cat='{$_GET["cat"]}';
-		if(cat.length>0){document.getElementById('category-to-add').disabled=true;}
+		if(cat.length>0){document.getElementById('category-to-add-$t').disabled=true;}
 	}
 checkform();
 </script>
@@ -1172,18 +1326,28 @@ checkform();
 }
 
 function add_category_save(){
-	include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
-	$ldap=new clladp();
+	$_POST["personal_database"]=url_decode_special_tool($_POST["personal_database"]);
+	$org=$_POST["personal_database"];
+
+	
+	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
+	$html=new htmltools_inc();
 	$dans=new dansguardian_rules();
-	$_POST["personal_database"]=strtolower($ldap->StripSpecialsChars($_POST["personal_database"]));
+	
+	$_POST["personal_database"]=strtolower($html->StripSpecialsChars($_POST["personal_database"]));
+	
+	if($_POST["personal_database"]==null){
+		echo "No category set or wrong category name \"$org\"\n";
+		return;
+	}
 	
 	if($_POST["personal_database"]=="security"){$_POST["personal_database"]="security2";}
 	if($_POST["CatzByGroupA"]<>null){$_POST["CatzByGroupL"]=$_POST["CatzByGroupA"];}
 	
-	$_POST["CatzByGroupL"]=addslashes($_POST["CatzByGroupL"]);
+	$_POST["CatzByGroupL"]=mysql_escape_string2($_POST["CatzByGroupL"]);
 	
 	$_POST["category_text"]=url_decode_special_tool($_POST["category_text"]);
-	$_POST["category_text"]=addslashes($_POST["category_text"]);
+	$_POST["category_text"]=mysql_escape_string2($_POST["category_text"]);
 	$q=new mysql_squid_builder();
 	$sql="SELECT category FROM personal_categories WHERE category='{$_POST["personal_database"]}'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
@@ -1286,7 +1450,7 @@ $('#$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 833,
+	width: '99%',
 	height: 450,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -1432,9 +1596,9 @@ $html="
 
 <script>
 	function RefreshArticaDBStatus(){
-		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');
-		LoadAjax('clamav-status-databases-$t','$page?global-clamav-status-databases=yes');
-		LoadAjax('statistics-status-databases-$t','$page?global-statistics-status-databases=yes');
+		LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t',false);
+		LoadAjax('clamav-status-databases-$t','$page?global-clamav-status-databases=yes',false);
+		LoadAjax('statistics-status-databases-$t','$page?global-statistics-status-databases=yes',false);
 		
 	}
 	
@@ -1636,7 +1800,9 @@ function global_clamav_db(){
 	
 	$tableau="
 	<div id='clamav-$t'>
-	<table style='width:99%' class=form>
+<div style='width:95%;min-height:254px' class=form>
+<table style='width:99%'>
+	<tbody>
 	<tbody>
 		<tr>
 			<td colspan=2 style='font-size:16px'>{APP_CLAMAV}$running</td>
@@ -1648,20 +1814,21 @@ function global_clamav_db(){
 		<tr>
 			<td colspan=2 style='font-size:14px' align='right'>
 			<table style='width:2%'>
-			<tbody>
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" 
-				OnClick=\"javascript:Loadjs('clamav.index.php?freshclam-js=yes');\" 
-				style='font-size:12px;text-decoration:underline'>{parameters}</a></td>
-			</tr>	
-			$enable			
-			</tbody>
+				<tbody>
+					<tr>
+						<td width=1%><img src='img/arrow-right-16.png'>
+						<td nowrap><a href=\"javascript:blur();\" 
+						OnClick=\"javascript:Loadjs('clamav.index.php?freshclam-js=yes');\" 
+						style='font-size:12px;text-decoration:underline'>{parameters}</a></td>
+					</tr>	
+					$enable			
+				</tbody>
 			</table>
 		</tr>
 			
 	</tbody>
 	</table>
+	</div>
 	</div>
 	<script>
 	var xenable_clamav_global= function (obj) {
@@ -1707,6 +1874,7 @@ function global_statistics_db(){
 	$page=CurrentPageName();
 	$q=new mysql();
 	$logo="statistics2-64.png";
+	$sock=new sockets();
 	$sql="SELECT * FROM `mysqldbs` WHERE databasename='squidlogs'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 	$databasename=$ligne["databasename"];
@@ -1721,11 +1889,20 @@ function global_statistics_db(){
 	$TableSize=$ligne["tablesize"];		
 	$TableRows=numberFormat($TableRows,0,'.',' ',3);
 	$TableSize=FormatBytes($TableSize/1024);
-
+	
+	$DB_STATUS=unserialize(base64_decode($sock->getFrameWork("ufdbguard.php?databases-percent=yes")));
+	
+	
+	$DB_STATUS_TIME=$DB_STATUS["CATZ"]["LAST_TIME"];
+	$DB_STATUS_MAX=$DB_STATUS["CATZ"]["MAX"];
+	$DB_STATUS_COUNT=$DB_STATUS["CATZ"]["COUNT"];
+	$DB_STATUS_PERC=round(($DB_STATUS_COUNT/$DB_STATUS_MAX)*100);
+	if($DB_STATUS_PERC>100){$DB_STATUS_PERC=100;}
 	//$items=numberFormat($items,0,""," ");	
 	
 	
-	$tableau="<table style='width:99%' class=form>
+	$tableau="<div style='width:95%;min-height:254px' class=form>
+<table style='width:99%'>
 	<tbody>
 		<tr>
 			<td colspan=2 style='font-size:16px'>{statistics_database}</td>
@@ -1759,9 +1936,13 @@ function global_statistics_db(){
 			</tbody>
 			</table>
 		</tr>
-			
+		<tr>
+			<td class=legend style='font-size:12px;font-weight:bold;$color'>{update_status}:</td>
+			<td>". pourcentage($DB_STATUS_PERC,0,"green")."</td>
+		</tr>				
 	</tbody>
 	</table>
+	</div>
 	<script>
 	var xScanThumbnails= function (obj) {
 			var tempvalue=obj.responseText;
@@ -1775,7 +1956,7 @@ function global_statistics_db(){
 			XHR.sendAndLoad('$page', 'POST',xScanThumbnails);
 		}
 		
-		
+		UnlockPage();
 	
 	</script>
 	
@@ -1893,7 +2074,7 @@ function global_status_tlse_db(){
 			XHR.sendAndLoad('$page', 'POST',xToulouseDBUpdateNow);		
 		
 		}
-	
+	UnlockPage();
 	</script>
 	
 	
@@ -1920,185 +2101,8 @@ function global_status_tlse_db(){
 }
 
 function global_status_artica_db(){
-	$tpl=new templates();
-	$page=CurrentPageName();
-	$date=GetLastUpdateDate();
-	$users=new usersMenus();
-	$q=new mysql();
-	$sql="SELECT avg(progress) as pourcent FROM updates_categories  WHERE filesize>0";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if(!is_numeric($ligne["pourcent"])){$ligne["pourcent"]=0;}
-	$pourcent=round($ligne["pourcent"],2);
-	$purc=pourcentage($pourcent);
-	$t=$_GET["t"];
-	
-	
-	$color="color:black;";
-	$sock=new sockets();
-	$scheduledAR=unserialize(base64_decode($sock->getFrameWork("squid.php?schedule-maintenance-exec=yes")));
-	$SquidDatabasesArticaEnable=$sock->GET_INFO("SquidDatabasesArticaEnable");
-	if(!is_numeric($SquidDatabasesArticaEnable)){$SquidDatabasesArticaEnable=1;}
-	if($SquidDatabasesArticaEnable==1){$disable_text="Artica&nbsp;{database}:&nbsp;{enabled}";}else{
-		$disable_text="Artica&nbsp;{database}:&nbsp;{disabled}";
-		$color="color:#B6ACAC";
-	}
-	$CORP_LICENSE=1;
-	if(!$users->CORP_LICENSE){
-		$CORP_LICENSE=0;
-		$SquidDatabasesArticaEnable=0;
-		$disable_text="Artica&nbsp;{database}:&nbsp;<strong style='color:#BA1010'>{license_inactive}</strong>";
-		$color="color:#B6ACAC";
-	}
-	
-	$running="<br><i style='font-size:12px'>{update_task_stopped}</i>";
-	if($scheduledAR["RUNNING"]){$running="<br><i style='font-size:12px;color:#BA0000'>{update_currently_running_since} {$scheduledAR["TIME"]}Mn</i>";}
-	
-	$q=new mysql();
-	$SQL_ALL_ITEMS="SELECT SUM( TABLE_ROWS ) AS tcount
-	FROM information_schema.tables
-	WHERE table_schema = 'squidlogs'
-	AND table_name LIKE 'category_%'";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($SQL_ALL_ITEMS,"information_schema"));
-	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}	
-	$itemsPerso=$ligne["tcount"];
-	$itemsPerso=numberFormat($itemsPerso,0,""," ");
-	
-	$catz=new mysql_catz();
-	$itemsArtica=numberFormat($catz->COUNT_CATEGORIES(),0,""," ");
-
-	$q=new mysql_squid_builder();
-	$backuped_items=$q->COUNT_ROWS("webfilters_backupeddbs");
-	$sql="SELECT SUM(size) as tszie FROM webfilters_backupeddbs";
-	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
-	$backuped_items_size=FormatBytes($ligne["tszie"]/1024);
-	
-	$backuped_items_text="$backuped_items {backup_containers} ($backuped_items_size)";
-	
-	
-	$tableau="<table style='width:99%' class=form>
-	<tbody>
-		<tr>
-			<td colspan=2 style='font-size:16px;$color'>{artica_databases}$running</td>
-		</tr>
-		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold'>{youritems}:</td>
-			<td style='font-size:14px;font-weight:bold'>$itemsPerso</td>
-		</tr>
-		<tr>
-			<td colspan=2 style='font-size:14px' align='right'>
-				<table style='width:2%'>
-						<tr>
-							<td width=1%><img src='img/arrow-right-16.png'>
-							<td nowrap><a href=\"javascript:blur();\" 
-							OnClick=\"javascript:Loadjs('dansguardian2.backuped.databases.php');\" 
-							style='font-size:12px;text-decoration:underline'>$backuped_items_text</a>
-							</td>
-						</tr>	
-						<tr>
-							<td width=1%><img src='img/arrow-right-16.png'>
-							<td nowrap><a href=\"javascript:blur();\" 
-							OnClick=\"javascript:Loadjs('dansguardian2.restore.databases.php');\" 
-							style='font-size:12px;text-decoration:underline'>{restore_backup}</a>
-							</td>
-						</tr>
-						<tr>
-							<td width=1%><img src='img/arrow-right-16.png' id='emptypersonaldbdiv'>
-							<td nowrap><a href=\"javascript:blur();\" 
-							OnClick=\"javascript:Loadjs('dansguardian2.restore.databases.php?empty-js=yes');\" 
-							style='font-size:12px;text-decoration:underline'>{empty_database}</a>
-							</td>
-						</tr>														
-				</table>
-			</td>			
-		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold;$color'>{articaitems}:</td>
-			<td style='font-size:14px;font-weight:bold;$color'>$itemsArtica</td>
-		</tr>
-
-	
-		<tr>
-			<td colspan=2 style='font-size:14px' align='right'>
-			<table style='width:2%'>
-			<tbody>
-						<tr>
-							<td width=1%><img src='img/arrow-right-16.png'>
-							<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBDisable();\" style='font-size:12px;text-decoration:underline;$color'>$disable_text</a></td>
-						</tr>			
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBUpdateNow();\" style='font-size:12px;text-decoration:underline;$color'>{update_now}</a></td>
-			</tr>
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php');\" style='font-size:12px;text-decoration:underline;$color'>{display_update_events}</a></td>
-			</tr>	
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('ufdbguard.databases.php?scripts=compile-schedule');\" style='font-size:12px;text-decoration:underline;$color'>{compilation_schedule}</a></td>
-			</tr>						
-			</tbody>
-			</table>
-		</tr>
-			
-	</tbody>
-	</table>
-	<script>
-	var x_ArticaDBUpdateNow= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-	    	RefreshArticaDBStatus();
-		}	
-
-		function ArticaDBUpdateNow(){
-			var CORP_LICENSE=$CORP_LICENSE;
-			if(CORP_LICENSE==0){alert('license error');return;}
-			var XHR = new XHRConnection();
-			XHR.appendData('global-artica-status-update','yes');
-			XHR.sendAndLoad('$page', 'POST',x_ArticaDBUpdateNow);
-		}
-	
-		
-	var xArticaDBDisable= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue)};
-	    	RefreshArticaDBStatus();
-		}	
-
-		
-		function ArticaDBDisable(){
-			var CORP_LICENSE=$CORP_LICENSE;
-			if(CORP_LICENSE==0){alert('license error');return;}
-			var XHR = new XHRConnection();
-			XHR.appendData('global-artica-enable-update','$SquidDatabasesArticaEnable');
-			XHR.sendAndLoad('$page', 'POST',xArticaDBDisable);		
-		
-		}		
-	</script>
-	
-	
-	";
-	
-	
-
-	$html="<table style='width:100%'>
-	<tbody>
-	<tr>
-		<td valign='top' width=1%><img src='img/artica5-64.png'></td>
-		<td valign='top' width=99%>$tableau</td>
-	</tr>
-	<tr>
-		<td colspan=2 align='right'><hr>". imgtootltip("refresh-24.png","{refresh}","LoadAjax('artica-status-databases-$t','$page?global-artica-status-databases=yes&t=$t');")."</td>
-	</tr>
-	</tbody>
-	</table>
-	<script>
-		
-		LoadAjax('tlse-status-databases-$t','$page?global-tlse-status-databases=yes&t=$t');
-	</script>
-	
-	";
-	
-	echo $tpl->_ENGINE_parse_body($html);
+$tt=time();
+echo "<div id='$tt'></div><script>LoadAjax('$tt','dansguardian2.databases.compiled.php?global-artica-status-databases=yes&t={$_GET["t"]}',false);</script>";
 }
 function global_status_artica_update(){
 	$sock=new sockets();
@@ -2175,7 +2179,7 @@ function instant_update_weekly(){
 	$gp->line_green();
 	if(is_file($targetedfile)){
 		$html[]=$tpl->_ENGINE_parse_body("<center style='font-size:13px;margin-top:8px'>{graph_instant_update_squid_byday}</center>");
-		$html[]="<center style='width:95%' class=form><img src='$targetedfile?t=$t'></center>";
+		$html[]="<center style='width:98%' class=form><img src='$targetedfile?t=$t'></center>";
 		
 		
 	}	
@@ -2247,7 +2251,7 @@ function instant_update_daily(){
 	$gp->line_green();
 	if(is_file($targetedfile)){
 		$html[]=$tpl->_ENGINE_parse_body("<center style='font-size:13px;margin-top:8px'>{graph_instant_update_squid_byhour}</center>");
-		$html[]="<center style='width:95%' class=form><img src='$targetedfile'></center>";
+		$html[]="<center style='width:98%' class=form><img src='$targetedfile'></center>";
 	}
 	
 	}

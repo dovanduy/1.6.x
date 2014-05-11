@@ -42,7 +42,7 @@ begin
        binpath:=BIN_PATH();
        D:=SYS.verbosed;
        EnableVnStat:=1;
-       if not TryStrToInt(SYS.GET_INFO('EnableVnStat'),EnableVnStat) then EnableVnStat:=1;
+       if not TryStrToInt(SYS.GET_INFO('EnableVnStat'),EnableVnStat) then EnableVnStat:=0;
        if D then writeln('EnableVnStat -> ',SYS.GET_INFO('EnableVnStat'),'=',EnableVnStat);
 end;
 //##############################################################################

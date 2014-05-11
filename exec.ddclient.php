@@ -26,7 +26,7 @@ function build(){
 	
 	
 	if(is_array($DDClientConfig["OPENDNS"])){
-		$conf[]="use=web, web=www.artica.fr/my-ip.php";
+		$conf[]="use=web, web=www.articatech.net/my-ip.php";
 		$conf[]="server=updates.opendns.com";
 		$conf[]="protocol=dyndns2";         
 		$conf[]="login={$DDClientArray["dd_client_username"]}";    
@@ -36,7 +36,7 @@ function build(){
 
 	@mkdir("/etc/ddclient",666,true);
 	@file_put_contents("/etc/ddclient/ddclient.conf",@implode("\n",$conf));
-	echo "Starting......: DDClient /etc/ddclient/ddclient.conf done\n";
+	echo "Starting......: ".date("H:i:s")." DDClient /etc/ddclient/ddclient.conf done\n";
 	
 	
 }

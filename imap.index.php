@@ -164,7 +164,7 @@ function imap_list_messages($folder){
 			if($msg_id<>null){
 				$html=$html . "
 				<tr " . CellRollOver($link) .">
-				<td width=1% $style><img src='img/spamailbox_storage.gif'></td>
+				<td width=1% $style><img src='img/spamailbox.png'></td>
 				<td $style width=1% ><strong>{$msg_array["from"]}</strong></td>
 				<td $style><strong>{$msg_array["subject"]}</strong></td>
 				<td width=5% nowrap $style><strong>{$msg_array["date"]}</strong></td>

@@ -21,7 +21,7 @@ class compile_dansguardian{
 	
 	
 	function build(){
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian ->compile_default()\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian ->compile_default()\n";}
 		$this->compile_default();
 		
 		
@@ -33,11 +33,11 @@ class compile_dansguardian{
 		$q=new mysql_squid_builder();
 		$sql="SELECT ID FROM webfilter_rules WHERE enabled=1";
 		$results=$q->QUERY_SQL($sql);
-		if(!$q->ok){echo "Starting......: DansGuardian Fatal error $q->mysql_error LINE: ". __LINE__."\n";}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." DansGuardian Fatal error $q->mysql_error LINE: ". __LINE__."\n";}
 		$c=1;;
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$c++;
-			if($GLOBALS["VERBOSE"]){echo "Starting......: rule {$ligne["ID"]} = $c\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." rule {$ligne["ID"]} = $c\n";}
 			$GLOBALS["DGRULES"][$ligne["ID"]]=$c;
 		}
 		
@@ -47,7 +47,7 @@ class compile_dansguardian{
 		$f=array();
 		$q=new mysql_squid_builder();
 		$sql="SELECT * FROM webfilter_group WHERE enabled=1 AND ID=$groupid";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian filtergroupslist_assoc(): $sql ruleid:$ruleid, groupid: $groupid\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian filtergroupslist_assoc(): $sql ruleid:$ruleid, groupid: $groupid\n";}
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["ID"]==null){return;}
 		$DGRULE=$GLOBALS["DGRULES"][$ruleid];
@@ -69,7 +69,7 @@ class compile_dansguardian{
 		
 		$sql="SELECT * FROM webfilter_members WHERE enabled=1 AND groupid=$groupid";
 		$results=$q->QUERY_SQL($sql);
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian filtergroupslist_assoc():gpid:$groupid ". mysql_num_rows($results)." items\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian filtergroupslist_assoc():gpid:$groupid ". mysql_num_rows($results)." items\n";}
 		
 		while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
 			if(trim($ligne2["pattern"])==null){continue;}
@@ -79,7 +79,7 @@ class compile_dansguardian{
 			if($ligne2["membertype"]==1){$f[]="{$ligne2["pattern"]}=filter$DGRULE";}		
 		}
 		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian ruleid:$ruleid, groupid: $groupid -> ". count($f) ." items\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian ruleid:$ruleid, groupid: $groupid -> ". count($f) ." items\n";}
 		return @implode("\n", $f);
 		
 	}
@@ -97,7 +97,7 @@ class compile_dansguardian{
 		}
 		
 		if(!is_dir("/etc/dansguardian/lists")){@mkdir("/etc/dansguardian/lists",755,true);}
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian filtergroupslist -> ". count($f) ." items\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian filtergroupslist -> ". count($f) ." items\n";}
 		@file_put_contents("/etc/dansguardian/lists/filtergroupslist", @implode("\n", $f));
 		
 	}
@@ -110,15 +110,15 @@ class compile_dansguardian{
 		$dn=base64_decode($ligne["dn"]);
 		$sql="SELECT activedirectory_users.samaccountname FROM activedirectory_users,activedirectory_groups
 		WHERE activedirectory_groups.userdn=activedirectory_users.dn AND activedirectory_groups.groupdn='$dn'";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian :$sql\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian :$sql\n";}
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo $q->mysql_error."\n";}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian :$DGRULE] Active Directory `{$ligne["samaccountname"]}`\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian :$DGRULE] Active Directory `{$ligne["samaccountname"]}`\n";}
 				$f[]="{$ligne["samaccountname"]}=filter$DGRULE";
 		}
-		if($GLOBALS["VERBOSE"]){echo "Starting......: DansGuardian Active Directory group $ID return ". count($f) ." items\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." DansGuardian Active Directory group $ID return ". count($f) ." items\n";}
 		return @implode("\n", $f)."\n";
 		
 	}
@@ -131,7 +131,7 @@ class compile_dansguardian{
 		
 		$q=new mysql_squid_builder();
 		while (list ($ruleID, $DGRULE) = each ($rules)){
-			echo "Starting......: DansGuardian building rule `$ruleID`\n";
+			echo "Starting......: ".date("H:i:s")." DansGuardian building rule `$ruleID`\n";
 			$sql="SELECT * FROM webfilter_rules WHERE ID=$ruleID";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 			if($ruleID==0){
@@ -253,7 +253,7 @@ class compile_dansguardian{
 			if(!is_dir("$basedir/$category")){@mkdir("$basedir/$category");}
 			@file_put_contents("$basedir/$category/weighted", @implode("\n", $array));
 		}
-		echo "Starting......: DansGuardian writing ". count($f)." items phraseslist\n"; 
+		echo "Starting......: ".date("H:i:s")." DansGuardian writing ". count($f)." items phraseslist\n"; 
 		
 		
 	}
@@ -280,7 +280,7 @@ class compile_dansguardian{
 			
 			
 			$results2 =$q->QUERY_SQL("SELECT * FROM webfilters_dtimes_blks WHERE webfilter_id='{$ligne["ID"]}' and modeblk=$whitelist");
-			if(mysql_num_rows($results2)==0){echo "Starting......: DansGuardian building time: rule {$ligne["ID"]} of main rule $ruleID have no $suffix(s)\n";continue;}
+			if(mysql_num_rows($results2)==0){echo "Starting......: ".date("H:i:s")." DansGuardian building time: rule {$ligne["ID"]} of main rule $ruleID have no $suffix(s)\n";continue;}
 						
 			while ($ligne2 = mysql_fetch_assoc($results2)) {
 				$category=$ligne2["category"];
@@ -319,7 +319,7 @@ class compile_dansguardian{
 			$categorypath="/var/lib/squidguard/".$q->category_transform_name($category)."/domains";
 			$categorypathTLSE="/var/lib/ftpunivtlse1fr/".$q->category_transform_name_toulouse($category)."/domains";
 			if(!is_file($categorypath)){
-				echo "Starting......: DansGuardian building $category $categorypath no such file -> Order it\n";
+				echo "Starting......: ".date("H:i:s")." DansGuardian building $category $categorypath no such file -> Order it\n";
 				$order="COMPILEDB:$category";
 				$md5=md5($order);
 				$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");
@@ -346,7 +346,7 @@ class compile_dansguardian{
 		if($GLOBALS["webfilters_blkwhlts_black"]){$f[]=".Include</etc/dansguardian/lists/blacklists/blacklisted/domains>";}		
 		
 		
-		echo "Starting......: DansGuardian building bannedsitelist `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building bannedsitelist `$ruleID` ". count($f)." items\n";
 		@file_put_contents("/etc/dansguardian/lists/$bannedsitelistname", @implode("\n", $f));
 	}
 	
@@ -364,7 +364,7 @@ class compile_dansguardian{
 			$f[]=$this->bannedregexpurllist_compile($category);
 			
 		}
-		echo "Starting......: DansGuardian building bannedregexpurllist `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building bannedregexpurllist `$ruleID` ". count($f)." items\n";
 		@file_put_contents("/etc/dansguardian/lists/$bannedsitelistname", @implode("\n", $f));
 	}
 	
@@ -383,7 +383,7 @@ class compile_dansguardian{
 			
 		}
 		
-		echo "Starting......: DansGuardian building exceptionregexpurllist `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building exceptionregexpurllist `$ruleID` ". count($f)." items\n";
 		$f[]='';
 		@file_put_contents("/etc/dansguardian/lists/$bannedsitelistname", @implode("\n", $f));		
 	}
@@ -400,7 +400,7 @@ class compile_dansguardian{
 			$GLOBALS["bannedregexpurllist_compile"][$category][]=$ligne["pattern"];
 			
 		}
-		echo "Starting......: DansGuardian building exceptionregexpurllist `$category` ". count($GLOBALS["bannedregexpurllist_compile"][$category])." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building exceptionregexpurllist `$category` ". count($GLOBALS["bannedregexpurllist_compile"][$category])." items\n";
 		return @implode("\n",$GLOBALS["bannedregexpurllist_compile"][$category]);
 		
 	}
@@ -421,7 +421,7 @@ class compile_dansguardian{
 			if(!is_file($categorypath)){continue;}
 			$f[]=".Include<$categorypath>";
 		}
-		echo "Starting......: DansGuardian building weightedphraselist (block) `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building weightedphraselist (block) `$ruleID` ". count($f)." items\n";
 		@file_put_contents("/etc/dansguardian/lists/$weightedphraselist", @implode("\n", $f));
 	}
 	
@@ -439,7 +439,7 @@ class compile_dansguardian{
 			
 			$f[]=".Include<$categorypath>";
 		}
-		echo "Starting......: DansGuardian building exceptionphraselist `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building exceptionphraselist `$ruleID` ". count($f)." items\n";
 		@file_put_contents("/etc/dansguardian/lists/$exceptionphraselist", @implode("\n", $f));
 	}	
 
@@ -457,7 +457,7 @@ class compile_dansguardian{
 			$description=$ligne["description"];
 			$f[]=".$ext\t#$description";
 		}
-		echo "Starting......: DansGuardian building bannedextensionlist `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building bannedextensionlist `$ruleID` ". count($f)." items\n";
 		@file_put_contents("/etc/dansguardian/lists/$bannedsitelistname", @implode("\n", $f));
 	}	
 	
@@ -474,7 +474,7 @@ class compile_dansguardian{
 			$categorypath="/var/lib/squidguard/".$q->category_transform_name($category)."/domains";
 			$categorypathTLSE="/var/lib/ftpunivtlse1fr/".$q->category_transform_name_toulouse($category)."/domains";
 			if(!is_file($categorypath)){
-				echo "Starting......: DansGuardian building $category $categorypath no such file -> Order it\n";
+				echo "Starting......: ".date("H:i:s")." DansGuardian building $category $categorypath no such file -> Order it\n";
 				$order="COMPILEDB:$category";
 				$md5=md5($order);
 				$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");
@@ -500,7 +500,7 @@ class compile_dansguardian{
 		if(isset($GLOBALS["webfilters_blkwhlts"])){$f[]=".Include</etc/dansguardian/lists/blacklists/whitelisted/domains>";}
 		
 		
-		echo "Starting......: DansGuardian building exceptionsitelist `$ruleID` ". count($f)." items\n";
+		echo "Starting......: ".date("H:i:s")." DansGuardian building exceptionsitelist `$ruleID` ". count($f)." items\n";
 		@file_put_contents("/etc/dansguardian/lists/$exceptionsitelistname", @implode("\n", $f));
 	}	
 	
@@ -525,7 +525,7 @@ class compile_dansguardian{
 			if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}	
 			$GLOBALS["ipgroups"]=array();
 			$version=explode(".",$this->DansguardianVersion());
-			echo "Starting......: DansGuardian v{$version[0]}.{$version[1]}\n";
+			echo "Starting......: ".date("H:i:s")." DansGuardian v{$version[0]}.{$version[1]}\n";
 			
 			
 			
@@ -630,7 +630,7 @@ class compile_dansguardian{
 			@mkdir("/etc/dansguardian/lists/authplugins",755,true);
 			$this->dansguardianFrules();
 			$this->filtergroupslist();
-			echo "Starting......: DansGuardian ip based : ". count($this->ipgroups)." items\n";
+			echo "Starting......: ".date("H:i:s")." DansGuardian ip based : ". count($this->ipgroups)." items\n";
 			if(count($this->ipgroups)>0){
 				$f[]="authplugin = '/etc/dansguardian/authplugins/ip.conf'";
 			}

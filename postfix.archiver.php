@@ -18,6 +18,7 @@
 	
 	if(isset($_POST["MailArchiverEnabled"])){MailArchiverEnabled();exit;}
 	if(isset($_GET["status"])){status();exit;}
+	if(isset($_GET["status2"])){status2();exit;}
 
 popup();
 
@@ -47,10 +48,11 @@ function popup(){
 	
 	
 	$milter=Paragraphe_switch_img('{enable_APP_MAILARCHIVER}',
-	'{enable_APP_MAILARCHIVER_text}','enable_archiver',$MailArchiverEnabled,'{enable_disable}',450);
+	'{enable_APP_MAILARCHIVER_text}','enable_archiver',$MailArchiverEnabled,'{enable_disable}',800);
 	
 	$html="
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:99%' >
 	<tr>
 	<td>
 		<div style='font-size:26px'>{backupemail_behavior}<hr></div>
@@ -96,6 +98,7 @@ function popup(){
 	</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 
 	
@@ -144,10 +147,6 @@ function popup(){
 		XHR.appendData('MailArchiverUsePerl',MailArchiverUsePerl);
 		XHR.appendData('MailArchiverToSMTP',MailArchiverToSMTP);
 		XHR.appendData('MailArchiverSMTPINcoming',MailArchiverSMTPINcoming);
-		
-		
-		
-		document.getElementById('img_enable_archiver').src='img/wait_verybig.gif';
 		XHR.sendAndLoad('$page', 'POST',XwwApplyBackupBehavior$t);				
 	}
 	
@@ -209,6 +208,14 @@ function MailArchiverEnabled(){
 }
 
 function status(){
+	$page=CurrentPageName();
+	$html="<div id='mailarchiver-status'></div>
+	<script>LoadAjax('mailarchiver-status','$page?status2=yes');</script>";	
+	echo $html;
+}
+
+function status2(){
+	
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();	
@@ -221,9 +228,14 @@ function status(){
 	$emailsNumber=numberFormat($qArchLigne["trows"],0,'.',' ');
 	$emailsSize=FormatBytes($qArchLigne["tsize"]/1024);
 	
-	$html="<table style='width:99%' class=form>
+	$html="
+			
+	<div style='font-size:16px' class=explain>{backupemail_behavior_text}</div>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-		<td valign='top'>$status</td>
+		<td valign='top' width=50% valign='top'>$status</td>
+		<td width=50% valign='middle' align='center'>". imgtootltip("64-refresh.png","{refresh}","LoadAjax('mailarchiver-status','$page?status2=yes')")."</td>
 	</tr>
 	<td valign='top'>
 		<center>
@@ -237,6 +249,7 @@ function status(){
 	</td>
 	</tr>		
 	</table>
+	</div>
 	";
 	
 	echo $tpl->_ENGINE_parse_body($html);

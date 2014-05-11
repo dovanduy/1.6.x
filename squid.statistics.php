@@ -56,7 +56,7 @@ function thumbnail_zoom_js(){
 function thumbnail_zoom_popup(){
 	$page=CurrentPageName();
 	$html="
-	<center style='width:95%' class=form><img src='$page?thumbnail={$_GET["thumbnail-zoom-popup"]}'></center>
+	<center style='width:98%' class=form><img src='$page?thumbnail={$_GET["thumbnail-zoom-popup"]}'></center>
 	<script>
 		document.getElementById('SetupControl').setAttribute('class', 'ui-widget-header');
 	</script>

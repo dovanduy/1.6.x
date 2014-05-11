@@ -19,7 +19,7 @@ include_once(dirname(__FILE__)."/framework/class.settings.inc");
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
-
+if($argv[1]=='--build'){build();die();}
 if($argv[1]=='--fix-etc-hosts'){fixEtcHosts();die();}
 if($argv[1]=='--monit'){monit_config_smbd();monit_config_nmbd();die();}
 
@@ -124,7 +124,7 @@ if($argv[1]=='--samba-audit'){SambaAudit();die();}
 
 if($argv[1]=='--check-dirs'){CheckExistentDirectories();die();}
 
-if($argv[1]=='--build'){build();die();}
+
 
 if($argv[1]=='--disable-profiles'){DisableProfiles();die();}
 if($argv[1]=='--enable-profiles'){EnableProfiles();	die();}
@@ -249,7 +249,7 @@ function CheckHomeFor($uid,$homeDirectory=null){
 	$ct=new user($uid);
 	if($homeDirectory==null){$homeDirectory=$ct->homeDirectory;}
 	
-	echo "Starting......: Home $uid checking home: $homeDirectory\n";
+	echo "Starting......: ".date("H:i:s")." Home $uid checking home: $homeDirectory\n";
 	if(!isset($GLOBALS["profile_path"])){
 		$sock=new sockets();
 		$profile_path=$sock->GET_INFO('SambaProfilePath');
@@ -304,7 +304,7 @@ if($homeDirectory==null){
 		@chmod($internet_folder,$GLOBALS["SharedFoldersDefaultMask"]);
 		}
 		$internet_folder=$unix->shellEscapeChars($internet_folder);
-		echo "Starting......: Home $uid checking home: $internet_folder\n";
+		echo "Starting......: ".date("H:i:s")." Home $uid checking home: $internet_folder\n";
 		writelogs("Checking $ct->uid:$apacheuser :$internet_folder",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec("/bin/chown -R $ct->uid:$apacheuser $internet_folder >/dev/null 2>&1 &");
 		shell_exec("$find $internet_folder -type d -exec chmod {$GLOBALS["SharedFoldersDefaultMask"]} {} \; >/dev/null 2>&1 &");
@@ -399,6 +399,20 @@ function EnableProfiles(){
 }
 
 function build(){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$oldpid=@file_get_contents($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
+		writelogs(basename(__FILE__).":Already executed PID: $oldpid since {$timepid}Mn {$argv[1]}.. aborting the process",
+		basename(__FILE__),__FILE__,__LINE__);
+		die();
+	}
+		
+		
+	@file_put_contents($pidfile, getmypid());
+	
 	reconfigure();
 	
 }
@@ -451,9 +465,9 @@ function reconfigure(){
 	if($EnableSambaActiveDirectory==1){activedirectory();}
 	CheckFilesAndDirectories();
 	FixsambaDomainName();
-	echo "Starting......: Samba building main configuration...\n";
+	echo "Starting......: ".date("H:i:s")." Samba building main configuration...\n";
 	@file_put_contents("/etc/samba/smb.conf",$samba->BuildConfig());
-	echo "Starting......: Samba $smbpasswd -w ****\n";
+	echo "Starting......: ".date("H:i:s")." Samba $smbpasswd -w ****\n";
 	shell_exec("$smbpasswd -w \"$ldap_passwd\"");
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --nsswitch");
 	SambaAudit();
@@ -498,24 +512,24 @@ function reload(){
 	$winbindd=$unix->find_program("winbindd");
 	$kill=$unix->find_program("kill");
 	exec("$pidof $smbd 2>&1",$results);
-	echo "Starting......: samba reloading smbd:$smbd...\n";
+	echo "Starting......: ".date("H:i:s")." samba reloading smbd:$smbd...\n";
 	$tbl=explode(" ",@implode(" ",$results));
 	while (list ($index, $pid) = each ($tbl) ){
 		$pid=trim($pid);
 		if(!is_numeric($pid)){continue;}
 		if($pid<10){continue;}
-		echo "Starting......: samba reloading smbd pid: $pid\n";
+		echo "Starting......: ".date("H:i:s")." samba reloading smbd pid: $pid\n";
 		shell_exec("/bin/kill -HUP $pid 2>&1 >/dev/null");
 	}
 	$results=array();
 	exec("$pidof winbindd 2>&1",$results);
-	echo "Starting......: samba reloading winbindd:$smbd...\n";
+	echo "Starting......: ".date("H:i:s")." samba reloading winbindd:$smbd...\n";
 	$tbl=explode(" ",@implode(" ",$results));
 	while (list ($index, $pid) = each ($tbl) ){
 		$pid=trim($pid);
 		if(!is_numeric($pid)){continue;}
 		if($pid<10){continue;}
-		echo "Starting......: samba reloading winbindd pid: $pid\n";
+		echo "Starting......: ".date("H:i:s")." samba reloading winbindd pid: $pid\n";
 		shell_exec("/bin/kill -HUP $pid 2>&1 >/dev/null");
 	}	
 	
@@ -535,21 +549,21 @@ function ads_destroy(){
 	$adminpassword=$config["PASSWORD"];
 	$adminpassword=$unix->shellEscapeChars($adminpassword);
 	$cmd="$net ads leave -U {$config["ADADMIN"]}%$adminpassword 2>&1";
-	echo "Starting......: Samba remove connection\n";
+	echo "Starting......: ".date("H:i:s")." Samba remove connection\n";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	exec("$cmd",$results);
-	while (list ($index, $line) = each ($results) ){if(trim($line)==null){continue;}echo "Starting......: Samba $results\n";}
+	while (list ($index, $line) = each ($results) ){if(trim($line)==null){continue;}echo "Starting......: ".date("H:i:s")." Samba $results\n";}
 	unset($results);	
 	if($GLOBALS["VERBOSE"]){echo $kdestroy."\n";}
 	exec("$kdestroy 2>&1",$results);
-	while (list ($index, $line) = each ($results) ){if(trim($line)==null){continue;}echo "Starting......: Samba $results\n";}
+	while (list ($index, $line) = each ($results) ){if(trim($line)==null){continue;}echo "Starting......: ".date("H:i:s")." Samba $results\n";}
 }
 	
 	
 function kinit(){
 	$function=__FUNCTION__;
 	if(isset($GLOBALS["KINIT_RUN"])){
-		echo "Starting......: $function, already executed..\n";
+		echo "Starting......: ".date("H:i:s")." $function, already executed..\n";
 		return;}
 	$GLOBALS["KINIT_RUN"]=true;
 	
@@ -573,28 +587,28 @@ function kinit(){
 	$kinitpassword=$unix->shellEscapeChars($kinitpassword);
 	
 	if($kinit<>null){	
-		echo "Starting......: $function, $kinit {$config["ADADMIN"]}@$domain...\n";
+		echo "Starting......: ".date("H:i:s")." $function, $kinit {$config["ADADMIN"]}@$domain...\n";
 		shell_exec("$echo $kinitpassword|$kinit {$config["ADADMIN"]}@$domain");
 	}
 	
 	
 	exec($hostname,$results);
 	$servername=trim(@implode(" ",$results));
-	echo "Starting......: $function, using server name has $servername.$domain_lower\n";
+	echo "Starting......: ".date("H:i:s")." $function, using server name has $servername.$domain_lower\n";
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --change-hostname $servername.$domain_lower");
-	echo "Starting......: $function, connecting to $ad_server.$domain_lower\n";
+	echo "Starting......: ".date("H:i:s")." $function, connecting to $ad_server.$domain_lower\n";
 	@unlink($cachefile);
 	
 	$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 	$KDC_SERVER=$NetADSINFOS["KDC server"];
 	$adminpassword=$config["PASSWORD"];
 
-	echo "Starting......: $function, setauthuser -> \"{$config["ADADMIN"]}\"\n";
+	echo "Starting......: ".date("H:i:s")." $function, setauthuser -> \"{$config["ADADMIN"]}\"\n";
 	exec("$net setauthuser -U {$config["ADADMIN"]}%$kinitpassword 2>&1",$results);
 	
-	echo "Starting......: $function, checking winbindd daemon...\n";
+	echo "Starting......: ".date("H:i:s")." $function, checking winbindd daemon...\n";
 	shell_exec("/etc/init.d/artica-postfix start winbindd");
-	echo "Starting......: $function, KDC:  \"$KDC_SERVER\"\n";
+	echo "Starting......: ".date("H:i:s")." $function, KDC:  \"$KDC_SERVER\"\n";
 	
 	
 	$adminpassword=$unix->shellEscapeChars($adminpassword);
@@ -612,39 +626,39 @@ function kinit(){
 			writelogs("ads join [{$config["ADADMIN"]}]: $line",__FUNCTION__,__FILE__,__LINE__);
 			
 			if(preg_match("#DNS update failed#",$line)){
-				echo "Starting......: ADS Join FAILED with command line \"$cmd\"\n";
+				echo "Starting......: ".date("H:i:s")." ADS Join FAILED with command line \"$cmd\"\n";
 			}
 			
 			if(preg_match("#The network name cannot be found#",$line)){
-				echo "Starting......: ADS Join $ad_server.$domain_lower failed, unable to resolve it\n";
+				echo "Starting......: ".date("H:i:s")." ADS Join $ad_server.$domain_lower failed, unable to resolve it\n";
 				if($ADSERVER_IP<>null){
 					if(!$GLOBALS["CHANGE_ETC_HOSTS_AD"]){
 						$line=base64_encode("$ADSERVER_IP\t$ad_server.$domain_lower\t$ad_server");
 						$sock->getFrameWork("cmd.php?etc-hosts-add=$line");
 						$GLOBALS["CHANGE_ETC_HOSTS_AD"]=true;
-						echo "Starting......: ADS Join add $ad_server.$domain_lower $ADSERVER_IP in hosts file done, restart\n";
+						echo "Starting......: ".date("H:i:s")." ADS Join add $ad_server.$domain_lower $ADSERVER_IP in hosts file done, restart\n";
 						kinit();
 						return;
 					}
 				}
 			}
 			
-			echo "Starting......: $function, ADS Join $ad_server.$domain_lower ($line)\n";
+			echo "Starting......: ".date("H:i:s")." $function, ADS Join $ad_server.$domain_lower ($line)\n";
 		}
 	}else{
-		echo "Starting......: $function, ADS Already joined to \"$KDC_SERVER\"\n";
+		echo "Starting......: ".date("H:i:s")." $function, ADS Already joined to \"$KDC_SERVER\"\n";
 	}
 	
 	
 	
 	if($CyrusToAD==1){
-		echo "Starting......: $function, Activate PAM for Cyrus sasl\n";
+		echo "Starting......: ".date("H:i:s")." $function, Activate PAM for Cyrus sasl\n";
 		EnablePamd();
 	}else{
-		echo "Starting......: $function, Disable PAM for Cyrus sasl\n";
+		echo "Starting......: ".date("H:i:s")." $function, Disable PAM for Cyrus sasl\n";
 		DisablePamd();
 	}
-	echo "Starting......: $function, DONE\n";
+	echo "Starting......: ".date("H:i:s")." $function, DONE\n";
 }
 
 function activedirectory(){
@@ -1612,14 +1626,14 @@ function run_msktutils(){
 	
 	if(!is_file($msktutil)){
 		if(is_file("/home/artica/mskutils.tar.gz.old")){
-			echo "Starting......: $function, uncompress /home/artica/mskutils.tar.gz.old\n";
+			echo "Starting......: ".date("H:i:s")." $function, uncompress /home/artica/mskutils.tar.gz.old\n";
 			shell_exec("tar xf /home/artica/mskutils.tar.gz.old -C /");
 		}
 	}
 	
 	$msktutil=$unix->find_program("msktutil");
 	if(!is_file($msktutil)){	
-		echo "Starting......: $function, msktutil not installed, you should use it..\n";
+		echo "Starting......: ".date("H:i:s")." $function, msktutil not installed, you should use it..\n";
 		return;
 	}
 	
@@ -1641,10 +1655,10 @@ function run_msktutils(){
 	
 	$hostname=strtolower(trim($array["ADSERVER"])).".".strtolower(trim($array["ADDOMAIN"]));
 	if(!isset($array["WINDOWS_SERVER_TYPE"])){$array["WINDOWS_SERVER_TYPE"]="WIN_2003";}
-	echo "Starting......: $function, computers branch `{$array["COMPUTER_BRANCH"]}`\n";
-	echo "Starting......: $function, my full hostname `$myFullHostname`\n";
-	echo "Starting......: $function, my netbios name `$myNetBiosName`\n";
-	echo "Starting......: $function, Active Directory hostname `$hostname` ($ipaddr)\n";
+	echo "Starting......: ".date("H:i:s")." $function, computers branch `{$array["COMPUTER_BRANCH"]}`\n";
+	echo "Starting......: ".date("H:i:s")." $function, my full hostname `$myFullHostname`\n";
+	echo "Starting......: ".date("H:i:s")." $function, my netbios name `$myNetBiosName`\n";
+	echo "Starting......: ".date("H:i:s")." $function, Active Directory hostname `$hostname` ($ipaddr)\n";
 	$kdestroy=$unix->find_program("kdestroy");
 
 	$domain_controller=$hostname;
@@ -1655,7 +1669,7 @@ function run_msktutils(){
 		$enctypes=" --enctypes 28";
 	}
 	$msktutil_version=msktutil_version();
-	echo "Starting......: $function, msktutil version 0.$msktutil_version\n";
+	echo "Starting......: ".date("H:i:s")." $function, msktutil version 0.$msktutil_version\n";
 
 	$f[]="$msktutil -c -b \"{$array["COMPUTER_BRANCH"]}\"";
 	$f[]="-s HTTP/$myFullHostname -h $myFullHostname -k /etc/krb5.keytab";
@@ -1667,14 +1681,14 @@ function run_msktutils(){
 
 
 	$cmdline=@implode(" ", $f);
-	echo "Starting......: $function,`$cmdline`\n";
+	echo "Starting......: ".date("H:i:s")." $function,`$cmdline`\n";
 	exec("$cmdline 2>&1",$results);
-	while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}echo "Starting......: $function, $a Line:".__LINE__."\n";}
+	while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}echo "Starting......: ".date("H:i:s")." $function, $a Line:".__LINE__."\n";}
 
 	if($msktutil_version==4){
 		$cmdline="$msktutil --auto-update --verbose --computer-name $myNetBiosName --server $domain_controller";
 		exec("$cmdline 2>&1",$results);
-		while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}echo "Starting......: $function, $a Line:".__LINE__."\n";}
+		while (list ($num, $a) = each ($results) ){if(trim($a)==null){continue;}echo "Starting......: ".date("H:i:s")." $function, $a Line:".__LINE__."\n";}
 	}
 		
 
@@ -1689,8 +1703,8 @@ function JOIN_ACTIVEDIRECTORY(){
 	$user=new settings_inc();
 	$netbin=$unix->LOCATE_NET_BIN_PATH();
 	
-	if(!is_file($netbin)){echo "Starting......:  $function, net, no such binary\n";return;}
-	if(!$user->SAMBA_INSTALLED){echo "Starting......:  $function, Samba, no such software\n";return;}
+	if(!is_file($netbin)){echo "Starting......: ".date("H:i:s")."  $function, net, no such binary\n";return;}
+	if(!$user->SAMBA_INSTALLED){echo "Starting......: ".date("H:i:s")."  $function, Samba, no such software\n";return;}
 	$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 	$KDC_SERVER=$NetADSINFOS["KDC server"];
 	$sock=new sockets();
@@ -1709,113 +1723,113 @@ $ipaddr=trim($array["ADSERVER_IP"]);
 if($GLOBALS["VERBOSE"]){echo "$function, Using Password: $adminpassword";}
 
 if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Trying to relink this server with Active Directory $ad_server.$domain_lower server", basename(__FILE__));}
-echo "Starting......:  Samba, [$adminname]: Kdc server ads : $KDC_SERVER\n";
+echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: Kdc server ads : $KDC_SERVER\n";
 
 if($KDC_SERVER==null){
 		$cmd="$netbin ads join -W $ad_server.$domain_lower -S $ad_server -U $adminname%$adminpassword 2>&1";
-		if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function, $cmd\n";}
 		exec("$cmd",$results);
-		while (list ($index, $line) = each ($results) ){echo "Starting......:  $function, ads join [$adminname]: $line\n";}	
+		while (list ($index, $line) = each ($results) ){echo "Starting......: ".date("H:i:s")."  $function, ads join [$adminname]: $line\n";}	
 		$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();
 		$KDC_SERVER=$NetADSINFOS["KDC server"];
 	}
 	
 	if($KDC_SERVER==null){
-		echo "Starting......:  Samba, [$adminname]: unable to join the domain $domain_lower\n";
+		echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: unable to join the domain $domain_lower\n";
 		
 	}
 	
 	
 
 	
-echo "Starting......:  Samba, [$adminname]: setauthuser..\n";
+echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: setauthuser..\n";
 $cmd="$netbin setauthuser -U $adminname%$adminpassword";	
-if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function, $cmd\n";}
 shell_exec($cmd);	
 
 if($ipaddr==null){
 	$JOINEDRES=false;
-	echo "Starting......:  Samba, [$adminname 0]: join for $workgroup (without IP addr)\n";	
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  $function,[$adminname 0]: $cmd\n";}
+	echo "Starting......: ".date("H:i:s")."  Samba, [$adminname 0]: join for $workgroup (without IP addr)\n";	
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function,[$adminname 0]: $cmd\n";}
 	$cmd="$netbin join -U $adminname%$adminpassword $workgroup 2>&1";
 	exec($cmd,$A1);
 	while (list ($index, $line) = each ($A1) ){
 		if(preg_match("#Joined#", $line)){
-			echo "Starting......:  Samba, [$adminname 0]: join for $workgroup (without IP addr) success\n";
+			echo "Starting......: ".date("H:i:s")."  Samba, [$adminname 0]: join for $workgroup (without IP addr) success\n";
 			$JOINEDRES=true;
 			break;
 		}
-		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  Samba, $line", basename(__FILE__));}
+		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......: ".date("H:i:s")."  Samba, $line", basename(__FILE__));}
 	}
 	
 	if(!$JOINEDRES){
-		echo "Starting......:  Samba, [$adminname 0]: join as netrpc.. (without IP addr)\n";	
+		echo "Starting......: ".date("H:i:s")."  Samba, [$adminname 0]: join as netrpc.. (without IP addr)\n";	
 		$cmd="$netbin rpc join -U $adminname%$adminpassword $workgroup 2>&1";
 		exec($cmd,$A2);
-		if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function, $cmd\n";}
 		while (list ($index, $line) = each ($A2) ){
 			if(preg_match("#Joined#", $line)){
-				echo "Starting......:  Samba, [$adminname 0]: join for $workgroup (without IP addr) success\n";
+				echo "Starting......: ".date("H:i:s")."  Samba, [$adminname 0]: join for $workgroup (without IP addr) success\n";
 				$JOINEDRES=true;
 				break;
 			}
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  Samba, $line", basename(__FILE__));}	
+			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......: ".date("H:i:s")."  Samba, $line", basename(__FILE__));}	
 		}
 	}
 	
 }
 
 if($ipaddr<>null){
-	if(!$GLOBALS["VERBOSE"]){echo "Starting......:  $function, [$adminname 1]: ads '$netbin ads join -I $ipaddr -U $adminname%**** $workgroup'\n";}
+	if(!$GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function, [$adminname 1]: ads '$netbin ads join -I $ipaddr -U $adminname%**** $workgroup'\n";}
 	//$cmd="$netbin ads join -S $ad_server.$domain_lower -I $ipaddr -U $adminname%$adminpassword 2>&1";
 	$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  $function,[$adminname 1]: $cmd\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function,[$adminname 1]: $cmd\n";}
 	exec($cmd,$BIGRES2);	
 	while (list ($index, $line) = each ($BIGRES2) ){
 		if(preg_match("#Failed to join#i", $line)){
-			echo "Starting......:  $function, [$adminname 1]: ads join failed ($line), using pure IP\n";
-			if(!$GLOBALS["VERBOSE"]){echo "Starting......:  $function, [$adminname 1]: '$netbin ads join -I $ipaddr -U $adminname%*** $workgroup'\n";}
+			echo "Starting......: ".date("H:i:s")."  $function, [$adminname 1]: ads join failed ($line), using pure IP\n";
+			if(!$GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function, [$adminname 1]: '$netbin ads join -I $ipaddr -U $adminname%*** $workgroup'\n";}
 			
 			
 			$cmd="$netbin ads join -I $ipaddr -U $adminname%$adminpassword $workgroup 2>&1";
-			if($GLOBALS["VERBOSE"]){echo "Starting......:  $function, $cmd\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  $function, $cmd\n";}
 			$BIGRESS=array();
 			$BIGRES1=array();
 			exec($cmd,$BIGRES1);	
 			while (list ($index, $line) = each ($BIGRES1) ){
-				echo "Starting......:  $function, [$adminname 2] $line\n";
-				if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  $function, $line", basename(__FILE__));}
+				echo "Starting......: ".date("H:i:s")."  $function, [$adminname 2] $line\n";
+				if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......: ".date("H:i:s")."  $function, $line", basename(__FILE__));}
 			}
 			
 			break;
 		}
-		echo "Starting......:  Samba,[$adminname 1] $line\n";
-		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......:  $function, $line", basename(__FILE__));}
+		echo "Starting......: ".date("H:i:s")."  Samba,[$adminname 1] $line\n";
+		if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("Starting......: ".date("H:i:s")."  $function, $line", basename(__FILE__));}
 	}
 	
 	
-	/*echo "Starting......:  Samba, [$adminname]: join with  IP Adrr:$ipaddr..\n";	
+	/*echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: join with  IP Adrr:$ipaddr..\n";	
 	$cmd="$netbin join -U $adminname%$adminpassword -I $ipaddr";
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  Samba, $cmd\n";}
 	shell_exec($cmd);*/
 
 }
 
 	if($KDC_SERVER==null){$NetADSINFOS=$unix->SAMBA_GetNetAdsInfos();$KDC_SERVER=$NetADSINFOS["KDC server"];}
-	if($KDC_SERVER==null){echo "Starting......:  Samba, [$adminname]: unable to join the domain $domain_lower\n";}	
+	if($KDC_SERVER==null){echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: unable to join the domain $domain_lower\n";}	
 
-	echo "Starting......:  Samba, [$adminname]: Kdc server ads : $KDC_SERVER\n";
+	echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: Kdc server ads : $KDC_SERVER\n";
 	
 	unset($results);
 	$cmd="$netbin ads keytab create -P -U $adminname%$adminpassword 2>&1";
-	if($GLOBALS["VERBOSE"]){echo "Starting......:  Samba, $cmd\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")."  Samba, $cmd\n";}
 	exec("$cmd",$results);
 	
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$unix->THREAD_COMMAND_SET("$php5 ".dirname( __FILE__)."/exec.adusers.php --computers");
-	while (list ($index, $line) = each ($results) ){echo "Starting......:  Samba,ads keytab: [$adminname]: $line\n";}
-	shell_exec("/etc/init.d/artica-postfix restart winbindd");
+	while (list ($index, $line) = each ($results) ){echo "Starting......: ".date("H:i:s")."  Samba,ads keytab: [$adminname]: $line\n";}
+	shell_exec("/etc/init.d/winbind restart");
 	
 
 	
@@ -1841,7 +1855,7 @@ function monit_config_smbd(){
 	
 	
 	if($MonitConfig["watchdog"]==0){
-		echo "Starting......: Samba Monit is not enabled ({$MonitConfig["watchdog"]})\n";
+		echo "Starting......: ".date("H:i:s")." Samba Monit is not enabled ({$MonitConfig["watchdog"]})\n";
 		if(is_file($monit_file)){
 			@unlink($monit_file);
 			@unlink("/usr/sbin/smbd-monit-start");
@@ -1851,7 +1865,7 @@ function monit_config_smbd(){
 	
 	if($MonitConfig["watchdog"]==1){
 		$pidfile="/var/run/samba/smbd.pid";
-		echo "Starting......: Samba Monit is enabled check pid `$pidfile`\n";
+		echo "Starting......: ".date("H:i:s")." Samba Monit is enabled check pid `$pidfile`\n";
 		$reloadmonit=true;
 		$f[]="check process smbd";
    		$f[]="with pidfile $pidfile";
@@ -1905,7 +1919,7 @@ function monit_config_nmbd(){
 	
 	
 	if($MonitConfig["watchdog"]==0){
-		echo "Starting......: Samba Monit is not enabled ({$MonitConfig["watchdog"]})\n";
+		echo "Starting......: ".date("H:i:s")." Samba Monit is not enabled ({$MonitConfig["watchdog"]})\n";
 		if(is_file($monit_file)){
 			@unlink($monit_file);
 			@unlink("/usr/sbin/nmbd-monit-start");
@@ -1915,7 +1929,7 @@ function monit_config_nmbd(){
 	
 	if($MonitConfig["watchdog"]==1){
 		$pidfile="/var/run/samba/nmbd.pid";
-		echo "Starting......: Samba Monit is enabled check pid `$pidfile`\n";
+		echo "Starting......: ".date("H:i:s")." Samba Monit is enabled check pid `$pidfile`\n";
 		$reloadmonit=true;
 		$f[]="check process nmbd";
    		$f[]="with pidfile $pidfile";

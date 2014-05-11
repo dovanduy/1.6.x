@@ -106,7 +106,7 @@ function generate_graph(){
 		<tr>
 			<td $js>$timeText</td>
 			<td $js><strong style='font-size:18px'>{$ligne["not_categorized"]}</strong></td>
-			<td $jsrecat width=1% nowrap><img src='img/32-categories-loupe.png'></td>
+			<td $jsrecat width=1% nowrap><img src='img/loupe-32.png'></td>
 		</tr>
 		";
 		

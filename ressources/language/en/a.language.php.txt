@@ -2235,7 +2235,7 @@ If you have firewalls between your MXs, you should enable TCP connections in bot
 <enable_white_listed_mode_text>It is designed if your SMTP server is stored on Internet and used only for outgoing mails.[br]In other case if you dedicate this server to only a part of your network</enable_white_listed_mode_text>
 <records>records</records>
 <greylisted>greylisted</greylisted>
-<whitelisted>whitelisted</whitelisted>
+<whitelisted>Whitelisted</whitelisted>
 <ovh_specific_config>OVH specifig ISP settings</ovh_specific_config>
 <members_connected>Connected members</members_connected>
 <members_connected_samba_text>members currently connected to your file sharing service.[br]Click here to display details</members_connected_samba_text>
@@ -2619,14 +2619,14 @@ You should use this option very carefully, as any user in this list will be able
 <update_status>Update status</update_status>
 <available_software>Available software</available_software>
 <APP_SQUID2>Squid Cache Proxy 3.2x</APP_SQUID2>
-<reconfigure>reconfigure</reconfigure>
+<reconfigure>Reconfigure</reconfigure>
 <squid_rock>Rock Store (rock)</squid_rock>
 <squid_rock_maxsize>Refers to the max object size.[br]It is used to select the right storage to store objects.</squid_rock_maxsize>
 <max_objects_size>Max objects size</max_objects_size>
 <disable_squidguard_dansguardian_enabled>squidGuard/UfdbGuard will be disabled Dansguardian perform same features</disable_ufdbguardd_dansguardian_enabled>
 <www_nature>Websites talking about nature, natural world, and the natural universe.[br]This includes all things animal, plant, and mineral; all natural resources and events (e.g., hurricanes, tornadoes, earthquakes). It also includes the behavior of living organisms, and the processes (e.g., erosion, metamorphism, fossilization) associated with inanimate objects</www_nature>
 <softwares_update>Softwares update</softwares_update>
-<reboot>reboot</reboot>
+<reboot>Reboot</reboot>
 <DisableLoadAVGQueue>Disable overload reports</DisableLoadAVGQueue>
 <DisableLoadAVGQueue_explain>When the system is overloaded, Artica create a temporary report in a dedicated directory.
 [br]A second process is in charge to parse this directory and send reports by mail.[br]
@@ -3267,7 +3267,7 @@ If you did not want to do that change the Filter Group mode field to "filtered"<
 <add_to_menu>Add to menu</add_to_menu>
 <enable_bandwith_limitation>Enable bandwidth limitation</enable_bandwith_limitation>
 <mod_bw_text>This feature allows you to limit bandwidth usage on every virtual host or directory or to restrict the number of simultaneous connections</mod_bw_text>
-<apache_explain_BandWidth>source may be a full host (host.domain.tld), part of a domain , an ip address (192.168.218.5) , a network mask (192.168.1.0/24), or "all".
+<apache_explain_BandWidth>Source may be a full host (host.domain.tld), part of a domain , an ip address (192.168.218.5) , a network mask (192.168.1.0/24), or "all".
 If speed is 0, there is no limit.</apache_explain_BandWidth>
 <apache_explain_LargeFileLimit>Type is the filename extension, or * for all. E.g. you can use ".tgz" to match only tar-compressed files, ".avi" to match video files.[br]
 minimum size is the minimum size (in kbytes) of the file to be matched.[br]
@@ -3347,7 +3347,7 @@ did not give the www of the web site : www.domain.tld is not supported</squid_as
 <connection_time_squid_text>Allow or ban access from several sources or to destinations according times rules</connection_time_squid_text>
 <new_group>New group</new_group>
 <group_type>Group type</group_type>
-<dstdomain>Web server</dstdomain>
+<dstdomain>Web server or domain</dstdomain>
 <new_item>New item</new_item>
 <acl_proxy_auth_explain>Give here username (the userid) that is stored by your LDAP server or Active Directory.[br]
 Note that it is only available if your have enabled the Proxy Authentication</acl_proxy_auth_explain>

@@ -23,7 +23,7 @@ if(preg_match("#--afterrebuild#",implode(" ",$argv))){$GLOBALS["AFTER_REBUILD"]=
 if($argv[1]=="--resolvconf"){resolvconf();exit;}
 if($argv[1]=="--interfaces"){interfaces_show();die();}
 //if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
-
+if($argv[1]=="--loopback"){loopback();die();}
 if($argv[1]=="--just-add"){routes();die();}
 if($argv[1]=="--articalogon"){articalogon();die();}
 if($argv[1]=="--ifconfig"){ifconfig_tests();exit;}
@@ -53,6 +53,9 @@ if($argv[1]=="--bridge-rm"){bridge_deletemanu($argv[2]);exit;}
 if($argv[1]=="--hosts"){etc_hosts_exec();exit;}
 if($argv[1]=="--hosts-defaults"){etc_hosts_defaults();exit;}
 if($argv[1]=="--iptables-bridge-delete"){bridges_delete();exit;}
+if($argv[1]=="--ucarp-notify"){ucarp_notify($argv[2],$argv[3],$argv[4],$argv[5],$argv[6]);exit;}
+if($argv[1]=="--ucarp-notify-down"){ucarp_notify_down($argv[2],$argv[3],$argv[4],$argv[5],$argv[6]);exit;}
+
 
 
 
@@ -85,6 +88,22 @@ function interfaces_show(){
 	echo $datas;
 }
 
+function loopback(){
+	$unix=new unix();
+	$ifconfig=$unix->find_program("ifconfig");
+	shell_exec("$ifconfig lo down");
+	shell_exec("$ifconfig lo 127.0.0.1 netmask 255.255.255.0 up >/dev/null 2>&1");
+	VirtualsIPSyslog("Restarting loopback...");
+}
+
+function VirtualsIPSyslog($text){
+	if(!function_exists("syslog")){return;}
+	$LOG_SEV=LOG_ERR;
+	openlog("artica-ifup", LOG_PID , LOG_SYSLOG);
+	syslog($LOG_SEV, $text);
+	closelog();
+}
+
 function resolvconf(){
 	$resolv=new resolv_conf();
 	$resolvDatas=$resolv->build();
@@ -109,26 +128,128 @@ function resolvconf(){
 	
 }
 
+function ucarp_notify($nic=null,$SQUIDIP=null,$trois=null,$quatre=null,$cinq=null){
+	if($nic==null){
+		VirtualsIPSyslog("[Failover] No nic, no IP...");
+		return;
+	}
+	
+	
+	$unix=new unix();
+	$LOCATE_SQUID_BIN=$unix->LOCATE_SQUID_BIN();
+	if(!is_file($LOCATE_SQUID_BIN)){return;}
+	$nohup=$unix->find_program("nohup");
+	
+	
+	include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+	$sock=new sockets();
+	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
+	VirtualsIPSyslog("[Failover] state UP detected $nic:$SQUIDIP Proxy Transparent mode: $hasProxyTransparent");
+	
+	if(is_file("/usr/share/ucarp/Master")){
+		VirtualsIPSyslog("[Failover] UP mode Master... nothing to do...");
+		return;
+	}
+	
+	$MAIN=unserialize(base64_decode($sock->GET_INFO("HASettings")));
+	if($MAIN["SLAVE"]<>null){
+		VirtualsIPSyslog("[Failover] UP mode Master... nothing to do...");
+		return;
+	}
+	
+	
+	if($hasProxyTransparent==0){return;}
+	$squid=new squidbee();
+	$ssl_port=$squid->get_ssl_port();
+	if(!is_numeric($squid->listen_port)){$squid->listen_port=3128;}
+	$listen_ssl_port=$squid->listen_port+1;
+	$SSL_BUMP=$squid->SSL_BUMP;
+	$iptables=$unix->find_program("iptables");
+	$MARKLOG="-m comment --comment \"SquidFailOverTransparent\"";
+	$SQUIDPORT=$squid->listen_port;
+	
+	VirtualsIPSyslog("[Failover] UP Redirect connections from $SQUIDIP:80/443 to port $SQUIDPORT/$ssl_port - if ssl enabled -");
+	ucarp_notify_removeiptables();
+	shell_exec("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 80 -j ACCEPT $MARKLOG");
+	
+	if($SSL_BUMP==1){
+		shell_exec("$iptables -t nat -A PREROUTING -s $SQUIDIP -p tcp --dport 443 -j ACCEPT $MARKLOG");
+	}	
+	
+	shell_exec("$iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $SQUIDPORT $MARKLOG");
+	if($SSL_BUMP==1){shell_exec("$iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port $ssl_port $MARKLOG");}
+	shell_exec("$iptables -t nat -A POSTROUTING -j MASQUERADE $MARKLOG");
+	shell_exec("$iptables -t mangle -A PREROUTING -p tcp --dport $SQUIDPORT -j DROP $MARKLOG");
+	if($SSL_BUMP==1){
+		shell_exec("$iptables -t mangle -A PREROUTING -p tcp --dport $ssl_port -j DROP $MARKLOG");
+	}
+	
+	$cmd="/etc/init.d/squid reload --script=".basename(__FILE__);
+	shell_exec("$cmd >/dev/null 2>&1");
+	shell_exec("$nohup /etc/init.d/snmpd restart >/dev/null 2>&1 &");
+	
+	
+}
+
+function ucarp_notify_removeiptables(){
+	$unix=new unix();
+	VirtualsIPSyslog("[Failover] Remove transparent rules...");
+	$iptables_save=$unix->find_program("iptables-save");
+	$iptables_restore=$unix->find_program("iptables-restore");
+	system("$iptables_save > /etc/artica-postfix/iptables.conf");
+	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
+	$datas=explode("\n",$data);
+	$pattern="#.+?SquidFailOverTransparent#";
+	$d=0;
+	while (list ($num, $ligne) = each ($datas) ){
+		if($ligne==null){continue;}
+		if(preg_match($pattern,$ligne)){$d++;continue;}
+		$conf=$conf . $ligne."\n";
+	}
+	file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
+	system("$iptables_restore < /etc/artica-postfix/iptables.new.conf");
+	VirtualsIPSyslog("[Failover] Removed $d temporary transparent rules...");	
+}
+
+function ucarp_notify_down($nic=null,$ipaddr=null,$trois=null,$quatre=null,$cinq=null){
+	
+	if(is_file("/usr/share/ucarp/Master")){
+		VirtualsIPSyslog("[Failover] DOWN mode Master... nothing to do...");
+		return;
+	}
+	
+	$unix=new unix();
+	$LOCATE_SQUID_BIN=$unix->LOCATE_SQUID_BIN();
+	if(!is_file($LOCATE_SQUID_BIN)){return;}
+	$nohup=$unix->find_program("nohup");
+	ucarp_notify_removeiptables();
+	$cmd="/etc/init.d/squid reload --script=".basename(__FILE__);
+	shell_exec("$nohup $cmd >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/snmpd restart >/dev/null 2>&1 &");
+}
+
+
 function ucarp_stop(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Starting......: UCARP Start task already running PID: $oldpid\n";
+		echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $oldpid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
 	
 	$ucarp_bin=$unix->find_program("ucarp");
-	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}	
+	if(!is_file($ucarp_bin)){echo "Starting......: ".date("H:i:s")." UCARP Not installed...\n";return;}	
 	$pids=ucarp_all_pid();
 	$kill=$unix->find_program("kill");
 	
-	echo "Starting......: UCARP Found (".count($pids).") processe(s)\n";
+	echo "Starting......: ".date("H:i:s")." UCARP Found (".count($pids).") processe(s)\n";
 	
 	while (list ($pid, $line) = each ($pids) ){
-		echo "Starting......: UCARP checks PID:$pid processe(s)\n";
+		echo "Starting......: ".date("H:i:s")." UCARP checks PID:$pid processe(s)\n";
 		ucarp_stop_single($pid);
 	}
 	
@@ -168,8 +289,8 @@ function vlan_build(){
 			if(isset($AL[$md])){continue;}
 			$AL[$md]=true;			
 			
-			echo "Starting......: `$line`\n";
-			$sh[]="echo \"Starting......: $line\"";
+			echo "Starting......: ".date("H:i:s")." `$line`\n";
+			$sh[]="echo \"Starting......: ".date("H:i:s")." $line\"";
 			events("$line",__FUNCTION__,__LINE__);
 			system($line);
 		}
@@ -189,8 +310,8 @@ function virtip_build(){
 			if(isset($AL[$md])){continue;}
 			$AL[$md]=true;
 				
-			echo "Starting......: `$line`\n";
-			$sh[]="echo \"Starting......: $line\"";
+			echo "Starting......: ".date("H:i:s")." `$line`\n";
+			$sh[]="echo \"Starting......: ".date("H:i:s")." $line\"";
 			events("$line",__FUNCTION__,__LINE__);
 			system($line);
 		}
@@ -211,7 +332,7 @@ function etc_hosts_exec(){
 			if(substr($line, 0,1)=="#"){continue;}
 			if(isset($AL[$md])){continue;}
 			$AL[$md]=true;
-			echo "Starting......: `$line`\n";
+			echo "Starting......: ".date("H:i:s")." `$line`\n";
 			events("$line",__FUNCTION__,__LINE__);
 			system($line);
 		}
@@ -245,8 +366,14 @@ function etc_hosts(){
 		return;
 	}
 	
+	if(strpos($hostname, ".")>0){
+		$rre=explode(".",$hostname);
+		$netbiosname=$rre[0];
+	}
+	
+	
 	$f[]="::1     localhost ip6-localhost ip6-loopback";
-	$f[]="::1     $hostname";
+	$f[]="::1     $hostname\t$netbiosname";
 	$f[]="fe00::0 ip6-localnet";
 	$f[]="ff00::0 ip6-mcastprefix";
 	$f[]="ff02::1 ip6-allnodes";
@@ -260,7 +387,7 @@ function etc_hosts(){
 	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 	$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
 	$GLOBALS["SCRIPTS"][]="# this first line flush the host file";
-	$GLOBALS["SCRIPTS"][]="$echo \"127.0.0.1     $hostname\" >/etc/hosts";	
+	$GLOBALS["SCRIPTS"][]="$echo \"127.0.0.1     $hostname\t$netbiosname\" >/etc/hosts";	
 	while (list ($index, $line) = each ($f) ){
 		$GLOBALS["SCRIPTS"][]="$echo \"$line\" >> /etc/hosts";
 	}
@@ -335,26 +462,52 @@ function virtip_delete($ID){
 	
 }
 
+/*
+ * iptables -A INPUT -p udp -m physdev --physdev-in eth1 -j LOG
+iptables -A INPUT -p tcp -m physdev --physdev-in eth1 -j LOG
+iptables -A INPUT -p icmp -m physdev --physdev-in eth1 -j LOG
+
+# allow ssh, smtp and http on the router _itself_ (INPUT!)
+iptables -A INPUT -p tcp --dport 22 -m physdev --physdev-in eth1 -j ACCEPT
+iptables -A INPUT -p tcp --dport 25 -m physdev --physdev-in eth1 -j ACCEPT
+iptables -A INPUT -p tcp --dport 80 -m physdev --physdev-in eth1 -j ACCEPT
+
+# reject all other connections to the router
+iptables -A INPUT -p tcp --syn -m physdev --physdev-in eth1 -J REJECT
+
+# allow the some on the FORWARD chain
+iptables -A FORWARD -p tcp --dport 22 -m physdev --physdev-in eth1 --physdev-out eth0 -j ACCEPT
+iptables -A FORWARD -p tcp --dport 25 -m physdev --physdev-in eth1 --physdev-out eth0 -j ACCEPT
+iptables -A FORWARD -p tcp --dport 80 -m physdev --physdev-in eth1 --physdev-out eth0 -j ACCEPT
+
+# reject irc to anywhere
+iptables -A FORWARD -p tcp --dport 6667 -m physdev --physdev-in eth1 -j REJECT
+
+# reject all other connections to the internal lan
+iptables -A FORWARD -p tcp --syn -m physdev --physdev-in eth1 --physdev-out eth0 -j REJECT
+
+*/
+
 
 
 function ucarp_stop_single($pid){
 	$unix=new unix();
 	$ucarp_bin=$unix->find_program("ucarp");
-	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}
+	if(!is_file($ucarp_bin)){echo "Starting......: ".date("H:i:s")." UCARP Not installed...\n";return;}
 	$kill=$unix->find_program("kill");
 	$ifconfig=$unix->find_program("ifconfig");
 	if(!$unix->process_exists($pid)){
-		echo "Starting......: UCARP [$pid]: Not running...\n";
+		echo "Starting......: ".date("H:i:s")." UCARP [$pid]: Not running...\n";
 		return;
 	}
 	
 	$cmdline=var_export(@file_get_contents("/proc/$pid/cmdline"),true);
 	if(preg_match("#'--interface=(.+?)'#", $cmdline,$re)){
-		echo "Starting......: UCARP: [$pid]: Shutting down interface ucarp:{$re[1]}...\n";
+		echo "Starting......: ".date("H:i:s")." UCARP: [$pid]: Shutting down interface ucarp:{$re[1]}...\n";
 		shell_exec("$ifconfig {$re[1]}:ucarp down");
 	}
 		
-	echo "Starting......: UCARP: [$pid]: Shutting down $pid...\n";
+	echo "Starting......: ".date("H:i:s")." UCARP: [$pid]: Shutting down $pid...\n";
 	for($i=0;$i<10;$i++){
 		shell_exec("$kill $pid >/dev/null 2>&1");
 		sleep(1);
@@ -362,7 +515,7 @@ function ucarp_stop_single($pid){
 	}
 	
 	if(!$unix->process_exists($pid)){
-		echo "Starting......: UCARP: [$pid]: Shutting down success...\n";
+		echo "Starting......: ".date("H:i:s")." UCARP: [$pid]: Shutting down success...\n";
 	}
 }
 
@@ -370,17 +523,23 @@ function ucarp_build($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	$sock=new sockets();
-	@unlink("/usr/share/ucarp/ETH_LIST");
-	
+
 	
 	if(!$nopid){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
-			echo "Starting......: UCARP Start task already running PID: $oldpid\n";
+			echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $oldpid\n";
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
+	
+	@unlink("/usr/share/ucarp/ETH_LIST");
+	@unlink("/usr/share/ucarp/Master");
+	$rm=$unix->find_program("rm");
+	shell_exec("$rm /usr/share/ucarp/vip-*.sh >/dev/null 2>&1");
+	
+	
 	
 	
 	$users=new settings_inc();
@@ -388,18 +547,18 @@ function ucarp_build($nopid=false){
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *** FAILOVER License error  ***";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
-		echo "Starting......: UCARP No license set, aborting...\n";
+		echo "Starting......: ".date("H:i:s")." UCARP No license set, aborting...\n";
 		return;
 	}
 	$ucarp_bin=$unix->find_program("ucarp");
 	
-	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}
+	if(!is_file($ucarp_bin)){echo "Starting......: ".date("H:i:s")." UCARP Not installed...\n";return;}
 	
 	$sql="SELECT * FROM `nics` WHERE enabled=1 AND `ucarp-enable`=1 ORDER BY Interface";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){
-		echo "Starting......: UCARP: MySQL Error: $q->mysql_error\n";
+		echo "Starting......: ".date("H:i:s")." UCARP: MySQL Error: $q->mysql_error\n";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** FAILOVER Mysql ERROR! ****";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
@@ -409,7 +568,7 @@ function ucarp_build($nopid=false){
 	$count=mysql_num_rows($results);
 	@unlink("/etc/network/if-up.d/ucarp");
 	if($count==0){
-		echo "Starting......: UCARP: Network Unconfigured\n";
+		echo "Starting......: ".date("H:i:s")." UCARP: Network Unconfigured\n";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** FAILOVER Unconfigured ****";
 		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
@@ -424,6 +583,7 @@ function ucarp_build($nopid=false){
 	
 	$EnableChilli=$sock->GET_INFO("EnableChilli");
 	$chilli=$unix->find_program("chilli");
+	$nohup=$unix->find_program("nohup");
 	$ETHS=array();
 	
 	if(!is_numeric($EnableChilli)){$EnableChilli=0;}	
@@ -439,13 +599,13 @@ function ucarp_build($nopid=false){
 
 	
 	$php5=$unix->LOCATE_PHP5_BIN();
-	
+	if(is_file("/etc/init.d/ssh")){$sshcmd="$nohup /etc/init.d/ssh restart >/dev/null 2>&1 &";}
 	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$eth=trim(strtolower($ligne["Interface"]));
 		if($SKIP_INTERFACE==$eth){
-			echo "Starting......: UCARP: Skipping interface: $SKIP_INTERFACE\n";
+			echo "Starting......: ".date("H:i:s")." UCARP: Skipping interface: $SKIP_INTERFACE\n";
 			continue;
 		}
 		$downfile="/usr/share/ucarp/vip-$eth-down.sh";
@@ -466,6 +626,7 @@ function ucarp_build($nopid=false){
 			if($advAdd>255){$advAdd=255;}
 			$ucarpcmd[]="--advskew=$advAdd";
 		}else{
+			@file_put_contents("/usr/share/ucarp/Master", $eth);
 			$ucarpcmd[]="--preempt";
 			$ucarpcmd[]="--advskew=1";
 			$ucarpcmd[]="--advbase=1";
@@ -486,11 +647,13 @@ function ucarp_build($nopid=false){
 		$GLOBALS["SCRIPTS"][]="/usr/share/ucarp/vip-$eth-up.sh";
 		
 		$FINAL[]=@implode(" ", $ucarpcmd);
+		
 
 		$down=array();
 		$down[]="#!/bin/sh";
 		$down[]="$ifconfig $eth:ucarp down";
-		$down[]="$php5 ".__FILE__." --ucarp-notify $1 $2 $3 $4 $5 >/dev/null 2>&1";
+		$down[]="$php5 ".__FILE__." --ucarp-notify-down $1 $2 $3 $4 $5 >/dev/null 2>&1";
+		$down[]="$sshcmd";
 		$down[]="exit 0\n";
 		@file_put_contents($downfile, @implode("\n", $down));
 		@chmod($downfile, 0755);
@@ -499,39 +662,40 @@ function ucarp_build($nopid=false){
 		$up[]="#!/bin/sh";
 		$up[]="$ifconfig $eth:ucarp {$ligne["ucarp-vip"]} netmask {$ligne["NETMASK"]} up";
 		$up[]="$php5 ".__FILE__." --ucarp-notify $1 $2 $3 $4 $5 >/dev/null 2>&1";
+		$up[]=$sshcmd;
 		$up[]="exit 0\n";
 		@file_put_contents($upfile, @implode("\n", $up));
 		@chmod($upfile, 0755);	
-
-		
 		$ETHS[$eth]=$ucarpcmdLINE;
 		
 	}	
 	
 	$FINAL[]="";
-	echo "Starting......: UCARP: /etc/network/if-up.d/ucarp done..\n";
+	echo "Starting......: ".date("H:i:s")." UCARP: /etc/network/if-up.d/ucarp done..\n";
 	shell_exec("$php5 ".__FILE__." --ucarp-start --afterrebuild");
 	@file_put_contents("/etc/network/if-up.d/ucarp", @implode("\n", $FINAL));
 	@file_put_contents("/usr/share/ucarp/ETH_LIST", serialize($ETHS));
 	@chmod("/etc/network/if-up.d/ucarp", 0755);
-	
-	
 }
+
+
+
+
 function ucarp_start(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	$sock=new sockets();
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Starting......: UCARP Start task already running PID: $oldpid\n";
+		echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $oldpid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
 
 	$users=new settings_inc();
-	if(!$users->CORP_LICENSE){echo "Starting......: UCARP No license set, aborting...\n";return;}
+	if(!$users->CORP_LICENSE){echo "Starting......: ".date("H:i:s")." UCARP No license set, aborting...\n";return;}
 	$ucarp_bin=$unix->find_program("ucarp");
-	if(!is_file($ucarp_bin)){echo "Starting......: UCARP Not installed...\n";return;}
+	if(!is_file($ucarp_bin)){echo "Starting......: ".date("H:i:s")." UCARP Not installed...\n";return;}
 	
 	
 	if(is_file("/etc/network/if-up.d/ucarp")){
@@ -540,19 +704,19 @@ function ucarp_start(){
 			return;
 		}
 	}
-	if(!is_file("/usr/share/ucarp/ETH_LIST")){echo "Starting......: UCARP Not configured, Apply network parameters first (1)...\n";return;}
+	if(!is_file("/usr/share/ucarp/ETH_LIST")){echo "Starting......: ".date("H:i:s")." UCARP Not configured, Apply network parameters first (1)...\n";return;}
 	$ETHS=unserialize(@file_get_contents("/usr/share/ucarp/ETH_LIST"));
 	if(!is_array($ETHS)){
-		echo "Starting......: UCARP Not configured (2 not an array), Apply network parameters first...\n";
+		echo "Starting......: ".date("H:i:s")." UCARP Not configured (2 not an array), Apply network parameters first...\n";
 		return;
 	}
-	if(count($ETHS)==0){echo "Starting......: UCARP Not configured (3)...\n";return;}
+	if(count($ETHS)==0){echo "Starting......: ".date("H:i:s")." UCARP Not configured (3)...\n";return;}
 	
 	while (list ($eth, $ucarpcmdLINE) = each ($ETHS) ){
 		$pid=ucarp_pid($eth);
 		if($unix->process_exists($pid)){
-			echo "Starting......: UCARP `$eth` already running pid $pid\n";
-			if(ucarp_eth_ucarped($eth)){echo "Starting......: UCARP `$eth` alreaded linked\n";continue;}
+			echo "Starting......: ".date("H:i:s")." UCARP `$eth` already running pid $pid\n";
+			if(ucarp_eth_ucarped($eth)){echo "Starting......: ".date("H:i:s")." UCARP `$eth` alreaded linked\n";continue;}
 			shell_exec("/usr/share/ucarp/vip-$eth-up.sh");
 			continue;
 		}
@@ -560,18 +724,86 @@ function ucarp_start(){
 		shell_exec($ucarpcmdLINE);
 		sleep(1);
 		$pid=ucarp_pid($eth);
-		echo "Starting......: UCARP `$eth` PID:$pid\n";
+		echo "Starting......: ".date("H:i:s")." UCARP `$eth` PID:$pid\n";
 		if(!$unix->process_exists($pid)){
 			system_failover_events("Fatal:<br>Unable to start daemon for $eth",__FUNCTION__,basename(__FILE__),__LINE__);
-			echo "Starting......: UCARP `$eth` failed `$ucarpcmdLINE`\n";continue;}
+			echo "Starting......: ".date("H:i:s")." UCARP `$eth` failed `$ucarpcmdLINE`\n";continue;}
 		if(!ucarp_eth_ucarped($eth)){
 			system_failover_events("Daemon:<br>`$eth` linking to network",__FUNCTION__,basename(__FILE__),__LINE__);
-			echo "Starting......: UCARP `$eth` linking to network...\n";
+			echo "Starting......: ".date("H:i:s")." UCARP `$eth` linking to network...\n";
 			shell_exec("/usr/share/ucarp/vip-$eth-up.sh");
 		}
 	}
 	
 }
+
+function IPTABLES_NETWORK_BRIDGES(){
+	$unix=new unix();
+	
+	$iptables=$unix->find_program("iptables");
+	$echo=$unix->find_program("echo");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] ****    BRIDGES     ****";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
+	$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Removing old rules";
+	$GLOBALS["SCRIPTS"][]="$php ".dirname(__FILE__)."/exec.remove.iptablesbridges.php";
+	
+	
+	
+	$q=new mysql();
+	if(!$q->TABLE_EXISTS("pnic_bridges", "artica_backup")){
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Table pnic_bridges no such table";
+		$GLOBALS["SCRIPTS"][]="# Enable TimeStamps";
+		$GLOBALS["SCRIPTS"][]="$echo 1 > /proc/sys/net/ipv4/tcp_timestamps";		
+		return;
+	}
+	
+	
+	
+	$sql="SELECT * FROM `pnic_bridges` WHERE `enabled`=1";
+	$results = $q->QUERY_SQL($sql,"artica_backup");
+	
+	if(!$q->ok){
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] MySQL Error $sql $q->mysql_error";
+		$GLOBALS["SCRIPTS"][]="# Enable TimeStamps";
+		$GLOBALS["SCRIPTS"][]="$echo 1 > /proc/sys/net/ipv4/tcp_timestamps";
+		return;		
+		
+	}
+	
+	if(mysql_num_rows($results)==0){
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] No rule set";
+		$GLOBALS["SCRIPTS"][]="# Enable TimeStamps";
+		$GLOBALS["SCRIPTS"][]="$echo 1 > /proc/sys/net/ipv4/tcp_timestamps";
+		return;
+	}
+	
+
+	$NetBuilder=new system_nic();
+	$comment=" -m comment --comment \"ArticaNetworkBridges\"";
+	
+	$GLOBALS["SCRIPTS"][]="# Disabling TimeStamps and enable forward packets";
+	$GLOBALS["SCRIPTS"][]="$echo 0 > /proc/sys/net/ipv4/tcp_timestamps";
+	$GLOBALS["SCRIPTS"][]="$echo 1 > /proc/sys/net/ipv4/ip_forward";
+	$GLOBALS["SCRIPTS"][]="$echo 1 > /etc/artica-postfix/IPTABLES_BRIDGE";
+	$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS  --clamp-mss-to-pmtu $comment";
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$nic_from=$ligne["nic_from"];
+		$nic_to=$ligne["nic_to"];
+		
+		$nic_from=$NetBuilder->NicToOther($nic_from);
+		$nic_to=$NetBuilder->NicToOther($nic_to);
+		
+		
+		$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Inbound $nic_from outbound $nic_to $comment";
+		$GLOBALS["SCRIPTS"][]="$iptables -t nat -A POSTROUTING -o $nic_to -j MASQUERADE $comment";
+		$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -i $nic_from -o $nic_to -m state --state RELATED,ESTABLISHED -j ACCEPT $comment";
+		$GLOBALS["SCRIPTS"][]="$iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT $comment";
+	}
+	
+}
+
 
 function ucarp_eth_ucarped($eth){
 	if(!isset($GLOBALS["ucarp_eth_ucarped"])){
@@ -620,7 +852,7 @@ function events($text,$function=null,$line=null){
 	if(function_exists("debug_backtrace")){
 		$trace=debug_backtrace();
 		if(isset($trace[1])){
-			if($sourcefile==null){$sourcefile=basename($trace[1]["file"]);}
+			$sourcefile=basename($trace[1]["file"]);
 			if($function==null){$function=$trace[1]["function"];}
 			if($line==null){$line=$trace[1]["line"];}
 		}
@@ -635,6 +867,17 @@ function events($text,$function=null,$line=null){
 function event($text,$function=null,$line=null){events($text,$function,$line);}
 
 
+function LoadProcNetDev(){
+	
+	$f=explode("\n",@file_get_contents("/proc/net/dev"));
+	while (list ($num, $line) = each ($datas) ){
+		if(preg_match("#^(.+?):#",$line,$re)){
+			$re[1]=trim($re[1]);
+			$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] Found Network Interface <{$re[1]}>";
+			$GLOBALS["PROC_NET_DEV"][$re[1]]=true;
+		}
+	}	
+}
 
 
 function build(){
@@ -642,28 +885,44 @@ function build(){
 	$users=new usersMenus();
 	$q=new mysql();
 	$nohup=$unix->find_program("nohup");
+	$hostname_bin=$unix->find_program("hostname");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$sock=new sockets();
+	$Myhostname=$sock->GET_INFO("myhostname");
 	$oom_kill_allocating_task=$sock->GET_INFO("oom_kill_allocating_task");
 	if(!is_numeric($oom_kill_allocating_task)){$oom_kill_allocating_task=1;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$oldpid=@file_get_contents($pidfile);
 	$sysctl=$unix->find_program("sysctl");
 	$ifconfig=$unix->find_program("ifconfig");
+	$GLOBALS["ipbin"]=$unix->find_program("ip");
 	$GLOBALS["SCRIPTS_DOWN"]=array();
+	
+	
+	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		event("Building networks already executed PID: $oldpid",__FUNCTION__,__LINE__);
-		echo "Starting......: Building networks already executed PID: $oldpid\n";
+		echo "Starting......: ".date("H:i:s")." Building networks already executed PID: $oldpid\n";
 		die();
 	}	
+	$fqdn=@file_get_contents("/etc/artica-postfix/FULL_HOSTNAME");
+	
+	if(is_file("/etc/init.d/hostname.sh")){
+		if(is_file("/usr/sbin/update-rc.d")){
+			shell_exec("/usr/sbin/update-rc.d -f hostname remove >/dev/null 2>&1");
+			@unlink("/etc/init.d/hostname.sh");
+		}
+		
+	}
+	
 	
 	if($oom_kill_allocating_task==1){
-		echo "Starting......: Kernel oom_kill_allocating_task is enabled\n";
+		echo "Starting......: ".date("H:i:s")." Kernel oom_kill_allocating_task is enabled\n";
 		shell_exec("$sysctl -w \"vm.oom_dump_tasks=1\" >/dev/null 2>&1");
 		shell_exec("$sysctl -w \"vm.oom_kill_allocating_task=1\" >/dev/null 2>&1");
 		
 	}else{
-		echo "Starting......: Kernel oom_kill_allocating_task is disabled\n";
+		echo "Starting......: ".date("H:i:s")." Kernel oom_kill_allocating_task is disabled\n";
 		shell_exec("$sysctl -w \"vm.oom_dump_tasks=0\" >/dev/null 2>&1");
 		shell_exec("$sysctl -w \"vm.oom_kill_allocating_task=0\" >/dev/null 2>&1");		
 	}
@@ -675,6 +934,7 @@ function build(){
 	dev_shm();
 	$ip=$unix->find_program("ip");
 	$echobin=$unix->find_program("echo");
+	$logger=$unix->find_program("logger");
 	$IPROUTEFOUND=false;
 	exec("$ip route",$results);
 	events("IP route -> ".count($results)." lines",__FUNCTION__,__LINE__);
@@ -716,24 +976,24 @@ function build(){
 	}
 	
 	if($q->mysql_server=="127.0.0.1"){
-		if(!is_file("/var/run/mysqld/mysqld.sock")){
-			event("/var/run/mysqld/mysqld.sock no such file",__FUNCTION__,__LINE__);
-			echo "Starting......: Building networks MySQL database not available starting MySQL service...\n";
+		if(!$unix->is_socket("/var/run/mysqld/mysqld.sock")){
+			event("/var/run/mysqld/mysqld.sock no such socket",__FUNCTION__,__LINE__);
+			echo "Starting......: ".date("H:i:s")." Building networks MySQL database not available starting MySQL service...\n";
 			shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initd-mysql.php >/dev/null 2>&1 &");
 			shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
 			sleep(1);
 			for($i=0;$i<5;$i++){
 				$q=new mysql();
 				if(!is_file("/var/run/mysqld/mysqld.sock")){
-					echo "Starting......: Building networks waiting MySQL database to start...$i/4\n";
+					echo "Starting......: ".date("H:i:s")." Building networks waiting MySQL database to start...$i/4\n";
 					sleep(1);
 				}else{
 					break;
 				}
 			}
-			if(!is_file("/var/run/mysqld/mysqld.sock")){
-				event("/var/run/mysqld/mysqld.sock no such file",__FUNCTION__,__LINE__);
-				echo "Starting......: Building networks MySQL database not available...\n";
+			if(!$unix->is_socket("/var/run/mysqld/mysqld.sock")){
+				event("/var/run/mysqld/mysqld.sock no such socket",__FUNCTION__,__LINE__);
+				echo "Starting......: ".date("H:i:s")." Building networks MySQL database not available...\n";
 				die();
 			}
 			
@@ -746,13 +1006,13 @@ function build(){
 	if(!$q->BD_CONNECT()){
 		sleep(1);
 		event("Building networks MySQL database not available starting MySQL service",__FUNCTION__,__LINE__);
-		echo "Starting......: Building networks MySQL database not available starting MySQL service...\n";
+		echo "Starting......: ".date("H:i:s")." Building networks MySQL database not available starting MySQL service...\n";
 		shell_exec("$nohup /etc/init.d/mysql start >/dev/null 2>&1 &");
 		
 		for($i=0;$i<5;$i++){
 			$q=new mysql();
 			if(!$q->BD_CONNECT()){
-				echo "Starting......: Building networks waiting MySQL database to start...$i/4\n";
+				echo "Starting......: ".date("H:i:s")." Building networks waiting MySQL database to start...$i/4\n";
 				sleep(1);
 			}else{
 				break;
@@ -764,7 +1024,7 @@ function build(){
 		
 		if(!$q->BD_CONNECT()){
 			event("Building networks MySQL database not available...",__FUNCTION__,__LINE__);
-			echo "Starting......: Building networks MySQL database not available...\n";
+			echo "Starting......: ".date("H:i:s")." Building networks MySQL database not available...\n";
 			die();
 		}
 		
@@ -772,7 +1032,7 @@ function build(){
 	
 	
 	if(!$q->TABLE_EXISTS("nics","artica_backup",true)){
-		echo "Starting......: Building networks MySQL table is not yet builded..\n";
+		echo "Starting......: ".date("H:i:s")." Building networks MySQL table is not yet builded..\n";
 		die();
 	}
 
@@ -780,42 +1040,47 @@ function build(){
 	Checkipv6();
 	@file_put_contents($pidfile,getmypid());
 
-	if($users->AS_DEBIAN_FAMILY){
-		echo "Starting......: Building networks Debian family\n";
-		events("-> BuildNetWorksDebian()",__FUNCTION__,__LINE__);
-		BuildNetWorksDebian();
-	}else{
-		echo "Starting......: Building networks RedHat family\n";
-		BuildNetWorksRedhat();
-	}
 	
 	
-	
-	
-	
-	echo "Starting......: Building networks checking bridge\n";
+	echo "Starting......: ".date("H:i:s")." Building networks checking bridge\n";
 	bridges_build();
-	echo "Starting......: Building networks checking IPV6\n";
+	echo "Starting......: ".date("H:i:s")." Building networks checking IPV6\n";
 	Checkipv6();
 	
-	echo "Starting......: Building networks Reloading ". count($GLOBALS["SAVED_INTERFACES"])." interface(s)\n";
+	$nic=new system_nic();
+	$datas=$nic->root_build_debian_config();
+	
+	echo "Starting......: ".date("H:i:s")." Building networks Reloading ". count($GLOBALS["SAVED_INTERFACES"])." interface(s)\n";
 	
 	
 	if(count($GLOBALS["SAVED_INTERFACES"])==0){
-		echo "Starting......: Building networks Building Ipv6 virtuals IP...\n";
+		echo "Starting......: ".date("H:i:s")." Building networks Building Ipv6 virtuals IP...\n";
 		Checkipv6Virts();
 	}
 	
 	$EXECUTE_CMDS=false;
 	
 	
+	
+	if(is_file("/etc/init.d/hostname.sh")){
+		if(is_file("/usr/sbin/update-rc.d")){
+			shell_exec("/usr/sbin/update-rc.d -f hostname remove >/dev/null 2>&1");
+			@unlink("/etc/init.d/hostname.sh");
+		}
+	
+	}
+	
+	LoadProcNetDev();
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] *******************************";
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] **** SETTINGS for LOOP BACK ***";
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."] *******************************";
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";	
 	$GLOBALS["SCRIPTS_TOP"][]="$ifconfig lo 127.0.0.1 up";
+	if($Myhostname<>null){$GLOBALS["SCRIPTS_TOP"][]="$hostname_bin \"$Myhostname\"";}
 	$GLOBALS["SCRIPTS_TOP"][]="# [".__LINE__."]";
+	$datas=$nic->networks_disabled();
+	
 	
 	
 	
@@ -824,22 +1089,25 @@ function build(){
 	$sh[]="### BEGIN INIT INFO";
 	$sh[]="# Builded on ". date("Y-m-d H:i:s");
 	$sh[]="# Provides:          artica-ifup";
-	$sh[]="# Required-Start:    \$local_fs";
+	$sh[]="# Required-Start:    mountkernfs \$local_fs";
 	$sh[]="# Required-Stop:     \$local_fs";
-	$sh[]="# Should-Start:";
-	$sh[]="# Should-Stop:";
-	$sh[]="# Default-Start:     1 2 3 4";
-	$sh[]="# Default-Stop:      0 1 6";
+	$sh[]="# Should-Start:		ifupdown";
+	$sh[]="# Should-Stop:		ifupdown";
+	$sh[]="# Default-Start:     S";
+	$sh[]="# Default-Stop:      0 6";
 	$sh[]="# Short-Description: start and stop the network";
-	$sh[]="# Description:       Artica ifup service";
+	$sh[]="# Description:       Artica ifup service Raise network interfaces";
 	$sh[]="### END INIT INFO";
 	$sh[]="case \"\$1\" in";
 	$sh[]="start)";
-	
+	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script executed (start)\" || true";
+	$mkdir=$unix->find_program("mkdir");
+	$sh[]="mkdir -p /run/network >/dev/null 2>&1";
 	etc_hosts();
 	routes_main();
-	bridges_build();
 	ucarp_build(true);
+	bridges_build();
+	IPTABLES_NETWORK_BRIDGES();
 	
 	
 	$sh[]="$echobin \"\" > /var/log/net-start.log";
@@ -851,11 +1119,11 @@ function build(){
 		if(substr($line, 0,1)=="#"){$sh[]=ScriptInfo($line);continue;}
 		$md=md5($line);
 		if(isset($AL[$md])){
-			echo "Starting......: SKIPING `$line`\n";
+			echo "Starting......: ".date("H:i:s")." SKIPING `$line`\n";
 			continue;
 		}
 		$AL[$md]=true;
-		echo "Starting......: `$line`\n";
+		echo "Starting......: ".date("H:i:s")." `$line`\n";
 		
 		if(strpos($line, "/etc/hosts")>0){
 			$sh[]="$line";
@@ -889,11 +1157,11 @@ function build(){
 			
 			$md=md5($line);
 			if(isset($AL[$md])){
-				echo "Starting......: SKIPING `$line`\n";
+				echo "Starting......: ".date("H:i:s")." SKIPING `$line`\n";
 				continue;
 			}
 			$AL[$md]=true;		
-			echo "Starting......: `$line`\n";
+			echo "Starting......: ".date("H:i:s")." `$line`\n";
 			
 			if(strpos($line, "/etc/hosts")>0){
 				$sh[]="$line";
@@ -913,6 +1181,7 @@ function build(){
 	}
 	
 	if(count($GLOBALS["SCRIPTS_ROUTES"])>0){
+		$GLOBALS["START_ROUTES"][]="$echobin \"Apply network routes, please wait...\"";
 		$sh[]="";
 		$sh[]="# [".__LINE__."]";
 		$sh[]="# [".__LINE__."] *******************************";
@@ -923,13 +1192,18 @@ function build(){
 		
 			$line=trim($line);
 			if($line==null){continue;}
-			if(substr($line, 0,1)=="#"){$sh[]=ScriptInfo($line);continue;}
+			if(substr($line, 0,1)=="#"){
+				$ScriptInfo=ScriptInfo($line);
+				$sh[]=$ScriptInfo;
+				$GLOBALS["START_ROUTES"][]=$ScriptInfo;
+				continue;
+			}
 			$md=md5($line);
 			
 			
 			if(isset($AL[$md])){
-				if(!preg_match("#^force", $line)){
-					echo "Starting......: SKIPING `$line`\n";
+				if(!preg_match("#^force#", $line)){
+					echo "Starting......: ".date("H:i:s")." SKIPING `$line`\n";
 					continue;
 				}
 			}
@@ -940,16 +1214,20 @@ function build(){
 			
 			
 			if(preg_match("#ip route add (.+?)\s+.*?src\s+(.+)#",$line,$re)){
+				$GLOBALS["START_ROUTES"][]="$echobin \"Create route for network {$re[1]} for local address {$re[2]}\"";
 				$sh[]="$echobin \"Create route for network {$re[1]} for local address {$re[2]}\"";
 			}
 			
 			if(preg_match("#ip route add (.+?)\s+via(.+?)\s+src\s+([0-9\.]+)#",$line,$re)){
+				$GLOBALS["START_ROUTES"][]="$echobin \"Create route for network {$re[1]} using gateway {$re[2]} for local address {$re[3]}\"";
 				$sh[]="$echobin \"Create route for network {$re[1]} using gateway {$re[2]} for local address {$re[3]}\"";
 			}
 	
+			$GLOBALS["START_ROUTES"][]="$echobin \"$line\" >>/var/log/net-start.log 2>&1";
 			$sh[]="$echobin \"$line\" >>/var/log/net-start.log 2>&1";
 			if(preg_match("#\/echo\s+#", $line)){$sh[]=$line;continue;}
 			$sh[]="$line >>/var/log/net-start.log 2>&1 || true";
+			$GLOBALS["START_ROUTES"][]="$line >>/var/log/net-start.log 2>&1 || true";
 			
 		}	
 	
@@ -960,35 +1238,86 @@ function build(){
 	
 		
 	$sh[]="if [ -x /etc/init.d/artica-ifup-content.sh ] ; then";
-	$sh[]="	/etc/init.d/artica-ifup-content.sh";
+	$sh[]="	/etc/init.d/artica-ifup-content.sh || true";
 	$sh[]="fi";
+	
+
 	
 	$sh[]=nics_vde_build();
 	
 	
-	
+	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
+	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;$EnableDNSMASQ=1;}
 	$unix=new unix();
 	$squid=$unix->LOCATE_SQUID_BIN();
+	$ip=$unix->find_program("ip");
+	$echo=$unix->find_program("echo");
+	$nohup=$unix->find_program("nohup");
+	$monit=$unix->find_program("monit");
+	$ifconfig=$unix->find_program("ifconfig");
+	
+	
+	
+	$php=$unix->LOCATE_PHP5_BIN();
 	if(is_file($squid)){
-		$sh[]="#Reloading squid";
-		$sh[]="echo \"reloading squid ( if exists )\"";
-		$sh[]="$squid -k reconfigure >>/var/log/net-start.log 2>&1 || true";
+		$sh[]="# [".__LINE__."] Reloading squid";
+		$sh[]="$echo \"Reloading squid ( if exists )\"";
+		$sh[]="$php /usr/share/artica-postfix/exec.squid.php --kreconfigure 2>&1 >>/var/log/net-start.log 2>&1 || true";
 	}
 	
-	$sh[]="#Reloading sshd (if exists)";
-	$sh[]="echo \"Reloading sshd ( if exists )\"";
-	$sh[]="$php5 /usr/share/artica-postfix/exec.sshd.php --reload 2>&1 || true";
+	$sh[]="# [".__LINE__."] Flushing ARP cache";
+	$sh[]="$echo \"Flushing ARP cache...\"";
+	$sh[]="ip -s -s neigh flush all >>/var/log/net-start.log 2>&1 || true";
 	
-	$sh[]="#Reloading pdns (if exists)";
-	$sh[]="echo \"Reloading PowerDNS ( if exists )\"";
-	$sh[]="$php5 /usr/share/artica-postfix/exec.pdns.php --reload 2>&1 || true";
+	$sh[]="# [".__LINE__."] Tune the kernel";
+	$sh[]="$echo \"Tuning the kernel...\"";
+	$sh[]="$php5 /usr/share/artica-postfix/exec.sysctl.php --build >>/var/log/net-start.log 2>&1 || true";
+	$sh[]="if [ -x /bin/artica-firewall.sh ] ; then";
+	$sh[]="	/bin/artica-firewall.sh || true";
+	$sh[]="fi";
 	
-	$sh[]="#Reloading DHCPD (if exists)";
-	$sh[]="echo \"Reloading DHCP server ( if exists )\"";
+	
+	
+	if(is_file("/etc/init.d/ssh")){
+		$sh[]="# [".__LINE__."] Starting sshd";
+		$sh[]="$echo \"Starting sshd\"";
+		$sh[]="/etc/init.d/ssh start 2>&1 || true";
+	}
+	
+	$sh[]="# [".__LINE__."] Starting FrameWork";
+	$sh[]="$echo \"Starting FrameWork\"";
+	$sh[]="$nohup $php5 /usr/share/artica-postfix/exec.framework.php --start >/dev/null 2>&1 &";
+	
+	if($EnablePDNS==1){
+		$sh[]="# [".__LINE__."] Reloading PowerDNS...";
+		$sh[]="$echo \"Reloading PowerDNS\"";
+		$sh[]="$php5 /usr/share/artica-postfix/exec.pdns.php --reload 2>&1 || true";
+	}
+	
+	if(is_file($monit)){
+		$sh[]="# [".__LINE__."] Starting Monit in background";
+		$sh[]="$echo \"Starting Monit in background\"";
+		$sh[]="$nohup $monit -c /etc/monit/monitrc -p /var/run/monit/monit.pid -s /var/run/monit/monit.state >/dev/null 2>&1 &";		
+		
+	}
+	$mount=$unix->find_program("mount");
+	if(is_file($mount)){
+		$sh[]="# [".__LINE__."] Mount all system after network set";
+		$sh[]="$echo \"Starting mount in background\"";
+		$sh[]="$nohup $mount -a >/dev/null 2>&1 &";
+	}
+	
+	$sh[]="# [".__LINE__."] Reloading DHCPD (if exists)";
+	$sh[]="$echo \"Reloading DHCP server ( if exists )\"";
 	$sh[]="$php5 /usr/share/artica-postfix/exec.dhcpd.compile.php --reload-if-run 2>&1 || true";	
-	$sh[]="echo \"  ****      Apply Network configuration, done      ****\"";
+	$sh[]="$echo \"  ****      Apply Network configuration, done      ****\"";
 	$sh[]=";;";
 	$sh[]="  stop)";
+	$sh[]="$logger \"* * * * * * * * * * * * * * SUSPECTED STOPPED SERVER !!! * * * * * * * * * * * * * *\" || true";
+	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script executed (stop)\" || true";
 	if(is_array($GLOBALS["SCRIPTS_DOWN"])){
 		while (list ($index, $line) = each ($GLOBALS["SCRIPTS_DOWN"]) ){	
 			if(substr($line, 0,1)=="#"){$sh[]=ScriptInfo($line);continue;}
@@ -998,11 +1327,36 @@ function build(){
 	}
 
 	
-	$sh[]="    ;;";	
+	$php=$unix->LOCATE_PHP5_BIN();
+	$sh[]=";;";	
+	$sh[]="reconfigure)";
+	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script Executed (reconfigure)\" || true";
+	$sh[]="$php ".__FILE__." --build --force $2 $3";
+	$sh[]="/etc/init.d/artica-ifup start";
+	$sh[]=";;";
+	$sh[]="routes)";
+	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script Executed (routes)\" || true";
+	$sh[]="# Array of ".count($GLOBALS["START_ROUTES"]);
+	$sh[]="$echobin \"Flushing routes tables...\"";
+	$sh[]="{$GLOBALS["ipbin"]} route flush table all";
+	$sh[]="$echobin \"$ifconfig lo 127.0.0.1 down\"";
+	$sh[]="$ifconfig lo 127.0.0.1 down || true";
+	$sh[]="$echobin \"$ifconfig lo 127.0.0.1 up\"";
+	$sh[]="$ifconfig lo 127.0.0.1 up || true";
+	$sh[]="$echobin \"Apply routes to the system\"";
+	$sh[]="$echobin \"Running routes\" > /var/log/net-start.log 2>&1";
+	$sh[]=@implode("\n", $GLOBALS["START_ROUTES"]);
+	$sh[]="$echobin \"Routes applied to the system\"";
+	
+	
+	
+	$sh[]=";;";
+	
 	
 	
 	$sh[]="*)";
-	$sh[]=" echo \"Usage: $0 {start only}\"";
+	$sh[]="$logger \"kernel: [  Artica-Net] Artica network Script executed (unknown)\" || true";
+	$sh[]=" echo \"Usage: $0 {start or reconfigure only}\"";
 	$sh[]="exit 1";
 	$sh[]=";;";
 	$sh[]="esac";
@@ -1012,33 +1366,53 @@ function build(){
 	@file_put_contents("/etc/init.d/artica-ifup", @implode("\n", $sh));
 	@chmod("/etc/init.d/artica-ifup",0755);
 	if(is_file('/usr/sbin/update-rc.d')){
-		shell_exec("/usr/sbin/update-rc.d -fartica-ifup defaults >/dev/null 2>&1");
+		shell_exec("/usr/sbin/update-rc.d -f artica-ifup defaults >/dev/null 2>&1");
+		
+		if(is_file('/etc/init.d/networking')){
+			shell_exec("/usr/sbin/update-rc.d -f networking disable  >/dev/null 2>&1"); 
+			@copy("/etc/init.d/networking","/etc/init.d/networking.back");
+			@unlink("/etc/init.d/networking");
+		}
 	}
 	
 	if(is_file('/sbin/chkconfig')){
 		shell_exec("/sbin/chkconfig --add artica-ifup >/dev/null 2>&1");
 		shell_exec("/sbin/chkconfig --level 1234 artica-ifup on >/dev/null 2>&1");
-	}	
+	}
+
 	
-	echo "Starting......: done...\n";
+	$inter[]="# This file describes the network interfaces available on your system";
+	$inter[]="## and how to activate them. For more information, see interfaces(5).";
+	$inter[]="";
+	$inter[]="## The loopback network interface";
+	$inter[]="auto lo";
+	$inter[]="iface lo inet loopback";
+	$inter[]="";
+	$inter[]="";
+	if(is_file("/etc/network/interfaces")){ @file_put_contents("/etc/network/interfaces", @implode("\n", $inter)); }
+	echo "Starting......: ".date("H:i:s")." Building FireWall rules.\n";
+	system("$php5 /usr/share/artica-postfix/exec.firewall.php");
+	echo "Starting......: ".date("H:i:s")." done...\n";
 	
 }
 
 function BuildNetWorksDebian(){
 	if(!is_file("/etc/network/interfaces")){return;}
-	echo "Starting......: Building networks mode Debian\n";
+	
+	
+	
+	
+	echo "Starting......: ".date("H:i:s")." Building networks mode Debian\n";
 	$nic=new system_nic();
 	
 	$datas=$nic->root_build_debian_config();
 	if($datas==null){
 		events("Not yet configured");
-		echo "Starting......: Not yet configured\n";
+		echo "Starting......: ".date("H:i:s")." Not yet configured\n";
 		return;
 	}
 	
-	echo "Starting......: ". strlen($datas)." bytes length\n";
-	events("Saving /etc/network/interfaces");
-	@file_put_contents("/etc/network/interfaces",$datas);
+	echo "Starting......: ".date("H:i:s")." ". strlen($datas)." bytes length\n";
 	bridges_build();
 	$unix=new unix();
 	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.ip-rotator.php --build");
@@ -1047,7 +1421,7 @@ function BuildNetWorksDebian(){
 
 function BuildNetWorksRedhat(){
 	
-	echo "Starting......: Building networks mode RedHat\n";
+	echo "Starting......: ".date("H:i:s")." Building networks mode RedHat\n";
 	$nic=new system_nic();
 	$datas=$nic->root_build_redhat_config();
 	bridges_build();
@@ -1073,32 +1447,6 @@ function ifconfig_tests(){
 function nics_vde_build(){
 	if(isset($GLOBALS["nics_vde_build"])){return;}
 	$GLOBALS["nics_vde_build"]=true;
-	$unix=new unix();
-	$ifconfig=$unix->find_program("ifconfig");
-	$vde_tunctl=$unix->find_program("vde_tunctl");
-	if(!is_file($vde_tunctl)){return;}
-	$php5=$unix->LOCATE_PHP5_BIN();
-	
-	
-	$f[]="";
-	$f[]="# [".__LINE__."]";
-	$f[]="# [".__LINE__."] *******************************";
-	$f[]="# [".__LINE__."] ****   Virtual switches    ****";
-	$f[]="# [".__LINE__."] *******************************";
-	$f[]="# [".__LINE__."]";
-	
-	$sql="SELECT nic FROM nics_vde GROUP BY nic";
-	
-	
-	
-	$q=new mysql();
-	$results=$q->QUERY_SQL($sql,"artica_backup");
-	$f[]="# [".__LINE__."]:". mysql_num_rows($results). " switche(s)";
-	if(!$q->ok){return null;}
-	
-	shell_exec("$php5 ". dirname(__FILE__)."/exec.vde.php --reconfigure");	
-	$f[]="$php5 ". dirname(__FILE__)."/exec.vde.php --start >>/var/log/net-start.log 2>&1 || true";
-	return @implode("\n", $f);
 }
 
 
@@ -1164,12 +1512,12 @@ function bridges_build(){
 
 function bridges_delete(){
 	$unix=new unix();
-	echo "Starting......: Virtuals bridge Deleting old rules\n";
+	echo "Starting......: ".date("H:i:s")." Virtuals bridge Deleting old rules\n";
 	$iptables_save=$unix->find_program("iptables-save");
 	$iptables_restore=$unix->find_program("iptables-restore");
 	$conf=null;
 	$cmd="$iptables_save > /etc/artica-postfix/iptables.conf";
-	if($GLOBALS["VERBOSE"]){echo "Starting......: $cmd\n";}		
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $cmd\n";}		
 	shell_exec($cmd);
 
 	
@@ -1180,16 +1528,16 @@ function bridges_delete(){
 while (list ($num, $ligne) = each ($datas) ){
 		if($ligne==null){continue;}
 		if(preg_match($pattern,$ligne)){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Delete $ligne\n";}		
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Delete $ligne\n";}		
 			$count++;continue;}
 			$conf=$conf . $ligne."\n";
 		}
 
 file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
 $cmd="$iptables_restore < /etc/artica-postfix/iptables.new.conf";
-if($GLOBALS["VERBOSE"]){echo "Starting......: $cmd\n";}
+if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $cmd\n";}
 shell_exec("$cmd");
-echo "Starting......: Virtuals bridge cleaning iptables $count rules\n";	
+echo "Starting......: ".date("H:i:s")." Virtuals bridge cleaning iptables $count rules\n";	
 }
 
 
@@ -1202,7 +1550,7 @@ function ifconfig_parse($path=null){
 function routes_fromfile(){
 	
 	if(!is_file("/etc/artica-postfix/ROUTES.CACHES.TABLES")){
-		echo "Starting......: Building routes, no cache file\n";
+		echo "Starting......: ".date("H:i:s")." Building routes, no cache file\n";
 		return;
 	}
 	
@@ -1296,7 +1644,7 @@ function routes_main_build(){
 		$md=md5($line);
 		if(isset($AL[$md])){continue;}
 		$AL[$md]=true;
-		echo "Starting......: `$line`\n";
+		echo "Starting......: ".date("H:i:s")." `$line`\n";
 		system($line);
 	}
 	
@@ -1307,10 +1655,11 @@ function routes_main_build(){
 
 
 function routes_main(){
-	
+	$MetricCount=0;
 	$unix=new unix();
 	$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");
 	$GLOBALS["routebin"]=$unix->find_program("route");
+	$GLOBALS["echobin"]=$unix->find_program("echo");
 	$GLOBALS["ipbin"]=$unix->find_program("ip");
 	$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");
 	$GLOBALS["moprobebin"]=$unix->find_program("modprobe");	
@@ -1325,7 +1674,7 @@ function routes_main(){
 	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
 	if($EnableChilli==1){
 		$ChilliConf=unserialize(base64_decode($sock->GET_INFO("ChilliConf")));
-		echo "Starting......: Will skip {$ChilliConf["HS_LANIF"]} for HotSpot config\n";
+		echo "Starting......: ".date("H:i:s")." Will skip {$ChilliConf["HS_LANIF"]} for HotSpot config\n";
 		$eth_SKIP[$ChilliConf["HS_LANIF"]]=true;
 	}	
 	
@@ -1348,13 +1697,14 @@ function routes_main(){
 	$GLOBALS["SCRIPTS_ROUTES"][]="# [".__LINE__."]";
 	
 	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add 127.0.0.1 dev lo";
-	//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 127.0.0.0 netmask 255.0.0.0 lo";
+	//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 127.0.0.0 netmask 255.255.255.0 lo";
 	
 	
 	
 	$sql="SELECT * FROM  `nics` WHERE defaultroute=1 ORDER BY Interface";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	$eth=trim($ligne["Interface"]);
+	$metric=$ligne["metric"];
 	$eth=str_replace("\r\n", "", $eth);
 	$eth=str_replace("\r", "", $eth);
 	$eth=str_replace("\n", "", $eth);
@@ -1378,25 +1728,40 @@ function routes_main(){
 			$CDIR=$NetBuilder->GetCDIRNetwork($ligne["IPADDR"],$ligne["NETMASK"]);
 			$md5net=md5($CDIR);
 			$GLOBALS["MD5NET"][$md5net]=true;
+			$metric=$ligne["metric"];
+			$metric_text=null;
+			if($metric>0){$metric_text=" metric $metric";}
+			$MetricCount++;
+			//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
+			//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
+			$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." gw {$ligne["GATEWAY"]}";
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) ." metric 1";
 			
-			$endcmdsline[]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
-			$endcmdsline[]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
-			$endcmdsline[]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
 		}
 	}
 	
 	
 	if(!isset($GLOBALS["DEFAULT_ROUTE_SET"])){
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [eth0] is set as default route.";
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [eth0] is set as default route metric `$metric`.";
 		$nic=new system_nic("eth0");
 		if($nic->GATEWAY<>null){
+			$eth="eth0";
 			$GLOBALS["DEFAULT_ROUTE_SET"]="eth0";
 			$CDIR=$NetBuilder->GetCDIRNetwork($nic->IPADDR,$nic->NETMASK);
 			$md5net=md5($CDIR);
 			$GLOBALS["MD5NET"][$md5net]=true;
-			$endcmdsline[]="force:{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther("eth0")." down";
-			$endcmdsline[]="force:{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther("eth0")." up";
-			$endcmdsline[]="{$GLOBALS["ipbin"]} route add default via $nic->GATEWAY dev ".$NetBuilder->NicToOther("eth0");
+			$metric=$nic->metric;
+			$metric_text=null;
+			if($metric>0){
+				if($MetricCount==0){$MetricCount++;$metric=1;}
+				$metric_text=" metric $metric";}
+			//$GLOBALS["SCRIPTS_ROUTES"][]="force:{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther("eth0")." down";
+			//$GLOBALS["SCRIPTS_ROUTES"][]="force:{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther("eth0")." up";
+			$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." gw {$ligne["GATEWAY"]}";
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$nic->GATEWAY} dev ".$NetBuilder->NicToOther($eth);
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$nic->GATEWAY} dev ".$NetBuilder->NicToOther($eth).$metric_text;
+			
 		}
 	}
 
@@ -1404,19 +1769,37 @@ function routes_main(){
 	$sql="SELECT * FROM `nics` WHERE enabled=1 ORDER BY Interface";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo "Starting......: Mysql error : $q->mysql_error\n";return;}
+	if(!$q->ok){echo "Starting......: ".date("H:i:s")." Mysql error : $q->mysql_error\n";return;}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$eth=trim($ligne["Interface"]);
 		$eth=str_replace("\r\n", "", $eth);
 		$eth=str_replace("\r", "", $eth);
 		$eth=str_replace("\n", "", $eth);
+		$eth=trim($eth);
+		if($eth==null){continue;}
+		
+		$GLOBALS["SCRIPTS_ROUTES"][]="#";
+		$GLOBALS["SCRIPTS_ROUTES"][]="#";
+		
+		if(!isset($GLOBALS["PROC_NET_DEV"][$eth])){
+			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Not found Hardware error";
+			continue;
+			
+		}
+		
 		$ROUTES_ARRAY=unserialize($ligne["routes"]);
+		$metric=$ligne["metric"];
+		$metric_text=null;
+		if($metric>0){
+			if($MetricCount==0){$MetricCount++;$metric=1;}
+			$metric_text=" metric $metric";
+		}
 		
 		if(isset($GLOBALS["DEFAULT_ROUTE_SET"])){if($GLOBALS["DEFAULT_ROUTE_SET"]==$eth){continue;}}
 		
 		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Main route $eth gateway {$ligne["GATEWAY"]} netmask {$ligne["NETMASK"]} ipaddr: {$ligne["IPADDR"]}";
 		
-		if(isset($eth_SKIP[$eth])){echo "Starting......: $eth skipping\n";$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] skipped";continue;}
+		if(isset($eth_SKIP[$eth])){echo "Starting......: ".date("H:i:s")." $eth skipping\n";$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] skipped";continue;}
 		
 		
 		
@@ -1427,21 +1810,24 @@ function routes_main(){
 		if(trim($ligne["NETMASK"])==null){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] NETMASK = null skipped";continue;}
 		
 		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] GATEWAY = {$ligne["GATEWAY"]} add in table (default route {$ligne["defaultroute"]})";
-		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
-		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
+		//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
+		//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
 		
 		if($ligne["defaultroute"]==0){
-			
+			/*
 			$GLOBALS["rt_tables_number"]++;
 			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
 			$GLOBALS["RT_TABLES"][$eth]=$GLOBALS["rt_tables_number"];
 			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"{$GLOBALS["rt_tables_number"]}\t$eth\" >> /etc/iproute2/rt_tables";
 			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} rule add iif $eth table $eth";
+			*/
 			
-			
-			if(!isset($GLOBALS["GATEWAYADDED"][$ligne["GATEWAY"]])){
-				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) ." table $eth";
-				$GLOBALS["GATEWAYADDED"][$ligne["GATEWAY"]]=true;
+			if(!isset($GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]])){
+				$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." gw {$ligne["GATEWAY"]}";
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev $eth";
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) .$metric_text;
+				$GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]]=true;
 			}
 		}	
 		
@@ -1460,10 +1846,11 @@ function routes_main(){
 		
 		if($ligne["defaultroute"]==0){
 			if(!isset($GLOBALS["RT_TABLES"][$eth])){
-				$GLOBALS["rt_tables_number"]++;
+				/*$GLOBALS["rt_tables_number"]++;
 				$GLOBALS["RT_TABLES"][$eth]=$GLOBALS["rt_tables_number"];
 				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"{$GLOBALS["rt_tables_number"]}\t$eth\" >> /etc/iproute2/rt_tables";
 				$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
+				*/
 			}
 			
 			if(is_array($ROUTES_ARRAY)){
@@ -1473,15 +1860,20 @@ function routes_main(){
 						$NETMASK=$ip_array["NETMASK"];
 						$GATEWAY=$ip_array["GATEWAY"];
 						$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $ip/$NETMASK -> $GATEWAY Table {$GLOBALS["RT_TABLES"][$eth]}/$eth";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $GATEWAY dev $eth table $eth";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $ip/$NETMASK via $GATEWAY src {$ligne["IPADDR"]} dev $eth table $eth";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host $GATEWAY dev $eth";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $ip netmask $NETMASK gw $GATEWAY dev $eth";
 					}
 				}
 			}
 			
 			
-			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $CDIR dev $eth src {$ligne["IPADDR"]} table $eth";
-			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add default via {$ligne["GATEWAY"]} src {$ligne["IPADDR"]} dev $eth table $eth";
+			$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $CDIR gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+			if(!isset($GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]])){
+				$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." gw {$ligne["GATEWAY"]}";
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev $eth";
+				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+			}
+
 		
 		
 		}else{
@@ -1493,10 +1885,9 @@ function routes_main(){
 						$NETMASK=$ip_array["NETMASK"];
 						$GATEWAY=$ip_array["GATEWAY"];
 						$CDIR=$NetBuilder->GetCDIRNetwork($ip,$NETMASK);
-						if(isset($ALREADYNETS[$CDIR])){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] $CDIR already added skip it";continue;}
-						$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $ip/$NETMASK -> $GATEWAY main route";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route $GATEWAY dev $eth";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ipbin"]} route add $ip/$NETMASK via $GATEWAY src {$ligne["IPADDR"]} dev $eth ";
+						if(isset($ALREADYNETS[$CDIR])){$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth] $ip/$NETMASK $CDIR already added skip it";continue;}
+						$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $ip/$NETMASK/$CDIR -> $GATEWAY main route";
+						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $ip netmask $NETMASK gw $GATEWAY dev ".$NetBuilder->NicToOther($eth);
 						$ALREADYNETS[$CDIR]=true;
 					}
 				}
@@ -1506,66 +1897,126 @@ function routes_main(){
 		}
 		
 		$GLOBALS["MD5NET"][$md5net]=true;
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."]: Added by nic table for {$ligne["Interface"]} {$ligne["IPADDR"]}/{$ligne["NETMASK"]} -> $CDIR";
+		
 	}
 	
 	
 	
 	
-	$sql="SELECT * FROM nic_routes ORDER BY `nic`";
+	$sql="SELECT * FROM nic_routes ORDER BY `zOrder`";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	
+	$types[1]="{network_nic}";
+	$types[2]="{host}";
 	
+	$GLOBALS["SCRIPTS_ROUTES"][]="#";
+	$GLOBALS["SCRIPTS_ROUTES"][]="# nic_routes ". mysql_num_rows($results)." elements..";
+	$GLOBALS["SCRIPTS_ROUTES"][]="#";
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$type=$ligne["type"];
-		$ttype="-net";
-		$dev=null;
-		
-		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] [{$ligne["nic"]}] nic_routes table type:{$ligne["type"]},gw:{$ligne["gateway"]}"; 
-		
-		if($ligne["nic"]<>null){$dev=" dev ".$NetBuilder->NicToOther($ligne["nic"]);}
-		
-		if($GLOBALS["DEFAULT_ROUTE_SET"]<>$ligne["nic"]){
-			if(!isset($GLOBALS["RT_TABLES"][$eth])){
-				$GLOBALS["rt_tables_number"]++;
-				$GLOBALS["RT_TABLES"][$eth]=$GLOBALS["rt_tables_number"];
-				$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] ({$ligne["nic"]}) Table {$GLOBALS["RT_TABLES"][$eth]} named $eth";
-				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["echobin"]} \"{$GLOBALS["rt_tables_number"]}\t$eth\" >> /etc/iproute2/rt_tables";
+		if($type==2){
+			$GLOBALS["SCRIPTS_ROUTES"][]="# [{$ligne["nic"]}/".__LINE__."] Route host {$ligne["pattern"]}";
+			$data=routes_main_host($ligne);
+			if($data<>null){
+				$GLOBALS["SCRIPTS_ROUTES"][]=$data;
 			}
-		}
-		
-		if($type==1){
-			$ttype="-net";
-			$ROUTE_TABLE=$GLOBALS["RT_TABLES"][$eth];
-			$CMDS="$ip route add {$ligne["gateway"]} $dev table $ROUTE_TABLE";
-			$GLOBALS["SCRIPTS"][]=$CMDS;
+				
 			continue;
 		}
-	
-	
-		if($type==2){
-			
-			$ttype="-host";
-		
-			$ROUTE_TABLE=$GLOBALS["RT_TABLES"][$eth];
-			$md5net=md5("{$ligne["pattern"]}{$ligne["gateway"]}");
-			if(isset($GLOBALS["MD5NET"][$md5net])){continue;}
-			$GLOBALS["MD5NET"][$md5net]=true;
-			$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add {$ligne["gateway"]} dev $dev table $ROUTE_TABLE";
-			$cmd="$ip route add {$ligne["pattern"]} via {$ligne["gateway"]} dev $dev table $ROUTE_TABLE";
-			if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-			$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__LINE__."] Added by nic_routes table";
-			$GLOBALS["SCRIPTS_ROUTES"][]=$CMDS;
+
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [{$ligne["nic"]}/".__LINE__."] Route network {$ligne["pattern"]} gw {$ligne["gateway"]}";
+		$data=routes_main_network($ligne);
+		if($data<>null){
+			$GLOBALS["SCRIPTS_ROUTES"][]=$data;
 		}
-	
 	}
 	
 	if(count($endcmdsline)>0){
-		while (list ($index, $line) = each ($endcmdsline) ){
-			$GLOBALS["SCRIPTS_ROUTES"][]=$line;
-		}
+		while (list ($index, $line) = each ($endcmdsline) ){ $GLOBALS["SCRIPTS_ROUTES"][]=$line; }
 	}
+	
+}
+
+function routes_main_network($ligne){
+	$NetBuilder=new system_nic();
+	$NetBuilder->LoadTools();
+	$ipClass=new IP();
+	$pattern=$ligne["pattern"];
+	$gateway=$ligne["gateway"];
+	if($gateway=="0.0.0.0"){$gateway=null;}
+	
+	if(!isset($GLOBALS["PROC_NET_DEV"][$ligne["nic"]])){
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [{$ligne["nic"]}/".__LINE__."] INTERFACE MATERIAL ERROR";
+		return;
+	}
+	$eth=$NetBuilder->NicToOther($ligne["nic"]);
+	$metric=$ligne["metric"];	
+	
+	if(!$ipClass->isValidBlock($pattern)){
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $pattern is not a valid block";
+		return;
+	}
+	
+	if($gateway==null){
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [{$ligne["nic"]}/".__LINE__."] No gateway set, add just the net $pattern on interface $eth";
+		$f[]="{$GLOBALS["ipbin"]} route add $pattern dev $eth";
+		if($metric>0){ $f[]="metric $metric"; }
+		return @implode(" ", $f);
+	}
+	
+	$GLOBALS["SCRIPTS_ROUTES"][]="# [{$ligne["nic"]}/".__LINE__."] $pattern via $gateway on interface $eth";
+	$f[]="{$GLOBALS["routebin"]} add -net $pattern";
+	$f[]="gw $gateway"; 
+	$f[]="dev $eth";
+	if($metric>0){ $f[]="metric $metric"; }
+	
+	return @implode(" ", $f);
+	
+}
+
+
+function routes_main_host($ligne){
+	$ipClass=new IP();
+	$NetBuilder=new system_nic();
+	$NetBuilder->LoadTools();
+	$pattern=$ligne["pattern"];
+	$gateway=$ligne["gateway"];
+	if($gateway=="0.0.0.0"){$gateway=null;}
+	
+	if(!isset($GLOBALS["PROC_NET_DEV"][$ligne["nic"]])){
+		$GLOBALS["SCRIPTS_ROUTES"][]="# [{$ligne["nic"]}/".__LINE__."] INTERFACE MATERIAL ERROR";
+		return;
+	}
+	
+	$eth=$NetBuilder->NicToOther($ligne["nic"]);
+	$metric=$ligne["metric"];
+	
+	if(!$ipClass->isValid($pattern)){
+		$f[]="{$GLOBALS["routebin"]} add -host $pattern";
+		if($gateway<>null){
+			$f[]="gw $gateway";
+		}
+		$f[]="dev $eth";
+		
+		if($metric>0){
+			$f[]="metric $metric";
+		}
+		
+		return @implode(" ", $f);
+		
+	}
+	
+	$f[]="{$GLOBALS["ipbin"]} route add $pattern";
+	if($gateway<>null){
+		$f[]="via $gateway";
+	}
+	$f[]="dev $eth";
+	if($metric>0){
+		$f[]="metric $metric";
+	}
+	
+	return @implode(" ", $f);
 	
 }
 
@@ -1577,7 +2028,7 @@ function routes(){
 	$ip=$unix->find_program("ip");
 	$types[1]="{network_nic}";
 	$types[2]="{host}";	
-
+	$array=array();
 	
 	
 	$q=new mysql();	
@@ -1595,19 +2046,18 @@ function routes(){
 		
 	}
 	
-	while (list ($id, $ligne) = each ($array) ){
-		echo "Starting......: Building routes, flush table `$ligne`\n";
-		shell_exec("$ip route flush table $ligne");
-		
+	if(count($array)>0){
+		while (list ($id, $ligne) = each ($array) ){
+			echo "Starting......: ".date("H:i:s")." Building routes, flush table `$ligne`\n";
+			shell_exec("$ip route flush table $ligne");
+			
+		}
 	}
-	
-
-	
 	
 	$sql="SELECT * FROM iproute_table WHERE enable=1 ORDER BY routename";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){
-		echo "Starting......: Building routes, $q->mysql_error\n";
+		echo "Starting......: ".date("H:i:s")." Building routes, $q->mysql_error\n";
 		routes_fromfile();
 		return;
 	}
@@ -1632,7 +2082,7 @@ function routes(){
 		}
 	
 		$TABLES[]=$rtname;
-		echo "Starting......: Building routes, Group {$ligne["ID"]}\n";
+		echo "Starting......: ".date("H:i:s")." Building routes, Group {$ligne["ID"]}\n";
 		$sql="SELECT * FROM iproute_rules WHERE ruleid={$ligne["ID"]} AND enable=1 ORDER BY priority";
 		$results2=$q->QUERY_SQL($sql,"artica_backup");
 		$tt[]=array();
@@ -1641,7 +2091,7 @@ function routes(){
 				$src=PARSECDR($ligne2["src"]);
 				$destination=PARSECDR($ligne2["destination"]);
 				$priority=$ligne2["priority"];
-				echo "Starting......: Building routes, source=$src, dest=$destination, GW=$gw\n";
+				echo "Starting......: ".date("H:i:s")." Building routes, source=$src, dest=$destination, GW=$gw\n";
 				$POS=route_between_subnet($src,$destination,$priority,$eth,$rtname);
 				if($POS<>null){
 					$NEXT[]="$ip $POS";
@@ -1773,7 +2223,7 @@ function postfix_multiples_instances(){
 	$results=$q->QUERY_SQL($sql,"artica_backup");	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$hostname=$ligne["value"];
-		echo "Starting......: reconfigure postfix instance $hostname\n";
+		echo "Starting......: ".date("H:i:s")." reconfigure postfix instance $hostname\n";
 		shell_exec("$php /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure \"$hostname\"");
 	}
 }
@@ -1798,7 +2248,7 @@ function Checkipv6Virts(){
 		
 	}
 	if(count($eths)==0){
-		echo "Starting......: Building Ipv6 virtuals IP -> 0 interface...\n";
+		echo "Starting......: ".date("H:i:s")." Building Ipv6 virtuals IP -> 0 interface...\n";
 		return;
 	}
 	
@@ -1808,7 +2258,7 @@ function Checkipv6Virts(){
 	$ip=new IP();
 	$sh=array();
 	while (list ($eth, $ligne) = each ($eths) ){
-		echo "Starting......: Building Ipv6 virtuals IP for `$eth` interface...\n";
+		echo "Starting......: ".date("H:i:s")." Building Ipv6 virtuals IP for `$eth` interface...\n";
 		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/disable_ipv6";		
 		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/autoconf";
 		$sh[]="$echo 0 > /proc/sys/net/ipv6/conf/$eth/accept_ra";
@@ -1825,7 +2275,7 @@ function Checkipv6Virts(){
 			
 			
 			if(!$ip->isIPv6($ipv6addr)){continue;}
-			echo "Starting......: Building Ipv6 virtuals IP for `$eth` [$ipv6addr/$netmask]...\n";
+			echo "Starting......: ".date("H:i:s")." Building Ipv6 virtuals IP for `$eth` [$ipv6addr/$netmask]...\n";
   		    $sh[]="$ipbin addr add dev $eth $ipv6addr/$netmask";
 		}
 		
@@ -1833,7 +2283,7 @@ function Checkipv6Virts(){
 	
 	if(count($sh)==0){return;}
 	while (list ($num, $cmdline) = each ($sh) ){
-		if($GLOBALS["VERBOSE"]){echo "Starting......: Building Ipv6 virtuals $cmdline\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Building Ipv6 virtuals $cmdline\n";}
 		shell_exec($cmdline);
 	}
 	
@@ -1848,9 +2298,9 @@ function Checkipv6(){
 	if(!is_numeric($EnableipV6)){$EnableipV6=0;}
 	
 	if($EnableipV6==0){
-		echo "Starting......: Building networks IPv6 is disabled\n";
+		echo "Starting......: ".date("H:i:s")." Building networks IPv6 is disabled\n";
 	}else{
-		echo "Starting......: Building networks IPv6 is enabled\n";
+		echo "Starting......: ".date("H:i:s")." Building networks IPv6 is enabled\n";
 	}
 	
 	$unix->sysctl("net.ipv6.conf.all.disable_ipv6",$EnableipV6);
@@ -1861,7 +2311,7 @@ function Checkipv6(){
 	@file_put_contents("/proc/sys/net/ipv6/conf/lo/disable_ipv6",$EnableipV6);
 	@file_put_contents("/proc/sys/net/ipv6/conf/all/disable_ipv6",$EnableipV6);
 	@file_put_contents("/proc/sys/net/ipv6/conf/default/disable_ipv6",$EnableipV6);
-	echo "Starting......: Building networks IPv6 done...\n";
+	echo "Starting......: ".date("H:i:s")." Building networks IPv6 done...\n";
 }
 
 function ifupifdown($eth){
@@ -1907,14 +2357,14 @@ function persistent_net_rules(){
 		$line=basename($line);
 		if(!preg_match("#eth[0-9]+#", $line)){continue;}
 		$array=udevadm_eth($line);
-		if(!$array){echo "Starting......: Building persistent rule `FAILED` for `$line`\n";continue;}
-		echo "Starting......: Building persistent rule for `$line` {$array["MAC"]}\n";
+		if(!$array){echo "Starting......: ".date("H:i:s")." Building persistent rule `FAILED` for `$line`\n";continue;}
+		echo "Starting......: ".date("H:i:s")." Building persistent rule for `$line` {$array["MAC"]}\n";
 		$final[]="SUBSYSTEM==\"net\", ACTION==\"add\", DRIVERS==\"?*\", ATTR{address}==\"{$array["MAC"]}\", ATTR{dev_id}==\"{$array["dev_id"]}\", ATTR{type}==\"{$array["TYPE"]}\", KERNEL==\"eth*\", NAME=\"$line\"";
 		
 	}
 	
 	if(count($final)>0){
-		echo "Starting......: Building $filename done\n";
+		echo "Starting......: ".date("H:i:s")." Building $filename done\n";
 		@file_put_contents($filename, @implode("\n", $final)."\n");
 		
 	}
@@ -1963,7 +2413,7 @@ function bridge_delete($ID){
 	
 	
 	while (list ($id, $ligne) = each ($GLOBALS["SCRIPTS_DEL"]) ){
-		echo "Starting......: `$ligne`\n";
+		echo "Starting......: ".date("H:i:s")." `$ligne`\n";
 		shell_exec("$ligne");
 	
 	}
@@ -2005,7 +2455,7 @@ function bridge_deletemanu($eth){
 	
 
 	while (list ($id, $ligne) = each ($GLOBALS["SCRIPTS_DEL"]) ){
-		echo "Starting......: `$ligne`\n";
+		echo "Starting......: ".date("H:i:s")." `$ligne`\n";
 		shell_exec("$ligne");
 	
 	}	

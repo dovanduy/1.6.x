@@ -66,7 +66,7 @@ class samba_virtuals_folders{
 	}
 
 	function compile(){
-		if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] compile [{$this->share_name}]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] compile [{$this->share_name}]",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		reset($this->share_params);
 		unset($this->share_params["folder-id"]);
 		$maps["nt_acl_support"]="nt acl support";
@@ -96,11 +96,11 @@ class samba_virtuals_folders{
 				
 			if($maps[$num]<>null){
 				$f[]="\t{$maps[$num]} = $ligne";
-				if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] {$maps[$num]} = $ligne",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] {$maps[$num]} = $ligne",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				continue;
 			}
 			$f[]="\t$num = $ligne";
-			if($GLOBALS["VERBOSE"]){writelogs("Starting......: Samba [$this->hostname] $num = $ligne",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if($GLOBALS["VERBOSE"]){writelogs("Starting......: ".date("H:i:s")." Samba [$this->hostname] $num = $ligne",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}
 
 

@@ -38,7 +38,7 @@ class proxypacrules{
 				$isInNet[]="\tif(localHostOrDomainIs(host,\"$servername\")){return \"DIRECT\";}";
 			}	
 		}
-		//patch g_delmas 22/04/2011 (see http://www.artica.fr/forum/viewtopic.php?f=39&t=3429&p=16444#p16444)
+		//patch g_delmas 22/04/2011 (see http://www.articatech.net/forum/viewtopic.php?f=39&t=3429&p=16444#p16444)
 		$isInNet[]="\tif(isPlainHostName(host)){return \"DIRECT\";}";
 		
 		if(is_array($datas["isInNet"])){

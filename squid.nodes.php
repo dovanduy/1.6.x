@@ -5,6 +5,7 @@
 	include_once('ressources/class.status.inc');
 	include_once('ressources/class.artica.graphs.inc');
 	include_once('ressources/class.computers.inc');
+	include_once('ressources/class.tcpip.inc');
 	$users=new usersMenus();
 	if(!$users->AsWebStatisticsAdministrator){die();}
 	
@@ -17,24 +18,166 @@
 	if(isset($_GET["node-infos-UserAgents-list"])){node_infos_UserAgents_list();exit;}
 	if(isset($_GET["node-infos-IPADDRS"])){node_infos_UserAgents();exit;}
 	
+	if(isset($_GET["node-infos-RTIME"])){node_infos_realtime();exit;}
+	if(isset($_GET["node-infos-RTIME-LIST"])){node_infos_realtime_list();exit;}
+	
 	if(isset($_GET["link-user-js"])){link_user_js();exit;}
 	if(isset($_GET["link-user-popup"])){link_user_popup();exit;}
 	if(isset($_POST["link-user-save"])){link_user_save();exit;}
 	
+	if(isset($_GET["delete-member-js"])){delete_user_js();exit;}
+	if(isset($_POST["delete-member-perform"])){delete_user_perform();exit;}
+	
+	if(isset($_GET["mac-lock-js"])){mac_lock_js();exit;}
+	if(isset($_POST["mac-lock"])){mac_lock();exit;}
+	
+	if(isset($_GET["mac-unlock-js"])){mac_unlock_js();exit;}
+	if(isset($_POST["mac-unlock"])){mac_unlock();exit;}
 	
 js();
 function link_user_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body("{link_to_an_user}");
-	$html="YahooWin6('520','$page?link-user-popup=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}','$title');";
+	$html="YahooWin6('600','$page?link-user-popup=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}','$title');";
 	echo $html;
+}
+
+function mac_lock_js(){
+	header("content-type: application/x-javascript");
+	$MAC=$_GET["MAC"];
+	$page=CurrentPageName();
+	$t=time();
+echo "
+var xdel$t=function(obj){
+	var tempvalue=obj.responseText;
+    if(tempvalue.length>3){alert(tempvalue);}
+    if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
+    if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
+}	
+	
+function del$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('mac-lock','$MAC');
+	XHR.sendAndLoad('$page', 'POST',xdel$t);			
+}			
+del$t();	
+";
+}
+function mac_unlock_js(){
+header("content-type: application/x-javascript");
+$md5=$_GET["zmd5"];
+$page=CurrentPageName();
+$t=time();
+echo "
+var xdel$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);}
+	if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
+	if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
+}
+	
+function del$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('mac-unlock','$md5');
+	XHR.sendAndLoad('$page', 'POST',xdel$t);
+}
+del$t();
+	";	
+	
+}
+
+function mac_unlock(){
+	$q=new mysql_squid_builder();
+	$md5=$_POST["mac-unlock"];
+	$sql="UPDATE webfilters_blkwhlts SET enabled=0 WHERE zmd5='$md5'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?quick-ban=yes");	
+	
+}
+
+function mac_lock(){
+	$q=new mysql_squid_builder();
+	$MAC=$_POST["mac-lock"];
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT zmd5 FROM webfilters_blkwhlts
+	WHERE `pattern`='$MAC' AND `PatternType`=1 AND `blockType`=0"));
+	
+	if($ligne["zmd5"]==null){
+		$zmd5=md5("{$MAC}10");
+		$sql="INSERT IGNORE INTO webfilters_blkwhlts (zmd5,description,enabled,PatternType,blockType,pattern)
+		VALUES('$zmd5','Block $MAC',1,1,0,'$MAC')";
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$sock=new sockets();
+		$sock->getFrameWork("squid.php?quick-ban=yes");
+		return;
+	}
+	
+	$sql="UPDATE webfilters_blkwhlts SET enabled=1 WHERE zmd5='{$ligne["zmd5"]}'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?quick-ban=yes");
+	
+}
+
+function delete_user_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	
+	$table=$_GET["table"];
+	$member=$_GET["member"];
+	$field=$_GET["field"];
+	$value=$_GET["value"];
+	$t=time();
+	$ask=$tpl->javascript_parse_text("{unlink} $field $value -> $member ?");
+	header("content-type: application/x-javascript");
+	$title=$tpl->_ENGINE_parse_body("{link_to_an_user}");
+	$html="
+			
+		
+	var xdel$t=function(obj){
+      var tempvalue=obj.responseText;
+      if(tempvalue.length>3){alert(tempvalue);}
+      if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
+      if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
+     
+     }	
+	
+		function del$t(){
+			if(!confirm('$ask')){return;}
+			var XHR = new XHRConnection();
+			XHR.appendData('delete-member-perform','yes');
+			XHR.appendData('uid','$member');
+			XHR.appendData('table','$table');
+			XHR.appendData('field','$field');
+			XHR.appendData('value','$value');
+			XHR.sendAndLoad('$page', 'POST',xdel$t);			
+		}
+del$t();
+	";
+	echo $html;	
+	
+}
+function delete_user_perform(){
+	$sql="DELETE FROM `{$_POST["table"]}` WHERE `uid`='{$_POST["uid"]}' AND `{$_POST["field"]}`='{$_POST["value"]}'";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");	
+	
 }
 
 
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body("{computers}");
 	$html="YahooWin4('592.6','$page?popup=yes&filterby={$_GET["filterby"]}&fieldname={$_GET["fieldname"]}','$title');";
 	echo $html;
@@ -44,15 +187,16 @@ function node_infos_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$computer=new computers();
+	header("content-type: application/x-javascript");
 	if($_GET["MAC"]<>null){
 		$uid=$computer->ComputerIDFromMAC($_GET["MAC"]);
 		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["MAC"]}::$uid");
-		$html="YahooWin5('748','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
+		$html="YahooWin5('940','$page?node-infos-tabs=yes&MAC={$_GET["MAC"]}','$title');";
 	}
 	
 	if($_GET["ipaddr"]<>null){
 		$title=$tpl->_ENGINE_parse_body("{status}::{computer}:{$_GET["ipaddr"]}");
-		$html="YahooWin5('748','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
+		$html="YahooWin5('940','$page?node-infos-tabs=yes&ipaddr={$_GET["ipaddr"]}','$title');";
 	}	
 	
 	echo $html;	
@@ -60,7 +204,15 @@ function node_infos_js(){
 }
 
 function link_user_save(){
+	
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("webfilters_ipaddr", "ip")){
+		$q->QUERY_SQL("ALTER TABLE `webfilters_ipaddr` ADD `ip` int(10) unsigned NOT NULL default '0',ADD INDEX ( `ip` )");
+	}
+	
 	$_POST["uid"]=mysql_escape_string2($_POST["uid"]);
+	
+
 	
 	if($_POST["MAC"]<>null){
 		$sql="UPDATE webfilters_nodes SET uid='{$_POST["uid"]}' WHERE MAC='{$_POST["MAC"]}'";
@@ -68,24 +220,39 @@ function link_user_save(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT MAC FROM webfilters_nodes WHERE MAC='{$_POST["MAC"]}'"));
 	
 		if($ligne["MAC"]==null){
-			$sql="INSERT INTO webfilters_nodes (MAC,uid) VALUES ('{$_POST["MAC"]}','{$_POST["uid"]}')";
+			$sql="INSERT INTO webfilters_nodes (MAC,uid,hostname,nmapreport,nmap) 
+			VALUES ('{$_POST["MAC"]}','{$_POST["uid"]}','','',0)";
 		}
 		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error;}
+		if(!$q->ok){
+			echo "Fatal:".$q->mysql_error;
+			return;
+		}
+		
+		$sock=new sockets();
+		
+		writelogs("squid.php?user-retranslation=yes&update=yes",__FUNCTION__,__FILE__,__LINE__);
+		$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
 		return;
 	}
 	if($_POST["ipaddr"]<>null){
-		$sql="UPDATE webfilters_ipaddr SET uid='{$_POST["uid"]}' WHERE ipaddr='{$_POST["ipaddr"]}'";
+		$ip2Long2=ip2Long2($_POST["ipaddr"]);
+		$sql="UPDATE webfilters_ipaddr SET uid='{$_POST["uid"]}',`ip`='$ip2Long2' WHERE ipaddr='{$_POST["ipaddr"]}'";
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ipaddr FROM webfilters_ipaddr WHERE ipaddr='{$_POST["ipaddr"]}'"));
 	
 		if($ligne["ipaddr"]==null){
-			$sql="INSERT INTO webfilters_ipaddr (ipaddr,uid) VALUES ('{$_POST["ipaddr"]}','{$_POST["uid"]}')";
+			$sql="INSERT INTO webfilters_ipaddr (ipaddr,uid,ip,hostname) VALUES ('{$_POST["ipaddr"]}','{$_POST["uid"]}','$ip2Long2','')";
 		}
 		$q->QUERY_SQL($sql);
-		if(!$q->ok){echo $q->mysql_error;}
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$sock=new sockets();
+		$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
 		return;
 	}	
+	
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
 }
 
 function link_user_popup(){
@@ -128,7 +295,7 @@ function link_user_popup(){
       YahooWin6Hide();
       if(document.getElementById('main_node_infos_tab')){RefreshTab('main_node_infos_tab');}
       if(IsFunctionExists('RefreshNodesSquidTbl')){ RefreshNodesSquidTbl();}
-      alert('$you_need_to_reconfigure_proxy');
+     
      }	
 
      function LinkUserStatsDBcHeck(e){
@@ -158,6 +325,7 @@ function node_infos_tabs(){
 	$array["node-infos-status"]="{status}";
 	$array["node-infos-UserAgents"]="{UserAgents}";
 	$array["node-infos-IPADDRS"]="{ip_addresses}";
+	$array["node-infos-RTIME"]="{realtime_requests}";
 	$array["node-infos-GROUPS"]="{proxy_objects}";
 	$array["node-infos-WEBACCESS"]="{webaccess}";
 	$array["node-infos-RULES"]="{access_rules}";
@@ -171,7 +339,7 @@ function node_infos_tabs(){
 		unset($array["node-infos-IPADDRS"]);
 	}
 	
-	$textsize="13px";
+	$textsize="14px";
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -187,7 +355,7 @@ function node_infos_tabs(){
 	}		
 
 	if($num=="node-infos-RULES"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
+			//$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:$textsize'><a href=\"squid.nodes.accessrules.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}\"><span>$ligne</span></a></li>\n");
 			continue;
 		}			
 		
@@ -207,7 +375,7 @@ function node_infos_status(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
-	
+	$users=new usersMenus();
 	$results=$q->QUERY_SQL("SELECT UserAgent,MAC FROM UserAutDB GROUP BY UserAgent,MAC HAVING MAC='{$_GET["MAC"]}' AND LENGTH(UserAgent)>0");
 	$UsersAgents=mysql_num_rows($results);
 	
@@ -225,26 +393,34 @@ function node_infos_status(){
 		$uid=str_replace("$", "", $uid);
 		$uid="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:$jsfiche\" 
-		style='font-size:14px;font-weight:bolder;text-decoration:underline'>$uid</a>";
+		style='font-size:18px;font-weight:bolder;text-decoration:underline'>$uid</a>";
 	}
 	
 	
 	if($_GET["MAC"]<>null){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_nodes WHERE MAC='{$_GET["MAC"]}'"));
 		$member=$ligne["uid"];
+		$member=$ligne["uid"];
+		$member_enc=urlencode($member);
+		$value_enc=urlencode($_GET["MAC"]);
+		$member_delete=imgtootltip("delete-48.png","{unlink}","Loadjs('$page?delete-member-js=yes&table=webfilters_nodes&member=$member_enc&field=MAC&value=$value_enc',true)");
 	}
 	
 	if($_GET["ipaddr"]<>null){
 		if($member==null){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_ipaddr WHERE ipaddr='{$_GET["ipaddr"]}'"));
 			$member=$ligne["uid"];
+			$member_enc=urlencode($member);
+			$value_enc=urlencode($_GET["ipaddr"]);
+			$member_delete=imgtootltip("delete-48.png","{unlink}","Loadjs('$page?delete-member-js=yes&table=webfilters_ipaddr&member=$member_enc&field=ipaddr&value=$value_enc',true)");
 		}
 	}
 	
 	if($member==null){
-		$imagedegauche=imgtootltip("folder-useradd-64.png","{link_to_an_user}","Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}')");
+		$imagedegauche=imgtootltip("folder-useradd-64.png","{link_to_an_user}",
+				"Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}')");
 		$textImage="{link_to_an_user}";
-		$member="{none}";
+		$member="{link_to_an_user}";
 	}
 	
 	
@@ -252,21 +428,24 @@ function node_infos_status(){
 		if(is_array($ArrayNMap)){
 			if($ArrayNMap["OS"]<>null){$NMAPS[]="
 			<tr>
-				<td class=legend style='font-size:14px'>{OS}:</td>
-				<td style='font-size:14px;font-weight:bolder'>{$ArrayNMap["OS"]}</td>
+				<td>&nbsp;</td>
+				<td class=legend style='font-size:18px' nowrap>{OS}:</td>
+				<td style='font-size:18px;font-weight:bolder'>{$ArrayNMap["OS"]}</td>
 			</tr>
 			";}
 			
 			if($ArrayNMap["UPTIME"]<>null){$NMAPS[]="
 			<tr>
-				<td class=legend style='font-size:14px'>{uptime}:</td>
-				<td style='font-size:12px;font-weight:normal'>{$ArrayNMap["UPTIME"]}</td>
+				<td>&nbsp;</td>
+				<td class=legend style='font-size:18px' nowrap>{uptime}:</td>
+				<td style='font-size:18px;font-weight:normal'>{$ArrayNMap["UPTIME"]}</td>
 			</tr>
 			";}			
 			if(count($ArrayNMap["PORTS"])>0){$NMAPS[]="
 			<tr>
-				<td class=legend style='font-size:14px'>{opened_ports}:</td>
-				<td style='font-size:14px;font-weight:bolder'>".count($ArrayNMap["PORTS"])."</td>
+				<td>&nbsp;</td>
+				<td class=legend style='font-size:18px' nowrap>{opened_ports}:</td>
+				<td style='font-size:18px;font-weight:bolder'>".count($ArrayNMap["PORTS"])."</td>
 			</tr>
 			";}				
 			
@@ -276,46 +455,120 @@ function node_infos_status(){
 		}	
 	
 	
+	$ipClass=new IP();
+	if($ipClass->IsvalidMAC($_GET["MAC"])){
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT zmd5 FROM webfilters_blkwhlts
+		WHERE `pattern`='{$_GET["MAC"]}' and enabled=1 AND `PatternType`=1 AND `blockType`=0"));
+		if(!$q->ok){
+			$error="<tr><td colspan=2><p class=text-error>$q->mysql_error</p></td></tr>";
+		}
+		//32-stop.png
+		//32-run.png
+		if($ligne["zmd5"]<>null){
+			$blockMAC="<tr>
+				<td>&nbsp;</td>
+				<td class=legend style='font-size:18px;color:#B90808'>
+				<div style='float:left'><img src='img/warn-red-24.png'></div>
+				{blocked}:</td>
+				<td style='font-size:18px;font-weight:bolder'>
+					". imgtootltip("32-run.png","{unlock}","Loadjs('$page?mac-unlock-js=yes&zmd5={$ligne["zmd5"]}')")."</td>
+					</td>
+			</tr>$error";
+			
+		}else{
+			$blockMAC="<tr>
+				<td>&nbsp;</td>
+				<td class=legend style='font-size:18px;'>{deny}:</td>
+				<td style='font-size:18px;font-weight:bolder'>
+					". imgtootltip("32-run.png","{deny}","Loadjs('$page?mac-lock-js=yes&MAC={$_GET["MAC"]}')")."</td>
+					</td>
+			</tr>$error";			
+			
+		}
+		
+		////pattern           | description                                        | enabled | PatternType | blockType | zmd5
+		
+		
+	}
+
+	//$sql="INSERT IGNORE INTO webfilters_blkwhlts (description,enabled,PatternType,blockType,pattern)
+	//VALUES('$description',1,{$_POST["PatternType"]},{$_POST["blk"]},'{$_POST["pattern"]}')";
+	$main_incon="<img src='img/computer-tour-128.png'>";
+	if($users->nmap_installed){
+		$main_incon=imgtootltip("scan-128.png","{scan_this_computer}","Loadjs('nmap.progress.php?MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}')");
+	}
+	
+		
 	$uidORG=str_replace("$", "", $uidORG);
 	$jsnode="<a href=\"javascript:blur();\" 
-		style='font-size:14px;font-weight:bolder;text-decoration:underline'
-		OnClick=\"javascript:Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}')\">";
+		style='font-size:18px;font-weight:bolder;text-decoration:underline'
+		OnClick=\"javascript:Loadjs('$page?link-user-js=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}',true)\">";
 	$html="
+	<div style='width:98%' class=form>
 	<table style='width:100%;margin:-8px'>
 	<tr>
 		<td valign='top' width=1%>
-			<center class=form style='width:90%'>
-				<img src='img/computer-tour-64.png'><p>&nbsp;</p>$imagedegauche<strong>$textImage</strong></center></td>
+			<center style='width:90%;margin-left:10px;margin-top:15px;margin-right:40px'>$main_incon </center></td>
 		<td valign='top' width=99% style='padding-left:15px'>
-
-			<table style='width:99%' class=form>
+			<div style='font-size:32px;text-align:left'>{$_GET["MAC"]}&nbsp;|&nbsp;$uidORG</div>
+			<table>
+			$NMAPS_TXT
+			</table>
+			<p>&nbsp;</p>
+			<table style='width:100%'>
 				<tbody>
+	
+				
+								
 					<tr>
-						<td class=legend style='font-size:16px' colspan=2 align=right>{$_GET["MAC"]}&nbsp;|&nbsp;$uidORG</td>
-					</tr>	
-					$NMAPS_TXT			
-					<tr>
-						<td class=legend style='font-size:14px'>{UserAgents}:</td>
-						<td style='font-size:14px;font-weight:bolder'>$UsersAgents</td>
+						<td width=1% nowrap><img src='img/useragent-48.png'></td>
+						<td class=legend style='font-size:18px' nowrap>{UserAgents}:</td>
+						<td style='font-size:18px;font-weight:bolder'>$UsersAgents</td>
 					</tr>
 					<tr>
-						<td class=legend style='font-size:14px'>{ip_addresses}:</td>
-						<td style='font-size:14px;font-weight:bolder'>$ipaddr</td>
+						<td class=legend colspan=3 align=right><p>&nbsp;</p></td>
+					</tr>
+					<tr>
+						<td width=1% nowrap><img src='img/folder-network-48.png'></td>
+						<td class=legend style='font-size:18px' width=5% nowrap>{ip_addresses}:</td>
+						<td style='font-size:18px;font-weight:bolder' width=70% nowrap>$ipaddr</td>
+					</tr>
+					<tr>
+						<td class=legend colspan=3 align=right><p>&nbsp;</p></td>
 					</tr>	
 					<tr>
-						<td class=legend style='font-size:14px'>{in_database}:</td>
-						<td style='font-size:14px;font-weight:bolder'>$uid</a></td>
+						<td width=1% nowrap><img src='img/folder-network-48.png'></td>
+						<td class=legend style='font-size:18px' width=5% nowrap>{MAC}:</td>
+						<td style='font-size:18px;font-weight:bolder' width=70% nowrap>{$_GET["MAC"]}</td>
+					</tr>
+					$blockMAC
+					<tr>
+						<td class=legend colspan=3 align=right><p>&nbsp;</p></td>
+					</tr>					
+					<tr>
+						<td width=1% nowrap><img src='img/48-computer.png'></td>
+						<td class=legend style='font-size:18px' nowrap>{in_database}:</td>
+						<td style='font-size:18px;font-weight:bolder'>$uid</a></td>
 					</tr>	
 					<tr>
-						<td class=legend style='font-size:14px'>{member}:</td>
-						<td style='font-size:14px;font-weight:bolder'>$jsnode$member</a></td>
+						<td class=legend colspan=3 align=right><p>&nbsp;</p></td>
+					</tr>
+					<tr>
+						<td width=1% nowrap><img src='img/user-48.png'></td>
+						<td class=legend style='font-size:18px' nowrap>{member}:</td>
+						<td style='font-size:18px;font-weight:bolder'>
+							<table><tr><td>$jsnode$member</a></td>
+							<td><span  style='margin-left:10px'>$member_delete</span></td>
+							</tr>
+							</table>
+						</td>
 					</tr>														
 				</tbody>
 			</table>
 		</td>
 	</tr>
-	</table>
-	
+	</table></div>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 }
@@ -362,7 +615,7 @@ $('#$t').flexigrid({
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	
@@ -516,21 +769,21 @@ function nodes_list(){
 			$tt[]="$link{$hostname}</a>";
 		}
 		
-		$maclink="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;text-decoration:underline'>";
+		$maclink="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:18px;text-decoration:underline'>";
 		
 		if($filterby<>null){
 			
 			if($filterby=="MAC"){
 				$maclink="<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:SelectUser$t('{$ligne["MAC"]}');\" 
-				style='font-size:16px;text-decoration:underline'>";
+				style='font-size:18px;text-decoration:underline'>";
 			}
 			
 			
 			if($filterby=="uid"){
 				$uidlink="<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:SelectUser$t('{$ligne["uid"]}');\" 
-				style='font-size:16px;text-decoration:underline'>";
+				style='font-size:18px;text-decoration:underline'>";
 			}			
 			
 		}
@@ -541,7 +794,7 @@ function nodes_list(){
 		'cell' => array(
 			"$maclink{$ligne["MAC"]}</a></span>",
 			"<span style='font-size:11px'>". @implode(", " , $tt)."</span>$textToAdd",
-			"<span style='font-size:16px'>$uidlink{$ligne["uid"]}</a></span>",
+			"<span style='font-size:18px'>$uidlink{$ligne["uid"]}</a></span>",
 			$img_active)
 		);
 	}
@@ -568,10 +821,12 @@ function node_infos_UserAgents(){
 	$TB_WIDTH=607;
 	$t=time();
 	$UserAgentsF="UserAgent";
+	$FilterField="UserAgent";
 	if(isset($_GET["node-infos-IPADDRS"])){
 		$UserAgents=$tpl->_ENGINE_parse_body("{ip_addresses}");
 		$UserAgentsF="ipaddr";
 		$listAdd="&ipaddr=yes";
+		$FilterField="ipaddr";
 	}
 	
 	$html="
@@ -580,22 +835,22 @@ function node_infos_UserAgents(){
 
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?node-infos-UserAgents-list=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}$listAdd',
+	url: '$page?node-infos-UserAgents-list=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}$listAdd&field=$FilterField',
 	dataType: 'json',
 	colModel : [
-		{display: '$UserAgents', name : '$UserAgentsF', width : 573, sortable : true, align: 'left'},
+		{display: '$UserAgents', name : '$FilterField', width : 792, sortable : true, align: 'left'},
 	],
 	searchitems : [
-		{display: '$UserAgents', name : '$UserAgentsF'},
+		{display: '$UserAgents', name : '$FilterField'},
 		],
-	sortname: '	UserAgent',
+	sortname: '$FilterField',
 	sortorder: 'asc',
 	usepager: true,
 	title: '',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 250,
 	singleSelect: true
 	
@@ -608,26 +863,23 @@ function node_infos_UserAgents_list(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
 	$q=new mysql_squid_builder();
-
-	$UserAgent="UserAgent";
+	$ip=new IP();
+	$field=$_GET["field"];
 	$search='%';
 	$table="UserAutDB";
 	$Select="MAC";
 	$page=1;
-	$FORCE_FILTER="AND MAC='{$_GET["MAC"]}' AND LENGTH(UserAgent)>0";
-	if(isset($_GET["ipaddr"])){
-		$FORCE_FILTER="AND MAC='{$_GET["MAC"]}' AND LENGTH(ipaddr)>0";
-		$UserAgent="ipaddr";
+	
+	if($ip->isIPAddress($_GET["ipaddr"])){
+		$Select="ipaddr";
+		$FORCE_FILTER="AND ipaddr='{$_GET["ipaddr"]}' AND LENGTH($field)>1";
 	}
 	
-	if($_GET["MAC"]==null){
-		if($_GET["ipaddr"]<>null){
-			$FORCE_FILTER="AND ipaddr='{$_GET["ipaddr"]}' AND LENGTH(ipaddr)>0";
-			$UserAgent="UserAgent";
-			$Select="ipaddr";
-		}
-		
+	if($ip->IsvalidMAC($_GET["MAC"])){
+		$Select="MAC";
+		$FORCE_FILTER="AND MAC='{$_GET["MAC"]}' AND LENGTH($field)>1";
 	}
+
 	
 	
 	$total=0;
@@ -636,20 +888,16 @@ function node_infos_UserAgents_list(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
+	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
-		$sql="SELECT COUNT(*) as TCOUNT,MAC,$UserAgent FROM `$table` GROUP BY MAC,$UserAgent HAVING 1 $FORCE_FILTER $searchstring";
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT,$field FROM `$table` GROUP BY $field HAVING 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT,MAC,$UserAgent FROM `$table` GROUP BY MAC,$UserAgent HAVING 1 $FORCE_FILTER";
+		$sql="SELECT COUNT(*) as TCOUNT,$field FROM `$table` GROUP BY $field HAVING 1 $FORCE_FILTER";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 	}
@@ -661,7 +909,7 @@ function node_infos_UserAgents_list(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT $Select,$UserAgent FROM `$table` GROUP BY $Select,$UserAgent HAVING 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	$sql="SELECT $field,$Select FROM `$table` GROUP BY $field,$Select HAVING 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
 	
 	
@@ -672,22 +920,22 @@ function node_infos_UserAgents_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		json_error_show("$q->mysql_error");
+		json_error_show("$q->mysql_error\n$sql");
 	}	
 
 	
 	if(mysql_num_rows($results)==0){
-		json_error_show("Query return no item");
+		json_error_show("Query return no item<hr>\n$sql");
 	}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
-		$ID=$ligne[$UserAgent];
-		$md5=md5($ligne[$UserAgent]);
+		$ID=$ligne[$field];
+		$md5=md5($ligne[$field]);
 		
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array(
-			"<span style='font-size:14px;'>{$ligne[$UserAgent]}</span>",
+			"<span style='font-size:16px;'>{$ligne[$field]}</span>",
 			)
 		);
 	}
@@ -696,3 +944,200 @@ function node_infos_UserAgents_list(){
 echo json_encode($data);		
 
 }
+
+function node_infos_realtime(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=time();
+	$events=$tpl->_ENGINE_parse_body("{events}");
+	$zdate=$tpl->_ENGINE_parse_body("{zDate}");
+	$proto=$tpl->_ENGINE_parse_body("{proto}");
+	$uri=$tpl->_ENGINE_parse_body("{url}");
+	$member=$tpl->_ENGINE_parse_body("{member}");
+	$title=$tpl->_ENGINE_parse_body("{today}: {$_GET["MAC"]} - {$_GET["ipaddr"]} {realtime_requests} ".date("H")."h");
+	$zoom=$tpl->_ENGINE_parse_body("{zoom}");
+	$button1="{name: 'Zoom', bclass: 'Search', onpress : ZoomSquidAccessLogs},";
+	$stopRefresh=$tpl->javascript_parse_text("{stop_refresh}");
+	$logs_container=$tpl->javascript_parse_text("{logs_container}");
+	$refresh=$tpl->javascript_parse_text("{refresh}");
+	
+	$items=$tpl->_ENGINE_parse_body("{items}");
+	$size=$tpl->_ENGINE_parse_body("{size}");
+	$SaveToDisk=$tpl->_ENGINE_parse_body("{SaveToDisk}");
+	$addCat=$tpl->_ENGINE_parse_body("{add} {category}");
+	$date=$tpl->_ENGINE_parse_body("{zDate}");
+	$task=$tpl->_ENGINE_parse_body("{task}");
+	$new_schedule=$tpl->_ENGINE_parse_body("{new_rotate}");
+	$explain=$tpl->_ENGINE_parse_body("{explain_squid_tasks}");
+	$run=$tpl->_ENGINE_parse_body("{run}");
+	$task=$tpl->_ENGINE_parse_body("{task}");
+	$size=$tpl->_ENGINE_parse_body("{size}");
+	$filename=$tpl->_ENGINE_parse_body("{filename}");
+	$empty=$tpl->_ENGINE_parse_body("{empty}");
+	$askdelete=$tpl->javascript_parse_text("{empty_store} ?");
+	$files=$tpl->_ENGINE_parse_body("{files}");
+	$ext=$tpl->_ENGINE_parse_body("{extension}");
+	$back_to_events=$tpl->_ENGINE_parse_body("{back_to_events}");
+	$Compressedsize=$tpl->_ENGINE_parse_body("{compressed_size}");
+	$realsize=$tpl->_ENGINE_parse_body("{realsize}");
+	$delete_file=$tpl->javascript_parse_text("{delete_file}");
+	$rotate_logs=$tpl->javascript_parse_text("{rotate_logs}");
+	$table_size=855;
+	$url_row=555;
+	$member_row=276;
+	$table_height=420;
+	$distance_width=230;
+	$tableprc="100%";
+	$margin="-10";
+	$margin_left="-15";
+	if(is_numeric($_GET["table-size"])){$table_size=$_GET["table-size"];}
+	if(is_numeric($_GET["url-row"])){$url_row=$_GET["url-row"];}
+	
+
+	
+
+	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+	$error=$tpl->javascript_parse_text("{error}");
+	$sitename=$tpl->javascript_parse_text("{sitename}");
+	
+	
+	$html="
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+	</div>
+	<script>
+	var mem$t='';
+function StartLogsSquidTable$t(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?node-infos-RTIME-LIST=yes&MAC={$_GET["MAC"]}&ipaddr={$_GET["ipaddr"]}',
+	dataType: 'json',
+	colModel : [
+	{display: '$zdate', name : 'zDate', width :52, sortable : true, align: 'left'},
+	{display: '$uri', name : 'events', width : 739, sortable : false, align: 'left'},
+	],
+		
+	
+	
+	searchitems : [
+	{display: '$sitename', name : 'sitename'},
+	{display: '$uri', name : 'uri'},
+	{display: '$error', name : 'TYPE'},
+
+	],
+	sortname: 'zDate',
+	sortorder: 'desc',
+	usepager: true,
+	title: '$title',
+	useRp: true,
+	rp: 50,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: 450,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200,500]
+	
+	});
+	
+}
+setTimeout('StartLogsSquidTable$t()',800);
+</script>
+";
+echo $html;
+	
+	}
+function node_infos_realtime_list(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$q=new mysql_squid_builder();
+	$GLOBALS["Q"]=$q;
+	$table="squidhour_".date("YmdH");
+	
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+	if(isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	$ip=new IP();
+	
+	if($ip->isIPAddress($_GET["ipaddr"])){
+		$Select="ipaddr";
+		$FORCE_FILTER=" ipaddr='{$_GET["ipaddr"]}'";
+	}
+	
+	if($ip->IsvalidMAC($_GET["MAC"])){
+		$Select="MAC";
+		$FORCE_FILTER=" MAC='{$_GET["MAC"]}'";
+	}
+	
+	$searchstring=string_to_flexquery();
+	
+		if($searchstring<>null){
+			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE_FILTER $searchstring";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			$total = $ligne["TCOUNT"];
+	
+		}else{
+			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE_FILTER";
+			$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+			$total = $ligne["TCOUNT"];
+		}
+	
+		if(!is_numeric($rp)){$rp=50;}
+		$pageStart = ($page-1)*$rp;
+		$limitSql = "LIMIT $pageStart, $rp";
+		if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	
+		$sql="SELECT *  FROM `$table` WHERE $FORCE_FILTER $searchstring $ORDER $limitSql";
+		$results = $q->QUERY_SQL($sql);
+		if(!$q->ok){json_error_show($q->mysql_error."\n$sql");}
+	
+		$data = array();
+		$data['page'] = $page;
+		$data['total'] = $total;
+		$data['rows'] = array();
+		$today=date("Y-m-d");
+		$tcp=new IP();
+	
+		$cachedT=$tpl->_ENGINE_parse_body("{cached}");
+		$c=0;
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$color="black";
+			$return_code_text=null;
+			$ff=array();
+			$color="black";
+			$uri=$ligne["uri"];
+			$date=$ligne["zDate"];
+			$mac=$ligne["MAC"];
+			$ip=$ligne["CLIENT"];
+			$user=$ligne["uid"];
+			$dom=$ligne["sitename"];
+			$cached=$ligne["cached"];
+			$return_code=$ligne["TYPE"];
+			$size=$ligne["QuerySize"];
+			$ident=array();
+			$md=md5(serialize($ligne));
+			$today=date("Y-m-d");
+			$date=str_replace($today, "", $date);
+		
+			$spanON="<span style='color:$color'>";
+			$spanOFF="</span>";
+			$cached_text=null;
+			if($cached==1){$cached_text=" - $cachedT";}
+			$size=FormatBytes($size/1024);
+			if($return_code=="Service Unavailable"){$color="#BA0000";}
+			if($return_code=="Bad Gateway"){$color="#BA0000";}
+			$return_code_text="<div style='color:$color;font-size:11px'><i>&laquo;$return_code&raquo;$cached_text - $size</i></div>";
+	
+	
+			$data['rows'][] = array(
+					'id' => $md,
+					'cell' => array(
+							"$spanON$date$spanOFF",
+							"$spanON$uri.$return_code_text$spanOFF",
+					)
+			);
+	
+	
+				
+	
+		}
+	
+		echo json_encode($data);
+	}	

@@ -55,7 +55,7 @@ function status(){
 	if(!$users->APP_ARKEIA_INSTALLED){
 		
 		$html="<center style='margin:70px'>
-			<table style='width:95%' class=form>
+			<table style='width:98%' class=form>
 			<tr>
 				<td width=1% valign='top'><img src='img/error-128.png'></td>
 				<td valign='top'><div style='font-size:18px'>{APP_ARKEIA_NOT_INSTALLED}</div></td>

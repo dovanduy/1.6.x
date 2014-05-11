@@ -50,7 +50,7 @@ function popup(){
 	$t=time();
 	$html="
 	<div id=animate-$t></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
 	<tr>

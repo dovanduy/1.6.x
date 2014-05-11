@@ -105,15 +105,15 @@ function artica_schedule(){
 		if($GLOBALS["VERBOSE"]){echo "EnableScheduleUpdates = $ArticaScheduleUpdates\n";}
 		if($ArticaScheduleUpdates==null){$sock->SET_INFO("EnableScheduleUpdates", 0);return;}
 		$targetfile="/etc/cron.d/arscheduler";
+		$php5=$unix->LOCATE_PHP5_BIN();
  		
  		$f[]="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin:/usr/share/artica-postfix/bin";
 		$f[]="MAILTO=\"\"";
-		$f[]="$ArticaScheduleUpdates  root /usr/share/artica-postfix/bin/artica-update --bycron";
+		$f[]="$ArticaScheduleUpdates  root $php5 /usr/share/artica-postfix/exec.nightly.php --bycron";
 		$f[]="";	
 		if($GLOBALS["VERBOSE"]){echo " -> $targetfile\n";}
 		@file_put_contents($targetfile,implode("\n",$f));
 		if(!is_file($targetfile)){if($GLOBALS["VERBOSE"]){echo " -> $targetfile No such file\n";}}
-		
 		$chmod=$unix->find_program("chmod");
 		shell_exec("$chmod 640 /etc/cron.d/arscheduler");
 		unset($f);	
@@ -169,7 +169,7 @@ function postmaster_cron_check($email,$filename){
 				if($GLOBALS["VERBOSE"]){echo "$line Found \"$orgmail\" <> \"$email\"\n";}
 				$f[$index]="MAILTO=\"$email\"";
 				@file_put_contents($filename,@implode("\n",$f));
-				echo "Starting......: Artica patching $dirname/".basename($filename)." $email\n";
+				echo "Starting......: ".date("H:i:s")." Artica patching $dirname/".basename($filename)." $email\n";
 				return;
 			}
 			return;
@@ -180,7 +180,7 @@ function postmaster_cron_check($email,$filename){
 	}
 	$final="MAILTO=\"$email\"\n".@implode("\n",$f);
 	@file_put_contents($filename,$final);
-	echo "Starting......: Artica patching $dirname/".basename($filename)." $email\n";
+	echo "Starting......: ".date("H:i:s")." Artica patching $dirname/".basename($filename)." $email\n";
 	
 	
 }

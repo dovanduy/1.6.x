@@ -43,32 +43,32 @@ class drupal_vhosts{
 	}
 	
 	public function install(){
-		if($this->groupware<>"DRUPAL"){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] this is not a drupal groupware");return;}
+		if($this->groupware<>"DRUPAL"){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] this is not a drupal groupware");return;}
 		$q=new mysql();
 		if(!$q->DATABASE_EXISTS($this->drupalDatabase)){
-			$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] creating database \"$this->drupalDatabase\"");
+			$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] creating database \"$this->drupalDatabase\"");
 			$q->CREATE_DATABASE($this->drupalDatabase);
 			if(!$q->ok){
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] creating database \"$this->drupalDatabase\" FAILED");
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] $q->mysql_error");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] creating database \"$this->drupalDatabase\" FAILED");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] $q->mysql_error");
 				return;
 			}
 		}else{
-			$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] database \"$this->drupalDatabase\" ok");
+			$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] database \"$this->drupalDatabase\" ok");
 		}
 		
 		if($this->TestsInstall()){
-			$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] core is installed");
+			$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] core is installed");
 			$array=$this->DrupalStatusArray();
 			if(!isset($array["SITE_PATH"])){
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] configuring Drupal...");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] configuring Drupal...");
 				$this->DrushInstall();
 			}
 			return;
 		}
-		$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] installing Drupal");
+		$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] installing Drupal");
 		shell_exec("/bin/cp -rf /usr/share/drupal7/* $this->www_dir/");
-		if(!$this->TestsInstall()){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] installing Drupal FAILED !");return;}
+		if(!$this->TestsInstall()){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] installing Drupal FAILED !");return;}
 		$this->DrushInstall();
 		$this->populate_infos();
 		
@@ -81,7 +81,7 @@ class drupal_vhosts{
 		$cmd="$this->drush7 --uri=$this->servername site-install standard --db-url=mysql://$q->mysql_admin:$q->mysql_password@$q->mysql_server/$this->drupalDatabase -y 2>&1";
 		exec($cmd,$results);
 		while (list ($num, $ligne) = each ($results) ){
-			$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] $ligne");
+			$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] $ligne");
 		}
 	}
 	
@@ -94,7 +94,7 @@ class drupal_vhosts{
 				$re[1]=trim($re[1]);
 				$re[1]=str_replace(" ", "_", $re[1]);
 				$re[1]=strtoupper($re[1]);
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] {$re[1]} = {$re[2]}");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] {$re[1]} = {$re[2]}");
 				$status[$re[1]]=trim($re[2]);
 			}
 		}
@@ -163,7 +163,7 @@ class drupal_vhosts{
 			if(preg_match("#^(.+)\s+(.+?)\s+\((.+?)\)\s+(.+?)\s+(.+?)\s+(.+)#", $ligne,$re)){
 				$version=$re[6];
 				if(preg_match("#installed\s+(.+)#",$version, $ri)){$version=$ri[1];}
-				if($GLOBALS["VERBOSE"]){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] {$re[3]} -> $version");}
+				if($GLOBALS["VERBOSE"]){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] {$re[3]} -> $version");}
 				$modules[$re[3]]=array("NAME"=>$re[1],"VERSION"=>$version);
 				continue;
 			}
@@ -173,7 +173,7 @@ class drupal_vhosts{
 				continue;
 			}
 			
-		if($GLOBALS["VERBOSE"]){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] $ligne No match");}
+		if($GLOBALS["VERBOSE"]){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] $ligne No match");}
 			
 		}	
 		
@@ -225,7 +225,7 @@ class drupal_vhosts{
 		
 			if($GLOBALS["VERBOSE"]){
 			while (list ($module, $num) = each ($this->DrupalModules) ){
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] $module installed");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] $module installed");
 				
 			}
 			reset($this->DrupalModules);
@@ -236,13 +236,13 @@ class drupal_vhosts{
 			$module_check=$module;
 			if(preg_match("#^(.+?)\-[0-9]+#", $module,$re)){$module_check=$re[1];}
 			if(!isset($this->DrupalModules[$module_check])){
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] $module/$module_check is not installed");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] $module/$module_check is not installed");
 				chdir($this->www_dir);
 				$cmd="$this->drush7 pm-download $module -y 2>&1";
 				$this->echo2($cmd);
 				$install=true;
 				exec($cmd,$results);
-				while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+				while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 			}
 		}
 		
@@ -260,10 +260,10 @@ class drupal_vhosts{
 	function add_user($uid,$password=null){
 		$mail=null;
 		if($password==null){
-			$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] load user $uid");
+			$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] load user $uid");
 			$u=new user($uid);
-			$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] loaded user $uid ok");
-			if(strlen($u->password)==0){if(!$q->ok){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] user $uid does not exists in LDAP Database");}return;}
+			$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] loaded user $uid ok");
+			if(strlen($u->password)==0){if(!$q->ok){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] user $uid does not exists in LDAP Database");}return;}
 			$password=$u->password;
 			$mail=$u->mail;
 		}
@@ -272,7 +272,7 @@ class drupal_vhosts{
 		$cmd="$this->drush7 user-create $uid$mail --password=\"$password\" 2>&1";
 		$this->echo2($cmd);
 		exec($cmd,$results);
-		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 		$this->populate_infos();
 	}
 	
@@ -284,13 +284,13 @@ class drupal_vhosts{
 		if($enable==0){$cmd=$cmdoff;}
 		$this->echo2($cmd);
 		exec($cmd,$results);
-		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 		$this->populate_infos();		
 	}
 	
 	function priv_user($uid,$priv){
 		chdir($this->www_dir);
-		if($GLOBALS["VERBOSE"]){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] priv_user() $uid -> $priv");}
+		if($GLOBALS["VERBOSE"]){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] priv_user() $uid -> $priv");}
 		
 		$cmd="$this->drush7 user-remove-role \"administrator\" $uid  2>&1";
 		$this->echo2($cmd);
@@ -303,7 +303,7 @@ class drupal_vhosts{
 			$cmd="$this->drush7 user-add-role \"administrator\" $uid  2>&1";
 			$this->echo2($cmd);
 			exec($cmd,$results);
-			while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+			while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 			$this->populate_infos();
 			return;
 		}
@@ -312,7 +312,7 @@ class drupal_vhosts{
 			$cmd="$this->drush7 user-add-role \"authenticated user\" $uid  2>&1";
 			$this->echo2($cmd);
 			exec($cmd,$results);
-			while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+			while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 			$this->populate_infos();
 			return;
 		}		
@@ -320,7 +320,7 @@ class drupal_vhosts{
 		$cmd="$this->drush7 user-add-role \"anonymous user\" $uid  2>&1";
 		$this->echo2($cmd);
 		exec($cmd,$results);
-		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 		$this->populate_infos();
 		return;		
 		$this->populate_infos();
@@ -334,7 +334,7 @@ class drupal_vhosts{
 		$cmd="$this->drush7 user-cancel \"$uid\" -y 2>&1";
 		$this->echo2($cmd);
 		exec($cmd,$results);
-		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
+		while (list ($num, $ligne) = each ($results) ){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] \"$ligne\"");}
 		$this->populate_infos();		
 		
 	}
@@ -369,8 +369,8 @@ class drupal_vhosts{
 		$sql="UPDATE freeweb SET DrupalInfos='$final' WHERE servername='$this->servername'";
 		$q=new mysql();
 		$q->QUERY_SQL($sql,"artica_backup");
-		if(!$q->ok){$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] populated infos failed");return;}
-		$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] populated infos done.");
+		if(!$q->ok){$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] populated infos failed");return;}
+		$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] populated infos done.");
 		$unix=new unix();
 		$nohup=$unix->find_program("nohup");
 		$cmd=$nohup." ".$unix->LOCATE_APACHE_BIN_PATH()." /usr/share/artica-postfix/exec.freeweb.php --drupal-modules $this->servername >/dev/null 2>&1 &";
@@ -380,7 +380,7 @@ class drupal_vhosts{
 	
 	private function TestsInstall(){
 			if(!is_dir($this->www_dir)){
-				$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] $this->www_dir no such directory");
+				$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] $this->www_dir no such directory");
 				return false;
 			}
 			$f[]="web.config";
@@ -479,7 +479,7 @@ class drupal_vhosts{
 			while (list ($num, $ligne) = each ($f) ){
 				if(is_dir($this->www_dir."/".$ligne)){continue;}
 				if(!is_file($this->www_dir."/".$ligne)){
-					$this->echo2("Starting......: Apache \"$this->servername\" [DRUPAL] ".$this->www_dir."/".$ligne ." no such file...");
+					$this->echo2("Starting......: ".date("H:i:s")." Apache \"$this->servername\" [DRUPAL] ".$this->www_dir."/".$ligne ." no such file...");
 					return false;
 				}
 			}

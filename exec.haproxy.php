@@ -1,6 +1,7 @@
 <?php
 $GLOBALS["AS_ROOT"]=true;
-
+$GLOBALS["TITLENAME"]="Load-Balancer Daemon";
+$GLOBALS["OUTPUT"]=false;
 $GLOBALS["COMMANDLINE"]=implode(" ",$argv);
 if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
@@ -15,16 +16,43 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 
 if($argv[1]=="--build"){build();die();}
-if($argv[1]=="--reload"){reload();die();}
+if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
+if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
+if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--iptables-remove"){iptables_delete_all();die();}
 
+function restart($aspid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	$Masterbin=$unix->find_program("haproxy");
 
+	if(!is_file($Masterbin)){
+		if($GLOBALS["OUTPUT"]){echo "ReStarting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, haproxy not installed\n";}
+		return;
+	}
+
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "ReStarting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+stop(true);
+build();
+start(true);	
+	
+}
 
 
 function reload(){
 	build();
-	
-	if(!isRunning()){shell_exec("/etc/init.d/artica-postfix restart haproxy");return;}
+	if(!isRunning()){start(true);return;}
 	$unix=new unix();
 	$HAPROXY=$unix->find_program("haproxy");
 	$CONFIG="/etc/haproxy/haproxy.cfg";
@@ -35,7 +63,7 @@ function reload(){
 	$cmd="$HAPROXY -f \"$CONFIG\" -p $PIDFILE -D $EXTRAOPTS -sf $pids 2>&1";
 	exec($cmd,$results);
 	while (list ($num, $ligne) = each ($results) ){
-		echo "Starting......: HAProxy $ligne\n";
+		echo "Starting......: ".date("H:i:s")." {$GLOBALS["TITLENAME"]} $ligne\n";
 	}
 }
 
@@ -66,15 +94,9 @@ function pidsarr(){
 
 
 function build(){
-	
-	$q=new mysql();
-	if(!$q->TestingConnection()){
-		echo "Starting......: HAProxy building configuration failed (MySQL service not available).\n";
-		return;
-	}
-	
 	$hap=new haproxy();
 	$conf=$hap->buildconf();
+	@unlink("/etc/haproxy/haproxy.cfg");
 	if(trim($conf)==null){return;}
 	@mkdir("/etc/haproxy",0755,true);
 	@file_put_contents("/etc/haproxy/haproxy.cfg", $conf);
@@ -82,6 +104,152 @@ function build(){
 	rsyslog_conf();
 	
 	
+}
+
+function start($aspid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	$Masterbin=$unix->find_program("haproxy");
+
+	if(!is_file($Masterbin)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, haproxy not installed\n";}
+		return;
+	}
+
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=PID_NUM();
+
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+	$EnableHaProxy=$sock->GET_INFO("EnableHaProxy");
+	
+	if(!is_numeric($EnableHaProxy)){$EnableHaProxy=1;}
+	if(!is_file("/etc/haproxy/haproxy.cfg")){$EnableHaProxy=0;}
+	
+
+
+	if($EnableHaProxy==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableHaProxy)\n";}
+		return;
+	}
+
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$sysctl=$unix->find_program("sysctl");
+	$echo=$unix->find_program("echo");
+	$nohup=$unix->find_program("nohup");
+
+
+
+	$cmd="$nohup $Masterbin -f /etc/haproxy/haproxy.cfg -D -p /var/run/haproxy.pid  >/dev/null 2>&1 &";
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+
+	shell_exec($cmd);
+
+
+
+
+	for($i=1;$i<5;$i++){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		sleep(1);
+		$pid=PID_NUM();
+		if($unix->process_exists($pid)){break;}
+	}
+
+	$pid=PID_NUM();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+	}
+
+
+}
+
+
+
+function PID_NUM(){
+
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file("/var/run/haproxy.pid");
+	if($unix->process_exists($pid)){return $pid;}
+	$Masterbin=$unix->find_program("haproxy");
+	return $unix->PIDOF($Masterbin);
+
+}
+
+function stop($aspid=false){
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=PID_NUM();
+
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		return;
+	}
+	$pid=PID_NUM();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
+
+
+
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	$pid=PID_NUM();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		return;
+	}
+
 }
 
 function Transparents_modes(){
@@ -92,9 +260,9 @@ function Transparents_modes(){
 	$sql="SELECT * FROM haproxy WHERE enabled=1 AND transparent=1";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,'artica_backup');
-	if(!$q->ok){if($GLOBALS["AS_ROOT"]){echo "Starting......: HAProxy building configuration failed $q->mysql_error\n";return;}}
+	if(!$q->ok){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." {$GLOBALS["TITLENAME"]} building configuration failed $q->mysql_error\n";return;}}
 	if(mysql_num_rows($results)==0){
-		echo "Starting......: HAProxy building configuration no transparent configurations...\n";
+		echo "Starting......: ".date("H:i:s")." {$GLOBALS["TITLENAME"]} building configuration no transparent configurations...\n";
 		return;
 	}
 	shell_exec("$sysctl -w net.ipv4.ip_forward=1 2>&1");
@@ -111,7 +279,7 @@ function Transparents_modes(){
 		$listen_ip=$ligne["listen_ip"];
 		$transparent_port=$ligne["transparentsrcport"];
 		if($transparent_port<1){continue;}
-		echo "Starting......: HAProxy building configuration transparent request from $listen_ip:$transparent_port and redirect to $listen_add:$next_port\n";
+		echo "Starting......: ".date("H:i:s")." {$GLOBALS["TITLENAME"]} building configuration transparent request from $listen_ip:$transparent_port and redirect to $listen_add:$next_port\n";
 
 		shell_exec2("$iptables -t nat -A PREROUTING -i eth0 -p tcp --dport $transparent_port -j ACCEPT -m comment --comment \"ArticaHAProxy\"");
 		shell_exec2("$iptables -t nat -A PREROUTING -p tcp --dport $transparent_port -j REDIRECT --to-ports $next_port -m comment --comment \"ArticaHAProxy\"");
@@ -122,7 +290,7 @@ function Transparents_modes(){
 }
 
 function shell_exec2($cmd){
-	echo "Starting......: HAProxy $cmd\n";
+	echo "Starting......: ".date("H:i:s")." {$GLOBALS["TITLENAME"]} $cmd\n";
 	shell_exec($cmd);
 	
 }

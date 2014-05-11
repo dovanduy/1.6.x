@@ -230,7 +230,7 @@ function RsyncFormatUsers(){
 			if($uid==null){continue;}
 			$Displayname=$ligne;
 			if($Displayname==null){$Displayname=$uid;}
-			$img="winuser.png";
+			$img="user-18.png";
 			$js="SyncAddUserToFolder('$uid')";
 			
 			if(substr($num,strlen($num)-1,1)=='$'){continue;}
@@ -304,7 +304,7 @@ function finduser(){
 		
 			$Displayname=$ligne;
 			if($Displayname==null){$Displayname=$uid;}
-			$img="winuser.png";
+			$img="user-18.png";
 			$js="SyncAddUserToFolder('$uid')";
 			
 			if(substr($uid,strlen($uid)-1,1)=='$'){continue;}

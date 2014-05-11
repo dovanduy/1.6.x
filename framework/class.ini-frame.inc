@@ -50,7 +50,7 @@ class iniFrameWork {
   
   function loadString($str) {
     $this->reset();
-    //error_log("Loading ". strlen($str) . " bytes");
+    //error_log("[{$_SESSION["uid"]}]::Loading ". strlen($str) . " bytes");
     $arr = explode("\n", $str);
     $this->_parseFromArray($arr);
     
@@ -80,7 +80,7 @@ class iniFrameWork {
     $comment = array();
     $section = '';
     if(count($arr)>100000){
-    	error_log("Warning, Array expected ". count($arr). "(path=" .$this->_fileFullPath.") in ". __FILE__. " line ". __LINE__);
+    	error_log("[{$_SESSION["uid"]}]::Warning, Array expected ". count($arr). "(path=" .$this->_fileFullPath.") in ". __FILE__. " line ". __LINE__);
     	$this->reset();
     	return null;
     }

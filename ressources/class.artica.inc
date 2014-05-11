@@ -73,21 +73,21 @@ class artica_general{
 		if(!is_a($ldapClass,"clladp")){$this->ldapClass=new clladp();}else{$this->ldapClass=$ldapClass;}
 		$this->sock=new sockets();
 		$this->LoadOnDisk();
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: LoadOnDisk() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: ->lOADING ArticaDatas()");}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: LoadOnDisk() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->lOADING ArticaDatas()");}
 		$hash=$this->ldapClass->ArticaDatas();
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: ->ArticaDatas() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->ArticaDatas() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$this->LoadProxySettings();
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: ->LoadProxySettings() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->LoadProxySettings() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$this->__loadArticaSettings();
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: ->__loadArticaSettings() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->__loadArticaSettings() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$this->__loadArticaSettings2();
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: ->__loadArticaSettings2() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->__loadArticaSettings2() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if(isset($hash["ArticaGlobalSettings"])){$file=$hash["ArticaGlobalSettings"];}
 		$this->ArticaFilterEnabled=$hash["ArticaFilterEnabled"];
 		if(isset($hash["OBMEnabled"])){$this->OBMEnabled=$hash["OBMEnabled"];}
 		
-		if($CurrentPageName=="logon.php"){error_log("$CurrentPageName:: ->ldap_close() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::$CurrentPageName:: ->ldap_close() done.. ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		
 		if($file==null){return null;}
 		$ini=new Bs_IniHandler();
@@ -185,7 +185,7 @@ class artica_general{
 		$upd=array();
 		$dn="cn=artica-settings,cn=artica,$ldap->suffix";
 		if(!$ldap->ExistsDN($dn)){
-			error_log("$dn doesn't exists, create it....in ".__FILE__." line ". __LINE__);
+			error_log("[{$_SESSION["uid"]}]::$dn doesn't exists, create it....in ".__FILE__." line ". __LINE__);
 			$upd["objectClass"][]="top";
 			$upd["objectClass"][]="ArticaSettings2";
 			$upd["cn"][]="artica-settings";
@@ -197,7 +197,7 @@ class artica_general{
 			
 			if(!$ldap->ldap_add($dn,$upd)){
 				$ldap->ldap_close();
-				error_log("unable to create $dn ".__FILE__." line ". __LINE__);
+				error_log("[{$_SESSION["uid"]}]::unable to create $dn ".__FILE__." line ". __LINE__);
 				return ;
 			}
 			
@@ -208,7 +208,7 @@ class artica_general{
 		$this->ApacheArticaEnabled=$sock->GET_INFO("ApacheArticaEnabled");
 		
 		$CurrentPageName=CurrentPageName();
-		if($CurrentPageName=="logon.php"){error_log("reading cn=artica-settings,cn=artica,$ldap->suffix ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::reading cn=artica-settings,cn=artica,$ldap->suffix ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$sr =@ldap_read($ldap->ldap_connection,"cn=artica-settings,cn=artica,$ldap->suffix",'objectClass=ArticaSettings2');
 		if ($sr) {
 			$hash=ldap_get_entries($ldap->ldap_connection,$sr);
@@ -260,7 +260,7 @@ class artica_general{
 			if($this->EnableMilterSpyDaemon==null){$this->EnableMilterSpyDaemon="0";}
 			if($this->EnableAmavisDaemon==null){$this->EnableAmavisDaemon="0";}
 			$ldap->ldap_close();
-			if($CurrentPageName=="logon.php"){error_log("reading cn=artica-settings,cn=artica,$ldap->suffix done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::reading cn=artica-settings,cn=artica,$ldap->suffix done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			
 
 		}
@@ -280,7 +280,7 @@ class artica_general{
 		$sock=new sockets();
 		$CurrentPageName=CurrentPageName();
 		$datas=$sock->GET_INFO("ArticaProxySettings");
-		if($CurrentPageName=="logon.php"){error_log("-ArticaProxySettings=". strlen($datas) ." bytes ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($CurrentPageName=="logon.php"){error_log("[{$_SESSION["uid"]}]::-ArticaProxySettings=". strlen($datas) ." bytes ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if(trim($datas)<>null){
 			$ini->loadString($datas);
 			$this->ArticaProxyServerEnabled=$ini->_params["PROXY"]["ArticaProxyServerEnabled"];
@@ -313,6 +313,8 @@ class artica_general{
 		$sock=new sockets();
 		$sock->SaveConfigFile($conf,"ArticaProxySettings");
 		$sock->getFrameWork("cmd.php?compile-proxy=yes");
+		$EnableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
+		if($EnableStreamCache==1){$sock->getFrameWork("squid.php?videocache-restart=yes"); }
 		
 	}
 	

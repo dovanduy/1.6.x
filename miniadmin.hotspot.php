@@ -1,6 +1,6 @@
 <?php
 session_start();
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");die();}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -17,7 +17,7 @@ if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["sessions"])){sessions();exit;}
 if(isset($_GET["sessions-items"])){sessions_items();exit;}
-if(isset($_POST["DeleteSession"])){sessions_remove();exit;}
+if(isset($_POST["delete-session"])){sessions_remove();exit;}
 
 if(isset($_GET["members"])){members();exit;}
 if(isset($_GET["members-items"])){members_items();exit;}
@@ -27,6 +27,11 @@ if(isset($_GET["uid"])){member_popup();exit;}
 if(isset($_POST["uid"])){members_save();exit;}
 if(isset($_GET["ttl"])){members_ttl();exit;}
 if(isset($_POST["uid-ttl"])){members_ttl_save();exit;}
+if(isset($_GET["mysql-settings"])){mysql_settings();exit;}
+
+if(isset($_GET["delete-session-js"])){delete_session_js();exit;}
+if(isset($_POST["HotSpotAutoRegisterWebMail"])){mysql_settings_save();exit;}
+
 
 main_page();
 
@@ -37,6 +42,39 @@ function main_page(){
 	$content=@file_get_contents($tplfile);
 	$content=str_replace("{SCRIPT}", "<script>LoadAjax('globalContainer','$page?content=yes')</script>", $content);
 	echo $content;	
+}
+
+function delete_session_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$q=new mysql_squid_builder();
+	$md5=$_GET["delete-session-js"];
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM hotspot_sessions WHERE md5='$md5'"));
+	$t=$_GET["t"];
+	$tt=time();
+	$pattern=$tpl->javascript_parse_text("{delete} {session}: {$ligne["uid"]} - {$ligne["MAC"]}/{$ligne["ipaddr"]} ?");
+	$html="
+var xSave$tt= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);}
+	$('#flexRT{$_GET["t"]}').flexReload();
+	ExecuteByClassName('SearchFunction');
+}
+	
+	
+	
+function Save$tt(){
+	var XHR = new XHRConnection();
+	if(!confirm('$pattern')){return;}
+	XHR.appendData('delete-session',  '$md5');
+	XHR.sendAndLoad('$page', 'POST',xSave$tt);
+}
+	
+	Save$tt();
+	";
+	echo $html;	
+	
 }
 
 
@@ -85,7 +123,7 @@ function members(){
 	$members=$tpl->_ENGINE_parse_body("{members}");
 	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
 	$ttl=$tpl->_ENGINE_parse_body("{ttl}");
-	$finaltime=$tpl->_ENGINE_parse_body("{duration}");
+	$finaltime=$tpl->_ENGINE_parse_body("{re_authenticate_each}");
 	$endtime=$tpl->_ENGINE_parse_body("{endtime}");
 	$title=$tpl->_ENGINE_parse_body("{sessions} ".date("{l} d {F}"));
 	$q=new mysql_squid_builder();
@@ -93,9 +131,14 @@ function members(){
 	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
 	$new_account=$tpl->_ENGINE_parse_body("{new_account}");
+	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
+	
+	$button_parameters="{name: '$parameters', bclass: 'Settings', onpress : Settings$t},";
+	$button_parameters=null;
 	$buttons="
 	buttons : [
 	{name: '$new_account', bclass: 'Add', onpress : NewAccount$t},
+	$button_parameters
 	],";	
 	
 	$html="
@@ -139,6 +182,7 @@ $('#flexRT$t').flexigrid({
 		var results=obj.responseText;
 		if(results.length>3){alert(results);return;}
 		$('#row'+mem$t).remove();
+		ExecuteByClassName('SearchFunction');
 		
 	}
 
@@ -150,16 +194,20 @@ function DeleteSession$t(md){
 
 }
 
+function Settings$t(){
+	YahooWin4('990','$page?mysql-settings=yes&t=$t','$parameters');
+}
+
 function NewAccount$t(){
 	YahooWin4('600','$page?uid=&t=$t','$new_account');
 }
 
-	var x_MemberEnable$t= function (obj) {
-		var results=obj.responseText;
-		if(results.length>3){alert(results);return;}
-		$('#flexRT$t').flexReload();
-		
-	}
+var x_MemberEnable$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	$('#flexRT$t').flexReload();
+	ExecuteByClassName('SearchFunction');
+}
 
 function MemberEnable$t(uid){
 	var enabled=0;
@@ -171,12 +219,12 @@ function MemberEnable$t(uid){
 	
 }
 
-	var x_DeleteMember$t= function (obj) {
-		var results=obj.responseText;
-		if(results.length>3){alert(results);return;}
-		$('#row'+mem$t).remove();
-		
-	}
+var x_DeleteMember$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	$('#row'+mem$t).remove();
+	ExecuteByClassName('SearchFunction');
+}
 
 function DeleteMember$t(uid,md){
 	mem$t=md;
@@ -232,8 +280,10 @@ function members_ttl(){
 		var results=obj.responseText;
 		document.getElementById('$t-animate').innerHTML='';
 		if(results.length>3){alert(results);return;}
-		$('#flexRT$tt').flexReload();
+		ExecuteByClassName('SearchFunction');
 		YahooWin4Hide();
+		$('#flexRT$tt').flexReload();
+
 	}
 
 
@@ -283,6 +333,8 @@ function member_popup(){
 	$Timez[10080]="1 {week}";
 	$Timez[20160]="2 {weeks}";
 	$Timez[40320]="1 {month}";		
+	
+	
 	$sock=new sockets();
 	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
 	if(!is_numeric($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
@@ -302,7 +354,8 @@ function member_popup(){
 	
 	$html="
 	<div id='$t-animate'></div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table >
 	<tr>
 		<td class=legend style='font-size:14px'>{account}</td>
 		<td>". Field_text("uid-$t",$uid,"font-size:14px;width:300px")."</td>
@@ -317,48 +370,53 @@ function member_popup(){
 	</tr>	
 
 	<tr>
-		<td class=legend style='font-size:16px'>{verif_auth_each}:</td>
-		<td style='font-size:16px'>". Field_text("maxtime-$t",$ligne["sessiontime"],"font-size:16px;width:90px")."&nbsp;{minutes}</td>
-	</tr>	
+		<td class=legend style='font-size:16px'>{re_authenticate_each}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($Timez,"maxtime-$t",$ligne["sessiontime"],"style:font-size:16px;width:90px")."&nbsp;{minutes}</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{ttl}:</td>
+		<td style='font-size:16px'>". Field_array_Hash($Timez,"ttl-$t",$ligne["ttl"],"style:font-size:16px;width:90px")."&nbsp;{minutes}</td>
+	</tr>						
 	<tr>
 		<td colspan=2 align='right'><hr>". button("$bttext","SaveAccountHotspot()","16px")."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
-	var x_SaveAccountHotspot$t= function (obj) {
-		var results=obj.responseText;
-		document.getElementById('$t-animate').innerHTML='';
-		if(results.length>3){alert(results);return;}
-		$('#flexRT$tt').flexReload();
-		var close=$close;
-		if(close==1){YahooWin4Hide();}
-	}
+var x_SaveAccountHotspot$t= function (obj) {
+	var results=obj.responseText;
+	document.getElementById('$t-animate').innerHTML='';
+	if(results.length>3){alert(results);return;}
+	ExecuteByClassName('SearchFunction');
+	var close=$close;
+	if(close==1){YahooWin4Hide();}
+	$('#flexRT$tt').flexReload();
+}
 
 
 function SaveAccountHotspot(){
-		
-		var XHR = new XHRConnection();
-		var password=document.getElementById('password-$t').value;
-		if(password.length>0){
-			var password1=document.getElementById('password1-$t').value;
-			if(password1!=password){alert('$error_passwords_mismatch');return;}
-			password=encodeURIComponent(password);
-			XHR.appendData('password',password);
-		}
-		XHR.appendData('uid',document.getElementById('uid-$t').value);
-		if(document.getElementById('ttl-$t')){XHR.appendData('ttl',document.getElementById('ttl-$t').value);}
-		XHR.appendData('maxtime',document.getElementById('maxtime-$t').value);			
-		AnimateDiv('$t-animate');
-		XHR.sendAndLoad('$page', 'POST',x_SaveAccountHotspot$t);
+	var XHR = new XHRConnection();
+	var password=document.getElementById('password-$t').value;
+	if(password.length>0){
+		var password1=document.getElementById('password1-$t').value;
+		if(password1!=password){alert('$error_passwords_mismatch');return;}
+		password=encodeURIComponent(password);
+		XHR.appendData('password',password);
+	}
+	XHR.appendData('uid',document.getElementById('uid-$t').value);
+	if(document.getElementById('ttl-$t')){XHR.appendData('ttl',document.getElementById('ttl-$t').value);}
+	XHR.appendData('maxtime',document.getElementById('maxtime-$t').value);
+	XHR.appendData('ttl',document.getElementById('ttl-$t').value);				
+	AnimateDiv('$t-animate');
+	XHR.sendAndLoad('$page', 'POST',x_SaveAccountHotspot$t);
 	}
 	
-	function Check$t(){
-		var close=$close;
-		if(close==0){return;}
-		document.getElementById('uid-$t').disabled=true;
-	
-	}
-	Check$t();
+function Check$t(){
+	var close=$close;
+	if(close==0){return;}
+	document.getElementById('uid-$t').disabled=true;
+}
+Check$t();
 	</script>";
 	
 	
@@ -371,9 +429,6 @@ function members_save(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if($ligne["uid"]==null){
 		$_POST["password"]=url_decode_special_tool($_POST["password"]);
-		if($_POST["ttl"]>0){
-			$_POST["ttl"] = strtotime("+{$_POST["ttl"]} minutes", time());
-		}
 		$_POST["password"]=md5($_POST["password"]);
 		$sql="INSERT IGNORE INTO hotspot_members (uid,ttl,sessiontime,password,enabled) VALUES
 		('$uid','{$_POST["ttl"]}','{$_POST["sessiontime"]}','{$_POST["password"]}',1)";
@@ -386,13 +441,17 @@ function members_save(){
 		$_POST["password"]=url_decode_special_tool($_POST["password"]);
 		$password=",password=MD5('{$_POST["password"]}')";
 	}
-	$sql="UPDATE hotspot_members SET uid='$uid',sessiontime={$_POST["maxtime"]}$password WHERE uid='$uid'";
+	$sql="UPDATE hotspot_members 
+		SET uid='$uid',
+		sessiontime={$_POST["maxtime"]},
+		ttl={$_POST["ttl"]}
+		$password WHERE uid='$uid'";
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;}	
 }
 
 function members_ttl_save(){
-	$_POST["ttl"] = strtotime("+{$_POST["ttl"]} minutes", time());
+	
 	$uid=$_POST["uid-ttl"];
 	$q=new mysql_squid_builder();
 	$sql="UPDATE hotspot_members SET uid='$uid',ttl={$_POST["ttl"]} WHERE uid='$uid'";
@@ -444,10 +503,10 @@ $('#flexRT$t').flexigrid({
 	url: '$page?sessions-items=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$members', name : 'uid', width :190, sortable : true, align: 'left'},	
+		{display: '$members', name : 'uid', width :154, sortable : true, align: 'left'},	
 		{display: '$MAC', name : 'MAC', width :125, sortable : true, align: 'left'},
 		{display: '$logintime', name : 'logintime', width :152, sortable : true, align: 'left'},
-		{display: '$finaltime', name : 'finaltime', width :136, sortable : true, align: 'left'},
+		{display: '$finaltime', name : 'finaltime', width :204, sortable : true, align: 'left'},
 		{display: '$endtime', name : 'endtime', width :152, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'none', width :32, sortable : true, align: 'center'},
 	],
@@ -506,8 +565,17 @@ function Chooseday$t(){
 }
 function sessions_remove(){
 	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DELETE FROM hotspot_sessions WHERE md5='{$_POST["DeleteSession"]}'");
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM hotspot_sessions WHERE md5='{$_POST["delete-session"]}'"));
+	$MAC=$ligne["MAC"];
+	$ipaddr=$ligne["ipaddr"];
+	
+	$q->QUERY_SQL("DELETE FROM hotspot_sessions WHERE md5='{$_POST["delete-session"]}'");
 	if(!$q->ok){echo $q->mysql_error;}
+	$sock=new sockets();
+	$MAC=urlencode($MAC);
+	$ipaddr=urlencode($ipaddr);
+	$sock->getFrameWork("hotspot.php?remove-session=yes&MAC=$MAC&ip=$ipaddr");
 }
 
 
@@ -537,13 +605,13 @@ function sessions_items(){
 	$searchstring=string_to_flexquery();
 	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!$q->ok){json_error_show($q->mysql_error);}	
 		$total = $ligne["TCOUNT"];
 		
 	}else{
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!$q->ok){json_error_show($q->mysql_error);}	
 		$total = $ligne["TCOUNT"];
 	}
@@ -557,7 +625,7 @@ function sessions_items(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
-	$results = $q->QUERY_SQL($sql,$database);
+	$results = $q->QUERY_SQL($sql);
 	
 	if(!$q->ok){json_error_show($q->mysql_error);}	
 	$data = array();
@@ -570,6 +638,7 @@ function sessions_items(){
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$color="black";
 		$urljs="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('$myPage?MessageID-js=$MessageID&table=$table_query')\"
 		style='font-size:11px;text-decoration:underline'>";
@@ -578,10 +647,17 @@ function sessions_items(){
 		$AddMinutes=intval($ligne["maxtime"]);
 		$logintime=intval($ligne["logintime"]);
 		$Start=$tpl->_ENGINE_parse_body(date("{l} d H:i",$logintime));
-		$delete=imgsimple("delete-24.png",null,"DeleteSession$t('{$ligne["md5"]}')");
-		$End=$tpl->_ENGINE_parse_body(date("{l} d H:i",$ligne["finaltime"]));
-		$hostname=$ligne["hostname"];
+		$delete=imgsimple("delete-24.png",null,"Loadjs('$myPage?delete-session-js={$ligne["md5"]}&t=$t')");
+		$End=$tpl->_ENGINE_parse_body(date("Y {l} d H:i",$ligne["finaltime"]));
 		
+		if($ligne["finaltime"]<time()){
+			$color="#CD0D0D";
+			
+		}
+		
+		$hostname=$ligne["hostname"];
+		$nextcheck=$ligne["nextcheck"];
+		$nextcheckDate=$tpl->_ENGINE_parse_body("{next_check}: ".date("{l} d H:i",$nextcheck));
 		
 		//$subject=mime_decode($subject);
 		$data['rows'][] = array(
@@ -590,7 +666,7 @@ function sessions_items(){
 					"<span style='font-size:16px;color:$color'>{$ligne["uid"]}<br><i style='font-size:12px'>$hostname</i></a></span>",
 					"<span style='font-size:14px;color:$color'>{$ligne["MAC"]}</a></span>",
 					"<span style='font-size:14px;color:$color'>$Start</a></span>",
-					"<span style='font-size:14px;color:$color'>{$ligne["maxtime"]} $minutes</a></span>",
+					"<span style='font-size:14px;color:$color'>{$ligne["maxtime"]} $minutes</a><br>$nextcheckDate</span>",
 					"<span style='font-size:14px;color:$color'>$End</a></span>",
 					"<span style='font-size:14px;color:$color'>$delete</a></span>",
 					
@@ -616,14 +692,7 @@ function members_items(){
 	
 	$sock=new sockets();
 	
-	$HotSpotConfig=unserialize(base64_decode($sock->GET_INFO("HotSpotConfig")));
-	if(!is_numeric($HotSpotConfig["USELDAP"])){$HotSpotConfig["USELDAP"]=1;}
-	if(!is_numeric($HotSpotConfig["USEMYSQL"])){$HotSpotConfig["USEMYSQL"]=1;}
-	if(!is_numeric($HotSpotConfig["CACHE_AUTH"])){$HotSpotConfig["CACHE_AUTH"]=60;}
-	if(!is_numeric($HotSpotConfig["CACHE_TIME"])){$HotSpotConfig["CACHE_TIME"]=120;}
-	if(!is_numeric($HotSpotConfig["USETERMS"])){$HotSpotConfig["USETERMS"]=1;}		
-	if(!is_numeric($HotSpotConfig["USERAD"])){$HotSpotConfig["USERAD"]=0;}
-	
+
 	if(strpos($table, ",")==0){
 		if(!$q->TABLE_EXISTS($table)){
 			json_error_show("$table: No such table",0,true);
@@ -636,7 +705,7 @@ function members_items(){
 	$searchstring=string_to_flexquery();
 	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!$q->ok){json_error_show($q->mysql_error);}	
 		$total = $ligne["TCOUNT"];
 		
@@ -656,7 +725,7 @@ function members_items(){
 	$limitSql = "LIMIT $pageStart, $rp";
 	
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
-	$results = $q->QUERY_SQL($sql,$database);
+	$results = $q->QUERY_SQL($sql);
 	
 	if(!$q->ok){json_error_show($q->mysql_error);}	
 	$data = array();
@@ -664,7 +733,7 @@ function members_items(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	$minutes=$tpl->_ENGINE_parse_body("{minutes}");
 	$unlimited=$tpl->_ENGINE_parse_body("{unlimited}");
 	$ttl=$tpl->_ENGINE_parse_body("{ttl}");
@@ -683,7 +752,7 @@ function members_items(){
 		$ttl=$ligne["ttl"];
 		
 		if($ttl==0){$ttl=$unlimited;}else{$ttl=$tpl->_ENGINE_parse_body(date("{l} d H:i",$ttl));}
-		if($ligne["sessiontime"]==0){$ligne["sessiontime"]=$HotSpotConfig["CACHE_TIME"];}
+		
 		
 		$enabled=Field_checkbox("enable_$uid", 1,$ligne["enabled"],"MemberEnable$t('$uid')");
 		$color="black";
@@ -701,8 +770,8 @@ function members_items(){
 		$data['rows'][] = array(
 				'id' => $md5,
 				'cell' => array(
-					"<span style='font-size:14px;color:$color'>$urljs{$ligne["uid"]}</a><br><i style='font-size:12px'>$hostname&nbsp;|&nbsp;$MAC&nbsp;|&nbsp;$ipaddr</i></a></span>",
-					"<span style='font-size:14px;color:$color'>$urlttl$ttl</a></span>",
+					"<span style='font-size:14px;color:$color'>$urljs{$ligne["uid"]}</a></span>",
+					"<span style='font-size:14px;color:$color'>$ttl</a></span>",
 					"<span style='font-size:14px;color:$color'>{$ligne["sessiontime"]} $minutes</a></span>",
 					"<span style='font-size:14px;color:$color'>$enabled</a></span>",
 					"<span style='font-size:14px;color:$color'>$delete</a></span>",
@@ -715,6 +784,168 @@ function members_items(){
 echo json_encode($data);	
 }
 
+function mysql_settings(){
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$tpl=new templates();
+	$t=time();
+	$HotSpotAutoRegisterWebMail=intval($sock->GET_INFO("HotSpotAutoRegisterWebMail"));
+	$HotSpotAutoRegisterSMTPSrv=$sock->GET_INFO("HotSpotAutoRegisterSMTPSrv");
+	$HotSpotAutoRegisterSMTPSrvPort=intval($sock->GET_INFO("HotSpotAutoRegisterSMTPSrvPort"));
+	$HotSpotAutoRegisterSMTPSender=$sock->GET_INFO("HotSpotAutoRegisterSMTPSender");
+	$HotSpotAutoRegisterSMTPUser=$sock->GET_INFO("HotSpotAutoRegisterSMTPUser");
+	$HotSpotAutoRegisterSMTPPass=$sock->GET_INFO("HotSpotAutoRegisterSMTPPass");
+	$HotSpotAutoRegisterSMTPTls=intval($sock->GET_INFO("HotSpotAutoRegisterSMTPTls"));
+	$HotSpotAutoRegisterSMTPSSL=intval($sock->GET_INFO("HotSpotAutoRegisterSMTPSSL"));
+	$HotSpotAutoRegisterSubject=$sock->GET_INFO("HotSpotAutoRegisterSubject");
+	$HotSpotAutoRegisterContent=$sock->GET_INFO("HotSpotAutoRegisterContent");
+	$HotSpotAutoRegisterConfirmTxt=$sock->GET_INFO("HotSpotAutoRegisterConfirmTxt");
+	$HotSpotAutoRegisterMaxTime=intval($sock->GET_INFO("HotSpotAutoRegisterMaxTime"));
+	
+	if($HotSpotAutoRegisterSMTPSrvPort==0){$HotSpotAutoRegisterSMTPSrvPort=25;}
+	if($HotSpotAutoRegisterMaxTime==0){$HotSpotAutoRegisterMaxTime=3;}
+	
+	if($HotSpotAutoRegisterSubject==null){
+		$HotSpotAutoRegisterSubject="Access to Internet";
+	}
+	
+	if($HotSpotAutoRegisterContent==null){
+		$HotSpotAutoRegisterContent="In order to complete your registration and activate your account %email with %pass password\r\nClick on the link bellow:\r\n";
+	}
+
+	if($HotSpotAutoRegisterConfirmTxt==null){
+		$HotSpotAutoRegisterConfirmTxt="Success\nA message as been sent to you.\nPlease check your WebMail system in order to confirm your registration";
+	}
+	
+	$HotSpotAutoRegisterMaxTimeR[3]="3mn";
+	$HotSpotAutoRegisterMaxTimeR[5]="5mn";
+	$HotSpotAutoRegisterMaxTimeR[10]="10mn";
+	$HotSpotAutoRegisterMaxTimeR[15]="15mn";
+	
+	$html="<div style=width:95%' class=form>
+	<table style='width:99%'>
+		<tr>
+			<td colspan=2>". Paragraphe_switch_img("{HotSpotAutoRegisterWebMail}", 
+					"{HotSpotAutoRegisterWebMail_explain}","HotSpotAutoRegisterWebMail",$HotSpotAutoRegisterWebMail,null,600)."
+			</td>
+		</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{max_allowed_time}:</strong></td>
+		<td>" . Field_array_Hash($HotSpotAutoRegisterMaxTimeR,'HotSpotAutoRegisterMaxTime',$HotSpotAutoRegisterMaxTime,'style:font-size:18px;')."</td>
+	</tr>	
+	<tr>
+		<td colspan=2 style='font-size:32px'>&nbsp;</td>
+	</tr>										
+	<tr>
+		<td colspan=2 style='font-size:32px'>{smtp_parameters}<hr></td>
+	</tr>							
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_server_name}:</strong></td>
+		<td>" . Field_text('HotSpotAutoRegisterSMTPSrv',$HotSpotAutoRegisterSMTPSrv,'font-size:18px;padding:3px;width:453px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_server_port}:</strong></td>
+		<td>" . Field_text('HotSpotAutoRegisterSMTPSrvPort',$HotSpotAutoRegisterSMTPSrvPort,'font-size:18px;padding:3px;width:90px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_sender}:</strong></td>
+		<td>" . Field_text('HotSpotAutoRegisterSMTPSender',$HotSpotAutoRegisterSMTPSender,'font-size:18px;padding:3px;width:453px')."</td>
+	</tr>
+
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_auth_user}:</strong></td>
+		<td>" . Field_text('HotSpotAutoRegisterSMTPUser',$HotSpotAutoRegisterSMTPUser,'font-size:18px;padding:3px;width:453px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_auth_passwd}:</strong></td>
+		<td>" . Field_password("HotSpotAutoRegisterSMTPPass",trim($HotSpotAutoRegisterSMTPPass),'font-size:18px;padding:3px;width:200px')."</td>
+	</tr>
+	<tr>
+
+	<tr>
+		<td colspan=2 style='font-size:32px'>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td colspan=2 style='font-size:32px'>{message_parameters}<hr></td>
+	</tr>				
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{subject}:</strong></td>
+		<td>" . Field_text('HotSpotAutoRegisterSubject',$HotSpotAutoRegisterSubject,
+				'font-size:18px;padding:3px;width:629px')."</td>
+	</tr>
+	
+	
+	
+	<tr>
+		<td colspan=2 style='font-size:18px'>{message_content}:</td>
+	</tr>	
+	<tr>
+		<td colspan=2 >
+		<textarea style='margin-top:5px;font-family:Courier New;
+		font-weight:bold;width:100%;height:220px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px'
+		id='HotSpotAutoRegisterContent'>$HotSpotAutoRegisterContent</textarea>
+	</td>
+	</tr>
+	
+	<tr>
+		<td colspan=2 style='font-size:18px'>{confirm_message}:</td>
+	</tr>	
+	<tr>
+		<td colspan=2 >
+		<textarea style='margin-top:5px;font-family:Courier New;
+		font-weight:bold;width:100%;height:180px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px'
+		id='HotSpotAutoRegisterConfirmTxt'>$HotSpotAutoRegisterConfirmTxt</textarea>
+	</td>
+	</tr>	
+	
+	
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",28)."</td>
+	</tr>							
+							
+	</table>
+	</div>
+<script>
+
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	var pp=encodeURIComponent(document.getElementById('HotSpotAutoRegisterSMTPPass').value);
+	XHR.appendData('HotSpotAutoRegisterWebMail',document.getElementById('HotSpotAutoRegisterWebMail').value);
+	XHR.appendData('HotSpotAutoRegisterMaxTime',document.getElementById('HotSpotAutoRegisterMaxTime').value);
+	XHR.appendData('HotSpotAutoRegisterSMTPSrv',document.getElementById('HotSpotAutoRegisterSMTPSrv').value);
+	XHR.appendData('HotSpotAutoRegisterSMTPSrvPort',document.getElementById('HotSpotAutoRegisterSMTPSrvPort').value);
+	XHR.appendData('HotSpotAutoRegisterSMTPSender',document.getElementById('HotSpotAutoRegisterSMTPSender').value);
+	XHR.appendData('HotSpotAutoRegisterSMTPPass',pp);
+	XHR.appendData('HotSpotAutoRegisterSubject',encodeURIComponent(document.getElementById('HotSpotAutoRegisterSubject').value));
+	XHR.appendData('HotSpotAutoRegisterContent',encodeURIComponent(document.getElementById('HotSpotAutoRegisterContent').value));
+	XHR.appendData('HotSpotAutoRegisterConfirmTxt',encodeURIComponent(document.getElementById('HotSpotAutoRegisterConfirmTxt').value));
+	XHR.appendData('HotSpotAutoRegisterSMTPUser',document.getElementById('HotSpotAutoRegisterSMTPUser').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>";					
+echo $tpl->_ENGINE_parse_body($html);
+}
+function mysql_settings_save(){
+	$sock=new sockets();
+	$_POST["HotSpotAutoRegisterSMTPPass"]=url_decode_special_tool($_POST["HotSpotAutoRegisterSMTPPass"]);
+	$_POST["HotSpotAutoRegisterSMTPPass"]=url_decode_special_tool($_POST["HotSpotAutoRegisterSMTPPass"]);
+	$_POST["HotSpotAutoRegisterContent"]=url_decode_special_tool($_POST["HotSpotAutoRegisterContent"]);
+	$_POST["HotSpotAutoRegisterSubject"]=url_decode_special_tool($_POST["HotSpotAutoRegisterSubject"]);
+	$_POST["HotSpotAutoRegisterConfirmTxt"]=url_decode_special_tool($_POST["HotSpotAutoRegisterConfirmTxt"]);
+	
+	
+	
+	while (list ($num, $ligne) = each ($_POST) ){
+		$sock->SET_INFO($num, $ligne);
+	}
+	
+}
 
 
 

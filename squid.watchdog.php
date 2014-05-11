@@ -51,25 +51,31 @@ function tabs(){
 
 
 
-
+$fontsize=16;
 
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		if($num=="popup"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"miniadmin.proxy.monitor.php?watchdog-params=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="events"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.watchdog-events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 	}
 
 
 
-	echo "
-	<div id='watchdogsquid'>
-	<ul>". implode("\n",$html)."</ul>
-	</div>
-	<script>
-	$(document).ready(function(){
-	$('#watchdogsquid').tabs();
-});
-</script>";
+	echo build_artica_tabs($html, "watchdogsquid")."<script>LeftDesign('artica-watchdog-256-opac20.png');</script>";
+	
+
 
 }
 function smtp_notifs(){
@@ -78,26 +84,18 @@ function smtp_notifs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$ini->loadString($sock->getFrameWork("cmd.php?SmtpNotificationConfigRead=yes"));
-	if($ini->_params["SMTP"]["smtp_server_port"]==null){$ini->_params["SMTP"]["smtp_server_port"]=25;}
-	if($ini->_params["SMTP"]["smtp_sender"]==null){$users=new usersMenus();$ini->_params["SMTP"]["smtp_sender"]="artica@$users->fqdn";}
+	
 	$t=time();
 	$UfdbguardSMTPNotifs=unserialize(base64_decode($sock->GET_INFO("UfdbguardSMTPNotifs")));
 	
 	if(!isset($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
 	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
 	
+	$UfdbguardSMTPNotifs=$sock->FillSMTPNotifsDefaults($UfdbguardSMTPNotifs);
 	
-	if(!isset($UfdbguardSMTPNotifs["smtp_server_name"])){$UfdbguardSMTPNotifs["smtp_server_name"]=$ini->_params["SMTP"]["smtp_server_name"];}
-	if(!isset($UfdbguardSMTPNotifs["smtp_server_port"])){$UfdbguardSMTPNotifs["smtp_server_port"]=$ini->_params["SMTP"]["smtp_server_port"];}
-	if(!isset($UfdbguardSMTPNotifs["smtp_sender"])){$UfdbguardSMTPNotifs["smtp_server_port"]=$ini->_params["SMTP"]["smtp_sender"];}
-	if(!isset($UfdbguardSMTPNotifs["smtp_dest"])){$UfdbguardSMTPNotifs["smtp_dest"]=$ini->_params["SMTP"]["smtp_dest"];}
-	if(!isset($UfdbguardSMTPNotifs["smtp_auth_user"])){$UfdbguardSMTPNotifs["smtp_dest"]=$ini->_params["SMTP"]["smtp_auth_user"];}
-	if(!isset($UfdbguardSMTPNotifs["smtp_auth_passwd"])){$UfdbguardSMTPNotifs["smtp_auth_passwd"]=$ini->_params["SMTP"]["smtp_auth_passwd"];}
-	if(!isset($UfdbguardSMTPNotifs["tls_enabled"])){$UfdbguardSMTPNotifs["tls_enabled"]=$ini->_params["SMTP"]["tls_enabled"];}
-	if(!isset($UfdbguardSMTPNotifs["ssl_enabled"])){$UfdbguardSMTPNotifs["ssl_enabled"]=$ini->_params["SMTP"]["ssl_enabled"];}
-	
-	if(!is_numeric($UfdbguardSMTPNotifs["smtp_server_port"])){$UfdbguardSMTPNotifs["smtp_server_port"]=25;}
+	if(!is_numeric($UfdbguardSMTPNotifs["smtp_warn"])){$UfdbguardSMTPNotifs["smtp_warn"]=0;}
+	if(!is_numeric($UfdbguardSMTPNotifs["smtp_info"])){$UfdbguardSMTPNotifs["smtp_warn"]=0;}
+	if(!is_numeric($UfdbguardSMTPNotifs["smtp_critic"])){$UfdbguardSMTPNotifs["smtp_critic"]=1;}
 	//Switchdiv
 	
 	$html="
@@ -108,6 +106,20 @@ function smtp_notifs(){
 	<td nowrap class=legend style='font-size:14px'>{smtp_enabled}:</strong></td>
 	<td>" . Field_checkbox("ENABLED_SQUID_WATCHDOG",1,$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"],"SMTPNotifArticaEnableSwitch$t()")."</td>
 	</tr>
+			
+	<tr>
+	<td nowrap class=legend style='font-size:14px'>{info}:</strong></td>
+	<td>" . Field_checkbox("smtp_info",1,$UfdbguardSMTPNotifs["smtp_info"])."</td>
+	</tr>
+	<tr>
+	<td nowrap class=legend style='font-size:14px'>{warning}:</strong></td>
+	<td>" . Field_checkbox("smtp_warn",1,$UfdbguardSMTPNotifs["smtp_warn"])."</td>
+	</tr>
+	<tr>
+	<td nowrap class=legend style='font-size:14px'>{critical}:</strong></td>
+	<td>" . Field_checkbox("smtp_critic",1,$UfdbguardSMTPNotifs["smtp_critic"])."</td>
+	</tr>									
+			
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{smtp_server_name}:</strong></td>
 		<td>" . Field_text('smtp_server_name',trim($UfdbguardSMTPNotifs["smtp_server_name"]),'font-size:14px;padding:3px;width:250px')."</td>
@@ -141,18 +153,18 @@ function smtp_notifs(){
 		<td>" . Field_checkbox("ssl_enabled",1,$UfdbguardSMTPNotifs["ssl_enabled"])."</td>
 	</tr>
 	<tr>
-		<td align='right' colspan=2>".button('{apply}',"javascript:SaveArticaSMTPNotifValues$t();",16)."</td>
+		<td align='right' colspan=2>".button('{apply}',"SaveArticaSMTPNotifValues$t();",16)."</td>
 	</tr>
 	
 			</tr>
 			</table>
-			<script>
-			var x_SaveArticaSMTPNotifValues$t= function (obj) {
-			var results=obj.responseText;
-			document.getElementById('notif1-$t').innerHTML='';
-			if(results.length>3){alert(results);}
-			RefreshTab('watchdogsquid');
-	}
+<script>
+var x_SaveArticaSMTPNotifValues$t= function (obj) {
+	var results=obj.responseText;
+	document.getElementById('notif1-$t').innerHTML='';
+	if(results.length>3){alert(results);}
+	RefreshTab('watchdogsquid');
+}
 	
 	function SaveArticaSMTPNotifValues$t(){
 	var XHR = new XHRConnection();
@@ -160,6 +172,11 @@ function smtp_notifs(){
 	if(document.getElementById('ENABLED_SQUID_WATCHDOG').checked){XHR.appendData('ENABLED_SQUID_WATCHDOG',1);}else {XHR.appendData('ENABLED_SQUID_WATCHDOG',0);}
 	if(document.getElementById('tls_enabled').checked){XHR.appendData('tls_enabled',1);}else {XHR.appendData('tls_enabled',0);}
 	if(document.getElementById('ssl_enabled').checked){XHR.appendData('ssl_enabled',1);}else {XHR.appendData('ssl_enabled',0);}
+	
+	if(document.getElementById('smtp_warn').checked){XHR.appendData('smtp_warn',1);}else {XHR.appendData('smtp_warn',0);}
+	if(document.getElementById('smtp_info').checked){XHR.appendData('smtp_info',1);}else {XHR.appendData('smtp_info',0);}
+	if(document.getElementById('smtp_critic').checked){XHR.appendData('smtp_critic',1);}else {XHR.appendData('smtp_critic',0);}
+	
 	XHR.appendData('smtp_server_name',document.getElementById('smtp_server_name').value);
 	XHR.appendData('smtp_server_port',document.getElementById('smtp_server_port').value);
 	XHR.appendData('smtp_sender',document.getElementById('smtp_sender').value);
@@ -181,6 +198,10 @@ function smtp_notifs(){
 	document.getElementById('tls_enabled').disabled=true;
 	document.getElementById('ssl_enabled').disabled=true;
 	
+	document.getElementById('smtp_critic').disabled=true;
+	document.getElementById('smtp_info').disabled=true;
+	document.getElementById('smtp_warn').disabled=true;
+	
 	
 	
 	if(!document.getElementById('ENABLED_SQUID_WATCHDOG').checked){return;}
@@ -193,6 +214,9 @@ function smtp_notifs(){
 	document.getElementById('smtp_server_name').disabled=false;
 	document.getElementById('tls_enabled').disabled=false;
 	document.getElementById('ssl_enabled').disabled=false;
+	document.getElementById('smtp_critic').disabled=false;
+	document.getElementById('smtp_info').disabled=false;
+	document.getElementById('smtp_warn').disabled=false;
 	
 	}
 	SMTPNotifArticaEnableSwitch$t();
@@ -226,12 +250,16 @@ function popup(){
 	if(!is_numeric($MonitConfig["watchdogMEM"])){$MonitConfig["watchdogMEM"]=1500;}
 	if(!is_numeric($MonitConfig["NotifyDNSIssues"])){$MonitConfig["NotifyDNSIssues"]=0;}
 	if(!is_numeric($MonitConfig["DNSIssuesMAX"])){$MonitConfig["DNSIssuesMAX"]=1;}
+	if(!is_numeric($MonitConfig["WEBPROCISSUE"])){$MonitConfig["WEBPROCISSUE"]=3;}
+	
+	
+	
 	if($MonitConfig["DNSIssuesMAX"]==0){$MonitConfig["DNSIssuesMAX"]=1;}
 	
 	
 	
-	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
-	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=10;}
+	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
+	if(!is_numeric($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
 	if($MonitConfig["MgrInfosMaxTimeOut"]<5){$MonitConfig["MgrInfosMaxTimeOut"]=5;}
 	$MgrInfosMaxTimeOut=$MonitConfig["MgrInfosMaxTimeOut"];	
 	

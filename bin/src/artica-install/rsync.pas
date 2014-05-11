@@ -254,15 +254,11 @@ if not FileExists(BIN_PATH()) then exit;
    if RsyncDaemonEnable=0 then begin
         result:=ini.Text;
         ini.free;
-        SYS.MONIT_DELETE('APP_RSYNC');
+
         exit;
    end;
 
-   if SYS.MONIT_CONFIG('APP_RSYNC',pid_path,'rsync') then begin
-        result:=ini.Text;
-        ini.free;
-        exit;
-   end;
+
 
    pid:=RSYNC_PID();
    if SYS.PROCESS_EXIST(pid) then ini.Add('running=1') else  ini.Add('running=0');
@@ -296,15 +292,9 @@ if not FileExists(BIN_PATH()) then exit;
    if RsyncEnableStunnel=0 then begin
         result:=ini.Text;
         ini.free;
-        SYS.MONIT_DELETE('APP_RSYNC_STUNNEL');
         exit;
    end;
 
-   if SYS.MONIT_CONFIG('APP_RSYNC_STUNNEL','/var/run/rsync/stunnel.pid','rsync') then begin
-        result:=ini.Text;
-        ini.free;
-        exit;
-   end;
 
 
    pid:=RSYNC_STUNNEL_PID();

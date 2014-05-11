@@ -25,6 +25,7 @@ class samba_kerb{
 		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 		if($user->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 		if($EnableWebProxyStatsAppliance==1){$IsAppliance=true;}
+		$SambaBindInterface=$sock->GET_INFO("SambaBindInterface");
 		
 		
 		$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
@@ -52,7 +53,7 @@ class samba_kerb{
 		$workgroup=$array["ADNETBIOSDOMAIN"];
 		$realm=strtoupper($array["WINDOWS_DNS_SUFFIX"]);
 		$ipaddr=trim($array["ADNETIPADDR"]);
-		echo "Starting......:  Samba, [$adminname]: Kdc server ads : $ad_server workgroup `$workgroup` ipaddr:$ipaddr\n";
+		echo "Starting......: ".date("H:i:s")."  Samba, [$adminname]: Kdc server ads : $ad_server workgroup `$workgroup` ipaddr:$ipaddr\n";
 		$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 		$password_server=$hostname;
 		//if($ipaddr<>null){$password_server=$ipaddr;}
@@ -73,7 +74,7 @@ class samba_kerb{
 			$MAJOR=intval($re[1]);
 			$MINOR=intval($re[2]);
 			$REV=intval($re[3]);
-			echo "Starting......:  Samba, V$MAJOR $MINOR $REV\n";
+			echo "Starting......: ".date("H:i:s")."  Samba, V$MAJOR $MINOR $REV\n";
 		
 		}
 		
@@ -173,6 +174,12 @@ class samba_kerb{
 		$f[]="\tprinting = bsd";
 		$f[]="\tload printers = no";
 		$f[]="\tsocket options = TCP_NODELAY SO_RCVBUF=8192 SO_SNDBUF=8192";
+		
+		if($SambaBindInterface<>null){
+			$f[]="\tinterfaces = $SambaBindInterface lo";
+			$f[]="\tbind interfaces only = yes";
+		}
+		
 		$f[]="";		
 		return @implode("\n",$f);
 		

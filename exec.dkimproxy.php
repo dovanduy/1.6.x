@@ -32,7 +32,7 @@ function build_single_instance($ip){
 	$ou=$ligne["ou"];
 	$hostname=$ligne["value"];
 	$main=new maincf_multi($hostname,$ou);
-	echo "Starting......: dkimproxy $hostname\n";
+	echo "Starting......: ".date("H:i:s")." dkimproxy $hostname\n";
 	$freeport=$main->GET("dkimproxy_listenport");
 	$array=unserialize(base64_decode($main->GET_BIGDATA("dkimproxy_datas")));
 	$unix=new unix();
@@ -40,7 +40,7 @@ function build_single_instance($ip){
 	$key="/etc/dkimproxy/$hostname/private.key";
 	@mkdir("/etc/dkimproxy/$hostname",640,true);
 	if(!is_file($key)){
-		echo "Starting......: dkimproxy $hostname generating public and private key\n";
+		echo "Starting......: ".date("H:i:s")." dkimproxy $hostname generating public and private key\n";
 		$openssl=$unix->find_program("openssl");
 		@mkdir("/etc/dkimproxy/$hostname",640,true);
 		shell_exec("$openssl genrsa -out /etc/dkimproxy/$hostname/private.key 1024");
@@ -74,7 +74,7 @@ $conf[]="selector  {$array["selector_name"]}";
 $conf[]="min_servers 5";
 $conf[]="min_spare_servers 2";	
 $conf[]="";
-echo "Starting......: dkimproxy $hostname generating $hostname.conf ". count($dd)." domain(s)\n";
+echo "Starting......: ".date("H:i:s")." dkimproxy $hostname generating $hostname.conf ". count($dd)." domain(s)\n";
 @file_put_contents("/etc/dkimproxy/$hostname.conf",@implode("\n",$conf));
 	
 	

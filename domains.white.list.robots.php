@@ -154,7 +154,7 @@ function wbl_robotslist(){
 			if($transport=="artica-whitelist"){$img="fleche-20-right.png";}
 			if($transport=="artica-blacklist"){$img="fleche-20-black-right.png";}
 			if($transport=="artica-reportwbl"){$img="info-18.png";}
-			if($transport=="artica-reportquar"){$img="spamailbox_storage.gif";}
+			if($transport=="artica-reportquar"){$img="spamailbox.png";}
 			
 			
 			

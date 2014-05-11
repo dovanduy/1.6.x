@@ -277,11 +277,11 @@ function machines_list(){
 		}
 		
 		if(preg_match("#meditation#",$state)){
-			$img=imgtootltip("status_warning.gif","{stop_virtual_machine}<br>Gnu Meditation","VirtualBoxStop('$uuid')");
+			$img=imgtootltip("status_warning.png","{stop_virtual_machine}<br>Gnu Meditation","VirtualBoxStop('$uuid')");
 		}		
 		
 		if(preg_match("#aborted\s+\(#",$state)){
-			$img=imgtootltip("status_warning.gif","{stop_virtual_machine}<br>Aborted!","VirtualBoxStop('$uuid')");
+			$img=imgtootltip("status_warning.png","{stop_virtual_machine}<br>Aborted!","VirtualBoxStop('$uuid')");
 		}				
 		
 		

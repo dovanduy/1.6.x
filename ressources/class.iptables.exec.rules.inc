@@ -22,7 +22,7 @@ class iptables_exec{
 		$GLOBALS["BANNED"]=array();
 		$GLOBALS["ALLOWED_CROSS1"]=array();
 		$GLOBALS["BANNED_CROSS1"]=array();
-		if(!$q->test_mysql_connection()){echo "Starting......: ipTables central... Mysql is not ready aborting...\n";return;}
+		if(!$q->test_mysql_connection()){echo "Starting......: ".date("H:i:s")." ipTables central... Mysql is not ready aborting...\n";return;}
 
 		if($GLOBALS["VERBOSE"]){writelogs("Deleting rules...",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 		$this->delete_rules();
@@ -100,6 +100,14 @@ class iptables_exec{
 	private function iptables_transformIP($ip){
 		if($ip=="0.0.0.0"){return "0/0";}
 		return $ip;
+	}
+	
+	public function is_chain_exists($chainname){
+		exec("{$GLOBALS["iptables"]} -L $chainname 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(preg_match("#No chain#i", $ligne)){return false;}
+			if(preg_match("#Chain $chainname.*?[0-9]+#",$ligne)){return true;}
+		}
 	}
 	
 	private function multipleBubble(){

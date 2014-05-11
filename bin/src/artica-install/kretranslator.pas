@@ -270,7 +270,7 @@ var
    ini:TstringList;
    pid,pidpath:string;
 begin
- SYS.MONIT_DELETE('APP_KRETRANSLATOR_HTTPD');
+
  pid:=PID_NUM();
  ini:=TstringList.Create;
  if not FileExists(bin_path()) then exit;

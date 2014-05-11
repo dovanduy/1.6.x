@@ -1,6 +1,7 @@
 <?php
 	if(isset($_GET["VERBOSE"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}	
-	if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string','');ini_set('error_append_string','');}
+	
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -222,17 +223,8 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_filter_rule_edit>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_filter_rule_edit').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_filter_rule_edit");
+
 	
 	
 }
@@ -399,7 +391,11 @@ function blacklist(){
 	var x_EnableDisableCategoryRule= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);}
-		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
+		var flexRT;
+		if( document.getElementById('WebFilteringMainTableID') ){
+			flexRT=document.getElementById('WebFilteringMainTableID').value;
+			$('#flexRT'+flexRT).flexReload();
+		}
 	}			
 	
 	
@@ -417,7 +413,7 @@ function blacklist(){
 	}			
 			
 			
-			RefreshBlackListTable();
+	RefreshBlackListTable();
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
@@ -428,8 +424,9 @@ function blacklist_js(){
 	$page=CurrentPageName();
 	$myT=time();
 	
-	$array["categories-groups"]='{categories_groups}';
 	$array["blacklist-start-table"]='{categories}';
+	$array["categories-groups"]='{categories_groups}';
+	
 		
 	$prefix="&RULEID={$_GET["RULEID"]}&ID={$_GET["ID"]}&modeblk={$_GET["modeblk"]}&t={$_GET["t"]}&tSource={$_GET["t"]}";
 	
@@ -603,9 +600,9 @@ function rewrite_rules(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-	$rulename=$tpl->_ENGINE_parse_body("{rulename}");
-	$items=$tpl->_ENGINE_parse_body("{items}");
-	$new_rule=$tpl->_ENGINE_parse_body("{new_rule}");
+	$rulename=$tpl->javascript_parse_text("{rulename}");
+	$items=$tpl->javascript_parse_text("{items}");
+	$new_rule=$tpl->javascript_parse_text("{new_rule}");
 	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
 	$rewrite_rules_affect_explain=$tpl->_ENGINE_parse_body("{rewrite_rules_affect_explain}");
 	
@@ -616,7 +613,7 @@ $html="
 
 	
 <script>
-$(document).ready(function(){
+function start$t(){
 $('#flexRT$t').flexigrid({
 	url: '$page?rewrite_rules_list=yes&ID={$ID}',
 	dataType: 'json',
@@ -636,13 +633,13 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 878,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
-});
+}
 
 	var x_MainRuleRewriteEnable= function (obj) {
 		var res=obj.responseText;
@@ -665,7 +662,7 @@ $('#flexRT$t').flexigrid({
 		$('#flexRT$t').flexReload(); ExecuteByClassName('SearchFunction');
 	}
 
-
+start$t();
 
 </script>
 
@@ -766,7 +763,7 @@ function rewrite_rules_list(){
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	
 	$data = array();
@@ -994,6 +991,10 @@ function rule_time_list(){
 	$data['rows'] = array();
 	$rule_text=$tpl->javascript_parse_text("{rule}");
 	$c=0;
+	
+	if(count($TimeSpace["TIMES"])==0){json_error_show("no data");}
+
+	
 	while (list ($TIMEID, $array) = each ($TimeSpace["TIMES"]) ){
 	
 		$dd=array();
@@ -1333,7 +1334,7 @@ function rule_edit(){
 	
 	
 	if($ID>-1){
-		if(!$q->FIELD_EXISTS("webfilter_rules", "UseSecurity")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `UseSecurity` SMALLINT(1),ADD INDEX ( `UseSecurity` )");}
+		if(!$q->FIELD_EXISTS("webfilter_rules", "UseSecurity")){$q->QUERY_SQL("ALTER TABLE `webfilter_rules` ADD `UseSecurity` smallint(1),ADD INDEX ( `UseSecurity` )");}
 		$sql="SELECT * FROM webfilter_rules WHERE ID=$ID";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		
@@ -1390,10 +1391,10 @@ function rule_edit(){
 	}
 	
 	
-	$bypass=Paragraphe32("bypass", "bypass_minitext", "Loadjs('dansguardian2.bypass.php?ID=$ID')", "folder-32-routing-secure.png");
+	$bypass=Paragraphe32("bypass", "bypass_minitext", "Loadjs('dansguardian2.bypass.php?ID=$ID')", "folder-32-routing-secure.png",450);
 	
 	if($ligne["groupmode"]==0){
-		$stop=Paragraphe32("navigation_banned", "navigation_banned_text", "", "stop-32.png");
+		$stop=Paragraphe32("navigation_banned", "navigation_banned_text", "", "warn-red-48.png",450);
 	}
 	
 	$qq=new mysql();
@@ -1484,7 +1485,7 @@ function rule_edit(){
 	</tr>
 	</tbody>
 	</table>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tbody>
 	<tr>
@@ -1893,6 +1894,7 @@ function groups_list(){
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
 	$pageStart = ($page-1)*$rp;
+	if(!is_numeric($rp)){$rp=50;}
 	$limitSql = "LIMIT $pageStart, $rp";	
 	
 	$sql="SELECT webfilter_assoc_groups.ID,webfilter_assoc_groups.webfilter_id,
@@ -1916,7 +1918,7 @@ function groups_list(){
 	$data['page'] = $page;
 	$data['total'] = $COUNLIGNE["tcount"];
 	$data['rows'] = array();
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$textExplainGroup=null;
@@ -1943,6 +1945,7 @@ function groups_list(){
 			
 		}
 		
+		if($GLOBALS["VERBOSE"]){print_r($ligne);}
 		
 		if($ligne["enabled"]==0){$color="#9A9A9A";}
 		if($ligne["localldap"]==2){
@@ -1966,7 +1969,15 @@ function groups_list(){
 				$description=str_replace("'", "`", $description);	
 				if(trim($ligne["description"])==null){$ligne["description"]=$description;}
 			}
-		}	
+		}
+
+		if($ligne["localldap"]==0){
+			if(preg_match("#^ExtLdap:(.+)#", $ligne["webfilter_group_dn"],$re)){
+				$CountDeMembers='-';
+				
+				$groupadd_text="&nbsp;{$re[1]}";
+			}	
+		}
 		
 		$imgGP="win7groups-32.png";
 		if($ligne["localldap"]<2){$imgGP="group-32.png";}
@@ -2156,8 +2167,8 @@ function groups_choose_search(){
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
-	if(!$q->ok){json_error_show($error,1);}
-	
+	if(!$q->ok){json_error_show($q->mysql_error_html(),1);}
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	$data = array();
 	$data['page'] = $page;
@@ -2172,7 +2183,7 @@ function groups_choose_search(){
 	
 while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		//win7groups-32.png
 		$add=imgsimple("arrow-right-24.png","{select} {group}","DansGuardianAddSavedGroup({$ligne["ID"]})");
 		$imgGP="win7groups-32.png";
@@ -2456,9 +2467,9 @@ function blacklist_list(){
 		$database_items=null;
 		if($category_table_elements>0){
 			$category_table_elements=FormatNumber($category_table_elements);
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."')\" 
+			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('squid.categories.php?category=".urlencode($ligne['categorykey'])."',true)\" 
 			style='font-size:11px;font-weight:bold;text-decoration:underline'>$category_table_elements</a> $items";
-			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."')\" 
+			$DBTXT[]="<a href=\"javascript:blurt();\" OnClick=\"javascript:Loadjs('ufdbguard.compile.category.php?category=".urlencode($ligne['categorykey'])."',true)\" 
 			style='font-size:11px;font-weight:bold;text-decoration:underline'>$compile</a>";
 			
 		}

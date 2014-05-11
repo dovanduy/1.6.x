@@ -18,7 +18,7 @@
 <span_plugin_instance_text>Cas :</span_plugin_instance_text>
 <span_type_instance_text>Type de Graphique</span_type_instance_text>
 <swap>M&eacute;moire swap</swap>
-<tcpconns>Connections TCP/IP</tcpconns>
+<tcpconns>Connexions TCP/IP</tcpconns>
 <thermal>Temp&eacute;rature</thermal>
 <vmem>Page de m&eacute;moire virtuelle</vmem>
 <wireless>R&eacute;seau WIFI</wireless>

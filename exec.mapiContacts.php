@@ -18,7 +18,7 @@ function start(){
 	$ZarafaJunkItems=$sock->GET_INFO("ZarafaJunkItems");
 	if(!is_numeric($ZarafaAdbksWhiteTask)){$ZarafaAdbksWhiteTask=0;}
 	if(!is_numeric($ZarafaWhiteSentItems)){$ZarafaWhiteSentItems=1;}
-	if(!is_numeric($ZarafaJunkItems)){$ZarafaJunkItems=1;}
+	if(!is_numeric($ZarafaJunkItems)){$ZarafaJunkItems=0;}
 	if($ZarafaAdbksWhiteTask==0){return;}
 	$q=new mysql();
 	$q->BuildTables();
@@ -148,6 +148,11 @@ function inject_blacklists_tomysql($uid,$contacts){
 	
 	$q=new mysql();
 	
+	if(!$q->FIELD_EXISTS("contacts_blacklist","Junk","artica_backup")){
+		$sql="ALTER TABLE `contacts_blacklist` ADD `Junk` smallint( 1 ) NOT NULL DEFAULT '0',ADD INDEX ( `Junk` )";
+		$q->QUERY_SQL($sql,'artica_backup');
+	}
+	
 	while (list ($emailAddress_str, $none) = each ($contacts) ){
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT uid FROM `contacts_whitelist` WHERE sender='$emailAddress_str'","artica_backup"));
 		if($ligne2["uid"]<>null){continue;}
@@ -158,13 +163,13 @@ function inject_blacklists_tomysql($uid,$contacts){
 			if($GLOBALS["VERBOSE"]){echo "$md5 $emailAddress_str Already added in contacts_blacklist for [{$ligne2["uid"]}]\n";}
 			continue;}
 		
-		$f[]="('$emailAddress_str','$uid','$md5','1')";
+		$f[]="('$emailAddress_str','$uid','$md5','1','1')";
 		if($GLOBALS["VERBOSE"]){echo "$uid -> $emailAddress_str $md5\n";}
 	}
 	
 	if(count($f)>0){
 		system_user_events($uid,count($f)." are added to the blacklist database..", __FUNCTION__, __FILE__, __LINE__, "blacklist");
-		$sql="INSERT IGNORE INTO contacts_blacklist (`sender`,`uid`,`md5`,`enabled`) VALUES ".@implode(",", $f);
+		$sql="INSERT IGNORE INTO contacts_blacklist (`sender`,`uid`,`md5`,`enabled`,`Junk`) VALUES ".@implode(",", $f);
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){
 			if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n";}

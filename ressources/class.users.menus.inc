@@ -1,5 +1,5 @@
 <?php
-define("alse", "alse");
+if(!defined("alse")){define("alse", "alse");}
 $GLOBALS["AS_ROOT"]=false;
 if(!isset($GLOBALS["KAV4PROXY_NOSESSION"])){$GLOBALS["KAV4PROXY_NOSESSION"]=false;}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
@@ -153,6 +153,10 @@ class usersMenus {
 	public $AsHotSpotManager=false;
 	public $AsOrgDNSAdmin=false;
 	public $ASDCHPAdmin=false;
+	public $PACTESTER_INSTALLED=false;
+	public $CONNTRACK_INSTALLED=false;
+	public $APP_SQUID27_INSTALLED=false;
+	public $APP_SQUIDSTREAM_INSTALLED=false;
 	
 	public $PHPFPM_INSTALLED=false;
 	/* This licence must be used Only with Artica-for postfix */
@@ -276,6 +280,7 @@ class usersMenus {
 	public $spfmilter_installed=false;
 	public $MIMEDEFANG_INSTALLED=false;
 	public $APP_CHILLI_INSTALLED=false;
+	public $RDPPROXY_INSTALLED=false;
 	public $netbiosname;
 	public $MIMEDEFANG_SOCKET="";
 	public $MimeDefangEnabled;
@@ -483,6 +488,7 @@ class usersMenus {
 	public $POWERADMIN_INSTALLED=false;
 	public $APACHE_MOD_CACHE=false;
 	public $APP_AMANDA_INSTALLED=false;
+	public $NicRoleArray=array();
 	public $PDNSSEC_INSTALLED=false;
 	public $NSCD_INSTALLED=false;
 	public $DRUPAL7_INSTALLED=false;
@@ -573,7 +579,9 @@ class usersMenus {
 	public $SQUID_REVERSE_APPLIANCE=false;
 	public $ISCSID_INSTALLED=false;
 	public $VDESWITCH_INSTALLED=false;
-	
+	public $GATEWAY_APPLIANCE=false;
+	public $SHOREWALL_INSTALLED=false;
+	public $APP_EBTABLES_INSTALLED=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -621,24 +629,10 @@ class usersMenus {
 			
 			include_once(dirname(__FILE__)."/class.sockets.inc");
 			$settings=dirname(__FILE__).'/settings.inc';
-			
-			if(!$GLOBALS["AS_ROOT"]){if(isset($_SESSION["SETTINGS_FILES"])){$GLOBALS["SETTINGS_FILES"]=$_SESSION["SETTINGS_FILES"];}}
-			if(isset($GLOBALS["SETTINGS_FILES"])){if(!is_array($GLOBALS["SETTINGS_FILES"])){unset($GLOBALS["SETTINGS_FILES"]);}}
-			if(isset($GLOBALS["SETTINGS_FILES"])){if(count($GLOBALS["SETTINGS_FILES"])<15){unset($GLOBALS["SETTINGS_FILES"]);}}
-			
-			
-			if( (!isset($GLOBALS["SETTINGS_FILES"])) OR (!is_array($GLOBALS["SETTINGS_FILES"])) ){
-				if(file_exists($settings)){
-					@include($settings);
-					$this->GLOBAL_CONFIG=$_GLOBAL;
-					$GLOBALS["SETTINGS_FILES"]=$_GLOBAL;
-					if(!$GLOBALS["AS_ROOT"]){$_SESSION["SETTINGS_FILES"]=$_GLOBAL;}
-					
-					}else{die("Unable to stat $settings");}
-			}
-			
-			$_GLOBAL=$GLOBALS["SETTINGS_FILES"];
+			@include($settings);
 			$this->GLOBAL_CONFIG=$_GLOBAL;
+			
+			
 			
 			if(!is_array($this->GLOBAL_CONFIG)){
 				if(!$GLOBALS["AS_ROOT"]){echo "<p class=text-error>";}
@@ -762,13 +756,19 @@ class usersMenus {
 			if(isset($_GLOBAL["CNTLM_INSTALLED"])){$this->CNTLM_INSTALLED=$_GLOBAL["CNTLM_INSTALLED"];}
 			if(isset($_GLOBAL["ISCSID_INSTALLED"])){$this->ISCSID_INSTALLED=$_GLOBAL["ISCSID_INSTALLED"];}
 			if(isset($_GLOBAL["VDESWITCH_INSTALLED"])){$this->VDESWITCH_INSTALLED=$_GLOBAL["VDESWITCH_INSTALLED"];}
+			if(isset($_GLOBAL["APP_EBTABLES_INSTALLED"])){$this->APP_EBTABLES_INSTALLED=$_GLOBAL["APP_EBTABLES_INSTALLED"];}
+			if(isset($_GLOBAL["APP_SQUID27_INSTALLED"])){$this->APP_SQUID27_INSTALLED=$_GLOBAL["APP_SQUID27_INSTALLED"];}
+			if(isset($_GLOBAL["APP_SQUIDSTREAM_INSTALLED"])){$this->APP_SQUIDSTREAM_INSTALLED=$_GLOBAL["APP_SQUIDSTREAM_INSTALLED"];}
+			
+			
+			
 			
 			//Are you sure to do that !!!, breaking the license turn you to a pirate...
 			if(isset($_GLOBAL["CORP_LICENSE"])){$this->CORP_LICENSE=$_GLOBAL["CORP_LICENSE"];}
 	
 			$this->hostname=$_GLOBAL["fixed_hostname"];
 			$this->fqdn=$_GLOBAL["fqdn_hostname"];
-			if(isset($_GLOBAL["ARTICADB_INSTALLED"])){$this->ARTICADB_INSTALLED=$_GLOBAL["ARTICADB_INSTALLED"];;}
+			//if(isset($_GLOBAL["ARTICADB_INSTALLED"])){$this->ARTICADB_INSTALLED=$_GLOBAL["ARTICADB_INSTALLED"];;}
 			if(isset($_GLOBAL["DANSGUARDIAN_INSTALLED"])){$this->DANSGUARDIAN_INSTALLED=$_GLOBAL["DANSGUARDIAN_INSTALLED"];;}
 			if(isset($_GLOBAL["KAV4PROXY_PID"])){$this->KAV4PROXY_PID=$_GLOBAL["KAV4PROXY_PID"];;}
 			if(isset($_GLOBAL["dnsmasq_installed"])){$this->dnsmasq_installed=$_GLOBAL["dnsmasq_installed"];;}
@@ -836,7 +836,7 @@ class usersMenus {
 			if(isset($_GLOBAL["KAV4SAMBA_VFS"])){$this->KAV4SAMBA_VFS=$_GLOBAL["KAV4SAMBA_VFS"];}
 			if(isset($_GLOBAL["SAMBA_MYSQL_AUDIT"])){$this->SAMBA_MYSQL_AUDIT=$_GLOBAL["SAMBA_MYSQL_AUDIT"];}
 			if(isset($_GLOBAL["awstats_www_path"])){$this->awstats_www_path=$_GLOBAL["awstats_www_path"];}
-			if(isset($_GLOBAL["SQUID_ICAP_ENABLED"])){$this->SQUID_ICAP_ENABLED=$_GLOBAL["SQUID_ICAP_ENABLED"];}
+			
 			if(isset($_GLOBAL["LIGHTTPD_LDAP_AUTH"])){$this->LIGHTTPD_LDAP_AUTH=$_GLOBAL["LIGHTTPD_LDAP_AUTH"];}
 			if(isset($_GLOBAL["SIEVE_PORT"])){$this->SIEVE_PORT=$_GLOBAL["SIEVE_PORT"];}
 			if(isset($_GLOBAL["Z_PUSH_INSTALLED"])){$this->Z_PUSH_INSTALLED=$_GLOBAL["Z_PUSH_INSTALLED"];}
@@ -866,9 +866,11 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_JAVA_JDK_INSTALLED"])){$this->APP_JAVA_JDK_INSTALLED=$_GLOBAL["APP_JAVA_JDK_INSTALLED"];}
 			if(isset($_GLOBAL["APP_CHILLI_INSTALLED"])){$this->APP_CHILLI_INSTALLED=$_GLOBAL["APP_CHILLI_INSTALLED"];}
 			if(isset($_GLOBAL["HAARP_INSTALLED"])){$this->HAARP_INSTALLED=$_GLOBAL["HAARP_INSTALLED"];}
-			
-			
-			
+			if(isset($_GLOBAL["RDPPROXY_INSTALLED"])){$this->RDPPROXY_INSTALLED=$_GLOBAL["RDPPROXY_INSTALLED"];}
+			if(isset($_GLOBAL["PACTESTER_INSTALLED"])){$this->PACTESTER_INSTALLED=$_GLOBAL["PACTESTER_INSTALLED"];}
+			if(isset($_GLOBAL["GATEWAY_APPLIANCE"])){$this->GATEWAY_APPLIANCE=$_GLOBAL["GATEWAY_APPLIANCE"];}
+			if(isset($_GLOBAL["SHOREWALL_INSTALLED"])){$this->SHOREWALL_INSTALLED=$_GLOBAL["SHOREWALL_INSTALLED"];}
+			if(isset($_GLOBAL["CONNTRACK_INSTALLED"])){$this->CONNTRACK_INSTALLED=$_GLOBAL["CONNTRACK_INSTALLED"];}
 			
 			
 			$this->bindrrd_installed=$_GLOBAL["bindrrd_installed"];
@@ -1000,6 +1002,7 @@ class usersMenus {
 			if(isset($_GLOBAL["HOSTAPD_INSTALLED"])){$this->HOSTAPD_INSTALLED=$_GLOBAL["HOSTAPD_INSTALLED"];}
 			if(isset($_GLOBAL["MEMCACHED_INSTALLED"])){$this->MEMCACHED_INSTALLED=$_GLOBAL["MEMCACHED_INSTALLED"];}
 			if(isset($_GLOBAL["FREERADIUS_INSTALLED"])){$this->FREERADIUS_INSTALLED=$_GLOBAL["FREERADIUS_INSTALLED"];}
+			if(isset($_GLOBAL["SHOREWALL_INSTALLED"])){$this->SHOREWALL_INSTALLED=$_GLOBAL["SHOREWALL_INSTALLED"];}
 			
 			
 			
@@ -1108,6 +1111,8 @@ class usersMenus {
 			$this->APACHE_MOD_LOGSSQL=$_GLOBAL["APACHE_MOD_LOGSSQL"];
 			if(isset($_GLOBAL["squid_kerb_auth_path"])){$this->squid_kerb_auth_path=$_GLOBAL["squid_kerb_auth_path"];}
 			
+			
+			
 			if(isset($_GLOBAL["ISCSI_CLIENT_INSTALLED"])){$this->ISCSI_CLIENT_INSTALLED=$_GLOBAL["ISCSI_CLIENT_INSTALLED"];}
 			if($this->LinuxDistriCode=="DEBIAN"){$this->AS_DEBIAN_FAMILY=true;}
 			if($this->LinuxDistriCode=="UBUNTU"){$this->AS_DEBIAN_FAMILY=true;}
@@ -1120,11 +1125,30 @@ class usersMenus {
 			$ArticaMetaEnabled=trim($sock->GET_INFO("ArticaMetaEnabled"));
 			if($ArticaMetaEnabled==null){$sock->SET_INFO("ArticaMetaEnabled","0");}
 			if($ArticaMetaEnabled==1){$this->ARTICA_META_ENABLED=true;}
+			
+			if($this->SQUID_INSTALLED){
+				if(!isset($GLOBALS["SQUID_ICAP_ENABLED"])){
+					$GLOBALS["SQUID_ICAP_ENABLED"]=false;
+					$IsIcapClient=@file_get_contents("/etc/artica-postfix/settings/Daemons/IsIcapClient");
+					if($IsIcapClient==null){
+						$IsIcapClient=trim($sock->getFrameWork("squid.php?IsIcapClient=yes"));
+						if($IsIcapClient==null){$IsIcapClient="FALSE";}
+						@file_put_contents("/etc/artica-postfix/settings/Daemons/IsIcapClient", $IsIcapClient);
+					}
+					if($IsIcapClient=='TRUE'){$GLOBALS["SQUID_ICAP_ENABLED"]=true; }
+				}
+			}
+			
+			$this->SQUID_ICAP_ENABLED=$GLOBALS["SQUID_ICAP_ENABLED"];
+			
+			if(is_file("/home/artica/categories_databases/CATZ_ARRAY")){ $this->ARTICADB_INSTALLED=true;}
+			
 
 			$EnableMacAddressFilter=$sock->GET_INFO("EnableMacAddressFilter");
 			$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 			$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 			
+						
 			if(!is_numeric($EnableMacAddressFilter)){$EnableMacAddressFilter=1;}
 			if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 			if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
@@ -1173,7 +1197,7 @@ class usersMenus {
 				$this->BACKUPPC_INSTALLED=false;
 				
 			}
-			
+			$this->SetTimeZone();
 			$page=$this->CurrentPageName();
 			$this->SessionExpired();
 			if($GLOBALS["posix_getuid"]==0){if($this->roundcube_installed){$this->roundcube_detect_version();}}
@@ -1183,8 +1207,16 @@ class usersMenus {
 				if($GLOBALS["DEBUG_PRIVS"]){writelogs("->_ParsePrivieleges()",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 				$priv=$this->_ParsePrivieleges();
 				$this->priv=$this->_TranslateRights($priv);			
-				
-				
+			}
+			
+			
+			if($this->SHOREWALL_INSTALLED){
+				$this->NicRoleArray["NAT"]="{shorewall_masq}";
+			}
+			
+			if($this->dnsmasq_installed){
+				$this->NicRoleArray["DHCP"]="{APP_DHCP}";
+			
 			}
 		
 	}
@@ -1196,6 +1228,36 @@ class usersMenus {
 	}
 	
 	function SessionExpired(){}
+	
+	
+	private function SetTimeZone(){
+		if(!function_exists("getLocalTimezone")){return;}
+		if(isset($GLOBALS["TIMEZONES"])){
+			@date_default_timezone_set($GLOBALS["TIMEZONES"]);
+			return;
+		}
+		
+		if(isset($_SESSION["TIMEZONES"])){
+			@date_default_timezone_set($_SESSION["TIMEZONES"]);
+			$GLOBALS["TIMEZONES"]=$_SESSION["TIMEZONES"];
+			return;
+			
+		}
+		
+		if(isset($GLOBALS["GET_TIME_ZONE"])){
+			$GLOBALS["TIMEZONES"]=$GLOBALS["GET_TIME_ZONE"];
+			$_SESSION["TIMEZONES"]=$GLOBALS["GET_TIME_ZONE"];
+			@date_default_timezone_set($GLOBALS["TIMEZONES"]);
+			return;
+		}
+		
+		$sock=new sockets();
+		$timezones=$sock->GET_INFO("timezones");
+		if($timezones==null){$timezones="Europe/Dublin";}
+		$GLOBALS["TIMEZONES"]=$timezones;
+		$_SESSION["TIMEZONES"]=$timezones;
+		@date_default_timezone_set($GLOBALS["TIMEZONES"]);
+	}
 	
 
 	private function CurrentPageName(){$phpPage=basename($_SERVER["SCRIPT_FILENAME"]);return $phpPage;}  		
@@ -1217,11 +1279,11 @@ class usersMenus {
 		if(!class_exists("sqlgrey")){include(dirname(__FILE__).'/class.sqlgrey.inc');}
 		if(!class_exists("milter_greylist")){include(dirname(__FILE__) . '/class.milter.greylist.inc');}
 		include_once(dirname(__FILE__).'/class.artica.inc');
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:includes done..; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:includes done..; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 		
-		if($debugThis){error_log("$CurrentPageName: includes done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::$CurrentPageName: includes done ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$artica=new artica_general($this->ldapClass);
-		if($debugThis){error_log("$CurrentPageName: artica class ok ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::$CurrentPageName: artica class ok ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		
 		if($debugThis){writelogs($CurrentPageName.": sqlgrey($this->hostname,true)".__FUNCTION__.'/'.__LINE__);}		
 		$sqlg=new sqlgrey($this->hostname,true);
@@ -1270,17 +1332,43 @@ class usersMenus {
 		if(!$this->AMAVIS_INSTALLED){$this->EnableAmavisDaemon==0;}
 		
 		if($this->SMTP_LEVEL==null){$this->SMTP_LEVEL=0;}
-		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}: DONE; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+		if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}: DONE; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 		$this->LoadModulesEnabledParsed=true;
 		}
-		
 		
 function ORGANISTATION_FROM_USER(){
 	if(!function_exists("ldap_connect")){return array();}
 	if($this->ldapClass->ldapFailed){return null;}
 	$hash=$this->ldapClass->Hash_Get_ou_from_users($_SESSION["uid"],1);
 	if(is_array($hash)){return $hash[0];}
-	}	
+	}
+
+public function EnablePDNS(){
+	$sock=new sockets();
+	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
+	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	if(!$this->POWER_DNS_INSTALLED){return 0;}
+	if($this->EnableDNSMASQ()==1){return 0;}
+	
+	
+	if($this->APP_CHILLI_INSTALLED){
+		$EnableChilli=$sock->GET_INFO("EnableChilli");
+		if(!is_numeric($EnableChilli)){$EnableChilli=0;}
+		if($EnableChilli==1){return 0;}
+	}
+	
+	return $EnablePDNS;
+}
+public function EnableDNSMASQ(){
+	$sock=new sockets();
+	if(!$this->dnsmasq_installed){return 0;}
+	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){return 1;}
+	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
+	return $EnableDNSMASQ;
+}
 
 private function roundcube_detect_version(){
 	$webfolder=$this->roundcube_folder;
@@ -1430,36 +1518,39 @@ private function build_user_left_menus(){
 		$EnableGroupWareScreen=$sock->GET_INFO("EnableGroupWareScreen");
 		if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
 		if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
-		if(!is_numeric($EnablePDNS)){$EnablePDNS=1;}
+		if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
 		if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
 		if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=1;}
 		if(!is_numeric($EnableLXCINLeftMenus)){$EnableLXCINLeftMenus=1;}
 		if(!is_numeric($EnableGroupWareScreen)){$EnableGroupWareScreen=1;}
+		$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+		if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;$EnableDNSMASQ=1;}
 
 		$ASDEBIAN=false;
 		if($this->LinuxDistriCode=="DEBIAN"){$ASDEBIAN=true;}
 		if($this->LinuxDistriCode=="UBUNTU"){$ASDEBIAN=true;}	
 			
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}: menus->BuildLeftMenus() function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}: menus->BuildLeftMenus() function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 		
 		if($InstantIpTablesInLeftMenu==null){$InstantIpTablesInLeftMenu=1;}
-		if($FreeWebLeftMenu==null){$FreeWebLeftMenu=1;}		
+		if(!is_numeric($FreeWebLeftMenu)){$FreeWebLeftMenu=1;}		
 		
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		if($_SESSION["UsersInterfaceDatas"]<>null){
-			if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} UsersInterfaceDatas<>null".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} UsersInterfaceDatas<>null".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			return null;
 		}
 		if(is_array($_SESSION["MainLeftMenus"])){
 			$this->main_left_menus=$_SESSION["MainLeftMenus"];
-			if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} MainLeftMenus<>null, return".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} MainLeftMenus<>null, return".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			return $_SESSION["MainLeftSubPagesHTML"];
 		}
 		
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ->LoadModulesEnabled ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ->LoadModulesEnabled ".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$this->LoadModulesEnabled();
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ->LoadModulesEnabled done".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ->BuildBackupFeature()".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ->LoadModulesEnabled done".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ->BuildBackupFeature()".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		$this->BuildBackupFeature();
 		if(isset($GLOBALS["CURRENT_PAGE"])){$page=$GLOBALS["CURRENT_PAGE"];}else{$page=CurrentPageName();}
 
@@ -1470,25 +1561,25 @@ private function build_user_left_menus(){
 		if($_GET["ou"]==null){
 			if($this->AsArticaAdministrator){
 				if($_COOKIE["MyFavouriteOrganization"]==null){
-					if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ->this->ldapClass->hash_get_ou(false)".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+					if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ->this->ldapClass->hash_get_ou(false)".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 					$hash=$this->ldapClass->hash_get_ou(false);
-					if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ->OU={$hash[0]}".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+					if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ->OU={$hash[0]}".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 					$_GET["ou"]=$hash[0];
 				}else{
 					$_GET["ou"]=$_COOKIE["MyFavouriteOrganization"];
 				}
 			}else{
-				if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ->this->ORGANISTATION_FROM_USER()".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+				if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ->this->ORGANISTATION_FROM_USER()".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 				$_GET["ou"]=$this->ORGANISTATION_FROM_USER();
 			}
 			
 		}
-		if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} ORG={$_GET["ou"]} done".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+		if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} ORG={$_GET["ou"]} done".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 		
 		$SMTP_LEVEL=$this->SMTP_LEVEL;
 		
 		if(!$this->AsAnAdministratorGeneric){
-			if($debugThis){error_log("{$GLOBALS["CURRENT_PAGE"]} this->build_user_left_menus()".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
+			if($debugThis){error_log("[{$_SESSION["uid"]}]::{$GLOBALS["CURRENT_PAGE"]} this->build_user_left_menus()".__FUNCTION__.' in '.__FILE__. " in line ". __LINE__);}
 			return $this->build_user_left_menus();
 		}		
 
@@ -2102,7 +2193,7 @@ private function build_user_left_menus(){
 		$this->toplinks=$this->toplinks. "</table></div>";
 		if($count_toplinks==0){$this->toplinks=null;}
 		$_SESSION["MainLeftMenus"]=$this->main_left_menus;
-		$_SESSION["MainLeftSubPagesHTML"]=$html;
+
 		return $html;
 		
 	}
@@ -2252,17 +2343,17 @@ private function MAILBOXES_MENUS($array=array()){
 		
 		
 		function BuildUsersTabs(){
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:BuildUsersTabs() start; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);} 
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:BuildUsersTabs() start; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);} 
 			if(!isset($_SESSION["uid"])){
-				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:SESSION['uid'] is not set,aborting; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:SESSION['uid'] is not set,aborting; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 				return false;
 			}
 			if($_SESSION['UsersInterfaceDatas']<>null){
-				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:SESSION['UsersInterfaceDatas']<>null aborting; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+				if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:SESSION['UsersInterfaceDatas']<>null aborting; function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 				return false;
 			}
 			
-			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:this->LoadModulesEnabled(); function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+			if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:this->LoadModulesEnabled(); function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 			$this->LoadModulesEnabled();
 			if($this->IfIsAnuser()==false){return false;}
 			include_once(dirname(__FILE__).'/class.user.inc');

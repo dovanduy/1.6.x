@@ -25,7 +25,7 @@ private function ROUNDCUBE_INSTALL(){
 	$sock=new sockets();
 	$ldap=new clladp();
 	
-	echo "Starting......: Roundcube $this->servername\n"; 
+	echo "Starting......: ".date("H:i:s")." Roundcube $this->servername\n"; 
 	
 	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$this->servername.log";	
 	if($this->root==null){$this->events("Starting install roundcube Unable to stat root dir");return false;}
@@ -62,12 +62,12 @@ private function ROUNDCUBE_INSTALL(){
 	}
 	
 	$this->events("Starting setting permissions on Database with user $user");
-	echo "Starting......: Roundcube $this->servername set permissions on Database with user $user\n"; 
+	echo "Starting......: ".date("H:i:s")." Roundcube $this->servername set permissions on Database with user $user\n"; 
 	$q->PRIVILEGES($user,$mysql_password,$server_database);
 	
 	
 	$this->events("Starting install roundcube installing source code");
-	echo "Starting......: Roundcube $this->servername installing source code\n"; 
+	echo "Starting......: ".date("H:i:s")." Roundcube $this->servername installing source code\n"; 
 	
 	shell_exec("/bin/rm -rf $this->root/*");
 	shell_exec("/bin/cp -rf $srcfolder/* $this->root/");
@@ -127,7 +127,7 @@ private function ROUNDCUBE_INSTALL(){
 	$conf[]="\$rcmail_config[\"db_sequence_messages\"] = \"message_ids\";";
 	$conf[]="?>";
 	$this->events("Starting install roundcube saving $this->root/config/db.inc.php");
-	echo "Starting......: Roundcube $this->servername db.inc.php OK\n";
+	echo "Starting......: ".date("H:i:s")." Roundcube $this->servername db.inc.php OK\n";
 	@file_put_contents("$this->root/config/db.inc.php",@implode("\n",$conf));	
 	
 	unset($conf);
@@ -271,7 +271,7 @@ private function ROUNDCUBE_INSTALL(){
 	if($NAB->enabled==1){
 		ROUNDCUBE_GLOBALADDRESSBOOK();
 		if(is_file("$this->root/plugins/globaladdressbook/globaladdressbook.php")){
-			echo "Starting......: Roundcube $this->servername Enable Global AddressBook \n";
+			echo "Starting......: ".date("H:i:s")." Roundcube $this->servername Enable Global AddressBook \n";
 			$conf[]="\$rcmail_config['plugins'][] = 'globaladdressbook';";
 			$nab_conf=$NAB->BuildConfig();
 			@file_put_contents("$this->root/plugins/globaladdressbook/config.inc.php",$nab_conf);
@@ -352,12 +352,12 @@ private function ROUNDCUBE_INSTALL(){
 	$this->EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	
 	if($this->EnablePostfixMultiInstance==1){
-		echo "Starting......: Roundcube $this->servername Postfix Multi Instance Enabled \n";
+		echo "Starting......: ".date("H:i:s")." Roundcube $this->servername Postfix Multi Instance Enabled \n";
 		$smtp=$hash[strtolower("WWWMultiSMTPSender")][0];
 		$tbl=@explode("\n",@file_get_contents("$this->root/config/main.inc.php"));
 		while (list ($i, $line) = each ($tbl) ){
 			if(preg_match("#rcmail_config.+?smtp_server#",$line)){
-				echo "Starting......: Roundcube $this->servername Postfix change line $i to $smtp\n";
+				echo "Starting......: ".date("H:i:s")." Roundcube $this->servername Postfix change line $i to $smtp\n";
 				$tbl[$i]="\$rcmail_config['smtp_server'] = '$smtp';";
 			}
 		}

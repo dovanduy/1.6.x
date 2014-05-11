@@ -197,19 +197,7 @@ var x_SMTP_NOTIFICATIONS_ADD_CC= function (obj) {
 			document.getElementById('notifcclist').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
 			XHR.sendAndLoad('$page', 'GET',x_SMTP_NOTIFICATIONS_ADD_CC);
 	}
-var x_SaveTimeZone= function (obj) {
-				var results=obj.responseText;
-				if(results.length>0){alert(results);}
-				WebInterFace();
-			}		
-	
-	function SaveTimeZone(){
-			var XHR = new XHRConnection();
-			XHR.appendData('timezones',document.getElementById('timezones').value);
-			document.getElementById('timezones_div').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-			XHR.sendAndLoad('$page', 'GET',x_SaveTimeZone);
-			
-	}
+
 	
 	". MYSQL_AUDIT_js()."
 	
@@ -229,7 +217,7 @@ function js_index(){
 	$mysql_settings=$tpl->_ENGINE_parse_body("{mysql_settings}");
 	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
 	"javascript:Loadjs('$page?js=yes&func-webinterface=yes');");
-	$SMTP_NOTIFICATIONS_PAGE=Paragraphe("folder-64-fetchmail.png","{smtp_notifications}","{smtp_notifications_text}",
+	$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
 	"javascript:Loadjs('$page?js=yes&func-NotificationsInterface=yes');");
 	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
 	"javascript:Loadjs('$page?js=yes&func-ProxyInterface=yes');");
@@ -295,15 +283,36 @@ function js_web_interface(){
 	$array["js-web-interface2"]='{web_interface_settings}';
 	$array["js-web-fw"]='{security_access}';
 	$array["js-web-miniadm"]='{ARTICA_MINIADM}';
+	
+	$array["php-options"]="PHP: {options}";
+	$array["modules"]="PHP: {loaded_modules}";
+	
 	$page=CurrentPageName();
 
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		
+		if($num=="js-web-fw"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.web.fw.php\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		
+		if($num=="php-options"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"phpconfig.php?options=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="modules"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"phpconfig.php?modules=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:16px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo build_artica_tabs($html, "main_config_jsweb");
+	echo build_artica_tabs($html, "main_config_jsweb",1100);
 	
 }
 
@@ -677,10 +686,6 @@ function HTTPS_PORT(){
 		</tr>	";
 	
 	if($users->lighttpd_installed){
-		$use_apache="<tr>
-			<td nowrap class=legend style='font-size:14px'>{disable_webconsole_engine}:</strong></td>
-			<td>" . Field_checkbox('LighttpdArticaDisabled',1,$LighttpdArticaDisabled,"LighttpdArticaDisabledCheck()")."</td>
-		</tr>";
 		$lighttp_processes="<input type='hidden' id='LighttpdUseLdap' value=',$httpd->LighttpdUseLdap'>";
 		
 	}
@@ -688,11 +693,11 @@ function HTTPS_PORT(){
 	
 	$lighttpd_usenossl="
 		<tr>
-			<td nowrap nowrap class=legend style='font-size:14px'>{ssl}:</strong></td>
+			<td nowrap nowrap class=legend style='font-size:16px'>{ssl}:</strong></td>
 			<td>". Field_checkbox("ArticaHttpUseSSL",1,$ArticaHttpUseSSL,"WebArticaCheck()")."</td>
 		</tr>	
 		<tr>
-			<td nowrap nowrap class=legend style='font-size:14px'>{disableSSLv2}:</strong></td>
+			<td nowrap nowrap class=legend style='font-size:16px'>{disableSSLv2}:</strong></td>
 			<td>". Field_checkbox("LighttpdArticaDisableSSLv2",1,$LighttpdArticaDisableSSLv2,"disableSSLv2Check()")."</td>
 		</tr>	
 	";
@@ -700,7 +705,7 @@ function HTTPS_PORT(){
 	
 	
 	
-	
+	$t=time();
 	if($use_apache==null){$use_apache="<input type='hidden' name='ApacheArticaEnabled' value='0'>";}
 	
 	$html="
@@ -708,6 +713,12 @@ function HTTPS_PORT(){
 	<form name='FFM109'>
 	<input type='hidden' name='http_settings' value='yes'>
 	<script>
+	
+		function Save$t(){
+			ParseForm('FFM109','artica.settings.php',true);
+		}
+	
+	
 		function LighttpdArticaDisabledCheck(){
 			var XHR = new XHRConnection();
 			if(document.getElementById('LighttpdArticaDisabled').checked){
@@ -786,44 +797,35 @@ function HTTPS_PORT(){
 		
 	}else{$html=$html . "<input type='hidden' name='ApacheArticaEnabled' value='1'>";}
 	
-	$advilink=Paragraphe32("advanced_options", "php_advanced_options_text", "Loadjs('phpconfig.php')", "32-settings-black.png");	
+	
 $html=$html . "
+<div style='width:98%' class=form>
 <table style='width:100%'>
-<tr>
-<td valign='top' width=1%>$advilink</td>
-<td valign='top' width=99%>
-<table style='width:99%' class=form>
 			$lighttpd
 			<tr>
-				<td nowrap class=legend style='font-size:14px'>{listen_port}:</strong></td>
-				<td>" . Field_text('https_port',trim($ArticaHttpsPort),'width:100px;font-size:14px;padding:3px')."</td>
+				<td nowrap class=legend style='font-size:16px'>{listen_port}:</strong></td>
+				<td>" . Field_text('https_port',trim($ArticaHttpsPort),'width:100px;font-size:16px;padding:3px')."</td>
 			</tr>
 			<tr>
-				<td nowrap class=legend style='font-size:14px'>{listen_address}:</strong></td>
-				<td>" . Field_array_Hash($IPAR,'LighttpdArticaListenIP',trim($LighttpdArticaListenIP),'style:font-size:14px;padding:3px')."</td>
+				<td nowrap class=legend style='font-size:16px'>{listen_address}:</strong></td>
+				<td>" . Field_array_Hash($IPAR,'LighttpdArticaListenIP',trim($LighttpdArticaListenIP),'style:font-size:16px;padding:3px')."</td>
 			</tr>			
 			 
 			
 			<tr>
-				<td nowrap class=legend style='font-size:14px'>{username}:</strong></td>
-				<td>" . Field_text('LighttpdUserAndGroup',trim($LighttpdUserAndGroup),'width:130px;font-size:14px;padding:3px')."</td>
+				<td nowrap class=legend style='font-size:16px'>{username}:</strong></td>
+				<td>" . Field_text('LighttpdUserAndGroup',trim($LighttpdUserAndGroup),'width:230px;font-size:16px;padding:3px')."</td>
 			</tr>
-			<tr>
-				<td colspan=2 align='right'>
-					<span style='padding-top:3px'><a href='javascript:blur();' OnClick=\"javascript:Loadjs('phpconfig.php');\">{advanced_options}</a></span>
-				</td>
-			</tr>			
+			
 			<tr>
 				<td colspan=2 align='right'>
 					<hr>
-					". button("{apply}","HTTPS_PORT()",16)."
+					". button("{apply}","Save$t()",22)."
 					
 				</td>
 			</tr>
-</table></form>
-</td>
-</tr>
-</table>";
+</table>
+</div>";
 			
 			
 	
@@ -832,7 +834,7 @@ $html=$html . "
 }
 
 function TIME_ZONE_SETTINGS(){
-	
+	$page=CurrentPageName();
 $timezone[]="Africa/Abidjan";                 //,0x000000 },
 	$timezone[]="Africa/Accra";                   //,0x000055 },
 	$timezone[]="Africa/Addis_Ababa";             //,0x0000FD },
@@ -1395,16 +1397,19 @@ $timezone[]="Africa/Abidjan";                 //,0x000000 },
 	$timezone[]="WET";                            //,0x03E60A },
 	$timezone[]="Zulu";                           //,0x03EBF8 },	
 	
+	
+	
 	for($i=0;$i<count($timezone);$i++){
 		$array[$timezone[$i]]=$timezone[$i];
 	}
+	$t=time();
 	$sock=new sockets();
 	$timezone_def=trim($sock->GET_INFO('timezones'));
 	if(trim($timezone_def)==null){$timezone_def="Europe/Paris";}
-	$field=Field_array_Hash($array,'timezones',$timezone_def);
+	$field=Field_array_Hash($array,"timezones-$t",$timezone_def);
 	$sock=new sockets();
 	
-	$default=
+	
 	
 	$html="
 	<H5>{timezones}</H5>
@@ -1416,12 +1421,26 @@ $timezone[]="Africa/Abidjan";                 //,0x000000 },
 	</tr>
 	<tr>
 		<td colspan=2 align='right'>
-		<hr>". button("{apply}","SaveTimeZone()")."
+		<hr>". button("{apply}","SaveTimeZone$t()")."
 		
 	</tr>
 	</table>
 	</div>
+	<script>
+				
+var x_SaveTimeZone= function (obj) {
+				var results=obj.responseText;
+				if(results.length>0){alert(results);}
+				WebInterFace();
+			}		
 	
+	function SaveTimeZone$t(){
+			var XHR = new XHRConnection();
+			XHR.appendData('timezones-$t',document.getElementById('timezones').value);
+			XHR.sendAndLoad('$page', 'GET',x_SaveTimeZone);
+			
+	}
+</script>
 	
 	";
 	
@@ -1431,6 +1450,9 @@ $timezone[]="Africa/Abidjan";                 //,0x000000 },
 
 function TIME_ZONE_SAVE(){
 	$sock=new sockets();
+	
+	$GLOBALS["TIMEZONES"]=$_GET["timezones"];
+	$_SESSION["TIMEZONES"]=$_GET["timezones"];
 	$sock->SET_INFO('timezones',$_GET["timezones"]);
 	$sock->getFrameWork('cmd.php?restart-web-server=yes');
 }
@@ -1602,7 +1624,7 @@ function SMTP_NOTIFICATIONS(){
 	$jGrowlNotifsDisabled=$sock->GET_INFO("jGrowlNotifsDisabled");
 	
 	if(!is_numeric($jGrowlNotifsDisabled)){$jGrowlNotifsDisabled=1;}
-	if($EnableMONITSmtpNotif==null){$EnableMONITSmtpNotif=1;}
+	if(is_numeric($EnableMONITSmtpNotif)){$EnableMONITSmtpNotif=1;}
 	
 	if($ini->_params["SMTP"]["smtp_server_port"]==null){$ini->_params["SMTP"]["smtp_server_port"]=25;}
 	if($ini->_params["SMTP"]["smtp_sender"]==null){
@@ -1610,13 +1632,13 @@ function SMTP_NOTIFICATIONS(){
 		$ini->_params["SMTP"]["smtp_sender"]="artica@$users->fqdn";
 		}
 		
-if($ini->_params["SMTP"]["PostfixQueueEnabled"]==null){$ini->_params["SMTP"]["PostfixQueueEnabled"]=1;}
-if($ini->_params["SMTP"]["PostfixQueueMaxMails"]==null){$ini->_params["SMTP"]["PostfixQueueMaxMails"]=20;}
-
-if($ini->_params["SMTP"]["SystemCPUAlarm"]==null){$ini->_params["SMTP"]["SystemCPUAlarm"]=1;}
-if($ini->_params["SMTP"]["SystemCPUAlarmPourc"]==null){$ini->_params["SMTP"]["SystemCPUAlarmPourc"]=95;}
-if($ini->_params["SMTP"]["SystemCPUAlarmMin"]==null){$ini->_params["SMTP"]["SystemCPUAlarmMin"]=5;}	
-if($ini->_params["SMTP"]["monit"]==null){$ini->_params["SMTP"]["monit"]=1;}
+	if($ini->_params["SMTP"]["PostfixQueueEnabled"]==null){$ini->_params["SMTP"]["PostfixQueueEnabled"]=1;}
+	if($ini->_params["SMTP"]["PostfixQueueMaxMails"]==null){$ini->_params["SMTP"]["PostfixQueueMaxMails"]=20;}
+	
+	if($ini->_params["SMTP"]["SystemCPUAlarm"]==null){$ini->_params["SMTP"]["SystemCPUAlarm"]=0;}
+	if($ini->_params["SMTP"]["SystemCPUAlarmPourc"]==null){$ini->_params["SMTP"]["SystemCPUAlarmPourc"]=95;}
+	if($ini->_params["SMTP"]["SystemCPUAlarmMin"]==null){$ini->_params["SMTP"]["SystemCPUAlarmMin"]=5;}	
+	if($ini->_params["SMTP"]["monit"]==null){$ini->_params["SMTP"]["monit"]=1;}
 		
 	if(!$users->msmtp_installed){
 		$warn=Paragraphe("64-infos.png","{APP_MSMTP}","{APP_MSMTP_NOT_INSTALLED}",
@@ -1637,7 +1659,7 @@ if($ini->_params["SMTP"]["monit"]==null){$ini->_params["SMTP"]["monit"]=1;}
 $notif1="
 	<div class=explain style='font-size:14px'>{smtp_notifications_text}</div>
 	<div id='notif1'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td nowrap class=legend style='font-size:14px'>{jGrowlNotifsDisabled}:</strong></td>
@@ -1694,7 +1716,7 @@ $notif1="
 			". button("{test}","testnotifs()",16)."
 			
 		</td>
-		<td align='right'>".button('{apply}',"javascript:SaveArticaSMTPNotifValues();",16)."</td>
+		<td align='right'>".button('{apply}',"SaveArticaSMTPNotifValues();",16)."</td>
 
 	</tr>
 </table>
@@ -2400,6 +2422,9 @@ function SaveSettings(){
 	
 function SaveProxySettings(){
 	$artica=new artica_general();
+	
+	$_GET["ArticaProxyServerUserPassword"]=url_decode_special_tool($_GET["ArticaProxyServerUserPassword"]);
+	
 	while (list ($num, $ligne) = each ($_GET) ){
 		$artica->$num=$ligne;
 	}
@@ -2508,14 +2533,16 @@ if($users->dnsmasq_installed==false){
 
 
 function GlobalAdmin(){
-	
-	if($_SESSION["uid"]<>'-100'){return null;}
+	$tpl=new templates();
+	if($_SESSION["uid"]<>'-100'){
+		return $tpl->_ENGINE_parse_body("<p class=text-error>{ERROR_NO_PRIVS}</p>");
+	}
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$openldap=1;
 	$sock=new sockets();
 	$ArticaMetaDisableMasterAccount=$sock->GET_INFO("ArticaMetaDisableMasterAccount");
-	$tpl=new templates();
+	
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$ldap=new clladp();
 	
@@ -2528,23 +2555,33 @@ function GlobalAdmin(){
 	if($ArticaMetaDisableMasterAccount==1){$ldap->ldap_password=null;$adv_options=null;}
 	if($userpassword<>null){$im='ok24.png';}else{$im='danger24.png';}
 $html="
-<div id='ChangePasswordDivNOtifiy'>
-		<table style='width:99%' class=form>
+<div id='ChangePasswordDivNOtifiy' style='width:98%' class=form>
+		<table style='width:100%'>
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{username}:</strong></td>
-		<td align='left'>" . Field_text("change_admin",$ldap->ldap_admin,'width:150px;font-size:14px;padding:3px',
+			<td colspan=2 style='border-bottom:1px solid #CCCCCC;padding-top:4px;margin-bottom:20px'>
+					<strong style='font-size:22px;'>{administrator}</strong>
+			</td>
+		</tr>
+		<tr>
+			<td colspan=2 >&nbsp;</td>
+			</td>
+		</tr>		
+		<tr>
+		<td align='right' class=legend nowrap style='font-size:16px'>{username}:</strong></td>
+		<td align='left'>" . Field_text("change_admin",$ldap->ldap_admin,'width:99%;font-size:16px;padding:3px',
 		"script:ChangeGlobalAdminPasswordCheck(event)")."</td>
 		</tr>
 		<tr>
-		<td align='right' class=legend nowrap class=legend style='font-size:14px'>{password}:</strong></td>
-		<td align='left'>" . Field_password("change_password",$ldap->ldap_password,"width:100px;font-size:14px;padding:3px",
+		<td align='right' class=legend nowrap class=legend style='font-size:16px'>{password}:</strong></td>
+		<td align='left'>" . Field_password("change_password",$ldap->ldap_password,"width:90%;font-size:16px;padding:3px",
 		"script:ChangeGlobalAdminPasswordCheck(event)")."</td>
 		</tr>
 	
 		
 		
 		<tr>
-			<td colspan=2 style='border-bottom:1px solid #CCCCCC;padding-top:4px'><strong style='font-size:16px;'>{ldap_parameters}</strong></td>
+			<td colspan=2 style='border-bottom:1px solid #CCCCCC;padding-top:4px'>
+					<strong style='font-size:22px;'>{ldap_parameters}</strong></td>
 		</tr>
 		<tr>
 			<td colspan=2>&nbsp;</td>
@@ -2667,41 +2704,34 @@ function http_proxy(){
 	if($artica->ArticaProxyServerEnabled==null){$artica->ArticaProxyServerEnabled="no";}
 	$page=CurrentPageName();
 $html="
-<table>
-	<tr>
-		<td width=1%><img src='img/proxy-147.png'>
-	</td>
-	<td>
-		<div id='js-proxy-interface-div'>
-		<table style='width:99%' class=form>
+<div id='js-proxy-interface-div' style='width:98%' class=form>
+		<table >
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{ArticaProxyServerEnabled}:</strong></td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerEnabled}:</strong></td>
 		<td align='left'>" . Field_checkbox('ArticaProxyServerEnabled','yes',$artica->ArticaProxyServerEnabled,"EnableDisableProxySetts()")."</td>
 		</tr>			
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{ArticaProxyServerName}:</strong></td>
-		<td align='left'>" . Field_text("ArticaProxyServerName",$artica->ArticaProxyServerName,'width:150px;font-size:14px;padding:3px')."</td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerName}:</strong></td>
+		<td align='left'>" . Field_text("ArticaProxyServerName",$artica->ArticaProxyServerName,'width:150px;font-size:18px;padding:3px')."</td>
 		</tr>
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{ArticaProxyServerPort}:</strong></td>
-		<td align='left'>" . Field_text("ArticaProxyServerPort",$artica->ArticaProxyServerPort,'width:60px;font-size:14px;padding:3px')."</td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerPort}:</strong></td>
+		<td align='left'>" . Field_text("ArticaProxyServerPort",$artica->ArticaProxyServerPort,'width:60px;font-size:18px;padding:3px')."</td>
 		</tr>
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{ArticaProxyServerUsername}:</strong></td>
-		<td align='left'>" . Field_text("ArticaProxyServerUsername",$artica->ArticaProxyServerUsername,'width:150px;font-size:14px;padding:3px')."</td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{ArticaProxyServerUsername}:</strong></td>
+		<td align='left'>" . Field_text("ArticaProxyServerUsername",$artica->ArticaProxyServerUsername,'width:150px;font-size:18px;padding:3px')."</td>
 		</tr>	
 		<tr>
-		<td align='right' class=legend nowrap class=legend style='font-size:14px'>{ArticaProxyServerUserPassword}:</strong></td>
-		<td align='left'>" . Field_password("ArticaProxyServerUserPassword",$artica->ArticaProxyServerUserPassword,'width:150px;font-size:14px;padding:3px')."</td>
+		<td align='right' class=legend nowrap class=legend style='font-size:18px'>{ArticaProxyServerUserPassword}:</strong></td>
+		<td align='left'>" . Field_password("ArticaProxyServerUserPassword",$artica->ArticaProxyServerUserPassword,'width:150px;font-size:18px;padding:3px')."</td>
 		</tr>				
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","SaveJsProxyInterface()","16px")."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","SaveJsProxyInterface()",24)."</td>
 		</tr>
 		</table>
 		</div>
-	</td>
-	</tr>
-</table>
+	
 <script>
 
 function EnableDisableProxySetts(){
@@ -2721,7 +2751,6 @@ function EnableDisableProxySetts(){
 var X_SaveJsProxyInterface= function (obj) {
 	var tempvalue=obj.responseText;
 	if(tempvalue.length>3){alert(tempvalue);}
-	document.getElementById('js-proxy-interface-div').innerHTML='';
 	YahooWin2Hide();
 	}
 
@@ -2733,11 +2762,11 @@ var X_SaveJsProxyInterface= function (obj) {
 			XHR.appendData('ArticaProxyServerEnabled','no');
 		}
 		
+		var ArticaProxyServerUserPassword=encodeURIComponent(document.getElementById('ArticaProxyServerUserPassword').value);
 		XHR.appendData('ArticaProxyServerName',document.getElementById('ArticaProxyServerName').value);
 		XHR.appendData('ArticaProxyServerPort',document.getElementById('ArticaProxyServerPort').value);
 		XHR.appendData('ArticaProxyServerUsername',document.getElementById('ArticaProxyServerUsername').value);
-		XHR.appendData('ArticaProxyServerUserPassword',document.getElementById('ArticaProxyServerUserPassword').value);
-		AnimateDiv('js-proxy-interface-div');
+		XHR.appendData('ArticaProxyServerUserPassword',ArticaProxyServerUserPassword);
 		XHR.sendAndLoad('$page', 'GET',X_SaveJsProxyInterface);
 	
 	}
@@ -2870,7 +2899,7 @@ $ldap_title=$tpl->_ENGINE_parse_body('{APP_LDAP}');
 $page=CurrentPageName();
 $html="
 	function LDAPInterFace(){
-		YahooWin3(830,'$page?js-ldap-popup=yes','$ldap_title');
+		YahooWin3(910,'$page?js-ldap-popup=yes','$ldap_title');
 	}
 	
 	
@@ -2995,24 +3024,7 @@ function LDAP_CONFIG(){
 	}
 	
 	
-	echo "
-	<div id=main_config_ldap_adv style='width:100%;overflow:auto'>
-		<ul>". $tpl->_ENGINE_parse_body(implode("\n",$html))."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_ldap_adv').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_ldap_adv");
 }
 
 function LDAP_CONFIG_BDBD(){
@@ -3550,6 +3562,7 @@ function js_web_fw(){
 			var cdir=document.getElementById('cdir').value;
 			if(recheck==0){if(cdir.length>0){return;}}
 			var XHR = new XHRConnection();
+			XHR.setLockOff();
 			XHR.appendData('cdir-ipaddr',document.getElementById('ipaddr').value);
 			XHR.appendData('netmask',document.getElementById('netmask').value);
 			XHR.sendAndLoad('$page', 'GET',X_CalcCdirVirt);

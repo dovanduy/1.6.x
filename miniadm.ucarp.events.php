@@ -59,10 +59,12 @@ function table(){
 	if(!isset($_GET["rp"])){$_GET["rp"]=150;}
 	if($_GET["query"]<>null){
 		$search=base64_encode($_GET["query"]);
-		$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$search&prepend=ucarp&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}")));
+		$sock->getFrameWork("cmd.php?syslog-query=$search&prepend=ucarp&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}");
+		$datas=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 
 	}else{
-		$datas=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=&prepend=ucarp&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}")));
+		$sock->getFrameWork("cmd.php?syslog-query=&prepend=ucarp&rp={$_POST["rp"]}&prefix={$_GET["prefix"]}");
+		$datas=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 		$total=count($datas);
 	}
 	

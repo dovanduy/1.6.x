@@ -46,7 +46,7 @@ function popup(){
 			
 	<div id='text-$t' style='font-size:16px' class=explain>{import_acl_rules_explain}</div>
 	<div style='font-size:16px' id='$t-wait'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:16px'>{backup_file}:</td>

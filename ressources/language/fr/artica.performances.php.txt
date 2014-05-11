@@ -77,7 +77,7 @@ Les utilisateurs de clients syslog traditionnels  qui envoient leurs journaux vi
 Tant &quot;Flushing Buffers&quot; que &quot;Output Buffers&quot; doivent &ecirc;tre modifi&eacute;s sur les serveurs clients si besoin, si ils utilisent syslog-ng,
 et g&egrave;rent les charges lourdes, les sources ponctuelles, etc [br]
 Pensez &agrave; utiliser vos logs de statistiques pour vous aider &agrave; identifier les probl&egrave;mes et la charge de mani&egrave;re efficace.</syslogng_intro>
-<syslogng_max_connections>Maximum de connections</syslogng_max_connections>
+<syslogng_max_connections>Maximum de connexions</syslogng_max_connections>
 <syslogng_max_connections_text>si vous voyez de nombreux &quot;Nombre de connexions simultan&eacute;es autoris&eacute;es d&eacute;pass&eacute;&quot;, cela signifie que vous devez augmenter cette valeur. [br]
 Ce param&egrave;tre limite le nombre de connexions ouvertes simultan&eacute;ment</syslogng_max_connections_text>
 <syslogng_sync>Vidage des Tampons</syslogng_sync>

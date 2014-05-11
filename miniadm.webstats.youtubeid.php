@@ -160,7 +160,7 @@ function video(){
 	}
 	
 	$html="
-	<div class=BodyContent style='width:95%' class=form>
+	<div class=BodyContent style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
 		<td valign='top' width=1% nowrap><img src='miniadm.webstats.youtube.php?thumbnail=$youtubeid'></td>

@@ -135,13 +135,13 @@ $html="<div id='drupal2animate'>
 		
 		if(isset($ORDERS["DELETE_USER"][$ligne["NAME"]])){
 			$delete=imgtootltip("folder-tasks-32.png","{scheduled}");
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$enable="&nbsp;";
 			$roles="{delete}:{scheduled}";
 		}
 		
 		if(isset($ORDERS["PRIV_USER"][$ligne["NAME"]])){
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$roles="{apply}:{scheduled}";
 		}
 		
@@ -159,7 +159,7 @@ $html="<div id='drupal2animate'>
 	if(isset($ORDERS["CREATE_USER"])){
 		while (list ($uid, $vals) = each ($ORDERS["CREATE_USER"]) ){
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$enable="&nbsp;";
 			$roles="{add}:{scheduled}";
 			$html=$html."<tr class=$classtr>

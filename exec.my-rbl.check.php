@@ -138,9 +138,10 @@ function GetMyIp(){
 		if($time<60){return trim(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/myIP.conf"));}
 		
 	}
-	
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();	
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/myIP.conf");
-	$curl=new ccurl("http://www.artica.fr/my-ip.php");
+	$curl=new ccurl("$URIBASE/my-ip.php");
 	$curl->NoHTTP_POST=true;
 	
 	if(!$curl->get()){
@@ -149,7 +150,7 @@ function GetMyIp(){
 	}
 	$datas=explode("\n", $curl->data);
 	$myip=null;
-	writelogs("http://www.artica.fr/my-ip.php -> ($datas)",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("http://www.articatech.net/my-ip.php -> ($datas)",__FUNCTION__,__FILE__,__LINE__);
 	while (list ($num, $val) = each ($datas)){
 		if(preg_match("#^(.*?):#",$val,$re)){continue;}
 		if(preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)#",$val,$re)){
@@ -166,7 +167,7 @@ function GetMyIp(){
 		system_admin_events("!!! Unable to preg_match datas....",__FUNCTION__,__FILE__,__LINE__,"system");
 		return;
 	}
-	writelogs("FOUND \"$myip\" -> http://www.artica.fr/my-ip.php -> $code (". count($datas)." lines)",__FUNCTION__,__FILE__,__LINE__);
+	writelogs("FOUND \"$myip\" -> $URIBASE/my-ip.php -> $code (". count($datas)." lines)",__FUNCTION__,__FILE__,__LINE__);
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/myIP.conf",$myip);
 	@chmod("/usr/share/artica-postfix/ressources/logs/web/myIP.conf",775);
 	system_admin_events("Public IP Address: $myip",__FUNCTION__,__FILE__,__LINE__,"system");

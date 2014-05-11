@@ -14,6 +14,9 @@
 	include_once('ressources/class.system.network.inc');
 	include_once('ressources/class.ccurl.inc');
 	include_once('ressources/class.ActiveDirectory.inc');
+	include_once('ressources/class.system.nics.inc');
+	include_once('ressources/class.resolv.conf.inc');
+	
 	
 	if(isset($_GET["status"])){status_kerb();exit;}
 	$user=new usersMenus();
@@ -43,6 +46,7 @@
 	if(isset($_GET["test-wbinfomoinsa"])){test_wbinfomoinsa();exit;}
 	
 	if(isset($_GET["test-auth"])){test_auth();exit;}
+	if(isset($_POST["SaveSambaBindInterface"])){SaveSambaBindInterface();exit;}
 	if(isset($_POST["TESTAUTHUSER"])){test_auth_perform();exit;}
 	if(isset($_POST["LDAP_SUFFIX"])){ldap_params_save();exit;}
 	if(isset($_GET["test-popup-js"])){test_popup_js();exit;}
@@ -161,15 +165,19 @@ function status_kerb(){
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	$tpl=new templates();
 	$t=time();
+	$squid=new squidbee();
 
-	if($EnableKerbAuth==0){return;}
+	if($EnableKerbAuth==0){
+		echo"<script>UnlockPage();</script>";
+		
+		return;}
 	writelogs("squid.php?ping-kdc=yes",__FUNCTION__,__FILE__,__LINE__);
 	$sock->getFrameWork("squid.php?ping-kdc=yes");
 	$datas=unserialize(@file_get_contents("ressources/logs/kinit.array"));
 	
 	if(count($datas)==0){
 		echo "
-		<script>LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');</script>";
+		<script>UnlockPage();LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');</script>";
 		return;
 		
 	}
@@ -184,12 +192,13 @@ function status_kerb(){
 	
 	if(trim($text)<>null){$text=": $text";}
 	$html="
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
+	
 	<tr>
 		<td width=1% valign='top'><img src='$img'></td>
-		<td nowrap style='font-size:13px' valign='top'><strong style='color:$textcolor'>Active Directory $text</strong></td>
+		<td nowrap style='font-size:13px' valign='top'>$hostname<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.adker.php',true);\" style='color:$textcolor;font-weight:bold;text-decoration:underline'>Active Directory $text</strong></td>
 		<td width=1%>".imgtootltip("refresh-24.png","{refresh}","LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');")."</td>
 	</tr>
 	</tbody>
@@ -285,10 +294,7 @@ function test_popup(){
 	}			
 		
 		function SambbReconnectAD(){
-			var XHR = new XHRConnection();
-			XHR.appendData('SambeReconnectAD','yes');
-			AnimateDiv('animate-$t');
-			XHR.sendAndLoad('ad.connect.php', 'POST',x_SambbReconnectAD);		
+			Loadjs('squid.ad.progress.php');		
 		}
 		
 StartAgain();
@@ -470,6 +476,8 @@ function test_results($array){
 		
 		
 		}
+		
+		if(preg_match("#UNSUCCESSFUL#i", $ligne)){$color="#009809;font-weight:bold";}
 		if(preg_match("#is OK#", $ligne)){$color="#009809;font-weight:bold";}
 		if(preg_match("#online#", $ligne)){$color="#009809";}
 		if(preg_match("#Could not authenticate user\s+.+?\%(.+?)\s+with plaintext#i",$ligne,$re)){$ligne=str_replace($re[1], "*****", $ligne);}
@@ -487,8 +495,19 @@ function test_results($array){
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
+	$sock=new sockets();
 	$tpl=new templates();
+	$DisableWinbindd=$sock->GET_INFO("DisableWinbindd");
+	if(!is_numeric($DisableWinbindd)){$DisableWinbindd=0;}
+	
+	if($DisableWinbindd==1){
+		echo "alert('".$tpl->javascript_parse_text("{DisableWinbindd_error}")."')";
+		return;
+	}
+	
+	
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUIDKERAUTH}");
 	$html="YahooWin4(650,'$page?tabs=yes','$title');";
 	echo $html;
@@ -646,6 +665,21 @@ function settings(){
 	if(!is_numeric($KerbAuthMapUntrustedDomain)){$KerbAuthMapUntrustedDomain=1;}
 	if(!is_numeric($SquidNTLMKeepAlive)){$SquidNTLMKeepAlive=1;}
 	if(!is_numeric($UseADAsNameServer)){$UseADAsNameServer=0;}
+	$SambaBindInterface=$sock->GET_INFO("SambaBindInterface");
+	
+	
+	$net=new networking();
+	$nics=$net->Local_interfaces();
+	while (list ($interface, $val) = each ($nics) ){
+		$ni=new system_nic($interface);
+		if($ni->NICNAME<>null){
+			$nics[$interface]=$ni->NICNAME;
+		}
+	}
+	$nics[null]="{all}";
+	reset($nics);
+	//interfaces = eth0 lo
+	//bind interfaces only = yes
 	
 	
 	
@@ -733,7 +767,7 @@ function settings(){
 	</td>
 	</table>
 	
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:14px' nowrap>{EnableWindowsAuthentication}:</td>
@@ -771,6 +805,13 @@ function settings(){
 		<td>". Field_checkbox("KerbAuthMapUntrustedDomain",1,"$KerbAuthMapUntrustedDomain")."</td>
 		<td>&nbsp;</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:14px' nowrap>{interface}:</td>
+		<td>". Field_array_Hash($nics,"SambaBindInterface",$SambaBindInterface,"style:font-size:14px;padding:3px")."</td>
+		<td>". imgtootltip("disk-save-24.png","{save}","SaveSambaBindInterface()")."</td>
+	</tr>				
+				
+				
 	<tr>
 		<td class=legend style='font-size:14px' nowrap>{keep_alive}:</td>
 		<td>". Field_checkbox("SquidNTLMKeepAlive",1,"SquidNTLMKeepAlive")."</td>
@@ -890,6 +931,7 @@ function settings(){
 			document.getElementById('KerbAuthMethod').disabled=true;
 			document.getElementById('SquidNTLMKeepAlive').disabled=true;
 			document.getElementById('UseADAsNameServer').disabled=true;
+			document.getElementById('SambaBindInterface').disabled=true;
 			
 			
 			
@@ -928,7 +970,7 @@ function settings(){
 					document.getElementById('KerbAuthMethod').disabled=false;
 					document.getElementById('SquidNTLMKeepAlive').disabled=false;
 					document.getElementById('UseADAsNameServer').disabled=false;
-					
+					document.getElementById('SambaBindInterface').disabled=false;
 					
 					
 					
@@ -1003,7 +1045,25 @@ function settings(){
 		if(document.getElementById('AdSquidStatusLeft')){RefreshDansguardianMainService();}
 		if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
 		Loadjs('squid.ad.progress.php');
-	}		
+	}	
+
+	var x_SaveSambaBindInterface= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);document.getElementById('serverkerb-animated').innerHTML='';return;}
+		RefreshServerKerb();
+		document.getElementById('serverkerb-animated').innerHTML='';
+		if(document.getElementById('AdSquidStatusLeft')){RefreshDansguardianMainService();}
+		if(document.getElementById('squid-status')){LoadAjax('squid-status','squid.main.quicklinks.php?status=yes');}
+		
+	}	
+	
+	function SaveSambaBindInterface(){
+		var XHR = new XHRConnection();
+		XHR.appendData('SaveSambaBindInterface',document.getElementById('SambaBindInterface').value);
+		AnimateDiv('serverkerb-animated');
+		XHR.sendAndLoad('$page', 'POST',x_SaveSambaBindInterface);
+	}
+	
 	
 		function SaveKERBProxy(){
 			if(!CheckHostname$t_tmp()){return;}
@@ -1032,10 +1092,11 @@ function settings(){
 			
 			
 			
+			
 			XHR.appendData('KerbAuthMethod',document.getElementById('KerbAuthMethod').value);
 			
 			
-			
+			XHR.appendData('SambaBindInterface',document.getElementById('SambaBindInterface').value);
 			XHR.appendData('COMPUTER_BRANCH',document.getElementById('COMPUTER_BRANCH').value);
 			XHR.appendData('SAMBA_BACKEND',document.getElementById('SAMBA_BACKEND').value);
 			XHR.appendData('WINDOWS_DNS_SUFFIX',document.getElementById('WINDOWS_DNS_SUFFIX').value);
@@ -1138,20 +1199,12 @@ function ldap_params(){
 		if(results.length>3){alert(results);document.getElementById('serverkerb-$t').innerHTML='';return;}
 		document.getElementById('serverkerb-$t').innerHTML='';
 		YahooSearchUserHide();
-		if(document.getElementById('main_dansguardian_mainrules')){
-			RefreshTab('main_dansguardian_mainrules');
-		}
+		
 	}		
 	
 		function SaveLDAPADker(){
 			var UseDynamicGroupsAcls=0;
 			var DisableSpecialCharacters=$DisableSpecialCharacters;
-			if(DisableSpecialCharacters==0){
-				if(!DetectSpecialChars(document.getElementById('LDAP_PASSWORD-$t').value,'$char_alert_error')){
-					return;
-				}
-			}
-			
 			var pp=encodeURIComponent(document.getElementById('LDAP_PASSWORD-$t').value);
 			var XHR = new XHRConnection();
 			if(document.getElementById('UseDynamicGroupsAcls').checked){UseDynamicGroupsAcls=1;}
@@ -1246,9 +1299,19 @@ function ldap_params_save(){
 	$sock->getFrameWork("squid.php?squid-reconfigure=yes");
 }
 
+function SaveSambaBindInterface(){
+	$sock=new sockets();
+	$sock->SET_INFO("SambaBindInterface", $_POST["SaveSambaBindInterface"]);
+	$sock->getFrameWork("squid.php?samba-proxy=yes");
+}
+
 function settingsSave(){
+	include_once(dirname(__FILE__)."/ressources/externals/Net_DNS2/DNS2.php");
+	include_once(dirname(__FILE__)."/ressources/class.resolv.conf.inc");
+	$ipClass=new IP();
 	$sock=new sockets();
 	$users=new usersMenus();
+	$tpl=new templates();
 	include_once(dirname(__FILE__)."/class.html.tools.inc");
 	$_POST["WINDOWS_SERVER_PASS"]=url_decode_special_tool($_POST["WINDOWS_SERVER_PASS"]);
 	unset($_SESSION["EnableKerbAuth"]);
@@ -1260,29 +1323,23 @@ function settingsSave(){
 	
 	
 	$_POST["WINDOWS_DNS_SUFFIX"]=trim(strtolower($_POST["WINDOWS_DNS_SUFFIX"]));
-	$Myhostname=$sock->getFrameWork("cmd.php?full-hostname=yes");	
-	$MyhostnameTR=explode(".", $Myhostname);
-	unset($MyhostnameTR[0]);
-	$MyDomain=strtolower(@implode(".", $MyhostnameTR));
-	if($MyDomain<>$_POST["WINDOWS_DNS_SUFFIX"]){
-		$tpl=new templates();
-		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
-		$sock->SET_INFO("EnableKerberosAuthentication", 0);
-		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
-		echo $tpl->javascript_parse_text("{error}: {WINDOWS_DNS_SUFFIX} {$_POST["WINDOWS_DNS_SUFFIX"]}\n{is_not_a_part_of} $Myhostname ($MyDomain)",1);
+	
+	if($_POST["WINDOWS_DNS_SUFFIX"]==null){
+		echo "Please set the DNS domain of your Active Directory server";
 		return;
 	}
 	
-	$adhost="{$_POST["WINDOWS_SERVER_NETBIOSNAME"]}.{$_POST["WINDOWS_DNS_SUFFIX"]}";
-	$resolved=gethostbyname($adhost);
-	if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $resolved)){
-		$tpl=new templates();
-		if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
-		$sock->SET_INFO("EnableKerberosAuthentication", 0);
-		$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
-		echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} Active Directory: $adhost",1);
-		return;	
+	$Myhostname=$sock->getFrameWork("cmd.php?full-hostname=yes");	
+	$MyhostnameTR=explode(".", $Myhostname);
+	$MyNetbiosName=$MyhostnameTR[0];
+	unset($MyhostnameTR[0]);
+	$MyDomain=strtolower(@implode(".", $MyhostnameTR));
+	if($MyDomain<>$_POST["WINDOWS_DNS_SUFFIX"]){
+		$nic=new system_nic();
+		$nic->set_hostname("$MyNetbiosName.{$_POST["WINDOWS_DNS_SUFFIX"]}");
 	}
+	
+	$adhost="{$_POST["WINDOWS_SERVER_NETBIOSNAME"]}.{$_POST["WINDOWS_DNS_SUFFIX"]}";
 	
 	if($_POST["ADNETIPADDR"]<>null){
 		$ipaddrZ=explode(".",$_POST["ADNETIPADDR"]);
@@ -1292,8 +1349,15 @@ function settingsSave(){
 		$_POST["ADNETIPADDR"]=@implode(".", $ipaddrZ);
 	}
 	
+	$resolved=gethostbyname($adhost);
+	if(!$ipClass->isValid($resolved)){
+		if($ipClass->isValid($_POST["ADNETIPADDR"])){
+			$resolved=CheckDNS($adhost,$_POST["ADNETIPADDR"]);
+			if($ipClass->isValid($resolved)){$_POST["UseADAsNameServer"]=1;}
+		}
+	}
 	
-	
+	$sock->SET_INFO("SambaBindInterface", $_POST["SambaBindInterface"]);
 	$sock->SET_INFO("KerbAuthDisableNormalizeName", $_POST["KerbAuthDisableNormalizeName"]);
 	$sock->SET_INFO("EnableKerberosAuthentication", $_POST["EnableKerberosAuthentication"]);
 	$sock->SET_INFO("KerbAuthDisableNsswitch", $_POST["KerbAuthDisableNsswitch"]);
@@ -1304,15 +1368,39 @@ function settingsSave(){
 	$sock->SET_INFO("KerbAuthMethod", $_POST["KerbAuthMethod"]);
 	$sock->SET_INFO("SquidNTLMKeepAlive", $_POST["SquidNTLMKeepAlive"]);
 	$sock->SET_INFO("UseADAsNameServer", $_POST["UseADAsNameServer"]);
-
-	
-	
-	
+	$sock->SET_INFO("NET_RPC_INFOS",base64_encode(serialize(array())));
 	if($_POST["EnableKerberosAuthentication"]==1){$sock->SET_INFO("EnableKerbAuth", 0);}
-	
 	$ArrayKerbAuthInfos=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
-	while (list ($num, $ligne) = each ($_POST) ){$ArrayKerbAuthInfos[$num]=$ligne;}	
+	while (list ($num, $ligne) = each ($_POST) ){$ArrayKerbAuthInfos[$num]=$ligne;}
 	$sock->SaveConfigFile(base64_encode(serialize($ArrayKerbAuthInfos)), "KerbAuthInfos");
+	
+		
+	if($_POST["UseADAsNameServer"]==1){
+		$resolve=new resolv_conf();
+		$resolve->MainArray["DNS1"]=$_POST["ADNETIPADDR"];
+		$resolve->save();
+		
+		$resolved=CheckDNS($adhost,$_POST["ADNETIPADDR"]);
+		if(!$ipClass->isValid($resolved)){
+			
+			echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} Active Directory: $adhost {with} {$_POST["ADNETIPADDR"]}",1);
+			return;
+		}
+		
+		
+	}else{
+		$resolved=gethostbyname($adhost);
+		if(!$ipClass->isValid($resolved)){
+			$tpl=new templates();
+			if($EnableWebProxyStatsAppliance==0){$sock->SET_INFO("EnableKerbAuth", 0);}
+			$sock->SET_INFO("EnableKerberosAuthentication", 0);
+			$sock->SaveConfigFile(base64_encode(serialize($_POST)), "KerbAuthInfos");
+			echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} Active Directory: $adhost",1);
+			return;
+		}
+		
+	}
+	
 	
 	if(strpos($_POST["ADNETBIOSDOMAIN"], ".")>0){
 		echo "The netbios domain \"{$_POST["ADNETBIOSDOMAIN"]}\" is invalid.\n";
@@ -1321,6 +1409,27 @@ function settingsSave(){
 	}
 	
 	$sock->SET_INFO("EnableKerbAuth", $_POST["EnableKerbAuth"]);
+	
+}
+
+function CheckDNS($hostname,$dns){
+
+	
+	$ipClass=new IP();
+	$rs = new Net_DNS2_Resolver(array('nameservers' => array($dns)));
+	try {
+		$result = $rs->query($hostname, "A");
+			
+	} catch(Net_DNS2_Exception $e) {
+		echo $e->getMessage();
+		return null;
+	}
+	
+	foreach($result->answer as $record){
+		if($ipClass->isIPAddress($record->address)){return $record->address;}
+	}
+	
+	
 	
 }
 
@@ -1371,7 +1480,7 @@ function test_auth(){
 
 	$html="
 	<div id='test-$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table >
 	<tr>
 		<td class=legend style='font-size:16px'>{proxy}:</td>
@@ -1506,7 +1615,7 @@ function kerbchkconf(){
 	if($EnableKerbAuth==1){
 		$page=CurrentPageName();
 		echo $tpl->_ENGINE_parse_body("<center style='margin:5px'>".button("{restart_connection}",
-		 "Loadjs('$page?join-js=yes')","14px")."</center>");
+		 "Loadjs('squid.ad.progress.php')","14px")."</center>");
 	}
 	
 	
@@ -1528,7 +1637,7 @@ function schedule_params(){
 	{ad_kerb_schedule_explain}
 	</div>
 	<div id='test-$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td valign='top' class=legend style='font-size:14px'>{build_proxy_parameters}:</td>
@@ -1602,7 +1711,7 @@ function cntlm(){
 	{APP_CNTLM_EXPLAIN}
 	</div>
 	<div id='test-$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 	<td valign='top' class=legend style='font-size:14px'>{activate_CNTLM_service}:</td>
@@ -1612,7 +1721,7 @@ function cntlm(){
 	<tr>
 		<td valign='top' class=legend style='font-size:14px'>{listen_port}:</td>
 		<td>". Field_text("CnTLMPORT", $CNTLMPort,"font-size:14px;width:90px")."</td>
-		<td width=1%>". help_icon("{CnTLMPORT_explain}")."</td>
+		<td width=1%>". help_icon("{CnTLMPORT_explain2}")."</td>
 	</tr>
 	
 	<tr>

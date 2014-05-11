@@ -1,11 +1,15 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-wifi Waiting Artica-CD to finish\n";die();}}
+
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.sockets.inc");
 
+$unix=new unix();
+if(is_file("/etc/artica-postfix/FROM_ISO")){
+	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+}
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 
@@ -19,6 +23,7 @@ if($argv[1]=="--checkap"){CheckConnection();die();}
 function detectCards(){
 	$unix=new unix();
 	
+	if($unix->file_time_get(basename(__FILE__))<5){return;}
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$oldpid=@file_get_contents($pidfile);
@@ -28,7 +33,7 @@ function detectCards(){
 	}
 	
 	@file_put_contents($pidfile, getmypid());	
-	
+	$unix->file_time_set(basename(__FILE__));
 	$detect=false;
 	$sock=new sockets();
 	$lspci=$unix->find_program("lspci");
@@ -48,7 +53,7 @@ function detectCards(){
 	
 	
 	if($detect){
-		echo "Starting......: WIFI Network Card detected\n";
+		echo "Starting......: ".date("H:i:s")." WIFI Network Card detected\n";
 		$sock=new sockets();
 		$sock->SET_INFO("WifiCardOk",1);
 		exit;
@@ -69,14 +74,14 @@ function SupportedCards($pattern){
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if(strtolower($ligne)==trim(strtolower($pattern))){
-			echo "Starting......: WIFI $pattern\n";
+			echo "Starting......: ".date("H:i:s")." WIFI $pattern\n";
 			return true;
 		
 		}
 	}
 	
 	if($GLOBALS["VERBOSE"]){
-		echo "Starting......: WIFI \"$pattern\" (NOT supported)\n";
+		echo "Starting......: ".date("H:i:s")." WIFI \"$pattern\" (NOT supported)\n";
 	}
 }
 
@@ -174,7 +179,7 @@ function ConnectToAccessPoint(){
 		}
 	}	
 	if($ESSID==null){return;}
-	echo "Starting......: WIFI Access Point: \"$ESSID\"\n";
+	echo "Starting......: ".date("H:i:s")." WIFI Access Point: \"$ESSID\"\n";
 	$password=$CONFIG["ESSID_PASSWORD"];
 	$eth=$unix->GET_WIRELESS_CARD();
 	$wpa_cli=$unix->find_program("wpa_cli");
@@ -249,19 +254,19 @@ function ConnectToAccessPoint(){
 	if(trim($echo)<>null){$r[]="reconnect: $echo";}
 	unset($results);
 	while (list ($index, $a) = each ($r) ){
-		echo "Starting......: WIFI Access Point: $a\n";
+		echo "Starting......: ".date("H:i:s")." WIFI Access Point: $a\n";
 	}
 	
 	system("$ifconfig $eth up");
 	
 	if($CONFIG["UseDhcp"]==1){
-		echo "Starting......: WIFI Access Point using DHCP\n";
+		echo "Starting......: ".date("H:i:s")." WIFI Access Point using DHCP\n";
 		system("$nohup $dhclient $eth >/dev/null 2>&1 &");
 		return;
 	}
 	
 	if(!preg_match("#([0-9]+)\.([0-9]+)\.([0-9]+)#",$CONFIG["ip_address"],$re)){
-		echo "Starting......: WIFI Access Point bad IP address format\n";
+		echo "Starting......: ".date("H:i:s")." WIFI Access Point bad IP address format\n";
 		return;
 	}	
 	$sub="{$re[1]}.{$re[2]}.{$re[3]}.0";
@@ -280,7 +285,7 @@ function wpa_removenetworks(){
 	while (list ($index, $line) = each ($results) ){
 		if($GLOBALS["VERBOSE"]){echo "$line\n";}
 		if(preg_match("#^([0-9]+)\s+#",$line,$re)){
-			echo "Starting......: WIFI Access Point remove {$re[1]} Access Point\n";
+			echo "Starting......: ".date("H:i:s")." WIFI Access Point remove {$re[1]} Access Point\n";
 			shell_exec("$wpa_cli -p/var/run/wpa_supplicant remove_network {$re[1]}");
 		}
 	}

@@ -1319,6 +1319,9 @@ end;
 
 if LighttpdMinimalLibraries=0 then logs.Debuglogs('Starting......: [INIT]: Artica PHP Loading ALL required libraries');
 if LighttpdMinimalLibraries=1 then logs.Debuglogs('Starting......: [INIT]: Artica PHP Loading minimalist required libraries');
+logs.Debuglogs('Starting......: [INIT]: Artica PHP Libraires stored in "'+LOCATE_PHP5_EXTENSION_DIR+'"');
+
+
 
 //z.add('oauth.so');
 if LighttpdMinimalLibraries=0 then  begin

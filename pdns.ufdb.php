@@ -48,6 +48,9 @@ function popup(){
 	if(!is_numeric($EnableUfdbGuard)){$EnableUfdbGuard=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
 	
 	$help="<hr>
 	<div style='text-align:right'>

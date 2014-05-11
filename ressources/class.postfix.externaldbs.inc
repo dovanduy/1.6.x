@@ -53,9 +53,9 @@ class postfix_extern{
 		$sql="SELECT ID FROM postfix_externaldbs WHERE hostname='$hostname' AND `postfixdb`=$postfixdb";
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		
-		echo "Starting......: Postfix $hostname checks external databases for $TypeString/$postfixdb ". mysql_num_rows($results)." items\n";
+		echo "Starting......: ".date("H:i:s")." Postfix $hostname checks external databases for $TypeString/$postfixdb ". mysql_num_rows($results)." items\n";
 		if(!$q->ok){
-			echo "Starting......: Postfix $hostname failed with error $q->mysql_error\n";
+			echo "Starting......: ".date("H:i:s")." Postfix $hostname failed with error $q->mysql_error\n";
 		}
 		
 		if(mysql_num_rows($results)==0){
@@ -64,7 +64,7 @@ class postfix_extern{
 		}
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
-			echo "Starting......: Postfix $hostname checks external databases ID:{$ligne["ID"]}\n";
+			echo "Starting......: ".date("H:i:s")." Postfix $hostname checks external databases ID:{$ligne["ID"]}\n";
 			$t[]=$this->build_externid($ligne["ID"]);
 		}
 		
@@ -127,7 +127,7 @@ class postfix_extern{
 			$t[]="$num\t$ligne";
 		}
 		
-		echo "Starting......: Postfix -$ID- $this->hostname {$this->TypeString} ".count($t)." items\n";
+		echo "Starting......: ".date("H:i:s")." Postfix -$ID- $this->hostname {$this->TypeString} ".count($t)." items\n";
 		if(count($t)==0){return;}
 		@file_put_contents("$filename", @implode("\n", $t));
 		if($GLOBALS["VERBOSE"]){echo "database_hash:: `{$GLOBALS["postmap"]} hash:$filename`\n";}

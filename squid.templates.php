@@ -343,7 +343,7 @@ function ZOOM_POPUP(){
 	</table>
 			
 	<center>".Field_text("template_title-$t",$ligne["template_title"],"font-size:18px;border:4px solid #CCCCCC;width:95%")."</center>
-	<div style='width:95%' class=form id='{$_GET["zmd5"]}'>
+	<div style='width:98%' class=form id='{$_GET["zmd5"]}'>
 
 	<textarea style='width:95%;height:450px;font-family:monospace;
 	overflow:auto;font-size:13px;border:4px solid #CCCCCC;background-color:transparent' id='{$_GET["zmd5"]}-text-$t'>{$ligne["template_body"]}</textarea>
@@ -1075,6 +1075,8 @@ function FormTemplate(){
 	<script type='text/javascript' language='JavaScript' src='mouse.js'></script>
 	<script type='text/javascript' language='javascript' src='XHRConnection.js'></script>
 	<script type='text/javascript' language='javascript' src='default.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.uilock.min.js'></script>
+	<script type='text/javascript' language='javascript' src='/js/jquery.blockUI.js'></script>  
 		
 	</head>
 	<body width=100% style='background-color:#005447;margin:0px;padding:0px'> 

@@ -61,7 +61,7 @@ $conf[]="status.status-url          = \"/server-status\"";
 $conf[]="status.config-url          = \"/server-config\"";
 
 @file_put_contents("/etc/lighttpd/proxypac.conf",@implode("\n",$conf));
-echo "Starting......: proxy.pac service writing configuration done (listen port on $listen_port)...\n";
+echo "Starting......: ".date("H:i:s")." proxy.pac service writing configuration done (listen port on $listen_port)...\n";
 }
 
 function writeproxypac(){
@@ -94,7 +94,7 @@ function writeproxypac(){
 			$isInNet[]="\tif(localHostOrDomainIs(host,\"$servername\")){return \"DIRECT\";}";
 		}	
 	}
-	//patch g_delmas 22/04/2011 (see http://www.artica.fr/forum/viewtopic.php?f=39&t=3429&p=16444#p16444)
+	//patch g_delmas 22/04/2011 (see http://www.articatech.net/forum/viewtopic.php?f=39&t=3429&p=16444#p16444)
 	$isInNet[]="\tif(isPlainHostName(host)){return \"DIRECT\";}";
 	
 	if(is_array($datas["isInNet"])){
@@ -128,7 +128,7 @@ function writeproxypac(){
 	@chmod("/usr/share/proxy.pac/wspad.dat",0755);
 	@chown("/usr/share/proxy.pac/wpad.dat","squid");	
 	
-	echo "Starting......: proxy.pac service writing proxy.pac file done...\n";
+	echo "Starting......: ".date("H:i:s")." proxy.pac service writing proxy.pac file done...\n";
 }
 
 function clean_final_proxies($array){

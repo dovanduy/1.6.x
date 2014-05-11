@@ -305,7 +305,7 @@ function acl_list(){
 			
 			$color="black";
 			$colored="#A71A05";
-			if($EnableSquidPortsRestrictions==0){$color="#9C9C9C";$colored=$color;}
+			if($EnableSquidPortsRestrictions==0){$color="#8a8a8a";$colored=$color;}
 			$sslp="$deny_ports_expect: $http_safe_ports SSL: ".@implode(", ", $bbcSSL);
 			$http="$deny_ports_expect: $http_safe_ports: ".@implode(", ", $bbcHTTP);
 			$enableSSL=Field_checkbox("EnableSquidPortsRestrictions", 1,$EnableSquidPortsRestrictions,"EnableSquidPortsRestrictionsCK()");
@@ -344,7 +344,7 @@ function acl_list(){
 		$disable=Field_checkbox("aclid_{$ligne['ID']}", 1,$ligne["enabled"],"EnableDisableAclRule$t('{$ligne['ID']}')");
 		$ligne['aclname']=utf8_encode($ligne['aclname']);
 		$delete=imgsimple("delete-24.png",null,"DeleteSquidAclRule('{$ligne['ID']}')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";$gliff=null;}
+		if($ligne["enabled"]==0){$color="#8a8a8a";$gliff=null;}
 		
 		$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"],$ligne["aclgroup"],true));
 		

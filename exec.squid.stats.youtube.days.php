@@ -3,7 +3,9 @@ $GLOBALS["BYPASS"]=true;
 $GLOBALS["REBUILD"]=false;
 $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["ONLYHOURS"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(preg_match("#--onlyhours#",implode(" ",$argv),$re)){$GLOBALS["ONLYHOURS"]=true;}
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_MEM"]=true;}
 	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
@@ -28,13 +30,9 @@ $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
 
 $GLOBALS["Q"]=new mysql_squid_builder();
-
-if($argv[1]=="--table"){process_table($argv[2]);exit;}
 if($argv[1]=="--all"){process_all_tables();exit;}
 if($argv[1]=="--xtime"){start($argv[2]);exit;}
 if($argv[1]=="--youtube-dayz"){youtube_dayz(true);exit;}
-
-
 
 start();
 function start($xtime=0){
@@ -47,6 +45,7 @@ function start($xtime=0){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$xtime.pid";
+	$pidTime="/etc/artica-postfix/pids/YoutubeByHour.time";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
@@ -55,10 +54,11 @@ function start($xtime=0){
 	
 	@unlink($pidfile);
 	@file_put_contents($pidfile, getmypid());	
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
 	
 	
 	
-	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.days.websites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &";
 	if(isset($GLOBALS["youtube_days_executed"])){return;}
 	$GLOBALS["youtube_days_executed"]=true;
 	$q=new mysql_squid_builder();
@@ -79,10 +79,30 @@ function start($xtime=0){
 		if(!_youtube_days($tablesource)){continue;}
 		$q->QUERY_SQL("DROP TABLE $tablesource");
 	}
-	youtube_count();
-	youtube_dayz();
-	shell_exec($cmdline);
+	
+	if(count($GLOBALS["YOUTUBE_IDS"])>0){
+		_youtube_ids();
+	}
+	
+	if(!$GLOBALS["ONLYHOURS"]){
+		youtube_count();
+		youtube_dayz();
+	}
+	
 
+}
+
+function _youtube_ids(){
+	
+	while (list ($youtubeid, $line) = each ($GLOBALS["YOUTUBE_IDS"])){
+		$f[]="('$youtubeid')";
+	}
+	
+	if(count($f)>0){
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL("INSERT IGNORE INTO youtube_objects (`youtubeid`) VALUES ".@implode(",", $f));
+	}
+	
 }
 
 
@@ -107,8 +127,9 @@ function _youtube_days($tablesource){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 	$md5=md5(serialize($ligne));
 	$sql="('$md5','$zDay','{$ligne["hour"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["account"]}','{$ligne["youtubeid"]}','{$ligne["hits"]}')";
+		$GLOBALS["YOUTUBE_IDS"][$ligne["youtubeid"]]=true;
 		youtube_events("$sql",__LINE__);
-			$f[]=$sql;
+		$f[]=$sql;
 	}
 	
 	if(count($f)>0){

@@ -1,7 +1,9 @@
 <?php
+$GLOBALS["NORESTART"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--norestart#",implode(" ",$argv))){$GLOBALS["NORESTART"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
@@ -21,32 +23,30 @@ ismounted();
 function fstab(){
 	$sock=new sockets();
 	$unix=new unix();
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
 	$mkdir=$unix->find_program("mkdir");
 	$mount=$unix->find_program("mount");
 	if(!is_dir("/dev/shm")){
-		echo "Starting......: [SMP] creating /dev/shm directory..\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] creating /dev/shm directory..\n";
 		shell_exec("$mkdir -m 1777 /dev/shm");
 	}
-	echo "Starting......: [SMP] checking fstab...\n";
+	echo "Starting......: ".date("H:i:s")." [SMP] checking fstab...\n";
 	$datas=explode("\n",@file_get_contents("/etc/fstab"));
 	
 	while (list ($num, $val) = each ($datas)){
 		if(preg_match("#^shm.*?tmpfs#", $val,$re)){
-			echo "Starting......: [SMP] checking fstab already set...\n";
+			echo "Starting......: ".date("H:i:s")." [SMP] checking fstab already set...\n";
 			return;
 		}
 		
 	}
 	
-	echo "Starting......: [SMP] Adding SHM mount point\n";
+	echo "Starting......: ".date("H:i:s")." [SMP] Adding SHM mount point\n";
 	$datas[]="shm\t/dev/shm\ttmpfs\tnodev,nosuid,noexec\t0\t0";
 	@file_put_contents("/etc/fstab", @implode("\n", $datas)."\n");
-	echo "Starting......: [SMP] mounting shm point\n";
+	echo "Starting......: ".date("H:i:s")." [SMP] mounting shm point\n";
 	exec("$mount shm 2>&1",$results);
 	while (list ($num, $val) = each ($results)){
-		echo "Starting......: [SMP] mounting shm `$val`\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] mounting shm `$val`\n";
 	}
 }
 
@@ -55,15 +55,15 @@ function ismounted(){
 	$datas=explode("\n",@file_get_contents("/proc/mounts"));
 	while (list ($num, $val) = each ($datas)){
 		if(preg_match("#^shm\s+.*?\/shm\s+tmpfs#", $val,$re)){
-			echo "Starting......: [SMP] shm is mounted\n";
+			echo "Starting......: ".date("H:i:s")." [SMP] shm is mounted\n";
 			return;
 		}
 	}	
 	$mount=$unix->find_program("mount");
-	echo "Starting......: [SMP] mounting shm point\n";
+	echo "Starting......: ".date("H:i:s")." [SMP] mounting shm point\n";
 	exec("$mount shm 2>&1",$results);
 	while (list ($num, $val) = each ($results)){
-		echo "Starting......: [SMP] mounting shm `$val`\n";
+		echo "Starting......: ".date("H:i:s")." [SMP] mounting shm `$val`\n";
 	}
 }
 
@@ -73,9 +73,6 @@ function status(){
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
-	if($DisableSquidSNMPMode==1){return;}
 	$pidof=$unix->find_program("pidof");
 	$squidbin=$unix->find_program("squid");	
 	
@@ -126,7 +123,7 @@ function squid_master_status_version(){
 	exec("$squidbin -v 2>&1",$results);
 	while (list ($num, $val) = each ($results)){
 		if(preg_match("#Squid Cache: Version.*?([0-9\.]+)#", $val,$re)){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: Squid : Version (as root) '{$re[1]}'\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." Squid : Version (as root) '{$re[1]}'\n";}
 			$GLOBALS["squid_master_status_version"]=$re[1];
 			return $GLOBALS["squid_master_status_version"];
 		}
@@ -141,22 +138,22 @@ function caches_generate(){
 	$pidffile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidffile);
 	if($unix->process_exists($oldpid)){
-		events_squid_caches( "Starting......: [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
+		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
 		return;
 	}
 	$squidbin=$unix->LOCATE_SQUID_BIN();
-	events_squid_caches("Starting......: [SMP] Using binary `$squidbin`",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Using binary `$squidbin`",__FUNCTION__,__LINE__);
 	if(!is_file($squidbin)){
-		events_squid_caches("Starting......: [SMP] unable to stat squid...",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] unable to stat squid...",__FUNCTION__,__LINE__);
 		return;
 	}
 	@file_put_contents($pidffile, getmypid());
 	$uuid=$unix->GetUniqueID();
-	events_squid_caches("Starting......: [SMP] uuid=$uuid",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] uuid=$uuid",__FUNCTION__,__LINE__);
 	$q=new mysql();
 	$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=1 AND uuid='$uuid' AND ToDelete=0 AND Building=0","artica_backup");
 	if(mysql_num_rows($results)==0){
-		events_squid_caches("Starting......: [SMP] No cache to build..",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] No cache to build..",__FUNCTION__,__LINE__);
 		caches_delete();
 		return;
 	}
@@ -176,41 +173,41 @@ function caches_generate(){
 		$f[]="cache_dir	$cache_type $cache_directory $cache_size $cache_dir_level1 $cache_dir_level2";
 		if(!is_dir($cache_directory)){
 			$stopstart=true;
-			events_squid_caches("Starting......: [SMP] creating $cache_directory",__FUNCTION__,__LINE__);
+			events_squid_caches("Starting......: ".date("H:i:s")." [SMP] creating $cache_directory",__FUNCTION__,__LINE__);
 			@mkdir($cache_directory,0755,true);
 			@chown($cache_directory, "squid");
 			@chgrp($cache_directory, "squid");
 		}
 		
-		events_squid_caches("Starting......: [SMP] Stamp cache $cacheid to be build",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Stamp cache $cacheid to be build",__FUNCTION__,__LINE__);
 		$cacheid_array[$cacheid]=true;
 		$q->QUERY_SQL("UPDATE squid_caches32 SET Building=1 WHERE cacheid='$cacheid'","artica_backup");
 	}
 	
 	$su=$unix->find_program("su");
-	echo "Starting......: [SMP] writing config $conffile\n";
+	echo "Starting......: ".date("H:i:s")." [SMP] writing config $conffile\n";
 	@file_put_contents($conffile, @implode("\n", $f));
 	
 	$cmd="$su -c \"$squidbin -f $conffile -z\" squid 2>&1";
-	events_squid_caches("Starting......: [SMP] Launch $cmd",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Launch $cmd",__FUNCTION__,__LINE__);
 	exec("$cmd",$results);
-	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);}
+	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);}
 	
 	while (list ($cacheid, $val) = each ($cacheid_array)){
-		events_squid_caches("Starting......: [SMP] Stamp cache $cacheid to be builded",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Stamp cache $cacheid to be builded",__FUNCTION__,__LINE__);
 		$q->QUERY_SQL("UPDATE squid_caches32 SET Building=2 WHERE cacheid='$cacheid'","artica_backup");
 		
 	}
 	
 	
-	events_squid_caches("Starting......: [SMP] reconfiguring the proxy cache",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] reconfiguring the proxy cache",__FUNCTION__,__LINE__);
 	$results=array();
 	exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force --nocaches 2>&1",$results);
-	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);}
-	events_squid_caches("Starting......: [SMP] restarting the proxy cache",__FUNCTION__,__LINE__);
+	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);}
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] restarting the proxy cache",__FUNCTION__,__LINE__);
 	$results=array();
-	exec("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force 2>&1",$results);
-	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);}		
+	exec("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force --script=".basename(__FILE__)." 2>&1",$results);
+	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);}		
 	caches_delete();
 	
 }
@@ -219,27 +216,27 @@ function caches_delete(){
 	$unix=new unix();
 	
 	$uuid=$unix->GetUniqueID();
-	events_squid_caches("Starting......: [SMP] uuid=`$uuid`",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] uuid=`$uuid`",__FUNCTION__,__LINE__);
 	$q=new mysql();
 	$results=$q->QUERY_SQL("SELECT * FROM squid_caches32 WHERE enabled=0 AND uuid='$uuid' AND ToDelete=1","artica_backup");
 	if(mysql_num_rows($results)==0){
-		events_squid_caches("Starting......: [SMP] No cache to delete for `$uuid`...aborting task...",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] No cache to delete for `$uuid`...aborting task...",__FUNCTION__,__LINE__);
 		return;
 	}	
 	
-	events_squid_caches("Starting......: [SMP] Reconfiguring squid-cache in order to disconnect caches...",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Reconfiguring squid-cache in order to disconnect caches...",__FUNCTION__,__LINE__);
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 
 	
-	events_squid_caches("Starting......: [SMP] reconfiguring the proxy cache",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] reconfiguring the proxy cache",__FUNCTION__,__LINE__);
 	$results=array();
 	exec("$php5 /usr/share/artica-postfix/exec.squid.php --build --force 2>&1",$results);
-	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);}
-	events_squid_caches("Starting......: [SMP] restarting the proxy cache",__FUNCTION__,__LINE__);
+	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);}
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] restarting the proxy cache",__FUNCTION__,__LINE__);
 	$results=array();
-	exec("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force 2>&1",$results);
-	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);}
+	exec("$php5 /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force --script=".basename(__FILE__)." 2>&1",$results);
+	while (list ($a, $b) = each ($results)){events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);}
 	
 		
 	
@@ -250,14 +247,14 @@ function caches_delete(){
 		$cacheid=$ligne["cacheid"];
 		
 		if(!is_dir($cache_directory)){
-			events_squid_caches("Starting......: [SMP] $cache_directory no such directory, removing the cache",__FUNCTION__,__LINE__);
+			events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $cache_directory no such directory, removing the cache",__FUNCTION__,__LINE__);
 			$q->QUERY_SQL("DELETE FROM squid_caches32 WHERE cacheid='$cacheid'","artica_backup");
 			continue;
 		}
-		events_squid_caches("Starting......: [SMP] Stamp cache $cacheid to be build",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Stamp cache $cacheid to be build",__FUNCTION__,__LINE__);
 		$cacheid_array[$cacheid]=$cache_directory;
 		$q->QUERY_SQL("UPDATE squid_caches32 SET Building=1 WHERE cacheid='$cacheid'","artica_backup");
-		events_squid_caches("Starting......: [SMP] removing $cache_directory",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] removing $cache_directory",__FUNCTION__,__LINE__);
 		$cmd="$nohup $rm -rf $cache_directory >/dev/null 2>&1 &";
 		
 		
@@ -270,16 +267,16 @@ function caches_delete(){
 		reset($cacheid_array);
 		while (list ($cacheid, $cache_directory) = each ($cacheid_array)){
 			if(!is_dir($cache_directory)){
-				events_squid_caches("Starting......: [SMP] $cache_directory deleted, removing the cache",__FUNCTION__,__LINE__);
+				events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $cache_directory deleted, removing the cache",__FUNCTION__,__LINE__);
 				$q->QUERY_SQL("DELETE FROM squid_caches32 WHERE cacheid='$cacheid'","artica_backup");
 				unset($cacheid_array[$cacheid]);
 				continue;
 			}
-			events_squid_caches("Starting......: [SMP] $cache_directory still exists, waiting " . count($cacheid_array)." cache(s)...",__FUNCTION__,__LINE__);
+			events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $cache_directory still exists, waiting " . count($cacheid_array)." cache(s)...",__FUNCTION__,__LINE__);
 			
 		}
 		if($c>900){
-			events_squid_caches("Starting......: [SMP] timeout...",__FUNCTION__,__LINE__);
+			events_squid_caches("Starting......: ".date("H:i:s")." [SMP] timeout...",__FUNCTION__,__LINE__);
 			break;
 		}
 	}
@@ -290,14 +287,14 @@ function caches_squid_z(){
 	$unix=new unix();
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	if(!is_file($squidbin)){
-		events_squid_caches( "Starting......: [SMP] squid no such binary",__FUNCTION__,__LINE__);
+		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] squid no such binary",__FUNCTION__,__LINE__);
 		return;
 	}
 	$pidffile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$oldpid=$unix->get_pid_from_file($pidffile);
 	if($unix->process_exists($oldpid)){
-		events_squid_caches( "Starting......: [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
+		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
 		return;
 	}
 	@file_put_contents($pidffile, getmypid());
@@ -316,31 +313,35 @@ function caches_squid_z(){
 	
 	while (list ($cache_dir, $line) = each ($GetLocalCaches)){
 		if(!is_dir($cache_dir)){
-			events_squid_caches("Starting......: [SMP] creating $cache_dir",__FUNCTION__,__LINE__);
+			events_squid_caches("Starting......: ".date("H:i:s")." [SMP] creating $cache_dir",__FUNCTION__,__LINE__);
 			$stopstart=true;
 			@mkdir($cache_dir,0755,true);
-			@chown($cache_dir, "squid");
-			@chgrp($cache_dir, "squid");
+
 		}
+		@chown($cache_dir, "squid");
+		@chgrp($cache_dir, "squid");
 		$f[]=$line;
 		
 	}
 		
 	$su=$unix->find_program("su");
-	echo "Starting......: [SMP] writing config $conffile\n";
+	echo "Starting......: ".date("H:i:s")." [SMP] Writing config $conffile\n";
 	@file_put_contents($conffile, @implode("\n", $f));
 	
 	$cmd="$su -c \"$squidbin -f $conffile -z\" squid 2>&1";
-	events_squid_caches("Starting......: [SMP] Launch $cmd",__FUNCTION__,__LINE__);
+	events_squid_caches("Starting......: ".date("H:i:s")." [SMP] Launch $cmd",__FUNCTION__,__LINE__);
 	exec("$cmd",$results);
 	while (list ($a, $b) = each ($results)){
-		events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);
+		events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);
 	}	
-	echo "Starting......: [SMP] writing restarting squid-cache\n";
-	exec("/etc/init.d/squid restart 2>&1",$results);
-	while (list ($a, $b) = each ($results)){
-		events_squid_caches("Starting......: [SMP] $b",__FUNCTION__,__LINE__);
-	}	
+	
+	if(!$GLOBALS["NORESTART"]){
+		echo "Starting......: ".date("H:i:s")." [SMP] Writing restarting squid-cache\n";
+		exec("/etc/init.d/squid restart --script=". basename(__FILE__)." 2>&1",$results);
+		while (list ($a, $b) = each ($results)){
+			events_squid_caches("Starting......: ".date("H:i:s")." [SMP] $b",__FUNCTION__,__LINE__);
+		}	
+	}
 }
 
 

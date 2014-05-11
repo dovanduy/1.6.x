@@ -15,14 +15,58 @@
 		echo "alert('$error')";
 		die();
 	}
-	
+if(isset($_GET["popup"])){popup();exit;}	
 if(isset($_GET["params"])){params();exit;}
 if(isset($_GET["items"])){items();exit;}
 if(isset($_POST["RunBackup"])){runbackup();exit;}
 if(isset($_POST["RunScan"])){RunScan();exit;}
 if(isset($_POST["RunClean"])){RunClean();exit;}
-popup();
+tabs();
 	
+function tabs(){
+
+	$page=CurrentPageName();
+	$fontsize="font-size:16px;";
+	$adduri="&font-size=18";$adduri2="?font-size={$_GET["font-size"]}";
+
+	//$array["popup-instances"]="{multiple_webmail}";
+	$array["popup"]="{backup}";
+	$array["schedule"]="{schedule}";
+	
+
+	$fontsize="font-size:18px";
+
+	while (list ($num, $ligne) = each ($array) ){
+
+
+		if($num=="schedule"){
+			$html[]="<li><a href=\"schedules.php?ForceTaskType=31\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			continue;
+		}
+
+
+		if($num=="popup-tune"){
+			$html[]="<li><a href=\"zarafa.tuning.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
+			continue;
+		}
+
+		if($num=="popup-mysql"){
+			$html[]="<li><a href=\"zarafa.mysqlparams.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
+			continue;
+		}
+
+
+		$html[]="<li><a href=\"$page?$num=yes$adduri\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			
+	}
+	$tabwidth=759;
+	if(is_numeric($_GET["tabwith"])){$tabwitdh=$_GET["tabwith"];}
+
+	echo build_artica_tabs($html, "main_config_zarafaBack");
+
+
+}
+
 	
 function popup(){
 	$t=time();
@@ -77,8 +121,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?items=yes&t=$t&day=$today$byMonth',
 	dataType: 'json',
 	colModel : [
-		{display: '$date', name : 'zDate', width :132, sortable : true, align: 'left'},	
-		{display: '$file', name : 'filepath', width :110, sortable : true, align: 'left'},
+		{display: '$date', name : 'zDate', width :363, sortable : true, align: 'left'},	
+		{display: '$file', name : 'filepath', width :172, sortable : true, align: 'left'},
 		{display: '$size', name : 'size', width :110, sortable : true, align: 'left'},
 		{display: '$time', name : 'ztime', width :190, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'restore', width :31, sortable : true, align: 'left'},
@@ -93,11 +137,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '<span id=\"title-$t\">$title</span>',
+	title: '<span id=\"title-$t\" style=\"font-size:18px\">$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 730,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -211,6 +255,8 @@ function items(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
+	if(mysql_num_rows($results)==0){json_error_show(1,"no data");}
+	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ligne["filesize"]=FormatBytes($ligne["filesize"]/1024);
@@ -218,15 +264,18 @@ function items(){
 		$ligne["ztime"]=$tpl->_ENGINE_parse_body("{$ligne["ztime"]}");
 		
 		
+		$time=strtotime($ligne["zDate"]);
+		$xdate=$tpl->_ENGINE_parse_body(date("Y {l} {F} d H:i",$time));
+		
 		$data['rows'][] = array(
 				'id' => $ligne["ID"],
 				'cell' => array(
-					"<span style='font-size:14px;color:$color'>{$ligne["zDate"]}</a></span>",
-					"<span style='font-size:14px;color:$color'>$urljs{$ligne["filepath"]}</a></span>",
-					"<span style='font-size:14px;color:$color'>$urljs{$ligne["filesize"]}</a></span>",
-					"<span style='font-size:14px;color:$color'>$urljs{$ligne["ztime"]}</a></span>",
-					"<span style='font-size:14px;color:$color'>$urljs&nbsp;</a></span>",
-					"<span style='font-size:14px;color:$color'>$urljs&nbsp;</a></span>",
+					"<span style='font-size:18px;color:$color'>$xdate</a></span>",
+					"<span style='font-size:18px;color:$color'>$urljs{$ligne["filepath"]}</a></span>",
+					"<span style='font-size:18px;color:$color'>$urljs{$ligne["filesize"]}</a></span>",
+					"<span style='font-size:18px;color:$color'>$urljs{$ligne["ztime"]}</a></span>",
+					"<span style='font-size:18px;color:$color'>$urljs&nbsp;</a></span>",
+					"<span style='font-size:18px;color:$color'>$urljs&nbsp;</a></span>",
 					
 					)
 				);

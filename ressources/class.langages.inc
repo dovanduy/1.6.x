@@ -53,7 +53,7 @@ function get_languages(){
 		$user_languages[0] = array( '','','','' ); //return blank array.
 	}
 	if($user_languages[0][1]=="pl"){return "pol";}
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("LANGUAGE: lang->get_languages() return {$user_languages[0][1]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::LANGUAGE: lang->get_languages() return {$user_languages[0][1]} function:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);}
 	return $user_languages[0][1];
 
 

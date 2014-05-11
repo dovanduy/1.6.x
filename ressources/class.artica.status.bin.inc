@@ -1,6 +1,6 @@
 <?php
 
-
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 class periodics_status{
 	function periodics_status(){
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
@@ -45,7 +45,7 @@ class periodics_status{
 			$kb=$mem/1024;
 			if($GLOBALS["VERBOSE"]){include_once(dirname(__FILE__)."/class.templates.inc");echo "$process Mem: $mem (".FormatBytes($kb).")\n";}
 			$serial=serialize($array2);
-			@file_put_contents("/var/log/artica-postfix/ps-mem/".md5($serial), $serial);		
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ps-mem/".md5($serial), $serial);		
 		}
 		
 		
@@ -57,7 +57,7 @@ class periodics_status{
 				$array["mem"]=$re[1];
 				$array["time"]=date('Y-m-d H:i:s');	
 				$serial=serialize($array);
-				@file_put_contents("/var/log/artica-postfix/ps-mem-tot/".md5($serial), $serial);				
+				@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ps-mem-tot/".md5($serial), $serial);				
 			}			
 		}		
 		$php5=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();

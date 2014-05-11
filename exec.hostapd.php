@@ -66,8 +66,8 @@ if(!is_file("/etc/hostapd.deny")){@file_put_contents("/etc/hostapd.deny","#");}
 
 
 @file_put_contents("/etc/hostapd.conf",implode("\n",$conf));
-echo "Starting......: Advanced IEEE 802.11 management binver:$users->HOSTAPD_BINVER\n";
-echo "Starting......: Advanced IEEE 802.11 management build configuration done\n";
+echo "Starting......: ".date("H:i:s")." Advanced IEEE 802.11 management binver:$users->HOSTAPD_BINVER\n";
+echo "Starting......: ".date("H:i:s")." Advanced IEEE 802.11 management build configuration done\n";
 
 	
 }

@@ -17,7 +17,7 @@ function parseQueue(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
-	
+	$sock=new sockets();
 	
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$oldpidTime=$unix->PROCCESS_TIME_MIN($oldpid);
@@ -33,6 +33,11 @@ function parseQueue(){
 		return;
 	}
 	
+	
+	$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
+	if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=0;}
+	
+	
 	$directory="/var/log/artica-mail";
 	if(!is_dir($directory)){return;}
 	if (!$handle = @opendir($directory)) {return;}
@@ -45,6 +50,7 @@ function parseQueue(){
 	
 	events("open $directory");
 	while (false !== ($filename = readdir($handle))) {
+		if($EnableArticaSMTPStatistics==0){ @unlink("$directory/$filename"); continue; }
 		if(!preg_match("#(.+?)\.[0-9]+\.aws#", $filename,$re)){continue;}
 		$instancename=$re[1];
 		ParseFile("$directory/$filename");
@@ -80,13 +86,16 @@ function ParseFile($filename,$instancename=null){
 			
 			
 			$year=date("Y",$time);
-			if($year>date("Y")){
+			if($year<>date("Y")){
 				$zDate=date("Y")."-".date("m-d",$time)." ".date("H:i:s",$time);
 				$time=strtotime($zDate);
-			}	
-					
-			
-			
+			}
+			$month=date("m",$time);
+			if($month<>date("m")){
+				$zDate=date("Y")."-".date("m")."-".date("d",$time)." ".date("H:i:s",$time);
+				$time=strtotime($zDate);
+			}
+		
 			$table_hour=date("YmdH",$time)."_hour";
 			if($re[3]=="<>"){$re[3]="unknown";}
 			if($re[4]=="<>"){$re[4]="unknown";}
@@ -140,6 +149,19 @@ function ParseFile($filename,$instancename=null){
 			$md5=md5(@implode("", $re));
 			$zDate="{$re[1]} {$re[2]}";
 			$time=strtotime($zDate);
+			
+			$year=date("Y",$time);
+			if($year<>date("Y")){
+				$zDate=date("Y")."-".date("m-d",$time)." ".date("H:i:s",$time);
+				$time=strtotime($zDate);
+			}
+			$month=date("m",$time);
+			if($month<>date("m")){
+				$zDate=date("Y")."-".date("m")."-".date("d",$time)." ".date("H:i:s",$time);
+				$time=strtotime($zDate);
+			}
+			
+			
 			$table_hour=date("YmdH",$time)."_hour";
 			$hour=date("H",$time);
 			$from=$re[3];

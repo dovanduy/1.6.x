@@ -179,7 +179,7 @@ function NewMacLink_save(){
 		$sql="UPDATE webfilters_nodes SET uid='{$_POST["uid"]}',hostname='{$_POST["hostname"]}' WHERE MAC='{$_POST["MAC"]}'";
 	}else{
 		
-		$sql="INSERT IGNORE INTO webfilters_nodes (MAC,hostname,uid) VALUES ('{$_POST["MAC"]}','{$_POST["hostname"]}','{$_POST["uid"]}');";
+		$sql="INSERT IGNORE INTO webfilters_nodes (MAC,hostname,uid,nmapreport,nmap) VALUES ('{$_POST["MAC"]}','{$_POST["hostname"]}','{$_POST["uid"]}','',0);";
 		
 	}
 	

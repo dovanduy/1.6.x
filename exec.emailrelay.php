@@ -29,7 +29,7 @@ if(system_is_overloaded()){die();}
 
 @unlink("/etc/artica-postfix/emailrelay.cmd");
 $path="/etc/artica-postfix/smtpnotif.conf";
-if(!file_exists($path)){echo "Starting......: SMTP notifier unable to stat $path\n";return null;}
+if(!file_exists($path)){echo "Starting......: ".date("H:i:s")." SMTP notifier unable to stat $path\n";return null;}
 	
 	
 $ini=new Bs_IniHandler($path);
@@ -50,17 +50,17 @@ $params[]="--close-stderr --no-smtp --poll=5 --syslog --pid-file=/var/run/artica
 $params[]="--connection-timeout=10";
 $params[]="--forward-to $smtp_server_name:$smtp_server_port";
 
-echo "Starting......: SMTP notifier using remote smtp $smtp_server_name:$smtp_server_port\n";
+echo "Starting......: ".date("H:i:s")." SMTP notifier using remote smtp $smtp_server_name:$smtp_server_port\n";
 
 if(trim($smtp_auth_user)<>null){
-	echo "Starting......: SMTP notifier authentication enabled\n";
+	echo "Starting......: ".date("H:i:s")." SMTP notifier authentication enabled\n";
 	$params[]="--client-auth /etc/artica-postfix/notification.auth";
 	$cltauth[]="LOGIN client $smtp_auth_user $smtp_auth_passwd";
 	@file_put_contents("/etc/artica-postfix/notification.auth",@implode("\n",$cltauth));
 }
 
 if($tls_enabled==1){
-	echo "Starting......: SMTP notifier SSL enabled\n";
+	echo "Starting......: ".date("H:i:s")." SMTP notifier SSL enabled\n";
 	$params[]="--client-tls";
 }
 
@@ -189,7 +189,7 @@ function build_email_relays(){
 	}
 	
 	foreach (glob("/var/spool/artica-emailing/parameters/*.params") as $filename) {
-		echo "Starting......: remove old configuration $filename\n";
+		echo "Starting......: ".date("H:i:s")." remove old configuration $filename\n";
 		@unlink($filename);
 	}
 	
@@ -296,13 +296,13 @@ function emailing_emailrelay_config_mysql($ID){
 		$sql="SELECT * FROM emailing_mailers WHERE ID=$ID";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){
-			echo "Starting......: Instance $ID $q->mysql_error\n";
+			echo "Starting......: ".date("H:i:s")." Instance $ID $q->mysql_error\n";
 			return;
 		}	
 		$datas=unserialize(base64_decode($ligne["parameters"]));
 		@mkdir("/var/spool/artica-emailing/parameters",666,true);
 		@file_put_contents("/var/spool/artica-emailing/parameters/$ID.params",serialize($datas));
-		echo "Starting......: Instance $ID build configuration from mysql done\n";
+		echo "Starting......: ".date("H:i:s")." Instance $ID build configuration from mysql done\n";
 	
 	
 }
@@ -312,7 +312,7 @@ function emailing_emailrelay_start($ID){
 	$pidpath="/var/spool/artica-emailing/run/$ID";
 	$unix=new unix();
 	if($unix->process_exists($unix->get_pid_from_file($pidpath))){
-		echo "Starting......: Instance $ID already running\n";
+		echo "Starting......: ".date("H:i:s")." Instance $ID already running\n";
 		return; 
 		
 	}
@@ -320,7 +320,7 @@ function emailing_emailrelay_start($ID){
 	$config=emailing_emailrelay_config($ID);
 	$unix=new unix();
 	$binpath=$unix->find_program("emailrelay");
-	echo "Starting......: Instance $ID \"$binpath $config\"\n";
+	echo "Starting......: ".date("H:i:s")." Instance $ID \"$binpath $config\"\n";
 	shell_exec("$binpath $config");
 	
 	for($i=0;$i<10;$i++){
@@ -332,9 +332,9 @@ function emailing_emailrelay_start($ID){
 	
 	if($unix->process_exists($unix->get_pid_from_file($pidpath))){
 		write_syslog("[$ID]: success started emairelay",basename(__FILE__));
-		echo "Starting......: Instance $ID success PID ". $unix->get_pid_from_file($pidpath)."\n";
+		echo "Starting......: ".date("H:i:s")." Instance $ID success PID ". $unix->get_pid_from_file($pidpath)."\n";
 	}else{
-		echo "Starting......: Instance $ID failed\n";
+		echo "Starting......: ".date("H:i:s")." Instance $ID failed\n";
 		echo "$binpath $config\n";
 	}
 	
@@ -363,7 +363,7 @@ function emailing_emailrelay_config($ID){
 	$smtp_auth_passwd=$parameters["smtp_auth_passwd"];
 	$tls_enabled=$parameters["tls_enabled"];
 	if(trim($smtp_server_name)==null){
-		echo "Starting......: emailrelay no smtp server\n";
+		echo "Starting......: ".date("H:i:s")." emailrelay no smtp server\n";
 		return;}
 	
 	@mkdir("/var/spool/artica-emailing/queues/$ID",0666,true);
@@ -373,18 +373,18 @@ function emailing_emailrelay_config($ID){
 	$params[]="--connection-timeout=10";
 	$params[]="--forward-to $smtp_server_name:$smtp_server_port";
 
-	echo "Starting......: emailrelay instance $ID using remote smtp $smtp_server_name:$smtp_server_port\n";
+	echo "Starting......: ".date("H:i:s")." emailrelay instance $ID using remote smtp $smtp_server_name:$smtp_server_port\n";
 
 	if(trim($smtp_auth_user)<>null){
-		echo "Starting......: emailrelay instance $ID PLAIN authentication $smtp_auth_userenabled@$smtp_server_name\n";
+		echo "Starting......: ".date("H:i:s")." emailrelay instance $ID PLAIN authentication $smtp_auth_userenabled@$smtp_server_name\n";
 		$params[]="--client-auth /etc/artica-postfix/notification.$ID.auth";
 		$cltauth[]="PLAIN client $smtp_auth_user $smtp_auth_passwd\n";
 		@file_put_contents("/etc/artica-postfix/notification.$ID.auth",@implode("\n",$cltauth));
 	}	
 	
-	echo "Starting......: emailrelay TLS:$tls_enabled\n";
+	echo "Starting......: ".date("H:i:s")." emailrelay TLS:$tls_enabled\n";
 	if($tls_enabled==1){
-	echo "Starting......: instance $ID SSL enabled\n";
+	echo "Starting......: ".date("H:i:s")." instance $ID SSL enabled\n";
 	$params[]="--client-tls";
 	}
 	$params[]="--log";

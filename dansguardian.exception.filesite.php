@@ -125,7 +125,7 @@ function main_ExeptionFileSiteList_list($rule_main,$noecho=0){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$num=$ligne["ID"];
 		if($ligne["enabled"]==1){
-			$onoff=imgtootltip("icon_ok.gif","{disable}","ExeptionFileSiteList_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
+			$onoff=imgtootltip("ok16.png","{disable}","ExeptionFileSiteList_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
 		}else{$onoff=imgtootltip("icon_err.gif","{enable}","ExeptionFileSiteList_switch('$hostname','$rule_main','$num','1')",null,"img_{$num}");}
 		
 		$categ=$categ . 
@@ -193,7 +193,7 @@ function main_ExeptionFileSiteList_icon(){
 	
 
 	 if($val["enabled"]==1){
-			$onoff=imgtootltip("icon_ok.gif","{disable}","ExeptionFileSiteList_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
+			$onoff=imgtootltip("ok16.png","{disable}","ExeptionFileSiteList_switch('$hostname','$rule_main','$num','0')",null,"img_{$num}");
 			$dans->Edit_ExeptionFileSiteList($_GET["ExeptionFileSiteList_icon"],0);
 		}else{
 			$onoff=imgtootltip("icon_err.gif","{enable}","ExeptionFileSiteList_switch('$hostname','$rule_main','$num','1')",null,"img_{$num}");

@@ -5,8 +5,6 @@ include_once(dirname(__FILE__).'/class.mysql.inc');
 include_once(dirname(__FILE__)."/class.categorize.externals.inc");
 include_once(dirname(__FILE__)."/class.mysql.blackboxes.inc");
 include_once(dirname(__FILE__)."/class.mysql.catz.inc");
-include_once(dirname(__FILE__).'/effectiveTLDs.inc.php');
-include_once(dirname(__FILE__).'/regDomain.inc.php');
 include_once(dirname(__FILE__).'/class.simple.image.inc');
 
 
@@ -183,11 +181,11 @@ class mysql_haproxy_builder{
 		$this->CREATE_DATABASE($this->database);
 		
 		
-		if(!$this->TABLE_EXISTS($table,$this->database)){
-		writelogs("Checking $table in $this->database NOT EXISTS...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		if(!$this->TABLE_EXISTS($fullname,$this->database)){
+		writelogs("Checking $fullname in $this->database NOT EXISTS...",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$sql="CREATE TABLE IF NOT EXISTS `$fullname` (
 		  `sitename` varchar(90) NOT NULL,
-		  `ID` bigint(100) NOT NULL AUTO_INCREMENT,
+		  `ID` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 		  `uri` varchar(255) NOT NULL,
 		  `td` varchar(50) NOT NULL,
 		  `http_code` int(10) NOT NULL,
@@ -197,7 +195,7 @@ class mysql_haproxy_builder{
 		  `service` varchar(120) NOT NULL DEFAULT '',
 		  `backend` varchar(120) NOT NULL DEFAULT '',
 		  `zDate` datetime NOT NULL,
-		  `size` bigint(100) NOT NULL,
+		  `size` BIGINT UNSIGNED NOT NULL,
 		  `MAC` varchar(20) NOT NULL,
 		  `zMD5` varchar(90) NOT NULL,
 		  `statuslb` varchar(40) NOT NULL,
@@ -219,7 +217,7 @@ class mysql_haproxy_builder{
 			$this->mysql_error=$this->mysql_error."\n$sql";
 			return false;
 		}else{
-			writelogs("Checking $table SUCCESS",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
+			writelogs("Checking $fullname SUCCESS",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
 			}
 		}
 		

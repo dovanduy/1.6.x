@@ -144,7 +144,7 @@ var  pidpath:string;
 begin
 result:='';
 if not FileExists(BIN_PATH()) then begin
-        SYS.MONIT_DELETE('APP_FAIL2BAN');
+
         exit;
 end;
 

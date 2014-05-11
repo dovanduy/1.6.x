@@ -305,7 +305,7 @@ function getlist(){
 			$fontcolor="black";
 			if($maincf->GET("DisabledInstance")==1){$enabled=0;$fontcolor="#B3B3B3";}
 		
-				if(trim($ligne['mac'])==null){$ligne['mac']="<img src='img/status_warning.gif'>";}
+				if(trim($ligne['mac'])==null){$ligne['mac']="<img src='img/status_warning.png'>";}
 				$delete=$tpl->_ENGINE_parse_body(imgsimple("delete-24.png","{delete}","POSTFIX_MULTI_INSTANCE_INFOS_DEL('{$ligne["ou"]}','{$ligne["ip_address"]}')"));
 				$edit="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?add-arp-js={$ligne['ID']}');\" style='font-size:14px;font-weight:bold;text-decoration:underline;color:$fontcolor'>";
 				

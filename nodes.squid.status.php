@@ -90,19 +90,16 @@ function page(){
 	$tpl=new templates();	
 	$t=time();
 	$tr=array();
-	$DisableSquidSNMPMode=$blackbox->GET_SQUID_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
-	if($DisableSquidSNMPMode==0){
-		$ini=new Bs_IniHandler();
-		$ini->loadString($blackbox->SquidSMPStatus);
+	
+	$ini=new Bs_IniHandler();
+	$ini->loadString($blackbox->SquidSMPStatus);
 		
-		while (list ($index, $line) = each ($ini->_params) ){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
-			$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
-				
-		}		
+	while (list ($index, $line) = each ($ini->_params) ){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
+		$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
+	}		
 		
-	}
+	
 	
 	if(count($tr)>0){
 		$tr[]=squid_booster_smp($blackbox->BoosterSMPStatus);

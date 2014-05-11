@@ -50,6 +50,8 @@ function Get_owncloud(){
 		return;
 	}
 	
+	if(is_dir("/usr/share/owncloud")){shell_exec("$rm -rf /usr/share/owncloud");}
+	
 	@mkdir("/usr/share/owncloud",0755,true);
 	if(!is_dir("/usr/share/owncloud")){
 		progress("/usr/share/owncloud permission denied",110);
@@ -68,7 +70,7 @@ function Get_owncloud(){
 	
 	if(is_file("/usr/share/owncloud/settings/settings.php")){
 		progress("Success...",100);
-		shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time()." >/dev/null 2>&1");
+		$unix->Process1(true);
 		return;
 	}
 	progress("Failed...",110);
@@ -79,7 +81,7 @@ function Get_owncloud(){
 function download(){
 	
 	progress("Downloading index file",10);
-	$curl=new ccurl("http://www.artica.fr/auto.update.php");
+	$curl=new ccurl("http://www.articatech.net/auto.update.php");
 	$curl->NoHTTP_POST=true;
 	if(!$curl->get()){
 		progress("Failed download index file",110);
@@ -94,7 +96,7 @@ function download(){
 		return null;
 	}
 	progress("Owncloud version $owncloudversion",15);
-	return "http://www.artica.fr/download/owncloud-$owncloudversion.tar.gz";
+	return "http://www.articatech.net/download/owncloud-$owncloudversion.tar.gz";
 	
 	
 	
@@ -103,6 +105,6 @@ function download(){
 function progress($text,$prc){
 	if($GLOBALS["VERBOSE"]){echo "{$prc}% $text\n";}
 	$array=array($text,$prc);
-	@file_put_contents("/usr/share/artica-postfix/logs/web/owncloud-setup.db", serialize($array));
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/owncloud-setup.db", serialize($array));
 }
 

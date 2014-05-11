@@ -11,6 +11,7 @@
 	include_once(dirname(__FILE__).'/ressources/class.joomla.php');
 	include_once(dirname(__FILE__).'/ressources/class.opengoo.inc');
 	include_once(dirname(__FILE__).'/ressources/class.roundcube.inc');
+	if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 	$GLOBALS["SSLKEY_PATH"]="/etc/ssl/certs/apache";	
 	if(preg_match("#--verbose#",implode(" ",$argv))){
 		$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;
@@ -29,7 +30,7 @@ if(is_array($argv)){
 		if($GLOBALS["VERBOSE"]){echo "token:$cmds\n";}
 		if(preg_match("#--verbose#",$cmds)){$_GET["debug"]=true;}
 		if(preg_match("#--only-([A-Z0-9]+)#",$cmds,$re)){
-			echo "Starting......: {$re[1]} sub-domains\n";
+			echo "Starting......: ".date("H:i:s")." {$re[1]} sub-domains\n";
 			$GLOBALS["ONLY"]=$re[1];
 		}
 	}
@@ -100,7 +101,7 @@ function install_groupwares($apacheservername,$wwwservertype,$root,$hash){
 	
 		$dn=$hash["dn"];
 		if(preg_match("#ou=www,ou=(.+?),dc=organizations#",$dn,$re) ){$hash["OU"][0]=trim($re[1]);$ouexec=trim($re[1]);}
-		echo "Starting......: Apache groupware checking $apacheservername host ($wwwservertype)\n";
+		echo "Starting......: ".date("H:i:s")." Apache groupware checking $apacheservername host ($wwwservertype)\n";
 	switch ($wwwservertype) {
 		case "LMB":LMB_INSTALL($apacheservername,$root,$hash);break;	
 		case "JOOMLA":JOOMLA_INSTALL($apacheservername,$root,$hash);break;
@@ -123,7 +124,7 @@ function install_groupwares($apacheservername,$wwwservertype,$root,$hash){
 
 function remove($servername){
 	$apache=new vhosts();
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";
 	$confs=$apache->SearchHosts($servername);
 	events(__FUNCTION__.":: Check $servername");
 	events(__FUNCTION__.":: remove files and directories");
@@ -188,7 +189,7 @@ function SQUID_STATS_INSTALL($servername,$root,$hash=array()){
 }
 
 function PIWIGO_INSTALL($servername,$root,$hash=array()){
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";
 	$productname="piwigo";	
 	$sourcedir="/usr/local/share/artica/piwigo_src";
 	$sql_file="/usr/local/share/artica/piwigo_src/install/piwigo_structure-mysql.sql";
@@ -284,7 +285,7 @@ function PIWIGO_INSTALL($servername,$root,$hash=array()){
 }
 
 function JOOMLA_INSTALL($servername,$root,$hash=array()){
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	if($root==null){events("Starting install joomla Unable to stat root dir");return false;}
 	if(!is_dir("/usr/local/share/artica/joomla_src")){
 		events("Starting install joomla Unable to stat JOOMLA SRC");
@@ -458,7 +459,7 @@ $conf[]="?>";
 
 
 function SUGAR_INSTALL($servername,$root,$hash=array()){
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	if($root==null){events("Starting install Sugar Unable to stat root dir");return false;}
 	$user=$hash["wwwmysqluser"][0];
 	$mysql_password=$hash[strtolower("WWWMysqlPassword")][0];
@@ -574,7 +575,7 @@ function ZARAFA_MOBILE_INSTALL($servername,$root,$hash=array()){
 
 
 function LMB_INSTALL($servername,$root,$hash=array()){
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";
 	if($root==null){events("Starting install LMB Unable to stat root dir");return false;}
 	if(!is_dir("/usr/local/share/artica/lmb_src")){
 		events("Starting install LMB Unable to stat LMB SRC");
@@ -707,7 +708,7 @@ $unix=new unix();
 
 $ApacheGroupware=$sock->GET_INFO("ApacheGroupware");
 if($ApacheGroupware==null){$ApacheGroupware=1;}
-echo "Starting......: Apache Groupware enabled ? -> $ApacheGroupware\n";
+echo "Starting......: ".date("H:i:s")." Apache Groupware enabled ? -> $ApacheGroupware\n";
 
 $ApacheGroupwareListenIP=$sock->GET_INFO("ApacheGroupwareListenIP");
 $ApacheGroupWarePort=$sock->GET_INFO("ApacheGroupWarePort");
@@ -721,10 +722,10 @@ if($ApacheGroupware==0){
 	$ApacheGroupwareListenIP=$unix->APACHE_ListenDefaultAddress();
 	$ApacheGroupWarePort=$sock->GET_INFO("FreeWebListenPort");
 	$ApacheGroupWarePortSSL=$sock->GET_INFO("FreeWebListenSSLPort");
-	echo "Starting......: Apache Groupware switch to Apache source\n";
+	echo "Starting......: ".date("H:i:s")." Apache Groupware switch to Apache source\n";
 
 	foreach (glob("$d_path/groupware-artica-*") as $filename) {
-		echo "Starting......: Apache Groupware removing ".basename($filename)."\n";
+		echo "Starting......: ".date("H:i:s")." Apache Groupware removing ".basename($filename)."\n";
 	}
 }
 
@@ -733,8 +734,8 @@ if(!is_numeric($ApacheGroupWarePort)){$ApacheGroupWarePort=80;}
 if(!is_numeric($FreeWebsDisableSSLv2)){$FreeWebsDisableSSLv2=0;}
 if($ApacheGroupwareListenIP==null){$ApacheGroupwareListenIP="*";}
 
-	echo "Starting......: Apache Port....: $ApacheGroupwareListenIP:$ApacheGroupWarePort\n";
-	echo "Starting......: Apache SSL Port: $ApacheGroupwareListenIP:$ApacheGroupWarePortSSL\n";
+	echo "Starting......: ".date("H:i:s")." Apache Port....: $ApacheGroupwareListenIP:$ApacheGroupWarePort\n";
+	echo "Starting......: ".date("H:i:s")." Apache SSL Port: $ApacheGroupwareListenIP:$ApacheGroupWarePortSSL\n";
 
 $pattern="(&(objectclass=apacheConfig)(apacheServerName=*))";
 $attr=array();
@@ -866,7 +867,7 @@ for($i=0;$i<$hash["count"];$i++){
 	if($ApacheGroupware==0){
 		$a2ensite=$unix->find_program("a2ensite");
 		@mkdir($d_path,0755,true);
-		echo "Starting......: Apache Groupware adding $d_path/groupware-artica-$apacheservername.conf\n";
+		echo "Starting......: ".date("H:i:s")." Apache Groupware adding $d_path/groupware-artica-$apacheservername.conf\n";
 		@file_put_contents("$d_path/groupware-artica-$apacheservername.conf",$conf);
 		if(is_file($a2ensite)){shell_exec("$a2ensite $d_path/groupware-artica-$apacheservername.conf");}
 		$conf=null;
@@ -882,7 +883,7 @@ if($SSLMODE){
 
 $mailmanhosts=mailmanhosts();
 if($ApacheGroupware==0){
-		echo "Starting......: Apache Groupware adding $d_path/groupware-artica-mailmanhosts.conf\n";
+		echo "Starting......: ".date("H:i:s")." Apache Groupware adding $d_path/groupware-artica-mailmanhosts.conf\n";
 		@file_put_contents("$d_path/groupware-artica-mailmanhosts.conf",$mailmanhosts);
 		$apache2ctl=$unix->LOCATE_APACHE_CTL();
 		if(is_file($apache2ctl)){shell_exec("$apache2ctl -k restart");}
@@ -933,7 +934,7 @@ function GROUPOFFICE_TEST_FILES($root){
 
 function OPENGOO_INSTALL($servername,$root,$hash=array()){
 	$srcfolder="/usr/local/share/artica/opengoo";
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	$sql_file="/usr/share/artica-postfix/bin/install/opengoo/opengoo.sql";
 
 
@@ -1045,7 +1046,7 @@ function OPENGOO_INSTALL($servername,$root,$hash=array()){
 
 function GROUPOFFICE_INSTALL($servername,$root,$hash=array()){
 	$srcfolder="/usr/local/share/artica/group-office";
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	$sql_file="/usr/share/artica-postfix/bin/install/opengoo/group-office.sql";
 	$sql_datas="/usr/share/artica-postfix/bin/install/opengoo/group-office-datas.sql";
 
@@ -1220,9 +1221,9 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	$ldap=new clladp();
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	
-	echo "Starting......: Roundcube $servername\n"; 
+	echo "Starting......: ".date("H:i:s")." Roundcube $servername\n"; 
 	
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	if($root==null){events("Starting install roundcube Unable to stat root dir");return false;}
 	if(!is_dir($srcfolder)){
 		events("Starting install roundcube Unable to stat SRC");
@@ -1257,12 +1258,12 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	}
 	
 	events("Starting setting permissions on Database with user $user");
-	echo "Starting......: Roundcube $servername set permissions on Database with user $user\n"; 
+	echo "Starting......: ".date("H:i:s")." Roundcube $servername set permissions on Database with user $user\n"; 
 	$q->PRIVILEGES($user,$mysql_password,$server_database);
 	
 	
 	events("Starting install roundcube installing source code");
-	echo "Starting......: Roundcube $servername installing source code\n"; 
+	echo "Starting......: ".date("H:i:s")." Roundcube $servername installing source code\n"; 
 	
 	shell_exec("/bin/rm -rf $root/*");
 	shell_exec("/bin/cp -rf $srcfolder/* $root/");
@@ -1312,7 +1313,7 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	$conf[]="\$rcmail_config[\"db_sequence_messages\"] = \"message_ids\";";
 	$conf[]="?>";
 	events("Starting install roundcube saving $root/config/db.inc.php");
-	echo "Starting......: Roundcube $servername db.inc.php OK\n";
+	echo "Starting......: ".date("H:i:s")." Roundcube $servername db.inc.php OK\n";
 	@file_put_contents("$root/config/db.inc.php",@implode("\n",$conf));	
 	
 	unset($conf);
@@ -1456,7 +1457,7 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	if($NAB->enabled==1){
 		ROUNDCUBE_GLOBALADDRESSBOOK();
 		if(is_file("$root/plugins/globaladdressbook/globaladdressbook.php")){
-			echo "Starting......: Roundcube $servername Enable Global AddressBook \n";
+			echo "Starting......: ".date("H:i:s")." Roundcube $servername Enable Global AddressBook \n";
 			$conf[]="\$rcmail_config['plugins'][] = 'globaladdressbook';";
 			$nab_conf=$NAB->BuildConfig();
 			@file_put_contents("$root/plugins/globaladdressbook/config.inc.php",$nab_conf);
@@ -1510,12 +1511,12 @@ function ROUNDCUBE_INSTALL($servername,$root,$hash=array()){
 	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 	
 	if($EnablePostfixMultiInstance==1){
-		echo "Starting......: Roundcube $servername Postfix Multi Instance Enabled \n";
+		echo "Starting......: ".date("H:i:s")." Roundcube $servername Postfix Multi Instance Enabled \n";
 		$smtp=$hash[strtolower("WWWMultiSMTPSender")][0];
 		$tbl=@explode("\n",@file_get_contents("$root/config/main.inc.php"));
 		while (list ($i, $line) = each ($tbl) ){
 			if(preg_match("#rcmail_config.+?smtp_server#",$line)){
-				echo "Starting......: Roundcube $servername Postfix change line $i to $smtp\n";
+				echo "Starting......: ".date("H:i:s")." Roundcube $servername Postfix change line $i to $smtp\n";
 				$tbl[$i]="\$rcmail_config['smtp_server'] = '$smtp';";
 			}
 		}
@@ -1542,7 +1543,7 @@ function ROUNDCUBE_GLOBALADDRESSBOOK($dir){
 
 function events($text){
 		if($GLOBALS["VERBOSE"]){$_GET["debug"]=true;}
-		if($_GET["debug"]){echo "Starting......: Apache groupware $text\n";}
+		if($_GET["debug"]){echo "Starting......: ".date("H:i:s")." Apache groupware $text\n";}
 		
 		writelogs($text,"main",__FILE__,__LINE__);
 		}
@@ -1670,7 +1671,7 @@ function mailman_cgibin_path(){
 }
 	
 function OBM2_INSTALL($servername,$root,$hash=array()){
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	if($root==null){events("Starting install OBM2 Unable to stat root dir");return false;}
 	if(!is_dir("/opt/artica/install/sources/obm")){
 		events("Starting install OBM2 Unable to stat /opt/artica/install/sources/obm");
@@ -2286,7 +2287,7 @@ function vhosts_BuildCertificate($hostname){
 
 function DRUPAL_INSTALL($apacheservername,$root,$hash=array()){
 	$ldap=new clladp();
-	$GLOBALS["ADDLOG"]="/var/log/artica-postfix/$servername.log";	
+	$GLOBALS["ADDLOG"]="{$GLOBALS["ARTICALOGDIR"]}/$servername.log";	
 	$server_database=str_replace(".","_",$apacheservername);
 	$server_database=str_replace("-","_",$server_database);	
 	events("Starting install drupal table prefix={$server_database}_...");

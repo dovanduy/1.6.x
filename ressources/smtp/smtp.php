@@ -324,7 +324,7 @@
 				}
 
 				// Transparency
-				if(strlen($headers)>5){
+				if(strlen($this->headers)>5){
 					$headers = str_replace(CRLF.'.', CRLF.'..', trim(implode(CRLF, $this->headers)));
 					$body    = str_replace(CRLF.'.', CRLF.'..', $this->body);
 					$body    = $body[0] == '.' ? '.'.$body : $body;
@@ -508,14 +508,14 @@
 		function rcpt($to){
 
 			if($this->is_connected()){
-					if($this->send_data('RCPT TO:<'.$to.'>')){
+					if($this->send_data('rcpt to: <'.$to.'>')){
 						$datas=trim( $this->get_data());
 						$error=substr($datas, 0, 2);
 						if($error==25){return true;}
 						
 					}
 			}
-			$this->events("RCPT TO:<$to> Result:`$datas` Proto:[$error] FAILED", __FUNCTION__, __FILE__, __LINE__);	
+			$this->events("rcpt to: <$to> Result:`$datas` Proto:[$error] FAILED", __FUNCTION__, __FILE__, __LINE__);	
 			$this->errors[] = $datas;
 			$this->PARSE_ERROR($datas);
 			return FALSE;
@@ -557,6 +557,7 @@
 		function send_data($data){
 
 			if(is_resource($this->connection)){
+				if($this->debug){$this->events("SEND:: \"$data\"", __CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);}
 				//$this->events("Write: ".strlen($data)." Bytes",__CLASS__.'/'.__FUNCTION__, __FILE__, __LINE__);
 				if(strlen($data)<100){
 					$this->errors[]="Write: $data";

@@ -12,6 +12,11 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
+$unix=new unix();
+$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
+$oldpid=$unix->get_pid_from_file($PidRestore);
+if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 define("SERVER", "file:///var/run/zarafa");

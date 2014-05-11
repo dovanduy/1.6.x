@@ -469,7 +469,7 @@ function {$prefix}LoupeProgress(){
 	}
 
 	function TestConnection(){
-		YahooWin('600','$page?testConnection=yes','$title');
+		YahooWin('700','$page?testConnection=yes','$title',true);
 	}
 
 
@@ -752,7 +752,7 @@ function software_list_by_family(){
 		}			
 		
 		if($ligne["curversionstring"]==null){
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$full=base64_encode($tpl->_ENGINE_parse_body("{product_not_installed_explain}"));
 			$ligne["curversionstring"]=$tpl->_ENGINE_parse_body("<a href=\"javascript:blur();\" Onclick=\"javascript:Loadjs('admin.index.php?json-error-js=$full');\" 
 			style=\"font-size:10px;font-weight:normal;nodiv;text-decoration:underline\">{product_not_installed_explain}</a>");
@@ -1975,6 +1975,7 @@ function GetLogsStatus(){
 function testConnection(){
 	$sock=new sockets();
 	$datas=$sock->getFrameWork('cmd.php?SetupIndexFile=yes');
+	
 	$tbl=explode("\n",$datas);
 	
 $table="	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:98%'>
@@ -2006,8 +2007,20 @@ $table="	<table cellspacing='0' cellpadding='0' border='0' class='tableView' sty
 	
 	";
 	
+	
+	$t=time();
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
+	echo $tpl->_ENGINE_parse_body($html);"
+	<script>
+			function Refresh$t(){
+				if(document.getElementById('squid_main_svc')){ RefreshTab('squid_main_svc'); }
+				YahooWinHide();
+			}
+			
+			setTimeout(\"Refresh$t()\",5000);
+			
+	</script>
+	";
 	
 }
 

@@ -71,6 +71,8 @@ function run_task1(){
 		$('#progress-$t').progressbar({ value: 100 });
 		document.getElementById('step$t-2').innerHTML='';
 		if(document.getElementById('main_config_internal_disks')){RefreshTab('main_config_internal_disks');}
+		if(document.getElementById('btrfs-tabs')){RefreshTab('btrfs-tabs');}
+		
 	}
 	
 

@@ -11,6 +11,9 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 if(system_is_overloaded(basename(__FILE__))){echo "Overloaded, die()";die();}
 
+// Depreciated
+die();
+
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 	if(preg_match("#--no-reload#",implode(" ",$argv))){$GLOBALS["NORELOAD"]=true;}
@@ -92,20 +95,20 @@ function help(){
 
 
 function retraduct($from,$to){
-	echo2("Starting......: VPS server: upgrading virtual networks (if set)");
+	echo2("Starting......: ".date("H:i:s")." VPS server: upgrading virtual networks (if set)");
 	$sql="UPDATE nics_virtuals SET nic='$to' WHERE nic='$from'";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");	
 	$q=new mysql();
 	$sql="UPDATE nics_vlan SET nic='$to' WHERE nic='$from'";
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo2("Starting......: VPS server: mysql error $q->mysql_error");}	
+	if(!$q->ok){echo2("Starting......: ".date("H:i:s")." VPS server: mysql error $q->mysql_error");}	
 	
 }
 
 function uninstall_bridge(){
 	@unlink("/usr/share/artica-postfix/ressources/logs/vserver.daemon.log");
-	echo2("Starting......: VPS server: Installing bridge...");
+	echo2("Starting......: ".date("H:i:s")." VPS server: Installing bridge...");
 	shell_exec("/bin/chmod 777 /usr/share/artica-postfix/ressources/logs/vserver.daemon.log");
 	$sock=new sockets();
 	$unix=new unix();
@@ -122,36 +125,36 @@ function uninstall_bridge(){
 	$breth="br5";
 	
 	
-	echo2("Starting......: VPS server: check interfaces $breth");
+	echo2("Starting......: ".date("H:i:s")." VPS server: check interfaces $breth");
 	
 	
 	
 	
 		
-	echo2("Starting......: VPS server: upgrading virtual networks");
+	echo2("Starting......: ".date("H:i:s")." VPS server: upgrading virtual networks");
 	
 	while (list ($ethIndex, $array) = each ($interfaces)){
 		if(preg_match("#$breth:[0-9]+#",$ethIndex)){
 			$array_eth=array();
 			$array_eth["UNSET"]=true;
-			echo2("Starting......: VPS server: Deleting $ethIndex");
+			echo2("Starting......: ".date("H:i:s")." VPS server: Deleting $ethIndex");
 			shell_exec("$ifconfig $ethIndex down >/dev/null 2>&1");
 			$unix->NETWORK_DEBIAN_SAVE($ethIndex,$array_eth,true);
 		}
 	}
 
-	echo2("Starting......: VPS server: upgrading virtual networks (if set)");
+	echo2("Starting......: ".date("H:i:s")." VPS server: upgrading virtual networks (if set)");
 	$sql="UPDATE nics_virtuals SET nic='$LXCINterface' WHERE nic='$breth'";
 	$q=new mysql();
 	$q->QUERY_SQL($sql,"artica_backup");
 
-	echo2("Starting......: VPS server: upgrading VLANs (if set)");	
+	echo2("Starting......: ".date("H:i:s")." VPS server: upgrading VLANs (if set)");	
 	$sql="UPDATE nics_vlan SET nic='$LXCINterface' WHERE nic='$breth'";
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo2("Starting......: VPS server: mysql error $q->mysql_error");}
+	if(!$q->ok){echo2("Starting......: ".date("H:i:s")." VPS server: mysql error $q->mysql_error");}
 	
 	
-	echo2("Starting......: VPS server: Removing $breth config in memory");
+	echo2("Starting......: ".date("H:i:s")." VPS server: Removing $breth config in memory");
 	shell_exec2("$brctl delif $breth $LXCINterface");
 	shell_exec2("$ifconfig $breth 0.0.0.0");
 	shell_exec2("$ifconfig $breth down");
@@ -159,27 +162,27 @@ function uninstall_bridge(){
 	$nics=new system_nic();
 	$nics->RemoveLXCBridge($LXCINterface,$breth);
 	
-	echo2("Starting......: VPS server: Unlock Artica Interface");
+	echo2("Starting......: ".date("H:i:s")." VPS server: Unlock Artica Interface");
 	$sock->SET_INFO("LXCEthLocked",0);
 	$sock->SET_INFO("LXCBridged",0);
-	echo2("Starting......: VPS server: Scheduling to restart network");	
+	echo2("Starting......: ".date("H:i:s")." VPS server: Scheduling to restart network");	
 	
 	$nicsAll=ifconfiglisteth();
-	echo2("Starting......: VPS server: ".count($nicsAll)." Listed interface(s)");
+	echo2("Starting......: ".date("H:i:s")." VPS server: ".count($nicsAll)." Listed interface(s)");
 	while (list ($ethL, $eth2) = each ($nicsAll)){
 		if(preg_match("#$breth#",$ethL)){
-			echo2("Starting......: VPS server: shutdown $ethL");
+			echo2("Starting......: ".date("H:i:s")." VPS server: shutdown $ethL");
 			shell_exec("$ifconfig $ethL down >/dev/null 2>&1");
 			continue;
 		}
 		
 		if(preg_match("#vlan#",$ethL)){
-			echo2("Starting......: VPS server: shutdown $ethL");
+			echo2("Starting......: ".date("H:i:s")." VPS server: shutdown $ethL");
 			shell_exec("$ifconfig $ethL down >/dev/null 2>&1");
 			continue;
 		}	
 
-		echo2("Starting......: VPS server: keep $ethL");
+		echo2("Starting......: ".date("H:i:s")." VPS server: keep $ethL");
 		
 	}
 	
@@ -187,20 +190,20 @@ function uninstall_bridge(){
 	exec("$ip route 2>&1",$results);
 	while (list ($index, $line) = each ($results)){
 		if(preg_match("#dev $breth#",$line)){
-			echo2("Starting......: VPS server: remove route $line");
+			echo2("Starting......: ".date("H:i:s")." VPS server: remove route $line");
 			shell_exec("$ip route del $line");
 		}
 	}
 	
 	$nets=new system_nic();
 	if($users->AS_DEBIAN_FAMILY){
-		echo2("Starting......: VPS server: reconfigure network (debian mode)");
+		echo2("Starting......: ".date("H:i:s")." VPS server: reconfigure network (debian mode)");
 		$datas=$nets->root_build_debian_config();
 		@file_put_contents("/etc/network/interfaces",$datas);	
 		$unix->NETWORK_DEBIAN_RESTART();
 		return;	
 	}
-	echo2("Starting......: VPS server: reconfigure network (redhat mode)");
+	echo2("Starting......: ".date("H:i:s")." VPS server: reconfigure network (redhat mode)");
 	$nets->root_build_redhat_config();
 	$unix->NETWORK_REDHAT_RESTART();
 	
@@ -210,7 +213,7 @@ function uninstall_bridge(){
 
 function install_bridge(){
 	@unlink("/usr/share/artica-postfix/ressources/logs/vserver.daemon.log");
-	echo2("Starting......: VPS server: install bridge");
+	echo2("Starting......: ".date("H:i:s")." VPS server: install bridge");
 	
 	
 	
@@ -226,21 +229,21 @@ function install_bridge(){
 	$ifconfig=$unix->find_program("ifconfig");
 	
 	$brctl=$unix->find_program("brctl");
-	if(!is_file($brctl)){echo2("Starting......: VPS server:$breth brctl no such binary");return;}
+	if(!is_file($brctl)){echo2("Starting......: ".date("H:i:s")." VPS server:$breth brctl no such binary");return;}
 	$ifdown=$unix->find_program("ifdown");
 	$lxcstart=$unix->find_program("lxc-start");
-	if(!is_file($lxcstart)){echo2("Starting......: VPS server:$breth lx-start no such binary");return;}
-	if($LXCINterface==null){echo2("Starting......: VPS server:$breth no interface set...");return;}
+	if(!is_file($lxcstart)){echo2("Starting......: ".date("H:i:s")." VPS server:$breth lx-start no such binary");return;}
+	if($LXCINterface==null){echo2("Starting......: ".date("H:i:s")." VPS server:$breth no interface set...");return;}
 	$nics=new system_nic();
 	
-	echo2("Starting......: VPS server: $breth interface \"$LXCINterface\" set...");
+	echo2("Starting......: ".date("H:i:s")." VPS server: $breth interface \"$LXCINterface\" set...");
 	if(!$nics->CreateLXCBridge($LXCINterface,$breth)){
-		echo2("Starting......: VPS server: $breth CreateLXCBridge() failed");
+		echo2("Starting......: ".date("H:i:s")." VPS server: $breth CreateLXCBridge() failed");
 		return;
 	}
 		
 		
-	echo2("Starting......: VPS server: lock Artica Interface");
+	echo2("Starting......: ".date("H:i:s")." VPS server: lock Artica Interface");
 	$sock->SET_INFO("LXCEthLocked",1);
 	$sock->SET_INFO("LXCEnabled",1);
 	$sock->SET_INFO("LXCBridged",1);
@@ -249,26 +252,26 @@ function install_bridge(){
 	$q->QUERY_SQL($sql,"artica_backup");
 	$sql="UPDATE nics_vlan SET nic='$breth' WHERE nic='$LXCINterface'";
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo2("Starting......: VPS server: mysql error $q->mysql_error");}
-	echo2("Starting......: VPS server: $breth linking bridge");
+	if(!$q->ok){echo2("Starting......: ".date("H:i:s")." VPS server: mysql error $q->mysql_error");}
+	echo2("Starting......: ".date("H:i:s")." VPS server: $breth linking bridge");
 	preup_checkbridgre($breth,$LXCINterface);
-    echo2("Starting......: VPS server: $breth linking bridge done..");
+    echo2("Starting......: ".date("H:i:s")." VPS server: $breth linking bridge done..");
 	$nicsAll=ifconfiglisteth();
-	echo2("Starting......: VPS server: $breth ".count($nicsAll)." Listed interface(s)");
+	echo2("Starting......: ".date("H:i:s")." VPS server: $breth ".count($nicsAll)." Listed interface(s)");
 	while (list ($ethL, $eth2) = each ($nicsAll)){
 		if(preg_match("#$LXCINterface#",$ethL)){
-			echo2("Starting......: VPS server: shutdown $ethL");
+			echo2("Starting......: ".date("H:i:s")." VPS server: shutdown $ethL");
 			shell_exec("$ifconfig $ethL down >/dev/null 2>&1");
 			continue;
 		}
 		if(preg_match("#vlan#",$ethL)){
-			echo2("Starting......: VPS server: shutdown $ethL");
+			echo2("Starting......: ".date("H:i:s")." VPS server: shutdown $ethL");
 			shell_exec("$ifconfig $ethL down >/dev/null 2>&1");
 			continue;
 		}
 
 		
-		echo2("Starting......: VPS server: keep $ethL");
+		echo2("Starting......: ".date("H:i:s")." VPS server: keep $ethL");
 		
 	}		
 	
@@ -276,11 +279,11 @@ function install_bridge(){
 	
 	$nets=new system_nic();
 	if($users->AS_DEBIAN_FAMILY){
-		echo2("Starting......: VPS server: Building network configuration (debian mode)");
+		echo2("Starting......: ".date("H:i:s")." VPS server: Building network configuration (debian mode)");
 		$datas=$nets->root_build_debian_config();
 		@file_put_contents("/etc/network/interfaces",$datas);
 	}else{
-		echo2("Starting......: VPS server: Building network configuration (redhat mode)");
+		echo2("Starting......: ".date("H:i:s")." VPS server: Building network configuration (redhat mode)");
 		$nets->root_build_redhat_config();
 	}
 	
@@ -288,7 +291,7 @@ function install_bridge(){
 	exec("$ip route 2>&1",$results);
 	while (list ($index, $line) = each ($results)){
 		if(preg_match("#dev $LXCINterface#",$line)){
-			echo2("Starting......: VPS server: remove route $line");
+			echo2("Starting......: ".date("H:i:s")." VPS server: remove route $line");
 			shell_exec("$ip route del $line");
 		}
 	}
@@ -306,7 +309,7 @@ function install_bridge(){
 }
 
 function shell_exec2($cmd){
-	if($GLOBALS["VERBOSE"]){echo2("Starting......: VPS server: executing \"$cmd\"");}
+	if($GLOBALS["VERBOSE"]){echo2("Starting......: ".date("H:i:s")." VPS server: executing \"$cmd\"");}
 	shell_exec($cmd);
 	
 }
@@ -319,12 +322,12 @@ function _IfRouteExists($GATEWAY,$interface){
 	exec("$routebin 2>&1",$results);
 	while (list ($index, $line) = each ($results)){
 		if(preg_match("#$GATEWAY_PATTERN.+?$interface$#",trim($line))){
-			echo2("Starting......: VPS server: Route to $GATEWAY on $interface exists");
+			echo2("Starting......: ".date("H:i:s")." VPS server: Route to $GATEWAY on $interface exists");
 			return true;
 		}
 		
 	}
-	echo2("Starting......: VPS server: Route to $GATEWAY on $interface does not exists");
+	echo2("Starting......: ".date("H:i:s")." VPS server: Route to $GATEWAY on $interface does not exists");
 	return false;
 }
 
@@ -333,13 +336,13 @@ function preup_checkbridgre($breth,$nic){
 	$brctl=$unix->find_program("brctl");
 	$ifconfig=$unix->find_program("ifconfig");	
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: VPS server:$brctl,$ifconfig\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." VPS server:$brctl,$ifconfig\n";}
 	$cmd="$brctl show 2>&1";
-	if($GLOBALS["VERBOSE"]){echo "Starting......: $cmd\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $cmd\n";}
 	exec("$cmd",$results);
 	while (list ($index, $line) = each ($results)){
 			if(preg_match("#^$breth\s+#",$line)){
-				if($GLOBALS["VERBOSE"]){echo "Starting......: $line\n";}
+				if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." $line\n";}
 				shell_exec2("$ifconfig $nic up >/dev/null 2>&1");
 				shell_exec2("$brctl addif $breth $nic >/dev/null 2>&1");			
 				return;
@@ -359,7 +362,7 @@ function CheckBridge($breth,$noloop=false,$restart_interfaces=false){
 	$unix=new unix();
 	$brctl=$unix->find_program("brctl");
 	if(!is_file($brctl)){
-		echo2("Starting......: VPS server: brctl no such file");
+		echo2("Starting......: ".date("H:i:s")." VPS server: brctl no such file");
 		return false;
 	}
 	
@@ -367,7 +370,7 @@ function CheckBridge($breth,$noloop=false,$restart_interfaces=false){
 	
 		while (list ($index, $line) = each ($results)){
 			if(preg_match("#^$breth\s+#",$line)){
-				echo2("Starting......: VPS server: $breth OK");
+				echo2("Starting......: ".date("H:i:s")." VPS server: $breth OK");
 				$found=true;
 			}
 		}
@@ -375,7 +378,7 @@ function CheckBridge($breth,$noloop=false,$restart_interfaces=false){
 	if($found){return true;}
 	shell_exec("$brctl addbr $breth");
 	if($restart_interfaces){$unix->NETWORK_DEBIAN_RESTART();CheckLxcMaster();}
-	echo2("Starting......: VPS server: Adding $breth");
+	echo2("Starting......: ".date("H:i:s")." VPS server: Adding $breth");
 	if(!$noloop){return CheckBridge($breth,true);}
 	
 	
@@ -402,7 +405,7 @@ function vps_servers_watchdogs(){
 
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=@file_get_contents($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){echo2("Starting......: VPS server: Watchdog, Already instance executed $pid");return;}	
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){echo2("Starting......: ".date("H:i:s")." VPS server: Watchdog, Already instance executed $pid");return;}	
 	$pid=getmypid();
 	@file_put_contents($pidfile,$pid);		
 	
@@ -416,7 +419,7 @@ function vps_servers_watchdogs(){
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!function_exists("mysql_fetch_array")){
-		if($GLOBALS["VERBOSE"]){echo2("Starting......: VPS server: mysql_fetch_array no such function");}
+		if($GLOBALS["VERBOSE"]){echo2("Starting......: ".date("H:i:s")." VPS server: mysql_fetch_array no such function");}
 		return;
 	}	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -439,7 +442,7 @@ function vps_servers_status(){
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!function_exists("mysql_fetch_array")){
-		if($GLOBALS["VERBOSE"]){echo2("Starting......: VPS server: mysql_fetch_array no such function");}
+		if($GLOBALS["VERBOSE"]){echo2("Starting......: ".date("H:i:s")." VPS server: mysql_fetch_array no such function");}
 		return;
 	}
 	
@@ -555,12 +558,12 @@ function vps_servers_check(){
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
 	if($unix->process_exists($pid)){
-		echo2("Starting......: VPS server: Already instance executed $pid");
+		echo2("Starting......: ".date("H:i:s")." VPS server: Already instance executed $pid");
 		return;
 	}
 	
 	$lxccreate=$unix->find_program("lxc-create");
-	if(!is_file($lxccreate)){echo2("Starting......: VPS server: lxc-create no such file");return;}
+	if(!is_file($lxccreate)){echo2("Starting......: ".date("H:i:s")." VPS server: lxc-create no such file");return;}
 	
 	$pid=getmypid();
 	@file_put_contents($pidfile,$pid);
@@ -569,13 +572,13 @@ function vps_servers_check(){
 	$sock=new sockets();
 	$LXCVpsDir=$sock->GET_INFO("LXCVpsDir");
 	if($LXCVpsDir==null){$LXCVpsDir="/home/vps-servers";}
-	echo2("Starting......: VPS server: directory $LXCVpsDir");
+	echo2("Starting......: ".date("H:i:s")." VPS server: directory $LXCVpsDir");
 	$sql="SELECT * FROM lxc_machines WHERE enabled=1";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo2("Starting......: VPS server: $q->mysql_error");}
+	if(!$q->ok){echo2("Starting......: ".date("H:i:s")." VPS server: $q->mysql_error");}
 	
-	echo2("Starting......: VPS server: ". mysql_num_rows($results). " server(s) to check");
+	echo2("Starting......: ".date("H:i:s")." VPS server: ". mysql_num_rows($results). " server(s) to check");
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$ID=$ligne["ID"];
@@ -614,7 +617,7 @@ function vps_server_check_single($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid)){echo2("Starting......: VPS server: vps-$ID: Already instance executed $pid");return;}	
+	if($unix->process_exists($pid)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Already instance executed $pid");return;}	
 	$pid=getmypid();
 	@file_put_contents($pidfile,$pid);
 	
@@ -623,7 +626,7 @@ function vps_server_check_single($ID){
 	$LXCVpsDir=root_directory();
 	$rootfs="$root/rootfs";
 	$lxccreate=$unix->find_program("lxc-create");
-	if(!is_file($lxccreate)){echo2("Starting......: VPS server: lxc-create no such file");return;}	
+	if(!is_file($lxccreate)){echo2("Starting......: ".date("H:i:s")." VPS server: lxc-create no such file");return;}	
 	
 	
 	$q=new mysql();
@@ -632,7 +635,7 @@ function vps_server_check_single($ID){
 	$computer=$ligne["machine_name"];
 	$enabled=$ligne["enabled"];
 	if($ligne["template"]==null){$ligne["template"]="squeeze-i386";}
-	echo2("Starting......: VPS server: vps-$ID: state: \"{$ligne["state"]}\"");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: state: \"{$ligne["state"]}\"");
 	
 		
 	if($ligne["state"]=="create"){
@@ -655,11 +658,11 @@ function vps_server_check_single($ID){
 		
 	if(preg_match("#dup:([0-9]+)#",$ligne["state"],$re)){
 		$q->QUERY_SQL("UPDATE lxc_machines SET `state`='configure' WHERE ID='$ID'","artica_backup");
-		echo2("Starting......: VPS server: vps-$ID: duplicating {$re[1]} -> $ID");
+		echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: duplicating {$re[1]} -> $ID");
 		duplicate_vps($re[1],$ligne["ID"]);
 		
 	}
-	echo2("Starting......: VPS server: vps-$ID: {$ligne["state"]} Done...");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: {$ligne["state"]} Done...");
 			
 }
 
@@ -670,7 +673,7 @@ function artica_install_vps($ID){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
 		$pid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($pid)){echo2("Starting......: VPS server: vps-$ID: Already instance executed $pid");return;}	
+		if($unix->process_exists($pid)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Already instance executed $pid");return;}	
 		$pid=getmypid();
 		@file_put_contents($pidfile,$pid);		
 		$chroot=$unix->find_program("chroot");
@@ -700,7 +703,7 @@ function create_vps($ID){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
 		$pid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($pid)){echo2("Starting......: VPS server: vps-$ID: Already instance executed $pid");return;}	
+		if($unix->process_exists($pid)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Already instance executed $pid");return;}	
 		$pid=getmypid();
 		@file_put_contents($pidfile,$pid);		
 		
@@ -715,23 +718,23 @@ function create_vps($ID){
 		$tar=$unix->find_program("tar");
 		$q->QUERY_SQL("UPDATE lxc_machines SET `events`='10%' WHERE ID='$ID'","artica_backup");
 		if(!is_file($lxccreate)){
-			echo2("Starting......: VPS server: lxc-create no such binary");
+			echo2("Starting......: ".date("H:i:s")." VPS server: lxc-create no such binary");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `state`='failed' WHERE ID='$ID'","artica_backup");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `events`='lxc-create no such binary' WHERE ID='$ID'","artica_backup");
 			return;
 		}	
 
 		if(!is_file($tar)){
-			echo2("Starting......: VPS server: tar no such binary");
+			echo2("Starting......: ".date("H:i:s")." VPS server: tar no such binary");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `state`='failed' WHERE ID='$ID'","artica_backup");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `events`='tar no such binary' WHERE ID='$ID'","artica_backup");
 			return;
 		}			
 		$q->QUERY_SQL("UPDATE lxc_machines SET `events`='50%' WHERE ID='$ID'","artica_backup");
-		echo2("Starting......: VPS server: vps-$ID: Installing template $template");
+		echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Installing template $template");
 		$q->QUERY_SQL("UPDATE lxc_machines SET `events`='Installing template $template' WHERE ID='$ID'","artica_backup");
 		if(!is_file("$LXCVpsDir/templates/$template")){
-			echo2("Starting......: VPS server: vps-$ID: $LXCVpsDir/templates/$template no such file");
+			echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: $LXCVpsDir/templates/$template no such file");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `events`='$LXCVpsDir/templates/$template no such file' WHERE ID='$ID'","artica_backup");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `state`='failed' WHERE ID='$ID'","artica_backup");
 			return;
@@ -739,16 +742,16 @@ function create_vps($ID){
 	
 		
 		@mkdir($rootfs,true,644);
-		echo2("Starting......: VPS server: vps-$ID: extracting \"$LXCVpsDir/templates/$template to $rootfs\"");
+		echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: extracting \"$LXCVpsDir/templates/$template to $rootfs\"");
 		shell_exec("$tar -xf $LXCVpsDir/templates/$template -C $rootfs/");
 		$q->QUERY_SQL("UPDATE lxc_machines SET `events`='80%' WHERE ID='$ID'","artica_backup");
-		echo2("Starting......: VPS server: vps-$ID: extracting success..");
+		echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: extracting success..");
 		
 		$lxccreate_array=array();
 		buildconfig($ID);
 		
 		if(!is_file("$workingdirectory/config")){
-			echo2("Starting......: VPS server: vps-$ID: $workingdirectory/config no such file");
+			echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: $workingdirectory/config no such file");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `events`='$workingdirectory/config no such file' WHERE ID='$ID'","artica_backup");
 			$q->QUERY_SQL("UPDATE lxc_machines SET `state`='failed' WHERE ID='$ID'","artica_backup");
 			return;
@@ -761,7 +764,7 @@ function create_vps($ID){
 		}
 		$q->QUERY_SQL("UPDATE lxc_machines SET `events`='100%' WHERE ID='$ID'","artica_backup");
 		
-		while (list ($num, $ligne) = each ($lxccreate_array) ){echo2("Starting......: VPS server: vps-$ID:$ligne");}
+		while (list ($num, $ligne) = each ($lxccreate_array) ){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID:$ligne");}
 		$q->QUERY_SQL("UPDATE lxc_machines SET `state`='installed' WHERE ID='$ID'","artica_backup");
 		$q->QUERY_SQL("UPDATE lxc_machines SET `events`='100%' WHERE ID='$ID'","artica_backup");
 	
@@ -771,7 +774,7 @@ function delete_vps($ID){
 	$workingdirectory=root_directory($ID);
 	$unix=new unix();
 	$lxc_destroy=$unix->find_program("lxc-destroy");
-	echo2("Starting......: VPS server: vps-$ID: unlink");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: unlink");
 	shell_exec("$lxc_destroy -n vps-$ID");
 	if(is_dir($workingdirectory)){shell_exec("/bin/rm -rf $workingdirectory");}
 	$q=new mysql();
@@ -869,17 +872,17 @@ shell_exec("mknod -m 666 $rootfs/dev/ptmx c 5");
 	
 	
 	
-	echo2("Starting......: VPS server: vps-$ID: changing hostname {$ligne["hostname"]}");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: changing hostname {$ligne["hostname"]}");
 	@file_put_contents("$rootfs/etc/hostname",$ligne["hostname"]);
 	
 	$rootpwd=$ligne["rootpwd"];
 	if(trim($rootpwd)==null){$rootpwd="root";}
 	$rootpwd=$unix->shellEscapeChars($rootpwd);
 	$chroot=$unix->find_program("chroot");
-	echo2("Starting......: VPS server: vps-$ID: changing root password");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: changing root password");
 	$results=array();
 	exec("echo \"root:$rootpwd\" | $chroot $rootfs chpasswd 2>&1",$results);
-	while (list ($num, $ligne) = each ($results) ){echo2("Starting......: VPS server: vps-$ID: $ligne");}
+	while (list ($num, $ligne) = each ($results) ){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: $ligne");}
 	
 	
 	@mkdir("$rootfs/etc/artica-postfix",true,644);
@@ -907,10 +910,10 @@ shell_exec("mknod -m 666 $rootfs/dev/ptmx c 5");
 	if(strlen($sftp_server)>5){	$ssh[]="Subsystem   sftp  $sftp_server";} 
 	writelogs("Writing $rootfs/etc/ssh/sshd_config",__FUNCTION__,__FILE__,__LINE__);
 	@file_put_contents("$rootfs/etc/ssh/sshd_config",@implode("\n",$ssh));
-	echo2("Starting......: VPS server: vps-$ID: changing sshd_config done");	
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: changing sshd_config done");	
 
 	
-echo2("Starting......: VPS server: vps-$ID: configuring done...");	
+echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: configuring done...");	
 }
 
 function LOCATE_SFTP_SERVER($rootfs){
@@ -970,40 +973,40 @@ function vps_start($ID){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
 		$pid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($pid)){echo2("Starting......: VPS server: vps-$ID: Already instance executed $pid");return;}	
+		if($unix->process_exists($pid)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Already instance executed $pid");return;}	
 		$pid=getmypid();
 		@file_put_contents($pidfile,$pid);		
 	
 	
-	if(vps_running($ID)){echo2("Starting......: VPS server: vps-$ID: Already running");return;}
+	if(vps_running($ID)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Already running");return;}
 	CheckLxcMaster();
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}	
 	$lxcstart=$GLOBALS["CLASS_UNIX"]->find_program("lxc-start");
 	$workingdirectory=root_directory($ID);
-	echo2("Starting......: VPS server: vps-$ID:....");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID:....");
 	buildconfig($ID);
 	if(is_file("$workingdirectory/start.log")){@unlink("$workingdirectory/start.log");}
 	$cmd="$lxcstart -n vps-$ID -d -o $workingdirectory/start.log";
-	if($GLOBALS["VERBOSE"]){echo2("Starting......: VPS server: vps-$ID: WAITFOR `$cmd`");}
+	if($GLOBALS["VERBOSE"]){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: WAITFOR `$cmd`");}
 	shell_exec($cmd);
 	for($i=0;$i<10;$i++){if(vps_running($ID)){break;}sleep(1);}
-	if(vps_running($ID)){echo2("Starting......: VPS server: vps-$ID: success");return;}
-	echo2("Starting......: VPS server: vps-$ID: failed");
+	if(vps_running($ID)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: success");return;}
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: failed");
 	
 }
 function vps_freeze($ID){
-	if(!vps_running($ID)){echo2("Starting......: VPS server: vps-$ID: Not running");return;}
+	if(!vps_running($ID)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: Not running");return;}
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}	
 	$lxcfreeze=$GLOBALS["CLASS_UNIX"]->find_program("lxc-freeze");
 	$workingdirectory=root_directory($ID);
-	echo2("Starting......: VPS server: vps-$ID: freeze....");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: freeze....");
 	shell_exec("$lxcfreeze -n vps-$ID");
 	
 }
 function vps_unfreeze($ID){
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}	
 	$lxcfreeze=$GLOBALS["CLASS_UNIX"]->find_program("lxc-unfreeze");
-	echo2("Starting......: VPS server: vps-$ID: unfreeze....");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: unfreeze....");
 	shell_exec("$lxcfreeze -n vps-$ID");	
 }
 
@@ -1011,10 +1014,10 @@ function vps_restart($ID){
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}	
 	if(!vps_running($ID)){vps_start($ID);return;}
 	$workingdirectory=root_directory($ID);
-	echo2("Starting......: VPS server: vps-$ID: restarting");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$ID: restarting");
 	$lxcrestart=$GLOBALS["CLASS_UNIX"]->find_program("lxc-restart");
 	exec("$lxcrestart -n vps-$ID -d $workingdirectory  -o $workingdirectory/start.log 2>&1",$results);
-	while (list ($index, $line) = each ($results)){echo2("Starting......: VPS server: $line");}
+	while (list ($index, $line) = each ($results)){echo2("Starting......: ".date("H:i:s")." VPS server: $line");}
 
 }
 
@@ -1025,7 +1028,7 @@ function duplicate_vps($from_id,$to_id){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$from_id.$to_id.pid";
 	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($pid)){echo2("Starting......: VPS server: vps-$to_id: Already instance executed $pid");return;}	
+	if($unix->process_exists($pid)){echo2("Starting......: ".date("H:i:s")." VPS server: vps-$to_id: Already instance executed $pid");return;}	
 	$pid=getmypid();
 	@file_put_contents($pidfile,$pid);		
 	
@@ -1033,7 +1036,7 @@ function duplicate_vps($from_id,$to_id){
 	$source_dir=root_directory($from_id);
 	$destdir=root_directory($to_id);
 	@mkdir($destdir);
-	echo2("Starting......: VPS server: vps-$to_id: copying $source_dir to $source_dir");
+	echo2("Starting......: ".date("H:i:s")." VPS server: vps-$to_id: copying $source_dir to $source_dir");
 	shell_exec("/bin/cp -rf $source_dir/* $destdir/");
 	buildconfig($to_id);
 	$q->QUERY_SQL("UPDATE lxc_machines SET `state`='installed' WHERE ID='$to_id'","artica_backup");

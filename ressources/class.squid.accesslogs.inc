@@ -54,7 +54,7 @@ class accesslogs{
 			$proxy=$array["PROXY"]."[$ipprox]&nbsp;,";
 		}
 		$ident[]="<a href=\"javascript:blur()\"
-				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$ip');\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$ip',true);\"
 				style='text-decoration:underline;color:$color'>$ip</a>";;
 	
 		if($user=="-"){$user=null;}
@@ -109,18 +109,18 @@ class accesslogs{
 		if($user<>null){
 			if($tcp->isValid($user)){
 				$ident[]="<a href=\"javascript:blur()\"
-				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$user');\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&ipaddr=$user',true);\"
 				style='text-decoration:underline;color:$color'>$user</a>";
 			}else{
 				$ident[]="<a href=\"javascript:blur()\"
-				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&uid=$user');\"
+				OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&uid=$user',true);\"
 				style='text-decoration:underline;color:$color'>$user</a>";
 			}
 		}
 	
 		if($mac<>null){
 			$ident[]="<a href=\"javascript:blur()\"
-			OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac');\"
+			OnClick=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$mac',true);\"
 			style='text-decoration:underline;color:$color'>$mac</a>";
 				
 		}
@@ -132,7 +132,7 @@ class accesslogs{
 			$uriT = htmlentities($uriT);
 			$uriT = nl2br($uriT);
 			$uriT=str_replace($host, "<a href=\"javascript:blur()\"
-					OnClick=\"javascript:Loadjs('miniadm.webstats.familysite.all.php?familysite=$host');\"
+					OnClick=\"javascript:Loadjs('miniadm.webstats.familysite.all.php?familysite=$host',true);\"
 					style='text-decoration:underline;color:$color'>$host</a>", $uriT);
 			
 			return "<tr class='$trclass'>

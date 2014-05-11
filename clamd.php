@@ -18,6 +18,10 @@ include_once('ressources/class.templates.inc');
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["ClamavStreamMaxLength"])){save();exit;}
 	if(isset($_GET["clamd-graphs"])){clamd_graphs();exit;}
+	if(isset($_GET["graph1"])){clamd_graphs1();exit;}
+	if(isset($_GET["graph2"])){clamd_graphs2();exit;}
+	if(isset($_GET["graph3"])){clamd_graphs3();exit;}
+	if(isset($_GET["graph4"])){clamd_graphs4();exit;}
 	
 js();
 
@@ -63,8 +67,70 @@ function js(){
 	
 }
 
-
 function clamd_graphs(){
+	$page=CurrentPageName();
+	$ff=time();
+	$html="
+	<div id='graph1-$ff' style='width:99%;height:450px'></div>
+	<div id='graph2-$ff' style='width:99%;height:450px'></div>
+	<div id='graph3-$ff' style='width:99%;height:450px'></div>
+	<div id='graph4-$ff' style='width:99%;height:450px'></div>
+	</tr>
+	</table>
+	
+	<script>
+	AnimateDiv('graph-$ff');
+	AnimateDiv('graph2-$ff');
+	AnimateDiv('graph3-$ff');
+	AnimateDiv('graph4-$ff');
+	Loadjs('$page?graph1=yes&container=graph1-$ff');
+	Loadjs('$page?graph2=yes&container=graph2-$ff');
+	Loadjs('$page?graph3=yes&container=graph3-$ff');
+	Loadjs('$page?graph4=yes&container=graph4-$ff');
+	
+	</script>";
+	
+	echo $html;
+	
+}
+
+function clamd_graphs2(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql();
+	$sql="SELECT AVG(rss) as rss,AVG(vm) as vm,MINUTE(zDate) as tdate,DATE_FORMAT(zDate,'%Y-%m-%d %H:%i') as tdar FROM clamd_mem WHERE zDate<DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i') GROUP BY tdar";
+	$results=$q->QUERY_SQL($sql,"artica_events");
+
+
+
+	if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$xdata[]=$ligne["tdate"];
+		$xdata2[]=$ligne["tdate"];
+		$ydata[]=$ligne["rss"];
+		$ydata2[]=$ligne["vm"];
+	}
+
+
+	$title="{memory} VM";
+	$timetext="{minutes}";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title=$title;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->yAxisTtitle="{minutes}";
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix=date("H")."h";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->datas=array("{VM}"=>$ydata2);
+	echo $highcharts->BuildChart();
+	return;
+}
+
+
+function clamd_graphs1(){
 	$tpl=new templates();	
 	$page=CurrentPageName();
 	$q=new mysql();	
@@ -81,30 +147,75 @@ function clamd_graphs(){
 		$ydata2[]=$ligne["vm"];
 	}
 	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".clamd.1.". date('Y-m-d-H').".png";
-	$gp=new artica_graphs();
-	$gp->width=550;
-	$gp->height=350;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->xdata2=$xdata2;
-	$gp->ydata2=$ydata2;	
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{minutes}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
-
-	$gp->line_green_double();
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);return;}	
-	echo "<img src='$targetedfile' style='margin:5px'>";
 	
-	$sql="SELECT AVG(rss) as rss,AVG(vm) as vm,HOUR(zDate) as tdate,DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdar FROM clamd_mem WHERE 
+	$title="{memory} RSS";
+	$timetext="{minutes}";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title=$title;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->yAxisTtitle="{minutes}";
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix=date("H")."h";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->datas=array("{rss}"=>$ydata);
+	echo $highcharts->BuildChart();
+}
+
+function clamd_graphs3(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql();
+	
+
+$sql="SELECT AVG(rss) as rss,AVG(vm) as vm,HOUR(zDate) as tdate,DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdar FROM clamd_mem WHERE
+	zDate=DATE_FORMAT(NOW(),'%Y-%m-%d') GROUP BY tdar";
+$results=$q->QUERY_SQL($sql,"artica_events");
+
+$xdata=array();
+$xdata2=array();
+$ydata=array();
+$ydata2=array();
+
+if(!$q->ok){echo "<H2>$q->mysql_error</H2><center style='font-size:11px'><code>$sql</code></center>";}
+while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+	$xdata[]=$ligne["tdate"];
+	$xdata2[]=$ligne["tdate"];
+	$ydata[]=$ligne["rss"];
+	$ydata2[]=$ligne["vm"];
+}
+
+
+$title="{memory} RSS";
+$timetext="{hours}";
+$highcharts=new highcharts();
+$highcharts->container=$_GET["container"];
+$highcharts->xAxis=$xdata;
+$highcharts->Title=$title;
+$highcharts->TitleFontSize="14px";
+$highcharts->AxisFontsize="12px";
+$highcharts->yAxisTtitle="{hours}";
+$highcharts->xAxis_labels=false;
+$highcharts->LegendPrefix=date("H")."h";
+$highcharts->xAxisTtitle=$timetext;
+$highcharts->datas=array("{rss}"=>$ydata);
+echo $highcharts->BuildChart();
+
+	
+}
+
+function clamd_graphs4(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$q=new mysql();
+
+
+	$sql="SELECT AVG(rss) as rss,AVG(vm) as vm,HOUR(zDate) as tdate,DATE_FORMAT(zDate,'%Y-%m-%d %H') as tdar FROM clamd_mem WHERE
 	zDate=DATE_FORMAT(NOW(),'%Y-%m-%d') GROUP BY tdar";
 	$results=$q->QUERY_SQL($sql,"artica_events");
-	
+
 	$xdata=array();
 	$xdata2=array();
 	$ydata=array();
@@ -117,56 +228,60 @@ function clamd_graphs(){
 		$ydata[]=$ligne["rss"];
 		$ydata2[]=$ligne["vm"];
 	}
-	
-	$targetedfile="ressources/logs/".basename(__FILE__).".".__FUNCTION__.".clamd.2.". date('Y-m-d-H').".png";
-	$gp=new artica_graphs();
-	$gp->width=550;
-	$gp->height=350;
-	$gp->filename="$targetedfile";
-	$gp->xdata=$xdata;
-	$gp->ydata=$ydata;
-	$gp->xdata2=$xdata2;
-	$gp->ydata2=$ydata2;	
-	$gp->y_title=null;
-	$gp->x_title=$tpl->_ENGINE_parse_body("{hours}");
-	$gp->title=null;
-	$gp->margin0=true;
-	$gp->Fillcolor="blue@0.9";
-	$gp->color="146497";
 
-	$gp->line_green_double();
-	if(!is_file($targetedfile)){writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);return;}	
-	echo "<img src='$targetedfile' style='margin:5px'>";	
-	
+
+	$title="{memory} VM";
+	$timetext="{hours}";
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->Title=$title;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->yAxisTtitle="{hours}";
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix=date("H")."h";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->datas=array("{vm}"=>$ydata);
+	echo $highcharts->BuildChart();
+
+
 }
-	
-
 
 function tabs(){
 	$tpl=new templates();	
 	$page=CurrentPageName();
-	$array["status"]='{status}';
+	$GLOBALS["CLASS_SOCKETS"]=new sockets();
+
+	
+	$EnableClamavDaemon=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableClamavDaemon");
+	if(!is_numeric($EnableClamavDaemon)){$EnableClamavDaemon=0;}
+	
+	$EnableClamavDaemonForced=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableClamavDaemonForced");
+	if(!is_numeric($EnableClamavDaemonForced)){$EnableClamavDaemonForced=0;}
+	if($EnableClamavDaemonForced==1){$EnableClamavDaemon=1;}
+	$CicapEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("CicapEnabled");
+	$SQUIDEnable=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("SQUIDEnable");
+	if($SQUIDEnable==1){if($CicapEnabled==1){$EnableClamavDaemon=1;}}
+	
+	if($EnableClamavDaemon==1){
+		$array["status"]='{status}';
+	}
 	$array["popup"]='{parameters}';
 	$array["clamav_unofficial"]='{clamav_unofficial}';
+	
+	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="clamav_unofficial"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"clamav.unofficial.php?popup=yes\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"clamav.unofficial.php?popup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_clamav style='width:100%;height:700px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_clamav\").tabs();});
-		</script>";		
-	
+	echo build_artica_tabs($html, "main_config_clamav");
 }
 
 
@@ -192,6 +307,7 @@ function scan_engine_settings(){
 	if(!is_numeric($ClamavMaxScanSize)){$ClamavMaxScanSize="15";}
 	if(!is_numeric($ClamavMaxFileSize)){$ClamavMaxFileSize="20";}
 	
+	$hoursEX[0]="{never}";
 	$hoursEX[15]="15 {minutes}";
 	$hoursEX[30]="30 {minutes}";
 	$hoursEX[60]="1 {hour}";
@@ -204,64 +320,64 @@ function scan_engine_settings(){
 	
 	
 	
-	<div id='ffmcc3'>
-	<table style='width:99%' class=form>
+	<div id='ffmcc3' class=form style='width:95%'>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend>{srv_clamav.RefreshDaemon}:</td>
-		<td style=';font-size:13px'>" . Field_array_Hash($hoursEX,"ClamavRefreshDaemonTime",$ClamavRefreshDaemonTime,'style:font-size:13px;padding:3px')."</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.RefreshDaemon}:</td>
+		<td style=';font-size:18px'>" . Field_array_Hash($hoursEX,"ClamavRefreshDaemonTime",$ClamavRefreshDaemonTime,'style:font-size:18px;padding:3px')."</td>
 		<td>" . help_icon('{srv_clamav.RefreshDaemon_text}')."</td>
 	</tr>
 	<tr>
-		<td class=legend>{refresh_daemon_MB}:</td>
-		<td style=';font-size:13px'>" . Field_text("ClamavRefreshDaemonMemory",$ClamavRefreshDaemonMemory,'style:font-size:13px;padding:3px;width:50px')."&nbsp;MB</td>
+		<td class=legend style='font-size:18px'>{refresh_daemon_MB}:</td>
+		<td style=';font-size:18px'>" . Field_text("ClamavRefreshDaemonMemory",$ClamavRefreshDaemonMemory,'font-size:18px;padding:3px;width:110px')."&nbsp;MB</td>
 		<td>" . help_icon('{srv_clamav.ClamavRefreshDaemonMemory}')."</td>
 	</tr>			
 	<tr>
-		<td class=legend>{srv_clamav.StreamMaxLength}:</td>
-		<td style=';font-size:13px'>" . Field_text('ClamavStreamMaxLength',$ClamavStreamMaxLength,'width:30px;font-size:13px;padding:3px')."&nbsp;M</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.StreamMaxLength}:</td>
+		<td style=';font-size:18px'>" . Field_text('ClamavStreamMaxLength',$ClamavStreamMaxLength,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
 		<td>" . help_icon('{srv_clamav.StreamMaxLength_text}')."</td>
 	</tr>
 	<tr>
-		<td class=legend>{srv_clamav.MaxObjectSize}:</td>
-		<td style=';font-size:13px'>" . Field_text('ClamavMaxFileSize',$ClamavMaxFileSize,'width:30px;font-size:13px;padding:3px')."&nbsp;M</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.MaxObjectSize}:</td>
+		<td style=';font-size:18px'>" . Field_text('ClamavMaxFileSize',$ClamavMaxFileSize,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
 		<td>" . help_icon('{srv_clamav.MaxObjectSize_text}')."</td>
 	</tr>
 	
 	<tr>
-		<td class=legend>{srv_clamav.MaxScanSize}:</td>
-		<td style=';font-size:13px'>" . Field_text('ClamavMaxScanSize',$ClamavMaxScanSize,'width:30px;font-size:13px;padding:3px')."&nbsp;M</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.MaxScanSize}:</td>
+		<td style=';font-size:18px'>" . Field_text('ClamavMaxScanSize',$ClamavMaxScanSize,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
 		<td>" . help_icon('{srv_clamav.MaxScanSize_text}')."</td>
 	</tr>	
 	
 	
 
 	<tr>
-		<td class=legend>{srv_clamav.ClamAvMaxFilesInArchive}:</td>
-		<td style=';font-size:13px'>" . Field_text('ClamavMaxFiles',$ClamavMaxFiles,'width:60px;font-size:13px;padding:3px')."&nbsp;{files}</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.ClamAvMaxFilesInArchive}:</td>
+		<td style=';font-size:18px'>" . Field_text('ClamavMaxFiles',$ClamavMaxFiles,'width:150px;font-size:18px;padding:3px')."&nbsp;{files}</td>
 		<td>" . help_icon('{srv_clamav.ClamAvMaxFilesInArchive}')."</td>
 	</tr>	
 	
 	<tr>
-		<td class=legend>{srv_clamav.MaxFileSize}:</td>
-		<td style=';font-size:13px'>" . Field_text('MaxFileSize',$ClamavMaxFileSize,'width:30px;font-size:13px;padding:3px')."&nbsp;M</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.MaxFileSize}:</td>
+		<td style=';font-size:18px'>" . Field_text('MaxFileSize',$ClamavMaxFileSize,'width:110px;font-size:18px;padding:3px')."&nbsp;M</td>
 		<td>" . help_icon('{srv_clamav.ClamAvMaxFileSizeInArchive}')."</td>
 	</tr>
 
 	<tr>
-		<td class=legend>{srv_clamav.ClamAvMaxRecLevel}:</td>
-		<td style=';font-size:13px'>" . Field_text('ClamavMaxRecursion',$ClamavMaxRecursion,'width:30px;font-size:13px;padding:3px')."</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.ClamAvMaxRecLevel}:</td>
+		<td style=';font-size:18px'>" . Field_text('ClamavMaxRecursion',$ClamavMaxRecursion,'width:110px;font-size:18px;padding:3px')."</td>
 		<td>" . help_icon('{srv_clamav.ClamAvMaxRecLevel}')."</td>
 	</tr>
 	<tr>
-		<td class=legend>{srv_clamav.PhishingScanURLs}:</td>
-		<td style=';font-size:13px'>" . Field_checkbox('PhishingScanURLs',1,$PhishingScanURLs)."</td>
+		<td class=legend style='font-size:18px'>{srv_clamav.PhishingScanURLs}:</td>
+		<td style=';font-size:18px'>" . Field_checkbox('PhishingScanURLs',1,$PhishingScanURLs)."</td>
 		<td>" . help_icon('{srv_clamav.PhishingScanURLs_text}')."</td>
 	</tr>
 	
 	
 	<tr>
 		<td colspan=3 align='right'><hr>
-		". button("{apply}","SaveClamdInfos()")."
+		". button("{apply}","SaveClamdInfos()",24)."
 			
 		</td>
 	</tr>
@@ -277,7 +393,6 @@ var X_SaveClamdInfos= function (obj) {
 
 	function SaveClamdInfos(){
 		var XHR=XHRParseElements('ffmcc3');
-		document.getElementById('ffmcc3').innerHTML='<center><img src=img/wait_verybig.gif></center>';   
 		XHR.sendAndLoad('$page', 'GET',X_SaveClamdInfos);
 	
 	}

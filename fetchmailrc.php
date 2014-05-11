@@ -49,7 +49,7 @@ function popup(){
 	$page=CurrentPageName();
 	$html="
 	<div id='$t'></div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:14px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>	

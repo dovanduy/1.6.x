@@ -2,6 +2,7 @@
 	header("Pragma: no-cache");	
 	header("Expires: 0");
 	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;}
 	header("Cache-Control: no-cache, must-revalidate");
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -11,6 +12,7 @@
 	include_once('ressources/class.ccurl.inc');
 	include_once('ressources/class.system.network.inc');
 	include_once('ressources/class.mysql.syslogs.inc');
+	
 
 	$user=new usersMenus();
 	if($user->AsSquidAdministrator==false){
@@ -30,6 +32,7 @@
 	if(isset($_GET["wizard9"])){wizard9();exit;}
 	if(isset($_GET["wizard10"])){wizard10();exit;}
 	if(isset($_GET["wizard11"])){wizard11();exit;}
+	if(isset($_GET["wizard12"])){wizard12();exit;}
 	
 	if(isset($_POST["EnableRemoteStatisticsAppliance"])){Save();exit;}
 	if(isset($_POST["SERVER"])){wizard_save();exit;}
@@ -40,6 +43,7 @@ js();
 function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body("{STATISTICS_APPLIANCE}");
 	$html="YahooWin2(689,'$page?wizard1=yes','$title')";
 	echo $html;
@@ -78,8 +82,10 @@ function wizard3(){
 	if($WizardStatsAppliance["SSL"]==1){$proto="https";}
 	$uri="$proto://{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]}/nodes.listener.php?test-connection=yes";
 	
-	$curl=new ccurl($uri);
+	$curl=new ccurl($uri,true,null,true);
 	$curl->NoHTTP_POST=true;
+	$curl->noproxyload=true;
+	
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
 	 	echo FATAL_WARNING_SHOW_128($curl->error."<hr><strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong>$deb<hr>".wizard_restart());
@@ -110,21 +116,32 @@ function wizard4(){
 	$sock=new sockets();
 	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
 	$t=$_GET["t"];
+	$VERBOSED=null;
+	$credentialsuri=null;
 	$tt=time()+rand(0,time());
-	
+	if($GLOBALS["VERBOSE"]){$VERBOSED="&verbose=yes";}
 	$cnxlog="<strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong><hr>";
 	
 	$proto="http";
 	if($WizardStatsAppliance["SSL"]==1){$proto="https";}
-	$uri="$proto://{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]}/nodes.listener.php?stats-appliance-compatibility=yes";
 	
-	$curl=new ccurl($uri);
+	$credentials["MANAGER"]=$WizardStatsAppliance["MANAGER"];
+	$credentials["PASSWORD"]=$WizardStatsAppliance["MANAGER-PASSWORD"];
+	$credentialsuri="&creds=".urlencode(base64_encode(serialize($credentials)));
+	
+	
+	$uri="$proto://{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]}/nodes.listener.php?stats-appliance-compatibility=yes&AS_DISCONNECTED={$WizardStatsAppliance["AS_DISCONNECTED"]}$credentialsuri$VERBOSED";
+	if($GLOBALS["VERBOSE"]){echo "<H1>$uri</H1>\n";}
+	$curl=new ccurl($uri,true,null,true);
 	$curl->NoHTTP_POST=true;
+	$curl->x_www_form_urlencoded=true;
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
 		echo FATAL_WARNING_SHOW_128($curl->error."<hr>$cnxlog$deb<hr>".wizard_restart());
 		return;
 	}
+	
+	if($GLOBALS["VERBOSE"]){echo "<hr>$curl->data</hr>\n";}
 	
 	if(!preg_match("#<RESULTS>(.+?)</RESULTS>#is", $curl->data,$re)){
 		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{artica_protocol_error}$deb".wizard_restart());
@@ -149,6 +166,26 @@ function wizard4(){
 		$tR[]="</table>";
 		$details=@implode("", $tR);
 	}
+	
+	if(isset($array["APP_CREDS"])){
+		if($array["APP_CREDS"]==false){
+			echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error_wrong_credentials}$details".wizard_restart());
+			return;
+			
+		}
+		
+		echo $tpl->_ENGINE_parse_body("
+				<center style='font-size:18px'>{compatible}</center>
+				<div id='$tt'></div>
+				<script>
+				LoadAjax('$tt','$page?wizard12=yes&t=$t');
+				</script>
+				");
+		return;		
+		
+		
+	}
+	
 	
 	if($array["APP_SYSLOG_DB"]==false){
 		echo FATAL_WARNING_SHOW_128("<hr>$cnxlog{error_syslogdb_not_installed}$details".wizard_restart());
@@ -187,7 +224,7 @@ function wizard5(){
 	if($WizardStatsAppliance["SSL"]==1){$proto="https";}
 	$uri="$proto://{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]}/nodes.listener.php?stats-appliance-ports=yes";
 
-	$curl=new ccurl($uri);
+	$curl=new ccurl($uri,true,null,true);
 	$curl->NoHTTP_POST=true;
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
@@ -202,7 +239,7 @@ function wizard5(){
 	
 	$html="
 	<div id='$tt'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<div class=explain style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_2}</div>
 	<table style='width:100%'>
 	<tr>
@@ -271,7 +308,7 @@ function wizard7(){
 	if($WizardStatsAppliance["SSL"]==1){$proto="https";}
 	$uri="$proto://{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]}/nodes.listener.php?stats-perform-connection=yes";
 	$cnxlog="<strong>{$WizardStatsAppliance["SERVER"]}:{$WizardStatsAppliance["PORT"]} SSL:{$WizardStatsAppliance["SSL"]}</strong><hr>";
-	$curl=new ccurl($uri);
+	$curl=new ccurl($uri,true,null,true);
 	$curl->NoHTTP_POST=true;
 	if(!$curl->get()){
 		$deb=debug_curl($curl->CURL_ALL_INFOS);
@@ -391,7 +428,42 @@ function wizard9(){
 			");	
 	
 }
+function wizard12(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	$t=$_GET["t"];
+	$tt=time()+rand(0,time());
 
+	$sock->SET_INFO("DisableLocalStatisticsTasks",0);
+	$sock->SET_INFO("EnableSquidRemoteMySQL",0);
+	$sock->SET_INFO("EnableRemoteStatisticsAppliance",0);
+	$sock->SET_INFO("UseRemoteUfdbguardService",0);
+	$sock->SET_INFO("MySQLSyslogType",1);
+	$TuningParameters["username"]=null;
+	$TuningParameters["password"]=null;
+	$TuningParameters["mysqlserver"]=null;
+	$TuningParameters["RemotePort"]=null;
+	$sock->SaveConfigFile(base64_encode(serialize($TuningParameters)), "MySQLSyslogParams");
+
+
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	$sock->getFrameWork("cmd.php?squid-rebuild=yes");
+
+	echo $tpl->_ENGINE_parse_body("
+			<center style='font-size:18px;margin:10px'>{APP_WIZARD_STATS_APPLIANCE_DISCONNECTED}</center>
+			
+			<center style='font-size:18px;margin:10px'>". button("{close}","YahooWin2Hide()",22)."</center>
+			
+			
+			<div id='$tt'></div>
+			<script>
+			
+			</script>
+			");
+
+}
 
 
 
@@ -444,10 +516,22 @@ function wizard11(){
 function wizard_save(){
 	$sock=new sockets();
 	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	
+	$_POST["MANAGER-PASSWORD"]=url_decode_special_tool($_POST["MANAGER-PASSWORD"]);
+	
 	while (list ($a, $b) = each ($_POST) ){
 		$WizardStatsAppliance[$a]=$b;
 	}
 	
+	$SERVER=$_POST["SERVER"];
+	$ip=new networking();
+	$ips=$ip->ALL_IPS_GET_ARRAY();
+	if(isset($ips[$SERVER])){
+		echo "$SERVER is only the slave and cannot be the statistics appliance itself.\nUse a remote Artica server\n";
+		die();
+	}
+	$sock->SET_INFO("WizardStatsApplianceDisconnected", $_POST["AS_DISCONNECTED"]);
+	$sock->SET_INFO("WgetBindIpAddress", $_POST["WgetBindIpAddress"]);
 	$sock->SaveConfigFile(base64_encode(serialize($WizardStatsAppliance)), "WizardStatsAppliance");
 }
 
@@ -482,50 +566,102 @@ function wizard1(){
 	
 	if(!is_numeric($WizardStatsAppliance["SSL"])){$WizardStatsAppliance["SSL"]=1;}
 	if(!is_numeric($WizardStatsAppliance["PORT"])){$WizardStatsAppliance["PORT"]=9000;}
+	$ip=new networking();
 	
+	while (list ($eth, $cip) = each ($ip->array_TCP) ){
+		if($cip==null){continue;}
+		$arrcp[$cip]=$cip;
+	}
+	
+
+	
+	$arrcp[null]="{default}";
+	
+	$WgetBindIpAddress=$sock->GET_INFO("WgetBindIpAddress");
+	$WgetBindIpAddress=Field_array_Hash($arrcp,"WgetBindIpAddress",$WgetBindIpAddress,null,null,0,"font-size:19px;padding:3px;");
+		
 	$html="
 	<div id='$t'>		
 	<div class=explain style='font-size:16px'>{STATISTICS_APPLIANCEV2_EXPLAIN_1}</div>
 	<div class=form style='width:95%'>
-	<table style='width:100%'>		
+	<table style='width:100%'>	
 	<tr>
-		<td class=legend style='font-size:14px'>{hostname}:</td>
+		<td class=legend style='font-size:16px'>{WgetBindIpAddress}:</td>
+		<td style='font-size:14px'>$WgetBindIpAddress</td>
+		<td>&nbsp;</td>
+	</tr>		
+	<tr>
+		<td class=legend style='font-size:16px'>{hostname}/IP:</td>
 		<td style='font-size:14px'>". Field_text("SERVER-$t",$WizardStatsAppliance["SERVER"],"font-size:19px;font-weight:bold;width:200px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{listen_port}:</td>
-		<td style='font-size:14px'>". Field_text("PORT-$t",$WizardStatsAppliance["PORT"],"font-size:14px;width:60px")."</td>
+		<td class=legend style='font-size:16px'>{listen_port}:</td>
+		<td style='font-size:14px'>". Field_text("PORT-$t",$WizardStatsAppliance["PORT"],"font-size:19px;width:90px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{use_ssl}:</td>
+		<td class=legend style='font-size:16px'>{use_ssl}:</td>
 		<td style='font-size:14px'>". Field_checkbox("SSL-$t",1,$WizardStatsAppliance["SSL"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{next}","Wizard1$t()",18)."</td>
+		<td colspan=3><p>&nbsp;</p>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{disconnected_mode}:</td>
+		<td style='font-size:14px'>". Field_checkbox("AS_DISCONNECTED-$t",1,$WizardStatsAppliance["AS_DISCONNECTED"],"DisconnectCheck$t()")."</td>
+		<td>&nbsp;</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:16px'>{manager}:</td>
+		<td style='font-size:14px'>". Field_text("MANAGER-$t",$WizardStatsAppliance["MANAGER"],"font-size:19px;font-weight:bold;width:200px")."</td>
+		<td>&nbsp;</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{password}:</td>
+		<td style='font-size:14px'>". Field_password("MANAGER-PASSWORD-$t",$WizardStatsAppliance["MANAGER-PASSWORD"],"font-size:19px;font-weight:bold;width:200px")."</td>
+		<td>&nbsp;</td>
+	</tr>				
+				
+	<tr>
+		<td colspan=3 align='right'><hr>". button("{next}","Wizard1$t()",22)."</td>
 	</tr>
 	</table>	
 	<script>
 	
-		var xWizard1$t=function (obj) {
-			var results=obj.responseText;
-			if(results.length>10){alert(results);}	
-			LoadAjax('$t','$page?wizard2=yes&t=$t');
+var xWizard1$t=function (obj) {
+	var results=obj.responseText;
+	if(results.length>10){
+		alert(results);
+		return;
+	}	
+	LoadAjax('$t','$page?wizard2=yes&t=$t');
+}	
+	
+function Wizard1$t(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('SSL-$t').checked){XHR.appendData('SSL','1');}else{XHR.appendData('SSL','0');}
+	if(document.getElementById('AS_DISCONNECTED-$t').checked){XHR.appendData('AS_DISCONNECTED','1');}else{XHR.appendData('AS_DISCONNECTED','0');}
+	XHR.appendData('SERVER',document.getElementById('SERVER-$t').value);
+	XHR.appendData('PORT',document.getElementById('PORT-$t').value);
+	XHR.appendData('MANAGER',document.getElementById('MANAGER-$t').value);
+	XHR.appendData('MANAGER-PASSWORD',encodeURIComponent(document.getElementById('MANAGER-PASSWORD-$t').value));
+	XHR.appendData('WgetBindIpAddress',document.getElementById('WgetBindIpAddress').value);
+	XHR.sendAndLoad('$page', 'POST',xWizard1$t);	
+}
 
-		}	
-	
-	function Wizard1$t(){
-		var XHR = new XHRConnection();
-		if(document.getElementById('SSL-$t').checked){XHR.appendData('SSL','1');}else{XHR.appendData('SSL','0');}
-		XHR.appendData('SERVER',document.getElementById('SERVER-$t').value);
-		XHR.appendData('PORT',document.getElementById('PORT-$t').value);
-		AnimateDiv('$t');
-		XHR.sendAndLoad('$page', 'POST',xWizard1$t);	
+function DisconnectCheck$t(){
+	document.getElementById('MANAGER-$t').disabled=true;
+	document.getElementById('MANAGER-PASSWORD-$t').disabled=true;
+	if(document.getElementById('AS_DISCONNECTED-$t').checked){
+		document.getElementById('MANAGER-$t').disabled=false;
+		document.getElementById('MANAGER-PASSWORD-$t').disabled=false;		
 	}
-	
-	RefreshTab('squid_main_svc');
+}
+
+DisconnectCheck$t();	
+RefreshTab('squid_main_svc');
 	</script>				
 	";
 	
@@ -538,6 +674,7 @@ function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	
+	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$EnableRemoteSyslogStatsAppliance=$sock->GET_INFO("EnableRemoteSyslogStatsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
@@ -548,6 +685,9 @@ function popup(){
 	if(!is_numeric($RemoteStatisticsApplianceSettings["SSL"])){$RemoteStatisticsApplianceSettings["SSL"]=1;}
 	if(!is_numeric($RemoteStatisticsApplianceSettings["PORT"])){$RemoteStatisticsApplianceSettings["PORT"]=9000;}
 	$uuid=$sock->getFrameWork("services.php?GetMyHostId=yes");	
+	
+	
+
 	
 	//$RemoteStatisticsApplianceSettings["SERVER"]
 	$html="
@@ -641,7 +781,7 @@ function Save(){
 	$sock=new sockets();
 	$ArticaHttpsPort=$sock->GET_INFO("ArticaHttpsPort");
 	if(!is_numeric($ArticaHttpsPort)){$ArticaHttpsPort=9000;}	
-	$sock->SET_INFO("EnableRemoteStatisticsAppliance",$_POST["EnableRemoteStatisticsAppliance"]);
+	$sock->SET_INFO("EnableRemoteStatisticsAppliance",0);
 	
 	$RemoteStatisticsApplianceSettings["SSL"]=$_POST["StatsServerSSL"];
 	$RemoteStatisticsApplianceSettings["PORT"]=$_POST["StatsServerPort"];

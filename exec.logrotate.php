@@ -1,5 +1,6 @@
 <?php
-$GLOBALS["COMMANDLINE"]=implode(" ",$argv);if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+$GLOBALS["COMMANDLINE"]=implode(" ",$argv);
+if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__)."/ressources/class.system.network.inc");
@@ -17,6 +18,10 @@ $GLOBALS["AS_ROOT"]=true;
 $GLOBALS["DISABLE_WATCHDOG"]=false;
 if(preg_match("#--nowachdog#",$GLOBALS["COMMANDLINE"])){$GLOBALS["DISABLE_WATCHDOG"]=true;}
 if(preg_match("#--force#",$GLOBALS["COMMANDLINE"])){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--verbose#",$GLOBALS["COMMANDLINE"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if($argv[1]=="--backup-nas"){ExtractFromMySQL($argv[2]);die();}
+
+if($argv[1]=="--run"){run();die();}
 
 	if(system_is_overloaded(basename(__FILE__))){
 		system_admin_events("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting task","MAIN",__FILE__,__LINE__,"logrotate");
@@ -25,13 +30,15 @@ if(preg_match("#--force#",$GLOBALS["COMMANDLINE"])){$GLOBALS["FORCE"]=true;}
 
 if($argv[1]=="--moveolds"){moveolds2();die();}
 if($argv[1]=="--reconfigure"){reconfigure();die();}
-if($argv[1]=="--run"){run();die();}
 if($argv[1]=="--mysql"){InstertIntoMysql();die();}
 if($argv[1]=="--var"){CheckLogStorageDir($argv[2]);die();}
-if($argv[1]=="--clean"){CleanMysqlDatabase();die();}
+if($argv[1]=="--clean"){CleanMysqlDatabase(false);die();}
+if($argv[1]=="--purge-nas"){CleanMysqlDatabase(true);die();}
 if($argv[1]=="--squid"){check_all_squid();die();}
 if($argv[1]=="--convert"){ConvertToDedicatedMysql(true);die();}
 if($argv[1]=="--test-nas"){tests_nas(true);die();}
+
+
 
 
 
@@ -136,10 +143,11 @@ function InstertIntoMysql(){
 	$cpbin=$unix->find_program("cp");
 	$sql="SELECT *  FROM `logrotate` WHERE enabled=1";	
 	$q=new mysql_syslog();
+	$syslog=new mysql_storelogs();
 	$q->CheckTables();
 	$results = $q->QUERY_SQL($sql);	
 	if(!$q->ok){return;}	
-	if(!$q->TABLE_EXISTS("store")){return;}
+	
 	if(system_is_overloaded(basename(__FILE__))){return;}
 	$sock=new sockets();
 	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
@@ -172,6 +180,8 @@ function InstertIntoMysql(){
 	
 	
 	if(count($paths)==0){return;}
+	
+	
 	while (list ($path,$none) = each ($paths) ){
 		foreach (glob("$path/*-TASK-*") as $filename) {
 			$filedate=date('Y-m-d H:i:s',filemtime($filename));
@@ -189,8 +199,11 @@ function InstertIntoMysql(){
 			$taskid=$re[1];
 			$filesize=$unix->file_size($filename);
 			rotate_events("Task:$taskid File $basename ($filedate)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			if(preg_match("#^store\.log-#", $basename)){@unlink($filename);continue;}
+			if(preg_match("#^php\.log-#", $basename)){@unlink($filename);continue;}
+			if($unix->maillog_to_backupdir($filename)){continue;}
 			
-			if(ROTATE_TOMYSQL($filename,$filedate)){
+			if($syslog->ROTATE_TOMYSQL($filename,$filedate)){
 				@unlink($filename);
 				continue;
 			}else{
@@ -205,9 +218,15 @@ function InstertIntoMysql(){
 	
 	reset($paths);
 	while (list ($path,$none) = each ($paths) ){
+		
 		foreach (glob("$path/*") as $filename) {
 			if(system_is_overloaded(basename(__FILE__))){return;}
 			if(preg_match("#ipband\.#", $filename)){continue;}
+			$basename=basename($filename);
+			
+			if(preg_match("#^php\.log-#", $basename)){@unlink($filename);continue;}
+			if(preg_match("#^store\.log-#", $basename)){@unlink($filename);continue;}
+			
 			$extension = pathinfo($filename, PATHINFO_EXTENSION);
 			if(is_dir($filename)){continue;}
 			if($extension==null){continue;}
@@ -221,40 +240,11 @@ function InstertIntoMysql(){
 				$extension="bz2";
 			}
 			
-			if(is_numeric($extension)){
-				$tA=time();
-				$tC=$filename;
-				$tB=$unix->file_size_human($filename);
-				if(!ROTATE_COMPRESS_FILE($filename)){
-					events("File ".basename($tC)." Failed to compress file");
-					system_admin_events("File ".basename($tC)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-					continue;
-				}
-				
-				$took=$unix->distanceOfTimeInWords($tA,time(),true);
-				$filename=$filename.".bz2";
-				$tD=$unix->file_size_human($filename);
-				$extension="bz2";
-				events("File ".basename($tC)." ($tB) as been converted to bz2 width new size $tD, took: $took");
-				system_admin_events("File ".basename($tC)." ($tB) as been converted to bz2 width new size $tD, took: $took",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-				
-			}
-			
-			if(preg_match("#[a-z]+-[0-9]+$#", $extension)){
-				if(!ROTATE_COMPRESS_FILE($filename)){
-						events("File ".basename($tC)." Failed to compress file");
-						system_admin_events("File ".basename($tC)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-						continue;
-					}
-				$filename=$filename.".bz2";
-				$extension="bz2";	
-			}
-			
-			$basename=basename($filename);	
-			if($extension<>"bz2"){continue;}
-
 			events("Task:$taskid File $basename ($filedate)");	
-			if(ROTATE_TOMYSQL($filename,$filedate)){
+			if($unix->maillog_to_backupdir($filename)){continue;}
+			
+			
+			if($syslog->ROTATE_TOMYSQL($filename,$filedate)){
 				@unlink($filename);
 				continue;
 			}
@@ -265,75 +255,7 @@ function InstertIntoMysql(){
 	
 	
 }
-function ROTATE_TOMYSQL($filename,$sourceDate){
-	$sock=new sockets();
-	$unix=new unix();
-	$taskid=0;
-	$q=new mysql_syslog();
-	if($q->EnableSyslogDB==1){
-		$q=new mysql_storelogs();
-		return $q->InjectFile($filename, $sourceDate);
-		
-	}
-	
-	$basename=basename($filename);
-	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
-	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
-	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
-	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
-	if(!is_dir($LogRotatePath)){@mkdir($LogRotatePath,0755);}
-	$LogRotatePathWork="$LogRotatePath/work";
-	if($LogRotateMysql==0){$LogRotatePathWork=$LogRotatePath;}
-	if(!is_dir($LogRotatePathWork)){@mkdir($LogRotatePathWork,0777);}
-	@chmod($LogRotatePathWork, 0777);
-	$basenameFF=null;
-	$DestinationFile="$LogRotatePathWork/$basename";
-	
-	
-	if(is_file($DestinationFile)){
-		$ext = pathinfo($DestinationFile, PATHINFO_EXTENSION);
-		$basenameFF=basename($DestinationFile);
-		$basenameFF=str_replace(".$ext", "", $basenameFF);
-		$basenameFF=$basenameFF.".".time().".$ext";
-		$DestinationFile=str_replace(basename($DestinationFile), $basenameFF, $DestinationFile);
-	}
-	
-	if(!@copy($filename, $DestinationFile)){
-		@unlink($DestinationFile);
-		rotate_events("Failed to copy $filename => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-		return false;
-	}
-	
-	if(preg_match("#-TASK-([0-9]+)#",$basename,$re)){$taskid=$re[1];}
-		
-	$ext = pathinfo($filename, PATHINFO_EXTENSION);
-	$basenameFF=$basename;
-	$basenameFF=str_replace(".$ext", "", $basenameFF);
-	$basenameFF=$basenameFF.".".time().".$ext";	
-	$filesize=$unix->file_size($filename);
-	
-	if($LogRotateMysql==1){
-		$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`)
-		VALUES ('$basenameFF','$taskid','$filesize',LOAD_FILE('$DestinationFile'),'$sourceDate')";
-	}
-	
-	if($LogRotateMysql==0){
-		$basenameFF=basename($DestinationFile);
-		$sql = "INSERT INTO `store` (`filename`,`taskid`,`filesize`,`filedata`,`filetime`,`SavedInDisk`,`FileStorePath`)
-		VALUES ('$basenameFF','$taskid','$filesize','','$sourceDate',1,'$DestinationFile')";
-	}
 
-	
-	$q->CheckTables();
-	$q->QUERY_SQL($sql);
-	if(!$q->ok){
-		system_admin_events("MySQL Failed $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-		@unlink($DestinationFile);
-		return false;
-	}
-	if($LogRotateMysql==1){@unlink($DestinationFile);}
-	return true;
-}
 
 
 
@@ -489,9 +411,104 @@ function tests_nas(){
 	
 }
 
-function CleanMysqlDatabase(){
+
+function ExtractFromMySQL($storeid){
+	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+	$sock=new sockets();
+	$users=new usersMenus();
+	$unix=new unix();
+	$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+	$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+	$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+	$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
+	$BackupSquidLogsNASRetry=$sock->GET_INFO("BackupSquidLogsNASRetry");
+	if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}
+	$mountPoint="/mnt/BackupSquidLogsUseNas";
+	if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
+		events("Unable to connect to NAS storage system (1): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+		if($BackupSquidLogsNASRetry==0){return;}
+		sleep(3);
+		$mount=new mount("/var/log/artica-postfix/logrotate.debug");
+		if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
+			events("Unable to connect to NAS storage system (2): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+			return;
+		}
+			
+	}
 	
 	
+	$BackupMaxDaysDir="$mountPoint/artica-backup-syslog/$users->hostname";
+	@mkdir("$BackupMaxDaysDir",0755,true);
+	
+	if(!is_dir($BackupMaxDaysDir)){
+		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		events("FATAL $BackupMaxDaysDir permission denied");
+		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		$mount->umount($mountPoint);
+		return false;
+	}
+	
+	
+	$t=time();
+	@file_put_contents("$BackupMaxDaysDir/$t", time());
+	if(!is_file("$BackupMaxDaysDir/$t")){
+		events("FATAL $BackupMaxDaysDir permission denied");
+		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		$mount->umount($mountPoint);
+		return false;
+	}
+	@unlink("$BackupMaxDaysDir/$t");
+	
+	
+	
+	
+	$temppath=$unix->TEMP_DIR()."/$t";
+	@mkdir($temppath,0777,true);
+	
+	$q=new mysql_storelogs();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT hostname,filename FROM files_info WHERE storeid = '$storeid'"));
+	$filename=$ligne["filename"];
+	if($filename==null){$filename=time().".tgz";}
+	$hostname=$ligne["hostname"];
+	if($hostname<>$users->hostname){
+		$filename="$hostname.$filename";
+	}
+	
+	$sql="SELECT filecontent INTO DUMPFILE '$temppath/$filename' FROM files_store WHERE ID = '$storeid'";
+	$q->QUERY_SQL($sql);	
+	if(!$q->ok){
+		echo $q->mysql_error."\n";
+		@unlink("$temppath/$filename");
+		@rmdir($temppath);
+		$mount->umount($mountPoint);
+		return;
+	}	
+
+	if(!copy("$temppath/$filename", "$mountPoint/$filename")){
+		@unlink("$temppath/$filename");
+		@rmdir($temppath);
+		$mount->umount($mountPoint);
+		echo "Failed to copy $temppath/$filename -> $mountPoint/$filename\n";
+		return;
+	}
+	
+	@unlink("$temppath/$filename");
+	@rmdir($temppath);
+	$mount->umount($mountPoint);
+	$q->QUERY_SQL("DELETE FROM files_store WHERE `ID`='$storeid'");
+	$q->QUERY_SQL("DELETE FROM files_info WHERE `storeid`='$storeid'");
+	echo "Success to copy $temppath/$filename \nTo:\n$BackupSquidLogsNASIpaddr/$BackupSquidLogsNASFolder/artica-backup-syslog/$users->hostname/$filename\n";
+	
+}
+
+
+function CleanMysqlDatabase($PURGE_ALL=false){
+	
+	$filter=null;
 	$users=new usersMenus();
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
@@ -500,14 +517,15 @@ function CleanMysqlDatabase(){
 	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__,"logrotate");die();}
 	@file_put_contents($pidfile, getmypid());
 	$time=$unix->file_time_min($timefile);
-	if(!$GLOBALS["FORCE"]){
-		if($time<15){
-			events("No less than 15mn or delete $timefile file to force...");
-			system_admin_events("No less than 15mn or delete $timefile file",
-			__FUNCTION__,__FILE__,__LINE__,"logrotate");return;
+	if(!$PURGE_ALL){
+		if(!$GLOBALS["FORCE"]){
+			if($time<15){
+				events("No less than 15mn or delete $timefile file to force...");
+				system_admin_events("No less than 15mn or delete $timefile file",
+				__FUNCTION__,__FILE__,__LINE__,"logrotate");return;
+			}
 		}
 	}
-	
 	
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
@@ -622,27 +640,61 @@ function CleanMysqlDatabase(){
 		}
 	}
 	
-	
+	if($PURGE_ALL==false){
+		$filter="WHERE filetime<DATE_SUB(NOW(),INTERVAL $BackupMaxDays DAY)";
+		
+	}
 
 	
 	if($EnableSyslogDB==1){
 		$q=new mysql_storelogs();
-		$sql="SELECT `filename`,`hostname`,`storeid` FROM `files_info` WHERE filetime<DATE_SUB(NOW(),INTERVAL $BackupMaxDays DAY)";
+		$sql="SELECT `filename`,`hostname`,`storeid` FROM `files_info` $filter";
+		if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 		$results=$q->QUERY_SQL($sql);
 		if(!$q->ok){system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
+		
+		$Count=mysql_num_rows($results);
+		$c=0;
 		while ($ligne = mysql_fetch_assoc($results)) {
-			if(!$q->ExtractFile("$BackupMaxDaysDir/{$ligne["hostname"]}.{$ligne["filename"]}",$ligne["storeid"])){continue;}
-			$q->DelteItem($ligne["storeid"]);
-			$q->events("{$ligne["filename"]} saved into $BackupMaxDaysDir");
+			$c++;
+			if($GLOBALS["VERBOSE"]){echo "$c/$Count ******** {$ligne["filename"]} {$ligne["storeid"]} *********\n";}
+			if(!$q->ExtractFile("$BackupMaxDaysDir/{$ligne["hostname"]}.{$ligne["filename"]}",$ligne["storeid"])){
+				if($GLOBALS["VERBOSE"]){echo "$c/$Count ******** {$ligne["filename"]} ExtractFile() = FALSE !!! *********\n";}
+				continue;
+			}
 			
+			if($GLOBALS["VERBOSE"]){echo "$c/$Count DelteItem({$ligne["storeid"]}) *********\n";}
+			$q->DelteItem($ligne["storeid"]);
+			if($GLOBALS["VERBOSE"]){echo "********* EVENTS NOW --->\n";}
+			$q->events("{$ligne["filename"]} saved into $BackupMaxDaysDir");
+			if($GLOBALS["VERBOSE"]){echo "\n\n###### $c/$Count Continue to Next ##########\n";}
 		}
+		
+		
+		$sql="SELECT `filename`,`hostname`,`storeid` FROM `accesslogs` $filter";
+		if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+		$results=$q->QUERY_SQL($sql);
+		
+		if(!$q->ok){system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
+		$Count=mysql_num_rows($results);
+		$c=0;
+		
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$c++;
+			if(!$q->ExtractAccessFile("$BackupMaxDaysDir/{$ligne["hostname"]}.{$ligne["filename"]}",$ligne["storeid"])){continue;}
+			$q->DelteAccessItem($ligne["storeid"]);
+			$q->events("{$ligne["filename"]} saved into $BackupMaxDaysDir");
+				
+		}
+		
+		
 		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
 		return;
 	}
 	
 	
 	$q=new mysql_syslog();
-	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` WHERE filetime<DATE_SUB(NOW(),INTERVAL $BackupMaxDays DAY)";
+	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `store` $filter";
 	$results=$q->QUERY_SQL($sql);
 	
 	if($GLOBALS["VERBOSE"]){echo "$sql ($q->mysql_error) ". mysql_num_rows($results)." file(s)\n";}
@@ -890,11 +942,6 @@ function moveolds2(){
 		system_admin_events("$CountDeFiles/$delete deleted old files in /var/log/artica-postfix/pagepeeker ($size free)",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 	}
 
-	if($CountDeFiles>0){
-		system_admin_events("Executing exec.squid.stats.php --thumbs-parse for $CountDeFiles files.",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --thumbs-parse >/dev/null 2>&1");
-	}
-
 }
 
 
@@ -941,7 +988,7 @@ function ROTATE_COMPRESS_FILE($filename){
 function check_all_squid(){
 	$sock=new sockets();
 	$unix=new unix();
-	
+	$syslog=new mysql_storelogs();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
@@ -1031,7 +1078,7 @@ function check_all_squid(){
 		}
 			
 		echo "[$filedate]: $filename ($extension)\n";
-		if(ROTATE_TOMYSQL($filename, $filedate)){
+		if($syslog->ROTATE_TOMYSQL($filename, $filedate)){
 			@unlink($filename);
 		}
 			
@@ -1039,15 +1086,9 @@ function check_all_squid(){
 	}
 	
 	foreach (glob("/home/squid/cache-logs/*") as $filename) {
-		if(!ROTATE_COMPRESS_FILE($filename)){
-			events("File ".basename($filename)." Failed to compress file");
-			system_admin_events("File ".basename($filename)." Failed to compress file",__FUNCTION__,__FILE__,__LINE__,"logrotate");
-			continue;
-		}
-		
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
 		$filename=$filename.".bz";
-		if(ROTATE_TOMYSQL($filename, $filedate)){@unlink($filename);}
+		if($syslog->ROTATE_TOMYSQL($filename, $filedate)){@unlink($filename);}
 		
 	}
 	

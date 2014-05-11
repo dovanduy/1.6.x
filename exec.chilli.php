@@ -50,7 +50,7 @@ function restart(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -66,9 +66,9 @@ function start_dnsmasq($aspid=false){
 	$nohup=$unix->find_program("nohup");
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq\n";}
 	if(!is_file("/etc/chilli/sbin/dnsmasq")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq not installed !!\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq not installed !!\n";}
 		return;	
 	}
 	
@@ -78,7 +78,7 @@ function start_dnsmasq($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -89,7 +89,7 @@ function start_dnsmasq($aspid=false){
 	
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}	
 	
@@ -102,20 +102,20 @@ function start_dnsmasq($aspid=false){
 	$CMD[]="--conf-file=/etc/chilli/dnsmasq.conf";
 	
 	$cmd="$nohup ".@implode(" ", $CMD)." >/dev/null 2>&1 &";
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq starting service\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq starting service\n";}
 	shell_exec($cmd);
 	
 	for($i=1;$i<6;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq waiting $i/5\n";}
 		sleep(1);
 		$pid=PID_NUM_DNSMASQ();
 		if($unix->process_exists($pid)){break;}
 	}
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Success PID $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Success PID $pid\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq $cmd\n";}
 	}
 	
 	
@@ -135,7 +135,7 @@ function start($aspid=false){
 	$chilli=$unix->find_program("chilli");
 	
 	if(!is_file($chilli)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, not installed\n";}
 		return;
 	}
 	
@@ -144,7 +144,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -154,7 +154,7 @@ function start($aspid=false){
 	
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
 		start_dnsmasq(true);
 		return;
 	}	
@@ -162,7 +162,7 @@ function start($aspid=false){
 	if(!is_numeric($EnableChilli)){$EnableChilli=0;}
 
 	if($EnableChilli==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service disabled\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled\n";}
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){stop(true);}
 		return;
@@ -193,33 +193,27 @@ function start($aspid=false){
 	$wan_ip=$ChilliConf["HS_WANIF_IP"];
 	
 	if(!is_numeric($ChilliConf["HS_DEBUG"])){$ChilliConf["HS_DEBUG"]=0;}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} modprobe......: `$modprobe`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} sysctl........: `$sysctl`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} echo..........: `$echo`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} mknod.........: `$mknod`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} chilli........: `$chilli`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} iptables......: `$iptables`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Debug.........: `{$ChilliConf["HS_DEBUG"]}`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} modprobe......: `$modprobe`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} sysctl........: `$sysctl`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} echo..........: `$echo`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} mknod.........: `$mknod`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} chilli........: `$chilli`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} iptables......: `$iptables`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Debug.........: `{$ChilliConf["HS_DEBUG"]}`\n";}
 	
 
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Proxy.........: `$wan_ip:$http_port`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Proxy.........: `$wan_ip:$http_port`\n";}
 
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} tune system...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} tune system...\n";}
 
 	
 	shell_exec("$sysctl -w net.ipv4.ip_forward=1 2>&1");
 	shell_exec("$echo 1 > /proc/sys/net/ipv4/ip_forward");
-	shell_exec("$sysctl -w net.ipv4.conf.default.rp_filter=0 2>&1");
-	shell_exec("$sysctl -w net.ipv4.conf.default.accept_source_route=0");
-	
-	
-	
-	shell_exec("$sysctl -w net.ipv4.conf.default.send_redirects=$KernelSendRedirects 2>&1");
-	shell_exec("$sysctl -w net.ipv4.conf.all.send_redirects=$KernelSendRedirects 2>&1");
+
 	shell_exec("$sysctl -w net.ipv4.conf.eth0.send_redirects=$KernelSendRedirects 2>&1");	
 	shell_exec("$modprobe tun >/dev/null 2>&1");
 	up_sh($ChilliConf);
@@ -227,23 +221,23 @@ function start($aspid=false){
 	$array=$unix->alt_stat("/dev/net/tun");
 	
 	if(!isset($array["device"]["device"])){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} building /dev/net/tun\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} building /dev/net/tun\n";}
 		@mkdir("/dev/net",0755,true);
 		shell_exec("$mknod tun c 10 200");
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
 	
 
 	if(!is_dir("/usr/local/var/run")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} creating `/usr/local/var/run`\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} creating `/usr/local/var/run`\n";}
 		@mkdir("/usr/local/var/run",0755,true);
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} `/usr/local/var/run` done.\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} `/usr/local/var/run` done.\n";}
 	}
 	
 	CheckSquid($http_port,$https_port);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Adding Proxy TCP:$http_port/ssl:$https_port iptables rules\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Adding Proxy TCP:$http_port/ssl:$https_port iptables rules\n";}
 	
 	
 	
@@ -267,7 +261,7 @@ function start($aspid=false){
 	shell_exec($cmd);
 	
 	for($i=1;$i<11;$i++){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
 		sleep(1);
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
@@ -276,7 +270,7 @@ function start($aspid=false){
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		events("Hostpot service as been successfully started PID: $pid (Artica)");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 		start_dnsmasq(true);
 		shell_exec("/etc/init.d/freeradius restart");
 		sleep(1);
@@ -284,17 +278,17 @@ function start($aspid=false){
 		shell_exec("$iptables -I INPUT -i {$ChilliConf["HS_WANIF"]} -p tcp --dport 80 -j ACCEPT");
 		shell_exec("$iptables -I INPUT -i {$ChilliConf["HS_WANIF"]} -p tcp --dport 22 -j ACCEPT");
 		shell_exec("$iptables -I INPUT -p tcp -m tcp --dport 389 -j ACCEPT");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} flush iptables...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} flush iptables...\n";}
 		$iptables_save=$unix->find_program("iptables-save");
 		$iptables_restore=$unix->find_program("iptables-restore");
 		$tmpfile=$unix->FILE_TEMP();
 		shell_exec("$iptables_save > $tmpfile");
 		shell_exec("$iptables_restore < $tmpfile");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} done...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} done...\n";}
 		
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 		flush_iptables();
 	}	
 	
@@ -327,29 +321,29 @@ function build(){
 	$php=$unix->LOCATE_PHP5_BIN();
 
 	if(!isset($ChilliConf["HS_UAMFREEWEB"])){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} FreeWeb Login page is not set...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} FreeWeb Login page is not set...\n";}
 	}
 
 	
 	
 	if(!is_file("/var/www/c2/index.php")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Installing CakePHP\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Installing CakePHP\n";}
 		shell_exec("/usr/share/artica-postfix/bin/artica-make APP_CAKEPHP >/dev/null 2>&1");
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} CakePHP done\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} CakePHP done\n";}
 	}
 	
 	if(!is_file("/var/www/c2/yfi_cake/setup/coova_json/login.php")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} `/var/www/c2/yfi_cake/setup/coova_json/login.php no such file Installing YFI CakePHP\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} `/var/www/c2/yfi_cake/setup/coova_json/login.php no such file Installing YFI CakePHP\n";}
 		shell_exec("/usr/share/artica-postfix/bin/artica-make APP_CAKEPHP >/dev/null 2>&1");
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} YFI CakePHP done\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} YFI CakePHP done\n";}
 	}
 	if(!is_dir("/usr/share/coova_json")){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} `/usr/share/coova_json` no such directory Installing Coova JSon\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} `/usr/share/coova_json` no such directory Installing Coova JSon\n";}
 		shell_exec("/usr/share/artica-postfix/bin/artica-make APP_CAKEPHP >/dev/null 2>&1");
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Coova JSon done\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Coova JSon done\n";}
 	}	
 	
 	
@@ -362,16 +356,16 @@ function build(){
 	$f[]="include /etc/chilli/local.conf";
 	$f[]="ipup=/etc/chilli/up.sh";
 	$f[]="ipdown=/etc/chilli/down.sh";
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Chilli: `/etc/chilli.conf` done\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Chilli: `/etc/chilli.conf` done\n";}
 	file_put_contents("/etc/chilli.conf",@implode("\n", $f));
 	
 	if(!is_numeric($ChilliConf["EnableSSLRedirection"])){$ChilliConf["EnableSSLRedirection"]=0;}
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Building main configuration: {$ChilliConf["HS_LANIF"]} -> {$ChilliConf["HS_WANIF"]}\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Listen.....: {$ChilliConf["HS_UAMLISTEN"]}\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DHCP.......: {$ChilliConf["HS_DYNIP"]}/{$ChilliConf["HS_DYNIP_MASK"]} ({$ChilliConf["HS_NETWORK"]})\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Proxy Port.: {$ChilliConf["SQUID_HTTP_PORT"]}\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building main configuration: {$ChilliConf["HS_LANIF"]} -> {$ChilliConf["HS_WANIF"]}\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Listen.....: {$ChilliConf["HS_UAMLISTEN"]}\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DHCP.......: {$ChilliConf["HS_DYNIP"]}/{$ChilliConf["HS_DYNIP_MASK"]} ({$ChilliConf["HS_NETWORK"]})\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Proxy Port.: {$ChilliConf["SQUID_HTTP_PORT"]}\n";}
 	
 	
 	
@@ -426,18 +420,18 @@ function build(){
 	if(!isset($ChilliConf["SQUID_HTTPS_PORT"])){$ChilliConf["SQUID_HTTPS_PORT"]=rand(45000,65400);$save=true;}
 	if(!is_numeric($ChilliConf["SQUID_HTTPS_PORT"])){$ChilliConf["SQUID_HTTPS_PORT"]=rand(45000,65400);$save=true;}	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Building DNSMasq settings\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building DNSMasq settings\n";}
 	dnsmasq_config();
 	
 	if($ChilliConf["EnableSSLRedirection"]==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} SSL redirection is Active\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} SSL redirection is Active\n";}
 		$t[]="HS_UAMUISSL=on";
 		$t[]="HS_REDIRSSL=on";
 		include_once(dirname(__FILE__)."/ressources/class.squid.inc");
 		$squid=new squidbee();
 		$t[]=$squid->SaveCertificate($ChilliConf["certificate_center"],false,false,true);
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} SSL redirection is inactive\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} SSL redirection is inactive\n";}
 	}
 	$ChilliConf["uamallowed"][$ChilliConf["HS_UAMFREEWEB"]]=true;
 	$ChilliConf["uamallowed"]["127.0.0.1"]=true;
@@ -462,7 +456,7 @@ function build(){
 	}
 	
 	if($save){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Saving new configuration file...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Saving new configuration file...\n";}
 		$NewArray=base64_encode(serialize($ChilliConf));
 		$sock->SaveConfigFile($NewArray, "ChilliConf");
 	}
@@ -590,7 +584,7 @@ function build(){
 
 
 	if($ChilliConf["HS_PROVIDER"]==null){$ChilliConf["HS_PROVIDER"]="Artica";}
-	if($ChilliConf["HS_PROVIDER_LINK"]==null){$ChilliConf["HS_PROVIDER_LINK"]="http://www.artica.fr";}
+	if($ChilliConf["HS_PROVIDER_LINK"]==null){$ChilliConf["HS_PROVIDER_LINK"]="http://www.articatech.net";}
 	if($ChilliConf["HS_LOC_NAME"]==null){$ChilliConf["HS_LOC_NAME"]="Artica HotSpot";}
 	if($ChilliConf["HS_LOC_NETWORK"]==null){$ChilliConf["HS_LOC_NETWORK"]="HotSpot Network";}
 	
@@ -607,8 +601,8 @@ function build(){
 	$t[]="# HS_REG_MODE=\"tos\" # or self, other";
 	$t[]="# HS_RAD_PROTO=\"pap\" # or mschapv2, chap";
 	$t[]="# HS_USE_MAP=on\n";	
-	echo "Starting......: [INIT]: Chilli: `/etc/chilli/config` done\n";
-	echo "Starting......: [INIT]: Chilli: flush /etc/init.d..\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: `/etc/chilli/config` done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: flush /etc/init.d..\n";
 	chilli_init_d();
 	file_put_contents("/etc/chilli/config", @implode("\n", $t));
 	coova_web();
@@ -635,8 +629,8 @@ function dnsmasq_config($ChilliConf=array()){
 		$ChilliConf=GetInterfaceArray($ChilliConf);
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli DnsMasq DNS Domain: `{$ChilliConf["HS_DNS_DOMAIN"]}`\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli DnsMasq UAM Listen: `{$ChilliConf["HS_UAMLISTEN"]}`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli DnsMasq DNS Domain: `{$ChilliConf["HS_DNS_DOMAIN"]}`\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli DnsMasq UAM Listen: `{$ChilliConf["HS_UAMLISTEN"]}`\n";}
 	$t[]="address=/{$ChilliConf["HS_DNS_DOMAIN"]}/{$ChilliConf["HS_UAMLISTEN"]}";
 	$t[]="no-resolv";
 	$t[]="strict-order";
@@ -651,7 +645,7 @@ function dnsmasq_config($ChilliConf=array()){
 	if($ChilliConf["HS_DNS2"]<>null){$t[]="server={$ChilliConf["HS_DNS2"]}";}	
 	$t[]="bogus-nxdomain=67.215.65.132";	
 	@file_put_contents("/etc/chilli/dnsmasq.conf", @implode("\n", $t));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli DnsMasq settings OK\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli DnsMasq settings OK\n";}
 }
 
 function CheckSquid($http_port=0,$https_port=0){
@@ -664,7 +658,7 @@ function CheckSquid($http_port=0,$https_port=0){
 		
 		if($http_port>0){
 			if(preg_match("#http_port.*?$http_port#", $line)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli Squid listen to port $http_port\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli Squid listen to port $http_port\n";}
 				$OK=true;
 				continue;
 				
@@ -675,7 +669,7 @@ function CheckSquid($http_port=0,$https_port=0){
 		
 		if($https_port>0){
 			if(preg_match("#https_port.*?$https_port#", $line)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli Squid listen to SSL port $https_port\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli Squid listen to SSL port $https_port\n";}
 				$OKSSL=true;
 				continue;
 				
@@ -694,12 +688,12 @@ function CheckSquid($http_port=0,$https_port=0){
 	
 	
 
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli Cannot find `$http_port/$https_port` Reconfigure squid-cache\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli Cannot find `$http_port/$https_port` Reconfigure squid-cache\n";}
 		$unix=new unix();
 		$php=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$php /usr/share/artica-postfix/exec.squid.php --build --force");
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Chilli restarting squid-cache\n";}
-		shell_exec("/etc/init.d/squid restart");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Chilli restarting squid-cache\n";}
+		shell_exec("/etc/init.d/squid restart --script=".basename(__FILE__));
 
 	
 }
@@ -711,7 +705,7 @@ function coova_web(){
 	$ChilliConf=unserialize(base64_decode($sock->GET_INFO("ChilliConf")));
 	
 	
-	if(!isset($ChilliConf["HS_UAMFREEWEB"])){if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: FreeWeb Login page is not set...\n";}}
+	if(!isset($ChilliConf["HS_UAMFREEWEB"])){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: FreeWeb Login page is not set...\n";}}
 	
 	
 	$f[]="<?";
@@ -763,7 +757,7 @@ function coova_web(){
 	$cp=$unix->find_program("cp");
 	@mkdir("/var/www/coova_json",0755,true);
 	if(!is_file("/var/www/coova_json/login.php")){
-		echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Installing Coova JSON...\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Installing Coova JSON...\n";
 		shell_exec("$cp -rf /var/www/c2/yfi_cake/setup/coova_json/* /var/www/coova_json/");
 	}
 	
@@ -771,31 +765,31 @@ function coova_web(){
 	@file_put_contents("/var/www/coova_json/login.php", @implode("\n", $f));
 	@chmod("var/www/coova_json/login.php", 0755);
 	$unix->chown_func($unix->APACHE_SRC_ACCOUNT(),$unix->APACHE_SRC_GROUP(), "/var/www/coova_json/*");
-	echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} `coova_json/login.php` done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} `coova_json/login.php` done\n";
 	
 	$f=explode("\n", @file_get_contents("/var/www/coova_json/js/custom.js"));
 	
 	while (list ($key, $line) = each ($f) ){
 		if(preg_match("#\s+p_url_use:.*?'#", $line)){
-			echo "Starting......: [INIT]: Chilli: L.$key FreeWeb: {$ChilliConf["HS_UAMFREEWEB"]}\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: L.$key FreeWeb: {$ChilliConf["HS_UAMFREEWEB"]}\n";
 			$f[$key]="\tp_url_use:  'http://{$ChilliConf["HS_UAMFREEWEB"]}/c2/yfi_cake/third_parties/json_usage_check?key=12345&username=',  //This is the YFi Web service which will show the user's usage";
 			continue;
 		}
 		if(preg_match("#\s+p_url_uam:.*?'#", $line)){	
-			echo "Starting......: [INIT]: Chilli: L.$key FreeWeb: {$ChilliConf["HS_UAMFREEWEB"]}\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: L.$key FreeWeb: {$ChilliConf["HS_UAMFREEWEB"]}\n";
 			$f[$key]="\tp_url_uam:  'http://{$ChilliConf["HS_UAMFREEWEB"]}/mobile/uam.php?challenge=',    //This us the web service which will return a uam encrypted hash using the challenge, password and UAM shared secret";
 			continue;
 		}
 		
 		if(preg_match("#\s+p_url_voucher_name:.*?'#", $line)){
-			echo "Starting......: [INIT]: Chilli: L.$key FreeWeb: {$ChilliConf["HS_UAMFREEWEB"]}\n";
+			echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: L.$key FreeWeb: {$ChilliConf["HS_UAMFREEWEB"]}\n";
 			$f[$key]="\tp_url_voucher_name: 'http://{$ChilliConf["HS_UAMFREEWEB"]}/c2/yfi_cake/third_parties/json_voucher_name?key=12345&password=',";
 			continue;
 		}
 	}
 	
 	@file_put_contents("/var/www/coova_json/js/custom.js", @implode("\n", $f));
-	echo "Starting......: [INIT]: Chilli: `/custom.js` done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: `/custom.js` done\n";
 	$f=explode("\n", @file_get_contents("/var/www/coova_json/uam.php"));
 	
 	while (list ($key, $line) = each ($f) ){
@@ -806,7 +800,7 @@ function coova_web(){
 	}
 	
 	@file_put_contents("/var/www/coova_json/uam.php", @implode("\n", $f));	
-	echo "Starting......: [INIT]: Chilli: `/uam.php` done\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Chilli: `/uam.php` done\n";
 	DefaultSplash($ChilliConf);
 }
 
@@ -814,18 +808,18 @@ function coova_web(){
 function GetInterfaceArray($ChilliConf){
 		$unix=new unix();
 		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: LANIF:{$ChilliConf["HS_LANIF"]}\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: LANIF:{$ChilliConf["HS_LANIF"]}\n";}
 		
 		if(!is_numeric($ChilliConf["HS_DYNIP"])){$ChilliConf["HS_DYNIP"]=50;}
 		
 		$array=$unix->InterfaceToIP($ChilliConf["HS_LANIF"]);
 		if($GLOBALS["VERBOSE"]){
 			while (list ($num, $ligne) = each ($array) ){
-				echo "Starting......: [DEBUG]: LANIF:{$ChilliConf["HS_LANIF"]} [{$num}] = `$ligne`\n";
+				echo "Starting......: ".date("H:i:s")." [DEBUG]: LANIF:{$ChilliConf["HS_LANIF"]} [{$num}] = `$ligne`\n";
 			}
 		}
 		
-		if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: LANIF: {$array["IPADDR"]} -> EXPLODE\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: LANIF: {$array["IPADDR"]} -> EXPLODE\n";}
 		if($ChilliConf["HS_UAMLISTEN"]==null){$ChilliConf["HS_UAMLISTEN"]=$array["IP"];}
 		if($ChilliConf["HS_NETMASK"]==null){$ChilliConf["HS_NETMASK"]=$array["NETMASK"];}		
 		
@@ -836,7 +830,7 @@ function GetInterfaceArray($ChilliConf){
 		$ChilliConf["HS_DYNIP_MASK"]=$ChilliConf["HS_NETMASK"];
 		$ChilliConf["HS_DYNIP"]="{$PR[0]}.{$PR[1]}.{$PR[2]}.{$ChilliConf["HS_DYNIP"]}";
 		$ChilliConf["HS_NETWORK"]="{$PR[0]}.{$PR[1]}.{$PR[2]}.0";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: [DEBUG]: LANIF:{$ChilliConf["HS_LANIF"]} HS_DYNIP {$ChilliConf["HS_DYNIP"]}\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: LANIF:{$ChilliConf["HS_LANIF"]} HS_DYNIP {$ChilliConf["HS_DYNIP"]}\n";}
 		
 
 // **** WAN ************************************************		
@@ -948,9 +942,9 @@ function DefaultSplash($ChilliConf){
 	@copy("/usr/share/artica-postfix/img/wait_verybig_mini_red.gif","/var/www/coova_json/img/wait.gif");
 	@copy("/usr/share/artica-postfix/login.artica.php","/var/www/coova_json/login.artica.php");
 	
-	@chmod(0755,"/var/www/coova_json/login.artica.php");
-	@chmod(0755,"/var/www/coova_json/default.cfg");
-	@chmod(0755,"/var/www/coova_json/img/default-logo.png");
+	@chmod("/var/www/coova_json/login.artica.php",0755);
+	@chmod("/var/www/coova_json/default.cfg",0755);
+	@chmod("/var/www/coova_json/img/default-logo.png",0755);
 	
 	$f[]="<?";
 	$f[]="	\$challenge = \$_REQUEST['challenge'];";
@@ -1104,8 +1098,8 @@ function DefaultSplash($ChilliConf){
 	$f[]="</html>";
 	$f[]="";
 	@file_put_contents("/var/www/coova_json/hs_land.php", @implode("\n", $f));
-	@chmod(0755,"/var/www/coova_json/hs_land.php");
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} /hs_land.php done\n";}
+	@chmod("/var/www/coova_json/hs_land.php",0755);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /hs_land.php done\n";}
 	$f=array();
 	
 	$f[]="<?";
@@ -1154,7 +1148,7 @@ function DefaultSplash($ChilliConf){
 	$f[]="?>";	
 	
 	if($ChilliConf["HS_PROVIDER"]==null){$ChilliConf["HS_PROVIDER"]="Artica";}
-	if($ChilliConf["HS_PROVIDER_LINK"]==null){$ChilliConf["HS_PROVIDER_LINK"]="http://www.artica.fr";}
+	if($ChilliConf["HS_PROVIDER_LINK"]==null){$ChilliConf["HS_PROVIDER_LINK"]="http://www.articatech.net";}
 	if($ChilliConf["HS_LOC_NAME"]==null){$ChilliConf["HS_LOC_NAME"]="Artica HotSpot";}
 	if($ChilliConf["HS_LOC_NETWORK"]==null){$ChilliConf["HS_LOC_NETWORK"]="HotSpot Network";}
 	$f=array();
@@ -1194,8 +1188,8 @@ setcookie('hs[password]',   \"\", time()-3600);
 </body>
 </html>	";
 	@file_put_contents("/var/www/coova_json/fail.php", @implode("\n", $f));
-	@chmod(0755,"/var/www/coova_json/fail.php");
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} /fail.php done\n";}	
+	@chmod("/var/www/coova_json/fail.php",0755);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /fail.php done\n";}	
 $f=array();
 
 
@@ -1231,8 +1225,8 @@ $f[]="
 </html>
 ";
 @file_put_contents("/var/www/coova_json/splash.php", @implode("\n", $f));
-@chmod(0755,"/var/www/coova_json/splash.php");
-if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} /splash.php done\n";}		
+@chmod("/var/www/coova_json/splash.php",0755);
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /splash.php done\n";}		
 }
 
 function stop($aspid=false){
@@ -1242,7 +1236,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1258,11 +1252,11 @@ function stop($aspid=false){
 	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
 		if($GLOBALS["BYCONSOLE"]){
 			@unlink("/etc/artica-postfix/MEM_INTERFACES");
 			shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --build");
-			$unix->THREAD_COMMAND_SET("/etc/init.d/artica-status restart");
+			$unix->THREAD_COMMAND_SET("/etc/init.d/artica-status reload");
 		}
 		return;
 	}
@@ -1271,42 +1265,42 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
 		flush_iptables();
 		stop_dnsmasq(true);
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} service success, cleaning firewall...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success, cleaning firewall...\n";}
 	flush_iptables();
 	stop_dnsmasq(true);
-	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-status restart");
+	$unix->THREAD_COMMAND_SET("/etc/init.d/artica-status reload");
 
 }
 function stop_dnsmasq($aspid=false){
@@ -1316,7 +1310,7 @@ function stop_dnsmasq($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1332,7 +1326,7 @@ function stop_dnsmasq($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service already stopped...\n";}
 		return;
 	}
 	$pid=PID_NUM_DNSMASQ();
@@ -1340,37 +1334,37 @@ function stop_dnsmasq($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM_DNSMASQ();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM_DNSMASQ();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM_DNSMASQ();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service failed...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service success, cleaning firewall...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DNSMasq service success, cleaning firewall...\n";}
 	
 
 
@@ -1380,9 +1374,13 @@ function flush_iptables(){
 	$unix=new unix();
 	$iptables=$unix->find_program("iptables");
 	
+	shell_exec("$iptables -F INPUT");
 	shell_exec("$iptables -P INPUT ACCEPT");
-	shell_exec("$iptables -P FORWARD ACCEPT");
+	shell_exec("$iptables -F OUTPUT");
 	shell_exec("$iptables -P OUTPUT ACCEPT");
+	shell_exec("$iptables -F FORWARD");
+	shell_exec("$iptables -P FORWARD ACCEPT");
+	shell_exec("$iptables -t nat -F PREROUTING");
 	shell_exec("$iptables -t nat -F");
 	shell_exec("$iptables -t mangle -F");
 	shell_exec("$iptables -F");
@@ -1420,7 +1418,7 @@ function chilli_init_d(){
 		$f[]="ENABLED=$EnableChilli";
 		$f[]="	if [ \$ENABLED -eq 0 ]";
 		$f[]="	then";
-		$f[]="		echo \"Stopping......: [INIT]: {$GLOBALS["TITLENAME"]}  is disabled\"";
+		$f[]="		echo \"Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}  is disabled\"";
 		$f[]="		exit 0";
 		$f[]="	fi";		
 		
@@ -1484,7 +1482,7 @@ function chilli_init_d(){
 		$f[]="    ";
 		$f[]="stop)";
 		$f[]="";
-		$f[]="\techo \"Stopping......: [INIT]: {$GLOBALS["TITLENAME"]}\"";
+		$f[]="\techo \"Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}\"";
 		$f[]="\t$php5 ". __FILE__." --stop";		
 		$f[]="\tcrontab -l 2>&- | grep -v \$0 | crontab -";
 		$f[]=";;";
@@ -1498,7 +1496,7 @@ function chilli_init_d(){
 		$f[]="";
 		
 		$INITD_PATH="/etc/init.d/chilli";
-		echo "Starting......: [INIT]: {$GLOBALS["TITLENAME"]} Writing $INITD_PATH with new config\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Writing $INITD_PATH with new config\n";
 		@file_put_contents($INITD_PATH, @implode("\n", $f));
 		
 		@chmod($INITD_PATH,0755);

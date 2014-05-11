@@ -10,8 +10,16 @@ class maillog_tools{
 	public function Postfix_Addconnection_error($hostname,$ip,$error_text){
 		if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
 		$time=time();
+		
+		
+		
+		
 	
 		if($hostname==null){if($ip<>null){$hostname=gethostbyaddr($ip);}}
+		
+		if(preg_match("#Relay access denied#i", $error_text)){$this->SMTP_HACKS($hostname, $ip);}
+		
+		
 		
 		if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.#",$ip)){
 			$ip=gethostbyname($ip);
@@ -24,6 +32,26 @@ class maillog_tools{
 		@file_put_contents("/var/log/artica-postfix/smtp-connections/". md5($ser).".err",$ser);
 		
 	}	
+	
+	
+	private function SMTP_HACKS($hostname,$ip){
+		if(!isset($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"])){return;}
+		if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]==0){return;}
+		if(!function_exists("smtp_hack_perform")){return;}
+		
+		$GLOBALS["SMTP_HACK"][$hostname]["RBL"]=$GLOBALS["SMTP_HACK"][$ip]["RBL"]+2;
+		if(!function_exists("events")){events("Postfix Hack: {$hostname} RBL !! {$ip}={$GLOBALS["SMTP_HACK"][$ip]["RBL"]} attempts");}
+			
+			
+		if($GLOBALS["SMTP_HACK"][$ip]["RBL"]>=$GLOBALS["SMTP_HACK_CONFIG_RATE"]["RBL"]){
+			smtp_hack_perform($ip,$GLOBALS["SMTP_HACK"][$ip],"RBL");
+			unset($GLOBALS["SMTP_HACK"][$ip]);
+		}
+	}
+
+		
+		
+	
 	
 	
 	

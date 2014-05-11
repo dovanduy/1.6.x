@@ -267,7 +267,7 @@ function pattern_status(){
 	$av_info=base64_decode($sock->getFrameWork("klms.php?av-info=yes"));
 	
 	if(preg_match("#ERROR:.*?(.*)#", $av_info,$re)){$error_bases="<tr>
-	<td width=1% align='right'><img src='img/status_warning.gif'></td>
+	<td width=1% align='right'><img src='img/status_warning.png'></td>
 	<td valign='middle'><span style='color:#E21919;font-size:12px'>{error}:{$re[1]}</strong></td></tr>";}
 	$av_info=str_replace("UpToDate","",$av_info);
 	$as_info=str_replace("UpToDate","",$as_info);

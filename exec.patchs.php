@@ -7,7 +7,7 @@ include_once(dirname(__FILE__).'/ressources/class.sockets.inc');
 include_once(dirname(__FILE__).'/ressources/class.ccurl.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
@@ -38,7 +38,7 @@ function checkupdates(){
 	$configDisk=trim($sock->GET_INFO('ArticaAutoUpdateConfig'));	
 	$ini->loadString($configDisk);	
 	$AUTOUPDATE=$ini->_params["AUTOUPDATE"];
-	if(trim($AUTOUPDATE["uri"])==null){$AUTOUPDATE["uri"]="http://www.artica.fr/auto.update.php";}
+	if(trim($AUTOUPDATE["uri"])==null){$AUTOUPDATE["uri"]="http://articatech.net/auto.update.php";}
 	if(trim($AUTOUPDATE["enabled"])==null){$AUTOUPDATE["enabled"]="yes";}
 	if(trim($AUTOUPDATE["autoinstall"])==null){$AUTOUPDATE["autoinstall"]="yes";}
 	if($GLOBALS["FORCE"]){$AUTOUPDATE["autoinstall"]="yes";}
@@ -82,7 +82,7 @@ function UpdatePatches(){
 	$configDisk=trim($sock->GET_INFO('ArticaAutoUpdateConfig'));	
 	$ini->loadString($configDisk);	
 	$AUTOUPDATE=$ini->_params["AUTOUPDATE"];
-	if(trim($AUTOUPDATE["uri"])==null){$AUTOUPDATE["uri"]="http://www.artica.fr/auto.update.php";}
+	if(trim($AUTOUPDATE["uri"])==null){$AUTOUPDATE["uri"]="http://articatech.net/auto.update.php";}
 	if(trim($AUTOUPDATE["enabled"])==null){$AUTOUPDATE["enabled"]="yes";}
 	if(trim($AUTOUPDATE["autoinstall"])==null){$AUTOUPDATE["autoinstall"]="yes";}
 	$tr=explode("/", $AUTOUPDATE["uri"]);
@@ -125,7 +125,7 @@ function UpdatePatches(){
 	
 	if($update){
 		shell_exec("$nohup /etc/init.d/artica-postfix restart apache >/dev/null 2>&1 &");
-		shell_exec("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+		shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 		shell_exec("$nohup /etc/init.d/artica-postfix restart artica-back >/dev/null 2>&1 &");
 		shell_exec("$nohup /etc/init.d/artica-postfix restart artica-exec >/dev/null 2>&1 &");
 	}

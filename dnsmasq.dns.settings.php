@@ -15,7 +15,8 @@
 		}
 	}	
 	
-	
+if(isset($_GET["enable-page"])){page_enable();exit;}	
+if(isset($_POST["EnableDNSMASQ"])){EnableDNSMASQ_save();exit;}
 if(isset($_POST["SaveConf1"])){SaveConf1();exit;}
 if(isset($_POST["restart-dnsmasq"])){restart_service();exit;}
 if(isset($_GET["interfaces"])){interfaces();exit;}
@@ -78,9 +79,61 @@ function status(){
 }
 
 function restart_service(){
-	
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?restart-dnsmasq=yes");
+	$sock->getFrameWork("dnsmasq.php?restart=yes");
+}
+
+function page_enable(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$t=time();
+	$tpl=new templates();
+	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
+	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
+	$EnableDNSMASQLDAPDB=$sock->GET_INFO("EnableDNSMASQLDAPDB");
+	if(!is_numeric($EnableDNSMASQLDAPDB)){$EnableDNSMASQLDAPDB=0;}
+	
+	
+	$pp=Paragraphe_switch_img("{enable_dns_service}", "{green_enable_dns_service_explain}",
+			"EnableDNSMASQ-$t",$EnableDNSMASQ,null,750);
+	$p1=Paragraphe_switch_img("{EnableDNSMASQLDAPDB}", "{EnableDNSMASQLDAPDB_explain}",
+			"EnableDNSMASQLDAPDB-$t",$EnableDNSMASQLDAPDB,null,750);
+	
+
+	
+	$html="
+	<div style='width:98%' class=form>
+		$pp<br>
+		$p1<br>
+		<hr>
+		<div style='text-align:right;margin-bottom:30px'>". button("{apply}" ,"Save$t()",22)."</div>		
+	</div>
+<script>
+	var xSave$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue);}	
+		Loadjs('system.services.cmd.php?APPNAME=APP_DNSMASQ&action=restart&cmd=". urlencode("/etc/init.d/dnsmasq")."&id=&appcode=APP_DNSMASQ');
+	}
+
+	function Save$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('EnableDNSMASQ',document.getElementById('EnableDNSMASQ-$t').value);
+		XHR.appendData('EnableDNSMASQLDAPDB',document.getElementById('EnableDNSMASQLDAPDB-$t').value);
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+	}
+</script>
+				
+				
+";
+	
+echo $tpl->_ENGINE_parse_body($html);	
+	
+}
+
+function EnableDNSMASQ_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("EnableDNSMASQ", $_POST["EnableDNSMASQ"]);
+	$sock->SET_INFO("EnableDNSMASQLDAPDB",$_GET["EnableDNSMASQLDAPDB"]);
 }
 
 
@@ -91,16 +144,17 @@ function main_form(){
 	$sys=new systeminfos();
 	$sys->array_interfaces[null]='{select}';
 	$sys->array_tcp_addr[null]='{select}';
-	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:14px;padding:3px;");
-	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:14px;padding:3px;");
+	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:16px;padding:3px;");
+	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:16px;padding:3px;");
 	$sock=new sockets();
 	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
 	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
 
-	$EnableDNSMASQLDAPDB=$sock->GET_INFO("EnableDNSMASQLDAPDB");
-	if(!is_numeric($EnableDNSMASQLDAPDB)){$EnableDNSMASQLDAPDB=0;}
-	
 
+	
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
 	
 	
 	
@@ -119,45 +173,47 @@ while (list ($index, $key) = each ($f) ){
 	if($cf->main_array[$key]=="yes"){$cf->main_array[$key]=1;}else{$cf->main_array[$key]=0;}
 	$js[]="if(document.getElementById('$key').checked){XHR.appendData('$key','yes');	}else{XHR.appendData('$key','no');}";
 }	
-$html="<table style='width:99%' class=form><tbody>
+$html="
+<div style='width:98%' class=form>		
+<table style='width:100%'><tbody>
 
 
 <tr>
-	<td align='right' valign='top' class=legend style='font-size:14px'>{domain-needed}:</td>
+	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{domain-needed}:</td>
 	<td align='left' valign='top'>" . Field_checkbox('domain-needed',1,$cf->main_array["domain-needed"])."</td>
 	<td align='left' valign='top'  width=1%>". help_icon("{domain-needed_text}")."</td>
 </tr>
 <tr>
-<td align='right' valign='top' class=legend style='font-size:14px'>{expand-hosts}:</td>
+<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{expand-hosts}:</td>
 <td align='left' valign='top'   >" . Field_checkbox('expand-hosts',1,$cf->main_array["expand-hosts"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{expand-hosts_text}")."</td>
 </tr>
 
 
 <tr>
-<td align='right' valign='top' class=legend style='font-size:14px'>{bogus-priv}:</td>
+<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{bogus-priv}:</td>
 <td align='left' valign='top' >" . Field_checkbox('bogus-priv',1,$cf->main_array["bogus-priv"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{bogus-priv_text}")."</td>
 </tr>
 <tr>
-<td align='right' valign='top'  valign='top'  class=legend style='font-size:14px'>{filterwin2k}:</td>
+<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{filterwin2k}:</td>
 <td align='left' valign='top' >" . Field_checkbox('filterwin2k',1,$cf->main_array["filterwin2k"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{filterwin2k_text}")."</td>
 </tr>
 <tr>
-<td align='right' valign='top'  valign='top'  class=legend style='font-size:14px'>{strict-order}:</td>
+<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{strict-order}:</td>
 <td align='left' valign='top' >" . Field_checkbox('strict-order',1,$cf->main_array["strict-order"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{strict-order_text}")."</td>
 </tr>
 
 <tr>
-<td align='right' valign='top'  valign='top' class=legend style='font-size:14px'>{no-resolv}:</td>
+<td align='right' valign='top'  valign='top' style='font-size:16px;vertical-align:top' class=legend>{no-resolv}:</td>
 <td align='left' valign='top' >" . Field_checkbox('no-resolv',1,$cf->main_array["no-resolv"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{no-resolv_text}")."</td>
 </tr>
 
 <tr>
-<td align='right' valign='top'  valign='top'  class=legend style='font-size:14px'>{no-negcache}:</td>
+<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{no-negcache}:</td>
 <td align='left' valign='top' >" . Field_checkbox('no-negcache',1,$cf->main_array["no-negcache"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{no-negcache_text}")."</td>
 </tr>
@@ -165,13 +221,13 @@ $html="<table style='width:99%' class=form><tbody>
 
 
 <tr>
-<td align='right' valign='top'  valign='top'  class=legend style='font-size:14px'>{no-poll}:</td>
+<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{no-poll}:</td>
 <td align='left' valign='top' >" . Field_checkbox('no-poll',1,$cf->main_array["no-poll"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{no-poll_text}")."</td>
 </tr>
 
 <tr>
-<td align='right' valign='top'  valign='top'  class=legend style='font-size:14px'>{log-queries}:</td>
+<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{log-queries}:</td>
 <td align='left' valign='top' >" . Field_checkbox('log-queries',1,$cf->main_array["log-queries"])."</td>
 <td align='left' valign='top'  width=1%>". help_icon("{log-queries_text}")."</td>
 </tr>
@@ -179,23 +235,20 @@ $html="<table style='width:99%' class=form><tbody>
 
 </tbody>
 </table>
-
-<table style='width:99%' class=form>
+</div>
+". Field_hidden("resolv-file", $cf->main_array["resolv-file"])."
+<div style='width:98%' class=form>
+<table style='width:100%'>
 	<tbody>
 		<tr>
-			<td align='right' valign='top'  valign='top'   nowrap class=legend style='font-size:14px'>{resolv-file}:</td>
-			<td align='left' valign='top' >" . Field_text('resolv-file',$cf->main_array["resolv-file"],"font-size:14px;padding:3px;")."</td>
-			<td align='left' valign='top'  >". help_icon("{resolv-file_text}")."</td>
-		</tr>
-		<tr>
-			<td align='right' valign='top'  valign='top'   nowrap class=legend style='font-size:14px'>{cache-size}:</td>
-			<td align='left' valign='top' >" . Field_text('cache-size',$cf->main_array["cache-size"],"font-size:14px;padding:3px;width:70px")."</td>
+			<td align='right' valign='top'  valign='top'   nowrap style='font-size:16px;vertical-align:top' class=legend>{cache-size}:</td>
+			<td align='left' valign='top' >" . Field_text('cache-size',$cf->main_array["cache-size"],"font-size:16px;padding:3px;width:70px")."</td>
 			<td align='left' valign='top'  >". help_icon("{cache-size_text}")."</td>
 		</tr>
 	
 		<tr>
-			<td align='right' valign='top'  valign='top'   nowrap class=legend style='font-size:14px'>{domain}:</td>
-			<td align='left' valign='top' >" . Field_text('dnsmasq-domain',$cf->main_array["domain"],"font-size:14px;padding:3px;")."</td>
+			<td align='right' valign='top'  valign='top'   nowrap style='font-size:16px;vertical-align:top' class=legend>{domain}:</td>
+			<td align='left' valign='top' >" . Field_text('dnsmasq-domain',$cf->main_array["domain"],"font-size:16px;padding:3px;")."</td>
 			<td align='left' valign='top'  >". help_icon("{dnsmasq_domain_explain}")."</td>
 		</tr>
 	
@@ -203,7 +256,7 @@ $html="<table style='width:99%' class=form><tbody>
 		<td colspan=3 align='right'><hr>". button("{apply}","SaveDNSMASQMainConf();",16)."</td>
 		</tr>
 	</tbody>
-</table>";	
+</table></div>";	
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
@@ -213,7 +266,8 @@ function page(){
 	$instance=$_GET["instance"];
 	$array["sub-status"]='{status}';
 	$array["sub-settings"]='{settings}';
-	$array["sub-listen"]='{network}';
+	$array["dns_nameservers"]='{dns_nameservers}';
+	$array["sub-listen"]='{interface}';
 	$array["sub-localdomains"]='{local_domains}';
 	$array["sub-wpad"]='{wpad_title}';
 
@@ -227,28 +281,24 @@ function page(){
 
 	while (list ($num, $ligne) = each ($array) ){
 		
+		if($num=="dns_nameservers"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.dns.php\"><span span style='$fonctsize'>$ligne</span></a></li>\n");
+			continue;
+			
+		}
+		
+		if($num=="sub-listen"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dnsmasq.interfaces.php\"><span span style='$fonctsize'>$ligne</span></a></li>\n");
+			continue;
+				
+		}		
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span span style='$fonctsize'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_dnsmasqsub style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_dnsmasqsub').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html,"main_config_dnsmasqsub")."<script>LeftDesign('dns-256-white-opac20.png');</script>";
+	
 	
 	
 	
@@ -274,33 +324,17 @@ function page_status(){
 	<tr>
 		<td width=1% valign='top'><div id='get-status'></div></td>
 		<td width=99% valign='top'>
-			<div class=explain id='dnsmaskrool' style='font-size:13px'>{dnsmasq_intro_settings}</div>
-			<div style='text-align:right'>
-				".imgtootltip("refresh-24.png","{refresh}","LoadAjax('get-status','$page?get-status=yes');")."
-			</div>
-			<div style='text-align:right'><hr>
-				".button("{restart_service}","RestartDNSMASQService()")."
-			</div>			
+			<div class=explain id='dnsmaskrool' style='font-size:16px'>{dnsmasq_intro_settings}</div>
+			<div id='enable-$t'></div>
+			
+			
+				
 	</td>
 	</tr>
 	</table>
 	<script>
 		LoadAjax('get-status','$page?get-status=yes');
-		
-		
-	var x_RestartDNSMASQService= function (obj) {
-		RefreshTab('main_config_dnsmasqsub');
-	}
-
-	function RestartDNSMASQService(){
-		var XHR = new XHRConnection();
-		XHR.appendData('restart-dnsmasq','yes');
-		AnimateDiv('events-$t');
-		XHR.sendAndLoad('$page', 'POST',x_RestartDNSMASQService);
-		
-	
-	}		
-		
+		LoadAjax('enable-$t','$page?enable-page=yes');
 	</script>
 	";
 	
@@ -318,14 +352,13 @@ function page_settings(){
 	$sys=new systeminfos();
 	$sys->array_interfaces[null]='{select}';
 	$sys->array_tcp_addr[null]='{select}';
-	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:14px;padding:3px;");
-	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:14px;padding:3px;");
+	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:16px;padding:3px;");
+	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:16px;padding:3px;");
 	$sock=new sockets();
 	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
 	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
 
-	$EnableDNSMASQLDAPDB=$sock->GET_INFO("EnableDNSMASQLDAPDB");
-	if(!is_numeric($EnableDNSMASQLDAPDB)){$EnableDNSMASQLDAPDB=1;}
+
 	
 	$EnableDNSMASQOCSDB=$sock->GET_INFO("EnableDNSMASQOCSDB");
 	if(!is_numeric($EnableDNSMASQOCSDB)){$EnableDNSMASQOCSDB=1;}	
@@ -358,31 +391,28 @@ while (list ($index, $key) = each ($f) ){
 $html="
 <table style='width:100%'>
 <tr>
-	<td valign='top' width=1%><div id='status-$t'></div></td>
-	<td valign='top' width=99%>
-<table style='width:99%' class=form>
+	<td width=30% style='vertical-align:top;padding-right:10px'><div id='status-$t'></div></td>
+	<td width=70%>
+<div style='width:98%' class=form>
+<table style='width:100%'>
 <tr>
-	<td align='right' valign='top' class=legend style='font-size:14px'>{EnableDNSMASQ}:</td>
+	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{EnableDNSMASQ}:</td>
 	<td align='left' valign='top'>". Field_checkbox("EnableDNSMASQ",1,$EnableDNSMASQ,"EnableDNSMASQSave()")."</td>
 	<td align='left' valign='top'  width=1%>". help_icon("{EnableDNSMASQ_explain}")."</td>
 </tr>
+
 <tr>
-	<td align='right' valign='top' class=legend style='font-size:14px'>{EnableDNSMASQLDAPDB}:</td>
-	<td align='left' valign='top'>". Field_checkbox("EnableDNSMASQLDAPDB",1,$EnableDNSMASQLDAPDB,"EnableDNSMASQSave()")."</td>
-	<td align='left' valign='top'  width=1%>". help_icon("{EnableDNSMASQLDAPDB_explain}")."</td>
-</tr>
-<tr>
-	<td align='right' valign='top' class=legend style='font-size:14px'>{EnableDNSMASQOCSDB}:</td>
+	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{EnableDNSMASQOCSDB}:</td>
 	<td align='left' valign='top'>". Field_checkbox("EnableDNSMASQOCSDB",1,$EnableDNSMASQOCSDB,"EnableDNSMASQSave()")."</td>
 	<td align='left' valign='top'  width=1%>". help_icon("{EnableDNSMASQOCSDB_explain}")."</td>
 </tr>
 <tr>
-	<td align='right' valign='top' class=legend style='font-size:14px'>{DNSMasqUseStatsAppliance}:</td>
+	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{DNSMasqUseStatsAppliance}:</td>
 	<td align='left' valign='top'>". Field_checkbox("DNSMasqUseStatsAppliance",1,$DNSMasqUseStatsAppliance,"EnableDNSMASQSave()")."</td>
 	<td align='left' valign='top'  width=1%>". help_icon("{DNSMasqUseStatsAppliance_explain}")."</td>
 </tr>
 </table>
-
+</div>
 <div id='ffm1$t'></div>
 
 </td>
@@ -427,7 +457,6 @@ $html="
 	
 		var XHR = new XHRConnection();
 		if(document.getElementById('EnableDNSMASQ').checked){XHR.appendData('EnableDNSMASQ',1);	}else{XHR.appendData('EnableDNSMASQ',0);}
-		if(document.getElementById('EnableDNSMASQLDAPDB').checked){XHR.appendData('EnableDNSMASQLDAPDB',1);	}else{XHR.appendData('EnableDNSMASQLDAPDB',0);}
 		if(document.getElementById('EnableDNSMASQOCSDB').checked){XHR.appendData('EnableDNSMASQOCSDB',1);	}else{XHR.appendData('EnableDNSMASQOCSDB',0);}
 		if(document.getElementById('DNSMasqUseStatsAppliance').checked){XHR.appendData('DNSMasqUseStatsAppliance',1);	}else{XHR.appendData('DNSMasqUseStatsAppliance',0);}
 		CheckStatsAppliance();
@@ -446,12 +475,11 @@ $html="
 			return;
 		}
 		if(document.getElementById('DNSMasqUseStatsAppliance').checked){
-			document.getElementById('EnableDNSMASQLDAPDB').disabled=true;
 			document.getElementById('EnableDNSMASQOCSDB').disabled=true;
 			return;
 		}
 		
-			document.getElementById('EnableDNSMASQLDAPDB').disabled=false;
+			
 			document.getElementById('EnableDNSMASQOCSDB').disabled=false;		
 		
 	}
@@ -468,115 +496,11 @@ echo $tpl->_ENGINE_parse_body($html);
 	
 }
 
-function page_listen(){
-	$cf=new dnsmasq();
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$sys=new systeminfos();
-	$sys->array_interfaces[null]='{select}';
-	$sys->array_tcp_addr[null]='{select}';
-	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:16px;padding:3px;");
-	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:16px;padding:3px;");
-	
-	
-	
-$html="<div style='font-size:22px'>{interface} {dnsmasq_listen_address}</div>
-<p>&nbsp;</p>
-<center>
-<table style='width:250px' class=form>
-<tr>
-<td>
-<form name='ffm2'>
-<table>
-	<tr>
-		<td valign='middle' class=legend nowrap style='font-size:16px'>{interface}:</td>
-		<td valign='middle'>$interfaces</td>
-		<td valign='middle'>". button("{add}","ParseForm('ffm2','$page',true);InterfacesReload()",16)."</td>
-		<td width=1%>". help_icon("{dnmasq_interface_text}")."</td>
-	</tr>
-</table>
-</form>
-</td>
-</tr>
-<tr>
-<td>
-<form name='ffm21'>
-<center>
-<table >
-	<tr>
-		<td valign='middle' class=legend nowrap style='font-size:16px'>{dnsmasq_listen_address}:</td>
-		<td>$tcpaddr</td>
-		<td>". button("{add}","ParseForm('ffm21','$page',true);ListentAddressesReload()",16)."</td>
-		<td width=1%>". help_icon("{dnsmasq_listen_address_text}")."</td>
-	</tr>
-</table>
-</center>
-</form>
-</td>
-</tr>
-</table>
-</center>
-<p>&nbsp;</p>
-<div id='dnmasq_interface'>" . LoadInterfaces() . "</div>
-<div id='dnsmasq_listen_address'>" . LoadListenAddress() . "</div>"	;
-	
-
-echo $tpl->_ENGINE_parse_body($html);
-
-}
 
 
 
-function LoadInterfaces(){
-	$conf=new dnsmasq();
-	if(!is_array($conf->array_interface)){return null;}
-	$html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th colspan=3>&nbsp;</th>
-		
-	</tr>
-</thead>
-<tbody class='tbody'>";	
-	while (list ($index, $line) = each ($conf->array_interface) ){
-	if(trim($line)==null){continue;}
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$html=$html . "
-		<tr class=$classtr>
-			<td width=1%><img src='img/folder-network-32.png'></td>
-			<td  width=99% style='font-size:16px'>$line</td>
-			<td  width=1%>" . imgtootltip('delete-32.png','{delete}',"DnsmasqDeleteInterface('$index');")."</td>
-		</tr>";
-	}
-	$tpl=new templates();
-	return $tpl->_ENGINE_parse_body($html . "</table>");
-	
-}
-function LoadListenAddress(){
-	$conf=new dnsmasq();
-	if(!is_array($conf->array_listenaddress)){return null;}
-	$html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th colspan=3>&nbsp;</th>
-		
-	</tr>
-</thead>
-<tbody class='tbody'>";
-	while (list ($index, $line) = each ($conf->array_listenaddress) ){
-	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		if(trim($line)==null){continue;}
-		$html=$html . "
-		<tr class=$classtr>
-			<td width=1%><img src='img/folder-network-32.png'></td>
-			<td  width=99% style='font-size:16px'>$line</td>
-			<td  width=1%>" . imgtootltip('delete-32.png','{delete}',"DnsmasqDeleteListenAddress('$index');")."</td>
-		</tr>";
-	}
-	$tpl=new templates();
-	return $tpl->_ENGINE_parse_body($html . "</table></center>");
-	
-}
+
+
 
 function wpad(){
 	$sock=new sockets();
@@ -602,34 +526,36 @@ function wpad(){
 	
 	
 	$html="
-	<div id='div-$t' class=explain style='font-size:14px'>{dnsmasq_wpad_explain}</div>
-	<table style='width:99%' class=form>
+	<div id='div-$t' class=explain style='font-size:16px'>{dnsmasq_wpad_explain}</div>
+	 div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td valign='top' class=legend style='font-size:16px' valign='middle'>{enable}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{enable}:</td>
 		<td>". Field_checkbox("ENABLE-$t", 1,$Params["ENABLE"],"CheckWpadEnable()")."</td>
 	</tr>	
 	
 	<tr>
-		<td valign='top' class=legend style='font-size:16px' valign='middle'>{listen_port}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{listen_port}:</td>
 		<td>". Field_text("PORT-$t",$Params["PORT"],"font-size:16px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:16px' valign='middle'>{ipaddr}:</td>
+		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{ipaddr}:</td>
 		<td>". field_ipv4("IP_ADDR-$t",$Params["IP_ADDR"],"font-size:16px;")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:16px' valign='middle'>{hostname}:</td>
-		<td style='font-size:16px'>wpad.". Field_text("HOST-$t",$Params["HOST"],"font-size:16px;width:190px")."</td>
+		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{hostname}:</td>
+		<td style='font-size:16px;vertical-align:top'>wpad.". Field_text("HOST-$t",$Params["HOST"],"font-size:16px;width:190px")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:16px' valign='middle'>{url}:</td>
-		<td style='font-size:16px'>http://wpad.{$Params["HOST"]}:{$Params["PORT"]}/". Field_text("URI-$t",$Params["URI"],"font-size:16px;width:120px")."</td>
+		<td style='font-size:16px;vertical-align:top' class=legend>{url}:</td>
+		<td style='font-size:16px;vertical-align:top'>http://wpad.{$Params["HOST"]}:{$Params["PORT"]}/". Field_text("URI-$t",$Params["URI"],"font-size:16px;width:120px")."</td>
 	</tr>
 	<tr>
 		<td colspan=2 align='right'>". button("{apply}", "SaveForm$t()",18)."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 		
 		var x_SaveForm$t= function (obj) {
@@ -699,11 +625,7 @@ function SaveConf1(){
 	$conf->SaveConf(); 
 }
 
-function interfaces(){
-	$conf=new dnsmasq();
-	$conf->array_interface[]=$_GET["interfaces"];
-	$conf->SaveConf();
-}
+
 function DnsmasqDeleteInterface(){
 	$conf=new dnsmasq();
 	unset($conf->array_interface[$_GET["DnsmasqDeleteInterface"]]);
@@ -731,14 +653,22 @@ function EnableDNSMASQSave(){
 	
 	$users=new usersMenus();
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
-	$sock->SET_INFO("EnableDNSMASQLDAPDB",$_GET["EnableDNSMASQLDAPDB"]);
+	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	
+	
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+	
+	
+	
 	$sock->SET_INFO("EnableDNSMASQOCSDB",$_GET["EnableDNSMASQOCSDB"]);
 	$sock->SET_INFO("DNSMasqUseStatsAppliance",$_GET["DNSMasqUseStatsAppliance"]);
 	
 	
 	
 	
-	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	
 	
 	if($_GET["EnableDNSMASQ"]==1){
 		if($users->POWER_DNS_INSTALLED){
@@ -759,7 +689,7 @@ function EnableDNSMASQSave(){
 	}
 	
 	
-	$sock->getFrameWork("cmd.php?restart-dnsmasq=yes");
+	$sock->getFrameWork("dnsmasq.php?restart=yes");
 	$sock->getFrameWork("services.php?restart-artica-status=yes");
 }
 
@@ -774,7 +704,7 @@ function page_localdomains(){
 	$domains=$tpl->_ENGINE_parse_body("{domains}");
 	$dnsmasq_localdomains_explain=$tpl->_ENGINE_parse_body("{dnsmasq_localdomains_explain}");
 	$new_domain=$tpl->javascript_parse_text("{new_domain}");
-	$html="<div class=explain style='font-size:14px'>$dnsmasq_localdomains_explain</div>
+	$html="<div class=explain style='font-size:16px'>$dnsmasq_localdomains_explain</div>
 	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
 	
 	<script>

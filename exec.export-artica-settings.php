@@ -32,7 +32,7 @@ if (!$handle = opendir("/etc/artica-postfix/settings/Daemons")) {@mkdir("/etc/ar
 	@file_put_contents($tmpf, $finalitems);
 	if($GLOBALS["VERBOSE"]){echo "compressing in $workdir/settingsHD.gz\n";}
 	if(!$unix->compress($tmpf, "$workdir/settingsHD.gz")){@unlink("$workdir/settingsHD.gz");}
-	@chmod(0777, "$workdir/settingsHD.gz");
+	@chmod( "$workdir/settingsHD.gz",0777);
 	@unlink($tmpf);	
 	if($GLOBALS["VERBOSE"]){echo "compressing in $workdir/settingsHD.gz done\n";}
 	

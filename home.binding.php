@@ -210,9 +210,9 @@ function homebind_list($userid){
 		if(strlen($tt)>39){$dir=texttooltip(substr($tt,0,36)."...",$tt);}else{$tt=$tt;}
 		$mnt=trim($sock->getfile("ismounted:$val;$tt"));
 		if($mnt=="FALSE"){
-			$img=imgtootltip("status_critical.gif",'{error_not_mounted},{click_to_mount}',"homebindMount($num)");
+			$img=imgtootltip("status_critical.png",'{error_not_mounted},{click_to_mount}',"homebindMount($num)");
 		}else{
-			$img=imgtootltip("status_ok.gif",'{mounted},{click_to_dismount}',"homebindUMount($num)");
+			$img=imgtootltip("status_ok.png",'{mounted},{click_to_dismount}',"homebindUMount($num)");
 		}
 		$html=$html."
 		<tr " . CellRollOver().">

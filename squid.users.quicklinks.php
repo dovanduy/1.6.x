@@ -188,7 +188,7 @@ function section_realtime_events(){
 
 function section_start(){
 	
-		error_log("OK ".__FUNCTION__."() in " . basename(__FILE__). " line ".__LINE__);
+		error_log("[{$_SESSION["uid"]}]::OK ".__FUNCTION__."() in " . basename(__FILE__). " line ".__LINE__);
 	
 	$html="
 	
@@ -330,7 +330,7 @@ function section_myhost_config(){
 	$ldap=Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");
 	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-webinterface=yes');");
-		$SMTP_NOTIFICATIONS_PAGE=Paragraphe("folder-64-fetchmail.png","{smtp_notifications}","{smtp_notifications_text}",
+		$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
 	"javascript:Loadjs('artica.settings.php?js=yes&func-NotificationsInterface=yes');");
 		
 	$tr[]=$frontend_settings;
@@ -842,7 +842,7 @@ function nic_settings(){
 	$GLOBALS["ICON_FAMILY"]="NETWORK";
 	$page=CurrentPageName();
 	$js="Loadjs('system.nic.config.php?js=yes')";
-	$img="64-win-nic.png";
+	$img="net-card-64.png";
 	return Paragraphe($img,"{nic_settings}","{nic_settings_text}","javascript:$js");
 	return LocalParagraphe("nic_settings","nic_settings_text",$js,$img);
 	}

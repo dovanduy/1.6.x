@@ -89,7 +89,7 @@ function postfix_security_rules(){
 function restrictions_classes(){
 	$html="<input type='button' value='{postfix_restrictions_classes}&nbsp;&raquo;' OnClick=\"javascript:MyHref('postfix.restrictions.classes.php');\">";
 	
-return BuildTable("icon_info.gif",'{postfix_restrictions_classes}',$html);	
+return BuildTable("16-infos.png",'{postfix_restrictions_classes}',$html);	
 	
 }
 
@@ -122,9 +122,9 @@ function TLS(){
 		<td style='padding-left:5px'><a href=\"$config\">$smtp_tls_note_starttls_offer</a></td>
 		</tr>
 		</table>";
-		return BuildTable("status_ok.gif",'{tls_title}',$html);
+		return BuildTable("status_ok.png",'{tls_title}',$html);
 	}else{
-		return BuildTable("icon_info.gif",'{tls_title}',"<a href='$config'>{disable}</a>");
+		return BuildTable("16-infos.png",'{tls_title}',"<a href='$config'>{disable}</a>");
 	}
 	
 	
@@ -134,15 +134,15 @@ function TLS(){
 function Antispam(){
 	$p=new HtmlPages();
 	if($p->kas_installed==true){
-		return BuildTable("status_ok.gif",'Kaspersky Anti-Spam ','{installed}');
-	}else{return BuildTable("status_critical.gif",'Kaspersky Anti-Spam ','{not_installed}');}
+		return BuildTable("status_ok.png",'Kaspersky Anti-Spam ','{installed}');
+	}else{return BuildTable("status_critical.png",'Kaspersky Anti-Spam ','{not_installed}');}
 	}
 	
 function Antivirus(){
 	$p=new HtmlPages();
 	if($p->aveserver_installed==true){
-		return BuildTable("status_ok.gif",'Kaspersky Antivirus ','{installed}');
-	}else{return BuildTable("status_critical.gif",'Kaspersky Antivirus ','{not_installed}');}
+		return BuildTable("status_ok.png",'Kaspersky Antivirus ','{installed}');
+	}else{return BuildTable("status_critical.png",'Kaspersky Antivirus ','{not_installed}');}
 	}	
 
 
@@ -152,7 +152,7 @@ function RegexRules(){
 	$main=new main_header_check();
 	$count=count($main->main_table);
 	$html="<a href='smtp.rules.php'>{postfix_inrules_regex}: <strong>$count</strong></a>";
-	return BuildTable("status_ok.gif",'{check_in_headers}',$html,"MyHref('smtp.rules.php');");			
+	return BuildTable("status_ok.png",'{check_in_headers}',$html,"MyHref('smtp.rules.php');");			
 }
 
 function Listen(){
@@ -162,9 +162,9 @@ function Listen(){
 if(!is_array($array)){
 		writelogs("Error it seems that array_inet_interfaces is empty !!?? ",__FUNCTION__,__FILE__);
 		$array_mynetworks_text='{error}';
-		$array_mynetworks_img='status_critical.gif';
+		$array_mynetworks_img='status_critical.png';
 	}else{
-		$array_mynetworks_img='status_ok.gif';
+		$array_mynetworks_img='status_ok.png';
 		$array_mynetworks_text=implode(', ',$array);
 		
 	
@@ -177,9 +177,9 @@ function array_mynetworks(){
 	$array_mynetworks=$main->array_mynetworks;
 	if(!is_array($array_mynetworks)){
 		$array_mynetworks_text='{error_no_array_mynetworks}';
-		$array_mynetworks_img='status_critical.gif';
+		$array_mynetworks_img='status_critical.png';
 	}else{
-		$array_mynetworks_img='status_ok.gif';
+		$array_mynetworks_img='status_ok.png';
 		$array_mynetworks_text=implode(', ',$array_mynetworks) . '<span class=caption> {Authorized networks text}</span>';
 		
 	
@@ -213,12 +213,12 @@ function BuildTable($img,$title,$text,$link=null){
 function smtpd_reject_unlisted_recipient(){
 	$main=new main_cf();
 	if($main->main_array["smtpd_reject_unlisted_recipient"]=='yes'){
-		$img="icon_ok.gif";
-		$img2="status_ok.gif";
+		$img="ok16.png";
+		$img2="status_ok.png";
 		$text="{enabled}";
 	}else{
 		$img="icon_mini_off.gif";
-		$img2="status_critical.gif";
+		$img2="status_critical.png";
 		$text="{disabled}";
 		}
 		
@@ -238,12 +238,12 @@ return BuildTable("$img2",'{smtpd_reject_unlisted_recipient}',$text,"LoadSmtpdRe
 function smtpd_helo_required(){
 	$main=new main_cf();
 	if($main->main_array["smtpd_helo_required"]=='yes'){
-		$img="icon_ok.gif";
-		$img2="status_ok.gif";
+		$img="ok16.png";
+		$img2="status_ok.png";
 		$text="{enabled}";
 	}else{
 		$img="icon_mini_off.gif";
-		$img2="status_critical.gif";
+		$img2="status_critical.png";
 		$text="{disabled}";
 		}
 		

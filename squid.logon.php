@@ -202,7 +202,7 @@ function squid_events_hours(){
 
 
 function authenticate() {   
-	error_log("1) Auth user:{$_SERVER['PHP_AUTH_USER']} password:{$_SERVER['PHP_AUTH_PW']}");
+	error_log("[{$_SESSION["uid"]}]::1) Auth user:{$_SERVER['PHP_AUTH_USER']} password:{$_SERVER['PHP_AUTH_PW']}");
 
 
 	

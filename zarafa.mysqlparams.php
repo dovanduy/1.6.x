@@ -49,12 +49,12 @@ function page(){
 	
 	if(!is_numeric($ZarafaRemoteMySQLServerPort)){$ZarafaRemoteMySQLServerPort=3306;}
 	
-	$DropDownF=Field_array_Hash($arraySRV, "ZarafaMySQLServiceType",$ZarafaMySQLServiceType,"ZarafaMySQLServiceTypeForm()",null,0,"font-size:16px");
+	$DropDownF=Field_array_Hash($arraySRV, "ZarafaMySQLServiceType",$ZarafaMySQLServiceType,"ZarafaMySQLServiceTypeForm()",null,0,"font-size:18px");
 	
 	
 	$html="
 	<div id='$t'></div>
-	<div class=explain id='zarafa_mysql_tuning_text' style='font-size:14px'>{zarafa_mysql_params_text}</div>
+	<div class=explain id='zarafa_mysql_tuning_text' style='font-size:16px'>{zarafa_mysql_params_text}</div>
 	
 	<table style='width:99%' class=form>
 	<tR>
@@ -63,27 +63,27 @@ function page(){
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{remote_mysql_server}:</td>
-		<td style='font-size:16px'>". Field_text("ZarafaRemoteMySQLServer",$ZarafaRemoteMySQLServer,"font-size:16px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{remote_mysql_server}:</td>
+		<td style='font-size:18px'>". Field_text("ZarafaRemoteMySQLServer",$ZarafaRemoteMySQLServer,"font-size:18px;width:190px")."</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{mysql_server_port}:</td>
-		<td style='font-size:16px'>". Field_text("ZarafaRemoteMySQLServerPort",$ZarafaRemoteMySQLServerPort,"font-size:16px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{mysql_server_port}:</td>
+		<td style='font-size:18px'>". Field_text("ZarafaRemoteMySQLServerPort",$ZarafaRemoteMySQLServerPort,"font-size:18px;width:90px")."</td>
 		<td width=1%></td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{mysql_admin}:</td>
-		<td style='font-size:16px'>". Field_text("ZarafaRemoteMySQLServerAdmin",$ZarafaRemoteMySQLServerAdmin,"font-size:16px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{mysql_admin}:</td>
+		<td style='font-size:18px'>". Field_text("ZarafaRemoteMySQLServerAdmin",$ZarafaRemoteMySQLServerAdmin,"font-size:18px;width:190px")."</td>
 		<td width=1%></td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td style='font-size:16px'>". Field_password("ZarafaRemoteMySQLServerPassword",$ZarafaRemoteMySQLServerPassword,"font-size:16px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{password}:</td>
+		<td style='font-size:18px'>". Field_password("ZarafaRemoteMySQLServerPassword",$ZarafaRemoteMySQLServerPassword,"font-size:18px;width:190px")."</td>
 		<td width=1%></td>
 	</tr>					
 	<tr>
-		<td colspan=3 align=right><hr>". button("{apply}","ZarafaSave$t()",18)."</td>
+		<td colspan=3 align=right><hr>". button("{apply}","ZarafaSave$t()",24)."</td>
 	</tr>	
 </table>
 <script>

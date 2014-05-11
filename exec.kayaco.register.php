@@ -4,7 +4,7 @@ ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting',
 require_once(dirname(__FILE__)."/ressources/kayaco/kyIncludes.php");
 define('DEBUG', true);
 
-kyConfig::set(new kyConfig("http://www.artica.fr/support/api/index.php", "bea5b97c-a838-8ca4-9dda-aec5043cccae", "MmUxYzRmMDMtM2RjNC1iY2Y0LTRkOGEtNjYzN2Q3N2U3MWE2N2FiZjk2NzEtMzQxZS0yMTA0LTUxN2YtOWZiY2VkOTQyNTMy"));
+kyConfig::set(new kyConfig("http://www.articatech.net/support/api/index.php", "bea5b97c-a838-8ca4-9dda-aec5043cccae", "MmUxYzRmMDMtM2RjNC1iY2Y0LTRkOGEtNjYzN2Q3N2U3MWE2N2FiZjk2NzEtMzQxZS0yMTA0LTUxN2YtOWZiY2VkOTQyNTMy"));
 
 
 $registered_user_group = kyUserGroup::getAll()

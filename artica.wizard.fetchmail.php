@@ -283,7 +283,7 @@ function FormRules($array,$editmode=0,$rulenumber=0){
 	$ssl=Field_checkbox('_ssl',1,$array["ssl"]);
 	$fetchall=Field_checkbox('_fetchall',1,$array["fetchall"]);
 	$keep=Field_checkbox('_keep',1,$array["keep"]);
-	$nokeep=Field_checkbox('_nokeep',1,$array["nokeep"]);
+	//$nokeep=Field_checkbox('_nokeep',1,$array["nokeep"]); Mettre nokeep si _keep=1
 	$sslcertck=Field_checkbox('_sslcertck',1,$array["sslcertck"]);
 	$dropdelivered=Field_checkbox('_dropdelivered',1,$array["dropdelivered"],null,"{dropdelivered_explain}");
 	
@@ -316,7 +316,8 @@ if($array["is"]==null){
 	$form="
 	$flexgrid
 	<div style='font-size:18px'>{server_options}:</div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
 		<td align='right' class=legend style='font-size:14px'>{enable}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_numeric_checkbox_img('_enabled',$array["enabled"],'{enable_disable}')."</td>
@@ -400,19 +401,12 @@ if($array["is"]==null){
 			<td align='right' class=legend style='font-size:14px'>{keepmess}</strong>:&nbsp;</td>
 			<td align='left'>$keep&nbsp;</td>
 			<td width=1%>&nbsp;</td>	
-		</tr>
-			<td align='right' class=legend style='font-size:14px'>{nokeepmess}</strong>:&nbsp;</td>
-			<td align='left'>$nokeep&nbsp;</td>
-			<td width=1%>&nbsp;</td>	
-		</tr>
-		
-		
-		
-		
+		</tr>		
 </table>
 </td>
 </tR>
 </table>
+
 	";
 	$user=new usersMenus();
 	if($user->AsMailBoxAdministrator or $user->AsPostfixAdministrator){
@@ -470,6 +464,7 @@ $form2="
 	
 
 	</table>
+	</div>
 		";
 	
 	

@@ -16,6 +16,8 @@ $user=new usersMenus();
 		die();exit();
 	}
 	
+	
+	
 	if(isset($_GET["frontend-status"])){frontend_status_js();exit;}
 	if(isset($_GET["frontend-params"])){frontend_params_js();exit;}
 	if(isset($_GET["frontend-groups"])){frontend_groups_js();exit;}
@@ -106,16 +108,24 @@ function kav4proxy_status(){
 		$updatejs="<span style='font-size:12px;'>";
 		$pattern_date="{downloading}";
 	}	
-	
+	$expire=$tpl->_ENGINE_parse_body("{expire}");
 	$q=new mysql();
 	$sql="SELECT *  FROM kav4proxy_license ORDER BY expiredate DESC LIMIT 0,1";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if(trim($ligne["serial"])<>null){
+		$expiredate_color="black";
+		$expiredate=$ligne["expiredate"];
+		$expiredate=strtotime($expiredate);
 		
-		
+		if($expiredate-time()<0){$expiredate_color="#B60000";}
+		if($tpl->language=="fr"){
+			$expiredate=date("Y l F d",$expiredate);
+		}else{
+			$expiredate=date("{l} d {F} Y",$expiredate);
+		}
 		$license_text="<a href=\"javascript:blur();\"
 			OnClick=\"javascript:Loadjs('Kav4Proxy.License-infos.php');\"
-			style='font-size:11px;font-weight:bold;color:black;text-decoration:underline'>{expire_in}:{$ligne["lifespan"]} {days}</strong>";		
+			style='font-size:11px;font-weight:bold;color:$expiredate_color;text-decoration:underline'>$expire:$expiredate</strong>";		
 	}else{
 		$sock->getFrameWork("squid.php?kav4proxy-license-generate=yes");
 		$licenseerror=base64_decode($sock->getFrameWork("squid.php?kav4proxy-license-error=yes"));
@@ -177,19 +187,21 @@ function kav4proxy_status(){
 	}
 	
 	if(is_array($status)){$status_text=@implode("\n", $status);}
+	$kavicapserverEnabled=intval($sock->GET_INFO("kavicapserverEnabled"));
+	if($kavicapserverEnabled==1){
+		$q=new mysql_squid_builder();
+		$ligneSQL=mysql_fetch_array($q->QUERY_SQL("SELECT `enabled` FROM c_icap_services WHERE ID=7"));
+		if($ligneSQL["enabled"]==0){
+			$CICAP_LOCAL_WARNING="<center>".Paragraphe("warning-panneau-64.png", "{local_proxy_service_not_linked}",
+					"{local_proxy_service_not_linked_explain}",
+					"javascript:AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-center.php')",null,350)."</center>";
+		}
 	
-	$html="$kav$Keep$UpdateUtility
-<center>
-<table style='width:50%' class=form>
-<tbody>
-<tr>
-	<td width=1%>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-	<td width=1%>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-	<td width=1%>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-</tr>
-</tbody>
-</table>
-</center>
+	}
+	
+	
+	$html="$CICAP_LOCAL_WARNING$kav$Keep$UpdateUtility
+
 
 
 	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","Kav4ProxyStatus()")."</div>
@@ -200,15 +212,19 @@ function kav4proxy_status(){
 			<td class=legend nowrap>{pattern_date}:</td>
 			<td style='font-size:14px' colspan=2>$pattern_date</td>
 		</tr>
-	
-			<tr>
-				<td width=1% align='right'><img src='img/$iconupdate'>
-				<td nowrap>$updatejs{TASK_UPDATE_ANTIVIRUS}</a></span></td>
-			</tr>	
+		<tr>
+			<td width=1% align='right'><img src='img/$iconupdate'></td>
+			<td nowrap>$updatejs{TASK_UPDATE_ANTIVIRUS}</a></span></td>
+		</tr>	
 		<tr>
 			<td class=legend>{license2}:</td>
 			<td style='font-size:14px' colspan=2>$license_text</td>
-		</tr>						
+		</tr>	
+		<tr>
+			<td width=1% align='right'><img src='img/arrow-right-16.png'></td>
+			<td style='font-size:14px' colspan=2><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('Kav4Proxy.install.php')\"
+			style='font-size:11px;font-weight:bold;color:black;text-decoration:underline'>{uninstall}</td>
+		</tr>							
 		$status_text
 	</tbody>
 	</table>
@@ -294,6 +310,15 @@ function status(){
 		$tpl=new templates();
 		$page=CurrentPageName();
 		$sock=new sockets();
+		
+		
+		$INSTALLED=trim($sock->getFrameWork("squid.php?kaspersky-is-installed=yes"));
+		if($INSTALLED<>"TRUE"){
+			echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{not_installed}"));
+			return;
+		}
+		
+		
 		$t=time();
 		$users=new usersMenus();
 		$kavicapserverEnabled=$sock->GET_INFO("kavicapserverEnabled");
@@ -317,7 +342,7 @@ function status(){
 			<td width=1% valign='top'><div id='kav4proxy-status'></div></td>
 			<td width=1% valign='top'>
 			<div id='$t-div'>
-				<div style='width:95%' class=form>
+				<div style='width:98%' class=form>
 					$form
 					<div style='width:100%;text-align:right'>". button("{apply}","kavicapserverEnabledSave$t()",14)."</div>
 				</div>
@@ -384,7 +409,7 @@ function kavicapserverEnabledSave(){
 
 function tabs(){
 		$font_size=$_GET["font-size"];
-		if($font_size==null){$font_size="14px";}
+		if($font_size==null){$font_size="16px";}
 		$tpl=new templates();
 		$page=CurrentPageName();
 		$users=new usersMenus();
@@ -399,7 +424,7 @@ function tabs(){
 		
 		
 		$array["ExcludeMimeType"]='{exclude}:{ExcludeMimeType}';
-		$array["groups"]='{groups}';
+		//$array["groups"]='{groups}';
 		
 		if($users->UPDATE_UTILITYV2_INSTALLED){
 			$array["updateutility"]='UpdateUtility';
@@ -414,7 +439,7 @@ function tabs(){
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="blacklist_databases"){
-			$tab[]="<li><a href=\"squid.blacklist.php\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+			$tab[]="<li><a href=\"squid.blacklist.php\"><span style='font-size:$font_size'>$ligne</span></a></li>\n";
 			continue;
 		}		
 		
@@ -481,7 +506,7 @@ $html="
 	$prefix
 	
 	function LoadBigSettings(){
-		YahooWin('750','$page?popup-big=yes','$title');
+		YahooWin('930','$page?popup-big=yes','$title');
 	
 	}
 	
@@ -543,6 +568,15 @@ echo $tpl->_ENGINE_parse_body($html,"kav4proxy.index.php");
 function ExcludeMimeType(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	
+	$sock=new sockets();
+	
+	$INSTALLED=trim($sock->getFrameWork("squid.php?kaspersky-is-installed=yes"));
+	if($INSTALLED<>"TRUE"){
+		echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{not_installed}"));
+		return;
+	}
+	
 	$ComputerMacAddress=$tpl->_ENGINE_parse_body("{ComputerMacAddress}");
 	$groups=$tpl->_ENGINE_parse_body("{groups}:{ComputerMacAddress}");
 	$delete=$tpl->_ENGINE_parse_body("{delete}");
@@ -736,6 +770,15 @@ echo json_encode($data);
 
 function icapserver_engine_options(){
 $page=CurrentPageName();
+
+$sock=new sockets();
+$tpl=new templates();
+$INSTALLED=trim($sock->getFrameWork("squid.php?kaspersky-is-installed=yes"));
+if($INSTALLED<>"TRUE"){
+	echo $tpl->_ENGINE_parse_body(FATAL_ERROR_SHOW_128("{not_installed}"));
+	return;
+}
+
 $kav4=new Kav4Proxy();
 
 include_once(dirname(__FILE__)."/ressources/system.network.inc");
@@ -749,7 +792,7 @@ $Kav4ProxyTMPFSMB=$sock->GET_INFO("Kav4ProxyTMPFSMB");
 if(!is_numeric($Kav4ProxyTMPFSMB)){$Kav4ProxyTMPFSMB=512;}
 
 if(preg_match("#(.+?):[0-9]+#", $kav4->main_array["ListenAddress"],$re)){$kav4->main_array["ListenAddress"]=$re[1];}
-	$license=Paragraphe("64-kav-license.png", "{license_info}", "{license_info_text}","javascript:Loadjs('Kav4Proxy.License.php')");
+	$license=Paragraphe("64-kav-license.png", "{license_info}", "{license_info_text}","javascript:Loadjs('Kav4Proxy.License-infos.php')");
 	$update_kaspersky=Paragraphe('kaspersky-update-64.png','{TASK_UPDATE_ANTIVIRUS}','{APP_KAV4PROXY}<br>{UPDATE_ANTIVIRUS_TEXT}',
 	"javascript:UpdateKav4Proxy()");
 	
@@ -815,7 +858,7 @@ $update_kaspersky
 $templates
 </td>
 <td width=99% valign='top'>
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 				<table>
 				<tbody>
 				<tr>

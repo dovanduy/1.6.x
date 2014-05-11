@@ -21,13 +21,13 @@ $GLOBALS["REBOOT"]=false;
 $GLOBALS["PREFIX_OUPUT"]="{$GLOBALS["PREFIX_OUPUT"]} ";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
-if(!is_file("/usr/share/artica-postfix/ressources/settings.inc")){shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose");}
+
 
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;}
 if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--withoutloading#",implode(" ",$argv))){$GLOBALS["NO_USE_BIN"]=true;}
-if($argv[1]=="--squid"){$GLOBALS["PREFIX_OUPUT"]="Starting......: Squid, kernel:";}
+if($argv[1]=="--squid"){$GLOBALS["PREFIX_OUPUT"]="Starting......: ".date("H:i:s")." Squid, kernel:";}
 if($argv[1]=="--reboot"){$GLOBALS["REBOOT"]=true;}
 if($argv[1]=="--sysctl"){sysctl_start();die();}
 if($argv[1]=="--shmall"){shared_memory();die();}

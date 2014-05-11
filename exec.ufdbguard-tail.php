@@ -2,7 +2,7 @@
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ufdbguard-tools.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
-
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["CLASS_UNIX"]=new unix();
 $GLOBALS["CLASS_SOCKET"]=new sockets();
@@ -14,7 +14,7 @@ events("Found old PID $oldpid");
 if($oldpid<>$pid){
 	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){events("Already executed PID: $oldpid.. aborting the process");die();}
 }
-if(is_file("/var/log/artica-postfix/ufdbguard-tail.debug")){@unlink("/var/log/artica-postfix/ufdbguard-tail.debug");}
+if(is_file("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-tail.debug")){@unlink("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-tail.debug");}
 file_put_contents($pidfile,$pid);
 events("ufdbtail starting PID $pid...");
 $GLOBALS["ufdbGenTable"]=$GLOBALS["CLASS_UNIX"]->find_program("ufdbGenTable");
@@ -23,6 +23,7 @@ $GLOBALS["nohup"]=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
 $GLOBALS["PHP5_BIN"]=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
 $GLOBALS["SBIN_ARP"]=$GLOBALS["CLASS_UNIX"]->find_program("arp");
 $GLOBALS["SBIN_ARPING"]=$GLOBALS["CLASS_UNIX"]->find_program("arping");
+$GLOBALS["SBIN_RM"]=$GLOBALS["CLASS_UNIX"]->find_program("rm");
 
 
 
@@ -30,9 +31,9 @@ if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"])){$GLOBALS["UfdbguardSMTPNo
 
 $GLOBALS["RELOADCMD"]="{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} ".dirname(__FILE__)."/exec.squidguard.php --reload-ufdb";
 if($argv[1]=='--date'){echo date("Y-m-d H:i:s")."\n";}
-@mkdir("/var/log/artica-postfix/squid-stats",0666,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/squid-stats",0666,true);
 
-@mkdir("/var/log/artica-postfix/ufdbguard-blocks",0666,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks",0666,true);
 events("Running new $pid ");
 events_ufdb_exec("Artica ufdb-tail running $pid");
 ufdbguard_admin_events("Watchdog running pid $pid","MAIN",__FILE__,__LINE__,"ufdbguard-service");
@@ -128,16 +129,86 @@ if(strpos($buffer,'execdomainlist for')>0){return ;}
 if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 
 
+if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/ufdbGuard\.conf#",$buffer,$re)){
+	events("Wrong configuration file... \"$buffer\"");
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --ufdb --force >/dev/null 2>&1 &");
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.ufdb.php --restart --force --ufdbtail >/dev/null 2>&1 &");
+	return;
+}
+
+
 	if(preg_match("#There are no sources and there is no default ACL#i", $buffer)){
 		events("Seems not to be defined -> build compilation.");
 		xsyslog("Reconfigure ufdb service...");
 		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
 		return;
 	}
+	
+	if(preg_match("#ERROR: cannot write to PID file\s+(.+)#i", $buffer,$re)){
+		xsyslog("Apply permissions on {$re[1]}");
+		$pidfile=$re[1];
+		$pidpath=dirname($pidfile);
+		@mkdir($pidpath,0755,true);
+		@chown("squid",$pidpath);
+		@chmod($pidpath,0755);
+		return;
+	}
+	
+	
+	if(preg_match("#\] Changing daemon status to.*?error#",$buffer,$re)){
+		squid_admin_mysql(0, "FATAL! Webfilter daemon is turned to error", $buffer,__FILE__,__LINE__);
+		return;
+		
+	}
+	
+	if(preg_match("#\] Changing daemon status to.*?terminated#",$buffer,$re)){
+		squid_admin_mysql(1, "Webfilter daemon is turned to OFF", $buffer,__FILE__,__LINE__);
+		return;
+	
+	}	
+	
+	
+	
+	if(preg_match('#FATAL ERROR: table "(.+?)"\s+could not be parsed.*?error code = [0-9]+#',$buffer,$re)){
+		$direname=dirname($re[1]);
+		squid_admin_mysql(0, "Database $direname corrupted", $buffer."\nReconfigure ufdb service after removing $direname...",__FILE__,__LINE__);
+		events("Webfiltering engine error on $direname");
+		if(!is_dir($direname)){return;}
+		shell_exec("{$GLOBALS["SBIN_RM"]} -rf $direname >/dev/null 2>&1");
+		xsyslog("Reconfigure ufdb service after removing $direname...");
+		shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.squidguard.php --build --force >/dev/null 2>&1 &");
+		return;
+	}
 
+	if(preg_match("#BLOCK-FATAL\s+#",$buffer,$re)){
+		$TimeFile="/etc/artica-postfix/pids/UFDB_BLOCK_FATAL";
+		if(!IfFileTime($TimeFile,10)){return;}
+		events("Webfiltering engine error, reload service");
+		events_ufdb_exec("service was restarted, $buffer");
+		squid_admin_mysql(0, "Fatal, Web filtering engine error", $buffer."\nThe service will be reloaded",__FILE__,__LINE__);
+		xsyslog("Reloading ufdb service...");
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/ufdb reload >/dev/null 2>&1 &");
+		return;
+	}
+	
+	if(preg_match("#FATAL ERROR: connection queue is full#",$buffer,$re)){
+		$TimeFile="/etc/artica-postfix/pids/UFDB_QUEUE_IS_FULL";
+		$Threads=@file_get_contents("/etc/artica-postfix/settings/Daemons/UfdbGuardThreads");
+		if(!is_numeric($Threads)){$Threads=48;}
+		$Threads=$Threads+1;
+		if($Threads>140){$Threads=140;}
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/UfdbGuardThreads", $Threads);
+		if(!IfFileTime($TimeFile,2)){return;}
+		squid_admin_mysql(0, "Fatal, Web filtering connection queue is full", $buffer."\nThe service will be restarted and threads are increased to $Threads",__FILE__,__LINE__);
+		xsyslog("Restarting ufdb service after connection queue is full...");
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/ufdb restart >/dev/null 2>&1 &");
+		return;
+	}
+	
 
 	if(preg_match('#FATAL\*\s+table\s+"(.+?)"\s+could not be parsed.+?14#',$buffer,$re)){
 		events("Table on {$re[1]} crashed");
+		squid_admin_mysql(0, "Database {$re[1]} corrupted", $buffer,__FILE__,__LINE__);
 		ufdbguard_admin_events("Table on {$re[1]} crashed\n$buffer",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		events_ufdb_exec("$buffer");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: {$re[1]} could not be parsed","Ufdbguard claim: $buffer\n
@@ -146,6 +217,7 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 	}
 	
 	if(strpos($buffer,"HUP signal received to reload the configuration")>0){
+		squid_admin_mysql(2, "Service was reloaded, wait 15 seconds", $buffer,__FILE__,__LINE__);
 		events_ufdb_exec("service was reloaded, wait 15 seconds");
 		ufdbguard_admin_events("service was reloaded, wait 15 seconds\n$buffer",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: service was reloaded, wait 15 seconds","Ufdbguard 
@@ -155,70 +227,49 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 	
 	if(preg_match("#FATAL ERROR: cannot bind daemon socket: Address already in use#", $buffer)){
 		events_ufdb_exec("ERROR DETECTED : $buffer `cannot bind daemon socket`");
+		squid_admin_mysql(0, "FATAL ERROR: cannot bind daemon socket: Address already in use", $buffer,__FILE__,__LINE__);
 		ufdbguard_admin_events("FATAL ERROR: cannot bind daemon socket: Address already in use",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: service Error; Address already in use","Ufdbguard 
 		: $buffer\n","ufdbguard-service");
 		xsyslog("Restarting ufdb service...");
-		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/artica-postfix restart ufdb >/dev/null 2>&1");
-		
+		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/ufdb restart >/dev/null 2>&1 &");
+		return;
 	}
 	
+
 	
+	if(preg_match('#\] FATAL ERROR: cannot read from "(.+?)".*?No such file or directory#', $buffer,$re)){
+		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer,__FILE__,__LINE__);
+		events("cannot read '{$re[1]}' -> \"$buffer\"");
+		squid_admin_mysql(2,"Web filtering issue on {$re[1]}","Launch recover_a_database()",__FILE__,__LINE__);
+		recover_a_database($re[1]);
+		return;
+	}
 	
 	if(preg_match('#\*FATAL.+? cannot read from "(.+?)".+?: No such file or directory#', $buffer,$re)){
+		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer,__FILE__,__LINE__);
 		events("cannot read '{$re[1]}' -> \"$buffer\"");
+		squid_admin_mysql(2,"Web filtering issue on {$re[1]}","Launch recover_a_database()",__FILE__,__LINE__);
 		ufdbguard_admin_events("cannot read '{$re[1]}' -> \"$buffer\"",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-		if(!is_dir(dirname($re[1]))){
-			@mkdir(dirname($re[1]),0755,true);
-			shell_exec("{$GLOBALS["chown"]} -R squid:squid ".dirname($re[1]));
-		}
-		
-		$newfile=str_replace(".ufdb", "", $re[1]);
-		if(!is_file($newfile)){
-			events("cannot '$newfile' no such file, create it");
-			@file_put_contents($newfile, "\n");
-		}
-		if(!is_file(dirname($newfile)."/urls")){
-			@file_put_contents(dirname($newfile)."/urls", "\n");
-		}
-		
-		if(!is_file(dirname($newfile)."/expressions")){
-			@file_put_contents(dirname($newfile)."/expressions", "\n");
-		}		
-		
-		$category=str_replace("/var/lib/squidguard/", "", dirname($newfile));
-		$category=str_replace("web-filter-plus/BL/", "", $category);
-		$category=str_replace("blacklist-artica/", "", $category);
-		$category=str_replace("personal-categories/", "", $category);
-		
-		if(preg_match("#\/(.+?)$#", $category,$re)){$category=$re[1];}
-		if(strlen($category)>15){
-			$category=str_replace("recreation_","recre_",$category);
-			$category=str_replace("automobile_","auto_",$category);
-			$category=str_replace("finance_","fin_",$category);
-			if(strlen($category)>15){
-				$category=str_replace("_", "", $category);
-				$category=substr($category, strlen($category)-15,15);
-			}
-		}
-		$cmd="{$GLOBALS["ufdbGenTable"]} -n -D -W -t $category -d $newfile -u ". dirname($newfile)."/urls";
-		events("Category $category ".strlen($category). "chars -> $cmd");
-		shell_exec($cmd);
-		shell_exec("/bin/chown -R squid:squid ". dirname($newfile)." >/dev/null 2>&1 &");
+		recover_a_database($re[1]);
 		return;
 		
 	}
 	
 	
 	if(preg_match('#\*FATAL\*\s+cannot read from\s+"(.+?)"#',$buffer,$re)){
+		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer,__FILE__,__LINE__);
 		events("Problem on {$re[1]}");
 		ufdbguard_admin_events("Problem on {$re[1]}\nYou need to compile your databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		events_ufdb_exec("$buffer");
+		squid_admin_mysql(2,"Web filtering issue on {$re[1]}","Launch recover_a_database()",__FILE__,__LINE__);
+		recover_a_database($re[1]);
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: {$re[1]} Not compiled..","Ufdbguard claim: $buffer\nYou need to compile your databases");
 		return;		
 	}
 	
 	if(preg_match("#\*FATAL\*\s+cannot read from\s+\"(.+?)\.ufdb\".+?No such file or directory#",$buffer,$re)){
+		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer."\n Problem on {$re[1]}\n\nYou need to compile your databases",__FILE__,__LINE__);
 		events("UFDB database missing : Problem on {$re[1]}");
 		ufdbguard_admin_events("UFDB database missing : Problem on {$re[1]}\nUfdbguard claim: $buffer\nYou need to compile your databases",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		if(!is_file($re[1])){
@@ -232,6 +283,7 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 	
 	
 	if(preg_match("#thread worker-[0-1]+.+?caught signal\s+[0-1]+#",$buffer,$re)){
+		squid_admin_mysql(0, "Webfiltering Daemon as crashed - Start a new one", $buffer,__FILE__,__LINE__);
 		ufdbguard_admin_events("Fatal : Crash detected\nUfdbguard claim: $buffer\n",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: crashed","Ufdbguard claim: $buffer\n","proxy");
 		shell_exec("/etc/init.d/ufdb start &");
@@ -240,6 +292,7 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 	
 	
 	if(preg_match("#\*FATAL\*\s+expression list\s+(.+?): Permission denied#",$buffer,$re)){
+		squid_admin_mysql(0, "Database {$re[1]} permission denied", $buffer."\nProblem on '{$re[1]}' -> chown squid:squid",__FILE__,__LINE__);
 		ufdbguard_admin_events("UFDB expression permission issue : Problem on '{$re[1]}' -> chown squid:squid",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		events("UFDB expression permission issue : Problem on '{$re[1]}' -> chown squid:squid");
 		shell_exec("{$GLOBALS["chown"]} -R squid:squid ".dirname($re[1]));
@@ -247,6 +300,7 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 	}
 	
 	if(preg_match("#\*FATAL.+?expression list\s+(.+?):\s+No such file or directory#", $buffer,$re)){
+		squid_admin_mysql(0, "Database {$re[1]} missing", $buffer."\nProblem on '{$re[1]}' -> Try to repair",__FILE__,__LINE__);
 		ufdbguard_admin_events("Expression list: Problem on {$re[1]} -> \"$buffer\", try to repair",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		events("Expression list: Problem on {$re[1]} -> \"$buffer\"");
 		events("Creating directory ".dirname($re[1]));
@@ -294,14 +348,18 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 		$public_ip=$re[7];
 		if(strpos($www,"/")>0){$tb=explode("/",$www);$www=$tb[0];}
 		if(preg_match("#^www\.(.+)#", $www,$re)){$www=$re[1];}
+		
+		if(preg_match("#^([0-9\.]+)#", $local_ip,$re)){$local_ip=$re[1];}
 		$date=time();
 		$table=date('Ymd')."_blocked";
 		$category=CategoryCodeToCatName($category);
 		if($user=="-"){$user=null;}
 		$MAC=$GLOBALS["CLASS_UNIX"]->IpToMac($local_ip);
 		$time=time();
-		if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
+		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker",600,true);}
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $www)){$public_ip=$www;$www=$GLOBALS["CLASS_UNIX"]->IpToHostname($www);}
+		
+		
 		$Clienthostname=$GLOBALS["CLASS_UNIX"]->IpToHostname($local_ip);
 		
 		$array["uid"]=$user;
@@ -322,17 +380,17 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 		$md5=md5($serialize);
 
 		
-		if(!is_dir("/var/log/artica-postfix/ufdbguard-blocks")){@mkdir("/var/log/artica-postfix/ufdbguard-blocks");}
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
+		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks");}
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql",$serialize);
 		
-		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}			
+		if(!is_file("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www))){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www), $www);}			
 		
 		return;
 		
 	}
 	
 	if(preg_match("#BLOCK\s+(.*?)\s+(.+?)\s+(.*?)\s+(.+?)\s+(.+?)\s+[A-Z]+#", $buffer,$re)){
-		if(!is_dir("/var/log/artica-postfix/pagepeeker")){@mkdir("/var/log/artica-postfix/pagepeeker",600,true);}
+		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker",600,true);}
 		$date=time();
 		$table=date('Ymd')."_blocked";
 		$user=trim($re[1]);
@@ -340,6 +398,7 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 		$rulename=$re[3];
 		$category=$re[4];
 		$uri=$re[5];
+		if(preg_match("#^([0-9\.]+)#", $local_ip,$re)){$local_ip=$re[1];}
 		$time=time();
 		$array=parse_url($uri);	
 		$www=$array["host"];
@@ -372,9 +431,9 @@ if(strpos($buffer,'dynamic_domainlist_updater_main')>0){return ;}
 		$serialize=serialize($array);
 		$md5=md5($serialize);
 		
-		@file_put_contents("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql",$serialize);
-		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("/var/log/artica-postfix/ufdbguard-blocks/$md5.sql")." bytes");
-		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}					
+		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql",$serialize);
+		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql")." bytes");
+		if(!is_file("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www))){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www), $www);}					
 		return;
 		
 	}
@@ -397,7 +456,10 @@ function HostnameToIp($hostname){
 
 
 function IfFileTime($file,$min=10){
-	if(file_time_min($file)>$min){return true;}
+	if(file_time_min($file)>$min){
+		@unlink($file);
+		@file_put_contents($file, time());
+		return true;}
 	return false;
 }
 function WriteFileCache($file){
@@ -407,9 +469,9 @@ function WriteFileCache($file){
 }
 function events($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		events_tail($text);
-		$logFile="/var/log/artica-postfix/ufdbguard-tail.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -420,8 +482,8 @@ function events($text){
 function events_tail($text){
 	if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 	$pid=@getmypid();
-	$date=@date("h:i:s");
-	$logFile="/var/log/artica-postfix/auth-tail.debug";
+	$date=@date("H:i:s");
+	$logFile="{$GLOBALS["ARTICALOGDIR"]}/auth-tail.debug";
 	$size=@filesize($logFile);
 	if($size>1000000){@unlink($logFile);}
 	$f = @fopen($logFile, 'a');
@@ -433,8 +495,8 @@ function events_tail($text){
 function events_ufdb_exec($text){
 		events("ufdbguard tail: $text");
 		$pid=@getmypid();
-		$date=@date("h:i:s");
-		$logFile="/var/log/artica-postfix/ufdbguard-compilator.debug";
+		$date=@date("H:i:s");
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-compilator.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -449,7 +511,52 @@ function xsyslog($text){
 	
 	
 }
-
+function recover_a_database($filename){
+	
+	if(!is_dir(dirname($filename))){
+		@mkdir(dirname($filename),0755,true);
+		shell_exec("{$GLOBALS["chown"]} -R squid:squid ".dirname($filename));
+	}
+	
+	$newfile=str_replace(".ufdb", "", $filename);
+	if(!is_file($newfile)){
+		events("cannot '$newfile' no such file, create it");
+		@file_put_contents($newfile, "\n");
+	}
+	if(!is_file(dirname($newfile)."/urls")){
+		@file_put_contents(dirname($newfile)."/urls", "\n");
+	}
+	
+	if(!is_file(dirname($newfile)."/expressions")){
+		@file_put_contents(dirname($newfile)."/expressions", "\n");
+	}
+	
+	$category=str_replace("/var/lib/squidguard/", "", dirname($newfile));
+	$category=str_replace("web-filter-plus/BL/", "", $category);
+	$category=str_replace("blacklist-artica/", "", $category);
+	$category=str_replace("personal-categories/", "", $category);
+	if(strpos($category,"/phishing")>0){$category="phishing";}
+	
+	if(strpos($category,"/")>0){$category=basename($category);}
+	
+	if(preg_match("#\/(.+?)$#", $category,$re)){$category=$re[1];}
+	if(strlen($category)>15){
+		$category=str_replace("recreation_","recre_",$category);
+		$category=str_replace("automobile_","auto_",$category);
+		$category=str_replace("finance_","fin_",$category);
+		if(strlen($category)>15){
+			$category=str_replace("_", "", $category);
+			$category=substr($category, strlen($category)-15,15);
+		}
+	}
+	$cmd="{$GLOBALS["ufdbGenTable"]} -n -D -W -t $category -d $newfile -u ". dirname($newfile)."/urls";
+	events("Category $category ".strlen($category). "chars -> $cmd");
+	shell_exec($cmd);
+	shell_exec("/bin/chown -R squid:squid ". dirname($newfile)." >/dev/null 2>&1 &");	
+	squid_admin_mysql(0,"Ask to restart Web filtering after error on a category","$filename",__FILE__,__LINE__);
+	shell_exec("{$GLOBALS["nohup"]} /etc/init.d/ufdb restart >/dev/null 2>&1 &");
+	
+}
 
 
 

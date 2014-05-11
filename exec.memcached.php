@@ -20,7 +20,7 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
-	if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;build();die();}
+	
 	
 
 function restart(){
@@ -30,7 +30,7 @@ function restart(){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -55,7 +55,7 @@ function start($aspid=false){
 	$sock=new sockets();
 	$memcached=$unix->find_program("memcached");
 	if(!is_file($memcached)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached, not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached, not installed\n";}
 		return;
 	}
 
@@ -64,7 +64,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -74,14 +74,15 @@ function start($aspid=false){
 
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached Service already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 
 	$EnableMemcached=$sock->GET_INFO("EnableMemcached");
-	if(!is_numeric($EnableMemcached)){$EnableMemcached=0;}
+	if(!is_numeric($EnableMemcached)){$EnableMemcached=1;}
+	
 	if($EnableMemcached==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service disabled\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service disabled (EnableMemcached = $EnableMemcached)\n";}
 		return;
 	}
 
@@ -96,17 +97,17 @@ function start($aspid=false){
 	for($i=0;$i<6;$i++){
 		$pid=PID_NUM();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service waiting $i/6...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service waiting $i/6...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service Success service started pid:$pid...\n";}
 		return;
 	}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service failed...\n";}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 }
 function stop($aspid=false){
 	$unix=new unix();
@@ -115,7 +116,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -125,7 +126,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Memcached service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Memcached service already stopped...\n";}
 		return;
 	}
 	$pid=PID_NUM();
@@ -136,35 +137,35 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Memcached service Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Memcached service Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=PID_NUM();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Memcached service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Memcached service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Memcached service shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Memcached service shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Memcached service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Memcached service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Memcached service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Memcached service success...\n";}
 		return;
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: Memcached service failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Memcached service failed...\n";}
 	
 }

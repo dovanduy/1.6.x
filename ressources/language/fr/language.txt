@@ -132,13 +132,13 @@ En faites, voici les diff&eacute;rences de caract&egrave;res:[br]
 <add_artica_tasks_text>S&eacute;lectionnez les t&acirc;ches pr&eacute;d&eacute;finies dans la liste des champs ci-dessous.[br]</add_artica_tasks_text>
 <add_attached_files_text>Ajouter des documents joints &agrave; votre message</add_attached_files_text>
 <add_attachment_bandwith_text>Ajouter une fichier qui r&eacute;duira la bande passante lors de son t&eacute;l&eacute;chargement</add_attachment_bandwith_text>
-<add_attachment_blocking_text>Ajouter une nouvelle extension interdite</add_attachment_blocking_text>
+<add_attachment_blocking_text>Nouvelle extension interdite</add_attachment_blocking_text>
 <add_attachment_blocking_text_explain>indiquez ici les 3 lettres qui repr&eacute;sentent le type de fichier[br]
 Vous pouvez indiquer plusieurs entr&eacute;es en les s&eacute;parant par une virgule.[br]
 exemples : [br]
 ajouter une seule restriction : exe[br]
 Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
-<add_auto_connection>Ajouter une connection automatique</add_auto_connection>
+<add_auto_connection>Ajouter une connexion automatique</add_auto_connection>
 <add_auto_connection_explain>va auto-monter directement dans le r&eacute;pertoire /automounts/nom-de-montage</add_auto_connection_explain>
 <add_a_new_tab>Ajoutez un nouvel onglet</add_a_new_tab>
 <add_a_new_tab_text>Ajoutez un nouvel onglet afin d'y placer des nouveaux gadgets</add_a_new_tab_text>
@@ -156,7 +156,7 @@ Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
 <add_contact>Ajouter un contact</add_contact>
 <add_contact_text>Ajouter un contact unique dans la base de donn&eacute;es</add_contact_text>
 <add_default_rules>Ajouter les r&egrave;gles par d&eacute;faut</add_default_rules>
-<add_default_settings>Ajouter des param&egrave;tres par d&eacute;faut</add_default_settings>
+<add_default_settings>Param&egrave;tres par d&eacute;faut</add_default_settings>
 <add_default_values>Ajouter les valeurs par d&eacute;faut</add_default_values>
 <add_edit_rule>Ajouter &amp; &eacute;diter une r&egrave;gle</add_edit_rule>
 <add_emailing>Ajouter un nouvel envoi</add_emailing>
@@ -167,16 +167,16 @@ Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
 <add_group>Ajouter un groupe</add_group>
 <add_invisible_disk_text>Ajouter manuellement un disque dans la biblioth&egrave;que si celui-ci n'est pas reconnu par Artica.</add_invisible_disk_text>
 <add_ip_address>Ajouter une adresse TCP/IP</add_ip_address>
-<ADD_JOOMLA_WEBISTE>Ajouter un nouveau site web Joomla</ADD_JOOMLA_WEBISTE>
+<ADD_JOOMLA_WEBISTE>Nouveau site web Joomla</ADD_JOOMLA_WEBISTE>
 <add_Kav_LicenseDomain>Ajoutez un domaine &agrave; la licence</add_Kav_LicenseDomain>
 <add_localHostOrDomainIs>Ajouter un serveur sans proxy</add_localHostOrDomainIs>
 <add_local_domain>Ajouter un domaine local</add_local_domain>
 <add_mail_server>Ajouter un serveur de messagerie</add_mail_server>
 <add_member>Ajouter un membre</add_member>
 <add_member_to_group>Ajouter un membre &agrave; ce groupe</add_member_to_group>
-<add_new_account>Ajouter un nouveau compte</add_new_account>
+<add_new_account>Nouveau compte</add_new_account>
 <add_new_address>Ajouter une nouvelle adresse</add_new_address>
-<add_new_cached_web_site>Ajouter un nouveau site web en cache</add_new_cached_web_site>
+<add_new_cached_web_site>Nouveau site web en cache</add_new_cached_web_site>
 <add_new_class>Ajoutez une nouvelle classe de restriction</add_new_class>
 <add_new_contact>Ajouter un nouveau contact</add_new_contact>
 <add_new_contact_text>D&eacute;finir un nouveau contact dans votre carnet d'adresses</add_new_contact_text>
@@ -189,16 +189,16 @@ Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
 <add_new_group>Ajouter un groupe</add_new_group>
 <add_new_member>Nouveau membre</add_new_member>
 <add_new_member_text>Ajouter un nouveau membre &agrave; votre organisation et s&eacute;lectionner son groupe</add_new_member_text>
-<add_new_network>Ajouter un nouveau r&eacute;seau</add_new_network>
+<add_new_network>Nouveau r&eacute;seau</add_new_network>
 <add_new_network_text>Indiquez ici les tranches d'adresses et les &eacute;l&eacute;ments qui d&eacute;finissent votre r&eacute;seau local</add_new_network_text>
-<add_new_org>Ajouter une nouvelle organisation</add_new_org>
+<add_new_org>Nouvelle organisation</add_new_org>
 <add_new_organisation>Ajouter une nouvelle organisation</add_new_organisation>
 <add_new_organisation_explain>Ajouter un secteur global qui stockera des groupes et des utilisateurs</add_new_organisation_explain>
 <add_new_organisation_text>Donner un nom &agrave; votre organisation:</add_new_organisation_text>
 <add_new_rule>jouter une nouvelle r&egrave;gle</add_new_rule>
 <add_new_sieverule_text>Cr&eacute;ez une nouvelle r&egrave;gle pour votre bo&icirc;te aux lettres, renoncez aux messages, transfert des messages, d&eacute;placer des messages vers un dossier...</add_new_sieverule_text>
 <add_new_sieve_rule>Ajouter une nouvelle r&egrave;gle de boite aux lettres</add_new_sieve_rule>
-<add_new_smtp_server>Ajouter un nouveau serveur SMTP</add_new_smtp_server>
+<add_new_smtp_server>Nouveau serveur SMTP</add_new_smtp_server>
 <ADD_NEW_TAB_ASK>Donnez le nom de votre nouvel onglet</ADD_NEW_TAB_ASK>
 <add_new_task>Ajouter une nouvelle t&acirc;che</add_new_task>
 <add_nic_aliase>Ajouter un alias</add_nic_aliase>
@@ -206,12 +206,12 @@ Ajouter une liste : exe,pif,bat,doc</add_attachment_blocking_text_explain>
 <add_routing_relay_recipient_rule>Ajoutez des destinataires &agrave; relayer</add_routing_relay_recipient_rule>
 <add_routing_rule>Ajouter une r&egrave;gle de transfert</add_routing_rule>
 <add_rule>ajouter une nouvelle r&egrave;gle</add_rule>
-<add_schedule_parameter>Ajouter une programmation de param&egrave;tres</add_schedule_parameter>
+<add_schedule_parameter>Nouvelle programmation de param&egrave;tres</add_schedule_parameter>
 <add_search_connector_text>Ajoutez un connecteur de recherche directement dans votre navigateur sans avoir &agrave; vous connecter &agrave; chaque fois</add_search_connector_text>
 <add_sender_routing_rule>Nouveau routage exp&eacute;diteur</add_sender_routing_rule>
 <add_server>Ajouter un serveur</add_server>
 <add_server_domain>Ajouter un serveur ou un domaine</add_server_domain>
-<add_single_ip>Ajouter une adresse unique</add_single_ip>
+<add_single_ip>Nouvelle adresse unique</add_single_ip>
 <add_spamassassin_header_txt>Un oersonnalisation des ent&ecirc;tes peut &ecirc;tre ajout&eacute;e en fonction des types de d&eacute;tection (Spam,bon, tous).[br]
 Les ent&ecirc;tes commencent par X-Spam-[br]
 exemples[br]
@@ -581,7 +581,7 @@ Si vous activez cette fonctionnalit&eacute;, vous serez en mesure de partager vo
 <APP_RSYNC_SERVER_TEXT>Param&egrave;trez ce serveur afin de recevoir les sauvegardes depuis les autres serveurs</APP_RSYNC_SERVER_TEXT>
 <APP_RSYNC_STUNNEL>Tunnel SSL</APP_RSYNC_STUNNEL>
 <APP_SAMBA>Moteur de partages Samba</APP_SAMBA>
-<APP_SAMBA_NMBD>D&eacute;mon de r&eacute;solution Samba</APP_SAMBA_NMBD>
+<APP_SAMBA_NMBD>R&eacute;solution Samba</APP_SAMBA_NMBD>
 <APP_SAMBA_SMBD>D&eacute;mon TCP/IP Samba</APP_SAMBA_SMBD>
 <APP_SAMBA_WINBIND>D&eacute;mon Samba Winbind</APP_SAMBA_WINBIND>
 <APP_SARG>G&eacute;n&eacute;rateur de rapport d'analyse Squid</APP_SARG>
@@ -749,7 +749,7 @@ Cette fonctionnalit&eacute; permet d'afficher un popup d'authentification si et 
 <automobile-cars>Tout ce qui concerne l'automobile, constructeurs et revendeurs</automobile-cars>
 <automobile-planes>Tout ce qui concerne les avions, h&eacute;licopt&egrave;res, a&eacute;roports non inclus</automobile-planes>
 <automount_center>Centre d'Auto-montage</automount_center>
-<automount_center_text>Configurez le service de connection avec vos ressources externes (p&eacute;riph&eacute;riques, montages r&eacute;seaux)</automount_center_text>
+<automount_center_text>Configurez le service de connexion avec vos ressources externes (p&eacute;riph&eacute;riques, montages r&eacute;seaux)</automount_center_text>
 <auto_account>Auto-cr&eacute;ation de Comptes</auto_account>
 <auto_account_text>Auto-cr&eacute;ation de comptes par vos utilisateurs</auto_account_text>
 <auto_apt>Mettre &agrave; jour automatiquement le syst&egrave;me</auto_apt>
@@ -1072,9 +1072,9 @@ Copiez/collez une liste d'ordinateurs avec chaque nom d'ordinateur s&eacute;par&
 <connect>Connecter</connect>
 <Connect in SSL mode>Connect&eacute; en mode SSL</Connect in SSL mode>
 <connecting>En cours de connexion</connecting>
-<Connection>Connection</Connection>
+<Connection>Connexion</Connection>
 <Connection timeout>D&eacute;lai imparti pour les connexions (en secondes)</Connection timeout>
-<connections>Connections</connections>
+<connections>Connexions</connections>
 <connection_cache_status_update_time>Cache mise &agrave; jour du statut de temps</connection_cache_status_update_time>
 <connection_cache_status_update_time_text>&Agrave; quelle fr&eacute;quence le serveur scache journalise les statistiques d'utilisation avec acc&egrave;s au cache de connexion et les taux d'&eacute;chec pour  les destination logique et les terminaux physiques</connection_cache_status_update_time_text>
 <connection_cache_ttl_limit>Temps maximum de dur&eacute;e de vie</connection_cache_ttl_limit>
@@ -1209,7 +1209,7 @@ Vous pouvez ajouter des privil&egrave;ges de groupe afin d'autoriser certains ut
 <dansguardian_user_manage_rule>Cliquez ici afin de personnaliser la r&egrave;gle de filtrage web</dansguardian_user_manage_rule>
 <dansguardian_user_whitelists>Listes blanches.</dansguardian_user_whitelists>
 <Data exchange timeout>Timeout d'&eacute;change de Donn&eacute;es</Data exchange timeout>
-<database>base de donn&eacute;es</database>
+<database>Base de donn&eacute;es</database>
 <databases>bases de donn&eacute;es</databases>
 <databases_maintenance>Maintenance des bases</databases_maintenance>
 <databases_maintenance_explain>Ce formulaire d&eacute;fini la fr&eacute;quence journali&egrave;re des bases d'urls.[br]Chaque jour, &agrave; l'heure indiqu&eacute;e, artica va effectuer une maintenance de vos bases de filtrage.[br]Vous recevrez une notification par eMail du r&eacute;sultat des op&eacute;rations.[br]Indiquez &agrave; quelle heure l'op&eacute;ration va &ecirc;tre ex&eacute;cut&eacute;e.</databases_maintenance_explain>
@@ -1221,7 +1221,7 @@ Vous pouvez ajouter des privil&egrave;ges de groupe afin d'autoriser certains ut
 <date_from>Date de d&eacute;part</date_from>
 <date_to>Date de fin</date_to>
 <day>jour</day>
-<days>jours</days>
+<days>Jours</days>
 <dayw>jours de la semaine</dayw>
 <db_enable_mailboxes>Boites aux lettres locales</db_enable_mailboxes>
 <db_method>M&eacute;thode de base de donn&eacute;es</db_method>
@@ -1328,7 +1328,7 @@ message de fa&ccedil;on silencieuse.[br] Enregistrer le texte optionnel s'il est
 <display>afficher</display>
 <displayname>nom d'affichage</displayname>
 <display_generated_configuration_file>Afficher le fichier de configuration g&eacute;n&eacute;r&eacute; par Artica pour support ou compr&eacute;hension des param&egrave;tres</display_generated_configuration_file>
-<display_hits>Afficher les connections</display_hits>
+<display_hits>Afficher les connexions</display_hits>
 <display_only_agent_installed>Seulement les agents install&eacute;s</display_only_agent_installed>
 <display_only_saved>Afficher ceux enregistr&eacute;s</display_only_saved>
 <display_product_events>Affichage du produit &eacute;v&eacute;nements</display_product_events>
@@ -1643,7 +1643,7 @@ Cette fonctionnalit&eacute; ne sera pas disponible</error_blkid_not_installed>
 <error_module_not_enabled>Ce module n'est pas activ&eacute;</error_module_not_enabled>
 <error_module_not_installed>Ce module n'est pas install&eacute;</error_module_not_installed>
 <error_must_be_ip_address>Erreur cela doit &ecirc;tre une adresse TCP/IP</error_must_be_ip_address>
-<ERROR_MYSQL_CONNECTION>Echec de connection MySQL</ERROR_MYSQL_CONNECTION>
+<ERROR_MYSQL_CONNECTION>Echec de connexion MySQL</ERROR_MYSQL_CONNECTION>
 <error_mysql_user>Erreur sur le compte MySQL</error_mysql_user>
 <error_mysql_user_text>Il semble que le compte Mysql n'est pas indiqu&eacute; or en &eacute;chec. D&eacute;finissez-le dans les Param&egrave;tres Globaux, Base de donn&eacute;es Mysql</error_mysql_user_text>
 <error_need_smbmount_feature>Pour activer cette fonctionnalit&eacute;, vous devez avoir l'application smbmount</error_need_smbmount_feature>
@@ -1717,7 +1717,7 @@ L'op&eacute;ration d'affichage est annul&eacute;e.</error_no_datas>
 <etc_hosts>Fichier d'h&ocirc;tes</etc_hosts>
 <etc_hosts_explain>Le fichier hosts est un fichier utilis&eacute; par le syst&egrave;me d'exploitation d'un ordinateur lors de l'acc&egrave;s &agrave; Internet. [br]Son r&ocirc;le est d'associer des noms d'h&ocirc;tes &agrave; des adresses IP.[br] Lors de l'acc&egrave;s &agrave; un ressource r&eacute;seau par nom de domaine, ce fichier est consult&eacute; avant l'acc&egrave;s au serveur DNS et permet au syst&egrave;me de conna&icirc;tre l'adresse IP associ&eacute;e au nom de domaine sans avoir recours &agrave; une requ&ecirc;te DNS.</etc_hosts_explain>
 <etc_hosts_text>Le fichier hosts est un fichier utilis&eacute; par le syst&egrave;me d'exploitation d'un ordinateur lors de l'acc&egrave;s &agrave; Internet.</etc_hosts_text>
-<events>&eacute;v&egrave;nements</events>
+<events>&Eacute;v&egrave;nements</events>
 <events_number>Nombre d'&eacute;v&egrave;nements</events_number>
 <events_text>Lire tous les &eacute;v&eacute;nements &agrave; propos de ce d&eacute;mon en temps r&eacute;el afin de suivre le flux ...</events_text>
 <every>chaque</every>
@@ -1829,6 +1829,7 @@ Il retransfert les messages sur un autre serveur sur le port 25.[br]Fetchmail n'
 <folders>r&eacute;pertoires</folders>
 <folders_monitor>Moniteur de dossiers</folders_monitor>
 <for>pour</for>
+<form add/mod>Formulaire ajouter &amp; modifier</form add/mod>
 <format_device>Formater ce p&eacute;riph&eacute;rique</format_device>
 <format_device_explain>Cette op&eacute;ration va formater ce dispositif afin de r&eacute;aliser les op&eacute;rations en &eacute;criture</format_device_explain>
 <form_error>op&eacute;ration annul&eacute;e ...!
@@ -1925,7 +1926,7 @@ La charge g&eacute;r&eacute;e par la construction de ce rapport va d&eacute;pend
 <global_rule>R&egrave;gle globale</global_rule>
 <global_services_status>Etat des principaux services</global_services_status>
 <global_size>Taille globale</global_size>
-<global_smtp_rules>R&egrave;gles principales SMTP</global_smtp_rules>
+<global_smtp_rules>R&egrave;gles SMTP</global_smtp_rules>
 <global_whitelist>Administrateur de liste blanche et noire</global_whitelist>
 <go>Ex&eacute;cution</go>
 <goback>Retourner &agrave; la liste de domaines</goback>
@@ -2275,7 +2276,7 @@ Avec la valeur limite par d&eacute;faut de 100 processus serveur SMTP, &quot;un 
 <label_add_transport>Ajouter un serveur relais pour ce domaine</label_add_transport>
 <label_delete_transport>Supprimer le serveur relais pour ce domaine</label_delete_transport>
 <label_edit_transport>Modifier le serveur de relais pour ce domaine</label_edit_transport>
-<label_email_from>adresse eMail</label_email_from>
+<label_email_from>Adresse eMail</label_email_from>
 <label_email_to>adresse de destination</label_email_to>
 <label_redirect>Diriger vers</label_redirect>
 <language>language</language>
@@ -2373,7 +2374,7 @@ Le nom du transport de livraison de messages est le premier champ de l'entr&eacu
 <LOGON_SCRIPT>Script de connexion</LOGON_SCRIPT>
 <LOGON_SCRIPT_PUT>Placez le source du script BAT dans le champs ci-dessous et cliquez sur le bouton afin de sauvegarder.</LOGON_SCRIPT_PUT>
 <LOGON_SCRIPT_TEXT>Un script de connexion est un programme qui va s'ex&eacute;cuter &agrave; chaque fois qu'une session Windows est ouverte depuis ce serveur</LOGON_SCRIPT_TEXT>
-<logs>&eacute;v&egrave;nements</logs>
+<logs>&Eacute;v&egrave;nements</logs>
 <logs monitor explain>Le moniteur de journaux vous permet d'ouvrir un moniteur de console afin de vous pr&eacute;senter les fichiers journaux[br] en temps r&eacute;el. Cette console vous aide &agrave; s&eacute;lectionner l'application que vous souhaitez analyser.</logs monitor explain>
 <logs_cleaning>Nettoyage des fichiers de logs</logs_cleaning>
 <logs_size>Taille des logs</logs_size>
@@ -2526,8 +2527,8 @@ La valeur par d&eacute;faut est d.[br]Sp&eacute;cifiez 0 si vous d&eacute;sirez 
 <max_hard_upload_rate>Bande passante de chargement</max_hard_upload_rate>
 <Max_idle_time_in_seconds>Max. temps d'inactivit&eacute; (en secondes)</Max_idle_time_in_seconds>
 <may>Mai</may>
-<mbx_con>Connections aux bo&icirc;tes aux lettres</mbx_con>
-<members>membres</members>
+<mbx_con>Connexions aux bo&icirc;tes aux lettres</mbx_con>
+<members>Membres</members>
 <member_of_group>Membres des groupes</member_of_group>
 <memory>M&eacute;moire</memory>
 <memory_info>Votre m&eacute;moire syst&egrave;me</memory_info>
@@ -2588,7 +2589,7 @@ tentatives de distribution d'un message diff&eacute;r&eacute;</minimal_backoff_t
 <more>plus</more>
 <more_infos>Plus d'informations</more_infos>
 <more_stats>Plus de statistiques</more_stats>
-<mount>connection</mount>
+<mount>Connexion</mount>
 <mounted>mont&eacute; sur</mounted>
 <mounted_cluster_folders>R&eacute;pertoires connect&eacute;s</mounted_cluster_folders>
 <mounted_on>Mont&eacute; sur</mounted_on>
@@ -2755,7 +2756,7 @@ Dans ce cas, Il est possible de l'utiliser va script de connexion ou bien via un
 <no_rules>Aucune r&egrave;gle sauvegard&eacute;e..</no_rules>
 <NO_RULESNUMBER_DANS_EXPLAIN>Vous devez au moins cr&eacute;er un r&egrave;gle DansGuardian afin d'utiliser cette option</NO_RULESNUMBER_DANS_EXPLAIN>
 <no_squid_network>Pas de r&eacute;seau d&eacute;finit</no_squid_network>
-<no_squid_network_text>Pour l'instant, aucun r&eacute;seau n'a &eacute;t&eacute; d&eacute;finit, Squid refusera toutes les connections</no_squid_network_text>
+<no_squid_network_text>Pour l'instant, aucun r&eacute;seau n'a &eacute;t&eacute; d&eacute;finit, Squid refusera toutes les connexions</no_squid_network_text>
 <no_usb_devices_connected>Il n'y a pas de p&eacute;riph&eacute;rique USB connect&eacute; &agrave; cet ordinateur</no_usb_devices_connected>
 <nsAIMid>AOL Instant Messenger (AIM)</nsAIMid>
 <nsICQid>ICQ</nsICQid>
@@ -2827,7 +2828,7 @@ Vous devrez alors reconstruire le certificat SSL principal et demander &agrave; 
 <organization>organisation</organization>
 <organizationalUnitName>Nom de l'unit&eacute; d'organisation</organizationalUnitName>
 <organizationName>nom d'organisation</organizationName>
-<organizations>organisations</organizations>
+<organizations>Organisations</organizations>
 <ORG_HD_TITLE>Editeur de partitions</ORG_HD_TITLE>
 <ORG_HD_TITLE_TEXT>Cr&eacute;ez, r&eacute;organisez et supprimez les partitions disques</ORG_HD_TITLE_TEXT>
 <original>originale</original>
@@ -3383,7 +3384,7 @@ Placer une limite sur les ent&ecirc;tes HTTP peut r&eacute;soudre certains probl
 <RESTART_OCS_TEXT>Stopper les services, reconfigurer tous les &eacute;l&eacute;ments et d&eacute;marrer les services OCS.</RESTART_OCS_TEXT>
 <RESTART_SERVICE_SCHEDULED>L'op&eacute;ration de red&eacute;marrage &agrave; &eacute;t&eacute; programm&eacute;e en t&acirc;che de fond.Elle sera ex&eacute;cut&eacute;e dans quelques secondes.</RESTART_SERVICE_SCHEDULED>
 <restart_web_server>Red&eacute;marrer le serveur web</restart_web_server>
-<restore>restaurer</restore>
+<restore>Restaurer</restore>
 <restore_mailbox>Restaurer votre bo&icirc;te aux lettres</restore_mailbox>
 <restore_mailbox_explain>Cette section va vous aider &agrave; restaurer les messages depuis un conteneur de sauvegarde.[br]La premi&egrave;re chose &agrave; faire est de s&eacute;lectionner les t&acirc;ches de sauvegard&eacute;s pr&eacute;-programm&eacute;es.[br]Une fois cette op&eacute;ration effectu&eacute;e, vous allez pouvoir choisir la date de sauvegarde ainsi que la bo&icirc;te aux lettre &agrave; restaurer.</restore_mailbox_explain>
 <restore_mailbox_text>Restaurer des &eacute;l&eacute;ments depuis des sauvegardes d&eacute;j&agrave; effectu&eacute;es.</restore_mailbox_text>
@@ -3413,7 +3414,7 @@ Placer une limite sur les ent&ecirc;tes HTTP peut r&eacute;soudre certains probl
 <row>ligne</row>
 <rows>lignes</rows>
 <RTMM_NO_GEOIP_OR_LOOPBACK>Le syst&egrave;me n'a pas put retrouver les informations du serveur &eacute;metteur.[br]V&eacute;rifiez si le module GeoIP est correctement activ&eacute;/install&eacute;.[br][b]Sachez que ce comportement est normal si l'&eacute;metteur est fetchmail ou tout autre r&eacute;cup&eacute;rateur de messages.[/b]</RTMM_NO_GEOIP_OR_LOOPBACK>
-<rule>r&egrave;gle</rule>
+<rule>R&egrave;gle</rule>
 <rulegeneral>R&egrave;gles-G&eacute;n&eacute;rale</rulegeneral>
 <rules>R&egrave;gles</rules>
 <rule_name>nom de la r&egrave;gle</rule_name>
@@ -3444,7 +3445,7 @@ Lorsqu'un message arrive, Postfix enregistre le nom d'utilisateur fournit, la m&
 <SCANNING>Analyse</SCANNING>
 <scanning_your_network>Analyse en cours de vos r&eacute;seaux</scanning_your_network>
 <scan_this_computer>Analyser cet ordinateur</scan_this_computer>
-<schedule>planification</schedule>
+<schedule>Planification</schedule>
 <scheduled>planifi&eacute;</scheduled>
 <schedule_import_settings>Programmez un importation r&eacute;guli&egrave;re afin de rafra&icirc;chir la base automatiquement</schedule_import_settings>
 <science_astronomy>Institutions ou sites amateurs en qui concerne l'astrologie.</science_astronomy>
@@ -3549,15 +3550,15 @@ En-dessous, vous pouvez visualiser les derniers &eacute;v&egrave;nements syst&eg
 <service_name>Nom du d&eacute;mon</service_name>
 <service_not_installed>Ce service n'est pas install&eacute;</service_not_installed>
 <service_running>Ce service fonctionne actuellement</service_running>
-<service_squid_restart_explain>Tous les services Web vont &ecirc;tre re-d&eacute;marr&eacute;s dans quelques secondes, pendant ce temps les connections web seront coup&eacute;es</service_squid_restart_explain>
+<service_squid_restart_explain>Tous les services Web vont &ecirc;tre re-d&eacute;marr&eacute;s dans quelques secondes, pendant ce temps les connexions web seront coup&eacute;es</service_squid_restart_explain>
 <service_stopped>Le service est arr&ecirc;t&eacute;!</service_stopped>
 <SERVICE_USE_ARTICA_FILTER>Ce service est d&eacute;sactiv&eacute;, il d&eacute;pend du service Artica-filter[br]Activez Artica-filter afin de le lib&eacute;rer</SERVICE_USE_ARTICA_FILTER>
-<sessions>sessions</sessions>
+<sessions>Sessions</sessions>
 <SESSION_END>[center][h2] Cette session est termin&eacute;e ... s'il vous pla&icirc;t connecter vous[/center][/h2]</SESSION_END>
 <session_expired>Votre session a expir&eacute;</session_expired>
 <session_expired_text>Vous devez vous connecter afin de poursuivre [br] Cliquez sur le lien ci-dessous pour aller &agrave; la page de connexion [a href=logon.php] ouverture de session [/a][/center]</session_expired_text>
 <session_settings>Param&egrave;tres de session</session_settings>
-<settings>param&egrave;tres</settings>
+<settings>Param&egrave;tres</settings>
 <setup_center_system>Logiciels syst&egrave;mes</setup_center_system>
 <set_options>D&eacute;finir les options</set_options>
 <set_quota>Param&egrave;trer le quota</set_quota>
@@ -3917,7 +3918,7 @@ Vous pouvez indiquer plusieurs entr&eacute;es, s&eacute;parez-les par une virgul
 <squidguard_status_text>Afficher l'&eacute;tat du filtre web</squidguard_status_text>
 <squidguard_testrules>V&eacute;rification des r&egrave;gles squidGuard</squidguard_testrules>
 <squidguard_testrules_explain>Cette section vous permet de tester si un site est correctement bloqu&eacute; ou si le filtre laisse passer la requ&ecirc;te.[br]Vous pouvez d&eacute;finir en premier une adresse web &agrave; v&eacute;rifier et dans le deuxi&egrave;me champ une adresse IP ou un compte utilisateur qui devrait appartenir &agrave; une r&egrave;gle</squidguard_testrules_explain>
-<squid_accel_websites>serveurs Web</squid_accel_websites>
+<squid_accel_websites>Serveurs Web</squid_accel_websites>
 <squid_accel_websites_text>Indiquez ici les serveurs web qui seront mise en cache et prot&eacute;g&eacute;s par votre proxy.</squid_accel_websites_text>
 <squid_advanced_parameters>Param&egrave;tres avanc&eacute;s</squid_advanced_parameters>
 <squid_advanced_parameters_text>Personnalisation et param&egrave;tres avanc&eacute;s du proxy SQUID</squid_advanced_parameters_text>

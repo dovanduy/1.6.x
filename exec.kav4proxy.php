@@ -22,7 +22,7 @@ build();
 function build(){
 	$kav=new Kav4Proxy();
 	$conf=$kav->build_config();
-	echo "Starting......: Kav4proxy building configuration done\n";
+	echo "Starting......: ".date("H:i:s")." Kav4proxy building configuration done\n";
 	@file_put_contents("/etc/opt/kaspersky/kav4proxy.conf",$conf);
 	shell_exec("/bin/chown -R kluser /etc/opt/kaspersky");
 	shell_exec("/bin/chown -R kluser /var/log/kaspersky/kav4proxy");
@@ -48,13 +48,14 @@ function umountfs(){
 	$umount=$unix->find_program("umount");	
 	$kav=new Kav4Proxy();
 	if($kav->is_tmpfs_mounted()){
-		echo "Starting......: Kav4proxy unmounting filesystem\n";
+		echo "Starting......: ".date("H:i:s")." Kav4proxy unmounting filesystem\n";
 		shell_exec("$umount -f /tmp/Kav4proxy");
 		shell_exec("/bin/rm -rf /tmp/Kav4proxy");
 	}
 }
 
 function license_infos($nopid=false){
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 	$unix=new unix();
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
@@ -66,8 +67,15 @@ function license_infos($nopid=false){
 	}
 	
 	@file_put_contents($pidfile, getmypid());	
+	if($GLOBALS["VERBOSE"]){echo "TimeFile: $pidTime\n";}
+	$TimeFile=$unix->file_time_min($pidTime);
+	if(!$GLOBALS["FORCE"]){
+		if($TimeFile<240){return;}
+		
+	}
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
 	
-	$unix=new unix();
 	$q=new mysql();
 	
 		$sql="CREATE TABLE IF NOT EXISTS `kav4proxy_license` (

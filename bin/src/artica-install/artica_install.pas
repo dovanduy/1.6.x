@@ -47,7 +47,7 @@ zlogs:Tlogs;
 zntpd:tntpd;
 
 ccyrus:Tcyrus;
-zmimedefang:Tmimedefang;
+
 zsquid:Tsquid;
 
 zdkim:tdkim;
@@ -57,7 +57,7 @@ zkav4Samba:Tkav4Samba;
 zlighttpd:Tlighttpd;
 tcp:ttcp;
 zdansguardian:TDansguardian;
-mypid:string;
+mypid,xMAILLOG_PATH:string;
 zawstats:tawstats;
 zbind9:tbind9;
 zfdm:Tfdm;
@@ -100,7 +100,7 @@ zpostfilter:tpostfilter;
 zfetchmail:tfetchmail;
 ztvmtools:tvmtools;
 zZarafa:tzarafa_server;
-zmonit:tmonit;
+
 zsquidguard:tsquidguard;
 zwifi:twifi;
 zfail2ban:tfail2ban;
@@ -160,8 +160,7 @@ if debug then writeln('binary start -> loading class zldap');
 zldap:=Topenldap.Create;
 if debug then writeln('binary start -> loading class zntpd');
 zntpd:=tntpd.Create;
-if debug then writeln('binary start -> loading class zmimedefang');
-zmimedefang:=Tmimedefang.Create(SYS);
+
 if debug then writeln('binary start -> loading class ccyrus');
 ccyrus:=Tcyrus.Create(SYS);
 if debug then writeln('binary start -> loading class zsquid');
@@ -280,8 +279,6 @@ if ParamStr(1)='--change-initd' then  begin
    zSpamass:=Tspamass.Create(SYS);
    zSpamass.CHANGE_INITD_MILTER();
 
-   writeln('Modify init.d [boa]');
-   GLOBAL_INI.BOA_TESTS_INIT_D();
 
    halt(0);
 end;
@@ -324,19 +321,31 @@ if ParamStr(1)='--lighttpd-phpmyadmin' then begin
    halt(0);
 end;
 
-
-
-
+if ParamStr(1)='--zarafa-apache-certificates' then begin
+   zZarafa:=tzarafa_server.CReate(SYS);
+   zZarafa.APACHE_CERTIFICATES();
+end;
 
 if ParamStr(1)='--clamd-reload' then begin
    zClam:=Tclamav.Create;
-   zClam.CLAMD_RELOAD();
+
    halt(0);
 end;
 if ParamStr(1)='--cyrus-db_config' then begin
    ccyrus.DB_CONFIG();
    halt(0);
 end;
+
+if ParamStr(1)='--cyrus-conf' then begin
+   ccyrus.WRITE_CYRUS_CONF();
+   halt(0);
+end;
+if ParamStr(1)='--cyrus-rights' then begin
+ ccyrus.CheckRightsAndConfig();
+halt(0);
+end;
+
+
 if ParamStr(1)='--apache-status' then begin
    ztapachesrc:=tapachesrc.Create(SYS);
    writeln('Site enabled...........: ',ztapachesrc.APACHE_DIR_SITES_ENABLED());
@@ -862,7 +871,7 @@ end;
 
 if ParamStr(2)='freshclam-pid' then begin
    zClam:=tclamav.Create;
-   writeln(zClam.FRESHCLAM_GETINFO('PidFile'));
+
    halt(0);
 end;
 
@@ -1051,13 +1060,11 @@ if ParamStr(2)='auditd' then begin
    halt(0);
 end;
 if ParamStr(2)='dkfilter' then begin
-   zdkfilter:=tdkfilter.Create(SYS);
-   writeln(zdkfilter.VERSION());
+
    halt(0);
 end;
 if ParamStr(2)='opendkim' then begin
-   zdkfilter:=tdkfilter.Create(SYS);
-   writeln(zdkfilter.VERSION());
+
    halt(0);
 end;
 if ParamStr(2)='milterdkim' then begin
@@ -1179,24 +1186,16 @@ if ParamStr(1)='--reload-dansguardian' then begin
 end;
 
 if ParamStr(1)='--monit-status' then begin
-   zmonit:=tmonit.Create(SYS);
-   zmonit.BuildStatus();
-   zmonit.free;
-   SYS.free;
+
    halt(0);
 end;
 if ParamStr(1)='--monit-wake' then begin
-   zmonit:=tmonit.Create(SYS);
-   zmonit.wakeup();
-   zmonit.free;
-   SYS.free;
    halt(0);
 end;
 
 
 if ParamStr(1)='--monit-check' then
 begin
-SYS.MONIT_CHECK_ALL();
 halt(0);
 end;
 
@@ -1351,7 +1350,7 @@ end;
 
 if ParamStr(1)='--reload-cyrus' then
 begin
-ccyrus.CYRUS_DAEMON_RELOAD();
+fpsystem('/etc/init.d/cyrus-imapd reload');
 halt(0);
 end;
 
@@ -1506,19 +1505,18 @@ if ParamStr(1)='--reconfigure-cyrus' then begin
          halt(0);
       end;
    end;
-   ccyrus.CYRUS_DAEMON_STOP();
-   ccyrus.WRITE_IMAPD_CONF();
+fpsystem('/etc/init.d/cyrus-imapd stop');
    ccyrus.WRITE_CYRUS_CONF();
    ccyrus.CheckRightsAndConfig();
-   ccyrus.CYRUS_DAEMON_START();
+   fpsystem('/etc/init.d/cyrus-imapd start');
    halt(0);
 end;
 
 if ParamStr(1)='--cyrus-checkperms' then
 begin
-ccyrus.CYRUS_DAEMON_STOP();
+fpsystem('/etc/init.d/cyrus-imapd stop');
 ccyrus.CheckRightsAndConfig();
-ccyrus.CYRUS_DAEMON_START();
+fpsystem('/etc/init.d/cyrus-imapd start');
 halt(0);
 end;
 
@@ -1630,14 +1628,22 @@ halt(0);
 end;
 
 if ParamStr(1)='--usb-scan-write' then begin
+if ParamStr(2)='--verbose' then debug:=true;
+if debug then writeln('******************   SCAN_DISK_PHP *************');
+fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.usb.scan.write.php >/dev/null 2>&1');
+if debug then writeln('******************   SCAN_DISK_PHP DONE *************');
+halt(0);
+
 zlvm:=tlvm.Create(SYS);
 FileData:=Tstringlist.CReate;
 GLOBAL_INI:=myconf.Create;
+if debug then GLOBAL_INI.debug:=true;
 FileData.Add('<?php');
 FileData.Add(GLOBAL_INI.SCAN_USB());
 FileData.Add('');
 FileData.Add('// Disks list...');
 FileData.Add('');
+if debug then writeln('******************   SCAN_DISK_PHP *************');
 FileData.Add(GLOBAL_INI.SCAN_DISK_PHP());
 FileData.Add('');
 FileData.Add('// lvm list...');
@@ -1708,10 +1714,6 @@ end;
 
 if paramStr(1)='--boa-status' then
 begin
-GLOBAL_INI:=myconf.Create;
-writeln(GLOBAL_INI.BOA_BIN_PATH());
-writeln(GLOBAL_INI.BOA_DAEMON_STATUS());
-halt(0);
 halt(0);
 end;
 
@@ -2068,10 +2070,15 @@ end;
 
 if paramStr(1)='--whereis-maillog' then
 begin
-writeln('maillog: ',SYS.MAILLOG_PATH());
+xMAILLOG_PATH:=SYS.MAILLOG_PATH();
+if FileExists(xMAILLOG_PATH) then SYS.set_INFO('maillog_path',xMAILLOG_PATH);
+writeln('maillog: ',xMAILLOG_PATH);
 writeln('auth...: ',SYS.LOCATE_AUTH_LOG());
 halt(0);
 end;
+
+if paramStr(1)='--write-syslog' then SYS.set_INFO('syslog_path',SYS.LOCATE_SYSLOG_PATH());
+
 
 if paramStr(1)='--whereis-syslog' then
 begin
@@ -2887,8 +2894,7 @@ begin install.LDAP_SET_CYRUS_ADM() end;
 REGEX.Expression:='fix-authd';
 if REGEX.Exec(s) then
 begin
-GLOBAL_INI:=MyConf.Create();
-GLOBAL_INI.SASLAUTHD_TEST_INITD();
+
 halt(0);
 end;
 
@@ -3394,7 +3400,7 @@ end;
 
 if ParamStr(1)='-init-cyrus' then
 begin
-install.CYRUS_IMPAD_INIT();
+
 install.LDAP_SET_CYRUS_ADM();
 halt(0);
 end;

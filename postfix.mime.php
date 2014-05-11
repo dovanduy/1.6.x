@@ -52,7 +52,7 @@ function popup(){
 	$html="
 	<div id='$t'></div>
 	
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:16px'>{detect_8bit_encoding_header}:</td>

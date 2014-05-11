@@ -64,7 +64,7 @@ class kdc{
 		$conf[]="\t}";		
 		
 		$conf[]="";
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: Kerberos: saving /etc/krb5.conf\n";}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Kerberos: saving /etc/krb5.conf\n";}
 		@file_put_contents("/etc/krb5.conf",@implode("\n",$conf));		
 		
 	}
@@ -84,7 +84,7 @@ private function kdc_conf(){
 	$conf[]="\t\tsupported_enctypes = des3-hmac-sha1:normal arcfour-hmac:normal des-hmac-sha1:normal des-cbc-md5:normal des-cbc-crc:normal des-cbc-crc:v4 des-cbc-crc:afs3";
 	$conf[]="\t}";	
 	$conf[]="";
-	if($GLOBALS["AS_ROOT"]){echo "Starting......: Kerberos: saving /etc/kdc.conf\n";}
+	if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Kerberos: saving /etc/kdc.conf\n";}
 	@file_put_contents("/etc/kdc.conf",@implode("\n",$conf));
 }
 
@@ -92,7 +92,7 @@ private function kadm5_acl(){
 	$domain=strtoupper($this->suffix_domain);	
 	$config="*/$this->administrator@$domain\n";
 	@file_put_contents("/etc/kadm.acl",$config);
-	if($GLOBALS["AS_ROOT"]){echo "Starting......: Kerberos: saving /etc/kadm.acl with $this->administrator\n";}
+	if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Kerberos: saving /etc/kadm.acl with $this->administrator\n";}
 	
 }
 private function klist(){
@@ -106,14 +106,14 @@ private function klist(){
 		if(preg_match("#([0-9]+)\s+(.+?)\s+(.+)#", $line,$re)){
 			if(!isset($arra[$re[3]])){
 				$arra[$re[3]]=true;
-				echo "Starting......: Kerberos: keytab {$re[3]}\n";	
+				echo "Starting......: ".date("H:i:s")." Kerberos: keytab {$re[3]}\n";	
 			}
 			
 		}
 	}
 	
 	if(count($arra)==0){
-		echo "Starting......: Kerberos: keytab, create new one\n";
+		echo "Starting......: ".date("H:i:s")." Kerberos: keytab, create new one\n";
 		$cmd="$net ads keytab create -U $this->administrator%".$this->shellEscapeChars($this->password);
 	}
 }

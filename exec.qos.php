@@ -25,14 +25,14 @@ function build(){
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){
-		echo "Starting......: Q.O.S Error:\"$q->mysql_error\" checking old commands\n";
+		echo "Starting......: ".date("H:i:s")." Q.O.S Error:\"$q->mysql_error\" checking old commands\n";
 		PerformOldScript();
 		return;
 	}
 	
 	$num_rows = mysql_num_rows($results);
 	if($num_rows<1){
-		echo "Starting......: Q.O.S no rule defined\n";
+		echo "Starting......: ".date("H:i:s")." Q.O.S no rule defined\n";
 		return;
 	}
 	$GLOBALS["COMMANDS"][]="$sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1";
@@ -46,7 +46,7 @@ function build(){
 		$name=$ligne["name"];
 		if($default_class_id<1){$default_class_id=1000;}
 		$handle++;
-		echo "Starting......: Q.O.S service \"$name\"\n";
+		echo "Starting......: ".date("H:i:s")." Q.O.S service \"$name\"\n";
 		//$cmd="$tc qdisc add dev $eth root handle $handle: cbq bandwidth {$bandwith}kbps handle $handle: htb default 0";
 		$cmd="{$GLOBALS["TC"]} qdisc add dev $eth root handle $handle: htb";
 		$GLOBALS["COMMANDS"][]=$cmd;
@@ -69,7 +69,7 @@ function build(){
 			system($cmdline);
 		}
 		
-		echo "Starting......: Q.O.S done\n";
+		echo "Starting......: ".date("H:i:s")." Q.O.S done\n";
 	}
 }
 
@@ -83,7 +83,7 @@ function PerformOldScript(){
 		system($cmdline);
 	}
 	
-	echo "Starting......: Q.O.S done\n";
+	echo "Starting......: ".date("H:i:s")." Q.O.S done\n";
 }
 
 function add_classes($service_id,$dev,$handle){
@@ -99,7 +99,7 @@ function add_classes($service_id,$dev,$handle){
 		//$ligne["ceil"]=$ligne["ceil"]/8;
 		
 		$cmd="{$GLOBALS["TC"]} class add dev $dev parent $handle: classid $handle:{$ligne["ID"]}0 htb rate {$ligne["rate"]}kbps ceil {$ligne["ceil"]}kbps prio $pri";
-		echo "Starting......: Q.O.S class \"{$ligne["name"]}\"\n";
+		echo "Starting......: ".date("H:i:s")." Q.O.S class \"{$ligne["name"]}\"\n";
 		$GLOBALS["COMMANDS"][]=$cmd;
 		
 		
@@ -167,11 +167,11 @@ function iptables_rules($class_id,$handle_id,$dev,$mark){
 
 function Deleteqdisc(){
 	if($GLOBALS["TC"]==null){$unix=new unix();$GLOBALS["TC"]=$unix->find_program("tc");	}
-	echo "Starting......: Q.O.S delete hold settings with \"{$GLOBALS["TC"]}\"\n";
+	echo "Starting......: ".date("H:i:s")." Q.O.S delete hold settings with \"{$GLOBALS["TC"]}\"\n";
 	exec("{$GLOBALS["TC"]} qdisc show 2>&1",$resultscmds);
 	while (list ($num, $line) = each ($resultscmds) ){
 		if(preg_match("#qdisc htb.+?dev\s+(.+?)\s+#",$line,$re)){
-			echo "Starting......: Q.O.S delete {$re[1]}\n";
+			echo "Starting......: ".date("H:i:s")." Q.O.S delete {$re[1]}\n";
 			shell_exec("{$GLOBALS["TC"]} qdisc del dev {$re[1]} root");
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "NO MATCH $line #qdisc htb.+?dev\s+(.+?)\s+# \n";}

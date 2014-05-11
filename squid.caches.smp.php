@@ -144,7 +144,7 @@ function addcache_js(){
 	}
 	
 	
-	$html="YahooWin2('889','$page?addcache-popup=yes&cpunum=$cpunum&uuid={$_GET["uuid"]}&cacheid=$cacheid','$title')";
+	$html="YahooWin4('889','$page?addcache-popup=yes&cpunum=$cpunum&uuid={$_GET["uuid"]}&cacheid=$cacheid','$title')";
 	echo $html;
 }
 
@@ -299,7 +299,7 @@ function page(){
 	<center id='main-smp-toolbar'>
 	<table style='width:85%' class=form>
 		<tr>
-			<td align='center'>".imgtootltip("apply-config-44.gif","{apply}","Loadjs('$page?apply-js=yes')",null,time())."</td>
+			<td align='center'>".imgtootltip("apply-config-44.png","{apply}","Loadjs('$page?apply-js=yes')",null,time())."</td>
 			<td align='center'>".imgtootltip("events-64.png","{events}","Loadjs('$page?events-js=yes&uuid={$_GET["uuid"]}')",null,time()+3)."</td>							
 			<td align='center'>".imgtootltip("48-refresh.png","{refresh}","RefreshTab('squid_main_caches_new')",null,time()+2)."</td>
 			<td align='center'>".imgtootltip("48-cancel.png","{back_to_single_proc}","Loadjs('$page?back-js=yes&uuid={$_GET["uuid"]}')",null,time()+2)."</td>
@@ -426,6 +426,13 @@ function ParagrapheCPU($cpunum,$uuid,$arrayCaches){
 		$arrayCachesQ="&arraySerialize=".urlencode(base64_encode(serialize($arrayCaches)));
 	}	
 	
+	if($cpunum==1){
+		$hds[]=olders_caches();
+		
+	}
+	
+	
+	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$color="black";
@@ -534,6 +541,92 @@ function ParagrapheCPU($cpunum,$uuid,$arrayCaches){
 	
 }
 
+function olders_caches(){
+	
+	$sock=new sockets();
+	$ini=new Bs_IniHandler();
+	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
+	$ini->loadString($ArticaSquidParameters);
+	$cache_list=array();
+	if(!is_array($ini->_params)){return null;}
+	reset($ini->_params);
+
+	$CACHE_SIZE=$ini->_params["CACHE"]["CACHE_SIZE"];
+	$CACHE_PATH=$ini->_params["CACHE"]["CACHE_PATH"];
+	$CACHE_PATH=str_replace(" ", "_", $CACHE_PATH);
+	$CACHE_TYPE=$ini->_params["CACHE"]["CACHE_TYPE"];
+
+	if($CACHE_PATH<>null){
+		$cache_list[$CACHE_PATH]["cache_type"]=$CACHE_TYPE;
+		$cache_list[$CACHE_PATH]["cache_dir_level1"]=16;
+		$cache_list[$CACHE_PATH]["cache_dir_level2"]=256;
+		$cache_list[$CACHE_PATH]["cache_size"]=$CACHE_SIZE;
+		
+	}
+
+
+	while (list ($num, $val) = each ($ini->_params)){
+		if(preg_match('#cache:(.+)#',$num,$re)){
+			if($GLOBALS["VERBOSE"]){echo "Found cache: {$re[1]}<br>\n";}
+			$re[1]=str_replace(" ", "_", $re[1]);
+			$cache_list[$re[1]]=array(
+					"cache_type"=>$ini->_params[$num]["cache_type"],
+					"cache_dir_level1"=>$ini->_params[$num]["cache_dir_level1"],
+					"cache_dir_level2"=>$ini->_params[$num]["cache_dir_level2"],
+					"cache_size"=>$ini->_params[$num]["cache_size"],
+					"cache_maxsize"=>$ini->_params[$num]["cache_maxsize"],
+			);
+		}
+	}
+	if(count($cache_list)==0){return;}
+	$squid=new squidbee();
+	
+	
+	$js="<a href='javascript:blur();' OnClick=\"javascript:Loadjs('squid.caches32.php?uuid=$squid->uuid&Byjs=yes');\"
+	style='font-size:12px;text-decoration:underline;color:black'>";
+
+	while (list ($num, $val) = each ($cache_list)){
+		if(trim($num)==null){continue;}
+		$Directory=$num;
+		
+
+		if(preg_match("#^\/dev\/#", $Directory)){
+			
+			continue;
+		}
+
+		if($cache_list[$num]["cache_type"]=="rock"){
+			$mxsize=$this->cache_list[$num]["cache_maxsize"]*1000;
+			$mxsize=$mxsize*1024;
+			//$conf=$conf."cache_dir {$this->cache_list[$num]["cache_type"]} $num {$this->cache_list[$num]["cache_size"]} max-size=32768\n";
+			continue;
+		}
+			
+		$color="black";
+		$num=str_replace(" ", "_", $num);
+		if($cache_list[$num]["cache_type"]=="ufs"){$cache_list[$num]["cache_type"]="aufs";}
+		$icon="usb-disk-32.png";
+		$hdname=basename($Directory);
+		$size=($cache_list[$num]["cache_size"]/1000);
+		$type=$cache_list[$num]["cache_type"];
+		
+		$hds[]="
+			
+		<table style='width:100%;border: 1px solid #DDDDDD;border-radius: 5px 5px 5px 5px;margin-top: 5px;'>
+		<tr>
+		<td width=1%><img src='img/$icon'></td>
+		<td>$js$hdname</a><div style='color:$color;font-weight:bold;text-align:right'>$type - {$size}G</div>
+		<div style=';text-align:right'></div></span></td>
+		<td width=1%></td>
+		</tr>
+		</table>";		
+		
+		
+	}
+
+	return @implode("\n", $hds);
+}
+
 function addcache_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
@@ -569,7 +662,7 @@ function addcache_popup(){
 	if($cache_size<1){$cache_size=5;}
 	if($cache_dir_level1<16){$cache_dir_level1=16;}
 	if($cache_dir_level2<64){$cache_dir_level2=64;}
-	if($cache_type==null){$cache_type="diskd";}
+	if($cache_type==null){$cache_type="aufs";}
 	
 	$caches_types=unserialize(base64_decode($sock->getFrameWork("squid.php?caches-types=yes")));
 	$caches_types[null]='{select}';
@@ -641,7 +734,7 @@ function addcache_popup(){
 				alert(results);
 				return;
 				}
-			if(cacheid.length==0){YahooWin2Hide();}
+			if(cacheid.length==0){YahooWin4Hide();}
 			RefreshTab('squid_main_caches_new');
 			
 		}			
@@ -855,9 +948,9 @@ function events_table(){
 				$function=$re[3];
 				$linenum=$re[4];
 				$line=$re[5];
-				$line=str_replace("Starting......: [SMP]","",$line);
-				$line=str_replace("Starting......: [SMP] Starting......: [SMP]","",$line);	
-				$line=str_replace("Starting......:","",$line);	
+				$line=str_replace("Starting......: ".date("H:i:s")." [SMP]","",$line);
+				$line=str_replace("Starting......: ".date("H:i:s")." [SMP] Starting......: ".date("H:i:s")." [SMP]","",$line);	
+				$line=str_replace("Starting......: ".date("H:i:s")."","",$line);	
 				$line=str_replace("[SYS]:","",$line);	
 				$line=str_replace("[WATCH]:","",$line);	
 				$line=str_replace("[VER]:","",$line);	
@@ -873,6 +966,5 @@ function events_table(){
 	
 function back(){
 	$sock=new sockets();
-	$sock->SET_INFO("DisableSquidSNMPMode", 1);
 	$sock->getFrameWork("squid.php?rebuild-caches=yes");
 }

@@ -287,8 +287,18 @@ class Fetchmail_settings{
 		if(isset($POSTED_ARRAY["tracepolls"])){$sqa["`tracepolls`"]=$POSTED_ARRAY["tracepolls"];$sq[]=" `tracepolls`='{$POSTED_ARRAY["tracepolls"]}'";}
 		if(isset($POSTED_ARRAY["ssl"])){$sqa["`ssl`"]=$POSTED_ARRAY["ssl"];$sq[]=" `ssl`='{$POSTED_ARRAY["ssl"]}'";}
 		if(isset($POSTED_ARRAY["fetchall"])){$sqa["`fetchall`"]=$POSTED_ARRAY["fetchall"];$sq[]=" `fetchall`='{$POSTED_ARRAY["fetchall"]}'";}
-		if(isset($POSTED_ARRAY["keep"])){$sqa["`keep`"]=$POSTED_ARRAY["keep"];$sq[]=" `keep`='{$POSTED_ARRAY["keep"]}'";}	
-		if(isset($POSTED_ARRAY["nokeep"])){$sqa["`nokeep`"]=$POSTED_ARRAY["nokeep"];$sq[]=" `nokeep`='{$POSTED_ARRAY["nokeep"]}'";}
+		if(isset($POSTED_ARRAY["keep"])){
+			$sqa["`keep`"]=$POSTED_ARRAY["keep"];
+			$sq[]=" `keep`='{$POSTED_ARRAY["keep"]}'";
+			if($POSTED_ARRAY["keep"]==1){
+				$sqa["`nokeep`"]=0;
+				$sq[]=" `nokeep`='0'";
+			}else{
+				$sqa["`nokeep`"]=1;
+				$sq[]=" `nokeep`='1'";
+			}
+		}	
+		
 		if(isset($POSTED_ARRAY["smtp_host"])){$sqa["`smtp_host`"]=$POSTED_ARRAY["smtp_host"];$sq[]=" `smtp_host`='{$POSTED_ARRAY["smtp_host"]}'";}
 		if(isset($POSTED_ARRAY["sslfingerprint"])){$sqa["`sslfingerprint`"]=$POSTED_ARRAY["sslfingerprint"];$sq[]=" `sslfingerprint`='{$POSTED_ARRAY["sslfingerprint"]}'";}
 		if(isset($POSTED_ARRAY["sslcertck"])){$sqa["`sslcertck`"]=$POSTED_ARRAY["sslcertck"];$sq[]=" `sslcertck`='{$POSTED_ARRAY["sslcertck"]}'";}

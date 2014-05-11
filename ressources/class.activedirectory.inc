@@ -185,6 +185,8 @@ class wad{
 		}
 		
 	function TestAddport(){
+		if(!is_numeric($this->ldap_host)){$this->ldap_host=389;}
+		if(trim($this->ldap_host)==null){return false;}
 		
 		if($GLOBALS["CACHEINFOS_{$this->ldap_host}"][$time]){return true;}
 		$time=date('h:i');
@@ -193,9 +195,8 @@ class wad{
 		
 		if(!$fp){
 			$this->ldap_error="{error} $errno \"$errstr\" $this->ldap_host:$this->ldap_port";
-				write_syslog("Bind remote $this->ldap_host:$this->ldap_port   $errstr ($errno)",__CLASS__."=>" .__FUNCTION__,__FILE__);	
-				$GLOBALS["CACHEINFOS_{$this->ldap_host}"][$time]=false;	
-				return false;	
+			$GLOBALS["CACHEINFOS_{$this->ldap_host}"][$time]=false;	
+			return false;	
 		}
 		$GLOBALS["CACHEINFOS_{$this->ldap_host}"][$time]=true;
 		return true;

@@ -352,6 +352,8 @@ function connection_list(){
 	$CONNECTIONS_TYPE["tc"]="3Com/USR TotalControl ";
 	$CONNECTIONS_TYPE["usrhiper"]="3Com/USR Hiper Arc Total Control";
 	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$val=0;
 		$color="black";
@@ -363,7 +365,7 @@ function connection_list(){
 		
 		
 		$delete=imgsimple("delete-24.png",null,"ConnectionDelete$t('{$ligne['ipaddr']}','$ipaddrencc')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		
 
 		$data['rows'][] = array(

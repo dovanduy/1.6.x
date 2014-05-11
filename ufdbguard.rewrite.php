@@ -297,15 +297,8 @@ function rewrite_rule_tab(){
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t&ID=$ID\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
 
-	echo "
-	<div id=main_rewriterule_$ID style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_rewriterule_$ID').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_rewriterule_$ID");
+
 
 }
 
@@ -388,7 +381,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 600,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -493,7 +486,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 830,
+	width: '99%',
 	height: 350,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -563,10 +556,7 @@ function popup_list(){
 	$total=0;
 	
 	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
+		json_error_show("no data");
 	}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
@@ -598,7 +588,7 @@ function popup_list(){
 	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results = $q->QUERY_SQL($sql);
-	writelogs($sql." ==> ". mysql_num_rows($results)." items",__FUNCTION__,__FILE__,__LINE__);
+	
 	
 	
 	$data = array();
@@ -606,16 +596,11 @@ function popup_list(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){json_error_show($q->mysql_error);}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 	
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
@@ -652,12 +637,7 @@ function rewrite_rule_items_list(){
 	$FORCE_FILTER=null;
 	$total=0;
 	
-	if($q->COUNT_ROWS($table)==0){
-		writelogs("$table, no row",__FILE__,__FUNCTION__,__FILE__,__LINE__);
-		$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();
-		echo json_encode($data);
-		return ;
-	}
+	if($q->COUNT_ROWS($table)==0){json_error_show("no data");}
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
@@ -697,15 +677,12 @@ function rewrite_rule_items_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show($q->mysql_error);
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
 		
-	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
 		$md5=md5($ligne["ID"].$_GET["ruleid"]);

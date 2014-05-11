@@ -6,7 +6,7 @@
 <automatic_computers_injection>Injection automatique d'ordinateurs</automatic_computers_injection>
 <automatic_computers_injection_explain>L'injection automatique d'ordinateur met &agrave; jour la base de donn&eacute;es Artica en fontion de l'inventaire de OCS.[br]Chaque X minutes, le processus va v&eacute;rifier si il y a des nouveaux ordinateurs dans la base de OCS.[br]Artica va r&eacute;pliquer les informations dans la base LDAP.[br]
 Ceci afin de mettre &agrave; jour automatiquement les services r&eacute;seaux tels que le DNS, et autres services.[br]Si vous d&eacute;sirez d&eacute;sactiver cette fonctionnalit&eacute;, mettez la valeur 0 (10 &eacute;tant la valeur minimale).</automatic_computers_injection_explain>
-<certificate>certificat</certificate>
+<certificate>Certificat</certificate>
 <download_certificate>T&eacute;l&eacute;charger le certificat</download_certificate>
 <EXECUTE>Ex&eacute;cuter</EXECUTE>
 <last_com>Derni&egrave;re connexion</last_com>

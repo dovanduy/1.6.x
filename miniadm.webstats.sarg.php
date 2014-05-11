@@ -220,7 +220,7 @@ function parameters(){
 	$SargConfig=SargDefault($SargConfig);
 	if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
 	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-	if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	$warn_squid_restart=$tpl->javascript_parse_text("{warn_squid_restart}");
 	$page=CurrentPageName();
 	$array[]="Bulgarian_windows1251";
@@ -267,7 +267,14 @@ if(!$users->PROXYTINY_APPLIANCE){
 }else{
 	$boot->set_hidden("DisableArticaProxyStatistics", 1);
 }
-	
+
+
+$LASTLOGS[30]="1 {month}";
+$LASTLOGS[60]="2 {months}";	
+$LASTLOGS[90]="3 {months}";
+$LASTLOGS[120]="4 {months}";
+$LASTLOGS[150]="5 {months}";
+$LASTLOGS[360]="1 {year}";
 
 $boot->set_field("SargOutputDir", "{directory}", $SargOutputDir,array("TOOLTIP"=>"{SargOutputDir_explain}","BROWSE"=>true));
 $boot->set_list("language", "{language}", $langs,$SargConfig["language"]);
@@ -282,7 +289,7 @@ $boot->set_field("topuser_num", "{sarg_topuser_num}", $SargConfig["topuser_num"]
 $boot->set_list("topsites_sort_order", "{topsites_sort_order}", $sort_order,$SargConfig["topsites_sort_order"]);
 $boot->set_list("index_sort_order", "{index_sort_order}", $sort_order,$SargConfig["index_sort_order"]);
 $boot->set_list("date_format", "{sarg_date_format}", $sarg_date_format,$SargConfig["date_format"]);
-$boot->set_field("lastlog", "{sarg_lastlog}", $SargConfig["lastlog"]);
+$boot->set_list("lastlog", "{sarg_lastlog}", $LASTLOGS,$SargConfig["lastlog"]);
 $boot->set_button("{apply}");
 if(!$users->AsWebStatisticsAdministrator){$boot->set_form_locked();}
 echo $boot->Compile();
@@ -293,10 +300,10 @@ function parameters_save(){
 	$sock=new sockets();
 	if(isset($_GET["RESTART_SQUID"])){$sock->getFrameWork("cmd.php?squid-restart=yes");}
 	
-	if($_POST["SargOutputDir"]=="/etc"){$_POST["SargOutputDir"]="/usr/share/artica-postfix/squid";}
-	if($_POST["SargOutputDir"]=="/var/www"){$_POST["SargOutputDir"]="/usr/share/artica-postfix/squid";}
-	if($_POST["SargOutputDir"]=="/usr/share/artica-postfix"){$_POST["SargOutputDir"]="/usr/share/artica-postfix/squid";}
-	if($_POST["SargOutputDir"]==null){$_POST["SargOutputDir"]="/usr/share/artica-postfix/squid";}
+	if($_POST["SargOutputDir"]=="/etc"){$_POST["SargOutputDir"]="/var/www/html/squid-reports";}
+	if($_POST["SargOutputDir"]=="/var/www"){$_POST["SargOutputDir"]="/var/www/html/squid-reports";}
+	if($_POST["SargOutputDir"]=="/usr/share/artica-postfix"){$_POST["SargOutputDir"]="/var/www/html/squid-reports";}
+	if($_POST["SargOutputDir"]==null){$_POST["SargOutputDir"]="/var/www/html/squid-reports";}
 	
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
@@ -329,7 +336,7 @@ function SargDefault($SargConfig){
 	if(!is_numeric($SargConfig["user_ip"])){$SargConfig["user_ip"]=1;}
 	if(!is_numeric($SargConfig["topsites_num"])){$SargConfig["topsites_num"]=100;}
 	if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=0;}
-	if(!is_numeric($SargConfig["lastlog"])){$SargConfig["lastlog"]=0;}
+	if(!is_numeric($SargConfig["lastlog"])){$SargConfig["lastlog"]=90;}
 	if($SargConfig["topsites_sort_order"]==null){$SargConfig["topsites_sort_order"]="D";}
 	if($SargConfig["index_sort_order"]==null){$SargConfig["index_sort_order"]="D";}
 	if($SargConfig["topsites_num"]<2){$SargConfig["topsites_num"]=100;}

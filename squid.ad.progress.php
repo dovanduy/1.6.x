@@ -15,6 +15,10 @@ if(isset($_GET["verbose"])){
 	
 
 if(isset($_GET["popup"])){popup();exit;}
+
+if(isset($_GET["start"])){start();exit;}
+if(isset($_GET["progress"])){progress();exit;}
+
 if(isset($_GET["nsswitch"])){compile_nsswitch();exit;}
 if(isset($_GET["ApplyWhiteList"])){compile_whitelist();exit;}
 if(isset($_GET["connect-ad"])){connect_ad();exit;}
@@ -25,7 +29,7 @@ if(isset($_GET["compile-end-1"])){compile_end_1();exit;}
 if(isset($_GET["compile-end-2"])){compile_end_2();exit;}
 if(isset($_GET["compile-end-finish"])){compile_end_finish();exit;}
 if(isset($_GET["compile-end"])){compile_end();exit;}
-
+if(isset($_POST["FILLLOG"])){FILLLOG();exit;}
 js();
 
 
@@ -44,7 +48,6 @@ function js(){
 	$users=new usersMenus();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 
 	if($EnableWebProxyStatsAppliance==1){
@@ -55,14 +58,182 @@ function js(){
 	if(isset($_GET["onlywhitelist"])){
 		$extension="&onlywhitelist=yes";
 	}
-	
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body('{active_directory_connection}');
-	$html="RTMMail(500,'$page?popup=yes$extension','$title');";
+	
+	$ask=$tpl->javascript_parse_text("{connect_to_ad_ask}");
+	
+	$t=time();
+	$html="
+	function AdConnect$t(){	
+		RTMMail(900,'$page?popup=yes&t=$t','$title');
+	}
+	
+	function AdAsk$t(){
+		if(!confirm('$ask')){return;}
+		AdConnect$t();
+	}
+	
+	AdAsk$t();
+	";
+	
+
 	echo $html;
 	}
 	
-	
 function popup(){
+	$t=time();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$pleasewait=$tpl->_ENGINE_parse_body("{please_wait}");
+	$html="
+	<div id='title-$t' style='font-size:18px;font-weight:bold;margin:20px'></div>
+	<div id='progress-$t'></div>
+	<center>
+	<textarea style='margin-top:5px;font-family:Courier New;
+	font-weight:bold;width:95%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:11.5px'
+	id='textarea-$t'></textarea>
+	</center>
+	
+	<script>
+		$('#progress-$t').progressbar({ value: 5 });
+		Loadjs('$page?start=yes&t=$t');
+	</script>
+	
+	";
+	
+	echo $html;
+	
+	
+	
+}
+
+function start(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$sock=new sockets();
+	header("content-type: application/x-javascript");
+	
+	$sock->getFrameWork("services.php?kerbauth-progress=yes");
+	$filesize=0;
+	echo "Loadjs('$page?progress=yes&t=$t&filesize=$filesize');";
+	
+}
+
+function progress(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$sock=new sockets();
+	header("content-type: application/x-javascript");
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
+	$array=unserialize(@file_get_contents($cachefile));
+	$pleasewait=$tpl->_ENGINE_parse_body("{please_wait}");
+	$CurrentRows=count($array["LOGS"]);
+	$lastRows=$_GET["CurrentRows"];
+	$tt=time();
+	
+	echo "function Z$tt(){
+			Loadjs('$page?progress=yes&t=$t&CurrentRows=$CurrentRows&lastrows=$lastRows');
+	}\n";
+	
+	if(!is_array($array)){
+		
+		echo "
+		function F$tt(){	
+			if(!RTMMailOpen() ){return;}
+			document.getElementById('title-$t').innerHTML='$pleasewait';
+			setTimeout('Z$tt()',1500);	
+		}
+		
+		F$tt();";
+		return;
+	}
+	
+	
+	
+	$title=$tpl->javascript_parse_text($array["TITLE"]);
+	$prc=$array["PRC"];
+	
+	if($prc>=100){
+		echo "
+		var xF$tt= function (obj) {
+			if(!RTMMailOpen() ){return;}
+			var results=obj.responseText;
+			if(results.length>3){
+				document.getElementById('textarea-$t').value=results;
+			}
+		}
+		
+		function F$tt(){
+			if(!RTMMailOpen() ){return;}
+			var XHR = new XHRConnection();
+			document.getElementById('title-$t').innerHTML='$title';
+			$('#progress-$t').progressbar({ value: 100 });
+			XHR.appendData('FILLLOG','yes');
+			XHR.appendData('t','$t');
+			XHR.setLockOff();
+			XHR.sendAndLoad('$page', 'POST',xF$tt);
+		}
+		
+		F$tt();";
+		return;
+	}
+	
+	
+	if($CurrentRows>$lastRows){
+		echo "
+		function F$tt(){
+			if(!RTMMailOpen() ){return;}
+			document.getElementById('title-$t').innerHTML='$title $pleasewait...';
+			$('#progress-$t').progressbar({ value: $prc });
+			setTimeout('Z$tt()',1500);
+		}
+		
+		F$tt();";
+		return;		
+		
+	}
+	
+	
+echo "
+	var xF$tt= function (obj) {
+		if(!RTMMailOpen() ){return;}
+		var results=obj.responseText;
+		if(results.length>3){
+			document.getElementById('textarea-$t').value=results;
+		}
+		setTimeout('Z$tt()',1500);
+		
+	}	
+	
+	function F$tt(){
+		if(!RTMMailOpen() ){return;}
+		var XHR = new XHRConnection();
+		document.getElementById('title-$t').innerHTML='$title';
+		$('#progress-$t').progressbar({ value: $prc });
+		XHR.appendData('FILLLOG','yes');
+		XHR.appendData('t','$t');
+		XHR.setLockOff();
+		XHR.sendAndLoad('$page', 'POST',xF$tt);
+	}
+
+F$tt();";	
+	
+	
+	
+}
+
+function FILLLOG(){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/AdConnnection.status";
+	$array=unserialize(@file_get_contents($cachefile));
+	krsort($array["LOGS"]);
+	echo @implode("\n", $array["LOGS"]);
+}
+	
+	
+function popup_old(){
 	$users=new usersMenus();
 	$tpl=new templates();
 	$page=CurrentPageName();

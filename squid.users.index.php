@@ -1,9 +1,9 @@
 <?php
 session_start();
 if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
-if(!isset($_SESSION["uid"])){error_log("uid `{$_SESSION["uid"]}` no set -> register:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);registerSession();}
-if(!isset($_SESSION["uid"])){error_log("uid `{$_SESSION["uid"]}`  null :".__FUNCTION__." in " . __FILE__. " line ".basename(__FILE__));header('location:squid.users.logon.php');die();}
-error_log("uid `{$_SESSION["uid"]}` ok, registered:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
+if(!isset($_SESSION["uid"])){error_log("[{$_SESSION["uid"]}]::uid `{$_SESSION["uid"]}` no set -> register:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);registerSession();}
+if(!isset($_SESSION["uid"])){error_log("[{$_SESSION["uid"]}]::uid `{$_SESSION["uid"]}`  null :".__FUNCTION__." in " . __FILE__. " line ".basename(__FILE__));header('location:squid.users.logon.php');die();}
+error_log("[{$_SESSION["uid"]}]::uid `{$_SESSION["uid"]}` ok, registered:".__FUNCTION__." in " . basename(__FILE__). " line ".__LINE__);
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.html.pages.inc');
 include_once('ressources/class.cyrus.inc');
@@ -52,7 +52,7 @@ function registerSession(){
 	$array=unserialize(base64_decode($_GET["phpsess"]));
 	if(!is_array($array)){return null;}
 	while (list ($key, $value) = each ($array) ){		
-		error_log("SET $key = $value ".__FUNCTION__."() in " . basename(__FILE__). " line ".__LINE__);
+		error_log("[{$_SESSION["uid"]}]::SET $key = $value ".__FUNCTION__."() in " . basename(__FILE__). " line ".__LINE__);
 		$_SESSION[$key]=$value;
 	}
 	
@@ -61,6 +61,6 @@ function registerSession(){
 	
 }
 function GetMyTitle(){
-	error_log("SET email = {$_SESSION["email"]} ".__FUNCTION__."() in " . basename(__FILE__). " line ".__LINE__);
+	error_log("[{$_SESSION["uid"]}]::SET email = {$_SESSION["email"]} ".__FUNCTION__."() in " . basename(__FILE__). " line ".__LINE__);
 	echo $_SESSION["email"];
 }

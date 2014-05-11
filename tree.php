@@ -769,6 +769,9 @@ function is_selected_file($ext){
 	
 }
 
+
+
+
 function folder_infos(){
 		$_GET["folder-infos"]=str_replace("../","",$_GET["folder-infos"]);
 		$_GET["folder-infos"]=str_replace("//","/",$_GET["folder-infos"]);
@@ -1365,7 +1368,6 @@ function upload_form_perform(){
 	
 usleep(300);
 writelogs("upload_form_perform() -> OK {$_GET['qqfile']}",__FUNCTION__,__FILE__,__LINE__);
-$fileName;
 $sock=new sockets();
 $sock->getFrameWork("services.php?lighttpd-own=yes");
 

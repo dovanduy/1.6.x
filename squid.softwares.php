@@ -114,6 +114,8 @@ if($actualversion_samba==null){$actualversion_samba="0.0.0";}
 $sock=new sockets();
 $realsquidversion=$sock->getFrameWork("squid.php?full-version=yes");
 
+$refresh_index_file=$tpl->javascript_parse_text('{refresh_index_file}');
+
 if(preg_match("#^([0-9]+)\.([0-9]+)#", $squid_version,$re)){
 	$MAJOR=$re[1];
 	$MINOR=$re[2];
@@ -124,6 +126,8 @@ if($MAJOR>=3){
 		$backTo31="&nbsp;|&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:BackTo31x()\" style='font-size:18px;font-weight:bold;text-decoration:underline'>{back_to_31xbranch}</a>";
 	}
 }
+
+$RefreshIndexFile="&nbsp;|&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:YahooWin('700','setup.index.php?testConnection=yes','$refresh_index_file',true);\" style='font-size:18px;font-weight:bold;text-decoration:underline'>$refresh_index_file</a>";
 
 if($MAJOR==3 && $MINOR == 1){
 	
@@ -182,7 +186,7 @@ $dansguardian="<tr>
 
 $html="
 
-<div style='font-size:18px'>{current}:&nbsp;{APP_SQUID}:&nbsp;<strong>$squid_version</strong>&nbsp;<span style='font-size:11px;'>($realsquidversion)</span>&nbsp;&nbsp;|&nbsp;{architecture}:&nbsp;<strong>$ArchStruct</strong><span id='is31'></span></div>
+<div style='font-size:18px'>{current}:&nbsp;{APP_SQUID}:&nbsp;<strong>$squid_version</strong>&nbsp;<span style='font-size:11px;'>($realsquidversion)</span>&nbsp;&nbsp;|&nbsp;{architecture}:&nbsp;<strong>$ArchStruct</strong><span id='is31'></span>$RefreshIndexFile</div>
 
 <table style='width:100%;margin-top:15px'>
 <tbody>

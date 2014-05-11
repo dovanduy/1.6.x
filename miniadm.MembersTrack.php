@@ -212,7 +212,7 @@ function report_popup(){
 	<script>
 	function BrowseUsers$t(){
 		var field=document.getElementById('userfield-$t').value;
-		Loadjs('squid.nodes.php?filterby='+field+'&fieldname=userdata-$t');
+		Loadjs('squid.nodes.php?filterby='+field+'&fieldname=userdata-$t',true);
 	 }
 	 
 	var x_rpsave$t=function (obj) {

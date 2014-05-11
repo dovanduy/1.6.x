@@ -22,11 +22,11 @@ function load_XT_ACCOUNT(){
 	$unix=new unix();
 	$modprobe=$unix->find_program("modprobe");
 	KERNERL_VER();
-	echo "Starting......: Artica Kernel v{$GLOBALS["KERNEL_V"]}\n";
+	echo "Starting......: ".date("H:i:s")." Artica Kernel v{$GLOBALS["KERNEL_V"]}\n";
 	if(is_file("/lib/modules/{$GLOBALS["KERNEL_V"]}/extra/xtables-addons/ACCOUNT/xt_ACCOUNT.ko")){
-		echo "Starting......: Artica loading XT_ACCOUNT module...\n";
+		echo "Starting......: ".date("H:i:s")." Artica loading XT_ACCOUNT module...\n";
 		shell_exec("$modprobe xt_ACCOUNT >/dev/null 2>&1");
 	}else{
-		echo "Starting......: Artica XT_ACCOUNT no such module...\n";
+		echo "Starting......: ".date("H:i:s")." Artica XT_ACCOUNT no such module...\n";
 	}	
 }

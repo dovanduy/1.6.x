@@ -65,66 +65,71 @@ function INDEX_CREATE(){
 		
 		
 	}else{
-		$field_domains=Field_array_Hash($domains,'user_domain');
+		$field_domains=Field_array_Hash($domains,'user_domain',"style:font-size:18px;padding:3px");
 	}
 	
 	$tpl=new templates();
 	$hash[null]="{select}";
-	$groups=Field_array_Hash($hash,'group_id',$_GET["gpid"],"style:font-size:13px;padding:3px");
+	$groups=Field_array_Hash($hash,'group_id',$_GET["gpid"],"style:font-size:18px;padding:3px");
 	$error_no_password=$tpl->javascript_parse_text("{error_no_password}");	
 	$error_no_userid=$tpl->javascript_parse_text("{error_no_userid}");
 	$t=time();
 	$title="{$_GET["ou"]}:{create_user}";
 	
 	$step1="
-	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(1)\">
+	<div style='width:98%' class=form>
+	<table style='width:99%' class='TableRemove' OnMouseOver=\"javascript:HideExplainAll(1)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre1_32.png'></td>
 	<td valign='top'>
-	<div style='font-size:14px;font-weight:bold;margin-bottom:5px'>{name_the_new_account_title}:</div>
-	" . Field_text('new_userid',null,"font-size:14px;padding:3px;font-weight:bold;color:#C80000",null,"UserAutoChange_eMail()",null,false,"UserADDCheck(event)") ."
+	<div style='font-size:18px;font-weight:bold;margin-bottom:5px'>{name_the_new_account_title}:</div>
+	" . Field_text('new_userid',null,"font-size:18px;padding:3px;font-weight:bold;color:#C80000",null,"UserAutoChange_eMail()",null,false,"UserADDCheck(event)") ."
 
 	</td>
 	</tr>
-	</table>";
+	</table></div>";
 	
 	$step2="
-	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(2)\">
+	<div style='width:98%' class=form>
+	<table style='width:99%' class='TableRemove' OnMouseOver=\"javascript:HideExplainAll(2)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre2_32.png'></td>
 	<td valign='top'>
-	<div style='font-size:14px;font-weight:bold;margin-bottom:5px'>{email}</div><br>
+	<div style='font-size:18px;font-weight:bold;margin-bottom:5px'>{email}</div><br>
 	<input type='hidden' name='email' value='' id='email'>
-	<span id='prefix_email' style='width:90px;border:1px solid #CCCCCC;padding:2px;font-size:11px;font-weight:bold;margin:2px'>
+	<span id='prefix_email' style='width:90px;border:1px solid #CCCCCC;padding:2px;font-size:18px;font-weight:bold;margin:2px'>
 	</span>@$field_domains&nbsp;
-	<div style='text-align:right;font-size:11px;'><i><a href='javascript:ChangeAddUsereMail();'>{change}</a></i>
+	<div style='text-align:right;font-size:14px;'><i><a href='javascript:ChangeAddUsereMail();'>{change}</a></i>
 	
 	</td>
 	</tr>
-	</table>";
+	</table></div>";
 	
 	$step3="
-	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(4)\">
+	<div style='width:98%' class=form>
+	<table style='width:99%' class='TableRemove' OnMouseOver=\"javascript:HideExplainAll(4)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre3_32.png'></td>
 	<td valign='top'>
-	<div style='font-size:14px;font-weight:bold;margin-bottom:5px'>{password}</div>
-	" . Field_password("password-$t",null,"font-size:14px;padding:3px;width:150px;letter-spacing:3px",null,null,null,false,"UserADDCheck(event)") ."
+	<div style='font-size:18px;font-weight:bold;margin-bottom:5px'>{password}</div>
+	" . Field_password("password-$t",null,"font-size:18px;padding:3px;width:190px;letter-spacing:3px",null,null,null,false,"UserADDCheck(event)") ."
 	</td>
 	</tr>
 	</table>
+	</div>
 	";
 	
 	$step4="
-	<table style='width:99%' class='form TableRemove' OnMouseOver=\"javascript:HideExplainAll(3)\">
+	<div style='width:98%' class=form>
+	<table style='width:99%' class='TableRemove' OnMouseOver=\"javascript:HideExplainAll(3)\">
 	<tr>
 	<td valign='top' width=1%><img src='img/chiffre4_32.png'></td>
 	<td valign='top'>
-	<div style='font-size:14px;font-weight:bold;margin-bottom:5px'>{group}</div>
-	<div style='font-size:13px;margin-bottom:5px'>{select_user_group_title}:</div><br>$groups
+	<div style='font-size:18px;font-weight:bold;margin-bottom:5px'>{group}</div>
+	<div style='font-size:18px;margin-bottom:5px'>{select_user_group_title}:</div><br>$groups
 	</td>
 	</tr>
-	</table>
+	</table></div>
 	";
 	
 if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gpid"]}'>";}
@@ -133,7 +138,7 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 	<input type='hidden' id='ou-mem-add-form-user' value='{$_GET["ou"]}'>
 	<input type='hidden' id='ou' value='{$_GET["ou"]}'>
 	<div id='adduser_ajax_newfrm' style='margin-top:5px'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%' class=TableRemove>
 	<tr>
 	<td valign='top' style='width:450px;vertical-align:top'>
@@ -151,7 +156,7 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 		</tr>
 		<tr>
 			<td align='right'>
-				<hr>". button("{add}","UserADDSubmit()",18)."
+				<hr>". button("{add}","UserADDSubmit()",26)."
 			</td>
 		</tr>			
 		</table>
@@ -159,10 +164,10 @@ if($_GET["gpid"]>0){$step4="<input type='hidden' id='group_id' value='{$_GET["gp
 	<td valign='top' style='width:50%'>
 			<center style='margin-bottom:8px'><img src='img/add-woman-256.png'></center>
 			<div style='padding-left:10px'>		
-				<div class=explain id='text-1'>{name_the_new_account_explain}</div>
-				<div class=explain id='text-2'>{user_email_text}</div>
-				<div class=explain id='text-3'>{select_user_group_text}</div>
-				<div class=explain id='text-4'>{give_password_text}</div>
+				<div class=explain id='text-1' style='font-size:16px'>{name_the_new_account_explain}</div>
+				<div class=explain id='text-2' style='font-size:16px'>{user_email_text}</div>
+				<div class=explain id='text-3' style='font-size:16px'>{select_user_group_text}</div>
+				<div class=explain id='text-4' style='font-size:16px'>{give_password_text}</div>
 			</div>
 			
 	</td>

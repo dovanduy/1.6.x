@@ -921,14 +921,8 @@ function tabs(){
 	}
 	
 	
-	echo "
-	<div id=main_config_autofs style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_autofs\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_autofs");
+
 		
 	
 }
@@ -1233,7 +1227,8 @@ function mounts_events_query(){
 	
 	$pattern=base64_encode($_GET["search"]);
 	$sock=new sockets();
-	$array=unserialize(base64_decode($sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=automount")));
+	$sock->getFrameWork("cmd.php?syslog-query=$pattern&prefix=automount");
+	$array=explode("\n", @file_get_contents("/usr/share/artica-postfix/ressources/logs/web/syslog.query"));
 	if(!is_array($array)){return null;}
 	
 	$html="<table class=TableView>";

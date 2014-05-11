@@ -294,16 +294,11 @@ begin
   if EnableDotClearHTTPService=0 then begin
         result:=ini.Text;
         ini.free;
-        SYS.MONIT_DELETE('APP_DOTCLEAR');
+
         exit;
   end;
 
-  if SYS.MONIT_CONFIG('APP_DOTCLEAR',LIGHTTPD_PID_PATH(),'dotclear') then begin
-      ini.Add('monit=1');
-      result:=ini.Text;
-      ini.free;
-      exit;
-  end;
+
 
    if SYS.PROCESS_EXIST(LIGHTTPD_PID()) then ini.Add('running=1') else  ini.Add('running=0');
       ini.Add('application_installed=1');

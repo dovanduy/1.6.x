@@ -9,7 +9,8 @@ if(isset($_GET["verbose"])){ini_set('html_errors',0);ini_set('display_errors', 1
 	if(isset($_GET["events"])){popup_list();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_POST["delete"])){Delete();exit;}
-	
+	if(isset($_GET["add-www-js"])){add_www_js();exit;}
+	if(isset($_GET["add-black-js"])){add_black_js();exit;}
 	js();
 
 	
@@ -21,6 +22,70 @@ function js(){
 	$title=$tpl->javascript_parse_text("{whitelist}::{APP_UFDBGUARD}");
 	echo "YahooWin4('550','$page?popup=yes&t=$t','$title')";
 	
+}
+
+function add_black_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$squid_ask_domain=$tpl->javascript_parse_text("\\n{blacklist}\\n**************************\\n{squid_ask_domain}\\n{separate_comma}");
+	$t=time();
+	$html="
+var x_reload$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	$('#flexRT{$_GET["t"]}').flexReload();
+	$('#flexRT{$_GET["tt"]}').flexReload();
+	
+}
+
+
+function NewWebServer$t(){
+	var dom='{$_GET["sitename"]}';
+	if(dom.length==0){
+		dom=prompt('$squid_ask_domain');
+	}
+
+	if(dom){
+		var XHR = new XHRConnection();
+		XHR.appendData('biglock',dom);
+		XHR.appendData('noreload',1);
+		XHR.sendAndLoad('squid.blocked.events.php', 'POST',x_reload$t);
+	}
+}
+
+NewWebServer$t();";
+echo $html;
+}
+
+function add_www_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$squid_ask_domain=$tpl->javascript_parse_text("{squid_ask_domain}");
+	$t=time();
+	$html="
+	var x_reload$t=function(obj){
+		var tempvalue=obj.responseText;
+	     if(tempvalue.length>3){alert(tempvalue);return;}
+		 $('#flexRT{$_GET["t"]}').flexReload();
+		 $('#flexRT{$_GET["tt"]}').flexReload();
+		 Loadjs('squid.compile.whiteblack.progress.php?ask=yes');
+	}
+
+
+function NewWebServer$t(){
+	var dom=prompt('$squid_ask_domain');
+	if(dom){
+		var XHR = new XHRConnection();
+		XHR.appendData('unlock',dom);
+		XHR.appendData('noreload',1);
+		XHR.sendAndLoad('squid.blocked.events.php', 'POST',x_reload$t);	
+	}
+}
+	
+NewWebServer$t();";
+	echo $html;
 }
 
 function popup(){
@@ -109,13 +174,7 @@ function Apply$t(){
 }
 
 function NewWebServer$t(){
-	var dom=prompt('$squid_ask_domain');
-	if(dom){
-		var XHR = new XHRConnection();
-		XHR.appendData('unlock',dom);
-		XHR.appendData('noreload',1);
-		XHR.sendAndLoad('squid.blocked.events.php', 'POST',x_reload$t);	
-	}
+	Loadjs('$page?add-www-js=yes&t=$t&tt=$tt',true);
 }
 
 </script>

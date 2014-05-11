@@ -3,8 +3,8 @@ include_once(dirname(__FILE__) . '/logs.inc');
 include_once(dirname(__FILE__) . '/class.templates.inc');
 include_once(dirname(__FILE__) . '/class.ldap.inc');
 include_once(dirname(__FILE__) . '/class.mysql.inc');
-
-
+include_once(dirname(__FILE__) . '/class.dnsmasq.inc');
+include_once(dirname(__FILE__) . '/class.tcpip.inc');
 class pdns{
 	var $domainname=null;
 	var $suffix;
@@ -439,6 +439,8 @@ class pdns{
 //------------------------------------------------------------------------------------------------------------------------------	
 	public function EditIPName($computername,$IP,$DnsType,$macaddress=null,$obs=null){
 			$computername=trim(strtolower($computername));
+			$IpClass=new IP();
+			if(!$IpClass->isIPAddress($IP)){return false;}
 			if(trim($computername)==null){return false;}
 			$IP=trim($IP);
 			$this->domainname=trim(strtolower($this->domainname));
@@ -479,7 +481,10 @@ class pdns{
 			$computername=str_replace('..','.',$computername);
 			$computername=str_replace('$','',$computername);
 			$fqdn="$computername.$this->domainname";		
-			$fqdn=str_replace('..','.',$fqdn);			
+			$fqdn=str_replace('..','.',$fqdn);		
+			$fqdn=str_replace('$','',$fqdn);
+			
+
 			
 			$macaddress=trim($macaddress);
 			if($macaddress<>null){

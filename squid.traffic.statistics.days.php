@@ -186,6 +186,7 @@ function today_zoom_popup(){
 	$q=new mysql_squid_builder();
 	$tpl=new templates();	
 	if(!isset($_GET["day"])){$_GET["day"]=$q->HIER();}	
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}
 	$t=time();
 	$today="{today}";
 	if($_GET["day"]<>date("Y-m-d")){
@@ -219,17 +220,8 @@ function today_zoom_popup(){
 	}
 	
 	$t=time();
-	echo $tpl->_ENGINE_parse_body( "
-	<div id=$t style='width:97%;font-size:14px;margin-left:10px;margin-right:-15px;margin-top:-5px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#$t').tabs();
+	echo build_artica_tabs($html, $t);
 			
-			
-			});
-		</script>");			
 	
 	
 	
@@ -240,7 +232,7 @@ function today_zoom_popup_members(){
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
 	$t=time();
-
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}
 	$type=$_GET["type"];
 	$field_query="size";
 	$field_query2="SUM(size)";	
@@ -285,7 +277,7 @@ $('#flexRT$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 951,
+	width: '99%',
 	height: 280,
 	singleSelect: true
 	
@@ -303,19 +295,13 @@ $('#flexRT$t').flexigrid({
 
 function today_zoom_popup_history(){
 	
-	if(!$_SESSION["CORP"]){
-		$tpl=new templates();
-		$onlycorpavailable=$tpl->javascript_parse_text("{onlycorpavailable}");
-		echo "<script>alert('$onlycorpavailable');</script>";
-		return;
-	}		
 	
 	
 	$page=CurrentPageName();
 	$tpl=new templates();		
 	$q=new mysql_squid_builder();	
 	$t=time();
-
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}
 	$type=$_GET["type"];
 	$field_query="size";
 	$field_query2="SUM(size)";	
@@ -325,7 +311,8 @@ function today_zoom_popup_history(){
 	$sitename=$tpl->_ENGINE_parse_body("{website}");
 	$category=$tpl->_ENGINE_parse_body("{category}");
 	
-	
+	$timex=strtotime("{$_GET["day"]} 00:00:00");
+	$Title=$tpl->javascript_parse_text(date("Y {F} d",$timex));
 	
 $html="
 <div id='graph-$t' style='width:930px;height:350px'><center style='margin:50px'><img src='img/wait-clock.gif'></center></div>
@@ -359,11 +346,11 @@ $('#flexRT$t').flexigrid({
 	sortname: 'thits',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '$Title',
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 951,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
@@ -387,6 +374,7 @@ function today_zoom_popup_members_list(){
 	$q=new mysql_squid_builder();	
 	$t=time();
 	$fontsize=14;
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}
 	$type=$_GET["type"];
 	$field_query="size";
 	$field_query2="SUM(size)";	
@@ -509,6 +497,7 @@ function today_zoom_popup_history_list(){
 	$field_query2="SUM(size)";	
 	$table_field="{size}";
 	$category=$tpl->_ENGINE_parse_body("{category}");
+	if($_GET["day"]==date('Y-m-d')){$_GET["day"]=$q->HIER();}
 	$hour_table=date('Ymd',strtotime($_GET["day"]))."_hour";
 	$member=$tpl->_ENGINE_parse_body("{member}");
 	$sitename=$tpl->_ENGINE_parse_body("{website}");

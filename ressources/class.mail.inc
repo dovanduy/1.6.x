@@ -43,7 +43,7 @@ class simplemail {
 		if ( preg_match('`([[:alnum:]]([-_.]?[[:alnum:]])*@[[:alnum:]]([-_.]?[[:alnum:]])*\.([a-z]{2,4}))`', $address) ) {
 			return TRUE;
 		} else {
-			$this->error_log("l'adresse $address est invalide"); return FALSE;
+			$this->error_log("[{$_SESSION["uid"]}]::l'adresse $address est invalide"); return FALSE;
 		}
 	}
 	
@@ -51,7 +51,7 @@ class simplemail {
 		if ( preg_match("`[0-9a-zA-Z\.\-_ ]*`" , $name ) ) {
 			return TRUE;
 		} else {
-			$this->error_log(" le pseudo $name est invalide\n"); return FALSE;
+			$this->error_log("[{$_SESSION["uid"]}]:: le pseudo $name est invalide\n"); return FALSE;
 		}
 	}
 	
@@ -64,14 +64,14 @@ class simplemail {
 	
 	function addrecipient($newrecipient,$name='') {
 		$tmp=$this->makenameplusaddress($newrecipient,$name);
-		if ( !$tmp ) { $this->error_log(" To: error"); return FALSE; }
+		if ( !$tmp ) { $this->error_log("[{$_SESSION["uid"]}]:: To: error"); return FALSE; }
 		$this->recipientlist[] = array( 'mail'=>$newrecipient, 'nameplusmail' => $tmp );
 		return TRUE;
 	}
 	
 	function addbcc($bcc,$name='') {
 		$tmp=$this->makenameplusaddress($bcc,$name);
-		if ( !$tmp ) { $this->error_log(" Bcc: error"); return FALSE; }
+		if ( !$tmp ) { $this->error_log("[{$_SESSION["uid"]}]:: Bcc: error"); return FALSE; }
 		if ( !empty($this->hbcc)) $this->hbcc.= ",";
 		$this->hbcc.= $tmp;
 		return TRUE;
@@ -79,7 +79,7 @@ class simplemail {
 	
 	function addcc($cc,$name='') {
 		$tmp=$this->makenameplusaddress($cc,$name);
-		if ( !$tmp ) { $this->error_log(" Cc: error\n"); return FALSE; }
+		if ( !$tmp ) { $this->error_log("[{$_SESSION["uid"]}]:: Cc: error\n"); return FALSE; }
 		if (!empty($this->hcc)) $this->hcc.= ",";
 		$this->hcc.= $tmp;
 		return TRUE;
@@ -91,21 +91,21 @@ class simplemail {
 	
 	function addfrom($from,$name='') {
 		$tmp=$this->makenameplusaddress($from,$name);
-		if ( !$tmp ) { $this->error_log(" From: error"); return FALSE; }
+		if ( !$tmp ) { $this->error_log("[{$_SESSION["uid"]}]:: From: error"); return FALSE; }
 		$this->hfrom = $tmp;
 		return TRUE;
 	}
 	
 	function addreturnpath($return) {
 		$tmp=$this->makenameplusaddress($return,'');
-		if ( !$tmp ) { $this->error_log("Return-Path: error"); return FALSE; }
+		if ( !$tmp ) { $this->error_log("[{$_SESSION["uid"]}]::Return-Path: error"); return FALSE; }
 		$this->returnpath = $return;
 		return TRUE;
 	}
 	
 	function addreplyto($replyto) {
 		$tmp=$this->makenameplusaddress($replyto,'');
-		if ( !$tmp ) { $this->error_log(" Reply-To: error"); return FALSE; }
+		if ( !$tmp ) { $this->error_log("[{$_SESSION["uid"]}]:: Reply-To: error"); return FALSE; }
 		$this->returnpath = $tmp;
 		return TRUE;
 	}
@@ -248,11 +248,11 @@ class simplemail {
 	
 		$this->headers = '';
 	
-		if ( empty($this->recipientlist) ) { $this->error_log("destinataire manquant"); return FALSE; }
+		if ( empty($this->recipientlist) ) { $this->error_log("[{$_SESSION["uid"]}]::destinataire manquant"); return FALSE; }
 //		else { $this->AddField2Header("To",$this->recipient); }
 		
 		if ( empty($this->subject) ) {
-			$this->error_log("sujet manquant");
+			$this->error_log("[{$_SESSION["uid"]}]::sujet manquant");
 			return FALSE; 
 		} else {
 			if ($this->set_mode!='php' ) {
@@ -314,9 +314,9 @@ class simplemail {
 		while ( list($key, $to) = each($this->recipientlist) ) {
 			$this->recipient = $to['mail'];
 			if ( mail($to['mail'], $this->subject, $this->body, $this->makeheader() ) ) { 
-				$this->error_log("envoie vers {$to['nameplusmail']} réussi");
+				$this->error_log("[{$_SESSION["uid"]}]::envoie vers {$to['nameplusmail']} réussi");
 			} else { 
-				$this->error_log("envoie vers {$to['nameplusmail']} echoué");
+				$this->error_log("[{$_SESSION["uid"]}]::envoie vers {$to['nameplusmail']} echoué");
 			}
 		}
 		return TRUE; 
@@ -326,7 +326,7 @@ class simplemail {
 		
 	function SocketStart() {
 		if (!$this->connect = fsockopen (ini_get("SMTP"), ini_get("smtp_port"), $errno, $errstr, 30))  { 
-            $this->error_log("Could not talk to the sendmail server!"); return FALSE; 
+            $this->error_log("[{$_SESSION["uid"]}]::Could not talk to the sendmail server! $errno $errstr"); return FALSE; 
         };
 	    return fgets($this->connect, 1024);
 	}
@@ -359,7 +359,7 @@ class simplemail {
 	function socketmailsend($to) {
         
 		$this->recipient = $to;
-		$this->error_log("Socket vers $to");
+		$this->error_log("[{$_SESSION["uid"]}]::Socket vers $to");
 			
 		$this->SocketSend( "MAIL FROM:{$this->hfrom}\r\n" );
 		$this->SocketSend( "RCPT TO:$to\r\n" );
@@ -369,7 +369,7 @@ class simplemail {
 		$this->SocketSend( ".\r\n" );
 		$this->SocketSend( "RSET\r\n" );
 			
-		$this->error_log("Fin de l'envoi vers $to");
+		$this->error_log("[{$_SESSION["uid"]}]::Fin de l'envoi vers $to");
 
 		return TRUE;        
     }
@@ -380,6 +380,7 @@ class simplemail {
 		return TRUE;
 	}
         
+	
     function socketmailloop() {
         $this->socketmailstart();
         while ( list($key, $to) = each($this->recipientlist)) {

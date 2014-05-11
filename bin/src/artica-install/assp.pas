@@ -473,11 +473,11 @@ if EnableASSP=0 then
 begin
 result:=ini.Text;
 ini.free;
-SYS.MONIT_DELETE('APP_ASSP');
+
 exit;
 end;
 
-if SYS.MONIT_CONFIG('APP_ASSP','/usr/share/assp/pid','assp') then
+
 begin
 ini.Add('monit=1');
 result:=ini.Text;

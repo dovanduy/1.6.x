@@ -101,9 +101,6 @@ function execute(){
 	
 	}	
 	
-	$php5=$unix->LOCATE_PHP5_BIN();
-	shell_exec("$php5 ".dirname(__FILE__)."/exec.squid.stats.not-categorized.php");
-	
 }
 
 function perform($table_source,$zDate){

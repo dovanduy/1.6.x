@@ -23,6 +23,7 @@ if(isset($_GET["events"])){events();exit;}
 if(isset($_GET["search-records"])){events_search();exit;}
 if(isset($_GET["statistics"])){statistics();exit;}
 if(isset($_GET["mailboxes"])){mailboxes();exit;}
+if(isset($_GET["webmail"])){webmail();exit;}
 if(isset($_GET["search-mailboxes"])){mailboxes_search();exit;}
 if(isset($_GET["search-statistics"])){statistics_search();exit;}
 //zarafa-stats-system
@@ -75,6 +76,7 @@ function tabs(){
 	$array["{statistics}"]="$page?statistics=yes";
 	$array["{events}"]="$page?events=yes";
 	$array["{mailboxes}"]="$page?mailboxes=yes";
+	$array["{webmail2}"]="miniadmin.zarafa-webaccess.php";
 	$array["{smartphones}"]="miniadmin.zpush.php";
 	
 	
@@ -99,6 +101,17 @@ function events(){
 	$SearchQuery=$boot->SearchFormGen("events","search-records");	
 	echo $SearchQuery;
 }
+
+function webmail(){
+	
+	
+	
+	
+	
+	
+	
+}
+
 
 function mailboxes(){
 	$boot=new boostrap_form();

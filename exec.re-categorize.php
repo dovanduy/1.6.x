@@ -100,6 +100,7 @@ function cloudlogs($text=null){
 	}	
 
 function events($text){
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		if($GLOBALS["VERBOSE"]){echo $text."\n";}
 		$common="/var/log/artica-postfix/squid.stats.log";
 		$size=@filesize($common);

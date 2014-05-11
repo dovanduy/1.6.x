@@ -104,7 +104,7 @@ function popup(){
 			$color="black";
 			$install="<input type='button' OnClick=\"javascript:KernelInstall('{$array2["PACKAGE"]}');\" value='&nbsp;{upgrade}&nbsp;&raquo;' style='margin:0px;'>";
 			if($array2["FULL_VERSION"]==$CURRENT){
-				$color="red";
+				$color="#CC0A0A";
 				$install="&nbsp;";
 			}
 			if($array2["ARCH"]=="generic-pae"){$array2["ARCH"]="PAE Generic > 64 Gb mem";}

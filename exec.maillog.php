@@ -1,6 +1,7 @@
 <?php
 $GLOBALS["DEBUG_MEM"]=true;
-$GLOBALS["DEBUG_MEM_FILE"]="/var/log/artica-postfix/postfix-logger.debug";
+$GLOBALS["DEBUG_MEM_FILE"]="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.debug";
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 events("Memory: START AT ".round(((memory_get_usage()/1024)/1000),2) ." line:".__LINE__);
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.ini.inc line:".__LINE__);
@@ -18,9 +19,11 @@ include_once(dirname(__FILE__).'/ressources/class.postfix.maillog.inc');
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.postfix.maillog.inc line: ".__LINE__);
 include_once(dirname(__FILE__).'/ressources/class.amavis.maillog.inc');
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.amavis.maillog.inc line: ".__LINE__);
-
+include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
+include_once(dirname(__FILE__).'/ressources/class.mysql.postfix.builder.inc');
+events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.amavis.maillog.inc line: ".__LINE__);
 //Jun 29 14:53:54 ns214639 postfix-outbond-167-33.ultranavy.info/smtpd[23815]: warning: SASL authentication failure: cannot connect to saslauthd server: No such file or directory 
-@mkdir("/var/log/artica-postfix/MGREYSTATS");
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/MGREYSTATS");
 $set=new settings_inc();
 $GLOBALS["CLASS_SETTINGS"]=$set;
 events("Memory: FINISH ".round(((memory_get_usage()/1024)/1000),2) ." after includes line: ".__LINE__);
@@ -47,14 +50,19 @@ events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after sockets() d
 $users=new settings_inc();
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after usersMenus() declaration line: ".__LINE__);
 $_GET["server"]=$users->hostname;
+$GLOBALS["MYHOSTNAME"]=$users->hostname;
 $_GET["IMAP_HACK"]=array();
 $GLOBALS["ZARAFA_INSTALLED"]=$users->ZARAFA_INSTALLED;
 $GLOBALS["AMAVIS_INSTALLED"]=$users->AMAVIS_INSTALLED;
-
+$GLOBALS["CLASS_POSTFIX_SQL"]=new mysql_postfix_builder();
 $GLOBALS["POP_HACK"]=array();
 $GLOBALS["SMTP_HACK"]=array();
 $GLOBALS["PHP5_BIN"]=LOCATE_PHP5_BIN2();
 $GLOBALS["LN_BIN"]=$unix->find_program("ln");
+$GLOBALS["POSTFIX_BIN"]=$unix->find_program("postfix");
+$GLOBALS["iptables"]=$unix->find_program("iptables");
+$GLOBALS["EnablePostfixAutoBlock"]=trim($sock->GET_INFO("EnablePostfixAutoBlock"));
+if(!is_numeric($GLOBALS["EnablePostfixAutoBlock"])){$GLOBALS["EnablePostfixAutoBlock"]=1;}
 $GLOBALS["PostfixNotifyMessagesRestrictions"]=$sock->GET_INFO("PostfixNotifyMessagesRestrictions");
 $GLOBALS["GlobalIptablesEnabled"]=$GlobalIptablesEnabled;
 $GLOBALS["PopHackEnabled"]=$sock->GET_INFO("PopHackEnabled");
@@ -63,9 +71,11 @@ $GLOBALS["DisableMailBoxesHack"]=$sock->GET_INFO("DisableMailBoxesHack");
 $GLOBALS["EnableArticaSMTPStatistics"]=$sock->GET_INFO("EnableArticaSMTPStatistics");
 $GLOBALS["ActAsASyslogSMTPClient"]=$sock->GET_INFO("ActAsASyslogSMTPClient");
 $GLOBALS["EnableStopPostfix"]=$sock->GET_INFO("EnableStopPostfix");
+$GLOBALS["EnableAmavisDaemon"]=$sock->GET_INFO("EnableAmavisDaemon");
 if(!is_numeric($GLOBALS["EnableStopPostfix"])){$GLOBALS["EnableStopPostfix"]=0;}
 if(!is_numeric($GLOBALS["EnableArticaSMTPStatistics"])){$GLOBALS["EnableArticaSMTPStatistics"]=1;}
 if(!is_numeric($GLOBALS["ActAsASyslogSMTPClient"])){$GLOBALS["ActAsASyslogSMTPClient"]=0;}
+if(!is_numeric($GLOBALS["EnableAmavisDaemon"])){$GLOBALS["EnableAmavisDaemon"]=0;}
 if(!is_numeric($GLOBALS["DisableMailBoxesHack"])){$GLOBALS["DisableMailBoxesHack"]=0;}
 if($GLOBALS["PopHackEnabled"]==null){$GLOBALS["PopHackEnabled"]=1;}
 if($GLOBALS["PopHackCount"]==null){$GLOBALS["PopHackCount"]=10;}
@@ -82,6 +92,7 @@ $GLOBALS["SMTP_HACK_CONFIG_RATE"]["SMTPHACK_TOO_MANY_ERRORS"]=10;
 smtp_hack_reconfigure();
 $GLOBALS["CLASS_UNIX"]=$unix;
 $GLOBALS["postfix_bin_path"]=$unix->find_program("postfix");
+$GLOBALS["postconf_bin_path"]=$unix->find_program("postconf");
 $GLOBALS["CHOWN"]=$unix->find_program("chown");
 $GLOBALS["CHMOD"]=$unix->find_program("chmod");
 $GLOBALS["fuser"]=$unix->find_program("fuser");
@@ -91,7 +102,7 @@ $GLOBALS["NETSTAT_PATH"]=$unix->find_program("netstat");
 $GLOBALS["TOUCH_PATH"]=$unix->find_program("touch");
 $GLOBALS["POSTMAP_PATH"]=$unix->find_program("postmap");
 $GLOBALS["maillog_tools"]=new maillog_tools();
-@mkdir("/var/log/artica-postfix/smtp-connections",0755,true);
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/smtp-connections",0755,true);
 @mkdir("/etc/artica-postfix/cron.1",0755,true);
 @mkdir("/etc/artica-postfix/cron.2",0755,true);
 $users=null;
@@ -117,7 +128,7 @@ if(is_file("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX")){return;}
 $buffer=trim($buffer);
 if($buffer==null){return null;}
 
-if(is_file("/var/log/artica-postfix/smtp-hack-reconfigure")){smtp_hack_reconfigure();}
+if(is_file("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack-reconfigure")){smtp_hack_reconfigure();}
 if(strpos($buffer,"]: fatal: Usage:postmulti")>0){return;} 
 if(strpos($buffer,"Do you need to run 'sa-update'?")>0){amavis_sa_update($buffer);return;}
 if(strpos($buffer,"Passed CLEAN {AcceptedOpenRelay}")>0){return;} 
@@ -185,9 +196,10 @@ if(strpos($buffer," not authenticated")>0){return;}
 
 // ************************ ZARAFA DUTSBIN
 if(strpos($buffer,"]: Still waiting for 1 threads to exit")>0){return;}
-if(preg_match("#zarafa-dagent\[.*?Delivered message to#")){return;}
+if(preg_match("#zarafa-dagent\[.*?Delivered message to#",$buffer)){return;}
 if(strpos($buffer,": Disconnecting client.")>0){return;}
 if(strpos($buffer,"thread exiting")>0){return;}
+if(strpos($buffer,"Started to create store")>0){return;}
 
 //if(strpos($buffer,") p00")>0){return;}  
 //if(strpos($buffer,") TIMING [total")>0){return;} 
@@ -376,7 +388,6 @@ if(strpos($buffer,"]: SpamControl: init_child on SpamAssassin done")>0){return;}
 if(preg_match("#kavmilter\[.+?\[tid.+?New message from:#",$buffer,$re)){return null;}
 if(preg_match("#assp\[.+?LDAP Results#",$buffer,$re)){return null;}
 if(preg_match("#smtpd\[.+?\]: disconnect from#",$buffer,$re)){return null;}
-if(preg_match("#smtpd\[.+?\]: connect from#",$buffer,$re)){return null;}
 if(preg_match("#smtpd\[.+?\]: timeout after END-OF-MESSAGE#",$buffer,$re)){return null;}
 if(preg_match("#smtpd\[.+?\]:.+?enabling PIX workarounds#",$buffer,$re)){return null;}
 if(preg_match("#milter-greylist:.+?skipping greylist#",$buffer,$re)){return null;}
@@ -443,14 +454,76 @@ if(preg_match("#qmgr\[.+?: removed#",$buffer)){return null;}
 if(preg_match("#cyrus\/lmtp\[.+?Delivered#",$buffer)){return null;}
 if(preg_match("#ESMTP::.+?\/var\/amavis\/tmp\/amavis#",$buffer)){return null;}
 if(preg_match("#zarafa-dagent.+?Client disconnected#",$buffer)){return null;}
-if(strpos($buffer, "MGREYSTATS")>0){$md5=md5($buffer);@file_put_contents("/var/log/artica-postfix/MGREYSTATS/$md5", $buffer);return;}
+if(preg_match("#zarafa-dagent.+?Failed to resolve recipient#",$buffer)){return null;}
+
+if(strpos($buffer, "MGREYSTATS")>0){$md5=md5($buffer);@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/MGREYSTATS/$md5", $buffer);return;}
 
 
+
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#warning: SASL authentication problem: unable to open Berkeley db \/etc\/sasldb2: Permission denied#", $buffer,$re)){
+	$file="/etc/artica-postfix/pids/SASL.authentication.problem.".__LINE__.".time";
+	$timefile=file_time_min($file);
+	if($timefile>3){
+		@file_put_contents("/etc/artica-postfix/settings/Daemons/smtpd_sasl_path", "smtpd");
+		shell_exec("{$GLOBALS["postconf_bin_path"]} -e \"smtpd_sasl_path=smtpd\"");
+		shell_exec("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/postfix reload >/dev/null 2>&1 &");
+		return;
+	}
+}
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#opendkim\[.*?can't load key from\s+(.+?):\s+Permission denied#", $buffer,$re)){
+	$dir=dirname($re[1]);
+	shell_exec("{$GLOBALS["CHOWN"]} -R postfix:postfix $dir >/dev/null 2>&1");
+	shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.opendkim.php --perms >/dev/null 2>&1 &");
+	return;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#fatal: scan_dir_push: open directory .*?: Permission denied#", $buffer,$re)){
+	shell_exec("{$GLOBALS["POSTFIX_BIN"]} set-permissions");
+	shell_exec("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/postfix restart >/dev/null 2>&1 &");
+	return;
+}
+// ---------------------------------------------------------------------------------------------------------------
+
+if(preg_match("#warning: SASL authentication problem: unable to open Berkeley db\s+(.+?):\s+Permission denied#", $buffer,$re)){
+	$GLOBALS["CLASS_UNIX"]->chown_func("postfix","postfix", "{$re[1]}");
+	return;
+}
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#hash.*? open database\s+(.*?)\.db: No such file or directory#", $buffer,$re)){
+	if(!is_file($GLOBALS["postconf_bin_path"])){return;}
+	events("Missing hash database {$re[1]} -> build it");
+	@file_put_contents($re[1], "\n");
+	shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["postconf_bin_path"]} hash:{$re[1]} >/dev/null 2>&1 &");
+	return;
+}
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#cyrus.*?DBERROR: opening (.*?)\.seen: cyrusdb error#", $buffer,$re)){
+	events("cyrus, corrupted seen file {$re[1]}.seen");
+	@unlink("{$re[1]}.seen");
+	return;
+}
+// ---------------------------------------------------------------------------------------------------------------
 if(preg_match("#connect to.*?\[(.*?)lmtp\]:\s+Permission denied#", $buffer)){
 	events("{$re[1]}/lmtp, permission denied, apply postfix:postfix");
 	$GLOBALS["CLASS_UNIX"]->chown_func("postfix","postfix", "{$re[1]}/lmtp");
 	return;
 }
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#warning: connect \#[0-9]+\s+to subsystem private\/cyrus: No such file or directory#", $buffer)){
+	events("Cyrus unconfigured, reconfigure it...");
+	$file="/etc/artica-postfix/pids/cyrus-subsystem.".__LINE__.".time";
+	$timefile=file_time_min($file);
+	if($timefile>3){shell_exec_maillog("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix.maincf.php --imap-sockets >/dev/null 2>&1 &");}
+		@unlink($file);
+		@file_put_contents($file, time());
+	
+	return;
+}
+// ---------------------------------------------------------------------------------------------------------------
+
 
 if(preg_match("#postfix-script\[.+?: the Postfix mail system is not running#", $buffer)){
 	if($GLOBALS["EnableStopPostfix"]==0){
@@ -463,9 +536,6 @@ if(preg_match("#postfix-script\[.+?: the Postfix mail system is not running#", $
 		} 
 		return;
 }
-
-
-
 // ---------------------------------------------------------------------------------------------------------------
 if(preg_match("#master.*?fatal: bind (.+?)\s+port\s+([0-9]+):\s+Address already in use#", $buffer,$re)){
 	
@@ -604,19 +674,21 @@ if(preg_match("#(.+?)\/smtpd\[.+?fatal:\s+config variable inet_interfaces#", $bu
 		return;
 	}
 	
-	
-
-
-	if(preg_match("#zarafa-gateway.+?Unable to negotiate SSL connection#", $buffer,$re)){
-		$file="/etc/artica-postfix/croned.1/zarafa-gateway.Unable.to.negotiate.SSL.connection";
+	if(preg_match("#problem talking to server\s+127\.0\.0\.1:10040: Connection refused#",$buffer,$re)){
+		events("Postfix: Postfwd2 issue... -> Connection refused");
+		$file="/etc/artica-postfix/croned.1/postfix.postfwd2.Connection.refused";
 		$timefile=file_time_min($file);
-		if($timefile>10){
-				email_events("Zarafa IMAP/POP3 SSL issue",
-				"zarafa-gateway claim \n$buffer\nThere is an SSL issue\nplease Check Artica Technology support service.","mailbox");
-				@file_put_contents($file,"#");
-			}else{events("Zarafa IMAP/POP3 Unable to negotiate SSL connection {$timefile}Mn/5Mn");}
-		return;			
-	}
+		if($timefile>5){
+			email_events("Postfix: postfwd2 plugin is not available",
+			"Postfix claim \n$buffer\nArtica will try to start postfwd2.","postfix");
+			shell_exec_maillog(trim("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfwd2.php --start >/dev/null 2>&1"));
+			@file_put_contents($file,"#");
+		}else{events("Postfix: Postfwd2 issue... -> Connection refused: {$timefile}Mn/5Mn");}
+		return;
+	}	
+
+
+
 	
 	
 	if(preg_match("#postfix-(.+?)\/smtpd\[[0-9]+\]:\s+warning:\s+connect to Milter service unix:(.+?):\s+Connection refused#", $buffer,$re)){
@@ -790,19 +862,7 @@ if(preg_match("#kavmilter\[.+?Can't load keys: No active key. Only skip actions 
 
 
 
-if(preg_match("#problem talking to server\s+127\.0\.0\.1:10040: Connection refused#",$buffer,$re)){
-	events("Postfix: Postfwd2 issue... -> Connection refused");
-	
-	$file="/etc/artica-postfix/croned.1/postfix.postfwd2.Connection.refused";
-	$timefile=file_time_min($file);
-	if($timefile>5){
-		email_events("Postfix: postfwd2 plugin is not available",
-		"Postfix claim \n$buffer\nArtica will try to start postfwd2.","postfix");
-		shell_exec_maillog("/etc/init.d/artica-postfix start postfwd2 &");
-		@file_put_contents($file,"#");
-	}else{events("Postfix: Postfwd2 issue... -> Connection refused: {$timefile}Mn/5Mn");}
-	return;	
-}
+
 
 
 if(preg_match("#warning:.+?then you may have to chmod a\+r\s+(.+?)$#",$buffer,$re)){
@@ -916,8 +976,13 @@ if(preg_match("#nss_wins\[.+?warning: (.+?):\s+address not listed for hostname\s
 	return;
 }
 
-if(preg_match("#postscreen\[.+?CONNECT from \[(.+?)\]#",$buffer,$re)){
+if(preg_match("#postscreen\[.+?CONNECT from \[(.+?)\]#i",$buffer,$re)){
 	Postfix_Addconnection(null,$re[1]);
+	return;
+}
+
+if(preg_match("#smtpd\[.*?connect from\s+(.*?)\[(.+?)\]#",$buffer,$re)){
+	Postfix_Addconnection($re[1],$re[2]);
 	return;
 }
 
@@ -1168,7 +1233,7 @@ if(preg_match("#zarafa-dagent\[.+?Failed to resolve recipient (.+?)$#",$buffer,$
 	$file="/etc/artica-postfix/croned.1/zarafa.{$re[1]}.error";
 	if(file_time_min($file)>10){
 		$zarafa_admin=$GLOBALS["CLASS_UNIX"]->find_program("zarafa-admin");
-		exec("$zarafaadmin -l 2>&1",$results);
+		exec("$zarafa_admin -l 2>&1",$results);
 		email_events("Zarafa: {$re[1]} no such user","Zarafa failed to find {{$re[1]}}\n$buffer\nHere it is the results of already registered users:\n".@implode("\n",$results),"mailbox");
 		@unlink($file);
 		file_put_contents($file,"#");
@@ -1264,6 +1329,13 @@ if(preg_match("#smtpd\[.+?NOQUEUE: reject:\s+RCPT from\s+(.+?)\[(.+?)\]:.+?<(.+?
 		}
 		
 		return;
+}
+
+if(preg_match('#ClamAV-clamd.*?FAILED.*?output="(.*?):.*?Permission denied#',$buffer,$re)){
+	$filename=$re[1];
+	$dirname=dirname($filename);
+	@chmod($dirname, 0777);
+	return;
 }
 
 if(preg_match("#\[.+?NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Mail appeared to be SPAM or forged.+?from=<(.+?)>\s+to=<(.+?)>#",$buffer,$re)){
@@ -1487,8 +1559,9 @@ if(preg_match('#warning.+?\[([0-9\.]+)\]:\s+SASL LOGIN authentication failed: au
 	$GLOBALS["maillog_tools"]->Postfix_Addconnection_error($re[2],$re[1],"Login failed");
 	if($GLOBALS["SMTP_HACK_CONFIG_RATE"]["SASL_LOGIN"]>0){
 		$GLOBALS["SMTP_HACK"][$re[1]]["SASL_LOGIN"]=$GLOBALS["SMTP_HACK"][$re[1]]["SASL_LOGIN"]+1;
-		events("Postfix Hack:bad SASL login {$re[1]}:{$GLOBALS["SMTP_HACK"][$re[1]]["SASL_LOGIN"]} retries");
+	  events("Postfix Hack:bad SASL login {$re[1]}:{$GLOBALS["SMTP_HACK"][$re[1]]["SASL_LOGIN"]} retries/{$GLOBALS["SMTP_HACK_CONFIG_RATE"]["SASL_LOGIN"]} max attempts");
 		if($GLOBALS["SMTP_HACK"][$re[1]]["SASL_LOGIN"]>=$GLOBALS["SMTP_HACK_CONFIG_RATE"]["SASL_LOGIN"]){
+			events("Postfix Hack:smtp_hack_perform -> {$GLOBALS["SMTP_HACK"][$re[1]]} SASL_LOGIN");
 			smtp_hack_perform($re[1],$GLOBALS["SMTP_HACK"][$re[1]],"SASL_LOGIN");
 			unset($GLOBALS["SMTP_HACK"][$re[1]]);	
 		}
@@ -2175,7 +2248,7 @@ if(preg_match('#badlogin: \[(.+?)\] plaintext\s+(.+?)\s+SASL\(-1\): generic fail
 	if(file_time_min($file)>10){
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
 			email_events("Cyrus auth error","Artica will restart messaging service\n\"$buffer\"","mailbox");
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart imap');
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/cyrus-imapd restart');
 		}
 		@unlink($file);
 	}
@@ -2186,7 +2259,7 @@ if(preg_match('#cyrus\/lmtpunix.+?DBERROR:\s+opening.+?\.db:\s+Cannot allocate m
 	if(file_time_min($file)>10){
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
 			email_events("Cyrus DBERROR error","Artica will restart messaging service\n\"$buffer\"","mailbox");
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart imap');
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/cyrus-imapd restart');
 		}
 		@unlink($file);
 	}
@@ -2282,6 +2355,13 @@ if(preg_match("#cyrus.+?:\s+DBERROR:\s+opening.+?mailboxes.db:\s+cyrusdb error#"
 		events("DBERROR detected, but take action after 10mn");
 	}
 	return null;	
+}
+if(preg_match("#IMAP Login from\s+(.*?)\s+for user\s+(.+)#",$buffer,$re)){
+	$service="imap";
+	$server=trim($re[2]);
+	$server_ip=null;
+	$user=trim($re[4]);
+	cyrus_imap_conx($service,$server,$server_ip,$user);
 }
 
 
@@ -2800,7 +2880,7 @@ events_not_filtered("Not Filtered:\"$buffer\"");
 
 function events($text){
 		$filename=basename(__FILE__);
-		$logFile="/var/log/artica-postfix/postfix-logger.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.debug";
 		if(!isset($GLOBALS["CLASS_UNIX"])){
 			include_once(dirname(__FILE__)."/framework/class.unix.inc");
 			$GLOBALS["CLASS_UNIX"]=new unix();
@@ -2811,7 +2891,7 @@ function events($text){
 function event_Content_scanner_malfunction($postfix_id,$from,$to){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	$ini->set("TIME","mailfrom","$from");
 	$ini->set("TIME","mailto","$to");
@@ -2824,7 +2904,7 @@ function event_Content_scanner_malfunction($postfix_id,$from,$to){
 function eventsRTM($text){
 		$pid=getmypid();
 		$date=date('H:i:s');
-		$logFile="/var/log/artica-postfix/postfix-logger.sql.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.sql.debug";
 		$size=filesize($logFile);
 		if($size>5000000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -2836,7 +2916,7 @@ function eventsRTM($text){
 function event_DISCARD($postfix_id,$from,$to,$buffer=null,$ipaddr=null){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	if($ipaddr==null){
 		if(preg_match("#from.+?\[([0-9\.]+)?\]#",$buffer,$re)){$ini->set("TIME","smtp_sender",$re[1]);$ipaddr=$re[1];}
@@ -2859,7 +2939,7 @@ function event_DISCARD($postfix_id,$from,$to,$buffer=null,$ipaddr=null){
 function event_newmail($postfix_id,$date){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	$ini->set("TIME","time_connect",$date);
 	$ini->set("TIME","delivery_success","no");
@@ -2868,7 +2948,7 @@ function event_newmail($postfix_id,$date){
 function event_message_from($postfix_id,$from,$size){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}	
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	$ini->set("TIME","mailfrom",$from);
 	$ini->set("TIME","mailsize",$size);
@@ -2879,7 +2959,7 @@ function event_message_from($postfix_id,$from,$size){
 function event_message_milter_reject($postfix_id,$reject,$from,$to=null,$buffer=null,$sender=null){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	if($sender==null){
 		if(preg_match("#from.+?\[([0-9\.]+)?\]#",$buffer,$re)){$ini->set("TIME","smtp_sender",$re[1]);}	
@@ -2915,7 +2995,7 @@ function event_message_reject_hostname($reject,$from,$to=null,$server){
 	}
 	
 	
-	$file="/var/log/artica-postfix/RTM/".md5(date("Y-m-d H:i:s").$server.$from).".msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/".md5(date("Y-m-d H:i:s").$server.$from).".msg";
 	events("$reject: $server from=<$from>< to=<$to> in line ".__LINE__." event: <".basename($file).">");
 	
 	$ini=new Bs_IniHandler($file);
@@ -2943,7 +3023,7 @@ function event_message_reject_hostname($reject,$from,$to=null,$server){
 function event_messageid_rejected($msg_id_postfix,$error,$server=null,$to=null){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$msg_id_postfix.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$msg_id_postfix.msg";
 	$ini=new Bs_IniHandler($file);
 	if($server<>null){$ini->set("TIME","smtp_sender",$server);}
 	if($to<>null){$ini->set("TIME","mailto",$to);}
@@ -2964,7 +3044,7 @@ function event_messageid_rejected($msg_id_postfix,$error,$server=null,$to=null){
 function event_message_rejected($reject,$msg_id_postfix,$to=null,$buffer){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$msg_id_postfix.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$msg_id_postfix.msg";
 	$ini=new Bs_IniHandler($file);
 	
 	if(preg_match("#invalid sender domain#",$buffer)){
@@ -2994,7 +3074,7 @@ function event_message_rejected($reject,$msg_id_postfix,$to=null,$buffer){
 function event_message_id($postfix_id,$messageid){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	$ini->set("TIME","message-id","$messageid");
 	$ini->set("TIME","time_connect",date("Y-m-d H:i:s"));
@@ -3004,7 +3084,7 @@ function event_message_id($postfix_id,$messageid){
 function event_greylisted($server,$from){
 	if($GLOBALS["ActAsASyslogSMTPClient"]==1){return;}
 	if($GLOBALS["EnableArticaSMTPStatistics"]==0){return;}
-	$file="/var/log/artica-postfix/RTM/".md5(date("Y-m-d H:i:s").$server.$from).".msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/".md5(date("Y-m-d H:i:s").$server.$from).".msg";
 	$ini=new Bs_IniHandler($file);
 	
 	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.#",$server)){
@@ -3037,10 +3117,34 @@ function event_finish($postfix_id,$to,$status,$bounce_error,$from=null,$buffer=n
 		$bounce_error="Sended";
 	}
 	
+	if(preg_match("#550 No Such User Here#",$bounce_error)){
+		$status="rejected";
+		$delivery_success="no";
+		$bounce_error="Mailbox Unknown";
+	}
+	
+	if(preg_match("#No such user#",$bounce_error)){
+		$status="rejected";
+		$delivery_success="no";
+		$bounce_error="Mailbox Unknown";
+	}
+	
+	if(preg_match("#550 5\.1\.0 error: R4\.1#",$bounce_error)){
+		$status="rejected";
+		$delivery_success="no";
+		$bounce_error="Mailbox Unknown";
+	}
+	
 	if(preg_match("#Sender address rejected: need fully-qualified address#",$bounce_error)){
 		$status="rejected";
 		$delivery_success="no";
 		$bounce_error="need fully-qualified address";
+	}
+	
+	if(preg_match("#550.*?The email account that you tried to reach does not exist#",$bounce_error)){
+		$status="rejected";
+		$delivery_success="no";
+		$bounce_error="Mailbox Unknown";
 	}
 	
 	if(preg_match("#no mailbox here#",$bounce_error)){
@@ -3422,7 +3526,7 @@ if($delivery_success=="no"){
 	    	if(preg_match("#550\s+User\s+unknown\s+<(.+?)>.+?in reply to RCPT TO command#",$bounce_error,$ra)){mailbox_unknown($bounce_error,$ra[1]);}
 	    }
     
-	$file="/var/log/artica-postfix/RTM/$postfix_id.msg";
+	$file="{$GLOBALS["ARTICALOGDIR"]}/RTM/$postfix_id.msg";
 	$ini=new Bs_IniHandler($file);
 	if($smtp_sender==null){
 		if(preg_match("#from.+?\[([0-9\.]+)?\]#",$buffer,$re)){
@@ -3445,15 +3549,23 @@ if($delivery_success=="no"){
 	
 }
 
-function cyrus_imap_conx($service,$server,$server_ip,$user){
-	$date=date('Y-m-d H:i:s');
-	events("imap connection $user from ($server_ip)");
-	$sql="INSERT INTO mbx_con (`zDate`,`mbx_service`,`client_name`,`client_ip`,`uid`,`imap_server`)
-	VALUES('$date','$service','$server','$server_ip','$user','{$_GET["server"]}')";
-	$md5=md5($sql);
-	@mkdir("/var/log/artica-postfix/IMAP",0750,true);
-	$file="/var/log/artica-postfix/IMAP/$md5.sql";
-	@file_put_contents($file,$sql);
+function cyrus_imap_conx($service,$hostname,$ip,$user){
+	$time=time();
+	
+	events("$service-connection: $hostname - > $ip");
+	$fam=new familysite();
+	if($hostname==null){$hostname=$fam->GetComputerName($ip);}
+	$curdate=date("Ymdh");
+	$tablename="{$curdate}_hcnx";
+	$zDate=date("Y-m-d H:i:s");
+	$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();
+	$domain=$fam->GetFamilySites($hostname);
+	$zmd5=md5("$time$hostname$ip");
+	$tablename="{$curdate}_hmbx";
+
+	$sql="INSERT IGNORE INTO `$tablename` (`zmd5`,`zDate`,`mbx_service`,`hostname`,`ipaddr`,`uid`,`imap_server`,`domain`)
+	VALUES('$zmd5','$zDate','$service','$hostname','$ip','$user','{$GLOBALS["MYHOSTNAME"]}','$domain')";
+	$GLOBALS["CLASS_POSTFIX_SQL"]->QUERY_SQL($sql);
 }
 
 
@@ -3576,7 +3688,7 @@ function cyrus_generic_error($buffer,$subject){
 	events("Cyrus error !! $buffer (cache=$file)");
 	if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){return;}
 	email_events("cyrus-imapd error: $subject","$buffer, Artica will restart cyrus",'mailbox');
-	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart imap");
+	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/cyrus-imapd restart");
 	@unlink($file);
 	file_put_contents($file,"#");
 	
@@ -3587,8 +3699,7 @@ function cyrus_socket_error($buffer,$socket){
 	if(file_time_min($file)<15){return null;}	
 	if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){return;}
 	email_events("cyrus-imapd socket error: $socket","Postfix claim \"$buffer\", Artica will restart cyrus",'mailbox');
-	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
-	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart imap');
+	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/cyrus-imapd restart');
 	@unlink($file);
 	@file_put_contents($file,"#");
 }
@@ -3905,8 +4016,8 @@ function zarafa_rebuild_db($table,$buffer){
 
 function smtp_hack_reconfigure(){
 	
-	if(is_file("/var/log/artica-postfix/smtp-hack-reconfigure")){
-		@unlink("/var/log/artica-postfix/smtp-hack-reconfigure");
+	if(is_file("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack-reconfigure")){
+		@unlink("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack-reconfigure");
 	}
 	
 	$sock=new sockets();
@@ -3924,7 +4035,7 @@ function smtp_hack_reconfigure(){
 	
 
 while (list ($num, $ligne) = each ($GLOBALS["SMTP_HACK_CONFIG_RATE"]) ){
-	$info="Starting......: artica-postfix realtime logs SMTP HACK: $num=$ligne";
+	$info="Starting......: ".date("H:i:s")." artica-postfix realtime logs SMTP HACK: $num=$ligne";
 	events($info);
 	echo $info."\n";
 }
@@ -3935,7 +4046,7 @@ while (list ($num, $ligne) = each ($GLOBALS["SMTP_HACK_CONFIG_RATE"]) ){
 
 function smtp_hack_perform($servername,$array,$matches){
 	if($servername=="127.0.0.1"){return;}
-
+	if($GLOBALS["EnablePostfixAutoBlock"]==0){return;}
 	$NAME_SERVICE_NOT_KNOWN=$array["NAME_SERVICE_NOT_KNOWN"];
 	$SASL_LOGIN=$array["SASL_LOGIN"];
 	$USER_UNKNOWN=$array["USER_UNKNOWN"];
@@ -3971,8 +4082,22 @@ function smtp_hack_perform($servername,$array,$matches){
 	
 	$serialize=serialize($md);
 	$md5=md5($serialize);
-	@mkdir("/var/log/artica-postfix/smtp-hack",0666,true);
-	@file_put_contents("/var/log/artica-postfix/smtp-hack/$md5.hack",$serialize);
+	@mkdir("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack",0666,true);
+	
+	$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["iptables"]} -A INPUT -s $servername -p tcp --destination-port 25 -j DROP -m comment --comment \"ArticaInstantPostfix\" >/dev/null 2>&1";
+	events($cmd);
+	shell_exec($cmd);
+	
+	$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["iptables"]} -A INPUT -s $servername -p tcp --destination-port 465 -j DROP -m comment --comment \"ArticaInstantPostfix\"";
+	events($cmd);
+	shell_exec($cmd);	
+
+	
+	$cmd="{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["iptables"]} -A INPUT -s $servername -p tcp --destination-port 587 -j DROP -m comment --comment \"ArticaInstantPostfix\"";
+	events($cmd);
+	shell_exec($cmd);	
+	
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/smtp-hack/$md5.hack",$serialize);
 	events("SMTP Hack: $servername matches $matches $text");
 	if(!$GLOBALS["SMTP_HACKS_NOTIFIED"][$servername]){
 		$GLOBALS["SMTP_HACKS_NOTIFIED"][$servername]=true;
@@ -3980,7 +4105,7 @@ function smtp_hack_perform($servername,$array,$matches){
 	}
 }
 function events_not_filtered($text){
-		$common="/var/log/artica-postfix/postfix-logger.debug";
+		$common="{$GLOBALS["ARTICALOGDIR"]}/postfix-logger.debug";
 		$size=@filesize($common);
 		$pid=getmypid();
 		$date=date("Y-m-d H:i:s");
@@ -3992,11 +4117,23 @@ function events_not_filtered($text){
 	
 }
 
-function Postfix_Addconnection($hostname,$ip){
+function Postfix_Addconnection($hostname=null,$ip=null){
 	$time=time();
-	$array=array("HOSTNAME"=>$hostname,"IP"=>$ip,"TIME"=>$time);
-	$ser=serialize($array);
-	@file_put_contents("/var/log/artica-postfix/smtp-connections/". md5($ser).".cnx",$ser);
+	
+	events("Addconnection: $hostname - > $ip");
+	$fam=new familysite();
+	if($hostname==null){$hostname=$fam->GetComputerName($ip);}
+	$curdate=date("Ymdh");
+	$tablename="{$curdate}_hcnx";
+	$zDate=date("Y-m-d H:i:s");
+	$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();
+	$domain=$fam->GetFamilySites($hostname);
+	$zmd5=md5("$time$hostname$ip");
+
+	$sql="INSERT IGNORE INTO $tablename (`zmd5`,`zDate`,`hostname`,`domain`,`ipaddr`) VALUES ('$zmd5','$zDate','$hostname','$domain','$ip')";
+	
+	events("Addconnection: QUERY_SQL");
+	$GLOBALS["CLASS_POSTFIX_SQL"]->QUERY_SQL($sql);
 	
 }
 

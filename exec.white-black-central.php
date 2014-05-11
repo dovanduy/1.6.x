@@ -89,11 +89,11 @@ while (list ($to, $array) = each ($blacks)){
 }
 
 
-echo "Starting......: writing whitelist/blacklists for ASSP\n";
+echo "Starting......: ".date("H:i:s")." writing whitelist/blacklists for ASSP\n";
 @mkdir("/usr/share/assp/files");
 @mkdir("/usr/local/etc");
 @file_put_contents("/usr/share/assp/files/whiteorg.txt",implode("\n",$assp));
-echo "Starting......: writing whitelist/blacklists for Amavis\n";
+echo "Starting......: ".date("H:i:s")." writing whitelist/blacklists for Amavis\n";
 $final=implode("\n",$sender_scores_sitewide);
 $final=$final."\n";
 @file_put_contents("/usr/local/etc/sender_scores_sitewide",$final);
@@ -109,7 +109,7 @@ if(is_file('/usr/local/sbin/amavisd')){
 
 
 
-echo "Starting......: writing whitelist/blacklists for spamassassin\n";
+echo "Starting......: ".date("H:i:s")." writing whitelist/blacklists for spamassassin\n";
 @file_put_contents("$spammassDirectory/wbl.cf",implode("\n",$spamassassin));
 }
 

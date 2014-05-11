@@ -56,7 +56,7 @@ function page(){
 		$ZarafaAspellInstalled=1;
 		$ZarafaAspellInstalled_text="({installed})";
 	}		
-	
+	$NGINX_INSTALLED=0;
 	$free=new freeweb($_GET["servername"]);
 	$PARAMS=$free->Params["ZARAFAWEB_PARAMS"];
 	if(!isset($PARAMS["ZarafaWebNTLM"])){$PARAMS["ZarafaWebNTLM"]=$sock->GET_INFO("ZarafaWebNTLM");}
@@ -64,8 +64,10 @@ function page(){
 	if(!isset($PARAMS["ZarafaAspellEnabled"])){$PARAMS["ZarafaAspellEnabled"]=$sock->GET_INFO("ZarafaAspellEnabled");}
 	if(!isset($PARAMS["EnableZarafaRemoteServer"])){$PARAMS["EnableZarafaRemoteServer"]=0;}
 	if(!isset($PARAMS["EnableDebugMode"])){$PARAMS["EnableDebugMode"]=0;}
-	
-	
+	if($users->NGINX_INSTALLED){$NGINX_INSTALLED=1;}
+	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	if($EnablePHPFPM==0){$NGINX_INSTALLED=0;}
 	
 	$EnableDebugMode=$PARAMS["EnableDebugMode"];
 	$ZarafaWebNTLM=$PARAMS["ZarafaWebNTLM"];
@@ -130,9 +132,16 @@ function page(){
 $html="<div style='width:100%' id='$t'></div>
 
 $groupware_text
-
-<table style='width:99%' class=form>
+<div style='width:98%' class=form>
+<table style='width:100%'>
 <tbody>
+
+
+	<tr>
+		<td class=legend style='font-size:14px'>{NginxFrontEnd}:</td>
+		<td>". Field_checkbox("NginxFrontEnd-$t",1,$free->NginxFrontEnd,"NginxFrontEndCK$t()")."</td>
+	</tr>
+
 	<tr>
 		<td class=legend style='font-size:14px'>{EnableZpush}:</td>
 		<td>". Field_checkbox("zPushInside-$t",1,$zPushInside,"zPushInsideCheck$t()")."</td>
@@ -187,11 +196,40 @@ $groupware_text
 </table>
 
 <div style='text-align:right'><hr>". button("{apply}","SaveZarafaWebFree$t()",18)."</div>
-
+</div>
 
 
 
 	<script>
+	
+		function NginxFrontEndCK$t(){
+			var NGINX_INSTALLED=$NGINX_INSTALLED;
+			if(NGINX_INSTALLED==0){
+				document.getElementById('NginxFrontEnd-$t').checked=false;
+				document.getElementById('NginxFrontEnd-$t').disabled=true;
+				return;
+			}
+		
+		if(document.getElementById('NginxFrontEnd-$t').checked){
+			document.getElementById('zPushInside-$t').disabled=true;
+			document.getElementById('AutoDiscoverUri-$t').disabled=true;
+			document.getElementById('EnableZarafaSecondInstance-$t').disabled=true;
+			document.getElementById('post_max_size-$t').disabled=true;
+			document.getElementById('upload_max_filesize-$t').disabled=true;
+			document.getElementById('ZarafaWebNTLM-$t').disabled=true;
+		}else{
+			document.getElementById('zPushInside-$t').disabled=false;
+			document.getElementById('AutoDiscoverUri-$t').disabled=false;
+			document.getElementById('EnableZarafaSecondInstance-$t').disabled=false;
+			document.getElementById('post_max_size-$t').disabled=false;
+			document.getElementById('upload_max_filesize-$t').disabled=false;
+			document.getElementById('ZarafaWebNTLM-$t').disabled=false;		
+		
+		}
+			
+		}
+	
+	
 		var x_SaveZarafaWebFree$t=function (obj) {
 			var results=obj.responseText;
 			if(results.length>3){alert(results);}
@@ -243,7 +281,7 @@ $groupware_text
 			EnableZarafaRemoteServerCheck$t();
 			
 		}
-		
+
 	
 	
 		function SaveZarafaWebFree$t(){
@@ -257,6 +295,10 @@ $groupware_text
 			if(document.getElementById('ZarafaAspellEnabled-$t').checked){XHR.appendData('ZarafaAspellEnabled',1);}else{XHR.appendData('ZarafaAspellEnabled',0);}
 			if(document.getElementById('zPushInside-$t').checked){XHR.appendData('zPushInside',1);}else{XHR.appendData('zPushInside',0);}
 			if(document.getElementById('EnableZarafaSecondInstance-$t').checked){XHR.appendData('EnableZarafaSecondInstance',1);}else{XHR.appendData('EnableZarafaSecondInstance',0);}
+			if(document.getElementById('NginxFrontEnd-$t').checked){XHR.appendData('NginxFrontEnd',1);}else{XHR.appendData('NginxFrontEnd',0);}
+			
+			
+			
 			
 			XHR.appendData('EnableZarafaRemoteServerAddr',document.getElementById('EnableZarafaRemoteServerAddr-$t').value);
 			if(document.getElementById('ZarafaXMPPDomain')){ZarafaXMPPDomain=document.getElementById('ZarafaXMPPDomain-$t').value;}
@@ -268,6 +310,7 @@ $groupware_text
 			XHR.sendAndLoad('$page', 'POST',x_SaveZarafaWebFree$t);
 		}
 		ZarafaDBEnable2InstanceCheck$t();
+		NginxFrontEndCK$t();
 		
 	</script>
 	
@@ -284,7 +327,11 @@ $groupware_text
 function SaveConf(){
 	$free=new freeweb($_POST["servername"]);
 	$free->Params["ZARAFAWEB_PARAMS"]=$_POST;
+	$free->Params["NginxFrontEnd"]=$_POST["NginxFrontEnd"];
 	$free->SaveParams();
+	
+	
+	
 	
 	$q=new mysql();
 	$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='REBUILD_GROUPWARE' AND `servername`='{$_POST["servername"]}'";
@@ -298,7 +345,8 @@ function SaveConf(){
 	}
 	
 	$sock=new sockets();
-	$sock->getFrameWork("drupal.php?perform-orders=yes");			
+	$sock->getFrameWork("drupal.php?perform-orders=yes");	
+			
 	
 	
 }

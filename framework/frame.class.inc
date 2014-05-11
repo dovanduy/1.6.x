@@ -5,9 +5,10 @@ include_once($classunix);
 include_once(dirname(__FILE__)."/class.ini-frame.inc");
 
 function sys_events($text){
+	if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 		$pid=getmypid();
 		$date=date("H:i:s");
-		$logFile="/var/log/artica-postfix/framework.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/framework.debug";
 		$size=filesize($logFile);
 		if($size>100000){unlink($logFile);}
 		$f = @fopen($logFile, 'a');
@@ -141,6 +142,10 @@ function execute_program($strProgramname, $strArgs = '', &$strBuffer, $booErrorR
 }
 
 function sys_hostname_g(){
+	if(is_file("/etc/artica-postfix/settings/Daemons/myhostname")){
+		$results=@file_get_contents("/etc/artica-postfix/settings/Daemons/myhostname");
+		if(strlen($results)>2){return $results;}
+	}
 	execute_program("hostname","-f",$results);
 	return $results;
 }

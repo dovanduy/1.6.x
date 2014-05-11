@@ -125,7 +125,7 @@ function master_edit(){
 	<div style='font-size:16px'>{$ARRR["connexion_name"]}</div>
 	<P>&nbsp;</p>
 	<div id='editclientvpn'>
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 		<tr>
 		<td class=legend>{openvpn_access_interface}:</td>
 		<td>$IPTABLES_ETH</td>

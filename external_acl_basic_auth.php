@@ -125,7 +125,7 @@ function check_activedirectory($params,$username,$password){
 	$bind=ldap_bind($ldap_connection, $username, $password);
 	if(!$bind){
 		@ldap_get_option($ldap_connection, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
-		$error=ldap_err2str($ldap_connection);
+		$error=ldap_err2str(ldap_errno($ldap_connection));
 		WLOG("Failed to login to DC $AD_SERVER `$error ($extended_error)` width $username");
 		return false;
 	}
@@ -155,7 +155,7 @@ function check_openldap($params,$username,$password){
 	$bind=ldap_bind($ldap_connection, $OPENLDAP_DN, $OPENLDAP_PASSWORD);
 	if(!$bind){
 		@ldap_get_option($ldap_connection, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
-		$error=ldap_err2str($ldap_connection);
+		$error=ldap_err2str(ldap_errno($ldap_connection));
 		WLOG("Failed to login to DC $OPENLDAP_SERVER `$error` width $OPENLDAP_DN $error ($extended_error)");
 		return false;
 	}	
@@ -165,7 +165,7 @@ function check_openldap($params,$username,$password){
 	$OPENLDAP_PASSWORD_ATTRIBUTED=strtolower($OPENLDAP_PASSWORD_ATTRIBUTE);
 	$sr =@ldap_search($ldap_connection,$OPENLDAP_SUFFIX,$OPENLDAP_FILTER,$filter);
 	if(!$sr){
-		$error=ldap_err2str($ldap_connection);
+		$error=ldap_err2str(ldap_errno($ldap_connection));
 		@ldap_get_option($ldap_connection, LDAP_OPT_DIAGNOSTIC_MESSAGE, $extended_error);
 		WLOG("Unable to find $OPENLDAP_FILTER in $OPENLDAP_SUFFIX $error ($extended_error)");
 		return false;

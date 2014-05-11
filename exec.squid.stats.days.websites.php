@@ -51,7 +51,7 @@ if($unix->process_exists($oldpid,$myfile)){
 
 $time=$unix->file_time_min($pidTime);
 if(!$GLOBALS["FORCE"]){
-	if($time<240){if($GLOBALS["VERBOSE"]){echo "$pidTime -> {$time}Mn/240mn\n";}die();}
+	if($time<1440){if($GLOBALS["VERBOSE"]){echo "$pidTime -> {$time}Mn/240mn\n";}die();}
 }
 @unlink($pidTime);
 @file_put_contents($pidTime, time());
@@ -92,8 +92,7 @@ while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 }
 
 familysites();
-$php5=$unix->LOCATE_PHP5_BIN();
-shell_exec("$php5 ".dirname(__FILE__)."/exec.squid.stats.not-categorized.php");
+
 
 
 function perform($tablesource,$zday){
@@ -146,7 +145,7 @@ function familysites($nopid=false){
 	
 	if($GLOBALS["VERBOSE"]){echo "TRUNCATE...\n";}
 	
-	$sql="SELECT familysite,SUM(size) as size,SUM(hits) as hits FROM visited_sites_days GROUP BY familysite";
+	$sql="SELECT familysite,SUM(size) as size,SUM(hits) as hits FROM visited_sites_days GROUP BY familysite HAVING hits>2";
 	$prefix="INSERT IGNORE INTO `visited_sites_tot` (familysite,`size` ,`hits`) VALUES ";
 	$results=$q->QUERY_SQL($sql);
 	
@@ -158,7 +157,7 @@ function familysites($nopid=false){
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
 			$f[]="('{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')";
-			if($GLOBALS["VERBOSE"]){echo "('{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')\n";}
+			
 		}
 		
 		if(count($f)>0){

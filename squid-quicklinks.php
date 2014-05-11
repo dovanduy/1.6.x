@@ -764,7 +764,7 @@ function nic_settings(){
 	$GLOBALS["ICON_FAMILY"]="NETWORK";
 	$page=CurrentPageName();
 	$js="Loadjs('system.nic.config.php?js=yes')";
-	$img="64-win-nic.png";
+	$img="net-card-64.png";
 	return Paragraphe($img,"{nic_settings}","{nic_settings_text}","javascript:$js");
 	return LocalParagraphe("nic_settings","nic_settings_text",$js,$img);
 	}

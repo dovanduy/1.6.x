@@ -748,7 +748,7 @@ function parent_options_explain(){
 	
 	if($options_forms[$_GET["edit-proxy-parent-options-explain"]]){
 		$form="
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 		<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:16px'>". base64_decode($_GET["edit-proxy-parent-options-explain"]).":</td>

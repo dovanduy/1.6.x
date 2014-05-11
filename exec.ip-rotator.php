@@ -25,7 +25,7 @@ function build(){
 	if(!$q->ok){echo "$q->mysql_error\n";}
 	$count=mysql_num_rows($results);
 	
-	echo "Starting......: TCP/IP Rotator $count items\n";
+	echo "Starting......: ".date("H:i:s")." TCP/IP Rotator $count items\n";
 	if($count==0){return;}
 	
 	
@@ -40,7 +40,7 @@ function build(){
 		if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 		$results=array();
 		exec($cmdline,$results);
-		while (list ($a, $b) = each ($results) ){echo "Starting......: TCP/IP Rotator: $b\n";}
+		while (list ($a, $b) = each ($results) ){echo "Starting......: ".date("H:i:s")." TCP/IP Rotator: $b\n";}
 		
 	}
 	
@@ -50,7 +50,7 @@ function iptables_delete_all(){
 	$unix=new unix();
 	$itables_save=$unix->find_program("iptables-save");
 	$itables_restore=$unix->find_program("iptables-restore");
-	echo "Starting......: TCP/IP Exporting datas\n";	
+	echo "Starting......: ".date("H:i:s")." TCP/IP Exporting datas\n";	
 	system("$itables_save > /etc/artica-postfix/iptables.conf");
 	$data=file_get_contents("/etc/artica-postfix/iptables.conf");
 	$datas=explode("\n",$data);
@@ -58,13 +58,13 @@ function iptables_delete_all(){
 while (list ($num, $ligne) = each ($datas) ){
 		if($ligne==null){continue;}
 		if(preg_match($pattern,$ligne)){
-			echo "Starting......: TCP/IP Rotator Deleting rule $num\n";
+			echo "Starting......: ".date("H:i:s")." TCP/IP Rotator Deleting rule $num\n";
 			continue;
 		}
 		$conf=$conf . $ligne."\n";
 		}
 
-echo "Starting......: TCP/IP Rotator restoring datas\n";
+echo "Starting......: ".date("H:i:s")." TCP/IP Rotator restoring datas\n";
 file_put_contents("/etc/artica-postfix/iptables.new.conf",$conf);
 system("$itables_restore < /etc/artica-postfix/iptables.new.conf");
 

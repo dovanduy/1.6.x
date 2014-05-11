@@ -113,9 +113,9 @@ function ArticaSettingsrestore(){
 		return null;
 	}
 	shell_exec("/bin/cp -rf {$_GET["PATH_RESTORE"]}/etc-artica-postfix/artica-postfix/* /etc/artica-postfix/");
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force ". md5(date('Y-m-d H:i:s')));
+	$unix->Process1(true);
 	
-	@unlink("/etc/artica-postfix/FROM_ISO");
+	
 	@unlink("/etc/artica-postfix/artica-postfix.pid");
 	@unlink("/etc/artica-postfix/mon.pid");
 	shell_exec("/etc/init.d/artica-postfix restart daemon");
@@ -133,7 +133,7 @@ function RefreshServices(){
 	shell_exec("/etc/init.d/artica-postfix restart daemon");
 	shell_exec("/etc/init.d/artica-postfix restart apache");
 	shell_exec('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig --force');
-	shell_exec('/etc/init.d/artica-postfix restart imap &');	
+	shell_exec('/etc/init.d/cyrus-imapd restart &');	
 	
 	
 }
@@ -165,7 +165,7 @@ function move_default_dir_to_currentdir(){
 	$currentdir=$unix->IMAPD_GET("partition-default");
 	if(!is_dir($currentdir)){return;}
 	system($unix->find_program("mv")." -fv /var/spool/cyrus/mail/* $currentdir/ >$logs 2>&1");
-	system("/etc/init.d/artica-postfix restart imap >>$logs 2>&1");
+	system("/etc/init.d/cyrus-imapd restart >>$logs 2>&1");
 	@chmod("/usr/share/artica-postfix/ressources/logs/cyrus_dir_logs",0755);
 	
 }

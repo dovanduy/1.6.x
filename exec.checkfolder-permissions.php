@@ -1,4 +1,5 @@
 <?php
+$GLOBALS["VERBOSE"]=false;
 $GLOBALS["FORCE"]=false;$GLOBALS["REINSTALL"]=false;
 $GLOBALS["NO_HTTPD_CONF"]=false;
 $GLOBALS["NO_HTTPD_RELOAD"]=false;
@@ -23,13 +24,15 @@ include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 
 $unix=new unix();
 
-if(system_is_overloaded(basename(__FILE__))){die();}
-$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	die();
+if(!$GLOBALS["FORCE"]){
+	$time=$unix->file_time_get("exec.checkfolder-permissions.php");
+	if($time<10){die();}
+	$unix->file_time_set("exec.checkfolder-permissions.php");
+	if(system_is_overloaded(basename(__FILE__))){die();}
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
 }
-
 
 
 $sock=new sockets();
@@ -62,6 +65,8 @@ if(is_dir("/etc/resolvconf")){
 
 }
 if(!is_dir("/var/log/btmp")){@mkdir("/var/log/btmp",0755,true);}
+@chmod("/etc/artica-postfix/settings/Daemons",0755);
+$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
 
 $sock=new sockets();
   $f[]='ressources';
@@ -78,6 +83,7 @@ $sock=new sockets();
   $f[]='ressources/profiles/icons';
   $f[]='ressources/sessions/SessionData';
   $f[]='computers/ressources/sessions/SessionData';
+  $f[]='ressources/logs/web';
   $f[]='computers/ressources/logs';
   $f[]='ressources/conf/upload';
   $f[]='computers/ressources/profiles';
@@ -110,6 +116,7 @@ $sock=new sockets();
   	@chown("$artica_path/$dir", $username);
   	@chgrp("$artica_path/$dir", $groupname);
   	@chmod("$artica_path/$dir",0755);
+  	$unix->chown_func($username, $groupname,"$artica_path/$dir/*");
   	
   }
   

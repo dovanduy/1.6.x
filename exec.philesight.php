@@ -18,6 +18,15 @@ if($argv[1]=='--run'){echo run()."\n";die();}
 
 
 function check(){
+	
+	$unix=new unix();
+	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+	
+	if($MEMORY<624288){
+		writelogs(basename(__FILE__).":Too low memory, die();",basename(__FILE__),__FILE__,__LINE__);
+		die();
+	}	
+	
 $EnablePhileSight=GET_INFO_DAEMON("EnablePhileSight");
 if($EnablePhileSight==null){$EnablePhileSight=0;}
 

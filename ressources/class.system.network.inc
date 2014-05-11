@@ -37,13 +37,25 @@ class networking{
   public function Local_interfaces($filter=false) {
     $results = array();
     $bufr=null;
-    if ($this->rfts('/proc/net/dev', $bufr)) {
-      $bufe = explode("\n", $bufr);
-      foreach($bufe as $buf) {
-        if (preg_match('/:/', $buf)) {
-          list($dev_name, $stats_list) = preg_split('/:/', $buf, 2);
-          $stats = preg_split('/\s+/', trim($stats_list));
-          if($filter){
+   
+    if(!$GLOBALS["AS_ROOT"]){
+    	$sock=new sockets();
+    	$INTERFACES=unserialize(base64_decode($sock->getFrameWork("cmd.php?TCP_NICS_STATUS_ARRAY=yes")));
+    	
+    }else{
+    	$unix=new unix();
+    	$INTERFACES=$unix->NETWORK_ALL_INTERFACES();
+    }
+    
+    while (list ($dev_name, $ligneAR) = each ($INTERFACES) ){
+    	
+    	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>Receive interface name:$dev_name / {$ligneAR["IPADDR"]}</span><br>\n";}
+    	if($dev_name=="lo"){continue;}
+    	
+    	
+    	$INTERFACEZ[$dev_name]=true;
+  		
+         if($filter){
           	if(preg_match("#^veth#",trim($dev_name))){continue;}
           	if(preg_match("#^sit#",trim($dev_name))){continue;}
           	if(preg_match("#^lxc#",trim($dev_name))){continue;}
@@ -53,9 +65,9 @@ class networking{
           	
           }
           $results[trim($dev_name)] = trim($dev_name);
-        }
+        
       }
-    }
+    
     
     return $results;
   }	
@@ -189,8 +201,14 @@ class networking{
 	
 	function ifconfig($nic){
 		include_once(dirname(__FILE__) . '/class.sockets.inc');
-		if(isset($GLOBALS["CLASS_SOCKETS"])){$sock=$GLOBALS["CLASS_SOCKETS"];}else{$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}
+		if(isset($GLOBALS["CLASS_SOCKETS"])){
+			$sock=$GLOBALS["CLASS_SOCKETS"];}
+		else{
+			$GLOBALS["CLASS_SOCKETS"]=new sockets();
+			$sock=$GLOBALS["CLASS_SOCKETS"];
+		}
 		if(!$GLOBALS["AS_ROOT"]){
+			if($GLOBALS["VERBOSE"]){echo "<strong style='color:blue'>cmd.php?nicstatus=$nic</strong><br>\n";}
 			$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nic");
 		}else{
 			$nicinfos=exec("/usr/share/artica-postfix/bin/artica-install --nicstatus $nic 2>&1");

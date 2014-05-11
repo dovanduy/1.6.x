@@ -17,7 +17,7 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 if(system_is_overloaded(basename(__FILE__))){system_admin_events("Overloaded system, aborting the task...", __FUNCTION__, __FILE__, __LINE__, "network");die();}
 if($argv[1]=='--tomysql'){scanarp_mysql();exit;}
 
-	
+if(system_is_overloaded()){die(0);}	
 	
 	
 scanarp();
@@ -31,6 +31,9 @@ if(!$GLOBALS["CLASS_USERS"]->ARPD_INSTALLED){if($GLOBALS["VERBOSE"]){echo __FUNC
 $EnableArpDaemon=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableArpDaemon");	
 if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
 if($EnableArpDaemon==0){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." EnableArpDaemon = $EnableArpDaemon\n";}return;}
+
+
+
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $unix=new unix();
 $me=basename(__FILE__);
@@ -50,6 +53,13 @@ $GLOBALS["arpd"]=$unix->find_program("arpd");
 $GLOBALS["arp"]=$unix->find_program("arp");
 $GLOBALS["ARP_DB"]="/var/lib/arpd/arpd.db";
 $GLOBALS["CACHE_DB"]="/etc/artica-postfix/arpd.cache";
+
+$GLOBALS["EnableMacAddressFilter"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableMacAddressFilter"));
+if(!is_numeric($GLOBALS["EnableMacAddressFilter"])){$GLOBALS["EnableMacAddressFilter"]=1;}
+$squidbin=$unix->LOCATE_SQUID_BIN();
+if(is_file($squidbin)){
+	if($GLOBALS["EnableMacAddressFilter"]==0){return;}
+}
 
 
 $ArpdArray=unserialize(base64_decode(@file_get_contents($GLOBALS["CACHE_DB"])));
@@ -129,6 +139,9 @@ while (list ($num, $ligne) = each ($results) ){
 }
 
 }
+//========================================================================================================================================================
+function syslog_status($text){$file="arpscan";if(!function_exists('syslog')){return null;}openlog($file, LOG_PID | LOG_PERROR, LOG_LOCAL0);syslog(LOG_INFO, $text);closelog();}
+//========================================================================================================================================================
 
 function scanarp_mysql(){
 	$unix=new unix();
@@ -144,6 +157,18 @@ function scanarp_mysql(){
 		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $oldpid aborting the process\n";}
 		system_admin_events("--> Already executed.. $oldpid aborting the process", __FUNCTION__, __FILE__, __LINE__, "network");
 		die();
+	}
+	
+	$sock=new sockets();
+	$EnableArpDaemon=$sock->GET_INFO("EnableArpDaemon");
+	$ArpdKernelLevel=$sock->GET_INFO("ArpdKernelLevel");
+	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
+	
+	$articastatus_pidfile="/etc/artica-postfix/exec.status.php.pid";
+	$oldpid=$unix->get_pid_from_file($articastatus_pidfile);
+	if(!$unix->process_exists($oldpid)){
+		syslog_status("artica status doesn't run, start it, old pid was: $oldpid");
+		shell_exec("/etc/init.d/artica-status start");
 	}
 	
 	$list=$unix->PIDOF_PATTERN_ALL($me);

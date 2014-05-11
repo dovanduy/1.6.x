@@ -405,11 +405,11 @@ function cron(){
 		$f[]="{$ligne["CronSchedule"]}  root $php5 ".__FILE__." --sync {$ligne["ID"]}";
 		$f[]="";
 		@file_put_contents("/etc/cron.d/imapsync-{$ligne["ID"]}",implode("\n",$f));
-		echo "Starting......: Daemon (cron) set IMAP synchronization for task {$ligne["ID"]}\n";
+		echo "Starting......: ".date("H:i:s")." Daemon (cron) set IMAP synchronization for task {$ligne["ID"]}\n";
 		@chmod("/etc/cron.d/imapsync-{$ligne["ID"]}",640);
 		unset($f);
  	}
- 	echo "Starting......: Daemon (cron) set securities permissions on /etc/cron.d\n";
+ 	echo "Starting......: ".date("H:i:s")." Daemon (cron) set securities permissions on /etc/cron.d\n";
  	shell_exec("/bin/chmod 640 /etc/cron.d/* >/dev/null 2>&1");
 	
 }

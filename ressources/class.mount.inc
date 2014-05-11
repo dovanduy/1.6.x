@@ -94,13 +94,51 @@ class mount{
 		}
 		
 		@chdir("/root");
+		$this->events("umount() dismount \"$mountpoint\"".__LINE__);
 		shell_exec("/bin/umount -l \"$mountpoint\" >/dev/null");
 		
 	}
 	
+	private function test_smb_protocols(){
+		include_once("/usr/share/artica-postfix/framework/class.unix.inc");
+		$unix=new unix();
+		if(is_file($unix->find_program("mount.cifs"))){
+			$this->events("test_smb_protocols() CIFS success: ");
+			return true;
+		}
+		
+		if(is_file($unix->find_program("mount.smbfs"))){
+			$this->events("test_smb_protocols() SMBFS success: ");
+			return true;
+		}		
+		return false;
+	}
+	
 	
 	public function smb_mount($mountpoint,$server,$username,$password,$path){
+		$unix=new unix();
+		$mount=$unix->find_program("mount");
+		$mount_cifs=$unix->find_program("mount.cifs");
+		$mount_smbfs=$unix->find_program("mount.smbfs");
 		
+		if(!$this->test_smb_protocols()){
+			$apt=$unix->find_program("apt-get");
+			if(!is_file($apt)){
+				$this->events("smb_mount() Failed, no protocol found Line::".__LINE__);
+				return false;
+			}
+			$this->events("smb_mount() Installing smbfs Line::".__LINE__);
+			$cmd="DEBIAN_FRONTEND=noninteractive $apt -o Dpkg::Options::=\"--force-confnew\" --force-yes -y install samba-common cifs-utils smbfs >/tmp/install_smbfs 2>&1";
+			shell_exec($cmd);
+			$f=explode("\n",@file_get_contents("/tmp/install_smbfs"));
+			while (list ($index, $line) = each ($f) ){
+				$this->events("smb_mount() $line Line::".__LINE__);
+			}
+			if(!$this->test_smb_protocols()){
+				$this->events("smb_mount() Failed, no protocol found Line::".__LINE__);
+				return false;
+			}
+		}
 		
 		if(preg_match("#(.+?)@(.+)#", $server,$re)){$username=$re[1];$server=$re[2];}
 		$server=str_replace("@", "", $server);
@@ -110,19 +148,45 @@ class mount{
 			return true;
 		}
 		
+
+		
 		if($GLOBALS["VERBOSE"]){
-			$this->events("smb_mount() Username:$username Line::".__LINE__);
-			$this->events("smb_mount() Password:****** Line::".__LINE__);
-			$this->events("smb_mount() server..:$server Line::".__LINE__);
-			$this->events("smb_mount() path....:$path Line::".__LINE__);
+			$this->events("smb_mount() Username...:$username Line::".__LINE__);
+			$this->events("smb_mount() Password...:****** Line::".__LINE__);
+			$this->events("smb_mount() server.....:$server Line::".__LINE__);
+			$this->events("smb_mount() path.......:$path Line::".__LINE__);
+			$this->events("smb_mount() mount......:$mount Line::".__LINE__);
+			$this->events("smb_mount() mount.cifs.:$mount_cifs Line::".__LINE__);
+			$this->events("smb_mount() mount.smbfs:$mount_smbfs Line::".__LINE__);
+		}
+		$password_cmdline=null;
+		if($username==null){
+			$this->events("smb_mount() WARNING, No username defined, are you sure web can access to share in this method ???");
 		}
 		
-		$password=$this->shellEscapeChars($password);
+		if($password<>null){
+			$password=$this->shellEscapeChars($password);
+			$password_cmdline=",password=$password";
+		}
 		
 		if($username<>null){
 			if(trim($password)==null){$this->events("smb_mount() WARNING no password passed to the protocol...assume password null");}
-			$credentials=" -o username=$username,password=$password ";
+			$credentials=" -o username=$username$password_cmdline ";
 		}
+		
+		if($username==null){
+			if($password==null){
+				$credentials=" -o user=,password= ";
+			}
+		}
+		
+		if($username<>null){
+			if($password==null){
+				$credentials=" -o user=$username,password= ";
+			}
+		}		
+		
+		
 		$ip=gethostbyname($server);
 		if($ip==null){
 			$this->events("smb_mount() failed while resolving \"$server\"");	
@@ -130,20 +194,29 @@ class mount{
 		}
 		$pp=new ping($ip);
 		if(!$pp->Isping()){
-			$this->events("smb_mount() Failed to ping $ip, aborting process.");
-			return false;	
+			if(!$pp->Isping()){
+				$this->events("smb_mount() Failed to ping $ip, aborting process.");
+				return false;	
+			}
 		}	
 		$this->events("smb_mount() ping ok");	
 		
-		$cmd="/bin/mount -t smbfs$credentials//$server/$path $mountpoint";
-		
-		if(is_file("/sbin/mount.cifs")){
-			$cmd="/sbin/mount.cifs //$server/$path $mountpoint$credentials";
-			if(function_exists("writelogs")){writelogs("$cmd",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		if(is_file($mount_smbfs)){
+			$cmd="$mount -t smbfs$credentials//$server/$path $mountpoint";
 		}
 		
 		
+		if(is_file($mount_cifs)){
+			$cmd="$mount_cifs //$server/$path $mountpoint$credentials";
+			if(function_exists("writelogs")){writelogs("$cmd",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+		}
+		if($cmd==null){
+			$this->events("smb_mount() unable to find the right filesystem type for NAS storage");
+			return;
+		}
+		
 		$this->events("smb_mount() mounting //$server/$path -> $mountpoint");
+		if($GLOBALS["VERBOSE"]){$this->events("$cmd");}
 		if(!is_dir("$mountpoint")){@mkdir($mountpoint,null,true);}
 		//$this->events("$cmd");
 		exec($cmd,$results);
@@ -276,6 +349,7 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 	}
 	
 private function events($text){
+	if(!isset($_GET["logcomputer"])){$_GET["logcomputer"]=null;}
 	$GLOBALS["MOUNT_EVENTS"][]=$text;
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefile=basename($trace[1]["file"]);$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];}}		
 	if($_GET["logcomputer"]<>null){$f = @fopen($_GET["logcomputer"], 'a');@fwrite($f,$text);@fclose($f);}

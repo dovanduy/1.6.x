@@ -40,7 +40,8 @@ function popup(){
 	if(!is_numeric($FetchMailGLobalDropDelivered)){$FetchMailGLobalDropDelivered=0;}
 	if(!is_numeric($EnableFetchmailScheduler)){$EnableFetchmailScheduler=0;}
 	$EnableFetchmail=$sock->GET_INFO("EnableFetchmail");
-	$EnableFetchmail_popp=Paragraphe_switch_img('{enable_fetchmail}','{enable_fetchmail_text}',"enable_fetchmail$t",$EnableFetchmail);
+	$EnableFetchmail_popp=Paragraphe_switch_img('{enable_fetchmail}',
+			'{enable_fetchmail_text}',"enable_fetchmail$t",$EnableFetchmail,null,650);
 	$yum=new usersMenus();
 	for($i=1;$i<60;$i++){
 		$hash[$i*60]=$i;
@@ -48,84 +49,82 @@ function popup(){
 		
 	}
 	$fetch=new fetchmail();
-	$list=Field_array_Hash($hash,'FetchmailPoolingTime',$fetch->FetchmailPoolingTime,null,null,null,'width:90px;font-size:14px');
+	$list=Field_array_Hash($hash,'FetchmailPoolingTime',$fetch->FetchmailPoolingTime,null,null,null,'font-size:18px');
 	
 $fetchmail_daemon="
 					<div id='fetchdaemondiv'>
 					<center>
-					<table style='width:100%'>
+					<div class=form style='width:95%'>
+					<table style='width:95%;margin-bottom:15px'>
 					<tr>
-						<td valign='top'>
-							<div class=form style='width:95%'>
+							<td valign='top' colspan=3>
+							<div style='width:95%;margin:20px'>
 								$EnableFetchmail_popp
-								<div style='width:100%;text-align:right'>". button("{apply}", "SaveFetchEnable$t()",16)."</div>
+								
 							</div>
+							
 						</td>
-						<td valign='top'>
-					
-					
-					<table style='width:95%;margin-bottom:15px' class=form>
-					<tbody>
+					</tr>
 						<tr>
-							<td align='right' nowrap class=legend nowrap><strong style='font-size:14px' >{use_schedule}: </strong></td>
+						<td colspan=3 align='right'><hr>". button("{apply}", "SaveFetchEnable$t()",24)."</td>
+						</tr>	
+					<tr>
+						<td colspan=3 align='right'><p>&nbsp;</p></td>
+					</tr>												
+										
+						<tr>
+							<td align='right' nowrap class=legend nowrap><span style='font-size:18px' >{use_schedule}: </strong></td>
 							<td>". Field_checkbox("EnableFetchmailScheduler", 1,$EnableFetchmailScheduler,"FetchmailCheck()")."</td>
 							<td width=1%>". help_icon("{EnableFetchmailScheduler_explain}")."</td>
 						</tr>					
 						<tr>
-							<td align='right' nowrap class=legend nowrap><strong style='font-size:14px' >{daemon_interval}: </strong></td>
+							<td align='right' nowrap class=legend nowrap><span style='font-size:18px' >{daemon_interval}: </strong></td>
 							<td align='left' style='font-size:14px'>$list&nbsp;(minutes)</td>
 							<td width=1%>&nbsp;</td>
 						</tr>
 						<tr>
-							<td align='right' class=legend><strong style='font-size:14px' nowrap>{postmaster}</strong></td>
-							<td align='left'>" . Field_text('FetchmailDaemonPostmaster',$fetch->FetchmailDaemonPostmaster,"font-size:14px;padding:3px") . "</td>
+							<td align='right' class=legend><span style='font-size:18px' nowrap>{postmaster}</strong></td>
+							<td align='left'>" . Field_text('FetchmailDaemonPostmaster',$fetch->FetchmailDaemonPostmaster,"font-size:18px;padding:3px;width:220px") . "</td>
 							<td width=1%>&nbsp;</td>
 						</tr>	
 						<tr>
-							<td class=legend><strong style='font-size:14px' >{dropdelivered}:</strong></td>
+							<td class=legend><span style='font-size:18px' >{dropdelivered}:</strong></td>
 							<td>". Field_checkbox("FetchMailGLobalDropDelivered", 1,$FetchMailGLobalDropDelivered)."</td>
 							<td width=1%>". help_icon("{dropdelivered_explain}")."</td>
 						</tr>
 						<tr>
-							<td class=legend><strong style='font-size:14px' >{FetchMailToZarafa}:</strong></td>
+							<td class=legend><span style='font-size:18px' >{FetchMailToZarafa}:</strong></td>
 							<td>". Field_checkbox("FetchMailToZarafa", 1,$FetchMailToZarafa)."</td>
 							<td width=1%>". help_icon("{FetchMailToZarafa_explain}")."</td>
 						</tr>									
 							<tr>
-								<td colspan=2 align='right'><hr>". button("{edit}","SaveFetchMailDaemon()",16)."
-							</td>
+								<td colspan=3 align='right'><hr>". button("{apply}","SaveFetchMailDaemon()",24)."
+							</tr>
 						</tr>
-					</tbody>
-					</table>
-					
-					<table style='width:95%' class=form>
-					<tbody>
+							<tr>
+								<td colspan=3 align='right'><p>&nbsp;</p></td>
+							</tr>										
 						<tr>
-							<td class=legend style='font-size:14px'>{enable_watchdog}:</td>
+							<td class=legend style='font-size:18px'>{enable_watchdog}:</td>
 							<td>". Field_checkbox("$t-watchdog", 1,$MonitConfig["watchdog"],"FetchMailCheckWatchdog{$t}()")."</td>
 							<td>&nbsp;</td>
 						</tr>		
 						<tr>
-							<td class=legend style='font-size:14px'>{notify_when_cpu_exceed}:</td>
-							<td style='font-size:14px'>". Field_text("$t-watchdogCPU", $MonitConfig["watchdogCPU"],"font-size:14px;width:60px")."&nbsp;%</td>
+							<td class=legend style='font-size:18px'>{notify_when_cpu_exceed}:</td>
+							<td style='font-size:14px'>". Field_text("$t-watchdogCPU", $MonitConfig["watchdogCPU"],"font-size:18px;width:110px")."&nbsp;%</td>
 							<td>&nbsp;</td>
 						</tr>	
 						<tr>
-							<td class=legend style='font-size:14px'>{notify_when_memory_exceed}:</td>
-							<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:14px;width:60px")."&nbsp;MB</td>
+							<td class=legend style='font-size:18px'>{notify_when_memory_exceed}:</td>
+							<td style='font-size:14px'>". Field_text("$t-watchdogMEM", $MonitConfig["watchdogMEM"],"font-size:18px;width:110px")."&nbsp;MB</td>
 							<td>&nbsp;</td>
 						</tr>	
 						<tr>
-							<td colspan=3 align='right'><hr>". button("{apply}", "SaveWatchdog{$t}()",16)."</td>
+							<td colspan=3 align='right'><hr>". button("{apply}", "SaveWatchdog{$t}()",24)."</td>
 						</tr>	
 					</tbody>
 					</table>					
-					
-					
-				</td>
-				</tr>
-				</table>
-				</center>
+
 				</div>";
 		
 

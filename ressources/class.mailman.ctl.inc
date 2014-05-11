@@ -69,7 +69,7 @@ class mailmancontrol{
 		while (list ($num, $ligne) = each ($array) ){
 			if(preg_match("#([a-zA-Z0-9-_\.]+)\s+-\s+#",$ligne,$re)){
 				$this->listsInDisk[strtolower($re[1])]=true;
-				if($GLOBALS["VERBOSE"]){if($GLOBALS["AS_ROOT"]){echo "Starting......: Mailman list:`".strtolower($re[1])."`\n";}}
+				if($GLOBALS["VERBOSE"]){if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Mailman list:`".strtolower($re[1])."`\n";}}
 			}
 		}
 		
@@ -78,7 +78,7 @@ class mailmancontrol{
 				if(!is_dir("/var/lib/mailman/archives/private")){@mkdir("/var/lib/mailman/archives/private",0775,true);}
 				$users=new usersMenus();
 				$ldap=new clladp();
-				echo "Starting......: Mailman Creating default list `mailman` `postmaster@$users->hostname` And SuperAdmin password\n"; 
+				echo "Starting......: ".date("H:i:s")." Mailman Creating default list `mailman` `postmaster@$users->hostname` And SuperAdmin password\n"; 
 				$cmd="/usr/lib/mailman/bin/newlist --urlhost=\"$users->hostname\" --emailhost=\"$users->hostname\" --quiet mailman \"postmaster@$users->hostname\" \"$ldap->ldap_password\"";
 				if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 				shell_exec($cmd);
@@ -440,9 +440,9 @@ class mailmancontrol{
 			//$f[]="VIRTUAL_HOSTS = { ".@implode(",", $VIRTUAL_HOSTS)." }";
 			$f[]=@implode("\n", $add_virtualhost);
 			$finalData=@implode("\n", $f)."\n";
-			echo "Starting......: Mailman updating /etc/mailman/mm_cfg.py\n";
+			echo "Starting......: ".date("H:i:s")." Mailman updating /etc/mailman/mm_cfg.py\n";
 			@file_put_contents("/etc/mailman/mm_cfg.py", $finalData);
-			echo "Starting......: Mailman updating /usr/lib/mailman/Mailman/mm_cfg.py\n";
+			echo "Starting......: ".date("H:i:s")." Mailman updating /usr/lib/mailman/Mailman/mm_cfg.py\n";
 			@file_put_contents("/usr/lib/mailman/Mailman/mm_cfg.py", $finalData);
 			
 			$ldap=new clladp();

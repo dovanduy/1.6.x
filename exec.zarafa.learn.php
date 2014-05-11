@@ -59,8 +59,8 @@ function run(){
 			$hash=ldap_get_entries($ldap->ldap_connection,$sr);
 			for($i=0;$i<$hash["count"];$i++){
 				$user=new user($hash[$i]["uid"][0]);
-				$c++;
-				buildPerlScript($hash[$i]["uid"][0],$user->password,$ZarafaGatewayBind,$ZarafaIMAPPort);
+				//buildPerlScript($hash[$i]["uid"][0],$user->password,$ZarafaGatewayBind,$ZarafaIMAPPort);
+				ExecuteSpamlearnScript($hash[$i]["uid"][0],$user->password,$ZarafaGatewayBind,$ZarafaIMAPPort);
 				if(system_is_overloaded(dirname(__FILE__))){
 					system_admin_events("sa-learn has been canceled due to overloaded system", __FUNCTION__, __FILE__, __LINE__, "mailbox");
 					return;
@@ -73,7 +73,27 @@ function run(){
 	system_admin_events("sa-learn on $c mailboxe(s) done took $took", __FUNCTION__, __FILE__, __LINE__, "mailbox");
 }
 
-
+function ExecuteSpamlearnScript($username,$password,$imap,$port){
+	$unix=new unix();
+	$sock=new sockets();
+	$ZarafaLearnDebug=$sock->GET_INFO("ZarafaLearnDebug");
+	if(!is_numeric($ZarafaLearnDebug)){$ZarafaLearnDebug=0;}
+	
+	/*
+	$salearnbin=$unix->find_program("sa-learn");
+	$perl=$unix->find_program("perl");
+	*/
+	
+	$t1=time();
+	//if(strlen($salearnbin)<3){return false;}
+	
+	@chmod("/usr/share/artica-postfix/bin/imap-sa-learn.pl",0755);
+	exec("/usr/share/artica-postfix/bin/imap-sa-learn.pl -username \"$username\" -password \"$password\" 2>&1",$results);
+	
+	$took=$unix->distanceOfTimeInWords($t1,time());
+	system_admin_events("$username mailbox executed ($took)\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "mailbox");
+	return true;
+}	
 
 
 function buildPerlScript($username,$password,$imap,$port){
@@ -81,6 +101,7 @@ function buildPerlScript($username,$password,$imap,$port){
 	$sock=new sockets();
 	$ZarafaLearnDebug=$sock->GET_INFO("ZarafaLearnDebug");
 	if(!is_numeric($ZarafaLearnDebug)){$ZarafaLearnDebug=0;}
+	
 	$salearnbin=$unix->find_program("sa-learn");
 	$perl=$unix->find_program("perl");
 	$t1=time();
@@ -160,10 +181,8 @@ function buildPerlScript($username,$password,$imap,$port){
 	@file_put_contents("/tmp/sa-learn.$t1.pl", @implode("\n", $f));
 	chmod("/tmp/sa-learn.$t1.pl", 0777);
 	exec("/tmp/sa-learn.$t1.pl 2>&1",$results);
-	@unlink("/tmp/sa-learn.$t1.pl");
+	//@unlink("/tmp/sa-learn.$t1.pl");
 	$took=$unix->distanceOfTimeInWords($t1,time());
 	system_admin_events("$username mailbox executed ($took)\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "mailbox");
-	return true;		
-	
-	
+	return true;
 }

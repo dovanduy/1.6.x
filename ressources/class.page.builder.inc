@@ -96,6 +96,7 @@ class pagebuilder{
 	}  	
 	
 	public function jqueryPath(){
+		$jquerys[]="jquery-1.8.3.js";
 		$jquerys[]="jquery-1.8.0.min.js";
 		//$jquerys[]="jquery-1.7.2.min.js";
 		$jquerys[]="jquery-1.6.2.min.js";
@@ -115,6 +116,7 @@ class pagebuilder{
 	
 	
 	public function jQueryCustom(){
+		//$lqueryCustom[]="jquery-ui-1.9.2.custom.min.js";
 		$lqueryCustom[]="jquery-ui-1.8.22.custom.min.js";
 		$lqueryCustom[]="jquery-ui-1.8.16.custom.min.js";
 		$lqueryCustom[]="jquery-ui-1.8.13.custom.min.js";
@@ -176,6 +178,7 @@ class pagebuilder{
 					}
 				}
 			}
+			$jquerys[]="jquery-1.8.3.js";
 			$jquerys[]="jquery-1.8.0.min.js";
 			//$jquerys[]="jquery-1.7.2.min.js";
 			$jquerys[]="jquery-1.6.2.min.js";
@@ -188,6 +191,8 @@ class pagebuilder{
 			while (list ($num, $val) = each ($jquerys) ){
 				if(is_file("/usr/share/artica-postfix/js/$val")){$jqueryok=$val;break;}
 			}
+			
+			//$lqueryCustom[]="jquery-ui-1.9.2.custom.min.js";
 			$lqueryCustom[]="jquery-ui-1.8.22.custom.min.js";
 			$lqueryCustom[]="jquery-ui-1.8.16.custom.min.js";
 			$lqueryCustom[]="jquery-ui-1.8.13.custom.min.js";
@@ -236,7 +241,12 @@ class pagebuilder{
 			$jsTable[]="/js/mobiscroll-2.1.custom.min.js";
 			$jsTable[]="/js/tiny_mce/tinymce.min.js";
 			$jsTable[]="/js/colorpicker.js";
-			$jsTable[]="/js/jquery.input-ip-address-control-1.0.min.js";
+			$jsTable[]="/js/jquery.watermark.min.js";
+			$jsTable[]="/js/jquery.uilock.min.js";
+			$jsTable[]="/js/jquery.blockUI.js";
+			$jsTable[]="/bootstrap/js/bootstrap-tab.js";
+			$jsTable[]="/bootstrap/js/bootstrap-tooltip.js";
+			$jsTable[]="/bootstrap/js/bootstrap-button.js";
 
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){
@@ -274,8 +284,7 @@ class pagebuilder{
 				$html=$html . "\n$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/head.min.js\"></script>";
 				$html=$html . "$backspace".@implode("\n",$f);				
 			}
-			$_SESSION["CACHE_PAGE"][$mem_id]=$html;
-			$_SESSION["CACHE_PAGE"][$mem_id]=$html;
+
 			return "$html\n";		
 	}
 	
@@ -345,7 +354,9 @@ class pagebuilder{
 						$css_array[]="$backspace<link rel=\"stylesheet\" type=\"text/css\" rel=\"styleSheet\"  href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/{$GLOBALS["artica-template"]}/$val\" />";
 					}else{
 						$csserror[]="$backspace<!-- missing ".dirname(__FILE__)."/templates/{$GLOBALS["artica-template"]}/$val -->";
-						
+						if(is_file("ressources/templates/default/$val")){
+							$css_array[]="$backspace<link rel=\"stylesheet\" type=\"text/css\" rel=\"styleSheet\"  href=\"ressources/templates/default/$val\" />";
+						}
 					}
 				}
 				
@@ -375,9 +386,6 @@ class pagebuilder{
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />";
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/mobiscroll-2.1.custom.min.css\" />";
 			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/colorpicker.css\" />";
-			
-			
-			$_SESSION["ARTICA_HEAD_TEMPLATE"]=$html;
 			return $html;
 		}
 		
@@ -464,7 +472,10 @@ class pagebuilder{
 			$conf=$conf ."<div class=\"info message\" id='AcaNotifyMessInfo'></div>\n";	
 			$conf=$conf ."<div class=\"error message\" id='AcaNotifyMessError'></div>\n";	
 			$conf=$conf ."<div class=\"warning message\" id='AcaNotifyMessWarn'></div>\n";	
-			$conf=$conf ."<div class=\"success message\" id='AcaNotifyMessSuccess'></div>\n";					
+			$conf=$conf ."<div class=\"success message\" id='AcaNotifyMessSuccess'></div>\n";
+			$conf=$conf ."<div class=\"success message\" id='AcaNotifyMessSuccess'></div>\n";
+			$conf=$conf ."<div class=\"messageMenuDisplay messageMenu\" id='messageMenuDiv'></div>\n";
+			
 			return $conf;		
 	}
 

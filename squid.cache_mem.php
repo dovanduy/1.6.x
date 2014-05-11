@@ -47,8 +47,7 @@ function caches_mount(){
 	$sock=new sockets();
 	$users=new usersMenus();	
 	$CPU_NUMBER=$sock->getFrameWork("services.php?CPU-NUMBER=yes");
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
+
 	$users=new usersMenus();
 	$meminfo=unserialize(base64_decode($sock->getFrameWork("system.php?meminfo=yes")));
 	$MEMTOTAL=intval(($meminfo["MEMTOTAL"]/1024)/1000);
@@ -69,17 +68,15 @@ function caches_mount(){
 	$CORP_LICENSE=0;
 	if($users->CORP_LICENSE){$CORP_LICENSE=1;}
 	if($CORP_LICENSE==1){
-		if($DisableSquidSNMPMode==1){$CORP_LICENSE=0;}
+		
 	}else{
 		$button=null;
 		$front_error="<br><strong style='color:#E70000'>({license_inactive})</div>";
 		$EnableSquidCacheBoosters=0;
 	}
 	
-	if($DisableSquidSNMPMode==1){
-		$button=null;
-		$front_error="$front_error<br><strong style='color:#E70000'>({error_smp_disabled})</div>";
-	}
+	
+	
 	
 	$tr[]="
 	<tr>

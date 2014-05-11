@@ -529,17 +529,23 @@ function startpage(){
 	if($html<>null){return $html;}
 	$page=CurrentPageName();
 	$users=new usersMenus();
+	
+	if(!$users->OPENVPN_INSTALLED){
+		echo FATAL_ERROR_SHOW_128("{OPENVPN_NOT_INSTALLED}");
+		return;
+	}
+	
 	$array["index"]='{index}';
 	
 	$array["server-settings"]="{OPENVPN_SERVER_SETTINGS}";
 	$array["remote-sites"]="{REMOTE_SITES_VPN}";
 	$array["events-session"]="{sessions}";
 	$array["events"]="{events}";
-	$width="755px";
+	$width=755;
 	
 	if(isset($_GET["newinterface"])){
 		$width="100%";
-		$font="font-size:14px";
+		$font="font-size:16px";
 		$newinterface="&newinterface=yes";
 	}
 	
@@ -558,19 +564,7 @@ function startpage(){
 	
 	
 
-	$html="
-		<div id='main_openvpn_config' style='background-color:white;width:$width'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_openvpn_config').tabs();
-			});
-		</script>
-	
-	";
+	$html=build_artica_tabs($tab, "main_openvpn_config");
 		
 	$tpl=new templates();
 	$html=$tpl->_ENGINE_parse_body($html);
@@ -639,7 +633,7 @@ function index_page(){
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$running=$sock->getFrameWork("openvpn.php?is-client-running={$ligne["ID"]}");
-		if($running=="TRUE"){$img_running="network-connection2.png";}else{$img_running="network-connection2-grey.png";}	
+		if($running=="TRUE"){$img_running="folder-network-64.png";}else{$img_running="folder-network-64-grey.png";}	
 		if(preg_match("#(.+?):#", $ligne["connexion_name"],$re)){$ligne["connexion_name"]=$re[1];}	
 		
 		$f[]=Paragraphe($img_running, $ligne["connexion_name"], "{manage_your_vpn_client_connection_text}","javascript:Loadjs('index.openvpn.client.php?ID={$ligne["ID"]}&cname={$ligne["connexion_name"]}')",null,210,null,0,false);
@@ -647,7 +641,7 @@ function index_page(){
 	}
 	
 
-		$table=CompileTr2($f);
+		$table=CompileTr3($f);
 	
 
 	
@@ -659,7 +653,7 @@ function index_page(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'><div class=explain>{APP_OPENVPN_TEXT}</div></td>
+		<td valign='top'><div class=explain style='font-size:16px'>{APP_OPENVPN_TEXT}</div></td>
 		<td valign='top' ><img src='img/bg_openvpn.png'></td>
 	</tr>
 	</table>
@@ -1042,9 +1036,9 @@ $html="
 <div id='OPENVPN_SERVER_SETTINGS'>
 <table style='width:100%'>
 		<tr>
-			<td valign='top' style='padding-right:5px;border-right:5px solid #CCCCCC'>$script$status$schedule</td>
-			<td valign='top'>
-			<div style='font-size:16px'>{service_parameters}</div>
+			<td style='padding-right:5px;border-right:5px solid #CCCCCC;width:30%;vertical-align:top'>$script$status$schedule</td>
+			<td style='width:70%;vertical-align:top'>
+			<div style='font-size:28px'>{service_parameters}</div>
 			$mandatories$mode</td>
 		</tr>
 		</table>
@@ -1240,7 +1234,7 @@ echo $tpl->_ENGINE_parse_body($html);
 
 function RestartServer(){
 	$sock=new sockets();
-	$datas=$sock->getfile("RestartOpenVPNServer");
+	$datas=base64_decode($sock->getFrameWork("openvpn.php?RestartOpenVPNServer=yes"));
 	$tbl=explode("\n",$datas);
 	if(is_array($tbl)){
 	$tbl=array_reverse($tbl);
@@ -1279,6 +1273,11 @@ function status($noecho=0){
 			
 	}
 	
+	$Certificate=$sock->getFrameWork("openvpn.php?ifAllcaExists=yes");
+	if($Certificate<>"TRUE"){
+		$status=$status.FATAL_ERROR_SHOW_128("{OPENSSL_NO_CERTIFICATE_BUILDED}");
+		
+	}
 	
 	
 	if($noecho==1){return $status.$refresh;}else{
@@ -1422,36 +1421,15 @@ function LocalParagraphe($title,$text,$js,$img){
 		
 		
 	$html="
-	<table style='width:198px;'>
+	<table style='width:95%;'>
 	<tr>
 	<td width=1% valign='top'>" . imgtootltip($img,$text,"$js",null,$img_id)."</td>
-	<td><strong style='font-size:12px;font-family:Verdana;letter-spacing:-1px'>{{$title}}</strong><div style='font-size:10px;font-family:Verdana;letter-spacing:-1px'>$text</div></td>
+	<td><a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:16px;text-decoration:underline;font-weight:bold'>{{$title}}</a><div style='font-size:12px;'>$text</div></td>
 	</tr>
 	</table>";
 	
 
-return "<div style=\"width:200px;margin:2px\" 
-	OnMouseOver=\"javascript:ParagrapheWhiteToYellow('$id',0);this.style.cursor='pointer';\" 
-	OnMouseOut=\"javascript:ParagrapheWhiteToYellow('$id',1);this.style.cursor='auto'\" OnClick=\"javascript:$js\">
-  <b id='{$id}_1' class=\"RLightWhite\">
-  <b id='{$id}_2' class=\"RLightWhite1\"><b></b></b>
-  <b id='{$id}_3' class=\"RLightWhite2\"><b></b></b>
-  <b id='{$id}_4' class=\"RLightWhite3\"></b>
-  <b id='{$id}_5' class=\"RLightWhite4\"></b>
-  <b id='{$id}_6' class=\"RLightWhite5\"></b></b>
-
-  <div id='{$id}_0' class=\"RLightWhitefg\" style='padding:2px;'>
-   $html
-  </div>
-
-  <b id='{$id}_7' class=\"RLightWhite\">
-  <b id='{$id}_8' class=\"RLightWhite5\"></b>
-  <b id='{$id}_9' class=\"RLightWhite4\"></b>
-  <b id='{$id}_10' class=\"RLightWhite3\"></b>
-  <b id='{$id}_11' class=\"RLightWhite2\"><b></b></b>
-  <b id='{$id}_12' class=\"RLightWhite1\"><b></b></b></b>
-</div>
-";		
+return RoundedLightGreen($html)."<p>&nbsp;</p>";
 		
 	
 }

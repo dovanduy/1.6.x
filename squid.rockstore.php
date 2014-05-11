@@ -37,12 +37,7 @@ function popup(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$page=CurrentPageName();	
-	$DisableSquidSNMPMode=$sock->GET_INFO("DisableSquidSNMPMode");
-	if(!is_numeric($DisableSquidSNMPMode)){$DisableSquidSNMPMode=1;}
-	if($DisableSquidSNMPMode==1){
-		echo FATAL_ERROR_SHOW_128("{error_squid_snmp_not_enabled}");
-		return; 
-	}
+
 	
 	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
@@ -71,7 +66,7 @@ function popup(){
 	$t=time();
 	$html="
 	<div style='font-size:14px' class=explain>{SQUID_ROCK_STORE_EXPLAIN}</div>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<div id='waitcache-$t'></div>
 	<table style='width:100%'>
 	<tr>

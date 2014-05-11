@@ -306,7 +306,7 @@ function Build_defaults(){
 			$Kav4ProxyTMPFSMB=$sock->GET_INFO("Kav4ProxyTMPFSMB");
 			if(!is_numeric($Kav4ProxyTMPFSMB)){$Kav4ProxyTMPFSMB=512;}	
 			if($Kav4ProxyTMPFS==1){
-				echo "Starting......: Kav4proxy tmpfs is enabled for {$Kav4ProxyTMPFSMB}MB\n";
+				echo "Starting......: ".date("H:i:s")." Kav4proxy tmpfs is enabled for {$Kav4ProxyTMPFSMB}MB\n";
 				if(!$this->is_tmpfs_mounted()){
 					if(!is_dir("/tmp/Kav4proxy")){@mkdir("/tmp/Kav4proxy",0755,true);}
 					$cmd="$mount -t tmpfs -o size={$Kav4ProxyTMPFSMB}M tmpfs /tmp/Kav4proxy";
@@ -314,22 +314,22 @@ function Build_defaults(){
 					shell_exec($cmd);
 					
 					if($this->is_tmpfs_mounted()){
-						echo "Starting......: Kav4proxy tmpfs mounted...\n";
+						echo "Starting......: ".date("H:i:s")." Kav4proxy tmpfs mounted...\n";
 						$TempPath="/tmp/Kav4proxy";
 					}else{
-						echo "Starting......: Kav4proxy tmpfs failed to mount return back to disk\n";
+						echo "Starting......: ".date("H:i:s")." Kav4proxy tmpfs failed to mount return back to disk\n";
 					}
 					
 				}else{
-					echo "Starting......: Kav4proxy tmpfs mounted...\n";
+					echo "Starting......: ".date("H:i:s")." Kav4proxy tmpfs mounted...\n";
 					$TempPath="/tmp/Kav4proxy";	
 					
 				}
 			
 			}else{
-				echo "Starting......: Kav4proxy tmpfs is disabled\n";
+				echo "Starting......: ".date("H:i:s")." Kav4proxy tmpfs is disabled\n";
 				if($this->is_tmpfs_mounted()){
-					echo "Starting......: Kav4proxy unmounting filesystem\n";
+					echo "Starting......: ".date("H:i:s")." Kav4proxy unmounting filesystem\n";
 					shell_exec("$umount -l /tmp/Kav4proxy");
 				}
 			}
@@ -341,7 +341,7 @@ function Build_defaults(){
 					if(preg_match("#([0-9])\.([0-9]).([0-9]+)#",  $this->VERSION,$re)){
 						$rev=$re[3];
 					}
-					echo "Starting......: Kav4proxy current version is $this->VERSION (revision $rev)\n";
+					echo "Starting......: ".date("H:i:s")." Kav4proxy current version is $this->VERSION (revision $rev)\n";
 				}
 				$sock=new sockets();
 				$bases="/var/opt/kaspersky/kav4proxy/bases";
@@ -528,7 +528,7 @@ function Build_defaults(){
 		$results=$q->QUERY_SQL($sql,"artica_backup");	
 		if(!$q->ok){die();}
 		if(mysql_num_rows($results)==0){
-			echo "Starting......: Kav4proxy no groups...\n";
+			echo "Starting......: ".date("H:i:s")." Kav4proxy no groups...\n";
 			return;
 		}
 		
@@ -559,7 +559,7 @@ function Build_defaults(){
 			if(!is_numeric($hash["MaxReqLength"])){$hash["MaxReqLength"]=512000;}		
 			
 			$groupname=$ligne["groupname"];
-			echo "Starting......: Kav4proxy check group \"$groupname\"...\n";
+			echo "Starting......: ".date("H:i:s")." Kav4proxy check group \"$groupname\"...\n";
 			$f[]="\n[icapserver.groups:$groupname]";
 			$f[]="Priority=$Priority";
 			while (list ($num, $ligne) = each ($ClientIP) ){

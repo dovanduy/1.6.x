@@ -27,7 +27,7 @@ $html="
 	<td valign='top' width=60%>
 		<H5>{mailman_lists}</H5>
 			<div id=mailman_lists></div>
-			<div style='text-align:right'>" . imgtootltip('icon_refresh-20.gif','{refresh}',"LoadAjax('mailman_lists','$page?LoadLists=yes');") . "</div>
+			<div style='text-align:right'>" . imgtootltip('20-refresh.png','{refresh}',"LoadAjax('mailman_lists','$page?LoadLists=yes');") . "</div>
 	</td>
 	<td valign='top'>".bouton_add().applysettings("mailman").$gb .bouton_gourl()."</td>
 	
@@ -152,16 +152,16 @@ function mailman_lists(){
 						$address="<td width=1% align='center'>" . imgtootltip('icon_mini_off.gif',"{error_no_ou_saved}","")."</td>";
 					}
 					
-					$ico="status_ok.gif";
+					$ico="status_ok.png";
 					$cell=CellRollOver("LoadMailmanListSettings('$name')");
 					
 					if($MailmanListOperation=="ADD"){
-						$ico="status_warning.gif";
+						$ico="status_warning.png";
 						$cell=CellRollOver("mailman_applysettings('$name')",'{mailman_waiting_replication}');
 					}
 					
 					if($MailmanListOperation=="DEL"){
-						$ico="status_warning.gif";
+						$ico="status_warning.png";
 						$cell=CellRollOver("mailman_applysettings('$name')",'{mailman_waiting_replication}');
 						$style="style='color:#CCCCCC'";
 					}

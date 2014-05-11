@@ -22,13 +22,10 @@ if(count($_GET)>0){
 $t=time();	
 header("content-type: application/x-javascript");
 echo "
-AjaxTopMenu('update-white-32-tr','admin.top.menus.php?update-white-32-tr=yes');
-AjaxTopMenuTiny('div-high-menus','Inotify.php?switch-high=yes');
-
 if(document.getElementById('IMAGE_STATUS_INFO')){
 	var value=document.getElementById('IMAGE_STATUS_INFO').innerHTML;
 	if(value.length<20){
-		LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t');
+		LoadAjax('IMAGE_STATUS_INFO','admin.index.right-image.php');
 	}
 }
 ";
@@ -117,6 +114,7 @@ function GetIniContent($PRODUCT){
 
 
 function high_menus(){
+		return;
 		$sock=new sockets();
 		$FixedLanguage=$sock->GET_INFO("FixedLanguage");
 		if(!isset($GLOBALS["CLASS_USERS_MENUS"])){$users=new usersMenus();$GLOBALS["CLASS_USERS_MENUS"]=$users;}else{$users=$GLOBALS["CLASS_USERS_MENUS"];}
@@ -135,12 +133,21 @@ function high_menus(){
 		if(!is_numeric($_SESSION["SWITCH_HIGH_MENUS"])){$_SESSION["SWITCH_HIGH_MENUS"]=1;}
 		
 		if($users->AsAnAdministratorGeneric){
+			
 			if($_SESSION["SWITCH_HIGH_MENUS"]==1){	
 			$html="	
 			<table style='width:80%;padding:0px;margin:0px;border:0px;margin-top:2px'>
 			<tr>
-			<td><a href='#' OnClick=\"javascript:logoff();\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>{logoff}</a></td>
-			<td style='color:white;font-size:11px;'>&nbsp;|&nbsp;</td>
+			";
+			
+			if($_SESSION["uid"]==-100){
+			$html=$html."<td><a href='#' OnClick=\"javascript:Loadjs('artica.settings.php?js=yes&func-AccountsInterface=yes');\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>Manager</a></td>
+			<td style='color:white;font-size:11px;'>&nbsp;|&nbsp;</td>";
+				
+			}
+			$html=$html."
+				<td><a href='#' OnClick=\"javascript:logoff();\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>{logoff}</a></td>
+				<td style='color:white;font-size:11px;'>&nbsp;|&nbsp;</td>
 			<td><a href='#' OnClick=\"javascript:Loadjs('chg.language.php');\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>{language}:&nbsp;{$tpl->language}</a></td>
 			<td style='color:white;font-size:11px;'>&nbsp;|&nbsp;</td>
 			<td><a href='#' OnClick=\"javascript:Loadjs('artica.update.php?js=yes')\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>{version}:&nbsp;{$users->ARTICA_VERSION}</a></td>
@@ -180,8 +187,16 @@ function high_menus(){
 			$html="	
 			<table style='width:80%;padding:0px;margin:0px;border:0px;margin-top:2px'>
 			<tbody>
-			<tr>
-			<td nowrap><a href='#' OnClick=\"javascript:logoff();\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>{logoff}</a></td>
+			<tr>";
+			
+						
+			if($_SESSION["uid"]==-100){
+			$html=$html."<td><a href='#' OnClick=\"javascript:Loadjs('artica.settings.php?js=yes&func-AccountsInterface=yes');\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>Manager</a></td>
+			<td style='color:white;font-size:11px;'>&nbsp;|&nbsp;</td>";
+				
+			}
+			
+			$html=$html."<td nowrap><a href='#' OnClick=\"javascript:logoff();\" style='color:#CCCCCC;font-size:11px;text-decoration:underline'>{logoff}</a></td>
 			<td style='color:white;font-size:11px;'>&nbsp;|&nbsp;</td>		
 			<td nowrap><a href='#' OnClick=\"javascript:Loadjs('chg.language.php');\" 
 			style='color:#CCCCCC;font-size:11px;'>{load}: $org_load</a></td>	

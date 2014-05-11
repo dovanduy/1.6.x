@@ -144,7 +144,7 @@ $conf[]="if(\$array[\$_COOKIE[\"artica-language\"]]<>null){return \$array[\$_COO
 $conf[]="}";
 $conf[]="?>";
 @file_put_contents("/usr/share/artica-postfix/virtualbox/config.php",@implode("\n",$conf));
-echo "Starting......: VirtualBox Web service set phpVirtualBox config done\n";
+echo "Starting......: ".date("H:i:s")." VirtualBox Web service set phpVirtualBox config done\n";
 
 }
 

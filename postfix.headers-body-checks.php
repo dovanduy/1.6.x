@@ -79,7 +79,7 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="rule-reject"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.regex.php?rule-reject=yes&hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"domains.postfix.multi.reject.php?hostname=$hostname&ou={$_GET["ou"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 			continue;
 		}	
 	
@@ -102,24 +102,8 @@ function tabs(){
 	}
 	
 	
-	echo "
+	echo build_artica_tabs($html, "main_multi_config_headersbody$t",980);
 	
-	<div id=main_multi_config_headersbody$t style='width:100%;height:600px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_multi_config_headersbody$t').tabs();
-			
-			
-			});
-			
-		function	RefreshExtraPostfixRegexTab(){
-				RefreshTab('main_multi_config_headersbody$t');
-			
-			}
-			
-		</script>";		
 }
 
 
@@ -411,7 +395,7 @@ $tpl=new templates();
 		$notify=Field_checkbox($md5."_not",1,$ligne["xNOTIFY"],"PostfixRegexNotify('{$md5}_not','{$ligne["ID"]}')");
 
 		$color="black";
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		
 		if($ligne["flags"]==null){$ligne["flags"]="&nbsp;";}
 		if($ligne["pcre"]==2){$ligne["pcre"]="regex";}else{$ligne["pcre"]="pcre";;}

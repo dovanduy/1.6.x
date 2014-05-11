@@ -171,7 +171,7 @@ class blackboxes{
 		if(!$q->TABLE_EXISTS("squid_nodes_settings", "artica_backup")){$q->CheckTablesSquid();}
 		$sql="SELECT `content` FROM squid_nodes_settings WHERE uuid='$this->hostid'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-		if($GLOBALS["VERBOSE"]){echo "Starting......: [SMP] content=". strlen($ligne["content"])." bytes for $this->hostid\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [SMP] content=". strlen($ligne["content"])." bytes for $this->hostid\n";}
 		$array=unserialize(base64_decode($ligne["content"]));
 		if(!is_array($array)){return $this->GET_SQUID_INFO_DISK($key);}
 		$GLOBALS["GET_SQUID_INFO_ARRAY"]=$array;
@@ -482,7 +482,7 @@ class blackboxes{
 	
 	public function system_update_memory($TotalMemoryMB=0){
 		$q=new mysql_blackbox();
-		if(!$q->FIELD_EXISTS("nodes","TotalMemoryMB")){$sql="ALTER TABLE `nodes` ADD `TotalMemoryMB` INT(100) NOT NULL,ADD INDEX ( `TotalMemoryMB` )";$q->QUERY_SQL($sql);}
+		if(!$q->FIELD_EXISTS("nodes","TotalMemoryMB")){$sql="ALTER TABLE `nodes` ADD `TotalMemoryMB` INT UNSIGNED NOT NULL,ADD INDEX ( `TotalMemoryMB` )";$q->QUERY_SQL($sql);}
 		$sql="UPDATE nodes SET TotalMemoryMB='$TotalMemoryMB' WHERE hostid='$this->hostid'";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){writelogs($q->mysql_error,__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}		
@@ -779,7 +779,7 @@ class blackboxes{
 		if($GLOBALS["VERBOSE"]){echo "DELETE FROM softwares WHERE nodeid='$this->nodeid'\n";}
 		$q->QUERY_SQL("DELETE FROM softwares WHERE nodeid='$this->nodeid'");
 		
-		$prefix="INSERT DELAYED INTO softwares (nodeid,software,version) VALUES ".@implode(",", $f);
+		$prefix="INSERT IGNORE INTO softwares (nodeid,software,version) VALUES ".@implode(",", $f);
 		$q->QUERY_SQL($prefix);
 	}
 	

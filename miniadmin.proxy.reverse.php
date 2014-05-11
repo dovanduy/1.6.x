@@ -13,19 +13,37 @@ include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
 $PRIV=GetPrivs();if(!$PRIV){senderror("no priv");}
 
+if(isset($_POST["DenyConfSave"])){websites_script_DenyConfSave();exit;}
+if(isset($_POST["nginxconf"])){websites_script_nginxconf();exit;}
 if(isset($_GET["parameters"])){parameters();exit;}
+if(isset($_GET["parameters-section"])){parameters_section();exit;}
+
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["websites-section"])){websites_section();exit;}
 if(isset($_GET["websites-search"])){websites_search();exit;}
 if(isset($_GET["website-js"])){websites_js();exit;}
+if(isset($_GET["website-script-js"])){websites_script_js();exit;}
+if(isset($_GET["delete-websites-js"])){websites_delete_js();exit;}
 if(isset($_GET["nginx-status"])){nginx_status();exit;}
+if(isset($_GET["nginx-section-status"])){nginx_status_section();exit;}
+
+
 if(isset($_POST["folderid-save"])){websites_directories_save();exit;}
 
 if(isset($_GET["popup-webserver"])){websites_popup();exit;}
+if(isset($_GET["popup-webserver-errors"])){websites_popup_webserver_errors();exit;}
+if(isset($_POST["servername-errors"])){websites_popup_webserver_errors_save();exit;}
+
+
+if(isset($_GET["popup-webserver-options"])){websites_popup_webserver_options_tabs();exit;}
+if(isset($_GET["popup-webserver-options-section"])){websites_popup_webserver_options_section();exit;}
+
+
 if(isset($_GET["popup-webserver-events"])){websites_popup_events();exit;}
 if(isset($_GET["popup-webserver-events-search"])){websites_popup_events_search();exit;}
 
@@ -57,7 +75,7 @@ if(isset($_GET["popup-webserver-auth"])){websites_popup_webserver_auth_tab();exi
 if(isset($_GET["popup-webserver-authparams"])){websites_popup_webserver_auth_form();exit;}
 if(isset($_POST["ENABLE_LDAP_AUTH"])){websites_popup_webserver_auth_save();exit;}
 if(isset($_POST["USE_AUTHENTICATOR"])){websites_popup_webserver_auth_save();exit;}
-
+if(isset($_GET["website-script"])){websites_script();exit;}
 
 
 if(isset($_GET["popup-webserver-directories"])){websites_directories_section();exit;}
@@ -181,8 +199,51 @@ function websites_js(){
 	}
 	
 	$title=$tpl->javascript_parse_text($title);
-	echo "YahooWin(890,'$page?$add&servername=$servername','$title')";	
+	echo "YahooWin(1070,'$page?$add&servername=$servername','$title')";	
 	
+}
+
+function websites_delete_js(){
+	$tpl=new templates();
+	$page=CurrentPageName();	
+	header("content-type: application/x-javascript");
+	$t=time();
+	$servername=$_GET["servername"];
+	$md=$_GET["md"];
+	$delete_freeweb_nginx_text=$tpl->javascript_parse_text("$servername:: {delete_freeweb_nginx_text}");	
+$html="
+var xDeleteFreeWeb$t=function (obj) {
+	var results=obj.responseText;
+	if(results.length>10){alert(results);return;}	
+	$('#'+FreeWebIDMEM{$md}).remove();
+}	
+
+function DeleteFreeWeb$t(){
+	if(confirm('$delete_freeweb_nginx_text')){
+		var XHR = new XHRConnection();
+		XHR.appendData('delete-servername','$servername');
+    	XHR.sendAndLoad('freeweb.php', 'GET',xDeleteFreeWeb$t);
+	}
+}		
+DeleteFreeWeb$t();		
+";
+echo $html;	
+	
+}
+
+
+function websites_script_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$servername=$_GET["servername"];
+	$add="popup-webserver";
+	
+	$title="{new_website}";
+	if($servername<>null){
+		$title=$servername;
+		echo "YahooWin(920,'$page?website-script=yes&servername=$servername','$title')";
+	}
 }
 
 function delete_folder_id_js(){
@@ -228,16 +289,26 @@ function websites_directories_tabs(){
 function websites_popup_tabs(){
 	$boot=new boostrap_form();
 	$page=CurrentPageName();
-	$array["{$_GET["servername"]}"]="$page?popup-webserver=yes&servername={$_GET["servername"]}";
-	$array["{replace_rules}"]="$page?popup-webserver-replace=yes&servername={$_GET["servername"]}";
-	$array["{paths}"]="$page?popup-webserver-directories=yes&servername={$_GET["servername"]}";
-	$array["{aliases}"]="$page?popup-webserver-aliases=yes&servername={$_GET["servername"]}";
-	$array["{authentication}"]="$page?popup-webserver-auth=yes&servername={$_GET["servername"]}";
-	if(AdminPrivs()){
-		$array["{privileges}"]="$page?popup-webserver-privs=yes&servername={$_GET["servername"]}";
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='{$_GET["servername"]}'"));
+	$ALL=true;
+	if($ligne["RedirectQueries"]<>null){$ALL=FALSE;}
+	
+	
+	$array["{website}"]="$page?popup-webserver=yes&servername={$_GET["servername"]}";
+	
+	
+	if($ALL){
+		$array["{options}"]="$page?popup-webserver-options&servername={$_GET["servername"]}";
+		$array["{templates_errors}"]="$page?popup-webserver-errors=yes&servername={$_GET["servername"]}";
+		$array["{replace_rules}"]="$page?popup-webserver-replace=yes&servername={$_GET["servername"]}";
+		$array["{paths}"]="$page?popup-webserver-directories=yes&servername={$_GET["servername"]}";
+		$array["{aliases}"]="$page?popup-webserver-aliases=yes&servername={$_GET["servername"]}";
+		$array["{authentication}"]="$page?popup-webserver-auth=yes&servername={$_GET["servername"]}";
+		
+		$array["{events}"]="$page?popup-webserver-events=yes&servername={$_GET["servername"]}&type=1";
+		$array["{errors}"]="$page?popup-webserver-events=yes&servername={$_GET["servername"]}&type=2";
 	}
-	$array["{events}"]="$page?popup-webserver-events=yes&servername={$_GET["servername"]}&type=1";
-	$array["{errors}"]="$page?popup-webserver-events=yes&servername={$_GET["servername"]}&type=2";
 	echo $boot->build_tab($array);
 }
 
@@ -300,6 +371,7 @@ function websites_directories_popup(){
 	if(!$q->ok){senderror($q->mysql_error."<br>$sql");}
 	$tpl=new templates();
 	
+	$array[0]="{none}";
 	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$array[$ligne2["ID"]]=$ligne2["servername"];
 		$array2[$ligne2["ID"]]=$ligne2["ipaddr"];
@@ -327,15 +399,25 @@ function websites_directories_popup(){
 	while ($ligne21 = mysql_fetch_assoc($results)) {$authrules[$ligne21["ID"]]=$ligne21["rulename"];}
 	
 	
-	
+	$t=time();
+	if(!is_numeric($ligne["webpageid"])){$ligne["webpageid"]=0;}
 	if($ligne["servername"]<>null){$_GET["servername"]=$ligne["servername"];}
 	$directory=trim(stripslashes($ligne["directory"]));
-	$boot->set_formtitle($title." - $folderid -");
+	$boot->set_formtitle($title." - $folderid -<div id='$t' style='font-size:14px'>http(s)://{$_GET["servername"]}/$directory</span></div>");
+	
 	$boot->set_hidden("servername",$_GET["servername"]);
 	$boot->set_hidden("folderid-save", $folderid);
-	$boot->set_field("directory", "{path}", $directory);
+	$boot->set_field("directory", "{path}", $directory,array("KEYPRESS"=>"UpdateTitle$t"));
 	$boot->set_checkbox("local", "{local_path}", $ligne["local"],array("LINK"=>"localdirectory","ENCODE"=>true));
 	$boot->set_field("localdirectory", "{localpath}", $ligne["localdirectory"]);
+	
+	
+	$parmas["BUTTON"]["JS"]="Loadjs('miniadmin.crm.browsepages.php?field-id=%s')";
+	$parmas["BUTTON"]["LABEL"]=$tpl->_ENGINE_parse_body("{browse}...");
+	$parmas["TOOLTIP"]="{webdirectoy_crm_page_ex}";
+	$boot->set_field("webpageid", "{generated_page}", $ligne["webpageid"],$parmas);
+	
+	
 	
 	
 	$boot->set_field("hostweb", "{website}", $ligne["hostweb"],array("TOOLTIP"=>"{nginx_website_dir_explain}"));
@@ -348,7 +430,16 @@ function websites_directories_popup(){
 	$boot->set_RefreshSearchs();
 	
 	$boot->set_formdescription("{nginx_path_explain}");
-	echo $boot->Compile();	
+	echo $boot->Compile()."
+			
+			
+	<script>
+		function UpdateTitle$t(e,id){
+		document.getElementById('$t').innerHTML='http(s)://{$_GET["servername"]}/'+document.getElementById(id).value;
+			
+		}
+			
+	</script>";
 	
 	
 }
@@ -470,7 +561,69 @@ function websites_popup_webserver_auth_save(){
 	if(!$q->ok){echo $q->mysql_error;}
 }
 
+function ssl_certificates_list(){
+	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
+	$q=new mysql();
+	$sslcertificates[null]="{default}";
+	$results=$q->QUERY_SQL($sql,'artica_backup');
+	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
+	}
+	return $sslcertificates;
+}
 
+function sources_list(){
+	$q=new mysql_squid_builder();
+	$sql="SELECT ID,ipaddr,servername FROM reverse_sources ORDER BY servername";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){senderror($q->mysql_error."<br>$sql");}
+	
+	
+	$CountDeSources=mysql_num_rows($results);
+	
+	$array[0]="{none}";
+	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$array[$ligne2["ID"]]=$ligne2["servername"];
+		$array2[$ligne2["ID"]]=$ligne2["ipaddr"];
+	}
+	return array($array,$array2,$CountDeSources);
+}
+
+function caches_list(){
+	$q2=new mysql_squid_builder();
+	$results=$q2->QUERY_SQL("SELECT ID,keys_zone FROM nginx_caches ORDER BY keys_zone");
+	$nginx_caches[0]="{none}";
+	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$nginx_caches[$ligne2["ID"]]=$ligne2["keys_zone"];
+	
+	}
+	
+	return $nginx_caches;
+}
+
+function pool_list(){
+	$q2=new mysql_squid_builder();
+	$results=$q2->QUERY_SQL($sql="SELECT * FROM nginx_pools ORDER BY poolname");
+	$nginx_pools[0]="{none}";
+	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$nginx_pools[$ligne2["ID"]]=$ligne2["poolname"];
+	
+	}
+	return $nginx_pools;
+}
+function replace_list(){
+	$nginx_replaces[0]="{none}";
+	$q2=new mysql_squid_builder();
+	$results=$q2->QUERY_SQL("SELECT ID,groupname FROM nginx_replace_group ORDER BY groupname");
+	if(!$q2->ok){
+		echo "<p class=text-error>$q2->mysql_error</p>";
+	}
+	$nginx_caches[0]="{none}";
+	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$nginx_replaces[$ligne2["ID"]]=$ligne2["rulename"];
+	}
+	return $nginx_replaces;
+}
 
 function websites_popup(){
 	$tpl=new templates();
@@ -478,16 +631,40 @@ function websites_popup(){
 	$servername=$_GET["servername"];
 	$rv=new squid_reverse();
 	$q=new mysql_squid_builder();
+	$sock=new sockets();
 	$title="{new_webserver}";
 	$bt="{add}";
 	
 	$boot=new boostrap_form();
 	$q=new mysql_squid_builder();
 	$squid_reverse=new squid_reverse();
-	if(!$q->FIELD_EXISTS("reverse_www", "debug")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `debug` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}}
+	$tpl=new templates();
+	$sslcertificates=ssl_certificates_list();
+	$sources_list=sources_list();
+	$array=$sources_list[0];
+	$array2=$sources_list[1];
+	$CountDeSources=$sources_list[2];
+	$nginx_caches=caches_list();
+	$nginx_pools=pool_list();
+	$nginx_replaces=replace_list();
+	
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	
+	
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "debug")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `debug` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+	if(!$q->FIELD_EXISTS("reverse_www", "start_directory")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `start_directory` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
+	if(!$q->FIELD_EXISTS("reverse_www", "DenyConf")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `DenyConf` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+	if(!$q->FIELD_EXISTS("reverse_www", "ArticaErrors")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `ArticaErrors` smallint(1) NOT NULL DEFAULT 1");if(!$q->ok){echo $q->mysql_error_html();}}
+	if(!$q->FIELD_EXISTS("reverse_www", "RedirectQueries")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `RedirectQueries` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
+	if(!$q->FIELD_EXISTS("reverse_www", "default_server")){
+		$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `default_server` smallint( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `default_server` )");
+		if(!$q->ok){echo $q->mysql_error_html();}
+	}
+	
+	
 	
 	if($servername<>null){
-		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
 		$title=$tpl->_ENGINE_parse_body("{port}:{$ligne["port"]} &laquo;$servername&raquo;");
 		$bt="{apply}";
@@ -497,62 +674,29 @@ function websites_popup(){
 		$boot->set_field("servername-edit", "{website}", null,array("MANDATORY"=>true));
 	}
 	
-	$sql="SELECT ID,ipaddr,servername FROM reverse_sources ORDER BY servername";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){senderror($q->mysql_error."<br>$sql");}
-	$tpl=new templates();
-	
-	$CountDeSources=mysql_num_rows($results);
-	
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$array[$ligne2["ID"]]=$ligne2["servername"];
-		$array2[$ligne2["ID"]]=$ligne2["ipaddr"];
-	}
-	
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
-	$q=new mysql();
-	$sslcertificates[null]="{default}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
-	}
+	if(!is_numeric($ligne["port"])){$ligne["port"]=80;}
+	if(!is_numeric($ligne["ArticaErrors"])){$ligne["ArticaErrors"]=1;}
 	if($servername==null){$ligne["cache_peer_id"]=-1;}
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	
-	$q2=new mysql_squid_builder();
-	$results=$q2->QUERY_SQL("SELECT ID,keys_zone FROM nginx_caches ORDER BY keys_zone");
-	$nginx_caches[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$nginx_caches[$ligne2["ID"]]=$ligne2["keys_zone"];
-		
-	}
-	
-	$q2=new mysql_squid_builder();
-	$results=$q2->QUERY_SQL($sql="SELECT * FROM nginx_pools ORDER BY poolname");
-	$nginx_pools[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$nginx_pools[$ligne2["ID"]]=$ligne2["poolname"];
-	
-	}	
-	
-	$nginx_replaces[0]="{none}";
-	
-	$results=$q2->QUERY_SQL("SELECT ID,groupname FROM nginx_replace_group ORDER BY groupname");
-	if(!$q2->ok){
-		echo "<p class=text-error>$q2->mysql_error</p>";
-	}
-	$nginx_caches[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$nginx_replaces[$ligne2["ID"]]=$ligne2["rulename"];
-	
-	}	
 	
 	if($ligne["cache_peer_id"]==0){
-		$q2=new mysql();
-		$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT `useSSL`,`sslcertificate` FROM `freeweb` WHERE `servername`='$servername'","artica_backup"));
-		$ligne["certificate"]=$ligne2["sslcertificate"];
+		if($EnableFreeWeb==1){
+			$q2=new mysql();
+			$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT `useSSL`,`sslcertificate` FROM `freeweb` WHERE `servername`='$servername'","artica_backup"));
+			$ligne["certificate"]=$ligne2["sslcertificate"];
+		}else{
+			$ligne["cache_peer_id"]=-1;
+		}
 	}
-	$boot->set_formtitle($title);
 	
+	
+	$boot->set_formtitle($title);
+	$boot->set_field("port", "{inbound_port}", $ligne["port"]);
+	$boot->set_checkbox("enabled", "{enabled}", $ligne["enabled"],array("DISABLEALL"=>true));
+	$boot->set_checkbox("default_server", "{default_server}", $ligne["default_server"],array("TOOLTIP"=>"{NGINX_DEFAULT_SERVER}"));
+	$boot->set_checkbox("owa", "{protect_owa}", $ligne["owa"]);
+	$boot->set_checkbox("debug", "{debug}", $ligne["debug"]);
 	$boot->set_list("cacheid", "{cache}", $nginx_caches,$ligne["cacheid"]);
 	$boot->set_list("replaceid", "{replace_rule}", $nginx_replaces,$ligne["replaceid"]);
 	
@@ -560,43 +704,30 @@ function websites_popup(){
 		$boot->set_formdescription("{certificate}: {$ligne["certificate"]}");
 	}
 	
-	if(!is_numeric($ligne["port"])){$ligne["port"]=80;}
-	
 	if($ligne["cache_peer_id"]==0){
-		$boot->set_hidden("cache_peer_id", 0);
-		$boot->set_hidden("enabled", 1);
-		$boot->set_hidden("certificate", $ligne["certificate"]);
+			$boot->set_hidden("cache_peer_id", 0);
+			$boot->set_hidden("enabled", 1);
+			$boot->set_hidden("certificate", $ligne["certificate"]);
+		
 	}else{
 		
 		if(!AdminPrivs()){
 			$boot->set_hidden("cache_peer_id", $ligne["cache_peer_id"]);
+			$boot->set_hidden("start_directory", $ligne["start_directory"]);
 		}else{
-			$boot->set_list("cache_peer_id", "{source}", $array,$ligne["cache_peer_id"]);
+			$boot->set_list("cache_peer_id", "{destination}", $array,$ligne["cache_peer_id"]);
+			$boot->set_field("start_directory", "{start_path}", $ligne["start_directory"]);
 		}
-		$boot->set_field("port", "{inbound_port}", $ligne["port"]);
+
 		
 		$boot->set_list("poolid", "{pool}", $nginx_pools,$ligne["poolid"]);
-		$boot->set_checkbox("owa", "{protect_owa}", $ligne["owa"]);
-		$boot->set_checkbox("enabled", "{enabled}", $ligne["enabled"],array("DISABLEALL"=>true));
-		$boot->set_checkbox("debug", "{debug}", $ligne["debug"]);
+
 		
-		$boot->set_checkbox("ssl", "{UseSSL}", $ligne["ssl"],array("{NGINX_USE_SSL_EXPLAIN}"));
-		$boot->set_list("certificate", "{certificate}", $sslcertificates,$ligne["certificate"]);
 		
-		$errors_code[0]="{default}";
-		$results=$q2->QUERY_SQL("SELECT ID,pagename FROM nginx_error_pages ORDER BY pagename");
-		
-		while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-			$errors_code[$ligne2["ID"]]=$ligne2["pagename"];
-		}		
-		
-				
-		
-		reset($squid_reverse->errors_page);
-		while (list ($key, $value) = each ($squid_reverse->errors_page) ){
-			$boot->set_list("$value", "{error} $value", $errors_code,$ligne[$value]);
-		}		
-		
+		$boot->set_field("RedirectQueries", "{RedirectQueries}", $ligne["RedirectQueries"]);
+		$boot->set_checkbox("ArticaErrors", "{enable_template_errors}", $ligne["ArticaErrors"]);
+		$boot->set_checkbox("ssl", "{UseSSL}", $ligne["ssl"],array("TOOLTIP"=>"{NGINX_USE_SSL_EXPLAIN}"));
+		$boot->set_list("certificate", "{certificate}", $sslcertificates,$ligne["certificate"],array());
 		
 		if($CountDeSources==0){
 			$boot->set_form_error("{you_need_to_define_sources_first}");
@@ -605,16 +736,235 @@ function websites_popup(){
 		
 	}
 	
-
-	
-	
-	
-	
 	$boot->set_button($bt);
 	if($servername==null){$boot->set_CloseYahoo("YahooWin");}
 	$boot->set_RefreshSearchs();
 	echo $boot->Compile();	
 	
+}
+
+function websites_popup_webserver_errors(){
+	$q=new mysql_squid_builder();
+	$q2=new mysql_squid_builder();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$servername=$_GET["servername"];
+	$rv=new squid_reverse();
+	$boot=new boostrap_form();
+	$squid_reverse=new squid_reverse();
+	
+	$boot->set_formtitle("{templates_errors}");
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
+	
+	
+	
+	$errors_code[0]="{default}";
+	$results=$q2->QUERY_SQL("SELECT ID,pagename FROM nginx_error_pages ORDER BY pagename");
+	
+	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$errors_code[$ligne2["ID"]]=$ligne2["pagename"];
+	}
+	
+	$boot->set_hidden("servername-errors", $servername);
+	if(!is_numeric($ligne["ArticaErrors"])){$ligne["ArticaErrors"]=1;}
+	reset($squid_reverse->errors_page);
+	while (list ($key, $value) = each ($squid_reverse->errors_page) ){
+		$boot->set_list("$value", "{error} $value", $errors_code,$ligne[$value]);
+	}
+	if($ligne["ArticaErrors"]==0){
+		$boot->set_form_error("{templates_errors_disabled}");
+		$boot->set_form_locked();
+	}
+	
+	$boot->set_button("{apply}");
+	$boot->set_RefreshSearchs();
+	echo $boot->Compile();	
+}
+
+function websites_popup_webserver_options_tabs(){
+$boot=new boostrap_form();
+$users=new usersMenus();
+$page=CurrentPageName();
+
+$array["{options}"]="$page?popup-webserver-options-section=yes&servername={$_GET["servername"]}";
+$array["{anti_exploits}"]="miniadmin.nginx.exploits.php?servername={$_GET["servername"]}";
+$array["{anti_exploits} {events}"]="miniadmin.nginx.exploits.php?events=yes&servername={$_GET["servername"]}";
+
+if(AdminPrivs()){
+	$array["{privileges}"]="$page?popup-webserver-privs=yes&servername={$_GET["servername"]}";
+}
+
+
+echo $boot->build_tab($array);
+}
+
+
+function websites_popup_webserver_options_section(){
+	
+	$q=new mysql_squid_builder();
+	$q2=new mysql_squid_builder();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$servername=$_GET["servername"];
+	$rv=new squid_reverse();
+	$boot=new boostrap_form();
+	$squid_reverse=new squid_reverse();
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_read_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "proxy_send_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_send_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffers")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_buffers` VARCHAR(20) NOT NULL DEFAULT '8 8k'");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffer_size")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_buffer_size` smallint(10) NOT NULL DEFAULT '8'");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "proxy_cache_min_uses")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_cache_min_uses` smallint(3) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
+
+	if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffering")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_buffering` smallint(1) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}	
+	
+	
+//
+	if(!$q->FIELD_EXISTS("reverse_www", "EnableHSTS")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `EnableHSTS` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "RestrictIFrames")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `RestrictIFrames` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "XSSBrowser")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `XSSBrowser` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "EnableCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `EnableCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "EnableSSLOCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `EnableSSLOCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
+		
+	if(!$q->FIELD_EXISTS("reverse_www", "ssl_protocols")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `ssl_protocols` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "ssl_ciphers")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `ssl_ciphers` TEXT");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	
+	//
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "LimitCnx")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `LimitCnx` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "LimitReqs")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `LimitReqs` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
+	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
+	
+	
+	
+	
+	
+		
+	$boot->set_formtitle("{limits}");
+	$boot->set_field("LimitCnx", "{LimitCnx}", $ligne["LimitCnx"],
+			array("TOOLTIP"=>"{LimitCnx_text}"));	
+	$boot->set_field("LimitReqs", "{LimitReqs}", $ligne["LimitReqs"],
+			array("TOOLTIP"=>"{LimitReqs_text}"));		
+
+	
+	
+	$boot->set_formtitle("{timeouts}");
+	
+	
+	if($ligne["ssl_protocols"]==null){
+		$ligne["ssl_protocols"]="TLSv1 TLSv1.1 TLSv1.2";
+	}
+	
+	if($ligne["ssl_ciphers"]==null){
+		$ligne["ssl_ciphers"]="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";
+	}
+
+
+	
+
+
+
+$boot->set_field("proxy_read_timeout", "{proxy_read_timeout}  {seconds}", $ligne["proxy_read_timeout"],
+			array("TOOLTIP"=>"{proxy_read_timeout_text}"));
+
+$boot->set_field("proxy_send_timeout", "{proxy_send_timeout} {seconds}", $ligne["proxy_send_timeout"],
+		array("TOOLTIP"=>"{proxy_send_timeout_text}"));
+
+
+
+
+$boot->set_spacertitle("{cache}");
+$boot->set_checkbox("proxy_buffering", "{proxy_buffering}", $ligne["proxy_buffering"],
+		array("TOOLTIP"=>"{proxy_buffering_text}","LINK"=>"proxy_buffers,proxy_buffer_size,proxy_cache_min_uses"));
+
+$boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses}", $ligne["proxy_cache_min_uses"],
+		array("TOOLTIP"=>"{proxy_cache_min_uses_text}"));
+
+$boot->set_field("proxy_buffers", "{proxy_buffers}", $ligne["proxy_buffers"],
+		array("TOOLTIP"=>"{proxy_buffers_text}"));
+
+$boot->set_field("proxy_buffer_size", "{proxy_buffer_size} (k)", $ligne["proxy_buffer_size"],
+		array("TOOLTIP"=>"{proxy_buffer_size_text}"));
+$boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses}", $ligne["proxy_cache_min_uses"],
+		array("TOOLTIP"=>"{proxy_cache_min_uses_text}"));
+
+$boot->set_spacertitle("{browsers_security}");
+
+$boot->set_checkbox("EnableHSTS", "{EnableHSTS}", $ligne["EnableHSTS"],
+		array("TOOLTIP"=>"{EnableHSTS_text}"));
+
+$boot->set_checkbox("RestrictIFrames", "{RestrictIFrames}", $ligne["RestrictIFrames"],
+		array("TOOLTIP"=>"{RestrictIFrames_text}"));
+
+$boot->set_checkbox("XSSBrowser", "{XSS_FILTERB}", $ligne["XSSBrowser"],
+		array("TOOLTIP"=>"{XSS_FILTERB_TEXT}"));
+
+$boot->set_checkbox("EnableCSP", "{EnableCSP}", $ligne["EnableCSP"],
+		array("TOOLTIP"=>"{EnableCSP_text}"));
+
+
+$boot->set_spacertitle("{ssl_security}");
+$boot->set_checkbox("EnableSSLOCSP", "{EnableSSLOCSP}", $ligne["EnableSSLOCSP"],
+		array("TOOLTIP"=>"{EnableSSLOCSP_text}"));
+
+
+$boot->set_field("ssl_protocols", "{ssl_protocols}", $ligne["ssl_protocols"],array("TOOLTIP"=>"{ssl_protocols_text}"));
+$boot->set_field("ssl_ciphers", "{ssl_ciphers}",$ligne["ssl_ciphers"]);
+
+
+$boot->set_hidden("servername-errors", $servername);
+$boot->set_button("{apply}");
+$boot->set_RefreshSearchs();
+echo $boot->Compile();
+
+}
+
+
+function websites_popup_webserver_errors_save(){
+	$servername=$_POST["servername-errors"];
+	unset($_POST["servername-errors"]);
+	
+	$q=new mysql_squid_builder();
+	$q2=new mysql();
+	$editF=false;
+	
+	while (list ($key, $value) = each ($_POST) ){
+		$fields[]="`$key`";
+		$values[]="'".mysql_escape_string2($value)."'";
+		$edit[]="`$key`='".mysql_escape_string2($value)."'";
+	
+	}
+	
+	$sql="UPDATE reverse_www SET ".@implode(",", $edit)." WHERE servername='$servername'";
+	$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}	
 }
 
 function source_popup(){
@@ -661,18 +1011,20 @@ function source_popup_main(){
 	$page=CurrentPageName();
 	$source_id=$_GET["source-id"];
 	if(!is_numeric($source_id)){$source_id=0;}
+	$q=new mysql_squid_builder();
 	$title="{new_source}";
 	$bt="{add}";
 	if($source_id>0){
-		$q=new mysql_squid_builder();
+		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_sources WHERE ID='$source_id'"));
 		$title=$ligne["servername"];
 		$bt="{apply}";
 	}	
-	
+	if(!$q->FIELD_EXISTS("reverse_sources", "OnlyTCP")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `OnlyTCP` smallint(1) NOT NULL DEFAULT '0'");}
 	
 	if(!is_numeric($ligne["port"])){$ligne["port"]=80;}
 	if(!is_numeric($ligne["sslport"])){$ligne["sslport"]=443;}
+	if(!is_numeric($ligne["OnlyTCP"])){$ligne["OnlyTCP"]=0;}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
 	if(!is_numeric($ligne["ForceRedirect"])){$ligne["ForceRedirect"]=1;}
 	if(!is_numeric($ligne["proxy_read_timeout"])){$ligne["proxy_read_timeout"]=300;}
@@ -681,8 +1033,12 @@ function source_popup_main(){
 	$boot->set_hidden("source-id", $source_id);
 	
 	$boot->set_formtitle($title);
+	$boot->set_hidden("OnlyTCP", "0");
 	$boot->set_field("servername", "{servername2}", $ligne["servername"],array("TOOLTIP"=>"{nginx_servername2}"));
 	$boot->set_field("ipaddr", "{destination}", $ligne["ipaddr"],array("TOOLTIP"=>"{nginx_destination}"));
+	//$boot->set_checkbox("OnlyTCP", "{OnlyTCP}", $ligne["OnlyTCP"],array("TOOLTIP"=>"{nginx_OnlyTCP}"));
+	
+	
 	$boot->set_field("port", "{port}",$ligne["port"]);
 	$boot->set_field("forceddomain", "{forceddomain}",$ligne["forceddomain"],array("TOOLTIP"=>"{nginx_forceddomain}"));
 	$boot->set_field("proxy_read_timeout", "{read_timeout} ({seconds})", $ligne["proxy_read_timeout"],array("TOOLTIP"=>"{nginx_proxy_read_timeout}"));
@@ -735,6 +1091,9 @@ function websites_save(){
 	if(trim($ligne["servername"])<>null){
 		$editF=true;
 	}
+	
+	
+	if($_POST["default_server"]==1){$q->QUERY_SQL("UPDATE reverse_www SET `default_server`=0 WHERE `port`='{$_POST["port"]}'");}
 	
 	while (list ($key, $value) = each ($_POST) ){
 		$fields[]="`$key`";
@@ -816,6 +1175,19 @@ function source_save(){
 	$source_id=$_POST["source-id"];
 	$revers=new squid_reverse();
 	unset($_POST["source-id"]);
+	$tpl=new templates();
+	$_POST["ipaddr"]=trim(strtolower($_POST["ipaddr"]));
+	$classip=new IP();
+	if(!$classip->isIPAddress($_POST["ipaddr"])){
+		$ip=gethostbyname($_POST["ipaddr"]);
+		if(!$classip->isIPAddress($ip)){
+			echo $tpl->javascript_parse_text("{unable_to_resolve}: {$_POST["ipaddr"]}\n",1);
+			return;
+		}
+	}
+	
+	
+	
 	while (list ($key, $value) = each ($_POST) ){
 		$fields[]="`$key`";
 		$values[]="'".mysql_escape_string2($value)."'";
@@ -831,6 +1203,7 @@ function source_save(){
 	}
 	
 	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("reverse_sources", "OnlyTCP")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `OnlyTCP` smallint(1) NOT NULL DEFAULT '0'");}
 	$q->QUERY_SQL($sql);
 	if(!$q->ok){echo $q->mysql_error;return;}
 
@@ -851,6 +1224,7 @@ function content(){
 	$ff=time();
 	$users=new usersMenus();
 	$f=new squid_reverse();
+	
 
 	$html="
 	<div class=BodyContent>
@@ -900,6 +1274,15 @@ function tabs(){
 		
 	}
 	
+	$sock=new sockets();
+	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
+	
+	if($EnableNginx==0){
+		$button=$tpl->_ENGINE_parse_body(button("{activate_reverse_proxy}", "Loadjs('squid.nginx.php');"));
+		$subtitle=$tpl->_ENGINE_parse_body("<p class=text-error>{warn_nginx_disabled}</p>");
+	}
+	
 	
 	echo "<div style='float:right'>$button</div>$subtitle".$boot->build_tab($array);
 	
@@ -919,6 +1302,13 @@ function sources_tabs(){
 }
 
 function nginx_status(){
+	$page=CurrentPageName();
+	$html="<div id='nginx-section-status'></div>
+		<script>LoadAjax('nginx-section-status','$page?nginx-section-status=yes');</script>";
+	echo $html;
+}
+	
+function nginx_status_section(){	
 	$sock=new sockets();
 	
 	$ARRAY=unserialize(base64_decode($sock->getFrameWork("nginx.php?status-infos=yes")));
@@ -979,16 +1369,25 @@ function nginx_status(){
 		
 	}
 	
+	$datas=$sock->getFrameWork("cmd.php?apachesrc-ini-status=yes");
+	$ini->loadString(base64_decode($datas));
+	$APP_APACHE_SRC=DAEMON_STATUS_ROUND("APP_APACHE_SRC",$ini,null,0);
+	$APP_PHPFPM=DAEMON_STATUS_ROUND("APP_PHPFPM",$ini,null,0);
+	
 	$final=@implode("\n", $t)."</table>";
 	
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td colspan=2><H3>{APP_NGINX} {$ARRAY["DEF"]["VERSION"]}</H3></td>
+		<td colspan=2>
+			<div style='float:right'>".
+			button("{manual_update}", "Loadjs('miniadmin.nginx.update.php')",18)."</div>
+		<H3>{APP_NGINX} {$ARRAY["DEF"]["VERSION"]}</H3></td>
+		
 	</tr>
 	<tr>
-		<td valign='top' style='text-valign:top;padding:5px' width=350px>$nginx_status$APP_NGINXDB</td>
-		<td valign='top' style='text-valign:top;padding:10px'><div style='width:95%' class=form>$final</div></td>
+		<td valign='top' style='text-valign:top;padding:5px' width=350px>$nginx_status$APP_NGINXDB$APP_APACHE_SRC$APP_PHPFPM</td>
+		<td valign='top' style='text-valign:top;padding:10px'><div style='width:98%' class=form>$final</div></td>
 	</tr>
 	</table>		
 			
@@ -1113,7 +1512,19 @@ function websites_search(){
 	$sock=new sockets();
 	$q=new mysql();
 	$CountDeFreeWebs=$q->COUNT_ROWS("freeweb", "artica_backup");
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	$q=new mysql_squid_builder();
+	
+	if(!$q->TABLE_EXISTS("reverse_www")){$f=new squid_reverse();}
+	if(!$q->TABLE_EXISTS("reverse_sources")){$f=new nginx_sources();$f->PatchTables();}
+	
+	
+	if(!$q->FIELD_EXISTS("reverse_sources", "OnlyTCP")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `OnlyTCP` smallint(1) NOT NULL DEFAULT '0'");
+			if(!$q->ok){echo "<p class=text-error>$q->mysql_error in ".basename(__FILE__)." line ".__LINE__."</p>";}
+	
+		}
 	$CountDereverse=$q->COUNT_ROWS("reverse_www");
 	if($CountDereverse==0){
 		if($CountDeFreeWebs>0){
@@ -1126,7 +1537,7 @@ function websites_search(){
 	$STATUS=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/nginx.status.acl"));
 	
 	$searchstring=string_to_flexquery("websites-search");
-	$q=new mysql_squid_builder();
+	
 	$sql="SELECT * FROM reverse_www WHERE 1 $searchstring ORDER BY servername LIMIT 0,250";
 	
 	if(!AdminPrivs()){
@@ -1136,35 +1547,51 @@ function websites_search(){
 	}
 	
 	$results=$q->QUERY_SQL($sql,'artica_backup');
+	if(!$q->ok){echo $q->mysql_error_html();return;}
+	
 	$tpl=new templates();
+	$all_text=$tpl->_ENGINE_parse_body("{all}");
 	$GLOBALS["CLASS_TPL"]=$tpl;
 	$boot=new boostrap_form();
 	$page=CurrentPageName();
 	$q1=new mysql();
 	$t=time();
-	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				$icon2="arrow-right-64.png";
 				$icon="domain-main-64.png";
 				$freewebicon="64-firewall-search.png";
 				$color="black";
 				$portText=null;
-				$certificate_text=$tpl->_ENGINE_parse_body("<div>{certificate}: {default}</div>");;
+				if($ligne["ssl"]==1){
+					$certificate_text=$tpl->_ENGINE_parse_body("<div>{certificate}: {default}</div>");;
+				}
 				$md=md5(serialize($ligne));
-				if($ligne["enabled"]==0){
+				$RedirectQueries=$ligne["RedirectQueries"];
+				$default_server=$ligne["default_server"];
+				$explain_text=null;
+				$SiteEnabled=$ligne["enabled"];
+				$servername=$ligne["servername"];
+				$servername_enc=urlencode($servername);
+				
+				$DeleteFreeWeb="Loadjs('$page?delete-websites-js=yes&servername=$servername_enc&md=$md')";
+				
+				if($ligne["DenyConf"]==1){$icon="hearth-blocked-64.png";}
+				
+				if($SiteEnabled==0){
 					$icon="domain-main-64-grey.png";
-					$color="#CCCCCC";
+					$color="#8a8a8a";
 					$icon2="arrow-right-64-grey.png";
 				}
 				
-				$servername=$ligne["servername"];
-				$servername_enc=urlencode($servername);
-				$delete=imgsimple("delete-48.png",null,"Delete$t('$servername','$md')");
+				
+				$delete=imgsimple("delete-48.png",null,$DeleteFreeWeb);
 				$jsEditWW=$boot->trswitch("Loadjs('website-js=yes&servername=$servername_enc')");
-				$jsedit=$boot->trswitch("Loadjs('$page?website-js=yes&servername=$servername')");
+				$jsedit=$boot->trswitch("Loadjs('$page?website-js=yes&servername=$servername_enc')");
 				$jseditA=$jsedit;
+				$jseditC=$boot->trswitch("Loadjs('$page?website-script-js=yes&servername=$servername')");
 				
 				if($ligne["certificate"]<>null){
-					$certificate_text=$tpl->_ENGINE_parse_body("<div>{certificate}: {$ligne["certificate"]}</div>");;
+					$certificate_text="".$tpl->_ENGINE_parse_body("<div>{certificate}: {$ligne["certificate"]}</div>");;
 				}				
 				
 				
@@ -1191,25 +1618,39 @@ function websites_search(){
 				}
 				$FreeWebText=null;
 				$explain_text=null;
+				
+				if($EnableFreeWeb==0){
+					if($ligne["ipaddr"]=="127.0.0.1"){$ligne["ipaddr"]="{error}";}
+					if($ligne["cache_peer_id"]==0){$ligne["cache_peer_id"]=-1;}
+				}
+				
 				if(($ligne["ipaddr"]=="127.0.0.1") OR ($ligne["cache_peer_id"]==0)){
 					$jsedit=$boot->trswitch("Loadjs('freeweb.edit.php?hostname=$servername&t=$t')");
 					$certificate_text=null;
-					$delete=imgsimple("delete-48.png",null,"DeleteFreeWeb$t('$servername','$md')");
+					$delete=imgsimple("delete-48.png",null,$DeleteFreeWeb);
 					$jseditS=null;
 					$freewebicon="domain-64.png";
 					$FreeWebText="
 					<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname=$servername&t=$t')\">
 					127.0.0.1:82 (FreeWeb)</a>";
 				}else{
-					if($ligne["port"]>0){
-						$portText=":{$ligne["port"]}";
-					}	
+					
+					if($ligne["port"]>0){$portText=":{$ligne["port"]}";}	
 					$explain_text=EXPLAIN_REVERSE($ligne["servername"]);
-					$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
+					$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port,OnlyTCP FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
+					
+					$OnlyTCP=$ligne2["OnlyTCP"];
 					$FreeWebText="{$ligne2["servername"]}:{$ligne2["port"]}";
 					$jseditS=$boot->trswitch("Loadjs('$page?js-source=yes&source-id={$ligne["cache_peer_id"]}')");
+					if($OnlyTCP==0){
+						$ligne["owa"]=0;
+						if($ligne["ssl"]==1){if($ligne["port"]==80){$portText=$portText."/443";}}
+					}
 					
-					if($ligne["ssl"]==1){if($ligne["port"]==80){$portText=$portText."/443";}}
+					if($OnlyTCP==1){
+						$certificate_text=null;
+						$portText=$portText." <strong>TCP</strong>";
+					}
 					
 				}
 				
@@ -1230,9 +1671,8 @@ function websites_search(){
 				$sql="SELECT * FROM nginx_aliases WHERE servername='$servername' $searchstring ORDER BY alias LIMIT 0,250";
 				$results2=$q->QUERY_SQL($sql);
 				$ali=array();$alitext=null;
-				while($ligne=mysql_fetch_array($results2,MYSQL_ASSOC)){
-					$ali[]="{$ligne["alias"]}";
-				}
+				while($ligne=mysql_fetch_array($results2,MYSQL_ASSOC)){$ali[]="{$ligne["alias"]}";}
+				
 				if(count($ali)>0){$alitext="&nbsp;<i>(" .@implode("{or} ", $ali).")</i>&nbsp;"		;}
 				$stats=null;
 				
@@ -1242,20 +1682,39 @@ function websites_search(){
 					$stats="<a href='miniadmin.proxy.reverse.awstats.php?servername=".urlencode($servername)."'><img src='img/statistics-48.png'></a>";
 				}
 
+				$FinalDestination="{$ligne["ipaddr"]}$FreeWebText";
+				if($RedirectQueries<>null){
+					$FinalDestination=$RedirectQueries;
+					$explain_text=$tpl->_ENGINE_parse_body("<br>{RedirectQueries_explain_table}");
+				}
 				
+			
+				if($default_server==1){
+					$servername="$servername ($all_text * )";
+					$icon="free-web-64.png";
+					if($SiteEnabled==0){
+						$icon="free-web-64-grey.png";
+					}
+				}
 				
 				$tr[]="
 				<tr style='color:$color' id='$md'>
-					<td width=1% nowrap $jseditA><img src='img/$icon'></td>
-					<td width=80% $jseditA style='vertical-align:middle'>
-						<span style='font-size:18px;font-weight:bold;'>$servername$portText</span>
+					<td width=64px nowrap $jseditC><img src='img/script-64.png' style='width:64px'></td>
+					<td width=64px nowrap $jseditA><img src='img/$icon' style='width:64px'></td>
+					<td width=80% style='vertical-align:middle'>
+						<a href=\"javascript:blur();\" 
+						style='font-size:18px;font-weight:bold;text-decoration:underline'
+						OnClick=\"javascript:Loadjs('$page?website-js=yes&servername=$servername_enc')\">$servername$portText</a>
 						$alitext$certificate_text$status_text
 						$explain_text
 						</td>
 					<td width=1% nowrap style='vertical-align:middle'>$stats</td>
-					<td width=1% nowrap $jsedit style='vertical-align:middle'><img src='img/$freewebicon'></td>
-					<td width=1% nowrap $jsedit style='vertical-align:middle'><img src='img/$icon2'></td>
-					<td width=1% nowrap $jseditS style='vertical-align:middle'><span style='font-size:18px;font-weight:bold'>{$ligne["ipaddr"]}$FreeWebText</span></td>
+					<td width=64px nowrap $jsedit style='vertical-align:middle'><img src='img/$freewebicon' style='width:64px'></td>
+					<td width=64px nowrap $jsedit style='vertical-align:middle'><img src='img/$icon2' style='width:64px'></td>
+					<td width=1% nowrap $jseditS style='vertical-align:middle'>
+						<span style='font-size:18px;font-weight:bold'>$FinalDestination</span>
+						
+					</td>
 					
 					
 					<td width=1% nowrap style='vertical-align:middle'>$delete</td>
@@ -1438,25 +1897,32 @@ function sources_search(){
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 
 		$icon="64-idisk-server.png";
+		$icon_failed="64-idisk-server-grey.png";
 		$icon2="folder-network-64.png";
+		$icon2_failed="folder-network-64-grey.png";
 		$isSuccessIcon="none-20.png";
+		$isSuccessIcon_failed="check-32-grey.png";
+		$isSuccessIcon_success="check-32.png";
 		$isSuccessLink=null;
+		
+		if($ligne["OnlyTCP"]==1){
+			$icon="folder-network-64.png";
+			$icon_failed="folder-network-64-grey.png";
+		}
 		
 		$color="black";
 		$md=md5(serialize($ligne));
 		if($ligne["enabled"]==0){
-			$icon="64-idisk-server-grey.png";
-			$icon2="folder-network-64-grey.png";
-			$color="#CCCCCC";
+			$icon=$icon_failed;
+			$icon2=$icon2_failed;
+			$color="#8a8a8a";
 		}
 
 		$servername=$ligne["servername"];
 		$delete=imgsimple("delete-48.png",null,"Delete$t('{$ligne["ID"]}','$md')");
 
 		$jsedit=$boot->trswitch($js_edit);
-		if($ligne["ipaddr"]=="127.0.0.1"){
-			$delete="&nbsp;";
-		}
+		if($ligne["ipaddr"]=="127.0.0.1"){$delete="&nbsp;";}
 		
 		$isSuccess=$ligne["isSuccess"];
 		if(!$AdminPrivs){$delete="&nbsp;";}
@@ -1465,9 +1931,9 @@ function sources_search(){
 		$isSuccesstxt=unserialize(base64_decode($ligne["isSuccesstxt"]));
 		if(count($isSuccesstxt)>1){
 			$isSuccessLink=$boot->trswitch("Loadjs('$page?js-source-tests={$ligne["ID"]}')");
-			$isSuccessIcon="check-32.png";
+			$isSuccessIcon=$isSuccessIcon_success;
 			if($isSuccess==0){
-				$isSuccessIcon="check-32-grey.png";
+				$isSuccessIcon=$isSuccessIcon_failed;
 				$color="#C40000";
 			}
 			
@@ -1624,6 +2090,17 @@ XHR.sendAndLoad('freeweb.servers.php', 'POST',x_FreeWebRefresh);
 }
 
 function parameters(){
+	$boot=new boostrap_form();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	
+	$array["{parameters}"]="$page?parameters-section=yes";
+	echo $boot->build_tab($array);
+		
+	
+}
+
+function parameters_section(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$boot=new boostrap_form();
@@ -1636,20 +2113,30 @@ function parameters(){
 	$sock=new sockets();
 	$SquidReverseDefaultWebSite=$sock->GET_INFO("SquidReverseDefaultWebSite");
 	$SquidReverseDefaultCert=$sock->GET_INFO("SquidReverseDefaultWebSite");
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	$EnableArticaInNGINX=$sock->GET_INFO("EnableArticaInNGINX");
 	if($SquidReverseDefaultWebSite==null){$SquidReverseDefaultWebSite=$squid->visible_hostnameF();}
 	
-	
+	if(!is_numeric($EnableArticaInNGINX)){$EnableArticaInNGINX=0;}
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	$MySQLNgnixType=$sock->GET_INFO("MySQLNgnixType");
 	if(!is_numeric($MySQLNgnixType)){$MySQLNgnixType=1;}
 	$EnableNginxStats=$sock->GET_INFO("EnableNginxStats");
 	if(!is_numeric($EnableNginxStats)){$EnableNginxStats=0;}	
+	
 	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLNginxParams")));
 	$ListenPort=$TuningParameters["ListenPort"];
 	$MySQLNginxWorkDir=$sock->GET_INFO("MySQLNginxWorkDir");
 	if($MySQLNginxWorkDir==null){$MySQLNginxWorkDir="/home/nginxdb";}	
-	
+	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 	
 	$boot->set_formtitle("{global_parameters}");
+	
+	$boot->set_checkbox("EnableNginx","{enable_nginx}",  "$EnableNginx",array("TOOLTIP"=>"{enable_nginx_text}"));
+	$boot->set_checkbox("EnableFreeWeb","{enable_freeweb}",$EnableFreeWeb,array("TOOLTIP"=>"{enable_freeweb_text}"));
+	
+	$boot->set_checkbox("EnableArticaInNGINX","{ArticaWebConsoleAsFrontEnd}",  "$EnableArticaInNGINX");
 	$boot->set_field("SquidReverseDefaultWebSite","{default_website}",  "$SquidReverseDefaultWebSite");
 	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
 	$q=new mysql();
@@ -1711,7 +2198,14 @@ function parameters(){
 }
 function parameters_save(){
 	$sock=new sockets();
+	$sock->SET_INFO("EnableNginx", $_POST["EnableNginx"]);
 	$sock->SET_INFO("SquidReverseDefaultWebSite", $_POST["SquidReverseDefaultWebSite"]);
+	$sock->SET_INFO("EnableFreeWeb", $_POST["EnableFreeWeb"]);
+	$sock->SET_INFO("EnableArticaInNGINX", $_POST["EnableArticaInNGINX"]);
+	
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
+	$sock->getFrameWork("cmd.php?freeweb-restart=yes");
+	
 	$squid=new squidbee();
 	$squid->certificate_center=$_POST["certificate_center"];
 	$squid->SaveToLdap();
@@ -1882,7 +2376,12 @@ function websites_popup_webserver_replace_popup(){
 	$boot->set_field("rulename", "{name}", $ligne["rulename"]);
 	$boot->set_field("zorder", "{order}", $ligne["zorder"]);
 	
+	
+	$boot->set_spacertitle("{search}");
 	$boot->set_textarea("stringtosearch", "{search}", $ligne["stringtosearch"],array("MANDATORY"=>true,"ENCODE"=>true));
+	$boot->set_checkbox("AsRegex", "{regex}", $ligne["AsRegex"],array("TOOLTIP"=>"{replace_regex_explain}"));
+	
+	$boot->set_spacertitle("{replace}");
 	$boot->set_textarea("replaceby", "{replace}", $ligne["replaceby"],array("MANDATORY"=>true,"ENCODE"=>true));
 	$boot->set_field("tokens", "{flags}", $ligne["tokens"],array("MANDATORY"=>true));
 	
@@ -2071,6 +2570,7 @@ function websites_directories_search(){
 	$q=new mysql_squid_builder();
 	
 	$servername=$_GET["servername"];
+	$servername_enc=urlencode($servername);
 	$sql="SELECT * FROM reverse_dirs WHERE servername='$servername' $searchstring ORDER BY directory LIMIT 0,250";
 	$results=$q->QUERY_SQL($sql);
 	$tpl=new templates();
@@ -2083,7 +2583,7 @@ function websites_directories_search(){
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$icon="folder-move-64.png";
 		$arrow="arrow-right-64.png";
-		
+		$color="black";
 		$md=md5(serialize($ligne));
 		
 		
@@ -2100,21 +2600,30 @@ function websites_directories_search(){
 		
 	
 			
-	
+		$jseditDest=$jsedit;
+		$DestFont=16;
 		$directory=trim(stripslashes($ligne["directory"]));
 		$hostweb="<div><i>{$ligne["hostweb"]}</i></div>";
 		
 		if($ligne["local"]==1){
 			$destination=$ligne["localdirectory"];
 		}
+		
+		if($ligne["webpageid"]>0){
+			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT subject FROM reverse_pages_content WHERE ID='{$ligne["webpageid"]}'"));
+			$destination=$ligne2["subject"];
+			$hostweb=null;
+			$DestFont=12;
+			$jseditDest=$boot->trswitch("Loadjs('miniadmin.crm.pages.php?ID={$ligne["webpageid"]}')");
+		}
 	
 		$tr[]="
 		<tr style='color:$color' id='$md'>
 		<td width=1% nowrap $jsedit><img src='img/$icon'></td>
-		<td width=80% $jsedit><span style='font-size:16px;font-weight:bold'>$directory</span></td>
+		<td width=80% $jsedit><span style='font-size:16px;font-weight:bold'>http(s)://$servername/$directory</span></td>
 		<td width=1% nowrap $jsedit style='vertical-align:middle'><img src='img/$arrow'></td>
-		<td width=1% nowrap $jsedit style='vertical-align:middle'>
-			<span style='font-size:16px;font-weight:bold'>$destination</span>$hostweb
+		<td width=1% nowrap $jseditDest style='vertical-align:middle'>
+			<span style='font-size:{$DestFont}px;font-weight:bold'>$destination</span>$hostweb
 		</td>
 			
 			
@@ -2267,6 +2776,12 @@ function websites_popup_events_search(){
 
 FUNCTION  EXPLAIN_REVERSE($servername){
 	$q=new mysql_squid_builder();
+	$servernameencode=urlencode($servername);
+	$exp[]="<div style='float:right;margin:10px'>
+			<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.reverse.reconfigure.php?servername=$servernameencode')\">
+			<img src='img/reconfigure-42.png' style='width:42px'></a></div>";
+	
+	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
 	$ssl="{proto} (HTTP) ";
 	
@@ -2278,13 +2793,13 @@ FUNCTION  EXPLAIN_REVERSE($servername){
 		}
 	}
 	
-
+	
 	
 	$page=CurrentPageName();
 	$cache_peer_id=$ligne["cache_peer_id"];
 	if($cache_peer_id==0){return;}
-	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port,ForceRedirect FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
-	
+	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port,ForceRedirect,OnlyTCP FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
+	if(!$q->ok){echo "<p class=text-error>$q->mysql_error in ".basename(__FILE__)." line ".__LINE__."</p>";}
 	$ForceRedirect="<br>{ForceRedirectyes_explain_table}";
 	
 	if($ligne["ForceRedirect"]==0){
@@ -2295,14 +2810,130 @@ FUNCTION  EXPLAIN_REVERSE($servername){
 		$ssl="{proto} (HTTP<b>S</b>) ";
 	}
 
+	
+	if($ligne["OnlyTCP"]==1){
+		$ssl="{proto} TCP";$ForceRedirect=null;
+		
+	}
 	$js="Loadjs('$page?js-source=yes&source-id={$ligne["cache_peer_id"]}')";
 	$exp[]="<div><i style='font-size:12px'>$ssl";
 	$exp[]="{redirect_communications_to}";
 	//$exp[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\">";
 	$exp[]="{$ligne["servername"]} {address} {$ligne["ipaddr"]} {on_port} {$ligne["port"]} id:$cache_peer_id";
 	$exp[]=$ForceRedirect;
+	
+	
+	$sql="SELECT * FROM nginx_exploits WHERE servername='$servername' LIMIT 0,5";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){senderror($q->mysql_error);}
+	
+	$filters=array();
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$groupid=$ligne["groupid"];
+		$jsedit="Loadjs('miniadmin.nginx.exploits.groups.php?js-group=yes&ID=$groupid&servername={$_GET["servername"]}')";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM nginx_exploits_items WHERE groupid='$groupid'"));
+		$RulesNumber=$ligne2["tcount"];
+		$AF="<a href=\"javascript:blur();\" OnClick=\"javascript:$jsedit\" style='text-decoration:underline'>";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT groupname FROM nginx_exploits_groups WHERE ID='$groupid'"));
+		$filters[]="{group} $AF{$ligne2["groupname"]} ($RulesNumber {items})</a>";
+	}
+	if(count($filters)>0){
+		$exp[]="<br>{check_anti_exploit_with}:".@implode(", ", $filters);
+	}
+	
+	$jsban="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.nginx.exploits.php?firewall-js=yes&servername=$servername')\"
+	style='text-decoration:underline'>";
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT maxaccess,sendlogs FROM nginx_exploits_fw WHERE servername='$servername'"));
+	if($ligne["maxaccess"]>0){
+		$exp[]="<br>{bann_ip_after} $jsban{$ligne["maxaccess"]} {events}</a>";
+	}
+	if($ligne["sendlogs"]==1){$exp[]=",&nbsp;{write_logs_for} {$jsban}403 {errors}</a>";}
+	
+	
 	$exp[]="</div>";
 	$tpl=new templates();
 	return $tpl->_ENGINE_parse_body(@implode(" ", $exp));
+	
+}
+function websites_script(){
+	$servername=$_GET["servername"];
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("reverse_www", "DenyConf")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `DenyConf` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+	$sock=new sockets();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
+	$datas=unserialize(base64_decode($sock->getFrameWork("nginx.php?conf-view=".urlencode($servername))));
+	$filename=$datas["FILENAME"];
+	$datasR=@file_get_contents("/usr/share/artica-postfix/ressources/logs/$filename");
+	
+	$sock=new sockets();
+	$tpl=new templates();
+	$DenySquidWriteConf=$sock->GET_INFO("DenySquidWriteConf");
+	if(!is_numeric($DenySquidWriteConf)){$DenySquidWriteConf=0;}
+	$t=time();
+	$page=CurrentPageName();
+	$html="
+	<div id='$t'></div>
+		<div style='width:98%' class=form>
+		<table>
+			<tr>
+				<td class=legend style='font-size:14px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>
+				<td>". Field_checkbox("DenyConf$t", 1,$ligne["DenyConf"],"DenyConfSave$t()")."</td>
+			</tr>
+		</table>
+		<textarea
+			style='width:95%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
+			id='SQUID_CONTENT-$t'>$datasR</textarea>
+			<center><hr>". $tpl->_ENGINE_parse_body(button("{apply}", "SaveUserConfFile$t()",22))."</center>
+	</div>
+	<script>
+		var xDenyConfSave$t= function (obj) {
+			var results=obj.responseText;
+			if(results.length>3){alert(results);return;}
+		}
+	
+		function DenyConfSave$t(){
+			var XHR = new XHRConnection();
+			var DenyConfSave=0;
+			if(document.getElementById('DenyConf$t').checked){DenyConfSave=1;}
+			XHR.appendData('DenyConfSave', DenyConfSave);
+			XHR.appendData('servername', '$servername');
+			XHR.sendAndLoad('$page', 'POST',xDenyConfSave$t);
+	}
+	
+	var xSaveUserConfFile$t= function (obj) {
+		var results=obj.responseText;
+		document.getElementById('$t').innerHTML='';
+		if(results.length>3){alert(results);return;}
+	}	
+	
+	function SaveUserConfFile$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('servername', '$servername');
+		XHR.appendData('filename', encodeURIComponent('$filename'));
+		
+		XHR.appendData('nginxconf', encodeURIComponent(document.getElementById('SQUID_CONTENT-$t').value));
+		AnimateDiv('$t');
+		XHR.sendAndLoad('$page', 'POST',xSaveUserConfFile$t);
+		}
+	</script>
+		";
+	echo $html;
+	
+}
+function websites_script_DenyConfSave(){
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("reverse_www", "DenyConf")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `DenyConf` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+	$q->QUERY_SQL("UPDATE reverse_www SET `DenyConf`='{$_POST["DenyConfSave"]}' WHERE `servername`='{$_POST["servername"]}'");
+	if(!$q->ok){echo $q->mysql_error;}
+}
+function websites_script_nginxconf(){
+	$nginxconf=url_decode_special_tool($_POST["nginxconf"]);
+	$servername=urlencode($_POST["servername"]);
+	$filename=url_decode_special_tool($_POST["filename"]);
+	$filename=urlencode($filename);
+	@file_put_contents("ressources/logs/web/$servername", $nginxconf);
+	$sock=new sockets();
+	echo base64_decode($sock->getFrameWork("nginx.php?replic-conf=$servername&dest=$filename"));
+	
 	
 }

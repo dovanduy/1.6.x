@@ -11,12 +11,30 @@ include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 
+start();
+
+function start(){
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
+if($GLOBALS["VERBOSE"]){echo "TimeFile:$pidTime\n";}
+ToMySQL();
 $unix=new unix();
+if($unix->file_time_min($pidTime)<1){die();}
+
+
 if($unix->process_exists(@file_get_contents($pidfile,basename(__FILE__)))){if($GLOBALS["VERBOSE"]){echo " --> Already executed.. ". @file_get_contents($pidfile). " aborting the process\n";}writelogs(basename(__FILE__).":Already executed.. aborting the process",basename(__FILE__),__FILE__,__LINE__);die();}
+
 @file_put_contents($pidfile, getmypid());
-if(system_is_overloaded(basename(__FILE__))){events(basename(__FILE__).":: die, overloaded");die();}
+
+if(system_is_overloaded(basename(__FILE__))){
+	if($GLOBALS["VERBOSE"]){echo "die, overloaded\n";}
+	die();
+}
+
+
+@unlink($pidTime);
+@file_put_contents($pidTime, time());
 
 if($argv[1]=='email'){BuildWarning('100','0');exit;}
 
@@ -27,32 +45,39 @@ if($argv[1]=='email'){BuildWarning('100','0');exit;}
 	@file_put_contents("/etc/artica-postfix/croned.2/".md5(__FILE__),date('Y-m-d H:i:s'));
 
 
-	
 	$users=new usersMenus();
 	$ini=new Bs_IniHandler();
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$ini->loadString($sock->GET_INFO("SmtpNotificationConfig"));
+	
+	if(!isset($ini->_params["SMTP"]["SystemCPUAlarm"])){die();}
+	if($ini->_params["SMTP"]["SystemCPUAlarm"]==0){ die(); }
+	
+	
+	if(!is_numeric($ini->_params["SMTP"]["enabled"])){$ini->_params["SMTP"]["enabled"]=1;}
+	if(!is_numeric($ini->_params["SMTP"]["SystemCPUAlarm"])){$ini->_params["SMTP"]["SystemCPUAlarm"]=0;}
+	
+	if($ini->_params["SMTP"]["SystemCPUAlarm"]==null){$ini->_params["SMTP"]["SystemCPUAlarm"]=0;}
+	if($ini->_params["SMTP"]["SystemCPUAlarmPourc"]==null){$ini->_params["SMTP"]["SystemCPUAlarmPourc"]=95;}
+	if($ini->_params["SMTP"]["SystemCPUAlarmMin"]==null){$ini->_params["SMTP"]["SystemCPUAlarmMin"]=5;}
+	if($ini->_params["SMTP"]["enabled"]==0){events("$page SMTP notification is not enabled");die();}
+	
+	
+	
+	
+	
 	$filestatus="/etc/artica-postfix/mpstat.status";
 	
 	
 
 	$timestamp=mktime(date("H"),date("i"),0,date('m'),date('Y'));
 	$timestamp_string=date("H").",".date("i").",".date('j');
-	$ini=new Bs_IniHandler();
-	$sock=new sockets();
-	$ini->loadString($sock->GET_INFO("SmtpNotificationConfig"));
-	if(!is_numeric($ini->_params["SMTP"]["enabled"])){$ini->_params["SMTP"]["enabled"]=1;}
-	if(!is_numeric($ini->_params["SMTP"]["SystemCPUAlarm"])){$ini->_params["SMTP"]["SystemCPUAlarm"]=1;}
 
-	if($ini->_params["SMTP"]["SystemCPUAlarm"]==null){$ini->_params["SMTP"]["SystemCPUAlarm"]=1;}
-	if($ini->_params["SMTP"]["SystemCPUAlarmPourc"]==null){$ini->_params["SMTP"]["SystemCPUAlarmPourc"]=95;}
-	if($ini->_params["SMTP"]["SystemCPUAlarmMin"]==null){$ini->_params["SMTP"]["SystemCPUAlarmMin"]=5;}	
-	if($ini->_params["SMTP"]["enabled"]==0){events("$page SMTP notification is not enabled");die();}
-	if($ini->_params["SMTP"]["SystemCPUAlarm"]==0){events("$page system monitor notification is not enabled");die();}
-
-	$vals=trim(exec('/usr/share/artica-postfix/bin/cpu-alarm.pl'));
-	$cpu=intval($vals);
+	if(!isset($GLOBALS["ISVALS"])){
+		$GLOBALS["ISVALS"]=trim(exec('/usr/share/artica-postfix/bin/cpu-alarm.pl'));
+	}
+	$cpu=intval($GLOBALS["ISVALS"]);
 	if(!is_file($filestatus)){file_put_contents($filestatus,"$timestamp_string;$cpu\n");events("$page CPU: $cpu%");die();}
 	
 	$cpu_total=0;
@@ -89,7 +114,12 @@ if($argv[1]=='email'){BuildWarning('100','0');exit;}
 
 	if($filetime<$ini->_params["SMTP"]["SystemCPUAlarmMin"]){file_put_contents($filestatus,implode("\n",$newfileARRAY));die();}
 	
-	if($cpuaverage>=$ini->_params["SMTP"]["SystemCPUAlarmPourc"]){events("$page Build warning CPU overload $cpu%");BuildWarning($cpuaverage,$filetime);}
+	if($cpuaverage>=$ini->_params["SMTP"]["SystemCPUAlarmPourc"]){
+		if(system_is_overloaded()){
+			events("$page Build warning CPU overload $cpu% and overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}/{$GLOBALS["SYSTEM_MAX_LOAD"]}");
+			BuildWarning($cpuaverage,$filetime);
+		}
+	}
 	
 	events("$page Clean cache...");			
 	unset($newfileARRAY);
@@ -97,24 +127,69 @@ if($argv[1]=='email'){BuildWarning('100','0');exit;}
 	file_put_contents($filestatus,implode("\n",$newfileARRAY));
 
 
-
+}
 
 function BuildWarning($cpu,$time){
 	
 	$load = sys_getloadavg();
+	$unix=new unix();
+	$hostname=$unix->hostname_g();
+	
 	$ldtext[]="**** Current system load ****";
 	$ldtext[]="Load 1mn.: ".$load[0];
 	$ldtext[]="Load 5mn.: ".$load[1];
 	$ldtext[]="Load 15mn: ".$load[2];
 	$ldtext[]="*****************************";
 	
-	$subject="CPU overload ($cpu%)";
+	$subject="CPU overload ($cpu%) and overloaded ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}/{$GLOBALS["SYSTEM_MAX_LOAD"]})";
 	shell_exec("/bin/ps -w axo ppid,pcpu,pmem,time,args --sort -pcpu,-pmem|/usr/bin/head --lines=20 >/tmp.top.txt 2>&1");
 	$top=file_get_contents("/tmp.top.txt");
 	@unlink("/tmp.top.txt");
 	$top=SafeProcesses()."\n".$top;
 	$text="Artica report that your $hostname server has reach $cpu% CPU average consumption in $time minute(s)\n".@implode("\n", $ldtext)."\nYou will find below a processes report:\n---------------------------------------------\n$top\nGenerated by ". basename(__FILE__)." (". __FUNCTION__." on line ". __LINE__.") at ". date("H:i:s")."";
 	send_email_events($subject,$text,'system');
+}
+
+function ToMySQL(){
+	if($GLOBALS["VERBOSE"]){echo "ToMySQL()....\n";}
+	
+	$unix=new unix();
+	$ps=$unix->find_program("ps");
+	exec("$ps -aux 2>&1", $processes);
+	foreach($processes as $process){
+		$cols = explode(' ', preg_replace('# +#', ' ', $process));
+		if (strpos($cols[2], '.') > -1){
+			$cpuUsage += floatval($cols[2]);
+		}
+	}
+	
+	
+	$vals=$cpuUsage;
+	if($vals==null){
+		if($GLOBALS["VERBOSE"]){echo "Nothing....\n";}
+		return;}
+	$GLOBALS["ISVALS"]=$vals;
+	if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["ISVALS"]}%\n";}
+	$q=new mysql();
+	
+	$sql="CREATE TABLE IF NOT EXISTS cpustats (
+  				zDate DATETIME NOT NULL,
+  				cpu   FLOAT NOT NULL DEFAULT '0.00',
+  				hostname    varchar(255) NOT NULL,
+				KEY `zDate` (`zDate`),
+				KEY `hostname` (`hostname`),
+				KEY `cpu` (`cpu`)
+				) ENGINE=MyISAM;";
+	$q->QUERY_SQL($sql,"artica_events");
+	$unix=new unix();
+	$hostname=$unix->hostname_g();
+	$time=date("Y-m-d H:i:s");
+	$sql="INSERT IGNORE INTO `cpustats` (zDate,cpu,hostname) VALUES ('$time','$vals','$hostname')";
+	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+	$q->QUERY_SQL($sql,"artica_events");
+	
+	
+	
 }
 
 function SafeProcesses(){
@@ -154,7 +229,7 @@ function SafeProcesses(){
 	$vnstatd=$unix->find_program("vnstatd");
 	if(is_file($vnstatd)){
 		$EnableVnStat=$sock->GET_INFO("EnableVnStat");
-		if(!is_numeric($EnableVnStat)){$EnableVnStat=1;}
+		if(!is_numeric($EnableVnStat)){$EnableVnStat=0;}
 		if($EnableVnStat==1){
 			$arraySTOP[]="vnStat Daemon (Network Card interfaces) is now disabled";
 			$sock->SET_INFO("EnableVnStat", 0);
@@ -175,7 +250,7 @@ function SafeProcesses(){
 		}
 	}		
 	
-	if($restartStatus){shell_exec("/etc/init.d/artica-postfix restart artica-status");}
+	if($restartStatus){shell_exec("/etc/init.d/artica-status reload");}
 	
 	$preload=$unix->find_program("preload");
 	if(is_file($preload)){
@@ -219,9 +294,10 @@ function SafeProcesses(){
 
 
 function events($text){
+		if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 		if($GLOBALS["VERBOSE"]){echo $text."\n";}
 		include_once(dirname(__FILE__)."/framework/class.unix.inc");
-		$logFile="/var/log/artica-postfix/artica-status.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/artica-status.debug";
 		$f=new debuglogs();
 		$f->debuglogs($text);
 		}

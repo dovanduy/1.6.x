@@ -32,7 +32,7 @@ function page(){
 	$update_events=Paragraphe('events-64.png','{update_events}','{update_events_text}',
 	"javascript:Loadjs('Kav4Proxy.Update.Events.php')");
 	
-	if($SQUIDEnable==0){$tr[]=Paragraphe('bg-server-settings-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:Loadjs('squid.newbee.php?reactivate-squid=yes')");}
+	if($SQUIDEnable==0){$tr[]=Paragraphe('shutdown-green-64.pngg','{enable_squid_service}','{enable_squid_service_text}',"javascript:Loadjs('squid.newbee.php?reactivate-squid=yes')");}
 	$tr[]=$license;
 	$tr[]=$update_kaspersky;
 	$tr[]=$update_events;

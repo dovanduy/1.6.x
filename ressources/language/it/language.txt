@@ -1311,7 +1311,7 @@ Give here the execution time every day</databases_maintenance_explain>
 <date_from>From date</date_from>
 <date_to>To date</date_to>
 <day>Day</day>
-<days>days</days>
+<days>Days</days>
 <dayw>DaysOfWeek</dayw>
 <db_enable_mailboxes>Manage local mailboxes</db_enable_mailboxes>
 <db_method>Database method</db_method>
@@ -1839,7 +1839,7 @@ This method is one of several system facilities to address network nodes on a co
 On some operating systems, the host file content is used preferentially over other methods, such as the Domain Name System (DNS), but many systems implement name service switches to provide customization.[br]
  Unlike DNS, the hosts file is under the control of the local computer's administrator</etc_hosts_explain>
 <etc_hosts_text>The hosts file is a computer file used in an operating system to map hostnames to IP addresses</etc_hosts_text>
-<events>events</events>
+<events>Events</events>
 <events_number>Events number</events_number>
 <events_text>Read all events about this daemon in realtime in order to follow the flow...</events_text>
 <every>every</every>
@@ -1958,6 +1958,7 @@ after the message is queued, send the  entire  message through the specified ext
 <folders>folders</folders>
 <folders_monitor>Folders monitor</folders_monitor>
 <for>for</for>
+<form add/mod>Form Add & modify</form add/mod>
 <format_device>Format this device</format_device>
 <format_device_explain>This operation will format this device in order to perform writeable operations</format_device_explain>
 <form_error>operation canceled...!
@@ -2061,7 +2062,7 @@ depends of the mails number and user number, server performance, generating this
 <global_rule>Global rule</global_rule>
 <global_services_status>Global services status</global_services_status>
 <global_size>global size</global_size>
-<global_smtp_rules>Global SMTP rules</global_smtp_rules>
+<global_smtp_rules>SMTP rules</global_smtp_rules>
 <global_whitelist>White & black list admin</global_whitelist>
 <go>go</go>
 <goback>Return to domains list</goback>
@@ -2588,7 +2589,7 @@ The message delivery transport name is the first field in the entry in the maste
 <LOGON_SCRIPT>Logon script</LOGON_SCRIPT>
 <LOGON_SCRIPT_PUT>Put the source code of your BAT script in the field below and click on save button</LOGON_SCRIPT_PUT>
 <LOGON_SCRIPT_TEXT>A logon script is a script that runs every time a user logs on to a computer</LOGON_SCRIPT_TEXT>
-<logs>events</logs>
+<logs>Events</logs>
 <logs monitor explain>Logs monitor allows you to open a monitor console in order to show you logs files in realtime[br]This console help you to select which application you want to scan.</logs monitor explain>
 <logs_cleaning>Logs files cleaning</logs_cleaning>
 <logs_size>Logs size</logs_size>

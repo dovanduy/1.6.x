@@ -347,7 +347,7 @@ FUNCTION tframework.STATUS():string;
 var
 pidpath:string;
 begin
-SYS.MONIT_DELETE('APP_FRAMEWORK');
+
 pidpath:=logs.FILE_TEMP();
 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --framework >'+pidpath +' 2>&1');
 result:=logs.ReadFromFile(pidpath);

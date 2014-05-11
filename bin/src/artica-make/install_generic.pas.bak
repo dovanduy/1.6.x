@@ -80,6 +80,7 @@ begin
  fpsystem('/bin/rm -f /etc/artica-postfix/versions.cache');
  fpsystem('/bin/rm -f /usr/share/artica-postfix/ressources/logs/global.versions.conf');
  fpsystem('/usr/share/artica-postfix/bin/artica-install --write-versions');
+ fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.setup-center.php --force');
  fpsystem('/usr/share/artica-postfix/bin/process1 --force &');
  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --remove &');
  fpsystem('/etc/init.d/artica-postfix restart artica-status &');

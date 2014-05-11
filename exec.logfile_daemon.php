@@ -1,332 +1,338 @@
 #!/usr/bin/php -q
 <?php
+$GLOBALS["COUNT"]=0;
+$GLOBALS["VERSION"]="25Jan2014";
 $GLOBALS["ACT_AS_REVERSE"]=false;
 $GLOBALS["NO_DISK"]=false;
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
-include_once(dirname(__FILE__)."/ressources/class.mysql.squid.builder.php");
-include_once(dirname(__FILE__)."/ressources/class.logfile_daemon.inc");
-@mkdir("/var/log/artica-postfix/squid-brut",0755,true);
-@mkdir("/var/log/artica-postfix/squid-reverse",0755,true);
+$GLOBALS["LOG_HOSTNAME"]=false;
+$GLOBALS["COUNT_WAKEUP"]=0;
+$GLOBALS["COUNT_RQS"]["TIME"]=time();
+$GLOBALS["ACCEPTED_REQUESTS"]=0;
+$GLOBALS["REFUSED_REQUESTS"]=0;
+$GLOBALS["COUNT_HASH_TABLE"]=0;
+$GLOBALS["KEYUSERS"]=array();
+$GLOBALS["RTTHASH"]=array();
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="{$GLOBALS["ARTICALOGDIR"]}"; } }
+@mkdir("/var/log/squid/mysql-queue",0755,true);
+@mkdir("/var/log/squid/mysql-rttime",0755,true);
+@mkdir("/var/log/squid/mysql-rthash",0755,true);
 error_reporting(0);
-$EnableRemoteSyslogStatsAppliance=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableRemoteSyslogStatsAppliance"));
-$DisableArticaProxyStatistics=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/DisableArticaProxyStatistics"));
-$EnableRemoteStatisticsAppliance=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableRemoteStatisticsAppliance"));
-$SquidActHasReverse=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidActHasReverse"));
-if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
-if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
-if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
-if($argv[1]=="--no-disk"){$GLOBALS["NO_DISK"]=true;}
-if($SquidActHasReverse==1){$GLOBALS["ACT_AS_REVERSE"]=true;}
-$logthis=array();
-$GLOBALS["Q"]=new mysql_squid_builder();
-if($GLOBALS["VERBOSE"]){$logthis[]=" Verbosed...";}
-if($GLOBALS["ACT_AS_REVERSE"]){$logthis[]=" Act as reverse...";}
-events("Starting PID:".getmypid()." ".@implode(", ", $logthis) ." ({$argv[1]})");
-$GLOBALS["USERSDB"]=unserialize(@file_get_contents("/etc/squid3/usersMacs.db"));
-$DCOUNT=0;
-$GLOBALS["logfileD"]=new logfile_daemon();
-$pipe = fopen("php://stdin", "r");
-while(!feof($pipe)){
-	$buffer .= fgets($pipe, 4096);
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
+
+if($argv[1]=="--no-disk"){$GLOBALS["NO_DISK"]=true;}
+if($argv[1]=="--dump-mac"){print_r(unserialize(@file_get_contents("/etc/squid3/usersMacs.db")));exit;}
+$logthis=array();
+if($GLOBALS["VERBOSE"]){$logthis[]="Verbosed";}
+if($GLOBALS["ACT_AS_REVERSE"]){$logthis[]=" Act as reverse...";}
+$GLOBALS["MYPID"]=getmypid();
+events("Starting PID: {$GLOBALS["MYPID"]} version: {$GLOBALS["VERSION"]}, ".@implode(", ", $logthis) ." ({$argv[1]})");
+$GLOBALS["COUNT_RQS"]=0;
+$GLOBALS["PURGED"]=0;
+events("Starting PID: waiting connections...");
+$DCOUNT=0;
+
+@file_put_contents("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid", time());
+
+$pipe = fopen("php://stdin", "r");
+$buffer=null;
+
+while(!feof($pipe)){
+	if($GLOBALS["VERBOSE"]){ events(" fgets PIPE");}
+	$buffer= trim(fgets($pipe));
+	if($GLOBALS["VERBOSE"]){ events(" fgets PIPE -> ".strlen($buffer));}
+	$GLOBALS["COUNT_RQS"]=$GLOBALS["COUNT_RQS"]+1;
 	
-	$buffer=trim($buffer);
-	$F=substr($buffer, 0,1);
-	if($F=="L"){
-		$DCOUNT++;
-		$buffer=substr($buffer, 1,strlen($buffer));
-		$keydate=date("lF");
-		$prefix=date("M")." ".date("d")." ".date("H:i:s")." localhost (squid-1): ";
-		$subdir=date("Y-m-d-h");
-		if(strpos($buffer, "TCP_DENIED:")>0){continue;}
-		if(strpos($buffer, "RELEASE -1")>0){continue;}
-		if(strpos($buffer, "RELEASE 00")>0){continue;}
-		if(strpos($buffer, "SWAPOUT 00")>0){continue;}
-		ParseSizeBuffer($buffer);
-		
-		if($EnableRemoteSyslogStatsAppliance==1){continue;}
-		if($DisableArticaProxyStatistics==1){continue;}
-		if($EnableRemoteStatisticsAppliance==1){continue;}
-		
-		
+	if($GLOBALS["VERBOSE"]){events( __LINE__." {$GLOBALS["COUNT_RQS"]} connexions");}
+	if($GLOBALS["VERBOSE"]){ events("*******************************"); events("Buffer: $buffer"); }
+	if(is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.debug")){
+		events("Turn into debug log");
+		@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.debug");
+		$GLOBALS["VERBOSE"]=true;
 	}
 	
+	if(is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.normal")){
+		@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.normal");
+		events("Turn off debug log");
+		$GLOBALS["VERBOSE"]=true;
+	}
+	
+	if(strpos($buffer, "TCP_DENIED/403")>0){
+		if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }
+		$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
+		continue;
+	}
+	
+	if($GLOBALS["VERBOSE"]){events( __LINE__."] -> WAKEUP ?");}
+	Wakeup();
+	
+	if(strpos($buffer, "NONE:HIER_NONE")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+	if(strpos($buffer, "error:invalid-request")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+	if(strpos("NONE error:", $buffer)>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return; }
+	if(strpos($buffer, "GET cache_object")>0){if($GLOBALS["VERBOSE"]){ events("SKIP $buffer"); }$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;return true;}
+	
+	
+	$F=substr($buffer, 0,1);
+
+	
+	
+	
+	
+	if($F=="L"){
+		$GLOBALS["WAKEUP_LOGS"]=$GLOBALS["WAKEUP_LOGS"]+1;
+		$buffer=substr($buffer, 1,strlen($buffer));
+		if($GLOBALS["VERBOSE"]){events( __LINE__." Accepting request ". strlen($buffer));}
+		
+		
+		
+		if( $GLOBALS["WAKEUP_LOGS"]>50 ){
+			events("{$GLOBALS["REFUSED_REQUESTS"]} refused requests ".
+			"- {$GLOBALS["ACCEPTED_REQUESTS"]} accepted requests ".
+			"- {$GLOBALS["COUNT_RQS"]} connexions received ".
+			"- Hash Table = ".count($GLOBALS["RTTHASH"])." ".
+			"- Queued items = {$GLOBALS["COUNT_HASH_TABLE"]} element(s)"
+			);
+			$GLOBALS["WAKEUP_LOGS"]=0;
+		}		
+		
+		
+		
+		if(strpos($buffer, "TCP_MISS/000")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+		if(strpos($buffer, "TCP_DENIED:")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+		if(strpos($buffer, "RELEASE -1")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+		if(strpos($buffer, "RELEASE 00")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+		if(strpos($buffer, "SWAPOUT 00")>0){$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;continue;}
+		ParseSizeBuffer($buffer);
+		$buffer=null;
+		Wakeup();
+		continue;
+	}
+	
+	
+	
+	if(is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.shutdown")){
+		events("Stopping loop PID:".getmypid());
+		@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.shutdown");
+		break;
+	}
+	
+	if(count($GLOBALS["RTTHASH"])>2){empty_TableHash();}
+	if($GLOBALS["COUNT_HASH_TABLE"]>50){empty_TableHash();}
 	$buffer=null;
 }
 
+if(!is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid")){@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid");}
 events("Stopping PID:".getmypid()." After $DCOUNT event(s)");
+empty_TableHash();
+
+
+function Wakeup(){
+	$GLOBALS["COUNT_WAKEUP"]=$GLOBALS["COUNT_WAKEUP"]+1;
+	if($GLOBALS["COUNT_WAKEUP"]>10){
+		$GLOBALS["MYPID"]=getmypid();
+		if(!is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid")){@file_put_contents("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.pid", $GLOBALS["MYPID"]); }
+		$GLOBALS["COUNT_WAKEUP"]=0;
+		$Array["PURGED"]=$GLOBALS["PURGED"];
+		$Array["COUNT_RQS"]=$GLOBALS["COUNT_RQS"];
+		@file_put_contents("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.state", serialize($Array));
+	}
+	
+	if(!is_file("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.wakeup")){return;}
+	
+	@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.wakeup");
+	@unlink("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.status");
+	@touch("/var/run/squid/exec.logfilefile_daemon.{$GLOBALS["MYPID"]}.status");
+	events("{$GLOBALS["REFUSED_REQUESTS"]} refused requests ".
+			"- {$GLOBALS["ACCEPTED_REQUESTS"]} accepted requests ".
+			"- {$GLOBALS["COUNT_RQS"]} connexions received ".
+			"- Hash Table = ".count($GLOBALS["RTTHASH"])." ".
+			"- Queued items = {$GLOBALS["COUNT_HASH_TABLE"]} element(s)"
+	);
+	
+	empty_TableHash();
+		
+	
+}
+
 
 
 function ParseSizeBuffer($buffer){
-	if(strpos("NONE error:", $buffer)>0){return; }
-	if(!function_exists("mysql_connect")){return;}
-	$PROTOS="PROPPATCH|MKCOL|MOVE|UNLOCK|DELETE|HTML|TEXT|PROPFIND|GET|POST|CONNECT|PUT|LOCK|NONE|HEAD|OPTIONS";
-	if(preg_match("#GET cache_object#",$buffer)){return true;}
-	if(strpos($buffer, "TCP_DENIED:")>0){return;}
-	$hostname=null;
-	if($GLOBALS["VERBOSE"]){events("\"$buffer\"");;}
-	if(!preg_match('#MAC:(.+?)\s+(.+?)\s+.+?\s+(.*?)\s+\[(.+?)\]\s+"([a-z]+:|'.$PROTOS.')\s+(.+?)\s+.+?"\s+([0-9]+)\s+([0-9]+)\s+([A-Z_]+)#',$buffer,$re)){
-		events("Not filtered \"$buffer\"");
-		return;
-	}
-	$mac=trim(strtolower($re[1]));
-	$ipaddr=trim($re[2]);
-	$uid=$re[3];
+	
+	$re=explode(":::", $buffer);
+	$mac=trim(strtolower($re[0]));
+	if($mac=="-"){$mac==null;}
+	$mac=str_replace("-", ":", $mac);
+	if($mac=="00:00:00:00:00:00"){$mac=null;}
+	$ipaddr=trim($re[1]);
+	
+	// uid
+	$uid=$re[2];
+	$uid2=$re[3];
+	if($uid=="-"){$uid=null;}
+	if($uid2=="-"){$uid2=null;}
+	if($uid==null){ if($uid2<>null){$uid=$uid2;} }
+	
+	
+	
 	$zdate=$re[4];
 	$xtime=strtotime($zdate);
+	$SUFFIX_DATE=date("YmdH",$xtime);
+	
 	$proto=$re[5];
 	$uri=$re[6];
-	$code_error=$re[7];
-	$SIZE=$re[8];
-	$SquidCode=$re[9];
-	$Forwarded=$re[10];
+	$code_error=$re[8];
+	$SIZE=$re[9];
+	$SquidCode=$re[10];
+	$UserAgent=urldecode($re[11]);
+	$Forwarded=$re[12];
+	$sitename=trim($re[13]);
+	$hostname=$re[14];
+	$response_time=$re[15];
+	
+	
+	if($sitename=="-"){
+		eventsfailed("***** WRONG SITENAME $sitename *****");
+		eventsfailed("$buffer");
+		eventsfailed("*");
+		$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
+		return;
+	}
+	
+
+	if(strpos($sitename, ":")>0){
+		$XA=explode(":",$sitename);
+		$sitename=$XA[0];
+	}
+	
+	if($sitename=="127.0.0.1"){
+		$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
+		if($GLOBALS["VERBOSE"]){ events("127.0.0.1 -> uid = null -> SKIP"); }
+		return;
+	}
+	
+	if($Forwarded=="unknown"){$Forwarded=null;}
 	if($Forwarded=="-"){$Forwarded=null;}
 	if($Forwarded=="0.0.0.0"){$Forwarded=null;}
 	if($Forwarded=="255.255.255.255"){$Forwarded=null;}
-	if(strlen($Forwarded)>4){if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $Forwarded)){$ipaddr=$Forwarded;$mac=null;}}
 	
-	if($GLOBALS["VERBOSE"]){
-		events($buffer);
-		events("Size=$SIZE bytes");
-		events("Uri=$uri");
-		events("Squid code=$SquidCode");
+	
+	if(strlen($Forwarded)>4){
+		$ipaddr=$Forwarded;
+		$mac=null;
 	}
 	
-	if($uid=="-"){$uid=null;}
-	$cached=0;
+	
+	
 	
 	if(($ipaddr=="127.0.0.1") OR ($ipaddr=="::")){if($uid==null){
-		if($GLOBALS["VERBOSE"]){events("127.0.0.1 -> uid = null -> SKIP");}
-		return;}}
-	if($GLOBALS["logfileD"]->CACHEDORNOT($SquidCode)){$cached=1;}
-	if($mac=="00:00:00:00:00:00"){$mac==null;}
-	if($mac=="00:00:00:00:00:00"){$mac==null;}
-				
-			
-				
-	
-
-	$URLAR=parse_url($uri);
-	if(isset($URLAR["host"])){$sitename=$URLAR["host"];}
-	if($sitename=="127.0.0.1"){return;}
-	
-	
-	if(preg_match("#^www\.(.+)#", $sitename,$re)){$sitename=$re[1];}
-	if(preg_match("#^(.+?):.*#", $sitename,$re)){$sitename=$re[1];}
-	
-	$familysite=$GLOBALS["Q"]->GetFamilySites($sitename);
-	
-	if($uid<>null){$key="uid";}
-	if($key==null){if($mac<>null){$key="MAC";}}
-	if($key==null){if($ipaddr<>null){$key="ipaddr";}}
-	if($key==null){return;}
-	
-	$hour=date("H",$xtime);
-	$date=date("Y-m-d H:i:s",$xtime);
-	
-	if($GLOBALS["VERBOSE"]){events("Date: $date: $familysite $uid/$ipaddr");}
-	
-	$keyr=md5("$hour$uid$ipaddr$mac$sitename");
-	$uri=trim($uri);
-	if($uri==null){return;}
-	
-	if($uid==null){$uid=$GLOBALS["Q"]->MacToUid($mac);}
-	if($uid==null){$uid=$GLOBALS["Q"]->IpToUid($ipaddr);}	
-	if($hostname==null){$hostname=$GLOBALS["Q"]->MacToHost($mac);}
-	if($hostname==null){$hostname=$GLOBALS["Q"]->IpToHost($ipaddr);}
-	
-	
-
-	
-	if(!isset($GLOBALS["TABLE_CHECKED"][date("YmdH",$xtime)])){
-		if($GLOBALS["Q"]->TablePrimaireHour(date("YmdH",$xtime))){
-			$GLOBALS["TABLE_CHECKED"][date("YmdH",$xtime)]=true;
-		}else{
-			events($GLOBALS["Q"]->mysql_error);
-		}
-		
-		if($GLOBALS["Q"]->check_youtube_hour(date("YmdH",$xtime))){
-		}else{
-			events("Youtube:".$GLOBALS["Q"]->mysql_error);
-		}
-		
-		if($GLOBALS["Q"]->check_SearchWords_hour(date("YmdH",$xtime))){
-		}else{
-			events("SearchWords:".$GLOBALS["Q"]->mysql_error);
-		}
-
-		if($GLOBALS["Q"]->check_quota_hour(date("YmdH",$xtime))){
-			$GLOBALS["TABLE_CHECKED"][date("YmdH",$xtime)]=true;
-		}else{
-			events($GLOBALS["Q"]->mysql_error);
-		}		
-		
-		$GLOBALS["USERSDB"]=unserialize(@file_get_contents("/etc/squid3/usersMacs.db"));
-			
-	}
-	
-	
-
-	
-	
-	$zMD5=md5("$buffer");
-	
-	$TablePrimaireHour="squidhour_".date("YmdH",$xtime);
-	$tableYoutube="youtubehours_".date("YmdH",$xtime);
-	$tableSearchWords="searchwords_".date("YmdH",$xtime);
-	$sitename=mysql_escape_string2($sitename);
-	if($familysite=="localhost"){return;}
-	$uri=mysql_escape_string2($uri);
-	$uriT=mysql_escape_string2($uri);
-	$hostname=mysql_escape_string2($hostname);
-	$TYPE=$GLOBALS["logfileD"]->codeToString($code_error);
-	$REASON=$TYPE;
-	if($mac=="00:00:00:00:00:00"){$mac==null;}
-	if($mac=="-"){$mac==null;}
-	
-	
-	$sql="INSERT DELAYED INTO `$TablePrimaireHour` 
-	(`sitename`,`uri`,`TYPE`,`REASON`,`CLIENT`,`hostname`,`zDate`,`zMD5`,`uid`,`QuerySize`,`cached`,`MAC`) 
-	VALUES('$sitename','$uriT','$TYPE','$REASON','$ipaddr','$hostname','$date','$zMD5','$uid','$SIZE','$cached','$mac')";
-	$GLOBALS["Q"]->QUERY_SQL($sql);
-	
-	if(!$GLOBALS["Q"]->ok){
-		if(strpos($GLOBALS["Q"]->mysql_error, "doesn't exist")>0){
-			events(" - - > TablePrimaireHour()");
-			$GLOBALS["Q"]->TablePrimaireHour(date("YmdH",$xtime));
-		}
-		$GLOBALS["Q"]->QUERY_SQL($sql);
-	}
-	
-	if(!$GLOBALS["Q"]->ok){events($GLOBALS["Q"]->mysql_error);}
-	
-	
-	if(strpos(" $uri", "youtube")>0){
-		$VIDEOID=$GLOBALS["logfileD"]->GetYoutubeID($uri);
-		if($VIDEOID<>null){
-			events("YOUTUBE:: $date: $ipaddr $uid $mac [$VIDEOID]");
-			$sql="INSERT DELAYED INTO `$tableYoutube`
-			(`zDate`,`ipaddr`,`hostname`,`uid`,`MAC` ,`account`,`youtubeid`)
-			VALUES ('$date','$ipaddr','','$uid','$mac','0','$VIDEOID')";
-			$GLOBALS["Q"]->QUERY_SQL($sql);
-			if(!$GLOBALS["Q"]->ok){events($GLOBALS["Q"]->mysql_error);}
-
-		}
-	}	
-	
-	$SearchWords=$GLOBALS["logfileD"]->SearchWords($uri);
-	if(is_array($SearchWords)){
-		$words=mysql_escape_string2($SearchWords["WORDS"]);
-		$sql="INSERT DELAYED INTO `$tableSearchWords` 
-		(`zmd5`,`sitename`,`zDate`,`ipaddr`,`hostname`,`uid`,`MAC`,`account`,`familysite`,`words`)
-		VALUES ('$zMD5','$sitename','$date','$ipaddr','','$uid','$mac','0','$familysite','$words')";
-		$GLOBALS["Q"]->QUERY_SQL($sql);
-		if(!$GLOBALS["Q"]->ok){events($GLOBALS["Q"]->mysql_error);}
-
-	}
-
-	
-	$table="quotahours_".date('YmdH',$xtime);
-	$sql="SELECT `size`,`keyr` FROM `$table` WHERE `keyr`='$keyr'";
-	
-	
-	
-	$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
-	$ligne["size"]=intval($ligne["size"]);
-	if(!is_numeric($ligne["size"])){$ligne["size"]=0;}
-	
-	
-
-	
-	if(trim($ligne["keyr"])<>null){
-		$newsize=$ligne["size"]+$SIZE;
-		$sql="UPDATE LOW_PRIORITY `$table` SET `size`='$newsize' WHERE `keyr`='$keyr'";
-		if($GLOBALS["DEBUG_LEVEL"]>1){WLOG($sql);}
-		$GLOBALS["Q"]->QUERY_SQL($sql);
-		
-		if($GLOBALS["VERBOSE"]){
-			$UNIT="KB";
-			$newsizeL=round($newsize/1024,2);
-			if($newsizeL>1024){$newsizeL=round($newsizeL/1024,2);$UNIT="MB";}
-			events("\"$sitename\":{$ligne["size"]} $uid/$ipaddr UPDATE = {$ligne["size"]} + [$SIZE] -> UPDATE = $newsize ({$newsizeL}$UNIT)");
-		}
-		
-		if(!$GLOBALS["Q"]->ok){events($GLOBALS["Q"]->mysql_error);}
+		$GLOBALS["REFUSED_REQUESTS"]=$GLOBALS["REFUSED_REQUESTS"]+1;
+		if($GLOBALS["VERBOSE"]){ events("127.0.0.1 -> uid = null -> SKIP"); }
 		return;
-	}
-	
-	if(trim($familysite)==null){
-		events("\"$sitename\": familysite=null, strange pattern: \"$buffer\"");
-		return;
-	}
-	
-	if($SIZE>0){
-		$sql="INSERT DELAYED INTO `$table` (`hour`,`keyr`,`ipaddr`,`familysite`,`servername`,`uid`,`MAC`,`size`) VALUES
-		('$hour','$keyr','$ipaddr','$familysite','$sitename','$uid','$mac','$SIZE')";
-		//events($sql);
-		$GLOBALS["Q"]->QUERY_SQL($sql);
-		
-		if($GLOBALS["VERBOSE"]){
-			$UNIT="KB";
-			$newsizeL=round($SIZE/1024,2);
-			if($newsizeL>1024){$newsizeL=round($newsizeL/1024,2);$UNIT="MB";}
-			events("\"$sitename\":$newsizeL $uid/$ipaddr ADD = [$SIZE] -> ADD NEW = ({$newsizeL}$UNIT)");
 		}
-		
-		if(!$GLOBALS["Q"]->ok){events($GLOBALS["Q"]->mysql_error);}	
-	}
-	//events("$uid [$ipaddr] $servername $SIZE bytes");
-	
-}
-
-
-function GetTargetFile($subdir,$md5){
-
-	@mkdir("/var/log/artica-postfix/squid-brut/$subdir");
-	if(is_dir("/var/log/artica-postfix/squid-brut/$subdir")){
-		return "/var/log/artica-postfix/squid-brut/$subdir/$md5";
 	}
 	
-	return "/var/log/artica-postfix/squid-brut/$md5";
-		
 	
 	
+	
+	if($GLOBALS["VERBOSE"]){
+		$logzdate=date("Y-m-d H:i:s",$xtime);
+		events("ITEM: DATE......: $logzdate");
+		events("ITEM: MAC.......: $mac");
+		events("ITEM: IP........: $ipaddr");
+		events("ITEM: Size......: $SIZE");
+		events("ITEM: SQUID CODE: $SquidCode");
+		events("ITEM: HTTP CODE.: $code_error");
+		events("ITEM: uid.......: $uid");
+		events("ITEM: uri.......: $uri");
+		events("ITEM: UserAgent.: $UserAgent");
+		events("ITEM: Forwarded.: $Forwarded");
+		events("ITEM: SiteName..: $sitename");
+	}
+	
+	$GLOBALS["COUNT_HASH_TABLE"]=$GLOBALS["COUNT_HASH_TABLE"]+1;
+	
+	
+	
+	$GLOBALS["RTTHASH"][$SUFFIX_DATE][]=array(
+			"TIME"=>$xtime,
+			"MAC"=>$mac,
+			"IPADDR"=>$ipaddr,
+			"SIZE"=>$SIZE,
+			"SQUID_CODE"=>$SquidCode,
+			"HTTP_CODE"=>$code_error,
+			"UID"=>$uid,
+			"URI"=>$uri,
+			"USERAGENT"=>$UserAgent,
+			"SITENAME"=>$sitename,
+			"HOSTNAME"=>$hostname,
+			"RESPONSE_TIME"=>$response_time
+			);
+	
+	$GLOBALS["ACCEPTED_REQUESTS"]=$GLOBALS["ACCEPTED_REQUESTS"]+1;
+	if(count($GLOBALS["RTTHASH"][$SUFFIX_DATE])>50){
+		if($GLOBALS["VERBOSE"]){events("-> empty_TableHash()");}
+		empty_TableHash();
+	}
+	
+	if($GLOBALS["VERBOSE"]){events("---------------------- DONE ----------------------");}
 }
-
-
-flushlogs();
 
 function events($text){
-	$pid=@getmypid();
-	$date=@date("h:i:s");
+	if(trim($text)==null){return;}
+	$pid=$GLOBALS["MYPID"];
+	$date=@date("H:i:s");
 	$logFile="/var/log/squid/logfile_daemon.debug";
 
 	$size=@filesize($logFile);
-	if($size>1000000){@unlink($logFile);}
+	if($size>9000000){@unlink($logFile);}
 	$f = @fopen($logFile, 'a');
-	@fwrite($f, "$pid `$text`\n");
+	@fwrite($f, "$date:[".basename(__FILE__)."] $pid `$text`\n");
 	@fclose($f);
 }
 
-function flushlogs(){
-	if($GLOBALS["NO_DISK"]){unset($GLOBALS["MEMLOGS"]);return;}
-	if(!isset($GLOBALS["MEMLOGS"])){return;}
-	if(!is_array($GLOBALS["MEMLOGS"])){return;}
-	$middlename="access";
-	if($GLOBALS["ACT_AS_REVERSE"]){$middlename="reverse";}
+function eventsfailed($text){
+	if(trim($text)==null){return;}
+	$pid=$GLOBALS["MYPID"];
+	$date=@date("H:i:s");
+	$logFile="/var/log/squid/logfile_daemon.failed.debug";
 	
-	while (list ($keydate, $rows) = each ($GLOBALS["MEMLOGS"]) ){
-		if(count($rows)==0){continue;}
-		$logFile="/var/log/squid/squid-$middlename-$keydate.log";
-		$f = @fopen($logFile, 'a');
-		@fwrite($f, @implode("\n", $rows)."\n");
-		@fclose($f);
-		unset($GLOBALS["MEMLOGS"][$keydate]);
-	}
-	
-	unset($GLOBALS["MEMLOGS"]);
+	$size=@filesize($logFile);
+	if($size>9000000){@unlink($logFile);}
+	$f = @fopen($logFile, 'a');
+	@fwrite($f, "$date:[".basename(__FILE__)."] $pid `$text`\n");
+	@fclose($f);	
 }
+
+function empty_TableHash(){
+	
+	$Dir="/var/log/squid/mysql-rthash";
+	if(count($GLOBALS["RTTHASH"])==0){return;}
+	reset($GLOBALS["RTTHASH"]);
+	while (list ($xtime, $rows) = each ($GLOBALS["RTTHASH"]) ){
+		$rand=rand(5, 90000);
+		if(count($rows)>0){
+			$GLOBALS["PURGED"]=$GLOBALS["PURGED"]+count($rows);
+			events("Purge RTTHASH: $xtime = ".count($rows)." elements - purged {$GLOBALS["PURGED"]} elements");
+			@file_put_contents("$Dir/hash.$xtime.".microtime(true).".$rand.sql",serialize($GLOBALS["RTTHASH"]));
+		}
+		
+	}
+	$GLOBALS["RTTHASH"]=array();
+	$GLOBALS["COUNT_HASH_TABLE"]=0;
+	
+}
+
+
+
+
+
+
+
+
+
+
+
 
 ?>

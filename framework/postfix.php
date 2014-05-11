@@ -9,7 +9,7 @@ if(isset($_GET["mastercf"])){master_cf();exit;}
 if(isset($_GET["RunSaUpd"])){RunSaUpd();exit;}
 if(isset($_GET["postfix-instances-list"])){postfix_instances_list();exit;}
 if(isset($_GET["postfix-reconfigure-transport"])){postfix_reconfigure_transport();exit;}
-
+if(isset($_GET["tests-smtp-watchdog"])){test_smtp_watchdog();exit;}
 
 if(isset($_GET["instance-delete"])){postfix_instance_delete();exit;}
 if(isset($_GET["postsuper-remove-all"])){postfix_remove_all_queues();exit;}
@@ -125,7 +125,7 @@ function build_milters(){
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --milters >/dev/null 2>&1 &");	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);	
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);		
 		
@@ -398,7 +398,7 @@ function EnableStopPostfix(){
 		shell_exec($cmd);			
 		
 	}
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null &");
+	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 }
@@ -523,11 +523,13 @@ function islocked(){
 }
 function islocked_enable(){
 	@file_put_contents("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX", time());
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+	if(!is_file("/etc/init.d/artica-process1")){return;}
+	shell_exec("/etc/init.d/artica-process1 start");
 }
 function islocked_disable(){
 	@unlink("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX");
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time());
+	if(!is_file("/etc/init.d/artica-process1")){return;}
+	shell_exec("/etc/init.d/artica-process1 start");
 }
 function CertificateConfigFile(){
 	if(is_file('/etc/artica-postfix/ssl.certificate.conf')){
@@ -539,6 +541,18 @@ function CertificateConfigFile(){
 		return;
 	}
 
+}
+
+function test_smtp_watchdog(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$dir=$_GET["dir"];
+	$cmd="$php /usr/share/artica-postfix/exec.postqueue.watchdog.php --tests 2>&1";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	exec($cmd,$results);
+	echo  "<articadatascgi>".base64_encode(@implode("\n", $results))."</articadatascgi>";
+	
 }
 
 die();

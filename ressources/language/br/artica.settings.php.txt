@@ -14,7 +14,7 @@ If a log file exceed this size, artica process will delete it automatically to n
 <ArticaProxyServerName>Proxy server</ArticaProxyServerName>
 <ArticaProxyServerPort>Proxy server port</ArticaProxyServerPort>
 <ArticaProxyServerUsername>Username</ArticaProxyServerUsername>
-<ArticaProxyServerUserPassword>Password</ArticaProxyServerUserPassword>
+<ArticaProxyServerUserPassword>Senha</ArticaProxyServerUserPassword>
 <ArticaWebRootURI>Link to artica web site</ArticaWebRootURI>
 <ArticaWebRootURI_text>This link will be used for reports sended to yours users in order to provide release mails features from SMTP notifications</ArticaWebRootURI_text>
 <ARTICA_FILTER_MAXSUBQUEUE>Max queue processes</ARTICA_FILTER_MAXSUBQUEUE>
@@ -128,17 +128,17 @@ This is subject to the limit of 4 GB for 32 bit and 10 TB for 64 bit, and the am
 The size of the data set is the sum of the Berkeley DataBase (BDB) files
 </set_cachesize_text>
 <size>size</size>
-<smtp_auth_passwd>Password AUTH</smtp_auth_passwd>
-<smtp_auth_user>Username AUTH</smtp_auth_user>
-<smtp_dest>Your email address</smtp_dest>
+<smtp_auth_passwd>Senha</smtp_auth_passwd>
+<smtp_auth_user>utilizador</smtp_auth_user>
+<smtp_dest>O seu endere&ccedil;o de email</smtp_dest>
 <smtp_enabled>Enable SMTP notifications</smtp_enabled>
 <smtp_notifications>email notifications</smtp_notifications>
-<SMTP_NOTIFICATIONS_ADD_CC>Give the eMail address that will receive mail notifications</SMTP_NOTIFICATIONS_ADD_CC>
+<SMTP_NOTIFICATIONS_ADD_CC>Endere&ccedil;o de email que receber&aacute;  as notifica&ccedil;&otilde;es por email</SMTP_NOTIFICATIONS_ADD_CC>
 <smtp_notifications_text>Be informed of system dysfunctions or mandatories scheduled tasks[br]
 do not use artica server has the main mail server[br]If it's not working you will be not be able to receive notifications
 [br]If your server requires authentification, fill fields about AUTH
 </smtp_notifications_text>
-<smtp_sender>sender mail address</smtp_sender>
+<smtp_sender>Endere&ccedil;o de mail do remetente</smtp_sender>
 <smtp_server_name>Mail server name</smtp_server_name>
 <smtp_server_port>Mail server port</smtp_server_port>
 <sql_database>MySQL Database</sql_database>

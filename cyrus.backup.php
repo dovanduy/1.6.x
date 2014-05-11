@@ -32,6 +32,7 @@ $page=CurrentPageName();
 	$prefix=str_replace('.','_',$page);
 	$prefix=str_replace('-','',$prefix);
 	$tpl=new templates();
+	header("content-type: application/x-javascript");
 	$title=$tpl->_ENGINE_parse_body('{APP_CYRUS_BACKUP}');
 	$settings=$tpl->_ENGINE_parse_body('{settings}');
 	$CYR_BACKUP_NOW=$tpl->_ENGINE_parse_body('{CYR_BACKUP_NOW}');

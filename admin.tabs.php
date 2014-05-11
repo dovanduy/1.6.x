@@ -63,7 +63,7 @@ function refresh_status_js(){
 	$page=CurrentPageName();
 	echo "
 		if(document.getElementById('IMAGE_STATUS_INFO')){
-			LoadAjax('IMAGE_STATUS_INFO','admin.index.php?status_right_image=yes&t=$t$nocache');
+			LoadAjax('IMAGE_STATUS_INFO','admin.index.right-image.php');
 		
 		}
 		
@@ -210,7 +210,7 @@ function admin_system(){
 	$users=new usersMenus();
 	$browse=Buildicon64("DEF_ICO_BROWSE_COMP");
 	$disks=Paragraphe("64-hd.png",'{internal_hard_drives}','{internal_hard_drives_text}',"javascript:Loadjs('system.internal.disks.php');","{internal_hard_drives_text}");
-	$net=Paragraphe('network-connection2.png','{net_settings}','{net_settings_text}',"javascript:Loadjs('system.nic.config.php?js=yes')",'net_settings_text');
+	
 	//$frontend_settings=Paragraphe("64-settings.png",'{design_and_tweaks}','{designs_and_tweaks_text}',"javascript:Loadjs('artica.performances.php?cron-js=yes');","{internal_hard_drives_text}");
 	$memdump=Paragraphe("stats-64.png",'{processes_memory}','{processes_memory_text}',"javascript:LoadMemDump();","{processes_memory_text}");
 	$artica_events=Paragraphe('events-64.png','{artica_events}','{artica_events_text}',"javascript:Loadjs('artica.events.php');","{artica_events_text}");
@@ -259,39 +259,21 @@ function admin_system(){
 	
 	
 	$massmailing=Paragraphe('mass-mailing-64.png','{email_campaigns}','{APP_MASSMAILING_ENABLE_TEXT}',"javascript:Loadjs('system.enable.massmailing.php');","{APP_MASSMAILING_ENABLE_TEXT}");
-	$tr[]=$frontend_settings;
+	
 	$tr[]=$artica_settings;
 	$tr[]=$FROMISO;
 	$tr[]=$memdump;
 	$tr[]=$artica_events;
 	
 	$tr[]=$disks;
-	$tr[]=$net;
 	$tr[]=$browse;
 	$tr[]=$backup;
 	$tr[]=$reactivate_squid;
 	$tr[]=$phpldapadmin;
 	$tr[]=$phpmyadmin;
 	$tr[]=$massmailing;
-	
-$tables[]="<table style='width:100%'><tr>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==3){$t=0;$tables[]="</tr><tr>";}
-		
-}
-if($t<3){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
-}
-				
-	$tables[]="</table>";	
-	$html=implode("\n",$tables);	
+
+	$html=CompileTr4($tr);
 	
 
 	
@@ -561,16 +543,16 @@ $left_status_content="<center id='wait1'></center>";
 
 $page=CurrentPageName();
 	$html="
-	<table style='width:630px;padding:0px;margin:0px'>
+	<table style='width:100%;padding:0px;margin:0px'>
 	<tbody>
 	<tr>
-		<td valign='top' width='50%'>
+		<td valign='top' width='75%'>
 			<div id='left_status' style='margin-left:-15px'>
 				<div id='status-left'></div>
 			</div>
 		</td>
-		<td valign='top' width='50%'>
-			<div id='right_status' style='margin-left:-5px'>
+		<td valign='top' width='25%'>
+			<div id='right_status' style='margin-left:-5px;margin-top:-5px'>
 				<center id='wait2'></center>
 			</div>
 			<script>
@@ -586,15 +568,11 @@ $page=CurrentPageName();
 						}
 					}
 				}
-				function ChargeLeftMenus2$t(){
-					LoadAjaxTiny('right-status-infos','admin.left.php?part1=yes');
-				}
+				function ChargeLeftMenus2$t(){ LoadAjaxTiny('right-status-infos','admin.left.php?part1=yes'); }
+				function ChargeStatusLeft$t(){ LoadAjaxTiny('status-left','admin.index.loadvg.php?t=$t$ajaxadd'); }	
+				function ChargePubCentral$t(){ Loadjs('artica.pubs.php'); }				
 				
-				function ChargeStatusLeft$t(){
-					
-					LoadAjaxTiny('status-left','admin.index.loadvg.php?t=$t$ajaxadd');
-				}				
-				
+				setTimeout('ChargePubCentral$t()',200);
 				setTimeout('ChargeStatusLeft$t()',800);
 				setTimeout('ChargeLeftMenus$t()',1300);
 				setTimeout('ChargeLeftMenus2$t()',5000);				
@@ -1185,15 +1163,15 @@ function left_menus(){
 		}
 		writelogs("LANG=$lang",__FUNCTION__,__FILE__,__LINE__);
 	
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}:->new usersMenus(); function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}:->new usersMenus(); function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 	//writelogs("Starting generating LEFT menus",__FUNCTION__,__FILE__,__LINE__);
 	$menus=new usersMenus();
 	$tpl=new templates();
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}: menus->BuildLeftMenus() function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}: menus->BuildLeftMenus() function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 	$menus=$menus->BuildLeftMenus();
 	$html="$menus<input type='hidden' id='add_new_organisation_text' value='{add_new_organisation_text}'><script>ChangeHTMLTitle();</script>";
 	//writelogs("finish generating LEFT menus",__FUNCTION__,__FILE__,__LINE__);
-	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("DEBUG::{$GLOBALS["CURRENT_PAGE"]}: tpl->_ENGINE_parse_body() function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
+	if($GLOBALS["DEBUG_TEMPLATE"]){error_log("[{$_SESSION["uid"]}]::DEBUG::{$GLOBALS["CURRENT_PAGE"]}: tpl->_ENGINE_parse_body() function ".__FUNCTION__." in " . __FILE__. " line ".__LINE__);}
 	$final=$tpl->_ENGINE_parse_body($html);
 	@file_put_contents("ressources/logs/web/menus-$md5.object.$lang.cache",$final);
 	echo $final;

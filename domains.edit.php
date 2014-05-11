@@ -105,10 +105,10 @@ function users_table($ou=null,$domain=null){
 		while (list ($num, $ligne) = each ($hash) ){
 			if($ligne["cn"]<>null){
 				if($_SESSION["LOCK_IMAP"]==true){
-					$mailbox="<img src='img/mailbox_bad_status.gif'>";
+					$mailbox="<img src='img/mailbox_bad_status.png'>";
 				}else{
 					if($array_mailboxes[$ligne["uid"]]=="yes"){
-						$mailbox="<img src='img/mailbox.gif'>";
+						$mailbox="<img src='img/mailbox.png'>";
 					}else{$mailbox="&nbsp;";}
 				}
 				

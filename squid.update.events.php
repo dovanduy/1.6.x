@@ -53,7 +53,7 @@ function js(){
 		$title="{$_GET["taskid"]}::Type:{$ligne2["TaskType"]}::{$ligne2["TimeDescription"]}";
 	}	
 	
-	$html="YahooWin5('650','$page?popup=yes&filename={$_GET["filename"]}&taskid={$_GET["taskid"]}&category={$_GET["category"]}&tablesize={$_GET["tablesize"]}&descriptionsize={$_GET["descriptionsize"]}&table={$_GET["table"]}','$title')";
+	$html="YahooWin5('690','$page?popup=yes&filename={$_GET["filename"]}&taskid={$_GET["taskid"]}&category={$_GET["category"]}&tablesize={$_GET["tablesize"]}&descriptionsize={$_GET["descriptionsize"]}&table={$_GET["table"]}','$title')";
 	echo $html;
 }
 
@@ -97,9 +97,7 @@ function popup(){
 	$title=$tpl->_ENGINE_parse_body("$CountEvents {events}");
 	
 	$html="
-	<div style='margin-left:5px'>
 	<table class='ufdbguard-events-$t' style='display: none' id='ufdbguard-events-$t' style='width:99%'></table>
-	</div>
 <script>
 $(document).ready(function(){
 $('#ufdbguard-events-$t').flexigrid({
@@ -119,7 +117,7 @@ $('#ufdbguard-events-$t').flexigrid({
 	useRp: true,
 	rp: 25,
 	showTableToggleBtn: false,
-	width: $tablesize,
+	width: '99%',
 	height: 350,
 	singleSelect: true
 	

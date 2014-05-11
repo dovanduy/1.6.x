@@ -49,6 +49,7 @@ function parameters(){
 	if($CacheReplacementPolicy==null){$CacheReplacementPolicy="heap_LFUDA";}
 	$SquidDebugCacheProc=$sock->GET_INFO("SquidDebugCacheProc");
 	$ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
+	$ProxyDedicateMicrosoftRules=$sock->GET_INFO("ProxyDedicateMicrosoftRules");
 	if(!is_numeric($SquidDebugCacheProc)){$SquidDebugCacheProc=0;}
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	if(!is_numeric($ForceWindowsUpdateCaching)){$ForceWindowsUpdateCaching=0;}	
@@ -78,6 +79,7 @@ function parameters(){
 	
 	$boot->set_checkbox("DisableAnyCache", "{DisableAnyCache}", $DisableAnyCache);
 	$boot->set_checkbox("ForceWindowsUpdateCaching", "{ForceWindowsUpdateCaching}", $ForceWindowsUpdateCaching);
+	$boot->set_checkbox("ProxyDedicateMicrosoftRules", "{ProxyDedicateMicrosoftRules}", $ProxyDedicateMicrosoftRules);
 	$boot->set_checkbox("SquidDebugCacheProc", "{debug_cache_processing}", $SquidDebugCacheProc);
 	$boot->set_list("CacheReplacementPolicy", "{cache_replacement_policy}",$array, $CacheReplacementPolicy,array("TOOLTIP"=>"{cache_replacement_policy_explain}"));
 	
@@ -98,6 +100,7 @@ function parameters_save(){
 	$sock->SET_INFO("CacheReplacementPolicy", $_POST["CacheReplacementPolicy"]);
 	$sock->SET_INFO("SquidDebugCacheProc", $_POST["SquidDebugCacheProc"]);
 	$sock->SET_INFO("DisableAnyCache", $_POST["DisableAnyCache"]);
+	$sock->SET_INFO("ProxyDedicateMicrosoftRules", $_POST["ProxyDedicateMicrosoftRules"]);
 	$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);
 	$squid=new squidbee();
 	$squid->global_conf_array["maximum_object_size"]=$_POST["maximum_object_size"]." MB";

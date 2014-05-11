@@ -30,6 +30,13 @@ js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
+	$restart=null;
+	if($_GET["restart"]=="yes"){$restart="?restart=yes"; }
+
+	
+	echo "Loadjs('squid.reconfigure.php$restart')";
+	return;
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
@@ -44,7 +51,7 @@ function js(){
 	$users=new usersMenus();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+	
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 	
 
@@ -55,8 +62,18 @@ function js(){
 		return;
 	}
 	
+	if(isset($_GET["OnlySquid"])){
+		echo "Loadjs('squid.reconfigure.php');";
+		return;
+		$extension2="&OnlySquid=yes";
+	}
+	
 	if(isset($_GET["onlywhitelist"])){
 		$extension="&onlywhitelist=yes";
+	}
+	
+	if(isset($_GET["restart"])){
+		$extension3="&restart=yes";
 	}
 	
 	
@@ -64,13 +81,13 @@ function js(){
 	if(isset($_GET["ask"])){
 		$compile_squid_ask=$tpl->javascript_parse_text("{compile_squid_ask}");
 		echo "if(confirm('$compile_squid_ask')){
-				RTMMail(500,'$page?popup=yes$extension','$title');
+				RTMMail(800,'$page?popup=yes$extension$extension2$extension3','$title');
 			}";
 		return;
 	}
 	
 	
-	$html="RTMMail(500,'$page?popup=yes$extension','$title');";
+	$html="RTMMail(800,'$page?popup=yes$extension$extension2$extension3','$title');";
 	echo $html;
 	}
 	
@@ -91,6 +108,13 @@ function popup(){
 		$start="StartCompileWhitelist$t();";
 	}	
 	
+	if(isset($_GET["OnlySquid"])){ 
+		$extension2="&OnlySquid=yes"; 
+		$start="StartCompileOnlySquid$t();";
+	}	
+	if(isset($_GET["restart"])){
+		$extension3="&restart=yes";
+	}
 	
 	
 	
@@ -98,17 +122,9 @@ function popup(){
 	$pourc=0;
 	$color="#5DD13D";
 	$html="
-	<div class=explain>{APPLY_SETTINGS_SQUID}</div>
-	<table style='width:100%'>
-	<tr>
-		<td width=1%><div id='wait_image'><img src='img/wait.gif'></div></td>
-		<td width=99%>
-			<div id='Status'></div>	
-		</td>
-	</tr>
-	</table>
-	<br>
-	<div id='textlogs' style='width:99%;height:120px;overflow:auto'></div>
+	<div class=explain style='font-size:16px'>{APPLY_SETTINGS_SQUID}</div>
+	<div id='Status' style='height:40px:margin-top:20px;margin-bottom:20px'></div>	
+	<div id='textlogs' style='width:99%;min-height:120px;font-size:16px !important'></div>
 	
 	<script>
 	function StartCompileSquid$t(){
@@ -117,8 +133,6 @@ function popup(){
 
 	function finish$t(){
 		ChangeStatusSQUID(100);
-		document.getElementById('wait_image').innerHTML='&nbsp;';
-		document.getElementById('wait_image').innerHTML='&nbsp;';
 		LoadAjax('div-poubelle','CacheOff.php?cache=yes');
 		if(document.getElementById('squid_main_config')){RefreshTab('squid_main_config');}
 		if(document.getElementById('main_dansguardian_tabs')){RefreshTab('main_dansguardian_tabs');}
@@ -127,17 +141,26 @@ function popup(){
 		if(document.getElementById('squid_hotspot')){RefreshTab('squid_hotspot');;}
 		if(document.getElementById('squid_main_svc')){RefreshTab('squid_main_svc');}
 		if(document.getElementById('main_dansguardian_mainrules')){RefreshTab('main_dansguardian_mainrules');}
+		if(document.getElementById('main_cache_rules_main_tabs')){RefreshTab('main_cache_rules_main_tabs');}
+		if(document.getElementById('rules-toolbox-left')){LoadAjaxTiny('rules-toolbox-left','dansguardian2.mainrules.php?rules-toolbox-left=yes');}
+		if(document.getElementById('ufdb-main-toolbox-status')){LoadAjaxTiny('ufdb-main-toolbox-status','dansguardian2.mainrules.php?rules-toolbox-left=yes');}
 		RTMMailHide();
 	}
 	
 	function ApplyUfdbguard(){
 		ChangeStatusSQUID(10);
-		LoadAjaxSilent('textlogs','$page?ApplyUfdbguard=yes&t=$t');
+		LoadAjaxSilent('textlogs','$page?ApplyUfdbguard=yes&t=$t$extension2$extension3');
 		}
+		
+	function StartCompileOnlySquid$t(){
+		ChangeStatusSQUID(52);
+		LoadAjaxSilent('textlogs','$page?compile-squid=yes&t=$t$extension3');
+		
+	}
 		
 	function ApplyWhiteList(){
 		ChangeStatusSQUID(52);
-		LoadAjaxSilent('textlogs','$page?ApplyWhiteList=yes&t=$t');
+		LoadAjaxSilent('textlogs','$page?ApplyWhiteList=yes&t=$t$extension3');
 		}		
 		
 
@@ -161,7 +184,8 @@ function popup(){
 	$start
 	</script>
 	";
-	
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?caches-center=yes");
 	echo $tpl->_ENGINE_parse_body($html,"postfix.index.php");
 }
 
@@ -179,12 +203,16 @@ function compile_whitelist(){
 	finish$t();
 	</script>";	
 	
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_UFDBGUARD}:{please_wait_compiling_database}:</strong></div>").$script;
+	echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_UFDBGUARD}:{please_wait_compiling_database}")).$script;
+	
 	$sock->getFrameWork("squid.php?build-whitelist-tenir=yes&MyCURLTIMEOUT=300");
 }
 
 
 function compile_ufdb(){
+	
+	
+	
 	$tpl=new templates();
 	$sock=new sockets();
 	$users=new usersMenus();
@@ -207,16 +235,17 @@ function compile_ufdb(){
 	";
 	
 	if(!$users->APP_UFDBGUARD_INSTALLED){
-			echo $tpl->_ENGINE_parse_body("<div><strong>{APP_UFDBGUARD}:</strong> {error_module_not_installed}</div>").$script;
-			die();
+		echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_UFDBGUARD}: {error_module_not_installed}")).$script;
+		die();
 	}
 	
 	if($EnableUfdbGuard==0){
-		echo $tpl->_ENGINE_parse_body("<div><strong>{APP_UFDBGUARD}:</strong> {error_module_not_enabled}</div>").$script;
+		echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_UFDBGUARD}: {error_module_not_enabled}")).$script;
+		
 		die();		
 	}
+	echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_UFDBGUARD}:{please_wait_configuring_the_module}:")).$script;
 	
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_UFDBGUARD}:{please_wait_configuring_the_module}:</strong></div>").$script;
 	
 $sock->getFrameWork("squid.php?ufdbguard-compile-smooth-tenir=yes&MyCURLTIMEOUT=300");
 
@@ -240,15 +269,17 @@ function compile_cicap(){
 	";	
 	
 	if(!$users->C_ICAP_INSTALLED){
-			echo $tpl->_ENGINE_parse_body("<div><strong>{CICAP_AV}:</strong> {error_module_not_installed}</div>").$script;
+			echo $tpl->_ENGINE_parse_body(build_progress_text("{CICAP_AV}: {error_module_not_installed}")).$script;
 			die();
 	}	
 	
 	if($CicapEnabled==0){
-		echo $tpl->_ENGINE_parse_body("<div><strong>{CICAP_AV}:</strong> {error_module_not_enabled})</div>").$script;
+		echo $tpl->_ENGINE_parse_body(build_progress_text("{CICAP_AV}: {error_module_not_enabled}")).$script;
+		
 		die();		
 	}	
-	echo $tpl->_ENGINE_parse_body("<div><strong>{CICAP_AV}:{please_wait_configuring_the_module}:</strong></div>").$script;
+	echo $tpl->_ENGINE_parse_body(build_progress_text("{CICAP_AV}:{please_wait_configuring_the_module}:")).$script;
+	
 	$sock->getFrameWork("cmd.php?cicap-reconfigure=yes&tenir=yes&MyCURLTIMEOUT=300");
 
 }
@@ -269,15 +300,17 @@ function compile_kav(){
 	";
 
 	if(!$users->KAV4PROXY_INSTALLED){
-		echo $tpl->_ENGINE_parse_body("<div><strong>{APP_KAV4PROXY}:</strong> {error_module_not_installed}</div>").$script;
+		echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:14px'>{APP_KAV4PROXY}:</strong> {error_module_not_installed}</div>").$script;
 		die();
 	}
 
 	if($kavicapserverEnabled==0){
-		echo $tpl->_ENGINE_parse_body("<div><strong>{APP_KAV4PROXY}:</strong> {error_module_not_enabled})</div>").$script;
+		echo $tpl->_ENGINE_parse_body("<div><strong style='font-size:14px'>{APP_KAV4PROXY}:</strong> {error_module_not_enabled})</div>").$script;
 		die();
 	}
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_KAV4PROXY}:{please_wait_configuring_the_module}:</strong></div>").$script;
+	
+	echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_KAV4PROXY}:{please_wait_configuring_the_module}")).$script;
+	
 	$sock->getFrameWork("cmd.php?kav4proxy-reconfigure-tenir=yes&MyCURLTIMEOUT=300");
 
 }
@@ -297,9 +330,10 @@ function compile_squid(){
 
 	
 	$text="{apply config}&nbsp;{success}";
-	if($EnableWebProxyStatsAppliance==0){
-		$cmd="squid.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300&force=yes";
-		$sock->getFrameWork($cmd);	
+	$cmd="squid.php?build-smooth-tenir=yes&MyCURLTIMEOUT=300&force=yes";
+	$sock->getFrameWork($cmd);	
+	if(isset($_GET["restart"])){
+		$sock->getFrameWork("cmd.php?force-restart-squidonly=yes&force=yes");
 	}
 	
 	if($EnableWebProxyStatsAppliance==1){
@@ -316,8 +350,8 @@ function compile_squid(){
 		LoadAjaxSilent('compile_pdns','$page?compile-pdns=yes&t=$t');
 	</script>
 	";	
+	echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_SQUID}:$text")).$script;
 	
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_SQUID}:$text</strong></div>").$script;
 
 	
 }
@@ -333,6 +367,9 @@ function compile_pdns(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
 	
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
 
@@ -358,10 +395,24 @@ function compile_pdns(){
 	</script>
 	";
 
-	echo $tpl->_ENGINE_parse_body("<div><strong>{APP_PDNS}:$text</strong></div>").$script;
+	echo $tpl->_ENGINE_parse_body(build_progress_text("{APP_PDNS}:$text")).$script;
 
 
 }
+
+function build_progress_text($text){
+	return "
+	<div style='margin-top:0px'>
+		<table style='width:100%'>
+		<tr>
+			<td style='width:26px;vertical-align:center'><img src='img/arrow-right-24.png'></td>
+			<td style='width:100%;font-size:16px;font-weight:bold;vertical-align:center'>$text</td>
+		</tr>
+		</table>
+	</div>";
+	
+}
+
 
 function compile_end_1(){
 	$tpl=new templates();
@@ -407,7 +458,7 @@ function compile_end_finish(){
 	$users=new usersMenus();
 	$page=CurrentPageName();	
 	$t=$_GET["t"];
-	$text=$tpl->_ENGINE_parse_body("{please_wait_refresh_web_pages}");
+	$text=$tpl->_ENGINE_parse_body(build_progress_text("{please_wait_refresh_web_pages}"));
 	$script="
 	<div id='compile_end-2$t'>$text</div>
 	<script>
@@ -432,6 +483,8 @@ function compile_end(){
 	</script>
 	";				
 		
+	$sock=new sockets();
+	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	echo $tpl->_ENGINE_parse_body("<strong>{success}</strong>").$script;
 		
 }

@@ -58,12 +58,10 @@ function popup(){
 	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
 	if($GLOBALS["VERBOSE"]){echo "inf -> $inf\n<br>";}
 	if($inf<>null){$executed=true;}
-	$REMOTE_VERSION=$array["ARTICATECH"]["VERSION"];
-	$REMOTE_MD5=$array["ARTICATECH"]["MD5"];
-	$REMOTE_SIZE=$array["ARTICATECH"]["SIZE"];	
+	$REMOTE_VERSION=$array["TIME"];
 	if(!is_numeric($PROGRESS["POURC"])){$PROGRESS["POURC"]=0;}
 	
-	$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
+	
 	if($REMOTE_VERSION>$LOCAL_VERSION){	
 		if(!$executed){
 			$sock->getFrameWork("squid.php?articadb-launch=yes");
@@ -107,13 +105,18 @@ function progress(){
 	$inf=trim($sock->getFrameWork("squid.php?isInjectrunning=yes") );
 	if($GLOBALS["VERBOSE"]){echo "inf -> $inf\n<br>";}
 	if($inf<>null){$executed=true;}
-	$REMOTE_VERSION=$array["ARTICATECH"]["VERSION"];
+	$REMOTE_VERSION=$array["TIME"];
 	$REMOTE_MD5=$array["ARTICATECH"]["MD5"];
 	$REMOTE_SIZE=$array["ARTICATECH"]["SIZE"];	
 	if(!is_numeric($PROGRESS["POURC"])){$PROGRESS["POURC"]=0;}
 	$PROGRESS["TEXT"]=$tpl->javascript_parse_text($PROGRESS["TEXT"]);
 	if(!is_numeric($PROGRESS["DOWN"])){$PROGRESS["DOWN"]=0;}
 	if(($PROGRESS["DOWN"]<100) && ($PROGRESS["DOWN"]>0)){if($PROGRESS["POURC"]>90){$PROGRESS["POURC"]=99;}}
+	
+	if(preg_match("#error#i", $PROGRESS["TEXT"])){
+		$PROGRESS["TEXT"]="<span style=color:red>{$PROGRESS["TEXT"]} - restart later</span>";
+	}
+	
 	if($executed){$PROGRESS["TEXT"]=$tpl->javascript_parse_text("{running}:")." ".$PROGRESS["TEXT"];}
 	$html="
 	<script>

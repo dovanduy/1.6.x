@@ -329,7 +329,7 @@ function users_list_json(){
 			$data['rows'][] = array(
 				'id' => $md5S,
 				'cell' => array(
-					"<img src='img/winuser.png'>",
+					"<img src='img/user-18.png'>",
 					"<strong style='font-size:14px;style='color:$color'>$href$User@$host</a></strong>",
 					"<span>". Field_checkbox("$md5S-read",1,$read,"UpdateDPriv('$md5S-read','$userenc','r')")."</span>",
 					"<span>". Field_checkbox("$md5S-write",1,$write,"UpdateDPriv('$md5S-write','$userenc','w')")."</span>",

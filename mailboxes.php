@@ -298,7 +298,7 @@ function expand_domain(){
 		</td>
 		<td style='width:50px'  valign='MIDDLE' align='left'>&nbsp;$address&nbsp;</td>
 		<td style='width:50px' valign='MIDDLE' align='center'>&nbsp;<img src='img/forwd_22.gif'>&nbsp;</td>
-		<td style='width:50px' valign='MIDDLE' align='center'>&nbsp;<img src='img/mailbox.gif'>&nbsp;</td>
+		<td style='width:50px' valign='MIDDLE' align='center'>&nbsp;<img src='img/mailbox.png'>&nbsp;</td>
 		<td style='width:50px' valign='MIDDLE' align='center'>&nbsp;$icon_mailbox&nbsp;</td>
 		<td valign='MIDDLE'  style='width:50px' align='left'>&nbsp;$gotourl$goto</a></td>
 		<td valign='MIDDLE'  style='width:50px' align='center'>&nbsp;

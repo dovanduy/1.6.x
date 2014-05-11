@@ -24,6 +24,7 @@ if($argv[1]=="--BuildCSR"){BuildCSR($argv[2]);}
 
 
 function BuildCSR($CommonName){
+	$CommonName=str_replace("_ALL_", "*", $CommonName);
 	buildkey($CommonName);
 	squid_autosigned($CommonName);
 	update_from_mysql($CommonName);
@@ -34,7 +35,10 @@ function BuildCSR($CommonName){
 function buildkey($CommonName){
 	$unix=new unix();
 	$openssl=$unix->find_program("openssl");
-	$directory="/etc/openssl/certificate_center/$CommonName";
+	$CommonName=str_replace("_ALL_", "*", $CommonName);
+	
+	
+	$directory="/etc/openssl/certificate_center/".md5($CommonName);
 	if(!is_file($openssl)){
 		echo "openssl.......: No such binary, aborting...\n";
 	}
@@ -44,10 +48,10 @@ function buildkey($CommonName){
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if($ligne["CommonName"]==null){
-		echo "openssl.......: CommonName is null, aborting...\n";
-		exit;
-	}
+	if($ligne["CommonName"]==null){$ligne["CommonName"]="*";}
+	
+	
+		
 	
 	if($ligne["CountryName"]==null){$ligne["CountryName"]="UNITED STATES_US";}	
 	if($ligne["stateOrProvinceName"]==null){$ligne["stateOrProvinceName"]="New York";}
@@ -119,7 +123,7 @@ function update_from_mysql($CommonName){
 	$ldap=new clladp();
 	if($CommonName==null){echo "openssl.......: Fatal:".__LINE__."::CommonName is null aborting...\n";exit;}
 	
-	$directory="/etc/openssl/certificate_center/$CommonName";
+	$directory="/etc/openssl/certificate_center/".md5($CommonName);
 	$openssl=$unix->find_program("openssl");
 	$cp=$unix->find_program("cp");
 	if(!is_file($openssl)){echo "openssl.......: No such binary, aborting...\n";exit;}	
@@ -190,9 +194,11 @@ function update_from_mysql($CommonName){
 }
 
 function x509($CommonName){
+	$CommonName=str_replace("_ALL_", "*", $CommonName);
 	$unix=new unix();
 	$ldap=new clladp();
-	$directory="/etc/openssl/certificate_center/$CommonName";
+	$directory="/etc/openssl/certificate_center/".md5($CommonName);
+	@mkdir($directory,0644,true);
 	$openssl=$unix->find_program("openssl");
 	$cp=$unix->find_program("cp");
 	if(!is_file($openssl)){echo "openssl.......: No such binary, aborting...\n";return;}
@@ -203,7 +209,7 @@ function x509($CommonName){
 	$sql="SELECT *  FROM sslcertificates WHERE CommonName='$CommonName'";
 	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-	if($ligne["CommonName"]==null){echo "CommonName is null, aborting...\n";return;}
+	if($ligne["CommonName"]==null){echo "MySQL return a null CommonName For `$CommonName`, aborting...\n";return;}
 
 	$csr="$directory/server.csr";
 	$privkey="$directory/myserver.key";
@@ -225,7 +231,7 @@ function x509($CommonName){
 	if($ligne["emailAddress"]==null){$ligne["emailAddress"]="postmaster@localhost.localdomain";}
 	if($ligne["OrganizationName"]==null){$ligne["OrganizationName"]="MyCompany Ltd";}
 	if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}
-	if($ligne["password"]==null){$ligne["password"]=$ldap->ldap_password;}	
+	if(trim($ligne["password"])==null){$ligne["password"]=$ldap->ldap_password;}	
 	if(preg_match("#^.*?_(.+)#", $ligne["CountryName"],$re)){$C=$re[1];}	
 	$ST=$ligne["stateOrProvinceName"];
 	$L=$ligne["localityName"];
@@ -235,18 +241,21 @@ function x509($CommonName){
 	@unlink("$directory/serial.old");
 	@unlink("$directory/index.txt.attr");  
 	@unlink("$directory/index.txt.old");
+	@unlink("$directory/rnd");
+	
 	
 	@file_put_contents("$directory/serial.txt", "01");
 	@file_put_contents("$directory/serial", "01");
 	shell_exec("$cp /dev/null $directory/index.txt");
-	
-	
+	putenv("HOME=/root");
+	putenv("RANDFILE=$directory/rnd");
+	system("env");
 	
 	
 	
 	
 $f[]="HOME			= $directory";
-$f[]="RANDFILE		= $directory/.rnd";
+$f[]="RANDFILE		= $directory/rnd";
 $f[]="oid_section		= new_oids";
 $f[]="";
 $f[]="[ new_oids ]";
@@ -264,7 +273,7 @@ $f[]="serial		= $directory/serial 		# The current serial number";
 $f[]="crlnumber	= $directory/crlnumber	# the current crl number";
 $f[]="crl		= $directory/crl.pem 		# The current CRL";
 $f[]="private_key	= $directory/myserver.key";
-$f[]="RANDFILE	= $directory/.rand	# private random number file";
+
 $f[]="x509_extensions	= usr_cert		# The extentions to add to the cert";
 $f[]="name_opt 	= ca_default		# Subject Name options";
 $f[]="cert_opt 	= ca_default		# Certificate field options";
@@ -275,21 +284,21 @@ $f[]="preserve	= no			# keep passed DN ordering";
 $f[]="policy		= policy_match";
 $f[]="";
 $f[]="[ policy_match ]";
-$f[]="countryName		= match";
-$f[]="stateOrProvinceName	= match";
-$f[]="organizationName	= match";
+$f[]="countryName			= optional";
+$f[]="stateOrProvinceName	= optional";
+$f[]="organizationName		= optional";
 $f[]="organizationalUnitName	= optional";
-$f[]="commonName		= supplied";
-$f[]="emailAddress		= optional";
+$f[]="commonName			= supplied";
+$f[]="emailAddress			= optional";
 $f[]="";
 $f[]="[ policy_anything ]";
-$f[]="countryName		= optional";
+$f[]="countryName			= optional";
 $f[]="stateOrProvinceName	= optional";
-$f[]="localityName		= optional";
-$f[]="organizationName	= optional";
+$f[]="localityName			= optional";
+$f[]="organizationName		= optional";
 $f[]="organizationalUnitName	= optional";
-$f[]="commonName		= supplied";
-$f[]="emailAddress		= optional";
+$f[]="commonName			= supplied";
+$f[]="emailAddress			= optional";
 $f[]="";
 $f[]="[ req ]";
 $f[]="default_bits		= 1024";
@@ -302,19 +311,18 @@ $f[]="output_password = {$ligne["password"]}";
 $f[]="string_mask = nombstr";
 $f[]="";
 $f[]="[ req_distinguished_name ]";
-$f[]="countryName			= Country Name (2 letter code)";
+$f[]="countryName				= $C";
 $f[]="countryName_default		= $C";
 $f[]="countryName_min			= 2";
 $f[]="countryName_max			= 2";
-$f[]="stateOrProvinceName		= State or Province Name (full name)";
-$f[]="stateOrProvinceName_default	= {$ligne["stateOrProvinceName"]}";
-$f[]="localityName			= Locality Name (eg, city)";
-$f[]="0.organizationName		= Organization Name (eg, company)";
-$f[]="0.organizationName_default	= {$ligne["OrganizationName"]}";
-$f[]="organizationalUnitName		= Organizational Unit Name (eg, section)";
-$f[]="commonName			= Common Name (eg, YOUR name)";
+$f[]="stateOrProvinceName		= {$ligne["stateOrProvinceName"]}";
+$f[]="localityName				= {$ligne["localityName"]}";
+$f[]="0.organizationName		= {$ligne["OrganizationName"]}";
+$f[]="0.organizationName_default= {$ligne["OrganizationName"]}";
+$f[]="organizationalUnitName	= {$ligne["OrganizationalUnit"]}";
+$f[]="commonName				= $CommonName";
 $f[]="commonName_max			= 64";
-$f[]="emailAddress			= Email Address";
+$f[]="emailAddress				= {$ligne["emailAddress"]}";
 $f[]="emailAddress_max		= 64";
 $f[]="";
 $f[]="[ req_attributes ]";
@@ -348,40 +356,166 @@ $f[]="proxyCertInfo=critical,language:id-ppl-anyLanguage,pathlen:3,policy:foo";
 echo "Writing $directory/openssl.cf\n";
 @file_put_contents("$directory/openssl.cf", @implode("\n",$f));
 
+@chdir($directory);
 $server_cert="$directory/server.crt";
-$cmd="$openssl x509 -req -days $CertificateMaxDays -in $csr -signkey $privkey -out $server_cert -sha1";
-if($GLOBALS['VERBOSE']){echo "$cmd\n";}
-echo "\n****\n$cmd\n****\n";
-shell_exec($cmd);
-if(!is_file($server_cert)){echo "$directory/server.crt No such file !\n";return;}
+$DefaultSubject="-subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\"";
+echo "\n";
+echo "[".__LINE__."] ************************************************************************\n";
+echo "[".__LINE__."] DefaultSubject = $DefaultSubject\n";
+$cmd="$openssl x509 -req -CAcreateserial $DefaultSubject -days $CertificateMaxDays -in $csr -signkey $privkey -out $server_cert -sha1 2>&1";
+echo "[".__LINE__."] $cmd\n";
+echo "\n";
+echo "[".__LINE__."] ************************************************************************\n";
+echo "[".__LINE__."] $cmd\n";
+exec($cmd,$results0);
+
+while (list ($num, $ligneLine) = each ($results1) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo $ligneLine."\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
+
+}
+
+if(!is_file($server_cert)){
+	echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+	echo "[".__LINE__."] $directory/server.crt No such file !\n";
+	echo "[".__LINE__."] ************************************************************************\n\n";
+	return;	
+}
 	
 $ligne["password"]=escapeshellcmd($ligne["password"]);
-$cmd="$openssl genrsa -des3 -passout pass:{$ligne["password"]} -out $directory/cakey.pem 4096";
-echo $cmd."\n";
-shell_exec($cmd);
+echo "[".__LINE__."] ************************************************************************\n\n";
+if(is_file("$directory/rnd")){
+	echo "Removing $directory/rnd\n";
+	@unlink("$directory/rnd");
+	@touch("$directory/rnd");
+	@chmod("$directory/rnd",0644);
+}
 
+if(is_file("$directory/cakey.pem")){@unlink("$directory/cakey.pem");}
 
-// the Intermediate CA private key
+$cmd="$openssl genrsa -des3 -rand file:$directory/rand -passout pass:{$ligne["password"]} -out $directory/cakey.pem 4096 2>&1";
+echo "\n";
+echo "[".__LINE__."] ************************************************************************\n$cmd\n";
+exec($cmd,$results1);
+
+while (list ($num, $ligneLine) = each ($results1) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo "[".__LINE__."] $ligneLine\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
+	
+}
+echo "[".__LINE__."] ************************************************************************\n\n";
+
+$cakeySize=@filesize("$directory/cakey.pem");
+echo "[".__LINE__."] cakey.pem: $cakeySize bytes";
+if($cakeySize==0){
+	echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+	echo "[".__LINE__."] $directory/cakey.pem O bytes!!!\n";
+	echo "[".__LINE__."] ************************************************************************\n\n";
+	return;
+}
+
 $cmdS=array();
 $cmdS[]="$openssl req -new -sha1 -config $directory/openssl.cf";
-$cmdS[]="-subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\"";
+$cmdS[]=$DefaultSubject;
 $cmdS[]="-key $directory/cakey.pem -out $directory/ca.csr";
+$cmdS[]=" 2>&1";
 $cmd=@implode(" ", $cmdS);
-echo "Line:".__LINE__."\n";
-echo "\n****\n$cmd\n****\n";
-shell_exec($cmd);
+
+echo "\n************************************************************************\n$cmd\n";
+exec($cmd,$results2);
+
+while (list ($num, $ligneLine) = each ($results2) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo "[".__LINE__."] $ligneLine\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
+
+}
+echo "[".__LINE__."] ************************************************************************\n\n";
+
+
+// #####################################################################################################################
+
+$cmd="$openssl req -new -newkey rsa:1024 $DefaultSubject -days $CertificateMaxDays -nodes -x509 -keyout $directory/DynamicCert.pem -out $directory/DynamicCert.pem 2>&1";
+echo "[".__LINE__."] ************************************************************************\n";
+echo "$cmd\n";
+
+$results1=array();
+exec($cmd,$results1);
+while (list ($num, $ligneLine) = each ($results1) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo "[".__LINE__."] $ligneLine\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
+	
+}
+
+echo "[".__LINE__."] ************************************************************************\n\n";
+
+
+
+
+
+// #####################################################################################################################
+
+echo "[".__LINE__."] ************************************************************************\n";
+$cmd="$openssl x509 -in $directory/DynamicCert.pem -outform DER -out $directory/DynamicCert.der 2>&1";
+echo "$cmd\n";
+$results1=array();
+exec($cmd,$results1);
+while (list ($num, $ligneLine) = each ($results1) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo "[".__LINE__."] $ligneLine\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
+
+}
+// #####################################################################################################################
+
 
 
 
 $cmdS=array();
-$cmdS[]="$openssl ca -batch -extensions v3_ca -days $CertificateMaxDays -out $directory/cacert-itermediate.pem";
+$cmdS[]="$openssl ca -batch -extensions v3_ca $DefaultSubject -days $CertificateMaxDays -out $directory/cacert-itermediate.pem";
 $cmdS[]="-in $directory/ca.csr -config $directory/openssl.cf";
 $cmdS[]="-cert $directory/server.crt";
 $cmd=@implode(" ", $cmdS);
-echo "Line:".__LINE__."\n";
-echo "\n****\n$cmd\n****\n";
-shell_exec($cmd);
+echo "[".__LINE__."] ************************************************************************\n";
+echo "$cmd\n";
+$results1=array();
+exec($cmd,$results1);
+while (list ($num, $ligneLine) = each ($results1) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo "[".__LINE__."] $ligneLine\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
 
+}
+
+echo "[".__LINE__."] ************************************************************************\n\n";
+// #####################################################################################################################
 $server_cert_content=@file_get_contents($server_cert);
 $intermediate_content=@file_get_contents("$directory/cacert-itermediate.pem");
 @file_put_contents("$directory/chain.crt", "$intermediate_content\n$server_cert_content");
@@ -403,6 +537,7 @@ $intermediate_content=@file_get_contents("$directory/cacert-itermediate.pem");
 	@unlink("$directory/serial.old");
 	@unlink("$directory/index.txt.attr");  
 	@unlink("$directory/index.txt.old");
+	@unlink("$directory/rnd");
 	
 	@file_put_contents("$directory/serial.txt", "01");
 	@file_put_contents("$directory/serial", "01");
@@ -411,14 +546,30 @@ $intermediate_content=@file_get_contents("$directory/cacert-itermediate.pem");
 $cmdS=array();	
 $cmdS[]="$openssl ca -batch -config $directory/openssl.cf -passin pass:{$ligne["password"]}";
 $cmdS[]="-keyfile $directory/cakey.pem";
-$cmdS[]="-cert $directory/cacert-itermediate.pem -policy policy_anything -out $directory/$CommonName.crt"; 
+$cmdS[]="-cert $directory/cacert-itermediate.pem -policy policy_anything -out $directory/MAIN.crt"; 
 $cmdS[]="-infiles $directory/ca.csr";
 $cmd=@implode(" ", $cmdS);
-echo "Line:".__LINE__."\n";
-echo "****\n$cmd\n****\n";
-shell_exec($cmd);	
+echo "[".__LINE__."] ************************************************************************\n";
+echo "$cmd\n";
+$results1=array();
+exec($cmd,$results1);
+while (list ($num, $ligneLine) = each ($results1) ){
+	if(preg_match("#unable#i", $ligneLine)){
+		echo "[".__LINE__."] ************************** ERROR DETECTED !!! **************************\n";
+		echo "[".__LINE__."] $ligneLine\n";
+		echo "[".__LINE__."] ************************************************************************\n\n";
+		return;
+	}
+	echo "[".__LINE__."] $ligneLine\n";
 
-$content=mysql_escape_string2(@file_get_contents("$directory/$CommonName.crt"));
+}
+
+echo "[".__LINE__."] ************************************************************************\n\n";
+// #####################################################################################################################
+
+
+
+$content=mysql_escape_string2(@file_get_contents("$directory/MAIN.crt"));
 $bundle=mysql_escape_string2(@file_get_contents("$directory/chain.crt"));
 $sql="UPDATE sslcertificates SET `crt`='$content',`bundle`='$bundle' WHERE CommonName='$CommonName'";
 $q->QUERY_SQL($sql,"artica_backup");
@@ -426,11 +577,20 @@ if(!$q->ok){echo $q->mysql_error."\n";}
 squid_autosigned($CommonName);
 $php5=$unix->LOCATE_PHP5_BIN();
 $nohup=$unix->find_program("nohup");
+chdir("/root");
 shell_exec("$nohup $php5 ".__FILE__." --pass >/dev/null 2>&1 &");
 }
 
+function echo_implode($array,$xline){
+	while (list ($num, $line) = each ($array)){
+		echo "Line: $xline: $line\n";
+	}
+	
+}
+
 function squid_autosigned($CommonName){
-	$directory="/etc/openssl/certificate_center/$CommonName";
+	$CommonName=str_replace("_ALL_", "*", $CommonName);
+	$directory="/etc/openssl/certificate_center/".md5($CommonName);
 	$q=new mysql();
 	if(!$q->FIELD_EXISTS("sslcertificates","Squidkey","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `Squidkey` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
 	if(!$q->FIELD_EXISTS("sslcertificates","SquidCert","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `SquidCert` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
@@ -463,34 +623,37 @@ function squid_autosigned($CommonName){
 
 	$cmd="$openssl genrsa -des3 -passout pass:{$ligne["password"]} -out $directory/squid-server.key {$ligne["levelenc"]} 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
+	$resultsCMD=array();exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo_implode($resultsCMD,__LINE__);}
 	
 	$cmd="openssl req -new -key $directory/squid-server.key -passin pass:{$ligne["password"]} -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" -out $directory/squid-server.csr 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
+	$resultsCMD=array();exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo_implode($resultsCMD,__LINE__);}
 		
 	$cmd="$openssl rsa -in $directory/squid-server.key  -passin pass:{$ligne["password"]} -out $directory/squid-proxy.key 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
+	$resultsCMD=array();exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo_implode($resultsCMD,__LINE__);}
 	
 	$cmd="$openssl x509 -req -days $CertificateMaxDays -in $directory/squid-server.csr -signkey $directory/squid-proxy.key -out $directory/squid-proxy.crt 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
-	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
+	$resultsCMD=array();exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo_implode($resultsCMD,__LINE__);}
 	
 	
 	// http://wiki.squid-cache.org/Features/DynamicSslCert
-	$cmd="$openssl req -new -newkey rsa:{$ligne["levelenc"]} -days $CertificateMaxDays -nodes -x509 -keyout $directory/RootCA.pem  -out $directory/RootCA.pem -subj -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" 2>&1";
+	$cmd="$openssl req -new -newkey rsa:{$ligne["levelenc"]} -days $CertificateMaxDays -nodes -x509 -keyout $directory/RootCA.pem  -out $directory/RootCA.pem -subj \"/C=$C/ST=$ST/L=$L/O=$O/OU=$OU/CN=$CommonName\" 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
-	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}
+	$resultsCMD=array();exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo_implode($resultsCMD,__LINE__);}
 	
 	$cmd="$openssl x509 -in $directory/RootCA.pem -outform DER -out $directory/RootCA.der 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";	}
-	$resultsCMD=array();shell_exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo @implode("\n", $resultsCMD)."\n";}	
+	$resultsCMD=array();exec($cmd,$resultsCMD);if($GLOBALS["VERBOSE"]){echo_implode($resultsCMD,__LINE__);}	
 		
 	$SquidSrca=mysql_escape_string2(@file_get_contents("$directory/RootCA.pem"));
 	$Squidkey=mysql_escape_string2(@file_get_contents("$directory/squid-proxy.key"));
 	$SquidCert=mysql_escape_string2(@file_get_contents("$directory/squid-proxy.crt"));
 	$SquidDer=mysql_escape_string2(@file_get_contents("$directory/RootCA.der"));
+	$DynamicCert=mysql_escape_string2(@file_get_contents("$directory/DynamicCert.pem"));
+	$DynamicDer=mysql_escape_string2(@file_get_contents("$directory/DynamicCert.der"));
+	
 	
 	if(!$q->FIELD_EXISTS("sslcertificates","srca","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `srca` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
 	if(!$q->FIELD_EXISTS("sslcertificates","der","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `der` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
@@ -501,13 +664,26 @@ function squid_autosigned($CommonName){
 	if(!$q->FIELD_EXISTS("sslcertificates","SquidCert","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `SquidCert` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
 	if(!$q->FIELD_EXISTS("sslcertificates","keyPassword","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `keyPassword` VARCHAR(255) NOT NULL,ADD INDEX(`keyPassword`)";$q->QUERY_SQL($sql,'artica_backup');}
 	if(!$q->FIELD_EXISTS("sslcertificates","levelenc","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `levelenc` INT(3) NOT NULL DEFAULT '1024',ADD INDEX(`levelenc`)";$q->QUERY_SQL($sql,'artica_backup');}	
-
+	if(!$q->FIELD_EXISTS("sslcertificates","DynamicCert","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `DynamicCert` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	if(!$q->FIELD_EXISTS("sslcertificates","DynamicDer","artica_backup")){$sql="ALTER TABLE `sslcertificates` ADD `DynamicDer` TEXT NOT NULL";$q->QUERY_SQL($sql,'artica_backup');}
+	
+	if($GLOBALS["VERBOSE"]){echo "Squidkey......: ".strlen($Squidkey)." bytes\n";	}
+	if($GLOBALS["VERBOSE"]){echo "SquidCert.....: ".strlen($SquidCert)." bytes\n";	}
+	if($GLOBALS["VERBOSE"]){echo "srca..........: ".strlen($SquidSrca)." bytes\n";	}
+	if($GLOBALS["VERBOSE"]){echo "der...........: ".strlen($SquidDer)." bytes\n";	}
+	if($GLOBALS["VERBOSE"]){echo "DynamicCert...: ".strlen($DynamicCert)." bytes\n";	}
+	if($GLOBALS["VERBOSE"]){echo "DynamicDer....: ".strlen($DynamicDer)." bytes\n";	}
+	
+	
+	
 	
 	$sql="UPDATE sslcertificates SET 
 		`Squidkey`='$Squidkey',
 		`SquidCert`='$SquidCert', 
 		`srca`='$SquidSrca',
-		`der`='$SquidDer'
+		`der`='$SquidDer',
+		`DynamicCert`='$DynamicCert',
+		`DynamicDer`='$DynamicDer'
 		WHERE CommonName='$CommonName'";
 	$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n";}	

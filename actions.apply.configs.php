@@ -234,13 +234,13 @@ function ApplyConfigKavMail(){
 	}
 }
 
-function Success($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/icon_ok.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {success}</td></tr></table></text>";}
-function NotInstalled($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'>	<img src=img/icon_mini_warning.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {not_installed}</td></tr></table></text>";}
-function NotAllowed($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/icon_mini_warning.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {not allowed}</td></tr></table></text>";}
-function NoDatas($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/icon_mini_warning.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {error_no_datas}</td></tr></table></text>";}
-function Infos($explain,$infos){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/icon_info.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {".$infos."}</td></tr></table></text>";}
-function InfosError($explain,$infos){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/icon_mini_warning.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} ".$infos."</td></tr></table></text>";}
-function NotEnabled($explain,$infos){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/icon_mini_warning.gif align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {not_enabled} $infos</td></tr></table></text>";}
+function Success($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/ok16.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {success}</td></tr></table></text>";}
+function NotInstalled($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'>	<img src=img/status_warning.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {not_installed}</td></tr></table></text>";}
+function NotAllowed($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/status_warning.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {not allowed}</td></tr></table></text>";}
+function NoDatas($explain){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/status_warning.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {error_no_datas}</td></tr></table></text>";}
+function Infos($explain,$infos){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/16-infos.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {".$infos."}</td></tr></table></text>";}
+function InfosError($explain,$infos){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/status_warning.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} ".$infos."</td></tr></table></text>";}
+function NotEnabled($explain,$infos){return  "<text><table style='width:100%'><tr><td width=1% valign='top'><img src=img/status_warning.png align=left style='margin-right:5px'></td><td valign='top'>{".$explain."} {not_enabled} $infos</td></tr></table></text>";}
 
 
 function ApplyConfigMbx(){

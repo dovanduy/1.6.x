@@ -22,7 +22,7 @@ build();
 
 function build($reconfiguremode=false){
 	
-	echo "Starting......: ejabberd daemon creating /etc/ejabberd/ejabberd.cfg\n";
+	echo "Starting......: ".date("H:i:s")." ejabberd daemon creating /etc/ejabberd/ejabberd.cfg\n";
 	$ejb=new ejabberd();
 	$conf=$ejb->BuildMasterConf();
 	@file_put_contents("/etc/ejabberd/ejabberd.cfg", $conf);
@@ -35,7 +35,7 @@ function build($reconfiguremode=false){
 		if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 		shell_exec($cmd);
 	}
-	echo "Starting......: ejabberd daemon configure success\n";
+	echo "Starting......: ".date("H:i:s")." ejabberd daemon configure success\n";
 }
 
 function ZarafaPlugin($silent=false){
@@ -49,14 +49,14 @@ function ZarafaPlugin($silent=false){
 	$ejabberdInsideZarafa=$sock->GET_INFO("ejabberdInsideZarafa");
 	if(!is_numeric($ejabberdInsideZarafa)){$ejabberdInsideZarafa=0;}
 	if($ejabberdInsideZarafa==0){
-		if(!$silent){echo "Starting......: ejabberd Integration in Zarafa WebAPP is not enabled\n";}
+		if(!$silent){echo "Starting......: ".date("H:i:s")." ejabberd Integration in Zarafa WebAPP is not enabled\n";}
 		return;
 	}
 	$q=new mysql();
 	$sql="SELECT servername FROM freeweb WHERE groupware='WEBAPP'";
 	$results=$q->QUERY_SQL($sql,'artica_backup');
 	if(!$q->ok){
-		if(!$silent){echo "Starting......: ejabberd Fatal: $q->mysql_error\n";}
+		if(!$silent){echo "Starting......: ".date("H:i:s")." ejabberd Fatal: $q->mysql_error\n";}
 		return;
 	}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -64,7 +64,7 @@ function ZarafaPlugin($silent=false){
 		
 	}
 	if(count($zarafa_urls)==0){
-		if(!$silent){echo "Starting......: ejabberd no Zarafa WebAPP is set under FreeWebs...\n";}
+		if(!$silent){echo "Starting......: ".date("H:i:s")." ejabberd no Zarafa WebAPP is set under FreeWebs...\n";}
 		return;
 	}
 	
@@ -291,5 +291,5 @@ function ZarafaPlugin($silent=false){
 	$f[]="?>";	
 	@file_put_contents("/usr/share/artica-postfix/jabberauth.php", @implode("\n", $f));
 	@chmod("/usr/share/artica-postfix/jabberauth.php",0755);
-	if(!$silent){echo "Starting......: ejabberd /usr/share/artica-postfix/jabberauth.php configured...\n";}
+	if(!$silent){echo "Starting......: ".date("H:i:s")." ejabberd /usr/share/artica-postfix/jabberauth.php configured...\n";}
 }

@@ -522,7 +522,7 @@ If you set this parameter to a zero, there will be no limit imposed.</request_bo
 <ssl_ports>SLL ports</ssl_ports>
 <switch_access_rules>Switch to access rule:</switch_access_rules>
 <to_ip>To TCP/IP address</to_ip>
-<transparent_mode>transparent proxy</transparent_mode>
+<transparent_mode>Transparent proxy</transparent_mode>
 <transparent_mode_explain>A transparent cache is so named because it works by intercepting the network traffic transparently to the browser.[br]
 In this mode, the cache short-circuits the retrieval process if the desired file is in the cache.[br]
 Transparent caches are especially useful to ISPs because they require no browser setup modification.</transparent_mode_explain>

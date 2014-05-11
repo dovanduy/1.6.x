@@ -510,6 +510,7 @@ private function distanceOfTimeInWords($fromTime, $toTime = 0, $showLessThanAMin
 
 function html_Memory_usage(){
 	include_once(dirname(__FILE__).'/class.users.menus.inc');
+	$cachefileBlkid="/usr/share/artica-postfix/ressources/logs/web/blkid.db";
 	$sock=new sockets();
 	$SessionPathInMemory=$sock->GET_INFO("SessionPathInMemory");
 	if(!is_numeric($SessionPathInMemory)){$SessionPathInMemory=0;}
@@ -525,33 +526,87 @@ function html_Memory_usage(){
 	$this->meta_array["MEM"]["MEM_USED_POURC"]=$mem_used_p;
 	$this->meta_array["MEM"]["MEM_USED_KB"]=$hash_mem["ram"]["used"];
 	$this->meta_array["MEM"]["TOTAL"]=$hash_mem["ram"]["total"];
+	$CurrentTime=date("H:i:s");
 	
+	if($GLOBALS["VERBOSE"]){
+		if($GLOBALS["AS_ROOT"]){
+			include_once("/usr/share/artica-postfix/framework/class.unix.inc");
+			$unix=new unix();
+			$BLKID_ARRAY=$unix->BLKID_ALL();
+		}
+	}
+	
+	if(!is_file($cachefileBlkid)){
+		$sock->getFrameWork("services.php?blkid-all=yes");
+	}
+	$BLKID_ARRAY=unserialize(@file_get_contents($cachefileBlkid));
+	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."] ".print_r($BLKID_ARRAY);}
+	
+	if(!is_array($BLKID_ARRAY)){
+		if($GLOBALS["AS_ROOT"]){
+			include_once("/usr/share/artica-postfix/framework/class.unix.inc");
+			$unix=new unix();
+			$BLKID_ARRAY=$unix->BLKID_ALL();
+		}
+	}
 	
 	$hdparms=unserialize(base64_decode($sock->GET_INFO("HdparmInfos")));
 	$EnableBandwithCalculation=$sock->GET_INFO("EnableBandwithCalculation");
 	if(!is_numeric($EnableBandwithCalculation)){$EnableBandwithCalculation=1;}
 	$users=new usersMenus();
-	$Disks=$users->disks_size;
-	$inodes=$users->disks_inodes;
 	
-	if($inodes<>null){
-		
-		$tbl=explode(";",$inodes);
-		
-		while (list ($num, $val) = each ($tbl) ){
-			$val=trim($val);
-			if(trim($val)==null){continue;}
-			$values=explode(":",$val);
-			$INODES_DEV[$values[0]]=array("POURC"=>$values[4],"OCC"=>$values[2],"SIZE"=>$values[1]);
+	
+	
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$Disks=$unix->DISK_LIST();
+	}else{
+		$Disks=unserialize(base64_decode($sock->getFrameWork("cmd.php?disks-list=yes")));
+	}
+	
+	if($GLOBALS["AS_ROOT"]){
+		$unix=new unix();
+		$inodes=$unix->DISK_INODES();
+	}else{
+		$inodes=unserialize(base64_decode($sock->getFrameWork("cmd.php?disks-inodes=yes")));
+	}	
+	
+	
+	
+	
+	if(is_array($inodes)){
+		while (list ($name, $maininode) = each ($inodes) ){
+			if($GLOBALS["VERBOSE"]){echo "<strong styme='color:blue'>INODE $name = {$maininode["POURC"]}</strong><br>\n";}
+			if(preg_match("#disk\/by-#", $name)){continue;}
+			$INODES_DEV[$name]=array("POURC"=>$maininode["POURC"],"OCC"=>$maininode["USED"],"SIZE"=>$maininode["INODES"]);
 		}
 		
 	}
 	
 	if(is_file(dirname(__FILE__)."/usb.scan.inc")){include dirname(__FILE__)."/usb.scan.inc";}
 	if(is_array($_GLOBAL["usb_list"])){
+		if($GLOBALS["VERBOSE"]){echo "<strong>usb_list = Array() OK GOOD</strong><br>\n";}
 		while (list ($uuid, $array) = each ($_GLOBAL["usb_list"]) ){
-			if($GLOBALS["VERBOSE"]){echo "USB = &raquo; {$array["PATH"]} = &raquo; {$array["ID_USB_DRIVER"]}<br>";}
+		
+			
+			
+			
+			if($GLOBALS["VERBOSE"]){
+				while (list ($a, $b) = each ($array) ){
+					echo "$uuid = &raquo; $a=$b<br>\n";
+				}
+			}
+			if(isset($array["DEVLINKS"])){
+				$TPDEV=explode(" ",$array["DEVLINKS"]);
+				while (list ($a, $b) = each ($TPDEV) ){
+					$DEVNAMES[trim($b)]=$array["PATH"];
+				}
+			}
+			if($array["MOUNTED"]=="/boot"){$array["LABEL"]="boot";}
+			
 			$USBTYPES[$array["PATH"]]=$array["ID_USB_DRIVER"];
+			$LABELZ[$array["PATH"]]=$array["LABEL"];
+			$MOUNTED[$array["PATH"]]=$array["MOUNTED"];
 			
 		}
 	}
@@ -564,38 +619,64 @@ function html_Memory_usage(){
 		}	
 	}
 	
-	
-	
-	if($Disks<>null){
+	if(!is_array($Disks)){
+		if($GLOBALS["VERBOSE"]){echo "<H2 style=color:red'>\$Disks == null !!</H2><br>\n";}
 		
-		$tbl=explode(";",$Disks);
-		while (list ($num, $val) = each ($tbl) ){
-			
+	}
+	
+	if(is_array($Disks)){
+		
+		
+		while (list ($disk, $values) = each ($Disks) ){
+			$diskPath=$disk;
 			$hdparm=null;
 			$inodesstat=null;
 			$pouc_disk_inodes_text=null;
 			$iostat=null;
+			// $results[trim($re[1])]=array("SIZE"=>$re[2],"UNIT"=>$re[3],"USED"=>$re[4],"DISP"=>$re[6],"POURC"=>trim($re[8]));
 			
 			
-			if(trim($val)<>null){
-				$values=explode(",",$val);
+			if(isset($values["SIZE"])<>null){
+
 				if(is_array($values)){
 					$dc=$dc+1;
-					$disk=$values[0];
 					
+					if($disk=="shm"){continue;}
+					if($disk=="tmpfs"){continue;}
+					if($disk=="udev"){continue;}
+					if($disk=="rootfs"){continue;}
 					$disk=str_replace("mapper/","",$disk);
-					$disk_name=$disk;
-					$size=$values[1];
-					$occ=$values[2];
-					$disp=$values[3];
-					$pourc=$values[4];
-					if(!$GLOBALS["AS_ROOT"]){
-						$label=base64_decode($sock->getFrameWork("cmd.php?disk-get-label=/dev/$disk_name"));
+					$disk_name=basename($disk);
+					if(strlen($disk_name)==1){continue;}
+					if(strpos($disk_name,"by-uuid")>0){
+						if(isset($DEVNAMES[$diskPath])){
+							$disk_name=$DEVNAMES[$diskPath];
+							$disk_name=str_replace("/dev/", "", $disk_name);
+							$disk=$disk_name;
+						}
+					}
+					if(strpos($disk_name,"by-uuid")>0){	
+						if($GLOBALS["VERBOSE"]){echo "<strong>$disk_name &laquo; by-uuid</strong><br>\n";}
+						continue;
+					}
+					$size=$values["SIZE"];
+					$occ=$values["USED"];
+					$disp=$values["DISP"];
+					$pourc=$values["POURC"];
+					
+					if(!isset($LABELZ["/dev/$disk_name"])){
+					
+						if(!$GLOBALS["AS_ROOT"]){
+							$label=base64_decode($sock->getFrameWork("cmd.php?disk-get-label=/dev/$disk_name"));
+						}else{
+							$label=$this->disks_get_label_asroot("/dev/$disk_name");
+						}
+					
 					}else{
-						$this->disks_get_label_asroot("/dev/$disk_name");
+						$label=$LABELZ["/dev/$disk_name"];
 					}
 									
-					
+					if(strpos($label,"e2label")>0){$label=null;}
 					if(!$array_dup[$disk]){$array_dup[$disk]=true;}else{continue;}
 					if(preg_match("#([a-z\_\-]+)[0-9]+$#",$disk_name,$rt)){$disk_name=$rt[1];}
 					
@@ -628,7 +709,7 @@ function html_Memory_usage(){
 					
 					if($GLOBALS["VERBOSE"]){
 						
-						echo "INODES_DEV[$disk][POURC] = {$INODES_DEV[$disk]["POURC"]}<br>\n";
+						echo "<span style='color:blue'>INODES_DEV[$disk][POURC] = {$INODES_DEV[$disk]["POURC"]}</span><br>\n";
 					}
 					
 					if(isset($INODES_DEV[$disk]["POURC"])){
@@ -679,31 +760,44 @@ function html_Memory_usage(){
 						}
 					}
 					
-					
+					$icon="mailbox_hd.png";
 					$color="#5DD13D";
-					if($pourc>70){$color="#F59C44";}
-					if($pourc>90){$color="#D32D2D";}
-					$disk_text=$disk;
-					if($label<>null){$disk_text="$label ($disk)";}
+					if($pourc>70){$color="#F59C44";$icon="mailbox_hd_F59C44.png";}
+					if($pourc>90){$color="#D32D2D";$icon="mailbox_hd_D32D2D.png";}
+					$disk_text=basename($disk);
+					
+					//LABEL DISK
+					
+					if($label==null){
+						if(isset($BLKID_ARRAY[$diskPath]["LABEL"])){
+							$label=$BLKID_ARRAY[$diskPath];
+						}
+					}
+					
+					
+					if($label<>null){$disk_text="$label (". basename($diskPath).")";}
 					$this->meta_array["DISKS"]["$disk_name"]["COLOR"]=$color;
-					$jsview="Loadjs('system.internal.disks.php?partinfos-js=/dev/$disk_name')";
+					$jsview="Loadjs('system.internal.disks.php?partinfos-js=". urlencode($diskPath)."')";
 					$length=strlen($disk_text);
 					if($length>16){$disk_text=substr($disk_text,0, 16);}
-					$icon="mailbox_hd.gif";
-					if(preg_match("#(.*?)[0-9]+$#", $disk_name,$re)){$MASTER_DEV=$re[1];}
-					if($USBTYPES["/dev/$disk_name"]=="usb-storage"){$icon="usb-22.png";}
 					
-					if($GLOBALS["VERBOSE"]){echo "<strong>USB = &raquo; {/dev/$disk_name} = &raquo; {$USBTYPES["/dev/$disk_name"]}</strong><br>";}
+					if(preg_match("#(.*?)[0-9]+$#", $disk_name,$re)){$MASTER_DEV=$re[1];}
+					if($USBTYPES[$diskPath]=="usb-storage"){$icon="usb-22.png";}
+					
+					if($GLOBALS["VERBOSE"]){echo "<strong>USB = &raquo; {$diskPath} = &raquo; {$USBTYPES[$diskPath]}</strong><br>";}
 					
 					$dd=$dd."
 					<tr>
+						
 						<td nowrap align=right width=90px valign='middle'>
-						<table style='width:5%'>
+						<table style='width:100%'>
 						<tbody>
 						<tr>
-						<td width=1%>" . imgtootltip($icon,"{view} /dev/$disk_name","")."</td>
-						<td width=99 align='right'%>
-						<a href=\"javascript:blur();\" OnClick=\"javascript:$jsview\" style='font-weight:bold;text-decoration:underline'>
+						<td width=1%>" . imgtootltip($icon,"{view} $diskPath","")."</td>
+						<td width=99% align='right'>
+						<a href=\"javascript:blur();\" 
+							OnClick=\"javascript:$jsview\" 
+							style='font-weight:bold;text-decoration:underline'>
 							$disk_text:
 						</a>
 						</td>
@@ -839,8 +933,25 @@ function html_Memory_usage(){
 		}
 	}
 	
+	$ttimeid=rand(time(), time()*time());
 	
+	$t=time();
 	$html="<table style='width:100%'>
+			
+	
+	<tr>
+		<td class=legend>{time}:</td>
+		<td style='font-weight:bold;font-size:11px' colspan=3>
+				<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('index.time.php',true);\" id='time-clock-front' style='text-decoration:underline'></a>
+				<script>
+					function Clock$t(){
+						IndexHorloge();
+					}
+					setTimeout('Clock$t()',10000);
+					
+				</script>
+		</td>
+	</tr>	
 	<tr>
 		<td class=legend>{uptime}:</td>
 		<td style='font-weight:bold;font-size:11px' colspan=3>". $this->uptime()."</td>

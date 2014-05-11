@@ -1,6 +1,6 @@
 <accountname>Nom du compte</accountname>
 <added_on>ajout&eacute; le</added_on>
-<ADD_CONNEXION>Ajouter une connexion</ADD_CONNEXION>
+<ADD_CONNEXION>Nouvelle connexion</ADD_CONNEXION>
 <add_imap_account>Nouveau compte IMAP</add_imap_account>
 <add_imap_bad_emailing_account_text>Ajouter un compte IMAP afin de rechercher les retours de mauvaises adresses.</add_imap_bad_emailing_account_text>
 <ADD_PPTP_CONNEXION_TEXT>Ajouter un tunnel VPN PPTP vers un serveur VPN.</ADD_PPTP_CONNEXION_TEXT>

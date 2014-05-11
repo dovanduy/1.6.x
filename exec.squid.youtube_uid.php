@@ -165,7 +165,7 @@ function youtube_uid_parse_array($array){
 		$sql="CREATE TABLE IF NOT EXISTS `$uidtable` ( 
 		`zmd5` varchar(90)  NOT NULL, 
 		`zDate` date  NOT NULL, 
-		`hits`  BIGINT(100)  NOT NULL,
+		`hits`  BIGINT UNSIGNED  NOT NULL,
 		`youtubeid` varchar(90)  NOT NULL,
 		`category` varchar(255), 
 		PRIMARY KEY (`zmd5`),
@@ -215,7 +215,7 @@ function youtube_all(){
 	$sql="CREATE TABLE IF NOT EXISTS `youtube_all` (
 	`zmd5` varchar(40)  NOT NULL,
 	`zDate` date  NOT NULL,
-	`hits`  BIGINT(100)  NOT NULL,
+	`hits`  BIGINT UNSIGNED  NOT NULL,
 	`youtubeid` varchar(20)  NOT NULL,
 	`category` varchar(128),
 	`uid` varchar(128),

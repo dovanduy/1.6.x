@@ -66,7 +66,7 @@ function parameters(){
 	
 	writelogs("EnableScheduleUpdates = $EnableScheduleUpdates",__FUNCTION__,__FILE__,__LINE__);
 	
-	if(trim($AUTOUPDATE["uri"])==null){$AUTOUPDATE["uri"]="http://www.artica.fr/auto.update.php";}
+	if(trim($AUTOUPDATE["uri"])==null){$AUTOUPDATE["uri"]="http://articatech.net/auto.update.php";}
 	if(trim($AUTOUPDATE["enabled"])==null){$AUTOUPDATE["enabled"]="yes";}
 	if(trim($AUTOUPDATE["autoinstall"])==null){$AUTOUPDATE["autoinstall"]="yes";}
 	if(trim($AUTOUPDATE["CheckEveryMinutes"])==null){$AUTOUPDATE["CheckEveryMinutes"]="60";}

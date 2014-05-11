@@ -207,6 +207,6 @@ function kav4proxy_license_upload(){
 		
 		}
   	
-	echo "<center><div style='width:95%' class=form>$html</div></center>";	
+	echo "<center><div style='width:98%' class=form>$html</div></center>";	
 		
 }

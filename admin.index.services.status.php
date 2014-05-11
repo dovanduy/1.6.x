@@ -952,7 +952,7 @@ function BuildRow($users,$array,$application_name,$titleAdd=null){
 	if($monit==1){
 		if(!isset($GLOBALS["MONIT_ARRAY"])){
 			$sock=new sockets();
-			$GLOBALS["MONIT_ARRAY"]=unserialize(base64_decode($sock->getFrameWork("cmd.php?monit-status=yes")));
+			$GLOBALS["MONIT_ARRAY"]=unserialize(base64_decode($sock->getFrameWork("monit.php?monit-status=yes")));
 		}
 		
 		$monit_status=$GLOBALS["MONIT_ARRAY"][$app]["status"];
@@ -977,7 +977,7 @@ function BuildRow($users,$array,$application_name,$titleAdd=null){
 
 	}
 	
-	$info=imgtootltip("icon_info.gif","{processes}:<strong>$processes_number</strong><br>{pid}:<strong>$pid</strong>$explain_text");
+	$info=imgtootltip("16-infos.png","{processes}:<strong>$processes_number</strong><br>{pid}:<strong>$pid</strong>$explain_text");
 	$watchdog_display=Field_checkbox("none",1,0,null,null,true);
 	if($watchdog_features==1){
 		

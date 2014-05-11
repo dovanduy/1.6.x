@@ -103,7 +103,9 @@ function popup(){
 	$enable=Paragraphe_switch_img("{ENABLE_ZARAFA_COMPANY}","{ENABLE_ZARAFA_COMPANY_TEXT}","zarafaEnabled",$zarafaEnabled,null,400);
 	
 	$html="
-	<table style='width:95%' class=form>
+	<div id='$t-anim'></div>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
 		<td colspan=2>$enable</td>
 	</tr>
@@ -121,10 +123,12 @@ function popup(){
 	</tr>
 	</table>
 	$rescan
+	</div>
 	<script>
 var X_ENABLE_ZARAFA_COMPANY= function (obj) {
 	var results=obj.responseText;
 	if(results.length>3){alert(results);}
+	document.getElementById('$t-anim').innerHTML='';
 	$('#table-$t').flexReload();
 	if(document.getElementById('organization-find')){SearchOrgs();YahooWin3Hide();return;}
 	ZARAFA_OU_LOAD();
@@ -136,11 +140,8 @@ function ENABLE_ZARAFA_COMPANY(){
 	XHR.appendData('zarafaEnabled',document.getElementById('zarafaEnabled').value);
 	XHR.appendData('zarafaMbxLang',document.getElementById('zarafaMbxLang$t').value);
 	XHR.appendData('OuZarafaDeleteADM',document.getElementById('OuZarafaDeleteADM$t').value);
-	
-	
-	
 	XHR.appendData('ou','{$_GET["ou"]}');
-	document.getElementById('img_zarafaEnabled').src='img/wait_verybig.gif';
+	AnimateDiv('$t-anim');
 	XHR.sendAndLoad('$page', 'GET',X_ENABLE_ZARAFA_COMPANY);	
 }
 
@@ -149,7 +150,7 @@ function zarafaDScanMBXLang$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('zarafaScanMbxLang','yes');
 	XHR.appendData('ou','{$_GET["ou"]}');
-	document.getElementById('img_zarafaEnabled').src='img/wait_verybig.gif';
+	AnimateDiv('$t-anim');
 	XHR.sendAndLoad('$page', 'POST',X_ENABLE_ZARAFA_COMPANY);	
 }
 

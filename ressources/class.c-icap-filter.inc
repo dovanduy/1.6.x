@@ -29,7 +29,7 @@ class cicap_filter{
 		
 		
 		while (list ($RuleID, $hash) = each ($this->groups)){
-			if($GLOBALS["VERBOSE"]){echo "Starting......: C-ICAP Building ACL for $RuleID rulename {$this->rules[$RuleID]}\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." C-ICAP Building ACL for $RuleID rulename {$this->rules[$RuleID]}\n";}
 			$conf[]="";
 			$conf[]="#ACLS FOR SQUIDGUARD RULE ". $this->rules[$RuleID];
 			$conf[]="";
@@ -55,7 +55,7 @@ class cicap_filter{
 			if(is_array($hash["groups"])){
 				while (list ($groupid, $members) = each ($hash["groups"])){
 					if(count($members)==0){continue;}
-					if($GLOBALS["VERBOSE"]){echo "Starting......: C-ICAP adding group $groupid\n";}
+					if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." C-ICAP adding group $groupid\n";}
 					$this->hash_rules_acls[$RuleID][]="group_$groupid";
 					$conf[]="acl GROUP_{$groupid} group group_{$groupid}";
 				}
@@ -86,7 +86,7 @@ class cicap_filter{
 		@mkdir("/etc/c-icap",null,TRUE);
 		@file_put_contents("/etc/c-icap/c-icap-groups.txt",@implode("\n",$g));
 		@file_put_contents("/etc/c-icap/c-icap-user-groups.txt",@implode("\n",$m));
-		echo "Starting......: C-ICAP ". count($g)." groups and ". count($m)." users\n";
+		echo "Starting......: ".date("H:i:s")." C-ICAP ". count($g)." groups and ". count($m)." users\n";
 	}
 	
 	
@@ -194,7 +194,7 @@ class cicap_filter{
 private function getCategories($RuleID){
 		$users=new usersMenus();
 		
-			echo "Starting......: C-ICAP Building categories for rule Number $RuleID ({$this->rules[$RuleID]})\n";
+			echo "Starting......: ".date("H:i:s")." C-ICAP Building categories for rule Number $RuleID ({$this->rules[$RuleID]})\n";
 			$rulename=$this->rules[$RuleID];
 
 			
@@ -205,8 +205,8 @@ private function getCategories($RuleID){
 			if(!is_file("{$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls.db")){
 				file_put_contents("{$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls"," ");
 				if(is_file($users->SQUIDGUARD_BIN_PATH)){
-					echo "Starting......: C-ICAP Building {$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls\n";
-					echo "Starting......: $users->SQUIDGUARD_BIN_PATH -P$verb -C {$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls\n";
+					echo "Starting......: ".date("H:i:s")." C-ICAP Building {$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls\n";
+					echo "Starting......: ".date("H:i:s")." $users->SQUIDGUARD_BIN_PATH -P$verb -C {$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls\n";
 					system("$users->SQUIDGUARD_BIN_PATH -P$verb -C {$GLOBALS["guarddb"]}/personal-categories/W-$RuleID/urls");
 				}
 			}
@@ -288,7 +288,7 @@ private function getCategories($RuleID){
 						system($users->SQUIDGUARD_BIN_PATH." -P$verb -C {$GLOBALS["guarddb"]}/personal-categories/$categoryPrint/urls");
 					}					
 					
-					echo "Starting......: squidGuard Personal category $category ($categoryPrint)\n";
+					echo "Starting......: ".date("H:i:s")." squidGuard Personal category $category ($categoryPrint)\n";
 					$this->hash_all_cats["P-$categoryPrint"]="{$GLOBALS["guarddb"]}/personal-categories/$categoryPrint";
 					
 					$this->hash_all_profiles[$RuleID][$rulename][]="block P-$categoryPrint";
@@ -332,10 +332,10 @@ private function getCategories($RuleID){
 
 		fclose($fh);
 		if(!is_file($File)){
-			echo "Starting......: squidGuard personal: $category_name ($categoryPrint) failed!\n";
+			echo "Starting......: ".date("H:i:s")." squidGuard personal: $category_name ($categoryPrint) failed!\n";
 			return;
 		}
-		echo "Starting......: squidGuard personal: $category_name $count ($categoryPrint) rows\n";
+		echo "Starting......: ".date("H:i:s")." squidGuard personal: $category_name $count ($categoryPrint) rows\n";
 		$GLOBALS["CATEGORIES_SAVED"][$category_name]=true;
 		
 	}	

@@ -55,11 +55,11 @@ function build(){
 	
 	if($conf["SignOutgoing"]=="yes"){
 		$mode="s";
-		echo "Starting......: milter-dkim sign outgoing mails\n"; 
+		echo "Starting......: ".date("H:i:s")." milter-dkim sign outgoing mails\n"; 
 	}
 	if($conf["VerifyIncoming"]=="yes"){
 		$mode=$mode."v";
-		echo "Starting......: milter-dkim verify incoming mails\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim verify incoming mails\n";
 	}
 
 $ldap=new clladp();
@@ -67,7 +67,7 @@ $domains=$ldap->hash_get_all_domains();
 while (list ($key, $value) = each ($domains) ){
 	$dd[]=$key;
 }
-echo "Starting......: milter-dkim ".count($dd)." local domains\n";
+echo "Starting......: ".date("H:i:s")." milter-dkim ".count($dd)." local domains\n";
 $Domain=@implode(",", $dd);
 $f[]="ADSPDiscard			{$conf["ADSPDiscard"]}";
 $f[]="ADSPNoSuchDomain		{$conf["ADSPNoSuchDomain"]}";
@@ -141,20 +141,20 @@ keyTable();
 WhitelistDomains();
 WhitelistHosts();
 MyNetworks();
-echo "Starting......: milter-dkim Apply permissions...\n";
+echo "Starting......: ".date("H:i:s")." milter-dkim Apply permissions...\n";
 shell_exec("/bin/chmod 755 /etc/mail/dkim >/dev/null 2>&1");
 shell_exec("/bin/chmod 755 /etc/mail/dkim/keys >/dev/null 2>&1");
 shell_exec("/bin/chmod 750 /etc/mail/dkim/keys/* >/dev/null 2>&1");
 shell_exec("/bin/chmod 640 /etc/mail/dkim/keys/*/* >/dev/null 2>&1");
 shell_exec("/bin/chown -R postfix:postfix /etc/mail/dkim >/dev/null 2>&1");
-echo "Starting......: milter-dkim Apply permissions done...\n";
+echo "Starting......: ".date("H:i:s")." milter-dkim Apply permissions done...\n";
 if($GLOBALS["RELOAD"]){
 	$unix=new unix();
 	$pid=$unix->get_pid_from_file("/var/run/dkim-milter/dkim-milter.pid");
-	echo "Starting......: milter-dkim reloading current PID=$pid\n";
+	echo "Starting......: ".date("H:i:s")." milter-dkim reloading current PID=$pid\n";
 	if($unix->process_exists($pid)){
 		$kill=$unix->find_program("kill");
-		echo "Starting......: milter-dkim reloading PID $pid\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim reloading PID $pid\n";
 		shell_exec("$kill -HUP $pid");
 		}
 	}
@@ -167,7 +167,7 @@ $genkey=$unix->find_program("dkim-genkey");
 $chown=$unix->find_program("chown");
 
 if(!is_file($genkey)){
-	echo "Starting......: milter-dkim \"dkim-genkey\" no such binary found !\n";
+	echo "Starting......: ".date("H:i:s")." milter-dkim \"dkim-genkey\" no such binary found !\n";
 	return;
 }	
 
@@ -180,16 +180,16 @@ if(is_array($domainsH)){
 	while (list ($num, $DOMAIN) = each ($domainsH) ){
 		$dir="/etc/mail/dkim/keys/$DOMAIN";
 		if(!is_dir($dir)){
-			echo "Starting......: milter-dkim creating directory /etc/mail/dkim/keys/$DOMAIN\n";
+			echo "Starting......: ".date("H:i:s")." milter-dkim creating directory /etc/mail/dkim/keys/$DOMAIN\n";
 			@mkdir("/etc/mail/dkim/keys/$DOMAIN",null,true);
 		}	
 		if(!keyTableVerifyFiles($dir)){
-			echo "Starting......: milter-dkim generating TXT and private for $DOMAIN\n";
+			echo "Starting......: ".date("H:i:s")." milter-dkim generating TXT and private for $DOMAIN\n";
 			$cmd="$genkey -D $dir/ -d $DOMAIN -s default";
 			system($cmd);
 			shell_exec("/bin/cp $dir/default.private $dir/default");
 		}else{
-			echo "Starting......: milter-dkim TXT and private for $DOMAIN OK\n";
+			echo "Starting......: ".date("H:i:s")." milter-dkim TXT and private for $DOMAIN OK\n";
 		}
 		
 		shell_exec("$chown -R postfix:postfix $dir >/dev/null 2>&1");
@@ -197,13 +197,13 @@ if(is_array($domainsH)){
 	
 	}
 }else{
-	echo "Starting......: milter-dkim generating No domains set\n";
+	echo "Starting......: ".date("H:i:s")." milter-dkim generating No domains set\n";
 }
 	
 	if(@file_put_contents("/etc/mail/dkim/keylist",@implode("\n",$keyTable))){
-			echo "Starting......: milter-dkim generating keylist done...\n";
+			echo "Starting......: ".date("H:i:s")." milter-dkim generating keylist done...\n";
 	}else{
-		echo "Starting......: milter-dkim FAILED generating keylist done...\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim FAILED generating keylist done...\n";
 	}
 	
 	
@@ -222,7 +222,7 @@ function WhitelistDomains(){
 	}
 	
 	@file_put_contents("/etc/mail/dkim/trusted-domains",@implode("\n",$f));
-	echo "Starting......: milter-dkim generating trusted domains ". count($f)." entries done...\n";
+	echo "Starting......: ".date("H:i:s")." milter-dkim generating trusted domains ". count($f)." entries done...\n";
 }
 
 function keyTableVerifyFiles($dir){
@@ -248,8 +248,8 @@ function WhitelistHosts(){
 		if(isset($already[$ligne["ipaddr"]])){continue;}
 		if(isset($already[$ligne["hostname"]])){continue;}
 		
-		echo "Starting......: milter-dkim Trusted Host \"{$ligne["ipaddr"]}\" FROM postfix_whitelist_con\n";
-		echo "Starting......: milter-dkim Trusted Host \"{$ligne["hostname"]}\" FROM postfix_whitelist_con\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim Trusted Host \"{$ligne["ipaddr"]}\" FROM postfix_whitelist_con\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim Trusted Host \"{$ligne["hostname"]}\" FROM postfix_whitelist_con\n";
 		$f[]=$ligne["ipaddr"];
 		if(strpos($ligne["hostname"], "*")==0){$f[]=$ligne["hostname"];}
 		
@@ -263,18 +263,18 @@ function WhitelistHosts(){
 	while (list ($ip, $line) = each ($allips) ){
 		if(isset($already[$ip])){continue;}
 		$already[$ip]=true;
-		echo "Starting......: milter-dkim Trusted Host \"$ip\" FROM ALL_IPS_GET_ARRAY\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim Trusted Host \"$ip\" FROM ALL_IPS_GET_ARRAY\n";
 		$f[]=$ip;
 		$hostname=gethostbyaddr($ip);
 		if(isset($already[$hostname])){continue;}
 		$already[$hostname]=true;
-		echo "Starting......: milter-dkim Trusted Host \"$hostname\" FROM ALL_IPS_GET_ARRAY\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim Trusted Host \"$hostname\" FROM ALL_IPS_GET_ARRAY\n";
 		$f[]=$hostname;
 	}
 	
 	@mkdir("/etc/mail/dkim",0755,true);
  	@file_put_contents("/etc/mail/dkim/trusted-hosts",@implode("\n",$f));
- 	echo "Starting......: milter-dkim generating trusted hosts ". count($f)." entries done...\n";
+ 	echo "Starting......: ".date("H:i:s")." milter-dkim generating trusted hosts ". count($f)." entries done...\n";
 }
 
 function MyNetworks($trust=1){
@@ -290,11 +290,11 @@ function MyNetworks($trust=1){
 	$t=explode("\n", @file_get_contents("/etc/hosts"));
 	while (list ($num, $line) = each ($t) ){
 		if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\s+(.+?)\s+#", $line,$re)){
-			echo "Starting......: milter-dkim Internal Host \"{$re[1]}\"\n";
+			echo "Starting......: ".date("H:i:s")." milter-dkim Internal Host \"{$re[1]}\"\n";
 			$nets[]=$re[1];
 			$already[$re[1]]=true;
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Starting......: milter-dkim DEBUG HOSTS: $line, No match\n";}
+			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." milter-dkim DEBUG HOSTS: $line, No match\n";}
 		}
 	}
 	
@@ -304,15 +304,15 @@ function MyNetworks($trust=1){
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if(isset($already[$ligne["ip_address"]])){continue;}
 		if(isset($already[$ligne["value"]])){continue;}
-		echo "Starting......: milter-dkim Internal Host \"{$ligne["ip_address"]}\"\n";
-		echo "Starting......: milter-dkim Internal Host \"{$ligne["value"]}\"\n";		
+		echo "Starting......: ".date("H:i:s")." milter-dkim Internal Host \"{$ligne["ip_address"]}\"\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim Internal Host \"{$ligne["value"]}\"\n";		
 		$nets[]=$ligne["ip_address"];
 		$nets[]=$ligne["value"];
 		$already[$ligne["ip_address"]]=true;
 		$already[$ligne["value"]]=true;
 	}		
 		
-		echo "Starting......: milter-dkim generating internal hosts ". count($nets)." entries done...\n";
+		echo "Starting......: ".date("H:i:s")." milter-dkim generating internal hosts ". count($nets)." entries done...\n";
 		@file_put_contents("/etc/mail/dkim/internal-hosts",@implode("\n",$nets));
 }
 

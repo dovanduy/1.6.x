@@ -183,7 +183,7 @@ function popup_list(){
 		
 		switch ($status) {
 			case "INFO":$img="info-18.png";break;
-			case "ERROR":$img="status_warning.gif";break;
+			case "ERROR":$img="status_warning.png";break;
 			default:
 				;
 			break;

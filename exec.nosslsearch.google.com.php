@@ -27,11 +27,11 @@ function run(){
 	$DisableGoogleSSL=$sock->GET_INFO("DisableGoogleSSL");
 	if(!is_numeric($DisableGoogleSSL)){$DisableGoogleSSL=0;}
 	if($DisableGoogleSSL==0){
-		echo "Starting......: Squid : nosslsearch.google.com (disabled)\n";
+		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (disabled)\n";
 		remove();
 		return;
 	}
-	echo "Starting......: Squid : nosslsearch.google.com (enabled)\n";
+	echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (enabled)\n";
 	addDNSGOOGLE();
 	
 }
@@ -58,7 +58,7 @@ function addDNSGOOGLE(){
 	if(!$OK){
 		if($ip->isIPv6($ipaddr)){$OK=true;}
 	}
-	if(!$OK){echo "Starting......: Squid : failed, nosslsearch.google.com `$ipaddr` not an IP address...!!!\n";return;}	
+	if(!$OK){echo "Starting......: ".date("H:i:s")." Squid : failed, nosslsearch.google.com `$ipaddr` not an IP address...!!!\n";return;}	
 	$q=new mysql();
 	
 	$ligne=@mysql_fetch_array($this->QUERY_SQL("SELECT ipaddr FROM net_hosts WHERE `hostname` = 'www.google.com'","artica_backup"));
@@ -66,12 +66,12 @@ function addDNSGOOGLE(){
 	
 	$entry=$ligne["ipaddr"];
 	if($entry==$ipaddr){
-		echo "Starting......: Squid : nosslsearch.google.com no changes...\n";
+		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com no changes...\n";
 		reload_pdns();
 		return; 
 	}
 	if($entry<>null){
-	echo "Starting......: Squid : nosslsearch.google.com [$entry]...\n";
+	echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com [$entry]...\n";
 	}
 	$array=GetWebsitesList();
 	
@@ -84,7 +84,7 @@ function addDNSGOOGLE(){
 	}
 	if(count($f)>0){
 		$q->QUERY_SQL("INSERT IGNORE INTO net_hosts (`zmd5`,`ipaddr`,`hostname`) VALUES ".@implode("\n", $f));
-		echo "Starting......: Squid : adding ".count($f)." google servers [$ipaddr] from /etc/hosts\n";
+		echo "Starting......: ".date("H:i:s")." Squid : adding ".count($f)." google servers [$ipaddr] from /etc/hosts\n";
 		shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php --hosts");
 		reload_pdns();
 	}		
@@ -121,14 +121,14 @@ function reload_pdns(){
 	$pid_path="/var/run/pdns/pdns.pid";
 	$master_pid=trim(@file_get_contents($pid_path));
 	if($unix->process_exists($master_pid)){
-		echo "Starting......: Squid : reloading PowerDNS PID $master_pid\n";
+		echo "Starting......: ".date("H:i:s")." Squid : reloading PowerDNS PID $master_pid\n";
 		shell_exec("$kill -HUP $master_pid >/dev/null 2>&1");
 	}
 	
 	$pid_path="/var/run/pdns/pdns_recursor.pid";
 	$master_pid=trim(@file_get_contents($pid_path));	
 	if($unix->process_exists($master_pid)){
-		echo "Starting......: Squid : reloading PowerDNS Recursor PID $master_pid\n";
+		echo "Starting......: ".date("H:i:s")." Squid : reloading PowerDNS Recursor PID $master_pid\n";
 		shell_exec("$kill -HUP $master_pid >/dev/null 2>&1");
 	}	
 	
@@ -145,7 +145,7 @@ function remove(){
 		$c++;
 	}	
 	if($c>0){
-		echo "Starting......: Squid : removing $c google servers from /etc/hosts\n";
+		echo "Starting......: ".date("H:i:s")." Squid : removing $c google servers from /etc/hosts\n";
 		reload_pdns();
 	}
 }

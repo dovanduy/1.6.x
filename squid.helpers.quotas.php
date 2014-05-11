@@ -32,7 +32,7 @@ if(isset($_GET["ID-TAB"])){quota_tab();exit;}
 if(isset($_GET["quota-params-members"])){quota_rule();exit;}
 if(isset($_GET["quota-destination-list"])){quota_destination_list();exit;}
 if(isset($_GET["quota-params-destination"])){quota_destination();exit;}
-
+if(isset($_GET["quota-params-notification"])){quota_notification();exit;}
 
 if(isset($_GET["ID"])){quota_rule();exit;}
 if(isset($_GET["explain-ident"])){explain_ident();exit;}
@@ -250,6 +250,18 @@ setTimeout('StartTable$t()',500);
 	
 	
 }
+function quota_notification(){
+	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("webfilters_quotas", "notify")){
+		$q->QUERY_SQL("ALTER TABLE webfilters_quotas ADD `notify` smallint(1)  NOT NULL DEFAULT 0, ADD INDEX (`notify`)");
+	}
+	if(!$q->FIELD_EXISTS("webfilters_quotas", "notify_params")){
+		$q->QUERY_SQL("ALTER TABLE webfilters_quotas ADD `notify_params` TEXT");
+	}	
+
+	
+	
+}
 
 function quota_delete(){
 	$q=new mysql_squid_builder();
@@ -265,6 +277,7 @@ function quota_tab(){
 	$tpl=new templates();
 	$array["quota-params-members"]="{source}";
 	$array["quota-params-destination"]="{destination}";
+	//$array["quota-params-notification"]="{notification}";
 	$ID=$_GET["ID"];
 	$fontsize=14;
 	if(count($array)>6){$fontsize=11.5;}
@@ -291,7 +304,7 @@ function quota_params_popup(){
 	if($array["TEMPLATE"]==null){$array["TEMPLATE"]="ERR_ACCESS_DENIED";}
 	$html="
 	<span id='explain-div-$t'></span>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:16px'>{disable}:</td>
@@ -756,10 +769,10 @@ function quota_destination_link(){
 	$gpid=$_POST["gpid"];
 	
 	$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`webfilters_quotas_grp` (
-			`ID` INT( 100 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+			`ID` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY ,
 			`zmd5` VARCHAR(90) NOT NULL,
-			`ruleid` INT( 100 ) NOT NULL,
-			`gpid` INT( 100 ) NOT NULL,
+			`ruleid` INT UNSIGNED,
+			`gpid` INT UNSIGNED,
 		    UNIQUE KEY `zmd5` (`zmd5`),
 			KEY `ruleid` (`ruleid`),
 			KEY `gpid` (`gpid`)

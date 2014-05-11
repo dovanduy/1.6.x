@@ -61,6 +61,11 @@ function content(){
 	$SearchQuery=$boot->SearchFormGen("name,content,explainthis","search-records");
 	$EnablePDNS=$sock->GET_INFO("EnablePDNS");
 	if(!is_numeric($EnablePDNS)){$EnablePDNS=0;}
+	
+	$DHCPDEnableCacheDNS=$sock->GET_INFO("DHCPDEnableCacheDNS");
+	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+	if($DHCPDEnableCacheDNS==1){$EnablePDNS=0;}
+	
 	if($EnablePDNS==0){
 		$error="<div class=explainWarn>{EnablePDNS_disable_text}</div>";
 	}

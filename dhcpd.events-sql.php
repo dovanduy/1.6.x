@@ -72,7 +72,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]

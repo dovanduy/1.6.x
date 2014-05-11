@@ -169,7 +169,7 @@ function topenldap.STATUS():string;
 var
 pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_LDAP');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --openldap >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);
@@ -555,7 +555,7 @@ begin
       exit;
    end;
 
-  FIX_ARTICA_SCHEMAS();
+
   SET_DB_CONFIG();
   CHECK_SCHEMA_DEBIAN_PERMISSIONS();
     if DirectoryExists('/etc/openldap/slapd.d') then begin
@@ -645,6 +645,7 @@ begin
        end;
 
 l:=TstringList.Create;
+if SlapdThreads>1 then l.Add('threads '+IntToStr(SlapdThreads));
 l.Add('pidfile         /var/run/slapd/slapd.pid');
 
 l.Add('');
@@ -767,7 +768,7 @@ l.add('');
 
 l.Add('directory       /var/lib/ldap');
 if not TRyStrToINt(SYS.GET_INFO('LdapDBCachesize'),LdapDBCachesize) then LdapDBCachesize:=1000;
-if SlapdThreads>1 then l.Add('threads '+IntToStr(SlapdThreads));
+
 l.Add('cachesize '+ IntToStr(LdapDBCachesize));
 l.Add('dbconfig set_lk_max_objects 1500');
 l.Add('dbconfig set_lk_max_locks 1500');

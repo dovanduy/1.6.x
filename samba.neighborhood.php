@@ -119,7 +119,7 @@ function popup(){
 	
 	<div id='security-mode-$t'></div>
 	
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{type}:</td>
 		<td>$field</td>
@@ -203,7 +203,7 @@ function change_role_form(){
 	
 	
 	$html="
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{samba_security_mode}:</td>
 		<td>$field</td>

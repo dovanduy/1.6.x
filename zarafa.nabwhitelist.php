@@ -17,7 +17,7 @@
 	
 	
 	
-	
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_POST["ZarafaAdbksWhiteTask"])){ZarafaSave();exit;}	
 	if(isset($_GET["popup"])){popup();exit;}
 	
@@ -25,15 +25,37 @@
 js();
 	
 function js(){
+	header("content-type: application/x-javascript");
 	$usersmenus=new usersMenus();
 	$tpl=new templates();
 	$page=CurrentPageName();		
-	
 	$title=$tpl->_ENGINE_parse_body("{addressbooks_whitelisting}");
-	echo "YahooWin3('590','$page?popup=yes','$title')";
+	echo "YahooWin3('930','$page?tabs=yes','$title')";
 	
 }	
-	
+function tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["popup"]="{addressbooks_whitelisting}";
+	$array["schedules"]='{schedules}';
+	$array["events"]='{events}';
+
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="schedules"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"schedules.php?ForceTaskType=34\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="events"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"system.mysql.events.php?flexgrid-artica=yes&filename=exec.mapiContacts.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+	}
+	echo build_artica_tabs($html, "main_addressbooks_whitelisting");
+}	
 
 
 
@@ -42,9 +64,10 @@ function popup(){
 	$page=CurrentPageName();
 	$ZarafaAdbksWhiteTask=$sock->GET_INFO("ZarafaAdbksWhiteTask");
 	$ZarafaWhiteSentItems=$sock->GET_INFO("ZarafaWhiteSentItems");
+	$ZarafaJunkItems=$sock->GET_INFO("ZarafaJunkItems");
 	if(!is_numeric($ZarafaAdbksWhiteTask)){$ZarafaAdbksWhiteTask=0;}
 	if(!is_numeric($ZarafaWhiteSentItems)){$ZarafaWhiteSentItems=1;}
-	if(!is_numeric($ZarafaJunkItems)){$ZarafaJunkItems=1;}
+	if(!is_numeric($ZarafaJunkItems)){$ZarafaJunkItems=0;}
 	
 	
 	

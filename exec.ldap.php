@@ -89,12 +89,12 @@ function ChangeSuffix(){
 	@file_put_contents("/etc/artica-postfix/ldap_settings/suffix", $ChangeLDAPSuffixTo);
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --slapdconf");
 	shell_exec("/usr/share/artica-postfix/bin/artica-install --nsswitch");
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force >/dev/null 2>&1");
+	
 	if($users->ZARAFA_INSTALLED){shell_exec("$php5 /usr/share/artica-postfix/exec.zarafa.build.stores.php --ldap-config");}
 	$slpadconf=$unix->SLAPD_CONF_PATH();
 	echo "Stopping watchdogs and LDAP server\n";
 	shell_exec("/etc/init.d/artica-postfix stop monit");
-	shell_exec("/etc/init.d/artica-postfix stop artica-status");
+	shell_exec("/etc/init.d/artica-status reload");
 	shell_exec("/etc/init.d/artica-postfix stop ldap");
 	echo "Stopping Removing OpenLDAP database file\n";
 	shell_exec("$rm -f /var/lib/ldap/*");
@@ -113,7 +113,7 @@ function ChangeSuffix(){
 	if($users->SQUID_INSTALLED){shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --reconfigure >/dev/null 2>&1 &");}
 	if($users->SAMBA_INSTALLED){shell_exec("$php5 /usr/share/artica-postfix/exec.samba.php --build >/dev/null 2>&1 &");}
 	shell_exec("/etc/init.d/artica-postfix start monit &");
-	shell_exec("/etc/init.d/artica-postfix start artica-status &");
+	shell_exec("/etc/init.d/artica-status reload &");
 }
 
 

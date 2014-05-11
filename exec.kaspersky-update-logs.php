@@ -14,11 +14,21 @@ $GLOBALS["NO_PID_CHECKS"]=false;
 
 
 
+$unix=new unix();
+$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+
+if($MEMORY<624288){
+	writelogs(basename(__FILE__).":Too low memory, die();",basename(__FILE__),__FILE__,__LINE__);
+	die();
+}
+
+
+
+
 if($argv[1]=="--av-uris"){ParseKav4UriLogs();die();}
 if($argv[1]=="--av-events"){av_events();die();}
 if($argv[1]=="--av-stats"){av_stats();die();}
 
-$unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pid=$unix->get_pid_from_file($pidfile);
 if($unix->process_exists($pid,basename(__FILE__))){

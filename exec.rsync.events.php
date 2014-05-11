@@ -34,8 +34,11 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 	die();
 }
 
+if(system_is_overloaded()){die();}
 rsync_queue();
+if(system_is_overloaded()){die();}
 rsync_server_queue();
+if(system_is_overloaded()){die();}
 dar_queue();
 
 die();

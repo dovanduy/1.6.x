@@ -326,7 +326,7 @@ begin
         end;
      logs.Syslogs('tsquid.ERROR_FD():: Error FD Found, restart all server !!!');
      logs.NOTIFICATION(LastLog + ' Artica will be restarted','Fatal error...','system');
-     fpsystem('/etc/init.d/artica-postfix restart');
+
      halt(0);
     end;
   end;
@@ -1008,10 +1008,6 @@ begin
     if Not FileExists(pidpath) then exit(SYS.PIDOF(binpath));
     result:=SYS.GET_PID_FROM_PATH(pidpath);
     if not SYS.PROCESS_EXIST(result) then result:=SYS.PIDOF(binpath);
-
-    
-
-
 end;
 //##############################################################################
 PROCEDURE tsquid.REMOVE();
@@ -1345,7 +1341,7 @@ begin
       if SYS.verbosed then writeln('tsquid.SQUID_VERSION():not installed');
       exit;
    end;
-   fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.squid.php --compilation-params');
+
    tmpstr:=logs.FILE_TEMP();
    fpsystem(squidbin + ' -v >'+tmpstr+' 2>&1');
    tmp:=SYS.ReadFileIntoString(tmpstr);

@@ -146,6 +146,7 @@ function process_all_tables(){
 		`familysite` VARCHAR(255) NOT NULL,
 		`domain` VARCHAR(5) NOT NULL,
 		`country` VARCHAR(60) NOT NULL,
+		`sent` smallint(1) NOT NULL DEFAULT 0,
 		`hits` bigint(255) unsigned NOT NULL,
 		`size` bigint(255) unsigned NOT NULL,
 		`seen` TEXT NOT NULL,
@@ -156,7 +157,7 @@ function process_all_tables(){
 		 KEY `domain` (`domain`),
 		 KEY `country` (`country`)
 		) ENGINE=MyISAM;";
-	
+		if(!$q->FIELD_EXISTS("notcategorized", "sent")){$q->QUERY_SQL("ALTER TABLE `notcategorized` ADD `sent` smallint(1) NOT NULL DEFAULT 0, ADD INDEX (`sent`)");}
 	
 	$q->QUERY_SQL($sql);	
 	if(!$q->ok){
@@ -182,7 +183,7 @@ function process_all_tables(){
 			
 			
 			$text_time=mysql_escape_string2(serialize($times));
-			
+			if($GLOBALS["VERBOSE"]){echo "('$sitename','$family','$country','$domain','{$infos["size"]}','{$infos["hits"]}','$text_time')\n";}
 			$f[]="('$sitename','$family','$country','$domain','{$infos["size"]}','{$infos["hits"]}','$text_time')";
 			if(count($f)>500){
 				if($GLOBALS["VERBOSE"]){echo "notcategorized 500 rows...\n";}

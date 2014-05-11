@@ -10,9 +10,9 @@ uses
   BaseUnix,unix,global_conf,zsystem,logs,geoip,debian,spamass,openldap,clamav,cyrus,squid,postfix_class,samba,awstats,process_infos,pureftpd,ntpd,spfmilter,
   mailgraph_daemon, miltergreylist,lighttpd, roundcube,dansguardian,kav4samba,mimedefang,stunnel4,dkimfilter,kav4proxy,bind9,obm,mysql_daemon,p3scan,syslogng,openvpn,cups,
   jcheckmail,dhcp_server,dstat,rsync,smartd,tcpip,policyd_weight,apache_artica,autofs,assp,pdns,gluster,nfsserver,zabbix,hamachi,postfilter, vmwaretools,zarafa_server,monit,wifi,
-  emailrelay,mldonkey,backuppc,kav4fs,ocsi,ocsagent,sshd,auditd,squidguard_page,dkfilter,squidguard,framework,dkimmilter,dropbox,articapolicy,virtualbox,tftpd,crossroads,articastatus,articaexecutor,articabackground,pptpd,
+  emailrelay,mldonkey,backuppc,kav4fs,ocsi,ocsagent,auditd,squidguard_page,dkfilter,squidguard,framework,dkimmilter,dropbox,articapolicy,virtualbox,tftpd,crossroads,articaexecutor,pptpd,
   apt_mirror,cluebringer,apachesrc,sabnzbdplus,fusermount,vnstat,munin,greyhole,iscsitarget,postfwd2,snort,greensql,amanda,yaffas,netatalk,articadb,
-  mailarchiver in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/mailarchiver.pas',ddclient,tomcat,openemm,fuppes,arpd,memcached,updateutilityhttp,ejabberd,haproxy,arkeia,klms,suricata,
+  mailarchiver in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/mailarchiver.pas',ddclient,tomcat,openemm,fuppes,memcached,updateutilityhttp,ejabberd,arkeia,klms,suricata,
   kas3         in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/kas3.pas',
   kavmilter    in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/kavmilter.pas',
   dnsmasq      in '/home/dtouzeau/developpement/artica-postfix/bin/src/artica-install/dnsmasq.pas',
@@ -177,11 +177,6 @@ public
 
       procedure               CYRUS_UNINSTALL();
       function                CYRUS_IMAPD_CONFIGURE():boolean;
-      procedure               CYRUS_IMPAD_INIT();
-      procedure               CYRUS_CHECK();
-      
-
-
       procedure               LDAP_CREATE_DATABASE();
       procedure               CONFIGURE_HOTWAYD();
       
@@ -211,7 +206,7 @@ public
       procedure LIBCAP_INSTALL();
       procedure LIBZ_INSTALL();
       procedure LIFREETYPE_INSTALL();
-      procedure CLAMAV_RECONFIGURE();
+
 
       procedure               BOGOFILTER_INSTALL();
       procedure               RRD_INSTALL();
@@ -621,7 +616,7 @@ var
    kav4fs:tkav4fs;
    ocsi:tocsi;
    ocsagent:tocsagent;
-   sshd:tsshd;
+
    auditd:tauditd;
    squidguard_page:tsquidguard_page;
    dkfilter:tdkfilter;
@@ -633,9 +628,8 @@ var
    virtualbox:tvirtualbox;
    tftpd:ttftpd;
    crossroads:tcrossroads;
-   articastatus:tarticastatus;
    articaexecutor:tarticaexecutor;
-   articabackground:tarticabackground;
+
    pptpd:tpptpd;
    zapt_mirror:tapt_mirror;
    zddclient:tddclient;
@@ -654,12 +648,11 @@ var
    tomcat:ttomcat;
    openemm:topenemm;
    fuppes:tfuppes;
-   arpd:tarpd;
    netatalk:tnetatalk;
    memcached:tmemcached;
    UpdateUtility:tUpdateUtility;
    ejabberd:tejabberd;
-   haproxy:thaproxy;
+
    arkeia:tarkeia;
    klms:tklms;
    articadb:tarticadb;
@@ -713,7 +706,7 @@ begin
             writeln('Shutdown '+ParamStr(2)+' daemon...');
             if ParamStr(2)='force' then begin
                writeln('Shutdown artica-postfix daemon...');
-               monit.STOP();
+
                GLOBAL_INI.ARTICA_STOP();
                GLOBAL_INI.ARTICA_STOP();
                GLOBAL_INI.ARTICA_STOP();
@@ -727,7 +720,7 @@ begin
             if ParamStr(2)='watchdog' then begin
                cron:=tcron.Create(GLOBAL_INI.SYS);
                cron.STOP_WATCHDOG();
-               monit.STOP();
+
                logs.DeleteFile('/etc/cron.d/artica-cron');
                logs.DeleteFile('/etc/cron.d/artica-process1');
                cron.free;
@@ -785,9 +778,7 @@ begin
             end;
 
            if ParamStr(2)='haproxy' then begin
-               haproxy:=thaproxy.Create(GLOBAL_INI.SYS);
-               haproxy.STOP();
-               haproxy.free;
+
                exit();
             end;
 
@@ -917,9 +908,7 @@ begin
             end;
 
             if ParamStr(2)='arpd' then begin
-               arpd:=tarpd.Create(GLOBAL_INI.SYS);
-               arpd.STOP();
-               arpd.free;
+               fpsystem('/etc/init.d/arpd stop');
                exit();
             end;
 
@@ -969,7 +958,6 @@ begin
               end;
 
               if ParamStr(2)='sysloger' then begin
-                 GLOBAL_INI.SYSLOGER_STOP();
                  exit();
               end;
 
@@ -1045,7 +1033,7 @@ begin
               end;
 
               if ParamStr(2)='monit' then begin
-                 monit.STOP();
+
                  exit();
               end;
 
@@ -1208,12 +1196,7 @@ begin
                    exit();
               end;
 
-              if ParamStr(2)='artica-status' then begin
-                   SYS:=Tsystem.Create;
-                   articastatus:=tarticastatus.Create(SYS);
-                   articastatus.STOP();
-                   exit();
-              end;
+
 
               if ParamStr(2)='artica-exec' then begin
                    SYS:=Tsystem.Create;
@@ -1222,12 +1205,7 @@ begin
                    exit();
               end;
 
-              if ParamStr(2)='artica-back' then begin
-                   SYS:=Tsystem.Create;
-                   articabackground:=tarticabackground.Create(SYS);
-                   articabackground.STOP();
-                   exit();
-              end;
+
 
               if ParamStr(2)='pptpd' then begin
                    SYS:=Tsystem.Create;
@@ -1293,30 +1271,19 @@ begin
               end;
 
              if ParamStr(2)='openssh' then begin
-                   SYS:=Tsystem.Create;
-                   sshd:=tsshd.Create(SYS);
-                   sshd.STOP();
                    exit();
               end;
 
              if ParamStr(2)='ssh' then begin
-                   SYS:=Tsystem.Create;
-                   sshd:=tsshd.Create(SYS);
-                   sshd.STOP();
                    exit();
               end;
 
              if ParamStr(2)='auth-logger' then begin
-                   SYS:=Tsystem.Create;
-                   sshd:=tsshd.Create(SYS);
-                   sshd.STOP_LOGGER();
                    exit();
               end;
 
              if ParamStr(2)='dkfilter' then begin
-                   SYS:=Tsystem.Create;
-                   dkfilter:=tdkfilter.Create(SYS);
-                   dkfilter.STOP();
+
                    exit();
               end;
 
@@ -1346,7 +1313,6 @@ begin
 
 
               if ParamStr(2)='mysqmail' then begin
-                 zpostfix.MYSQMAIL_STOP();
                  exit();
               end;
 
@@ -1468,14 +1434,14 @@ begin
 
 
               if ParamStr(2)='postfix-logger' then begin
-                 zpostfix.MYSQMAIL_STOP();
+
                  exit();
               end;
 
 
               
               if ParamStr(2)='fetchmail' then begin
-                 fetchmail.FETCHMAIL_DAEMON_STOP();
+                 fpsystem('/etc/init.d/fetchmail stop');
                  exit();
               end;
 
@@ -1496,9 +1462,6 @@ begin
 
 
              if ParamStr(2)='imap' then begin
-                 saslauthd:=tsaslauthd.Create(GLOBAL_INI.SYS);
-                 saslauthd.STOP();
-                 ccyrus.CYRUS_DAEMON_STOP();
                  exit();
               end;
               
@@ -1575,7 +1538,7 @@ begin
                  zdansguardian.C_ICAP_STOP();
                  zdansguardian.DANSGUARDIAN_STOP();
                  kav4proxy.KAV4PROXY_STOP();
-                 zClam.CLAMD_STOP();
+
                  exit();
               end;
 
@@ -1652,19 +1615,19 @@ begin
             end;
 
             if ParamStr(2)='dansgardian' then begin
-                 zClam.CLAMD_STOP();
+
                  zdansguardian.DANSGUARDIAN_STOP();
                  exit();
               end;
 
             if ParamStr(2)='dansguardian' then begin
-                 zClam.CLAMD_STOP();
+
                  zdansguardian.DANSGUARDIAN_STOP();
                  exit();
               end;
 
             if ParamStr(2)='boa' then begin
-                 GLOBAL_INI.BOA_STOP();
+
                  exit();
               end;
 
@@ -1682,8 +1645,7 @@ begin
             end;
 
            if ParamStr(2)='winbindd' then begin
-                 logs.Syslogs('Warning: Request to STOP Winbindd....');
-                 zsamba.WINBIND_STOP();
+
                  exit();
             end;
             
@@ -1733,33 +1695,30 @@ begin
 
 
              if ParamStr(2)='clamd' then begin
-                 zClam.CLAMD_STOP();
+
                  exit();
               end;
 
              if ParamStr(2)='freshclam' then begin
-                 zClam.FRESHCLAM_STOP();
+
                  exit();
               end;
 
              if ParamStr(2)='clammilter' then begin
                  zClam.MILTER_STOP();
-                 zClam.CLAMD_STOP();
-                 zClam.FRESHCLAM_STOP();
+
+
                  exit();
               end;
 
 
              if ParamStr(2)='saslauthd' then begin
-                 saslauthd:=tsaslauthd.Create(GLOBAL_INI.SYS);
-                 saslauthd.STOP();
-                 saslauthd.free;
                  exit();
               end;
 
 
              if ParamStr(2)='dnsmasq' then begin
-                 dnsmasq.DNSMASQ_STOP_DAEMON();
+
                  exit();
               end;
 
@@ -1835,17 +1794,17 @@ begin
 
 
             if length(ParamStr(2))>0 then begin
-               writeln('Usage:');
-               writeln('/etc/init.d/artica-postfix stop ldap|imap|kav6|squid|squid-cache|squid-tail|squid-tail-sock|dansgardian|boa|ftp|mysql|apache|spamd|clamd|freshclam|mgreylist|ntpd');
-               writeln('|tail|daemon|clammilter|dnsmasq|stunnel|dkim|postfix|mailgraph|mimedefang|roundcube|kav4samba|bind9|obm|p3scan|syslogng|mailarchiver|bogom');
-               writeln('|collectd|fetchmail|mailspy|amavis|retranslator|retranslator-tsk|watchdog|dotclear|jcheckmail|mailman|kas3|dhcp|cicap|openvpn|postfix-logger');
-               writeln('|dansguardian-tail|cups|dstat|dstat-top-mem|dstat-top-cpu|rsync|smartd|policydw|mysql-cluster|assp|pdns|gluster|gluster-cli|sysloger');
-               writeln('|zabbix|hamachi|kav4proxy|postfilter|vmtools|zarafa|zarafa-web|monit|wifi[proxy-pac|artica-notifier|mldonkey|backuppc|kav4fs|ocsweb|ocsagent');
-               writeln('|openssh|auditd|squidguard-http|fetchmail-logger|dkfilter|ufdb|ufdb-tail|squidguard-tail|framework|dkim-milter|dropbox|artica-policy|virtualbox-web');
-               writeln('|tftpd|crossroads|artica-status|artica-exec|artica-back|pptpd|pptpd-clients|apt-mirror|squidclamav-tail|ddclient|cluebringer|apachesrc');
-               writeln('|sabnzbdplus|fcron|fuse|vnstat|winbindd|munin|greyhole|amavis-milter|iscsi|auth-logger|snort|greensql|amanda|zarafa-lmtp|tomcat|openemm');
-               writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb|suricata');
-               writeln('|squidcache-tail');
+               //writeln('Usage:');
+               //writeln('/etc/init.d/artica-postfix stop ldap|imap|kav6|squid|squid-cache|squid-tail|squid-tail-sock|dansgardian|boa|ftp|mysql|apache|spamd|clamd|freshclam|mgreylist|ntpd');
+               //writeln('|tail|daemon|clammilter|dnsmasq|stunnel|dkim|postfix|mailgraph|mimedefang|roundcube|kav4samba|bind9|obm|p3scan|syslogng|mailarchiver|bogom');
+               //writeln('|collectd|fetchmail|mailspy|amavis|retranslator|retranslator-tsk|watchdog|dotclear|jcheckmail|mailman|kas3|dhcp|cicap|openvpn|postfix-logger');
+               //writeln('|dansguardian-tail|cups|dstat|dstat-top-mem|dstat-top-cpu|rsync|smartd|policydw|mysql-cluster|assp|pdns|gluster|gluster-cli|sysloger');
+               //writeln('|zabbix|hamachi|kav4proxy|postfilter|vmtools|zarafa|zarafa-web|monit|wifi[proxy-pac|artica-notifier|mldonkey|backuppc|kav4fs|ocsweb|ocsagent');
+               //writeln('|openssh|auditd|squidguard-http|fetchmail-logger|dkfilter|ufdb|ufdb-tail|squidguard-tail|framework|dkim-milter|dropbox|artica-policy|virtualbox-web');
+               //writeln('|tftpd|crossroads|artica-status|artica-exec|artica-back|pptpd|pptpd-clients|apt-mirror|squidclamav-tail|ddclient|cluebringer|apachesrc');
+               //writeln('|sabnzbdplus|fcron|fuse|vnstat|winbindd|munin|greyhole|amavis-milter|iscsi|auth-logger|snort|greensql|amanda|zarafa-lmtp|tomcat|openemm');
+               //writeln('|sendmail-openemm|fuppes|cgroups|arpd|yaffas|netatalk|loadbalance|memcached|UpdateUtility|ejabberd|haproxy|arkeia|klms|klmsdb|articadb|suricata');
+               //writeln('|squidcache-tail');
                exit();
             end;
 
@@ -1942,7 +1901,7 @@ var
    kav4fs:tkav4fs;
    ocsi:tocsi;
    ocsagent:tocsagent;
-   sshd:tsshd;
+
    auditd:tauditd;
    squidguard_page:tsquidguard_page;
    dkfilter:tdkfilter;
@@ -1954,9 +1913,7 @@ var
    virtualbox:tvirtualbox;
    tftpd:ttftpd;
    crossroads:tcrossroads;
-   articastatus:tarticastatus;
    articaexecutor:tarticaexecutor;
-   articabackground:tarticabackground;
    pptpd:tpptpd;
    zapt_mirror:tapt_mirror;
    zddclient:tddclient;
@@ -1975,12 +1932,11 @@ var
    tomcat:ttomcat;
    openemm:topenemm;
    fuppes:tfuppes;
-   arpd:tarpd;
    netatalk:tnetatalk;
    memcached:tmemcached;
    UpdateUtility:tUpdateUtility;
    zejabberd:tejabberd;
-   haproxy:thaproxy;
+
    arkeia:tarkeia;
    klms:tklms;
    zlogs:tlogs;
@@ -2064,12 +2020,12 @@ begin
                  assp:=Tassp.Create(SYS);
                  assp.START();
                  assp.free;
-                 zpostfix.MYSQMAIL_START();
+
                  exit();
               end;
 
              if ParamStr(2)='postfix-heavy' then begin
-                     zpostfix.MYSQMAIL_START();
+
                      exit();
              end;
 
@@ -2081,13 +2037,13 @@ begin
               end;
 
               if ParamStr(2)='postfix-logger' then begin
-                 zpostfix.MYSQMAIL_START();
+
                  exit();
               end;
 
 
               if ParamStr(2)='sysloger' then begin
-                 GLOBAL_INI.SYSLOGER_START();
+
                  exit();
               end;
 
@@ -2369,9 +2325,6 @@ begin
             end;
 
            if ParamStr(2)='haproxy' then begin
-                 haproxy:=thaproxy.Create(GLOBAL_INI.SYS);
-                 haproxy.START();
-                 haproxy.free;
                  exit();
             end;
 
@@ -2491,9 +2444,7 @@ begin
             end;
 
              if ParamStr(2)='arpd' then begin
-               arpd:=tarpd.Create(GLOBAL_INI.SYS);
-               arpd.START();
-               arpd.free;
+               fpsystem('/etc/init.d/arpd start');
                exit();
             end;
 
@@ -2537,12 +2488,7 @@ begin
                    exit();
               end;
 
-              if ParamStr(2)='artica-status' then begin
-                   SYS:=Tsystem.Create;
-                   articastatus:=tarticastatus.Create(SYS);
-                   articastatus.START();
-                   exit();
-              end;
+
 
               if ParamStr(2)='artica-exec' then begin
                    SYS:=Tsystem.Create;
@@ -2550,14 +2496,6 @@ begin
                    articaexecutor.START();
                    exit();
               end;
-
-              if ParamStr(2)='artica-back' then begin
-                   SYS:=Tsystem.Create;
-                   articabackground:=tarticabackground.Create(SYS);
-                   articabackground.START();
-                   exit();
-              end;
-
 
 
               if ParamStr(2)='tftpd' then begin
@@ -2602,30 +2540,19 @@ begin
               end;
 
              if ParamStr(2)='openssh' then begin
-                   SYS:=Tsystem.Create;
-                   sshd:=tsshd.Create(SYS);
-                   sshd.START();
                    exit();
               end;
 
              if ParamStr(2)='ssh' then begin
-                   SYS:=Tsystem.Create;
-                   sshd:=tsshd.Create(SYS);
-                   sshd.START();
                    exit();
               end;
 
              if ParamStr(2)='auth-logger' then begin
-                   SYS:=Tsystem.Create;
-                   sshd:=tsshd.Create(SYS);
-                   sshd.START_LOGGER();
                    exit();
               end;
 
              if ParamStr(2)='dkfilter' then begin
-                   SYS:=Tsystem.Create;
-                   dkfilter:=tdkfilter.Create(SYS);
-                   dkfilter.START();
+
                    exit();
               end;
 
@@ -2672,17 +2599,11 @@ begin
               end;
               
               if ParamStr(2)='watchdog' then begin
-               cron:=tcron.Create(GLOBAL_INI.SYS);
-               cron.START();
-               monit.START();
-               cron.free;
+
                exit();
             end;
 
               if ParamStr(2)='fcron' then begin
-               cron:=tcron.Create(GLOBAL_INI.SYS);
-               cron.START();
-               cron.free;
                exit();
             end;
 
@@ -2730,10 +2651,7 @@ begin
               end;
 
              if ParamStr(2)='imap' then begin
-                 saslauthd:=tsaslauthd.Create(SYS);
-                 saslauthd.START();
-                 saslauthd.Free;
-                 ccyrus.CYRUS_DAEMON_START();
+
                  exit();
               end;
               
@@ -2834,7 +2752,7 @@ begin
 
              if ParamStr(2)='squid' then begin
                  if not NetWorkAvailable then exit();
-                 zClam.CLAMD_START();
+
                  zdansguardian.C_ICAP_START();
                  kav4proxy.KAV4PROXY_START();
                  zsquid.SQUID_START();
@@ -2901,21 +2819,21 @@ begin
               end;
 
              if ParamStr(2)='boa' then begin
-                 GLOBAL_INI.BOA_START();
+
                  exit();
               end;
 
              if ParamStr(2)='dansguardian' then begin
                  if not NetWorkAvailable then exit();
                  zdansguardian.DANSGUARDIAN_START();
-                 zClam.CLAMD_START();
+
                  exit();
               end;
 
              if ParamStr(2)='dansgardian' then begin
                  if not NetWorkAvailable then exit();
                  zdansguardian.DANSGUARDIAN_START();
-                 zClam.CLAMD_START();
+
                  exit();
               end;
 
@@ -3020,12 +2938,12 @@ begin
                  fpsystem('/bin/rm /etc/artica-postfix/cron.2/watchdog-daemon');
                  fpsystem('/bin/touch /etc/artica-postfix/cron.2/watchdog-daemon');
                  GLOBAL_INI.SYSTEM_START_ARTICA_DAEMON();
-                 monit.START();
+
                  exit();
               end;
 
               if ParamStr(2)='monit' then begin
-                 monit.START();
+
                  exit();
               end;
 
@@ -3049,42 +2967,36 @@ begin
 
               if ParamStr(2)='clamd' then begin
                  if not NetWorkAvailable then exit();
-                 zClam.CLAMD_START();
+
                  exit();
               end;
 
               if ParamStr(2)='freshclam' then begin
-                 if not NetWorkAvailable then exit();
-                 zClam.FRESHCLAM_START();
                  exit();
               end;
 
               if ParamStr(2)='clammilter' then begin
                  if not NetWorkAvailable then exit();
-                 zClam.CLAMD_START();
+
                  zClam.MILTER_START();
-                 zClam.FRESHCLAM_START();
+
                  exit();
               end;
 
               if ParamStr(2)='saslauthd' then begin
-                 saslauthd:=tsaslauthd.Create(GLOBAL_INI.SYS);
-                 saslauthd.START();
-
-                 saslauthd.FRee;
                  exit();
               end;
 
 
               if ParamStr(2)='mysqmail' then begin
-                 zpostfix.MYSQMAIL_START();
+
                  exit();
               end;
 
 
               if ParamStr(2)='dnsmasq' then begin
                  if not NetWorkAvailable then exit();
-                 dnsmasq.DNSMASQ_START_DAEMON();
+
 
                  exit();
               end;
@@ -3202,6 +3114,7 @@ begin
 
 
         if length(ParamStr(2))>0 then begin
+              exit();
                writeln('Your parameter: "' +ParamStr(2)+'" is not understood...');
                writeln('Usage:');
                writeln('/etc/init.d/artica-postfix start all|ldap|saslauthd|imap|kav6|squid|squid-cache|squid-tail|squid-tail-sock|dansgardian|boa|ftp|mysql|apache|spamd|clamd|freshclam|mgreylist');
@@ -3338,26 +3251,6 @@ procedure Tclass_install.AWSTATS_INSTALL();begin INSTALL_AWSTATS();end;
 
 
 //##############################################################################
-
-procedure Tclass_install.CYRUS_IMPAD_INIT();
-var
-   SYS:Tsystem;
-   LOGS:Tlogs;
-
-begin
-   LOGS:=Tlogs.Create;
-   SYS:=Tsystem.Create();
-   LOGS.INSTALL_MODULES('APP_POSTFIX','Initialize cyrus-imapd first..:Creating cyrus user');
-   SYS.AddUserToGroup('cyrus','cyrus','','');
-   SYS.AddUserToGroup('mail','mail','','');
-   
-   forcedirectories('/var/lib/cyrus/db');
-   fpsystem('/bin/chmod -R 0755 /var/lib/cyrus');
-   fpsystem('/bin/chown -R cyrus:mail /var/lib/cyrus');
-   CYRUS_CHECK();
-   
-end;
-//##############################################################################
 procedure Tclass_install.PFQUEUE_INSTALL();
 var
    LOG        :Tlogs;
@@ -3462,8 +3355,7 @@ begin
   logs.DeleteFile('/etc/ssl/certs/cyrus.pem');
   logs.Debuglogs('Change cyrus certificate');
   cyrus.CYRUS_CERTIFICATE();
-  cyrus.CYRUS_DAEMON_STOP();
-  cyrus.CYRUS_DAEMON_START();
+  fpsystem('/etc/init.d/cyrus-imapd restart');
   
   logs.Debuglogs('Change MySQL certificate');
   zmysql.SSL_KEY();
@@ -3508,136 +3400,6 @@ begin
   
 
 end;
-
-
-procedure tclass_install.CLAMAV_RECONFIGURE();
-var
-   l:TstringList;
-   CLlogs:Tlogs;
-
-   clamav:Tclamav;
-
-begin
-    l:=TstringList.Create;
-    CLlogs:=Tlogs.Create;
-    clamav:=Tclamav.Create;
-    
-if not FileExists('/opt/artica/sbin/clamd') then begin
-        CLlogs.INSTALL_MODULES('APP_ARTICA','clamav........................:Unable to stat /opt/artica/sbin/clamd !, stop');
-        exit;
-    end;
-
-    
-clamav.CLAMD_STOP();
-    
-l.Add('LogFile /opt/artica/logs/clamav/clamd.log');
-l.Add('#LogFileUnlock yes');
-l.Add('LogFileMaxSize 2M');
-l.Add('LogTime yes');
-l.Add('LogClean yes');
-l.Add('LogSyslog yes');
-l.Add('LogFacility LOG_MAIL');
-l.Add('#LogVerbose yes');
-l.Add('PidFile /var/run/clamav/artica-clamd.pid');
-l.Add('#TemporaryDirectory /var/tmp');
-l.Add('#DatabaseDirectory /var/lib/clamav');
-l.Add('LocalSocket /opt/artica/clamav/clamd.socket');
-l.Add('FixStaleSocket yes');
-l.Add('#TCPSocket 3310');
-l.Add('#TCPAddr 127.0.0.1');
-l.Add('MaxConnectionQueueLength 30');
-l.Add('StreamMaxLength 20M');
-l.Add('StreamMinPort 30000');
-l.Add('StreamMaxPort 32000');
-l.Add('MaxThreads 20');
-l.Add('ReadTimeout 300');
-l.Add('IdleTimeout 60');
-l.Add('MaxDirectoryRecursion 20');
-l.Add('FollowDirectorySymlinks yes');
-l.Add('FollowFileSymlinks yes');
-l.Add('SelfCheck 600');
-l.Add('#VirusEvent /usr/local/bin/send_sms 123456789 "VIRUS ALERT: %v"');
-l.Add('User clamav');
-l.Add('#AllowSupplementaryGroups no');
-l.Add('ExitOnOOM yes');
-l.Add('Foreground no');
-l.Add('#Debug yes');
-l.Add('#LeaveTemporaryFiles yes');
-l.Add('#DetectPUA yes');
-l.Add('AlgorithmicDetection yes');
-l.Add('ScanPE yes');
-l.Add('ScanELF yes');
-l.Add('DetectBrOKenExecutables yes');
-l.Add('ScanOLE2 yes');
-l.Add('#ScanPDF yes');
-l.Add('ScanMail yes');
-l.Add('#MailFollowURLs no');
-l.Add('PhishingSignatures yes');
-l.Add('PhishingScanURLs yes');
-l.Add('#PhishingAlwaysBlockSSLMismatch no');
-l.Add('#PhishingAlwaysBlockCloak no');
-l.Add('ScanHTML yes');
-l.Add('ScanArchive yes');
-l.Add('ArchiveLimitMemoryUsage yes');
-l.Add('#ArchiveBlockEncrypted no');
-l.Add('MaxScanSize 50M');
-l.Add('MaxFileSize 5M');
-l.Add('MaxRecursion 10');
-l.Add('MaxFiles 15000');
-l.Add('#ClamukoScanOnAccess yes');
-l.Add('#ClamukoScanOnOpen yes');
-l.Add('#ClamukoScanOnClose yes');
-l.Add('#ClamukoScanOnExec yes');
-l.Add('#ClamukoIncludePath /home');
-l.Add('#ClamukoIncludePath /students');
-l.Add('#ClamukoExcludePath /home/bofh');
-l.Add('# Default: 5M');
-l.Add('#ClamukoMaxFileSize 10M');
-CLlogs.INSTALL_MODULES('APP_ARTICA','clamav........................: saving /opt/artica/etc/clamd.conf');
-l.SaveToFile('/opt/artica/etc/clamd.conf');
-l.Clear;
-l.Add('UpdateLogFile /opt/artica/logs/clamav/update.log');
-l.Add('LogFileMaxSize 2M');
-l.Add('LogTime yes');
-l.Add('LogSyslog yes');
-l.Add('LogFacility LOG_MAIL');
-l.Add('PidFile /var/run/clamav/artica-freshclam.pid');
-l.Add('DNSDatabaseInfo current.cvd.clamav.net');
-l.Add('# code. See http://www.iana.org/cctld/cctld-whois.htm for the full list.');
-l.Add('#DatabaseMirror db.XY.clamav.net');
-l.Add('DatabaseMirror database.clamav.net');
-l.Add('MaxAttempts 5');
-l.Add('ScriptedUpdates yes');
-l.Add('#CompressLocalDatabase no');
-l.Add('Checks 12');
-l.Add('#HTTPProxyServer myproxy.com');
-l.Add('#HTTPProxyPort 1234');
-l.Add('#HTTPProxyUsername myusername');
-l.Add('#HTTPProxyPassword mypass');
-l.Add('#HTTPUserAgent SomeUserAgentIdString');
-l.Add('#LocalIPAddress aaa.bbb.ccc.ddd');
-l.Add('NotifyClamd /opt/artica/etc/clamd.conf');
-l.Add('#OnUpdateExecute command');
-l.Add('#OnErrorExecute command');
-l.Add('#OnOutdatedExecute command');
-l.Add('Foreground yes');
-l.Add('#Debug yes');
-l.Add('ConnectTimeout 30');
-l.Add('ReceiveTimeout 30');
-CLlogs.INSTALL_MODULES('APP_ARTICA','clamav........................: saving /opt/artica/etc/freshclam.conf');
-l.SaveToFile('/opt/artica/etc/freshclam.conf');
-
-CLlogs.INSTALL_MODULES('APP_ARTICA','clamav........................: done');
-l.free;
-CLlogs.free;
-clamav.CLAMD_START();
-sleep(500);
-clamav.CLAMD_STOP();
-
-end;
-
-
-
 
 procedure Tclass_install.RRD_INSTALL();
 var
@@ -4395,7 +4157,7 @@ D:=GLOBALINI.COMMANDLINE_PARAMETERS('debug');
 myFile:=TstringList.Create;
 myFile.Add('#!/bin/sh');
 myFile.add('### BEGIN INIT INFO');
-myFile.Add('# Provides:          Artica boot service');
+myFile.Add('# Provides:          artica-boot');
 myFile.Add('# Required-Start:    $local_fs');
 myFile.Add('# Required-Stop:     $local_fs');
 myFile.Add('# Should-Start:');
@@ -5272,16 +5034,6 @@ begin
      
 end;
 //##############################################################################
-procedure Tclass_install.CYRUS_CHECK();
-begin
-   CYRUS_IMAPD_CONFIGURE();
-   PERL_CYRUS_IMAP();
-   ForceDirectories('/var/lib/cyrus/db');
-   
-end;
-//##############################################################################
-
-
 procedure Tclass_install.BERKLEY_INSTALL();
 var
    source:string;
@@ -5387,7 +5139,7 @@ function Tclass_install.CYRUS_IMAPD_CONFIGURE():boolean;
 
 begin
    result:=false;
-   ccyrus.WRITE_IMAPD_CONF();
+
    ccyrus.WRITE_CYRUS_CONF();
 end;
 //##############################################################################
@@ -8691,9 +8443,7 @@ LOGS.INSTALL_MODULES('APP_POSTFIX','Set sasl......................:Writing smtpd
  ccyrus.CYRUS_DAEMON_STOP();
  ldap.LDAP_STOP();
  
- saslauthd:=tsaslauthd.Create(SYS);
- saslauthd.STOP();
- 
+fpsystem('/etc/init.d/saslauthd restart');
  LOGS.INSTALL_MODULES('APP_POSTFIX','Set sasl......................:Checking users and groups');
  fpsystem('groupadd sasl >/dev/null 2>&1');
  fpsystem('mkdir -p /var/spool/postfix/var >/dev/null 2>&1');

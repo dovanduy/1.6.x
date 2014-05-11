@@ -50,7 +50,7 @@ function AddNewSchedule_js(){
 	}
 	
 	$title=$tpl->_ENGINE_parse_body($title);
-	echo "YahooWin{$YahooWin}('650','$page?AddNewSchedule-popup=yes&ID=$ID$YahooWinet','$title')";
+	echo "YahooWin{$YahooWin}('650','$page?AddNewSchedule-popup=yes&ID=$ID$YahooWinet&ForceTaskType={$_GET["ForceTaskType"]}&ForceType={$_GET["ForceTaskType"]}','$title')";
 	
 }
 
@@ -141,8 +141,10 @@ function AddNewSchedule_popup(){
 	$users=new usersMenus();
 	$tasks=new system_tasks();
 	$q=new mysql();
-	$no_schedule_set=$tpl->javascript_parse_text("{no_schedule_set}");
+	$no_schedule_set="<p class=text-error>".$tpl->javascript_parse_text("{no_schedule_set}")."</p>";
 	$buttontext="{add}";
+	if(!isset($_GET["ForceType"])){$_GET["ForceType"]=0;}
+	if(!is_numeric($_GET["ForceType"])){$_GET["ForceType"]=0;}
 	$ID=$_GET["ID"];
 		if($ID>0){
 			$buttontext="{apply}";
@@ -168,7 +170,7 @@ function AddNewSchedule_popup(){
 		$taskz[$TaskType]="[{$TaskType}] ".$tpl->_ENGINE_parse_body($content);
 		
 	}
-	if(isset($_GET["ForceType"])){
+	if($_GET["ForceType"]>0){
 		unset($taskz);
 		$taskz[$_GET["ForceType"]]=$tpl->_ENGINE_parse_body($task_type[$_GET["ForceType"]]);
 	}
@@ -264,7 +266,7 @@ function build_config_start(){
 	$sock=new sockets();
 	
 	$html="
-	<div style='width:95%;height:550;overflow:auto' class=form id='$t'></div>
+	<div style='width:95%;' class=form id='$t'></div>
 	<script>
 		LoadAjax('$t','$page?build-config-start=yes&t=$t');
 	</script>
@@ -312,7 +314,7 @@ function build_config_perform(){
 	return;			
 		
 	}
-	echo "<div style='width:100%;text-align:right'>". imgtootltip("refresh-32","{refresh}","LoadAjax('$sourcet','$page?build-config-start=yes&t=$sourcet&no-check=yes');")."</div>";
+	echo "<div style='width:100%;text-align:right'>". imgtootltip("refresh-32.png","{refresh}","LoadAjax('$sourcet','$page?build-config-start=yes&t=$sourcet&no-check=yes');")."</div>";
 	$datas=file("ressources/logs/web/tasks.compile.txt");
 	while (list ($index, $line) = each ($datas) ){
 		echo "<div style='width:100%'><code style='font-size:11.5px'>$line</code></div>";
@@ -433,21 +435,38 @@ function page(){
 	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
 	$internal_scheduler=$tpl->_ENGINE_parse_body("{internal_scheduler}");
 	$build_config=$tpl->_ENGINE_parse_body("{WIZARD_COMPILE}");
-	
-	
+	$ForceTaskType=$_GET["ForceTaskType"];
+	if(!is_numeric($ForceTaskType)){$ForceTaskType=0;}
+	$CountEvents=0;
 	$q=new mysql();
 	$tasks=$tpl->_ENGINE_parse_body("{tasks}");
-	$CountTasks=$q->COUNT_ROWS("system_schedules", "artica_backup");
 	
-	$LIST_TABLES_EVENTS_SYSTEM=$q->LIST_TABLES_EVENTS_SYSTEM();
-	$CountEvents=0;
-	while (list ($tablename, $rows) = each ($LIST_TABLES_EVENTS_SYSTEM) ){
-		$CountEvents=$CountEvents +$q->COUNT_ROWS($tablename, "artica_events");
+	
+	
+
+	
+	$t=time();
+	$bgroup1="{name: '$all_events', bclass: 'Search', onpress : AllEvents$t},
+	{name: '$internal_scheduler', bclass: 'Script', onpress : internal_scheduler$t},";
+	$bgroup2="{name: '$parameters', bclass: 'Settings', onpress : Parmaeters$t},";
+	
+	
+	$events=$tpl->_ENGINE_parse_body("{events}");
+	
+	if($ForceTaskType>0){
+		$bgroup1=null;
+		$bgroup2=null;
+		$schedules=new system_tasks();
+		$title=$tpl->javascript_parse_text($schedules->tasks_array[$ForceTaskType]);
+	}else{
+		$LIST_TABLES_EVENTS_SYSTEM=$q->LIST_TABLES_EVENTS_SYSTEM();
+		$CountTasks=$q->COUNT_ROWS("system_schedules", "artica_backup");
+		while (list ($tablename, $rows) = each ($LIST_TABLES_EVENTS_SYSTEM) ){$CountEvents=$CountEvents +$q->COUNT_ROWS($tablename, "artica_events");}
+		$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');
+		$title="$CountTasks $tasks $CountEvents $events";
+		
 	}
 	
-	$CountEvents=numberFormat($CountEvents, 0 , '.' , ' ');
-	$events=$tpl->_ENGINE_parse_body("{events}");
-	$t=time();
 	$html="
 	<div style='margin-left:-15px'>
 		<table class='$t' style='display: none' id='$t' style='width:99%'></table>
@@ -456,25 +475,23 @@ function page(){
 var rowSquidTask='';
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?search=yes&minisize={$_GET["minisize"]}',
+	url: '$page?search=yes&minisize={$_GET["minisize"]}&ForceTaskType={$_GET["ForceTaskType"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'ID', width : 32, sortable : true, align: 'center'},
 		{display: '$task', name : 'TaskType', width : 217, sortable : false, align: 'left'},
 		{display: '$description', name : 'TimeDescription', width : 410, sortable : false, align: 'left'},
 		{display: '$run', name : 'run', width : 32, sortable : false, align: 'left'},
-		{display: '$events', name : 'run1', width : 32, sortable : false, align: 'left'},
+		{display: '$events', name : 'run1', width : 32, sortable : false, align: 'center'},
 		{display: '&nbsp;', name : 'enable', width : 32, sortable : true, align: 'center'},
 		{display: '&nbsp;', name : 'delete', width : 32, sortable : false, align: 'center'}
 	],
 buttons : [
 	{name: '$new_schedule', bclass: 'add', onpress : AddNewSchedule},
-	{name: '$all_events', bclass: 'Search', onpress : AllEvents$t},
-	{name: '$internal_scheduler', bclass: 'Script', onpress : internal_scheduler$t},
+	$bgroup1
 	{name: '$build_config', bclass: 'Restore', onpress : build_config$t},
-	{name: '$parameters', bclass: 'Settings', onpress : Parmaeters$t},
-	
-		],	
+	$bgroup2
+	],	
 	searchitems : [
 		{display: '$description', name : 'TimeDescription'},
 		],
@@ -482,11 +499,11 @@ buttons : [
 	sortname: 'ID',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$CountTasks $tasks $CountEvents $events',
+	title: '$title',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 892,
+	width: '99%',
 	height: 450,
 	singleSelect: true
 	
@@ -507,7 +524,7 @@ buttons : [
 
 
 	function AddNewSchedule(category){
-			Loadjs('$page?AddNewSchedule-js=yes&ID=0');
+			Loadjs('$page?AddNewSchedule-js=yes&ID=0&ForceTaskType={$_GET["ForceTaskType"]}');
 	}
 	
 	function SystemCrontaskUpdateTable(){
@@ -528,7 +545,7 @@ buttons : [
 	}
 
 	function build_config$t(){
-		YahooWinBrowse('550','$page?build-config=yes','$build_config');
+		YahooWinBrowse('650','$page?build-config=yes','$build_config');
 	}
 
 
@@ -594,8 +611,12 @@ function search(){
 	$DisableSquidDefaultSchedule=$sock->GET_INFO("DisableSquidDefaultSchedule");
 	if(!is_numeric($DisableSquidDefaultSchedule)){$DisableSquidDefaultSchedule=0;}	
 	$schedules=new system_tasks();
+	$ForceTaskType=$_GET["ForceTaskType"];
+	if(!is_numeric($ForceTaskType)){$ForceTaskType=0;}
 	$total=0;
+	$FORCE=1;
 	$sock->getFrameWork("services.php?sysev=yes");
+	if($ForceTaskType>0){$FORCE="TaskType=$ForceTaskType";}
 	
 	if($q->COUNT_ROWS($table,"artica_backup")==0){
 		json_error_show("No data",1);
@@ -604,14 +625,10 @@ function search(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND ((`{$_POST["qtype"]}` LIKE '$search') OR (`TimeDescription` LIKE '$search'))";
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
 		
@@ -622,26 +639,28 @@ function search(){
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
-	
-
-	
 	$pageStart = ($page-1)*$rp;
-	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
+	if(is_numeric($rp)){
+		$limitSql = "LIMIT $pageStart, $rp";
+	}
+	
+	
+	
+	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	
 	
 	
 	$data = array();$data['page'] = $page;$data['total'] = $total;$data['rows'] = array();	
-	if(!$q->ok){$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));echo json_encode($data);return;}	
+	if(!$q->ok){json_error_show("no schedule");}	
 	
 //######"
 	//TimeText TimeDescription TaskType enabled
 	
 	
 	$q2=new mysql();
+	if(mysql_num_rows($results)==0){json_error_show("no schedule",1);}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";

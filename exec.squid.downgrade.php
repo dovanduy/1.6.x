@@ -59,8 +59,10 @@ function downgrade($file){
 		die();
 	}
 	if(is_file($gzf)){@unlink($gzf);}
+	$unix=new unix();
+	$URIBASE=$unix->MAIN_URI();
 	Events("5%: PLEASE WAIT,PLEASE WAIT,PLEASE WAIT.....downloading $file");
-	$curl=new ccurl("http://www.artica.fr/download/old-squid/$file");
+	$curl=new ccurl("$URIBASE/download/old-squid/$file");
 	$curl->NoHTTP_POST=true;
 	$curl->ProgressFunction="downgrade_prg";
 	$curl->WriteProgress=true;
@@ -121,10 +123,11 @@ function downgrade($file){
 	Events("70%: Starting Squid-Cache");
 	shell_exec("/etc/init.d/squid start");
 	Events("80%: Refresh Artica with the new version...");
-	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose --".time()." >/dev/null 2>&1");
+	shell_exec("/etc/init.d/artica-process1 start");
 	Events("90%: Restarting watchdogs...");
 	system("/etc/init.d/cache-tail restart");
-	system("$nohup /etc/init.d/artica-status restart >/dev/null 2>&1 &");
+	system("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/monit restart  >/dev/null 2>&1 &");
 	Events("100%: Done...");
 	Events("-------------------------------------------------------------");
 	Events("----------------     Squid Cache V.$ver    ------------------");

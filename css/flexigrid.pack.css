@@ -153,6 +153,11 @@ div.pGroup input, select, textarea {
 .flexigrid div.fbutton .Search {
   background: url("/css/images-flexigrid/magnifier.png") no-repeat scroll left center transparent;
 }
+
+.flexigrid div.fbutton .apply {
+  background: url("/css/images-flexigrid/apply.png") no-repeat scroll left center transparent;
+}
+
 .flexigrid div.fbutton .Reload {
   background: url("/css/images-flexigrid/load.png") no-repeat scroll left center transparent;
 }
@@ -162,8 +167,23 @@ div.pGroup input, select, textarea {
 .flexigrid div.fbutton .Warn {
   background: url("/img/status_warning.gif") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .cpu {
+  background: url("/img/memory-20.png") no-repeat scroll left center transparent;
+}
+.flexigrid div.fbutton .recycle {
+  background: url("/img/20-recycle.png") no-repeat scroll left center transparent;
+}
+.flexigrid div.fbutton .export {
+  background: url("/img/16-export.png") no-repeat scroll left center transparent;
+}
+.flexigrid div.fbutton .import {
+  background: url("/img/16-import.png") no-repeat scroll left center transparent;
+}
+
+
+
 .flexigrid div.fbutton .Err {
-  background: url("/img/icon_err.gif") no-repeat scroll left center transparent;
+  background: url("/img/16-red.png") no-repeat scroll left center transparent;
 }
 .flexigrid div.fbutton .Statok {
   background: url("/img/ok16.png") no-repeat scroll left center transparent;
@@ -197,7 +217,7 @@ div.pGroup input, select, textarea {
   background: url("/img/wingroup.png") no-repeat scroll left center transparent;
 }
 .flexigrid div.fbutton .Help {
-  background: url("/img/helpx16.png") no-repeat scroll left center transparent;
+  background: url("/img/16-infos.png") no-repeat scroll left center transparent;
 }
 .flexigrid div.fbutton .eMail {
   background: url("/img/test-mail-22.png") no-repeat scroll left center transparent;
@@ -209,7 +229,7 @@ div.pGroup input, select, textarea {
   background: url("/img/restore-on-16.png") no-repeat scroll left center transparent;
 }
 .flexigrid div.fbutton .Warn {
-  background: url("/img/status_warning-18.gif") no-repeat scroll left center transparent;
+  background: url("/img/16-warn.png") no-repeat scroll left center transparent;
 }
 .flexigrid div.fbutton .Hd {
   background: url("/img/mailbox_hd-18.gif") no-repeat scroll left center transparent;
@@ -226,6 +246,15 @@ div.pGroup input, select, textarea {
 .flexigrid div.fbutton .Down {
   background: url("/img/arrow-down-18.png") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .shared {
+  background: url("/img/shared-20.png") no-repeat scroll left center transparent;
+}
+.flexigrid div.fbutton .backup {
+  background: url("/img/backup-tool-20.png") no-repeat scroll left center transparent;
+}
+
+
+
 .flexigrid div.fbutton .Up {
   background: url("/img/arrow-up-18.png") no-repeat scroll left center transparent;
 }
@@ -247,6 +276,17 @@ div.pGroup input, select, textarea {
 .flexigrid div.fbutton .clock {
   background: url("/img/clock-18.png") no-repeat scroll left center transparent;
 }
+.flexigrid div.fbutton .xls {
+  background: url("/img/xls_small.gif") no-repeat scroll left center transparent;
+}
+.flexigrid div.fbutton .BanServ {
+  background: url("/img/20-bann-server.png") no-repeat scroll left center transparent;
+}
+.flexigrid div.fbutton .AddServ {
+  background: url("/img/20-server.png") no-repeat scroll left center transparent;
+}
+
+
 
 
 
@@ -273,6 +313,14 @@ div.pGroup input, select, textarea {
 .ie6_height .br {bottom: -1px;}
 .ie6_height .bl {bottom: -1px;}
 
+
+.messageMenu{
+	 width: 100%;
+	padding: 15px;
+	position: fixed;
+	_position: absolute;
+	min-height:350px;
+}
 
 .message
 {
@@ -318,6 +366,7 @@ div.pGroup input, select, textarea {
 .error{background-color: #de4343;border-color: #c43d3d;}
 .warning{background-color: #eaaf51;border-color: #d99a36;}
 .success{background-color: #61b832;border-color: #55a12c;}
+.messageMenuDisplay{background-color: #000000;border-color: #FFFFFF;}
 .message h3{margin: 0 0 5px 0;}
 .message p{ margin: 0;}
 

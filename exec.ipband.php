@@ -324,10 +324,10 @@ function stopnet($network){
 	$kill=$GLOBALS["CLASS_UNIX"]->find_program("kill");
 	$pid=pidnet($network);
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($pid)){
-		print("Stopping......: ipband $network already stopped\n");
+		print("Stopping......: ".date("H:i:s")."ipband $network already stopped\n");
 		return;
 	}
-	print("Stopping......: ipband $network PID $pid\n");
+	print("Stopping......: ".date("H:i:s")."ipband $network PID $pid\n");
 	for($i=0;$i<6;$i++){
 		if(!$GLOBALS["CLASS_UNIX"]->process_exists($pid)){break;}
 		$GLOBALS["CLASS_UNIX"]->KILL_PROCESS($pid,9);
@@ -336,10 +336,10 @@ function stopnet($network){
 
 	$pid=pidnet($network);
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($pid)){
-		print("Stopping......: ipband $network success\n");
+		print("Stopping......: ".date("H:i:s")."ipband $network success\n");
 		return;
 	}	
-	print("Stopping......: ipband $network failed\n");
+	print("Stopping......: ".date("H:i:s")."ipband $network failed\n");
 	
 }
 
@@ -347,21 +347,21 @@ function startnet($network){
 	
 	$pid=pidnet($network);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){
-		print("Starting......: ipband $network already exists PID $pid\n");
+		print("Starting......: ".date("H:i:s")." ipband $network already exists PID $pid\n");
 		return;
 	}
 	$netfile=netfile($network);
 	$ipband=$GLOBALS["CLASS_UNIX"]->find_program("ipband");
-	print("Starting......: ipband $network ....\n");	
+	print("Starting......: ".date("H:i:s")." ipband $network ....\n");	
 	$cmdline="$ipband eth0 -F -f \"net $network\" -a 300 -r 1800 -d 2 -o /var/log/ipband.$netfile -w /var/log/ipband.$netfile.html >/dev/null";
 	shell_exec($cmdline);
 	sleep(1);
 	$pid=pidnet($network);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){
-		print("Starting......: ipband $network success\n");	
+		print("Starting......: ".date("H:i:s")." ipband $network success\n");	
 		return;
 	}else{
-		print("Starting......: ipband $network failed\n");	
+		print("Starting......: ".date("H:i:s")." ipband $network failed\n");	
 	}
 	
 }

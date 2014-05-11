@@ -488,7 +488,7 @@ function main_page_list(){
 		$CHROOT=$ligne["CHROOT"];
 		$WAKEUP=$ligne["WAKEUP"];
 		$color="black";
-		if($master->MasterCFUseDefaults==1){$color="#CCCCCC";}
+		if($master->MasterCFUseDefaults==1){$color="#8a8a8a";}
 		$delete=imgtootltip('delete-24.png','{delete}',"DeleteMasterService('$KEY')");
 		if($master->standard_services[$SERVICE]){
 			$realname="{service_{$SERVICE}}";

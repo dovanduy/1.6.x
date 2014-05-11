@@ -6,33 +6,38 @@ include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+$GLOBALS["TITLENAME"]="Sarg Statistics Generator";
 $GLOBALS["LOGFILE"]="/var/log/sarg-exec.log";
+$GLOBALS["OUTPUT"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-if(preg_match("#--verbose#",implode(" ",$argv))){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"");
-	$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--reload#",implode(" ",$argv))){$GLOBALS["RELOAD"]=true;$GLOBALS["RESTART"]=true;}
 
 $sock=new sockets();
 $EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
 if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
-if($EnableSargGenerator==0){
-	ufdbguard_admin_events("SARG IS DISABLED BY EnableSargGenerator", "MAIN", __FILE__, __LINE__, "sarg");
-	if($GLOBALS["VERBOSE"]){echo "SARG IS DISABLED BY EnableSargGenerator\n";}
-	die();
-}
+if($EnableSargGenerator==0){ if($GLOBALS["VERBOSE"]){echo "SARG IS DISABLED BY EnableSargGenerator\n";} die(); }
 if($argv[1]=="--exec-daily"){execute_daily();exit;}
 if($argv[1]=="--exec-monthly"){execute_monthly();exit;}
 if($argv[1]=="--exec-weekly"){execute_weekly();exit;}
 if($argv[1]=="--exec-hourly"){execute_hourly();exit;}
+if($argv[1]=="--index"){$GLOBALS["OUTPUT"]=true;build_index_page();exit;}
 
 
+
+if($argv[1]=="--test-notifs"){sarg_admin_events("TESTS","NONE",__FILE__,__LINE__);die();}
+if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+
+if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
+if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--exec"){execute();die();}
 if($argv[1]=="--backup"){backup();die();}
 if($argv[1]=="--conf"){buildconf();die();}
 if($argv[1]=="--restore-id"){restore_id($argv[2]);die();}
 if($argv[1]=="--rotate"){rotate($argv[2]);die();}
-
-
+if($argv[1]=="--tofile"){sargToFile($argv[2]);die();}
+if($argv[1]=="--status"){status();die();}
+// exec.sarg.php --conf
 
 
 
@@ -44,29 +49,45 @@ function SargDefault($SargConfig){
 	if(!is_numeric($SargConfig["user_ip"])){$SargConfig["user_ip"]=1;}
 	if(!is_numeric($SargConfig["resolve_ip"])){$SargConfig["resolve_ip"]=1;}
 	if(!is_numeric($SargConfig["lastlog"])){$SargConfig["lastlog"]=0;}
-	
-	
-	
 	if(!is_numeric($SargConfig["topsites_num"])){$SargConfig["topsites_num"]=100;}
 	if(!is_numeric($SargConfig["topuser_num"])){$SargConfig["topuser_num"]=0;}
 	if($SargConfig["topsites_sort_order"]==null){$SargConfig["topsites_sort_order"]="D";}
 	if($SargConfig["index_sort_order"]==null){$SargConfig["index_sort_order"]="D";}
 	if($SargConfig["topsites_num"]<2){$SargConfig["topsites_num"]=100;}
-	
-	
 	if($SargConfig["language"]==null){$SargConfig["language"]="English";}
 	if($SargConfig["title"]==null){$SargConfig["title"]="Squid User Access Reports";}
 	if($SargConfig["date_format"]==null){$SargConfig["date_format"]="e";}
 	if($SargConfig["records_without_userid"]==null){$SargConfig["records_without_userid"]="ip";}
-	
 	if($SargConfig["graphs"]==1){$SargConfig["graphs"]="yes";}else{$SargConfig["graphs"]="no";}
 	if($SargConfig["user_ip"]==1){$SargConfig["user_ip"]="yes";}else{$SargConfig["user_ip"]="no";}
 	if($SargConfig["resolve_ip"]==1){$SargConfig["resolve_ip"]="yes";}else{$SargConfig["resolve_ip"]="no";}
 	if($SargConfig["long_url"]==1){$SargConfig["long_url"]="yes";}else{$SargConfig["long_url"]="no";}
-	
-	
-	
 	return $SargConfig;
+}
+
+function restart(){
+	stop();
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, build_index_page();\n";
+	build_index_page();
+	start();
+}
+
+
+function stop(){
+	echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, success\n";
+}
+
+function start(){
+	$sock=new sockets();
+	$enabled=$sock->GET_INFO("EnableSargGenerator");
+	if(!is_numeric($enabled)){$enabled=0;}
+	if($enabled==0){
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, disabled\n";
+		return;}
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, building configuration\n";
+	buildconf();
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, success\n";
+	
 }
 
 
@@ -75,14 +96,19 @@ function buildconf(){
 	$sock=new sockets();
 	$unix=new unix();
 	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-	if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	if($unix->IsProtectedDirectory($SargOutputDir,true)){
-		$sock->SET_INFO("SargOutputDir", "/usr/share/artica-postfix/squid");
-		$SargOutputDir="/usr/share/artica-postfix/squid";
+		$sock->SET_INFO("SargOutputDir", "/var/www/html/squid-reports");
+		$SargOutputDir="/var/www/html/squid-reports";
 	}
 	
 	if(!is_file("/etc/artica-postfix/old_SargOutputDir")){
 		@file_put_contents("/etc/artica-postfix/old_SargOutputDir", $SargOutputDir);
+	}
+	
+	if($SargOutputDir=="/usr/share/artica-postfix/squid"){
+		$SargOutputDir="/var/www/html/squid-reports";
+		$sock->SET_INFO("SargOutputDir", "/var/www/html/squid-reports");
 	}
 	
 	if($SargOutputDir<>"/usr/share/artica-postfix/squid"){
@@ -112,9 +138,16 @@ function buildconf(){
 		}
 	}
 	
+
+	
 	events("Output dir: $SargOutputDir");
 	$SargConfig=unserialize(base64_decode($sock->GET_INFO("SargConfig")));
+	
 	$SargConfig=SargDefault($SargConfig);	
+	if($SargConfig["lastlog"]==0){$SargConfig["lastlog"]=90;}
+	$SargConfig["lastlog"]*24;
+	
+	
 	$conf[]="language {$SargConfig["language"]}";
 	$conf[]="graphs {$SargConfig["graphs"]}";
 	$conf[]="title \"{$SargConfig["title"]}\"";
@@ -144,46 +177,37 @@ function buildconf(){
 	$conf[]="output_dir $SargOutputDir";
 	$conf[]="logo_image /logo.gif";
 	$conf[]="image_size 160 58";
-	$conf[]="access_log /var/log/squid/sarg.log";
+	$conf[]="access_log /var/log/squid/access.log";
 	$conf[]="realtime_access_log_lines 5000";
 	$conf[]="graph_days_bytes_bar_color orange";
 	$conf[]="";	
 
 	
-@file_put_contents("/etc/squid3/sarg.conf",@implode("\n",$conf));
-echo "Starting......: Sarg, sarg.conf done\n";
+file_put_contents("/etc/squid3/sarg.conf",@implode("\n",$conf));
+
+
+file_put_contents("/etc/squid3/sarg-configured-1.8.012202.conf",@implode("\n",$conf));
+echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, sarg.conf done\n";
 events("/etc/squid3/sarg.conf done");
 
-$ips[]="127.0.0.1";
-$ips[]="localhost";
+
+$ips=array();
 
 
 @file_put_contents("/etc/squid3/sarg.hosts",@implode("\n",$ips));
-if($GLOBALS["VERBOSE"]){"/etc/squid3/sarg.hosts done\n";}
-echo "Starting......: Sarg, sarg.hosts done\n";
+echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, sarg.hosts done\n";
 // $sock=new sockets();$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
 
-if(!is_file("$SargOutputDir/sarg.css")){
-	if($GLOBALS["VERBOSE"]){"$SargOutputDir/sarg.css done\n";}
-	@copy("/usr/share/artica-postfix/bin/install/sarg.css","$SargOutputDir/sarg.css");
-}
 
-if(!is_file("/usr/share/artica-postfix/squid/logo.gif")){
-	@copy("/usr/share/artica-postfix/img/logo-artica-160.gif", "$SargOutputDir/logo.gif");
-}
-
-if(!is_file("/usr/share/artica-postfix/squid/pattern.png")){
-	@copy("/usr/share/artica-postfix/css/images/pattern.png", "$SargOutputDir/pattern.png");
-}
 
 
 
 $unix=new unix();
 $lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
 $squidbin=$unix->LOCATE_SQUID_BIN();
-echo "Starting......: Apache user: $lighttpd_user\n";
-@chown("/usr/share/artica-postfix/squid/sarg.css",$lighttpd_user);
-echo "Starting......: Sarg, css done\n";
+echo "Starting......: ".date("H:i:s")." Apache user: $lighttpd_user\n";
+@chown("$SargOutputDir/sarg.css",$lighttpd_user);
+echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, sarg.css done\n";
 	$nice=EXEC_NICE();
 	$unix=new unix();
 	$sarg_bin=$unix->find_program("sarg");
@@ -192,144 +216,73 @@ echo "Starting......: Sarg, css done\n";
 	$php5=$unix->LOCATE_PHP5_BIN();
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
 	if(!is_file($sarg_bin)){
-		ufdbguard_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		return;
 	}
-unset($f);
-$f[]="#!/bin/bash";
-$f[]="#Get current date";
-$f[]="TODAY=\$(date +%d/%m/%Y)"; 
-$f[]="YESTERDAY=\$(date --date \"1 day ago\" +%d/%m/%Y)"; 
-$f[]="mkdir -p \"$SargOutputDir/daily\"";
-$f[]="chown -R  $lighttpd_user:$lighttpd_user \"$SargOutputDir/daily\"";
-$f[]="NAAT=\"/var/www-naat/html/genfiles/modules/squid-reports/daily\"";
-$f[]="if [ -d \${NAAT} ]; then";
-$f[]="    chown -R $lighttpd_user \${NAAT}";
-$f[]="fi";
-$f[]="export LC_ALL=C";
-$f[]="$nice$sarg_bin -f /etc/squid3/sarg.conf -l /var/log/squid/sarg.log -o \"$SargOutputDir/daily\" -z -d \$YESTERDAY-\$TODAY -x";
-$f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
-$f[]="";
-@file_put_contents("/bin/sarg-daily.sh", @implode("\n",$f));
-@chmod("/bin/sarg-daily.sh",0755);
-events("cron.daily done");
-echo "Starting......: Sarg, cron cron.daily done\n";
-unset($f);
+	unset($f);
+	$f[]="#!/bin/sh";
+	$f[]="export LC_ALL=C";
+	$f[]="$nice $php5 ".__FILE__." --exec-daily >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.daily/0sarg.sh", @implode("\n",$f));
+	@chmod("/etc/cron.daily/0sarg.sh",0755);
+	events("cron.daily done");
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, cron cron.daily done\n";
+	unset($f);
 
-$f[]="#!/bin/bash";
-$f[]="#Get current date";
-$f[]="TODAY=\$(date +%d/%m/%Y)"; 
-$f[]="LASTHOUR=\$(date +%H -d \"1 hour ago\")";
-$f[]="HOUR=\$(date +%H)";
-$f[]="mkdir -p \"$SargOutputDir/hourly\"";
-$f[]="chown -R  $lighttpd_user:$lighttpd_user \"$SargOutputDir/hourly\"";
-$f[]="NAAT=\"/var/www-naat/html/genfiles/modules/squid-reports/hourly\"";
-$f[]="if [ -d \${NAAT} ]; then";
-$f[]="    chown -R $lighttpd_user \${NAAT}";
-$f[]="fi";
-$f[]="export LC_ALL=C";
-$f[]="CMD=\"$nice$sarg_bin -f /etc/squid3/sarg.conf -l /var/log/squid/sarg.log -o \"$SargOutputDir/hourly\" -z -d \$TODAY-\$TODAY -t \$LASTHOUR:00-\$HOUR:00\"";
-$f[]="\$CMD";
-$f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
-$f[]="";
-@file_put_contents("/bin/sarg-hourly.sh", @implode("\n",$f));
-@chmod("/bin/sarg-hourly.sh",0755);
-events("cron hourly done");
-echo "Starting......: Sarg, cron hourly done\n";
-unset($f);
+	$f[]="#!/bin/sh";
+	$f[]="export LC_ALL=C";
+	$f[]="$nice $php5 ".__FILE__." --exec-hourly >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.hourly/0sarg.sh", @implode("\n",$f));
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, cron cron.hourly done\n";
+	@chmod("/etc/cron.hourly/0sarg.sh",0755);
+	events("cron.hourly done");
+	unset($f);
 
+	$f[]="#!/bin/sh";
+	$f[]="export LC_ALL=C";
+	$f[]="$nice $php5 ".__FILE__." --exec-monthly >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.monthly/0sarg.sh", @implode("\n",$f));
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, cron cron.monthly done\n";
+	@chmod("/etc/cron.monthly/sarg.sh",0755);
+	events("cron.monthly done");
+	unset($f);
+	
 
-$f[]="#!/bin/bash";
-$f[]="if [ \$cnt -eq 4 ]; then";
-$f[]="#Get yesterday date";
-$f[]="YESTERDAY=\$(date --date \"1 day ago\" +%d/%m/%Y)";
-$f[]="";
-$f[]="#Get 4 weeks ago date";
-$f[]="WEEKSAGO=\$(date --date \"4 weeks ago\" +%d/%m/%Y)";
-$f[]="";
-$f[]="mkdir -p  \"$SargOutputDir/monthly\"";
-$f[]="#chown -R $lighttpd_user \"$SargOutputDir/monthly\"";
-$f[]="";
-$f[]="#NAAT=\"/var/www-naat/html/genfiles/modules/squid-reports/monthly \"";
-$f[]="#if [ -d \${NAAT} ]; then";
-$f[]="#    chown -R $lighttpd_user \${NAAT}";
-$f[]="#fi";
-$f[]="";
-$f[]="export LC_ALL=C";
-$f[]="$nice$sarg_bin -f /etc/squid3/sarg.conf -l /var/log/squid/sarg.log -o \"$SargOutputDir/monthly\" -d \$WEEKSAGO-\$YESTERDAY > /dev/null 2>&1";
-$f[]="";
-$f[]="$squidbin -k rotate";
-$f[]="/etc/init.d/auth-tail restart >/dev/null 2>&1";
-$f[]="/etc/init.d/cache-tail restart >/dev/null 2>&1";
-$f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
-
-$f[]="";
-$f[]="#don't move next line to upper, reason is that sed change the cnt assignment of the first 7 lines";
-$f[]="cnt=1";
-$f[]="else";
-$f[]="let cnt++";
-$f[]="fi";
-$f[]="#echo Will rename itself \(\$0\) with cnt \(\$cnt\) increased. 1>&2";
-$f[]="sargtmp=/var/tmp/`basename \$0`";
-$f[]="sed \"1,7s/^cnt=.*/cnt=\$cnt/";
-$f[]="\" \$0 >|\$sargtmp";
-$f[]="chmod -f 775 \$sargtmp";
-$f[]="mv -f \$sargtmp \$0";
-
-@file_put_contents("/bin/sarg-monthly.sh", @implode("\n",$f));
-@chmod("/bin/sarg-monthly.sh",0755);
-
-unset($f);
-$f[]="#!/bin/bash";
-$f[]="$php5 ".__FILE__." --exec-monthly\n";
-$f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
-@file_put_contents("/etc/cron.monthly/0sarg",@implode("\n",$f));
-@chmod("/etc/cron.monthly/0sarg",0755);
-events("cron.monthly done");
-echo "Starting......: Sarg, cron cron.monthly done\n";
-
-
-
-unset($f);
-$f[]="#!/bin/bash";
-$f[]="";
-$f[]="#Get current date";
-$f[]="TODAY=\$(date +%d/%m/%Y) ";
-$f[]="";
-$f[]="#Get one week ago today";
-$f[]="LASTWEEK=\$(date --date \"1 week ago\" +%d/%m/%Y)";
-$f[]="";
-$f[]="mkdir -p \"$SargOutputDir/weekly\"";
-$f[]="chown -R $lighttpd_user:$lighttpd_user \"$SargOutputDir/weekly\"";
-$f[]="";
-$f[]="NAAT=\"/var/www-naat/html/genfiles/modules/squid-reports/weekly\"";
-$f[]="if [ -d \${NAAT} ]; then";
-$f[]="    chown -R $lighttpd_user \${NAAT}";
-$f[]="fi";
-$f[]="";
-$f[]="export LC_ALL=C";
-$f[]="$nice$sarg_bin -f /etc/squid3/sarg.conf -l /var/log/squid/sarg.log -o \"$SargOutputDir/weekly\" -z -d \$LASTWEEK-\$TODAY >/dev/null 2>";
-$f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
-$f[]="";
-@file_put_contents("/bin/sarg-weekly.sh",@implode("\n",$f));
-@chmod("/bin/sarg-weekly.sh",0755);
-
-
-unset($f);
-$f[]="#!/bin/bash";
-$f[]="$php5 ".__FILE__." --exec-weekly\n";
-$f[]="$nohup $nice $php5 ".__FILE__." --backup >/dev/null 2>&1 &";
-@file_put_contents("/etc/cron.weekly/0sarg",@implode("\n",$f));
-@chmod("/etc/cron.weekly/0sarg",0755);
-events("cron.weekly done");
-echo "Starting......: Sarg, cron cron.weekly done\n";
-
-
+	$f[]="#!/bin/sh";
+	$f[]="export LC_ALL=C";
+	$f[]="$nice $php5 ".__FILE__." --exec-weekly >/dev/null 2>&1";
+	$f[]="";
+	@file_put_contents("/etc/cron.weekly/0sarg.sh", @implode("\n",$f));
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, cron cron.weekly done\n";
+	@chmod("/etc/cron.weekly/0sarg.sh",0755);
+	events("cron.weekly done");
+	unset($f);
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, ".__FUNCTION__." done\n";
 
 }
 
 function build_index_page(){
-$sock=new sockets();$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	$sock=new sockets();
+	$unix=new unix();
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $SargOutputDir\n";}
+	
+	
+	@copy("/usr/share/artica-postfix/bin/install/sarg.css","$SargOutputDir/sarg.css");
+	@copy("/usr/share/artica-postfix/img/logo-artica-160.gif", "$SargOutputDir/logo.gif");
+	@copy("/usr/share/artica-postfix/css/images/pattern.png", "$SargOutputDir/pattern.png");
+	@copy("/usr/share/artica-postfix/ressources/templates/default/images/ui-bg_highlight.png", "$SargOutputDir/ui-bg_highlight.png");
+	@copy("/usr/share/artica-postfix/img/arrow-right-16.png", "$SargOutputDir/arrow-right-16.png");
+	@chmod("$SargOutputDir/arrow-right-16.png", 0755);
+	@chmod("$SargOutputDir/ui-bg_highlight.png", 0755);
+	@chmod("$SargOutputDir/sarg.css", 0755);
+	@chmod("$SargOutputDir/logo.gif", 0755);
+	@chmod("$SargOutputDir/pattern.png", 0755);
+
 $f[]="<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">";
 $f[]="<html>";
 $f[]="<head>";
@@ -348,16 +301,115 @@ $f[]="<table cellpadding=\"0\" cellspacing=\"0\">
 ";
 if(is_file("$SargOutputDir/hourly/index.html")){
 	$f[]="<tr><td align='center'><a href=\"hourly/index.html\" style='font-size:22px;font-weight:bold'>&laquo;&nbsp;Hourly reports&nbsp;&raquo;</td></tr>";
+}else{
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $SargOutputDir/hourly/index.html no such file\n";}
 }
 if(is_file("$SargOutputDir/daily/index.html")){
 	$f[]="<tr><td align='center'><a href=\"daily/index.html\" style='font-size:22px;font-weight:bold'>&laquo;&nbsp;Daily reports&nbsp;&raquo;</td></tr>";
-}	
+}else{
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $SargOutputDir/daily/index.html no such file\n";}
+}
 if(is_file("$SargOutputDir/weekly/index.html")){
 	$f[]="<tr><td align='center'><a href=\"weekly/index.html\" style='font-size:22px;font-weight:bold'>&laquo;&nbsp;Weekly reports&nbsp;&raquo;</td></tr>";
+}else{
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $SargOutputDir/weekly/index.html no such file\n";}
 }
 if(is_file("$SargOutputDir/monthly/index.html")){
 	$f[]="<tr><td align='center'><a href=\"monthly/index.html\" style='font-size:22px;font-weight:bold'>&laquo;&nbsp;Monthly reports&nbsp;&raquo;</td></tr>";
+}else{
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $SargOutputDir/monthly/index.html no such file\n";}
 }
+
+$dirs=$unix->dirdir($SargOutputDir);
+
+$monthsz = array( 'jan'=>1,  'ene'=>1,  'feb'=>2,  'mar'=>3, 'apr'=>4, 'abr'=>4,
+		'may'=>5,  'jun'=>6,  'jul'=>7,  'aug'=>8, 'ago'=>8, 'sep'=>9,
+		'oct'=>10, 'nov'=>11, 'dec'=>12, 'dic'=>12 );
+
+while (list ($index, $line) = each ($dirs) ){
+	$dir=basename($line);
+	if(!preg_match("#\/([0-9]+)([A-Za-z]+)([0-9]+)-([0-9]+)([A-Za-z]+)([0-9]+)$#", $line,$re)){
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $dir, no match\n";
+		continue;	
+	}
+	
+	
+		$day=$re[1];
+		$month=$re[2];
+		$year=$re[3];
+		
+		$day1=$re[4];
+		$month1=$re[5];
+		$year1=$re[6];
+		
+	if(strlen($year)<4){
+		if(strlen($day)==4){
+			$year=$re[1];
+			$month=$re[2];
+			$day=$re[3];
+			
+			$day1=$re[6];
+			$month1=$re[5];
+			$year1=$re[4];
+		}
+
+	}
+	
+	if(strlen($year)<4){
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $dir, no match\n";
+		continue;
+	}
+		
+		
+		$monthNum=$monthsz[strtolower($month)];
+		if(strlen($monthNum)==1){$monthNum="0{$monthNum}";}
+		$time=strtotime("$year-$monthNum-$day 00:00:00");
+		
+
+		
+		$ARRAY[$year][$month][$day]["DIR"]=$dir;
+		$too=array();
+		if($day1<>$day){ $too[]=$day1; }
+		if($month1<>$month){ $too[]=$month1; }	
+		if($year1<>$year){ $too[]=$year1; }		
+		if($month1==$month){ $to="$day1"; }
+		if(count($to)>0){$to=@implode("/", $to);}else{$to=null;}
+		$ARRAY[$year][$month][$day]["TO"]="$to";
+		$ARRAY[$year][$month][$day]["TITLE"]=date("l $day",$time);
+		
+	
+	
+}
+
+while (list ($year, $array1) = each ($ARRAY) ){
+	$f[]="<tr><td>&nbsp;</td></td>";
+	$f[]="<tr><td align='center'><span style='font-size:22px;font-weight:bold'>&laquo;&nbsp;$year reports&nbsp;&raquo;</td></tr>";
+	$f[]="<tr><td align='center'>";
+	$TR=array();
+	while (list ($month, $array2) = each ($array1) ){
+		
+		$ttr=array();
+		$ttr[]="<table style='width:100%;marign:5px'>";
+		$c=1;
+		while (list ($day, $array3) = each ($array2) ){
+			$c++;
+			$ttr[]="<tr>
+				<td width=1% nowrap><img src='arrow-right-16.png'></td>
+				<td style='font-size:14px'><a href=\"{$array3["DIR"]}/index.html\">{$array3["TITLE"]} {$array3["TO"]}</a></td>
+				</tr>";
+			if(strpos(" ".$array3["TITLE"],"Sunday")>0){
+				$ttr[]="<tr><td colspan=2><hr></td></tr>";
+			
+			}
+		}
+		$ttr[]="</table>";
+		$TR[]="<div style='font-size:22px;font-weight:bold'>&laquo;&nbsp;$month reports&nbsp;&raquo;</div>".@implode("\n", $ttr);
+	}
+	$f[]=CompileTr4($TR);
+	$f[]="</td></tr>";
+}
+
+
 
 $f[]="</table>
 </body>
@@ -365,6 +417,8 @@ $f[]="</table>
 events("$SargOutputDir/index.html done");
 events("$SargOutputDir/index.php done");
 @file_put_contents("$SargOutputDir/index.html", @implode("\n", $f));
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $SargOutputDir/index.html done\n";}
+
 @file_put_contents("$SargOutputDir/index.php","<?php\nheader('location:index.html')\n?>");
 }
 
@@ -373,50 +427,172 @@ function execute_monthly(){
 	$unix=new unix();
 	$t=time();
 	buildconf();
-	if(!is_file("/bin/sarg-monthly.sh")){
-		ufdbguard_admin_events("Monthly report Failed /bin/sarg-monthly.sh no such script".
-	null, __FUNCTION__, __FILE__, __LINE__, "sarg");
-	return;}
-	exec("/bin/sarg-monthly.sh 2>&1",$results);
+	$t=time();
+	$TODAY=date("d/m/Y");
+	$sock=new sockets();
+	$date = new DateTime();
+	$date->sub(new DateInterval('P1D'));
+	$YESTERDAY=$date->format("d/m/Y");
+	$nice=$unix->EXEC_NICE();
+	$sarg_bin=$unix->find_program("sarg");
+	$results[]="Today: $TODAY";
+	$results[]="Yesterday: $YESTERDAY";
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	$lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
+	
+	$results[]="Output directory: $SargOutputDir\n";
+	$results[]="Web service user: $lighttpd_user\n";
+	$results[]="Sarg binary: $sarg_bin";
+	$results[]="Nice command: $nice";
+	$date=$unix->find_program("date");
+	@mkdir("$SargOutputDir/monthly",0755,true);
+	
+	$WEEKSAGO=exec("$date --date \"4 weeks ago\" +%d/%m/%Y 2>&1");
+	$results[]="4 weeks ago: $WEEKSAGO";
+	
+	$squid=new squidbee();
+	if($squid->is_auth()){$usersauth=true;}
+	if($usersauth){events("User authentification enabled");$u=" -i ";}else{events("User authentification disabled");}
+	
+	$cmds[]="$nice$sarg_bin $u-f /etc/squid3/sarg.conf -l /var/log/squid/access.log";
+	$cmds[]="-o \"$SargOutputDir/monthly\" -d $WEEKSAGO-$YESTERDAY 2>&1";
+	
+	exec(@implode(" ", $cmds)." 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("Monthly report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
+	sarg_admin_events("Monthly report $WEEKSAGO-$YESTERDAY generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
 	build_index_page();
+	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+
 }
 function execute_weekly(){
 	$unix=new unix();
 	$t=time();
 	buildconf();
-	if(!is_file("/bin/sarg-weekly.sh")){ufdbguard_admin_events("Weekly report Failed /bin/sarg-weekly.sh no such script", __FUNCTION__, __FILE__, __LINE__, "sarg");
-	return;}
-	exec("/bin/sarg-weekly.sh 2>&1",$results);
+	$TODAY=date("d/m/Y");
+	$sock=new sockets();
+	$date = new DateTime();
+	$date->sub(new DateInterval('P1D'));
+	$YESTERDAY=$date->format("d/m/Y");
+	$nice=$unix->EXEC_NICE();
+	$sarg_bin=$unix->find_program("sarg");
+	$results[]="Today: $TODAY";
+	$results[]="Yesterday: $YESTERDAY";
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	$lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
+	$date=$unix->find_program("date");
+	
+	$results[]="Output directory: $SargOutputDir\n";
+	$results[]="Web service user: $lighttpd_user\n";
+	$results[]="Sarg binary: $sarg_bin";
+	$results[]="Nice command: $nice";
+	$LASTWEEK=exec("$date --date \"1 week ago\" +%d/%m/%Y 2>&1");
+	
+	unset($f);
+	$squid=new squidbee();
+	if($squid->is_auth()){$usersauth=true;}
+	if($usersauth){events("User authentification enabled");$u=" -i ";}else{events("User authentification disabled");}
+	
+	$cmds[]="$nice$sarg_bin $u-f /etc/squid3/sarg.conf -l /var/log/squid/access.log";
+	$cmds[]="-o \"$SargOutputDir/weekly\" -z -d $LASTWEEK-$TODAY 2&>1";
+	buildconf();
+	exec(@implode(" ", $cmds)." 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("Weekly report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
+	sarg_admin_events("Weekly report $LASTWEEK-$TODAY generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
 	build_index_page();
+	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
 }
 function execute_daily(){
 	$unix=new unix();
 	$t=time();
+	$TODAY=date("d/m/Y");
+	$sock=new sockets();
+	$date = new DateTime();
+	$date->sub(new DateInterval('P1D'));
+	$YESTERDAY=$date->format("d/m/Y");
+	$nice=$unix->EXEC_NICE();
+	$sarg_bin=$unix->find_program("sarg");
+	$results[]="Today: $TODAY";
+	$results[]="Yesterday: $YESTERDAY";
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	$lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
+	
+	$results[]="Output directory: $SargOutputDir\n";
+	$results[]="Web service user: $lighttpd_user\n";
+	$results[]="Sarg binary: $sarg_bin";
+	$results[]="Nice command: $nice";
+	
+	@mkdir("$SargOutputDir/daily",0755,true);
+	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	
+	$squid=new squidbee();
+	if($squid->is_auth()){$usersauth=true;}
+	if($usersauth){events("User authentification enabled");$u=" -i ";}else{events("User authentification disabled");}
+	
+	
+	$cmds[]="$nice$sarg_bin $u-f /etc/squid3/sarg.conf -l /var/log/squid/access.log";
+	$cmds[]="-o \"$SargOutputDir/daily\"";
+	$cmds[]="-z -d $YESTERDAY-$TODAY -x";
+
 	buildconf();
-	if(!is_file("/bin/sarg-daily.sh")){ufdbguard_admin_events("Daily report Failed /bin/sarg-daily.sh no such script", __FUNCTION__, __FILE__, __LINE__, "sarg");
-	return;}
-	if($GLOBALS["VERBOSE"]){echo "EXEC: /bin/sarg-daily.sh\n";}
-	exec("/bin/sarg-daily.sh 2>&1",$results);
+	exec(@implode(" ", $cmds)." 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("Daily report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");	
+	sarg_admin_events("Daily $YESTERDAY-$TODAY report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");	
 	build_index_page();
+	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
 }
 
 function execute_hourly(){
 	$unix=new unix();
 	$t=time();
 	buildconf();
-	if(!is_file("/bin/sarg-hourly.sh")){ufdbguard_admin_events("Daily report Failed /bin/sarg-hourly.sh no such script", __FUNCTION__, __FILE__, __LINE__, "sarg");
-	return;}
-	if($GLOBALS["VERBOSE"]){echo "EXEC: /bin/sarg-hourly.sh\n";}
-	exec("/bin/sarg-hourly.sh 2>&1",$results);
+	
+	$unix=new unix();
+	$t=time();
+	$TODAY=date("d/m/Y");
+	$sock=new sockets();
+	$date = new DateTime();
+	$date->sub(new DateInterval('P1D'));
+	$YESTERDAY=$date->format("d/m/Y");
+	$LASTHOUR = date("H", time() - 3600);
+	$HOUR= date("H", time());
+	$nice=$unix->EXEC_NICE();
+	$sarg_bin=$unix->find_program("sarg");
+	$results[]="Today: $TODAY";
+	$results[]="Last Hour: $LASTHOUR";
+	$results[]="Current Hour: $LASTHOUR";
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	$lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
+	
+	$results[]="Output directory: $SargOutputDir\n";
+	$results[]="Web service user: $lighttpd_user\n";
+	$results[]="Sarg binary: $sarg_bin";
+	$results[]="Nice command: $nice";
+	
+	@mkdir("$SargOutputDir/daily",0755,true);
+	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+	@mkdir("$SargOutputDir/hourly",0755);
+	
+	$squid=new squidbee();
+	if($squid->is_auth()){$usersauth=true;}
+	if($usersauth){events("User authentification enabled");$u=" -i ";}else{events("User authentification disabled");}
+	
+	
+	$cmds[]="$nice$sarg_bin $u-f /etc/squid3/sarg.conf";
+	$cmds[]="-l /var/log/squid/access.log -o \"$SargOutputDir/hourly\" -z -d $TODAY-$TODAY";
+	$cmds[]="-t \"$LASTHOUR:00-$HOUR:00\"";
+	
+	
+	buildconf();
+	exec(@implode(" ", $cmds)." 2>&1",$results);
 	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("Daily report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");	
-	build_index_page();	
+	sarg_admin_events("Hourly $LASTHOUR:00-$HOUR:00 report generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
+	build_index_page();
+	$unix->chown_func($lighttpd_user, "$SargOutputDir/*");
+
 }
 function progress($text,$num){events($text);}
 function events($text){
@@ -450,13 +626,12 @@ function sargToFile($filePath){
 	progress("Open $filePath $linesNumber lines",10);
 	$sock=new sockets();
 	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-	if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}	
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}	
 	$nice=EXEC_NICE();
 	$usersauth=false;
-	
+	$t=time();
 	$squid=new squidbee();
-	if($squid->LDAP_AUTH==1){$usersauth=true;}
-	if($squid->LDAP_EXTERNAL_AUTH==1){$usersauth=true;}
+	if($squid->is_auth()){$usersauth=true;}
 	if($usersauth){events("User authentification enabled");$u=" -i ";}else{events("User authentification disabled");}
 		
 	$t=time();
@@ -470,14 +645,11 @@ function sargToFile($filePath){
 	}	
 	
 	if($basename=="sarg.log"){
-		$squidbin=$unix->LOCATE_SQUID_BIN();
-		if(is_file($squidbin)){
-			progress("Ask squid to rotate",10);
-			shell_exec("$squidbin -k rotate");
-			shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
-			shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
-		}
+			continue;
 	}
+	$took=$unix->distanceOfTimeInWords($t,time(),true);
+	sarg_admin_events("$basename generated took: $took\n".@implode("\n",$results), __FUNCTION__, __FILE__, __LINE__, "sarg");
+	build_index_page();
 	
 }
 
@@ -501,7 +673,7 @@ function rotate($filename){
 	}
 	
 	if(!is_file($sarg_bin)){
-		ufdbguard_admin_events("FATAL, ($filePath) unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("FATAL, ($filePath) unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		$q->ROTATE_TOMYSQL($filePath);
 		return;
 	}	
@@ -527,10 +699,10 @@ function restore_id($storeid){
 	
 	include_once(dirname(__FILE__)."/ressources/class.mysql.syslogs.inc");
 	$sock=new sockets();
-	$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	$sarg_bin=$unix->find_program("sarg");
 	if(!is_file($sarg_bin)){
-		ufdbguard_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		return;
 	}	
 	
@@ -598,13 +770,13 @@ function execute(){
 		return;
 	}
 	$sock=new sockets();
-	$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	$nice=EXEC_NICE();
 	$unix=new unix();
 	$today=date("d/m/Y");
 	$sarg_bin=$unix->find_program("sarg");
 	if(!is_file($sarg_bin)){
-		ufdbguard_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		return;
 	}
 	events("Building settings..");
@@ -621,24 +793,18 @@ function execute(){
 	
 	if($usersauth){
 		events("User authentification enabled");
-		echo "Starting......: Sarg, user authentification enabled\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, user authentification enabled\n";
 		$u=" -i ";
 	}else{
 		events("User authentification disabled");
-		echo "Starting......: Sarg, user authentification disabled\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, user authentification disabled\n";
 	}
-	$cmd="$nice$sarg_bin -d {$today}-{$today} $u-f /etc/squid3/sarg.conf -l /var/log/squid/sarg.log -o \"$SargOutputDir\" -x -z 2>&1";
+	$cmd="$nice$sarg_bin -d {$today}-{$today} $u-f /etc/squid3/sarg.conf -l /var/log/squid/access.log -o \"$SargOutputDir\" -x -z 2>&1";
 	$t1=time();
-	echo "Starting......: Sarg, $cmd\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $cmd\n";
 	exec($cmd,$results);
 	
-	$squidbin=$unix->LOCATE_SQUID_BIN();
-	if(is_file($squidbin)){
-		progress("Ask squid to rotate",10);
-		shell_exec("$squidbin -k rotate");
-		shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
-		shell_exec("/etc/init.d/cache-tail restart >/dev/null 2>&1");
-	}
+
 	
 	while (list ($index, $line) = each ($results) ){
 		if(preg_match("#SARG: No records found#",$line)){
@@ -693,25 +859,25 @@ function execute(){
 	$lighttpd_user=$unix->APACHE_SRC_ACCOUNT();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	echo "Starting......: Sarg, lighttpd user: $lighttpd_user\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, lighttpd user: $lighttpd_user\n";
 	$chown=$unix->find_program("chown");
-	echo "Starting......: Sarg,$chown -R $lighttpd_user:$lighttpd_user $SargOutputDir/*\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]},$chown -R $lighttpd_user:$lighttpd_user $SargOutputDir/*\n";
 	exec("$chown -R $lighttpd_user:$lighttpd_user $SargOutputDir/* >/dev/null 2>&1",$results2);	
-	echo "Starting......: Sarg,\n". @implode("\n".$results2)."\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]},\n". @implode("\n".$results2)."\n";
 	
 	shell_exec("$nohup $php ".__FILE__." --backup >/dev/null 2>&1 &");
 	
 	$t2=time();
 	$distanceOfTimeInWords=distanceOfTimeInWords($t1,$t2);
-	echo "Starting......: Sarg, $distanceOfTimeInWords\n";
+	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, $distanceOfTimeInWords\n";
 	events("Statistics generated ($distanceOfTimeInWords)");
 	if($GLOBALS["VERBOSE"]){
-		
 		echo "SARG: Statistics generated ($distanceOfTimeInWords)\n\n";
 		echo @implode("\n",$results)."\n";
 		
 	}
-	ufdbguard_admin_events("SARG: Statistics generated ($distanceOfTimeInWords) $subject_add","Command line:\n-----------\n$cmd\n".@implode("\n",$results),__FUNCTION__,__FILE__,__LINE__,"sarg");
+	status(true);
+	sarg_admin_events("SARG: Statistics generated ($distanceOfTimeInWords) $subject_add","Command line:\n-----------\n$cmd\n".@implode("\n",$results),__FUNCTION__,__FILE__,__LINE__,"sarg");
 	}
 
 function backup(){
@@ -723,14 +889,12 @@ function backup(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: [INIT]: nginx Already Artica task running PID $oldpid since {$time}mn\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: nginx Already Artica task running PID $oldpid since {$time}mn\n";
 		return;
 	}
 	
 	$time=$unix->file_time_min($pidTime);
-	if($time<60){
-		return;
-	}
+	if($time<60){return;}
 	
 	@file_put_contents($pidfile, getmypid());
 	@unlink($pidTime);
@@ -738,44 +902,78 @@ function backup(){
 	
 	
 	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-	if($SargOutputDir==null){$SargOutputDir="/usr/share/artica-postfix/squid";}
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	$BackupSargUseNas=$sock->GET_INFO("BackupSargUseNas");
 	if(!is_numeric($BackupSargUseNas)){$BackupSargUseNas=0;}
 	$nice=EXEC_NICE();
 	$mount=new mount("/var/log/sarg-exec.log");
-	if($BackupSargUseNas==1){
-		$BackupSargNASIpaddr=$sock->GET_INFO("BackupSargNASIpaddr");
-		$BackupSargNASFolder=$sock->GET_INFO("BackupSargNASFolder");
-		$BackupSargNASUser=$sock->GET_INFO("BackupSargNASUser");
-		$BackupSargNASPassword=$sock->GET_INFO("BackupSargNASPassword");
-		$mountPoint="/mnt/BackupSargUseNas";
-		if(!$mount->smb_mount($mountPoint,$BackupSargNASIpaddr,$BackupSargNASUser,$BackupSargNASPassword,$BackupSargNASFolder)){
-			ufdbguard_admin_events("SARG: Unable to connect to NAS storage system: $BackupSargNASUser@$BackupSargNASIpaddr",__FUNCTION__,__FILE__,__LINE__,"sarg");
+	if($BackupSargUseNas==0){return;}
+	
+	$BackupSargNASIpaddr=$sock->GET_INFO("BackupSargNASIpaddr");
+	$BackupSargNASFolder=$sock->GET_INFO("BackupSargNASFolder");
+	$BackupSargNASUser=$sock->GET_INFO("BackupSargNASUser");
+	$BackupSargNASPassword=$sock->GET_INFO("BackupSargNASPassword");
+	$mountPoint="/mnt/BackupSargUseNas";
+	if(!$mount->smb_mount($mountPoint,$BackupSargNASIpaddr,$BackupSargNASUser,$BackupSargNASPassword,$BackupSargNASFolder)){
+		sarg_admin_events("SARG: Unable to connect to NAS storage system: $BackupSargNASUser@$BackupSargNASIpaddr",__FUNCTION__,__FILE__,__LINE__,"sarg");
+		return;
+	}
+	$BackupDir="$mountPoint/sarg";
+	
+	@mkdir("$BackupDir",0755);
+	if(!is_dir($BackupDir)){
+		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupDir permission denied\n";}
+		sarg_admin_events("FATAL $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
+		$mount->umount($mountPoint);
+		return false;
+	}	
+
+	$t=time();
+	@file_put_contents("$BackupDir/$t", time());
+	if(!is_file("$BackupDir/$t")){
+		sarg_admin_events("FATAL $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
+		$mount->umount($mountPoint);
+		return false;
+	}
+	@unlink("$BackupDir/$t");		
+	$cp=$unix->find_program("cp");
+	shell_exec(trim("$nice $cp -dpR $SargOutputDir/* $BackupDir/"));
+	$mount->umount($mountPoint);
+	sarg_admin_events("Copy to $BackupSargNASIpaddr/$BackupSargNASFolder done",__FUNCTION__,__FILE__,__LINE__,"sarg");
+		
+	
+}
+
+function status($aspid=false){
+	
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "service Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
-		$BackupDir="$mountPoint/sarg";
-		
-		@mkdir("$BackupDir",0755);
-		if(!is_dir($BackupDir)){
-			if($GLOBALS["VERBOSE"]){echo "FATAL $BackupDir permission denied\n";}
-			ufdbguard_admin_events("FATAL $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
-			$mount->umount($mountPoint);
-			return false;
-		}	
-
-		$t=time();
-		@file_put_contents("$BackupDir/$t", time());
-		if(!is_file("$BackupDir/$t")){
-			ufdbguard_admin_events("FATAL $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
-			$mount->umount($mountPoint);
-			return false;
-		}
-		@unlink("$BackupDir/$t");		
-		$cp=$unix->find_program("cp");
-		shell_exec(trim("$nice $cp -dpR $SargOutputDir/* $BackupDir/"));
-		$mount->umount($mountPoint);
-		ufdbguard_admin_events("Copy to $BackupSargNASIpaddr/$BackupSargNASFolder done",__FUNCTION__,__FILE__,__LINE__,"sarg");
-		
-	}	
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$filetime="/etc/artica-postfix/settings/Daemons/SargDirStatus";
+	$sock=new sockets();
+	
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	$SIZE=$unix->DIRSIZE_KO($SargOutputDir);
+	$FILES=$unix->DIR_COUNT_OF_FILES($SargOutputDir);
+	$AIV=$unix->DIRECTORY_FREEM($SargOutputDir);
+	$array["SIZE"]=$SIZE;
+	$array["FILES"]=$FILES;
+	$array["FREE"]=$AIV;
+	$array["F_FREE"]=$unix->DIRECTORY_FREE_FILES($SargOutputDir);
+	@unlink($filetime);
+	@file_put_contents($filetime, serialize($array));
+	@chmod($filetime, 0755);
 }
+
+
 ?>

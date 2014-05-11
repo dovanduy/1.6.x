@@ -1167,9 +1167,9 @@ fpsystem(cmd);
 
 count:=0;
   while not SYS.PROCESS_EXIST(AMAVISD_PID()) do begin
-              sleep(100);
+              sleep(200);
               inc(count);
-              if count>30 then begin
+              if count>50 then begin
                  writeln('');
                  logs.DebugLogs('Starting......: amavisd-new (timeout!!!)');
                  break;
@@ -1662,7 +1662,7 @@ end;
 function tamavis.AMAVISD_STATUS():string;
 var pidpath:string;
 begin
-   SYS.MONIT_DELETE('APP_AMAVISD_NEW');
+
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --amavis >'+pidpath +' 2>&1');
    result:=logs.ReadFromFile(pidpath);

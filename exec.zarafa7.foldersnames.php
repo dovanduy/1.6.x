@@ -130,17 +130,16 @@ $inboxprops = mapi_getprops($inbox, array(PR_ENTRYID, PR_IPM_APPOINTMENT_ENTRYID
 $rootprops = mapi_getprops($root, array(PR_ADDITIONAL_REN_ENTRYIDS));
 
 $trans_array = translate($argv[2]);
-
-renamefolder($userstore, $storeprops[PR_IPM_SENTMAIL_ENTRYID], $trans_array["Sent Items"]);
-renamefolder($userstore, $storeprops[PR_IPM_OUTBOX_ENTRYID], $trans_array["Outbox"]);
-renamefolder($userstore, $storeprops[PR_IPM_WASTEBASKET_ENTRYID], $trans_array["Deleted Items"]);
-renamefolder($userstore, $inboxprops[PR_ENTRYID], $trans_array["Inbox"]);
-renamefolder($userstore, $inboxprops[PR_IPM_APPOINTMENT_ENTRYID], $trans_array["Calendar"]);
+renamefolder($userstore, $storeprops[PR_IPM_SENTMAIL_ENTRYID], utf8_decode($trans_array["Sent Items"]));
+renamefolder($userstore, $storeprops[PR_IPM_OUTBOX_ENTRYID], utf8_decode($trans_array["Outbox"]));
+renamefolder($userstore, $storeprops[PR_IPM_WASTEBASKET_ENTRYID], utf8_decode($trans_array["Deleted Items"]));
+renamefolder($userstore, $inboxprops[PR_ENTRYID], utf8_decode($trans_array["Inbox"]));
+renamefolder($userstore, $inboxprops[PR_IPM_APPOINTMENT_ENTRYID], utf8_decode($trans_array["Calendar"]));
 renamefolder($userstore, $inboxprops[PR_IPM_CONTACT_ENTRYID], $trans_array["Contacts"]);
 renamefolder($userstore, $inboxprops[PR_IPM_DRAFTS_ENTRYID], $trans_array["Drafts"]);
 renamefolder($userstore, $inboxprops[PR_IPM_JOURNAL_ENTRYID], $trans_array["Journal"]);
-renamefolder($userstore, $inboxprops[PR_IPM_NOTE_ENTRYID], $trans_array["Notes"]);
-renamefolder($userstore, $inboxprops[PR_IPM_TASK_ENTRYID], $trans_array["Tasks"]);
-renamefolder($userstore, $rootprops[PR_ADDITIONAL_REN_ENTRYIDS][4], $trans_array["Junk E-mail"]);
+renamefolder($userstore, $inboxprops[PR_IPM_NOTE_ENTRYID], utf8_decode($trans_array["Notes"]));
+renamefolder($userstore, $inboxprops[PR_IPM_TASK_ENTRYID], utf8_decode($trans_array["Tasks"]));
+renamefolder($userstore, $rootprops[PR_ADDITIONAL_REN_ENTRYIDS][4], utf8_decode($trans_array["Junk E-mail"]));
 
 ?>

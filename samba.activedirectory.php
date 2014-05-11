@@ -473,7 +473,7 @@ function members_list(){
 		$data['rows'][] = array(
 		'id' => $ligne["uid"],
 		'cell' => array(
-		"<img src='img/user7-32.png'>",
+		"<img src='img/user-32.png'>",
 		"<span style='font-size:16px;font-weight:bold'>{$ligne["uid"]}</span>",
 		
 		)

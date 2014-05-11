@@ -103,53 +103,37 @@ function status(){
 	$t=time();
 	$field=$_GET["field"];
 	$value=$_GET["value"];
+	
+	$month_table="quotamonth_".date("Ym");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
+	}
 
 	
-	$sql="SELECT SUM(hits) as hits, SUM(QuerySize) as QuerySize 
-	FROM UserAuthDaysGrouped WHERE `{$_GET["field"]}`='{$_GET["value"]}'";
-	
-	
-	if(isset($_GET["table"])){
-		if($field=="ipaddr"){$field="client";}
-		$sql="SELECT SUM(size) as QuerySize,SUM(hits) as hits FROM `{$_GET["table"]}`  WHERE `$field`='$value'";
-		$tablejs="&table={$_GET["table"]}";
-	}	
+	$sql="SELECT SUM(size) as QuerySize,`{$_GET["field"]}`
+	FROM $month_table GROUP BY `{$_GET["field"]}` HAVING `{$_GET["field"]}`='{$_GET["value"]}'";
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if(!$q->ok){echo "<center style='font-size:14px;'>$q->mysql_error<hr>$sql</center>";}
-	
-	
-	$USER_HITS=$ligne["hits"];
 	$USER_SIZE=$ligne["QuerySize"];
+	$usersize=FormatBytes($USER_SIZE/1024);
 	
-	$sq="SELECT SUM(hits) as hits, SUM(QuerySize) as QuerySize FROM UserAuthDaysGrouped";
-
-	if(isset($_GET["table"])){
-		
 	
-		
-		
-		if($field=="ipaddr"){$field="client";}
-		$sql="SELECT SUM(size) as QuerySize,SUM(hits) as hits FROM `{$_GET["table"]}`";
-		
-	}	
+	$sql="SELECT SUM(size) as size FROM $month_table";
 	
+	$q=new mysql_squid_builder();
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if(!$q->ok){echo "<center style='font-size:14px;'>$q->mysql_error<hr>$sql</center>";}
-	
-	$SUM_HITS=$ligne["hits"];
-	$SUM_SIZE=$ligne["QuerySize"];	
-	
-	
-	$usersize=FormatBytes($USER_SIZE/1024);
+	$SUM_SIZE=$ligne["size"];	
 	$SUM_SIZEhuman=FormatBytes($SUM_SIZE/1024);
+	
+	
+	
 		
-	$userhits=numberFormat($USER_HITS,0,""," ");	
+	
 	$USER_POURC_SIZE=($USER_SIZE/$SUM_SIZE)*100;
 	$USER_POURC_SIZE=round($USER_POURC_SIZE,2);
 	
-	$USER_POURC_HITS=($USER_HITS/$SUM_HITS)*100;
-	$USER_POURC_HITS=round($USER_POURC_HITS,2);
 	
 	$html="
 	<table style='width:100%'>
@@ -161,12 +145,8 @@ function status(){
 			<table style='width:99%' class=form>
 			<tr>
 				<td valign='top' class=legend style='font-size:16px'>{downloaded}:</td>
-				<td style='font-size:16px;font-weight:bold'>$usersize <strong>$USER_POURC_SIZE%</strong></td>
+				<td style='font-size:16px;font-weight:bold'>$usersize/$SUM_SIZEhuman <strong>$USER_POURC_SIZE%</strong></td>
 			</tr>
-			<tr>
-				<td valign='top' class=legend style='font-size:16px'>{access}:</td>
-				<td style='font-size:16px;font-weight:bold'>$userhits <strong>$USER_POURC_HITS%</strong></td>
-			</tr>	
 			</table>
 			<div id='alsoknown-$t'></div>
 	</td>
@@ -189,16 +169,20 @@ function history_popup(){
 	$tpl=new templates();		
 	$field=$_GET["field"];
 	$value=urlencode($_GET["value"]);	
-	if(isset($_GET["table"])){$tablejs="&table={$_GET["table"]}";}	
+	$month=date("{F}");
+	if(isset($_GET["table"])){$tablejs="&table={$_GET["table"]}";}
+	$q=new mysql_squid_builder();
+	$month_table="quotamonth_".date("Ym");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
+		$month=date("{F}",strtotime('first day of previous month'));
+		
+	}
+	
+	$title=$tpl->_ENGINE_parse_body($month);	
 $t=time();	
 $html="
-<table style='width:99%' class=form>
-<tr>
-	<td class=legend style='font-size:16px'>{last}:</td>
-	<td style='font-size:16px'>". Field_text("$t-day",30,"font-size:16px;width:60px",null,null,null,false,"ChangeIntervalCheck$t(event)")."&nbsp;{days}</td>
-	
-</tr>
-</table>
+<div style='font-size:22px'>$title</div>
 <div id='$t-content'></div>
 
 
@@ -209,9 +193,7 @@ $html="
 
 function ChangeInterval$t(){
 	var table='{$_GET["table"]}';
-	if(table.length>0){document.getElementById('$t-day').disabled=true;}
-	var days=document.getElementById('$t-day').value;
-	LoadAjax('$t-content','$page?history-content=yes&field=$field&value=$value$tablejs&INTERVAL='+days);
+	LoadAjax('$t-content','$page?history-content=yes&field=$field&value=$value$tablejs');
 	}
 	ChangeInterval$t();
 </script>
@@ -234,31 +216,20 @@ function history_content(){
 	$value=$_GET["value"];
 	if(!is_numeric($_GET["INTERVAL"])){	$_GET["INTERVAL"]=30;}
 	
-	$sql="SELECT DAY(zDate) as tday,SUM(QuerySize) as QuerySize,SUM(hits) as hits FROM 
-	`UserAuthDays`  WHERE `$field`='$value' 
-	AND zDate> DATE_SUB(NOW(),INTERVAL {$_GET["INTERVAL"]} DAY) GROUP BY tday ORDER BY tday";
-
-		$fieldgroup="day";
-		$x_title="{days}";	
-		$maintitle="downloaded_size_per_day";
-		$maintitle2="requests_per_day";	
-	
-	if(isset($_GET["table"])){
-		if($field=="ipaddr"){$field="client";}
-
-			
-		if(preg_match("#_hour$#", $_GET["table"])){
-			$fieldgroup="hour";
-			$x_title="{hours}";	
-			$maintitle="downloaded_size_per_hour";
-			$maintitle2="requests_per_hour";	
-		}			
-		
-		
-		$sql="SELECT $fieldgroup as tday,SUM(size) as QuerySize,SUM(hits) as hits FROM 
-		`{$_GET["table"]}`  WHERE `$field`='$value' GROUP BY tday ORDER BY tday";
-		
+	$month_table="quotamonth_".date("Ym");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
 	}
+	
+	
+	$sql="SELECT `day` as tday,SUM(size) as QuerySize FROM 
+	`$month_table`  WHERE `$field`='$value' 
+	GROUP BY tday ORDER BY tday";
+	$fieldgroup="day";
+	$x_title="{days}";	
+	$maintitle="downloaded_size_per_day";
+	$maintitle2="requests_per_day";	
+
 	
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){
@@ -282,11 +253,8 @@ function history_content(){
 		$size=round(($ligne["QuerySize"]/1024)/1000);
 		$day=$ligne["tday"];
 		$xdata[]=$day;
-		$xdata2[]=$day;
-		
-		
 		$ydata[]=$size;
-		$ydata2[]=$ligne["hits"];
+		
 		
 	}	
 	
@@ -307,19 +275,7 @@ function history_content(){
 	$gp->color="146497";
 	$gp->line_green();
 	
-	$gp2=new artica_graphs();
-	$gp2->width=750;
-	$gp2->height=350;
-	$gp2->filename="$targetedfile2";
-	$gp2->xdata=$xdata2;
-	$gp2->ydata=$ydata2;
-	$gp2->y_title=$tpl->_ENGINE_parse_body("{hits}");;
-	$gp2->x_title=$tpl->_ENGINE_parse_body($x_title);
-	$gp2->title=null;
-	$gp2->margin0=true;
-	$gp2->Fillcolor="blue@0.9";
-	$gp2->color="146497";	
-	$gp2->line_green();
+	
 	
 	if(!is_file($targetedfile)){
 		writelogs("Fatal \"$targetedfile\" no such file!",__FUNCTION__,__FILE__,__LINE__);
@@ -332,10 +288,7 @@ function history_content(){
 				<img src='$targetedfile'>
 			</div>
 			
-			<div style='width:99%' class=form>
-				<div style='font-size:18px;margin:8px'>&laquo;$value&raquo;&nbsp;{{$maintitle2}}</div>
-				<img src='$targetedfile2'>
-			</div>			
+				
 		</center>
 		
 		";
@@ -610,35 +563,17 @@ function where_popup(){
 	$tpl=new templates();		
 	$field=$_GET["field"];
 	$value=$_GET["value"];	
-
-	$MyTableMonth=date("Ym")."_day";
-	$MyMonthText=date("{F}");
 	$q=new mysql_squid_builder();
-	$tableQuery=$_GET["table"];
-	if(isset($_GET["table"])){
-		$MyTableMonth=$_GET["table"];
+	$month_table="quotamonth_".date("Ym");
+	$month_text=date("{F}");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_text=date("{F}",strtotime('first day of previous month'));
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
 	}
 	
 	
-	if(!$q->TABLE_EXISTS($MyTableMonth)){
-		echo FATAL_ERROR_SHOW_128("&laquo;$MyTableMonth&raquo; {table_does_not_exists}");
-		return;
-	}	
-	
-		if(preg_match("#_week#", $_GET["table"])){
-			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->WEEK_TITLE_FROM_TABLENAME($_GET["table"]));
-		}
-			
-		if(preg_match("#_day$#", $_GET["table"])){
-			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->MONTH_TITLE_FROM_TABLENAME($_GET["table"]));
-		}
-			
-		if(preg_match("#_hour$#", $_GET["table"])){
-			$title_add="&raquo;".$tpl->_ENGINE_parse_body($q->DAY_TITLE_FROM_TABLENAME($_GET["table"]));
-		}	
 	
 	
-	if($field=="ipaddr"){$field="client";}
 	$title=$tpl->_ENGINE_parse_body("{where} ? &raquo;&raquo;{{$field}}::$value $title_add");
 	
 	$t=time();	
@@ -673,20 +608,18 @@ function where_popup(){
 
 $(document).ready(function(){
 $('#$t').flexigrid({
-	url: '$page?where-content=yes&field=$field&value=".urlencode($value)."&table=$MyTableMonth',
+	url: '$page?where-content=yes&field=$field&value=".urlencode($value)."&table=$month_table',
 	dataType: 'json',
 	colModel : [
 		{display: '$sitename', name : 'familysite', width : 181, sortable : true, align: 'left'},
-		{display: '$category', name : 'category', width : 245, sortable : true, align: 'left'},
 		{display: '$size', name : 'size', width : 109, sortable : true, align: 'left'},
-		{display: '$hits', name : 'hits', width : 94, sortable : true, align: 'left'},
 
 		
 		
 	],$buttons
 	searchitems : [
 		{display: '$sitename', name : 'familysite'},
-		{display: '$category', name : 'category'},
+		
 		],
 	sortname: 'size',
 	sortorder: 'desc',
@@ -717,11 +650,22 @@ function where_search(){
 	$MyMonthText=date("{F}");
 	if($tableQuery==null){$tableQuery=$MyTableMonth;}
 	$tablejs="&table=$tableQuery";
-	$table="(SELECT familysite,{$_GET["field"]},SUM(size) as size,SUM(hits) as hits,category FROM $tableQuery
-	WHERE {$_GET["field"]}='{$_GET["value"]}' GROUP BY familysite,{$_GET["field"]},category) as t";
+	
+	$q=new mysql_squid_builder();
+	$month_table="quotamonth_".date("Ym");
+	$month_text=date("{F}");
+	if($q->COUNT_ROWS($month_table)==0){
+		$month_text=date("{F}",strtotime('first day of previous month'));
+		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
+	}
 	
 	
-	if($q->COUNT_ROWS($tableQuery)==0){json_error_show("Table empty");}
+	
+	$table="(SELECT familysite,{$_GET["field"]},SUM(size) as size FROM $month_table
+	GROUP BY familysite,{$_GET["field"]} HAVING {$_GET["field"]}='{$_GET["value"]}') as t";
+	
+	
+	
 	if(isset($_POST["sortname"])){
 		if($_POST["sortname"]<>null){
 			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
@@ -764,7 +708,7 @@ function where_search(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$md5=md5(serialize($line));
 		$ligne["size"]=FormatBytes($ligne["size"]/1024);
-		$ligne["hits"]=numberFormat($ligne["hits"],0,""," ");
+		
 		
 		$jsuid="
 		<a href=\"javascript:blur();\"
@@ -778,9 +722,7 @@ function where_search(){
 		'id' => $md5,
 		'cell' => array(
 			"<span style='font-size:16px'>$jsuid{$ligne["familysite"]}</a></span>",
-			"<span style='font-size:16px'>{$ligne["category"]}</a></span>",
 			"<span style='font-size:16px'>{$ligne["size"]}</span>",
-			"<span style='font-size:16px'>{$ligne["hits"]}</span>",
 	
 	 	 	
 			)
@@ -827,7 +769,7 @@ function what_popup(){
 	WHERE {$_GET["field"]}='{$_GET["value"]}' GROUP BY familysite,{$_GET["field"]} ORDER BY hits DESC LIMIT 0,10";
 	$results = $q->QUERY_SQL($sql);	
 	if(!$q->ok){
-		echo $q->mysql_error;
+		echo $q->mysql_error_html();
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." entries <br>";}

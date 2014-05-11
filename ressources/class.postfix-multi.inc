@@ -113,7 +113,7 @@ class main_multi{
 			if(preg_match("#^TransportMapsTable#",$ligne)){unset($f[$num]);}
 		}
 		
-		echo "Starting......: Cleaning /etc/postfix-$this->instance/main.cf ". count($f)." lines\n";
+		echo "Starting......: ".date("H:i:s")." Cleaning /etc/postfix-$this->instance/main.cf ". count($f)." lines\n";
 		@file_put_contents("/etc/postfix-$this->instance/main.cf",@implode("\n",$f));
 		
 	}
@@ -124,9 +124,9 @@ class main_multi{
 		$postconf_macro="{$GLOBALS["postmulti"]} -i postfix-$this->instance -x postconf -e";
 		$instance_path="/etc/postfix-$this->instance";
 		
-		echo "Starting......: $this->ou:: Macro..........: $postconf_macro\n";
-		echo "Starting......: $this->ou:: Path...........: $instance_path\n";  
-		echo "Starting......: $this->ou:: queue directory: /var/spool/postfix/$this->instance\n"; 
+		echo "Starting......: ".date("H:i:s")." $this->ou:: Macro..........: $postconf_macro\n";
+		echo "Starting......: ".date("H:i:s")." $this->ou:: Path...........: $instance_path\n";  
+		echo "Starting......: ".date("H:i:s")." $this->ou:: queue directory: /var/spool/postfix/$this->instance\n"; 
 		
 		shell_exec("$postconf_macro \"relay_recipient_maps =\" >/dev/null 2>&1");
 		
@@ -135,7 +135,7 @@ class main_multi{
 				shell_exec("$postconf_macro -e sender_bcc_maps=\"\"");
 			}else{
 				shell_exec("{$GLOBALS["postconf"]} -e \"sender_bcc_maps =hash:/etc/postfix/sender_bcc\" >/dev/null 2>&1");
-				echo "Starting......: $this->ou:: Compiling Sender(s) BCC\n"; 
+				echo "Starting......: ".date("H:i:s")." $this->ou:: Compiling Sender(s) BCC\n"; 
 				@file_put_contents("$instance_path/sender_bcc",implode("\n",$this->senderbccmaps));
 				shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix-$this->instance/sender_bcc >/dev/null 2>&1");
 				shell_exec("$postconf_macro sender_bcc_maps=\"hash:/etc/postfix-$this->instance/sender_bcc\"");
@@ -146,7 +146,7 @@ class main_multi{
 				shell_exec("$postconf_macro recipient_bcc_maps=\"\"");
 			}else{
 				shell_exec("$postconf_macro recipient_bcc_maps=\"/etc/postfix-$this->instance/recipient_bcc\"");
-				echo "Starting......: $this->ou:: Compiling Recipient(s) BCC\n";
+				echo "Starting......: ".date("H:i:s")." $this->ou:: Compiling Recipient(s) BCC\n";
 				@file_put_contents("$instance_path/recipient_bcc",implode("\n",$this->bcc_maps));
 				shell_exec("{$GLOBALS["postmap"]} hash:$instance_path/recipient_bcc >/dev/null 2>&1");
 			}
@@ -165,12 +165,12 @@ class main_multi{
 		
 		if(!is_array($this->virtual_alias_maps)){
 			shell_exec("$postconf_macro \"virtual_alias_maps = \" >/dev/null 2>&1");
-			echo "Starting......: $this->ou:: No virtual aliases\n"; 
+			echo "Starting......: ".date("H:i:s")." $this->ou:: No virtual aliases\n"; 
 			}else{	
-			echo "Starting......: $this->ou:: ". count($this->virtual_alias_maps)." virtual aliase(s)\n"; 		
+			echo "Starting......: ".date("H:i:s")." $this->ou:: ". count($this->virtual_alias_maps)." virtual aliase(s)\n"; 		
 			shell_exec("$postconf_macro \"virtual_alias_maps =hash:$instance_path/virtual\" >/dev/null 2>&1");		
 			@file_put_contents("$instance_path/virtual",implode("\n",$this->virtual_alias_maps));
-			echo "Starting......: $this->ou:: compiling virtual aliase database $instance_path/virtual\n"; 
+			echo "Starting......: ".date("H:i:s")." $this->ou:: compiling virtual aliase database $instance_path/virtual\n"; 
 			shell_exec("{$GLOBALS["postmap"]} hash:$instance_path/virtual >/dev/null 2>&1");		
 		}	
 
@@ -178,17 +178,17 @@ class main_multi{
 		if(!is_array($this->alias_maps_hash)){
 				shell_exec("$postconf_macro \"aliases_maps = \" >/dev/null 2>&1");
 				shell_exec("$postconf_macro -e \"virtual_mailbox_maps = \" >/dev/null 2>&1");
-				echo "Starting......: $this->ou:: No aliases\n"; 
+				echo "Starting......: ".date("H:i:s")." $this->ou:: No aliases\n"; 
 		}else{
 			if($GLOBALS["MAILMAN"]=true){
-				echo "Starting......: Building mailman aliase(s)\n";
+				echo "Starting......: ".date("H:i:s")." Building mailman aliase(s)\n";
 				if($this->mailman_aliases()){
 					$hash_mailman=",hash:{$GLOBALS["MAILMAN_ALIASES"]}";
 					$hash_mailman_virtual=",hash:/var/lib/mailman/data/virtual-mailman";
 				}
 			}
 			
-			echo "Starting......: $this->ou:: ". count($this->alias_maps_hash)." aliase(s)\n"; 
+			echo "Starting......: ".date("H:i:s")." $this->ou:: ". count($this->alias_maps_hash)." aliase(s)\n"; 
 			shell_exec("$postconf_macro \"alias_maps =hash:$instance_path/aliases$hash_mailman\" >/dev/null 2>&1");
 			shell_exec("$postconf_macro \"alias_database =hash:$instance_path/aliases\" >/dev/null 2>&1");
 			@file_put_contents("$instance_path/aliases",implode("\n",$this->alias_maps_hash));
@@ -200,7 +200,7 @@ class main_multi{
 			shell_exec("$postconf_macro \"transport_maps =\" >/dev/null 2>&1");
 		}else{
 			while (list ($num, $ligne) = each ($this->transport_maps_hash) ){if($ligne==null){continue;}$array[]="$num\t$ligne";}	
-			echo "Starting......: $this->ou:: ". count($array)." routings rules\n"; 
+			echo "Starting......: ".date("H:i:s")." $this->ou:: ". count($array)." routings rules\n"; 
 			
 			if(is_array($this->transport_maps_hash_AT)){
 				while (list ($num, $ligne) = each ($this->transport_maps_hash_AT) ){if($ligne==null){continue;}$array[]="$num\t$ligne";}
@@ -219,7 +219,7 @@ class main_multi{
 
 	private function mailman_aliases(){
 		if(!is_file("/var/lib/mailman/bin/genaliases")){
-			echo "Starting......: Unable to locate genaliases tool\n";
+			echo "Starting......: ".date("H:i:s")." Unable to locate genaliases tool\n";
 			return false;
 		}
 		
@@ -259,7 +259,7 @@ class main_multi{
 		if(is_array($array)){
 			$this->MAIN_ARRAY["inet_interfaces"]=implode(",",$array);
 		}else{
-			echo "Starting......: $this->ou:: unable to get inet_interface !!\n";
+			echo "Starting......: ".date("H:i:s")." $this->ou:: unable to get inet_interface !!\n";
 		}
 	}
 	
@@ -277,7 +277,7 @@ private function mydestination_maps(){
 		}
 		
 	}
-	echo "Starting......: $this->ou:: ".count($this->mydestination_hash)." Local domain(s)\n"; 	
+	echo "Starting......: ".date("H:i:s")." $this->ou:: ".count($this->mydestination_hash)." Local domain(s)\n"; 	
 }
 	
 private function recipient_bcc_maps(){
@@ -294,7 +294,7 @@ $ldap=new clladp();
 		$this->bcc_maps[]="$mail\t$RecipientToAdd";
 		
 	}	
-	echo "Starting......: $this->ou:: ". count($this->bcc_maps)." recipient(s) BCC\n"; 	
+	echo "Starting......: ".date("H:i:s")." $this->ou:: ". count($this->bcc_maps)." recipient(s) BCC\n"; 	
 }
 
 private function sender_bcc_maps(){
@@ -310,7 +310,7 @@ $ldap=new clladp();
 		$GLOBALS["sender_bcc_maps"][]="$mail\t$senderbccmaps";
 		
 	}	
-	echo "Starting......: $this->ou:: ". count($this->senderbccmaps)." Sender(s) BCC\n"; 	
+	echo "Starting......: ".date("H:i:s")." $this->ou:: ". count($this->senderbccmaps)." Sender(s) BCC\n"; 	
 }
 	
 private function transport_maps(){

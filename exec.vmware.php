@@ -18,7 +18,7 @@ while (list ($num, $ligne) = each ($results) ){
 }
 
 if(!$vmware){
-	echo "Starting......: Not a VMware machine...\n";
+	echo "Starting......: ".date("H:i:s")." Not a VMware machine...\n";
 	die();
 }
 $echo=$unix->find_program("echo");
@@ -26,7 +26,7 @@ $array=$unix->dirdir("/sys/block");
 
 while (list ($num, $directory) = each ($array) ){
 	if(is_file("$directory/queue/scheduler")){
-		echo "Starting......: VMware, turn scheduler to noop on ". basename($directory)."\n";
+		echo "Starting......: ".date("H:i:s")." VMware, turn scheduler to noop on ". basename($directory)."\n";
 		shell_exec("$echo noop >$directory/queue/scheduler");
 	}
 	

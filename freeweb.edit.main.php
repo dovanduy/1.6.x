@@ -29,7 +29,7 @@ tabs();
 function tabs(){
 	$tpl=new templates();	
 	$page=CurrentPageName();
-	
+	$OnlyWebSite=false;
 	$sock=new sockets();
 	$remove_sql=false;
 	if($_GET["servername"]<>null){
@@ -52,7 +52,9 @@ function tabs(){
 	
 	
 	$array["webservice"]='{webservice}';
-	if(!$remove_sql){$array["mysql"]='MySQL/FTP';}
+	if($_GET["servername"]<>null){
+		if(!$remove_sql){$array["mysql"]='MySQL/FTP';}
+	}
 	
 	if($_GET["servername"]==null){unset($array["mysql"]);}
 	
@@ -61,7 +63,18 @@ function tabs(){
 		$array["ZARAFA"]='{APP_ZARAFA}';
 	}	
 	
-	$array["php_values"]='{php_values}';
+	if($_GET["servername"]<>null){
+		if($free->NginxFrontEnd==0){
+			$array["php_values"]='{php_values}';
+		}
+	}
+	
+	if(!$OnlyWebSite){
+		if($_GET["servername"]<>null){
+			$array["add-content"]='{content_extension}';
+		}
+		
+	}
 	
 	
 	if(count($array)<10){$fontsize="style='font-size:14px'";}
@@ -76,6 +89,11 @@ function tabs(){
 		
 		if($num=="php_values"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.php-values.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($num=="add-content"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.content.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}		
 				
@@ -166,8 +184,8 @@ function webservice(){
 		}
 		
 		$WebCopyTR="<tr>
-				<td class=legend nowrap style='font-size:14px'>WebCopy:</td>
-				<td>". Field_array_Hash($WebCopyHash, "WebCopyID",$freeweb->WebCopyID,"style:font-size:14px")."</td>
+				<td class=legend nowrap style='font-size:18px'>WebCopy:</td>
+				<td>". Field_array_Hash($WebCopyHash, "WebCopyID",$freeweb->WebCopyID,"style:font-size:18px")."</td>
 				<td>". help_icon("freeweb_WebCopy_explain")."</td>
 			</tr>";			
 			
@@ -184,8 +202,8 @@ function webservice(){
 		if($ligne["lvm_vg"]==null){$ligne["lvm_vg"]=$vgservices["freewebs"];}
 		$sizelimit="
 		<tr>
-		<td class=legend style='font-size:14px'>{size}:</td>
-		<td style='font-size:14px;'>". Field_text("vg_size",$ligne["lvm_size"],"font-size:14px;padding:3px;width:60px")."&nbsp;MB</td>
+		<td class=legend style='font-size:18px'>{size}:</td>
+		<td style='font-size:14px;'>". Field_text("vg_size",$ligne["lvm_size"],"font-size:18px;padding:3px;width:60px")."&nbsp;MB</td>
 		<td>&nbsp;</td>
 		</tr>";
 		
@@ -249,8 +267,8 @@ function webservice(){
 			$ips=$ip->ALL_IPS_GET_ARRAY();
 			$ips[null]="{none}";
 			$dns_field="<tr>
-				<td class=legend nowrap style='font-size:14px'>{dns_entry}:</td>
-				<td>". Field_array_Hash($ips, "ADD_DNS_ENTRY",null,"style:font-size:14px")."</td>
+				<td class=legend nowrap style='font-size:18px'>{dns_entry}:</td>
+				<td>". Field_array_Hash($ips, "ADD_DNS_ENTRY",null,"style:font-size:18px")."</td>
 				<td>". help_icon("freeweb_add_dns_entry_explain")."</td>
 			</tr>";
 		}else{
@@ -258,7 +276,7 @@ function webservice(){
 		$hostip=$pdns->GetIp($ligne["servername"]);
 		if($hostip<>null){
 		$dns_field="<tr>
-				<td class=legend nowrap style='font-size:14px'>{dns_entry}:</td>
+				<td class=legend nowrap style='font-size:18px'>{dns_entry}:</td>
 				<td style='font-size:14px'>$hostip</td>
 				<td>&nbsp;</td>
 			</tr>";	
@@ -268,8 +286,8 @@ function webservice(){
 			$ips=$ip->ALL_IPS_GET_ARRAY();
 			$ips[null]="{none}";
 			$dns_field="<tr>
-				<td class=legend nowrap style='font-size:14px'>{dns_entry}:</td>
-				<td>". Field_array_Hash($ips, "ADD_DNS_ENTRY",null,"style:font-size:14px")."</td>
+				<td class=legend nowrap style='font-size:18px'>{dns_entry}:</td>
+				<td>". Field_array_Hash($ips, "ADD_DNS_ENTRY",null,"style:font-size:18px")."</td>
 				<td>". help_icon("freeweb_add_dns_entry_explain")."</td>
 			</tr>";			
 			
@@ -283,9 +301,9 @@ function webservice(){
 	
 	$domain="<table style='width:100%'>
 		<tr>
-			<td>".Field_text("servername",$hostname,"font-size:15px;padding:3px;font-weight:bold;width:90px")."</td>
-			<td style='font-size:14px' align='center' width=1%>&nbsp;.&nbsp;</td>
-			<td>".Field_text("domainname",$domainname,"font-size:15px;padding:3px;width:220px;font-weight:bold")."</td>
+			<td>".Field_text("servername",$hostname,"font-size:18px;padding:3px;font-weight:bold;width:90px")."</td>
+			<td style='font-size:18px' align='center' width=1%>&nbsp;.&nbsp;</td>
+			<td>".Field_text("domainname",$domainname,"font-size:18px;padding:3px;width:220px;font-weight:bold")."</td>
 			<td>$parcourir_domaines</td>
 		</tr>
 		</table>";
@@ -314,9 +332,9 @@ function webservice(){
 		$domain="
 		<table style='width:100%'>
 		<tr>
-			<td>".Field_text("servername",$hostname,"font-size:15px;padding:3px;font-weight:bold;width:90px")."</td>
-			<td style='font-size:14px' align='center' width=1%>&nbsp;.&nbsp;</td>
-			<td>". Field_array_Hash($c,"domainname",$domainname,"style:font-size:15px;padding:3px;font-weight:bold;width:220px;")."</td>
+			<td>".Field_text("servername",$hostname,"font-size:18px;padding:3px;font-weight:bold;width:90px")."</td>
+			<td style='font-size:18px' align='center' width=1%>&nbsp;.&nbsp;</td>
+			<td>". Field_array_Hash($c,"domainname",$domainname,"style:font-size:18px;padding:3px;font-weight:bold;width:220px;")."</td>
 		</tr>
 		</table>";
 		
@@ -328,7 +346,7 @@ function webservice(){
 		$NewServer=1;}
 	
 	if($NewServer==0){
-		$domain="<div style='font-size:16px'>{$ligne["servername"]}</div>
+		$domain="<div style='font-size:22px'>{$ligne["servername"]}</div>
 			<input type='hidden' value='{$ligne["servername"]}' id='servername'>
 			<input type='hidden' value='{$ligne["domainname"]}' id='domainname'>";
 	}
@@ -399,30 +417,37 @@ function webservice(){
 	$explain
 	<div id='freewebdiv'>
 		<div id='block1' style='display:block;'>
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			<table>
 			<tr> 
-				<td class=legend nowrap style='font-size:14px'>$acl_dstdomain_label:</td>
+				<td class=legend nowrap style='font-size:18px'>$acl_dstdomain_label:</td>
 				<td colspan=2>$domain</td>
 			</tr>
 			<tr> 
-				<td class=legend nowrap style='font-size:14px'>{aliases}:</td>
+				<td class=legend nowrap style='font-size:18px'>{aliases}:</td>
 				<td colspan=2><span id='webserver-aliases'></span></td>
 			</tr>
 			<tr> 
-				<td class=legend nowrap style='font-size:14px'>{listen_address}:</td>
+				<td class=legend nowrap style='font-size:18px'>{listen_address}:</td>
 				<td colspan=2>$ServerIP</td>
 			</tr>					
 			$dns_field
 			$WebCopyTR	
+			
+			
 			<tr> 
-				<td class=legend nowrap style='font-size:14px'>{reverse_proxy}:</td>
+				<td class=legend nowrap style='font-size:18px'>{directory}:</td>
+				<td>". Field_text("www_dir",$ligne["www_dir"],"font-size:18px;padding:3px;")."</td>
+				<td>". button_browse("www_dir")."</td>
+			</tr>			
+			<tr> 
+				<td class=legend nowrap style='font-size:18px'>{reverse_proxy}:</td>
 				<td width=1%>". Field_checkbox("UseReverseProxy", 1,$ligne["UseReverseProxy"],"CheckUseReverseProxy()")."</td>
 			</tr>		
 			
 			$sizelimit
 			<tr>
-				<td class=legend nowrap style='font-size:14px'>{UseLoopDisk}:</td>
+				<td class=legend nowrap style='font-size:18px'>{UseLoopDisk}:</td>
 				<td>". Field_checkbox("UseLoopDisk",1,$ligne["UseLoopDisk"],"CheckLoops()")."</td>
 				<td>&nbsp;</td>
 			</tr>
@@ -430,37 +455,37 @@ function webservice(){
 				<td>&nbsp;</td>
 				<td colspan=2 style='height:auto'><span id='loops-list'></span></td></tr>		
 			<tr>
-				<td class=legend style='font-size:14px'>{member}:</td>
-				<td>". Field_text("www_uid",$ligne["uid"],"font-size:14px;padding:3px;")."</td>
+				<td class=legend style='font-size:18px'>{member}:</td>
+				<td>". Field_text("www_uid",$ligne["uid"],"font-size:18px;padding:3px;")."</td>
 				<td><span id='bb_button'>". button("{browse}...","Loadjs('user.browse.php?field=www_uid&YahooWin=6')",12)."</span>
 				<span id='status-uid-www' style='float:right'></span></td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:14px'>{group}:</td>
-				<td>". Field_text("www_group",$ligne["gpid"],"font-size:14px;padding:3px;")."</td>
+				<td class=legend style='font-size:18px'>{group}:</td>
+				<td>". Field_text("www_group",$ligne["gpid"],"font-size:18px;padding:3px;")."</td>
 				<td><span id='bb_button1'>". button("{browse}...","Loadjs('MembersBrowse.php?field-user=www_group&OnlyGroups=1&OnlyGUID=1')",12)."</span>
 					<span id='status-gpid-www' style='float:right'></span>
 				</td>
 			</tr>		
 			<tr>
-				<td class=legend style='font-size:14px'>{ssl}:</td>
+				<td class=legend style='font-size:18px'>{ssl}:</td>
 				<td>". Field_checkbox("useSSL",1,$ligne["useSSL"],"useSSLCheckCOnf()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:14px'>{certificate}:</td>
+				<td class=legend style='font-size:18px'>{certificate}:</td>
 				<td>$sslcertificateF</td>
 				<td>&nbsp;</td>
 			</tr>			
 			
 			<tr> 
-				<td class=legend nowrap style='font-size:14px'>{www_forward}:</td>
+				<td class=legend nowrap style='font-size:18px'>{www_forward}:</td>
 				<td width=1%>". Field_checkbox("Forwarder", 1,$ligne["Forwarder"],"CheckForwarder()")."</td>
 				<td>&nbsp;</td>
 			</tr>			
 			<tr>
-				<td class=legend style='font-size:14px'>{www_ForwardTo}:</td>
-				<td>". Field_text("ForwardTo",$ligne["ForwardTo"],"width:270px;font-size:14px;padding:3px")."</td>
+				<td class=legend style='font-size:18px'>{www_ForwardTo}:</td>
+				<td>". Field_text("ForwardTo",$ligne["ForwardTo"],"width:270px;font-size:18px;padding:3px")."</td>
 				<td>&nbsp;</td>
 			</tr>
 		</table>
@@ -469,7 +494,7 @@ function webservice(){
 	</div>	
 	</div>
 	
-	<div style='width:100%;text-align:right'><hr>". button("$ButtonName","SaveFreeWebMain()",18)."</div>
+	<div style='width:100%;text-align:right'><hr>". button("$ButtonName","SaveFreeWebMain()",26)."</div>
 
 
 
@@ -594,6 +619,10 @@ function webservice(){
 			if(document.getElementById('WebCopyID')){
 				XHR.appendData('WebCopyID',document.getElementById('WebCopyID').value);
 			}
+			if(document.getElementById('www_dir')){
+				XHR.appendData('www_dir',document.getElementById('www_dir').value);
+			}			
+			
 			
 			
 			XHR.appendData('UseDefaultPort',0)
@@ -1155,6 +1184,10 @@ function SAVE_FREEWEB_MAIN(){
 	if($ligne["servername"]<>null){
 		if($uid<>null){$u=new user($uid);$ou=$u->ou;}
 		if(!$users->AsSystemAdministrator){$ou=$_SESSION["ou"];}
+		
+		if(isset($_POST["www_dir"])){
+			$www_dir_field="www_dir='{$_POST["www_dir"]}',";
+		}
 			
 		$sql="UPDATE freeweb SET 
 			uid='$uid',
@@ -1167,6 +1200,7 @@ function SAVE_FREEWEB_MAIN(){
 			ProxyPass='{$_POST["ProxyPass"]}',
 			useSSL='$useSSL',
 			ServerPort='$ServerPort',
+			$www_dir_field
 			ou='$ou',
 			Forwarder='{$_POST["Forwarder"]}',
 			ForwardTo='{$_POST["ForwardTo"]}',
@@ -1179,16 +1213,7 @@ function SAVE_FREEWEB_MAIN(){
 		if($uid<>null){$u=new user($uid);$ou=$u->ou;}
 		if($ou<>null){if($FreewebsStorageDirectory<>null){$www_dir="$FreewebsStorageDirectory/$servername";}}
 		$sock=new sockets();
-		$servername=str_replace('..', '.', $servername);
-		$servername=str_replace('...', '.', $servername);
-		$servername=str_replace('/', '.', $servername);
-		$servername=str_replace('\\', '.', $servername);
-		$servername=str_replace(' ', '.', $servername);
-		$servername=str_replace('$', '.', $servername);
-		$servername=str_replace('#', '.', $servername);
-		$servername=str_replace('%', '.', $servername);
-		$servername=str_replace('*', '.', $servername);
-		
+		$servername=strip_bad_characters($servername);
 		if(substr($servername, strlen($servername)-1,1)=='.'){$servername=substr($servername, 0,strlen($servername)-1);}
 		if(substr($servername,0,1)=='.'){$servername=substr($servername, 1,strlen($servername));}
 		
@@ -1196,7 +1221,7 @@ function SAVE_FREEWEB_MAIN(){
 			$groupware_field=",groupware";
 			$groupware_value=",'{$_POST["force-groupware"]}'";
 		}
-		
+	
 		if(!is_numeric($_POST["WebCopyID"])){
 			$WebCopyID_field=",WebCopyID";
 			$WebCopyID_value=",'{$_POST["WebCopyID"]}'";
@@ -1216,7 +1241,16 @@ function SAVE_FREEWEB_MAIN(){
 	$q=new mysql();
 	$q->BuildTables();
 	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->ok){echo "Function ". __FUNCTION__."\nLine:".__LINE__."\nFile:".__FILE__."\n".$q->mysql_error;return;}
+	
+
+	if($_POST["www_dir"]<>null){
+		$sql="UPDATE freeweb SET `www_dir`='{$_POST["www_dir"]}' WHERE servername='$servername'";
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo "Function ". __FUNCTION__."\nLine:".__LINE__."\nFile:".__FILE__."\n".$q->mysql_error;return;}
+		
+	}
+	
 	$sock=new sockets();
 	
 	

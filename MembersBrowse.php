@@ -297,6 +297,7 @@ function query_group(){
 	
 	if($ldap->IsKerbAuth()){
 		$adKerb=new external_ad_search();
+		if($GLOBALS["VERBOSE"]){echo "<strong>searchGroup($query,array(),{$_POST["rp"]})</strong><br>\n";}
 		$hash=$adKerb->searchGroup($query,array(),$_POST["rp"]);
 		
 		if($adKerb->IsError){
@@ -309,6 +310,7 @@ function query_group(){
 			if($GLOBALS["VERBOSE"]){echo "<strong>find_ldap_items_groups($query,...)</strong><br>\n";}
 			$hash=$users->find_ldap_items_groups($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
 		}else{
+			if($GLOBALS["VERBOSE"]){echo "<strong>find_ldap_items($query,{$_GET["organization"]},$nogetent,$ObjectZarafa,{$_POST["rp"]},$OnlyGUID,$OnlyUsers,$OnlyCheckAD)<br>\n";}
 			$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
 		}
 	}
@@ -425,6 +427,9 @@ function query(){
 	if(!is_numeric($OnlyCheckAD)){$OnlyCheckAD=0;}	
 	if(!is_numeric($OnlyLDAP)){$OnlyLDAP=0;}
 	if(!is_numeric($OnlyAD)){$OnlyAD=0;}
+	if(!is_numeric($OnlyGroups)){$OnlyGroups=0;}
+	
+	
 	
 	if($OnlyLDAP==1){$_GET["OnlyAD"]=0;}
 	$ObjectZarafa=false;
@@ -465,8 +470,11 @@ function query(){
 		$_GET["organization"]=$_SESSION["ou"];
 	}
 	
+	if($query==null){$query="*";}
+	if(!isset($_POST["rp"])){$_POST["rp"]=50;}
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." ->";}
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":".__LINE__." ->find_ldap_items($query,{$_GET["organization"]},$nogetent,ObjectZarafa=$ObjectZarafa,{$_POST["rp"]},OnlyGUID=$OnlyGUID,OnlyUsers=$OnlyUsers,OnlyCheckAD=$OnlyCheckAD...<br>\n";}
-	$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGUID,$OnlyUsers,$OnlyCheckAD);
+	$hash=$users->find_ldap_items($query,$_GET["organization"],$nogetent,$ObjectZarafa,$_POST["rp"],$OnlyGroups,$OnlyUsers,$OnlyCheckAD);
 
 	
 	$data = array();
@@ -491,7 +499,7 @@ function query(){
 		}else{
 			if($OnlyGroups==1){continue;}
 			$Displayname=$ligne;
-			$img="winuser.png";
+			$img="user-18.png";
 			$prepend="user:";
 		}
 		
@@ -566,7 +574,7 @@ function query_members_ad(){
 		if($samaccountname==null){continue;}
 		$gid=0;
 		$Displayname=$samaccountname;
-		$img="winuser.png";
+		$img="user-18.png";
 		$prepend="user:";
 		
 	

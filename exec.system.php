@@ -38,7 +38,7 @@ function PROXY(){
 			}
 			$pattern=$pattern."@";
 		}
-		echo "Starting......: Using proxy $ArticaProxyServerName:$ArticaProxyServerPort\n";
+		echo "Starting......: ".date("H:i:s")." Using proxy $ArticaProxyServerName:$ArticaProxyServerPort\n";
 		$proxypattern="http://$pattern$ArticaProxyServerName:$ArticaProxyServerPort";
 		
 	
@@ -62,11 +62,11 @@ function PROXY(){
 		@chmod("/etc/profile.d/proxy-mycompany.sh", 0755);
 	}
 		
-	
+	@file_put_contents("/root/.wgetrc",@implode("\n",$f));
 	@file_put_contents("/etc/profile.local",@implode("\n",$f));
 	@file_put_contents("/etc/environment",@implode("\n",$f));
 	if(is_dir("/etc/apt/apt.conf.d")){
-		echo "Starting......: Using proxy with apt-get, apt-mirror...\n";
+		echo "Starting......: ".date("H:i:s")." Using proxy with apt-get, apt-mirror...\n";
 		@file_put_contents("/etc/apt/apt.conf.d/proxy","Acquire::http::Proxy \"$proxypattern\";");
 	}
 	
@@ -123,8 +123,8 @@ function SYNC_PACKAGES(){
 	 shell_exec('/bin/rm -f /etc/artica-postfix/versions.cache');
 	 shell_exec('/bin/rm -f /usr/share/artica-postfix/ressources/logs/global.versions.conf');
 	 shell_exec('/usr/share/artica-postfix/bin/artica-install --write-versions');
-	 shell_exec('/usr/share/artica-postfix/bin/process1 --force &');
-	 shell_exec('/etc/init.d/artica-postfix restart artica-status &');
+	 $unix->Process1(true);
+	 shell_exec('/etc/init.d/artica-status reload &');
 	 shell_exec('/etc/init.d/artica-postfix restart artica-exec &');
 	 shell_exec('rm -rf /usr/share/artica-postfix/ressources/web/logs/*.cache');	
 	

@@ -69,6 +69,7 @@ function STARTSTOPSERVICE_DEMARRE(){
 		XHR.appendData('cmd','$service_cmd');
 		XHR.appendData('action','$action');
 		XHR.appendData('APP','{$_GET["APP"]}');
+		XHR.setLockOff();
 		XHR.sendAndLoad('$page', 'GET',x_STARTSTOPSERVICE_ChargeLogs);
 		}
 	

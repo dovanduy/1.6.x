@@ -70,7 +70,7 @@ function content(){
 	if($DisableArticaProxyStatistics==1){
 		$error=$tpl->_ENGINE_parse_body("<p class=text-error>{DisableArticaProxyStatistics_disabled_explain}</p>
 				<center style='margin:30px;font-size:18px;text-decoration:underline'>
-				<a href=\"javascript:Loadjs('squid.artica.statistics.php')\">{ARTICA_STATISTICS_TEXT}</a>
+				<a href=\"javascript:Loadjs('squid.artica.statistics.php',true)\">{ARTICA_STATISTICS_TEXT}</a>
 				</center>
 				");
 		$mainjs=null;

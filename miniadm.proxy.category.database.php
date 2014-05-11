@@ -89,7 +89,7 @@ function tabs(){
 	if($DisableArticaProxyStatistics==1){
 		echo $tpl->_ENGINE_parse_body("<p class=text-error>{DisableArticaProxyStatistics_disabled_explain}</p>
 				<center style='margin:30px;font-size:18px;text-decoration:underline'>
-				<a href=\"javascript:Loadjs('squid.artica.statistics.php')\">{ARTICA_STATISTICS_TEXT}</a>
+				<a href=\"javascript:Loadjs('squid.artica.statistics.php',true)\">{ARTICA_STATISTICS_TEXT}</a>
 				</center>
 				");
 		return;
@@ -125,7 +125,7 @@ function status(){
 	
 	if(!$users->ARTICADB_INSTALLED){
 		$html=FATAL_ERROR_SHOW_128("{ARTICADB_NOT_INSTALLED_EXPLAIN}")."<center style='margin:80px'>
-		<hr>".button("{install}", "Loadjs('squid.blacklist.upd.php')",16)."</center>";
+		<hr>".button("{install_now}", "Loadjs('squid.blacklist.upd.php')",16)."</center>";
 		echo $tpl->_ENGINE_parse_body($html);
 		return;
 	}
@@ -155,11 +155,10 @@ function status(){
 	}
 	
 	$arrayV=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
-	$REMOTE_VERSION=$arrayV["ARTICATECH"]["VERSION"];
+	$REMOTE_VERSION=$arrayV["TIME"];
 	if($REMOTE_VERSION>$date){
-		$REMOTE_SIZE=$arrayV["ARTICATECH"]["SIZE"];
-		$REMOTE_SIZE=FormatBytes($REMOTE_SIZE/1024);
-			$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION ($REMOTE_SIZE)", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
+
+			$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION ", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
 	}
 	
 	$nextcheck=$sock->getFrameWork("squid.php?articadb-nextcheck=yes");

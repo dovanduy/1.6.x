@@ -26,7 +26,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_NMAP}");
-	$html="YahooWin3('650','$page?tabs=yes','$title')";
+	$html="YahooWin3('1050','$page?tabs=yes','$title')";
 	echo $html;
 }
 
@@ -38,26 +38,21 @@ function tabs(){
 	
 	
 	$tpl=new templates();
-
+	$fontsize="style='font-size:16px'";
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID={$_GET["ID"]}\"><span>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&ID={$_GET["ID"]}\"><span $fontsize>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_nmap style='width:100%;height:550px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_nmap').tabs();
-				});
-		</script>";			
-	
+	echo build_artica_tabs($html, "main_config_nmap");
 	
 }
 
 function NMAP_EVENTS(){
+	
+	// $findcomputer="{name: '$scan_your_network', bclass: 'ScanNet', onpress : ScanNet},";
+	
+	
 	$ID=$_GET["NMAP_EVENTS"];
 	if(!is_numeric($ID)){echo "NOT A NUMERIC";die();exit;}
 	$page=CurrentPageName();
@@ -152,34 +147,26 @@ function parameters(){
 	$findcomputer=Paragraphe("64-samba-find.png","{scan_your_network}",'{scan_your_network_text}',"javascript:Loadjs('computer-browse.php?scan-nets-js=yes')","scan_your_network",210);
 	
 	$html="
+	<div class=explain style='font-size:14px'>{about_nmap}</div>
+	<div id='nmapidset' style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-	<td valign='top'>$findcomputer</td>
-	<td valign='top' width=100%>
-	<div id='nmapidset'>
-	<table style='width:100%'>
-	<tbody>
-	<tr>
-		<td valign='top' nowrap align='right' class=legend><strong>{NmapScanEnabled}:</strong></td>
-		<td valign='top' nowrap align='left'>" . Field_checkbox('NmapScanEnabled',1,$NmapScanEnabled,'{enable_disable}')."</td>
+		<td class=legend style='font-size:18px'>{NmapScanEnabled}:</strong></td>
+		<td valign='top' nowrap align='left' style='font-size:18px'>" . Field_checkbox('NmapScanEnabled',1,$NmapScanEnabled,'{enable_disable}')."</td>
 	</tr>
 	<tr>
-		<td valign='top' nowrap align='right' class=legend><strong>{NmapRotateMinutes}:</strong></td>
-		<td valign='top' nowrap align='left' style='font-size:14px;'>" . Field_text('NmapRotateMinutes',$NmapRotateMinutes,'font-size:14px;width:60px')."&nbsp;{minutes}</td>
+		<td class=legend style='font-size:18px'>{NmapRotateMinutes}:</td>
+		<td valign='top' nowrap style='font-size:18px'>" . Field_text('NmapRotateMinutes',$NmapRotateMinutes,'font-size:18px;width:90px')."&nbsp;{minutes}</td>
 	</tr>	
 	<tr>
-	<td colspan=2 align='right'><hr>". button("{apply}","SaveNMAPSettings()")."</td>
+	<td colspan=2 align='right'><hr>". button("{apply}","SaveNMAPSettings()",16)."</td>
 	
 
 	</tr>
 	</tbody>
 	</table>
 	</div>
-	</td>
-	</tr>
-	</tbody>
-	</table>
 	
 <script>
 	var x_AddComputerToDansGuardian= function (obj) {

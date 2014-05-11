@@ -12,6 +12,7 @@ if(isset($_GET["alldays"])){alldays();exit;}
 if(isset($_GET["table-members-time"])){table_members_time();exit;}
 if(isset($_GET["categorize-day-table"])){table_categorize_time();exit;}
 if(isset($_GET["sumary-counters-table"])){table_sumarize_time();exit;}
+if(isset($_GET["move-stats-file"])){move_stats_file();exit;}
 
 
 
@@ -124,5 +125,51 @@ function table_sumarize_time(){
 	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmdline);
 
+}
+
+function import_containers(){
+	$unix=new unix();
+	$cmdline=$unix->find_program("nohup")." ".$unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.squid.stats.central.php --import >/dev/null 2>&1 &";
+	writelogs_framework("$cmdline",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmdline);
+}
+
+function move_stats_file(){
+	$filename=$_GET["move-stats-file"];
+	if(!is_file($filename)){
+		echo "<articadatascgi>NO SUCH FILE</articadatascgi>";
+		return;
+	}
+	
+	$filename_size=@filesize($filename);
+	$ArticaProxyStatisticsBackupFolder=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaProxyStatisticsBackupFolder"));
+	if($ArticaProxyStatisticsBackupFolder==null){
+		$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics";
+	}
+	
+	$ArticaProxyStatisticsBackupFolder=$ArticaProxyStatisticsBackupFolder."/import";
+	@mkdir($ArticaProxyStatisticsBackupFolder,0755,true);
+	$basename=basename($filename);
+	$target_path="$ArticaProxyStatisticsBackupFolder/$basename";
+	if(is_file($target_path)){
+		$target_path_size=@filesize($target_path);
+		if($filename_size==$target_path_size){
+			@unlink($filename);
+			echo "<articadatascgi>SUCCESS</articadatascgi>";
+			return;
+		}
+		@unlink($target_path);
+	}
+	
+	if(!@copy($filename, $target_path)){
+		@unlink($filename);
+		@unlink($target_path);
+		echo "<articadatascgi>COPY FAILED</articadatascgi>";
+		return;
+	}
+	
+	@unlink($filename);
+	echo "<articadatascgi>SUCCESS</articadatascgi>";
+	import_containers();
 }
 

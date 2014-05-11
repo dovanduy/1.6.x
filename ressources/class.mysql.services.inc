@@ -7,10 +7,14 @@ class mysql_services{
 	public $MYSQL_SOCKET=null;
 	private $topCopyMysql=array();
 	public $InnoDB=false;
+	public $forceInnoDbRecover=false;
 	public $INSTALL_DATABASE=true;
 	public $MYSQL_BIN_DAEMON_PATH=null;
 	public $MYSQL_ERRMSG=null;
 	public $OutputBinLog=null;
+	public $ForceHomeInnoDbDir=false;
+	
+	public $AsZarafa=false;
 	function mysql_services(){
 		$this->topCopyMysql["host.frm"]=true;
 		$this->topCopyMysql["host.MYD"]=true;
@@ -85,7 +89,7 @@ class mysql_services{
 		if(!isset($mysqld_variables_cmdline["--lc-messages-dir"])){$lc_messages_dir=false;}
 		if($lc_messages_dir){$lc_messages_dir_cmd=" --lc-messages-dir=";}
 		$mysql_install_db_cmds="$mysql_install_db --defaults-file=$WORKDIR/my.cnf --user=root --datadir=\"$WORKDIR/data\"$lc_messages_dir_cmd";
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME `$mysql_install_db_cmds`\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME `$mysql_install_db_cmds`\n";}
 		shell_exec($mysql_install_db_cmds);
 		
 		$array=$this->topCopyMysql;
@@ -114,10 +118,10 @@ class mysql_services{
 		$WORKDIR=$this->WORKDIR;
 		$mysql_pid_file=$this->MYSQL_PID_FILE;
 		$MYSQL_SOCKET=$this->MYSQL_SOCKET;
-		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Server available memory `{$memory}MB`\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Server available swap `{$swap}MB`\n";}
-		$max_allowed_packetd=0;
+		$MEM_TOTAL_INSTALLEE=round($unix->MEM_TOTAL_INSTALLEE()/1024);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Server available memory `{$memory}MB`\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Server available swap `{$swap}MB`\n";}
+		$max_allowed_packetd=50;
 		$bulk_insert_buffer_sized=0;
 		$key_buffer_size_d=0;
 		$thread_cache_sized=0;
@@ -132,6 +136,8 @@ class mysql_services{
 		}
 		
 		$lnbin=$unix->find_program("ln");
+		
+		//--tmp_table_size=16384000 --max_heap_table_size=16384000
 		
 		$TuningParameters=unserialize(base64_decode($sock->GET_INFO($this->TokenParams)));
 		$query_cache_size=$TuningParameters["query_cache_size"];
@@ -148,6 +154,7 @@ class mysql_services{
 		$ListenPort=$TuningParameters["ListenPort"];
 		$read_rnd_buffer_size=$TuningParameters["read_rnd_buffer_size"];
 		$net_read_timeout=$TuningParameters["net_read_timeout"];
+		$net_write_timeout=$TuningParameters["net_write_timeout"];
 		
 		$read_buffer_size=$TuningParameters["read_buffer_size"];
 		$sort_buffer_size=$TuningParameters["sort_buffer_size"];
@@ -156,33 +163,65 @@ class mysql_services{
 		$max_tmp_table_size=$TuningParameters["max_tmp_table_size"];		
 		$innodb_buffer_pool_size=$TuningParameters["innodb_buffer_pool_size"];	
 		$innodb_log_buffer_size=$TuningParameters["innodb_log_buffer_size"];
-		$skip_innodb_stats_on_metadata=$SquidDBTuningParameters["skip_innodb_stats_on_metadata"];
+		$skip_innodb_stats_on_metadata=$TuningParameters["skip_innodb_stats_on_metadata"];
+		
+		if(!is_numeric($net_read_timeout)){$net_read_timeout=120;}
+		if(!is_numeric($net_write_timeout)){$net_write_timeout=120;}
+		if(!is_numeric($read_buffer_size)){$read_buffer_size=0;}
+		if(!is_numeric($sort_buffer_size)){$sort_buffer_size=0;}
+		if(!is_numeric($join_buffer_size)){$join_buffer_size=0;}
+		if(!is_numeric($max_tmp_table_size)){$max_tmp_table_size=0;}
+		if(!is_numeric($max_allowed_packet)){$max_allowed_packet=0;}
+		
+		
 		
 		if(!is_numeric($ListenPort)){$ListenPort=0;}
 		$tmpdir=$TuningParameters["tmpdir"];
 		
 		$net="--skip-networking";
 		
-		if($tmpdir==null){$tmpdir="/tmp";}
+		if($tmpdir==null){
+			$tmpdir=$unix->TEMP_DIR();
+			@mkdir($tmpdir,0755,true);
+		}
 		
 		if($ListenPort>0){
 			$net="--port=$ListenPort --skip-name-resolve";
 		}
 		
+		$thread_stack_canbechanged=false;
+		$sort_buffer_size_canbechanged=false;
+		
+		if($sort_buffer_size==0){
+			$sort_buffer_size_canbechanged=true;
+			$sort_buffer_size=2;
+		}
+		
+		if(!is_numeric($thread_stack)){
+				$thread_stack=0.256;
+				$thread_stack_canbechanged=true;
+		}
+		
+		
 		if($memory>512){
+			if($max_allowed_packet==0){$max_allowed_packet=50;}
 			$bulk_insert_buffer_sized=8;$key_buffer_size_d=8;$max_allowed_packetd=50;$thread_cache_sized=2;
 			$tmp_table_sized=8;
 			$innodb_buffer_pool_sized=128;
 			$innodb_log_buffer_sized=1;
+			$sort_buffer_size=1;
 		}
 		if($memory>1024){
+				if($max_allowed_packet<64){$max_allowed_packet=64;}
 				$bulk_insert_buffer_sized=16;
 				$key_buffer_size_d=32;
 				$innodb_buffer_pool_sized=128;
 				$innodb_log_buffer_sized=4;
+				if($sort_buffer_size_canbechanged){$sort_buffer_size=2;}
 		
 		}
 		if($memory>1500){
+			if($max_allowed_packet<64){$max_allowed_packet=128;}
 			$bulk_insert_buffer_sized=20;
 			$key_buffer_size_d=64;
 			$thread_cache_sized=2;
@@ -190,44 +229,64 @@ class mysql_services{
 			$tmp_table_sized=8;
 			$innodb_buffer_pool_sized=256;
 			$innodb_log_buffer_sized=6;
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=4;}
 		}
 		if($memory>2048){
+			if($max_allowed_packet==0){$max_allowed_packet=128;}
 			$bulk_insert_buffer_sized=32;
 			$key_buffer_size_d=128;
 			$tmp_table_sized=64;
-			$tmp_table_sized=16;
+			$max_connections=50;
 			$innodb_buffer_pool_sized=256;
 			$innodb_log_buffer_sized=6;
+			if($thread_stack_canbechanged){$thread_stack=0.524;}
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=4;}
 		}
 		if($memory>2500){
+			if($max_allowed_packet<128){$max_allowed_packet=128;}
 			$bulk_insert_buffer_sized=164;
 			$key_buffer_size_d=256;
 			$thread_cache_sized=10;
-			$tmp_table_sized=16;
+			$tmp_table_sized=64;
+			$max_connections=60;
 			$innodb_buffer_pool_sized=384;
 			$innodb_log_buffer_sized=8;
+			if($thread_stack_canbechanged){$thread_stack=0.524;}
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=6;}
 		}
 		if($memory>3000){
+			if($max_allowed_packet<128){$max_allowed_packet=128;}
 			$bulk_insert_buffer_sized=196;
 			$key_buffer_size_d=256;
 			$thread_cache_sized=20;
-			$tmp_table_sized=16;
+			$tmp_table_sized=96;
 			$innodb_log_buffer_sized=14;
+			$max_connections=60;
+			if($thread_stack_canbechanged){$thread_stack=0.524;}
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=8;}
 		}
 		if($memory>3500){
+			if($max_allowed_packet<128){$max_allowed_packet=128;}
 			$bulk_insert_buffer_sized=200;
 			$key_buffer_size_d=256;
-			$tmp_table_sized=32;
+			$tmp_table_sized=128;
 			$innodb_log_buffer_sized=16;
+			$max_connections=80;
+			if($thread_stack_canbechanged){$thread_stack=0.524;}
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=8;}
 		}
 		if($memory>4000){
+			if($max_allowed_packet<196){$max_allowed_packet=196;}
 			$bulk_insert_buffer_sized=204;
 			$key_buffer_size_d=300;
 			$max_allowed_packetd=100;
 			$thread_cache_sized=64;
-			$tmp_table_sized=64;
+			$tmp_table_sized=128;
 			$innodb_buffer_pool_size=512;
 			$innodb_log_buffer_size=18;
+			$max_connections=100;
+			if($thread_stack_canbechanged){$thread_stack=1;}
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=10;}
 		}
 		
 		if(!is_numeric($bulk_insert_buffer_size)){$bulk_insert_buffer_size=$bulk_insert_buffer_sized;}
@@ -240,7 +299,6 @@ class mysql_services{
 		if(!is_numeric($interactive_timeout)){$interactive_timeout=57600;}
 		if(!is_numeric($connect_timeout)){$connect_timeout=60;}
 		if(!is_numeric($max_connections)){$max_connections=60;}
-		if(!is_numeric($max_allowed_packet)){$max_allowed_packet=100;}
 		if(!is_numeric($query_cache_size)){$query_cache_size=8;}
 		if(!is_numeric($table_open_cache)){$table_open_cache=256;}
 		if(!is_numeric($tmp_table_size)){$tmp_table_size=$tmp_table_sized;}
@@ -248,15 +306,12 @@ class mysql_services{
 		if($max_allowed_packet<100){$max_allowed_packet=100;}
 		
 		
-		if(!is_numeric($read_buffer_size)){$read_buffer_size=0;}
-		if(!is_numeric($sort_buffer_size)){$sort_buffer_size=0;}
-		if(!is_numeric($join_buffer_size)){$join_buffer_size=0;}
-		if(!is_numeric($max_tmp_table_size)){$max_tmp_table_size=0;}
-		if(!is_numeric($thread_stack)){$thread_stack=0;}
+
+		
 		
 		if(!is_numeric($innodb_buffer_pool_size)){$innodb_buffer_pool_size=$innodb_buffer_pool_sized;}
 		if(!is_numeric($innodb_log_buffer_size)){$innodb_log_buffer_size=$innodb_log_buffer_sized;}
-		if(!is_numeric($net_read_timeout)){$net_read_timeout=120;}
+		
 		if(!is_numeric($skip_innodb_stats_on_metadata)){$skip_innodb_stats_on_metadata=1;}
 		
 		
@@ -264,29 +319,33 @@ class mysql_services{
 		$KERNEL_ARCH=$unix->KERNEL_ARCH();
 		
 		$KERNEL_ARCH=$unix->KERNEL_ARCH();
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Architecture: $KERNEL_ARCH bits\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Architecture: $KERNEL_ARCH bits\n";}
 		if($unix->KERNEL_ARCH()==32){
 			if($innodb_buffer_pool_size>3999){$innodb_buffer_pool_size=3999;}
 			if($innodb_buffer_pool_size>$swap){$innodb_buffer_pool_size=$swap;}
 		}
+		$MAX_MEM_TOTAL_INSTALLEE=round($MEM_TOTAL_INSTALLEE*0.8)-1500;
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME MySQL Main binary........: $mysqld\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Working directory........: $WORKDIR\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Architecture.............: $KERNEL_ARCH bits\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Memory...................: {$memory}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Max allowed packet.......: {$max_allowed_packet}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Max connections..........: {$max_connections} cnxs\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Key Buffer size..........: {$key_buffer_size}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Sort Buffer size.........: {$myisam_sort_buffer_size}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Bulk Insert Buffer Size..: {$bulk_insert_buffer_size}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Tables Open cache........: {$table_open_cache} tables\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Thread Cache Size........: {$thread_cache_size}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME TMP Table size...........: {$tmp_table_size}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Read RND Buffer Size.....: {$read_rnd_buffer_size}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Net Read Timeout.........: {$net_read_timeout} seconds\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Net Write Timeout........: {$net_write_timeout} seconds\n";}
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME MySQL Main binary........: $mysqld\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Working directory........: $WORKDIR\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Architecture.............: $KERNEL_ARCH bits\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Memory...................: {$memory}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Max allowed packet.......: {$max_allowed_packet}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Max connections..........: {$max_connections} cnxs\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Key Buffer size..........: {$key_buffer_size}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Sort Buffer size.........: {$myisam_sort_buffer_size}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Bulk Insert Buffer Size..: {$bulk_insert_buffer_size}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Tables Open cache........: {$table_open_cache} tables\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Thread Cache Size........: {$thread_cache_size}\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME TMP Table size...........: {$tmp_table_size}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Read RND Buffer Size.....: {$read_rnd_buffer_size}M\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Net Read Timeout.........: {$net_read_timeout} seconds\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME Skip innodb stats (metada: {$skip_innodb_stats_on_metadata}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Skip innodb stats (metada: {$skip_innodb_stats_on_metadata}\n";}
 		
 
+		
+		
 		
 		
 		$CREATEDB=false;
@@ -295,9 +354,28 @@ class mysql_services{
 		@mkdir("$WORKDIR/data",0755,true);
 		@mkdir("$WORKDIR/data/mysql",0755,true);
 		@mkdir("$WORKDIR/lib/plugin",0755,true);
-		
+		@mkdir("/var/run/mysqld",0755,true);
 
+		$sort_buffer_size_calc=($sort_buffer_size*1024)*1000;
+		$key_buffer_size_calc=($key_buffer_size*1024)*1000;
+		$read_buffer_size_calc=($read_buffer_size_calc*1024)*1000;
+		$memory_calculated=$key_buffer_size_calc + ($read_buffer_size + $sort_buffer_size_calc)*$max_connections;
+		$memory_calculated=round(($memory_calculated/1024)/1000);
 		
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME sort_buffer_size..........: $sort_buffer_size_calc bytes\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME key_buffer_size...........: $key_buffer_size_calc bytes\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME read_buffer_size..........: {$read_buffer_size_calc} bytes\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME max_connections...........: {$max_connections} cnx\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Memory usage will be......: {$memory_calculated}M\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Memory on server..........: {$MEM_TOTAL_INSTALLEE}M/max:{$MAX_MEM_TOTAL_INSTALLEE}M\n";}
+				
+		if($memory_calculated>$MAX_MEM_TOTAL_INSTALLEE){
+			$prc=$memory_calculated/$MAX_MEM_TOTAL_INSTALLEE;
+			$max_connections=round($max_connections*$prc);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME Over memory reduce cnx: to $max_connections\n";}
+			 
+		}
 		
 		
 		if(!is_file("$WORKDIR/my.cnf")){@file_put_contents("$WORKDIR/my.cnf", "\n");}
@@ -313,7 +391,7 @@ class mysql_services{
 			if($this->isFirstInstall()){
 				$this->install_databases();
 				if($this->isFirstInstall()){
-					if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]:$SERV_NAME creating databases failed..\n";}
+					if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME creating databases failed..\n";}
 				}
 			}
 		}
@@ -333,26 +411,72 @@ class mysql_services{
 		$f[]="--datadir=$WORKDIR/data";
 		//$f[]="--plugin_dir=$WORKDIR/lib/plugin";
 		$f[]="--socket=$MYSQL_SOCKET";
-		$f[]="--general-log-file=$WORKDIR/general_log.log";
-		$f[]="--slow-query-log-file=$WORKDIR/slow-query.log";
+		
+		if($GetStartedValues["--general-log-file"]){ $f[]="--general-log-file=$WORKDIR/general_log.log"; }
+		if($GetStartedValues["--slow-query-log-file"]){ $f[]="--slow-query-log-file=$WORKDIR/slow-query.log"; }
+		
 		$f[]="--log-error=$WORKDIR/error.log";
 		
+		
+		
+		
+		
 		if($this->InnoDB){
+			
+			if($this->AsZarafa){
+				$memory=$this->get_memory();
+				$innodb_buffer_pool_size=round($memory/3);
+				$innodb_log_file_size=round(($memory/2)/2);
+				$innodb_log_buffer_size=32;
+				if($innodb_log_file_size>2000){$innodb_log_file_size=2000;}
+			}
+			
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME InnoDB: log file size...: {$innodb_log_file_size}M\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME InnoDB: buffer pool size: {$innodb_buffer_pool_size}M\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME InnoDB: log buffer size.: {$innodb_log_buffer_size}M\n";}
+			
+			if($GetStartedValues["--innodb-fast-shutdown"]){
+				$f[]="--innodb-fast-shutdown=0";
+			}
+			
+			if($GetStartedValues["--innodb-force-recovery"]){
+				if($this->forceInnoDbRecover){
+					$f[]="--innodb-force-recovery=1";
+				}
+			}
+			
+			
 			if($GetStartedValues["--innodb-file-per-table"]){
 				$f[]="--innodb-file-per-table";
+			}else{
+				echo "WARNING !!! --innodb-file-per-table no such param !!!\n";
 			}
 			
 			if($GetStartedValues["--innodb-buffer-pool-size"]){
 				$f[]="--innodb-buffer-pool-size={$innodb_buffer_pool_size}M";
 			}
+			
+			if($GetStartedValues["--innodb-log-file-size"]){
+				
+				$f[]="--innodb-log-file-size={$innodb_log_file_size}M";
+			}
+			
 			if($GetStartedValues["--innodb-log-buffer-size"]){
 				$f[]="--innodb-log-buffer-size={$innodb_log_buffer_size}M";
 			}
 			if($GetStartedValues["--innodb-flush-log-at-trx-commit"]){$f[]="--innodb-flush-log-at-trx-commit=0";}
+			
+			if($this->ForceHomeInnoDbDir){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME InnoDB: Force home innodb log to $WORKDIR/data/ibdata_dir\n";}
+				@mkdir("$WORKDIR/data/ibdata_dir",0755,true);
+				$f[]="--innodb-data-home-dir=$WORKDIR/data/ibdata_dir";
+			}
+			
 		}
 		
 		if($max_allowed_packet>0){
 			$f[]="--max-allowed-packet={$max_allowed_packet}M";
+			$f[]="--net_buffer_length={$max_allowed_packet}M";
 		}
 		
 		if($max_connections>0){
@@ -366,16 +490,33 @@ class mysql_services{
 		}
 		$f[]="--myisam_repair_threads=4";
 		if($key_buffer_size>0){
-			$key_buffer_size=($key_buffer_size*1024)*1000;
-			$f[]="--key_buffer_size={$key_buffer_size}";
+			if($GetStartedValues["--key-buffer-size"]){
+				$key_buffer_size=($key_buffer_size*1024)*1000;
+				$f[]="--key_buffer_size={$key_buffer_size}";
+			}
 		}
 		
 		$f[]="--query_cache_type=1";
+		
+		
+
+		
 		if($table_open_cache>0){
-			$f[]="--table_open_cache={$table_open_cache}";
+			if($GetStartedValues["--table_open_cache"]){
+				$f[]="--table_open_cache={$table_open_cache}";
+			}else{
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME table_open_cache not supported\n";}
+			}
 		}
 		
-		$f[]="--myisam_use_mmap=0";
+		if($GetStartedValues["--myisam_use_mmap"]){
+			$f[]="--myisam_use_mmap=0";
+		}else{
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME myisam_use_mmap not supported\n";}
+		}
+		
+
+		
 		$f[]="--max_user_connections=0";
 		if($myisam_sort_buffer_size>0){
 			$myisam_sort_buffer_size=($myisam_sort_buffer_size*1024)*1000;
@@ -385,6 +526,7 @@ class mysql_services{
 			$bulk_insert_buffer_size=($bulk_insert_buffer_size*1024)*1000;
 			$f[]="--bulk_insert_buffer_size={$bulk_insert_buffer_size}";
 		}
+		
 		
 		if($read_rnd_buffer_size>1){
 			$read_rnd_buffer_size=($read_rnd_buffer_size*1024)*1000;
@@ -431,11 +573,22 @@ class mysql_services{
 			}
 		}
 		
+		
+		if($net_write_timeout>0){
+			if($GetStartedValues["--net_write_timeout"]){
+				$f[]="--net_write_timeout={$net_write_timeout}";
+			}
+		}
+		
+		
+		
 		if($GetStartedValues["--skip-innodb-stats-on-metadata"]){
 			if($skip_innodb_stats_on_metadata==1){
 				$f[]="--skip-innodb-stats-on-metadata";
 			}
 		}
+		if($GetStartedValues["--big-tables"]){$f[]="--big-tables";}		
+		
 		
 		$f[]="--tmpdir=$tmpdir";
 		$f[]="--log-warnings=2";
@@ -457,9 +610,9 @@ class mysql_services{
 	private function check_errmsgsys(){
 		$Get_errmsgsys=$this->Get_errmsgsys();
 		if(!is_file("$this->WORKDIR/share/mysql/english/errmsg.sys")){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME Creating errmsg.sys\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME Creating errmsg.sys\n";}
 			if(is_file($Get_errmsgsys)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
 				copy($Get_errmsgsys, "$this->WORKDIR/share/mysql/english/errmsg.sys");
 				copy($Get_errmsgsys, "$this->WORKDIR/share/errmsg.sys");
 				
@@ -474,7 +627,7 @@ class mysql_services{
 		
 		if(!is_file("$this->WORKDIR/share/errmsg.sys")){
 			if(is_file($Get_errmsgsys)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/errmsg.sys\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME copy $Get_errmsgsys -> $this->WORKDIR/share/errmsg.sys\n";}
 				copy($Get_errmsgsys, "$this->WORKDIR/share/errmsg.sys");
 				
 			}
@@ -485,7 +638,7 @@ class mysql_services{
 	public function CheckOutputErrors($filename){
 		$f=explode("\n",@file_get_contents($filename));
 		if($this->WORKDIR==null){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME fatal no directory set Line:".__LINE__."\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME fatal no directory set Line:".__LINE__."\n";}
 			return;
 		}
 		
@@ -493,8 +646,8 @@ class mysql_services{
 		
 		while (list ($num, $ligne) = each ($f) ){
 			if(preg_match("#Error message file.*?errmsg\.sys.*?had only [0-9]+ error messages#", $ligne)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME errmsg.sys issue (should the MySQL as been upgraded ?)\n";}
-				if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME unlink $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME errmsg.sys issue (should the MySQL as been upgraded ?)\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME unlink $this->WORKDIR/share/mysql/english/errmsg.sys\n";}
 				@unlink("$this->WORKDIR/share/mysql/english/errmsg.sys");
 				$this->check_errmsgsys();
 				continue;
@@ -506,12 +659,14 @@ class mysql_services{
 		
 		
 		if($repair){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $this->SERV_NAME libstdc++.so.6 or libgcc_s.so.1 issue, repair it...\n";}
-			if(is_file("/opt/articatech/bin/libstdc++.so.6")){
-				if(!is_file("/usr/lib/libstdc++.so.6")){shell_exec("/bin/ln -s /opt/articatech/bin/libstdc++.so.6 /usr/lib/libstdc++.so.6");}
+			$ArticaDBPath=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaDBPath");
+			if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $this->SERV_NAME libstdc++.so.6 or libgcc_s.so.1 issue, repair it...\n";}
+			if(is_file("$ArticaDBPath/bin/libstdc++.so.6")){
+				if(!is_file("/usr/lib/libstdc++.so.6")){shell_exec("/bin/ln -s $ArticaDBPath/bin/libstdc++.so.6 /usr/lib/libstdc++.so.6");}
 			}
-			if(is_file("/opt/articatech/bin/libgcc_s.so.1")){
-				if(!is_file("/usr/lib/libgcc_s.so.1")){shell_exec("/bin/ln -s /opt/articatech/bin/libgcc_s.so.1 /usr/lib/libgcc_s.so.1");}
+			if(is_file("$ArticaDBPath/bin/libgcc_s.so.1")){
+				if(!is_file("/usr/lib/libgcc_s.so.1")){shell_exec("/bin/ln -s $ArticaDBPath/bin/libgcc_s.so.1 /usr/lib/libgcc_s.so.1");}
 			}
 		}
 		
@@ -544,15 +699,64 @@ class mysql_services{
 		exec("$mysqld --help --verbose 2>&1",$results);
 	
 		while (list ($key, $valueN) = each ($results) ){
-			if(preg_match("#--([a-z\-\_\=]+)\s+(.+)#", $valueN,$re)){
-				$key=trim($re[1]);
-				$value=trim($re[2]);
-				$array["--$key"]=true;
+		if(!preg_match("#--(.+)#", $valueN,$re)){
+			//echo "SKIPPED $valueN\n";
+			continue;}
+			$key=trim($re[1]);
+			if(strpos( $key,"=")>0){
+				$TT=explode("=",$key);
+				$TT[0]=trim($TT[0]);
+				$array["--{$TT[0]}"]=true;
+				continue;
 			}
+			
 				
+			
+			if(strpos($key," ")>0){
+				$TT=explode(" ",$key);
+				$TT[0]=trim($TT[0]);
+				$array["--{$TT[0]}"]=true;
+				continue;
+			}
+			
+			$array["--$key"]=true;
 		}
-	
-		return $array;
+		
+		
+		reset($array);
+		
+		while (list ($key, $valueN) = each ($array) ){
+			
+			$key=str_replace("----", "--", $key);
+			if(strpos( $key,"[")>0){
+				$TT=explode("[",$key);
+				$TT[0]=trim($TT[0]);
+				$Newarray["{$TT[0]}"]=true;
+				continue;
+			}
+			
+			if(strpos( $key,"/")>0){
+				$TT=explode("/",$key);
+				$TT[0]=trim($TT[0]);
+				$Newarray["{$TT[0]}"]=true;
+				$Newarray["{$TT[1]}"]=true;
+				continue;
+			}
+			
+			$Newarray[trim($key)]=true;
+			
+		}
+		
+		if($Newarray["--table-open-cache"]){
+			$Newarray["--table_open_cache"]=true;
+		}
+
+		if($Newarray["--myisam-use-mmap"]){
+			$Newarray["--myisam_use_mmap"]=true;
+		}
+
+		reset($Newarray);
+		return $Newarray;
 	}	
 	
 	private function get_memory(){

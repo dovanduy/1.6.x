@@ -218,7 +218,7 @@ $sql="CREATE TABLE IF NOT EXISTS `pommo_group_rules` (
   `rule_id` int(10) unsigned NOT NULL auto_increment,
   `group_id` int(10) unsigned NOT NULL default '0',
   `field_id` tinyint(3) unsigned NOT NULL default '0',
-  `type` tinyint(1) NOT NULL default '0' COMMENT '0: OFF, (and), 1: ON (or)',
+  `type` smallint(1) NOT NULL default '0' COMMENT '0: OFF, (and), 1: ON (or)',
   `logic` enum('is','not','greater','less','true','false','is_in','not_in') NOT NULL,
   `value` text,
   PRIMARY KEY  (`rule_id`),
@@ -241,7 +241,7 @@ $sql="CREATE TABLE IF NOT EXISTS `pommo_mailings` (
   `finished` datetime default NULL,
   `sent` int(10) unsigned NOT NULL default '0',
   `charset` varchar(15) NOT NULL default 'UTF-8',
-  `status` tinyint(1) NOT NULL default '1' COMMENT '0: finished, 1: processing, 2: cancelled',
+  `status` smallint(1) NOT NULL default '1' COMMENT '0: finished, 1: processing, 2: cancelled',
   PRIMARY KEY  (`mailing_id`),
   KEY `status` (`status`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1 AUTO_INCREMENT=1 ;
@@ -270,8 +270,8 @@ $sql="CREATE TABLE IF NOT EXISTS `pommo_mailing_notices` (
 $q->QUERY_SQL($sql,"pommo");
 $sql="CREATE TABLE IF NOT EXISTS `pommo_queue` (
   `subscriber_id` int(10) unsigned NOT NULL,
-  `status` tinyint(1) NOT NULL default '0' COMMENT '0: unsent, 1: sent, 2: failed',
-  `smtp` tinyint(1) NOT NULL default '0' COMMENT '0: none, 1-4: Designated to SMTP relay #',
+  `status` smallint(1) NOT NULL default '0' COMMENT '0: unsent, 1: sent, 2: failed',
+  `smtp` smallint(1) NOT NULL default '0' COMMENT '0: none, 1-4: Designated to SMTP relay #',
   PRIMARY KEY  (`subscriber_id`),
   KEY `status` (`status`,`smtp`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
@@ -293,9 +293,9 @@ $sql="CREATE TABLE IF NOT EXISTS `pommo_subscribers` (
   `email` char(60) NOT NULL default '',
   `time_touched` timestamp NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
   `time_registered` datetime NOT NULL,
-  `flag` tinyint(1) NOT NULL default '0' COMMENT '0: NULL, 1-8: REMOVE, 9: UPDATE',
+  `flag` smallint(1) NOT NULL default '0' COMMENT '0: NULL, 1-8: REMOVE, 9: UPDATE',
   `ip` int(10) unsigned default NULL COMMENT 'Stored with INET_ATON(), Fetched with INET_NTOA()',
-  `status` tinyint(1) NOT NULL default '2' COMMENT '0: Inactive, 1: Active, 2: Pending',
+  `status` smallint(1) NOT NULL default '2' COMMENT '0: Inactive, 1: Active, 2: Pending',
   PRIMARY KEY  (`subscriber_id`),
   KEY `status` (`status`,`subscriber_id`),
   KEY `status_2` (`status`,`email`),

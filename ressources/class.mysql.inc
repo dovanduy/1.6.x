@@ -27,6 +27,7 @@ class mysql{
 	var $SocketPath=null;
 	var $SocketName="/var/run/mysqld/mysqld.sock";
 	var $TryTCP=true;
+	var $mysql_affected_rows=0;
 	
 	
 	function mysql($DefSettings=null){
@@ -74,6 +75,17 @@ class mysql{
 		$this->mysql_admin=trim($this->mysql_admin);	
 		$this->mysql_password=str_replace("\r", "", $this->mysql_password);
 		$this->mysql_password=trim($this->mysql_password);	
+
+		
+		
+		if(!isset($GLOBALS["TIMEZONES"])){$GLOBALS["TIMEZONES"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones"));}
+		
+		if(function_exists("date_default_timezone_set")){
+			if($GLOBALS["TIMEZONES"]<>null){@date_default_timezone_set($GLOBALS["TIMEZONES"]);}
+		}
+		
+		
+		
 	
 		if(($this->mysql_server=="!nil") OR ($this->mysql_admin=='!nil') OR ($this->mysql_password=='!nil')){
 			$this->mysql_server="127.0.0.1";
@@ -132,13 +144,17 @@ class mysql{
 	
 	
 	function TestingConnection($noretry=false,$called=null){
+		$class=__CLASS__;
 		$funcclass=__FUNCTION__."/".__CLASS__." in line:";
 		$this->TestIngConnectionPerformed=true;
 		$this->mysql_server=trim($this->mysql_server);
 		$bd=false;
 		ini_set("mysql.default_password", null);
 		$SockPath="/var/run/mysqld/mysqld.sock";
-		if($this->SocketPath<>null){$SockPath=$this->SocketPath;$this->mysql_server=="localhost";}
+		if($this->SocketPath<>null){
+				$SockPath=$this->SocketPath;
+				$this->mysql_server=="localhost";
+		}
 		
 		
 		
@@ -166,12 +182,14 @@ class mysql{
 		
 		if(($this->mysql_server=="localhost")){$this->TryTCP=false;}
 		if(!$this->TryTCP){if($this->mysql_server<>"localhost"){$this->TryTCP=true;}}
-		
+		if($this->mysql_admin==null){$this->mysql_admin="root";}
 		
 		if($this->TryTCP){
+			
 			$this->SocketPath=null;
 			$SockPath=null;
 			if(!is_numeric($this->mysql_port)){$this->mysql_port=3306;}
+			if($GLOBALS["VERBOSE"]){echo "$funcclass ". __LINE__." TryTCP = $this->mysql_server:$this->mysql_port\n";}
 			if($this->mysql_port<5){$this->mysql_port=3306;}
 			if($GLOBALS["FULL_DEBUG"]){echo __CLASS__.'/'.__FUNCTION__." ".__LINE__." @mysql_connect(\"$this->mysql_server:$this->mysql_port\",$this->mysql_admin,$this->mysql_password)<br>\n";}
 			$bd=@mysql_connect("$this->mysql_server:$this->mysql_port",$this->mysql_admin,$this->mysql_password);
@@ -188,9 +206,9 @@ class mysql{
 		
 		
 		if($SockPath<>null){
-			//if($GLOBALS["VERBOSE"]){echo "Using socket mode on socket $SockPath/$this->mysql_server:$this->mysql_port username:$this->mysql_admin, password:$this->mysql_password\n";}
 			ini_set("mysql.default_password", null);
 			if(!$this->is_socket($SockPath)){
+				if($GLOBALS["VERBOSE"]){echo "$funcclass ". __LINE__." $SockPath no such socket or permission denied\n";}
 				$this->mysql_error="$SockPath no such socket or permission denied";
 				return false;
 			}
@@ -204,10 +222,12 @@ class mysql{
 			$bd=@mysql_connect(":$SockPath",$this->mysql_admin,$this->mysql_password);
 			if($bd){
 				$this->mysql_connection=$bd;
+				$this->ok=true;
 				return true;
 			}
 			$des=@mysql_error(); $errnum=@mysql_errno();
 			if($errnum==1045){$this->DebugCredentials();}
+			if($GLOBALS["VERBOSE"]){echo "$funcclass ". __LINE__." FAILED, failed (N:$errnum) \"$des\" \n";}
 			$this->mysql_error="$SockPath failed (N:$errnum) \"$des\" $called";
 			$this->writelogs("mysql_connect(\":$SockPath\",$this->mysql_admin,$this->mysql_password..failed (N:$errnum) \"$des\" $called ",__FUNCTION__,__LINE__);
 		}
@@ -449,6 +469,17 @@ function writelogs($text=null,$function=null,$line=0){
 		return false;
 	}
 	
+	function ToSyslog($text,$error=false){
+		$text=str_replace("\n", " ", $text);
+		$text=str_replace("\t", " ", $text);
+		$text=str_replace("  ", " ", $text);
+		$text=str_replace("  ", " ", $text);
+		if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
+		if(function_exists("openlog")){openlog("class.mysql.inc", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+		if(function_exists("closelog")){closelog();}
+	}
+	
 	
 	
 	function QUERY_SQL($sql,$database=null,$called=null){
@@ -486,7 +517,7 @@ function writelogs($text=null,$function=null,$line=0){
 			$this->mysql_error=$this->mysql_error ." Error, unable to connect to MySQL server";
 			return false;
 		}
-		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("BD_CONNECT OK",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("BD_CONNECT OK<br>",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		
 		if(preg_match("#DROP TABLE\s+(.+)$#i", $sql,$re)){
 			$TableDropped=$re[1];
@@ -498,13 +529,17 @@ function writelogs($text=null,$function=null,$line=0){
 		
 
 		if($database<>null){
-			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("mysql_select_db >$database",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("mysql_select_db  > $database<br>",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$ok=@mysql_select_db($database,$this->mysql_connection);
-			if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("mysql_select_db OK",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			
 	    	if (!$ok){
 	    		$errnum=@mysql_errno($this->mysql_connection);
 	    		$des=@mysql_error($this->mysql_connection);
-	    		if($GLOBALS["VERBOSE"]){echo "mysql_select_db [FAILED] N.$errnum DESC:$des mysql/QUERY_SQL\n";}
+	    		if($GLOBALS["VERBOSE"]){
+	    				echo "mysql_select_db [FAILED] \"$database\"  N.$errnum DESC:$des mysql/QUERY_SQL<br>\n";
+	    				echo "mysql_select_db [FAILED] \"$database\"  config:$this->mysql_server:$this->mysql_port<br>\n";
+	    				echo "mysql_select_db [FAILED] \"$database\"  $called<br>\n";
+	    		}
 	    		$this->mysql_errornum=$errnum;
 	    		$this->mysql_error=$des;
 	    		$time=date('h:i:s');
@@ -525,9 +560,12 @@ function writelogs($text=null,$function=null,$line=0){
 	    		$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error Number ($errnum) ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin ($called)",__CLASS__.'/'.__FUNCTION__,__LINE__);
 	    		$this->mysql_error="QUERY_SQL:".__LINE__.": mysql_select_db:: Error $errnum ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin line:".__LINE__;
 	    		
-	    		$this->ok=false;@mysql_close($this->mysql_connection);
+	    		$this->ok=false;
+	    		@mysql_close($this->mysql_connection);
 	    		return null;
     		}
+    		
+    		if(isset($GLOBALS["DEBUG_PROCESS"])){writelogs("mysql_select_db \"$database\" OK<br>",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 		}	
 		
 		
@@ -540,6 +578,10 @@ function writelogs($text=null,$function=null,$line=0){
 			$errnum=@mysql_errno($this->mysql_connection);
 			$des=@mysql_error($this->mysql_connection);
 			if($GLOBALS["VERBOSE"]){echo "mysql_query [FAILED] N.$errnum DESC:$des mysql/QUERY_SQL\n";}
+			
+			
+			
+			
 			if(preg_match("#Got error 134 from storage engine#i", $des)){
 				if(preg_match("\s+from\s+(.*?)\s+#i", $sql,$re)){
 					$table=$re[1];
@@ -568,8 +610,7 @@ function writelogs($text=null,$function=null,$line=0){
 			@mysql_free_result($this->mysql_connection);
 			if($GLOBALS["VERBOSE"]){echo "mysql_query [FAILED] N.$errnum DESC:$des mysql/QUERY_SQL\n";}
 			if($des<>null){
-				if(!$GLOBALS["AS_ROOT"]){if($GLOBALS["VERBOSE"]){echo "\n<br><strong>Error $errnum $des ".__CLASS__.'/'.__FUNCTION__." in line ". __LINE__."</strong>";}}
-				
+				if(!$GLOBALS["AS_ROOT"]){if($GLOBALS["VERBOSE"]){echo "\n<br><strong>Error $errnum $des ".__CLASS__.'/'.__FUNCTION__." in line ". __LINE__."</strong><br><i>$called</i><br><code>$sql</code>";}}
 			}
 		}
 	
@@ -594,6 +635,16 @@ function writelogs($text=null,$function=null,$line=0){
 				
 				if(preg_match("#Incorrect key file for table '.\/(.+?)/(.+?)\.MYI'#",$des,$re)){		
 					$this->mysql_error="Error $errnum $des\n$sql";
+					if($database=="artica_events"){
+						if(!isset($GLOBALS["DROPPED_TABLE"])){
+							$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error table {$re[1]} is crashed $errnum -> remove it",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+							$this->QUERY_SQL("DROP TABLE `$re[1]`",$database);
+							$GLOBALS["DROPPED_TABLE"]=true;
+							return false;
+						}
+					}
+					
+					
 					$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error table {$re[1]} is crashed $errnum -> i will try to repair it ",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					
 				}
@@ -625,6 +676,7 @@ function writelogs($text=null,$function=null,$line=0){
 					
 					$this->ok=false;
 					$this->mysql_error="Error $errnum $des\n$sql";
+					$this->ToSyslog("Error $errnum $des $sql");
 					@mysql_close($this->mysql_connection);
 					return false;
 				}
@@ -636,6 +688,7 @@ function writelogs($text=null,$function=null,$line=0){
 					$this->REPAIR_TABLE_FILE_NOT_FOUND($database,$re[2]);
 					$this->ok=false;
 					$this->mysql_error="Error $errnum $des\n$sql";
+					$this->ToSyslog("Error $errnum $des $sql");
 					@mysql_close($this->mysql_connection);
 					return false;
 				}
@@ -709,6 +762,7 @@ function writelogs($text=null,$function=null,$line=0){
 						$this->writelogs($sql,__CLASS__.'/'.__FUNCTION__,__FILE__);
 					}
 					$this->ok=true;
+					@mysql_free_result($this->mysql_connection);
 					@mysql_close($this->mysql_connection);
 					return true;
 				}
@@ -775,6 +829,8 @@ function writelogs($text=null,$function=null,$line=0){
 						}
 					}
 				}
+				
+				$this->ToSyslog("Error $des call:$called \"$sql\"");
 				$this->writeLogs("QUERY_SQL:".__LINE__.": DB:\"$database\" Error $des call:$called \"$sql\" line:".__LINE__." of class.mysql.inc",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				
 	
@@ -797,7 +853,7 @@ function writelogs($text=null,$function=null,$line=0){
 		}	
 		
 	$this->last_id=@mysql_insert_id($this->mysql_connection);	
-	
+	$this->mysql_affected_rows=@mysql_affected_rows($this->mysql_connection);
 	$this->ok=true;
 	$result_return=$results;
 	//@mysql_free_result($result); 
@@ -805,6 +861,16 @@ function writelogs($text=null,$function=null,$line=0){
 	@mysql_close($this->mysql_connection);
 	return $result_return;
 	}
+	
+	
+	public function mysql_error_html(){
+		$trace=@debug_backtrace();
+		if(isset($trace[1])){
+			$called="in ". basename($trace[1]["file"])." function {$trace[1]["function"]}() line {$trace[1]["line"]}";
+		}
+		return "<p class=text-error>$this->mysql_error<br>$this->sql<br><i>$called</i></p>";
+	
+	}	
 	
 	function trace_to_string($array){
 		while (list ($num, $ligne) = each ($array) ){
@@ -1768,6 +1834,54 @@ function mysql_real_escape_string2($query){
 		return $array;
 		
 	}	
+	
+	public function LIST_TABLES_ARTICA_BACKUP(){
+		if(isset($GLOBALS["LIST_TABLES_ARTICA_BACKUP"])){return $GLOBALS["LIST_TABLES_ARTICA_BACKUP"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'artica_backup'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+		$GLOBALS["LIST_TABLES_ARTICA_BACKUP"]=$array;
+		return $array;
+	
+	}
+	public function LIST_TABLES_ARTICA_SQUIDLOGS(){
+		if(isset($GLOBALS["LIST_TABLES_ARTICA_SQUIDLOGS"])){return $GLOBALS["LIST_TABLES_ARTICA_SQUIDLOGS"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+		$GLOBALS["LIST_TABLES_ARTICA_SQUIDLOGS"]=$array;
+		return $array;
+	
+	}	
+	
+	public function LIST_TABLES_ARTICA_OCSWEB(){
+		if(isset($GLOBALS["LIST_TABLES_ARTICA_OCSWEB"])){return $GLOBALS["LIST_TABLES_ARTICA_OCSWEB"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'ocsweb'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+	
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$array[$ligne["c"]]=$ligne["c"];
+		}
+		$GLOBALS["LIST_TABLES_ARTICA_OCSWEB"]=$array;
+		return $array;
+	
+	}	
+	
 	public function LIST_TABLES_EVENTS_SQUID(){
 		if(isset($GLOBALS["LIST_TABLES_EVENTS_SQUID"])){return $GLOBALS["LIST_TABLES_EVENTS_SQUID"];}
 		$array=array();
@@ -1818,16 +1932,9 @@ function mysql_real_escape_string2($query){
 	
 	FUNCTION INDEX_EXISTS($table,$index,$database){
 		
-		if(isset($_SESSION["MYSQL_INDEX_EXISTS"])){
-			if($_SESSION["MYSQL_INDEX_EXISTS"][$database][$table][$index]==true){return true;}
-		}
+		if(isset($_SESSION["MYSQL_INDEX_EXISTS"])){if($_SESSION["MYSQL_INDEX_EXISTS"][$database][$table][$index]==true){return true;}}
 		$sql="SHOW INDEX FROM $table WHERE Key_name='$index'";
-		
-		
 		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));
-		
-		
-		
 		if($ligne["Key_name"]<>null){
 			$_SESSION["MYSQL_INDEX_EXISTS"][$database][$table][$index]=true;
 			return true;
@@ -2023,10 +2130,17 @@ function check_vps_tables(){
 		return $q->BuildTables();		
 	}
 	
+	function BuildNetworkTables(){
+		include_once(dirname(__FILE__).'/class.mysql.builder.inc');
+		$q=new mysql_builder();
+		return $q->check_networks_tables();		
+		
+	}
+	
 	public function check_storage_table(){
 		include_once(dirname(__FILE__)."/class.mysql.builder.inc");
 		$q=new mysql_builder();
-		return $q->check_storage_table();
+		return $q->check_storage_table(true);
 	}
 	
 	
@@ -2114,13 +2228,15 @@ function mysql_escape_string2($line){
 	$search=array("\\","\0","\n","\r","\x1a","'",'"');
 	$replace=array("\\\\","\\0","\\n","\\r","\Z","\'",'\"');
 	return str_replace($search,$replace,$line);
-	
-	
-	if(function_exists("mysql_real_escape_string")){
-		return mysql_real_escape_string($line);
-	}
-	return mysql_escape_string($line);
+}
 
+function mysql_escape_line_query($ligne,$removeQuotes=false){
+	while (list ($key, $val) = each ($ligne)){
+		if($removeQuotes){$ligne[$key]=str_replace("'", "", $ligne[$key]);}
+		$ligne[$key]=mysql_escape_string2($ligne[$key]);
+	}
+	reset($ligne);
+	return $ligne;
 }
 
 ?>

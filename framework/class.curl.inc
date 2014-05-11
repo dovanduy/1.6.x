@@ -5,7 +5,7 @@ class CurlHTTP{
 	
 	function CurlHTTP(){
 		if(!function_exists("curl_init")){
-			error_log("unable use curl_init() in ".__FILE__." line ".__LINE__);
+			error_log("[{$_SESSION["uid"]}]::unable use curl_init() in ".__FILE__." line ".__LINE__);
 			return null;
 		}
 		
@@ -16,7 +16,7 @@ class CurlHTTP{
 	function GetFile($filename,$uri){
 		$out = fopen($filename, 'wb');
     	if ($out == FALSE){
-      		error_log("unable to open file $filename in ".__FILE__." line ".__LINE__);
+      		error_log("[{$_SESSION["uid"]}]::unable to open file $filename in ".__FILE__." line ".__LINE__);
       		exit;
     	 }
    

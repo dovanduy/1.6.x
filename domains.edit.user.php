@@ -625,7 +625,7 @@ function AJAX_COMPUTER_RESSOURCES() {
 		<span style='font-size:16px'>$computer->ComputerRealName:: {netressources}</span>
 		<br>
 		<div style='width:100%;height:250px;overflow:auto'>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 		<table >";
 		while ( list ( $num, $ligne ) = each ( $tbl ) ) {
 			
@@ -687,7 +687,7 @@ function AJAX_COMPUTER_OPENPORTS() {
 	$tbl = unserialize(base64_decode($computer->ComputerOpenPorts ));
 	$users = new usersMenus ( );
 	if ($users->nmap_installed) {
-		$button = Paragraphe ( "64-samba-find.png", "$computer->DisplayName", "{scan_it}", "javascript:NmapScanComputer('{$_GET["userid"]}')", "scan_your_network", 210 );
+		$button = Paragraphe ( "64-samba-find.png", "$computer->DisplayName", "{scan_it}", "javascript:Loadjs('nmap.progress.php?MAC=$computer->ComputerMacAddress&ipaddr=$computer->ComputerIP')", "scan_your_network", 210 );
 		$ComputersAllowNmap=$sock->GET_INFO("ComputersAllowNmap");
 		if($ComputersAllowNmap==null){$ComputersAllowNmap=1;}
 		if($ComputersAllowNmap==0){
@@ -1043,7 +1043,7 @@ function AJAX_COMPUTER() {
 		$MacField = "<input type='hidden' name='ComputerMacAddress' id='ComputerMacAddress' value='$computer->ComputerMacAddress'>
 		<code style='font-size:14px'>$computer->ComputerMacAddress</code>";
 	}else{
-		$mac_warn=imgtootltip("status_warning.gif","{WARNING_MAC_ADDRESS_CORRUPT}");
+		$mac_warn=imgtootltip("status_warning.png","{WARNING_MAC_ADDRESS_CORRUPT}");
 		$wakeonlan=Paragraphe("restart-64-grey.png","{wakeup_computer}","{wakeup_computer_text}","" );
 	}
 	
@@ -1079,7 +1079,7 @@ function AJAX_COMPUTER() {
 		$delete
 		</td>
 	<td valign='top' style='vertical-align:top' style='vertical-align:top' width=99% style='vertical-align:top !important'>
-		   <div style='width:95%' class=form>
+		   <div style='width:98%' class=form>
 			<table style='width:100%'>
 				<tr>
 					<td colspan=3><div style='font-size:16px'>{network_information}</div></td>
@@ -1276,6 +1276,11 @@ function AJAX_USER_WARNING(){
 	$users=new usersMenus();
 	$sock=new sockets();
 	$user = new user ( $userid );
+	
+	if($users->PROXYTINY_APPLIANCE){return;}
+	if($users->SQUID_APPLIANCE){return;}
+	
+	
 	if($users->ZARAFA_INSTALLED){
 		if(isset($user->objectClass_array["zarafa-user"])){
 			include_once(dirname(__FILE__)."/ressources/class.mapi-zarafa.inc");
@@ -1419,7 +1424,7 @@ function AJAX_USER_WARNING(){
 	
 	if(count($f)>0){
 		$tpl = new templates ( );
-		$html="<div style='width:95%' class=form><table style='width:100%'><tbody>".@implode("\n", $f)."</tbody></table></form>";
+		$html="<div style='width:98%' class=form><table style='width:100%'><tbody>".@implode("\n", $f)."</tbody></table></form>";
 		echo  $tpl->_ENGINE_parse_body ( $html );
 	}	
 }
@@ -1741,7 +1746,7 @@ function USER_ALIASES($userid) {
 			$delete = imgtootltip ( 'x.gif', '{delete aliase}', "Loadjs('$page?delete-aliases=yes&mail=$ligne&uid=$userid')" );
 			if (! $privilege) {$delete = null;}
 			$ali = $ali . "<tr " . CellRollOver () . ">
-    		<td width=1%><img src='img/mailbox_storage.gif'></td>
+    		<td width=1%><img src='img/mailbox.png'></td>
     		<td style='padding:3px;font-size:14px;font-weight:bolder;color:#005447' width=91% nowrap align='left'>$ligne</td>
     		<td style='padding:3px;' width=1%>" . imgtootltip ( 'test-mail-22.png', '{send_a_test_mail_text}', "Loadjs('postfix.sendtest.mail.php?rcpt=$ligne')" ) . "</td>
     		
@@ -1825,7 +1830,7 @@ function USER_FORM() {
 		
 		
 			<tr>
-				<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-user-64.jpg', '{account}', '{manage_account_text}', "javascript:LoadUsersTab(\"$userid\",\"0\")" ) . "</td>
+				<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'user-64.png', '{account}', '{manage_account_text}', "javascript:LoadUsersTab(\"$userid\",\"0\")" ) . "</td>
 			</tr>
 			<tr>
 			<td valign='top' style='vertical-align:top' style='vertical-align:top'> " . Paragraphe ( 'folder-usermailbox-64.jpg', '{mailbox}', '{manage_mailbox_text}', "javascript:LoadUsersTab(\"$userid\",\"1\")" ) . "</td>		
@@ -2062,7 +2067,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	$html = "
 	<div class=explain>{SAMBA_GROUP_PRIVILEGES_WIZARD}</div>
 	<div id='USER_SAMBA_PRIVILEGES_PAGE'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 		<tr>
 			<td class=legend>{SAMBA_GROUP_PRIVILEGES}</td>
@@ -2078,7 +2083,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	$error
 	<form name='FFMPRIVS_$userid'>
 	<input type='hidden' name='userid' value='$userid'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	$privileges
 	<tr>
@@ -2370,7 +2375,7 @@ function USER_SAMBA_FORM($userid) {
 	$sambaPrimaryGroupSID = Field_array_Hash ( $gps, 'sambaPrimaryGroupGID', $user->sambaPrimaryGroupGID );
 	
 	if ($user->AsAnSambaAccount == 1) {
-		$enablesamba = "<img src='img/status_ok.gif'><input type='hidden' name='AsAnSambaAccount' id='AsAnSambaAccount' value='1'>";
+		$enablesamba = "<img src='img/status_ok.png'><input type='hidden' name='AsAnSambaAccount' id='AsAnSambaAccount' value='1'>";
 	} else {
 		$enablesamba = Field_numeric_checkbox_img ( 'AsAnSambaAccount', $user->AsAnSambaAccount, "{enable_disable}" );
 	}
@@ -2381,7 +2386,7 @@ function USER_SAMBA_FORM($userid) {
 	$html = "
 	<form name='userLdapform'>
 	<input type='hidden' name='SambaUid' value='$userid'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 		<table>
 			<tr>
 				<td align='right'nowrap class=legend>dn:</strong>
@@ -2406,7 +2411,7 @@ function USER_SAMBA_FORM($userid) {
 		</table></div>
 		</form>
 		<div id='sambdirs'>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 <table>
 			<tr>
 				<td align='right' nowrap class=legend>{SambaAdminServerDefined}:</strong>
@@ -2690,7 +2695,7 @@ function USER_CHANGE_EMAIL() {
 	
 	$user_domain = Field_array_Hash ( $domains, 'UserChangeEmailDomain', $domain,"style:font-size:16px'" );
 	$form = Field_hidden ( 'UserChangeEmailAddrUID', $ct->uid ) . "
-	<div id='ChangeUserPasswordID' style='width:95%' class=form>
+	<div id='ChangeUserPasswordID' style='width:98%' class=form>
 	<div style='text-align:left;margin-bottom:8px'><i style='font-size:16px;font-weight:bold;padding-bottom:4px'>$ct->DisplayName, {email}:</i></div>
 	<center>
 	<table >
@@ -2775,7 +2780,7 @@ function USER_CHANGE_PASSWORD() {
 	}
 	
 	$form = Field_hidden ( 'UserPasswordID', $ct->uid ) . "
-	<div id='ChangeUserPasswordID' style='width:95%' class=form>
+	<div id='ChangeUserPasswordID' style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:16px;'>{password}:</td>
@@ -2804,7 +2809,7 @@ function USER_NOTEXISTS($uid,$error=null) {
 	$clean = Paragraphe ( "clean-user-64.png", '{CLEAN_USER_DATAS}', '{CLEAN_USER_EXPLAIN}', "javascript:Loadjs('$page?USER_CLEAN_JS=$uid')" );
 	
 	$html = "
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 	<table >
 	<tr>
 		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
@@ -2941,7 +2946,7 @@ function USER_MESSAGING($userid) {
 	$tr [] = $antispam_leraning;
 	$tr [] = $AmavisSettings;
 	
-	$tables [] = "<center><div style='width:95%' class=form><table><tr>";
+	$tables [] = "<center><div style='width:98%' class=form><table><tr>";
 	$t = 0;
 	while ( list ( $key, $line ) = each ( $tr ) ) {
 		$line = trim ( $line );
@@ -3135,7 +3140,7 @@ function USER_ACCOUNT_POPUP($userid) {
 	
 	
 	if ($us->jpegPhotoError != null) {
-		$imcontact = "contact-unknown-user-64.png";
+		$imcontact = "unknown-user-64.png";
 		$text = "{error_image_missing}<br>$us->jpegPhotoError";
 	} else {
 		$imcontact = $us->img_identity;
@@ -3323,7 +3328,7 @@ function USER_ACCOUNT_POPUP($userid) {
 			</tr>
 		</table>
 		<center>
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 			$tables_formatted
 		</div>
 		</center>";
@@ -3377,14 +3382,13 @@ function USER_MAILBOX_WIZARD_JS() {
 function USER_MAILBOX_WIZARD_STEP1() {
 	
 	$html = "
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
+	<div style='font-size:16px' class=explain>{USER_MAILBOX_WIZARD_STEP1}</div>
+	<div style='width:100%'>
 	<table>
 	<tr>
-		<td valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/mail-wizard-128.png'></td>
-		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
-	<div style='font-size:14px' class=explain>{USER_MAILBOX_WIZARD_STEP1}</div>
-	<div style='font-size:18px'>{mailbox quota}:</div>
-	<div>" . Field_text ( "MailBoxMaxSize", 0, "font-size:18px;padding:5px;width:210px" ) . "
+	<td valign='top' style='vertical-align:middle;font-size:18px' class=legend>{mailbox quota}:</td>
+	<td valign='top' style='vertical-align:top;font-size:18px'>" . Field_text ( "MailBoxMaxSize", 0, "font-size:18px;padding:5px;width:210px" ) . "
 	" . Field_hidden ( "mp_l", 1 ) . "
 	" . Field_hidden ( "mp_r", 1 ) . "
 	" . Field_hidden ( "mp_s", 1 ) . "
@@ -3399,14 +3403,16 @@ function USER_MAILBOX_WIZARD_STEP1() {
 
 	</td>
 	</tr>
-	</table></div>
+	</table>
+	</div>
 	<hr>
 	<table style='width:100%'>
 	<tr>
 		<td style='width:50%' align='left'>" . button ( "{cancel}", "YahooWinHide()","18px" ) . "</td>
-		<td style='width:50%' align='right'>" . button ( "{create_mailbox}", "CreateMailBoxWizardStep2()" ,"18px") . "</td>
+		<td style='width:50%' align='right'>" . button ( "{create_mailbox2}", "CreateMailBoxWizardStep2()" ,"18px") . "</td>
 	</tr>
 	</table>	
+	</div>
 	";
 	
 	$tpl = new templates ( );
@@ -3505,7 +3511,9 @@ function ZARAFA_MAILBOX($uid) {
 	$sock = new sockets();
 	$status = unserialize(base64_decode ( $sock->getFrameWork("cmd.php?zarafa-user-details=$uid")));
 	$languages=unserialize(base64_decode($sock->getFrameWork("zarafa.php?locales=yes")));
-	while (list ($index, $data) = each ($languages) ){$langbox[$data]=$data;}
+	while (list ($index, $data) = each ($languages) ){
+		if(preg_match("#cannot set#i", $data)){continue;}
+		$langbox[$data]=$data;}
 	$langbox[null]="{select}";
 	$zarafa_version=$sock->getFrameWork("zarafa.php?getversion=yes");
 	preg_match("#^([0-9]+)\.#", $zarafa_version,$re);
@@ -3532,7 +3540,7 @@ function ZARAFA_MAILBOX($uid) {
 	<tr>
 		<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><center><img src='img/mailbox-zarafa-128.png' id='zfmbximg'></center><p>&nbsp;</p>$mailboxinfos</td>
 		<td valign='top' style='vertical-align:top' style='vertical-align:top'><span style='font-size:20px;font-weight:bold'>{$u->DisplayName}&nbsp;&raquo;&nbsp;{mailbox}</span>
-				<div style='width:95%' class=form>
+				<div style='width:98%' class=form>
 				<table>
 					<tr>
 						<td class=legend style='font-size:13px'>{mailbox_size}:</td>
@@ -3721,7 +3729,7 @@ function USER_MAILBOX($uid) {
 	$repair = 
 
 	"<br>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
     <table>
     <tr>
     	<td coslpan=2><H3 style='color:#005447'>{tools}</H3></td>
@@ -3841,7 +3849,7 @@ function USER_MAILBOX($uid) {
 		      				</tr>
 		      				<tr>
 		      					<td colspan=2 align='left'>
-		      						<div style='width:95%' class=form>
+		      						<div style='width:98%' class=form>
 		      						<table style='width:60%'>
 			      						<tr>
 					      					<td class=legend>{mplt}:</td> 
@@ -4429,7 +4437,7 @@ function USER_FTP() {
 	$form = "<div id='$time'>
 	 	
       	<input type='hidden' id='UserFTPEdit' name='UserFTPEdit' value='{$_GET["userid"]}'>
-      	<div style='width:95%' class=form>
+      	<div style='width:98%' class=form>
       	<table>
       	
       	<tr>
@@ -4921,7 +4929,7 @@ function USER_CANONICAL_POPUP() {
 <td valign='top' style='vertical-align:top' style='vertical-align:top'>
 <p class=caption>{sender_canonical_text}</p>
 <div id='canonical_div'>
-<div style='width:95%' class=form>
+<div style='width:98%' class=form>
 <table >		
 		<tr>
 			<td align='right' nowrap class=legend $styleTDRight nowrap>{sender_canonical}:</strong>
@@ -5054,7 +5062,7 @@ function USER_TRANSPORT_SALS_POPUP() {
 		<td valign='top' style='vertical-align:top' style='vertical-align:top'><img src='img/inboux-out-128.png'></td>
 		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 		<div id='sasl_div'>
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			<table>
 				<tr>
 					<td valign='top' style='vertical-align:top' style='vertical-align:top' class=legend nowrap>{username}:</td>
@@ -5097,7 +5105,7 @@ function USER_CHANGE_UID() {
 	$html = "
 	<div class=explain>{change_uid_explain}</div>
 	<div id='chuiseriddiv'>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:13px'>{original}:</td>
@@ -5385,9 +5393,9 @@ function TOOL_SYNC_STEP2() {
 	<tr>
 		<td colspan=4 align='center' style='border-bottom:1px dotted #CCCCCC'><strong style='font-size:12px'>{export_mailbox}</strong></td>
 	<tr>
-		<td align='center'><img src='img/mailbox.gif'></td>
+		<td align='center'><img src='img/mailbox.png'></td>
 		<td align='center' width=1%><img src='img/fw_bold.gif'></td>
-		<td align='center'><img src='img/mailbox.gif'></td>
+		<td align='center'><img src='img/mailbox.png'></td>
 	</tr>
 	<tr>
 		<td align='center'><strong>$uid</strong></td>
@@ -5652,63 +5660,63 @@ function USER_SAFEBOX() {
 function USER_PRIVILEGES() {
 	$GLOBALS["DEBUG_PRIVS"]=true;
 	$users = new usersMenus();
-	$AllowEditOuSecurity = "status_critical.gif";
-	$AsOrgPostfixAdministrator = "status_critical.gif";
-	$AsQuarantineAdministrator = "status_critical.gif";
-	$AsMailManAdministrator = "status_critical.gif";
-	$AsOrgStorageAdministrator = "status_critical.gif";
-	$AsMessagingOrg = "status_critical.gif";
-	$AllowAddUsers = "status_critical.gif";
-	$AsDansGuardianGroupRule = "status_critical.gif";
-	$AsOrgAdmin = "status_critical.gif";
-	$AsInventoryAdmin = "status_critical.gif";
-	$AllowChangeAntiSpamSettings = "status_critical.gif";
-	$AllowChangeUserPassword = "status_critical.gif";
-	$AllowFetchMails = "status_critical.gif";
-	$AllowChangeUserKas = "status_critical.gif";
-	$AllowEditAliases = "status_critical.gif";
-	$AllowChangeMailBoxRules = "status_critical.gif";
-	$AllowSenderCanonical = "status_critical.gif";
-	$AllowOpenVPN = "status_critical.gif";
-	$AllowDansGuardianBanned = "status_critical.gif";
-	$AllowXapianDownload = "status_critical.gif";
-	$AllowManageOwnComputers = "status_critical.gif";
-	$AllowEditAsWbl = "status_critical.gif";
-	$AllowChangeDomains= "status_critical.gif";
-	$OverWriteRestrictedDomains= "status_critical.gif";
-	$AsWebMaster= "status_critical.gif";
+	$AllowEditOuSecurity = "status_critical.png";
+	$AsOrgPostfixAdministrator = "status_critical.png";
+	$AsQuarantineAdministrator = "status_critical.png";
+	$AsMailManAdministrator = "status_critical.png";
+	$AsOrgStorageAdministrator = "status_critical.png";
+	$AsMessagingOrg = "status_critical.png";
+	$AllowAddUsers = "status_critical.png";
+	$AsDansGuardianGroupRule = "status_critical.png";
+	$AsOrgAdmin = "status_critical.png";
+	$AsInventoryAdmin = "status_critical.png";
+	$AllowChangeAntiSpamSettings = "status_critical.png";
+	$AllowChangeUserPassword = "status_critical.png";
+	$AllowFetchMails = "status_critical.png";
+	$AllowChangeUserKas = "status_critical.png";
+	$AllowEditAliases = "status_critical.png";
+	$AllowChangeMailBoxRules = "status_critical.png";
+	$AllowSenderCanonical = "status_critical.png";
+	$AllowOpenVPN = "status_critical.png";
+	$AllowDansGuardianBanned = "status_critical.png";
+	$AllowXapianDownload = "status_critical.png";
+	$AllowManageOwnComputers = "status_critical.png";
+	$AllowEditAsWbl = "status_critical.png";
+	$AllowChangeDomains= "status_critical.png";
+	$OverWriteRestrictedDomains= "status_critical.png";
+	$AsWebMaster= "status_critical.png";
 	
-	if ($users->AllowChangeAntiSpamSettings) {$AllowChangeAntiSpamSettings = "status_ok.gif";}
-	if ($users->AllowChangeUserPassword) {$AllowChangeUserPassword = "status_ok.gif";}
-	if ($users->AllowFetchMails) {$AllowFetchMails = "status_ok.gif";}
-	if ($users->AllowChangeUserKas) {$AllowChangeUserKas = "status_ok.gif";}
-	if ($users->AllowChangeMailBoxRules) {$AllowChangeMailBoxRules = "status_ok.gif";}
-	if ($users->AllowSenderCanonical) {$AllowSenderCanonical = "status_ok.gif";}
-	if ($users->AllowOpenVPN) {$AllowOpenVPN = "status_ok.gif";}
-	if ($users->AllowDansGuardianBanned) {$AllowDansGuardianBanned = "status_ok.gif";}
-	if ($users->AllowXapianDownload) {$AllowXapianDownload = "status_ok.gif";}
-	if ($users->AllowEditAsWbl) {$AllowEditAsWbl = "status_ok.gif";}
-	if ($users->AllowChangeDomains) {$AllowChangeDomains = "status_ok.gif";}
-	if ($users->OverWriteRestrictedDomains) {$OverWriteRestrictedDomains = "status_ok.gif";}
-	if ($users->AsWebMaster) {$AsWebMaster = "status_ok.gif";}			
+	if ($users->AllowChangeAntiSpamSettings) {$AllowChangeAntiSpamSettings = "status_ok.png";}
+	if ($users->AllowChangeUserPassword) {$AllowChangeUserPassword = "status_ok.png";}
+	if ($users->AllowFetchMails) {$AllowFetchMails = "status_ok.png";}
+	if ($users->AllowChangeUserKas) {$AllowChangeUserKas = "status_ok.png";}
+	if ($users->AllowChangeMailBoxRules) {$AllowChangeMailBoxRules = "status_ok.png";}
+	if ($users->AllowSenderCanonical) {$AllowSenderCanonical = "status_ok.png";}
+	if ($users->AllowOpenVPN) {$AllowOpenVPN = "status_ok.png";}
+	if ($users->AllowDansGuardianBanned) {$AllowDansGuardianBanned = "status_ok.png";}
+	if ($users->AllowXapianDownload) {$AllowXapianDownload = "status_ok.png";}
+	if ($users->AllowEditAsWbl) {$AllowEditAsWbl = "status_ok.png";}
+	if ($users->AllowChangeDomains) {$AllowChangeDomains = "status_ok.png";}
+	if ($users->OverWriteRestrictedDomains) {$OverWriteRestrictedDomains = "status_ok.png";}
+	if ($users->AsWebMaster) {$AsWebMaster = "status_ok.png";}			
 	
 	
-	if($users->AllowEditOuSecurity) {$AllowEditOuSecurity = "status_ok.gif";}
-	if($users->AsOrgPostfixAdministrator) {$AsOrgPostfixAdministrator = "status_ok.gif";}
-	if($users->AsQuarantineAdministrator) {$AsQuarantineAdministrator = "status_ok.gif";}
-	if($users->AsMailManAdministrator) {$AsMailManAdministrator = "status_ok.gif";}
-	if($users->AsOrgStorageAdministrator) {$AsOrgStorageAdministrator = "status_ok.gif";}
-	if($users->AsMessagingOrg) {$AsMessagingOrg = "status_ok.gif";}
-	if($users->AllowAddUsers) {$AllowAddUsers = "status_ok.gif";}
-	if($users->AsDansGuardianGroupRule) {$AsDansGuardianGroupRule = "status_ok.gif";}
-	if($users->AsOrgAdmin) {$AsOrgAdmin = "status_ok.gif";}
-	if($users->AsInventoryAdmin){$AsInventoryAdmin = "status_ok.gif";}
-	if($users->AllowEditAliases){$AllowEditAliases = "status_ok.gif";}
+	if($users->AllowEditOuSecurity) {$AllowEditOuSecurity = "status_ok.png";}
+	if($users->AsOrgPostfixAdministrator) {$AsOrgPostfixAdministrator = "status_ok.png";}
+	if($users->AsQuarantineAdministrator) {$AsQuarantineAdministrator = "status_ok.png";}
+	if($users->AsMailManAdministrator) {$AsMailManAdministrator = "status_ok.png";}
+	if($users->AsOrgStorageAdministrator) {$AsOrgStorageAdministrator = "status_ok.png";}
+	if($users->AsMessagingOrg) {$AsMessagingOrg = "status_ok.png";}
+	if($users->AllowAddUsers) {$AllowAddUsers = "status_ok.png";}
+	if($users->AsDansGuardianGroupRule) {$AsDansGuardianGroupRule = "status_ok.png";}
+	if($users->AsOrgAdmin) {$AsOrgAdmin = "status_ok.png";}
+	if($users->AsInventoryAdmin){$AsInventoryAdmin = "status_ok.png";}
+	if($users->AllowEditAliases){$AllowEditAliases = "status_ok.png";}
 	
 	
 	
 	$group_allow = "<H3>{groups_allow}</H3><br>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 		<table >
 		
 			<tr>
@@ -5721,7 +5729,7 @@ function USER_PRIVILEGES() {
 ";
 	
 	$org_allow = "<H3>{organization_allow}</H3><br>
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 <table >	
 	<tr><td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AllowEditOuSecurity}:</td><td width=1%><img src='img/$AllowEditOuSecurity'></td></tr>
 	<tr><td align='right' nowrap><strong style='font-size:13px;font-weight:normal'>{AsInventoryAdmin}:</td><td width=1%><img src='img/$AsInventoryAdmin'></td></tr>	
@@ -5768,7 +5776,7 @@ function USER_PRIVILEGES() {
 	
 	
 	$user_allow = "<H3>{users_allow}</H3><br>
-					<div style='width:95%' class=form>
+					<div style='width:98%' class=form>
 					<table>
 																	
 						<tr>
@@ -5835,16 +5843,16 @@ function COMPUTER_CHECK_MAC(){
 	$uid=trim($comp->ComputerIDFromMAC($mac));
 	if($uid<>null){
 		if($uid<>$_GET["userid"]){
-			echo $tpl->_ENGINE_parse_body(imgtootltip("status_warning.gif","{this_mac_address_is_already_used_by}:$uid"));
+			echo $tpl->_ENGINE_parse_body(imgtootltip("status_warning.png","{this_mac_address_is_already_used_by}:$uid"));
 			return;
 		}
 	}
 	if (!IsPhysicalAddress($_GET["ComputerMacAddressFindUid"])) {
-		echo $tpl->_ENGINE_parse_body(imgtootltip("status_warning.gif","{WARNING_MAC_ADDRESS_CORRUPT}"));
+		echo $tpl->_ENGINE_parse_body(imgtootltip("status_warning.png","{WARNING_MAC_ADDRESS_CORRUPT}"));
 		return;
 	}
 	
-	echo "<img src='img/icon_ok.gif'>";	
+	echo "<img src='img/ok16.png'>";	
 }
 
 function ZARAFA_MAILBOX_INFOS_JS(){

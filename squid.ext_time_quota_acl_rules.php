@@ -205,7 +205,7 @@ function rules_list(){
 		$ligne['rulename']=utf8_encode($ligne['rulename']);
 		
 		$delete=imgsimple("delete-24.png",null,"DeleteSessionRule$tt('{$ligne['ID']}')");
-		if($ligne["enabled"]==0){$color="#9C9C9C";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 
 		//$explain=$tpl->_ENGINE_parse_body($acls->ACL_MULTIPLE_EXPLAIN($ligne['ID'],$ligne["enabled"]));
 

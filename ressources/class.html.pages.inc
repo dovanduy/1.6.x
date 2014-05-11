@@ -329,7 +329,7 @@ function PageOrganisations(){
 	<td>
 		<table style='width:100%'>
 		<tr>
-		<td width='1%'><img src='img/add-22.gif'></td>
+		<td width='1%'><img src='img/add-22.png'></td>
 		<td><input type='button' value='{add_new_organisation}&nbsp;&raquo;' OnClick=\"javascript:TreeAddNewOrganisation();\"></td>
 		</tr>";
 	
@@ -570,10 +570,10 @@ function PagePostfixsmtpd_client_restrictions_table($noform=0,$Sender=0){
 			$data=$ligne["datas"];
 		
 			switch ($icon_array[1][$field]["mode"]) {
-				case 'allow':$img='icon_ok.gif';break;
+				case 'allow':$img='ok16.png';break;
 				case 'disallow':$img='icon_err.gif';break;
-				case 'warn':$img='icon_info.gif';break;
-				default:$img='icon_info.gif';break;
+				case 'warn':$img='16-infos.png';break;
+				default:$img='16-infos.png';break;
 			}
 			
 			$tooltip=tooltipjs("{{$ligne["value"]}_text}",1);
@@ -715,7 +715,7 @@ function PagePostfixSMTPSaslAuth(){
 		<table style='width:100%;border:1px solid #CCCCCC' align='center'>
 		<tr style='background-color:#eeeeee'>
 			$button_domain
-			<td width=1% align='center'>" . imgtootltip('add-group-48.gif','{add group explain}',"Tree_group_Add_New('{$hash["ou"]}','$ldap->suffix')") ."</td>
+			<td width=1% align='center'>" . imgtootltip('add-group-48.png','{add group explain}',"Tree_group_Add_New('{$hash["ou"]}','$ldap->suffix')") ."</td>
 			<td width=1% align='center'>" . imgtootltip('adduser-48.gif','{add user explain}',"Tree_ou_Add_user('{$hash["ou"]}','$ldap->suffix')") ."</td>
 			<td width=1% align='center'>" . imgtootltip('import-users-48.gif','{import users}',"s_PopUp('export.listener.php?ou={$hash["ou"]}&suffix=$ldap->suffix&mode=ImportUsers',500,500);") ."</td>
 			<td width=1% align='center'>" . imgtootltip('find-48.gif','{import users}',"TreeOuLoadPageFindUser('{$hash["ou"]}');") ."</td>
@@ -764,7 +764,7 @@ function PagePostfixSMTPSaslAuth(){
     				if($uid<>null){
     					$mail=$ligne["mail"][0];
     					$tooltip="<div style=border:1px solid #CCCCCC><strong>$uid</strong><br>$mail</strong>";
-    					$results=$results . "<tr><td width=1%>" . imgtootltip('user-single-18.gif',$tooltip,"EditLdapUser('{$ligne["dn"]}')")."<td>" . texttooltip($ligne["displayname"][0],$tooltip,"EditLdapUser('{$ligne["dn"]}')") . "</td></tr>";
+    					$results=$results . "<tr><td width=1%>" . imgtootltip('user-18.png',$tooltip,"EditLdapUser('{$ligne["dn"]}')")."<td>" . texttooltip($ligne["displayname"][0],$tooltip,"EditLdapUser('{$ligne["dn"]}')") . "</td></tr>";
     				}
     				}
     			$results=$results . "</table>";
@@ -793,7 +793,7 @@ function PagePostfixSMTPSaslAuth(){
     	<table style='width:80%;border:1px solid #CCCCCC' align='center'>
 		<tr style='background-color:#eeeeee'>
 			<td width=1% align='center'>" . imgtootltip('edit-48.gif','{edit group explain}',"Tree_Internet_Domain_Add_New('$dn','ou:$dn')") ."</td>
-			<td width=1% align='center'>" . imgtootltip('add-group-48.gif','{add group explain}',"Tree_group_Add_New('{$hash["ou"]}','$ldap->suffix')") ."</td>
+			<td width=1% align='center'>" . imgtootltip('add-group-48.png','{add group explain}',"Tree_group_Add_New('{$hash["ou"]}','$ldap->suffix')") ."</td>
 			<td width=1% align='center'>" . imgtootltip('adduser-48.gif','{add user explain}',"Tree_group_Add_user('{$hash["ou"]}','$ldap->suffix')") ."</td>
 			
 		</tr>
@@ -805,7 +805,7 @@ function PagePostfixSMTPSaslAuth(){
     	<input type='hidden' id='inputbox delete group' value=\"{inputbox delete group}\">
     	<table style='width:100%'>
 				<tr>
-					<td width=1% valign='top'><img src='img/users-folder-64.gif'></td>
+					<td width=1% valign='top'><img src='img/user-64.png'></td>
 					<td valign='top'>
 						<table style='width:100%'>
 						<tr>
@@ -1161,7 +1161,7 @@ function PagePostfixSMTPSaslAuth(){
 			<table>
 				<tr>
 				<td valign='top' width=1%>
-					<img src='img/apply-config-44.gif'>
+					<img src='img/apply-config-44.png'>
 				</td>
 				<td style='padding:4px'>
 				<strong style='font-size:11px'><i>{apply config text}</i></strong>

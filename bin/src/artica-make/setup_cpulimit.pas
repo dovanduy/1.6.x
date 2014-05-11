@@ -95,7 +95,7 @@ if  RemoteVersionInt<=BinVersion then begin
     writeln('NO necessary to update');
     exit;
 end;
-    monit.STOP();
+
 install.INSTALL_STATUS('APP_MONIT',20);
 install.INSTALL_PROGRESS('APP_MONIT','{downloading}');
 source_folder:=libs.COMPILE_GENERIC_APPS('monit');

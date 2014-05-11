@@ -4,6 +4,7 @@ class auth_tail{
 	var $maxttempts;
 	
 	function auth_tail(){
+		if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();}
 		$this->maxttempts=$GLOBALS["CLASS_SOCKET"]->GET_INFO("SSHDHackMaxAttempts");
@@ -51,10 +52,10 @@ class auth_tail{
 		
 		if(preg_match("#sshd.+?Accepted keyboard-interactive\/pam for\s+(.+?)\s+from\s+(.+?)\s+port#",$buffer,$re)){
 			$this->events("{$re[2]} [{$re[1]}] connected");
-			@mkdir("/var/log/artica-postfix/sshd-success",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-success",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-success/$time",serialize($array));	
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-success/$time",serialize($array));	
 			return true;		
 		}
 		
@@ -67,10 +68,10 @@ class auth_tail{
 		
 		if(preg_match("#sshd.+?Accepted password for\s+(.+?)\s+from\s+(.+?)\s+#",$buffer,$re)){
 			$this->events("{$re[2]} [{$re[1]}] connected");
-			@mkdir("/var/log/artica-postfix/sshd-success",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-success",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-success/$time",serialize($array));	
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-success/$time",serialize($array));	
 			return true;		
 		}
 		
@@ -89,57 +90,57 @@ class auth_tail{
 		if(preg_match("#sshd.+?Invalid user\s+(.+?)\s+from\s+(.+?)$#",$buffer,$re)){
 			$this->events("invalid user: {$re[2]} [{$re[1]}] ");
 			$this->count_attack($re[2]);
-			@mkdir("/var/log/artica-postfix/sshd-failed",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-failed/$time",serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/$time",serialize($array));
 			return true;
 		}
 		
 		if(preg_match("#sshd\[.+?Failed none for invalid user\s+(.*?)\s+from\s+(.*?)\s+port.*?ssh2#",$buffer,$re)){
 			$this->events("invalid user: {$re[2]} [{$re[1]}] ");
 			$this->count_attack($re[2]);
-			@mkdir("/var/log/artica-postfix/sshd-failed",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-failed/$time",serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/$time",serialize($array));
 			return true;			
 		}
 		
 		if(preg_match("#sshd.+?error: PAM: Authentication failure for\s+(.+?)\s+from\s+(.+)#",$buffer,$re)){
 			$this->events("Authentication failure: {$re[2]} [{$re[1]}] ");
 			$this->count_attack($re[2]);
-			@mkdir("/var/log/artica-postfix/sshd-failed",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-failed/$time",serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/$time",serialize($array));
 			return true;
 		}
 		
 		if(preg_match("#sshd.+?Accepted password for (.+?)\s+from\s+(.+?)\s+port#i",$buffer,$re)){
 			$this->events("{$re[2]} [{$re[1]}] connected");
-			@mkdir("/var/log/artica-postfix/sshd-success",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-success",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-success/$time",serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-success/$time",serialize($array));
 		}
 		
 		if(preg_match("#Failed password for invalid user\s+(.+?)\s+from\s+(.+?)\s+#",$buffer,$re)){
 			$this->count_attack($re[2]);
-			@mkdir("/var/log/artica-postfix/sshd-failed",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-failed/$time",serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/$time",serialize($array));
 			return true;
 			
 		}
 		
 		if(preg_match("#Failed password for\s+(.+?)\s+from\s+(.+?)\s+#",$buffer,$re)){
 			$this->count_attack($re[2]);
-			@mkdir("/var/log/artica-postfix/sshd-failed",644,true);
+			@mkdir("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed",644,true);
 			$array[$re[2]]=$re[1];
 			$time=time();
-			@file_put_contents("/var/log/artica-postfix/sshd-failed/$time",serialize($array));
+			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/sshd-failed/$time",serialize($array));
 			return true;
 		}
 		
@@ -188,14 +189,14 @@ class auth_tail{
 	private function events($text){
 		$pid=@getmypid();
 		$filename=basename(__FILE__);
-		$date=@date("h:i:s");
-		$logFile="/var/log/artica-postfix/auth-tail.debug";
+		$date=@date("H:i:s");
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/auth-tail.debug";
 		$size=@filesize($logFile);
 		if($size>1000000){@unlink($logFile);}
 		$f = @fopen($logFile, 'a');
 		@fwrite($f, "$pid ".basename(__FILE__)." $text\n");
 		@fclose($f);	
-		$logFile="/var/log/artica-postfix/syslogger.debug";
+		$logFile="{$GLOBALS["ARTICALOGDIR"]}/syslogger.debug";
 		if(!isset($GLOBALS["CLASS_UNIX"])){
 			include_once(dirname(__FILE__)."/framework/class.unix.inc");
 			$GLOBALS["CLASS_UNIX"]=new unix();

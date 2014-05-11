@@ -584,11 +584,15 @@ function Tlogs.FILE_TEMP():string;
 var
    stmp:string;
    mypid:string;
+   SysTmpDir:string;
 begin
 mypid:=IntToStr(fpgetpid);
 stmp:=MD5FromString(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
+SysTmpDir:=trim(GET_INFO('SysTmpDir'));
+if length(SysTmpDir)=0 then SysTmpDir:='/home/artica/tmp';
+if not DirectoryExists(SysTmpDir) then forceDirectories(SysTmpDir);
+result:=GetTempFileName(SysTmpDir,ExtractFileName(ParamStr(0))+'-'+stmp+'-'+mypid+'-');
 
-result:=GetTempFileName('',ExtractFileName(ParamStr(0))+'-'+stmp+'-'+mypid+'-')
 end;
 
 

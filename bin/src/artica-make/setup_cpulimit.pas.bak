@@ -118,7 +118,7 @@ end;
     if FileExists(monit.BIN_PATH()) then begin
     install.INSTALL_STATUS('APP_MONIT',100);
     install.INSTALL_PROGRESS('APP_MONIT','{success}');
-    monit.START();
+    fpsystem('/etc/init.d/artica-postfix restart monit');
     end;
 
 end;

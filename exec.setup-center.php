@@ -7,6 +7,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
@@ -152,6 +153,12 @@ function ParseProducts(){
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$timefile=$unix->file_time_min($pidfile);
 			system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__,"setup");
+			die();
+		}
+		
+		if($GLOBALS["VERBOSE"]){"->isMaxInstances()\n";}
+		if($unix->isMaxInstances()){
+			if($GLOBALS["VERBOSE"]){"->isMaxInstances -> TRUE -> DIE\n";}
 			die();
 		}
 		

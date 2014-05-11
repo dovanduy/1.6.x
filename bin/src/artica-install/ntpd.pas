@@ -275,17 +275,10 @@ begin
      if NTPDEnabled=0 then begin
          result:=ini.Text;
          ini.free;
-         SYS.MONIT_DELETE('APP_NTPD');
+
          exit;
      end;
 
-      if SYS.MONIT_CONFIG('APP_NTPD','/var/run/ntpd.pid','ntpd') then begin
-         ini.Add('monit=1');
-         result:=ini.Text;
-         ini.free;
-         exit;
-      end;
-     
 
 pid:=NTPD_PID();
 

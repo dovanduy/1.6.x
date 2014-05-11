@@ -3,7 +3,8 @@
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
 	include_once('ressources/class.mysql.inc');
-
+	if(!isset($_GET["t"])){$_GET["t"]=time();}
+	if(!is_numeric($_GET["t"])){$_GET["t"]=time();}
 	
 	$user=new usersMenus();
 	if(($user->AsSystemAdministrator==false) OR ($user->AsSambaAdministrator==false)) {
@@ -14,43 +15,72 @@
 		exit;
 	}
 
+	
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
 	if(isset($_GET["items"])){items();exit;}
+	if(isset($_GET["certificate-edit-js"])){certificate_edit_js();exit;}
+	if(isset($_GET["certificate-edit-tabs"])){certificate_edit_tabs();exit;}
 	if(isset($_GET["certificate-js"])){certificate_single_js();exit;}
 	if(isset($_GET["certificate-popup"])){certificate_infos();exit;}
-	if(isset($_GET["certificate-tabs"])){certificate_tabs();exit;}
 	if(isset($_POST["commonName"])){certificate_save();exit;}
-	if(isset($_GET["PrivateKey"])){PrivateKey();exit;}
-	if(isset($_GET["csr"])){csr();exit;}
-	if(isset($_GET["squidTabs"])){squidTabs();exit;}
-	if(isset($_GET["Squidkey"])){Squidkey();exit;}
-	if(isset($_GET["SquidCert"])){SquidCert();exit;}
+
 	if(isset($_GET["SquidValidate"])){SquidValidate();exit;}
 	if(isset($_GET["SquidValidatePerform"])){SquidValidatePerform();exit;}
 	
 	if(isset($_POST["generate-key"])){generate_key();exit;}
 	if(isset($_GET["generate-x509"])){generate_x509();exit;}
-	if(isset($_GET["crt"])){crt();exit;}
-	if(isset($_GET["bundle"])){bundle();exit;}
 	if(isset($_GET["tools"])){tools();exit;}
 	if(isset($_GET["x509-js"])){x509_js();exit;}
-	if(isset($_POST["save-crt"])){save_crt();exit;}
-	if(isset($_POST["save-Squidkey"])){save_Squidkey();exit;}
-	if(isset($_POST["save-SquidCert"])){save_SquidCert();exit;}
 	if(isset($_POST["delete-certificate"])){certificate_delete();exit;}
 	
 	
-	if(isset($_POST["save-bundle"])){save_bundle();exit;}
+	
 	js();
+	
+function tabs(){
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$fontsize=16;
+	
+	$array["popup"]="{certificates_center}";
+	
+	
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	
+	$html=build_artica_tabs($html,'main_certificates_center_tabs',975)."<script>LeftDesign('certificate-white-256-opac20.png');</script>";
+	
+	echo $html;
+	
+	
+}
 	
 function certificate_single_js(){
 	$CommonName=$_GET["CommonName"];
 	$page=CurrentPageName();
 	$YahooWin3="YahooWin3";
+	$t=$_GET["t"];
 	if(isset($_GET["YahooWin"])){$YahooWin3=$_GET["YahooWin"];}
 	echo "$YahooWin3('895','$page?certificate-tabs=yes&t=$t&CommonName=$CommonName&YahooWin=$YahooWin3','$CommonName');";	
 	
 }	
+
+function certificate_edit_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{certificate}:{$_GET["CommonName"]}");
+	$CommonName=urlencode($_GET["CommonName"]);
+	echo "YahooWin6(800,'$page?certificate-edit-tabs=yes&CommonName=$CommonName&t={$_GET["t"]}','$title')";
+
+}
 	
 function js(){
 	$page=CurrentPageName();
@@ -129,7 +159,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 830,
+	width: '99%',
 	height: 500,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -138,7 +168,8 @@ $('#flexRT$t').flexigrid({
 }
 
 function new_certificate$t(){
-	YahooWin3('700','$page?certificate-tabs=yes&t=$t&CommonName=&YahooWin=YahooWin3','$new_certificate');
+	Loadjs('miniadmin.certificates.php?wizard-certificate-js=yes&t=$t');
+	
 }
 function certificate$t(CommonName){
 	YahooWin3('895','$page?certificate-tabs=yes&t=$t&CommonName='+CommonName+'&YahooWin=YahooWin3',CommonName);
@@ -216,14 +247,17 @@ function items(){
 	
 	if(!$q->ok){json_error_show($q->mysql_error);}	
 	
+	if(mysql_num_rows($results)==0){json_error_show("no data",1);}
+	
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
-	$zmd5=md5($ligne["filename"]);
+	$zmd5=md5(serialize($ligne));
 	$delete=imgsimple("delete-24.png","","DeletSSlCertificate$t('{$ligne["CommonName"]}','$zmd5')");
+	$delete=imgsimple("delete-24.png",null,"Loadjs('miniadmin.certificates.php?delete-certificate-js={$ligne["CommonName"]}&id=$zmd5')");
 	
-	
-	$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:certificate$t('{$ligne["CommonName"]}');\"
+	$jsEdit="Loadjs('$MyPage?certificate-edit-js=yes&CommonName={$ligne["CommonName"]}');";
+	$urljs="<a href=\"javascript:blur();\" OnClick=\"$jsEdit\"
 	style='font-size:16px;color:$color;text-decoration:underline'>";
 	
 	$data['rows'][] = array(
@@ -243,224 +277,60 @@ echo json_encode($data);
 	
 }
 
-function squidTabs(){
-	$tpl=new templates();
-	$page=CurrentPageName();	
-	$CommonName=$_GET["CommonName"];
-	$YahooWin=$_GET["YahooWin"];	
-	$array["Squidkey"]='{private_key}';
-	$array["SquidCert"]="{certificate}";
-	//$array["SquidValidate"]="{validate}";
-	
-	while (list ($num, $ligne) = each ($array) ){
-	
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&CommonName=$CommonName&YahooWin={$_GET["YahooWin"]}&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
-	}
-	
-	echo "
-	<div id=main_config_certificate_proxy style='width:100%'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_certificate_proxy').tabs();
-		
-		
-			});
-		</script>";	
-	
-}
 
-function certificate_tabs(){
-	$tpl=new templates();
-	$page=CurrentPageName();
-	$t=time();
-	$sock=new sockets();
-	$CommonName=$_GET["CommonName"];
-	$YahooWin=$_GET["YahooWin"];
-	$array["certificate-popup"]='{parameters}';
-	$squid=false;
-	$users=new usersMenus();
-	if($users->SQUID_INSTALLED){$squid=true;}
-	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
-	if($EnableWebProxyStatsAppliance==1){$squid=true;}
-	
-	if($CommonName<>null){
-		$array["PrivateKey"]='{private_key}';
-		$array["csr"]='CSR';
-		$array["crt"]='{certificate}';
-		$array["bundle"]='{certificate_chain}';
-		if($squid){
-			$array["squidTabs"]="Proxy:{certificate}";
-			
-		}
-		$array["tools"]="{tools}";
-		
-	}
-	
-	while (list ($num, $ligne) = each ($array) ){
-		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&CommonName=$CommonName&YahooWin={$_GET["YahooWin"]}&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
-	}
 
-	echo build_artica_tabs($html, "main_config_certificate");
-
-	
-}
-
-function certificate_infos(){
-	$t=$_GET["t"];
+function certificate_edit_tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$sock=new sockets();
-	$users=new usersMenus();
-	$q=new mysql();
-	$buttonname="{add}";
-	$CommonName=$_GET["CommonName"];
-	$tt=time();
+	$page="miniadmin.certificates.php";
+	$PageMe=CurrentPageName();
+	$CommonName=urlencode($_GET["CommonName"]);
+	$array["settings"]="{settings}";
+	$array["CSR"]="{CSR}";
+	$array["certificate"]="{certificate}";
+	$array["apache_chain"]="{apache_chain}";
+	$array["DynCert"]="{dynamic_chain}";
+	$array["tools"]="{tools}";
 	
-	$db=file_get_contents(dirname(__FILE__) . '/ressources/databases/ISO-3166-Codes-Countries.txt');
-	$tbl=explode("\n",$db);
-	while (list ($num, $ligne) = each ($tbl) ){
-		if(preg_match('#(.+?);\s+([A-Z]{1,2})#',$ligne,$regs)){
-			$regs[2]=trim($regs[2]);
-			$regs[1]=trim($regs[1]);
-			$array_country_codes["{$regs[1]}_{$regs[2]}"]=$regs[1];
-			}
-		}
-		
-	if($CommonName<>null){
-		$sql="SELECT *  FROM sslcertificates WHERE CommonName='$CommonName'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-		$buttonname="{apply}";
-	}		
-		
-	
-	
-	if($ligne["CountryName"]==null){$ligne["CountryName"]="UNITED STATES_US";}	
-	if($ligne["stateOrProvinceName"]==null){$ligne["stateOrProvinceName"]="New York";}
-	if($ligne["localityName"]==null){$ligne["localityName"]="Brooklyn";}
-	if($ligne["emailAddress"]==null){$ligne["emailAddress"]="postmaster@localhost.localdomain";}
-	if($ligne["OrganizationName"]==null){$ligne["OrganizationName"]="MyCompany Ltd";}
-	if($ligne["OrganizationalUnit"]==null){$ligne["OrganizationalUnit"]="IT service";}						
-	
-	
-	
-	
-	$country_name=Field_array_Hash($array_country_codes,"CountryName-$tt",$ligne["CountryName"],
-	"style:font-size:14px;padding:3px");
-	
-	
-	if(!is_numeric($ligne["CertificateMaxDays"])){$ligne["CertificateMaxDays"]=730;}
-	if($ligne["CommonName"]==null){$ligne["CommonName"]=$users->hostname;}
-	$html="
-	<div id='$tt-adddis'></div>
-	<div style='width:95%' class=form>
-	<table style='width:100%'>
-	<tbody>
-		<tr>
-			<td class=legend style='font-size:14px'>{commonName}:</strong></td>
-			<td align='left'>" . Field_text("commonName-$tt",$ligne["CommonName"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>
-	
-		<tr>
-			<td align='left' class=legend style='font-size:14px'><strong>{countryName}</strong>:</td>
-			<td >$country_name</td>
-		</tr>
-		<tr>
-		<td class=legend style='font-size:14px'>{stateOrProvinceName}:</strong></td>
-		<td align='left'>" . Field_text("stateOrProvinceName-$tt",$ligne["stateOrProvinceName"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>
-		<tr>
-		<td class=legend style='font-size:14px'>{localityName}:</strong></td>
-		<td align='left'>" . Field_text("localityName-$tt",$ligne["localityName"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>	
-		<tr>
-		<td class=legend style='font-size:14px'>{CertificateMaxDays}:</strong></td>
-		<td align='left' style='font-size:14px;width:40px;padding:3px'>" . Field_text("CertificateMaxDays-$tt",$ligne["CertificateMaxDays"],"font-size:14px;width:40px;padding:3px")  . "&nbsp;{days}</td>
-		</tr>	
-		<tr>
-		<td class=legend style='font-size:14px'>{organizationName}:</strong></td>
-		<td align='left'>" . Field_text("OrganizationName-$tt",$ligne["OrganizationName"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>				
-		<tr>
-		<td class=legend style='font-size:14px'>{organizationalUnitName}:</strong></td>
-		<td align='left'>" . Field_text("OrganizationalUnit-$tt",$ligne["OrganizationalUnit"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>	
+	$id=md5($CommonName);
 
-		<tr>
-		<td class=legend style='font-size:14px'>{emailAddress}:</strong></td>
-		<td align='left'>" . Field_text("emailAddress-$tt",$ligne["emailAddress"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>	
-		<tr>
-		<td class=legend style='font-size:14px'>{password}:</strong></td>
-		<td align='left'>" . Field_text("password-$tt",$ligne["password"],"font-size:14px;width:250px;padding:3px")  . "</td>
-		</tr>	
-		<tr><td colspan=2 align='right'>
-		<hr>
-			". button("$buttonname","SaveSSLCert$tt()","18px"). "
-		
-		</td>
-		</tr>
-		</tbody>
-	</table>
-	</div>
-	
-	<script>
-		var x_SaveSSLCert$tt=function (obj) {
-			var results=obj.responseText;	
-			var CommonName='$CommonName';
-			document.getElementById('$tt-adddis').innerHTML='';
-			
-			if (results.length>3){alert(results);return;}
-			if(CommonName.length>0){
-				RefreshTab('main_config_certificate');
-			}else{
-				{$_GET["YahooWin"]}Hide();
-			
-			}
-			$('#flexRT$t').flexReload();
-		}	
-	
-	
-		function SaveSSLCert$tt(){
-		  var XHR = new XHRConnection();  
-		  var pp=encodeURIComponent(document.getElementById('password-$tt').value);
-		  XHR.appendData('commonName',document.getElementById('commonName-$tt').value);
-		  XHR.appendData('CountryName',document.getElementById('CountryName-$tt').value);
-		  XHR.appendData('stateOrProvinceName',document.getElementById('stateOrProvinceName-$tt').value);
-		  XHR.appendData('CertificateMaxDays',document.getElementById('CertificateMaxDays-$tt').value);
-		  XHR.appendData('OrganizationName',document.getElementById('OrganizationName-$tt').value);
-		  XHR.appendData('localityName',document.getElementById('localityName-$tt').value);
-	      XHR.appendData('OrganizationalUnit',document.getElementById('OrganizationalUnit-$tt').value);
-	      XHR.appendData('emailAddress',document.getElementById('emailAddress-$tt').value);
-	      XHR.appendData('password',pp);
-		  AnimateDiv('$tt-adddis');
-		  XHR.sendAndLoad('$page', 'POST',x_SaveSSLCert$tt);
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="settings"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-settings=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
 		}
 		
-		function checkFileds$tt(){
-			var CommonName='$CommonName';
-			if(CommonName.length>2){
-				document.getElementById('commonName-$tt').disabled=true;
-			}
+		if($num=="CSR"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-csr=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
 		}
+
+		if($num=="certificate"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-crt=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+
+		if($num=="apache_chain"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-bundle=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="DynCert"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?certificate-edit-DynCert=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+
+		if($num=="tools"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$PageMe?tools=yes&CommonName=$CommonName&t={$_GET["t"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		
+	}
 	
-	</script>
-	";
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
+	echo build_artica_tabs($html, "main_certificate_$id");
 }
 
-function certificate_delete(){
-	$q=new mysql();
-	$q->QUERY_SQL("DELETE FROM sslcertificates WHERE `CommonName`='{$_POST["delete-certificate"]}'","artica_backup");
-	if(!$q->ok){echo $q->mysql_error;}
-	
-	
-}
 
 function certificate_save(){
 	$q=new mysql();
@@ -504,307 +374,7 @@ function certificate_save(){
 	
 }
 
-function PrivateKey(){
-		$t=$_GET["t"];
-		$CommonName=$_GET["CommonName"];
-		$page=CurrentPageName();
-		$tpl=new templates();
-		$sock=new sockets();
-		$users=new usersMenus();
-		$q=new mysql();
-		$sql="SELECT privkey  FROM sslcertificates WHERE CommonName='$CommonName'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
-	$html="
-		<div class=explain style='font-size:14px' id='$tt-adddis'>{private_key_ssl_explain}</div>
-		<textarea style='margin-top:5px;font-family:Courier New;
-		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='textToParseCats$t'>{$ligne["privkey"]}</textarea>
-		<center style='margin:10px'>". button("{generate_key}","GenerateKey$tt()","18px")."</center>
-		<script>
-		var x_GenerateKey$tt=function (obj) {
-			var results=obj.responseText;	
-			document.getElementById('$tt-adddis').innerHTML='';
-			if (results.length>3){alert(results);return;}
-			RefreshTab('main_config_certificate');
-			$('#flexRT$t').flexReload();
-		}	
-	
-	
-		function GenerateKey$tt(){
-		  var XHR = new XHRConnection();  
-		  AnimateDiv('$tt-adddis');
-    	 XHR.appendData('generate-key','$CommonName');
-		  XHR.sendAndLoad('$page', 'POST',x_GenerateKey$tt);
-		}
-		</script>
-		
-		";
-	
-	echo $tpl->_ENGINE_parse_body($html);
-}
 
-function csr(){
-		$t=$_GET["t"];
-		$CommonName=$_GET["CommonName"];
-		$page=CurrentPageName();
-		$tpl=new templates();
-		$sock=new sockets();
-		$users=new usersMenus();
-		$q=new mysql();
-		$sql="SELECT csr FROM sslcertificates WHERE CommonName='$CommonName'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
-	$html="
-		<div class=explain style='font-size:14px'>{csr_ssl_explain}</div>
-		<textarea style='margin-top:5px;font-family:Courier New;
-		font-weight:bold;width:100%;height:450px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='textToParseCats$t'>{$ligne["csr"]}</textarea>
-		";
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-	
-}
-
-function SquidCert(){
-		$t=$_GET["t"];
-		$CommonName=$_GET["CommonName"];
-		$page=CurrentPageName();
-		$tpl=new templates();
-		$sock=new sockets();
-		$users=new usersMenus();
-		$q=new mysql();
-		$tt=time();
-		$sql="SELECT SquidCert  FROM sslcertificates WHERE CommonName='$CommonName'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
-		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
-	$html="
-		<div class=explain style='font-size:14px' id='$tt-adddis'>{public_key_ssl_explain}</div>
-		<textarea style='margin-top:5px;font-family:Courier New;
-		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='crt$tt'>{$ligne["SquidCert"]}</textarea>
-		<center style='margin:10px'>". button("{apply}","SaveCRT$tt()","18px")."</center>
-		<script>
-		var x_SaveCRT$tt=function (obj) {
-			var results=obj.responseText;	
-			document.getElementById('$tt-adddis').innerHTML='';
-			if (results.length>3){alert(results);return;}
-			RefreshTab('main_config_certificate_proxy');
-			$('#flexRT$t').flexReload();
-		}	
-		function SaveCRT$tt(){
-			if(confirm('$warn_gen_x50')){
-				var XHR = new XHRConnection();  
-				var pp=encodeURIComponent(document.getElementById('crt$tt').value);
-				XHR.appendData('save-SquidCert',pp);
-				XHR.appendData('CommonName','$CommonName');
-				AnimateDiv('$tt-adddis');
-				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
-			}
-		}
-		</script>
-		
-		";
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-}
-
-function Squidkey(){
-		$t=$_GET["t"];
-		$CommonName=$_GET["CommonName"];
-		$page=CurrentPageName();
-		$tpl=new templates();
-		$sock=new sockets();
-		$users=new usersMenus();
-		$q=new mysql();
-		$tt=time();
-		$sql="SELECT Squidkey,keyPassword  FROM sslcertificates WHERE CommonName='$CommonName'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
-		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
-	$html="
-		<div class=explain style='font-size:14px' id='$tt-adddis'>{public_key_ssl_explain}</div>
-		
-		<table style='width:99%' class=form>
-		<tr>
-			<td class=legend style='font-size:14px'>{certificate_password}:</td>
-			<td>". Field_password("keyPassword-$tt",$ligne["keyPassword"],"font-size:14px;width:350px")."</td>
-		</tr>
-		<tr>
-			<td colspan=2 align='right'>
-				". button("{apply}","SaveCRT$tt()","18px")."</td>
-		</tr>		
-		<tr>
-			<td colspan=2 align='center'>
-		
-		<textarea style='margin-top:5px;font-family:Courier New;
-		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='crt$tt'>{$ligne["Squidkey"]}</textarea>
-		
-		</td>
-		</tr>
-		<tr>
-			<td colspan=2 align='right'>
-				". button("{apply}","SaveCRT$tt()","18px")."</td>
-		</tr>
-		</table>
-		<script>
-		var x_SaveCRT$tt=function (obj) {
-			var results=obj.responseText;	
-			document.getElementById('$tt-adddis').innerHTML='';
-			if (results.length>3){alert(results);return;}
-			RefreshTab('main_config_certificate_proxy');
-			$('#flexRT$t').flexReload();
-		}	
-		function SaveCRT$tt(){
-			if(confirm('$warn_gen_x50')){
-				var XHR = new XHRConnection();  
-				var pp=encodeURIComponent(document.getElementById('crt$tt').value);
-				var p1=encodeURIComponent(document.getElementById('keyPassword-$tt').value);
-				XHR.appendData('save-Squidkey',pp);
-				XHR.appendData('save-Squidkey-password',p1);
-				XHR.appendData('CommonName','$CommonName');
-				AnimateDiv('$tt-adddis');
-				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
-			}
-		}
-		</script>
-		
-		";
-	
-	echo $tpl->_ENGINE_parse_body($html);		
-	
-}
-
-function crt(){
-		$t=$_GET["t"];
-		$CommonName=$_GET["CommonName"];
-		$page=CurrentPageName();
-		$tpl=new templates();
-		$sock=new sockets();
-		$users=new usersMenus();
-		$q=new mysql();
-		$tt=time();
-		$sql="SELECT crt  FROM sslcertificates WHERE CommonName='$CommonName'";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
-		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
-	$html="
-		<div class=explain style='font-size:14px' id='$tt-adddis'>{public_key_ssl_explain}</div>
-		<textarea style='margin-top:5px;font-family:Courier New;
-		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='crt$tt'>{$ligne["crt"]}</textarea>
-		<center style='margin:10px'>". button("{apply}","SaveCRT$tt()","18px")."</center>
-		<script>
-		var x_SaveCRT$tt=function (obj) {
-			var results=obj.responseText;	
-			document.getElementById('$tt-adddis').innerHTML='';
-			if (results.length>3){alert(results);return;}
-			RefreshTab('main_config_certificate');
-			$('#flexRT$t').flexReload();
-		}	
-		function SaveCRT$tt(){
-			if(confirm('$warn_gen_x50')){
-				var XHR = new XHRConnection();  
-				var pp=encodeURIComponent(document.getElementById('crt$tt').value);
-				XHR.appendData('save-crt',pp);
-				XHR.appendData('CommonName','$CommonName');
-				AnimateDiv('$tt-adddis');
-				XHR.sendAndLoad('$page', 'POST',x_SaveCRT$tt);
-			}
-		}
-		</script>
-		
-		";
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-	
-	
-}
-
-function save_Squidkey(){
-	$data=url_decode_special_tool($_POST["save-Squidkey"]);
-	$password=addslashes(url_decode_special_tool($_POST["save-Squidkey-password"]));
-	
-	$CommonName=$_POST["CommonName"];
-	$sql="UPDATE sslcertificates SET `Squidkey`='$data',`keyPassword`='$password' WHERE `CommonName`='$CommonName'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}	
-}
-function save_SquidCert(){
-	$data=url_decode_special_tool($_POST["save-SquidCert"]);
-	$CommonName=$_POST["CommonName"];
-	$sql="UPDATE sslcertificates SET `SquidCert`='$data' WHERE `CommonName`='$CommonName'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}	
-}
-
-function save_crt(){
-	$data=url_decode_special_tool($_POST["save-crt"]);
-	$CommonName=$_POST["CommonName"];
-	$sql="UPDATE sslcertificates SET `crt`='$data' WHERE `CommonName`='$CommonName'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$sock=new sockets();
-	$tpl=new templates();
-	echo $tpl->javascript_parse_text($sock->getFrameWork("openssl.php?tomysql=$CommonName"));
-	
-}
-function save_bundle(){
-	$sock=new sockets();
-	$data=url_decode_special_tool($_POST["save-bundle"]);
-	$CommonName=$_POST["CommonName"];
-	$sql="UPDATE sslcertificates SET `bundle`='$data' WHERE `CommonName`='$CommonName'";
-	$q=new mysql();
-	$q->QUERY_SQL($sql,"artica_backup");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$tpl=new templates();
-	$CommonName=urlencode($CommonName);
-	echo $tpl->javascript_parse_text(base64_decode($sock->getFrameWork("openssl.php?tomysql=$CommonName")));
-	
-}
-function bundle(){
-		$t=$_GET["t"];
-		$CommonName=$_GET["CommonName"];
-		$page=CurrentPageName();
-		$tpl=new templates();
-		$sock=new sockets();
-		$users=new usersMenus();
-		$q=new mysql();
-		$tt=time();
-		$sql="SELECT bundle  FROM sslcertificates WHERE CommonName='$CommonName'";
-		$warn_gen_x50=$tpl->javascript_parse_text("{warn_gen_x509}");
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
-	$html="
-		<div class=explain style='font-size:14px' id='$tt-adddis'>{certificate_chain_explain}</div>
-		<textarea style='margin-top:5px;font-family:Courier New;
-		font-weight:bold;width:100%;height:520px;border:5px solid #8E8E8E;overflow:auto;font-size:14.5px' 
-		id='bundl$tt'>{$ligne["bundle"]}</textarea>
-		<center style='margin:10px'>". button("{apply}","SaveBundle$tt()","18px")."</center>
-		<script>
-		var x_SaveBundle$tt=function (obj) {
-			var results=obj.responseText;	
-			document.getElementById('$tt-adddis').innerHTML='';
-			if (results.length>3){alert(results);return;}
-			RefreshTab('main_config_certificate');
-			$('#flexRT$t').flexReload();
-		}	
-		function SaveBundle$tt(){
-			if(confirm('$warn_gen_x50')){
-				var XHR = new XHRConnection();  
-				var pp=encodeURIComponent(document.getElementById('bundl$tt').value);
-				XHR.appendData('save-bundle',pp);
-				XHR.appendData('CommonName','$CommonName');
-				AnimateDiv('$tt-adddis');
-				XHR.sendAndLoad('$page', 'POST',x_SaveBundle$tt);
-			}
-			
-			}
-		</script>	
-		";
-	
-	echo $tpl->_ENGINE_parse_body($html);		
-	
-}
 
 function generate_key(){
 	$sock=new sockets();
@@ -814,6 +384,7 @@ function generate_key(){
 function generate_x509(){
 	$sock=new sockets();
 	$tpl=new templates();
+	$_GET["generate-x509"]=urlencode($_GET["generate-x509"]);
 	$datas=base64_decode($sock->getFrameWork("openssl.php?generate-x509={$_GET["generate-x509"]}"));
 	$html="
 	
@@ -834,7 +405,7 @@ function tools(){
 	$tpl=new templates();	
 	
 	$tt=time();
-	$tr[]=Paragraphe("vpn-rebuild.png", "{generate_x509}", "{generate_x509_text}","javascript:Loadjs('$page?x509-js=$CommonName');");
+	$tr[]=Paragraphe("vpn-rebuild.png", "{generate_x509}", "{generate_x509_text}","javascript:Loadjs('$page?x509-js=$CommonName');",true);
 	
 	$table=CompileTr3($tr);
 	
@@ -844,7 +415,7 @@ function tools(){
 	<script>
 		var x_GenerateX509$tt=function (obj) {
 			var results=obj.responseText;	
-			document.getElementById('$tt-adddis').innerHTML='';
+			UnlockPage();
 			if (results.length>3){alert(results);return;}
 			RefreshTab('main_config_certificate');
 			$('#flexRT$t').flexReload();
@@ -852,10 +423,10 @@ function tools(){
 	
 	
 		function GenerateX509$tt(){
-		  var XHR = new XHRConnection();  
-		  AnimateDiv('$tt-adddis');
-    	 XHR.appendData('generate-x509','$CommonName');
-		  XHR.sendAndLoad('$page', 'POST',x_GenerateX509$tt);
+		  	var XHR = new XHRConnection();  
+		  	LockPage();
+    	 	XHR.appendData('generate-x509','$CommonName');
+		  	XHR.sendAndLoad('$page', 'POST',x_GenerateX509$tt);
 		}
 	
 	</script>";

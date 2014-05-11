@@ -133,7 +133,7 @@ function getAclContent($id){
 		"type"=>$ligne["type"],
 		"pattern"=>$ligne["pattern"],
 		"description"=>$ligne["description"],
-		"full"=>"acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]} {$ligne["description"]}"
+		"full"=>"acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]}/".__LINE__." {$ligne["description"]}"
 	
 	);
 	
@@ -175,7 +175,7 @@ function ParseConfig(){
 	$this->Parse_Acls();
 	if(!is_array($this->dnsrbl_array)){$this->defaultDnsrbl();}
 	
-	if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist::this->BuildDefault() in ".__FUNCTION__."\n";}
+	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." milter-greylist::this->BuildDefault() in ".__FUNCTION__."\n";}
 	$this->BuildDefault();
 	WriteLogs("Parsing end",__CLASS__.'/'.__FUNCTION__,__FILE__);
 }
@@ -216,7 +216,7 @@ function Parse_Acls(){
 		if($hostname==null){$hostname="master";}
 		$q=new mysql();
 		$sql="SELECT COUNT(ID) as tcount FROM miltergreylist_acls WHERE instance='$hostname'";
-		if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist::DEBUG::".__FUNCTION__."::$sql\n";}
+		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." milter-greylist::DEBUG::".__FUNCTION__."::$sql\n";}
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if($ligne["tcount"]==0){$this->DefaultAcls();}
 		$t=explode("\n",$this->global_conf);
@@ -271,7 +271,7 @@ private function buildObjectsItems($ID,$type){
 	if($type=="rcpt"){$quotes=null;}
 	
 	if($GLOBALS["ROOT"]){
-		if(!$q->ok){echo "Starting......: milter-greylist $this->hostname buildObjectsItems() error $q->mysql_error\n";return null;}
+		if(!$q->ok){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname buildObjectsItems() error $q->mysql_error\n";return null;}
 		
 	}
 	
@@ -279,7 +279,7 @@ private function buildObjectsItems($ID,$type){
 		$items[]="$quotes{$ligne["item"]}$quotes";
 	}
 	
-	if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname ". count($items)." items\n";}
+	if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname ". count($items)." items\n";}
 	if(count($items)==0){return null;}
 	return @implode(" ", $items);
 }
@@ -291,14 +291,14 @@ private function buildObjects(){
 	$sql="SELECT ID,objectname,type FROM miltergreylist_objects WHERE enabled=1 AND instance='$this->hostname'";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname ". mysql_num_rows($results)." objects\n";}
+	if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname ". mysql_num_rows($results)." objects\n";}
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["type"]=="dnsrbl"){continue;}
 		
 		$items=$this->buildObjectsItems($ligne["ID"],$ligne["type"]);
 		
-		if($items==null){if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname skipping object \"{$ligne["objectname"]}\"\n";}continue;}
-		if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname building object \"{$ligne["objectname"]}\"\n";}
+		if($items==null){if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname skipping object \"{$ligne["objectname"]}\"\n";}continue;}
+		if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname building object \"{$ligne["objectname"]}\"\n";}
 		$f[]="list \"{$ligne["objectname"]}\" {$ligne["type"]} { {$items} }";
 		$this->AVAILABLE_OBJECTS[$ligne["ID"]]="{$ligne["objectname"]}";
 		
@@ -339,11 +339,11 @@ private function string_to_regex($pattern){
 private function check_patternvalues_domain($pattern,$type){
 	if($GLOBALS["VERBOSE"]){echo "Check `$pattern`:`$type`\n";}
 	if(strpos($pattern, '@')>0){
-		if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` `$pattern` is an email address, switch to from\n";}
+		if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist field `pattern` `$pattern` is an email address, switch to from\n";}
 		return "from";}
 	
 	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $pattern)){
-		if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` `$pattern` is an ip address, switch to addr\n";}
+		if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist field `pattern` `$pattern` is an ip address, switch to addr\n";}
 		return "addr";
 	}
 						
@@ -369,7 +369,7 @@ function BuildConfig(){
 			if(!isset($this->dnsrbl)){$this->dnsrbl=null;}
 			
 			$c=0;
-			if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname ". mysql_num_rows($results)." rules\n";}
+			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname ". mysql_num_rows($results)." rules\n";}
 			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				$continue=false;
 				$c++;
@@ -381,7 +381,7 @@ function BuildConfig(){
 							$pattern=$re[2];
 							if(trim($pattern)==null){
 								if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}
-								if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist `pattern` is null for method:`{$ligne["method"]}` type:{$ligne["type"]} desc:`{$ligne["description"]}`, skipping\n";}
+								if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist `pattern` is null for method:`{$ligne["method"]}` type:{$ligne["type"]} desc:`{$ligne["description"]}`, skipping\n";}
 								continue;
 							}
 							if(isset($this->AVAILABLE_OBJECTS[$gpid])){
@@ -394,36 +394,45 @@ function BuildConfig(){
 					
 				
 				if(!$continue){
-					if($ligne["type"]=="addr"){if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["pattern"])){if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist wrong value for {$ligne["pattern"]} in type:{$ligne["type"]}\n";}continue;}}
+					if($ligne["type"]=="addr"){if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["pattern"])){if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist wrong value for {$ligne["pattern"]} in type:{$ligne["type"]}\n";}continue;}}
 					
 					if(trim($ligne["pattern"])==null){
 						$ligne["description"]=strtolower($ligne["description"]);
 						if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() `pattern` is null for method:`{$ligne["method"]}` type:{$ligne["type"]} desc:`{$ligne["description"]}` in line ".__LINE__."\n";}
 						if(preg_match("#^([a-zA-Z0-9\-\.]+)$#", $ligne["description"],$rz)){
-							if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `{$rz[1]}`\n";}
+							if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `{$rz[1]}`\n";}
 							$ligne["pattern"]=$ligne["description"];
 						}
 						
 						if($ligne["pattern"]==null){
 							if(preg_match("#([a-zA-Z0-9\-\_\.]+)@([a-zA-Z0-9\-\_\.]+)#", $ligne["description"],$rz)){
 								$ligne["type"]="from";
-								if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `{$rz[1]}@{$rz[2]}`\n";}
+								if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `{$rz[1]}@{$rz[2]}`\n";}
 								$ligne["pattern"]="{$rz[1]}@{$rz[2]}";
 							}
 							
 							if(preg_match("#\*@([a-zA-Z0-9\-\_\.]+)#", $ligne["description"],$rz)){
 								$ligne["type"]="domain";
-								if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `@{$rz[1]}`\n";}
+								if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist `{$ligne["method"]}` field `pattern` is null but assume description `@{$rz[1]}`\n";}
 								$ligne["pattern"]=$rz[1];
 							}
 							
 						}
 					}	
 
-					if(trim($ligne["pattern"])==null){if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist field `pattern` desc:`{$ligne["description"]}` is null skipping rule {$ligne["ID"]}\n";}continue;}		
+					if(trim($ligne["pattern"])==null){if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist field `pattern` desc:`{$ligne["description"]}` is null skipping rule {$ligne["ID"]}\n";}continue;}		
 					if($ligne["type"]=="domain"){
 						$ligne["type"]=$this->check_patternvalues_domain($ligne["pattern"],$ligne["type"]);
 					}
+					
+					if($ligne["type"]=="rcpt"){
+						if(strpos($ligne["pattern"], "@")==0){
+							$TransformtoRcpt=str_replace(".", "\.", $ligne["pattern"]);
+							$this->acl[]="acl {$ligne["method"]} rcpt /.*@$TransformtoRcpt/ #ID:{$ligne["ID"]} Transformed from wrong rcpt {$ligne["pattern"]}";
+							continue;
+						}
+					}
+					
 						
 					$ligne["pattern"]=$this->is_regex($ligne["pattern"]);
 					
@@ -433,7 +442,7 @@ function BuildConfig(){
 					}
 					
 					if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Warning BuildConfig() pattern is null for {$ligne["pattern"]} in line ".__LINE__."\n";}}
-					$this->acl[]="acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]} {$ligne["description"]}";
+					$this->acl[]="acl {$ligne["method"]} {$ligne["type"]} {$ligne["pattern"]} #ID:{$ligne["ID"]}/".__LINE__." {$ligne["description"]}";
 				}
 				
 			}
@@ -457,29 +466,36 @@ function BuildConfig(){
 				
 			}	
 			
-			$sql="SELECT *  FROM contacts_blacklist where `enabled`=1";
-			$q=new mysql();
-			$results = $q->QUERY_SQL($sql,"artica_backup");
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-				if(trim($ligne["sender"])==null){continue;}
-				if(isset($already[$ligne["sender"]])){continue;}
-				$already[$ligne["sender"]]=true;
+			$sock=new sockets();
+			$ZarafaAdbksWhiteTask=$sock->GET_INFO("ZarafaAdbksWhiteTask");
+			if(!is_numeric($ZarafaAdbksWhiteTask)){$ZarafaAdbksWhiteTask=0;}
 			
-				if(strpos("*", $ligne["sender"])>0){
-					$pattern=string_to_regex($ligne["sender"]);
-					$this->acl[]="acl blacklist from /$pattern/ #From {$ligne["uid"]}";
-					continue;
-				}
+			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname Add blacklist entries parsed on Mailboxes:$ZarafaAdbksWhiteTask\n";}
 			
-				$this->acl[]="acl blacklist from {$ligne["sender"]}";
+			if($ZarafaAdbksWhiteTask==1){
+				$sql="SELECT *  FROM contacts_blacklist WHERE `enabled`=1 AND `Junk`=1";
+				$q=new mysql();
+				$results = $q->QUERY_SQL($sql,"artica_backup");
+				while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+					if(trim($ligne["sender"])==null){continue;}
+					if(isset($already[$ligne["sender"]])){continue;}
+					$already[$ligne["sender"]]=true;
+				
+					if(strpos("*", $ligne["sender"])>0){
+						$pattern=string_to_regex($ligne["sender"]);
+						$this->acl[]="acl blacklist from /$pattern/ #From {$ligne["uid"]}";
+						continue;
+					}
+				
+					$this->acl[]="acl blacklist from {$ligne["sender"]}";
+				
+				}			
 			
-			}			
-			
-			
+			}
 			
 			if($this->MiltergreyListAddDefaultNets==1){$this->multinets();}
 			
-			if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname cleaning ". count($this->acl)." rules\n";}
+			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname cleaning ". count($this->acl)." rules\n";}
 			if(is_array($this->acl)){
 				while (list ($num, $ligne) = each ($this->acl) ){
 					
@@ -490,7 +506,7 @@ function BuildConfig(){
 						$array_acl[$ligne]=$ligne;
 				}
 				
-				if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname building ". count($array_acl)." rules\n";}
+				if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname building ". count($array_acl)." rules\n";}
 				if(is_array($array_acl)){
 					while (list ($num, $ligne) = each ($array_acl) ){
 						$array_acl2[]=$ligne;
@@ -507,14 +523,14 @@ function BuildConfig(){
 				while (list ($num, $ligne) = each ($array_acl2) ){
 					if(trim($ligne)==null){continue;}
 					if(preg_match("#whitelist domain\s+(.+)#",$ligne,$re)){
-						//if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist $this->hostname whitelist -> {$re[1]}\n";}
+						//if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname whitelist -> {$re[1]}\n";}
 						if(strpos($ligne,"@")>0){$array_acl2[$num]=str_replace("@","",$ligne);}
 					}
 					
 					if(preg_match("#^dacl#",$ligne)){$ligne=str_replace("dacl", "acl", $ligne); $array_acl2[$num]=$ligne;}
 					if(preg_match("#^acl whitelist\s+(.+?)\s+(.+?)#",$ligne,$re)){
 						if(strtolower($re[1])=="header"){
-							if($GLOBALS["VERBOSE"]){echo "Starting......: milter-greylist $this->hostname whitelist domain -> {$re[2]}\n";}
+							if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname whitelist domain -> {$re[2]}\n";}
 							$ligne=str_replace("acl whitelist header", "acl whitelist domain", $ligne);
 							$array_acl2[$num]=$ligne;
 						}
@@ -565,14 +581,14 @@ function BuildConfig(){
 			
 			if(count($this->main_array["peer"])>0){$this->main_array["activate_sync_port"]=1;}
 			if($this->main_array["activate_sync_port"]==1){
-				if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist sync port is enabled\n";}
+				if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist sync port is enabled\n";}
 				if($this->ip_addr==null){
 					$conf=$conf ."syncaddr * port 5252\n";
 				}else{
 					$conf=$conf ."syncaddr $this->ip_addr port 5252\n";
 				}
 			}else{
-				if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist sync port is not enabled\n";}	
+				if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist sync port is not enabled\n";}	
 			}
 			
 			
@@ -659,8 +675,8 @@ function BuildConfig(){
 			if(!preg_match('#([0-9]+)#',$this->main_array["timeout"])){$this->main_array["timeout"]=5;}
 			if(strlen($this->main_array["timeout_TIME"])>1){$this->main_array["timeout_TIME"]='h';}
 			if(preg_match('#(d|h|m)#',$this->main_array["timeout_TIME"],$pre)){$this->main_array["timeout_TIME"]=$pre[1];}
-			if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist timeout:{$this->main_array["timeout"]}{$this->main_array["timeout_TIME"]}\n";}
-			if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist greylist:{$this->main_array["greylist"]}{$this->main_array["greylist_TIME"]}\n";}
+			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist timeout:{$this->main_array["timeout"]}{$this->main_array["timeout_TIME"]}\n";}
+			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist greylist:{$this->main_array["greylist"]}{$this->main_array["greylist_TIME"]}\n";}
 			$conf=$conf ."# How long will the greylist database retain tuples.\n";
 			$conf=$conf ."timeout {$this->main_array["timeout"]}{$this->main_array["timeout_TIME"]}\n";
 			$conf=$conf ."\n";
@@ -759,7 +775,7 @@ function BuildConfig(){
 			$conf=$conf ."\n";
 			$conf=$conf ."\n";
 			$conf=$conf ."#ACLS Rules\n\n";
-			if($GLOBALS["ROOT"]){echo "Starting......: milter-greylist $this->hostname adding array_acl2=". count($array_acl2)." rules\n";}
+			if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist $this->hostname adding array_acl2=". count($array_acl2)." rules\n";}
 			@file_put_contents("/etc/milteracls.txt",  implode("\n",$array_acl2));
 			
 			$conf=$conf . implode("\n",$array_acl2);
@@ -959,7 +975,7 @@ function DefaultAcls(){
 	$q=new mysql();
 	
 	if(!$q->TestingConnection()){
-		echo "Starting......: Connection to MySQL server failed\n";
+		echo "Starting......: ".date("H:i:s")." Connection to MySQL server failed\n";
 		return;
 	}	
 	

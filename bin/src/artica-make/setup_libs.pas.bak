@@ -44,6 +44,8 @@ private
        function   HOSTNAME_g():string;
        function   MEM_TOTAL_INSTALLEE():integer;
        function   LOCATE_PHP5_BIN():string;
+       function   ARTICA_REMOTE_VERSION():string;
+       function   ARTICA_NIGHTLY_VERSION():string;
 public
        sexport:string;
       DirListFiles:TstringList;
@@ -58,7 +60,7 @@ public
       function PERL_INCFolders():TstringList;
       procedure InstallArtica();
       function RPM_is_application_installed(appname:string):boolean;
-      function INTRODUCTION(base:string;postfix:string;cyrus:string;samba:string;squid:string;nfs:string='';pdns:string='';openvpn:string=''):string;
+      function INTRODUCTION(base:string;postfix:string;cyrus:string;samba:string;squid:string;nfs:string='';pdns:string='';openvpn:string='';kvmready:boolean=false;kvmpackages:string=''):string;
       function get_LDAP(key:string):string;
       procedure set_LDAP(key:string;val:string);
       function get_LDAP_ADMIN():string;
@@ -91,7 +93,10 @@ public
       function  ArchStruct():integer;
       PROCEDURE NOTIFICATION(subject:string;text:string;context:string);
       function IsKImsuffi():boolean;
-      function tlibs.ExcludeTrailingBackslash(const S: string): string;
+      function ExcludeTrailingBackslash(const S: string): string;
+      function CheckKVM():boolean;
+      procedure CheckResolvConf();
+
 END;
 
 implementation
@@ -99,7 +104,7 @@ implementation
 constructor tlibs.Create();
 begin
 if not DirectoryExists('/opt/artica/tmp') then forceDirectories('/opt/artica/tmp');
-index_file:='http://www.artica.fr/auto.update.php';
+index_file:='http://www.articatech.net/auto.update.php';
 local_folder:='';
 
   sexport:=' LD_LIBRARY_PATH="/lib:/lib64:/usr/lib:/usr/lib64:/usr/local/lib:/usr/lib/libmilter"';
@@ -163,6 +168,59 @@ if IsPathDelimiter(Result, Length(Result)) then
 SetLength(Result, Length(Result)-1);
 end;
 //#########################################################################################
+function tlibs.CheckKVM():boolean;
+var
+   cmd:string;
+   u  :string;
+   i  :integer;
+   l :Tstringlist;
+   ll:Tstringlist;
+   RegExpr:TRegExpr;
+begin
+  if not FileExists('/proc/cpuinfo') then exit;
+  result:=false;
+  l:=Tstringlist.Create();
+  l.LoadFromFile('/proc/cpuinfo');
+  RegExpr:=TRegExpr.Create;
+  RegExpr.Expression:='(vmx|svm)';
+  for i:=0 to l.Count-1 do begin
+      if RegExpr.Exec(l.Strings[i]) then begin
+         result:=true;
+         l.free;
+         RegExpr.free;
+         exit;
+      end;
+
+  end;
+
+  l.free;
+  RegExpr.free;
+
+end;
+//#########################################################################################
+procedure tlibs.CheckResolvConf();
+var m:Tstringlist;
+i:integer;
+ZRegExpr:TRegExpr;
+begin
+m:=Tstringlist.Create;
+ZRegExpr:=TRegExpr.Create;
+ZRegExpr.Expression:='nameserver\s+8\.8\.8\.8';
+m.LoadFromFile('/etc/resolv.conf');
+for i:=0 to m.Count-1 do begin
+   if ZRegExpr.exec(m.Strings[i]) then begin
+        ZRegExpr.free;
+        m.free;
+        exit;
+   end;
+end;
+m.Add('nameserver 8.8.8.8');
+m.SaveToFile('/etc/resolv.conf');
+
+
+end;
+//#########################################################################################
+
 procedure tlibs.EXPORT_PATH();
 var
 l:TstringList;
@@ -290,6 +348,13 @@ if RegExpr.Exec(data) then begin
    result:=32;
    exit;
 end;
+ RegExpr.Expression:='686-bigmem';
+if RegExpr.Exec(data) then begin
+   RegExpr.free;
+   result:=32;
+   exit;
+end;
+
 
 RegExpr.Expression:='x86_64';
 if RegExpr.Exec(data) then begin
@@ -325,7 +390,7 @@ var
    tmpstr:string;
    kernelversion:string;
 begin
-
+// -o Acquire::http::Proxy="http://192.168.1.245:3140/"
 kernelversion:=KERNEL_VERSION();
 writeln('Checking kernel sources for '+kernelversion);
 if length(kernelversion)=0 then begin
@@ -498,7 +563,8 @@ var
 
    if FileExists(LOCATE_CURL()) then begin
          if ssl then command_line_curl:=command_line_curl+WgetBindIpAddress_cmd_line_curl+' --insecure';
-         command_line_curl:=LOCATE_CURL() + command_line_curl;
+         command_line_curl:=LOCATE_CURL() + command_line_curl+' -L';
+         writeln(command_line_curl);
          fpsystem(command_line_curl);
          result:=true;
          exit;
@@ -536,6 +602,7 @@ var
      end;
 
      commandline_artica:=ExtractFilePath(ParamStr(0)) + 'artica-get  '+ uri + ' ' + ProxyCommand + ' -q --output-document=' + file_path;
+     writeln(commandline_artica);
      fpsystem(commandline_artica);
      result:=true;
 
@@ -624,10 +691,18 @@ exit(MD5Print(Digest));
 end;
 //##############################################################################
 function tlibs.FILE_TEMP():string;
+var
+   stmp:string;
+   mypid:string;
+   SysTmpDir:string;
 begin
-result:='/opt/artica/tmp/'+ MD5FromString(DateTimeNowSQL()+IntToStr(random(2548)));
+stmp:=MD5FromString(FormatDateTime('yyyy-mm-dd hh:nn:ss', Now));
+SysTmpDir:=trim(GET_INFO('SysTmpDir'));
+if length(SysTmpDir)=0 then SysTmpDir:='/home/artica/tmp';
+if not DirectoryExists(SysTmpDir) then forceDirectories(SysTmpDir);
+result:=GetTempFileName(SysTmpDir,ExtractFileName(ParamStr(0))+'-'+stmp+'-'+mypid+'-');
+
 end;
-//##############################################################################
 function tlibs.DateTimeNowSQL():string;
 begin
    result:=FormatDateTime('yyyy-mm-dd hh:nn:ss', Now);
@@ -741,6 +816,42 @@ begin
    F.Free;
 end;
 //#############################################################################
+function tlibs.ARTICA_NIGHTLY_VERSION():string;
+var
+   l:string;
+   auto:TiniFile;
+
+begin
+   l:='/usr/share/artica-postfix/ressources/index.ini';
+   if not FileExists(l) then exit('0.00');
+   try
+      auto:=TiniFile.Create(l);
+   except
+      exit;
+   end;
+     result:=trim(auto.ReadString('NEXT','artica-nightly','0.00'));
+   auto.free;
+end;
+//#############################################################################
+function tlibs.ARTICA_REMOTE_VERSION():string;
+var
+   l:string;
+   auto:TiniFile;
+
+begin
+   l:='/usr/share/artica-postfix/ressources/index.ini';
+   if not FileExists(l) then exit('0.00');
+   try
+      auto:=TiniFile.Create(l);
+   except
+      exit;
+   end;
+     result:=trim(auto.ReadString('NEXT','artica','0.00'));
+   auto.free;
+
+end;
+//#############################################################################
+
 function tlibs.CheckSYSTEMID():string;
 var
    blkid:string;
@@ -817,6 +928,7 @@ begin
     l.Add('/usr/local/sbin');
     l.add('/usr/kerberos/bin');
     l.add('/usr/share/artica-postfix/bin');
+    l.add('/usr/libexec');
 
 
     for i:=0 to l.Count-1 do begin
@@ -886,16 +998,16 @@ begin
     if not FileExists('/etc/artica-postfix/artica-update.conf') then fpsystem('/bin/touch /etc/artica-postfix/artica-update.conf');
     if FileExists('/etc/artica-postfix/artica-update.conf') then begin
         updeconf:=TiniFile.Create('/etc/artica-postfix/artica-update.conf');
-        index_file:=updeconf.ReadString('AUTOUPDATE','uri','http://www.artica.fr/auto.update.php?datas='+uriplus);
+        index_file:=updeconf.ReadString('AUTOUPDATE','uri','http://www.articatech.net/auto.update.php?datas='+uriplus);
         remote_uri:=EXtractFilePath(index_file)+'download';
      end else begin
            local_folder:='';
-           remote_uri:='http://www.artica.fr/download';
-           index_file:='http://www.artica.fr/auto.update.php?datas='+uriplus
+           remote_uri:='http://www.articatech.net/download';
+           index_file:='http://www.articatech.net/auto.update.php?datas='+uriplus
      end;
 
-     if length(trim(remote_uri))=0 then remote_uri:='http://www.artica.fr/download';
-     if length(trim(index_file))=0 then index_file:='http://www.artica.fr/auto.update.php';
+     if length(trim(remote_uri))=0 then remote_uri:='http://www.articatech.net/download';
+     if length(trim(index_file))=0 then index_file:='http://www.articatech.net/auto.update.php';
 
      updeconf.free;
 
@@ -1187,7 +1299,7 @@ begin
 
 
     local_folder:='';
-    remote_uri:='http://www.artica.fr/download';
+    remote_uri:='http://www.articatech.net/download';
 
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;
@@ -1287,8 +1399,8 @@ begin
 
     package_name:=trim(package_name);
     local_folder:='';
-    remote_uri:='http://www.artica.fr/download';
-    index_file:='http://www.artica.fr/auto.update.php';
+    remote_uri:='http://www.articatech.net/download';
+    index_file:='http://www.articatech.net/auto.update.php';
     FILE_TEMP:=TStringList.Create;
     RegExpr:=TRegExpr.Create;
 
@@ -1691,12 +1803,13 @@ procedure tlibs.InstallArtica();
 var
    my:TiniFile;
    articaversion:string;
-
+   php5bin:string;
 begin
-
+ForceDirectories('/etc/artica-postfix');
+fpsystem('/bin/touch /etc/artica-postfix/FROM_SETUP');
 writeln('Getting index file');
 if fileexists('/tmp/artica.ini') then fpsystem('/bin/rm -f /tmp/artica.ini');
-if not WGET_DOWNLOAD_FILE('http://www.artica.fr/auto.update.php','/tmp/artica.ini') then begin
+if not WGET_DOWNLOAD_FILE('http://www.articatech.net/auto.update.php','/tmp/artica.ini') then begin
    writeln('Failed to get artica version...');
    exit;
 end;
@@ -1718,7 +1831,7 @@ end;
 writeln('Downloading '+articaversion + ' artica version');
 
 if FileExists('/tmp/'+articaversion+'.tgz') then fpsystem('/bin/rm -f /tmp/'+articaversion+'.tgz');
-if not WGET_DOWNLOAD_FILE('http://www.artica.fr/download/artica-'+articaversion+'.tgz','/tmp/'+articaversion+'.tgz') then begin
+if not WGET_DOWNLOAD_FILE('http://www.articatech.net/download/artica-'+articaversion+'.tgz','/tmp/'+articaversion+'.tgz') then begin
    writeln('Failed to get artica package...');
    exit;
 end;
@@ -1736,20 +1849,21 @@ if FileExists('/usr/share/artica-postfix/bin/install/libmysqlclient.so.15') then
       fpsystem('/bin/cp /usr/share/artica-postfix/bin/install/libmysqlclient.so.15 /usr/lib/libmysqlclient.so.15');
    end;
 end;
+
 writeln('Installing  '+articaversion + ' artica version');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --init-from-repos');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --perl-addons-repos');
 fpsystem('/usr/share/artica-postfix/bin/artica-install -awstats-reconfigure');
 fpsystem('/usr/share/artica-postfix/bin/artica-install -awstats generate');
+fpsystem('php /usr/share/artica-postfix/exec.initslapd.php --build --force');
 fpsystem('/etc/init.d/artica-postfix stop daemon');
 fpsystem('/etc/init.d/artica-postfix start daemon');
 fpsystem('/etc/init.d/artica-postfix stop');
 fpsystem('/etc/init.d/artica-postfix start');
 fpsystem('/etc/init.d/artica-postfix start all');
-fpsystem('/etc/init.d/artica-postfix stop mysql');
-fpsystem('/etc/init.d/artica-postfix start mysql');
-
-
+fpsystem('/etc/init.d/mysql restart');
+fpsystem('/etc/init.d/artica-webconsole restart');
+fpsystem('/etc/init.d/artica-status restart');
 fpsystem('/usr/share/artica-postfix/bin/artica-install --init-from-repos');
 end;
 //#########################################################################################
@@ -2152,7 +2266,7 @@ begin
      writeln('');
 end;
 
-function tlibs.INTRODUCTION(base:string;postfix:string;cyrus:string;samba:string;squid:string;nfs:string;pdns:string;openvpn:string):string;
+function tlibs.INTRODUCTION(base:string;postfix:string;cyrus:string;samba:string;squid:string;nfs:string;pdns:string;openvpn:string;kvmready:boolean;kvmpackages:string):string;
 var
    u:string;
    plist:TStringDynArray;
@@ -2164,7 +2278,7 @@ var
 begin
      base:=trim(base);
       if length(base)>0 then begin
-             writeln('Welcome on the Artica installation process.');
+             writeln('Welcome on the Artica installation process 1.3');
              writeln('');
              writeln('To start the installation process, you need to install mandatories packages');
              writeln(base);
@@ -2247,15 +2361,18 @@ end;
 
   if length(trim(base))=0 then begin
    if length(postfix)=0 then begin
-         ZARAFA_INSTALL_MENU();
-      if length(cyrus)>0 then begin
-         plistCyrus:=explode(',', cyrus);
-         writeln('Mail server (include postfix and Cyrus-imap):.........:[2] ('+IntToStr(length(plistCyrus)-1)+' package(s))');
-      end else begin
-         writeln('Mail server (include postfix and Cyrus-imap):.........:Installed');
-      end;
+       if not FileExists('/etc/artica-postfix/LIGHT_INSTALL') then ZARAFA_INSTALL_MENU();
+         if Not FileExists('/usr/bin/zarafa-server') then begin
+            if length(cyrus)>0 then begin
+               plistCyrus:=explode(',', cyrus);
+               writeln('Mail server (include postfix and Cyrus-imap):.........:[2] ('+IntToStr(length(plistCyrus)-1)+' package(s))');
+            end else begin
+                writeln('Mail server (include postfix and Cyrus-imap):.........:Installed');
+            end;
+       end;
    end;
   end;
+
 
 if length(trim(base))=0 then begin
 
@@ -2265,6 +2382,8 @@ if length(trim(base))=0 then begin
     end else begin
          writeln('Files Sharing (include Samba and Pure-ftpd):..........:Installed');
     end;
+end else begin
+     writeln('Files Sharing (include Samba and Pure-ftpd):..........: Disabled: require: "',base,'" (stop the install program and restart it)');
 end;
 
 if length(trim(base))=0 then begin
@@ -2274,16 +2393,6 @@ if length(trim(base))=0 then begin
          writeln('Squid Proxy:..........................................:[4] ('+IntToStr(length(plistSquid)-1)+' package(s))');
     end else begin
         writeln('Squid Proxy:..........................................:Installed');
-    end;
- end;
-
-if length(trim(base))=0 then begin
-
-    if length(nfs)>0 then begin
-         plistSquid:=explode(',', nfs);
-         writeln('NFS System :..........................................:[6] ('+IntToStr(length(plistSquid)-1)+' package(s))');
-    end else begin
-        writeln('NFS System :...........................................:Installed');
     end;
  end;
 
@@ -2306,6 +2415,19 @@ if length(trim(base))=0 then begin
     end;
  end;
 end;
+if length(trim(base))=0 then begin
+   if kvmready then begin
+      if length(kvmpackages)>0 then begin
+         plistSquid:=explode(',', kvmpackages);
+         writeln('Virtualization System :...............................:[K] ('+IntToStr(length(plistSquid)-1)+' package(s))');
+      end else begin
+           writeln('Virtualization System :...............................:Installed');
+      end;
+   end else begin
+        writeln('Virtualization System :...............................: Hardware not compliance');
+   end;
+end;
+
 
 if length(trim(base))>0 then begin
 writeln('');
@@ -2318,7 +2440,8 @@ writeln('');
 plistBase:=explode(',', base);
 writeln('Install '+IntToStr(length(plistBase)-1)+' package(s): [Yes]');
 end else begin
-         writeln('Install/upgrade Artica-postfix:.......................:[5] ('+ARTICA_VERSION()+')');
+         writeln('Install/upgrade Artica-postfix:.......................:[5] ('+ARTICA_VERSION()+' <> ',ARTICA_REMOTE_VERSION(),')');
+         writeln('Install/upgrade Artica-postfix (nightly):.............:[6] ('+ARTICA_VERSION()+' <> ',ARTICA_NIGHTLY_VERSION(),')');
 
     if length(ARTICA_VERSION())>0 then begin
          writeln('Restart Artica      :.................................:[R]');
@@ -2342,14 +2465,14 @@ if lowercase(u)='i' then begin
        writeln('Type key');
        readln(u);
        fpsystem('clear');
-       INTRODUCTION(base,postfix,cyrus,samba,squid);
+       INTRODUCTION(base,postfix,cyrus,samba,squid,nfs,pdns,openvpn,kvmready,kvmpackages);
        exit;
 end;
 
 
 if lowercase(u)='c' then begin
    fpsystem('/usr/share/artica-postfix/bin/artica-make APP_AMAVISD_MILTER');
-   INTRODUCTION(base,postfix,cyrus,samba,squid);
+   INTRODUCTION(base,postfix,cyrus,samba,squid,nfs,pdns,openvpn,kvmready,kvmpackages);
    exit;
 end;
 
@@ -2357,19 +2480,24 @@ end;
 if lowercase(u)='r' then begin
    fpsystem('/etc/init.d/artica-postfix restart');
    fpsystem('/etc/init.d/artica-postfix restart apache');
-   INTRODUCTION(base,postfix,cyrus,samba,squid);
+   INTRODUCTION(base,postfix,cyrus,samba,squid,nfs,pdns,openvpn,kvmready,kvmpackages);
    exit;
 end;
 
 if lowercase(u)='z' then begin
    ZARAFA_INSTALL_PERFORM();
-   INTRODUCTION(base,postfix,cyrus,samba,squid);
+   INTRODUCTION(base,postfix,cyrus,samba,squid,nfs,pdns,openvpn,kvmready,kvmpackages);
    exit;
 end;
 
 if u='5' then begin
    InstallArtica();
-   INTRODUCTION(base,postfix,cyrus,samba,squid);
+   INTRODUCTION(base,postfix,cyrus,samba,squid,nfs,pdns,openvpn,kvmready,kvmpackages);
+   exit;
+end;
+if u='6' then begin
+   fpsystem('/usr/bin/php /usr/share/artica-postfix/exec.nightly.php --force');
+   INTRODUCTION(base,postfix,cyrus,samba,squid,nfs,pdns,openvpn,kvmready,kvmpackages);
    exit;
 end;
    exit(u);
@@ -2387,7 +2515,7 @@ begin
     writeln('');
     writeln('Zarafa Mail server');
 
-   if not FileExists('/usr/local/bin/zarafa-server') then begin
+   if Not FileExists('/usr/bin/zarafa-server') then begin
       writeln('Install Zarafa server..................................: [Z]');
       writeln('');
       exit;
@@ -2402,6 +2530,8 @@ procedure tlibs.ZARAFA_INSTALL_PERFORM();
 begin
     writeln('');
     fpsystem('/usr/share/artica-postfix/bin/artica-make APP_ZARAFA');
+    fpsystem('/usr/share/artica-postfix/bin/artica-make APP_ZARAFA_WEBAPP');
+    fpsystem('/usr/share/artica-postfix/bin/artica-make APP_Z_PUSH');
     exit;
 
 

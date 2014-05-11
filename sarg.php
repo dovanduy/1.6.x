@@ -21,7 +21,8 @@
 	}	
 	if(isset($_POST["EnableSargGenerator"])){EnableSargGenerator_unique_save();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
-	
+	if(isset($_GET["status"])){status();exit;}
+	if(isset($_GET["sarg-freeweb"])){freeweb();exit;}
 	if(isset($_GET["params"])){parameters();exit;}
 	if(isset($_GET["topsites_num"])){parameters_save();exit;}
 	
@@ -46,61 +47,167 @@
 	if(isset($_GET["run-compile"])){task_run_sarg();exit;}
 	
 	if(isset($_GET["events"])){events();exit;}
+	if(isset($_GET["inline"])){popup();exit;}
+	if(isset($_GET["weekly-run-js"])){weekly_run_js();exit;}
+	if(isset($_GET["monthly-run-js"])){monthly_run_js();exit;}
+	if(isset($_GET["index-run-js"])){index_run_js();exit;}
 	
 js();
 
 
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{APP_SARG}");
-	$html="YahooWin4('725','$page?popup=yes','$title');";	
+	$html="YahooWin4('930','$page?popup=yes','$title');";	
 	echo $html;
 	}
 	
 function EnableSargGenerator_unique_save(){
+	
 	$sock=new sockets();
 	$sock->SET_INFO("EnableSargGenerator", $_POST["EnableSargGenerator"]);
 	
 }
+function weekly_run_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?sarg-weekly=yes");
+	$title=$tpl->javascript_parse_text("{weekly_reports} {succes}");
+	echo "alert('$title');";
+	
+}
+
+function index_run_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?sarg-index=yes");
+	$title=$tpl->javascript_parse_text("{build_index_page_sarg} {succes}");
+	echo "alert('$title');";	
+}
+
+function monthly_run_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?sarg-monthly=yes");
+	$title=$tpl->javascript_parse_text("{monthly_reports} {succes}");
+	echo "alert('$title');";
+
+}
+
 
 function popup(){
 	
 	$tpl=new templates();
 	$page=CurrentPageName();
+	$array["status"]="{status}";
 	$array["params"]="{parameters}";
 	$array["sarg-reports"]="{sarg_reports}";
+	$array["sarg-freeweb"]="{websites}";
 	//$array["members"]="{members}";
 	//$array["tools"]="{tools}";
 	$array["events"]="{events}";
 	
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="events"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"sarg.events.php?popup=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		
 	}
 	
 	$id=time();
 	
-	echo "
-	<div id='sarg_tabs' style='width:100%;height:590px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#sarg_tabs').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "sarg_tabs")."<script>LeftDesign('statistics-white-256-opac20.png');</script>";
+		
 	
 	
 }
+
+function status(){
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$tpl=new templates();
+	$q=new mysql();
+	$APP_SARG=$tpl->_ENGINE_parse_body("{APP_SARG}");
+	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
+	if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
+	
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?sarg-ini-status=yes')));
+	$tr[]=DAEMON_STATUS_ROUND("APP_SARG",$ini,null,1);
+	
+	$disabled=$tpl->_ENGINE_parse_body("{disabled}");
+	if($EnableSargGenerator==0){
+		$version=Paragraphe32("noacco:$APP_SARG", "$disabled", "blur()", "warning-panneau-32.png");
+		
+	}else{
+		$version=$sock->getFrameWork("sarg.php?version=yes");
+		$status=unserialize($sock->GET_INFO("SargDirStatus"));
+		$ff[]="version: $version";
+		$ff[]="{size}: ".FormatBytes($status["SIZE"]);
+		$ff[]="{files}: ".FormatNumber($status["FILES"])." {free}: ".FormatNumber($array["F_FREE"]);
+		$ff[]="{free}: {$status["FREE"]}M";
+		
+		
+		$version=Paragraphe32("noacco:$APP_SARG", "noacco:<div style='font-size:12px'>".$tpl->_ENGINE_parse_body(@implode("<br>", $ff))."</div>", "blur()", "ok32.png");
+	}
+	
+	$sql="SELECT COUNT(*) as tcount FROM freeweb WHERE `groupware`='SARG'";
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if(!$q->ok){echo $q->mysql_error_html();}
+	$count=$ligne["tcount"];
+	if($count==0){
+		$tr[]=Paragraphe32("no_website", "no_freeweb_service_explain", "Loadjs('freeweb.edit.php?hostname=&force-groupware=SARG');", "warning-panneau-32.png");
+		
+	}
+	
+	$tr[]=Paragraphe32("build_index_page", "build_index_page_sarg",
+			"Loadjs('$page?index-run-js=yes');", "48-run.png");
+	
+	$tr[]=Paragraphe32("weekly_reports", "weekly_reports_execute", 
+			"Loadjs('$page?weekly-run-js=yes');", "48-run.png");
+	
+	$tr[]=Paragraphe32("monthly_reports", "monthly_reports_execute",
+			"Loadjs('$page?monthly-run-js=yes');", "48-run.png");	
+	
+	
+	$tr[]=$version;
+	
+	
+	$tableau=CompileTr3($tr,true);
+	
+	$html="<div class=explain style='font-size:14px'>{APP_SARG_TXT}</div>$tableau";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+}
+
+function freeweb(){
+	$t=time();
+	$page=CurrentPageName();
+	$html="<div id='$t'></div>
+	<script>LoadAjax('$t','freeweb.servers.php?force-groupware=SARG',true);</script>";
+	echo $html;
+	
+	
+}
+
+function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
+	$tmp1 = round((float) $number, $decimals);
+	while (($tmp2 = preg_replace('/(\d+)(\d\d\d)/', '\1 \2', $tmp1)) != $tmp1)
+		$tmp1 = $tmp2;
+	return strtr($tmp1, array(' ' => $thousand_separator, '.' => $decimal_point));
+}
+
 function local_users(){
 	$stringtofind=$_GET["local-users"];
 	$ldap=new clladp();
@@ -398,6 +505,8 @@ function parameters(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
 	$SargConfig=unserialize(base64_decode($sock->GET_INFO("SargConfig")));
 	$SargConfig=SargDefault($SargConfig);
@@ -440,6 +549,15 @@ $sarg_date_format=array(
 
 //topusers topsites sites_users users_sites date_time denied auth_failures site_user_time_date downloads
 
+$LASTLOGS[30]="1 {month}";
+$LASTLOGS[60]="2 {months}";
+$LASTLOGS[90]="3 {months}";
+$LASTLOGS[120]="4 {months}";
+$LASTLOGS[150]="5 {months}";
+$LASTLOGS[360]="1 {year}";
+
+if(!is_numeric($SargConfig["lastlog"])){$SargConfig["lastlog"]=90;}
+if($SargConfig["lastlog"]<1){$SargConfig["lastlog"]=90;}
 
 $html="
 <div id='sarg-config-form'>
@@ -454,6 +572,11 @@ $html="
 	<td>". Field_checkbox("DisableArticaProxyStatistics",1,$DisableArticaProxyStatistics)."</td>
 	<td>&nbsp;</td>
 </tr>
+<tr>
+	<td class=legend style='font-size:14px'>{directory}:</td>
+	<td>". Field_text("SargOutputDir",$SargOutputDir,"font-size:14px;padding:3px;width:320px")."</td>
+	<td>". button_browse("SargOutputDir")."</td>
+</tr>			
 <tr>
 	<td class=legend style='font-size:14px'>{language}:</td>
 	<td>". Field_array_Hash($langs,"language",$SargConfig["language"],"style:font-size:14px;padding;3px")."</td>
@@ -522,8 +645,8 @@ $html="
 </tr>
 <tr>
 	<td class=legend style='font-size:14px'>{sarg_lastlog}:</td>
-	<td>". Field_text("lastlog",$SargConfig["lastlog"],"font-size:14px;padding:3px;width:90px")."</td>
-	<td>". help_icon("{sarg_topuser_exp}")."</td>
+	<td>". Field_array_Hash($LASTLOGS,"lastlog",$SargConfig["lastlog"],"style:font-size:14px;padding;3px")."</td>
+	<td>&nbsp;</td>
 </tr>
 
 <tr>
@@ -555,6 +678,7 @@ $html="
 		document.getElementById('resolve_ip').disabled=true;
 		document.getElementById('records_without_userid').disabled=true;
 		document.getElementById('DisableArticaProxyStatistics').disabled=true;
+		document.getElementById('SargOutputDir').disabled=true;
 		
 		
 		
@@ -573,6 +697,7 @@ $html="
 		document.getElementById('resolve_ip').disabled=false;	
 		document.getElementById('records_without_userid').disabled=false;
 		document.getElementById('DisableArticaProxyStatistics').disabled=false;	
+		document.getElementById('SargOutputDir').disabled=false;
 	
 	}
 	
@@ -608,6 +733,8 @@ $html="
 			XHR.appendData('date_format',document.getElementById('date_format').value);
 			XHR.appendData('lastlog',document.getElementById('lastlog').value);
 			XHR.appendData('records_without_userid',document.getElementById('records_without_userid').value);
+			XHR.appendData('SargOutputDir',document.getElementById('SargOutputDir').value);
+			
 			if(EnableSargGeneratorCK!=EnableSargGenerator){
 				if(confirm('$warn_squid_restart')){
 					XHR.appendData('RESTART_SQUID','yes');
@@ -823,6 +950,10 @@ function parameters_save(){
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	$sock->SET_INFO("EnableSargGenerator",$_GET["EnableSargGenerator"]);
 	$sock->SET_INFO("DisableArticaProxyStatistics",$_GET["DisableArticaProxyStatistics"]);
+	$sock->SET_INFO("SargOutputDir",$_GET["SargOutputDir"]);
+	unset($_GET["SargOutputDir"]);
+	
+	
 	if($_GET["DisableArticaProxyStatistics"]<>$DisableArticaProxyStatistics){$sock->getFrameWork("cmd.php?restart-artica-maillog=yes");}
 	$tpl=new templates();
 	$page=CurrentPageName();

@@ -258,7 +258,7 @@ return $html;
 }
 
 function StatusFailed(){
-$color="red";	
+$color="#CC0A0A";	
 $html="
 	<div style='width:100%;text-align:center;color:white;padding-top:3px;padding-bottom:3px;background-color:$color'>
 		<strong style='color:white;font-size:12px;font-weight:bold'>100%</strong></center>

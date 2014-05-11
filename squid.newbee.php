@@ -39,7 +39,7 @@
 	
 	if(isset($_GET["warn-enable-malware-patrol-js"])){error_malware_patrol_js();exit;}
 	if(isset($_GET["warn-enable-malware-patrol-popup"])){error_malware_patrol_popup();exit;}
-		
+	if(isset($_GET["squid-nat-status"])){squid_nat_status();exit;}
 	
 
 	
@@ -86,6 +86,9 @@
 	if(isset($_GET["squid-transparent-js"])){transparent_js();exit;}
 	if(isset($_GET["squid-transparent-popup"])){transparent_popup();exit;}
 	if(isset($_GET["squid-transparent-http"])){transparent_HTTP();exit;}
+	if(isset($_GET["transparent-help"])){transparent_help();exit;}
+	
+	
 	
 	if(isset($_GET["squid_transparent"])){transparent_save();exit;}
 	
@@ -438,7 +441,7 @@ $sock=new sockets();
 	$your_network=Paragraphe('folder-realyrules-64.png','{your_network}','{your_network_text}',"javascript:Loadjs('squid.popups.php?script=network')");
 	$APP_SQUIDKERAUTH=Paragraphe('wink3_bg.png','{APP_SQUIDKERAUTH}','{APP_SQUIDKERAUTH_TEXT}',"javascript:Loadjs('squid.adker.php')");
 	
-	$listen_port=Paragraphe('network-connection2.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')");
+	$listen_port=Paragraphe('folder-network-64.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')");
 	$dns_servers=Paragraphe('64-bind.png','{dns_servers}','{dns_servers_text}',"javascript:Loadjs('squid.popups.php?script=dns')");
 	$applysquid=applysquid_icon();
 
@@ -446,10 +449,10 @@ $sock=new sockets();
 	$visible_hostname=Paragraphe('64-work-station-linux.png','{visible_hostname}','{visible_hostname_intro}',"javascript:Loadjs('squid.popups.php?script=visible_hostname')");
 	$your_network_loupe=Paragraphe('64-win-nic-loupe.png','{your_network_loupe}','{your_network_loupe_text}',"javascript:Loadjs('$page?squid-net-loupe-js=yes')");
 	$transparent_mode=Paragraphe('relayhost.png','{transparent_mode}','{transparent_mode_text}',"javascript:Loadjs('$page?squid-transparent-js=yes')");
-	$enable_squid_service=Paragraphe('bg-server-settings-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:EnableDisableSQUID()");
+	$enable_squid_service=Paragraphe('shutdown-green-64.png','{enable_squid_service}','{enable_squid_service_text}',"javascript:EnableDisableSQUID()");
 	
 	$squid_advanced_parameters=Paragraphe('64-settings.png','{squid_advanced_parameters}','{squid_advanced_parameters_text}',"javascript:Loadjs('squid.advParameters.php')");
-	$squid_parent_proxy=Paragraphe('server-redirect-64.png','{squid_parent_proxy}','{squid_parent_proxy_text}',"javascript:Loadjs('squid.parent.proxy.php')");
+	
 	$squid_reverse_proxy=Paragraphe('squid-reverse-64.png','{squid_reverse_proxy}','{squid_reverse_proxy_text}',"javascript:Loadjs('squid.reverse.proxy.php')");
 
     $proxy_pac=Paragraphe('user-script-64.png','{proxy_pac}','{proxy_pac_text}',"javascript:Loadjs('squid.proxy.pac.php')");
@@ -1281,21 +1284,13 @@ changeCacheIndex();";
 
 function transparent_js(){
 $page=CurrentPageName();
-	$tpl=new templates();
-	$t=time();
-	header("content-type: application/x-javascript");
-	$title=$tpl->_ENGINE_parse_body('{transparent_mode}','squid.index.php');
-	$html="
-	function TransparentIndex$t(){
-		YahooWin(684,'$page?squid-transparent-popup=yes','$title');
-	
-	}
-	
-	TransparentIndex$t();
-	
-	
+$tpl=new templates();
+$t=time();
+header("content-type: application/x-javascript");
+echo "
+AnimateDiv('BodyContent');
+LoadAjax('BodyContent','squid.transparent.php')
 ";
-	echo $html;
 }
 
 function transparent_save(){
@@ -1307,6 +1302,12 @@ function transparent_save(){
 	$sock->SET_INFO("UseTProxyMode", $_GET["UseTProxyMode"]);
 	$sock->SET_INFO("KernelSendRedirects", $_GET["KernelSendRedirects"]);
 	$sock->SET_INFO("SquidTransparentMixed", $_GET["SquidTransparentMixed"]);
+	
+	if(isset($_GET["EnableTransparent27"])){
+		$sock->SET_INFO("EnableTransparent27",$_GET["EnableTransparent27"]);
+		$sock->getFrameWork("squid.php?squid-nat-restart=yes");
+	}
+	
 	
 	if($_GET["squid_transparent"]==1){
 		$sock->SET_INFO("EnableArticaAsGateway",1);
@@ -1330,33 +1331,43 @@ function transparent_popup(){
 	$users=new usersMenus();
 	$array["squid-transparent-http"]='HTTP';
 	$array["transparent-ssl"]='SSL';
+	$array["transparent-help"]='Youtube Help';
+	
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
 	
 		if($num=="transparent-ssl"){
-			$html[]= "<li><a href=\"squid.sslbump.php?parameters=yes\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:16px'><a href=\"squid.sslbump.php?popup=yes\"><span >$ligne</span></a></li>\n";
 			continue;
 		}
 	
 	
-		$html[]= "<li><a href=\"$page?$num=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n";
+		$html[]= "<li style='font-size:16px'><a href=\"$page?$num=yes&hostname=$hostname\"><span>$ligne</span></a></li>\n";
 		//$html=$html . "<li><a href=\"javascript:LoadAjax('squid_main_config','$page?main=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
 			
 	}
-	echo "
-	<div id=squid_main_transparent_config style='width:100%;font-size:16px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#squid_main_transparent_config').tabs();
-		
-		
-			});
-		</script>";
-		
+	echo build_artica_tabs($html, "squid_main_transparent_config");
+	
+}
+
+function transparent_help(){
+	
+			
+	$tr[]=Paragraphe("youtube-play-64.png", "Video", 
+	"Proxy Transparent: Setup the Proxy in transparent mode with SSL interception","http://youtu.be/nn5R6CqkHk8",null,250);
+			
+	$tr[]=Paragraphe("youtube-play-64.png", "Video",
+	"Proxy Transparent: MAN-IN-THE-MIDDLE with Dynamic SSL Certificate Generation feature",
+	"http://youtu.be/vFYmYw6t9EM",null,250);
+
+	$tr[]=Paragraphe("youtube-play-64.png", "Video",
+	"Proxy Transparent: SSL Traffic inspection With Kaspersky",
+	"http://youtu.be/9t5B91rllrA",null,250);
+			
+	
+	echo "<center style='width:80%'>".CompileTr3($tr)."</center>";
 	
 }
 
@@ -1440,21 +1451,48 @@ function transparent_HTTP(){
 	}
 	
 	$field=Paragraphe_switch_img('{transparent_mode}','{transparent_mode_text}',
-			'squid_transparent',$squid->hasProxyTransparent,null,450);
+			'squid_transparent',$squid->hasProxyTransparent,null,650);
 	
 	$field1=Paragraphe_switch_img('{SquidTransparentMixed}','{SquidTransparentMixed_text}',
-			'SquidTransparentMixed',$SquidTransparentMixed,null,450);	
+			'SquidTransparentMixed',$SquidTransparentMixed,null,650);	
 	
+	
+	if($users->APP_SQUID27_INSTALLED){
+		$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+	
+	
+		$EnableTransparent27_field="
+		<tr>
+			<td colspan=2>".Paragraphe_switch_img("{enable_nat_compatibility}", "{squid_enable_nat_compatibility_text}",
+			"EnableTransparent27",$EnableTransparent27,null,700)."</td>
+		</tr>";
+	}else{
+		$EnableTransparent27_field="
+		<tr>
+			<td colspan=2>".
+			Paragraphe_switch_disable("{enable_nat_compatibility}", "{squid_enable_nat_compatibility_text}",
+			"EnableTransparent27",$EnableTransparent27,null,700)."</td>
+		</tr>";
+		
+	}
+	
+	$image="hotspot-howto.png";
+	if($EnableTransparent27==1){$image="squid-nat-howto.png";}
 	
 	$html="
-	
+	<table style='width:100%'>
+	<tr>
+	<td valign=top width=1%><div id='squid-nat-status'></div></td>
+	<td valign=top width=99%>
 	<div id='squid_transparentdiv'></div>
 		<div style='float:right'>". help_icon("{transparent_mode_limitations}")."</div>
-			<div class=explain style='font-size:14px'>{transparent_mode_explain}</div>
+			<div class=explain style='font-size:18px'>{transparent_mode_explain}</div>
+			<center><img src='img/$image' style='margin:5px'></center>
 		<table style='width:99%' class=form>
 			<tr>
 				<td colspan=2>$field</td>
 			</tr>
+			$EnableTransparent27_field
 			$seeiptables
 			<tr>
 				<td class=legend style='font-size:14px'>{use_tproxy_mode}:</td>
@@ -1465,18 +1503,35 @@ function transparent_HTTP(){
 				<td>". Field_checkbox("KernelSendRedirects", 1,$KernelSendRedirects)."</td>
 				<td>". help_icon("{KernelSendRedirects_explain}")."</td>
 			</tr>
+	<tr>
+		<td style='font-size:26px' class=legend>{http_port}:</td>
+		<td><a href=\"javascript:blur();\" 
+			OnClick=\"javascript:Loadjs('squid.popups.php?script=listen_port')\"
+			style='font-size:26px;font-weight:bold;text-decoration:underline'>
+			$squid->listen_port</td>
+			<td>&nbsp;</td>
+	</tr>						
 			<tr>
 				<td colspan=2 align='right'><hr>". button("{apply}","SaveTransparentProxy();",18)."</tD>
+			</tr>
 		</table>
 	</div>
+	</td>
+	</tr>
+						
+						
+						
+	</table>
+	<div style='text-align:right'>". imgtootltip("refresh-32.png","{refresh}","RefreshTab('squid_transparent_popup_tabs')")."</div>
 	
 	<script>
 	
 	var x_SaveTransparentProxy= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
-		document.getElementById('squid_transparentdiv').innerHTML='';
+		
 		if(document.getElementById('main_squid_quicklinks_tabs')){RefreshTab('main_squid_quicklinks_tabs');}
+		if(document.getElementById('listen_port_popup_tabs')){RefreshTab('listen_port_popup_tabs');}
 		Loadjs('squid.restart.php?onlySquid=yes&ask=yes');
 	}	
 	
@@ -1491,6 +1546,8 @@ function transparent_HTTP(){
 			XHR.appendData('SquidTransparentMixed',document.getElementById('SquidTransparentMixed').value);
 		}
 		
+		XHR.appendData('EnableTransparent27',document.getElementById('EnableTransparent27').value);
+		
 		
 		
 		if(CONFIG_NETFILTER_TPROXY==0){
@@ -1503,7 +1560,7 @@ function transparent_HTTP(){
 		XHR.appendData('KernelSendRedirects',KernelSendRedirects);
 		
 		
-		AnimateDiv('squid_transparentdiv');
+		
 		XHR.sendAndLoad('$page', 'GET',x_SaveTransparentProxy);		
 		}	
 	
@@ -1517,12 +1574,28 @@ function transparent_HTTP(){
 	}
 	
 	CheckUseTProxyMode();
+	LoadAjax('squid-nat-status','$page?squid-nat-status=yes',false);
 	</script>
 	";
 	
-$tpl=new templates();
-		echo $tpl->_ENGINE_parse_body($html,'squid.index.php');	
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($html,'squid.index.php');	
 	
+}
+
+function squid_nat_status(){
+	$page=CurrentPageName();
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
+	if($EnableTransparent27==0){return;}
+	$ini->loadString(base64_decode($sock->getFrameWork("squid.php?squid-nat-status=yes")));
+	$APP_SQUID_NAT=DAEMON_STATUS_ROUND("APP_SQUID_NAT",$ini,null,1);
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body($APP_SQUID_NAT);
+	echo $tpl->_ENGINE_parse_body("<div style='text-align:right'>".
+			imgtootltip("refresh-32.png",null,
+			"LoadAjax('squid-nat-status','$page?squid-nat-status=yes',false);"))."</div>";
 }
 
 function net_control_center_js(){
@@ -1725,7 +1798,7 @@ $network_d="
  <tr>
  	<td valign='top'>" . Paragraphe('folder-realyrules-64.png','{your_network}','{your_network_text}',"javascript:Loadjs('squid.popups.php?script=network')")."</td>
  </tr>
-	<td valign='top'>" . Paragraphe('network-connection2.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')")."</td>
+	<td valign='top'>" . Paragraphe('folder-network-64.png','{listen_port}','{listen_port_text}',"javascript:Loadjs('squid.popups.php?script=listen_port')")."</td>
 
 	<tr>
 <td valign='top'>" . Paragraphe('relayhost.png','{transparent_mode}','{transparent_mode_text}',"javascript:Loadjs('$page?squid-transparent-js=yes')")."</td>

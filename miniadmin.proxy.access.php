@@ -332,7 +332,7 @@ function section_blocked_realtime_search(){
 		if(preg_match("#^www\.(.*?)$#", $sitename,$re)){$sitename=$re[1];}
 		
 		if($sitename<>null){
-			$js="Loadjs('squid.categories.php?category=$category&website=$sitename')";
+			$js="Loadjs('squid.categories.php?category=$category&website=$sitename',true)";
 			$link=$boot->trswitch($js);
 			$unblock=imgsimple("whitelist-24.png",null,"UnBlockWebSite$t('$sitename')");
 			$ligne3=mysql_fetch_array($q2->QUERY_SQL("SELECT items FROM urlrewriteaccessdeny WHERE items='$sitename'","artica_backup"));
@@ -388,7 +388,8 @@ function section_blocked_realtime_search(){
 			</tr>
 			</thead>
 			<tbody>
-			").@implode("\n", $tr)." </tbody></table>		<script>
+			").@implode("\n", $tr)." </tbody></table>		
+<script>
 	var x_UnBlockWebSite$t=function(obj){
 	      var tempvalue=obj.responseText;
 	      if(tempvalue.length>3){alert(tempvalue);}
@@ -669,7 +670,7 @@ function table_blocked(){
 		$member=$ligne["client"];
 		if($ligne["hostname"]<>null){$member=$ligne["hostname"];}
 		if($ligne["uid"]<>null){$member=$ligne["uid"];}
-		$js="Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}')";
+		$js="Loadjs('squid.categories.php?category={$ligne["category"]}&website={$ligne["website"]}',true)";
 		$link=$boot->trswitch($js);
 		
 		$unblock=imgsimple("whitelist-24.png",null,"UnBlockWebSite$t('{$ligne["website"]}')");

@@ -246,7 +246,7 @@ function parameters(){
 	if(!isset($ChilliConf["HS_DNS_DOMAIN"])){$ChilliConf["HS_DNS_DOMAIN"]="hotspot.domain.tld";}
 	
 	if(!isset($ChilliConf["HS_PROVIDER"])){$ChilliConf["HS_PROVIDER"]="Artica";}
-	if(!isset($ChilliConf["HS_PROVIDER_LINK"])){$ChilliConf["HS_PROVIDER_LINK"]="http://www.artica.fr";}
+	if(!isset($ChilliConf["HS_PROVIDER_LINK"])){$ChilliConf["HS_PROVIDER_LINK"]="http://www.articatech.net";}
 	if(!isset($ChilliConf["HS_LOC_NAME"])){$ChilliConf["HS_LOC_NAME"]="Artica HotSpot";}	
 	if($ChilliConf["HS_LOC_NETWORK"]==null){$ChilliConf["HS_LOC_NETWORK"]="HotSpot Network";}
 	

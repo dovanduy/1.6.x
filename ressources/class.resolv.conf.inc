@@ -1,21 +1,27 @@
 <?php
+if(!isset($GLOBALS["PROGRESS"])){$GLOBALS["PROGRESS"]=false;}
 include_once(dirname(__FILE__)."/class.tcpip.inc");
 class resolv_conf{
 	
 	var $MainArray=array();
 	var $arrayNameServers=array();
 	var $lockServ1=0;
+	var $output=false;
 	
 	function resolv_conf(){
-		
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__.": loading...\n";}
 		$this->buildConf();
 		
 	}
 	
 	private function buildConf(){
 		$sock=new sockets();
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__.": GET_INFO(resolvConf)...\n";}
+		if($GLOBALS["PROGRESS"]){echo "82%] Loading resolvConf\n";}
 		$this->MainArray=unserialize(base64_decode($sock->GET_INFO("resolvConf")));
+		
 		if(!is_array($this->MainArray)){
+			if($this->output){echo "---] resolvConf: Not an array, build default...\n";}
 			$this->buildDefault();
 		}
 		$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
@@ -43,11 +49,14 @@ class resolv_conf{
 				
 			}
 		}
+		if($GLOBALS["PROGRESS"]){echo "89%] Loading DONE...\n";}
+		if($GLOBALS["VERBOSE"]){echo __CLASS__."/".__FUNCTION__."/".__LINE__.": DONE\n";}
 		
 		
 	}
 	
 	private function buildDefault(){
+		if($GLOBALS["PROGRESS"]){echo "82%] Loading LoadNameServers()\n";}
 		$this->LoadNameServers();
 		$this->MainArray["DNS1"]=$this->arrayNameServers[0];
 		$this->MainArray["DNS2"]=$this->arrayNameServers[1];
@@ -91,6 +100,7 @@ class resolv_conf{
 	
 	public function build(){
 		$rotation=null;
+		if(!class_exists("usersMenus")){include_once(dirname(__FILE__)."/class.users.menus.inc");}
 		if($this->MainArray["DOMAINS1"]<>null){$tt[]=$this->MainArray["DOMAINS1"];}
 		if($this->MainArray["DOMAINS2"]<>null){$tt[]=$this->MainArray["DOMAINS2"];}
 		if($this->MainArray["DOMAINS3"]<>null){$tt[]=$this->MainArray["DOMAINS3"];}
@@ -104,12 +114,17 @@ class resolv_conf{
 		if($this->MainArray["USEROTATION"]==1){$rotation=" rotate";}
 		$f[]="options attempts:{$this->MainArray["ATTEMPTS"]} timeout:{$this->MainArray["TIMEOUT"]}$rotation";
 		
+		if($this->MainArray["DNS1"]=="___.___.___.___"){$this->MainArray["DNS1"]=null;}
+		if($this->MainArray["DNS2"]=="___.___.___.___"){$this->MainArray["DNS2"]=null;}
 		if($this->MainArray["DNS3"]=="___.___.___.___"){$this->MainArray["DNS3"]=null;}
 		
-		
+		$users=new usersMenus();
+		if($users->EnableDNSMASQ()==1){$f[]="nameserver 127.0.0.1";}
+		if($users->EnablePDNS()==1){$f[]="nameserver 127.0.0.1";}
 		if($this->MainArray["DNS1"]<>null){$f[]="nameserver {$this->MainArray["DNS1"]}";}
 		if($this->MainArray["DNS2"]<>null){$f[]="nameserver {$this->MainArray["DNS2"]}";}
 		if($this->MainArray["DNS3"]<>null){$f[]="nameserver {$this->MainArray["DNS3"]}";}
+		if($this->output){echo "---] Configuration builded successfully\n";}
 		return @implode("\n", $f)."\n";
 	}
 	

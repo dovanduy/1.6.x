@@ -43,7 +43,7 @@ function RemoveFromInetd(){
 	
 	
 	if(!is_file($bin_path)){
-		echo "Starting......: tftpd not installed\n";	
+		echo "Starting......: ".date("H:i:s")." tftpd not installed\n";	
 	}
 	
 	if(is_file("/etc/inetd.conf")){
@@ -56,7 +56,7 @@ function RemoveFromInetd(){
 		}
 	
 		if($found){
-			echo "Starting......: tftpd removing service from inetd\n";
+			echo "Starting......: ".date("H:i:s")." tftpd removing service from inetd\n";
 			shell_exec("$update_inted --disable tftp");
 		
 		}
@@ -64,7 +64,7 @@ function RemoveFromInetd(){
 	}
 	
 	if(is_file("/etc/xinetd.d/tftp")){
-		echo "Starting......: tftpd removing service from xinetd\n";
+		echo "Starting......: ".date("H:i:s")." tftpd removing service from xinetd\n";
 		@unlink("/etc/xinetd.d/tftp");
 		
 	}
@@ -81,11 +81,11 @@ function AddFromInetd(){
 	$tcpd_bin=$unix->find_program("tcpd");
 	
 	if(!is_file($bin_path)){
-		echo "Starting......: tftpd not installed\n";
+		echo "Starting......: ".date("H:i:s")." tftpd not installed\n";
 	}	
-	echo "Starting......: tftpd type: $tftpd_product\n";
-	echo "Starting......: tcpd......: $tcpd_bin\n";
-	echo "Starting......: tftpd.....: $bin_path\n";
+	echo "Starting......: ".date("H:i:s")." tftpd type: $tftpd_product\n";
+	echo "Starting......: ".date("H:i:s")." tcpd......: $tcpd_bin\n";
+	echo "Starting......: ".date("H:i:s")." tftpd.....: $bin_path\n";
 	
 	$aftpd_options=" --tftpd-timeout 300 --retry-timeout 5  --mcast-port 1758 --mcast-addr 239.239.239.0-255 --mcast-ttl 1 --maxthread 100 --verbose=5  /var/lib/tftpboot";
 	$aftpd_line="tftp\tdgram\tudp\twait\troot\t$tcpd_bin $bin_path $aftpd_options";
@@ -95,7 +95,7 @@ function AddFromInetd(){
 	$tftp_default="tftp\tdgram\tudp\twait\troot\t$bin_path $bin_path -s /var/lib/tftpboot";
 	
 	if($tftpd_product=="ATFTP"){
-		echo "Starting......: tftpd use settings for \"Advanced TFTP server\"\n";
+		echo "Starting......: ".date("H:i:s")." tftpd use settings for \"Advanced TFTP server\"\n";
 		$tftp_default_options=$aftpd_options;
 		$tftp_default=$aftpd_line;
 	}
@@ -106,7 +106,7 @@ function AddFromInetd(){
 		while (list ($index, $line) = each ($f) ){
 			if(preg_match("#tftp\s+#",$line)){
 				$f[$index]="tftp\tdgram\tudp\twait\troot\t$bin_path $bin_path -s /var/lib/tftpboot";
-				echo "Starting......: line $index modified\n";
+				echo "Starting......: ".date("H:i:s")." line $index modified\n";
 				
 				$found=true;
 				@file_put_contents("\n",@implode("\n",$f));
@@ -115,7 +115,7 @@ function AddFromInetd(){
 	
 		if(!$found){
 			$f[]="tftp\tdgram\tudp\twait\troot\t$bin_path $bin_path -s /var/lib/tftpboot";
-			echo "Starting......: service added...\n";
+			echo "Starting......: ".date("H:i:s")." service added...\n";
 			@file_put_contents("\n",@implode("\n",$f));
 			
 		}
@@ -137,14 +137,14 @@ function AddFromInetd(){
 		$xinet[]="disable = no";
 		$xinet[]="}"; 	
 		$xinet[]="";	
-		echo "Starting......: add service into xinetd...\n";
+		echo "Starting......: ".date("H:i:s")." add service into xinetd...\n";
 		@file_put_contents("/etc/xinetd.d/tftp",@implode("\n",$xinet));
 	}
 	unset($xinet);
 	if(is_file("/etc/default/atftpd")){
 		$xinet[]="USE_INETD=true";
 		$xinet[]="OPTIONS=\"--daemon --port 69 --tftpd-timeout 300 --retry-timeout 5     --mcast-port 1758 --mcast-addr 239.239.239.0-255 --mcast-ttl 1 --maxthread 100 --verbose=5  /var/lib/tftpboot\"";
-		echo "Starting......: update /etc/default/atftpd...\n";
+		echo "Starting......: ".date("H:i:s")." update /etc/default/atftpd...\n";
 		@file_put_contents("/etc/default/atftpd",@implode("\n",$xinet));	
 	}
 	

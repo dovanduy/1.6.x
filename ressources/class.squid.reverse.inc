@@ -5,6 +5,7 @@ $GLOBALS["TYPES"][1]="{ldap}";
 $GLOBALS["TYPES"][2]="{ActiveDirectory}";
 $GLOBALS["TYPES"][3]="{trace_connexions}";
 $GLOBALS["TYPES"][4]="{redirect_uri}";
+$GLOBALS["TYPES"][5]="{CAS_AUTH_LABEL}";
 
 $GLOBALS["SOURCE_TYPE"][0]="{all_cases}";
 $GLOBALS["SOURCE_TYPE"][1]="{network_text}";
@@ -77,18 +78,21 @@ class squid_reverse{
 			  `owa` smallint(1)  NOT NULL DEFAULT '0',
 			  `aclname` INT NOT NULL AUTO_INCREMENT,
 			  `certificate` VARCHAR(255),
+			  `default_server` smallint(1),
+			  `tmperrordisabled` smallint(1),
 			  PRIMARY KEY (`servername`),
 			  UNIQUE KEY (`aclname`),
 			  KEY `ipaddr` (`ipaddr`),
 			  KEY `port` (`port`),
 			  KEY `ssl` (`ssl`),
+			  KEY `default_server` (`default_server`),
 			  KEY `sslport` (`sslport`),
 			  KEY `cache_peer_id` (`cache_peer_id`),
 			  KEY `replaceid` (`replaceid`),
 			  KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
-			if(!$q->ok){return;}
+			if(!$q->ok){echo $q->mysql_error_html();return;}
 		}
 		
 		
@@ -98,6 +102,7 @@ class squid_reverse{
 			  `servername` CHAR(255)  NOT NULL,
 			  `directory` CHAR(255)  NOT NULL,
 			  `localdirectory` CHAR(255)  NOT NULL,
+			  `webpageid` INT UNSIGNED  NOT NULL,
 			  `hostweb` CHAR(255)  NOT NULL,
 			  `local` smallint(1)  NOT NULL,
 			  `cache_peer_id` INT(10)  NOT NULL DEFAULT '0',
@@ -105,7 +110,8 @@ class squid_reverse{
 			  `enabled` smallint(1)  NOT NULL DEFAULT '1',
 			  `ForceRedirect` smallint(1)  NOT NULL DEFAULT '1',
 			  PRIMARY KEY (`folderid`),
-			  KEY (`servername`),
+			  KEY `webpageid` (`webpageid`),
+			  KEY `servername` (`servername`),
 			  KEY `directory` (`directory`),
 			  KEY `local` (`local`),
 			  KEY `cache_peer_id` (`cache_peer_id`),
@@ -114,17 +120,54 @@ class squid_reverse{
 			  KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
-			if(!$q->ok){return;}
+			if(!$q->ok){echo $q->mysql_error_html();return;}
+			
+			
+			$sql="CREATE TABLE IF NOT EXISTS `reverse_pages_cms` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `subject`  CHAR(255),
+			  `headers` TEXT  NOT NULL,
+			  `footers` TEXT NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY (`subject`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){echo $q->mysql_error_html();return;}			
+			
+			
+			$sql="CREATE TABLE IF NOT EXISTS `reverse_pages_content` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `subject`  CHAR(255),
+			  `content` TEXT  NOT NULL,
+			  `zDate` DATETIME NOT NULL,
+			  `cachemin` smallint(5) NOT NULL DEFAULT '5',
+			  PRIMARY KEY (`ID`),
+			  KEY (`subject`),
+			  KEY (`cachemin`),
+			  KEY `zDate` (`zDate`)
+			)  ENGINE = MYISAM;";
+			$q->QUERY_SQL($sql,$this->database);
+			if(!$q->ok){echo $q->mysql_error_html();return;}			
+			
+		if(!$q->FIELD_EXISTS("reverse_dirs", "webpageid")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `webpageid` INT UNSIGNED, ADD INDEX ( `webpageid`)");
+			if(!$q->ok){echo $q->mysql_error_html();return;}
+		}	
+
+		if(!$q->FIELD_EXISTS("reverse_pages_content", "cachemin")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_pages_content` ADD `cachemin` smallint(5), ADD INDEX ( `cachemin`)");
+			if(!$q->ok){echo $q->mysql_error_html();return;}
+		}		
 		
 
 		if(!$q->FIELD_EXISTS("reverse_dirs", "localdirectory")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `localdirectory` CHAR(255)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();return;}
 		}
 
 		if(!$q->FIELD_EXISTS("reverse_dirs", "local")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `local` smallint(1) NOT NULL, ADD INDEX ( `local`)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();return;}
 		}		
 		
 		
@@ -136,7 +179,7 @@ class squid_reverse{
 			  `keys_zone_size` smallint(1)  NOT NULL,
 			  `inactive` smallint(3)  NOT NULL DEFAULT '10',
 			  `max_size` smallint(1)  NOT NULL DEFAULT '1',
-			  `CurrentSize` BIGINT(100)  NOT NULL DEFAULT '0',
+			  `CurrentSize` BIGINT UNSIGNED  NOT NULL DEFAULT '0',
 			  `loader_files` INT(5) NOT NULL DEFAULT '100',
 			  `loader_sleep` INT(10) NOT NULL DEFAULT '50',
 			  `loader_threshold` INT(10) NOT NULL DEFAULT '200',
@@ -146,7 +189,7 @@ class squid_reverse{
 			  UNIQUE KEY `keys_zone` (`keys_zone`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);
-		if(!$q->ok){return;}
+		if(!$q->ok){echo $q->mysql_error_html();return;}
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_aliases` (
@@ -158,7 +201,7 @@ class squid_reverse{
 			  UNIQUE KEY `alias` (`alias`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);		
-		if(!$q->ok){return;}
+		if(!$q->ok){echo $q->mysql_error_html();return;}
 		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace_www` (
@@ -173,7 +216,7 @@ class squid_reverse{
 			  KEY `servername` (`servername`)
 			)  ENGINE = MYISAM;";
 		$q->QUERY_SQL($sql,$this->database);		
-		if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>\n";}
+		if(!$q->ok){echo $q->mysql_error_html();return;}
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace_folder` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,
@@ -208,6 +251,70 @@ class squid_reverse{
 		$q->QUERY_SQL($sql,$this->database);
 		if(!$q->ok){return;}
 		
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_exploits` (
+			  `zmd5` VARCHAR(90) NOT NULL,
+			  `groupid` INT  NOT NULL,
+			  `servername` CHAR(255)  NOT NULL,
+			  PRIMARY KEY (`zmd5`),
+			  KEY `servername` (`servername`),
+			  KEY `groupid` (`groupid`)
+			)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}		
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_exploits_groups` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `groupname` CHAR(255)  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `groupname` (`groupname`)
+			)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}
+		
+
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_exploits_items` (
+			  `ID` INT NOT NULL AUTO_INCREMENT,
+			  `groupid` INT NOT NULL DEFAULT '0',
+			  `enabled` smallint(1)  NOT NULL,
+			  `reverse` smallint(1)  NOT NULL DEFAULT 0,
+			  `pattern` TEXT,
+			  `token` CHAR(20)  NOT NULL,
+			  PRIMARY KEY (`ID`),
+			  KEY `groupid` (`groupid`),
+			  KEY `enabled` (`enabled`),
+			  KEY `token` (`token`)
+			)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}	
+
+		
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_exploits_fw` (
+		`servername` CHAR(255) NOT NULL  PRIMARY KEY,
+		`maxaccess` smallint(1)  NOT NULL DEFAULT 0,
+		`sendlogs` smallint(1)  NOT NULL DEFAULT 0,
+		KEY `maxaccess` (`maxaccess`),
+		KEY `sendlogs` (`sendlogs`)
+		)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `nginx_exploits_fwev` (
+		`zmd5` CHAR(255) NOT NULL  PRIMARY KEY,
+		`zDate` DATETIME NOT NULL,
+		`servername` CHAR(255) NOT NULL,
+		`ipaddr` CHAR(255) NOT NULL,
+		`hostname`  CHAR(255)  NOT NULL,
+		`country` CHAR(128),
+		KEY `zDate` (`zDate`),
+		KEY `servername` (`servername`),
+		KEY `ipaddr` (`ipaddr`),
+		KEY `hostname` (`hostname`),
+		KEY `country` (`country`)
+		)  ENGINE = MYISAM;";
+		$q->QUERY_SQL($sql,$this->database);
+		if(!$q->ok){return;}		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_replace_group` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,
@@ -235,7 +342,7 @@ class squid_reverse{
 
 		
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_pools` (
-			  `ID` INT(100) NOT NULL AUTO_INCREMENT,
+			  `ID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 			  `poolname` CHAR(255)  NOT NULL,
 			  `hashtype` CHAR(128)  NOT NULL,
 			  `keepalive` INT(10) NOT NULL DEFAULT '0',
@@ -248,10 +355,10 @@ class squid_reverse{
 		$sql="CREATE TABLE IF NOT EXISTS `nginx_pools_list` (
 			  `ID` INT NOT NULL AUTO_INCREMENT,
 			  `zorder` smallint(1) NOT NULL DEFAULT '1',
-			  `poolid` INT(100) NOT NULL,
-			  `sourceid` INT(100) NOT NULL,
-			  `max_fails` INT(100) NOT NULL,
-			  `fail_timeout` INT(100) NOT NULL,
+			  `poolid` INT UNSIGNED NOT NULL,
+			  `sourceid` INT UNSIGNED NOT NULL,
+			  `max_fails` INT UNSIGNED NOT NULL,
+			  `fail_timeout` INT UNSIGNED NOT NULL,
 			  `backuptype` CHAR(40) NOT NULL DEFAULT 'backup',
 			  PRIMARY KEY (`ID`),
 			  KEY `zorder` (`zorder`),
@@ -372,77 +479,147 @@ class squid_reverse{
 		
 		if(!$q->FIELD_EXISTS("reverse_privs", "sourceid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_privs` ADD `sourceid` INT NOT NULL, ADD INDEX ( `sourceid`)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
 		
 		if(!$q->FIELD_EXISTS("reverse_www", "enabled")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `enabled` TINYINT( 1 ) NOT NULL DEFAULT '1', ADD INDEX ( `enabled`)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}
 		if(!$q->FIELD_EXISTS("reverse_www", "poolid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `poolid` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `poolid`)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}
+
+		if(!$q->FIELD_EXISTS("reverse_www", "tmperrordisabled")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `tmperrordisabled` smallint(1) NOT NULL DEFAULT '0', ADD INDEX ( `tmperrordisabled`)");
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
+
+		
 		
 			
 		if(!$q->FIELD_EXISTS("reverse_www", "cacheid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `cacheid` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `cacheid` )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}
+		if(!$q->FIELD_EXISTS("reverse_www", "default_server")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `default_server` smallint( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `default_server` )");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}		
 		
 		$errors=$this->errors_page;
 		while (list ($key, $value) = each ($errors) ){
 			if(!$q->FIELD_EXISTS("reverse_www", "$value")){
 				$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `$value` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `$value` )");
-				if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+				if(!$q->ok){echo $q->mysql_error_html();}
 			}
 		}
 		
 		
 		if(!$q->FIELD_EXISTS("reverse_www", "replaceid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `replaceid` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `replaceid` )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
 		if(!$q->FIELD_EXISTS("nginx_replace", "groupid")){
 			$q->QUERY_SQL("ALTER TABLE `nginx_replace` ADD `groupid` INT NOT NULL DEFAULT '0', ADD INDEX ( `groupid` )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}	
 
 		if(!$q->FIELD_EXISTS("reverse_dirs", "ForceRedirect")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `ForceRedirect` smallint(1) NOT NULL DEFAULT '1' , ADD INDEX ( `ForceRedirect`)");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
 		
 		if(!$q->FIELD_EXISTS("reverse_www", "owa")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `owa` smallint( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `owa` )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
 
 		if(!$q->FIELD_EXISTS("nginx_caches", "CurrentSize")){
-			$q->QUERY_SQL("ALTER TABLE `nginx_caches` ADD `CurrentSize` BIGINT( 100 ) NOT NULL DEFAULT '0', ADD INDEX ( `CurrentSize` )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			$q->QUERY_SQL("ALTER TABLE `nginx_caches` ADD `CurrentSize` BIGINT UNSIGNED DEFAULT '0', ADD INDEX ( `CurrentSize` )");
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}
 		if(!$q->FIELD_EXISTS("nginx_pools", "keepalive")){
-			$q->QUERY_SQL("ALTER TABLE `nginx_pools` ADD `keepalive` BIGINT( 100 ) NOT NULL DEFAULT '0', ADD INDEX ( `keepalive` )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			$q->QUERY_SQL("ALTER TABLE `nginx_pools` ADD `keepalive` BIGINT UNSIGNED DEFAULT '0', ADD INDEX ( `keepalive` )");
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}	
 		if(!$q->FIELD_EXISTS("nginx_replace_www", "tokens")){
 			$q->QUERY_SQL("ALTER TABLE `nginx_replace_www` ADD `tokens` CHAR( 20 ) NOT NULL DEFAULT 'g'");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}
+		if(!$q->FIELD_EXISTS("nginx_replace_www", "zorder")){
+			$q->QUERY_SQL("ALTER TABLE `nginx_replace_www` ADD `zorder` INT( 10 ) NOT NULL DEFAULT '0',ADD INDEX ( `zorder` )");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}
+
+		if(!$q->FIELD_EXISTS("nginx_replace_www", "AsRegex")){
+			$q->QUERY_SQL("ALTER TABLE `nginx_replace_www` ADD `AsRegex` smallint( 1 ) NOT NULL DEFAULT '0' ,ADD INDEX ( `AsRegex` )");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}		
+		if(!$q->FIELD_EXISTS("nginx_replace_folder", "AsRegex")){
+			$q->QUERY_SQL("ALTER TABLE `nginx_replace_folder` ADD `AsRegex` smallint( 1 ) NOT NULL DEFAULT '0' ,ADD INDEX ( `AsRegex` )");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}		
 		
 		
 		 
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_read_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_send_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_send_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffers")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_buffers` VARCHAR(20) NOT NULL DEFAULT '8 8k'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffer_size")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_buffer_size` smallint(10) NOT NULL DEFAULT '8'");if(!$q->ok){echo $q->mysql_error_html();}}
+
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_cache_min_uses")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_cache_min_uses` smallint(3) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
+
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_cache_min_uses")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_cache_min_uses` smallint(3) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffering")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_buffering` smallint(1) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}	
+
+		if(!$q->FIELD_EXISTS("reverse_www", "RedirectQueries")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `RedirectQueries` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
 			
+		if(!$q->FIELD_EXISTS("reverse_www", "EnableHSTS")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `EnableHSTS` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "RestrictIFrames")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `RestrictIFrames` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "XSSBrowser")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `XSSBrowser` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "EnableCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `EnableCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "EnableSSLOCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `EnableSSLOCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "ssl_protocols")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `ssl_protocols` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "ssl_ciphers")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `ssl_ciphers` TEXT");if(!$q->ok){echo $q->mysql_error_html();}}		
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "LimitCnx")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `LimitCnx` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "LimitReqs")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `LimitReqs` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
 			
-		if(!$q->FIELD_EXISTS("reverse_www", "certificate")){
-			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `certificate` VARCHAR( 255 )");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
-		}
+		if(!$q->FIELD_EXISTS("reverse_www", "certificate")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `certificate` VARCHAR( 255 )");if(!$q->ok){echo $q->mysql_error_html();}}
 
 		if(!$q->FIELD_EXISTS("reverse_www", "debug")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `debug` smallint(1) NOT NULL DEFAULT 0");
-			if(!$q->ok){echo "<p class=text-error>$q->mysql_error</p>";}
+			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
 			
 			
@@ -487,7 +664,7 @@ class squid_reverse{
 		}
 		
 		
-		echo "Starting......: [PEE] $ServerKey: $hostname:$port cert:{$certificate}\n";
+		echo "Starting......: ".date("H:i:s")." [PEE] $ServerKey: $hostname:$port cert:{$certificate}\n";
 		
 		if($forceddomain==null){$forceddomain=$servername;}
 		
@@ -533,7 +710,7 @@ class squid_reverse{
 		
 		if($servername)
 		
-		echo "Starting......: [PEE] $ServerKey $servername ID:$cache_peer_id ssl=$ssl\n";
+		echo "Starting......: ".date("H:i:s")." [PEE] $ServerKey $servername ID:$cache_peer_id ssl=$ssl\n";
 		$AClVhostName="{$prefix}Dom{$ServerKey}";
 		$servernameregex=$squid->StringToRegex("http{$urls}://$servername");
 		$this->ACLS_BY_HOSTS[$AClVhostName]="acl $AClVhostName url_regex -i ^$servernameregex";
@@ -566,7 +743,7 @@ class squid_reverse{
 		$sql="SELECT `servername`,`cache_peer_id` FROM `reverse_www` WHERE `enabled`=1";
 		$q=new mysql_squid_builder();
 		$results=$q->QUERY_SQL($sql);
-		if(!$q->ok){if($GLOBALS['AS_ROOT']){echo "Starting......: $sql failed -> die()\n";die();}}
+		if(!$q->ok){if($GLOBALS['AS_ROOT']){echo "Starting......: ".date("H:i:s")." $sql failed -> die()\n";die();}}
 		
 		if(mysql_num_rows($results)==0){return null;}
 		

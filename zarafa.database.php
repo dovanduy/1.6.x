@@ -19,37 +19,83 @@
 	if(isset($_GET["mysql-dir"])){mysql_dir_popup();exit;}
 	if(isset($_POST["ChangeMysqlDir"])){ChangeMysqlDir();exit;}
 	if(isset($_GET["dbsize"])){dbsize();exit;}
-page();
+	if(isset($_GET["page"])){page();exit;}
+tabs();
+
+function tabs(){
+	
+	$page=CurrentPageName();
+	$fontsize="font-size:16px;";
+	$adduri="&font-size=18";$adduri2="?font-size={$_GET["font-size"]}";
+	
+	//$array["popup-instances"]="{multiple_webmail}";
+	$array["status"]="{status}";
+	
+	$array["popup-mysql"]="{mysql_tuning}";
+	
+	$fontsize="font-size:18px";
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+	
+		if($num=="status"){
+			$html[]="<li><a href=\"zarafa.database.php?page=yes\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			continue;
+		}
+	
+	
+		
+		
+		if($num=="popup-mysql"){
+			$html[]="<li><a href=\"zarafa.mysqlparams.php\" style='font-size:18px'><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+	
+		$html[]="<li><a href=\"$page?$num=yes$adduri\" style='$fontsize' ><span>$ligne</span></a></li>\n";
+			
+	}
+	$tabwidth=759;
+	if(is_numeric($_GET["tabwith"])){$tabwitdh=$_GET["tabwith"];}
+	
+	echo build_artica_tabs($html, "main_config_zarafaDB");
+		
+	
+}
 
 
 function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
+	$sock=new sockets();
 	
 	
-	
-	$movefolder=Paragraphe('folder-64.png','{storage_directory}',
-	'{change_mysql_directory_text}',"javascript:YahooWin3(405,'$page?mysql-dir=yes','{storage_directory}');",null);
+	$movefolder=Paragraphe('folder-storage-64.png','{storage_directory}',
+	'{change_mysql_directory_text}',"javascript:YahooWin3(650,'$page?mysql-dir=yes','{storage_directory}');",null);
 
-	$restore=Paragraphe('database-restore-64.png','{restore_from_backup}',
-			'{restore_from_backup_text}',"javascript:Loadjs('zarafa.dabatase.restore.php');",null);
 	
-	$tasks=Paragraphe('folder-tasks2-64.png','{processes_list}',
+	$tasks=Paragraphe('processor-64.png','{processes_list}',
 			'{processes_list_mysql_explain}',"javascript:Loadjs('zarafa.dabatase.processlist.php');",null);	
 	
 
-	$zarafaSeconds=Paragraphe('zarafa-web-64.png','{zarafa_second_instance}',
-			'{zarafa_second_instance_text}',"javascript:Loadjs('zarafa.dabatase.second-instance.php');",null);
-	
+	$trash=Paragraphe("database-linker-delete-64.png", "{REMOVE_DATABASE}", "{REMOVE_DATABASE_ZARAFA_TEXT}","javascript:REMOVE_DATABASE()");
 	// mysqladmin --socket /var/run/mysqld/zarafa-db.sock -u root processlist
+	
+	$sock=new sockets();
+	$ZarafaDedicateMySQLServer=intval($sock->GET_INFO("ZarafaDedicateMySQLServer"));
+	
+	if($ZarafaDedicateMySQLServer==1){
+		$trash=Paragraphe("database-linker-delete-64.png", "{REMOVE_DATABASE}", "{REMOVE_DATABASE_ZARAFA_TEXT}","javascript:Loadjs('zarafa.trash.php')");
+	}
+	
 	
 	$tr[]=$movefolder;
 	$tr[]=$restore;
 	$tr[]=$tasks;
-	$tr[]=$zarafaSeconds;
+	$tr[]=$trash;
+	$confirm_remove_zarafa_db=$tpl->javascript_parse_text("{confirm_remove_zarafa_db}");
 	
-	
-	$table=CompileTr2($tr,"form");
+	$table=CompileTr3($tr,"form");
 	$html="
 	<table style='width:100%'>
 	<tr>
@@ -60,6 +106,23 @@ function page(){
 	
 	<script>
 		LoadAjaxTiny('dbsize','$page?dbsize=yes&refresh=dbsize');
+		
+
+var x_REMOVE_DATABASE=function(obj){
+      var tempvalue=obj.responseText;
+      if(tempvalue.length>5){alert(tempvalue);}
+     	RefreshTab('main_config_zarafa');
+      }	
+		
+	function REMOVE_DATABASE(){
+		if(confirm('$confirm_remove_zarafa_db')){
+			var XHR = new XHRConnection();
+			XHR.appendData('remove-db','1');
+			XHR.sendAndLoad('zarafa.tools.php', 'POST',x_REMOVE_DATABASE);
+			}
+	}
+
+		
 	</script>
 	
 	";
@@ -86,13 +149,13 @@ function dbsize(){
 	}
 	
 	$color="black";
-	if($array["IPOURC"]>99){$color="red";}
-	if($array["POURC"]>99){$color="red";}	
+	if($array["IPOURC"]>99){$color="#CC0A0A";}
+	if($array["POURC"]>99){$color="#CC0A0A";}	
 	
 	$t=time();
 	$html="
 	
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend>{current_size}:</td>		
 		<td nowrap style='font-weight:bold;font-size:13px'>". FormatBytes($array["DBSIZE"])."</td>
@@ -130,21 +193,21 @@ function mysql_dir_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$ChangeMysqlDir=base64_decode($sock->getFrameWork("zarafa.php?ChangeMysqlDir-zarafa=yes"));
-	if($ChangeMysqlDir==null){$ChangeMysqlDir="/opt/zarafa-db/data";}
+	if($ChangeMysqlDir==null){$ChangeMysqlDir="/home/zarafa-db";}
 	$t=time();
 	$html="
 	<div id='ChangeMysqlDirDiv$t'></div>
-	<div class=explain>{ChangeMysqlDir_explain}</div>
+	<div class=explain style='font-size:16px'>{ChangeMysqlDir_explain}</div>
 	<p>&nbsp;</p>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend>{directory}:</td>
-		<td>". Field_text("ChangeMysqlDir-zarafa",$ChangeMysqlDir,"font-size:16px;padding:3px;width:220px")."</td>
-		<td><input type='button' value='{browse}...' OnClick=\"Loadjs('SambaBrowse.php?no-shares=yes&field=ChangeMysqlDir-zarafa')\"></td>
+		<td>". Field_text("ChangeMysqlDir-zarafa",$ChangeMysqlDir,"font-size:18px;padding:3px;width:280px")."</td>
+		<td>". button_browse("ChangeMysqlDir-zarafa")."</td>
 	</tr>
 	<tr>
 		<td colspan=3 align='right'>
-			<hr>". button("{apply}","SaveChangeMysqlDir$t()","18")."</td>
+			<hr>". button("{apply}","SaveChangeMysqlDir$t()",26)."</td>
 			</tr>
 			</table>
 <script>

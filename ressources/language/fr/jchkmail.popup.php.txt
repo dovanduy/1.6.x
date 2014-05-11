@@ -10,8 +10,8 @@ Certains spammeurs utilisent des noms de domaine avec des MXs d&eacute;finis sur
 Habituellement, vous pouvez rejeter les messages si la partie domaine de l'adresse de l'exp&eacute;diteur ne peut pas recevoir de courrier (vous ne pouvez pas lui r&eacute;pondre).[br]
 Ce type de contr&ocirc;le ne bloque pas beaucoup le spam, mais peut soulager la file d'attente courrier des rebonds vers des adresses inaccessibles ...</badmx_explain>
 <check_element>El&eacute;ments d'analyse</check_element>
-<ConnOpen>Connections ouvertes simultan&eacute;es</ConnOpen>
-<ConnRate>Taux de connection</ConnRate>
+<ConnOpen>Connexions ouvertes simultan&eacute;es</ConnOpen>
+<ConnRate>Taux de connexion</ConnRate>
 <enable_filter>Activer ce filtre</enable_filter>
 <eNO>Sans filtre</eNO>
 <eNOQUICK>D&eacute;sactiver l'analyse &amp; arr&ecirc;ter les autres filtres</eNOQUICK>
@@ -31,7 +31,7 @@ La mise en %u0153uvre de j-chkmail est destin&eacute;e &agrave; &ecirc;tre utili
 Il essaye, donc, de r&eacute;duire le nombre des entr&eacute;es dans la base de donn&eacute;es et il utilise les r&eacute;sultats d'autres m&eacute;thodes de filtrage pour supprimer les entr&eacute;es non d&eacute;sir&eacute;es.[br]
 Outre les bases de donn&eacute;es originales (entr&eacute;es en attente et entr&eacute;es valid&eacute;es) j-chkmail utilise deux nouvelles bases de donn&eacute;es: les entr&eacute;es en liste blanche et les entr&eacute;es en liste noire.
 La base de donn&eacute;es des entr&eacute;es en liste blanche contient seulement des couples IP et noms de domaine.</greylist_intro>
-<MaxMsgs>Messages par connection</MaxMsgs>
+<MaxMsgs>Messages par connexion</MaxMsgs>
 <MaxRcpt>Compteur de destinataires par message</MaxRcpt>
 <MIN_BODY_LENGTH>Longueur de corps minimum autoris&eacute;</MIN_BODY_LENGTH>
 <MsgRate>Taux de Message</MsgRate>

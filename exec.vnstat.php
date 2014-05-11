@@ -5,7 +5,7 @@ include_once(dirname(__FILE__).'/ressources/class.http.pear.inc');
 include_once(dirname(__FILE__).'/ressources/class.artica-meta.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
-
+$GLOBALS["TITLENAME"]="vnStat daemon";
 	if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
@@ -18,17 +18,189 @@ include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
 	}	
 	
 
-if($argv[1]=='--build'){build();exit;}
+if($argv[1]=='--build'){$GLOBALS["OUTPUT"]=true;build();exit;}
 if($argv[1]=='--stats'){build_stats();exit;}
+
+$GLOBALS["ARGVS"]=implode(" ",$argv);
+if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
+if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
+if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
+
+
+
+
+function restart() {
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	stop(true);
+	sleep(1);
+	start(true);
+
+}
+
+
+function start($aspid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	$Masterbin=$unix->find_program("vnstatd");
+
+	if(!is_file($Masterbin)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, vnstatd not installed\n";}
+		return;
+	}
+
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=PID_NUM();
+
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+	$EnableVnStat=$sock->GET_INFO("EnableVnStat");
+	if(!is_numeric($EnableVnStat)){$EnableVnStat=0;}
+
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Enabled: $EnableVnStat\n";}
+	if($EnableVnStat==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableVnStat)\n";}
+		stop(true);
+		return;
+	}
+
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$echo=$unix->find_program("echo");
+	$nohup=$unix->find_program("nohup");
+
+	$CMDS[]="--daemon";
+	$CMDS[]="--pidfile /var/run/vnstat.pid";
+	
+	$cmd="$Masterbin ".@implode(" ", $CMDS)." >/dev/null 2>&1 &";
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+
+	shell_exec($cmd);
+
+
+
+
+	for($i=1;$i<5;$i++){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		sleep(1);
+		$pid=PID_NUM();
+		if($unix->process_exists($pid)){break;}
+	}
+
+	$pid=PID_NUM();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+	}
+
+
+}
+
+function stop($aspid=false){
+	$unix=new unix();
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+
+	$pid=PID_NUM();
+
+
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service already stopped...\n";}
+		return;
+	}
+	$pid=PID_NUM();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$kill=$unix->find_program("kill");
+
+
+
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	$pid=PID_NUM();
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service success...\n";}
+		return;
+	}
+
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	for($i=0;$i<5;$i++){
+		$pid=PID_NUM();
+		if(!$unix->process_exists($pid)){break;}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service waiting pid:$pid $i/5...\n";}
+		sleep(1);
+	}
+
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service failed...\n";}
+		return;
+	}
+
+}
+
+function PID_NUM(){
+	$unix=new unix();
+	$pid=$unix->get_pid_from_file("/var/run/vnstat.pid");
+	if($unix->process_exists($pid)){return $pid;}
+	$Masterbin=$unix->find_program("vnstatd");
+	return $unix->PIDOF($Masterbin);
+}
 	
 function build(){
-$unix=new unix();
-$vnstat=$unix->find_program("vnstat");
+	$unix=new unix();
+	$sock=new sockets();
+	$EnableVnStat=$sock->GET_INFO("EnableVnStat");
+	if(!is_numeric($EnableVnStat)){$EnableVnStat=0;}
+	$vnstat=$unix->find_program("vnstat");
 
-if(!is_file($vnstat)){
-	echo "Starting......: VnStat Not installed\n";
-	return;
-}
+	if(!is_file($vnstat)){
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} VnStat Not installed\n";}
+		return;
+	}
+	
+	if(!is_file($EnableVnStat==0)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} VnStat is disabled ( see EnableVnStat )\n";}
+		return;
+	}
 
 $conf[]="# vnStat 1.10 config file";
 $conf[]="##";
@@ -161,13 +333,13 @@ $conf[]="CRxD            \"-\"";
 $conf[]="CTxD            \"-\"";
 $conf[]="";
 @file_put_contents("/etc/vnstat.conf",implode("\n",$conf));
-echo "Starting......: VnStat building configuration done.\n";
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} building configuration done.\n";}
 
 
 $net=new networking();
 $interfaces=$net->Local_interfaces();
 while (list ($eth, $eth1) = each ($interfaces) ){
-	echo "Starting......: VnStat check $eth interface\n";
+	echo "Starting......: ".date("H:i:s")." VnStat check $eth interface\n";
 	shell_exec("vnstat -u -i $eth --nick \"$eth\"");
 	
 }
@@ -181,14 +353,34 @@ function build_stats(){
 $unix=new unix();
 $vnstat=$unix->find_program("vnstat");
 $vnstati=$unix->find_program("vnstati");
+
+
+$sock=new sockets();
+$EnableVnStat=$sock->GET_INFO("EnableVnStat");
+if(!is_numeric($EnableVnStat)){$EnableVnStat=0;}
+
+if(!is_file($vnstat)){
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} VnStat Not installed\n";}
+	return;
+}
+
+if(!is_file($EnableVnStat==0)){
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} VnStat is disabled ( see EnableVnStat )\n";}
+	return;
+}
+
+
 $cmd="$vnstat -q";
 if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 exec($cmd." 2>&1",$results);
+
+
+
 while (list ($index, $num) = each ($results) ){
 	if(preg_match("#([a-z0-9\:]+):(.*)#",$num,$re)){
 		if(preg_match("#data available yet#",$re[2])){continue;}
 		$interface=trim($re[1]);
-		echo "Starting......: VnStat check $interface\n";
+		echo "Starting......: ".date("H:i:s")." VnStat check $interface\n";
 		//resumer
 		$cmdr[]="$vnstati --noheader -s -i \"$interface\" -c 15 -o /usr/share/artica-postfix/ressources/logs/vnstat-$interface-resume.png";
 		$cmdr[]="$vnstati --noheader -h -i \"$interface\" -c 15 -o /usr/share/artica-postfix/ressources/logs/vnstat-$interface-hourly.png";
@@ -203,7 +395,7 @@ if(is_array($cmdr)){
 	while (list ($index, $cmds) = each ($cmdr) ){
 		if($GLOBALS["VERBOSE"]){echo "\n\n$cmds\n";}
 		exec($cmds,$results);
-		if($GLOBALS["VERBOSE"]){while (list ($a, $b) = each ($results) ){echo "Starting......: VnStat $b\n";}}
+		if($GLOBALS["VERBOSE"]){while (list ($a, $b) = each ($results) ){echo "Starting......: ".date("H:i:s")." VnStat $b\n";}}
 		
 	}
 	

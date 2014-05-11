@@ -45,7 +45,7 @@ function popup(){
 	
 	$ZarafaIndexPath=$sock->GET_INFO("ZarafaIndexPath");
 	if($ZarafaIndexPath==null){$ZarafaIndexPath="/var/lib/zarafa/index";}
-	
+	if(!is_numeric($EnableZarafaSearch)){$EnableZarafaSearch=1;}
 	$t=time();
 
 	$html="
@@ -54,11 +54,11 @@ function popup(){
 		<table style='width:99%' class=form>
 			<tr>	
 				<td class=legend style='font-size:16px'>{enable_zarafa_search}:</td>
-				<td style='font-size:16px'>". Field_checkbox("EnableZarafaSearch-$t", 1,"EnableZarafaSearchCk()")."</td>
+				<td style='font-size:16px'>". Field_checkbox("EnableZarafaSearch-$t", $EnableZarafaSearch,1,"EnableZarafaSearchCk()")."</td>
 			</tr>		
 			<tr>	
 				<td class=legend style='font-size:16px'>{index_in_attachments}:</td>
-				<td style='font-size:16px'>". Field_checkbox("EnableZarafaSearchAttach-$t", 1)."</td>
+				<td style='font-size:16px'>". Field_checkbox("EnableZarafaSearchAttach-$t", $EnableZarafaSearchAttach,1)."</td>
 			</tr>				
 			<tr>	
 				<td class=legend style='font-size:16px'>{directory}:</td>

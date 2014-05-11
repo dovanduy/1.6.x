@@ -1425,8 +1425,8 @@ class eyeos{
 			}
 			
 		}
-		if($dd>0){echo "Starting......: Apache \"$this->servername\" $this->WORKING_DIRECTORY missing $dd directorie(s)\n";return false;}
-		echo "Starting......: Apache \"$this->servername\" $this->WORKING_DIRECTORY OK\n";
+		if($dd>0){echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" $this->WORKING_DIRECTORY missing $dd directorie(s)\n";return false;}
+		echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" $this->WORKING_DIRECTORY OK\n";
 		return true;
 		
 		
@@ -1689,7 +1689,7 @@ public function Build_SettingsPHP(){
 		$f[]="";
 		$f[]="?>";
 		@file_put_contents($this->WORKING_DIRECTORY."/settings.php",@implode("\n",$f));
-		echo "Starting......: Apache \"$this->servername\" \"$this->WORKING_DIRECTORY/settings.php\" OK\n";
+		echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" \"$this->WORKING_DIRECTORY/settings.php\" OK\n";
 }	
 	
 	

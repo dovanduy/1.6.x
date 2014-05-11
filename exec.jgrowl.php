@@ -1359,6 +1359,13 @@ function BuildJgrowl(){
 	events("starting",__FUNCTION__,__FILE__,__LINE__);
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "PidTime: $pidfile\n";}
+	
+	if($unix->file_time_min($pidTime)<1){return;}
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid)){
 		events("Already running pid $oldpid",__FUNCTION__,__FILE__,__LINE__);

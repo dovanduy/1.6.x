@@ -15,7 +15,7 @@ $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $pid=@file_get_contents($pidfile);
 $unix=new unix();
 if($unix->process_exists($pid,(basename(__FILE__)))){
-	system_admin_events("Starting......:Already executed PID $pid...", __FUNCTION__, __FILE__, __LINE__, "mysql");
+	system_admin_events("Starting......: ".date("H:i:s")."Already executed PID $pid...", __FUNCTION__, __FILE__, __LINE__, "mysql");
 	die();
 }
 @file_put_contents($pidfile, getmypid());

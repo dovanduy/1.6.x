@@ -15,7 +15,7 @@ if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDU
 $cmdlines=@implode(" ", $argv);
 writelogs("Executed `$cmdlines`","MAIN",__FILE__,__LINE__);
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}}
-
+if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if($argv[1]=="--mysql-dirs"){Scan_mysql_dirs();die();}
 if($argv[1]=="--shared"){shared();die();}
 if($argv[1]=="--homes"){homes();die();}
@@ -48,7 +48,7 @@ if($unix->process_exists($oldpid)){
 	
 	$users=new usersMenus();
 	$GLOBALS["SAMBA_INSTALLED"]=$users->SAMBA_INSTALLED;
-	$path="/var/log/artica-postfix/xapian";
+	$path="{$GLOBALS["ARTICALOGDIR"]}/xapian";
 	$SartOn=time();
 	$files=$unix->DirFiles($path);
 	if(count($files)==0){return;}
@@ -249,7 +249,7 @@ function Scan_mysql_dirs(){
 	if($unix->process_exists($oldpid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
 	@file_put_contents($pidfile, getmypid());		
 	$q=new mysql();
-	$q->check_storage_table();
+	$q->check_storage_table(true);
 	$localdatabase="/usr/share/artica-postfix/LocalDatabases";
 	
 	$nice=EXEC_NICE();

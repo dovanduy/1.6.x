@@ -125,7 +125,11 @@ function replace_popup(){
 	$boot->set_field("rulename", "{name}", $ligne["rulename"]);
 	$boot->set_field("zorder", "{order}", $ligne["zorder"]);
 
+	$boot->set_spacertitle("{search}");
 	$boot->set_textarea("stringtosearch", "{search}", $ligne["stringtosearch"],array("MANDATORY"=>true,"ENCODE"=>true));
+	$boot->set_checkbox("AsRegex", "{regex}", $ligne["AsRegex"],array("TOOLTIP"=>"{replace_regex_explain}"));
+	
+	$boot->set_spacertitle("{replace}");
 	$boot->set_textarea("replaceby", "{replace}", $ligne["replaceby"],array("MANDATORY"=>true,"ENCODE"=>true));
 	$boot->set_field("tokens", "{flags}", $ligne["tokens"],array("MANDATORY"=>true));
 

@@ -1307,10 +1307,10 @@ while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$select=imgtootltip("30-computer.png","{edit}","Loadjs('$page?form-vps-js=yes&ID={$ligne["ID"]}')");
 		$text_uid=$ligne["uid"];
 		$org_state=$ligne["state"];
-		if($ligne["state"]=="create"){$ligne["state"]="{vps_create} {$ligne["events"]}";$link=null;$color="#CCCCCC";$select="&nbsp;";}
-		if($ligne["state"]=="delete"){$ligne["state"]="{deleting}";$link=null;$color="#CCCCCC";$delete="&nbsp;";$select="&nbsp;";}
-		if($ligne["state"]=="configure"){$ligne["state"]="{vps_configure}";$link=null;$color="#CCCCCC";$delete="&nbsp;";$select="&nbsp;";}
-		if($ligne["state"]=="artica-install"){$ligne["state"]="{VPS_INSTALL_ARTICA}";;$link=null;$color="#CCCCCC";$delete="&nbsp;";$select="&nbsp;";}
+		if($ligne["state"]=="create"){$ligne["state"]="{vps_create} {$ligne["events"]}";$link=null;$color="#8a8a8a";$select="&nbsp;";}
+		if($ligne["state"]=="delete"){$ligne["state"]="{deleting}";$link=null;$color="#8a8a8a";$delete="&nbsp;";$select="&nbsp;";}
+		if($ligne["state"]=="configure"){$ligne["state"]="{vps_configure}";$link=null;$color="#8a8a8a";$delete="&nbsp;";$select="&nbsp;";}
+		if($ligne["state"]=="artica-install"){$ligne["state"]="{VPS_INSTALL_ARTICA}";;$link=null;$color="#8a8a8a";$delete="&nbsp;";$select="&nbsp;";}
 		if($ligne["state"]=="update"){if(!$running){$ligne["state"]="{stopped}";}}
 		if($ligne["state"]=="updated"){if(!$running){$ligne["state"]="{stopped}";}}
 		if($ligne["state"]=="updated"){if($running){$ligne["state"]="{running}";}}
@@ -1320,7 +1320,7 @@ while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		
 		// artica-logo-32.png
 		if($ligne["state"]=="installed"){$ligne["state"]="{installed}";}
-		if(preg_match("#dup:#",$ligne["state"])){$ligne["state"]="{duplicating}";$link=null;$color="#CCCCCC";$delete="&nbsp;";$select="&nbsp;";}
+		if(preg_match("#dup:#",$ligne["state"])){$ligne["state"]="{duplicating}";$link=null;$color="#8a8a8a";$delete="&nbsp;";$select="&nbsp;";}
 		
 		
 		

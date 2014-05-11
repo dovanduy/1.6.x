@@ -305,7 +305,6 @@ function filldefaults(){
 	$dnss[]="cbl.abuseat.org";
 	$dnss[]="dnsbl.njabl.org";
 	$dnss[]="bl.spamcop.net";
-	$dnss[]="list.dsbl.org";
 	$dnss[]="dnsbl.ahbl.org";
 	$dnss[]="zombie.dnsbl.sorbs.net";
 	$dnss[]="asiaspam.spamblocked.com";
@@ -329,7 +328,6 @@ function filldefaults(){
 	$dnss[]="dul.ru";
 	$dnss[]="dyna.spamrats.com";
 	$dnss[]="dynip.rothen.com";
-	$dnss[]="eurospam.spamblocked.com";
 	$dnss[]="fl.chickenboner.biz";
 	$dnss[]="http.dnsbl.sorbs.net";
 	$dnss[]="images.rbl.msrbl.net";
@@ -424,7 +422,6 @@ function filldefaults(){
 	$dnss[]="access.redhawk.org";
 	$dnss[]="blacklist.sci.kun.nl";
 	$dnss[]="cart00ney.surriel.com";
-	$dnss[]="dialup.blacklist.jippg.org";
 	$dnss[]="dnsbl.kempt.net";
 	$dnss[]="escalations.dnsbl.sorbs.net";
 	$dnss[]="new.dnsbl.sorbs.net";
@@ -435,7 +432,6 @@ function filldefaults(){
 	$dnss[]="intruders.docs.uu.se";
 	$dnss[]="spam.olsentech.net";
 	$dnss[]="will-spam-for-food.eu.org";
-	$dnss[]="bl.csma.biz";
 	$dnss[]="blackholes.wirehub.net";
 	$dnss[]="blocked.hilli.dk";
 	$dnss[]="dialups.visi.com";

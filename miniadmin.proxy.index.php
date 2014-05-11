@@ -69,24 +69,34 @@ function tabs(){
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
-	if($users->SQUID_INSTALLED){
-		if($SQUIDEnable==1){
-			$array["{proxy_main_settings}"]="miniadmin.proxy.php?content=yes&startup=proxy-settings&title-none=yes";
+	if($users->AsSquidAdministrator){
+		if($users->SQUID_INSTALLED){
+			if($SQUIDEnable==1){
+				$array["{proxy_main_settings}"]="miniadmin.proxy.php?content=yes&startup=proxy-settings&title-none=yes";
+			}
+		}
+	
+	
+
+		if($users->NGINX_INSTALLED){
+			$array["{reverse_proxy_settings}"]="miniadmin.proxy.reverse.php?tabs=yes&subtitle=yes";
+		}	
+		
+	
+		if($users->APP_FTP_PROXY){
+			$array["{proxy_ftp_main_settings}"]="miniadmin.ftp.proxy.php?content=yes";
+		}
+		
+		if($users->RSYNC_INSTALLED){
+			$array["{system_mirrors}"]="miniadmin.proxy.debian.mirrors.php";
 		}
 	}
-
-	if($users->NGINX_INSTALLED){
-		$array["{reverse_proxy_settings}"]="miniadmin.proxy.reverse.php?tabs=yes&subtitle=yes";
-	}	
 	
-
-	if($users->APP_FTP_PROXY){
-		$array["{proxy_ftp_main_settings}"]="miniadmin.ftp.proxy.php?content=yes";
+	if($users->AsHotSpotManager){
+		$array["{hotspot}"]="miniadmin.proxy.hotspot.manager.php";
+		
 	}
 	
-	if($users->RSYNC_INSTALLED){
-		$array["{system_mirrors}"]="miniadmin.proxy.debian.mirrors.php";
-	}
 		
 	$page=CurrentPageName();
 	$mini=new boostrap_form();

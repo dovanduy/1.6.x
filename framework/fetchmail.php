@@ -11,7 +11,8 @@ if(isset($_GET["reload-fetchmail"])){reload();exit;}
 if(isset($_GET["import-compiled"])){import_fetchmail_compiled_rules();exit;}
 if(isset($_GET["fetchmailrc"])){fetchmailrc();exit;}
 if(isset($_GET["SaveFetchmailContent"])){SaveFetchmailContent();exit;}
-
+if(isset($_GET["export-table"])){export_table();exit;}
+if(isset($_GET["restore-root"])){restore_root();exit;}
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -28,6 +29,18 @@ function execute_debug(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	
 }
+
+function export_table(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$su=$unix->find_program("su");
+	$cmd=trim("$php /usr/share/artica-postfix/exec.fetchmail.php --export-table >/dev/null 2>&1");
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	
+}
+
 
 function SaveFetchmailContent(){
 	$data=base64_decode($_GET["SaveFetchmailContent"]);
@@ -83,4 +96,15 @@ function fetchmailrc(){
 	
 	echo "<articadatascgi>".base64_encode(@file_get_contents("/etc/fetchmailrc"))."</articadatascgi>";
 	
+}
+function restore_root(){
+	$filename=$_GET["restore-root"];
+	$filepath="/usr/share/artica-postfix/ressources/conf/upload/$filename";
+	if(!is_file($filepath)){return;}
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd=trim("$php /usr/share/artica-postfix/exec.fetchmail.php --restore \"$filepath\" 2>&1");
+	exec($cmd,$results);
+	echo "<articadatascgi>".base64_encode(@implode("<br>", $results))."</articadatascgi>";
 }

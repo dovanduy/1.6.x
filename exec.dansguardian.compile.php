@@ -12,7 +12,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["cmdlineadd"]=" --verbose";}
 $unix=new unix();
-echo "Starting......: Dansguardian -> exec.squidguard.php --dansguardian\n"; 
+echo "Starting......: ".date("H:i:s")." Dansguardian -> exec.squidguard.php --dansguardian\n"; 
 shell_exec($unix->LOCATE_PHP5_BIN()." ".dirname(__FILE__)."/exec.squidguard.php --dansguardian{$GLOBALS["cmdlineadd"]}");
 die();
 
@@ -33,10 +33,10 @@ if($argv[1]=="--patterns"){BuildPatterns();echo "\n";die();}
 if($argv[1]=="--clean-db"){CleanDB();echo "\n";die();}
 //exec.dansguardian.compile.php --patterns
 echo "\n";
-echo "Starting......: Dansguardian reconfigure settings\n";
+echo "Starting......: ".date("H:i:s")." Dansguardian reconfigure settings\n";
 $q=new mysql();
 if(!$q->test_mysql_connection()){
-	echo "Starting......: Dansguardian Mysql error\n";
+	echo "Starting......: ".date("H:i:s")." Dansguardian Mysql error\n";
 	die();
 }
 $q->CheckTable_dansguardian();
@@ -60,7 +60,7 @@ FixMissingGroupsFiles();
 FixMissingFiles();
 BuildMasterRule();
 
-echo "Starting......: Dansguardian reconfigure settings done\n";
+echo "Starting......: ".date("H:i:s")." Dansguardian reconfigure settings done\n";
 
 function HtmlTemplate(){
 	$sock=new sockets();
@@ -91,7 +91,7 @@ function FixMissingFiles(){
 	
 	while (list ($num, $file) = each ($goodphrases) ){
 		if(!is_file("/etc/dansguardian/lists/phraselists/goodphrases/$file")){
-			echo "Starting......: Dansguardian installing goodphrases/$file\n";
+			echo "Starting......: ".date("H:i:s")." Dansguardian installing goodphrases/$file\n";
 			if(is_file("/etc/dansguardian/phraselists/goodphrases/$file")){
 				@copy("/etc/dansguardian/phraselists/goodphrases/$file","/etc/dansguardian/lists/phraselists/goodphrases/$file");
 				continue;
@@ -218,7 +218,7 @@ $results=$q->QUERY_SQL($sql,"artica_backup");
 	}
 	
 	events(__FUNCTION__.":: Writing /etc/dansguardian/filtergroupslist for $count users");
-	echo "Starting......: Dansguardian rules match authenticated $count users\n";
+	echo "Starting......: ".date("H:i:s")." Dansguardian rules match authenticated $count users\n";
 	@file_put_contents("/etc/dansguardian/filtergroupslist",$conf);
 }
 
@@ -253,7 +253,7 @@ $conf=null;
 	}
 	
 	events(__FUNCTION__.":: Writing /etc/dansguardian/lists/authplugins/ipgroups for $count addresses");
-	echo "Starting......: Dansguardian rules match $count IP addresses\n";
+	echo "Starting......: ".date("H:i:s")." Dansguardian rules match $count IP addresses\n";
 	@file_put_contents("/etc/dansguardian/lists/authplugins/ipgroups",$conf);
 }
 

@@ -1,38 +1,43 @@
 <?php
-if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){print "Starting......: artica-executor Waiting Artica-CD to finish\n";die();}}
+$GLOBALS["VERBOSE"]=false;
+
 if(preg_match("#--verbose#",implode(" ",$argv))){
 	$GLOBALS["debug"]=true;$GLOBALS["VERBOSE"]=true;
 	ini_set('html_errors',0);ini_set('display_errors', 1);
 	ini_set('error_reporting', E_ALL);
-	print "Starting......: artica-executor debug mode\n";
+	print "Starting......: ".date("H:i:s")." artica-executor debug mode\n";
 }
 
 
 
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate classes\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor instantiate classes\n";}
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class frame.class.inc\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor instantiate class frame.class.inc\n";}
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class class.os.system.inc\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor instantiate class class.os.system.inc\n";}
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class class.system.network.inc\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor instantiate class class.system.network.inc\n";}
 include_once(dirname(__FILE__).'/ressources/class.system.network.inc');
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate class framework/class.settings.inc\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor instantiate class framework/class.settings.inc\n";}
 include_once(dirname(__FILE__)."/framework/class.settings.inc");
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor instantiate instantiate classes done...\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor instantiate instantiate classes done...\n";}
 $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".daemon.pid";
 
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor pid file:{$GLOBALS["EXEC_PID_FILE"]}\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor pid file:{$GLOBALS["EXEC_PID_FILE"]}\n";}
 $unix=new unix();
-if($GLOBALS["VERBOSE"]){print "Starting......: artica-executor checking {$GLOBALS["EXEC_PID_FILE"]}\n";}
+if($GLOBALS["VERBOSE"]){print "Starting......: ".date("H:i:s")." artica-executor checking {$GLOBALS["EXEC_PID_FILE"]}\n";}
 if($unix->process_exists(@file_get_contents($GLOBALS["EXEC_PID_FILE"]))){
-	print "Starting......: artica-executor Already executed pid ". @file_get_contents($GLOBALS["EXEC_PID_FILE"])."...\n";
+	print "Starting......: ".date("H:i:s")." artica-executor Already executed pid ". @file_get_contents($GLOBALS["EXEC_PID_FILE"])."...\n";
 	die();
 }
 
+if(is_file("/etc/artica-postfix/FROM_ISO")){
+	if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+}
 
-print "Starting......: artica-executor filling memory\n";
+
+print "Starting......: ".date("H:i:s")." artica-executor filling memory\n";
 FillMemory();
 if($argv[1]=='--mails-archives'){mailarchives();die();}
 if($argv[1]=='--stats-console'){stats_console();die();}
@@ -45,7 +50,7 @@ if($argv[1]=='--all'){
 	$oldpid=@file_get_contents($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Process $oldpid  already in memory since $ProcessTime minutes","MAIN");
+		events("Process $oldpid  already in memory since $ProcessTime minutes","MAIN",__LINE__);
 		die();
 	}
 	@unlink($pidtime);
@@ -57,14 +62,16 @@ if($argv[1]=='--all'){
 if(preg_match("#--(.+)#", $argv[1],$re)){if(function_exists($re[1])){events("Execute {$re[1]}() -> \"{$argv[1]}\"" ,"MAIN");call_user_func($re[1]);die();}}
 
 
-if($argv[1]<>null){events("Unable to understand ". implode(" ",$argv),"MAIN");die();}
+if($argv[1]<>null){events("Unable to understand ". implode(" ",$argv),"MAIN",__LINE__);die();}
 
 $nofork=false;
 if(!function_exists("pcntl_signal")){$nofork=true;}
 if($GLOBALS["TOTAL_MEMORY_MB"]<400){$nofork=true;}
+$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+if($MEMORY<624288){$nofork=true;}
 
 if($nofork){
-	print "Starting......: artica-status pcntl_fork module not loaded !\n";
+	print "Starting......: ".date("H:i:s")." artica-status pcntl_fork module not loaded !\n";
 	$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 	
 	
@@ -89,7 +96,7 @@ if(!$nofork){
 	pcntl_signal(SIGCHLD,'sig_handler');
 	pcntl_signal(SIGHUP, 'sig_handler');
 }else{
-	print "Starting......: artica-executor undefined function \"pcntl_signal\"\n";
+	print "Starting......: ".date("H:i:s")." artica-executor undefined function \"pcntl_signal\"\n";
 }
 
 set_time_limit(0);
@@ -101,9 +108,9 @@ $pid=pcntl_fork();
 
 
 	if ($pid == -1) {
-	     die("Starting......: artica-executor fork() call asploded!\n");
+	     die("Starting......: ".date("H:i:s")." artica-executor fork() call asploded!\n");
 	} else if ($pid) {
-	     print "Starting......: artica-executor fork()ed successfully.\n";
+	     print "Starting......: ".date("H:i:s")." artica-executor fork()ed successfully.\n";
 	     die();
 	}
 
@@ -206,7 +213,7 @@ function FillMemory(){
 	if($GLOBALS["VERBOSE"]){writelogs("DANSGUARDIAN_INSTALLED={$GLOBALS["DANSGUARDIAN_INSTALLED"]}","MAIN",__FILE__,__LINE__);}
 	$GLOBALS["EnableArticaWatchDog"]=GET_INFO_DAEMON("EnableArticaWatchDog");
 	if($GLOBALS["VERBOSE"]){if($GLOBALS["POSTFIX_INSTALLED"]){events("Postfix is installed...");}}
-	if($GLOBALS["VERBOSE"]){events("Nice=\"\", php5 {$GLOBALS["PHP5"]}");}	
+	if($GLOBALS["VERBOSE"]){events("Nice=\"\", php5 {$GLOBALS["PHP5"]}",__FUNCTION__,__LINE__);}	
 	$GLOBALS["EnableInterfaceMailCampaigns"]=$sock->GET_INFO("EnableInterfaceMailCampaigns");
 	$GLOBALS["CLASS_SOCKETS"]=$sock;
 	$GLOBALS["TOTAL_MEMORY_MB"]=$unix->TOTAL_MEMORY_MB();
@@ -225,7 +232,7 @@ function watchdog_artica_status(){
 		$time=file_time_min("/var/log/artica-postfix/status-daemon.log");
 		if($time>5){
 			events("artica-status seems freeze, restart daemon",__FUNCTION__,__LINE__);
-			sys_THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart artica-status");
+			sys_THREAD_COMMAND_SET("/etc/init.d/artica-status reload");
 			@unlink("/var/log/artica-postfix/status-daemon.log");
 			events("done...",__FUNCTION__,__LINE__);
 		}
@@ -311,21 +318,11 @@ function launch_all_status(){
 		
 		
 		events("Saving /etc/artica-postfix/background done... Memory of this computer={$GLOBALS["TOTAL_MEMORY_MB"]}M Process memory at the end=$mem Mb EnableArticaBackground=`$EnableArticaBackground`",__FUNCTION__,__LINE__);
-		$ArticaBackground="{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.parse-orders.php --manual >/dev/null 2>&1 &";
-		$ArticaBackground=trim($ArticaBackground);
 		
 		
-		if($GLOBALS["TOTAL_MEMORY_MB"]<400){
-			$unix=new unix();
-			events("Running $ArticaBackground",__FUNCTION__,__LINE__);
-			shell_exec($ArticaBackground);	
-		}else{
-			if(!$GLOBALS["EnableArticaBackground"]){
-				events("Running $ArticaBackground",__FUNCTION__,__LINE__);
-				shell_exec($ArticaBackground);					
-			}
-			
-		}		
+		
+		
+		
 	}
 	
 	@file_put_contents("/etc/artica-postfix/pids/".basename(__FILE__).".GLOBALS",serialize($GLOBALS["TIME"]));
@@ -349,7 +346,7 @@ function group5(){
 		$array["exec.watchdog.postfix.queue.php"]="exec.watchdog.postfix.queue.php";
 		$array["exec.postfix.iptables.php"]="exec.postfix.iptables.php --parse-queue";
 		$array["exec.postfix.iptables.php --export-drop"]="exec.postfix.iptables.php --export-drop";
-		$array["exec.postfix-logger.php"]="exec.postfix-logger.php --postqueue-clean";
+		
 		if($GLOBALS["MILTER_GREYLIST_INSTALLED"]){
 			$array["exec.milter-greylist.php --database"]="exec.milter-greylist.php --database";
 		}
@@ -531,10 +528,10 @@ function group10(){
 	
 	if($GLOBALS["UFDBGUARD_INSTALLED"]){$array[]="exec.web-community-filter.php --groupby";}
 
-	$array2[]="process1 --force";
+	
 	$array2[]="artica-install --check-virus-logs";
 	$array2[]="artica-install --monit-check";
-	$array2[]="process1 --cleanlogs";
+	
 	
 	
 	while (list ($index, $file) = each ($array) ){
@@ -574,7 +571,7 @@ function group0(){
 
 	if($GLOBALS["POSTFIX_INSTALLED"]){
 		$array[]="exec.whiteblack.php";
-		$array[]="exec.postfix-logger.php";
+		
 	}
 	
 
@@ -604,24 +601,16 @@ function group2(){
 	if(!is_file("/usr/share/artica-postfix/ressources/usb.scan.inc")){$array2[]="artica-install --usb-scan-write";}
 	
 	
-	$array[]="exec.dhcpd-leases.php";
+	
 	
 	if($GLOBALS["POSTFIX_INSTALLED"]){
 		$array[]="exec.mailbackup.php";
-		$array[]="exec.postfix-logger.php --cnx-errors";
-		$array[]="exec.postfix-logger.php --cnx-only";
+
 	}
 	
 
 	if($GLOBALS["OCSI_INSTALLED"]){$array[]="exec.remote-agent-install.php";}
 	if(!function_exists("pcntl_fork")){$array[]="exec.status.php";}
-	if(!system_is_overloaded()){
-		if($GLOBALS["SQUID_INSTALLED"]){
-			$array[]="exec.dansguardian.injector.php";
-		}else{
-			if($GLOBALS["KAV4PROXY_INSTALLED"]){$array[]="exec.dansguardian.injector.php";}
-		}
-	}
 	if($GLOBALS["CYRUS_IMAP_INSTALLED"]){$array[]="exec.cyrus-restore.php --ad-sync";}
 	
 	
@@ -646,52 +635,7 @@ function group2(){
 }
 
 function group10s(){}
-function group30s(){
-	
-if(!is_numeric($GLOBALS["TIME"]["GROUP30s"])){$GLOBALS["TIME"]["GROUP30s"]=time();return;}
-if(($GLOBALS["TIME"]["GROUP30s"]==0)){$GLOBALS["TIME"]["GROUP30s"]=time();return;} 
-
-	$seconds=time()-$GLOBALS["TIME"]["GROUP30s"];
-	
-	
-	if($seconds<30){
-		
-		return;
-	}
-	
-	events("$seconds seconds {$GLOBALS["GROUP30s"]} / ". time(),__FUNCTION__,__LINE__);
-	$GLOBALS["TIME"]["GROUP30s"]=time();
-	$array[]="exec.mpstat.php";
-	$array[]="exec.jgrowl.php --build";
-	$array[]="cron.notifs.php";
-    
-
-	if($GLOBALS["cpuLimitEnabled"]){$array2[]="process1 --cpulimit";}
-	if($GLOBALS["POSTFIX_INSTALLED"]){
-		if($_GET["MIME_DEFANGINSTALLED"]){$array2[]="artica-install --graphdefang-gen";}
-		if(!$GLOBALS["OVERLOADED"]){
-				$array2[]="artica-thread-back";
-				}
-	}
-	
-  if(is_array($array)){
-		while (list ($index, $file) = each ($array) ){
-			$cmd="{$GLOBALS["PHP5"]} /usr/share/artica-postfix/$file";
-			events("schedule $cmd",__FUNCTION__,__LINE__);
-			$GLOBALS["CMDS"][]=$cmd;
-		}	
-	}
-	
-	if(is_array($array2)){
-			while (list ($index, $file) = each ($array2) ){
-				$cmd="/usr/share/artica-postfix/bin/$file";
-				events("schedule $cmd",__FUNCTION__,__LINE__);
-				$GLOBALS["CMDS"][]=$cmd;
-			}	
-		}
-
-		@file_put_contents("/etc/artica-postfix/pids/".basename(__FILE__).".GLOBALS",serialize($GLOBALS["TIME"]));
-}
+function group30s(){}
 
 //5H
 function group5h(){
@@ -739,7 +683,6 @@ function group300(){
 		$array[]="exec.organization.statistics.php";
 		$array[]="exec.quarantine-clean.php";
 		$array[]="exec.smtp-hack.export.php --export";
-		$array[]="exec.postfix-logger.php --cnx-stats";
 		$array[]="exec.smtp.events.clean.php";
 		$array[]="exec.roundcube.php --verifyTables";
 	}

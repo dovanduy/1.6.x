@@ -157,7 +157,7 @@ function rules(){
 
 	$html="
 <center>
-<table style='width:95%' class=form>
+<table style='width:98%' class=form>
 <tr>
 	<td class=legend>{rules}:</td>
 	<td>". Field_text("rules_area_search",null,"font-size:13px;padding:3px",null,null,null,false,"SecModSearchCheck(event)")."</td>

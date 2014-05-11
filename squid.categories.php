@@ -16,6 +16,7 @@
 		exit;
 		
 	}
+	if(isset($_GET["move-js"])){move_js();exit;}
 	if(isset($_GET["test-cat"])){test_category();exit;}
 	if(isset($_GET["js-popup-master"])){js_popup_master();exit;}
 	if(isset($_GET["subtitles-categories"])){subtitle_categories();exit;}
@@ -31,33 +32,75 @@
 	if(isset($_GET["RemoveDisabled-popup"])){removedisabled_popup();exit;}
 	if(isset($_POST["RemoveDisabled"])){removedisabled_perform();exit;}
 	if(isset($_POST["WEBTESTS"])){test_category_perform();exit;}
+	if(isset($_POST["move-domain"])){move_domain();exit;}
 js();	
 	
 function js(){
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$width=950;
+	$width=1015;
 	$statusfirst=null;
 	$title=$tpl->_ENGINE_parse_body("{categories}");
 	
 	if(isset($_GET["statusfirst"])){$statusfirst="&statusfirst=yes";}
 	
-	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";$width=950;}
+	if($_GET["category"]<>null){$title=$title."::{$_GET["category"]}";$width=1015;}
 	if($_GET["website"]<>null){
 		if(preg_match("#^www\.(.+)#", $_GET["website"],$re)){$_GET["website"]=$re[1];}
 		$title=$title."::{$_GET["website"]}";
-		$width=860;
+		$width=890;
 	}
 	
 	$YahooWin="YahooWinS";
 	if($_GET["category"]==null){$YahooWin="YahooWin2";}
 	
-	$start="$YahooWin('$width','$page?tabs=yes&onlyDB={$_GET["onlyDB"]}&category={$_GET["category"]}&website={$_GET["website"]}$statusfirst','$title');";
+	$start="$YahooWin('$width','$page?tabs=yes&onlyDB={$_GET["onlyDB"]}&category={$_GET["category"]}&website={$_GET["website"]}$statusfirst&YahooWin=$YahooWin','$title');";
 	$html="
 	$start
 	";
 	echo $html;
+	
+}
+
+function move_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$domain=$_GET["domain"];
+	$Tofield=$_GET["Tofield"];
+	$removerow=$_GET["removerow"];
+	$fromwhat=$_GET["fromwhat"];
+	$t=time();
+echo "
+var xMoveWebsite$t=function(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);return;}
+	$('#$removerow').remove();
+	$('#row{$removerow}').remove();
+	$('#{$Tofield}').remove();
+}
+	
+function MoveWebsite$t(){
+	var XHR = new XHRConnection();
+	var to=document.getElementById('$Tofield').value;
+	XHR.appendData('move-domain','$domain');
+	XHR.appendData('from_cat','$fromwhat');
+	XHR.appendData('to_cat',to);
+	XHR.sendAndLoad('$page', 'POST',xMoveWebsite$t);
+}
+
+MoveWebsite$t();
+";
+	
+}
+
+function move_domain(){
+	$q=new mysql_squid_builder();
+	$domain=$_POST["move-domain"];
+	$table=$q->cat_totablename($_POST["from_cat"]);
+	$q->QUERY_SQL("DELETE FROM `$table` WHERE `pattern`='$domain'");
+	$q->categorize($domain, $_POST["to_cat"],true);
 	
 }
 
@@ -96,8 +139,11 @@ function tabs(){
 	$array["squidlogs"]='{statistics_database}';
 	
 	if($_GET["category"]<>null){
+		unset($array["free-cat"]);
 		unset($array["list"]);
+		unset($array["test-cat"]);
 		unset($array["status"]);
+		unset($array["squidlogs"]);
 		unset($array["size"]);
 		
 	}else{
@@ -115,56 +161,87 @@ function tabs(){
 	
 	if($_GET["onlyDB"]=="yes"){
 		$array=array();
-		$array["status"]='{status}';
-		$array["squidlogs"]='{statistics_database}';
+		if($_GET["category"]==null){
+			$array["status"]='{statistics_database}:{status}';
+			$array["schedule"]='{statistics_database}:{schedule}';
+			$array["events"]='{statistics_database}:{events}';
+			$array["articaufdb"]='{web_filtering}';
+			
+		}
 		
 	}
 	
+	$fontsize=13;
+	if(count($array)<5){$fontsize=16;}
 	$catname_enc=urlencode($_GET["category"]);
 while (list ($num, $ligne) = each ($array) ){
 	
 		if($num=="free-cat"){
-			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:13px'><a href=\"squid.visited.php?free-cat=yes&category=$catname_enc&t=$t\"><span>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.visited.php?free-cat=yes&category=$catname_enc&t=$t\"><span>$ligne</span></a></li>\n");
 			continue;
 		}
 	
 		if($num=="status"){
-			$html[]= "<li style='font-size:13px'>
+			$html[]= "<li style='font-size:{$fontsize}px'>
 			<a href=\"dansguardian2.databases.php?statusDB=yes\">
-				<span style='font-size:13px'>$ligne</span></a></li>\n";
+				<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
 	
+		
+		if($num=="schedule"){
+			$html[]= "<li style='font-size:{$fontsize}px'>
+			<a href=\"squid.databases.schedules.php?TaskType=1\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
 	
 		if($num=="list"){
-			$html[]= "<li style='font-size:13px'>
-				<a href=\"dansguardian2.databases.php?categories=$catzadd&minisize-middle=yes\"><span style='font-size:13px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:{$fontsize}px'>
+				<a href=\"dansguardian2.databases.php?categories=$catzadd&minisize-middle=yes\">
+				<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
 		
+		if($num=="articaufdb"){
+			$html[]= "<li style='font-size:{$fontsize}px'>
+			<a href=\"dansguardian2.databases.compiled.php?articaufdb=yes\">
+				<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}	
+
+		if($num=="events"){
+			$html[]= "<li style='font-size:{$fontsize}px'>
+			<a href=\"squid.articadb.events.php\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}		
+		
+		
 		if($num=="size"){
-			$html[]= "<li style='font-size:13px'><a href=\"dansguardian2.databases.compiled.php?status=yes\">
-			<span style='font-size:13px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:{$fontsize}px'>
+				<a href=\"dansguardian2.databases.compiled.php?status=yes\">
+					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="squidlogs"){
-			$html[]= "<li style='font-size:13px'><a href=\"squidlogs.php\"
-			><span style='font-size:13px'>$ligne</span></a></li>\n";
+			$html[]= "<li style='font-size:{$fontsize}px'><a href=\"squidlogs.php\"
+			><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}	
 
 		if($num=="security"){
-			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:13px'>
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'>
 					<a href=\"squid.categories.security.php?popup=yes&category=$catname_enc&tablesize=893&t=\" 
 					><span>$ligne</span></a></li>\n");
 			continue;
 		}
 	
 	
-		$html[]= "<li style='font-size:13px'>
+		$html[]= "<li style='font-size:{$fontsize}px'>
 		<a href=\"$page?$num=yes&category={$_GET["category"]}$catzadd&website={$_GET["website"]}\">
-			<span style='font-size:13px'>$ligne</span></a></li>\n";
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 	}
 	$t=time();
 	echo build_artica_tabs($html, "squid_categories_zoom-$t");
@@ -314,14 +391,12 @@ $rowebsite=346;
 if(isset($_GET["rowebsite"])){$rowebsite=$_GET["rowebsite"];$rowebsite=$rowebsite-40;}
 
 	if(!$users->CORP_LICENSE){
-		$title=$title."<img src='img/status_warning.gif'>".$tpl->_ENGINE_parse_body("{license_inactive}!")."";
+		$title=$title."<img src='img/status_warning.png'>".$tpl->_ENGINE_parse_body("{license_inactive}!")."";
 	}
 	
 echo "
 <span id='FlexReloadWebsiteCategoriesManageDiv'></span>
-<div style='margin-left:-15px'>
 	<table class='$t' style='display: none' id='$t' style='width:99%;'></table>
-</div>
 <script>
 var MEMMD='';
 $(document).ready(function(){
@@ -345,7 +420,7 @@ $searchitem
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: 300,
 	singleSelect: true
 	
@@ -357,16 +432,16 @@ $searchitem
 	}
 
 	function MoveCategorizedWebsite(zmd5,website,category,category_table){
-		YahooWin5(550,'$page?move-category-popup=yes&website='+website+'&zmd5='+zmd5+'&category-source='+category+'&table-source='+category_table,'$movetext::'+website);
+		YahooWinBrowse(550,'$page?move-category-popup=yes&website='+website+'&zmd5='+zmd5+'&YahooWin=YahooWinBrowse&category-source='+category+'&table-source='+category_table,'$movetext::'+website);
 	}
 
 	function MoveAllCategorizedWebsite(){
-		YahooWin5(550,'$page?move-category-popup=yes&website=&zmd5=&category-source={$_GET["category"]}&table-source=$table&bysearch={$_GET["search"]}','$movetext::{$_GET["search"]}');
+		YahooWinBrowse(550,'$page?move-category-popup=yes&YahooWin=YahooWinBrowse&website=&zmd5=&category-source={$_GET["category"]}&table-source=$table&bysearch={$_GET["search"]}','$movetext::{$_GET["search"]}');
 		
 	}
 	
 	function MoveAllCategorizedWebsite2(category,table,search){
-		YahooWin5(550,'$page?move-category-popup=yes&website=&zmd5=&category-source='+category+'&table-source='+table+'&bysearch='+search+'&t=$t','$movetext::'+search);
+		YahooWinBrowse(550,'$page?move-category-popup=yes&YahooWin=YahooWinBrowse&website=&zmd5=&category-source='+category+'&table-source='+table+'&bysearch='+search+'&t=$t','$movetext::'+search);
 		
 	}
 
@@ -660,6 +735,10 @@ function MoveCategory_popup(){
 		
 	}
 	
+	$Final="YahooWin5Hide";
+	if(isset($_GET["YahooWin"])){$Final="{$_GET["YahooWin"]}Hide";}
+	
+	
 	$html="
 	<div id='move-category-div'>
 	<div class=explain>{move_category_explain}</div>
@@ -683,7 +762,7 @@ function MoveCategory_popup(){
 			var results=obj.responseText;
 			if(results.length>0){alert(results);}
 			if(document.getElementById('FlexReloadWebsiteCategoriesManageDiv')){FlexReloadWebsiteCategoriesManage();}
-			YahooWin5Hide();
+			$Final();
 		}		
 		
 		function MoveCategoryPerform(){
@@ -735,10 +814,17 @@ function field_list(){
 	$page=CurrentPageName();
 	$def=$_COOKIE["urlfilter_category_selected"];
 	if($_GET["category"]<>null){$def=$_GET["category"];}
-	
+	$q=new mysql_squid_builder();
 	$tpl=new templates();	
 	$dans=new dansguardian_rules();
 	while (list ($num, $ligne) = each ($dans->array_blacksites) ){$array[$num]=$num;}
+	
+	$sql="SELECT categorykey  FROM `webfilters_categories_caches`";
+	$results = $q->QUERY_SQL($sql);
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$array[$ligne['categorykey']]=$ligne['categorykey'];
+	}
+	
 	$array[null]="{select}";
 	
 	ksort($array);
@@ -856,7 +942,7 @@ function test_category(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
-	$html="	<div style='width:95%' class=form>
+	$html="	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:22px' nowrap>{website}:</td>

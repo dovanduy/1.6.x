@@ -248,7 +248,7 @@ function SearchQuery(){
 		}
 		
 		if($ligne["enable"]==0){
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 		}
 		
 		

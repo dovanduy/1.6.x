@@ -36,22 +36,55 @@ $user=new usersMenus();
 	if(isset($_GET["banner-js"])){banner_js();exit;}
 	if(isset($_GET["banner"])){banner_popup();exit;}
 	if(isset($_POST["banner"])){banner_save();exit;}
-	
+	if(isset($_GET["reload-js"])){reload_js();exit;}
+	if(isset($_POST["RELOAD"])){RELOAD();exit;}
 	
 js();	
 
 function events_js(){
 	$page=CurrentPageName();
-	
+	header("content-type: application/x-javascript");
 	echo "$('#BodyContent').load('$page?events=yes');";
 	
 }
 
 function banner_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{banner}");
 	echo "YahooWin3('997','$page?banner=yes','$title')";
+	
+}
+
+function reload_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$ask=$tpl->javascript_parse_text("{reload_ssh_service_ask}");
+	$t=time();
+echo "	var xReload$t= function (obj) {
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue)};
+			
+		 }		
+		
+		
+		
+		function Reload$t(){
+			if(!confirm('$ask')){return;}
+			var XHR = new XHRConnection();
+			XHR.appendData('RELOAD','yes');
+			XHR.sendAndLoad('$page', 'POST',xReload$t);
+		}
+
+Reload$t();";	
+	
+}
+
+function RELOAD(){
+	$sock=new sockets();
+	echo @implode("\n", unserialize(base64_decode($sock->getFrameWork("services.php?reload-sshd=yes"))));
 	
 }
 
@@ -245,6 +278,7 @@ function popup(){
 	$array["antihack"]='anti-hack';
 	$array["events"]='{events}';
 	$page=CurrentPageName();
+	if($_GET["tabsize"]==14){$_GET["tabsize"]=16;}
 	if(isset($_GET["tabsize"])){$tabsize="style='font-size:{$_GET["tabsize"]}px'";}
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -258,24 +292,8 @@ function popup(){
 	}
 	
 	
-	echo "
-	<div id=main_config_openssh style='width:100%;height:750px;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_openssh').tabs({
-				    load: function(event, ui) {
-				        $('a', ui.panel).click(function() {
-				            $(ui.panel).load(this.href);
-				            return false;
-				        });
-				    }
-				});
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_config_openssh");
+	
 }
 
 function events(){
@@ -423,6 +441,7 @@ echo json_encode($data);
 
 
 function status(){
+	$page=CurrentPageName();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
 	$ini->loadString(base64_decode($sock->getFrameWork('cmd.php?openssh-ini-status=yes')));
@@ -432,14 +451,13 @@ function status(){
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>
-			<H1>{APP_OPENSSH}</H1>
-			<img src='img/openssh-256.png' style='margin:5px'>
-		
-		</td>
-		<td valign='top'>
-			$status
+		<div style='font-size:32px;font-weight:bold;margin:40px'>{APP_OPENSSH}</div>
+		$status
 		<hr>
-		<div class=explain>{OPENSSH_EXPLAIN}</div>
+		<div class=explain style='font-size:18px'>{OPENSSH_EXPLAIN}</div>
+		
+		<center style='margin:20px'>". imgtootltip("64-refresh.png","{reload}","Loadjs('$page?reload-js=yes',true)")."</center>
+		
 		</td>
 	</tr>
 	</table>
@@ -1025,7 +1043,7 @@ function SSHD_KEYS_SERVER_FORM($error=null){
 	$html="
 	<div style='color:red;font-size:14px;font-weight:bold'>$error</div>
 	<form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px' nowrap>{ArticaProxyServerUsername}:</td>
 		<td>$userF</td>	

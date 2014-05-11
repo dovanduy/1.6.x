@@ -37,7 +37,7 @@ function popuplate(){
 	$unix=new unix();
 	
 	if(!is_dir($unix->LOCATE_ROUNDCUBE_WEBFOLDER())){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Not installed\n";}
 		die();
 	}
 
@@ -47,7 +47,7 @@ function popuplate(){
 	$unix=new unix();
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already pid running $pid\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already pid running $pid\n";}
 		die();
 	}
 	
@@ -61,13 +61,13 @@ function popuplate(){
 	$pid=getmypid();
 	@file_put_contents($pidfile,$pid);
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Get user list....\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Get user list....\n";}
 	
 	
 	$ldap=new clladp();
 	$GLOBALS["LDAP_USERS"]=$ldap->Hash_GetALLUsers();
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: ". count($GLOBALS["LDAP_USERS"])." user(s) to scan\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: ". count($GLOBALS["LDAP_USERS"])." user(s) to scan\n";}
 	
 	
 	if(!is_array($GLOBALS["LDAP_USERS"])){
@@ -103,7 +103,7 @@ $count=0;
 while (list ($num, $val) = each ($users) ){
 		usleep(400000);
 		$user_id=GetidFromUser($database,$num);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: user \"$num\" $val user_id=$user_id\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: user \"$num\" $val user_id=$user_id\n";}
 		$sql="UPDATE identities SET `email`='$val', `reply-to`='$val' WHERE name='$num';";
 		echo $sql."\n";
 		$q->QUERY_SQL($sql);	
@@ -155,7 +155,7 @@ function restart($nopid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -178,7 +178,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -188,7 +188,7 @@ function stop($aspid=false){
 
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} already stopped...\n";}
 		return;
 	}
 	$pid=LIGHTTPD_PID();
@@ -199,35 +199,35 @@ function stop($aspid=false){
 
 
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=LIGHTTPD_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	$pid=LIGHTTPD_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<5;$i++){
 		$pid=LIGHTTPD_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}
 
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} success...\n";}
 		return;
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
 	}
 }
 
@@ -240,7 +240,7 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -249,7 +249,7 @@ function start($aspid=false){
 	
 	$ROUNDCUBE_MAIN_FOLDER=ROUNDCUBE_MAIN_FOLDER();
 	if(!is_dir(ROUNDCUBE_MAIN_FOLDER())){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} not installed\n";}
 		return;
 	}
 	$RoundCubeHTTPEngineEnabled=$sock->GET_INFO("RoundCubeHTTPEngineEnabled");
@@ -257,7 +257,7 @@ function start($aspid=false){
 	
 	$pid=LIGHTTPD_PID();
 	if($RoundCubeHTTPEngineEnabled==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} disabled (RoundCubeHTTPEngineEnabled)..\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} disabled (RoundCubeHTTPEngineEnabled)..\n";}
 		if($unix->process_exists($pid)){stop(true);}
 		return;
 	}
@@ -266,7 +266,7 @@ function start($aspid=false){
 	
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} {$GLOBALS["SERVICE_NAME"]} already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
 	
@@ -286,16 +286,16 @@ function start($aspid=false){
 	for($i=0;$i<6;$i++){
 		$pid=LIGHTTPD_PID();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/6...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} waiting $i/6...\n";}
 		sleep(1);
 	}
 	
 	$pid=LIGHTTPD_PID();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Success service started pid:$pid...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	}
 	
 	
@@ -340,12 +340,12 @@ function build(){
 	$users=new usersMenus();
 	$roundcube_folder=$users->roundcube_folder;
 	if(!@file_put_contents("$roundcube_folder/config/main.inc.php",$conf)){
-		echo "Starting......: Roundcube saving main.inc.php failed.\n";
+		echo "Starting......: ".date("H:i:s")." Roundcube saving main.inc.php failed.\n";
 	}else{
-		echo "Starting......: Roundcube saving main.inc.php Success.\n";
+		echo "Starting......: ".date("H:i:s")." Roundcube saving main.inc.php Success.\n";
 	}	
 	
-	echo "Starting......: Roundcube building main configuration done.\n";
+	echo "Starting......: ".date("H:i:s")." Roundcube building main configuration done.\n";
 	RoundCubeHacks();
 }
 
@@ -515,7 +515,7 @@ function plugin_calendar(){
   `summary` varchar(255) NOT NULL,
   `description` text NOT NULL,
   `category` varchar(255) NOT NULL DEFAULT '',
-  `all_day` tinyint(1) NOT NULL DEFAULT '0',
+  `all_day` smallint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY(`event_id`),
   CONSTRAINT `user_id_fk_events` FOREIGN KEY (`user_id`)
     REFERENCES `users`(`user_id`)
@@ -546,7 +546,7 @@ function verifyTables(){
 	$mysqlfile="/usr/share/roundcube/SQL/mysql.initial.sql";
 	$mysqlupdatefile="/usr/share/roundcube/SQL/mysql.update.sql";
 	if(!is_file($mysqlfile)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] $mysqlfile no such file !!\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] $mysqlfile no such file !!\n";}
 		return null;
 	}
 	$q=new mysql();
@@ -563,7 +563,7 @@ function verifyTables(){
 	$verif=true;
 	while (list ($num, $table) = each ($f) ){
 		if(!$roundcube->TABLE_EXISTS($table,$GLOBALS["MYSQL_DB"])){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] \"$table\" no such table\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] \"$table\" no such table\n";}
 			$verif=false;
 		}
 	}
@@ -585,7 +585,7 @@ if(!$verif){
 	$roundcube=new roundcube();
 	while (list ($num, $table) = each ($f) ){
 		if(!$roundcube->TABLE_EXISTS($table)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] \"$table\" no such table\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} [$roundcube->database] \"$table\" no such table\n";}
 			$verif=false;
 		}
 	}	
@@ -597,7 +597,7 @@ if(!$verif){
 	if($GLOBALS["VERBOSE"]){echo "$update\n";}
 	return;
 }	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: {$GLOBALS["SERVICE_NAME"]} DB: [$roundcube->database]: All are ok, nothing to do...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} DB: [$roundcube->database]: All are ok, nothing to do...\n";}
 	
 }
 
@@ -608,7 +608,7 @@ function RoundCubeHacks(){
 	$unix->IPTABLES_DELETE_REGEX_ENTRIES("RoundCubeHacks");
 	$RoundCubeHackEnabled=$sock->GET_INFO("RoundCubeHackEnabled");
 	if($RoundCubeHackEnabled==null){$RoundCubeHackEnabled=1;}
-	if($RoundCubeHackEnabled==0){echo "Starting......: Roundcube anti-hack is disabled\n";return;}
+	if($RoundCubeHackEnabled==0){echo "Starting......: ".date("H:i:s")." Roundcube anti-hack is disabled\n";return;}
 	$RoundCubeHackConfig=unserialize(base64_decode($sock->GET_INFO("RoundCubeHackConfig")));
 	if(!is_array($RoundCubeHackConfig)){if($GLOBALS["VERBOSE"]){echo "RoundCubeHacks:: Not an array::RoundCubeHackConfig\n";}return;}
 	if(count($RoundCubeHackConfig)==0){if($GLOBALS["VERBOSE"]){echo "RoundCubeHacks:: O rows\n";}return;}
@@ -635,7 +635,7 @@ function RoundCubeHacks(){
 		return;
 	}
 	
-	echo "Starting......: Roundcube anti-hack ". count($iptables)." iptables rule(s)\n";
+	echo "Starting......: ".date("H:i:s")." Roundcube anti-hack ". count($iptables)." iptables rule(s)\n";
 	while (list ($num, $cmd) = each ($iptables) ){
 		$cmd="$iptables_bin $cmd";
 		if($GLOBALS["VERBOSE"]){echo "RoundCubeHacks:: $cmd\n";}

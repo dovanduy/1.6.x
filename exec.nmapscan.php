@@ -15,6 +15,7 @@ if($argv[1]=="--scan-nets"){scannetworks();exit;}
 if($argv[1]=="--scan-results"){nmap_scan_results();exit;}
 if($argv[1]=="--scan-period"){nmap_scan_period();exit;}
 if($argv[1]=="--scan-squid"){nmap_scan_squid();exit;}
+if($argv[1]=="--scan-single"){nmap_scan_single($argv[2],$argv[3]);exit;}
 
 $GLOBALS["COMPUTER"]=$argv[1];
 $GLOBALS["COMPUTER"]=str_replace('$',"",$GLOBALS["COMPUTER"]);
@@ -26,60 +27,68 @@ $ComputersAllowNmap=$sock->GET_INFO("ComputersAllowNmap");
 if($ComputersAllowNmap==null){$ComputersAllowNmap=1;}
 if($ComputersAllowNmap==0){die();}
 
+$unix=new unix();
 
-if(!is_file($users->NMAP_PATH)){
-	echo "Unable to stat nmap binary file...\n";
-	exit;
-}
+$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 
+$oldpid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already $oldpid running, aborting...\n";}return;}
+
+@file_put_contents($pidfile, getmypid());
+@file_put_contents($pidtime, time());
+
+
+if(!is_file($users->NMAP_PATH)){echo "Unable to stat nmap binary file...\n";exit;}
 $computer=new computers($GLOBALS["COMPUTER"].'$');
-
 echo "Scanning \"{$GLOBALS["COMPUTER"]}\":[$computer->ComputerIP] (".__LINE__.")\n";
-
 if($computer->ComputerIP=="0.0.0.0"){$computer->ComputerIP=null;}
 if($computer->ComputerIP==null){$computer->ComputerIP=gethostbyname($GLOBALS["COMPUTER"]);}
 if($computer->ComputerIP<>null){$cdir=$computer->ComputerIP;}else{$cdir=$GLOBALS["COMPUTER"];}
-
 echo "Scanning $cdir and save results to /etc/artica-postfix/$cdir.map (".__LINE__.")\n";
-
-$cmd=$users->NMAP_PATH." -v -F -PE -PN -O $cdir -oN /etc/artica-postfix/$cdir.map --system-dns --version-light >/dev/null 2>&1";
-
+$cmd=$users->NMAP_PATH." -v -F -PE -PN -O $cdir -oG --system-dns --version-light 2>&1";
 echo "Executing $cmd (".__LINE__.")\n";
+exec($cmd,$results);
+@file_put_contents("/etc/artica-postfix/$cdir.map", @implode("\n", $results));
 
-system($cmd);
 echo "Parsing results for $cdir (".__LINE__.")\n";
-
-if(!is_file("/etc/artica-postfix/$cdir.map")){
-	echo "Unable to stat /etc/artica-postfix/$cdir.map (".__LINE__.")\n";
-	exit;
-}
+if(!is_file("/etc/artica-postfix/$cdir.map")){echo "Unable to stat /etc/artica-postfix/$cdir.map (".__LINE__.")\n";exit;}
 
 parsefile("/etc/artica-postfix/$cdir.map",$GLOBALS["COMPUTER"]);   
 
 
-function parsefile($filename,$uid){
-	
+function parsefile($filename,$uid,$perc=0){
+	if($perc==0){$perc=10;}
+	if($GLOBALS["VERBOSE"]){echo __LINE__."] Parsing file $filename\n";}
 	$datas=file_get_contents($filename);
 	$tbl=explode("\n",$datas);
 	if(!is_array($tbl)){return null;}
+	$ComputerMacAddress=null;
+	$ComputerRunning=null;
+	$ComputerMachineType=null;
+	$ComputerOS=null;
+	$cpid=null;
 	
 	while (list ($num, $ligne) = each ($tbl) ){
-		
+		if(trim($ligne)==null){continue;}
 		if(preg_match("#([0-9]+).+?open\s+(.+)#",$ligne,$re)){
 			$array[$re[1]]=$re[2];
 			continue;
 		}
 		
 		if(preg_match("#^Running:(.+)#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] Running: {$re[1]}\n";}
 			$ComputerRunning=$re[1];
 			continue;
 		}
 		
 		if(preg_match("#^OS details:(.+)#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] OS details: {$re[1]}\n";}
 			$ComputerOS=$re[1];
 			continue;
 		}	
 	if(preg_match("#^MAC Address:(.+).+?\((.+?)\)#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] MAC Address: {$re[1]}\n";}
 			$ComputerMacAddress=$re[1];
 			$ComputerMachineType=$re[2];
 			continue;
@@ -87,13 +96,34 @@ function parsefile($filename,$uid){
 		
 		
 		
-	if(preg_match("#^MAC Address:(.+)#",$ligne,$re)){
+		if(preg_match("#^MAC Address:(.+)#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] MAC Address: {$re[1]}\n";}
 			$ComputerMacAddress=$re[1];
 			continue;
-		}		
+		}
+
+		if(preg_match("#^MAC Address:\s+(.+?)\s+#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] MAC Address: {$re[1]}\n";}
+			$ComputerMacAddress=$re[1];
+			continue;
+		}
+		
+		if(preg_match("#^Aggressive OS guesses:\s+(.+)#",$ligne,$re)){
+			if($GLOBALS["VERBOSE"]){echo __LINE__."] ******* Aggressive OS guesses: {$re[1]}\n";}
+			$OSD=explode("-",$re[1]);
+			
+			while (list ($num, $xline) = each ($OSD) ){
+				if($GLOBALS["VERBOSE"]){echo __LINE__."] $xline\n";}
+				if(preg_match("#Apple iOS#", $xline)){$ComputerOS="Apple Mac OS";break;}
+				if(preg_match("#Apple iPhone#", $xline)){$ComputerOS="Apple iPhone";break;}
+				if(preg_match("#Apple Mac OS#", $xline)){$ComputerOS="Apple Mac OS";break;}
+				
+			}
+			continue;
+		}
 		
 		 
-		
+		if($GLOBALS["VERBOSE"]){echo __LINE__."] \"$ligne\" Not parsed...\n";}
 		
 	}
 	
@@ -101,6 +131,7 @@ function parsefile($filename,$uid){
 	if($ComputerMacAddress<>null){
 		$computer=new computers();
 		$cpid=$computer->ComputerIDFromMAC($ComputerMacAddress);
+		build_progress("Analyze $ComputerMacAddress ",$perc+5);
 		
 	}
 	
@@ -109,7 +140,7 @@ function parsefile($filename,$uid){
 	echo "ComputerMacAddress: $ComputerMacAddress (".__LINE__.")\n";
 	echo "ComputerOS: $ComputerOS (".__LINE__.")\n";
 	
-	
+	build_progress("Adding {$cpid}$ ",$perc+5);
 	$computer=new computers($cpid."$");
 	if($ComputerMacAddress<>null){$computer->ComputerMacAddress=$ComputerMacAddress;}
 	if($ComputerOS<>null){$computer->ComputerOS=$ComputerOS;}
@@ -122,6 +153,7 @@ function parsefile($filename,$uid){
 	if(!$computer->Edit()){
 		echo "Failed to save infos for $cpid (".__LINE__.")\n";
 	}
+	build_progress("Done...",$perc+5);
 	echo $datas;
 	
 }
@@ -168,8 +200,8 @@ function scannetworks(){
 	while (list ($num, $maks) = each ($net->networklist)){if(trim($maks)==null){continue;}$hash[$maks]=$maks;}	
 	while (list ($num, $maks) = each ($hash)){if(!$net->Networks_disabled[$maks]){if($GLOBALS["VERBOSE"]){echo "Network: $maks OK\n";}$cdir[]=$maks;}}
 	if(count($cdir)==0){if($GLOBALS["VERBOSE"]){echo "No network, aborting...";}return;}
-	
-	$cmd="$nmap -O ". trim(@implode(" ", $cdir))." -oN /etc/artica-postfix/nmap.map --system-dns -p1 2>&1"; 
+	$cmd=$unix->NMAP_CMDLINE(trim(@implode(" ", $cdir)), "/etc/artica-postfix/nmap.map")." 2>&1";
+
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	exec($cmd,$results);
 	
@@ -190,6 +222,7 @@ function nmap_scan_results(){
 	if(!is_file("/etc/artica-postfix/nmap.map")){return;}
 	$f=explode("\n", @file_get_contents("/etc/artica-postfix/nmap.map"));
 	$ipaddr=null;
+	$computer=array();
 	while (list ($index, $ligne) = each ($f) ){
 		$ligne=trim($ligne);
 		if($ligne==null){continue;}
@@ -370,7 +403,7 @@ function nmap_scan_results(){
 		
 		$q=new mysql();
 		$q->QUERY_SQL("DROP TABLE computers_lastscan","artica_backup");
-		$q->check_storage_table();
+		$q->check_storage_table(true);
 		$final=$prefix_sql.@implode(",", $SQLAD);
 		if($GLOBALS["VERBOSE"]){echo "*** $final ***\n";}
 		$q->QUERY_SQL($prefix_sql.@implode(",", $SQLAD),"artica_backup");
@@ -518,6 +551,93 @@ function nmap_scan_period_save($ipaddr,$mac,$status){
 	}
 	$sql="UPDATE networks SET isActive='$status' WHERE MACADDR='$mac'";
 	$q->QUERY_SQL($sql,"ocsweb");
+	
+}
+
+function nmap_scan_single($mac,$ipaddrZ=null){
+	$unix=new unix();
+	$users=new usersMenus();
+	if(!is_file($users->NMAP_PATH)){ build_progress("{failed} err.".__LINE__,110); return;}
+	if($mac=="00:00:00:00:00:00"){$mac=null;}
+	
+	if($mac==null){
+		if($ipaddrZ==null){
+			build_progress("{failed} err.".__LINE__,110); 
+			return;
+		}
+	}
+	
+	build_progress("Determine IP addresses",5);
+	
+	if($ipaddrZ<>null){
+		$ipaddr[$ipaddrZ]=true;
+	}
+	
+	if($mac<>null){
+		
+		
+		$computer =new computers();
+		$uid=$computer->ComputerIDFromMAC($mac);
+		if($uid<>null){
+			$computer =new computers($uid);
+			$ipaddr[$computer->ComputerIP]=true;
+			
+		}
+		
+		$q=new mysql_squid_builder();
+		$results=$q->QUERY_SQL("SELECT ipaddr,MAC FROM UserAutDB GROUP BY ipaddr,MAC HAVING MAC='$mac' AND LENGTH(ipaddr)>0");
+		$count=mysql_num_rows($results);
+		if($count>0){
+			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ipaddr[$ligne["ipaddr"]]=true;
+			}
+		}
+	}
+	
+	if(count($ipaddr)==0){
+		build_progress("{failed} no ip found err.".__LINE__,110);
+		return;
+	}
+	
+	build_progress("Scanning ".count($ipaddr)." nodes",10);
+	
+	$i=10;
+	$NICE=EXEC_NICE();
+	while (list ($IPADDRESS, $line) = each ($ipaddr) ){
+		$i=$i+5;
+		build_progress("Scanning $IPADDRESS",$i);
+		if(!$unix->PingHostCMD($IPADDRESS)){continue;}
+		$cmd=trim($NICE." ".$users->NMAP_PATH." -v -F -PE -PN -O $IPADDRESS  --system-dns --version-light 2>&1");
+		build_progress("Scanning $IPADDRESS done...",$i);
+		$resultsScan=array();
+		exec($cmd,$resultsScan);
+		$tmpfile=$unix->TEMP_DIR()."/nmap.$IPADDRESS.log";
+		@file_put_contents($tmpfile, @implode("\n", $resultsScan));
+		echo @implode("\n", $resultsScan);
+		$array=ExecArrayToArray($resultsScan);
+		if(!is_array($array)){continue;}
+		if($array["MAC"]<>$mac){continue;}
+		build_progress("$mac:-> $IPADDRESS OK",$i+5);
+		echo "$mac:-> $IPADDRESS OK\n";
+		$data=base64_encode(serialize($array));
+		$sql="UPDATE webfilters_nodes SET nmap=1,nmapreport='$data' WHERE MAC='$mac'";
+		$q->QUERY_SQL($sql);
+		build_progress("Analyze scan...",$i+5);
+		parsefile($tmpfile,null,$i);
+		
+		
+	}
+	build_progress("Done...",100);
+	
+		
+	
+}
+function build_progress($text,$pourc){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/nmap.single.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
 	
 }
 

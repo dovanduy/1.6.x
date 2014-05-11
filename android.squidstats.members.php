@@ -33,7 +33,7 @@ function page(){
 	
 	$html="
 	
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:18px'>{search}:</td>
 		<td class=android>

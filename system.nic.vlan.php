@@ -303,7 +303,7 @@ function vlans_js_datas(){
 				if(cdir.length>0){return;}
 			}
 			var XHR = new XHRConnection();
-			
+			XHR.setLockOff();
 			XHR.appendData('cdir-ipaddr',document.getElementById('ipaddr').value);
 			XHR.appendData('netmask',document.getElementById('netmask').value);
 			XHR.sendAndLoad('$page', 'GET',X_CalcCdirVirt);

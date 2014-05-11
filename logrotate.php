@@ -15,7 +15,10 @@ if(!CheckRightsSyslog()){
 	die();	
 }
 
-
+if(isset($_POST["PurgeToNas"])){PurgeToNas();exit;}
+if(isset($_POST["BackupToNas"])){BackupToNas();exit;}
+if(isset($_POST["BackupSquidLogsUseNas"])){remote_nas_save();exit;}
+if(isset($_GET["syslog"])){syslog_tab();exit;}
 if(isset($_GET["in-front-ajax"])){js_start();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["schedules"])){schedules();exit;}
@@ -37,12 +40,102 @@ if(isset($_GET["storage-view-search"])){storage_view_search();exit;}
 if(isset($_POST["delete-extracted"])){storage_view_delete();exit;}
 if(isset($_POST["LogRotateCompress"])){settings_save();exit;}
 if(isset($_GET["settings-popup"])){settings_popup();exit;}
+if(isset($_GET["log-retention-time-js"])){log_retention_time_js();exit;}
+if(isset($_GET["remote-nas-js"])){remote_nas_js();exit;}
+if(isset($_GET["remote-nas-popup"])){remote_nas_popup();exit;}
+if(isset($_GET["backup-to-nas-js"])){backup_to_nas_js();exit;}
+if(isset($_GET["purge-nas-js"])){purge_to_nas_js();exit;}
+
 
 
 if(isset($_GET["log-js"])){storage_view_js();exit;}
 function js_start(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	echo "AnimateDiv('BodyContent');LoadAjax('BodyContent','$page?tabs=yes');";
+}
+function remote_nas_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$filename=$tpl->javascript_parse_text("{use_remote_nas}");
+	$html="YahooWin6('980','$page?remote-nas-popup=yes','$filename')";
+	echo $html;
+}
+function purge_to_nas_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$t=time();
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
+	if($MySQLSyslogType==3){
+		$BackupSquidLogsUseNas=1;
+	}
+	if($BackupSquidLogsUseNas==0){echo "alert('".$tpl->javascript_parse_text("{disabled}")." !!')\n";return ;}
+	$filename=$tpl->javascript_parse_text("{use_remote_nas}");
+	$backup_to_nas=$tpl->javascript_parse_text("{backup_to_nas}");
+	$filename=$_GET["filename"];
+	$html="
+	var xBackupToNas$t=function (obj) {
+		var results=obj.responseText;
+		if(results.length>0){alert(results);}		
+		$('#{$_GET["t"]}').flexReload();
+	}	
+
+
+	function BackupToNas$t(){
+		if(!confirm('$backup_to_nas - ALL - ?')){return;}
+		var XHR = new XHRConnection();
+		XHR.appendData('PurgeToNas','yes');
+		XHR.sendAndLoad('$page', 'POST',xBackupToNas$t);
+	}			
+			
+BackupToNas$t();			
+";
+echo $html;	
+	
+}
+
+function log_retention_time_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$filename=$tpl->javascript_parse_text("{log_retention}");
+	$html="YahooWin6('700','$page?settings-popup=yes','$filename')";
+	echo $html;
+}
+function backup_to_nas_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$t=time();
+	$page=CurrentPageName();
+	$backup_to_nas=$tpl->javascript_parse_text("{backup_to_nas}");
+	$filename=$_GET["filename"];
+	$html="
+	var xBackupToNas$t=function (obj) {
+		var results=obj.responseText;
+		if(results.length>0){alert(results);}		
+		$('#{$_GET["t"]}').flexReload();
+	}	
+
+
+	function BackupToNas$t(){
+		if(!confirm('$backup_to_nas $filename ?')){return;}
+		var XHR = new XHRConnection();
+	  	XHR.appendData('filename','$filename');
+		XHR.appendData('storeid','{$_GET["storeid"]}');
+		XHR.appendData('BackupToNas','yes');
+		XHR.sendAndLoad('$page', 'POST',xBackupToNas$t);
+	}			
+			
+BackupToNas$t();			
+";
+echo $html;	
+	
 }
 
 function CheckRightsSyslog(){
@@ -69,6 +162,19 @@ function rotate_js(){
 	
 	$title=$tpl->_ENGINE_parse_body($title);
 	echo "YahooWin2('724','$page?Rotate-popup=yes&ID=$ID&t={$_GET["t"]}','$title')";
+}
+
+function BackupToNas(){
+	$filename=$_POST["filename"];
+	$storeid=$_POST["storeid"];
+	$sock=new sockets();
+	echo base64_decode($sock->getFrameWork("system.php?syslog_to-nas=yes&storeid=$storeid"));
+}
+
+function PurgeToNas(){
+	$sock=new sockets();
+	echo $sock->getFrameWork("system.php?syslog_purge-nas=yes");	
+	
 }
 
 function rotate_popup(){
@@ -225,23 +331,86 @@ function tabs(){
 	$tpl=new templates();
 	$array["schedules"]="{schedules}";
 	$array["storage"]="{storage}";
+	$array["syslog"]="{syslog}";
+
+
+	
+	$fontsize=14;
 	
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="master"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="localx"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}	
+
+		if($num=="client"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}		
 	
 		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
 		
 			
 		}
-	echo "<div id=main_logrotate>
-				<ul>". implode("\n",$html)."</ul>
-		</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_logrotate').tabs();
-			
+	echo build_artica_tabs($html, "main_logrotate")."<script>LeftDesign('logs-256-white-opac20.png');</script>";
+}
 
-			});
-		</script>";			
+function syslog_tab(){
+	
+	
+	$array["syslog"]='{events}';
+	$array["artica"]='{artica_events}';
+	https://192.168.1.243:9000/artica.events.php?popup=yes&full-size=yes&_=1392596928456
+	
+	$array["master"]='{syslog_server}';
+	$array["localx"]='localx';
+	$array["client"]='{client}';
+	
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$fontsize=14;
+	
+	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="artica"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"artica.events.php?popup=yes&full-size=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="syslog"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.php?popup=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+	
+		if($num=="master"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="localx"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="client"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+	
+			
+	}
+	echo build_artica_tabs($html, "main_logrotate_syslog")."<script>LeftDesign('logs-256-white-opac20.png');</script>";
+	
 }
 
 function rotate_delete(){
@@ -296,6 +465,10 @@ function settings_popup(){
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
 	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	$LogsRotateRemoveApacheMaxSize=$sock->GET_INFO("LogsRotateRemoveApacheMaxSize");
+	if(!is_numeric($LogsRotateRemoveApacheMaxSize)){$LogsRotateRemoveApacheMaxSize=50;}
+	
+	
 	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
 	
@@ -312,12 +485,23 @@ function settings_popup(){
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
 	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
 	
+
+	
+	
 	$html="<table style='width:100%' class=form>
+		
+			
+			
 	<tr>
 		<td class=legend style='font-size:14px'>{delete_if_file_exceed}:</td>
 		<td style='font-size:14px'>". Field_text("LogsRotateDeleteSize",$LogsRotateDeleteSize,"font-size:14px;width:60px")."&nbsp;MB</td>
 		<td>&nbsp;</td>
-	</tr>	
+	</tr>
+	<tr>
+		<td class=legend style='font-size:14px'>{clean_apache_logs}:</td>
+		<td style='font-size:14px'>". Field_text("LogsRotateRemoveApacheMaxSize",$LogsRotateRemoveApacheMaxSize,"font-size:14px;width:60px")."&nbsp;MB</td>
+		<td>". help_icon("{LogsRotateRemoveApacheMaxSize_explain}")."</td>
+	</tr>					
 	<tr>
 		<td class=legend style='font-size:14px'>{default_size_for_rotation}:</td>
 		<td style='font-size:14px'>". Field_text("LogsRotateDefaultSizeRotation",$LogsRotateDefaultSizeRotation,"font-size:14px;width:60px")."&nbsp;MB</td>
@@ -388,6 +572,8 @@ function settings_popup(){
 	  	if(document.getElementById('LogRotateMysql').checked){XHR.appendData('LogRotateMysql',1);}
 	  	else{XHR.appendData('LogRotateMysql',0);}	  	
 	  	XHR.appendData('LogRotatePath',document.getElementById('LogRotatePath').value);
+	  	XHR.appendData('LogsRotateRemoveApacheMaxSize',document.getElementById('LogsRotateRemoveApacheMaxSize').value);
+	  	
 	  	
 	  	
 	  	XHR.appendData('LogsRotateDefaultSizeRotation',document.getElementById('LogsRotateDefaultSizeRotation').value);
@@ -397,6 +583,10 @@ function settings_popup(){
 	  	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize').value);
 	  	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate);	
 	}	
+	
+	
+	
+	
 	LogRotateMysqlCheck();";
 	
 	echo $tpl->_ENGINE_parse_body($html);
@@ -417,17 +607,6 @@ function storage(){
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
 	
-	if($EnableSyslogDB==1){
-		
-		echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>{LOGRATE_EXPLAIN_SYSTORE}</div>
-				<center style='margin:50px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('MySQLSyslog.wizard.php');\" 
-				style='font-size:18px;text-decoration:underline'>{run_wizard_install}</a></center>
-				
-				");
-		return;
-		
-	}
-	
 	$items=$tpl->_ENGINE_parse_body("{items}");
 	$size=$tpl->_ENGINE_parse_body("{size}");
 	$SaveToDisk=$tpl->_ENGINE_parse_body("{SaveToDisk}");
@@ -444,16 +623,28 @@ function storage(){
 	$askdelete=$tpl->javascript_parse_text("{empty_store} ?");
 	$zdate=$tpl->javascript_parse_text("{date}");
 	$action=$tpl->javascript_parse_text("{action}");
+	$hostname=$tpl->javascript_parse_text("{hostname}");
+	$parameters=$tpl->javascript_parse_text("{service_parameters}");
+	$use_remote_nas=$tpl->javascript_parse_text("{parameters}");
+	$purge_to_nas=$tpl->javascript_parse_text("{purge_to_nas}");
 	
-	$q=new mysql_syslog();
-	$files=$q->COUNT_ROWS("store");
-	$size=$q->TABLE_SIZE("store");
+	
+	
+	$q=new mysql_storelogs();
+	$files=$q->COUNT_ROWS("files_info");
+	$size=$q->TABLE_SIZE("files_store");
 	$title=$tpl->_ENGINE_parse_body("{files}:".FormatNumberX($files,0)." (".FormatBytes($size/1024).")");
 	$t=time();
+	
+	if($q->MySQLSyslogType==3){
+		
+		$error=$tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>{syslog_used_nas_storage}</div>");
+	}
+	
 	$html="
-	<div style='margin-left:-15px'>
+	$error
 	<table class='$t' style='display: none' id='$t' style='width:99%'></table>
-	</div>
+	
 <script>
 var rowSquidTask='';
 $(document).ready(function(){
@@ -462,6 +653,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$zdate', name : 'filetime', width : 158, sortable : true, align: 'left'},
+		{display: '$hostname', name : 'hostname', width : 336, sortable : true, align: 'left'},
 		{display: '$filename', name : 'filename', width : 336, sortable : true, align: 'left'},
 		{display: '$sizeT', name : 'filesize', width : 95, sortable : true, align: 'left'},
 		{display: '$task', name : 'taskid', width : 40, sortable : true, align: 'center'},
@@ -471,6 +663,12 @@ $('#$t').flexigrid({
 buttons : [
 	
 	{name: '$empty', bclass: 'Delz', onpress : EmptyStorage},
+	{name: '$parameters', bclass: 'Settings', onpress : Parameters$t},
+	{name: '$use_remote_nas', bclass: 'shared', onpress : Nas$t},
+	{name: '$purge_to_nas', bclass: 'backup', onpress : backup$t},
+	
+	
+	
 	
 		],	
 	searchitems : [
@@ -484,14 +682,24 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 887,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
 	});   
 });	
 
+function Parameters$t(){
+	Loadjs('MySQLSyslog.wizard.php');
+	}
 	
+function Nas$t(){
+	Loadjs('$page?remote-nas-js=yes');
+}
+
+function backup$t(){
+Loadjs('$page?purge-nas-js=yes');
+}
 	
 	function EmptyStorage(){
 		if(confirm('$askdelete')){
@@ -608,7 +816,7 @@ buttons : [
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 887,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
@@ -840,15 +1048,23 @@ function storage_view_search(){
 function search_store(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
-	$q=new mysql_syslog();
+	$q=new mysql_storelogs();
+	
+	if($q->MySQLSyslogType==3){
+		json_error_show($tpl->javascript_parse_text("{syslog_used_nas_storage}"),1);
+	}
+	
 	$search='%';
-	$table="store";
+	$table="files_info";
 	$page=1;
 	$ORDER="ORDER BY ID DESC";
 	$sock=new sockets();
 	$t=$_GET["t"];
 	if(!$q->TABLE_EXISTS($table)){$q->CheckTables();}
-	$database="syslogstore";
+	$database="files_store";
+	
+	
+	
 	
 	$total=0;
 	if($q->COUNT_ROWS($table,$database)==0){json_error_show("No data...");}
@@ -877,7 +1093,9 @@ function search_store(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT `filename`,`taskid`,`filesize`,`filetime` FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
+	
+	
+	$sql="SELECT * FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	$results=$q->QUERY_SQL($sql);
 	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
@@ -886,7 +1104,8 @@ function search_store(){
 		json_error_show($q->mysql_error,1);
 	}	
 	
-
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -900,7 +1119,7 @@ function search_store(){
 		$jstask="<a href=\"javascript:blur();\" OnClick=\"javascript:$jsEdit\"
 		 style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";		
 		
-		$jslloop="Loadjs('$MyPage?log-js=yes&filename={$ligne['filename']}&t=$t');";
+		$jslloop="Loadjs('$MyPage?log-js=yes&filename={$ligne['filename']}&t=$t&storeid={$ligne["storeid"]}');";
 		$view="<a href=\"javascript:blur();\" OnClick=\"javascript:$jslloop\"
 		 style='font-size:16px;font-weight:bold;color:$color;text-decoration:underline'>";	
 		
@@ -913,11 +1132,16 @@ function search_store(){
 			
 		}
 		
+		if($BackupSquidLogsUseNas==1){
+			$action=imgsimple("backup-tool-32.png",null,"Loadjs('$MyPage?backup-to-nas-js=yes&filename={$ligne['filename']}&t=$t&storeid={$ligne["storeid"]}')");
+		}
+		
 		
 		//rowSquidTask
 	$data['rows'][] = array(
 		'id' => $md5,
 		'cell' => array("$span{$ligne['filetime']}</a></span>",
+		"$span$view{$ligne["hostname"]}</a></span>",
 		"$span$view{$ligne["filename"]}</a></span>",
 		"$span{$ligne["filesize"]}</a></span>",
 		"$span$jstask{$ligne["taskid"]}</a></span>",$action,
@@ -1132,4 +1356,164 @@ function storage_view_extract(){
 	
 }
 
+
+function remote_nas_popup(){
+	$t=$_GET["t"];
+	$tt=time();
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock=new sockets();
+	$LogRotateCompress=$sock->GET_INFO("LogRotateCompress");
+	$LogRotateMysql=$sock->GET_INFO("LogRotateMysql");
+	$LogRotatePath=$sock->GET_INFO("LogRotatePath");
+	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
+	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
+	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
+	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
+	$MySQLSyslogType=$sock->GET_INFO("MySQLSyslogType");
+	if(!is_numeric($MySQLSyslogType)){$MySQLSyslogType=1;}
+	
+	if($SystemLogsPath==null){$SystemLogsPath="/var/log";}
+	if(!is_numeric($LogRotateCompress)){$LogRotateCompress=1;}
+	if(!is_numeric($LogRotateMysql)){$LogRotateMysql=1;}
+	if(!is_numeric($BackupMaxDays)){$BackupMaxDays=30;}
+	
+	$BackupSquidLogsUseNas=$sock->GET_INFO("BackupSquidLogsUseNas");
+	$BackupSquidLogsNASIpaddr=$sock->GET_INFO("BackupSquidLogsNASIpaddr");
+	$BackupSquidLogsNASFolder=$sock->GET_INFO("BackupSquidLogsNASFolder");
+	$BackupSquidLogsNASUser=$sock->GET_INFO("BackupSquidLogsNASUser");
+	$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
+	
+	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
+	
+	$BackupSquidLogsNASRetry=$sock->GET_INFO("BackupSquidLogsNASRetry");
+	if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}
+	
+	
+	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
+	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
+	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
+	
+
+	
+	
+$html="<div class=explain style='font-size:14px'>{MYSQLSYSLOG_TYPE_NAS_EXPLAIN}</div>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{delete_if_file_exceed}:</strong></td>
+			<td align='left' style='font-size:18px'>" . Field_text("LogsRotateDeleteSize-$tt",$LogsRotateDeleteSize,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;MB</td>
+			<td>&nbsp;</td>
+		</tr>		
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{default_size_for_rotation}:</strong></td>
+			<td align='left' style='font-size:18px'>" . Field_text("LogsRotateDefaultSizeRotation-$tt",$LogsRotateDefaultSizeRotation,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;MB</td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{system_logs_path}:</strong></td>
+			<td align='left' style='font-size:18px'>" . Field_text("SystemLogsPath-$tt",$SystemLogsPath,'width:200px;padding:3px;font-size:18px',null,null,'')."</td>
+			<td width=1% nowrap>". button_browse("SystemLogsPath-$tt")."</td>
+		</tr>	
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{max_day_in_database}:</strong></td>
+			<td align='left' style='font-size:18px'>" . Field_text("BackupMaxDays-$tt",$BackupMaxDays,'width:90px;padding:3px;font-size:18px',null,null,'')."&nbsp;{days}</td>
+			<td width=1% nowrap>". help_icon("{BackupMaxDaysDir_explain}")."</td>
+		</tr>	
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{backup_folder}:</strong></td>
+			<td align='left' style='font-size:18px'>" . Field_text("BackupMaxDaysDir-$tt",$BackupMaxDaysDir,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
+			<td width=1% nowrap>". button_browse("BackupMaxDaysDir-$tt")."</td>
+		</tr>	
+
+<tr><td colspan=3><div style='font-size:24px;margin-top:20px'>{NAS_storage}</div></td></tr>				
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{use_remote_nas}:</strong></td>
+			<td align='left'>" . Field_checkbox("BackupSquidLogsUseNas-$tt",1,$BackupSquidLogsUseNas)."</td>
+			<td>". help_icon("{BackupSquidLogsUseNas_explain}")."</td>
+		</tr>
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{hostname}:</strong></td>
+			<td align='left'>" . Field_text("BackupSquidLogsNASIpaddr-$tt",$BackupSquidLogsNASIpaddr,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
+			
+			<td>&nbsp;</td>
+		</tr>					
+
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{shared_folder}:</strong></td>
+			<td align='left'>" . Field_text("BackupSquidLogsNASFolder-$tt",$BackupSquidLogsNASFolder,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{username}:</strong></td>
+			<td align='left'>" . Field_text("BackupSquidLogsNASUser-$tt",$BackupSquidLogsNASUser,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
+			<td>&nbsp;</td>
+		</tr>
+		<tr>
+			<td align='right' nowrap class=legend style='font-size:18px'>{password}:</strong></td>
+			<td align='left'>" . Field_password("BackupSquidLogsNASPassword-$tt",$BackupSquidLogsNASPassword,'width:350px;padding:3px;font-size:18px',null,null,'')."</td>
+			<td>&nbsp;</td>
+		</tr>
+			<tr><td colspan=3 align='right'><hr>". button("{apply}", "Next$tt()",24)."</td></tr>
+			<tr><td colspan=3 align='right'><hr>". button("{test_connection}", "Loadjs('miniadm.system.syslogstore.php?test-nas-js=yes')",16)."</td></tr>
+	
+	
+	</table>
+</div>
+<script>
+var xNext$tt= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	LoadAjax('$t','$page?Next3=yes&t=$t');
+	}
+	
+	function Next$tt(){
+	var XHR = new XHRConnection();
+	
+	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize-$tt').value);
+	XHR.appendData('LogsRotateDefaultSizeRotation',document.getElementById('LogsRotateDefaultSizeRotation-$tt').value);
+	XHR.appendData('SystemLogsPath',encodeURIComponent(document.getElementById('SystemLogsPath-$tt').value));
+	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays-$tt').value);
+	XHR.appendData('BackupMaxDaysDir',encodeURIComponent(document.getElementById('BackupMaxDaysDir-$tt').value));
+	if(document.getElementById('BackupSquidLogsUseNas-$tt').checked){
+		XHR.appendData('BackupSquidLogsUseNas',1);
+	}else{
+		XHR.appendData('BackupSquidLogsUseNas',0);
+	}
+	
+	
+	
+	XHR.appendData('BackupSquidLogsNASIpaddr',document.getElementById('BackupSquidLogsNASIpaddr-$tt').value);
+	XHR.appendData('BackupSquidLogsNASFolder',encodeURIComponent(document.getElementById('BackupSquidLogsNASFolder-$tt').value));
+	XHR.appendData('BackupSquidLogsNASUser',document.getElementById('BackupSquidLogsNASUser-$tt').value);
+	XHR.appendData('BackupSquidLogsNASPassword',encodeURIComponent(document.getElementById('BackupSquidLogsNASPassword-$tt').value));
+	XHR.sendAndLoad('$page', 'POST',xNext$tt);
+	}
+	</script>";
+		echo $tpl->_ENGINE_parse_body($html);
+	}
+
+
+	
+function remote_nas_save(){
+	$sock=new sockets();
+	
+	if(isset($_POST["SystemLogsPath"])){$_POST["SystemLogsPath"]=url_decode_special_tool($_POST["SystemLogsPath"]);}
+	if(isset($_POST["BackupMaxDaysDir"])){$_POST["BackupMaxDaysDir"]=url_decode_special_tool($_POST["BackupMaxDaysDir"]);}
+	if(isset($_POST["BackupSquidLogsNASFolder"])){$_POST["BackupSquidLogsNASFolder"]=url_decode_special_tool($_POST["BackupSquidLogsNASFolder"]);}
+	if(isset($_POST["SystemLogsPath"])){$_POST["SystemLogsPath"]=url_decode_special_tool($_POST["SystemLogsPath"]);}
+	if(isset($_POST["BackupSquidLogsNASPassword"])){$_POST["BackupSquidLogsNASPassword"]=url_decode_special_tool($_POST["BackupSquidLogsNASPassword"]);}
+	
+	while (list ($key, $value) = each ($_POST) ){
+		$sock->SET_INFO($key, $value);
+	}
+	
+}
+	
 function file_extension($filename){return pathinfo($filename, PATHINFO_EXTENSION);}

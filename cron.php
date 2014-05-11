@@ -54,7 +54,7 @@ function UnselectMin(){
 		idimg='img_'+id;
 		if(document.getElementById(id)){
 			document.getElementById(id).value='0';
-			document.getElementById(idimg).src='img/status_critical.gif';
+			document.getElementById(idimg).src='img/status_critical.png';
 		}
 	}
 }
@@ -65,7 +65,7 @@ function selectAllMin(){
 		idimg='img_'+id;
 		if(document.getElementById(id)){
 			document.getElementById(id).value='1';
-			document.getElementById(idimg).src='img/status_ok.gif';
+			document.getElementById(idimg).src='img/status_ok.png';
 		}
 	}
 }
@@ -77,7 +77,7 @@ function UnselectHour(){
 		idimg='img_'+id;
 		if(document.getElementById(id)){
 			document.getElementById(id).value='0';
-			document.getElementById(idimg).src='img/status_critical.gif';
+			document.getElementById(idimg).src='img/status_critical.png';
 		}
 	}
 }
@@ -88,7 +88,7 @@ function selectAllHour(){
 		idimg='img_'+id;
 		if(document.getElementById(id)){
 			document.getElementById(id).value='1';
-			document.getElementById(idimg).src='img/status_ok.gif';
+			document.getElementById(idimg).src='img/status_ok.png';
 		}
 	}
 }
@@ -243,14 +243,14 @@ $html="
 		<td valign='top' style='vertical-align:top'>
 			
 			
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			<div style='font-size:18px'>{days}</div>
 			$days_html
 			</div>
 		</td>
 		<td valign='top' style='vertical-align:top;padding-left:15px'>
 		<!-- hours -->
-		<div style='width:95%' class=form>
+		<div style='width:98%' class=form>
 			<div style='font-size:18px'>{hours}</div>
 				$group_hours
 			</table>
@@ -259,7 +259,7 @@ $html="
 				<a href=\"#\" OnClick=\"javascript:UnselectAllHours();\" style='font-size:12px'>{unselect_all}</a>&nbsp;&nbsp;
 				<a href=\"#\" OnClick=\"javascript:SelectAllHours();\" style='font-size:12px'>{all}</a>
 			</div>				
-			<div style='width:95%' class=form>
+			<div style='width:98%' class=form>
 			<div style='font-size:18px'>{minutes}</div>
 			$group_min
 			</table>

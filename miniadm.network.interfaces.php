@@ -297,10 +297,10 @@ function NicBuildTR($NicRequested){
 		*/
 		$js="javascript:Loadjs('system.nic.edit.php?nic=$val')";
 		if(!$tcp->linkup){
-			$img_on="64-win-nic-off.png";
+			$img_on="net-card-64-grey.png";
 			
 		}else{
-			$img_on="64-win-nic.png";
+			$img_on="net-card-64.png";
 			$NIC_UP=true;
 			if($snortInterfaces[trim($val)]==1){$img_on="64-win-nic-snort.png";}
 		}

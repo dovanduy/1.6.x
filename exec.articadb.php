@@ -8,16 +8,19 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
 if($argv[1]=="--build"){build();exit;}
 build();
 function build(){
-	if(!is_dir("/opt/articatech/data/catz")){return;}
+	$sock=new sockets();
+	$ArticaDBPath=$sock->GET_INFO("ArticaDBPath");
+	if($ArticaDBPath==null){$ArticaDBPath="/opt/articatech";}
+	if(!is_dir("$ArticaDBPath/data/catz")){return;}
 $f[]="[client] ";
 $f[]="#password	= your_password ";
 $f[]="#port		= 3306 ";
-$f[]="socket		= /var/run/articadb.sock ";
+$f[]="socket		= /var/run/mysqld/articadb.sock ";
 $f[]=" ";
 $f[]=" ";
 $f[]="[mysqld] ";
 $f[]="#port		= 3306 ";
-$f[]="socket		= /var/run/articadb.sock ";
+$f[]="socket		= /var/run/mysqld/articadb.sock ";
 $f[]="skip-external-locking";
 $f[]="skip-networking ";
 $f[]="skip-innodb";
@@ -43,7 +46,7 @@ $f[]="server-id	= 1 ";
 $f[]="#log-bin=mysql-bin ";
 $f[]="#binlog_format=mixed ";
 $f[]="#binlog_direct_non_transactional_updates=TRUE ";
-$f[]="tmpdir=/opt/articatech/tmp";
+$f[]="tmpdir=$ArticaDBPath/tmp";
 $f[]="open_files_limit=2048";
 $f[]=" ";
 $f[]=" ";
@@ -62,15 +65,15 @@ $f[]=" ";
 $f[]="[mysqlhotcopy] ";
 $f[]="interactive-timeout ";
 $f[]="";
-@file_put_contents("/opt/articatech/my.cnf", @implode("\n", $f));
-@mkdir("/opt/articatech/mysql/etc",0755,true);
-@mkdir("/opt/articatech/tmp",0755,true);
-shell_exec("/bin/ln -sf /opt/articatech/data /opt/articatech/mysql/data");
-shell_exec("/bin/ln -sf /opt/articatech/my.cnf /opt/articatech/mysql/etc/my.cnf");
-@unlink("/opt/articatech/data/data");
+@file_put_contents("$ArticaDBPath/my.cnf", @implode("\n", $f));
+@mkdir("$ArticaDBPath/mysql/etc",0755,true);
+@mkdir("$ArticaDBPath/tmp",0755,true);
+shell_exec("/bin/ln -sf $ArticaDBPath/data $ArticaDBPath/mysql/data");
+shell_exec("/bin/ln -sf $ArticaDBPath/my.cnf $ArticaDBPath/mysql/etc/my.cnf");
+@unlink("$ArticaDBPath/data/data");
 $q=new mysql();
 if($q->DATABASE_EXISTS("catz")){$q->DELETE_DATABASE("catz");}
-echo "Starting......: ArticaDBst configuration done...\n";
+echo "Starting......: ".date("H:i:s")." ArticaDBst configuration done...\n";
 
 }
 

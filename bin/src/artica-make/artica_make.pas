@@ -111,7 +111,7 @@ var
    zlogs:tlogs;
 
 begin
-
+     writeln('Starting Artica-make v2.1');
      if FileExists('/etc/artica-postfix/PROXYTINY_APPLIANCE') then begin
         writeln('This program cannot be executed in Tiny Proxy mode...');
         halt(0);
@@ -122,6 +122,7 @@ begin
 
 
    if ParamStr(1)='--empty-cache' then begin
+      writeln('Empty cache...');
       zinstall.EMPTY_CACHE();
       halt(0);
    end;
@@ -130,7 +131,7 @@ begin
   zlogs:=Tlogs.Create;
   zlogs.NOTIFICATION('artica-make as been ordered with option '+ParamStr(1),'','softwares');
 
-
+  writeln('Checking...');
   zinstall.INSTALL_PROGRESS(ParamStr(1),'{checking}');
   zinstall.INSTALL_STATUS(ParamStr(1),5);
 
@@ -147,7 +148,7 @@ begin
   finally
   end;
 
-
+  writeln('Parsing the command-line');
 
 
   sys:=Tsystem.Create;
@@ -1814,23 +1815,31 @@ begin
          kavsamba:=tsetup_kavsamba.Create;
          kavsamba.xinstall();
 
-         halt(0);
+         Flt(0);
    end;
 
   if ParamStr(1)='APP_C_ICAP' then begin
-         if SYS.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/C_ICAP_BUILDED') < 30 then halt(0);
-         fpsystem('/bin/rm  /etc/artica-postfix/C_ICAP_BUILDED');
-         fpsystem('/bin/touch  /etc/artica-postfix/C_ICAP_BUILDED');
-
-         zinstall.INSTALL_STATUS('APP_C_ICAP',8);
-         zinstall.INSTALL_PROGRESS('APP_C_ICAP','{building_dependencies}');
-         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
          ccicap:=cicap.Create;
          if ParamStr(2)='-configure' then begin
             ccicap.configure();
             writeln('done');
             halt(0);
          end;
+
+
+       if FileExists('/etc/artica-postfix/C_ICAP_BUILDED') then begin
+         if SYS.FILE_TIME_BETWEEN_MIN('/etc/artica-postfix/C_ICAP_BUILDED') < 30 then begin
+            writeln('/etc/artica-postfix/C_ICAP_BUILDED < 30 -> DIE');
+            halt(0);
+         end;
+       end;
+         fpsystem('/bin/rm  /etc/artica-postfix/C_ICAP_BUILDED');
+         fpsystem('/bin/touch  /etc/artica-postfix/C_ICAP_BUILDED');
+
+         zinstall.INSTALL_STATUS('APP_C_ICAP',8);
+         zinstall.INSTALL_PROGRESS('APP_C_ICAP','{building_dependencies}');
+         fpsystem('/usr/share/artica-postfix/bin/setup-ubuntu --check-base-system');
+
          ccicap.xinstall();
          zinstall.EMPTY_CACHE();
          halt(0);

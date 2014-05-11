@@ -3,7 +3,12 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 include_once(dirname(__FILE__)."/class.postfix.inc");
 
-
+if(isset($_GET["db-trash"])){db_trash();exit;}
+if(isset($_GET["build-init"])){build_init();exit;}
+if(isset($_GET["install-zpush"])){zpush_install();exit;}
+if(isset($_GET["restore-process-array"])){restore_process_array();exit;}
+if(isset($_GET["webapp-version"])){webapp_version();exit;}
+if(isset($_GET["webaccess-version"])){webaccess_version();exit;}
 if(isset($_GET["audit-log"])){audit_log();exit;}
 if(isset($_GET["locales"])){locales();exit;}
 if(isset($_GET["foldersnames"])){foldersnames();exit;}
@@ -48,6 +53,10 @@ if(isset($_GET["reload"])){zarafa_reload();exit;}
 if(isset($_GET["zarafa-stats-system"])){zarafa_stats_system();exit;}
 if(isset($_GET["zarafadb-restart"])){zarafadb_restart();exit;}
 if(isset($_GET["zpush-version"])){zpush_version();exit;}
+if(isset($_GET["uncompress-webaccess"])){uncompress_webaccess();exit;}
+if(isset($_GET["uncompress-webapp"])){uncompress_webapp();exit;}
+
+if(isset($_GET["spooler-restart"])){spooler_restart();exit;}
 
 
 
@@ -170,8 +179,9 @@ function orphan_scan(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd="$php5 /usr/share/artica-postfix/exec.zarafa.build.stores.php --exoprhs --nomail";
-	$unix->THREAD_COMMAND_SET($cmd);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.zarafa.build.stores.php --exoprhs --nomail >/dev/null 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 function locales(){
 	$unix=new unix();
@@ -193,7 +203,8 @@ function foldersnames(){
 	if(trim($_GET["lang"])==null){return;}
 	
 	while (list ($num, $ligne) = each ($results) ){
-		if(preg_match("Product version:\s+([0-9]+),#", $re)){$major=$re[1];break;}
+		
+		if(preg_match("#Product version:\s+([0-9]+),#", $ligne,$re)){$major=$re[1];break;}
 	}
 	
 	writelogs_framework("zarafa-server version $major.x",__FUNCTION__,__FILE__,__LINE__);
@@ -303,7 +314,7 @@ function restart_ical(){
 	$cmd=trim("$nohup /etc/init.d/artica-postfix restart zarafa-ical >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart artica-status >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);		
 }
@@ -455,10 +466,10 @@ function audit_log(){
 	
 }
 function ChangeMysqlDir_zarafa(){
-	$default="/opt/zarafa-db/data";
+	$default="/home/zarafa-db";
 	if(is_link($default)){
 		$default=trim(@readlink($default));
-		writelogs_framework("/opt/zarafa-db/data -> `$default`",__FUNCTION__,__FILE__,__LINE__);
+		writelogs_framework("/home/zarafa-db -> `$default`",__FUNCTION__,__FILE__,__LINE__);
 		echo  "<articadatascgi>". trim(base64_encode($default))."</articadatascgi>";
 		return;
 	}
@@ -486,6 +497,12 @@ function zarafadb_restore(){
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
 	$dir=$unix->shellEscapeChars($dir);
+	
+	$oldpid=$unix->PIDOF_PATTERN("exec.zarafa-db.php --restorefrom");
+	if($unix->process_exists($oldpid)){
+		return;
+	}
+	
 	@unlink($logfile);
 	@file_put_contents($logfile, "Please, wait, task will running...\n");
 	@chmod("$logfile",0775);
@@ -605,3 +622,109 @@ function zarafa_hash(){
 	}
 	echo "<articadatascgi>". @file_get_contents("/etc/artica-postfix/zarafa-export.db")."</articadatascgi>";
 }
+function webaccess_version(){
+	echo  "<articadatascgi>". base64_encode(@file_get_contents("/usr/share/zarafa-webaccess/VERSION"))."</articadatascgi>";
+}
+function webapp_version(){
+	echo  "<articadatascgi>". base64_encode(@file_get_contents("/usr/share/zarafa-webapp/version"))."</articadatascgi>";
+}
+
+function uncompress_webaccess(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$tar=$unix->find_program("tar");
+	$filename=$_GET["uncompress-webaccess"];
+	$nohup=$unix->find_program("nohup");
+	$FilePath="/usr/share/artica-postfix/ressources/conf/upload/$filename";
+
+	if(!is_file($FilePath)){
+		echo "<articadatascgi>".base64_encode(serialize(array("R"=>false,"T"=>"{failed}: $FilePath no such file")))."</articadatascgi>";
+		return;
+	}
+	@mkdir("/usr/share/zarafa-webaccess",0755,true);
+	$cmd="$tar -xf $FilePath -C /usr/share/zarafa-webaccess/";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	$VERSION=@file_get_contents("/usr/share/zarafa-webaccess/VERSION");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webaccess >/dev/null 2>&1 &");
+	echo "<articadatascgi>".base64_encode(serialize(array("R"=>true,"T"=>"{success}: v.$VERSION")))."</articadatascgi>";
+}
+function uncompress_webapp(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$tar=$unix->find_program("tar");
+	$filename=$_GET["uncompress-webapp"];
+	$nohup=$unix->find_program("nohup");	
+	$FilePath="/usr/share/artica-postfix/ressources/conf/upload/$filename";
+	if(!is_file($FilePath)){
+		echo "<articadatascgi>".base64_encode(serialize(array("R"=>false,"T"=>"{failed}: $FilePath no such file")))."</articadatascgi>";
+		return;
+	}
+	
+	@mkdir("/usr/share/zarafa-webapp",0755,true);
+	$cmd="$tar -xf $FilePath -C /";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	$VERSION=@file_get_contents("/usr/share/zarafa-webapp/version");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.freeweb.php --reconfigure-webapp >/dev/null 2>&1 &");
+	echo "<articadatascgi>".base64_encode(serialize(array("R"=>true,"T"=>"{success}: v.$VERSION")))."</articadatascgi>";
+	
+}
+
+function restore_process_array(){
+	$unix=new unix();
+	$pid=$unix->PIDOF_PATTERN("exec.zarafa-db.php --restorefrom");
+	if($unix->process_exists($pid)){
+		
+		$WORKDIR=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ZarafaDedicateMySQLWorkDir"));
+		if($WORKDIR==null){$WORKDIR="/home/zarafa-db";}
+		
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		$ARRAY["PID"]=$pid;
+		$ARRAY["TIME"]=$time;
+		$ARRAY["SIZE"]=$unix->DIRSIZE_KO("$WORKDIR/data/zarafa");
+		echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
+	}
+	
+	
+}
+
+
+
+function spooler_restart(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure");
+	shell_exec("$nohup /etc/init.d/zarafa-spooler restart >/dev/null 2>&1 &");
+}
+
+function zpush_install(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");	
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/compile-zpush.php >/usr/share/artica-postfix/ressources/logs/web/zpush-install.log 2>&1 &");
+	
+}
+
+function build_init(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initdzarafa.php --lang >/dev/null 2>&1 &");
+}
+
+function db_trash(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/zarafatrash_reconfigure.txt");
+	@touch("/usr/share/artica-postfix/ressources/logs/web/zarafatrash_reconfigure.txt");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/zarafatrash_reconfigure.txt", 0777);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.zarafa-db.php --trash >/usr/share/artica-postfix/ressources/logs/web/zarafatrash_reconfigure.txt 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
+
+

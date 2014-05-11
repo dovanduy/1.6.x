@@ -21,9 +21,20 @@
 	}	
 	
 	if(isset($_GET["popup"])){popup();exit;}
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["title"])){tables_title();exit;}
 	if(isset($_GET["schedules"])){schedules();exit;}
+	if(isset($_GET["purge-bydate"])){purge_bydate();exit;}
 	if(isset($_POST["ArticaProxyStatisticsBackupFolder"])){Save();exit;}
+	
+	if(isset($_GET["backup-db-js"])){backup_db_js();exit;}
+	if(isset($_POST["backup-db-perform"])){backup_db_perform();exit;}
+	
+	if(isset($_GET["remove-db-js"])){remove_database_js();exit;}
+	if(isset($_POST["remove-all-data"])){remove_database_perform();exit;}
+	
+	
+	
 js();
 
 function js(){
@@ -31,20 +42,177 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{purge_statistics_database}");
-	$html="YahooWin4('821','$page?popup=yes','$title');";
+	//$html="YahooWin4('821','$page?popup=yes','$title');";
+	
+	//$html="YahooWin4('821','miniadm.squiddb.php?settings-retention=yes','$title');";
+	$html="YahooWin4('900','$page?tabs=yes','$title',true);";
 	echo $html;	
 	
 }
 
-function tables_title(){
-	$q=new mysql_squid_builder();
-	$array=$q->COUNT_ALL_TABLES();
-	if(!$q->ok){
-		if($q->mysql_error==null){$q->mysql_error="MySQL error...";}
-		$ff="<div style='font-size:18px'>$q->mysql_error</div>";
-	}else{
-		$ff="<div style='font-size:18px;margin-bottom:10px'>{$array[0]} Tables (".FormatBytes($array[1]/1024).")</div>";
+function tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+
+	$array["parameters"]="{parameters}";
+	$array["purge-bydate"]="{manual_purge}";
+	$stylesize="style='font-size:16px'";
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="parameters"){
+			$html[]= $tpl->_ENGINE_parse_body("<li ><a href=\"miniadm.squiddb.php?settings-retention=yes\" $stylesize><span>$ligne</span></a></li>\n");
+			continue;
+				
+		}
+	
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" $stylesize><span>$ligne</span></a></li>\n");
 	}
+	
+	
+	
+	echo build_artica_tabs($html, "tab_squid_statistics_purg");
+	
+	
+	
+}
+
+function purge_bydate(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	
+	
+	
+	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tdate FROM tables_day ORDER BY zDate LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$mindate=$ligne["tdate"];
+	
+	$sql="SELECT DATE_FORMAT(zDate,'%Y-%m-%d') as tdate FROM tables_day ORDER BY zDate DESC LIMIT 0,1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+	$maxdate=date('Y-m-d');
+	$t=time();
+	$html="	
+<div style='width:98%' class=form>
+	<table style='width:100%' >
+	<tbody>
+		<tr>
+			<td class=legend nowrap style='font-size:22px;vertical-align:top'>{from_date}:</td>
+			<td>". field_date("date1-$t",$mindate,"font-size:18px;padding:3px;width:120px","mindate:$mindate;maxdate:$maxdate")."</td>
+			<td class=legend nowrap style='font-size:22px;vertical-align:top'>{to_date}:</td>
+			<td>". field_date("date2-$t",$maxdate,"font-size:18px;padding:3px;width:120px","mindate:$mindate;maxdate:$maxdate")."</td>
+		</tr>
+		<tr>
+			<td colspan=4 align='right'><hr>". button("{purge}", "Save$t()",22)."</td>
+		</tr>
+		</tbody>
+	</table>
+</div>
+<div style='width:98%' class=form>
+	<div style='font-size:22px'>{empty_database}</div>
+	<div class=explain style='font-size:16px'>{empty_database_explain}</div>
+	<div style='text-align:right'><hr>". button("{empty_database}", "Loadjs('$page?remove-db-js=yes',true)",22)."</div>
+</div>
+<div style='width:98%' class=form>
+	<div style='font-size:22px'>{backup_database}</div>
+	<div class=explain style='font-size:16px'>{backup_database_explain}</div>
+	<div style='text-align:right'><hr>". button("{backup_database}", "Loadjs('$page?backup-db-js=yes',true)",22)."</div>
+</div>
+
+<script>
+	function SquidFlowDaySizeQuery(type){
+			if(!type){
+			if(document.getElementById('squid-stats-day-hide-type')){type=document.getElementById('squid-stats-day-hide-type').value;}
+	}
+	if(!type){type='size';}
+		
+	var sdate=document.getElementById('sdate').value;
+	LoadAjax('days-right-infos','$page?day-right-tabs=yes&day='+sdate+'&type='+type);
+}
+</script>";
+
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	
+}
+function remove_database_js(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
+	$tpl=new templates();
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$ask=$tpl->javascript_parse_text("{empty_database_explain}");
+	$t=time();
+	$html="
+
+	var xstart$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	UnlockPage();
+	CacheOff();
+}
+
+
+function start$t(){
+LockPage();
+if(!confirm('$ask ?')){return;}
+var XHR = new XHRConnection();
+XHR.appendData('remove-all-data','yes');
+XHR.sendAndLoad('$page', 'POST',xstart$t);
+}
+start$t()";
+
+	echo $html;
+
+}
+
+function backup_db_js(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."\n";}
+	$tpl=new templates();
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$ask=$tpl->javascript_parse_text("{backup_database}?");
+	$t=time();
+	$html="
+	var xstart$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue)};
+	UnlockPage();
+}
+
+function start$t(){
+LockPage();
+if(!confirm('$ask ?')){return;}
+var XHR = new XHRConnection();
+XHR.appendData('backup-db-perform','yes');
+XHR.sendAndLoad('$page', 'POST',xstart$t);
+}
+start$t()";
+
+	echo $html;
+
+}
+
+
+function backup_db_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?backup-db-statistics=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{success}");
+}
+
+function tables_title(){
+	
+	$arrayfile="/usr/share/artica-postfix/ressources/logs/web/squiddb.size.db";
+	if(!is_file($arrayfile)){return;}
+	$array=unserialize(@file_get_contents($arrayfile));
+	$DBSIZE=$array["DBSIZE"];
+	$TABLES_NUMBER=$array["TABLES_NUMBER"][0];
+	
+	$ff="<div style='font-size:18px;margin-bottom:10px'>$TABLES_NUMBER Tables (".FormatBytes($DBSIZE)."/".FormatBytes($array["SIZE"])." - {$array["POURC"]}%)</div>";
+	
 	echo "
 	<div style='float:right'>". imgtootltip("refresh-24.png","{refresh}","RefreshTableTitle{$_GET["t"]}()")."</div>		
 	$ff";
@@ -117,6 +285,7 @@ function popup(){
 	var x_Save$t= function (obj) {
 		var tempvalue=obj.responseText;
 		if(tempvalue.length>3){alert(tempvalue)};
+		UnlockPage();
 		document.getElementById('$t').innerHTML='';
 	}
 
@@ -126,6 +295,7 @@ function popup(){
 			XHR.appendData('ArticaProxyStatisticsBackupFolder',document.getElementById('ArticaProxyStatisticsBackupFolder-$t').value);
 			XHR.appendData('ArticaProxyStatisticsBackupDays',document.getElementById('ArticaProxyStatisticsBackupDays-$t').value);
 			AnimateDiv('$t');
+			LockPage();
 			XHR.sendAndLoad('$page', 'POST',x_Save$t);
 			}
 			
@@ -199,4 +369,9 @@ function Save(){
 		
 	}	
 	$sock->SET_INFO("ArticaProxyStatisticsBackupFolder", $_POST["ArticaProxyStatisticsBackupFolder"]);
+}
+function remove_database_perform(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?purge-all-statistics=yes");
+
 }

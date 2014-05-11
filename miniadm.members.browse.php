@@ -97,7 +97,7 @@ function users_search_ad(){
 	
 	for($i=0;$i<$number;$i++){
 		$userARR=$hash[$i];
-		$img="user7-32.png";
+		$img="user-32.png";
 		$uid=$userARR["samaccountname"][0];
 		if(strpos($uid, "$")>0){$img="computer-32.png";}
 		if($userARR["displayname"][0]==null){$userARR["displayname"][0]=$uid;}

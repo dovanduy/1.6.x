@@ -30,7 +30,7 @@ if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){die();}
 $GLOBALS["a2enmod"]=$GLOBALS["CLASS_UNIX"]->find_program("a2enmod");
 $apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apache2ctl");
 if(!is_file($apache2ctl)){$apache2ctl=$GLOBALS["CLASS_UNIX"]->find_program("apachectl");}
-if(!is_file($apache2ctl)){echo "Starting......: Apache apache2ctl no such file\n";}
+if(!is_file($apache2ctl)){echo "Starting......: ".date("H:i:s")." Apache apache2ctl no such file\n";}
 $GLOBALS["APACHECTL"]=$apache2ctl;
 
 
@@ -101,7 +101,7 @@ function buildUsers(){
 	
 	$SSL=$WebDavPerUserSets["EnableSSL"];
 	if(!is_numeric($SSL)){$SSL=0;}
-	echo "Starting......: Apache Listen $FreeWebListen:$FreeWebListenPort, SSL enabled=$SSL SSL Port:$FreeWebListenSSLPort SSLv2=$FreeWebsDisableSSLv2\n";
+	echo "Starting......: ".date("H:i:s")." Apache Listen $FreeWebListen:$FreeWebListenPort, SSL enabled=$SSL SSL Port:$FreeWebListenSSLPort SSLv2=$FreeWebsDisableSSLv2\n";
 	
 	
 	

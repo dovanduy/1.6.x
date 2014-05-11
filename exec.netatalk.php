@@ -61,12 +61,12 @@ $f[]="";
 $f[]="# config for cnid_metad. Default log config:";
 $f[]="# CNID_CONFIG=\"-l log_note\"";	
 @file_put_contents("/etc/default/netatalk", @implode("\n", $f));
-echo "Starting......: Netatalk /etc/default/netatalk done\n";
+echo "Starting......: ".date("H:i:s")." Netatalk /etc/default/netatalk done\n";
 $f=array();
 
 $f[]="- -transall -uamlist uams_dhx.so,uams_dhx2.so -nosavepassword -advertise_ssh";
 @file_put_contents("/etc/netatalk/afpd.conf", @implode("\n", $f));
-echo "Starting......: Netatalk /etc/netatalk/afpd.conf done\n";
+echo "Starting......: ".date("H:i:s")." Netatalk /etc/netatalk/afpd.conf done\n";
 AppleVolumes_system();
 avahi_services();
 folders();
@@ -78,7 +78,7 @@ folders();
 function avahi_services(){
 	$users=new usersMenus();
 	$servername=$users->hostname;
-	if(!is_dir("/etc/avahi/services")){echo "Starting......: Netatalk /etc/avahi/services no such directory\n";return;}
+	if(!is_dir("/etc/avahi/services")){echo "Starting......: ".date("H:i:s")." Netatalk /etc/avahi/services no such directory\n";return;}
 	$f[]="<?xml version=\"1.0\" standalone='no'?><!--*-nxml-*-->";
 	$f[]="<!DOCTYPE service-group SYSTEM \"avahi-service.dtd\"> ";
 	$f[]="<service-group>";
@@ -95,9 +95,9 @@ function avahi_services(){
 	$f[]="</service-group>";
 	$f[]="";
 	@file_put_contents("/etc/avahi/services/afpd.service", @implode("\n", $f));	
-	echo "Starting......: Netatalk /etc/avahi/services/afpd.service done\n";
+	echo "Starting......: ".date("H:i:s")." Netatalk /etc/avahi/services/afpd.service done\n";
 	if(is_file("/etc/init.d/avahi-daemon")){
-		echo "Starting......: Netatalk restarting avahi-daemon\n";
+		echo "Starting......: ".date("H:i:s")." Netatalk restarting avahi-daemon\n";
 		shell_exec("/usr/share/artica-postfix/bin/artica-install --nsswitch");
 		shell_exec("/etc/init.d/avahi-daemon restart");
 	}
@@ -400,7 +400,7 @@ $f[]=".wbmp \"WBMP\"  \"GKON\"  WBMP                           GraphicConverter"
 $f[]=".x-face  \"TEXT\"  \"GKON\"  X-Face                      GraphicConverter";
 $f[]=".fla  \"SPA \"  \"MFL2\"  Flash source                   Macromedia Flash";
 @file_put_contents("/etc/netatalk/AppleVolumes.system", @implode("\n", $f));
-echo "Starting......: Netatalk /etc/netatalk/AppleVolumes.system done\n";	
+echo "Starting......: ".date("H:i:s")." Netatalk /etc/netatalk/AppleVolumes.system done\n";	
 
 }
 
@@ -451,6 +451,6 @@ function folders(){
 	}
 	 $f[]="";
 	 @file_put_contents("/etc/netatalk/AppleVolumes.default", @implode("\n", $f));
-	 echo "Starting......: Netatalk /etc/netatalk/AppleVolumes.default done\n";	
+	 echo "Starting......: ".date("H:i:s")." Netatalk /etc/netatalk/AppleVolumes.default done\n";	
 	
 }

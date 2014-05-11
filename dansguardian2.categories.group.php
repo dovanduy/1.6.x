@@ -22,6 +22,7 @@ if(isset($_POST["new-category-group"])){category_group_save();exit;}
 if(isset($_POST["delete-category-group"])){category_group_delete();exit;}
 if(isset($_POST["enable-category-group"])){category_group_enable();exit;}
 if(isset($_POST["enable-category-rule"])){category_rule_save();exit;}
+if(isset($_POST["SyncTable"])){SyncTable();exit;}
 js();
 
 
@@ -88,7 +89,7 @@ function category_table(){
 	buttons : [
 	{name: '$new_group', bclass: 'add', onpress : AddCategoryGroup$tt},
 	{name: '$compile_rules', bclass: 'Reconf', onpress : CompileUfdbGuardRules},
-
+	{name: 'Sync', bclass: 'Reload', onpress : Sync$t},
 	],";
 
 //{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'},
@@ -130,7 +131,7 @@ $(document).ready(function(){
 
 var xAddCategoryGroup$tt= function (obj) {
 	var res=obj.responseText;
-	if(res.length>3){alert(res);return;}
+	if(res.length>3){alert(res);}
 	$('#flexRT{$_GET["t"]}').flexReload();
 	$('#flexRT$tt').flexReload();
 	$('#flexRT$tSource').flexReload();
@@ -147,6 +148,12 @@ function AddCategoryGroup$tt(){
 	XHR.sendAndLoad('$page', 'POST',xAddCategoryGroup$tt);	
 		
 	
+}
+
+function Sync$t(){
+      var XHR = new XHRConnection();
+      XHR.appendData('SyncTable','yes');
+      XHR.sendAndLoad('$page', 'POST',xAddCategoryGroup$tt);
 }
 
 function CategoryGroupEnable$tt(ID){
@@ -273,7 +280,7 @@ function category_table_list(){
 		$groupname=utf8_encode($ligne["groupname"]);
 		$enable=Field_checkbox("enable", 1,$ligne["enabled"],"CategoryGroupEnable$t($ID)");
 		$delete=imgsimple("delete-24.png",null,"CategoryGroupDelete$t($ID,'$md')");
-		if($ligne["enabled"]==0){$color="#CCCCCC";}
+		if($ligne["enabled"]==0){$color="#8a8a8a";}
 		$TextToAdd=null;
 		
 		$js="Loadjs('dansguardian2.categories.group.single.php?js=yes&ID=$ID&t=$t&tSource=$tSource')";
@@ -288,7 +295,7 @@ function category_table_list(){
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT `zmd5` FROM webfilter_blklnk WHERE `webfilter_blkid`='$ID' 
 			AND webfilter_ruleid='$MainRuleID' AND `blacklist`='$modeblk'"));
 			if(strlen(trim($ligne2["zmd5"]))==0){
-				$color="#CCCCCC";
+				$color="#8a8a8a";
 				$enabled=0;
 			}
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT enabled FROM webfilter_blkgp WHERE ID=$ID"));
@@ -348,4 +355,34 @@ function category_group_enable(){
 	$q->QUERY_SQL("UPDATE `webfilter_blkgp` SET `enabled`='$value' WHERE `ID`='$ID'");
 	if(!$q->ok){echo $q->mysql_error;}
 	
+}
+function SyncTable(){
+	$q=new mysql_squid_builder();
+
+
+	$q->QUERY_SQL("TRUNCATE TABLE webfilters_categories_caches");
+	$ss=new dansguardian_rules();$ss->CategoriesTableCache();
+
+
+	$sql="SELECT categorykey  FROM `webfilters_categories_caches`";
+	$results = $q->QUERY_SQL($sql);
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$array[$ligne['categorykey']]=true;
+	}
+
+	$sql="SELECT category FROM webfilter_blkcnt";
+	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q->mysql_error;return;}
+
+	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+		$category=$ligne["category"];
+		if(!isset($array[$category])){
+			$q->QUERY_SQL("DELETE FROM webfilter_blkcnt WHERE category='".mysql_escape_string2($category)."'");
+			echo "Removed $category\n";
+		}
+
+	}
+
+	echo "Done...\n";
+
 }

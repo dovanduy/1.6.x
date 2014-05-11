@@ -25,7 +25,7 @@ $pattern="(&(objectclass=apacheConfig)(apacheServerName=*))";
 $attr=array();
 $sr=@ldap_search($ldap->ldap_connection,"ou=www,ou=$ou,dc=organizations,$ldap->suffix",$pattern,$attr);
 if(!$sr){
-	echo "Starting......: database LDAP ERROR $ldap->ldap_last_error\n";
+	echo "Starting......: ".date("H:i:s")." database LDAP ERROR $ldap->ldap_last_error\n";
 	return ;
 }
 
@@ -37,14 +37,14 @@ for($i=0;$i<$hash["count"];$i++){
 	$root=$hash[$i]["apachedocumentroot"][0];
 	$wwwservertype=trim($hash[$i]["wwwservertype"][0]);
 	$apacheservername=trim($hash[$i]["apacheservername"][0]);
-	echo "\nStarting......: Groupware checking $apacheservername host ($wwwservertype)\n";
+	echo "\nStarting......: ".date("H:i:s")." Groupware checking $apacheservername host ($wwwservertype)\n";
 		$dn=$hash[$i]["dn"];
 		$server_database=str_replace(".","_",$apacheservername);
 		$server_database=str_replace("-","_",$server_database);	
 		
 		
 		if($wwwservertype=="ROUNDCUBE"){
-			echo "Starting......: database ROUNDCUBE DATABASE $server_database for $ou\n";
+			echo "Starting......: ".date("H:i:s")." database ROUNDCUBE DATABASE $server_database for $ou\n";
 			ROUNDCUBE($server_database,$ou);
 		}
 
@@ -59,7 +59,7 @@ function ROUNDCUBE($database,$ou){
 	reset($users);
 	while (list ($uid, $displayname) = each ($users) ){
 		if($uid==null){continue;}
-		echo "Starting......: Groupware Checking roundcube $database:: $uid - $displayname\n";
+		echo "Starting......: ".date("H:i:s")." Groupware Checking roundcube $database:: $uid - $displayname\n";
 		
 		$id=ROUNDCUBE_GetidFromUser($database,$uid);
 		$u=new user($uid);

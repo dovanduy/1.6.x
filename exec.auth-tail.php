@@ -108,9 +108,9 @@ function Parseline($buffer){
 	if($GLOBALS["EnableRemoteStatisticsAppliance"]==1){return;}
 	$datelog=date("Y-m-d-H");
 	
-	if(strpos($buffer," squid[")>0){continue;}
-	if(strpos($buffer," (squid-")>0){continue;}
-	if(strpos($buffer," (squid):")>0){continue;}
+	if(strpos($buffer," squid[")>0){return;}
+	if(strpos($buffer," (squid-")>0){return;}
+	if(strpos($buffer," (squid):")>0){return;}
 	events("Not Filtered \"$buffer\" Line:".__LINE__);
 	
 	
@@ -187,7 +187,7 @@ function Parseline($buffer){
 
 function events($text){
 		$pid=@getmypid();
-		$date=@date("h:i:s");
+		$date=@date("H:i:s");
 		$logFile="/var/log/artica-postfix/auth-tail.debug";
 		
 		$size=@filesize($logFile);

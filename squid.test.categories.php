@@ -47,7 +47,7 @@ $www=$q->WebsiteStrip($www);
 
 if($www==null){echo "corrupted\n";return;}
 $catz=str_replace(",", "\n- ", $q->GET_CATEGORIES($www,true));
-echo "\nFinal:\n\"".$q->GET_CATEGORIES($www)."\"\n";
+echo "\nFinal:\n\"".$q->GET_CATEGORIES($www,true)."\"\n";
 	
 }
 
@@ -102,8 +102,11 @@ function page(){
 	$import_catz_art_expl=$tpl->javascript_parse_text("{import_catz_art_expl}");
 	$date=$tpl->_ENGINE_parse_body("{zDate}");
 	$country=$tpl->_ENGINE_parse_body("{country}");
+	
+	
+	
 	$form=$tpl->_ENGINE_parse_body("
-	<div style='width:95%' class=form>
+	<div style='width:98%' class=form>
 	<table>
 	<tr>
 		<td class=legend style='font-size:14px'>{website}:</td>
@@ -121,6 +124,7 @@ function page(){
 	{name: '$verify', bclass: 'add', onpress : Analyze$t},
 	{name: '$add_websites', bclass: 'add', onpress : AddWebsites$t},
 	{name: '$retry', bclass: 'Reload', onpress : Retry$t},
+	{name: 'Porn', bclass: 'Reload', onpress : Porn$t},
 	{name: '$import - Artica', bclass: 'add', onpress : ImportArt$t},
 	],";	
 	
@@ -137,8 +141,9 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$date', name : 'zDate', width : 101, sortable : true, align: 'left'},	
-		{display: '$websites', name : 'sitename', width : 224, sortable : true, align: 'left'},	
+		{display: '$websites', name : 'sitename', width : 196, sortable : true, align: 'left'},	
 		{display: '$category', name : 'category', width : 135, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'autof', width : 165, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'null', width : 30, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'null', width : 30, sortable : false, align: 'left'},
 		],
@@ -156,7 +161,7 @@ $('#$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 600,
+	width: '99%',
 	height: 250,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -165,13 +170,15 @@ $('#$t').flexigrid({
 });
 
 	
-		function x_CheckSingleSite(obj){
-			var tempvalue=obj.responseText;
-			if(document.getElementById('analyze-img-$t')){document.getElementById('analyze-img-$t').innerHTML='';}
-			if(tempvalue.length>3){alert(tempvalue);}
-	
-			
-		}
+function x_CheckSingleSite(obj){
+	var tempvalue=obj.responseText;
+	if(document.getElementById('analyze-img-$t')){document.getElementById('analyze-img-$t').innerHTML='';}
+	if(tempvalue.length>3){alert(tempvalue);}
+}
+
+function Porn$t(){
+	$('#$t').flexOptions({url: '$page?websites-test=yes&porn-macro=yes'}).flexReload(); 
+}
 
 function CheckSingleSite(e){
 		if(!checkEnter(e)){return;}
@@ -254,6 +261,19 @@ function CheckSingleSite(e){
 		XHR.appendData('sitename',sitename);
 		AnimateDiv('analyze-img-$t');
 		XHR.sendAndLoad('$page', 'POST',x_ffCatAdd$t);
+     }
+     
+     function performChoose(md,sitename){
+     	xsite=md;
+    	var category=document.getElementById('cat-'+md).value;
+    	if(!category){alert('select first');return;}
+     	var XHR = new XHRConnection();
+		XHR.appendData('PerformProposal','yes');
+		XHR.appendData('category',category);
+		XHR.appendData('sitename',sitename);
+		AnimateDiv('analyze-img-$t');
+		XHR.sendAndLoad('$page', 'POST',x_ffCatAdd$t);
+     
      }
 		
 	
@@ -370,6 +390,22 @@ function websitelist(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
 	$searchstring=string_to_flexquery();
+	
+	if(isset($_GET["porn-macro"])){
+		
+		$f=explode(",","sex,boobs,penis,pussy,cunt,porn,anal,teen,latina,cum,amateur,bondage,babe,bbw,bukkake,hentai,gangbang,orgy,strip,pov,asian,nipple,tits,blowjob,mature,squirt,shemale,nude,cock,breast,virgin,chicks,escort,facial,horny,orgasm,gay,lesbian,xxx,fuck,dick");
+		
+		while (list ($index, $items) = each ($f) ){
+			if($items==null){continue;}
+			$GR[]="( `sitename` LIKE '%$items%')";
+		}
+		
+		$table="(SELECT *  FROM webtests WHERE 1 AND ( ".@implode(" OR ", $GR)." ) ) as t";
+		
+		
+	}
+	
+	
 	if($searchstring<>null){
 		$sql="SELECT * FROM $table WHERE 1 $searchstring";
 		$results=$q->QUERY_SQL($sql);
@@ -377,7 +413,18 @@ function websitelist(){
 		writelogs("$sql = `$total`",__FUNCTION__,__FILE__,__LINE__);
 	}else{
 
+		if(!isset($_GET["porn-macro"])){
+		
 		$total = $q->COUNT_ROWS($table);
+		
+		}else{
+			$sql="SELECT * FROM $table WHERE 1 $searchstring";
+			$results=$q->QUERY_SQL($sql);
+			$total = mysql_num_rows($results);
+			
+		}
+		
+		
 		writelogs("$sql = `$total`",__FUNCTION__,__FILE__,__LINE__);
 	}
 	
@@ -398,7 +445,7 @@ function websitelist(){
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){json_error_show($q->mysql_error,1);}	
+	if(!$q->ok){json_error_show($q->mysql_error." $sql",1);}	
 	
 	if(mysql_num_rows($results)==0){json_error_show($q->mysql_error,1);}	
 		
@@ -406,6 +453,14 @@ function websitelist(){
 		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
 		$button=null;
 		
+	
+		$arrayCtaz[null]=" --";
+	$dans=new dansguardian_rules();
+	while (list ($categoryA, $rows) = each ($dans->array_blacksites) ){
+		$arrayCtaz[$categoryA]=$categoryA;
+	}
+	
+	ksort($arrayCtaz);
 		
 		
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -414,7 +469,7 @@ function websitelist(){
 			if(trim($ligne["category"])<>null){
 				$md=md5($ligne["sitename"]);
 				$fff=base64_encode(serialize(array($ligne["sitename"],$ligne["category"])));
-				$button=imgtootltip("plus-24.png","{$ligne["sitename"]} = {$ligne["category"]}","ffCatAdd('$md','$fff')");
+				$button=imgsimple("plus-24.png","{$ligne["sitename"]} = {$ligne["category"]}","ffCatAdd('$md','$fff')");
 			}
 			$delte=imgtootltip("delete-24.png","{delete} {$ligne["sitename"]}","DeleteTestCatSitename('{$ligne["sitename"]}')");
 			$jscat="javascript:Loadjs('squid.categorize.php?www={$ligne['sitename']}&day=&week=&month=')";
@@ -431,6 +486,9 @@ function websitelist(){
 			if($country<>null){$country="<div>$country</div>";}
 			$encodesite=urlencode($ligne['sitename']);
 			$google="<a href=\"http://www.google.com/search?q=$encodesite&ie=utf-8&oe=utf-8&\" target='_blank'><img src='img/Google-18.png' style='float:right'></a>"; 
+			$md=md5($ligne['sitename']);
+			$fieldCatz=Field_array_Hash($arrayCtaz, "cat-$md");
+			$button=imgsimple("arrow-blue-left-24.png",null,"performChoose('$md','{$ligne['sitename']}')");
 			
 			$data['rows'][] = array(
 			'id' => md5($ligne['sitename']),
@@ -438,7 +496,7 @@ function websitelist(){
 				"<a href=\"javascript:blur();\" OnClick=\"$jscat\" style='font-size:11px;font-weight:bold;text-decoration:underline'>{$ligne['zDate']}</span>",
 				 "$google<a href=\"javascript:blur();\" OnClick=\"$jscat\" style='font-size:11px;font-weight:bold;text-decoration:underline'>{$ligne['sitename']}</a></span>
 				 $country ",
-				"<span style='font-size:11px;font-weight:bold'>{$ligne["category"]}</span>",$button,$delte)
+				"<span style='font-size:11px;font-weight:bold'>{$ligne["category"]}</span>",$fieldCatz,$button,$delte)
 			);
 	}
 	

@@ -410,7 +410,7 @@ function users_usually(){
 		
 		
 		$rows[]="<tr>
-		<td width=1% valign='top'><IMG SRC='img/winuser.png'></TD>
+		<td width=1% valign='top'><IMG SRC='img/user-18.png'></TD>
 		<td><a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('squid.traffic.statistics.week.user.php?user={$ligne["uid"]}&field=$q&table=$table')\" 
 		style='font-weight:bold;font-size:12px;text-decoration:underline'>$uidText</a>

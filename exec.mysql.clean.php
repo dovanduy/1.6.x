@@ -3,7 +3,8 @@ $GLOBALS["FORCE"]=false;
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["FLUSH"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;
+ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--flush#",implode(" ",$argv))){$GLOBALS["FLUSH"]=true;}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}

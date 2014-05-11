@@ -60,14 +60,18 @@ function page(){
 	$bt_help="{name: '$help', bclass: 'Help', onpress : HelpSection},";					
 	$bt_restore="{name: '$restore', bclass: 'Restore', onpress : RestoreSite},";
 	$bt_stats="{name: '$status', bclass: 'Network', onpress : ApacheAllstatus},";
-	
+	$MAIN_TITLE=null;
 	$tablewidth=874;
 	$servername_size=241;
 	$bt_function_add="AddNewFreeWebServer";
 	
 	
 	if($_GET["force-groupware"]<>null){	
+		include_once(dirname(__FILE__)."/ressources/class.apache.inc");
 		$default_www=null;
+		$bt_webdav=null;
+		$ach=new vhosts();
+		$MAIN_TITLE="<span style=font-size:18px>".$tpl->_ENGINE_parse_body("{".$ach->TEXT_ARRAY[$_GET["force-groupware"]]["TITLE"]."}")."</span>";
 		if($_GET["force-groupware"]=="KLMS"){
 			$bt_klms_reset_pwd="{name: '$reset_admin_password', bclass: 'Restore', onpress : klmsresetwebpassword},";
 		}
@@ -148,11 +152,11 @@ $('#freewebs-table-$t').flexigrid({
 	sortname: 'servername',
 	sortorder: 'desc',
 	usepager: true,
-	title: '',
+	title: '$MAIN_TITLE',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $tablewidth,
+	width: '99%',
 	height: 550,
 	singleSelect: true
 	
@@ -405,7 +409,7 @@ function servers_list(){
 		}
 	$countDeRows=$ligne["TCOUNT"];
 	writelogs($sqlCount." $countDeRows rows",__FUNCTION__,__FILE__,__LINE__);	
-	
+	if($countDeRows==0){json_error_show("");}
 	
 	
 
@@ -504,14 +508,14 @@ function servers_list(){
 		$ligneDrup=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 		if($ligne["ID"]>0){
 			$edit=imgtootltip("folder-tasks-32.png","{delete}");
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$delete=imgtootltip("delete-32-grey.png","{delete} {scheduled}");
 			
 		}
 		$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='INSTALL_GROUPWARE' AND `servername`='{$ligne["servername"]}'";
 		if($ligne["ID"]>0){
 			$edit=icon_href("folder-tasks-32.png","Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}')");
-			$color="#CCCCCC";
+			$color="#8a8a8a";
 			$delete=icon_href("delete-32-grey.png");
 			$groupware=div_groupware("({installing} {{$vhosts->TEXT_ARRAY[$ligne["groupware"]]["TITLE"]}})",$ligne["enabled"]);
 			
@@ -608,6 +612,7 @@ function servers_list(){
 function build_icon($ligne,$servername=null){
 	$icon="free-web-24.png";
 	if($ligne["UseReverseProxy"]){$icon="Firewall-Move-Right-32.png";}
+	if($servername=="_default_"){return $icon;}
 	if(trim($ligne["resolved_ipaddr"])==null){
 		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $servername)){$icon="warning-panneau-32.png";}
 	}	

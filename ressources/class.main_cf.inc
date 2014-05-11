@@ -1308,7 +1308,7 @@ public	function BuildMilters($asarray=false){
 		}
 		
 		if(preg_match("#^inet:#", $RemoteMilterService)){
-			if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix remote milter service as `$RemoteMilterService`\n";}
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Postfix remote milter service as `$RemoteMilterService`\n";}
 			$smtpd_milters[]=$RemoteMilterService;
 			
 		}
@@ -3231,12 +3231,12 @@ class main_perso{
 	
 function replace_conf($conf){
 		if(!is_array($this->main_array)){
-			if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix [PERSO]: No array, no config to replace, aborting\n";}
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Postfix [PERSO]: No array, no config to replace, aborting\n";}
 			writepostfixlogs("MAINPERSO:: No array, no config to replace, aborting");
 			return $conf;}
 			
 		if(count($this->main_array)==0){
-			if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix [PERSO]: No array, no config to replace, aborting\n";}
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Postfix [PERSO]: No array, no config to replace, aborting\n";}
 			return;
 		}
 		
@@ -3252,12 +3252,12 @@ function replace_conf($conf){
 					if(isset($ALREADY[$num])){continue;}
 					$ALREADY[$num]=true;
 					if($val["VALUE"]==null){
-						if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix [PERSO]: No value for $num, skip\n";}
+						if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Postfix [PERSO]: No value for $num, skip\n";}
 						continue;
 					}
 					
 					if($num=="inet_interfaces"){continue;}
-					if($GLOBALS["AS_ROOT"]){echo "Starting......: Postfix [PERSO]: $num = {$val["VALUE"]}\n";}
+					if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Postfix [PERSO]: $num = {$val["VALUE"]}\n";}
 					system("{$GLOBALS["postconf"]} -e \"$num = {$val["VALUE"]}\" >/dev/null 2>&1");
 				}
 			}

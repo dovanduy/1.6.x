@@ -1,13 +1,19 @@
 <?php
+if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__) . '/ressources/class.mysql.inc');
-include_once(dirname(__FILE__) . '/class.mysql.squid.builder.php');
+include_once(dirname(__FILE__) . '/ressources/class.mysql.squid.builder.php');
 include_once(dirname(__FILE__) . '/ressources/class.ldap.inc');
 include_once(dirname(__FILE__) . '/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__)."/ressources/class.ccurl.inc");
 include_once(dirname(__FILE__)."/ressources/class.groups.inc");
-if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}}
+$GLOBALS["UPDATE"]=false;
+$GLOBALS["FORCE"]=false;
+
+if(is_array($argv)){if(preg_match("#--update#",implode(" ",$argv))){$GLOBALS["UPDATE"]=true;}}
+if(is_array($argv)){if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}}
+
 
 
 if($argv[1]=='--build'){build();die();}
@@ -17,6 +23,23 @@ if($argv[1]=='--build'){build();die();}
 build();
 
 function build(){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,__FILE__)){echo "Already PID running $oldpid (".basename(__FILE__).")\n";die();}
+	
+	$time=$unix->file_time_min($timefile);
+	if(!$GLOBALS["FORCE"]){if($time<5){
+		if($GLOBALS["VERBOSE"]){echo "{$time}mn < 5mn\n";}
+		die();}}
+	
+	@mkdir(dirname($pidfile),0755,true);
+	@file_put_contents($pidfile, getmypid());
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
+	
 	$sock=new sockets();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");	
@@ -50,6 +73,7 @@ function build(){
 		if(!IsPhysicalAddress($ligne["MAC"])){continue;}
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MAC"]} = {$ligne["uid"]}\n";}
 		$MACS["MACS"][$ligne["MAC"]]["UID"]=$ligne["uid"];
+		UPDATE_HOURS_MAC($ligne["MAC"],$ligne["uid"]);
 		if($ligne["hostname"]<>null){$MACS["MACS"][$ligne["MAC"]]["HOST"]=$ligne["hostname"];}
 	}
 	
@@ -62,8 +86,10 @@ function build(){
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["MacAddress"]} = {$ligne["uid"]}\n";}
 		if(preg_match("#group:@(.+?):([0-9]+)#", $ligne["uid"],$re)){
 			$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$re[1];
+			UPDATE_HOURS_MAC($ligne["MacAddress"],$re[1]);
 			continue;
 		}
+		UPDATE_HOURS_MAC($ligne["MacAddress"],$ligne["uid"]);
 		$MACS["MACS"][$ligne["MacAddress"]]["UID"]=$ligne["uid"];
 		
 	}
@@ -73,25 +99,48 @@ function build(){
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$MACS["MACS"][$ligne["ipaddr"]]["UID"]=$ligne["uid"];
+		UPDATE_HOURS_IP($ligne["ipaddr"],$ligne["uid"]);
 		if($ligne["hostname"]<>null){$MACS["MACS"][$ligne["ipaddr"]]["HOST"]=$ligne["hostname"];}
 	}
 	
 	
-	
+	$CountDeMac=count($MACS["MACS"]);
+	$CountDeIP=count($MACS["IPS"]);
 	
 	@file_put_contents("/etc/squid3/usersMacs.db", serialize($MACS));
 	@file_put_contents("/usr/share/artica-postfix/ressources/databases/usersMacs.db",serialize($MACS));
 	shell_exec("$chmod 755 /etc/squid3/usersMacs.db");
 	shell_exec("$chmod 755 /usr/share/artica-postfix/ressources/databases/usersMacs.db");
 	if($EnableWebProxyStatsAppliance==1){notify_remote_proxys_usersMacs();return;}
-	
+	squid_admin_mysql(2, "translation members database updated $CountDeMac MACs, $CountDeIP Ips", null,__FILE__,__LINE__);
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
-	$cmd="$nohup $php5 ". dirname(__FILE__)."/exec.squid.php --reconfigure-squid >/dev/null 2>&1 &";
+	$cmd="$nohup $php5 ". dirname(__FILE__)."/exec.squid.php --reconfigure-squid --force >/dev/null 2>&1 &";
 	shell_exec($cmd);
+	
 }
 
+function UPDATE_HOURS_MAC($MAC,$name){
+	if(!$GLOBALS["UPDATE"]){return;}
+	$q=new mysql_squid_builder();
+	$LIST_TABLES_HOURS_TEMP=$q->LIST_TABLES_HOURS_TEMP();
+	
+	while (list ($tablename, $ligne) = each ($LIST_TABLES_HOURS_TEMP) ){
+		$q->QUERY_SQL("UPDATE $tablename SET `uid`='$name' WHERE MAC='$MAC'");
+		
+	}
+}
+function UPDATE_HOURS_IP($IP,$name){
+	if(!$GLOBALS["UPDATE"]){return;}
+	$q=new mysql_squid_builder();
+	$LIST_TABLES_HOURS_TEMP=$q->LIST_TABLES_HOURS_TEMP();
+
+	while (list ($tablename, $ligne) = each ($LIST_TABLES_HOURS_TEMP) ){
+		$q->QUERY_SQL("UPDATE $tablename SET `uid`='$name' WHERE `client`='$IP'");
+
+	}
+}
 function download_mydb(){
 	$sock=new sockets();
 	$unix=new unix();
@@ -116,9 +165,9 @@ function download_mydb(){
 		ufdbguard_admin_events("Failed to download ufdbGuard.conf aborting `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"global-compile");
 		return;			
 	}
-	squid_admin_mysql(1, "Reloading Squid-cache","After downloading usersMacs database");
-	$cmd="$squidbin -k reconfigure >/dev/null 2>&1";
-	shell_exec($cmd);	
+	$cmd="/etc/init.d/squid reload --script=".basename(__FILE__);
+	shell_exec("$cmd >/dev/null 2>&1");
+
 		
 }
 

@@ -47,7 +47,6 @@ type
     function ExecPipe(commandline:string):string;
     procedure killfile(path:string);
 
-    procedure CheckMaxLogs();
     function TEST_PROCSTAT():boolean;
     function bdb_recover_check():boolean;
     procedure WatchDogExecutor();
@@ -290,7 +289,7 @@ end;
 //##############################################################################
 procedure Tprocess1.AddMeToCron();
 begin
-SYS.CRON_CREATE_SCHEDULE('0 * * * *',GLOBAL_INI.get_ARTICA_PHP_PATH() + '/bin/process1','artica-process1');
+SYS.CRON_CREATE_SCHEDULE('0 * * * *','/etc/init.d/artica-process1 start','artica-process1');
 end;
 //##############################################################################
 procedure Tprocess1.mailgraph_log();
@@ -395,6 +394,7 @@ var
    amanda               :tamanda;
    tomcat               :ttomcat;
    openemm              :topenemm;
+   ArticaDBPath         :string;
    openldap_admin,openldap_password,openldap_server,corp,phpfpm:string;
    crossroads          :tcrossroads;
    POSTFIX_INSTALLED:boolean;
@@ -443,9 +443,6 @@ begin
           forceDirectories('/etc/pango');
         if verbosed then writeln('web_settings:: -> SYS.LOCATE_APACHE_MODULES_PATH()');
        LOCATE_APACHE_MODULES_PATH:=SYS.LOCATE_APACHE_MODULES_PATH();
-       if not NoExecution then begin
-              if not FileExists('/etc/init.d/artica-swap') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.initd-swap.php >/dev/null 2>&1');
-       end;
 
        WifiCardOk:=0;
        kas3:=Tkas3.Create(SYS);
@@ -459,13 +456,7 @@ begin
           logs.DeleteFile(GLOBAL_INI.get_ARTICA_PHP_PATH()+'/upload.php')
        end;
 
-       if not NoExecution then begin
-          if FileExists('/usr/share/artica-postfix/exec.wifi.detect.cards.php') then fpsystem(SYS.LOCATE_PHP5_BIN() +' /usr/share/artica-postfix/exec.wifi.detect.cards.php --detect');
-       end;
-       tryStrToInt(SYS.GET_INFO('WifiCardOk'),WifiCardOk);
-       if not NoExecution then begin
-              if WifiCardOk=1 then  fpsystem(SYS.LOCATE_PHP5_BIN()+ ' /usr/share/artica-postfix/exec.wifi.detect.cards.php --iwlist &');
-       end;
+
 
 
        
@@ -487,6 +478,7 @@ begin
    if FIleExists('/etc/artica-postfix/SQUID_APPLIANCE') then list.Add('$_GLOBAL["SQUID_APPLIANCE"]=True;');
    if FIleExists('/etc/artica-postfix/LOAD_BALANCE_APPLIANCE') then list.Add('$_GLOBAL["LOAD_BALANCE_APPLIANCE"]=True;');
    if FIleExists('/etc/artica-postfix/SAMBA_APPLIANCE') then list.Add('$_GLOBAL["SAMBA_APPLIANCE"]=True;');
+   if FIleExists('/etc/artica-postfix/GATEWAY_APPLIANCE') then list.Add('$_GLOBAL["GATEWAY_APPLIANCE"]=True;');
    if FIleExists('/etc/artica-postfix/HAPRROXY_APPLIANCE') then list.Add('$_GLOBAL["HAPRROXY_APPLIANCE"]=True;') else list.Add('$_GLOBAL["HAPRROXY_APPLIANCE"]=false;');
    if FIleExists('/etc/artica-postfix/SMTP_RELAY') then list.Add('$_GLOBAL["SMTP_APPLIANCE"]=True;') else list.Add('$_GLOBAL["SMTP_APPLIANCE"]=false;');
    if FIleExists('/etc/artica-postfix/FULL_APPLIANCE') then list.Add('$_GLOBAL["FULL_APPLIANCE"]=True;') else list.Add('$_GLOBAL["FULL_APPLIANCE"]=false;');
@@ -497,6 +489,9 @@ begin
    if FileExists('/proc/user_beancounters') then list.Add('$_GLOBAL["VPS_OPENVZ"]=True;') else list.Add('$_GLOBAL["VPS_OPENVZ"]=false;');
    if FileExists('/etc/artica-postfix/LIGHT_INSTALL') then list.Add('$_GLOBAL["LIGHT_INSTALL"]=True;') else list.Add('$_GLOBAL["LIGHT_INSTALL"]=false;');
    if FileExists('/etc/artica-postfix/PROXYTINY_APPLIANCE') then list.Add('$_GLOBAL["PROXYTINY_APPLIANCE"]=True;') else list.Add('$_GLOBAL["PROXYTINY_APPLIANCE"]=false;');
+   if FileExists('/usr/bin/pactester') then list.Add('$_GLOBAL["PACTESTER_INSTALLED"]=True;') else list.Add('$_GLOBAL["PACTESTER_INSTALLED"]=false;');
+
+
    if FileExists('/usr/share/tomcat6/bin/bootstrap.jar') then begin
       list.Add('$_GLOBAL["APP_TOMCAT6_INSTALLED"]=True;');
       list.Add('$_GLOBAL["APP_TOMCAT6_VERSION"]="'+tomcat.DEB_VERSION()+'";');
@@ -510,7 +505,7 @@ begin
    if FileExists('/etc/artica-postfix/INNODB_FILE_PER_TABLE_INSTALL') then list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=True;') else list.Add('$_GLOBAL["INNODB_FILE_PER_TABLE_INSTALL"]=false;');
    if FIleExists('/opt/kaspersky/klmsui/libexec/mod_klwi3.so') then list.Add('$_GLOBAL["KLMS_WEB_INSTALLED"]=True;') else list.Add('$_GLOBAL["KLMS_WEB_INSTALLED"]=false;');
    if FIleExists('/opt/kaspersky/klms/libexec/klms-milter') then list.Add('$_GLOBAL["KLMS_INSTALLED"]=True;') else list.Add('$_GLOBAL["KLMS_INSTALLED"]=false;');
-   if FIleExists('/usr/local/share/owncloud/index.php') then list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=True;') else list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=false;');
+   if FIleExists('/usr/share/owncloud/index.php') then list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=True;') else list.Add('$_GLOBAL["OWNCLOUD_INSTALLED"]=false;');
 
    if FIleExists('/etc/artica-postfix/WEBSTATS_APPLIANCE') then begin
       list.Add('$_GLOBAL["WEBSTATS_APPLIANCE"]=True;');
@@ -540,6 +535,9 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('cntlm')) then list.Add('$_GLOBAL["CNTLM_INSTALLED"]=True;') else list.Add('$_GLOBAL["CNTLM_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('iscsid')) then list.Add('$_GLOBAL["ISCSID_INSTALLED"]=True;') else list.Add('$_GLOBAL["ISCSID_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('vde_switch')) then list.Add('$_GLOBAL["VDESWITCH_INSTALLED"]=True;') else list.Add('$_GLOBAL["VDESWITCH_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('rdpproxy')) then list.Add('$_GLOBAL["RDPPROXY_INSTALLED"]=True;') else list.Add('$_GLOBAL["RDPPROXY_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('shorewall')) then list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=True;') else list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('conntrackd')) then list.Add('$_GLOBAL["CONNTRACK_INSTALLED"]=True;') else list.Add('$_GLOBAL["CONNTRACK_INSTALLED"]=False;');
 
 
 
@@ -628,7 +626,7 @@ begin
    if FileExists('/opt/arkeia/bin/arkboot') then list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_ARKEIA_INSTALLED"]=False;');
    if FileExists('/usr/lib/jvm/default-java/bin/keytool') then list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_JAVA_JDK_INSTALLED"]=False;');
    if FileExists('/opt/zarafa-db/bin/mysqld') then list.Add('$_GLOBAL["APP_ZARAFADB_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_ZARAFADB_INSTALLED"]=False;');
-   if FileExists('/opt/squidsql/bin/mysqld') then list.Add('$_GLOBAL["APP_SQUIDDB_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SQUIDDB_INSTALLED"]=False;');
+   if DirectoryExists('/opt/squidsql/data/squidlogs') then list.Add('$_GLOBAL["APP_SQUIDDB_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SQUIDDB_INSTALLED"]=False;');
 
    if FileExists('/home/openemm/bin/openemm.sh') then begin
       list.Add('$_GLOBAL["OPENEMM_INSTALLED"]=True;');
@@ -882,7 +880,7 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('curlftpfs')) then list.Add('$_GLOBAL["CURLFTPFS_INSTALLED"]=True;') else list.Add('$_GLOBAL["CURLFTPFS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('mount.cifs')) then list.Add('$_GLOBAL["CIFS_INSTALLED"]=True;') else list.Add('$_GLOBAL["CIFS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('mount.davfs')) then list.Add('$_GLOBAL["DAVFS_INSTALLED"]=True;') else list.Add('$_GLOBAL["DAVFS_INSTALLED"]=False;');
-
+   if FileExists(SYS.LOCATE_GENERIC_BIN('shorewall')) then list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=True;') else list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=False;');
 
 
    //auditd
@@ -1001,7 +999,11 @@ begin
    if FIleExists('/opt/yaffas/webmin/miniserv.pl') then  list.Add('$_GLOBAL["YAFFAS_INSTALLED"]=True;') else list.Add('$_GLOBAL["YAFFAS_INSTALLED"]=False;');
    if FIleExists('/opt/kaspersky/khse/libexec/libms-icap.so') then list.Add('$_GLOBAL["APP_KHSE_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_KHSE_INSTALLED"]=False;');
    if FIleExists(SYS.LOCATE_GENERIC_BIN('sabnzbdplus')) then  list.Add('$_GLOBAL["APP_SABNZBDPLUS_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SABNZBDPLUS_INSTALLED"]=False;');
-   if FIleExists('/opt/articatech/bin/articadb') then  list.Add('$_GLOBAL["ARTICADB_INSTALLED"]=True;') else list.Add('$_GLOBAL["ARTICADB_INSTALLED"]=False;');
+
+   ArticaDBPath:=SYS.GET_INFO('ArticaDBPath');
+   if length(ArticaDBPath) = 0 then ArticaDBPath:='/opt/articatech';
+
+   if FIleExists(ArticaDBPath+'/bin/articadb') then  list.Add('$_GLOBAL["ARTICADB_INSTALLED"]=True;') else list.Add('$_GLOBAL["ARTICADB_INSTALLED"]=False;');
 
 
       if not FileExists(php_path) then begin
@@ -1090,15 +1092,12 @@ begin
                if not FileExists(mldap.SLAPD_CONF_PATH()) then begin
                     writeln('Warning slpad.conf, no such file, restarting LDAP server');
                     fpsystem('/usr/share/artica-postfix/bin/artica-install --slapdconf');
-                     if not NoExecution then begin
-                        fpsystem('/etc/init.d/artica-postfix restart ldap');
-                     end;
                end;
           end;
        end;
     end;
 
-    if length(trim(openldap_admin))=0 then SYS.THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/process1 --force');
+
 
     list.Add('$_GLOBAL["ldap_admin"]="' +  openldap_admin + '";');
     list.Add('$_GLOBAL["ldap_password"]=''' + openldap_password + ''';');
@@ -1120,6 +1119,14 @@ begin
     if FileExists(SYS.LOCATE_GENERIC_BIN('ipset')) then list.Add('$_GLOBAL["IPSET_INSTALLED"]=True;') else list.Add('$_GLOBAL["IPSET_INSTALLED"]=False;');
     if FileExists(SYS.LOCATE_GENERIC_BIN('aspell')) then list.Add('$_GLOBAL["ASPELL_INSTALLED"]=True;') else list.Add('$_GLOBAL["ASPELL_INSTALLED"]=False;');
     if FileExists(SYS.LOCATE_GENERIC_BIN('munin-node')) then list.Add('$_GLOBAL["MUNIN_CLIENT_INSTALLED"]=True;') else list.Add('$_GLOBAL["MUNIN_CLIENT_INSTALLED"]=False;');
+    if FileExists(SYS.LOCATE_GENERIC_BIN('ebtables')) then list.Add('$_GLOBAL["APP_EBTABLES_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_EBTABLES_INSTALLED"]=False;');
+    if FileExists(SYS.LOCATE_GENERIC_BIN('squid27')) then list.Add('$_GLOBAL["APP_SQUID27_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SQUID27_INSTALLED"]=False;');
+    if FileExists(SYS.LOCATE_GENERIC_BIN('streamsquidcache')) then list.Add('$_GLOBAL["APP_SQUIDSTREAM_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SQUIDSTREAM_INSTALLED"]=False;');
+    if FileExists(SYS.LOCATE_GENERIC_BIN('ntopng')) then list.Add('$_GLOBAL["APP_NTOPNG"]=True;') else list.Add('$_GLOBAL["APP_NTOPNG"]=False;');
+
+
+
+
     if SYS.APACHE_IS_MOD_PROXY() then list.Add('$_GLOBAL["APACHE_PROXY_MODE"]=True;') else list.Add('$_GLOBAL["APACHE_PROXY_MODE"]=False;');
 
     if fileexists('/opt/artica/bin/testsaslauthd') then fpsystem('/opt/artica/bin/testsaslauthd -u ' + GLOBAL_INI.Cyrus_get_admin_name() + ' -p ' + GLOBAL_INI.Cyrus_get_adminpassword() + ' >/dev/null 2>&1');
@@ -1155,7 +1162,7 @@ begin
      if length(fetchmail_path)>0 then begin
           list.Add('$_GLOBAL["fetchmail_path"]="' + fetchmail_path + '";');
           list.Add('$_GLOBAL["fetchmail_installed"]=True;');
-          list.Add('$_GLOBAL["fetchmail_daemon_logs"]="' + GLOBAL_INI.ReadFileIntoString('/tmp/fetchmail.daemon.started') + '";');
+
           if FileExists('/etc/fetchmailrc') then list.Add('$_GLOBAL["fetchmail_configured"]=True;') else list.Add('$_GLOBAL["fetchmail_configured"]=False;');
           list.Add('$_GLOBAL["FETCHMAIL_VERSION"]="' + fetchmail.FETCHMAIL_VERSION(true) + '";');
      end else begin
@@ -1433,9 +1440,7 @@ if POSTFIX_INSTALLED then begin
         //-------------pommo
         if DirectoryExists('/usr/share/pommo') then list.Add('$_GLOBAL["POMMO_INSTALLED"]=True;') else list.Add('$_GLOBAL["POMMO_INSTALLED"]=false;');
 
-         if not NoExecution then begin
-                 fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/postfix.index.php &');
-         end;
+
 
 
         
@@ -1515,7 +1520,7 @@ end;
        end;
      
 
-  if NoExecution then fpsystem('clear');
+
   logs.Debuglogs('Tprocess1.web_settings():: ############# CHECKING SQUID #######################');
 
     if FileExists(squid.SQUID_BIN_PATH()) then begin
@@ -1523,21 +1528,21 @@ end;
        list.Add('$_GLOBAL["SQUID_INSTALLED"]=True;');
        logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid environment...');
        list.Add('$_GLOBAL["SQUID_VERSION"]="' + squid.SQUID_VERSION() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid Version OK...');
        list.Add('$_GLOBAL["SQUID_LDAP_AUTH"]="' + squid.ldap_auth_path() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid ldap_auth_path OK...');
        list.Add('$_GLOBAL["SQUID_NTLM_AUTH"]="' + squid.ntml_auth_path() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid ntml_auth_path OK...');
        list.Add('$_GLOBAL["SQUID_BIN_PATH"]="' + squid.SQUID_BIN_PATH() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid SQUID_BIN_PATH OK...');
        list.Add('$_GLOBAL["SQUID_CACHMGR"]="' + squid.cachemgr_path() + '";' );
        logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid version...');
        list.Add('$_GLOBAL["SQUID_BIN_VERSION"]=' + IntToStr(squid.SQUID_BIN_VERSION(squid.SQUID_VERSION())) + ';' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid SQUID_BIN_VERSION OK...');
        list.Add('$_GLOBAL["squid_kerb_auth_path"]="' + squid.squid_kerb_auth_path() + '";' );
+       logs.Debuglogs('Tprocess1.web_settings():: Scanning Squid ext_session_acl_path OK...');
        list.Add('$_GLOBAL["squid_ext_session_acl"]="' + squid.ext_session_acl_path() + '";' );
        logs.Debuglogs('Tprocess1.web_settings -> purge ???');
-       if not FileExists(SYS.LOCATE_GENERIC_BIN('purge')) then begin
-          if NoExecution then begin
-             logs.Debuglogs('Tprocess1.web_settings():: Running APP_SQUID32_PURGE');
-             if FileExists('/usr/share/artica-postfix/bin/artica-make') then fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' /usr/share/artica-postfix/bin/artica-make APP_SQUID32_PURGE >/dev/null 2>&1 &');
-          end;
-       end;
 
 
        if FileExists(SYS.LOCATE_GENERIC_BIN('purge')) then list.Add('$_GLOBAL["SQUID_PURGE_INSTALLED"]=True;') else list.Add('$_GLOBAL["SQUID_PURGE_INSTALLED"]=False;');
@@ -1545,9 +1550,7 @@ end;
        if squid.ntlm_enabled() then  list.Add('$_GLOBAL["SQUID_NTLM_ENABLED"]=True;') else list.Add('$_GLOBAL["SQUID_NTLM_ENABLED"]=False;');
        if squid.SQUID_ARP_ACL_ENABLED()=1 then list.Add('$_GLOBAL["SQUID_ARP_ACL_ENABLED"]=True;') else list.Add('$_GLOBAL["SQUID_ARP_ACL_ENABLED"]=False;');
 
-       if not FileExists('/opt/articatech/bin/articadb') then begin
-          if not  NoExecution then if FileExists('/usr/share/artica-postfix/exec.squid.blacklists.php') then  fpsystem(SYS.LOCATE_GENERIC_BIN('nohup')+' '+SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.squid.blacklists.php --v2 >/dev/null 2>&1 &');
-       end;
+
 
       if length(SYS.LOCATE_GENERIC_BIN('squidclamav'))>5 then begin
          list.add('$_GLOBAL["APP_SQUIDCLAMAV_INSTALLED"]=True;');
@@ -1559,13 +1562,7 @@ end;
 
 
 
-       if squid.icap_enabled() then  begin
-          logs.Debuglogs('Tprocess1.web_settings():: $_GLOBAL["SQUID_ICAP_ENABLED"]=True;');
-          list.Add('$_GLOBAL["SQUID_ICAP_ENABLED"]=True;')
-       end else begin
-           logs.Debuglogs('Tprocess1.web_settings():: $_GLOBAL["SQUID_ICAP_ENABLED"]=False;');
-           list.Add('$_GLOBAL["SQUID_ICAP_ENABLED"]=False;')
-       end;
+
 
 
        squidguard:=Tsquidguard.Create(SYS);
@@ -1618,7 +1615,7 @@ end;
        end;
        
        
-  if NoExecution then fpsystem('clear');
+
 
 
     logs.Debuglogs('web_settings() -> 55%');
@@ -1689,7 +1686,7 @@ end;
      list.Add('$_GLOBAL["DKIMFILTER_INSTALLED"]=False;');
  end;
  //--------------------------------------------------------------------------------------------
-if NoExecution then fpsystem('clear');
+
 logs.Debuglogs('web_settings() -> 70%');
      if fileExists('/usr/local/ap-mailfilter3/etc/filter.conf') then list.Add('$_GLOBAL["kas_installed"]=True;') else list.Add('$_GLOBAL["kas_installed"]=false;');
      
@@ -1710,7 +1707,7 @@ logs.Debuglogs('web_settings() -> 70%');
           
 if FileExists('/opt/artica/sbin/hotwayd') then list.Add('$_GLOBAL["hotwayd_installed"]=True;') else list.Add('$_GLOBAL["hotwayd_installed"]=False;');
 
-if NoExecution then fpsystem('clear');
+
 logs.Debuglogs('web_settings() -> 75%');
 
 
@@ -1753,7 +1750,7 @@ logs.Debuglogs('web_settings() -> 75%');
      end;
 
  //-----------------------------------------------------------------------------------------------------
-if NoExecution then fpsystem('clear');
+
      logs.Debuglogs('web_settings() -> 80%');
      logs.Debuglogs('web_settings() Checking rrdtool...');
      if fileexists(GLOBAL_INI.RRDTOOL_BIN_PATH()) then begin
@@ -1794,7 +1791,7 @@ if NoExecution then fpsystem('clear');
           list.Add('$_GLOBAL["awstats_installed"]=False;');
     end;
 
-    if NoExecution then fpsystem('clear');
+
     logs.Debuglogs('web_settings() -> 90%');
     logs.Debuglogs('web_settings() Checking procmail_quarantine_path...');
     list.Add('$_GLOBAL["procmail_quarantine_path"]="' + GLOBAL_INI.PROCMAIL_QUARANTINE_PATH() + '";');
@@ -1819,14 +1816,26 @@ if NoExecution then fpsystem('clear');
        if verbosed then writeln('web_settings:: 95%');
     LOGS.Debuglogs('web_settings() -> 95%');
     list.Add('?>');
-    if NoExecution then fpsystem('clear');
-    LOGS.Debuglogs('web_settings() Terminate save file');
-    forcedirectories(php_path + '/ressources');
-    logs.DeleteFile(php_path + '/ressources/settings.new.inc');
-    logs.WriteToFile(list.Text,php_path + '/ressources/settings.new.inc');
-    logs.DeleteFile(php_path + '/ressources/settings.inc');
-    logs.WriteToFile(list.Text,php_path + '/ressources/settings.inc');
 
+
+    forcedirectories(php_path + '/ressources');
+    LOGS.Debuglogs('web_settings() Terminate save file settings.new.inc');
+     try
+         list.SaveToFile(php_path + '/ressources/settings.new.inc');
+    except
+        LOGS.Debuglogs('web_settings() !!! FATAL ERROR !!!');
+        exit;
+   end;
+    LOGS.Debuglogs('web_settings() verify file...');
+    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php');
+    if not FileExists(php_path + '/ressources/settings.inc') then begin
+       LOGS.Debuglogs('web_settings() verify file failed..');
+    end;
+    if not FileExists(php_path + '/ressources/settings.new.inc') then begin
+        LOGS.Debuglogs('web_settings() verify file success..');
+    end else begin
+        LOGS.Debuglogs('web_settings() !!!! verify file failed !!!!..');
+    end;
     if DirectoryExists('/opt/artica-agent/usr/share/artica-agent/ressources') then begin
        if verbosed then writeln('web_settings:: 100% -> /opt/artica-agent/usr/share/artica-agent/ressources/settings.inc');
        logs.WriteToFile(list.Text,'/opt/artica-agent/usr/share/artica-agent/ressources/settings.inc');
@@ -1835,20 +1844,8 @@ if NoExecution then fpsystem('clear');
 
     fpchmod(php_path + '/ressources/settings.inc',&755);
     logs.Debuglogs('thProcThread.web_settings('+ php_path + ') -> TERM');
-
-    if FileExists('/usr/share/artica-postfix/exec.hdparm.php') then begin
-      if not NoExecution then begin
-             if not FileExists('/etc/artica-postfix/settings/Daemons/HdparmInfos') then fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.hdparm.php &');
-      end;
-    end;
-    if NoExecution then fpsystem('clear');
     list.Free;;
     if verbosed then writeln('web_settings:: 100%');
-     if not NoExecution then begin
-        fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.tests-settings.php >/dev/null 2>&1 &');
-        if FileExists('/etc/init.d/artica-postfix') then fpsystem('/etc/init.d/artica-postfix start framework');
-        CheckMaxLogs();
-    end;
 
 
 end;
@@ -1929,34 +1926,6 @@ begin
   P.Free;
   M.Free;
   exit( xRes);
-end;
-//##############################################################################
-procedure Tprocess1.CheckMaxLogs();
-var
-   tmpstr:string;
-   MysqlMaxEventsLogs:integer;
-   currentnum:integer;
-   limit:integer;
-   sql:string;
-begin
-  tmpstr:=GLOBAL_INI.get_INFOS('MysqlMaxEventsLogs');
-  if length(tmpstr)=0 then tmpstr:='200000';
-  MysqlMaxEventsLogs:=StrToInt(tmpstr);
-  currentnum:=logs.TABLE_ROWNUM('syslogs','artica_events');
-  
-  if currentnum>MysqlMaxEventsLogs then begin
-     limit:=currentnum-MysqlMaxEventsLogs;
-     limit:=limit+1000;
-     logs.Debuglogs('CheckMaxLogs():: DELETE '+ IntToStr(limit) +' first rows in syslogs table');
-     sql:='DELETE FROM `syslogs` ORDER BY `date` LIMIT '+IntToStr(limit);
-     tRY
-        logs.QUERY_SQL(Pchar(sql),'artica_events');
-     EXCEPT
-        logs.Syslogs('fatal error while deleting rows in `syslogs` table ');
-        logs.Debuglogs('CheckMaxLogs():: FATAL ERROR');
-     END;
-  end;
-
 end;
 //##############################################################################
 function Tprocess1.bdb_recover_check():boolean;

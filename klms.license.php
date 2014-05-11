@@ -36,7 +36,7 @@ function popup(){
 	<center><div style='padding:15px;font-size:14px;text-align:left;width:90%' class=form id='$t-license-info'></div></center>
 	
 	<div style='font-size:18px;margin-top:20px'>{new_license}:</div>
-	<table style='width:95%' class=form>
+	<table style='width:98%' class=form>
 	<tr>
 		<td class=legend style='font-size:16px'>{path}:</td>
 		<td>". Field_text("license-$t",null,"font-size:16px;width:300px")."</td>

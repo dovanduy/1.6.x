@@ -25,7 +25,7 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 }
 
 $q=new mysql();
-$q->check_storage_table();
+$q->check_storage_table(true);
 $sock=new sockets();
 if($sock->GET_INFO("KeepArticaMysqlError")<>1){DeleteMysqlError();}
 $quarantine_dir="/tmp/savemail";

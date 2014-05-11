@@ -48,7 +48,7 @@ $html="
 			<td valign='top'>
 				<table style='width:100%'>
 					<tr><td valign='top'>  ".Paragraphe('folder-tasks-64.jpg','{system_tasks}','{system_tasks_text}','system.tasks.settings.php') ."</td></tr>
-					<tr><td valign='top' >".Paragraphe('folder-network-64.jpg','{nic_infos}','{nic_infos_text}','system.nic.config.php') ."</td></tr>
+					<tr><td valign='top' >".Paragraphe('folder-network-64.png','{nic_infos}','{nic_infos_text}','system.nic.config.php') ."</td></tr>
 				</table>
 			</td>
 		</tr>
@@ -112,7 +112,6 @@ if(!document.getElementById('EnablePerUserRemoteAddressBook')){
 	XHR.appendData('EnableRemoteAddressBook',document.getElementById('EnableRemoteAddressBook').value);
 	XHR.appendData('EnablePerUserRemoteAddressBook',document.getElementById('EnablePerUserRemoteAddressBook').value);
 	XHR.appendData('EnableNonEncryptedLdapSession',document.getElementById('EnableNonEncryptedLdapSession').value);
-	document.getElementById('rdr').innerHTML=\"<center style='width:400px'><img src='img/wait_verybig.gif'></center>\";
 	XHR.sendAndLoad('$page', 'GET',x_AddressBookSave);
  
  }
@@ -307,7 +306,7 @@ function main_network(){
 	$users=new usersMenus();
 	$fw=Paragraphe('folder-64-firewall-grey.png','{APP_IPTABLES}','{error_app_not_installed_disabled}','','error_app_not_installed_disabled');
 	$nmap=Paragraphe('folder-64-nmap-grey.png','{APP_NMAP}','{error_app_not_installed_disabled}','','error_app_not_installed_disabled');
-	$network=Paragraphe('network-connection2.png','{net_settings}','{net_settings_text}',"javascript:Loadjs('system.nic.config.php?js=yes')",'net_settings_text');
+	$network=Paragraphe('folder-network-64.png','{net_settings}','{net_settings_text}',"javascript:Loadjs('system.nic.config.php?js=yes')",'net_settings_text');
 	$pdns=Buildicon64('DEF_ICO_PDNS');
 	$crossroads=Paragraphe('load-blancing-64-grey.png','{APP_CROSSROADS}','{load_balancing_intro_text}',"");
 	
@@ -315,7 +314,7 @@ function main_network(){
 	
 	if($users->IPTABLES_INSTALLED){$fw=Paragraphe('folder-64-firewall.png','{APP_IPTABLES}','{APP_IPTABLES_TEXT}','iptables.index.php');}	
 	if($users->HAMACHI_INSTALLED){$hamachi=Paragraphe('logmein_logo-64.gif','{APP_AMACHI}','{APP_AMACHI_TEXT}',"javascript:Loadjs('hamachi.php')");}
-	if($users->nmap_installed){$nmap=Paragraphe('folder-64-nmap.png','{APP_NMAP}','{APP_NMAP_TEXT}',"javascript:Loadjs('nmap.index.php')");}
+	
 
 	$gateway=Paragraphe('relayhost.png','{APP_ARTICA_GAYTEWAY}','{APP_ARTICA_GAYTEWAY_TEXT}',"javascript:Loadjs('index.gateway.php?script=yes')");	
 	$dhcp=Buildicon64('DEF_ICO_DHCP');

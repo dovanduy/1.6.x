@@ -416,14 +416,18 @@ if not FileExists('/etc/selinux/config') then exit();
 l:=TstringList.Create;
 l.LoadFromFile('/etc/selinux/config');
 RegExpr:=TRegExpr.Create;
-RegExpr.Expression:='SELINUX=(.+)';
+result:='n';
+
 for i:=0 to l.Count-1 do begin
+    RegExpr.Expression:='^SELINUX=(.+)';
      if RegExpr.Exec(l.Strings[i]) then begin
-         if trim(RegExpr.Match[1])<>'disabled' then begin
+         if trim(lowercase(RegExpr.Match[1]))<>'disabled' then begin
             writeln('Checking.............: SeLinux...:'+trim(RegExpr.Match[1]));
             result:='y';
-            break;
+         end else begin
+            result:='n';
          end;
+         break;
      end;
 end;
 RegExpr.Free;

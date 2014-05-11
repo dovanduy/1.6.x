@@ -264,17 +264,11 @@ ini:=TstringList.Create;
 
    if EnableZabbixServer=0 then begin
       result:=ini.Text;
-      SYS.MONIT_DELETE('APP_ZABBIX_SERVER');
+
       ini.free;
       exit;
    end;
 
-   if SYS.MONIT_CONFIG('APP_ZABBIX_SERVER',SERVER_PID_PATH(),'zabbix') then begin
-      ini.Add('monit=1');
-      result:=ini.Text;
-      ini.free;
-      exit;
-   end;
 
 
    if SYS.PROCESS_EXIST(pid) then ini.Add('running=1') else  ini.Add('running=0');
@@ -304,18 +298,11 @@ ini:=TstringList.Create;
 
    if EnableZabbixAgent=0 then begin
       result:=ini.Text;
-      SYS.MONIT_DELETE('APP_ZABBIX_AGENT');
+
       ini.free;
       exit;
    end;
 
-
-   if SYS.MONIT_CONFIG('APP_ZABBIX_AGENT',AGENT_PID_PATH(),'zabbix') then begin
-      ini.Add('monit=1');
-      result:=ini.Text;
-      ini.free;
-      exit;
-   end;
 
 
    pid:=AGENT_PID();

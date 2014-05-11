@@ -45,6 +45,9 @@ function popup(){
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	if($users->WEBSTATS_APPLIANCE){$EnableWebProxyStatsAppliance=1;}
+	$DisableTCPEn=$sock->GET_INFO("DisableTCPEn");
+	if(!is_numeric($DisableTCPEn)){$DisableTCPEn=0;}
+	
 
 	$t=time();
 	
@@ -54,10 +57,26 @@ function popup(){
 	<div id='$t'></div>
 	<table style='width:99%' class=form>
 	
-	
+		<tr>
+			<td align='right' class=legend style='font-size:16px'>{DisableTCPEn}</strong>:</td>
+			<td align='left' style='font-size:16px'>" . 
+			Field_checkbox("DisableTCPEn-$t",1,$DisableTCPEn)."&nbsp;</td>
+			<td width=1%>" . help_icon('{DisableTCPEn_explain}',true)."</td>
+		</tr>	
 	
 
-
+		<tr>
+			<td align='right' class=legend style='font-size:16px'>{forward_max_tries}</strong>:</td>
+			<td align='left' style='font-size:16px'>" . 
+			Field_text("forward_max_tries-$t",$squid->forward_max_tries,'width:60%;font-size:16px')."&nbsp;</td>
+			<td width=1%>" . help_icon('{forward_max_tries_text}',true)."</td>
+		</tr>
+		<tr>
+			<td align='right' class=legend style='font-size:16px'>{forward_timeout}</strong>:</td>
+			<td align='left' style='font-size:16px'>" . Field_text("forward_timeout-$t",$squid->forward_timeout,'width:60%;font-size:16px')."&nbsp;{seconds}</td>
+			<td width=1%>" . help_icon('{forward_timeout_text}',true)."</td>
+		</tr>					
+					
 		<tr>
 			<td align='right' class=legend style='font-size:16px'>{client_lifetime}</strong>:</td>
 			<td align='left' style='font-size:16px'>" . Field_text("client_lifetime-$t",$squid->client_lifetime,'width:60%;font-size:16px')."&nbsp;{seconds}</td>
@@ -133,6 +152,10 @@ function popup(){
 		var lock=$EnableRemoteStatisticsAppliance;
 		if(lock==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}	
 		var XHR = new XHRConnection();
+		var DisableTCPEn=0;
+		if(document.getElementById('DisableTCPEn-$t').checked){ DisableTCPEn=1 }
+		
+		XHR.appendData('DisableTCPEn',DisableTCPEn);
 		XHR.appendData('dead_peer_timeout',document.getElementById('dead_peer_timeout-$t').value);
 		XHR.appendData('dns_timeout',document.getElementById('dns_timeout-$t').value);
 		XHR.appendData('connect_timeout',document.getElementById('connect_timeout-$t').value);
@@ -143,7 +166,10 @@ function popup(){
 		XHR.appendData('persistent_request_timeout',document.getElementById('persistent_request_timeout-$t').value);
 		XHR.appendData('incoming_rate',document.getElementById('incoming_rate-$t').value);
 		XHR.appendData('pconn_timeout',document.getElementById('pconn_timeout-$t').value);
+		XHR.appendData('forward_max_tries',document.getElementById('forward_max_tries-$t').value);
+		XHR.appendData('forward_timeout',document.getElementById('forward_timeout-$t').value);
 		
+		 
 		
 		AnimateDiv('$t'); 
 		XHR.sendAndLoad('$page', 'POST',x_SaveSNMP$t);	
@@ -158,6 +184,9 @@ function popup(){
 
 function save(){
 	$squid=new squidbee();
+	$sock=new sockets();
+	$sock->SET_INFO("DisableTCPEn", $_POST["DisableTCPEn"]);
+	unset($_POST["DisableTCPEn"]);
 	while (list ($index, $line) = each ($_POST)){
 		$squid->$index=$line;
 		

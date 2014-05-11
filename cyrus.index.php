@@ -513,7 +513,7 @@ function main_tabs(){
 	$array["mailboxes"]='{mailboxes}';
 	
 	$height="680px";	
-	if($_GET["newinterface"]<>null){ $style="style='font-size:14px'";$styleG="margin-top:8px;";$height="100%";}
+	$style="style='font-size:18px'";
 
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -521,19 +521,9 @@ function main_tabs(){
 			
 		}	
 	
-	$tab="<div id=main_config_cyrus style='width:100%;height:$height;overflow:auto;$styleG'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_cyrus').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_cyrus",1050);
+		
 	
-	$tpl=new templates();
-	return $tpl->_ENGINE_parse_body($tab);
 	
 }
 
@@ -678,6 +668,9 @@ if($users->imapsync_installed){
 $rebuild_mailboxes=Paragraphe("64-folder-tools.png",'{rebuild_mailboxes}',"{rebuild_mailboxes_text}","javascript:Loadjs('$page?main=js_rebuild');");
 $repair_database=Paragraphe("64-folder-tools.png",'{repair_database}',"{repair_database_text}","javascript:Loadjs('$page?cyrrepair=yes')");
 
+$mailbox_backup=Paragraphe("64-backup.png",'{APP_CYRUS_BACKUP}',"{backup_cyrus_mailboxes}","javascript:Loadjs('cyrus.backup-nas.php')");
+
+$tr[]=$mailbox_backup;
 $tr[]=$bulkExport;
 $tr[]=$rebuild_mailboxes;
 $tr[]=$repair_database;
@@ -881,17 +874,7 @@ function main_status(){
 	<tr>
 	<td valign='top'>
 	$status
-			<center style='margin-top:-30px;margin-bottom:10px;width:95%'>
-		<table style='width:150px' class=form>
-		<tbody>
-		<tr>
-			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-		</tr>
-		</tbody>
-		</table>
-		</center>	
+			
 	</td>
 	</tr>
 	</table>
@@ -936,8 +919,8 @@ $resultat=$my->QUERY_SQL($sql,'artica_events');
 	while($ligne=@mysql_fetch_array($resultat,MYSQL_ASSOC)){
 	
 	switch ($ligne["event_type"]) {
-		case 0:$img="icon_mini_warning.gif";break;
-		case 1:$img="icon-mini-ok.gif";break;
+		case 0:$img="status_warning.png";break;
+		case 1:$img="ok13.png";break;
 		case 2:$img="icon-mini-info.gif";break;
 		default:$img="icon-mini-info.gif";break;
 	}
@@ -1108,7 +1091,7 @@ function main_cyrusconf(){
 						
 						<tr class=oddRow>
 							<td align='right' class=legend style='font-size:14px'>IMAP:</stong></td>
-							<td width=1%><img src='img/status_ok-grey.gif'></td>
+							<td width=1%><img src='img/status_ok-grey.png'></td>
 							<td><input type='hidden' name='service_imap_listen' value='{$cyrus->main_array["CYRUS"]["service_imap_listen"]}'><strong style='font-size:14px'>imap:143</strong></td>
 							<td>" . Field_text("service_imap_maxchild",$cyrus->main_array["CYRUS"]["service_imap_maxchild"],'width:80px;font-size:14px;padding:3px')."</td>
 							<td width=1%>"  . help_icon('{maxchild_text}')."</td>

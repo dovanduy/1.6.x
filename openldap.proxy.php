@@ -221,7 +221,7 @@ function items(){
 	
 	$enable=Field_checkbox("enable-{$ligne["ID"]}", 1,$ligne["enabled"],"OpenLDAPEnablecnx({$ligne["ID"]})");
 	
-	if($ligne["enabled"]==0){$color="#CCCCCC";}
+	if($ligne["enabled"]==0){$color="#8a8a8a";}
 	$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:GItem$t('$ID','{$ligne["cnxstring"]}');\"
 	style='font-size:16px;color:$color;text-decoration:underline'>";
 	

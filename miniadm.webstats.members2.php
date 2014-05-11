@@ -10,6 +10,9 @@ include_once(dirname(__FILE__)."/ressources/class.mysql.postfix.builder.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 if(isset($_GET["content"])){content();exit;}
 if(isset($_GET["master-content"])){master_content();exit;}
+if(isset($_GET["master-tab"])){master_tab();exit;}
+if(isset($_GET["master-statistics"])){master_statistics();exit;}
+
 if(isset($_GET["graph1"])){graph1();exit;}
 if(isset($_GET["graph2"])){graph2();exit;}
 if(isset($_GET["graph3"])){graph3();exit;}
@@ -36,7 +39,7 @@ function content(){
 	$html="
 	<div class=BodyContent>
 	<div style='font-size:14px'><a href=\"miniadm.index.php\">{myaccount}</a>
-	&nbsp;&raquo;&nbsp;<a href=\"miniadm.webstats.php\">{web_statistics}</a>
+	&nbsp;&raquo;&nbsp;<a href=\"miniadm.webstats-start.php\">{web_statistics}</a>
 	</div>
 	<H1>{members}</H1>
 	<p>{member_www_stats_text}</p>
@@ -44,56 +47,83 @@ function content(){
 	<div id='master-content'></div>
 
 	<script>
-	LoadAjax('master-content','$page?master-content=yes');
+	LoadAjax('master-content','$page?master-tab=yes');
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 
+function master_tab(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$t=$_GET["t"];
+	$ff=time();
+	$boot=new boostrap_form();
+	
+	$title=null;
+	
+	$q=new mysql_squid_builder();
+	
+	$array["{members}"]="$page?master-content=yes";
+	$array["{statistics}"]="$page?master-statistics=yes";
+	
+	echo "".$boot->build_tab($array);	
+	
+}
+
+
 function master_content(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$t=time();
-	
 	$boot=new boostrap_form();
 	$SearchQuery=$boot->SearchFormGen("uid","search-members");	
-	$html="<table style='width:100%'>
-		<tr>
-			<td valign='top'><div id='$t-1' style='width:495px;height:350'></div></td>
-			<td valign='top'><div id='$t-2' style='width:495px;height:350'></div></td>
-			<td valign='top'><div id='$t-3' style='width:495px;height:350'></div></td>		
-		</tr>
-		</table>
-		$SearchQuery	
-	<script>
-			AnimateDiv('$t-1');
-			AnimateDiv('$t-2');
-			AnimateDiv('$t-3');
-			Loadjs('$page?graph1=yes&container=$t-1');
-			Loadjs('$page?graph2=yes&container=$t-2');
-			Loadjs('$page?graph3=yes&container=$t-3');	
-	</script>	
-	";
-echo $html;	
+	$html=$SearchQuery;
+	echo $html;	
 }
+
+function master_statistics(){
+	$page=CurrentPageName();
+	$t=$_GET["t"];
+	$ff=time();
+	
+	$html="
+	<div id='$t-1' style='width:99%;height:450px'></div>
+	<div id='$t-2' style='width:99%;height:450px'></div>
+	<div id='$t-3' style='width:99%;height:450px'></div>
+	<script>
+		AnimateDiv('$t-1');
+		AnimateDiv('$t-2');
+		AnimateDiv('$t-3');
+		Loadjs('$page?graph1=yes&container=$t-1');
+		Loadjs('$page?graph2=yes&container=$t-2');
+		Loadjs('$page?graph3=yes&container=$t-3');	
+	</script>
+	
+	";
+	
+	echo $html;	
+	
+}
+
 function graph1(){
 	$q=new mysql_squid_builder();
-	$sql="SELECT COUNT( uid ) AS uid, zDate 
-	FROM `members_uid` GROUP BY zDate ORDER BY zDate";
+	$sql="SELECT COUNT( uid ) AS uid, MONTH(zDate) as tmonth,YEAR( zDate ) as tyear
+FROM `alluid` GROUP BY tmonth,tyear HAVING tyear=YEAR(NOW())";
 	$results=$q->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=$ligne["uid"];
 		$date=strtotime($ligne["zDate"]."00:00:00");
-		$xdata[]=date("m-d",$date);
+		$xdata[]=$date=$ligne["tmonth"]."/".$ligne["tyear"];
 		$ydata[]=$size;
 
 	}
 	$highcharts=new highcharts();
 	$highcharts->container=$_GET["container"];
 	$highcharts->xAxis=$xdata;
-	$highcharts->Title="{members_by_day}";
+	$highcharts->Title="{members_by_month}";
 	$highcharts->yAxisTtitle="{members}";
-	$highcharts->xAxisTtitle="{days}";
+	$highcharts->xAxisTtitle="{month}";
 	$highcharts->datas=array("{members}"=>$ydata);
 	echo $highcharts->BuildChart();
 
@@ -103,7 +133,7 @@ function graph2(){
 	$tpl=new templates();
 	$sql="SELECT SUM( size ) AS size, uid
 FROM `members_uid`
-GROUP BY uid ORDER BY size DESC LIMIT 0,10";
+GROUP BY uid HAVING uid NOT LIKE '%$' AND LENGTH(uid) >0  ORDER BY size DESC LIMIT 0,10";
 	$results=$q->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=round(($ligne["size"]/1024)/1000);
@@ -133,7 +163,7 @@ function graph3(){
 	$tpl=new templates();
 	$sql="SELECT SUM( hits ) AS size, uid
 FROM `members_uid`
-GROUP BY uid ORDER BY size DESC LIMIT 0,10";
+GROUP BY uid HAVING uid NOT LIKE '%$' AND LENGTH(uid) >0 ORDER BY size DESC LIMIT 0,10";
 	$results=$q->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=$ligne["size"];
@@ -183,7 +213,8 @@ function search_members(){
 	
 
 	
-	$table="(SELECT SUM(size) as size,SUM(hits) as hits,uid FROM members_uid GROUP BY uid) as t";
+	$table="(SELECT SUM(size) as size,SUM(hits) as hits,uid FROM members_uid 
+			GROUP BY uid HAVING uid NOT LIKE '%$' AND LENGTH(uid) >0 ) as t";
 	$sql="SELECT *  FROM $table WHERE 1 $searchstring ORDER BY $ORDER LIMIT 0,150";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);

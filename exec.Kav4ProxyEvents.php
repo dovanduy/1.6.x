@@ -104,7 +104,7 @@ if($sock->GET_INFO("SquidAutoblock")==1){
 function events($text,$function,$file,$line){
 	writelogs($text,$function,$file,$line);
 	$pid=@getmypid();
-	$date=@date("h:i:s");
+	$date=@date("H:i:s");
 	$logFile="/var/log/kaspersky/kav4proxy/kav4proxy.threats.log";
 	$size=@filesize($logFile);
 	if($size>1000000){@unlink($logFile);}

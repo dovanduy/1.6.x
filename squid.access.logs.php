@@ -16,11 +16,62 @@
 		die();exit();
 	}
 	
-	
+	if(isset($_GET["tabs-all"])){tabs_all();exit;}
 	if(isset($_GET["list"])){access_list();exit;}
 	
 	
 page();
+
+
+function tabs_all(){
+	
+	
+	$fontsize=16;
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["events-squidaccess"]='{realtime_requests}';
+	$array["today-squidaccess"]='{today}';
+	$array["watchdog"]="{squid_watchdog_mini}";
+	$array["events-squidcache"]='{proxy_service_events}';
+	
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="events-squidaccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?popup=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+				
+		}
+		
+		
+		if($num=="today-squidaccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.access.today.php?popup=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
+		
+		
+		if($num=="watchdog"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.watchdog-events.php\">
+			<span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
+		if($num=="events-squidcache"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.cachelogs.php\"><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+
+	
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+	}
+	
+	echo build_artica_tabs($html, "main_squid_logs_tabs")."<script>LeftDesign('logs-white-256-opac20.png');</script>";
+	
+	
+}
 
 
 function page(){

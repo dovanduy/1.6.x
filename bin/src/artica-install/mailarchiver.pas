@@ -241,16 +241,9 @@ begin
    if MailArchiverEnabled=0 then begin
          result:=ini.Text;
          ini.free;
-         SYS.MONIT_DELETE('APP_MAILARCHIVER');
+
          exit;
      end;
-
-      if SYS.MONIT_CONFIG('APP_MAILARCHIVER','/var/run/maildump/maildump.pid','mailarchiver') then begin
-         ini.Add('monit=1');
-         result:=ini.Text;
-         ini.free;
-         exit;
-      end;
 
 
 

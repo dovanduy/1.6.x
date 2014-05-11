@@ -39,9 +39,10 @@ if(!is_file($file)){
 	echo "$file, no such file\n";
 	die();
 }
-
+$unix=new unix();
 $sock=new sockets();
-$uuid=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));
+$uuid=$unix->GetUniqueID();
+if($uuid==null){die();}
 $handle = @fopen($file, "r");
 if (!$handle) {echo "Failed to open file\n";return;}
 $q=new mysql_squid_builder();

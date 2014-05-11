@@ -13,6 +13,7 @@ class squid_acls_groups{
 	var $ASROOT=false;
 	var $error=null;
 	private $hasProxyTransparent=0;
+	private $EnableTransparent27=0;
 	private $SquidBubbleMode=0;
 	
 	public $ARRAY_NO_ITEM=array();
@@ -27,7 +28,8 @@ class squid_acls_groups{
 		$this->UseDynamicGroupsAcls=$sock->GET_INFO("UseDynamicGroupsAcls");
 		if(!is_numeric($this->UseDynamicGroupsAcls)){$this->UseDynamicGroupsAcls=0;}
 		$this->EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-		$this->hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
+		$this->hasProxyTransparent=intval($sock->GET_INFO("hasProxyTransparent"));
+		$this->EnableTransparent27=intval($sock->GET_INFO("EnableTransparent27"));
 		$this->SquidBubbleMode=$sock->GET_INFO("SquidBubbleMode");
 		$this->smartphones_port=$sock->GET_INFO("smartphones_port");
 		
@@ -38,7 +40,7 @@ class squid_acls_groups{
 		$squid=new squidbee();
 		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
-		if($squid->EnableKerbAuth==1){$this->AUTH=1;}
+		if($squid->EnableKerbAuth==1){$this->AUTH=1;$this->UseDynamicGroupsAcls=1;}
 		$this->ARRAY_NO_ITEM["proxy_auth_ads"]=true;
 		$this->ARRAY_NO_ITEM["NudityScan"]=true;
 		$this->ARRAY_NO_ITEM["all"]=true;
@@ -99,7 +101,7 @@ class squid_acls_groups{
 		$this->debugOutput("$sql", __FUNCTION__, __LINE__);
 
 		$results = $q->QUERY_SQL($sql);
-		if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order(`$aclport`,`$aclgpid`) ". mysql_num_rows($results). "... (Line ".__LINE__.")\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ACLS]: buildacls_order(`$aclport`,`$aclgpid`) ". mysql_num_rows($results). "... (Line ".__LINE__.")\n";}
 		if(!$q->ok){if(preg_match("#Error Table.*?doesn't exist#",$q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}
 		$this->debugOutput("Find `by order` -> ". mysql_num_rows($results)." items", __FUNCTION__, __LINE__);
 		if(!$q->ok){$this->debugOutput("$q->mysql_error", __FUNCTION__, __LINE__);}
@@ -115,6 +117,12 @@ class squid_acls_groups{
 		$PortDirectionS[1]=" NormalPorts ";
 		$PortDirectionS[2]=" MyTransparentPort ";
 		$PortDirectionS[3]=" MyMobilesPort ";
+
+		$resultsPorts = $q->QUERY_SQL("SELECT ID FROM proxy_ports WHERE enabled=1");
+		while ($lignePorts = mysql_fetch_assoc($resultsPorts)) {
+			$ID=$lignePorts["ID"];
+			$PortDirectionS[$ID]=" MyPort$ID ";
+		}
 		
 		
 		while ($ligne = mysql_fetch_assoc($results)) {
@@ -125,7 +133,7 @@ class squid_acls_groups{
 				if($PortDirection>0){
 					if($PortDirection==2){if($this->isTransParent()==0){continue;}}
 					if($PortDirection==3){if($this->smartphones_port==0){continue;}}
-					$PrefixAclsStandard=$PortDirectionS[$PortDirection];
+					if(isset($PortDirectionS[$PortDirection])){ $PrefixAclsStandard=$PortDirectionS[$PortDirection]; }
 				}
 			}
 			
@@ -203,7 +211,7 @@ class squid_acls_groups{
 			$groups=$this->buildacls_bytype_items($aclid,$reverse);
 			$this->debugOutput("Checks: ACL $aclid Access type:`$httpaccess` ($firstToken) groups:". count($groups),__FUNCTION__,__LINE__);
 			if(count($groups)==0){
-				if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order() SKIP! type:`$httpaccess` ($firstToken) groups:". count($groups)." (Line ".__LINE__.")\n";}
+				if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ACLS]: buildacls_order() SKIP! type:`$httpaccess` ($firstToken) groups:". count($groups)." (Line ".__LINE__.")\n";}
 				continue;
 			}
 			
@@ -212,7 +220,7 @@ class squid_acls_groups{
 			
 			
 		}	
-		if($this->ASROOT){echo "Starting......: [ACLS]: buildacls_order() FINAL:". count($conf)." rules (Line ".__LINE__.")\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [ACLS]: buildacls_order() FINAL:". count($conf)." rules (Line ".__LINE__.")\n";}
 		return @implode("\n", $conf);
 		
 	}
@@ -228,7 +236,7 @@ class squid_acls_groups{
 			$array[$ligne["xtype"]]["DUR"]=$ligne["duration"];
 			$array[$ligne["xtype"]]["PATTERN"]=$ligne["value"];
 			$DESTINATIONS=$this->external_acl_helper_quota_builder_dest($ligne["ID"]);
-			if($this->ASROOT){echo "Starting......: [QUOTA]: {$ligne["ID"]} = ". count($DESTINATIONS)." rules\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [QUOTA]: {$ligne["ID"]} = ". count($DESTINATIONS)." rules\n";}
 			$array[$ligne["xtype"]]["DESTINATIONS"]=$DESTINATIONS;
 			
 		}
@@ -252,11 +260,11 @@ class squid_acls_groups{
 		
 		
 		$results = $q->QUERY_SQL($sql);
-		if($this->ASROOT){echo "Starting......: [QUOTA]: $RULEID = ". mysql_num_rows($results)." groups\n";}
+		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [QUOTA]: $RULEID = ". mysql_num_rows($results)." groups\n";}
 		while ($ligne = mysql_fetch_assoc($results)) {
 			
 			$items=$this->ItemsInArray($ligne["gpid"]);
-			if($this->ASROOT){echo "Starting......: [QUOTA]: $RULEID = {$ligne["gpid"]}/{$ligne["GroupType"]} = ".count($items)." items\n";}
+			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [QUOTA]: $RULEID = {$ligne["gpid"]}/{$ligne["GroupType"]} = ".count($items)." items\n";}
 			$array[$ligne["GroupType"]]=$this->ItemsInArray($ligne["gpid"]);
 			
 		}
@@ -295,12 +303,16 @@ class squid_acls_groups{
 				}
 			}
 		}
+		
+		$q=new mysql_squid_builder();
 		$PortDirectionS[1]=" NormalPorts";
 		$PortDirectionS[2]=" MyTransparentPort ";
 		$PortDirectionS[3]=" MyMobilesPort ";
-		
-		
-		
+		$resultsPorts = $q->QUERY_SQL("SELECT ID FROM proxy_ports WHERE enabled=1");
+		while ($lignePorts = mysql_fetch_assoc($resultsPorts)) {
+			$ID=$lignePorts["ID"];
+			$PortDirectionS[$ID]=" MyPort$ID ";
+		}
 		
 		
 		if(isset($GLOBALS["buildacls_bytype$ruletype$aclport"])){return $GLOBALS["buildacls_bytype$ruletype$aclport"];}
@@ -323,7 +335,7 @@ class squid_acls_groups{
 		
 		
 		$reverse=false;
-		$q=new mysql_squid_builder();
+		
 		if($ruletype=="deny_access_except"){$reverse=true;}
 		$this->debugOutput("$ruletype:$aclport MySQL AND webfilters_sqacls.aclport=$aclport",__FUNCTION__,__LINE__);
 		
@@ -343,7 +355,9 @@ class squid_acls_groups{
 				$PortDirection=$ligne["PortDirection"];
 				if($PortDirection>0){
 					if($PortDirection==2){if($this->isTransParent()==0){continue;}}
-					$PrefixAclsPort=$PortDirectionS[$PortDirection];
+					if(isset($PortDirectionS[$PortDirection])){
+						$PrefixAclsPort=$PortDirectionS[$PortDirection];
+					}
 				}	
 			}
 			
@@ -414,26 +428,57 @@ class squid_acls_groups{
 			
 			
 		}
-		if($GLOBALS["VERBOSE"]){echo "Return: `$rulesAcls`\n";}
+		
 		$GLOBALS["buildacls_bytype$ruletype"]=$rulesAcls;
 		return $rulesAcls;
 	}
 	
-	public function buildacls_bytype_items($aclid,$reverse=false){
+	public function buildacls_bytype_items($aclid=null,$reverse=false){
 		$prefix=null;
 		if($reverse){$prefix="!";}
 		$acls_name=array();
+		if(!is_numeric($aclid)){
+			
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$function=$trace[1]["function"];
+					$line=$trace[1]["line"];
+						
+				}
+			}
+			
+			$this->debugOutput("$aclid: no aclid as been sent function:$function() in $line", __FUNCTION__, __LINE__);
+		}
 		$sql="SELECT 
 		webfilters_sqacllinks.gpid,
 		webfilters_sqacllinks.negation,
+		webfilters_sqacllinks.zOrder,
 		webfilters_sqgroups.GroupType,
 		webfilters_sqgroups.GroupName,
 		webfilters_sqgroups.ID 
 		FROM webfilters_sqacllinks,webfilters_sqgroups 
-		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid
-		ORDER BY webfilters_sqacllinks.negation";
+		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID 
+		AND webfilters_sqacllinks.aclid=$aclid
+		ORDER BY webfilters_sqacllinks.zOrder";
 		$q=new mysql_squid_builder();
 		$results = $q->QUERY_SQL($sql);
+		
+		if(!$q->ok){
+			
+			if(function_exists("debug_backtrace")){
+				$trace=@debug_backtrace();
+				if(isset($trace[1])){
+					$function=$trace[1]["function"];
+					$line=$trace[1]["line"];
+			
+				}
+			}
+			
+			echo "Sent by function:$function() in $line -> FATAL !!! $q->mysql_error ".__FUNCTION__."() in line: ".__LINE__."\n";
+			echo "$sql\n";
+		}
+		
 		$this->debugOutput("$aclid: ". mysql_num_rows($results)." items", __FUNCTION__, __LINE__);
 		
 		$ARRAY_AUTH["radius_auth"]=true;
@@ -463,6 +508,14 @@ class squid_acls_groups{
 				$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";	
 				continue;
 			}
+			
+			if($GroupType=="categories"){
+				if($ligne["negation"]==1){$neg="!";}
+				$this->debugOutput("$aclid: categories -> {$neg}{$prefix}Group{$ligne["ID"]}", __FUNCTION__, __LINE__);
+				$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";
+				continue;
+			}
+			
 			
 
 			if(isset($ARRAY_AUTH[$GroupType])){
@@ -597,7 +650,7 @@ class squid_acls_groups{
 	function ACL_MULTIPLE_EXPLAIN($aclid,$ACCESSEnabled,$aclgroup=0,$miniadm=false){
 		$q=new mysql_squid_builder();
 		
-		$Mainjs="Loadjs('squid.acls-rules.php?Addacl-js=yes&ID=$aclid&t={$_GET["t"]}')";
+		$Mainjs="Loadjs('squid.acls-rules.php?Addacl-js=yes&ID=$aclid&t={$_GET["t"]}',true)";
 		if($miniadm){
 			$prefix="<a href=\"javascript:blur();\" OnClick=\"javascript:$Mainjs\">";
 		}
@@ -621,20 +674,29 @@ class squid_acls_groups{
 		
 		$isBubble=$this->isBubble();
 		$methodConnect=null;
-		$PortDirectionS[0]="{all_methods}";
-		$PortDirectionS[1]="{standard_method}";
-		$PortDirectionS[2]="{transparent_method}";
-		$PortDirectionS[3]="{smartphones_port}";
+		if(!isset($GLOBALS["PORTSDIRECTIONS"])){
+			$GLOBALS["PORTSDIRECTIONS"][0]="{all_methods}";
+			$GLOBALS["PORTSDIRECTIONS"][1]="{standard_method}";
+			$GLOBALS["PORTSDIRECTIONS"][2]="{transparent_method}";
+			$GLOBALS["PORTSDIRECTIONS"][3]="{smartphones_port}";
+			
+			$resultsPorts = $q->QUERY_SQL("SELECT ID,port,ipaddr FROM proxy_ports WHERE enabled=1");
+			while ($lignePorts = mysql_fetch_assoc($resultsPorts)) {
+				$GLOBALS["PORTSDIRECTIONS"][$lignePorts["ID"]]="TCP {$lignePorts["ipaddr"]}:{$lignePorts["port"]}";
+			}
+		
+		}
+		
 		if($isBubble==0){
-			$methodConnect="{when_connecting_to_method} &laquo;{$PortDirectionS[$PortDirection]}&raquo;<br>";
+			$methodConnect="{when_connecting_to_method} &laquo;{$GLOBALS["PORTSDIRECTIONS"][$PortDirection]}&raquo;<br>";
 				
 		}
 		
 		
 		$linkcolor="black";
 		$WarnColor="#EA0C0C";
-		if($ACCESSEnabled==0){$linkcolor="#9C9C9C";$WarnColor="#9C9C9C";}
-		$errorNoObjects="<div style='font-size:11px;fonct-weight:bold;color:$WarnColor'><img src='img/icon_mini_warning.gif' align='left' style='margin-right:4px'>{error_acl_no_object}</div>";
+		if($ACCESSEnabled==0){$linkcolor="#8a8a8a";$WarnColor="#8a8a8a";}
+		$errorNoObjects="<div style='font-size:11px;fonct-weight:bold;color:$WarnColor'><img src='img/status_warning.png' align='left' style='margin-right:4px'>{error_acl_no_object}</div>";
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='url_rewrite_access_deny'"));
 		$url_rewrite_access_deny=$ligne["httpaccess_value"];
@@ -738,7 +800,7 @@ class squid_acls_groups{
 		
 		$explain_deny_color="#A71A05";
 		$explain_allow_color="#0AAB3D";
-		if($ACCESSEnabled==0){$explain_deny_color="#9C9C9C";$explain_allow_color="#9C9C9C";}
+		if($ACCESSEnabled==0){$explain_deny_color="#8a8a8a";$explain_allow_color="#8a8a8a";}
 		
 		
 
@@ -842,7 +904,7 @@ class squid_acls_groups{
 		if(isset($GLOBALS["getobjectsNameFromAclrule$aclid"])){return $GLOBALS["getobjectsNameFromAclrule$aclid"];}
 		$f=array();
 		$tableorg=null;
-		
+		$users=new usersMenus();
 		$sock=new sockets();
 		$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 		$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
@@ -852,13 +914,15 @@ class squid_acls_groups{
 		if(trim($SplashScreenURI)==null){$EnableSplashScreen=0;}
 		$URLAR=parse_url($SplashScreenURI);
 		if(isset($URLAR["host"])){$SplashScreenURI="http://$SplashScreenURI";}		
-		 
 		
+		if(!$users->CORP_LICENSE){ $text_license="<img src='img/warning-16.png' align=left style='margin:5px'>
+				<div style='color:red;padding:5px;margin:5px;font-style:italic;color:#EA0000'>{category_no_license_explain}</div>"; }
 		
 		$ARRAY_NO_ITEM["proxy_auth_ads"]=true;
 		$ARRAY_NO_ITEM["NudityScan"]=true;
 		$ARRAY_NO_ITEM["all"]=true;
 		$ARRAY_NO_ITEM["dynamic_acls"]=true;
+		$ARRAY_NO_ITEM["categories"]=true;
 		$ARRAY_NO_ITEM["radius_auth"]=true;
 		$ARRAY_NO_ITEM["ad_auth"]=true;
 		$ARRAY_NO_ITEM["ldap_auth"]=true;
@@ -874,12 +938,16 @@ class squid_acls_groups{
 		
 		
 
-		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqgroups.* 
+		$sql="SELECT webfilters_sqacllinks.gpid,webfilters_sqacllinks.negation,webfilters_sqacllinks.zOrder,webfilters_sqgroups.* 
 		FROM webfilters_sqacllinks,webfilters_sqgroups 
-		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID AND webfilters_sqacllinks.aclid=$aclid";
+		WHERE webfilters_sqacllinks.gpid=webfilters_sqgroups.ID 
+		AND webfilters_sqacllinks.aclid=$aclid
+		ORDER BY webfilters_sqacllinks.zOrder
+		";
 		$q=new mysql_squid_builder();
 		$results = $q->QUERY_SQL($sql);
 		while ($ligne = mysql_fetch_assoc($results)) {
+			$PREFIX_TEXT=null;
 			if($GLOBALS["VERBOSE"]){echo "ACL[$aclid]: Checking Group[{$ligne['ID']}] type:{$ligne["GroupType"]} enabled:{$ligne["enabled"]}<br>\n";}
 			if($ligne["enabled"]==0){
 				if($GLOBALS["VERBOSE"]){echo "ACL[$aclid]: Checking Group[{$ligne['ID']}] Not enabled, aborting<br>\n";}
@@ -897,6 +965,12 @@ class squid_acls_groups{
 			}
 			if($ligne["GroupType"]=="proxy_auth_ads"){$items_text=null;}
 			if($ligne["GroupType"]=="NudityScan"){$items_text=null;}
+			if($ligne["GroupType"]=="categories"){
+				$PREFIX_TEXT=$text_license;
+			}
+			
+			
+			
 			if($ligne["GroupType"]=="dynamic_acls"){
 				$ligne3=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilter_aclsdynamic WHERE gpid='{$ligne['ID']}'"));
 				$items_text="&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('miniadmin.proxy.dynamic.acls.php?ByJs={$ligne['ID']}');\"
@@ -924,13 +998,13 @@ class squid_acls_groups{
 			
 			if(isset($ARRAY_AUTH[$ligne["GroupType"]])){
 				$items_text="<a href=\"javascript:blur();\" 
-				OnClick=\"javascript:Loadjs('squid.auth-objects-events.php?ID={$ligne['ID']}');\"
+				OnClick=\"javascript:Loadjs('squid.auth-objects-events.php?ID={$ligne['ID']}',true);\"
 				style=\"font-size:12px;text-decoration:underline;color:$linkcolor\">{events}</a>
 				";
 			}
 			
 			if($ligne["GroupType"]=="hotspot_auth"){
-				$warn="<img src='img/icon_mini_warning.gif' align='left' style='margin-right:4px'>";
+				$warn="<img src='img/status_warning.png' align='left' style='margin-right:4px'>";
 				$items_text="<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:Loadjs('squid.webauth.php');\"
 				style=\"font-size:12px;text-decoration:underline;color:$linkcolor\">{parameters}</a>
@@ -951,12 +1025,12 @@ class squid_acls_groups{
 			
 			
 			$href="<a href=\"javascript:blur();\" 
-			OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}$tableorg');\" 
+			OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$ligne['ID']}$tableorg',true);\" 
 			style=\"font-size:12px;text-decoration:underline;color:$linkcolor\">";		
 
 			
 			
-			$f[]="$butnot&laquo;$href$GroupName</a>&raquo; <span style=\"font-size:10px;color:$linkcolor\">$finalItemText</span>";
+			$f[]="$PREFIX_TEXT$butnot&laquo;$href$GroupName</a>&raquo; <span style=\"font-size:10px;color:$linkcolor\">$finalItemText</span>";
 		}
 		
 		
@@ -979,7 +1053,7 @@ class squid_acls_groups{
 		
 		$t=$_GET["t"];
 		$color="black";
-		if($enable==0){$color="#9C9C9C";}
+		if($enable==0){$color="#8a8a8a";}
 		$tpl=new templates();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupName,GroupType 
 				FROM webfilters_sqgroups WHERE ID='$gpid'"));
@@ -1012,12 +1086,12 @@ class squid_acls_groups{
 		
 		
 		$href[]="<a href=\"javascript:blur();\" ";
-		$href[]="OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=$gpid&table-org=table-items-$t');\" ";
+		$href[]="OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID=$gpid&table-org=table-items-$t',true);\" ";
 		$href[]="style=\"font-size:{$fontsize}px;font-weight:bold;text-decoration:underline;color:$color;text-transform:capitalize\">";	
 		$hrefT=@implode("", $href);
 		
 		$hrefAdd[]="<a href=\"javascript:blur();\" ";
-		$hrefAdd[]="OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddItem-js=yes&item-id=-1&ID=$gpid&table-t=$t&table-org={$_GET["table-org"]}');\" ";
+		$hrefAdd[]="OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddItem-js=yes&item-id=-1&ID=$gpid&table-t=$t&table-org={$_GET["table-org"]}',true);\" ";
 		$hrefAdd[]="style=\"font-size:{$fontsize2}px;color:$color;text-decoration:underline\">";
 		
 		if(isset($ARRAY_NO_ITEM[$GroupType])){unset($hrefAdd);}

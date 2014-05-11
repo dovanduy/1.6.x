@@ -1,13 +1,16 @@
 <?php
+
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
 $GLOBALS["SWAPSTATE"]=false;
+$GLOBALS["BYSCRIPT"]=false;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]=true;}
+if(preg_match("#--script#",implode(" ",$argv),$re)){$GLOBALS["BYSCRIPT"]=true;}
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/framework/class.unix.inc');
 include_once(dirname(__FILE__).'/framework/frame.class.inc');
@@ -24,25 +27,37 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 		
 	
 		
+function FrmToSyslog($text){
 
+	$LOG_SEV=LOG_INFO;
+	if(function_exists("openlog")){openlog("PHP-FPM-INIT", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
+}
 
 function restart(){
+	$scriptlog=null;if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
 	if($GLOBALS["VERBOSE"]){echo "restart -> start...\n";}
 	$unix=new unix();
+	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
+	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
+	FrmToSyslog("Restarting PHP5-FPM daemon$scriptlog...");
 	stop(true);
-	if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){
-		buildConfig(true);
-		print "Starting......: artica-PHPFPM Waiting Artica-CD to finish\n";
-		die();}
-	}
+
+	
+	buildConfig(true);
+	FPM_MONIT();
 	start(true);	
 	
 	
@@ -54,29 +69,35 @@ function reload(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}	
 	$pid=FPM_PID();
 	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Service Stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Service Stopped...\n";}
 		start(true);
 		return;
 	}	
 	
 	$kill=$unix->find_program("kill");
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Reloading PID $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Reloading PID $pid...\n";}
 	shell_exec("kill -HUP $pid >/dev/null 2>&1");
 	
 }
 	
 function stop($aspid=false){
+	$scriptlog=null;if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
 	$unix=new unix();
+	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
+	
 	$daemon_path=$unix->APACHE_LOCATE_PHP_FPM();
 	if(!is_file($daemon_path)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: not installed\n";}
 		return;
 	}	
 	
@@ -86,7 +107,7 @@ function stop($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -96,7 +117,7 @@ function stop($aspid=false){
 	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Service already stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Service already stopped...\n";}
 		return;
 	}	
 	$pid=FPM_PID();
@@ -106,37 +127,37 @@ function stop($aspid=false){
 	$kill=$unix->find_program("kill");
 	
 	
-	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Shutdown pid $pid...\n";}
+	FrmToSyslog("Stopping PHP-FPM daemon$scriptlog");
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Shutdown pid $pid...\n";}
 	shell_exec("$kill $pid >/dev/null 2>&1");
 	for($i=0;$i<15;$i++){
 		$pid=FPM_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Service waiting pid:$pid $i/5...\n";}
 		shell_exec("$kill $pid >/dev/null 2>&1");
 		sleep(1);
 	}	
 	
 	$pid=FPM_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Service success...\n";}
 		return;
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Shutdown - force - pid $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Shutdown - force - pid $pid...\n";}
 	shell_exec("$kill -9 $pid >/dev/null 2>&1");
 	for($i=0;$i<15;$i++){
 		$pid=FPM_PID();
 		if(!$unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Service waiting pid:$pid $i/5...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Service waiting pid:$pid $i/5...\n";}
 		sleep(1);
 	}	
 	
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Service success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Service success...\n";}
 		return;
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: [INIT]: PHP-FPM: Service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: PHP-FPM: Service failed...\n";}
 	}	
 }
 
@@ -150,7 +171,7 @@ function status(){
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
 		return;
 	}
 	
@@ -166,9 +187,9 @@ function status(){
 	$unix=new unix();
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service running $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service running $pid since {$timepid}Mn...\n";}
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: Framework service stopped...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Framework service stopped...\n";}
 		start();
 		return;
 	}
@@ -177,7 +198,7 @@ function status(){
 	$kill=$unix->find_program("kill");
 	$array=$unix->PIDOF_PATTERN_ALL($phpcgi);
 	if(count($array)==0){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: no php-cgi processes...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: no php-cgi processes...\n";}
 		return;
 	}
 	while (list ($pid, $line) = each ($array) ){
@@ -195,7 +216,7 @@ function status(){
 		}
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: ".count($arrayPIDS)." php-cgi processes...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: ".count($arrayPIDS)." php-cgi processes...\n";}
 	
 }
 
@@ -208,6 +229,13 @@ function ParseParams(){
 
 	
 	while (list ($index, $line) = each ($array) ){
+		
+		if(preg_match("#allow-to-run-as-root#",$line,$re)){
+			$GLOBALS["PHP-PARAMS"]["allow-to-run-as-root"]=true;
+			$GLOBALS["PHP-PARAMS"]["-R"]=true;
+			continue;
+		}
+		
 		if(preg_match("#-([a-zA-Z]),\s+--(.+?)\s+#", $line,$re)){
 			$GLOBALS["PHP-PARAMS"][$re[1]]=true;
 			$GLOBALS["PHP-PARAMS"][$re[2]]=true;
@@ -249,20 +277,20 @@ function GetVersion(){
 
 function start($aspid=false){
 	
-	if(is_file("/etc/artica-postfix/FROM_ISO")){if(is_file("/etc/init.d/artica-cd")){
-		buildConfig(true);
-		print "Starting......: artica-PHPFPM Waiting Artica-CD to finish\n";
-		die();}
-	}
-	
+	$scriptlog=null;if($GLOBALS["BYSCRIPT"]){$scriptlog=" by init.d script";}
+	$sock=new sockets();
+
 	
 	$unix=new unix();
 	
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if($unix->file_time_min("/etc/artica-postfix/FROM_ISO")<1){return;}
+	}
 	
 	
 	$daemon_path=$unix->APACHE_LOCATE_PHP_FPM();
 	if(!is_file($daemon_path)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: not installed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: not installed\n";}
 		return;
 	}
 	
@@ -272,24 +300,54 @@ function start($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
 	}	
 	
 	$pid=FPM_PID();
+	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	$ZarafaApachePHPFPMEnable=$sock->GET_INFO("ZarafaApachePHPFPMEnable");
+	if(!is_numeric($ZarafaApachePHPFPMEnable)){$ZarafaApachePHPFPMEnable=0;}
+	
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	
+	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
+	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
+	
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+	
+	
+	if($EnableArticaApachePHPFPM==1){$EnablePHPFPM=1;}
+	if($ZarafaApachePHPFPMEnable==1){$EnablePHPFPM=1;}
+	if($EnablePHPFPMFreeWeb==1){$EnablePHPFPM=1;}
+	if($EnablePHPFPMFrameWork==1){$EnablePHPFPM=1;}
 	
 	if($unix->process_exists($pid)){
+		if($EnablePHPFPM==0){stop(true);}
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Already started $pid since {$timepid}Mn...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Already started $pid since {$timepid}Mn...\n";}
 		return;
 	}
-		
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: EnablePHPFPMFrameWork    = $EnablePHPFPMFrameWork\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: EnablePHPFPMFreeWeb      = $EnablePHPFPMFreeWeb\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: ZarafaApachePHPFPMEnable = $ZarafaApachePHPFPMEnable\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: EnableArticaApachePHPFPM = $EnableArticaApachePHPFPM\n";}
+	
+	if($EnablePHPFPM==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Disabled ( see EnablePHPFPM )\n";}
+		@unlink("/etc/monit/conf.d/phpfpm.monitrc");
+		return;
+	}
+	
 	$end=null;
 	$nohup=$unix->find_program("nohup");
 	$ParseParams=ParseParams();
-	buildConfig();
 	$parms[]="$daemon_path";
 	if(isset($ParseParams["pid"])){
 		$parms[]="--pid /var/run/php5-fpm.pid";
@@ -319,25 +377,61 @@ function start($aspid=false){
 	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: version:".GetVersion()."\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: version:".GetVersion()."\n";}
+	FrmToSyslog("Starting PHP-FPM daemon$scriptlog");
 	shell_exec($cmd);
 	
 	
 	for($i=0;$i<6;$i++){
 		$pid=FPM_PID();
 		if($unix->process_exists($pid)){break;}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: waiting $i/6...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: waiting $i/6...\n";}
 		sleep(1);
 	}
 	
 	$pid=FPM_PID();
 	if($unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Success service started pid:$pid...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Success service started pid:$pid...\n";}
+		$monit=new monit_unix();
+		$monit->MONITOR("PHPFPM");
 	}else{
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Service failed...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: $cmd\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Service failed...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	}
 	
+	
+}
+
+function FPM_MONIT(){
+	$sock=new sockets();
+	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	$ZarafaApachePHPFPMEnable=$sock->GET_INFO("ZarafaApachePHPFPMEnable");
+	if(!is_numeric($ZarafaApachePHPFPMEnable)){$ZarafaApachePHPFPMEnable=0;}
+	
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	
+	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
+	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
+	
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+	
+$unix=new unix();	
+$f[]="check process PHPFPM with pidfile /var/run/php5-fpm.pid";
+$f[]="start program = \"/etc/init.d/php5-fpm start\"";
+$f[]="stop  program = \"/etc/init.d/php5-fpm stop\"";
+if($EnableArticaApachePHPFPM==1){
+	$f[]="if failed unixsocket /var/run/php-fpm.sock then restart";
+}
+
+if(is_file($unix->find_program("zarafa-server"))){
+	$f[]="if failed unixsocket /var/run/php-fpm-zarafa.sock then restart";
+}
+	$f[]="if 5 restarts within 5 cycles then timeout";
+	@file_put_contents("/etc/monit/conf.d/phpfpm.monitrc",@implode("\n", $f));
+//$unix->MONIT_RELOAD();
 	
 }
 
@@ -359,7 +453,7 @@ function buildConfig($aspid=false){
 		$oldpid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($oldpid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Already Artica task running PID $oldpid since {$time}mn\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Already Artica task running PID $oldpid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -390,8 +484,11 @@ function buildConfig($aspid=false){
 	}
 	
 	$ParseParams=ParseParams();
+	$AsRoot=true;
 	if(isset($ParseParams["allow-to-run-as-root"])){
 		$AsRoot=true;
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Allow run as root is disabled\n";}
 	}
 	$PHPFPMNoSyslog=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/PHPFPMNoSyslog"));
 	$PHPFPMNoProcessMax=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/PHPFPMNoProcessMax"));
@@ -399,10 +496,10 @@ function buildConfig($aspid=false){
 	if(!is_numeric($PHPFPMNoSyslog)){$PHPFPMNoSyslog=0;}
 	if(!is_numeric($PHPFPMNoProcessMax)){$PHPFPMNoProcessMax=0;}
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: PHPFPMNoSyslog:$PHPFPMNoSyslog\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: PHPFPMNoSyslog:$PHPFPMNoSyslog\n";}
 	
 	if($PHPFPMNoSyslog==1){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Disabling process.priority token\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Disabling process.priority token\n";}
 		$syslog_facility=false;
 	}
 	if($PHPFPMNoProcessMax==1){
@@ -413,90 +510,166 @@ function buildConfig($aspid=false){
 	if(!is_numeric($ProcessNice)){$ProcessNice=19;}
 	if($ProcessNice>19){$ProcessNice=19;}
 	if($ProcessNice<1){$ProcessNice=19;}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: will run as $APACHE_USER:$APACHE_GROUP\n";}
+	
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
+	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
+	if($EnableFreeWeb==0){$EnablePHPFPMFreeWeb=0;}
+	
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: will run as $APACHE_USER:$APACHE_GROUP\n";}
 	$f[]=";Writing by Artica,". date("Y-m-d H:i:s")." file will be erased, change the ".__FILE__." code instead...";
-	$f[]="[www]";
-	$f[]="user = $APACHE_USER";
-	$f[]="group = $APACHE_GROUP";
-	$f[]="listen = /var/run/php-fpm.sock";
-	$f[]="listen.mode = 0777";
-	$f[]=";listen.allowed_clients = 127.0.0.1";
-	if($process_priority){$f[]="process.priority = $ProcessNice";}
-	$f[]="pm = dynamic";
-	//$f[]="log_level = debug";
-	$f[]="pm.max_children = 20";
-	$f[]="pm.start_servers = 2";
-	$f[]="pm.min_spare_servers = 1";
-	$f[]="pm.max_spare_servers = 5";
-	$f[]=";pm.process_idle_timeout = 10s;";
-	$f[]="pm.max_requests = 80";
-	$f[]="pm.status_path = /fpm.status.php";
-	$f[]="ping.path = /fpm.ping";
-	$f[]=";ping.response = pong";
-	$f[]="chdir = /";
-	$f[]="";
-	@mkdir("/etc/php5/fpm/pool.d",0755,true);
-	@file_put_contents("/etc/php5/fpm/pool.d/www.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/www.conf done\n";}
+	
+	@unlink("/etc/php5/fpm/pool.d/www.conf");
+	@unlink("/etc/php5/fpm/pool.d/apache2.conf");
+	@unlink("/etc/php5/fpm/pool.d/zarafa.conf");
+	@unlink("/etc/php5/fpm/pool.d/framework.conf");
+	@unlink("/etc/php5/fpm/pool.d/nginx-authenticator.conf");
+	
+	if($EnableArticaApachePHPFPM==1){
+		$f[]="[www]";
+		$f[]="user = $APACHE_USER";
+		$f[]="group = $APACHE_GROUP";
+		$f[]="listen = /var/run/php-fpm.sock";
+		$f[]="listen.mode = 0777";
+		$f[]=";listen.allowed_clients = 127.0.0.1";
+		if($process_priority){$f[]="process.priority = $ProcessNice";}
+		$f[]="pm = dynamic";
+		//$f[]="log_level = debug";
+		$f[]="pm.max_children = 20";
+		$f[]="pm.start_servers = 2";
+		$f[]="pm.min_spare_servers = 1";
+		$f[]="pm.max_spare_servers = 5";
+		$f[]=";pm.process_idle_timeout = 10s;";
+		$f[]="pm.max_requests = 80";
+		$f[]="pm.status_path = /fpm.status.php";
+		$f[]="ping.path = /fpm.ping";
+		$f[]=";ping.response = pong";
+		$f[]="chdir = /";
+		$f[]="";
+		@mkdir("/etc/php5/fpm/pool.d",0755,true);
+		@file_put_contents("/etc/php5/fpm/pool.d/www.conf", @implode("\n", $f));
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/www.conf done\n";}
+	}
 
 	$f=array();
-	$f[]="[apache2]";
-	$f[]="user = $APACHE_USER";
-	$f[]="group = $APACHE_GROUP";
-	$f[]="listen = /var/run/php-fpm-apache2.sock";
-	$f[]="listen.mode = 0777";
-	$f[]=";listen.allowed_clients = 127.0.0.1";
-	if($process_priority){$f[]="process.priority = $ProcessNice";}
-	$f[]="pm = dynamic";
-	$f[]="pm.max_children = 50";
-	$f[]="pm.start_servers = 2";
-	$f[]="pm.min_spare_servers = 1";
-	$f[]="pm.max_spare_servers = 5";
-	$f[]=";pm.process_idle_timeout = 10s;";
-	$f[]="pm.max_requests = 60";
-	$f[]="pm.status_path = /fpm.status.php";
-	$f[]="request_terminate_timeout = 605";
-	$f[]="ping.path = /php-fpm-ping";
-	$f[]=";ping.response = pong";
-	$f[]="chdir = /";
-	$f[]="";	
-	@file_put_contents("/etc/php5/fpm/pool.d/apache2.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/apache2.conf done\n";}	
+	if($EnablePHPFPMFreeWeb==1){
+		$f[]="[apache2]";
+		$f[]="user = $APACHE_USER";
+		$f[]="group = $APACHE_GROUP";
+		$f[]="listen = /var/run/php-fpm-apache2.sock";
+		$f[]="listen.mode = 0777";
+		$f[]=";listen.allowed_clients = 127.0.0.1";
+		if($process_priority){$f[]="process.priority = $ProcessNice";}
+		$f[]="pm = dynamic";
+		$f[]="pm.max_children = 50";
+		$f[]="pm.start_servers = 2";
+		$f[]="pm.min_spare_servers = 1";
+		$f[]="pm.max_spare_servers = 5";
+		$f[]=";pm.process_idle_timeout = 10s;";
+		$f[]="pm.max_requests = 60";
+		$f[]="pm.status_path = /fpm.status.php";
+		$f[]="request_terminate_timeout = 605";
+		$f[]="ping.path = /php-fpm-ping";
+		$f[]=";ping.response = pong";
+		$f[]="chdir = /";
+		$f[]="";	
+		@file_put_contents("/etc/php5/fpm/pool.d/apache2.conf", @implode("\n", $f));
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/apache2.conf done\n";}	
+	}
 	
+	$zarafabin=$unix->find_program("zarafa-server");
+	if(is_file($zarafabin)){
+		$FreeWebPerformances=unserialize(base64_decode($sock->GET_INFO("ZarafaApachePerformances")));
+		if(!is_numeric($FreeWebPerformances["post_max_size"])){$FreeWebPerformances["post_max_size"]=50;}
+		if(!is_numeric($FreeWebPerformances["upload_max_filesize"])){$FreeWebPerformances["upload_max_filesize"]=50;}
+		if(!is_numeric($FreeWebPerformances["PhpStartServers"])){$FreeWebPerformances["PhpStartServers"]=20;}
+		if(!is_numeric($FreeWebPerformances["PhpMinSpareServers"])){$FreeWebPerformances["PhpMinSpareServers"]=5;}
+		if(!is_numeric($FreeWebPerformances["PhpMaxSpareServers"])){$FreeWebPerformances["PhpMaxSpareServers"]=25;}
+		if(!is_numeric($FreeWebPerformances["PhpMaxClients"])){$FreeWebPerformances["PhpMaxClients"]=128;}
+		$f=array();
+		$f[]="[zarafa]";
+		$f[]="user = $APACHE_USER";
+		$f[]="group = $APACHE_GROUP";
+		$f[]="listen = /var/run/php-fpm-zarafa.sock";
+		$f[]="listen.mode = 0777";
+		$f[]=";listen.allowed_clients = 127.0.0.1";
+		if($process_priority){$f[]="process.priority = $ProcessNice";}
+		$f[]="pm = dynamic";
+		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Zarafa max_children.....: {$FreeWebPerformances["PhpMaxClients"]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Zarafa start_servers....: {$FreeWebPerformances["PhpStartServers"]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Zarafa min_spare_servers: {$FreeWebPerformances["PhpMinSpareServers"]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Zarafa max_spare_servers: {$FreeWebPerformances["PhpMaxSpareServers"]}\n";}
+		@mkdir("/var/lib/php5-zarafa",0755,true);
+		$unix->chown_func($APACHE_USER,$APACHE_GROUP,"/var/lib/php5-zarafa");
+		
+		$f[]="pm.max_children = {$FreeWebPerformances["PhpMaxClients"]}";
+		$f[]="pm.start_servers = {$FreeWebPerformances["PhpStartServers"]}";
+		$f[]="pm.min_spare_servers = {$FreeWebPerformances["PhpMinSpareServers"]}";
+		$f[]="pm.max_spare_servers = {$FreeWebPerformances["PhpMaxSpareServers"]}";
+		$f[]=";pm.process_idle_timeout = 10s;";
+		$f[]="pm.max_requests = 60";
+		$f[]="pm.status_path = /fpm.status.php";
+		$f[]="request_terminate_timeout = 605";
+		$f[]="ping.path = /php-fpm-ping";
+		$f[]=";ping.response = pong";
+		$f[]="chdir = /";
+		$f[]="php_value[include_path]=\".:/usr/share/php:/usr/share/php5:/usr/local/share/php:/usr/share/php5/PEAR:/usr/share/pear:/tmp\"";
+		$f[]="php_value[magic_quotes_gpc] = 0";
+		$f[]="php_value[short_open_tag] = 0";
+		$f[]="php_value[magic_quotes_runtime] = 0";
+		$f[]="php_value[safe_mode] = 0";
+		$f[]="php_value[register_globals] = 0";
+		$f[]="php_value[max_input_time] = 300";
+		$f[]="php_value[register_globals] = 0";
+		$f[]="php_value[post_max_size] = {$FreeWebPerformances["post_max_size"]}M";
+		$f[]="php_value[upload_max_filesize] = {$FreeWebPerformances["upload_max_filesize"]}M";
+		$f[]="php_value[session.save_path] = /var/lib/php5-zarafa";
+		$f[]="";
+		@file_put_contents("/etc/php5/fpm/pool.d/zarafa.conf", @implode("\n", $f));
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Zarafa /etc/php5/fpm/pool.d/zarafa.conf done\n";}	
+	}
 	
 	$f=array();
-	if($AsRoot){
-	$f[]="[framework]";
-	$f[]="user = root";
-	$f[]="group = root";
-	$f[]="listen = /var/run/php-fpm-framework.sock";
-	$f[]="listen.mode = 0777";
-	$f[]=";listen.allowed_clients = 127.0.0.1";
-	if($process_priority){$f[]="process.priority = $ProcessNice";}
-	$f[]="pm = dynamic";
-	$f[]="pm.max_children = 50";
-	$f[]="pm.start_servers = 2";
-	$f[]="pm.min_spare_servers = 1";
-	$f[]="pm.max_spare_servers = 5";
-	$f[]=";pm.process_idle_timeout = 10s;";
-	$f[]="pm.max_requests = 60";
-	$f[]="pm.status_path = /fpm.status.php";
-	$f[]="request_terminate_timeout = 605";
-	$f[]="ping.path = /php-fpm-ping";
-	$f[]=";ping.response = pong";
-	$f[]="chdir = /";
-	$f[]="";
-	@file_put_contents("/etc/php5/fpm/pool.d/framework.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/framework.conf done\n";}
-	}else{
-		@unlink("/etc/php5/fpm/pool.d/framework.conf");
+	if($EnablePHPFPMFrameWork==1){
+		if($AsRoot){
+			$f[]="[framework]";
+			$f[]="user = root";
+			$f[]="group = root";
+			$f[]="listen = /var/run/php-fpm-framework.sock";
+			$f[]="listen.mode = 0777";
+			$f[]=";listen.allowed_clients = 127.0.0.1";
+			if($process_priority){$f[]="process.priority = $ProcessNice";}
+			$f[]="pm = dynamic";
+			$f[]="pm.max_children = 50";
+			$f[]="pm.start_servers = 2";
+			$f[]="pm.min_spare_servers = 1";
+			$f[]="pm.max_spare_servers = 5";
+			$f[]=";pm.process_idle_timeout = 10s;";
+			$f[]="pm.max_requests = 60";
+			$f[]="pm.status_path = /fpm.status.php";
+			$f[]="request_terminate_timeout = 605";
+			$f[]="ping.path = /php-fpm-ping";
+			$f[]=";ping.response = pong";
+			$f[]="chdir = /";
+			$f[]="";
+			@file_put_contents("/etc/php5/fpm/pool.d/framework.conf", @implode("\n", $f));
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/framework.conf done\n";}
+		}
 	}
 		
 	$f=array();
 	$f[]=";Writing by Artica,". date("Y-m-d H:i:s")." file will be erased, change the ".__FILE__." code instead...";
 	$f[]="[global]";
 	$f[]="pid = /var/run/php5-fpm.pid";
-	$f[]="error_log = /var/log/php5-fpm.log";
+	$f[]="error_log = /var/log/php.log";
 	if($syslog_facility){$f[]="syslog.facility = daemon";}
 	if($syslog_facility){$f[]="syslog.ident = php-fpm";}
 	$f[]="log_level = ERROR";
@@ -511,28 +684,28 @@ function buildConfig($aspid=false){
 	$f[]="include=/etc/php5/fpm/pool.d/*.conf\n";	
 	
 	@file_put_contents("/etc/php5/fpm/php-fpm.conf", @implode("\n", $f));
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: /etc/php5/fpm/php-fpm.conf done\n";}	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: Check settings\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: /etc/php5/fpm/php-fpm.conf done\n";}	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Check settings\n";}
 	
 	$sock=new sockets();
 	exec("$phpfpm -t -y /etc/php5/fpm/php-fpm.conf 2>&1",$results);
 	while (list ($index, $line) = each ($results) ){
 		if(trim($line)==null){continue;}
 		if(strpos($line,"unknown entry 'syslog.facility'")>0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: syslog not supported..\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: syslog not supported..\n";}
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/PHPFPMNoSyslog", 1);
 			buildConfig();
 			return;
 		}
 		
 		if(strpos($line,"unknown entry 'process.max'")>0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: process.max not supported..\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: process.max not supported..\n";}
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/PHPFPMNoProcessMax", 1);
 			buildConfig();
 			return;			
 		}
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: [INIT]: PHP-FPM: $line\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: $line\n";}
 	}
 
 	

@@ -126,25 +126,29 @@ end;
 
        if FileExists('/home/artica/packages/ZARAFA/zarafa.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA.....');
-          fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/zarafa.tar.gz -C / >/dev/null 2>&1');
+          fpsystem('/bin/tar -xvf /home/artica/packages/ZARAFA/zarafa.tar.gz -C /');
           fpsystem('/bin/touch /etc/artica-postfix/ZARAFA_APPLIANCE');
           fpsystem('/bin/touch /etc/artica-postfix/NO_ZARAFA_UPGRADE_TO_7');
           fpsystem('/bin/touch /etc/artica-postfix/ZARFA_FIRST_INSTALL');
-          fpsystem('/bin/rm /home/artica/packages/ZARAFA/zarafa.tar.gz');
+          fpsystem('/bin/mv /home/artica/packages/ZARAFA/zarafa.tar.gz /home/artica/zarafa.tar.gz.old');
+          fpsystem('/usr/bin/php5 /usr/share/artica-postfix/exec.initdzarafa.php');
+          fpsystem('clear');
        end;
 
 
        if FileExists('/home/artica/packages/ZARAFA/zarafa-web-app.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP.....');
-          fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz -C / >/dev/null 2>&1');
+          fpsystem('/bin/tar -xvf /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz -C /');
           fpsystem('/bin/mv /home/artica/packages/ZARAFA/zarafa-web-app.tar.gz /home/artica/zarafa-web-app.tar.gz.old');
+          fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/ZARAFA/webapp.tar.gz') then begin
           writeln('Artica ISO: PLEASE WAIT.... INSTALLING ZARAFA WEBAPP.....');
           ForceDirectories('/usr/share/zarafa-webapp');
-          fpsystem('/bin/tar -xf /home/artica/packages/ZARAFA/webapp.tar.gz -C /usr/share/zarafa-webapp/ >/dev/null 2>&1');
+          fpsystem('/bin/tar -xvf /home/artica/packages/ZARAFA/webapp.tar.gz -C /usr/share/zarafa-webapp/');
           fpsystem('/bin/mv /home/artica/packages/ZARAFA/webapp.tar.gz /home/artica/webapp.tar.gz.old');
+          fpsystem('clear');
        end;
 
        if FileExists('/home/artica/packages/ZARAFA/webappplugins.tar.gz') then begin

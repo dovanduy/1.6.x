@@ -408,19 +408,13 @@ end;
    if kavmilterEnable='0' then begin
       result:=ini.Text;
       ini.free;
-      SYS.MONIT_DELETE('APP_KAVMILTER');
+
       exit;
    end;
 
 
   logs.WriteToFile(KAV_MILTER_PID(),'/var/run/kavmilter.pid');
 
-   if SYS.MONIT_CONFIG('APP_KAVMILTER','/var/run/kavmilter.pid','kavmilter') then begin
-      ini.Add('monit=1');
-      result:=ini.Text;
-      ini.free;
-      exit;
-   end;
 
 
       if SYS.PROCESS_EXIST(KAV_MILTER_PID()) then ini.Add('running=1') else  ini.Add('running=0');

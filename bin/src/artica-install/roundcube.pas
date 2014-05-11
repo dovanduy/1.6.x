@@ -129,7 +129,7 @@ pidpath:string;
 begin
 
    if not DirectoryExists(web_folder()) then exit;
-   SYS.MONIT_DELETE('APP_ROUNDCUBE');
+
    if not FileExists(roundcube_db_inc_php()) then  exit;
    pidpath:=logs.FILE_TEMP();
    fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.status.php --roundcube >'+pidpath +' 2>&1');
