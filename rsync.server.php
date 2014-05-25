@@ -254,7 +254,7 @@ $stunnel
 	</tr>	
 	<tr><td colspan=2 align='right'>
 		<hr>
-		<input type='button' OnClick=\"javascript:SaveRsyncConf();\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:SaveRsyncConf();\" value='{apply}&nbsp;&raquo;'>
 	</td>
 	</tr>
 	</table>

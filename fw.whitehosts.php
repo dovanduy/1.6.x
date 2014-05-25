@@ -41,14 +41,14 @@ function add_domain_white_popup(){
 	$t=time();
 	$html="
 	<div style='width:98%' class=form>
-	<div style='font-size:14px' class=explain>{whitelist_mx_explain}</div>
+	<div style='font-size:16px' class=explain>{whitelist_mx_explain}</div>
 	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{domain}</td>
-		<td>". Field_text("domain-$t",null,"font-size:16px;width:95%",null,null,null,false,"SaveCK$t(event)")."</td>
+		<td class=legend style='font-size:18px'>{domain}:</td>
+		<td>". Field_text("domain-$t",null,"font-size:18px;width:95%",null,null,null,false,"SaveCK$t(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align=right><hr>". button("{add}","Save$t()",18)."</td>
+		<td colspan=2 align=right><hr>". button("{add}","Save$t()",26)."</td>
 	</tr>
 	</table>		
 	</div>
@@ -149,7 +149,7 @@ function page(){
 		
 		{display: '$ipaddr', name : 'ipaddr', width : 238, sortable : true, align: 'left'},
 		{display: '$hostname', name : 'hostname', width :491, sortable : true, align: 'left'},
-		{display: '$delete', name : 'bounce_error', width : 31, sortable : false, align: 'left'},
+		{display: '$delete', name : 'bounce_error', width : 84, sortable : false, align: 'center'},
 		],
 		$buttons
 		searchitems : [

@@ -599,7 +599,7 @@ function RestartDedicatedServices(){
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
 	$squidbin=$unix->LOCATE_SQUID_BIN();
-	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.web-community-filter.php --register --force");
+	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.web-community-filter.php --register");
 	events("Starting artica");
 	echo "Starting......: ".date("H:i:s")." nightly builds starting artica...\n";
 	@file_put_contents("/usr/share/artica-postfix/download_progress", 45);

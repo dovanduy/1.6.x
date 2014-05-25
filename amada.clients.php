@@ -251,8 +251,8 @@ function clients_list(){
 		$warn_text=null;
 		if($ligne["resolved"]==null){$img="warning-panneau-32.png";$warn_text="<hr>{could_not_find_iphost}";}
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}$warn_text","AmandaComputer('{$ligne["ID"]}')");
-		$select2=imgtootltip($img,"{edit}$warn_text","AmandaComputer('{$ligne["ID"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}$warn_text","AmandaComputer('{$ligne["ID"]}')");
+		$select2=imgtootltip($img,"{apply}$warn_text","AmandaComputer('{$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","AmandaComputerDel('{$ligne["ID"]}')");
 		$color="black";
 		$href="<a href=\"javascript:blur();\" OnClick=\"javascript:AmandaComputer('{$ligne["ID"]}')\"

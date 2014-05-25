@@ -108,7 +108,7 @@ function fetchmail_datas(){
 	$html="<table style='width:95%;border:1px solid #CCCCCC;padding:5px;' align='center'>";
 	while (list ($num, $ligne) = each ($hash["fetchmail"]) ){
 		$html=$html."<tr>
-		<td width=1%>" . imgtootltip('updaterX-22.gif','{edit} ' .$ligne["pool"],"document.location.href='$page?tab=1&Fetchedit=$num'")."</td>
+		<td width=1%>" . imgtootltip('updaterX-22.gif','{apply} ' .$ligne["pool"],"document.location.href='$page?tab=1&Fetchedit=$num'")."</td>
 		<td>&nbsp;{$ligne["pool"]}</td>
 		<td>&nbsp;{$ligne["user"]}</td>
 		<td>&nbsp;{$ligne["proto"]}</td>
@@ -155,7 +155,7 @@ function users_page(){
 		<a href=\"javascript:s_PopUp('edit.thumbnail.php?uid=$us->uid',600,300);\">
 		<img src='$us->img_identity' style='border:1px dotted #CCCCCC'>
 		</a><br><br>
-		". texttooltip("&laquo;&nbsp;{edit}&raquo;&nbsp;",'{edit} photo',"s_PopUp('edit.thumbnail.php?uid=$us->uid',600,300)")."
+		". texttooltip("&laquo;&nbsp;{apply}&raquo;&nbsp;",'{apply} photo',"s_PopUp('edit.thumbnail.php?uid=$us->uid',600,300)")."
 		</center>";
 	}
 		

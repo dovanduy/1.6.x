@@ -101,7 +101,7 @@ function popup(){
 			<td>". Field_password("password",$ini->_params["ACCOUNT"]["PASSWORD"],"width:120px",null,null,null,false,"SaveComputerPasswdEnter(event)")."</td>
 		</tr>	
 		<tr>
-			<td colspan=2 align=right><hr>". button("{edit}","SaveComputerPasswd()")."
+			<td colspan=2 align=right><hr>". button("{apply}","SaveComputerPasswd()")."
 					
 			</td>
 		</tr>
@@ -119,7 +119,7 @@ function popup(){
 			<td>". Field_password("bdc_password",$computer->userPassword,"width:120px",null,null,null,false,"SaveComputerInternalPasswdEnter(event)")."</td>
 		</tr>	
 		<tr>
-			<td colspan=2 align=right><hr>". button("{edit}","SaveComputerInternalPasswd()")."
+			<td colspan=2 align=right><hr>". button("{apply}","SaveComputerInternalPasswd()")."
 					
 			</td>
 		</tr>

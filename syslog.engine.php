@@ -353,8 +353,8 @@ $('#flexRT$t').flexigrid({
 	url: '$page?localx-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: 'localx', name : 'localx', width :70, sortable : true, align: 'left'},
-		{display: '$filename', name : 'fileanme', width : 512, sortable : false, align: 'left'},
+		{display: 'localx', name : 'localx', width :139, sortable : true, align: 'left'},
+		{display: '$filename', name : 'fileanme', width : 664, sortable : false, align: 'left'},
 		{display: '&nbsp;', name : 'delete', width : 38, sortable : false, align: 'left'},
 		],
 	$buttons
@@ -369,7 +369,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 676,
+	width: '99%',
 	height: 370,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -477,7 +477,7 @@ function SyslogServerLocalx_list(){
 	$MyPage=CurrentPageName();
 	$data = array();
 	$data['page'] = 1;
-	$data['total'] = $total;
+	$data['total'] = 0;
 	$data['rows'] = array();
 	$c=0;
 	while (list ($local, $path) = each ($datas) ){
@@ -501,6 +501,8 @@ function SyslogServerLocalx_list(){
 		$delete )
 		);
 	}
+	
+	if($c==0){json_error_show("no data",1);}
 	$data['total'] = $c;
 	echo json_encode($data);		
 	

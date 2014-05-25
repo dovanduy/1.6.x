@@ -114,7 +114,7 @@ class YoutubeStats{
 	
 	
 		$thumbnail=mysql_escape_string2(@file_get_contents("/tmp/thumbnail"));
-		$sql="INSERT INTO youtube_objects (youtubeid,category,title,content,uploaded,duration,thumbnail)
+		$sql="INSERT IGNORE INTO youtube_objects (youtubeid,category,title,content,uploaded,duration,thumbnail)
 		VALUES('$VIDEOID','$category','$title','$infox_enc','$zDate','$duration','$thumbnail')";
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){

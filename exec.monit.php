@@ -442,19 +442,10 @@ function build(){
 	$INITD_PATH=$unix->SLAPD_INITD_PATH();
 	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
 	$squidbin=$unix->LOCATE_SQUID_BIN();
+	@unlink("/etc/monit/conf.d/APP_OPENLDAP.monitrc");
 //********************************************************************************************************************	
 	$f=array();
-	$f[]="";
-	$f[]="check process APP_OPENLDAP with pidfile $SLAPD_PID_FILE";
-	$f[]="\tstart program = \"$INITD_PATH start --monit\"";
-	$f[]="\tstop program  = \"$INITD_PATH stop --monit\"";
-	$f[]="\tif cpu usage > 95% for 5 cycles then alert";
-	$f[]="\tif 3 restarts within 3 cycles then timeout";
-	$f[]="\tif failed port 389 protocol ldap3 then restart";
-	$f[]="";
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring OpenLDAP...\n";}
-	@file_put_contents("/etc/monit/conf.d/APP_OPENLDAP.monitrc", @implode("\n", $f));
-	$f=array();
+
 
 //********************************************************************************************************************	
 	$f=array();
@@ -467,14 +458,8 @@ function build(){
 	$f=array();
 //********************************************************************************************************************	
 	$f=array();
-	if(is_file("/etc/init.d/ssh")){
-		$f[]="check process APP_OPENSSH with pidfile /var/run/sshd.pid";
-		$f[]="start program  \"/etc/init.d/artica-ssh start --monit\"";
-		$f[]="stop program   \"/etc/init.d/artica-ssh stop --monit\"";
-		$f[]="if 5 restarts within 5 cycles then timeout";
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring OpenSSH...\n";}
-		@file_put_contents("/etc/monit/conf.d/APP_OPENSSH.monitrc", @implode("\n", $f));
-	}
+	@unlink("/etc/monit/conf.d/APP_OPENSSH.monitrc");
+	
 //********************************************************************************************************************	
 	$f=array();
 	$f[]="check process APP_MYSQL_ARTICA with pidfile /var/run/mysqld/mysqld.pid";

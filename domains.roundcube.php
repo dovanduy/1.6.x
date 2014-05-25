@@ -127,7 +127,7 @@ function roundcube_form1($ou){
 		<td>" . help_icon('{joomlaservername_help}',false,"domains.joomla.php")."</td>
 	</tr>		
 	<tr><td colspan=3><hr></tr>
-	<tr><td colspan=3 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveRoundcubeForm();\"></td></tr>
+	<tr><td colspan=3 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveRoundcubeForm();\"></td></tr>
 	</table>";
 	
 	

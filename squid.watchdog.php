@@ -47,7 +47,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$array["popup"]="{parameters}";
 	$array["notifs"]="{smtp_notifications}";
-	$array["events"]="{events}";
+	
 
 
 

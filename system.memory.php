@@ -40,6 +40,11 @@ function SaveSwapAuto(){
 	if(!is_numeric($SwapOffOn["SwapMaxPourc"])){$SwapOffOn["SwapMaxPourc"]=20;}
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}	
 	if(!is_numeric($SwapOffOn["SwapTimeOut"])){$SwapOffOn["SwapTimeOut"]=60;}
+	
+	if(!is_numeric($SwapOffOn["AutoMemWatchdog"])){$SwapOffOn["AutoMemWatchdog"]=1;}
+	if(!is_numeric($SwapOffOn["AutoMemPerc"])){$SwapOffOn["AutoMemPerc"]=90;}
+	if(!is_numeric($SwapOffOn["AutoMemInterval"])){$SwapOffOn["AutoMemInterval"]=180;}
+	
 	$sock->SaveConfigFile(base64_encode(serialize($SwapOffOn)),"SwapOffOn");
 	$sock->getFrameWork("cmd.php?restart-artica-status=yes");
 	$sock->getFrameWork("system.php?swap-init=yes");
@@ -59,47 +64,75 @@ function popup(){
 	if(!is_numeric($SwapOffOn["SwapMaxMB"])){$SwapOffOn["SwapMaxMB"]=0;}
 	if(!is_numeric($DisableSWAPP)){$DisableSWAPP=0;}
 	if(!is_numeric($SwapOffOn["SwapTimeOut"])){$SwapOffOn["SwapTimeOut"]=60;}
+	
+	if(!is_numeric($SwapOffOn["AutoMemWatchdog"])){$SwapOffOn["AutoMemWatchdog"]=1;}
+	if(!is_numeric($SwapOffOn["AutoMemPerc"])){$SwapOffOn["AutoMemPerc"]=90;}
+	if(!is_numeric($SwapOffOn["AutoMemInterval"])){$SwapOffOn["AutoMemInterval"]=180;}
 	$table_swap="
 	
 	
-	<div style='font-size:24px'>{automatic_swap_cleaning}</div>
+			
+			
+			
+	<div style='font-size:24px;margin-top:30px'>{automatic_swap_cleaning}</div>
 	<div class=explain style='font-size:14px'>{automatic_swap_cleaning_explain}</div>
-	<div id='AutoSwapDiv'>
-	<table style='width:99%' class=form>
+	<div id='AutoSwapDiv' width=98% class=form>
+	<table style='width:99%'>
 	<tr>
-		<td class=legend>{DisableSWAPP}:</td>
+		<td class=legend style='font-size:16px'>{DisableSWAPP}:</td>
 		<td>". Field_checkbox("DisableSWAPP",1,$DisableSWAPP,"CheckSwap()")."</td>
 	</tr>			
 	<tr>
-		<td class=legend>{enable}:</td>
+		<td class=legend style='font-size:16px'>{enable}:</td>
 		<td>". Field_checkbox("SwapEnabled",1,$SwapOffOn["SwapEnabled"],"CheckSwap()")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{xtimeout}:</td>
-		<td style='font-size:13px;'>". Field_text("SwapTimeOut",$SwapOffOn["SwapTimeOut"],"font-size:13px;padding:3px;width:30px")."&nbsp;Mn</td>
+		<td class=legend style='font-size:16px'>{xtimeout}:</td>
+		<td style='font-size:16px;'>". Field_text("SwapTimeOut",$SwapOffOn["SwapTimeOut"],"font-size:16px;padding:3px;width:90px")."&nbsp;Mn</td>
 	</tr>				
 	<tr>
-		<td class=legend>{MaxDiskUsage}:</td>
-		<td>". Field_text("SwapMaxPourc",$SwapOffOn["SwapMaxPourc"],"font-size:13px;padding:3px;width:30px")."</td>
+		<td class=legend style='font-size:16px'>{MaxDiskUsage}:</td>
+		<td>". Field_text("SwapMaxPourc",$SwapOffOn["SwapMaxPourc"],"font-size:16px;padding:3px;width:44px")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{maxsize}:</td>
-		<td>". Field_text("SwapMaxMB",$SwapOffOn["SwapMaxMB"],"font-size:13px;padding:3px;width:60px")."&nbsp;<strong style='font-size:13px'>MB</td>
+		<td class=legend style='font-size:16px'>{maxsize}:</td>
+		<td>". Field_text("SwapMaxMB",$SwapOffOn["SwapMaxMB"],"font-size:16px;padding:3px;width:90px")."&nbsp;<strong style='font-size:16px'>MB</td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",22)."</td>
 	</tr>
 	</table>
+	</div>
+	<p>&nbsp;</p>
+	
+	<div style='font-size:24px;margin-top:30px'>{automatic_memory_cleaning}</div>	
+	<div class=explain style='font-size:14px'>{automatic_memory_cleaning_explain}</div>	
+	<div id='AutoSwapDiv2' width=98% class=form>		
+			
+	<table style='width:99%'>
+	<tr>
+		<td class=legend style='font-size:16px'>{enable}:</td>
+		<td>". Field_checkbox("AutoMemWatchdog",1,$SwapOffOn["AutoMemWatchdog"],"CheckWatch()")."</td>
+	</tr>			
+	<tr>
+		<td class=legend style='font-size:16px'>{max_usage}:</td>
+		<td style='font-size:16px;'>". Field_text("AutoMemPerc",$SwapOffOn["AutoMemPerc"],"font-size:16px;padding:3px;width:44px")."&nbsp;%</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:16px'>{interval}:</td>
+		<td style='font-size:16px;'>". Field_text("AutoMemInterval",$SwapOffOn["AutoMemInterval"],"font-size:16px;padding:3px;width:90px")."&nbsp;{minutes}</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveSwapAuto()",22)."</td>
+	</tr>
+	</table>													
 	</div>";	
 	
 	$html="
+	<div style='font-size:24px'>{memory_info}</div>
+	$table_memory
+	$table_swap
 	
-	<table style='width:100%'>
-	<tr>
-		<td valign='top' width=1%><img src='img/bg_memory-250.png'><br>$table_memory</td>
-		<td valign='top'>$table_swap</td>
-	</tr>
-	</table>
 	<script>
 	
 	
@@ -114,14 +147,21 @@ function popup(){
 		var XHR=XHRParseElements('AutoSwapDiv');
 		DisableSWAPP=0;
 		SwapEnabled=0;
+		AutoMemWatchdog=0;
 		if(document.getElementById('SwapEnabled').checked){SwapEnabled=1;}
 		if(document.getElementById('DisableSWAPP').checked){DisableSWAPP=1;}
+		if(document.getElementById('AutoMemWatchdog').checked){AutoMemWatchdog=1;}
 		var XHR = new XHRConnection();
 		XHR.appendData('SwapMaxPourc',document.getElementById('SwapMaxPourc').value);
 		XHR.appendData('SwapMaxMB',document.getElementById('SwapMaxMB').value);
 		XHR.appendData('SwapTimeOut',document.getElementById('SwapTimeOut').value);
+		
+		XHR.appendData('AutoMemPerc',document.getElementById('AutoMemPerc').value);
+		XHR.appendData('AutoMemInterval',document.getElementById('AutoMemInterval').value);
+		
 		XHR.appendData('SwapEnabled',SwapEnabled);
 		XHR.appendData('DisableSWAPP',DisableSWAPP);
+		XHR.appendData('AutoMemWatchdog',AutoMemWatchdog);
 		AnimateDiv('AutoSwapDiv');
 		XHR.sendAndLoad('$page', 'POST',x_SaveSwapAuto);	
 		
@@ -143,7 +183,17 @@ function popup(){
 	
 	}
 	
+function CheckWatch(){
+	document.getElementById('AutoMemPerc').disabled=true;
+	document.getElementById('AutoMemInterval').disabled=true;
+	if(!document.getElementById('AutoMemWatchdog').checked){return;}
+	document.getElementById('AutoMemPerc').disabled=false;
+	document.getElementById('AutoMemInterval').disabled=false;	
+	
+}
+	
 	CheckSwap();
+	CheckWatch();
 	</script>";
 	
 	$tpl=new templates();
@@ -186,46 +236,48 @@ function table_memory(){
 	}
 	
 	if(is_numeric($pourc)){
-		$pourc_swap="				<tr>
-					<td class=legend style='font-size:14px'>{used}:</strong></td>
-					<td style='font-size:14px'>$sys->swap_used Mb ($pourc%)</strong></td>	
-				</tr>	";
+		$pourc_swap= pourcentage($pourc);
+				
 		
 	}
 	
-	return $tpl->_ENGINE_parse_body("<table  style='width:99%' class=form>
-				<tr><td colspan=2><strong style='font-size:14px'>{physical_memory}</strong></td></tr>
-				<tr>
-					<td class=legend style='font-size:14px'>{total}</strong></td>
-					<td style='font-size:14px'>$sys->memory_total Mb</strong></td>	
-				</tr>
-				<tr>
-					<td class=legend style='font-size:14px'>{free}</strong></td>
-					<td style='font-size:14px'>$sys->memory_free Mb</strong></td>	
-				</tr>	
-				<tr>
-					<td class=legend style='font-size:14px'>{used}</strong></td>
-					<td style='font-size:14px'>$sys->memory_used Mb</strong></td>	
-				</tr>					
-				<tr>
-					<td class=legend style='font-size:14px'>{shared}</strong></td>
-					<td style='font-size:14px'>$sys->memory_shared Mb</strong></td>	
-				</tr>
-				<tr>
-					<td class=legend style='font-size:14px'>{cached}</strong></td>
-					<td style='font-size:14px'>$sys->memory_cached Mb</strong></td>	
-				</tr>	
-				<tr><td colspan=2><strong style='font-size:14px'>{swap_memory}</strong></td></tr>				
-				<tr>
-					<td class=legend style='font-size:14px'>{total}:</strong></td>
-					<td style='font-size:14px'>$sys->swap_total Mb</strong></td>	
-				</tr>	
-				<tr>
-					<td class=legend style='font-size:14px'>{free}:</strong></td>
-					<td style='font-size:14px'>$sys->swap_free Mb</strong></td>	
-				</tr>
-				$pourc_swap																				
-			</table>");
+	
+	$prc=round( ($sys->memory_free/$sys->memory_total)*100);
+	
+	$html="
+<div style='width:98%' class=form>
+<div style='font-size:20px'>{physical_memory}</div>
+". pourcentage($prc)."
+<table  style='width:99%'>
+	<tr>
+	<td style='font-size:14px;text-align:center' width=20%>{total}</strong></td>
+	<td style='font-size:14px;text-align:center' width=20%>{used}</strong></td>
+	<td style='font-size:14px;text-align:center' width=20%>{free}</strong></td>
+	<td style='font-size:14px;text-align:center' width=20%>{shared}</strong></td>
+	<td style='font-size:14px;text-align:center' width=20%>{cached}</strong></td>
+	</tr>
+	<tr>		
+	<td style='font-size:14px;text-align:center'>$sys->memory_total Mb</strong></td>	
+	<td style='font-size:14px;text-align:center'>$sys->memory_free Mb</strong></td>	
+	<td style='font-size:14px;text-align:center'>$sys->memory_used Mb</strong></td>	
+	<td style='font-size:14px;text-align:center'>$sys->memory_shared Mb</strong></td>	
+	<td style='font-size:14px;text-align:center'>$sys->memory_cached Mb</strong></td>	
+	</tr>
+</table>
+<div style='font-size:20px;margin-top:50px'>{swap_memory}</div>
+$pourc_swap
+<table  style='width:99%'>
+<tr>
+	<td style='font-size:14px;text-align:center' width=50%>{total}:</strong></td>
+	<td style='font-size:14px;text-align:center' width=50%>{free}:</strong></td>
+</tr>
+<tr>
+<td style='font-size:14px;text-align:center'>$sys->swap_total Mb</strong></td>	
+<td style='font-size:14px;text-align:center'>$sys->swap_free Mb</strong></td>	
+</tr>
+</table></div>";
+	
+	return $tpl->_ENGINE_parse_body($html);
 	
 }
 

@@ -112,6 +112,7 @@ function Parseline($buffer){
 	if(preg_match("#temporary disabling.*?digest from#", $buffer)){return;}
 	if(preg_match("#kid[0-9]+\| .*?\/[0-9]+ exists#", $buffer)){return;}
 	
+//*******************************************************************************************************************	
 if(preg_match("#FATAL: Unable to open HTTPS Socket#",$buffer,$re)){
 	if(TimeStampTTL(__LINE__,5)){
 		squid_admin_mysql(0,"Port conflict issue on HTTPS socket -> Restart proxy service","$buffer\n",__FILE__,__LINE__);
@@ -119,7 +120,16 @@ if(preg_match("#FATAL: Unable to open HTTPS Socket#",$buffer,$re)){
 	}
 	return;	
 }
-	
+//*******************************************************************************************************************
+if(preg_match("#FATAL: The basicauthenticator helpers are crashing too rapidly, need help#",$buffer,$re)){
+	if(TimeStampTTL(__LINE__,2)){
+		$text[]=$buffer;
+		$f=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
+		while (list ($num, $line) = each ($f)){if(preg_match("#auth_param basic program#", $line)){ $text[]="basicauthenticator: $line"; }	}
+		squid_admin_mysql(0,"basicauthenticator extension is crashing",@implode("\n", $text),__FILE__,__LINE__);
+	}
+	return;	
+}	
 //*******************************************************************************************************************	
 if(preg_match("#ERROR: URL-rewrite produces invalid request:#",$buffer,$re)){
 	if(TimeStampTTL(__LINE__,5)){

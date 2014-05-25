@@ -212,7 +212,7 @@ function list_ressource(){
 		</td>	
 			<td valign='top' width=1%'>". imgtootltip('time-30.png',"{schedule}","Loadjs('cron.php?field={$mount}_SCHEDULE')")."</td>
 			<td valign='top' width=1%'>". imgtootltip('rouage2.png',"{settings}","CyrusBackupOptions('$mount')")."</td>
-			<td valign='middle' width=1%'><input type='button' OnClick=\"javascript:SetCyrusBackupSchedule('$mount')\" value='{edit}'></td>
+			<td valign='middle' width=1%'><input type='button' OnClick=\"javascript:SetCyrusBackupSchedule('$mount')\" value='{apply}'></td>
 			<td valign='middle' width=1%'>". imgtootltip('30-cancel.png','{delete}',"CyrusBackupDelete('$mount')")."</td>			
 		</tr>
 		<tr>
@@ -288,7 +288,7 @@ function backup_config(){
 		<tr>
 			<td colspan=2 align=right>
 				<hr>
-			<input type='button' OnClick=\"javascript:SaveBackupCyrusSettings('{$_GET["backup-config"]}');\" value='{edit}&nbsp;&raquo;'>
+			<input type='button' OnClick=\"javascript:SaveBackupCyrusSettings('{$_GET["backup-config"]}');\" value='{apply}&nbsp;&raquo;'>
 			</td>
 		</tr>							
 		</table>

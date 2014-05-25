@@ -548,7 +548,7 @@ $html="
 	while (list ($domain, $server) = each ($h) ){
 		$array=$Tdomain->transport_maps_explode($server);
 		if(substr($domain,0,1)=="@"){$domain=str_replace('@','',$domain);}
-		$roll=CellRollOver(null,'{edit}');
+		$roll=CellRollOver(null,'{apply}');
 		$html=$html . "<tr>
 		<td width=1%><img src='img/icon_mini_read.gif'></td>
 		<td style='font-size:12px'><code $roll><a href=\"javascript:SenderTable('$domain');\">$domain</a></strong></code></td>
@@ -655,7 +655,7 @@ $html="
 		$array=$transport->transport_maps_explode($ligne);
 		$delete= imgtootltip('delete-24.png','{delete}',"PostFixDeleteRoutingTable('$domain');");
 		$edit="PostfixAddRoutingTable('$domain');";
-		$edit=CellRollOver($edit,'{edit}');
+		$edit=CellRollOver($edit,'{apply}');
 		if($domain=="xspam@localhost.localdomain"){$delete="&nbsp;";$edit=null;}
 		if($domain=="localhost.localdomain"){$delete="&nbsp;";$edit=null;}		
 		

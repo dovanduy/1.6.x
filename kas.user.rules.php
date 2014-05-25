@@ -68,7 +68,7 @@ $hidden
 	<td valign='top' align='center' width=1% class=bottom>" . Field_numeric_checkbox_img('second_prepend',$kas->mail_array["second_prepend"],'{enable_disable}')."&nbsp;</td>
 	<td valign='top' align='center' width=1% class=bottom>" . Field_numeric_checkbox_img('second_killmail',$kas->mail_array["second_killmail"],'{enable_disable}')."&nbsp;</td>
 </tr>
-<tr><td colspan=4 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true);\" value='{edit}&nbsp;&raquo;'></td></tr>
+<tr><td colspan=4 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true);\" value='{apply}&nbsp;&raquo;'></td></tr>
 </table>
 </td>
 </tr>

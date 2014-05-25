@@ -413,7 +413,7 @@ $array_TYPE["JOIN_NET"]="{join_network}";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$img=imgtootltip("32-entire-network.png","{edit}","Loadjs('$page?edit-net-js={$ligne["ID"]}')");
+		$img=imgtootltip("32-entire-network.png","{apply}","Loadjs('$page?edit-net-js={$ligne["ID"]}')");
 		$array=unserialize(base64_decode($ligne["pattern"]));	
 		$html=$html."
 		<tr class=$classtr>

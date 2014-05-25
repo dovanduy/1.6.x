@@ -227,7 +227,7 @@ function popup_edit_software(){
 		  		<TD>$MinutesToWait</TD>
 		  </TR>			  		  
 		<tr>
-			<td valing='top' align='right' colspan=2><input type='button' OnClick=\"javascript:SavePackegInfos({$_GET["popup-edit-software"]});\" value=\"{edit}&nbsp;&raquo;\">
+			<td valing='top' align='right' colspan=2><input type='button' OnClick=\"javascript:SavePackegInfos({$_GET["popup-edit-software"]});\" value=\"{apply}&nbsp;&raquo;\">
 		</tr>
 		 </table>";
 		 

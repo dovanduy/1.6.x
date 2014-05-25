@@ -309,6 +309,9 @@ function acl_rule_settings(){
 	$http_reply_access_allow=$ligne["http_reply_access_allow"];
 	if(!is_numeric($http_reply_access_allow)){$http_reply_access_allow=0;}	
 	
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='cache_parent'"));
+	$cache_parent=$ligne["httpaccess_value"];
+	if(!is_numeric($cache_parent)){$cache_parent=0;}	
 	
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$ID' AND httpaccess='snmp_access_allow'"));
@@ -476,16 +479,23 @@ function acl_rule_settings(){
 		<td>". Field_checkbox("cache_deny",1,$cache_deny,"cache_deny_check()")."</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:14px'><a href=\"javascript:blur();\"
+		OnClick=\"javascript:Loadjs('squid.acls.proxy.parent.php?aclid=$ID');\"
+		style='text-decoration:underline'>
+		{use_parent_proxy}</a>:</td>
+		<td>". Field_checkbox("cache_parent",1,$cache_parent,"cache_parent_check()")."</td>
+	</tr>				
+	<tr>
 		<td class=legend style='font-size:14px'>{log_to_csv}:</td>
 		<td>". Field_checkbox("log_access",1,$log_access,"log_access_check()")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{deny_logging}:</td>
 		<td>". Field_checkbox("deny_log",1,$deny_log,"deny_log_check()")."</td>
-	</tr>				
+	</tr>
 	</table>
 
-	
+	<hr>
 		<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:14px'>{limit_bandwidth}:</td>
@@ -502,7 +512,7 @@ function acl_rule_settings(){
 		</table>
 	
 				
-			
+	<hr>		
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{affect_quota_rule}:</td>
@@ -519,7 +529,7 @@ function acl_rule_settings(){
 	</table>				
 	
 				
-	
+	<hr>
 	<table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:14px'>{request_header_add}:</td>
@@ -537,7 +547,7 @@ function acl_rule_settings(){
 	<div><i style='font-size:11px'>$explain_no33squid</i></div>	
 
 	
-	
+	<hr>
 	<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:14px'>{reply_body_max_size_acl}:</td>
@@ -549,7 +559,7 @@ function acl_rule_settings(){
 		</tr>	
 	</table>
 	
-	
+	<hr>
 	<table style='width:100%'>
 		<tr>
 			<td class=legend style='font-size:14px'>{tcp_outgoing_tos}:</td>
@@ -563,7 +573,7 @@ function acl_rule_settings(){
 
 
 	
-	
+	<hr>
 	<table style='width:100%'>	
 	<tr>
 		<td class=legend style='font-size:14px'>{acl_tcp_outgoing_address}:</td>
@@ -628,6 +638,7 @@ function acl_rule_settings(){
 			if(document.getElementById('request_header_add').checked){XHR.appendData('request_header_add', '1');}else{XHR.appendData('request_header_add', '0');}
 			if(document.getElementById('deny_log').checked){XHR.appendData('deny_log', '1');}else{XHR.appendData('deny_log', '0');}
 			if(document.getElementById('deny_quota_rule').checked){XHR.appendData('deny_quota_rule', '1');}else{XHR.appendData('deny_quota_rule', '0');}
+			if(document.getElementById('cache_parent').checked){XHR.appendData('cache_parent', '1');}else{XHR.appendData('cache_parent', '0');}
 			
 			if(document.getElementById('http_reply_access_allow').checked){XHR.appendData('http_reply_access_allow', '1');}else{XHR.appendData('http_reply_access_allow', '0');}
 			if(document.getElementById('http_reply_access_deny').checked){XHR.appendData('http_reply_access_deny', '1');}else{XHR.appendData('http_reply_access_deny', '0');}
@@ -719,6 +730,10 @@ function acl_rule_settings(){
 	function cache_deny_check(){
 		if(document.getElementById('cache_deny').checked){DisableAllInstead('cache_deny');}else{CheckAll();}
 	
+	}
+	
+	function cache_parent_check(){
+		if(document.getElementById('cache_parent').checked){DisableAllInstead('cache_parent');}else{CheckAll();}
 	}
 	
 	function adaptation_access_deny_check(){
@@ -878,11 +893,13 @@ function acl_main_rule_edit(){
 		if(!$acl->aclrule_edittype($ID,"reply_body_max_size",$_POST["reply_body_max_size"],$_POST["reply_body_max_size_value"])){return;}
 		
 		
+		
 		if(!$acl->aclrule_edittype($ID,"tcp_outgoing_address",$_POST["tcp_outgoing_address"],$_POST["tcp_outgoing_address_value"])){return;}
 		if(!$acl->aclrule_edittype($ID,"delay_access",$_POST["delay_access"],$_POST["delay_access_id"])){return;}
 		if(!$acl->aclrule_edittype($ID,"snmp_access_allow",$_POST["snmp_access_allow"],$_POST["snmp_access_allow"])){return;}
 		if(!$acl->aclrule_edittype($ID,"log_access",$_POST["log_access"],$_POST["log_access"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_log",$_POST["deny_log"])){return;}
+		if(!$acl->aclrule_edittype($ID,"cache_parent",$_POST["cache_parent"])){return;}
 		if(!$acl->aclrule_edittype($ID,"deny_quota_rule",$_POST["deny_quota_rule"],$_POST["deny_quota_rule_id"])){return;}
 		if(!$acl->aclrule_edittype($ID,"http_reply_access_deny",$_POST["http_reply_access_deny"])){return;}
 		if(!$acl->aclrule_edittype($ID,"http_reply_access_allow",$_POST["http_reply_access_allow"])){return;}
@@ -1160,6 +1177,8 @@ function page(){
 		$table_width=959;
 	}
 	
+	// removed {name: '$squid_templates_error', bclass: 'Script', onpress : SquidTemplatesErrors$t},
+	
 	$html="
 	<input type='hidden' name='ACL_ID_MAIN_TABLE' id='ACL_ID_MAIN_TABLE' value='table-$t'>
 	<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
@@ -1185,7 +1204,7 @@ buttons : [
 	{name: '$groups', bclass: 'Group', onpress : GroupsSection$t}
 	$bandwithbt,$session_manager
 	{separator: true},
-	{name: '$squid_templates_error', bclass: 'Script', onpress : SquidTemplatesErrors$t},
+	
 	$optionsbt
 	$apply_paramsbt
 		],	

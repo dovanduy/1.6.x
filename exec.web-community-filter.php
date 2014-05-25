@@ -48,6 +48,7 @@ if($argv[1]=="--export-weighted"){Export_Weighted(true);die();}
 if($argv[1]=="--export-perso-cats"){ExportPersonalCategories(true);die();}
 if($argv[1]=="--export-not-categorized"){ExportNoCategorized(true);die();}
 if($argv[1]=="--export-category-tickets"){category_tickets(true);die();}
+if($argv[1]=="--drop-categorize"){drop_categorize(true);die();}
 
 
 
@@ -66,34 +67,41 @@ if($argv[1]=="--export-category-tickets"){category_tickets(true);die();}
 	if($system_is_overloaded){
 		$unix=new unix();
 		WriteMyLogs("Overloaded system, [{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}] Web filtering maintenance databases tasks aborted (general)","MAIN",__FILE__,__LINE__);
-		$unix->send_email_events("Overloaded system, [{$GLOBALS["SYSTEM_INTERNAL_LOAD"]}] Web filtering maintenance databases tasks aborted (general)",
-		 "Artica will wait a new better time...", "proxy");
 		die();
 	}
 	
 
 	$WebCommunityUpdatePool=$sock->GET_INFO("WebCommunityUpdatePool");
-	if(!is_numeric($WebCommunityUpdatePool)){$WebCommunityUpdatePool=360;$sock->SET_INFO("WebCommunityUpdatePool",360);}
+	if(!is_numeric($WebCommunityUpdatePool)){
+		$WebCommunityUpdatePool=360;
+		$sock->SET_INFO("WebCommunityUpdatePool",360);
+	}
+	
+	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$unix=new unix();
 	$myFile=basename(__FILE__);	
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,$myFile)){
-		
 		WriteMyLogs("Already executed PID:$pid, die()",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
 	
 	$filetime=file_time_min($cachetime);
 	if(!$GLOBALS["FORCE"]){
-		if($filetime<$WebCommunityUpdatePool){WriteMyLogs("{$filetime}Mn need {$WebCommunityUpdatePool}Mn, aborting...",__FUNCTION__,__FILE__,__LINE__);die();}
+		if($filetime<$WebCommunityUpdatePool){
+			WriteMyLogs("{$filetime}Mn need {$WebCommunityUpdatePool}Mn, aborting...",
+			__FUNCTION__,__FILE__,__LINE__);
+			die();
+		}
 	}
 	
 	WriteMyLogs("-> EXECUTE....","MAIN",__FILE__,__LINE__);
 	@mkdir(dirname($cachetime),0755,true);
 	@unlink($cachetime);
-	@file_put_contents($cachetime,"#");
+	@file_put_contents($cachetime,time());
+	
 	$GLOBALS["MYPID"]=getmypid();
 	@file_put_contents($pidfile,$GLOBALS["MYPID"]);
 	
@@ -107,8 +115,8 @@ if($argv[1]=="--export-category-tickets"){category_tickets(true);die();}
 	
 
 	$distanceOfTimeInWords=$unix->distanceOfTimeInWords($t,time());
-	$unix->send_email_events("Web filtering maintenance databases tasks success",
-		 "Exporting websites, importing websites calculate categories took $distanceOfTimeInWords", "proxy");
+	squid_admin_mysql(2, "Web filtering maintenance databases tasks success",
+		 "Exporting websites, importing websites calculate categories took $distanceOfTimeInWords", null,__FILE__,__LINE__);
 	
 	
 function category_tickets($asPid=false){
@@ -859,15 +867,13 @@ function ExportNoCategorized($asPid=false){
 	$curl->parms["COMMUNITY_POST_VISITED"]=$f;
 	if(!$curl->get()){
 		writelogs("Failed exporting ".count($array)." not categorized websites from categories to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__);
-		$unix->send_email_events("Failed exporting ".count($array)." not categorized websites from categories to Artica cloud repository servers",null,"proxy");
-		writelogs_squid("Failed exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers \"$curl->error\"",__FUNCTION__,__FILE__,__LINE__,"export");
+		squid_admin_mysql(1,"Failed exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers \"$curl->error\"",null,__FILE__,__LINE__,"export");
 		return null;
 	}
 	
 	if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){
 		if($GLOBALS["VERBOSE"]){echo "Success...\n";}
-		WriteMyLogs("Exporting success ". count($array)." Not categorized websites from categories",__FUNCTION__,__FILE__,__LINE__);
-		writelogs_squid("Success exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__,"export");
+		squid_admin_mysql(2,"Success exporting ".count($array)." Not categorized websites from categories to Artica cloud repository servers",null,__FILE__,__LINE__,"export");
 		$q->QUERY_SQL("UPDATE visited_sites SET NotVisitedSended=1 WHERE LENGTH(category)=0 AND NotVisitedSended=0 LIMIT 5000");
 	}	
 	
@@ -917,8 +923,7 @@ function Export_Weighted(){
 		
 		if(!$curl->get()){
 			writelogs("Failed exporting ".count($array)." weighted patterns to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__);
-			$unix->send_email_events("Failed exporting ".count($array)." weighted patterns to Artica cloud repository servers",null,"proxy");
-			writelogs_squid("Failed exporting ".count($array)." weighted patterns to Artica cloud repository servers \"$curl->error\"",__FUNCTION__,__FILE__,__LINE__,"export");
+			squid_admin_mysql(1,"Failed exporting ".count($array)." weighted patterns to Artica cloud repository servers \"$curl->error\"",null,__FILE__,__LINE__,"export");
 			return null;
 		}
 		
@@ -937,6 +942,12 @@ function Export_Weighted(){
 	}	
 	
 	
+}
+
+function drop_categorize(){
+	
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("TRUNCATE TABLE categorize");
 }
 
 	
@@ -968,6 +979,7 @@ function Export($asPid=false){
 	export_deleted_categories();
 	$q=new mysql_squid_builder();
 	$tables=$q->LIST_TABLES_CATEGORIES();
+	$c=0;
 	while (list ($table, $www) = each ($tables)){
 		$limit=null;
 		$limitupate=null;
@@ -1047,19 +1059,17 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 	
 	if(!$curl->get()){
 		writelogs("Failed exporting ".count($array)." categorized websites to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__);
-		$unix->send_email_events("Failed exporting ".count($array)." categorized websites to Artica cloud repository servers",null,"proxy");
-		writelogs_squid("Failed exporting ".count($array)." categorized websites to Artica cloud repository servers \"$curl->error\"",__FUNCTION__,__FILE__,__LINE__,"export");
+		squid_admin_mysql("Failed exporting ".count($array)." categorized websites to Artica cloud repository servers \"$curl->error\"",null,__FILE__,__LINE__,"export");
 		return null;
 	}
 	
 	if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){
-		WriteMyLogs("Exporting success ". count($array)." websites",__FUNCTION__,__FILE__,__LINE__);
+		squid_admin_mysql(2,"Exporting success ". count($array)." websites",null,__FILE__,__LINE__);
 		if(count($logsExp)<10){$textadd=@implode(",", $logsExp);}
-		writelogs_squid("Success exporting ".count($array)." categorized websites to Artica cloud repository servers",__FUNCTION__,__FILE__,__LINE__,"export");
 		$curl=new ccurl("$URIBASE/webfilters-instant.php?checks=yes",false,null,true);
 		$curl->NoHTTP_POST=true;
 		if(!$curl->get()){
-			writelogs_squid("Failed to order to build webfilter instant with HTTP ERROR: `$curl->error`",__FUNCTION__,__FILE__,__LINE__,"export");
+			squid_admin_mysql(1,"Failed to order to build webfilter instant with HTTP ERROR: `$curl->error`",null,__FILE__,__LINE__,"export");
 		}
 		
 		if(preg_match("#<ANSWER>OK</ANSWER>#is",$curl->data)){

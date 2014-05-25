@@ -604,6 +604,7 @@ advanced find search tool[br]
 <APP_ZARAFA_WEBAPP>Web interface for Zarafa</APP_ZARAFA_WEBAPP>
 <APP_ZARAFA_WEBAPP_TEXT>Web Access 7.0.[br]The successor to the existing Zarafa WebAccess.[br]
 The Web Access 7.0 can run parallel to the Zarafa WebAccess on ZCP 7.0 releases.</APP_ZARAFA_WEBAPP_TEXT>
+<APP_ZIPROXY>HTTP Compression service</APP_ZIPROXY>
 <APP_Z_PUSH_WEB>z-Push application</APP_Z_PUSH_WEB>
 <archive_module>Archive module</archive_module>
 <archive_rule>Archive rule</archive_rule>
@@ -621,6 +622,9 @@ With this plugin you can use Backup On The Fly feature trough Amavis and if you 
 <ARTICADB_NOT_INSTALLED>Missing:Statistics database</ARTICADB_NOT_INSTALLED>
 <ARTICADB_NOT_INSTALLED_EXPLAIN>Artica Database service is not installed.[br]This service is used to categorize visited websites.[br]
 If you want to have statistics, you need to update this database service</ARTICADB_NOT_INSTALLED_EXPLAIN>
+<articadb_update_only_by_schedule>If turn to green both categories databases and webfiltering databases will be downloaded only with defined schedules.[br]
+By default this option is red (off) and Artica check each 48H our update server in order to update freshed databases.
+</articadb_update_only_by_schedule>
 <articaitems>Artica items</articaitems>
 <ARTICASTATISTICS_DISABLED>Artica Statistics feature is disabled in your configuration</ARTICASTATISTICS_DISABLED>
 <ArticaTabsTimeout>Tabs pause time</ArticaTabsTimeout>
@@ -738,6 +742,10 @@ Select your saved connections or use the wizard in order to create a new one.
 <automated_compression>Automated compression</automated_compression>
 <automatically_compress_when_attachments_exceed>automatically uncompress when attachments exceed:</automatically_compress_when_attachments_exceed>
 <automatically_uncompress_attachments>automatically uncompress attachments</automatically_uncompress_attachments>
+<automatic_memory_cleaning>Automatic memory cleaning</automatic_memory_cleaning>
+<automatic_memory_cleaning_explain>This feature will launch the kernel memory cleaning procedure and restart/reload services that consume memory such as 
+Apache Web server, nginx, MySQL service.
+</automatic_memory_cleaning_explain>
 <automation_script_explain>The Automation Script allows you to copy/paste predefined settings directly in this form in order to quickly deploy your Artica server</automation_script_explain>
 <awstats_postfix>Build eMail events</awstats_postfix>
 <awstats_postfix_explain>This task extract emails events from the system email logger and prepare MySQL events.[br]
@@ -973,6 +981,9 @@ You can use a higher value when you are absolutely sure that a website doesn't s
 <CACHE_AUTH>Show splash screen each</CACHE_AUTH>
 <cache_cell_size>Cache cell size</cache_cell_size>
 <cache_central_for_all_nodes>Central Cache for all nodes</cache_central_for_all_nodes>
+<cache_childs_requests>Cache Proxy children requests</cache_childs_requests>
+<cache_childs_requests_explain>If turn to green, requests from children will be cached.[br]
+If red, requests from proxy children will be deny from cache</cache_childs_requests_explain>
 <cache_indexedobject_size>Cache Indexed object size</cache_indexedobject_size>
 <cache_indexedobject_size_explain>This cache contains unique id's of objects. (about 512kb per user)</cache_indexedobject_size_explain>
 <cache_items>Cache items</cache_items>
@@ -1261,8 +1272,12 @@ You should take care about enabling this task because there is no tests made bef
 <compile_ufdb_repos>Compile UFBD databases for repository</compile_ufdb_repos>
 <compile_ufdb_repos_explain>This task is intended if your use this server has an ASP service.[br]It designed to compile categories into .ufdb databases and upload them to a repository</compile_ufdb_repos_explain>
 <completed>Completed</completed>
+<compressed>Compressed</compressed>
+<compressed_data>Compressed data</compressed_data>
 <compressed_size>Compressed size</compressed_size>
 <compressing_package>Compressing package</compressing_package>
+<compressor_requests>Compressor RT requests</compressor_requests>
+<compressor_requests2>Compressor realtime requests</compressor_requests2>
 <compress_container>Compress container</compress_container>
 <compress_files>Compress files</compress_files>
 <COMPUTERS_BRANCH>Computers branch</COMPUTERS_BRANCH>
@@ -1314,6 +1329,13 @@ The computer will think that the disk is a real hard drive</container_iscsid_sha
 <continue>Continue</continue>
 <controller>Constroller</controller>
 <controllers>Controllers</controllers>
+<ConvertToGrayscale>Convert to Gray scale</ConvertToGrayscale>
+<ConvertToGrayscale_explain>
+If enabled, convert images to grayscale before recompressing.[br]
+This provides extra compression, at the cost of losing color data.[br]
+[b]Note: Not all images sent will be in grayscale, only the ones
+considered worth recompression that way.
+</ConvertToGrayscale_explain>
 <convertto_innodb_file_per_table>Convert to innodb file per table</convertto_innodb_file_per_table>
 <convertto_innodb_file_per_tableask>This operation will backup your %tablesnum tables anbd remove them and restore them, you need at least %free free space for this operation.
 During this operation services will be unavailable
@@ -1771,6 +1793,7 @@ It need to include both RSA PRIVATE KEY and CERTIFICATE
 <dynamic_activedirectory_group>Dynamic Active Directory Group</dynamic_activedirectory_group>
 <dynamic_categories_newbee_explain>Manage %s Webfiltering categories affected by the Proxy administrator</dynamic_categories_newbee_explain>
 <dynamic_chain>Dynamic chain</dynamic_chain>
+<dynamic_enforce_rules>Dynamic enforce rules</dynamic_enforce_rules>
 <D_MODEL_ENC>Model ID</D_MODEL_ENC>
 <economy>Economy</economy>
 <empty_all_firewall_rules>Empty all Firewall rules</empty_all_firewall_rules>
@@ -1779,6 +1802,7 @@ It need to include both RSA PRIVATE KEY and CERTIFICATE
 <empty_database>Empty database</empty_database>
 <empty_database_explain>Empty all content of this database</empty_database_explain>
 <empty_store>Empty the store</empty_store>
+<empty_template>Empty template</empty_template>
 <enable-ssl-crtd-not-compiled>Dynamic SSL Certificate Generation is not compiled on your Squid-Cache version.The feature will not be applied on your proxy service</enable-ssl-crtd-not-compiled>
 <EnableArpDaemon>Enable ARP Daemon</EnableArpDaemon>
 <EnableArpDaemon_disable_explain>ARP Daemon is a service that help the kernel to resolve MAC Addresses.[br]
@@ -1933,6 +1957,11 @@ After enabling this service, use the End-users WebAccess console to tune your FT
 <enable_fw_autorules_text>If turned to green, Artica will auto-block remote addresses according bad access threats when trying to connect to standard protocols such as SSH,IMAP,SMTP</enable_fw_autorules_text>
 <enable_group_checking>Checks Groups</enable_group_checking>
 <enable_helo_randomize>Enable HELO randomization</enable_helo_randomize>
+<enable_http_compression_service>Activate HTTP compression service</enable_http_compression_service>
+<enable_http_compression_service_text>Is turn to green, you will be able to provide a compressing HTTP proxy service.[br]
+Basically, it squeezes images by converting them to lower quality JPEGs and compresses (gzip) HTML and other text-like data.[br]
+It also provides other features such as: HTML/JS/CSS optimization
+</enable_http_compression_service_text>
 <enable_http_service_zarafa_explain>
 If green, then Artica will run a [b]dedicated service[/b] in order to display WebMail for Zarafa.[br]
 [b]Notice[/b]: This dedicated service cannot run on 80/443 port if FreeWebs is enabled.[br]
@@ -2035,6 +2064,7 @@ but Google will then redirect the user to a non-SSL search experience along with
 By enabling this option, Artica will add in the hosts file the nosslsearch.google.com IP address to all Google websites.[br]
 You can click on the link in order to see added items.
 </enforce_google_to_non_ssl_text>
+<enforce_level>Enforce level</enforce_level>
 <errors_pages>Errors pages</errors_pages>
 <error_acl_no_object>This rule will be not available because no object is linked to this rule.</error_acl_no_object>
 <error_category_nomore5>Error category name cannot be less than 5 characters</error_category_nomore5>
@@ -2232,6 +2262,7 @@ This value limit the proxy to not open file more than the specified value.</file
 <firewall_script_builded>Firewall script builded</firewall_script_builded>
 <firewall_services>Firewall services</firewall_services>
 <fix_value>Fix the value</fix_value>
+<flow_control>Flow control</flow_control>
 <flush_arp_cache>Clear ARP Cache</flush_arp_cache>
 <flush_arp_cache_all_explain>Clear all ARP cache of this interface and build a freshed one</flush_arp_cache_all_explain>
 <folders_status>Folders status</folders_status>
@@ -2244,6 +2275,9 @@ This value limit the proxy to not open file more than the specified value.</file
 <ForceRedirectno_explain_table>remote redirects will be not forced</ForceRedirectno_explain_table>
 <ForceRedirectyes_explain_table>remote redirects will be forced to the reverse proxy</ForceRedirectyes_explain_table>
 <ForceWindowsUpdateCaching>Make Windows Updates cache</ForceWindowsUpdateCaching>
+<ForceWindowsUpdateCaching_explain>
+If green, Artica will add rules in order to enforce proxy to cache Microsoft Windows updates.
+</ForceWindowsUpdateCaching_explain>
 <force_dns_redirection>Force DNS redirection</force_dns_redirection>
 <FORWARD>Forward</FORWARD>
 <forwarded>forwarded</forwarded>
@@ -2368,6 +2402,7 @@ Basically it use the local LDAP system.
 <halfaminute>half a minute</halfaminute>
 <handles>handles</handles>
 <haproxy_local_interface_help>Set the source address for outgoing connections</haproxy_local_interface_help>
+<hardware_error_nic>Interface hardware error, perhaps this is a virtual machine...</hardware_error_nic>
 <hard_drive>Hard drive</hard_drive>
 <hard_drive_status>Hard drive status</hard_drive_status>
 <has_been_sent_to_import_task>Has been sent to the import task</has_been_sent_to_import_task>
@@ -2462,6 +2497,7 @@ The port number where Squid sends and receives HTCP queries to and from neighbor
 To turn it on you want to set it to [b]4827[/b].[br]By default it is set to "0" (disabled).</htcp_port_explain>
 <html_body>HTML Body</html_body>
 <html_mode>HTML mode</html_mode>
+<http_compression>HTTP compression</http_compression>
 <http_port>HTTP port</http_port>
 <http_sharing>HTTP sharing</http_sharing>
 <http_status_code>HTTP status code</http_status_code>
@@ -2817,6 +2853,15 @@ In this section, you can see the memory used and the process number used by the 
 <limit_bandwidth>Limit the bandwidth</limit_bandwidth>
 <limit_connections_to_these_networks>Limit connections to these networks</limit_connections_to_these_networks>
 <limit_connections_to_these_networks_explain>If green, then Artica will build firewall rules that only allow connections from listed networks</limit_connections_to_these_networks_explain>
+<limit_rate>Bandwidth limitation</limit_rate>
+<limit_rate_after>Limit Bandwidth after</limit_rate_after>
+<limit_rate_after_caption>Limit Bandwidth to %s after %f downloaded</limit_rate_after_caption>
+<limit_rate_after_text>Limits the connection rate after the size you specify.[br]
+Be aware that this solution limits download speed per connection, so, 
+if one user opens multiple video files, it will be able to download xMB multiply the number 
+of times he connected to the video files.</limit_rate_after_text>
+<limit_rate_text>Set here the maximum bandwidth defined after the downloaded size.[br][b]Set it to 0 to disable the bandwidth limitation.[/b]
+</limit_rate_text>
 <links>links</links>
 <link_computer>Link a computer</link_computer>
 <link_expression>Link expression</link_expression>
@@ -3048,8 +3093,10 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <max_time>MAX Time</max_time>
 <max_time_in_tmp>MAX file TTL in temp dir</max_time_in_tmp>
 <max_time_in_tmp_explain>How long a temporary file can be live in the temporary directory</max_time_in_tmp_explain>
+<max_usage>MAX usage</max_usage>
 <Max_used_connections>MAX used connections</Max_used_connections>
 <max_waiting_minutes_onload>MAX time to wait when system is loaded</max_waiting_minutes_onload>
+<max_websites>MAX websites</max_websites>
 <members_by_day>Members by day</members_by_day>
 <members_by_month>Members by Month</members_by_month>
 <members_stats>Members statistics</members_stats>
@@ -3338,6 +3385,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <network_text>A network</network_text>
 <netzone>Network zone</netzone>
 <netzones>Network Zones</netzones>
+<net_mii_title>Link speed and duplex setting</net_mii_title>
 <net_read_timeout>Net read Timeout</net_read_timeout>
 <new_account>New account</new_account>
 <new_address>New address</new_address>
@@ -3421,6 +3469,7 @@ Click here in order to update it.
 <new_statistics_interface_text>Display howto access to advanced Web statistics interface on your server</new_statistics_interface_text>
 <new_template>New template</new_template>
 <new_useragent_pattern>New User Agent pattern</new_useragent_pattern>
+<new_version>New version</new_version>
 <new_virtual_ip>New virtual IP</new_virtual_ip>
 <new_vlan>New VLAN</new_vlan>
 <new_volume>New volume</new_volume>
@@ -3487,6 +3536,7 @@ If you enable this option and you set 80 as port, then this web server will list
 <NoMalwareUris_explain>If you using the malware database as blacklist and you encounter false alarms, you can enable this checkbox to not include Malware URLs database.[br]
 The Malware domains database will be used but not the URLs database that use regular expressions on URLs</NoMalwareUris_explain>
 <nonhierarchical_direct>Direct non-hierarchical requests</nonhierarchical_direct>
+<non_compressed_data>Uncompressed data</non_compressed_data>
 <non_ntlm_domain>No NTLM domain</non_ntlm_domain>
 <non_spam_messages>Non SPAM messages</non_spam_messages>
 <not>not</not>
@@ -3499,6 +3549,7 @@ The Malware domains database will be used but not the URLs database that use reg
 <notify_when_cpu_exceed>Notify when CPU exceed</notify_when_cpu_exceed>
 <notify_when_memory_exceed>Notify when memory exceed</notify_when_memory_exceed>
 <not_authenticated_trough>not authenticated trough</not_authenticated_trough>
+<not_cached_data>Not cached data</not_cached_data>
 <not_caching>Not caching</not_caching>
 <not_categorized_day_explain>Artica updates categories databases about each 3 days.[br]
 We analyze about 8.000 websites and categorize more than 1.000 webistes per day.[br]
@@ -3516,6 +3567,7 @@ Artica did not query the Proxy service status.[br]
 You did not have any cache set on your Proxy configuration.[br]
 The Proxy refuse to talk to Artica.
 </no_cache_as_been_detected>
+<no_defined_parent>No defined parent</no_defined_parent>
 <no_enough_free_space_on_target>Not enough free space on target</no_enough_free_space_on_target>
 <NO_ENOUGH_MEMORY_FOR_THIS_SECTION>Your server did not handle enough memory to activate features listed in this section</NO_ENOUGH_MEMORY_FOR_THIS_SECTION>
 <no_entry>No entry</no_entry>
@@ -3578,12 +3630,23 @@ Continue?
 </onlydefaulttemplate_remove>
 <OnlyEnabled>Only enabled</OnlyEnabled>
 <only_basic_authentication>Only Basic Authentication</only_basic_authentication>
+<only_by_schedule>Only executed by schedule</only_by_schedule>
+<only_by_schedule_squid_rotation_explain>If green, rotation task will be executed only by defined schedules.[br]
+By default, Artica will run rotation if file exceed 100M and each 24H.[br]
+A rotation task reload the proxy.[br]
+If you want to not disturb the proxy, turn it to green and set your own schedule.
+</only_by_schedule_squid_rotation_explain>
+<only_files>Only files</only_files>
 <only_from_activedirectory>Only from Active Directory</only_from_activedirectory>
+<only_images>Only images</only_images>
 <only_incoming_mails>Only inbound messages</only_incoming_mails>
+<only_internet_documents>Only Web files</only_internet_documents>
 <only_miniadm>This feature can only be managed with the EndUsers WebAccess console</only_miniadm>
+<only_multimedia>Only multimedia</only_multimedia>
 <only_ntlm>Only NTLM</only_ntlm>
 <only_one_value_cannot_generate_graph>The specified query return only one value, the chart cannot be generated. value generated is:</only_one_value_cannot_generate_graph>
 <only_one_value_no_graph>Only one value as been generated for this query.[br]In this case, graphs cannot be builded</only_one_value_no_graph>
+<only_pictures>Only pictures</only_pictures>
 <ON_ERRORS>On Errors</ON_ERRORS>
 <on_port>on port</on_port>
 <oom_kill_allocating_task>Let Kernel kill tasks</oom_kill_allocating_task>
@@ -3597,6 +3660,7 @@ This is the real value permitted by the system and might be different from the v
 The value is 0 on systems where MySQL cannot change the number of open files.
 Set a value between 0 to 65535
 </open_files_limit_explain>
+<operation_failed>Operation failed</operation_failed>
 <operation_in_background>Operation has been executed in background mode...</operation_in_background>
 <operation_in_background_restart_service>Operation will be executed in background mode.
 The main service will be restarted...</operation_in_background_restart_service>
@@ -3698,6 +3762,8 @@ You can give an IP address such as 10.0.0.2 or a network such as 192.168.1.0/24
 </pdns_restrict_explain>
 <per>per</per>
 <percent>Percentage</percent>
+<perfom_proxy_log_rotation>Proxy logs rotation</perfom_proxy_log_rotation>
+<perfom_proxy_log_rotation_explain>This task is able to perform Proxy service logs rotation operation.</perfom_proxy_log_rotation_explain>
 <performances>performances</performances>
 <performance_issue>Performance issue</performance_issue>
 <performance_issue_cpu_number_text>It seems that your server handle just one CPU ![br]
@@ -3827,9 +3893,13 @@ The private key is a matching, but different, key to the public one.[br]
 Public and private keys are paired for secure communication.
 </privkey_ssl_explain>
 <probability>probability</probability>
+<ProcessCSS>Process CSS content</ProcessCSS>
 <processes_list>Processes List</processes_list>
 <processes_list_mysql_explain>Show list of active threads in server</processes_list_mysql_explain>
+<ProcessHTML>Process HTML content</ProcessHTML>
 <processing>Processing</processing>
+<ProcessJS>Process javascripts</ProcessJS>
+<profiles>Profiles</profiles>
 <protect_owa>Protect Outlook WebAccess</protect_owa>
 <protect_phpmyadmin>Protect the phpMyadmin application</protect_phpmyadmin>
 <protect_phpmyadmin_item_text>The engine will allow item that you define in pattern field.[br]
@@ -3844,6 +3914,9 @@ Allow only a single IP: &quot;192.168.1.5&quot;
 <provider>provider</provider>
 <providers>providers</providers>
 <ProxyDedicateMicrosoftRules>Unrestricted Windows Updates services</ProxyDedicateMicrosoftRules>
+<ProxyDedicateMicrosoftRules_explain>If green, Artica will add rules that allows any computer/user to be connected to Microsoft updates Websites.[br]
+This prevents any non-NTLM/authenticated computer to be banned by the proxy.
+</ProxyDedicateMicrosoftRules_explain>
 <proxy_access_events>Proxy requests</proxy_access_events>
 <proxy_behavior>Proxy behavior</proxy_behavior>
 <proxy_behavior_explain>You can define here the behavior of your proxy service.[br]
@@ -4111,6 +4184,14 @@ Do you want to carry out this operation ?
 The use of this option is useful only when the [b]Last-Modified[/b] header is present.
 </reload-into-ims>
 <reloading_service>Reloading service</reloading_service>
+<reload_into_ims>Reload redirected to cache</reload_into_ims>
+<reload_into_ims_explain>
+When turn to green this option, client no-cache or "reload" requests will be changed to If-Modified-Since requests.[br]
+Doing this VIOLATES the HTTP standard.[br]
+Turning it green may give proxy a better hit ratio, but it will no longer be
+possible for the end users to use shift+reload to force the download of
+a fresh copy.
+</reload_into_ims_explain>
 <reload_network>Reload network</reload_network>
 <reload_proxy>Reload the proxy service</reload_proxy>
 <reload_proxy_service>Reload the proxy service</reload_proxy_service>
@@ -4331,6 +4412,7 @@ for example replace bing.com to google.com or microsoft.com to ubuntu.com :=).
 <roles>roles</roles>
 <root_account>Root account</root_account>
 <root_password2>Root password</root_password2>
+<rotate>Rotate</rotate>
 <rotate_events>Rotate events</rotate_events>
 <rotate_logs_each>Rotate logs each</rotate_logs_each>
 <rotate_logs_files>Rotate log files</rotate_logs_files>
@@ -4353,6 +4435,7 @@ All added rules are stronger than organizations routing rules..</routing_recipie
 <routing_track>Track connections</routing_track>
 <rsync_out_port_explain>You need to allow the 873 TCP outgoing port in order to let downloading packages.</rsync_out_port_explain>
 <rsyslogd>Syslog Daemon</rsyslogd>
+<rules_retention>Rules retention</rules_retention>
 <rule_group>Rule group</rule_group>
 <running_since>Running since</running_since>
 <run_backup>Run backup</run_backup>
@@ -4411,6 +4494,7 @@ Note: [b]Monthly and weekly statistics are already scheduled[/b].</sarg_build_da
 <scan_dir>Scan folder</scan_dir>
 <scan_filesystem_size>Scan filesystem size</scan_filesystem_size>
 <scan_filesystem_size_explain>This task parse all directories on your disk and calculate the used size for each directory in order to display report file system disk space usage</scan_filesystem_size_explain>
+<scan_interval>Scan interval</scan_interval>
 <scan_mailattachments_queue>
 This task can be used with the "Attachments hosting" feature in the MimeDefang section.[br]
 It is in charge to upload extracted attachments to the MySQL database and clean old attachments.
@@ -4726,6 +4810,12 @@ This task parse all hourly lost tables and inject data into the standard cycle.<
 <squid_csv_logs_explain>Save real-time events in CSV format in order to play with logs directly with a software that understand the csv format such as Microsof Excel or OpenOffice.</squid_csv_logs_explain>
 <squid_DisableDeadParents>If the proxy detect a dead parent, the Artica watchdog will remove it temporary from the configuration file and reload the proxy service.</squid_DisableDeadParents>
 <squid_DisableDeadSqlParents>if the Disable dead parent is enabled and if this option is checked, then the parent will be disable permanently from the Artica configuration file</squid_DisableDeadSqlParents>
+<squid_dynamic_cache_rules_explain>This feature allow artica to dynamically enforce Proxy cache rules by analyzing statistics.[br]
+Artica will scan each 4 hours statistics and enforce the TOP downloaded websites into system cache with the level 5.[br]
+If you using default parameters, the top 100 websites that are "not already cached" will be enforced.[br]
+The level 5 defines caching data for a minimal of 3 days and for a maximal of 1 week with a minimal refresh interval.[br]
+To not encounter issues on some websites that require to not be freshed, you can use the blacklist in order to ban Artica enforcing the cache system. 
+</squid_dynamic_cache_rules_explain>
 <squid_enable_nat_compatibility_text>If turned to green then the Proxy will be turned to "firewall NAT compatility mode".[br]
 The NAT compatibility not require the proxy to be the main gateway.[br]
 Your Firewall is able to forward connections to the proxy defined ports.
@@ -5077,6 +5167,7 @@ Check events in order to see if it was successfully executed.
 <TEXT_TO_CSV>CSV to LDAP</TEXT_TO_CSV>
 <then_set_proxy_parameters>then set proxy parameters</then_set_proxy_parameters>
 <thewebproxy_appliance>The Web Proxy statistics Appliance</thewebproxy_appliance>
+<the_specified_module_is_not_installed>The specified module is not installed</the_specified_module_is_not_installed>
 <the_transarent_mode_is_disabled_acl>this acl will be not used, the transparent mode is currently disabled</the_transarent_mode_is_disabled_acl>
 <thishour>This hour</thishour>
 <this_computer_already_exists>This computer already exists</this_computer_already_exists>
@@ -5088,6 +5179,7 @@ Check events in order to see if it was successfully executed.
 <this_month>this month</this_month>
 <this_request_contains_no_data>This request contains no data</this_request_contains_no_data>
 <this_rule_is_disabled>This rule is disabled, there will be no change on the main service...</this_rule_is_disabled>
+<this_server_is_not_enabled_proxy_parent>This module can only be used if this server is enabled has proxy parent.</this_server_is_not_enabled_proxy_parent>
 <this_service_is_managed_remote_statsappliance>Warning, cannot display this feature.[br]
 This service is managed by the remote statistics appliance.</this_service_is_managed_remote_statsappliance>
 <this_table_is_categorized>This table is categorized</this_table_is_categorized>
@@ -5110,6 +5202,7 @@ This task will parse this queue in order to build thumbnails for stattistics pur
 <title2>Title</title2>
 <token>token</token>
 <top_10>TOP 10</top_10>
+<top_cached_websites>TOP cached websites</top_cached_websites>
 <top_categories>Top categories</top_categories>
 <top_categories_by_hits>Top categories by hits</top_categories_by_hits>
 <top_categories_by_size>Top categories by size</top_categories_by_size>
@@ -5117,6 +5210,7 @@ This task will parse this queue in order to build thumbnails for stattistics pur
 <top_members>TOP Members</top_members>
 <top_members_by_hits>TOP members by requests</top_members_by_hits>
 <top_members_by_size>TOP members by downloaded size</top_members_by_size>
+<top_not_cached_websites>TOP not cached websites</top_not_cached_websites>
 <top_ou>Top organizations</top_ou>
 <top_searchengines_by_hits>TOP search engines by hits</top_searchengines_by_hits>
 <top_videos>Top videos</top_videos>
@@ -5252,6 +5346,9 @@ You will find here unknown websites.[br]When clicking on a day, you will be able
 <unlock_webstats_explain2>It turn to green then you will have access to the local proxy configuration.[br]
 Access events still sent to the Web statistics appliance but all central settings will be not applied to the proxy.[br]
 </unlock_webstats_explain2>
+<unrestricted_networks>Unrestricted networks</unrestricted_networks>
+<unrestricted_networks_text>By default the HTTP compressor restrict access to proxy addresses defined in the Proxy clients section.[br]
+If green the all clients are allowed to use the service</unrestricted_networks_text>
 <update2>Update</update2>
 <UpdateUtility>UpdateUtility</UpdateUtility>
 <UpdateUtilityEnableHTTP_explain>If you enable this HTTP service, all your Kaspersky products will be redirected to the new local repository server.[br]
@@ -5278,6 +5375,7 @@ order to build a local repository</update_debian_repository_explain>
 <update_precompiled_ufdb>Update precompiled databases</update_precompiled_ufdb>
 <update_precompiled_ufdb_explain>This task will download precompiled update databases for Web Filtering engine.[br]
 Precompiled databases are the production bases for filter your users.</update_precompiled_ufdb_explain>
+<update_schedule>Update schedule</update_schedule>
 <update_squid>Update Squid Proxy</update_squid>
 <update_SQUIDAB_EXP>The Artica categories statistics databases update task is running.
 [br]During this task, your server should be loaded.[br]
@@ -5369,6 +5467,7 @@ The client maintains multiple authentication contexts by using a unique UID for 
 This must be inet:IP:PORT like inet:127.0.0.1:1052 or inet:myhostname:1052.[br]
 Set it to null if you did not want to activate et remote milter service.
 </use_milter_remote_service_explain>
+<use_parent_proxy>Use a parent proxy</use_parent_proxy>
 <use_radius>Use RADIUS</use_radius>
 <use_remote_dhcp_server>Use a remote DHCP server</use_remote_dhcp_server>
 <use_remote_dhcp_server_chilli>The HotSpot must act as a DHCP server, if set, DHCP requests will be relayed to the specified server</use_remote_dhcp_server_chilli>
@@ -5535,6 +5634,8 @@ Note: After the certificate generation, you need to restart all linked services.
 <warn_no_performance_minimal><b>Server performance issue</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>This operation will restart the proxy service and will stop all current connections.
 Do you want to perform this operation ?</WARN_OPE_RESTART_SQUID_ASK>
+<warn_proxy_service_reloaded>This operation will reload the proxy service.
+Do you want to carry out this operation ?</warn_proxy_service_reloaded>
 <warn_restore_articadb>Restore this backup container into the Zarafa dedicated MySQL engine ?
 Stored Datas will be erased.
 Backup container:</warn_restore_articadb>

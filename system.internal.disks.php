@@ -944,7 +944,7 @@ if(is_array($array)){
 		
 		if($line["CHANGE_LABEL"]){
 			if($line["ID_FS_LABEL"]==null){$line["ID_FS_LABEL"]="{unknown}";}
-			$label=texttooltip("{label}:{$line["ID_FS_LABEL"]}","{edit}: {label}",$line["CHANGE_LABEL_JS"]);
+			$label=texttooltip("{label}:{$line["ID_FS_LABEL"]}","{apply}: {label}",$line["CHANGE_LABEL_JS"]);
 		}
 		
 		$partitions=$partitions . "

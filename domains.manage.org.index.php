@@ -192,7 +192,7 @@ function FillGroupTable(){
 		$description=nl2br($description);
 		$description=str_replace("\n",'',$description);
 		
-		$edit=imgtootltip('edit.jpg','{edit}',"PageEditGroup($gid)");
+		$edit=imgtootltip('edit.jpg','{apply}',"PageEditGroup($gid)");
 		$delete=imgtootltip('x.gif','{delete}:'.$groupname,"DeleteGroup($gid)");
 		if($user->AllowAddGroup==false){$edit=null;$link_edit=null;$delete=null;}
 		$img=imgtootltip('folder-group-29.jpg',$description,$link_edit);
@@ -205,7 +205,7 @@ function FillGroupTable(){
 					<td class='caption'>{group}:&laquo;$groupname&raquo;</td>
 					<td class='caption'>{members}</td>
 					<td class='caption' align='center'>{add}</td>
-					<td class='caption' align='center'>{edit}</td>
+					<td class='caption' align='center'>{apply}</td>
 					<td class='caption' align='center'>{delete}</td>
 				</tr>
 				<tr $selectOver OnClick=\"javascript:LoadMembers('$gid')\">
@@ -1636,7 +1636,7 @@ function organization_users_find_member(){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 	
 	
-		$img=imgtootltip("contact-48.png","{edit}",$js);
+		$img=imgtootltip("contact-48.png","{apply}",$js);
 		if($userARR["telephonenumber"][0]==null){$userARR["telephonenumber"][0]="&nbsp;";}
 		if($userARR["mail"][0]==null){$userARR["mail"][0]="&nbsp;";}
 		$html=$html ."<tr class=$classtr>

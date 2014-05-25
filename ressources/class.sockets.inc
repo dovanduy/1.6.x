@@ -1,7 +1,7 @@
 <?php
 if(isset($_SESSION["TIMEZONES"])){if(function_exists("getLocalTimezone")){@date_default_timezone_set($_SESSION["TIMEZONES"]);}}
 if(isset($GLOBALS["TIMEZONES"])){if(function_exists("getLocalTimezone")){@date_default_timezone_set($GLOBALS["TIMEZONES"]);}}
-error_reporting(E_ALL & ~E_NOTICE);
+//error_reporting(E_ALL & ~E_NOTICE);
 if(!isset($GLOBALS["DEBUG_INCLUDES"])){$GLOBALS["DEBUG_INCLUDES"]=false;}
 if(!isset($GLOBALS["LOGON-PAGE"])){$GLOBALS["LOGON-PAGE"]=false;}
 if(function_exists("debug_mem")){debug_mem();}
@@ -14,8 +14,17 @@ if(function_exists("debug_mem")){debug_mem();}
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 
 if(function_exists("posix_getuid")){
-	if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
-	if(!$GLOBALS["AS_ROOT"]){if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(function_exists("debug_mem")){debug_mem();}session_start();}}
+	if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else
+	{$GLOBALS["AS_ROOT"]=false;}}
+	
+	if(!$GLOBALS["AS_ROOT"]){
+		if(!isset($GLOBALS["KAV4PROXY_NOSESSION"])){$GLOBALS["KAV4PROXY_NOSESSION"]=false;}
+			if(!$GLOBALS["KAV4PROXY_NOSESSION"]){
+				if(function_exists("debug_mem")){debug_mem();
+			}
+			if(!isset($_SESSION["uid"])){session_start();}
+			}
+	}
 }
 class sockets{
 	var $remote_ip;
@@ -548,6 +557,9 @@ function downloadFile($url,$hostname)  {
    				$this->SET_APC_STORE($key,$value);
    				return true;
    			}
+   		}else{
+   			writelogs("SET $key=".strlen($value)." Permission denied...!!",__CLASS__ . "/" . __FUNCTION__,__FILE__,__LINE__);
+   			$this->set_apache_perms("services.php?chown-medir=yes");
    		}
    		
    		
@@ -565,8 +577,8 @@ function downloadFile($url,$hostname)  {
    	   	$alors=@file_put_contents($targetedFile,$value);
    	    
    	    if(!$alors){
+   	    	writelogs("Permissions denied services.php?chown-medir=yes",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
    	    	$this->getFrameWork("services.php?chown-medir=yes");
-   	    	
    	    	$alors=@file_put_contents($targetedFile,$value);
    	    	writelogs("$targetedFile Permissions denied",__CLASS__ . "=>" . __FUNCTION__,__FILE__);
    	    	if(!$alors){return false;}

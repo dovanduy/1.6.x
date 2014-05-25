@@ -79,7 +79,6 @@ function WizardExecute(){
 	writeprogress(5,"Server ID: $uuid");
 	sleep(2);
 	writeprogress(10,"Scanning hardware/software");
-	
 	shell_exec("/etc/init.d/artica-process1 start");
 
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -97,12 +96,13 @@ function WizardExecute(){
 	
 
 	if(!is_array($savedsettings)){
-		writeprogress(100,"No saved settings...");
+		writeprogress(110,"No saved settings Corrupted Array...");
 		die();
 	}
 	if(count($savedsettings)<4){
-		writeprogress(100,"No saved settings...");
-		die();}
+		writeprogress(110,"No saved settings too less elements...");
+		die();
+	}
 		
 	writeprogress(30,"Creating services");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.initslapd.php  --force >/dev/null 2>&1 &");
@@ -175,9 +175,11 @@ function WizardExecute(){
 	writeprogress(60,"Setting hostname");
 	$nic->set_hostname("$netbiosname.$domainname");
 	
-	writeprogress(60,"Apply networks");
+	writeprogress(60,"Building resolv configuration");
 	$sock->getFrameWork("services.php?resolvConf=yes");
+	writeprogress(60,"Settings permissions");
 	$sock->getFrameWork("services.php?folders-security=yes");
+	writeprogress(60,"Building caches pages...");
 	$sock->getFrameWork("services.php?cache-pages=yes");
 	sleep(1);
 	
@@ -187,7 +189,7 @@ function WizardExecute(){
 	$ldap->AddDomainEntity($savedsettings["organization"],$savedsettings["smtp_domainname"]);
 	$sock=new sockets();
 	
-	writeprogress(60,"Reconfiguring networks");
+	writeprogress(60,"Building network scripts");
 	shell_exec("$php5 /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1");
 	$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.postfix.maincf.php --reconfigure");
 	$unix->THREAD_COMMAND_SET("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus");

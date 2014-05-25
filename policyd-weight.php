@@ -193,7 +193,7 @@ function popup_index(){
 			$EnablePolicydWeight_field
 			</div>
 			<hr>
-			<div style='text-align:right'><input type='button' OnClick=\"javascript:EnablePolicydWeight();\" value='{edit}&nbsp;&raquo;'></div>
+			<div style='text-align:right'><input type='button' OnClick=\"javascript:EnablePolicydWeight();\" value='{apply}&nbsp;&raquo;'></div>
 		</td>
 		<td valign='top'>
 			$panel
@@ -241,7 +241,7 @@ $form="
 <tr>
 	<td colspan=2 align='right'>
 		<hr>
-		<input type='button' OnClick=\"javascript:ParseForm('ffmpolicy1','$page',false,false,false,'ffmpolicy1Div',null,x_ffmpolicy1);\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:ParseForm('ffmpolicy1','$page',false,false,false,'ffmpolicy1Div',null,x_ffmpolicy1);\" value='{apply}&nbsp;&raquo;'>
 		
 	</td>
 </tr>
@@ -286,7 +286,7 @@ $form="
 <tr>
 	<td colspan=2 align='right'>
 		<hr>
-		<input type='button' OnClick=\"javascript:ParseForm('ffmpolicy2','$page',false,false,false,'ffmpolicy2Div',null,x_ffmpolicy2);\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:ParseForm('ffmpolicy2','$page',false,false,false,'ffmpolicy2Div',null,x_ffmpolicy2);\" value='{apply}&nbsp;&raquo;'>
 		
 	</td>
 </tr>
@@ -343,7 +343,7 @@ $form="
 <tr>
 	<td colspan=2 align='right'>
 		<hr>
-		<input type='button' OnClick=\"javascript:ParseForm('ffmpolicy2','$page',false,false,false,'ffmpolicy2Div',null,x_ffmpolicy3);\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:ParseForm('ffmpolicy2','$page',false,false,false,'ffmpolicy2Div',null,x_ffmpolicy3);\" value='{apply}&nbsp;&raquo;'>
 	</td>
 </tr>
 </table>

@@ -230,6 +230,11 @@ function ifStopped(){
 				return;
 			}
 			
+			if(preg_match("#service disabled#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
 			if(preg_match("#Starting.*?Success PID#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;

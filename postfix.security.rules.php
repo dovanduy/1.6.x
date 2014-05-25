@@ -191,7 +191,7 @@ function array_mynetworks(){
 function BuildTable($img,$title,$text,$link=null){
 	
 	if($link<>null){
-		$link=imgtootltip('edit.gif','{edit}',$link);
+		$link=imgtootltip('edit.gif','{apply}',$link);
 	}
 	$style="style='border-bottom:1px dotted #8E8785;'";
 	return "<tr>

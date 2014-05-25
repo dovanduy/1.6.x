@@ -1330,7 +1330,7 @@ function main_edit_dnsrbl(){
 	<td><textarea name='infos' rows=1 style='width:100%'>{$array[2]}</textarea>
 	</tr>	
 <tr>
-<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseYahooForm('ffm11245','$page',true);LoadAjax('acllist','$page?dnsbllist=true');\" value='{edit}&nbsp;&raquo;'></td>
+<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseYahooForm('ffm11245','$page',true);LoadAjax('acllist','$page?dnsbllist=true');\" value='{apply}&nbsp;&raquo;'></td>
 </tr>
 </table>
 </FORM>

@@ -823,7 +823,7 @@ class mysql_squid_builder{
 			$this->tasks_array[51]="{restart_ufdb}";
 			$this->tasks_array[52]="{proxy_status}";
 			$this->tasks_array[53]="{build_proxy_statistics}";
-			
+			$this->tasks_array[54]="{perfom_proxy_log_rotation}";
 			
 			
 			
@@ -882,6 +882,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[51]="{restart_ufdb_explain}";
 			$this->tasks_explain_array[52]="{proxy_status_explain}";
 			$this->tasks_explain_array[53]="{build_proxy_statistics_explain}";
+			$this->tasks_explain_array[54]="{perfom_proxy_log_rotation_explain}";
 			
 			
 			
@@ -927,6 +928,7 @@ class mysql_squid_builder{
 			$this->tasks_processes[51]="exec.ufdb.php --restart";
 			$this->tasks_processes[52]="exec.status.php --all-squid";
 			$this->tasks_processes[53]="exec.squid.stats.central.php";
+			$this->tasks_processes[54]="exec.squid.php --rotate --byschedule";
 			
 			
 			$this->tasks_remote_appliance["51"]=true;
@@ -1187,6 +1189,15 @@ class mysql_squid_builder{
 	
 	
 	public function TABLE_SIZE($table,$database=null){
+		$database=trim($database);
+		if($database=="artica_backup"){$database=$this->database;}
+		if($database=="artica_events"){$database=$this->database;}
+		if($database=="ocsweb"){$database=$this->database;}
+		if($database=="postfixlog"){$database=$this->database;}
+		if($database=="powerdns"){$database=$this->database;}
+		if($database=="zarafa"){$database=$this->database;}
+		if($database=="syslogstore"){$database=$this->database;}
+		if($database==null){$database=$this->database;}
 		if(!function_exists("mysql_connect")){return 0;}
 		$sql="show TABLE STATUS WHERE Name='$table'";
 		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));
@@ -1196,6 +1207,15 @@ class mysql_squid_builder{
 	}
 	
 	FUNCTION TABLE_STATUS($table,$database=null){
+		$database=trim($database);
+		if($database=="artica_backup"){$database=$this->database;}
+		if($database=="artica_events"){$database=$this->database;}
+		if($database=="ocsweb"){$database=$this->database;}
+		if($database=="postfixlog"){$database=$this->database;}
+		if($database=="powerdns"){$database=$this->database;}
+		if($database=="zarafa"){$database=$this->database;}
+		if($database=="syslogstore"){$database=$this->database;}
+		if($database==null){$database=$this->database;}
 		if(!function_exists('mysql_connect')){
 		$this->writelogs("Error, mysql_connect function does not exists...",__FUNCTION__,__LINE__);return false;}
 		return @mysql_fetch_array($this->QUERY_SQL("SHOW TABLE STATUS WHERE Name='$table'",$database));		
@@ -1203,6 +1223,14 @@ class mysql_squid_builder{
 	
 	public function TABLE_EXISTS($table,$database=null){
 		$keyCache=__FUNCTION__;
+		$database=trim($database);
+		if($database=="artica_backup"){$database=$this->database;}
+		if($database=="artica_events"){$database=$this->database;}
+		if($database=="ocsweb"){$database=$this->database;}
+		if($database=="postfixlog"){$database=$this->database;}
+		if($database=="powerdns"){$database=$this->database;}
+		if($database=="zarafa"){$database=$this->database;}
+		if($database=="syslogstore"){$database=$this->database;}
 		if($database==null){$database=$this->database;}
 		if(function_exists("debug_backtrace")){
 			try {
@@ -1237,7 +1265,16 @@ class mysql_squid_builder{
 		
 	}
 	private function DATABASE_EXISTS($database){
-		if($database<>$this->database){$database=$this->database;}
+		$database=trim($database);
+		if($database=="artica_backup"){$database=$this->database;}
+		if($database=="artica_events"){$database=$this->database;}
+		if($database=="ocsweb"){$database=$this->database;}
+		if($database=="postfixlog"){$database=$this->database;}
+		if($database=="powerdns"){$database=$this->database;}
+		if($database=="zarafa"){$database=$this->database;}
+		if($database=="syslogstore"){$database=$this->database;}
+		if($database==null){$database=$this->database;}
+		
 		$sql="SHOW DATABASES";
 		$this->BD_CONNECT();
 		$results=@mysql_query($sql,$this->mysql_connection);
@@ -1250,6 +1287,48 @@ class mysql_squid_builder{
 		
 		return false;
 	}
+	
+	
+	function PRIVILEGES($user,$password){
+		
+		$sql="SELECT User FROM user WHERE User='$user'";
+	
+		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,'mysql'));
+		$userfound=$ligne["User"];
+		$sql="DELETE FROM `mysql`.`db` WHERE `db`.`Db` = '$this->database'";
+		$this->QUERY_SQL($sql,"mysql");
+		if(!$this->ok){
+			writelogs("Failed to delete privileges FROM $this->database \"$this->mysql_error\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			return false;
+		}
+		
+		
+		if($userfound==null){
+			$sql="CREATE USER '$user'@'*' IDENTIFIED BY '$password';";
+			$this->EXECUTE_SQL($sql);
+			if(!$this->ok){echo "GRANT USAGE ON $user Failed with root/root+Password\n `$this->mysql_error`\n";return false;}
+		}
+		
+		
+		$sql="CREATE USER '$user'@'*' IDENTIFIED BY '$password';";
+		$this->EXECUTE_SQL($sql);
+		if(!$this->ok){
+			echo "CREATE USER $user Failed with root/root+Password\n `$this->mysql_error`\n";
+			return false;
+		}
+		
+		$sql="GRANT USAGE ON `$this->database`. *  TO '$user'@'*' IDENTIFIED BY '$password' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;";
+		$this->EXECUTE_SQL($sql);
+		if(!$this->ok){echo "GRANT USAGE ON $user Failed with root/root+Password\n `$this->mysql_error`\n";return false;}
+
+
+		$sql="GRANT ALL PRIVILEGES ON `$this->database` . * TO '$user'@'*' WITH GRANT OPTION ;";
+		$this->EXECUTE_SQL($sql);
+		if(!$this->ok){echo "GRANT USAGE ON $user Failed with root/root+Password\n `$this->mysql_error`\n";return false;}
+	}
+	
+	
+	
 	
 	public function DATABASE_INFOS(){
 		$sql="show TABLE STATUS";
@@ -1525,6 +1604,14 @@ class mysql_squid_builder{
 	
 	public function QUERY_SQL($sql,$database=null,$called=null,$unbuffered=false){
 		$database=trim($database);
+		if($database=="artica_backup"){$database=$this->database;}
+		if($database=="artica_events"){$database=$this->database;}
+		if($database=="ocsweb"){$database=$this->database;}
+		if($database=="postfixlog"){$database=$this->database;}
+		if($database=="powerdns"){$database=$this->database;}
+		if($database=="zarafa"){$database=$this->database;}
+		if($database=="syslogstore"){$database=$this->database;}
+		if($database==null){$database=$this->database;}
 		$this->last_id=0;
 		$this->sql=$sql;
 		$CLASS=__CLASS__;
@@ -1536,7 +1623,7 @@ class mysql_squid_builder{
 			$this->mysql_error="Mysql queries stopped due to SQUID_BD_STOP_PROCESSSING";
 			return false;}}
 		$sql=trim($sql);
-		if($database==null){$database=$this->database;}
+		
 		if($called==null){if(function_exists("debug_backtrace")){$trace=@debug_backtrace();if(isset($trace[1])){$called="called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}}
 		if($GLOBALS["DEBUG_SQL"]){echo "this->BD_CONNECT\n";}
 		@mysql_close($this->mysql_connection);
@@ -1560,8 +1647,8 @@ class mysql_squid_builder{
 	
 	
 		if($GLOBALS["DEBUG_SQL"]){echo "mysql_select_db()\n";}
-		if($GLOBALS['VERBOSE']){$ok=mysql_select_db($this->database,$this->mysql_connection);}else{
-		$ok=@mysql_select_db($this->database,$this->mysql_connection);
+		if($GLOBALS['VERBOSE']){$ok=mysql_select_db($database,$this->mysql_connection);}else{
+		$ok=@mysql_select_db($database,$this->mysql_connection);
 		}
 		
 		if (!$ok){
@@ -1892,7 +1979,8 @@ class mysql_squid_builder{
 	public function LIST_TABLES_HOURS_TEMP(){
 		if(isset($GLOBALS["LIST_TABLES_HOURS_TEMP"])){return $GLOBALS["LIST_TABLES_HOURS_TEMP"];}
 		$array=array();
-		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'squidhour_%'";
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' 
+				AND table_name LIKE 'squidhour_%'";
 		$results=$this->QUERY_SQL($sql);
 		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
 		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
@@ -2195,6 +2283,23 @@ class mysql_squid_builder{
 		return $array;		
 	}
 	
+	public function LIST_TABLES_CACHEHOURS(){
+		if(isset($GLOBALS["LIST_TABLES_CACHEHOURS"])){return $GLOBALS["LIST_TABLES_CACHEHOURS"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE 'cachehour_%'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#cachehour_[0-9]+#", $ligne["c"])){
+				$GLOBALS["LIST_TABLES_CACHEHOURS"][$ligne["c"]]=$ligne["c"];
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $array;
+	}	
+	
 	public function LIST_TABLES_SIZEHOURS(){
 		if(isset($GLOBALS["LIST_TABLES_SIZEHOURS"])){return $GLOBALS["LIST_TABLES_SIZEHOURS"];}
 		$array=array();
@@ -2471,9 +2576,23 @@ class mysql_squid_builder{
 		return $array;		
 	}
 	
-	public function LIST_TABLES_GSIZE(){
+	public function LIST_TABLES_GCACHE(){
 		$array=array();
 		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' 
+				AND table_name LIKE '%_gcache' ORDER BY table_name";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+	
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#[0-9]+_gcache#", $ligne["c"])){$array[$ligne["c"]]=$ligne["c"];}
+		}
+		return $array;
+	}	
+	
+	public function LIST_TABLES_GSIZE(){
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs'
 				AND table_name LIKE '%_gsize' ORDER BY table_name";
 		$results=$this->QUERY_SQL($sql);
 		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
@@ -2526,13 +2645,13 @@ class mysql_squid_builder{
 	
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($ligne["c"]=="category_"){$this->QUERY_SQL("DROP TABLE `category_`");continue;}
-			$GLOBALS["GET_CATEGORIES_PERSO"][$ligne["c"]]=$this->COUNT_ROWS($ligne["c"]);
-			if($GLOBALS["GET_CATEGORIES_PERSO"][$ligne["c"]]==0){continue;}
+			$Count=$this->COUNT_ROWS($ligne["c"]);
+			if($Count==0){continue;}
 			$array[$ligne["c"]]=$ligne["c"];
 		}
 	
 	
-		$GLOBALS["LIST_TABLES_CATEGORIES"]=$array;
+		$GLOBALS["LIST_TABLES_CATEGORIES_PERSO"]=$array;
 		return $array;
 	
 	}	
@@ -2765,6 +2884,10 @@ class mysql_squid_builder{
 	
 	public function TablePrimaireHour($prefix=null,$nomem=false,$table=null){
 		
+		if($prefix>0){
+			$table="squidhour_$prefix";
+		}
+		
 		
 		if($table==null){
 			if($prefix==null){$prefix=date("YmdH");}
@@ -2854,6 +2977,38 @@ class mysql_squid_builder{
 		if(!$this->ok){ return false; }
 		
 	}
+	
+	public function TablePrimaireCacheHour($prefix=null,$nomem=false,$table=null){
+		
+		if($prefix>0){
+			$table="cachehour_$prefix";
+		}
+		
+		if($table==null){
+			$prefix=date("YmdH");
+			$table="cachehour_$prefix";
+		}
+		
+		$MEM="ENGINE=MEMORY";
+		if($nomem){$MEM="ENGINE=MYISAM";}
+		
+		if($GLOBALS["VERBOSE"]){echo "CREATE TABLE $table...\n";}
+	
+		$sql="CREATE TABLE IF NOT EXISTS `$table` (
+		`zDate` datetime NOT NULL,
+		`size` BIGINT UNSIGNED,
+		cached smallint(1),
+		`familysite` VARCHAR(128) NOT NULL,
+		KEY `zDate` (`zDate`),
+		KEY `cached` (`cached`),
+		KEY `size` (`size`),
+		KEY `familysite` (`familysite`)
+		) $MEM;";
+		$this->QUERY_SQL($sql,$this->database);
+	
+		if(!$this->ok){ return false; }
+	
+		}	
 	
 	public function check_SearchWords_hour($timekey=null,$table=null){
 		
@@ -3773,7 +3928,7 @@ public function CheckTables($table=null,$force=false){
 		
 		
 		
-		$this->QUERY_SQL($sql,$this->database);	
+		
 
 		
 		$sql="CREATE TABLE IF NOT EXISTS `dnsmasq_records` (
@@ -3820,6 +3975,22 @@ public function CheckTables($table=null,$force=false){
 				)  ENGINE = MYISAM;
 			";
 			$this->QUERY_SQL($sql,$this->database);
+			
+			
+			$sql="CREATE TABLE IF NOT EXISTS `cicap_profiles` (
+				`ID` INT( 10 ) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				 `rulename` VARCHAR(90) NOT NULL,
+				 `blacklist` smallint(2) NOT NULL,
+				 `whitelist` smallint(2) NOT NULL,
+				 `enabled` smallint(1) NOT NULL,
+				 KEY `rulename` (`rulename`),
+				 KEY `blacklist` (`blacklist`),
+				 KEY `whitelist` (`whitelist`),
+				 KEY `enabled` (`enabled`)
+				)  ENGINE = MYISAM AUTO_INCREMENT = 5;
+			";
+			$this->QUERY_SQL($sql,$this->database);			
+			
 			
 			$sql="CREATE TABLE IF NOT EXISTS `webfilter_blkgp` (
 				`ID` INT( 10 ) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -4327,7 +4498,32 @@ public function CheckTables($table=null,$force=false){
 			 KEY `rulename`(`rulename`),
 			 KEY `zorder`(`zorder`)
 			 )  ENGINE = MYISAM;";
-		$this->QUERY_SQL($sql,$this->database);		
+		$this->QUERY_SQL($sql,$this->database);	
+
+		
+		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`main_cache_dyn` (
+			`familysite` VARCHAR(128) PRIMARY KEY,
+			`enabled` smallint(1) NOT NULL DEFAULT 1,
+			`level` smallint(2) NOT NULL DEFAULT 5,
+			`zDate` DATETIME,
+			 KEY `familysite`(`familysite`),
+			 KEY `enabled`(`enabled`),
+			 KEY `zDate`(`zDate`)
+			 )  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);	
+
+		if(!$this->FIELD_EXISTS("main_cache_dyn", "OnlyImages")){
+			$this->QUERY_SQL("ALTER TABLE `main_cache_dyn` ADD `OnlyImages`  smallint( 1 ) DEFAULT '0'");
+		}
+		if(!$this->FIELD_EXISTS("main_cache_dyn", "OnlyeDoc")){
+			$this->QUERY_SQL("ALTER TABLE `main_cache_dyn` ADD `OnlyeDoc`  smallint( 1 ) DEFAULT '0'");
+		}
+		if(!$this->FIELD_EXISTS("main_cache_dyn", "OnlyFiles")){
+			$this->QUERY_SQL("ALTER TABLE `main_cache_dyn` ADD `OnlyFiles`  smallint( 1 ) DEFAULT '0'");
+		}				
+		if(!$this->FIELD_EXISTS("main_cache_dyn", "OnlyMultimedia")){
+			$this->QUERY_SQL("ALTER TABLE `main_cache_dyn` ADD `OnlyMultimedia`  smallint( 1 ) DEFAULT '0'");
+		}		
 		
 		$sql="CREATE TABLE IF NOT EXISTS `squidlogs`.`cache_rules` (
 			`ID` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -5172,7 +5368,31 @@ public function CheckTables($table=null,$force=false){
 				  KEY `modeblk` (`modeblk`)
 				)  ENGINE = MYISAM;";
 			$this->QUERY_SQL($sql,$this->database);
-		}	
+		}
+		
+		$sql="CREATE TABLE IF NOT EXISTS `cicap_profiles_blks` (
+				   `ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+				    mainid INT(3) NOT NULL,
+				  	bltype smallint(1) NOT NULL,
+				  	category VARCHAR(128) NOT NULL,
+				  KEY `mainid` (`mainid`),
+				  KEY `category` (`category`),
+				  KEY `bltype` (`bltype`)
+				)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);		
+
+
+		$sql="CREATE TABLE IF NOT EXISTS `cicap_rules` (
+				   `ID` INT( 5 ) NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+				    rulename VARCHAR(128) NOT NULL,
+				  	GroupType smallint(1) NOT NULL,
+				  	ProfileID INT(10) NOT NULL,
+					enabled smallint(1) NOT NULL,
+				  KEY `rulename` (`rulename`),
+				  KEY `GroupType` (`GroupType`),
+				  KEY `enabled` (`enabled`)
+				)  ENGINE = MYISAM;";
+		$this->QUERY_SQL($sql,$this->database);		
 		
 		if(!$this->TABLE_EXISTS('webfilter_termsg',$this->database)){	
 			$sql="CREATE TABLE IF NOT EXISTS `webfilter_termsg` (
@@ -5540,6 +5760,7 @@ public function CheckTables($table=null,$force=false){
 			  `zDate` date  NOT NULL,
 			  `size` BIGINT UNSIGNED  NOT NULL,
 			  `hits`  BIGINT UNSIGNED  NOT NULL,
+				
 			  PRIMARY KEY (`zmd5`),
 			  KEY `MAC` (`MAC`),
 			  KEY `zDate` (`zDate`),
@@ -5557,6 +5778,7 @@ public function CheckTables($table=null,$force=false){
 		if(!$this->FIELD_EXISTS("squidtpls", "template_header")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_header` LONGTEXT  NOT NULL");}
 		if(!$this->FIELD_EXISTS("squidtpls", "template_link")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_link` smallint(1)  NOT NULL,ADD INDEX (`template_link`)");}
 		if(!$this->FIELD_EXISTS("squidtpls", "template_uri")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `template_uri` VARCHAR(255)  NOT NULL");}
+		if(!$this->FIELD_EXISTS("squidtpls", "emptytpl")){$this->QUERY_SQL("ALTER TABLE `squidtpls` ADD `emptytpl` smallint(1)  NOT NULL");}
 		
 		if(!$this->TABLE_EXISTS('tables_hours',$this->database)){	
 		$sql="CREATE TABLE IF NOT EXISTS `tables_hours` (
@@ -6188,6 +6410,7 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 		if(preg_match("#^\*\.(.+)#", $sitename,$re)){$sitename=$re[1];}
 		if(substr($sitename, 0,1)=="."){$sitename=substr($sitename, 1,strlen($sitename));}
 		if(trim($sitename)==null){return;}
+		if(preg_match("#^www[0-9]+\.(.+)#", $sitename,$re)){$sitename=$re[1];}
 		
 		
 		$IpClass=new IP();
@@ -6218,6 +6441,8 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 		
 	
 	if(!$nocache){
+		$t1=time();
+		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_TEMP ( $sitename ) *********\n";}
 		$cat=$this->GET_CATEGORIES_TEMP($sitename);
 	}
 	
@@ -6226,36 +6451,58 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 	$familysite=$this->GetFamilySites($sitename);
 	
 	if($familysite<>$sitename){
-		
+		$t1=time();
+		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_TEMP ( $sitename ) *********\n";}
 		$cat=$this->GET_CATEGORIES_TEMP($sitename);
 		if($cat<>null){ 
 			if(isset($_REQUEST["WEBTESTS"])){echo "Cache: ";}
 			if($cat=="unknown"){return null;} return $cat; }
 	}
+	
+	if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_PERSO ( $sitename ) *********\n";}
+	$t1=time();
+	$cat=$this->GET_CATEGORIES_PERSO($sitename);
+	if($cat<>null){
+		if(isset($_REQUEST["WEBTESTS"])){echo "Perso: ";}
+		$this->categorize_temp($sitename,$cat);
+		return $cat;
+	}
+	if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_PERSO ( $sitename ) ". distanceOfTimeInWords($t1,time(),true)."\n";}
+	
+	
+	
+	if(!$noArticaDB){
+		$t1=time();
+		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_DB ( $sitename ) *********\n";}
+		if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_DB($sitename)\n";}
+		$cat=$this->GET_CATEGORIES_DB($sitename);
+		if($cat<>null){
+			if(isset($_REQUEST["WEBTESTS"])){echo "ArticaDB: ";}
+			$this->categorize_temp($sitename,$cat); return $cat;}
+			if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_DB ( $sitename ) ". distanceOfTimeInWords($t1,time(),true)."\n";}
+	}
+	
+	if(!$noheuristic){
+		$t1=time();
+		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_HEURISTICS ( $sitename ) *********\n";}
+		if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_HEURISTICS($sitename)\n";}
+		$cat=$this->GET_CATEGORIES_HEURISTICS($sitename);
+		if($cat<>null){
+			$this->categorize_temp($sitename,$cat); 
+			return $cat;
+		}
+		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_HEURISTICS ( $sitename ) ". distanceOfTimeInWords($t1,time(),true)."\n";}
+	}
 
 	
 	if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_PERSO($sitename) noArticaDB = $noArticaDB\n";}	
-	$cat=$this->GET_CATEGORIES_PERSO($sitename);
-	if($cat<>null){ 
-		if(isset($_REQUEST["WEBTESTS"])){echo "Perso: ";}
-		$this->categorize_temp($sitename,$cat); return $cat;}
-		
+	
+	
 			
-	if(!$noArticaDB){
-		if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_DB($sitename)\n";}
-		$cat=$this->GET_CATEGORIES_DB($sitename);
-		if($cat<>null){ 
-			if(isset($_REQUEST["WEBTESTS"])){echo "ArticaDB: ";}
-			$this->categorize_temp($sitename,$cat); return $cat;}
-	 }
-		
-	if(!$noheuristic){
-		if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_HEURISTICS($sitename)\n";}
-		$cat=$this->GET_CATEGORIES_HEURISTICS($sitename);
-		if($cat<>null){ $this->categorize_temp($sitename,$cat); return $cat;}
-	}
+
 			
 	if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_GOOGLE_SAFE($sitename)\n";}
+	$t1=time();
 	$cat=$this->GET_CATEGORIES_GOOGLE_SAFE($sitename);
 	if($cat<>null){if(isset($_REQUEST["WEBTESTS"])){echo "Google: ";}
 		$this->categorize($sitename, $cat);
@@ -6445,6 +6692,7 @@ private function GET_CATEGORIES_PERSO($sitename){
 	$tablescat_count=0;
 	$cattmp=array();
 	reset($tablescat);
+	$sitename=trim(strtolower($sitename));
 	
 	$this->cloudlogs("$pagename: Internal Database -> $sitename");
 	$t1=time();
@@ -6452,32 +6700,34 @@ private function GET_CATEGORIES_PERSO($sitename){
 	
 	while (list ($table, $none) = each ($tablescat) ){
 		if($table=="category_"){continue;}
-		$tablescat_count++;
-		
-		if($GLOBALS["GET_CATEGORIES_PERSO"][$table]==0){continue;}
-		
-		
-		$sql="SELECT `pattern` FROM $table WHERE `pattern`='$sitename' AND enabled=1";
-		$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
-		
-		if(!$this->ok){
-			$this->ToSyslog("$table:: $this->mysql_error");
-			$this->cloudlogs("$table:: $this->mysql_error");
-			if(preg_match("#crashed#", $this->mysql_error)){if($GLOBALS["AS_ROOT"]){echo "GET_CATEGORIES($sitename) -> \"$this->mysql_error\"\n"; die();} }
-			if($GLOBALS["AS_ROOT"]){echo "<strong>$tablescat_count/$CountDeTables: GET_CATEGORIES($sitename) -> \"$this->mysql_error\"</strong><br>\n";}
+		if(!is_file("/home/artica/categories_perso/$table/domains.db")){
+			unset($GLOBALS["LIST_TABLES_CATEGORIES_PERSO"][$table]);
 			continue;
 		}
-				
-		$ligne["pattern"]=trim($ligne["pattern"]);
-		if($ligne["pattern"]==null){continue;}
-		if($GLOBALS["VERBOSE"]){echo "<strong>$tablescat_count/$CountDeTables Found {$ligne["pattern"]} FOR \"$sitename\" in ". __CLASS__ ." line: ".__LINE__."</strong><br>\n";}
-		$category=$this->tablename_tocat($table);
-		if($category==null){
-			if($GLOBALS["VERBOSE"]){echo "<strong>tablename_tocat($table) => NULL !!</strong><br>\n";}
-			continue;}
 		
-		if($category=="reaffected"){continue;}
+		$tablescat_count++;
+		
+		$id = dba_open("/home/artica/categories_perso/$table/domains.db", "r","db4");
+		if(!$id){
+			if(isset($_REQUEST["WEBTESTS"])){echo "/home/artica/categories_perso/$table/domains.db failed\n";}
+			if($GLOBALS["VERBOSE"]){echo "/home/artica/categories_databases/$table.db failed...\n";}
+			writelogs("/home/artica/categories_perso/$table/domains.db",__CLASS__,__FUNCTION__,__FILE__,__LINE__);
+			dba_close($id);
+			continue;
+		}
+		
+		
+		if(!dba_exists($sitename,$id)){
+			dba_close($id);
+			continue;
+		}
+			
+		$category=$this->tablename_tocat($table);
+		if($GLOBALS["VERBOSE"]){echo "GET_CATEGORIES: Found $category FOR \"$sitename\" in ". __CLASS__ ." line: ".__LINE__."\n";}
 		$cattmp[$category]=$category;
+		
+		dba_close($id);
+		$tablescat_count++;
 	
 						
 	}

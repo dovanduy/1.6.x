@@ -2912,7 +2912,9 @@ private function smtp_sasl_password_map(){
 		$regex=array();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$pattern=$ligne["pattern"];
+			$pattern=trim($ligne["pattern"]);
+			$pattern=str_replace("\n", "", $pattern);
+			$pattern=str_replace("\r", "", $pattern);
 			$flags=$ligne["flags"];
 			$action=$ligne["action"];
 			$pcr=$ligne["pcre"];

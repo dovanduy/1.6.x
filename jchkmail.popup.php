@@ -96,7 +96,7 @@ function clamav_popup(){
 			<td>" . Field_yesno_checkbox('SCANNER_SAVE',$chk->CONF["SCANNER_SAVE"])."</td>
 		</tr>	
 		<tr>
-			<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMCLAM','$page',true);\" value='{edit}&nbsp;&raquo;'></td>
+			<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMCLAM','$page',true);\" value='{apply}&nbsp;&raquo;'></td>
 		</tr>
 		</table>
 	</td>
@@ -272,7 +272,7 @@ function RejectShortMsgs_rule(){
 		<td>" . Field_array_Hash($chk->FieldElements,'action',$chk->RejectShortMsgs[$rule][$_GET["pattern"]])."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:RejectShortMsgsEdit();\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:RejectShortMsgsEdit();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>		
 	";
@@ -341,7 +341,7 @@ function Archive_rule(){
 		<td>" . Field_array_Hash($chk->FieldElements,'action',$chk->Archive[$rule][$_GET["pattern"]])."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ArchiveEdit();\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ArchiveEdit();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>		
 	";
@@ -416,7 +416,7 @@ function Archive_settings(){
 		<td>" . Field_yesno_checkbox('ARCHIVE',$chk->CONF["ARCHIVE"],'{enable_disable}')."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMREJECT_ARCHIVE','$page',true);\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMREJECT_ARCHIVE','$page',true);\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 		
 	
@@ -498,7 +498,7 @@ function RejectShortMsgs_settings(){
 		<td>" . Field_text('MIN_BODY_LENGTH',$chk->CONF["MIN_BODY_LENGTH"],'width:90px')."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMREJECT_SHORT_BODIES','$page',true);\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMREJECT_SHORT_BODIES','$page',true);\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 		
 	
@@ -585,7 +585,7 @@ function GreyCheckConnect_edit(){
 		<td><table><tr><td>" . Field_array_Hash($type,"type",$chk->GreyCheckConnect[$_GET["edit"]][1])."</td><td>&nbsp;</td></tr></table></td>
 		</tr>		
 		<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:GreyCheckConnectEdition()\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:GreyCheckConnectEdition()\" value='{apply}&nbsp;&raquo;'></td>
 		</tr>
 		</table>
 		";
@@ -754,7 +754,7 @@ function badmx_format($num,$ip){
 
 return "<table>
 			<tr>	
-				<td nowrap " . CellRollOver("BadMxEdit($num)").">". texttooltip($ip,"{edit}","BadMxEdit($num)")."</td>
+				<td nowrap " . CellRollOver("BadMxEdit($num)").">". texttooltip($ip,"{apply}","BadMxEdit($num)")."</td>
 				<td width=1%>". imgtootltip('ed_delete.gif','{delete}',"BadMxDelete($num)")."</td>
 			</tr>
 		</table>";
@@ -774,7 +774,7 @@ function badmx_edit(){
 		<td>" . Field_text('error',$chk->BadMX[$_GET["edit"]][1])."</td>
 		</tr>
 		<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:BadMxEdition({$_GET["edit"]})\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:BadMxEdition({$_GET["edit"]})\" value='{apply}&nbsp;&raquo;'></td>
 		</tr>
 		</table>
 		";
@@ -912,7 +912,7 @@ function rate_popup(){
 			<td width=1%><img src='img/fw_bold.gif'></td>
 			<td $js><strong style='font-size:12px'>$num</strong></td>
 			<td width=1%>" . Field_text("{$num}_rate",$line,'width:40px')."</td>
-			<td width=1%><input type='button'value='{edit}&nbsp;&raquo;' OnClick=\"javascript:RateEditRow('$num');\"></td>
+			<td width=1%><input type='button'value='{apply}&nbsp;&raquo;' OnClick=\"javascript:RateEditRow('$num');\"></td>
 			<td width=1%>" . imgtootltip('ed_delete.gif','{delete}',"RateDelete('$num')")."</td>
 			</tr>
 			<tr>
@@ -1040,7 +1040,7 @@ function NetClass_edit_ressources(){
 	<tr><td align='right' colspan=2>&nbsp;</td></tr>
 	<tr>
 		<td align='right' colspan=2 style='padding:5px;border-top:1px solid #CCCCCC'>
-			<input type='button' OnClick=\"javascript:ParseForm('ffm1Rate','$page',true);\" value='{edit}&nbsp;&raquo;'>
+			<input type='button' OnClick=\"javascript:ParseForm('ffm1Rate','$page',true);\" value='{apply}&nbsp;&raquo;'>
 		</td>
 	</tr>
 	</table></form>";

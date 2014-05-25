@@ -557,12 +557,12 @@ function nmap_scan_period_save($ipaddr,$mac,$status){
 function nmap_scan_single($mac,$ipaddrZ=null){
 	$unix=new unix();
 	$users=new usersMenus();
-	if(!is_file($users->NMAP_PATH)){ build_progress("{failed} err.".__LINE__,110); return;}
+	if(!is_file($users->NMAP_PATH)){ build_progress("{operation_failed} err.".__LINE__,110); return;}
 	if($mac=="00:00:00:00:00:00"){$mac=null;}
 	
 	if($mac==null){
 		if($ipaddrZ==null){
-			build_progress("{failed} err.".__LINE__,110); 
+			build_progress("{operation_failed} err.".__LINE__,110); 
 			return;
 		}
 	}
@@ -595,7 +595,7 @@ function nmap_scan_single($mac,$ipaddrZ=null){
 	}
 	
 	if(count($ipaddr)==0){
-		build_progress("{failed} no ip found err.".__LINE__,110);
+		build_progress("{operation_failed} no ip found err.".__LINE__,110);
 		return;
 	}
 	

@@ -107,7 +107,7 @@ function connexions_list(){
 		while (list ($conexionname, $m_array) = each ($array) ){
 			$conexionname_enc=base64_encode($conexionname);
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$open=imgtootltip("online-con-32.png","{edit}","Loadjs('$page?add-vpn-con-js=yes&name=$conexionname_enc');");
+			$open=imgtootltip("online-con-32.png","{apply}","Loadjs('$page?add-vpn-con-js=yes&name=$conexionname_enc');");
 			$delete=imgtootltip("delete-32.png","{delete}","VPNDelCon('$conexionname_enc')");
 			$color="black";
 			if($m_array["ENABLED"]<>1){$color="#A29B9B";}

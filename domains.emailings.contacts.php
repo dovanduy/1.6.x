@@ -91,7 +91,7 @@ function popup_add_contact(){
 		
 		if($ID<>null){
 			$logo="contact-128.png";
-			$button_title="{edit}";
+			$button_title="{apply}";
 			$resfresh_after=null;
 			$sql="SELECT * FROM emailing_{$_GET["dbname"]} WHERE ID=$ID";
 			$q=new mysql();

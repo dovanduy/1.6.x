@@ -8316,7 +8316,12 @@ function postfix_whitelisted_global(){
 	$unix->THREAD_COMMAND_SET($cmd);	
 	$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.milter-greylist.php";		
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	$unix->THREAD_COMMAND_SET($cmd);		
+	$unix->THREAD_COMMAND_SET($cmd);
+	$cmd=LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.amavis.php --whitelist";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	$unix->THREAD_COMMAND_SET($cmd);
+	
+	
 }
 function cyrus_db_config(){
 	$unix=new unix();

@@ -4776,6 +4776,7 @@ public function CheckTableTaskEvents($tablename){
 				  `lvm_size` int(3) NOT NULL,
 				  `UseLoopDisk` smallint(1) NOT NULL DEFAULT '0',
 				  `AsError` smallint(1) NOT NULL DEFAULT '0',
+				  `bandlimit` smallint(1) NOT NULL DEFAULT '0',
 				  `LoopMounts` varchar(255) NOT NULL,
 				  `ou` varchar(255) NOT NULL,
 				  `domainname` VARCHAR( 255 ),
@@ -4805,6 +4806,7 @@ public function CheckTableTaskEvents($tablename){
 				  KEY `groupware_version` (`groupware_version`),
 				  KEY `sslcertificate` (`sslcertificate`),
 				  KEY `enabled` (`enabled`),
+				  KEY `bandlimit` (`bandlimit`),
 				  KEY `ou` (`ou`)
 				) ENGINE=MYISAM;";
 					
@@ -4855,6 +4857,11 @@ public function CheckTableTaskEvents($tablename){
 			$sql="ALTER TABLE `freeweb` ADD `useMysql` smallint(1) NOT NULL DEFAULT '1' AFTER `useSSL` ,ADD INDEX ( `UseMysql` )";
 			$this->QUERY_SQL($sql,'artica_backup');
 			}
+		if(!$this->FIELD_EXISTS("freeweb","bandlimit","artica_backup")){
+			$sql="ALTER TABLE `freeweb` ADD `bandlimit` smallint(1) NOT NULL DEFAULT '0',ADD INDEX ( `bandlimit` )";
+			$this->QUERY_SQL($sql,'artica_backup');
+		}			
+			
 			
 		if(!$this->FIELD_EXISTS("freeweb","enabled","artica_backup")){
 			$sql="ALTER TABLE `freeweb` ADD `enabled` smallint(1) NOT NULL DEFAULT '1' ,ADD INDEX ( `enabled` )";

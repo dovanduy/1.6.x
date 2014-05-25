@@ -370,7 +370,7 @@ function DaemonSettings(){
 		</td>
 		</tr>
 		<tr>
-		<td align='right' colspan=2><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('middle_area','$page?section=yes&tab=1');\"></td>
+		<td align='right' colspan=2><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('middle_area','$page?section=yes&tab=1');\"></td>
 		</tr>
 	</table>") ."</td>
 	</tr>

@@ -213,7 +213,8 @@ function squid_watchdog_events($text){
 
 
 function start($skipGrant=false){
-	if(is_file("/etc/artica-postfix/FROM_ISO")){if(!is_file("/etc/artica-postfix/artica-iso-setup-launched")){return;}}
+	if(is_file("/etc/artica-postfix/FROM_ISO")){
+		if(!is_file("/etc/artica-postfix/artica-iso-setup-launched")){return;}}
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/squiddbstart.pid";
@@ -221,9 +222,6 @@ function start($skipGrant=false){
 	$sock=new sockets();
 	$WORKDIR=$sock->GET_INFO("SquidStatsDatabasePath");
 	if($WORKDIR==null){$WORKDIR="/opt/squidsql";}
-	
-	
-	
 	$SERV_NAME="squid-db";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	$sock=new sockets();

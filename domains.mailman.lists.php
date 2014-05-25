@@ -140,7 +140,7 @@ function add_list(){
 	if(preg_match("#(.+?)@(.+)#",$_GET["add-list"],$re)){
 		$domain=$re[2];
 		$listename=$re[1];
-		$button_name="{edit}";
+		$button_name="{apply}";
 		$pp=null;
 		$filed_list="<strong style='font-size:14px'>$listename</strong><input type='hidden' id='listname' value='$listename'>";
 		$urlLink="<strong style='font-size:14px'>
@@ -381,7 +381,7 @@ function pdns_popup(){
 		<td>$ipf</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{edit}","SavePDNSMailman()")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SavePDNSMailman()")."</td>
 	</table>
 	
 	";

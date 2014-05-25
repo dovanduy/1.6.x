@@ -274,7 +274,7 @@ function salearn_schedule_popup(){
 		<td>". Field_array_Hash($array,"SalearnSchedule",$SalearnSchedule)."&nbsp;{minutes}</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><input type='button' Onclick=\"javascript:SaLearnSave();\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' Onclick=\"javascript:SaLearnSave();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>
 	
@@ -825,7 +825,7 @@ $style="style='padding:3px;border-bottom:1px dotted #CCCCCC'";
 		<tr>
 	<td $style colspan=2 align='right' valign='top'>
 	<hr>
-	". button("{edit}","ParseForm('FFM_DANS5','$page',true);")."
+	". button("{apply}","ParseForm('FFM_DANS5','$page',true);")."
 	
 	</tr>
 

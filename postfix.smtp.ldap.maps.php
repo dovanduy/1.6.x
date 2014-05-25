@@ -132,7 +132,7 @@ function database_list(){
 		
 				$html=$html."
 				<tr class=$classtr>
-					<td width=1%>". imgtootltip("datasource-32.png","{edit}","FormDatabase('$dbindex')")."</td>
+					<td width=1%>". imgtootltip("datasource-32.png","{apply}","FormDatabase('$dbindex')")."</td>
 					<td style='font-size:14px'><center><a href='#' OnClick=\"javascript:FormDatabase('$dbindex')\" style='text-decoration:underline'>{$array["server_host"]}</a></center></td>
 					<td style='font-size:14px'><center><a href='#' OnClick=\"javascript:FormDatabase('$dbindex')\" style='text-decoration:underline'>{{$array["database_type"]}}</a></center></td>
 					<td width=1%><center>". imgtootltip("32-infos.png",$info)."</center></td>

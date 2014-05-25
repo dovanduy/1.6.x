@@ -415,7 +415,7 @@ $script="<script>
 	<tr>
 		<td colspan=2 align='right'>
 		<hr>
-			". button("{edit}","SaveKavMilterGeneral()")."
+			". button("{apply}","SaveKavMilterGeneral()")."
 		</td>
 	</tr>
 	</table>";
@@ -533,7 +533,7 @@ $update_kaspersky=Paragraphe('kaspersky-update-64.png','{UPDATE_ANTIVIRUS}','{AP
 	<td valign='top' >$arr</td>
 	<td valign='top' >$arr3</td>
 	</tr>
-	<td colspan=2 align='right'><hr>". button("{edit}","KavUpdaterSettings()")."</td>
+	<td colspan=2 align='right'><hr>". button("{apply}","KavUpdaterSettings()")."</td>
 	</tr>
 	</table>
 	</div>
@@ -631,8 +631,8 @@ $ScanPolicy=RoundedLightGrey("
 				<td align='left'>" . help_icon('{ErrorAction_text}') . "</td>
 				</tr>
 				<tr>
-				<td colspan=3 align='right'><input type='button' value='{edit}&nbsp;&raquo' style='width:200px'
-				OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('KavMilterdPolicyZone','$page?PolicyRule={$_GET["PolicyRule"]}&PolicyTab={$_GET["PolicyTab"]}')\" value='{edit}&nbsp;&raquo;'>				
+				<td colspan=3 align='right'><input type='button' value='{apply}&nbsp;&raquo' style='width:200px'
+				OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('KavMilterdPolicyZone','$page?PolicyRule={$_GET["PolicyRule"]}&PolicyTab={$_GET["PolicyTab"]}')\" value='{apply}&nbsp;&raquo;'>				
 					</td>
 				</tr>		
 				
@@ -797,8 +797,8 @@ function PageGroupRule_Notify(){
 				
 				
 				<tr>
-				<td colspan=3 align='right'><input type='button' value='{edit}&nbsp;&raquo' style='width:200px'
-				OnClick=\"javascript:ParseForm('ffm11','$page',true);LoadAjax('KavMilterdPolicyZone','$page?PolicyRule={$_GET["PolicyRule"]}&PolicyTab={$_GET["PolicyTab"]}')\" value='{edit}&nbsp;&raquo;'>				
+				<td colspan=3 align='right'><input type='button' value='{apply}&nbsp;&raquo' style='width:200px'
+				OnClick=\"javascript:ParseForm('ffm11','$page',true);LoadAjax('KavMilterdPolicyZone','$page?PolicyRule={$_GET["PolicyRule"]}&PolicyTab={$_GET["PolicyTab"]}')\" value='{apply}&nbsp;&raquo;'>				
 					</td>
 				</tr>		
 				

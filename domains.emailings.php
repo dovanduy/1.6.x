@@ -562,7 +562,7 @@ function emailing_search(){
 				if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 				$js="Loadjs('domains.emailings.contacts.php?ou=$ou&dbname=$databasename&ID={$ligne["ID"]}')";
 				$js_delete="Loadjs('domains.emailings.contacts.php?ou=$ou&dbname=$databasename&ID={$ligne["ID"]}&delete=yes')";
-				$img=imgtootltip("contact-48.png","{edit}","$js");
+				$img=imgtootltip("contact-48.png","{apply}","$js");
 				$delete=imgtootltip("delete-32.png","{delete}","$js_delete");
 				$html=$html."
 				<tr  class=$classtr>

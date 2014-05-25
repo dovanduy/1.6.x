@@ -332,7 +332,7 @@ function main_settings(){
 		<td align='left'>" . Field_numeric_checkbox_img('clamav_enabled',$mailfrom->clamav_enabled,'{enable_disable}') ."</td>
 		</tr>	
 		<tr><td colspan=2><hr></td></tr>
-		<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('ffm1','$page',true);\" value='{edit}&nbsp;&raquo;&raquo;'></td></tr>
+		<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('ffm1','$page',true);\" value='{apply}&nbsp;&raquo;&raquo;'></td></tr>
 				
 			</table>
 			</form>
@@ -358,7 +358,7 @@ function main_script(){
 	<br>
 	<textarea style='margin:10px;font-size:12px;padding:10px;border:1px dotted #CCCCCC;width:100%;height:440px;background-image:none' name='MailFromdUserScript'>$mailfromd->MailFromdUserScript</textarea>
 	<br>
-	<div style='text-align:right;width:100%'><input type='button' OnClick=\"javascript:ParseForm('ffm1','$page',true);\" value='{edit}&nbsp;&raquo;&raquo;'></div>
+	<div style='text-align:right;width:100%'><input type='button' OnClick=\"javascript:ParseForm('ffm1','$page',true);\" value='{apply}&nbsp;&raquo;&raquo;'></div>
 	</form>
 	";
 

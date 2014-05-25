@@ -194,7 +194,7 @@ $html="
 	</div>
 
 	<div style='width:100%;text-align:right'>
-	". button("{edit}","smtpd_client_restrictions_save()")."
+	". button("{apply}","smtpd_client_restrictions_save()")."
 	
 	</div>
 

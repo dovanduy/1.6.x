@@ -46,7 +46,7 @@ class nginx{
 	public $proxy_buffering=1;
 	public $proxy_cache_min_uses=1;
 	public $proxy_buffer_size=8;
-	public $proxy_buffers="8 8k";
+	public $proxy_buffers="16 32k";
 	public $file_settings_path;
 	public $BackupBefore=false;
 	
@@ -557,9 +557,15 @@ class nginx{
 				$buffers=($re[1]-1)*$re[2];
 				if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size {$buffers}k;\n";}
 				$f[]="\t\tproxy_busy_buffers_size {$buffers}k;";
+				$f[]="\t\tproxy_temp_file_write_size {$buffers}k;";
 			}else{
 				$f[]="#\t\tproxy_buffers bad value";
+				$f[]="\t\tproxy_busy_buffers_size 64k;";
+				$f[]="\t\tproxy_temp_file_write_size 64k;";
 			}
+			
+			
+			
 			
 		}else{
 			$f[]="#\t\tproxy_buffering  == 0";
@@ -998,6 +1004,20 @@ class nginx{
 		
 	}
 	
+	private function limit_bandwitdth(){
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT limit_rate,limit_rate_after FROM reverse_www WHERE servername='$this->servername'"));
+		if($ligne["ArticaErrors"]==0){return null;}
+		
+		$f[]="# Bandwitdth Limitation: {$ligne["limit_rate"]}Mb/s after {$ligne["limit_rate_after"]}MB ".__CLASS__."/".__LINE__;
+		if($ligne["limit_rate"]==0){return;}
+		$f[]="\t\tlimit_rate_after {$ligne["limit_rate_after"]}mb;";
+		$limit_rate=$ligne["limit_rate"]*1024;
+		$f[]="\t\tlimit_rate {$limit_rate}k;";
+		return @implode("\n", $f);
+		
+	}
+	
 	
 	private function error_pages_perso(){
 		$squid_reverse=new squid_reverse();
@@ -1199,7 +1219,7 @@ class nginx{
 		
 		
 		$proxy_cache=$this->keys_zone($ligne["storeid"]);
-		
+		if(!is_numeric($ligne["limit_rate"])){$ligne["limit_rate"]=0;}
 		if($GLOBALS["OUTPUT"]){echo "$logprefix storeid=[{$ligne["storeid"]}] [".__LINE__."]\n";}
 		if($GLOBALS["OUTPUT"]){echo "$logprefix cache_peer_id=[{$ligne["cache_peer_id"]}] [".__LINE__."]\n";}
 		if($GLOBALS["OUTPUT"]){echo "$logprefix folderid=[{$ligne["folderid"]}] [".__LINE__."]\n";}
@@ -1213,11 +1233,22 @@ class nginx{
 		if($forcedomain<>null){$HostHeader=$forcedomain;}
 		$dirpat=$this->strip_slashes($directory);
 		
+		
 		$directory_name=$directory;
 		if(substr($directory_name, 0,1)<>"/"){$directory_name="/$directory_name";}
 		
 		
 		$f[]="location $directory_name {";
+		
+		$f[]="# Bandwitdth Limitation: {$ligne["limit_rate"]}Mb/s after {$ligne["limit_rate_after"]}MB ".__CLASS__."/".__LINE__;
+		if($ligne["limit_rate"]>0){
+			$f[]="limit_rate_after {$ligne["limit_rate_after"]}mb;";
+			$limit_rate=$ligne["limit_rate"]*1024;
+			$f[]="limit_rate {$limit_rate}k;";
+		}
+		
+		
+		
 		//$f[]="\t\tproxy_redirect off;";
 		if(!$asregex){
 		if(!$AsFile){
@@ -1270,9 +1301,20 @@ class nginx{
 		$directory_name=$directory;
 		if(substr($directory_name, 0,1)<>"/"){$directory_name="/$directory_name";}
 		if(preg_match("#.+?\.[a-z]+$#", $destination)){$destination=dirname($destination);}
+		if(!is_numeric($ligne["limit_rate"])){$ligne["limit_rate"]=0;}
+		
+		
 		
 		$f[]="\tlocation $directory_name {";
 		$f[]="\t\troot\t$destination;";
+		$f[]="# Bandwitdth Limitation: {$ligne["limit_rate"]}Mb/s after {$ligne["limit_rate_after"]}MB ".__CLASS__."/".__LINE__;
+		if($ligne["limit_rate"]>0){
+			$f[]="\t\tlimit_rate_after {$ligne["limit_rate_after"]}mb;";
+			$limit_rate=$ligne["limit_rate"]*1024;
+			$f[]="\t\tlimit_rate {$limit_rate}k;";
+		}		
+		
+		
 		$f[]="\t}";
 		
 		$f[]="";
@@ -1965,11 +2007,13 @@ class nginx{
 		$subs_filter_types=false;
 		$f[]=$this->http_locations($this->servername);
 		$f[]="\tlocation / {";
+		$f[]=$this->limit_bandwitdth();
 		$f[]=$this->error_pages_perso();
 		$AUTHENTICATOR_BASE=$this->AUTHENTICATOR_BASE();
 		if($AUTHENTICATOR_BASE<>null){$f[]=$AUTHENTICATOR_BASE;}
 		$LDAP_require=$this->LDAP_require();
 		if($LDAP_require<>null){$f[]=$LDAP_require;}
+		
 		
 		
 		if($this->forceddomain<>null){

@@ -142,7 +142,7 @@ function popup_task_edit(){
 	$ID=$_GET["edit-task-id"];
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$title=$tpl->_ENGINE_parse_body("{edit} {task}:$ID");
+	$title=$tpl->_ENGINE_parse_body("{apply} {task}:$ID");
 	
 	$html="
 		function LoadTaskToEdit(){
@@ -280,7 +280,7 @@ function popup_task_edit_form(){
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'><hr>
-			". button("{edit}","TaskEditSave()")."
+			". button("{apply}","TaskEditSave()")."
 		</td>
 	</tr>
 	</table>
@@ -757,7 +757,7 @@ $cmp=new computers($_GET["uid"]);
 			<td>". Field_array_Hash($time,"SendDirs",$ini->_params["CONF"]["SendDirs"])."</td>
 		</tr>		
 		<tr>
-			<td colspan=2 align='right'>". button("{edit}","SaveComputerAgentParameters('$cmp->ComputerMacAddress')")."</td>
+			<td colspan=2 align='right'>". button("{apply}","SaveComputerAgentParameters('$cmp->ComputerMacAddress')")."</td>
 		</tr>
 		</table>";
 	
@@ -920,7 +920,7 @@ function popup_tasks_lists($return=false){
 		<th>{schedule}</th>
 		<th>{path}</th>
 		<th>{run}</th>
-		<th>{edit}</th>
+		<th>{apply}</th>
 		<th width=1%>{enabled}</td>
 		<th>{delete}</th>
 	</tr>
@@ -942,7 +942,7 @@ function popup_tasks_lists($return=false){
 				
 				
 				<td width=1%>". imgtootltip("run-24.png","{run}","RunComputerTaskID({$ligne["ID"]},'$cmp->ComputerMacAddress')"). "</td>
-				<td width=1%>". imgtootltip("24-administrative-tools.png","{edit}","Loadjs('$page?edit-task-id={$ligne["ID"]}&uid={$_GET["uid"]}&MAC=$cmp->ComputerMacAddress')"). "</td>
+				<td width=1%>". imgtootltip("24-administrative-tools.png","{apply}","Loadjs('$page?edit-task-id={$ligne["ID"]}&uid={$_GET["uid"]}&MAC=$cmp->ComputerMacAddress')"). "</td>
 				<td width=1% align=center style=';font-size:11px'>". Field_checkbox("enable_task_{$ligne["ID"]}",1,$ligne["task_enabled"],"ChangeEnableTask({$ligne["ID"]})")."</td>
 				<td width=1%>". imgtootltip("delete-24.png","{delete}","DeleteComputerTaskID({$ligne["ID"]},'$cmp->ComputerMacAddress')"). "</td>
 			</tr>

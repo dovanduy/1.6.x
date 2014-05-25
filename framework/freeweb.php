@@ -103,10 +103,18 @@ function rebuild_vhost(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$servername=$_GET["servername"];
-	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername >/dev/null 2>&1 &");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/freeweb.rebuild.progress.txt");
+	@touch("/usr/share/artica-postfix/ressources/logs/web/freeweb.rebuild.progress.txt");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/freeweb.rebuild.progress.txt",0777);
+	
+	@unlink("/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress");
+	@touch("/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress");
+	@chmod("/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress",0777);
+	
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername >/usr/share/artica-postfix/ressources/logs/web/freeweb.rebuild.progress.txt 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
-	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername");
+	
 	
 }
 
@@ -250,12 +258,25 @@ function roundcube_replic_single(){
 }
 function display_config(){
 	
-	$conf="/etc/apache2/sites-enabled/artica-{$_GET["servername"]}.conf";
+	$servername=$_GET["servername"];
+	
+	$conf="/etc/apache2/sites-enabled/artica-$servername.conf";
+	
+	if(preg_match("#_default_#",$servername)){
+		$conf="/etc/apache2/sites-enabled/000-default";
+	}
+	
 	if(!is_file($conf)){
 		echo "<articadatascgi>".base64_encode("$conf no such file")."</articadatascgi>";	
 		return;	
 	}
-	echo "<articadatascgi>".base64_encode(@file_get_contents($conf))."</articadatascgi>";	
+	
+	echo "<articadatascgi>".base64_encode("#$conf")."</articadatascgi>";
+	
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/vhost.conf");
+	@copy($conf, "/usr/share/artica-postfix/ressources/logs/web/vhost.conf");
+	
+	
 	
 }
 

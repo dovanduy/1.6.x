@@ -124,7 +124,7 @@ $('#events-table-$t').flexigrid({
 	colModel : [
 		{display: '$date', name : 'zDate', width :127, sortable : true, align: 'center'},
 		{display: '$context', name : 'context', width :80, sortable : true, align: 'center'},
-		{display: '$events', name : 'events', width : $TB2_WIDTH, sortable : false, align: 'left'},
+		{display: '$events', name : 'events', width : 871, sortable : false, align: 'left'},
 	],
 	$buttons
 

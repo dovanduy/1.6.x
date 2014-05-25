@@ -471,7 +471,7 @@ $form2="
 
 	
 	if($editmode==1){
-		$button=button("{edit}","FetchMailPostForm($editmode)",16);
+		$button=button("{apply}","FetchMailPostForm($editmode)",16);
 		$button_delete=button("{delete}","UserDeleteFetchMailRule($rulenumber)",16);
 		if($_SESSION["uid"]<>-100){$button_delete=null;}
 		

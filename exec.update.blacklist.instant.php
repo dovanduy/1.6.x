@@ -109,20 +109,68 @@ function CleanOldDatabase(){
 
 
 function ExecuteMD5(){
+	
+	$unix=new unix();
+	$sock=new sockets();
+	$StandardTime=240;
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$kill=$unix->find_program("kill");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,__FILE__)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time>240){shell_exec("$kill -9 $pid");}
+	}
+	if($unix->process_exists($pid,__FILE__)){return;}
+	@file_put_contents($pidfile, getmypid());
+	
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+		
+	if($CategoriesDatabasesByCron==1){
+		if(!$GLOBALS["BYCRON"]){ return; }
+	}
+	
+	if(!$GLOBALS["BYCRON"]){
+		$timeFile=$unix->file_time_min($timeFile);
+		if($timeFile<$StandardTime){return;}
+	}
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());
+		
+	
 	CleanOldDatabase();
 	WriteMyLogs("-> CleanDB()...",__FUNCTION__,__FILE__,__LINE__);
 	CleanDBZ();
 	WriteMyLogs("-> fishTank()...",__FUNCTION__,__FILE__,__LINE__);
 	fishTank();		
-	Execute();
+	Execute(true);
 	
-	}
+}
 
 	
 	
-function Execute(){
+function Execute($aspid=false){
 	$unix=new unix();
 	$sock=new sockets();
+	$StandardTime=240;
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$kill=$unix->find_program("kill");
+	if(!$aspid){
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,__FILE__)){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($time>240){shell_exec("$kill -9 $pid");}
+		}
+		
+		if($unix->process_exists($pid,__FILE__)){return;}
+	}
+	
+
+	@file_put_contents($pidfile, getmypid());
+	
+	
 	$APIKEY=trim($sock->GET_INFO("ArticaProxyApiKey"));
 	if($APIKEY==null){return;}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -134,7 +182,20 @@ function Execute(){
 	}	
 	WriteMyLogs("Execute()...",__FUNCTION__,__FILE__,__LINE__);
 	
-	$unix=new unix();
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	
+	if($CategoriesDatabasesByCron==1){
+		if(!$GLOBALS["BYCRON"]){ return; }
+	}
+	
+	if(!$GLOBALS["BYCRON"]){
+		$timeFile=$unix->file_time_min($timeFile);
+		if($timeFile<$StandardTime){return;}
+	}
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());
+	
 	
 	$URIBASE=$unix->MAIN_URI();
 	$indexuri="$URIBASE/instant-blks";

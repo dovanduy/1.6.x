@@ -128,7 +128,7 @@ function toolbox(){
 	$add
 	$mynetwork
 	<div style='width:100%;text-align:right'><hr>
-	".button("{edit}","SmtpdSaslExceptionsMynetSave()")."
+	".button("{apply}","SmtpdSaslExceptionsMynetSave()")."
 	</div>";
 	
 	$tpl=new templates();

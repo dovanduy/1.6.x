@@ -48,6 +48,7 @@ if($EnableRemoteStatisticsAppliance==1){
 }
 
 if(is_file("/etc/artica-postfix/PROXYTINY_APPLIANCE")){die();}
+if($GLOBALS["FORCE"]){$GLOBALS["BYCRON"]=true;}
 
 if($argv[1]=="--export"){export_table($argv[2]);die();}
 if($argv[1]=="--export-all"){export_all_tables();die();}
@@ -176,6 +177,7 @@ function C_ICAP_TABLES($nopid=false){
 
 function cicap_artica($aspid=false){
 	$unix=new unix();
+	$GLOBALS["EVENTS"]=array();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pids";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pid=@file_get_contents($pidfile);
@@ -353,16 +355,18 @@ function cicap_artica($aspid=false){
 	
 	if($ERRORDB>0){
 		if($DBS==0){
-			artica_update_event(1, "$ERRORDB Errors while downloading Categories databases", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
-			ufdbguard_admin_events( "$ERRORDB Errors while downloading Categories databases\n".FormatBytes($size)."\n".@implode("\n", $GLOBALS["EVENTS"]), __FUNCTION__,__FILE__,__LINE__);
-			updatev2_progress(100,"$ERRORDB Errors while downloading Categories databases");
+			artica_update_event(1, "$ERRORDB Error(s) while downloading Categories databases", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
+			squid_admin_mysql(1, "$ERRORDB Error(s) while downloading Categories databases", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
+			ufdbguard_admin_events( "$ERRORDB Error(s) while downloading Categories databases\n".FormatBytes($size)."\n".@implode("\n", $GLOBALS["EVENTS"]), __FUNCTION__,__FILE__,__LINE__);
+			updatev2_progress(110,"$ERRORDB Errors while downloading Categories databases");
 		}
 	}
 	
 	if($DBS>0){
-		artica_update_event(2, "New $DBS Categorie(s) databases downloaded v$Remote_version $ERRORDB Error(s)".FormatBytes($size), @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
-		ufdbguard_admin_events( "New $DBS Categorie(s) databases downloaded/$ERRORDB Error(s) v$Remote_version ".FormatBytes($size)."\n".@implode("\n", $GLOBALS["EVENTS"]), __FUNCTION__,__FILE__,__LINE__);
-		updatev2_progress(100,"New $DBS Categorie(s) databases downloaded/$ERRORDB Error(s) v$Remote_version");
+		$Minsize=FormatBytes($size);
+		artica_update_event(2, "New $DBS Categorie(s) databases downloaded ($Minsize) v$Remote_version", @implode("\n", $GLOBALS["EVENTS"]),__FILE__,__LINE__);
+		ufdbguard_admin_events( "New $DBS Categorie(s) databases downloaded ($Minsize) v$Remote_version\n".@implode("\n", $GLOBALS["EVENTS"]), __FUNCTION__,__FILE__,__LINE__);
+		updatev2_progress(100,"New $DBS Categorie(s) databases downloaded ($Minsize) v$Remote_version");
 	}
 	
 }
@@ -429,7 +433,11 @@ function compile_cicap_download($tablename){
 function ufdbtables($nopid=false){
 	$unix=new unix();
 	$sock=new sockets();
+	$GLOBALS["EVENTS"]=array();
 	$CACHE_FILE="/etc/artica-postfix/ufdb.tables.db";
+	
+	if($GLOBALS["VERBOSE"]){echo "CACHE_FILE = $CACHE_FILE\n";}
+	
 	if($sock->EnableUfdbGuard()==0){return;}
 	$UseRemoteUfdbguardService=$sock->GET_INFO('UseRemoteUfdbguardService');
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
@@ -469,22 +477,67 @@ function ufdbtables($nopid=false){
 		}		
 		@file_put_contents($pidfile, getmypid());
 	}
+	
+	
+	$curl=new ccurl("$URIBASE/index.txt");
+	if(!$curl->GetHeads()){
+		if($GLOBALS["VERBOSE"]){echo "FATAL ! $URIBASE/index.txt ERROR NUMBER $curl->CURLINFO_HTTP_CODE\n";}
+		if( ($curl->CURLINFO_HTTP_CODE==404 ) OR ($curl->CURLINFO_HTTP_CODE==300 )){
+			if(!preg_match("#\/ufdb#", $URIBASE)){$URIBASE="$URIBASE/ufdb";}
+			$curl=new ccurl("$URIBASE/index.txt");
+			if(!$curl->GetHeads()){
+				$GLOBALS["EVENTS"][]="$URIBASE/index.txt";
+				$GLOBALS["EVENTS"][]="Failed with error $curl->error";
+				while (list ($a, $b) = each ($GLOBALS["CURLDEBUG"]) ){$GLOBALS["EVENTS"][]=$b;}
+				squid_admin_mysql(0,"Unable to download blacklist index file `$curl->error`",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
+				artica_update_event(0,"Unable to download Artica blacklist index file `$curl->error`",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
+				ufdbguard_admin_events("UFDB::Fatal: Unable to download blacklist index file $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
+				echo "UFDB: Failed to retreive $URIBASE/index.txt ($curl->error)\n";
+				updatev2_adblock();
+				return;				
+			}
+		}
+	}
+	
+	
+	$source_filetime=$curl->CURL_ALL_INFOS["filetime"];
+	if($GLOBALS["VERBOSE"]){echo "$URIBASE/index.txt filetime: $source_filetime ". date("Y-m-d H:i:s",$source_filetime)."\n";}
+	$GLOBALS["EVENTS"][]="$URIBASE/index.txt";
+	$GLOBALS["EVENTS"][]="filetime: $source_filetime ". date("Y-m-d H:i:s",$source_filetime);
+	$UFDBGUARD_LAST_INDEX_TIME="/etc/artica-postfix/UFDBGUARD_LAST_INDEX_TIME";
+	
+	$old_time=intval(@file_get_contents("$UFDBGUARD_LAST_INDEX_TIME"));
+	$GLOBALS["EVENTS"][]="Old filetime: $old_time ". date("Y-m-d H:i:s",$old_time);
+	
+	if($source_filetime==$old_time){
+		$GLOBALS["EVENTS"][]="No new updates";
+		return true;
+	}
+	if($source_filetime<$old_time){
+		$GLOBALS["EVENTS"][]="No new updates";
+		return true;
+	}	
 		
 	
 	$curl=new ccurl("$URIBASE/index.txt");
-	
 	if(!$curl->GetFile("$tmpdir/index.txt")){
+		$GLOBALS["EVENTS"][]="$URIBASE/index.txt";
 		$GLOBALS["EVENTS"][]="Failed with error $curl->error";
 		while (list ($a, $b) = each ($GLOBALS["CURLDEBUG"]) ){$GLOBALS["EVENTS"][]=$b;}
-		squid_admin_mysql(0,"Unable to download blacklist index file $curl->error",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
+		squid_admin_mysql(0,"Unable to download blacklist index file `$curl->error`",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
+		artica_update_event(0,"Unable to download Artica blacklist index file `$curl->error`",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
 		ufdbguard_admin_events("UFDB::Fatal: Unable to download blacklist index file $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		echo "UFDB: Failed to retreive $URIBASE/index.txt ($curl->error)\n";
 		updatev2_adblock();
 		return;
 	}
 
+	
 	$LOCAL_CACHE=unserialize(base64_decode(@file_get_contents($CACHE_FILE)));
 	$REMOTE_CACHE=unserialize(base64_decode(@file_get_contents("$tmpdir/index.txt")));
+	
+	
+	
 	$BigSize=0;
 	$c=0;
 	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){	
@@ -501,9 +554,12 @@ function ufdbtables($nopid=false){
 				continue;
 			}
 			
+			$GLOBALS["UFDB_SIZE"]=$GLOBALS["UFDB_SIZE"]+@filesize("$tmpdir/$tablename.gz");
+			
 			@mkdir("$WORKDIR/$tablename",0755,true);
 			if(!ufdbtables_uncompress("$tmpdir/$tablename.gz","$WORKDIR/$tablename/domains.ufdb")){
 				squid_admin_mysql(0,"Unable to extract blacklist $tablename.gz",null,__FUNCTION__,__LINE__);
+				artica_update_event(0,"Unable to extract blacklist $tablename.gz",null,__FUNCTION__,__LINE__);
 				ufdbguard_admin_memory("UFDB::Fatal: unable to extract blacklist $tablename.gz file",__FUNCTION__,__FILE__,__LINE__,
 				"ufbd-artica");
 				continue;
@@ -527,8 +583,9 @@ function ufdbtables($nopid=false){
 	if($c>0){
 		$BigSizeMB=round($BigSize/1024,2);
 		squid_admin_mysql(2, "Artica Web filtering Databases Success updated $c categories {$BigSizeMB}MB extracted on disk","$ufdbguard_admin_memory".@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
+		artica_update_event(2, "Artica Web filtering Databases Success updated $c categories {$BigSizeMB}MB extracted on disk","$ufdbguard_admin_memory".@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
 		ufdbguard_admin_events("UFDB::Success update $c categories $BigSize extracted\n$ufdbguard_admin_memory",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
-		$sock->TOP_NOTIFY("Success updated $c blacklists categories $BigSize Ko extracted","info");
+		@file_put_contents($UFDBGUARD_LAST_INDEX_TIME, $source_filetime);
 		
 	}else{
 		if($GLOBALS["FORCE"]){
@@ -591,22 +648,7 @@ function updatev2_index(){
 }
 
 function RegisterSupport(){
-	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
-	$tmpdir=$unix->TEMP_DIR();
-	
-	
-	
-	$curl=new ccurl("$URIBASE/support/cron/index.php?/parser/ParserMinute/POP3IMAP");
-	if(!$curl->GetFile("$tmpdir/POP3IMAP")){
-		echo $curl->error."\n";
-		return;
-	}	
-	
-	@unlink("$tmpdir/POP3IMAP");
-	
-	
-	
+
 }
 
 function scan_artica_databases(){
@@ -668,16 +710,26 @@ function updatev2_checkversion(){
 	$ArticaDbReplicate=$sock->GET_INFO("ArticaDbReplicate");
 	if(!is_numeric($ArticaDbReplicate)){$ArticaDbReplicate=0;}
 	
+	$MirrorsA[]="http://s497977761.onlinehome.fr";
+	$MirrorsA[]="http://artica.fr";
+	$MirrorsA[]="http://93.88.245.88";
+	$MirrorsA[]="$URIBASE/ufdb";
+	
 	if($ArticaDbReplicate==0){
-		$Mirrors[]="http://s497977761.onlinehome.fr";
-		$Mirrors[]="http://artica.fr";
+		shuffle($MirrorsA);
+		while (list ($num, $uri) = each ($MirrorsA) ){
+			$Mirrors[]=$uri;
+		}
+
+	}else{
+		$Mirrors[]="$URIBASE/ufdb";
 	}
-	$Mirrors[]="$URIBASE/ufdb";
+	
 	$destinationfile="/usr/share/artica-postfix/ressources/logs/web/cache/CATZ_ARRAY";
 	@mkdir("/usr/share/artica-postfix/ressources/logs/web/cache",0755);
 	
 	$unix=new unix();
-
+	
 	
 	
 	while (list ($num, $uri) = each ($Mirrors) ){
@@ -685,34 +737,35 @@ function updatev2_checkversion(){
 		events("Try $uri");
 		$NewUri="$uri/ufdb/CATZ_ARRAY";
 		$curl=new ccurl($NewUri,false,null,true);
-	
 		$curl->Timeout=10;
-		if($curl->GetFile($tmpfile)){
-			if(is_file($tmpfile)){
-				$array=unserialize(base64_decode(@file_get_contents($tmpfile)));
-				if(is_array($array)){
-					if(isset($array["TIME"])){
-						$xdate=date("l d F Y H:i:s",$array["TIME"]);
-						$GLOBALS["EVENTS"][]="Available version: $xdate - {$array["TIME"]}/". date("Y-m-d H:i:s",$array["TIME"]);
-						echo "[".__LINE__."]: Available version: $xdate - {$array["TIME"]}/". date("Y-m-d H:i:s",$array["TIME"])."\n";
-						$GLOBALS["MIRROR"]=$uri;
-						@unlink($destinationfile);
-						@copy($tmpfile, $destinationfile);
-						@chmod($destinationfile,0755);
-						break;
-					}else{
-						$GLOBALS["EVENTS"][]="Failed with error $tmpfile is not an array";
-						events("Unable to get VERSION");
-					}
-				}
-			}
-		}else{
-			events("$uri $curl->error");
-			$GLOBALS["EVENTS"][]="Failed with error $curl->error";
-			while (list ($a, $b) = each ($GLOBALS["CURLDEBUG"]) ){$GLOBALS["EVENTS"][]=$b;}
-			
+		if(!$curl->GetFile($tmpfile)){
+			$GLOBALS["EVENTS"][]="$uri: Failed with error $curl->error";
+			continue;
 		}
-	}
+		if(!is_file($tmpfile)){
+			$GLOBALS["EVENTS"][]="$uri: Failed with error No such file";
+			continue;
+		}
+		$array=unserialize(base64_decode(@file_get_contents($tmpfile)));
+		if(!is_array($array)){
+			$GLOBALS["EVENTS"][]="$uri: Failed with error No Array";
+			continue;
+		}
+		if(!isset($array["TIME"])){
+			$GLOBALS["EVENTS"][]="$uri: Failed with error No TIME CODE";
+			continue;
+		}
+		$xdate=date("l d F Y H:i:s",$array["TIME"]);
+		$GLOBALS["EVENTS"][]="$uri: Available version: $xdate - {$array["TIME"]}/". date("Y-m-d H:i:s",$array["TIME"]);
+		echo "[".__LINE__."]: Available version: $xdate - {$array["TIME"]}/". date("Y-m-d H:i:s",$array["TIME"])."\n";
+		$GLOBALS["MIRROR"]=$uri;
+		@unlink($destinationfile);
+		@copy($tmpfile, $destinationfile);
+		@chmod($destinationfile,0755);
+		break;
+					
+		}
+	
 	
 	@unlink($tmpfile);
 	
@@ -731,6 +784,7 @@ function updatev2_checkversion(){
 function updatev2_progress($num,$text){
 	$array["POURC"]=$num;
 	$array["TEXT"]=$text;
+	if($GLOBALS["VERBOSE"]){echo "{$num}% $text\n";}
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.progress", serialize($array));
 }
 
@@ -960,6 +1014,7 @@ function updatev2_NAS(){
 	$took=$unix->distanceOfTimeInWords($t,time());
 	$LOCAL_VERSION=@file_get_contents("$ArticaDBPath/VERSION");
 	squid_admin_mysql(2, "New Artica Database statistics $LOCAL_VERSION updated took:$took","");
+	_artica_update_event(2,"New Artica Database statistics $LOCAL_VERSION updated took:$took",null,__FILE__,__LINE__,"ufbd-artica");
 	ufdbguard_admin_events("New Artica Database statistics $LOCAL_VERSION updated took:$took.",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 	updatev2_progress(100,"{done}");
 	$q->QUERY_SQL("TRUNCATE TABLE `catztemp`");
@@ -967,7 +1022,7 @@ function updatev2_NAS(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.visited.sites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
 	shell_exec($cmd);
-	shell_exec($nohup." ".$unix->LOCATE_PHP5_BIN()." ".__FILE__." --support >/dev/null 2>&1 &");
+	
 	return true;
 	
 }
@@ -1024,7 +1079,7 @@ function updatev2_manu(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.visited.sites.php --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
 	shell_exec($cmd);
-	shell_exec($nohup." ".$unix->LOCATE_PHP5_BIN()." ".__FILE__." --support >/dev/null 2>&1 &");	
+	
 	return true;
 }
 
@@ -1046,22 +1101,26 @@ function updatev2(){
 	if($ManualArticaDBPath==null){$ManualArticaDBPath="/home/manualupdate/articadb.tar.gz";}
 	$ManualArticaDBPathNAS=$sock->GET_INFO("ManualArticaDBPathNAS");
 	
+	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	
+	
 	if(!is_numeric($ManualArticaDBPathNAS)){$ManualArticaDBPathNAS=0;}
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if(!is_numeric($ArticaDbReplicate)){$ArticaDbReplicate=0;}
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	if(!isset($WizardStatsAppliance["SERVER"])){$WizardStatsAppliance["SERVER"]=null;}
 	
 	if($DisableArticaProxyStatistics==1){
 		updatev2_progress(100,"Error: Artica statistics are disabled");
 	}
-	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
-	if(!isset($WizardStatsAppliance["SERVER"])){$WizardStatsAppliance["SERVER"]=null;}
 	
-	
-	if($WizardStatsAppliance["SERVER"]<>null){
-		updatev2_progress(100,"Error: Only used by {$WizardStatsAppliance["SERVER"]}");
+	if($datas["UseRemoteUfdbguardService"]==1){
+		updatev2_progress(100,"Error: - UseRemoteUfdbguardService -  Only used by {$WizardStatsAppliance["SERVER"]}");
 		return;
 	}
+	
+
 	
 	
 	if($CategoriesDatabasesByCron==1){
@@ -1179,7 +1238,7 @@ if(!$GLOBALS["BYCRON"]){
 	C_ICAP_TABLES(true);
 	schedulemaintenance();
 	EXECUTE_BLACK_INSTANCE();
-	shell_exec($unix->LOCATE_PHP5_BIN()." ".__FILE__." --support >/dev/null 2>&1 ");
+	
 }
 
 function events($text){
@@ -1274,10 +1333,26 @@ function schedulemaintenance(){
 
 function EXECUTE_BLACK_INSTANCE(){
 	$unix=new unix();
+	$schedule=null;
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$nohup=$unix->find_program("nohup");	
-	WriteMyLogs("$nohup $php5 /usr/share/artica-postfix/exec.update.blacklist.instant.php >/dev/null 2>&1 &",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.update.blacklist.instant.php >/dev/null 2>&1 &");	
+	$nohup=$unix->find_program("nohup");
+	if(isset($GLOBALS["SCHEDULE_ID"])){
+		if($GLOBALS["SCHEDULE_ID"]>0){
+			$schedule="--schedule-id={$GLOBALS["SCHEDULE_ID"]} ";
+		}
+	}
+	
+	
+	
+	if($GLOBALS["BYCRON"]){
+		$schedule=$schedule."--bycron ";
+	}
+	
+	
+	WriteMyLogs("$nohup $php5 /usr/share/artica-postfix/exec.update.blacklist.instant.php $schedule>/dev/null 2>&1 &",__FUNCTION__,__FILE__,__LINE__);
+	
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.update.blacklist.instant.php $schedule>/dev/null 2>&1 &");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.update.squid.tlse.php $schedule>/dev/null 2>&1 &");
 }
 
 

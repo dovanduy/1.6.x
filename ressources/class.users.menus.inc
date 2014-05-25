@@ -1,5 +1,6 @@
 <?php
 if(!defined("alse")){define("alse", "alse");}
+
 $GLOBALS["AS_ROOT"]=false;
 if(!isset($GLOBALS["KAV4PROXY_NOSESSION"])){$GLOBALS["KAV4PROXY_NOSESSION"]=false;}
 if(!isset($GLOBALS["DEBUG_MEM"])){$GLOBALS["DEBUG_MEM"]=false;}
@@ -9,9 +10,11 @@ if(function_exists("debug_mem")){debug_mem();}
 
 if(function_exists("posix_getuid")){
 	if(posix_getuid()<>0){
+		if(!isset($_SESSION["uid"])){session_start();}
 		if(function_exists("DefineSessions")){DefineSessions();}
 		if(function_exists("CheckSessions")){CheckSessions();}
-		if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(strlen($GLOBALS["SESSION_ID"])<2){$GLOBALS["SESSION_ID"]=session_id();session_start();}}
+		if(!$GLOBALS["KAV4PROXY_NOSESSION"]){if(strlen($GLOBALS["SESSION_ID"])<2){$GLOBALS["SESSION_ID"]=session_id();} }
+				
 	}else{
 		$GLOBALS["AS_ROOT"]=true;
 	}
@@ -582,6 +585,7 @@ class usersMenus {
 	public $GATEWAY_APPLIANCE=false;
 	public $SHOREWALL_INSTALLED=false;
 	public $APP_EBTABLES_INSTALLED=false;
+	public $APACHE_MODE_BW=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -759,6 +763,7 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_EBTABLES_INSTALLED"])){$this->APP_EBTABLES_INSTALLED=$_GLOBAL["APP_EBTABLES_INSTALLED"];}
 			if(isset($_GLOBAL["APP_SQUID27_INSTALLED"])){$this->APP_SQUID27_INSTALLED=$_GLOBAL["APP_SQUID27_INSTALLED"];}
 			if(isset($_GLOBAL["APP_SQUIDSTREAM_INSTALLED"])){$this->APP_SQUIDSTREAM_INSTALLED=$_GLOBAL["APP_SQUIDSTREAM_INSTALLED"];}
+			if(isset($_GLOBAL["APACHE_MODE_BW"])){$this->APACHE_MODE_BW=$_GLOBAL["APACHE_MODE_BW"];}
 			
 			
 			
@@ -1139,7 +1144,7 @@ class usersMenus {
 				}
 			}
 			
-			$this->SQUID_ICAP_ENABLED=$GLOBALS["SQUID_ICAP_ENABLED"];
+			if(isset($GLOBALS["SQUID_ICAP_ENABLED"])){$this->SQUID_ICAP_ENABLED=$GLOBALS["SQUID_ICAP_ENABLED"]; }
 			
 			if(is_file("/home/artica/categories_databases/CATZ_ARRAY")){ $this->ARTICADB_INSTALLED=true;}
 			

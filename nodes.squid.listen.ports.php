@@ -66,7 +66,7 @@ $form="
 			
 			
 			<tr>
-			<td colspan=2 align='right'><hr>". button("{edit}","listenport()",16)."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","listenport()",16)."</td>
 			</tr>
 		</table>			
 		

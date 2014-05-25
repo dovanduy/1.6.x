@@ -85,7 +85,7 @@ $mod_security="
 	<tr>
 		<td class=legend style='font-size:14px'>{security_enforcement}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.mod.security.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 ";
@@ -93,7 +93,7 @@ $mod_security="
 $mod_geoip="
 	<tr>
 		<td class=legend style='color:#CCCCCC;;font-size:14px'>{country_block}:</td>
-		<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{edit}</span></td>
+		<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{apply}</span></td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 ";
@@ -105,7 +105,7 @@ $mod_evasive="
 	<tr>
 		<td class=legend style='font-size:14px'>{DDOS_prevention}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.mod.evasive.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 ";
@@ -114,7 +114,7 @@ if($FreeWebsEnableModSecurity==0){
 	$mod_security="
 	<tr>
 		<td class=legend style='color:#CCCCCC;font-size:14px'>{security_enforcement}:</td>
-		<td><a href=\"javascript:blur();\" style='font-size:13px;color:#CCCCCC'>{edit}<a></td>
+		<td><a href=\"javascript:blur();\" style='font-size:13px;color:#CCCCCC'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 ";
@@ -124,7 +124,7 @@ if($FreeWebsEnableModEvasive==0){
 	<tr>
 		<td class=legend style='color:#CCCCCC;font-size:14px' >{DDOS_prevention}:</td>
 		<td><a href=\"javascript:blur();\"
-		style='font-size:13px;color:#CCCCCC'>{edit}<a></td>
+		style='font-size:13px;color:#CCCCCC'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 ";
@@ -136,7 +136,7 @@ $mod_geoip="
 <tr>
 		<td class=legend style='font-size:14px'>{country_block}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.mode.geoip.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 ";
@@ -179,7 +179,7 @@ $mod_geoip="
 		<td class=legend style='font-size:14px'>{FreeWebsDisableBrowsing}:</td>
 		<td width=1%>". Field_checkbox("FreeWebsDisableBrowsing",1,$FreeWebsDisableBrowsing)."&nbsp;
 		<a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.edit.IndexIgnore.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 		<td width=1%></td>
 	</tr>	
 	
@@ -189,13 +189,13 @@ $mod_geoip="
 	<tr>
 		<td class=legend style='font-size:14px'>{RewriteRules}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.edit.php?rewrite=yes&servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>				
 	<tr>
 		<td class=legend style='font-size:14px'>{files_and_folders_permissions}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.permissions.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 		<td width=1%>&nbsp;</td>
 	</tr>		
 	$mod_security	

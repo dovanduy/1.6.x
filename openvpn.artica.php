@@ -194,7 +194,7 @@ while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 function popup_wizard(){
 	$but="{add}";
 	if(isset($_GET["ID"])){
-		$but="{edit}";
+		$but="{apply}";
 		$sql="SELECT * FROM vpnclient WHERE ID={$_GET["ID"]}";
 		$q=new mysql();
 		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));

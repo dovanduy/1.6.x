@@ -33,7 +33,7 @@ function ADD_PAGE(){
 				$action_value=$reg[4];
 				$regex_value=$reg[3];
 				$pattern_value=$reg[2];
-				$button_name='{edit}';
+				$button_name='{apply}';
 				$title='{edit_a_rule}';
 				$hidden="<input type='hidden' id='edit' value='{$_GET["EDIT_PAGE"]}'>";
 		}
@@ -105,7 +105,7 @@ if(is_array($hash["RegexRules"])){
 		$count=$count+1;
 		$html=$html .  "
 		<tr>
-		<td width=1% valign='top' class='bottom'>" . imgtootltip('rule-16.jpg','{edit}',"EditHeaderRule('$num')")."</td>
+		<td width=1% valign='top' class='bottom'>" . imgtootltip('rule-16.jpg','{apply}',"EditHeaderRule('$num')")."</td>
 		<td valign='top' class='bottom'><strong>{$reg[1]}</strong></td>
 		<td valign='top' class='bottom'><code>{$reg[2]}</code></td>
 		<td valign='top' class='bottom' width=1% align='center'>{$reg[3]}</td>

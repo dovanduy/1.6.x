@@ -359,7 +359,14 @@ class templates{
 	
 	
 	
+	function time_to_date($xtime,$time=false){
+		
+		$dateT=date("{l} {F} d",$xtime);
+		if($time){$dateT=date("{l} {F} d H:i:s",$xtime);}
+		if($this->language=="fr"){$dateT=date("{l} d {F} ",$xtime);if($time){$dateT=date("{l} d {F} H:i:s",$xtime);}}
+		return $this->_ENGINE_parse_body($dateT);
 	
+	}
 	
 	
 	
@@ -830,7 +837,8 @@ title: \"<div style='font-size:12px'>$text</div>\",
 
 
 function help_icon($help,$no_float=false,$additional_langfile=null){
-	$DisableHelpToolTips=$_COOKIE["DisableHelpToolTips"];
+	$DisableHelpToolTips=0;
+	if(isset($_COOKIE["DisableHelpToolTips"])){$DisableHelpToolTips=$_COOKIE["DisableHelpToolTips"];}
 	if($DisableHelpToolTips==1){return null;}
 	if($_SESSION["MINIADM"]==true){return miniadm_BuildFieldToolTip($help);}
 	
@@ -1330,6 +1338,7 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	$size=null;
 	$disa=null;
 	$shadow=null;
+	$shadowjs=null;
 	if(preg_match("#^shadow:(.*)#", $value,$re)){
 		$shadow=$re[1];
 		$value=null;
@@ -1390,7 +1399,7 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	
 	
 	return "$help
-	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>$shadowjs";
+	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\" $FocusCss $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>$shadowjs";
 }
 
 
@@ -2860,9 +2869,9 @@ function Paragraphe_switch_disable($title,$text,$field_name=null,$value=null,$ti
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
 	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
-	$hrf="<a href='$link' class='nostylea'>";
+	$hrf="<a href='javascript:blur();' class='nostylea'>";
 
-	if(trim($tooltip)==null){$tooltip='{click_enable_disable}';}
+	if(trim($tips)==null){$tooltip='{click_enable_disable}';}
 	$tooltip=ParseTooltip($tooltip);
 	if($value==null){$value="0";}
 	if($tooltip<>null){$tooltip="
@@ -2969,10 +2978,10 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
 	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
-	$hrf="<a href='$link' class='nostylea'>";
+	$hrf="<a href='javascript:blur();' class='nostylea'>";
 
-	if(trim($tooltip)==null){$tooltip='{click_enable_disable}';}
-	$tooltip=ParseTooltip($tooltip);
+	if(trim($tips)==null){$tips='{click_enable_disable}';}
+	$tooltip=ParseTooltip($tips);
 	if($value==null){$value="0";}
 	if($tooltip<>null){$tooltip="
 	onMouseOver=\"javascript:AffBulle('$tooltip');lightup(this,100);\" 
@@ -4405,9 +4414,22 @@ function CheckSessions(){
 						error_log("[{$_SESSION["uid"]}]::$page is not allowed, no session, `{$_SESSION["uid"]}` die.. in ".__FILE__." line ". __LINE__);
 						if(isset($_GET["in-front-ajax"])){echo "document.location.href='logoff.php'";die();}
 						
+						while (list ($a, $b) = each ($_REQUEST) ){
+							$QUERYS[]="$a=$b";
+							
+						}
+						
 						if(preg_match("#^android\.#", $page)){$suffixLogoff="android.";}
 						
-						echo "<html><!-- $page  --><head><META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=logoff.php\"> </head>
+						if(preg_match("#-js=#", @implode("&", $QUERYS))){
+							header("content-type: application/x-javascript");
+							echo "alert('Session end...');\n";
+							echo "document.location.href='{$suffixLogoff}logoff.php';";
+							die();
+						}
+						
+						
+						echo "<html><!-- $page  -->\n<!-- ".@implode("&", $QUERYS)."  --><head><META HTTP-EQUIV=\"Refresh\" CONTENT=\"0; URL=logoff.php\"> </head>
 						<body>
 						<script>document.location.href='{$suffixLogoff}logoff.php';</script>
 						</body>

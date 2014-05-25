@@ -656,6 +656,7 @@ function apache_config(){
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
 	$APACHE_MODULES_PATH=$unix->APACHE_MODULES_PATH();
 	$pydio_installed=false;
+	if(is_file(" /etc/php5/cli/conf.d/ming.ini")){@unlink(" /etc/php5/cli/conf.d/ming.ini");}
 	@unlink("/var/log/lighttpd/apache-error.log");
 	@touch("/var/log/lighttpd/apache-error.log");
 	@chmod("/var/log/lighttpd/apache-error.log",0755);
@@ -747,6 +748,10 @@ function apache_config(){
 		}
 	}
 	
+	
+	if($LighttpdArticaListenIP==null){$LighttpdArticaListenIP="*";}
+	
+	
 	if($LighttpdArticaListenIP<>null){
 		$ArticaHttpsPort="$LighttpdArticaListenIP:$ArticaHttpsPort";
 	}
@@ -777,9 +782,9 @@ function apache_config(){
 	$f[]="</IfModule>";
 	$f[]="AccessFileName .htaccess";
 	$f[]="<Files ~ \"^\.ht\">";
-	$f[]="\tOrder allow,deny";
-	$f[]="\tDeny from all";
-	$f[]="\tSatisfy all";
+	//$f[]="\tOrder allow,deny";
+	//$f[]="\tDeny from all";
+	//$f[]="\tSatisfy all";
 	$f[]="</Files>";
 	$f[]="DefaultType text/plain";
 	$f[]="HostnameLookups Off";
@@ -794,7 +799,10 @@ function apache_config(){
 	$f[]="MaxSpareServers      3";
 	$f[]="MaxRequestsPerChild  100";
 	$f[]="MaxKeepAliveRequests 100";
-	$f[]="ServerName ".$unix->hostname_g();
+	$ServerName=$unix->hostname_g();
+	if($ServerName==null){$ServerName="localhost.localdomain";}
+	
+	$f[]="ServerName $ServerName";
 	
 	
 	if($ArticaHttpUseSSL==1){
@@ -950,15 +958,18 @@ function apache_config(){
 	
 	$f[]=apache_nagios_config();
 	$f[]=apache_phpldapadmin();
-	
+	$squid=$unix->LOCATE_SQUID_BIN();
+	if(is_file($squid)){
+		$f[]="Alias /proxy /usr/share/artica-postfix/squid.access.log.php";
+	}
 	
 	$f[]="<Directory \"/usr/share/artica-postfix\">";
 	$f[]="\tDirectoryIndex logon.php";
 	$f[]="\tSSLOptions +StdEnvVars";
 	$f[]="\tOptions Indexes FollowSymLinks";
 	$f[]="\tAllowOverride None";
-	$f[]="\tOrder allow,deny";
-	$f[]="\tAllow from all";
+	//$f[]="\tOrder allow,deny";
+	//$f[]="\tAllow from all";
 	$f[]="</Directory>";	
 	
 	
@@ -989,8 +1000,8 @@ function apache_config(){
 		$f[]="\tSSLOptions +StdEnvVars";
 		$f[]="\tOptions Indexes FollowSymLinks";
 		$f[]="\tAllowOverride All";
-		$f[]="\tOrder allow,deny";
-		$f[]="\tAllow from all";
+		//$f[]="\tOrder allow,deny";
+		//$f[]="\tAllow from all";
 		$f[]="</Directory>";
 	}
 	
@@ -1005,8 +1016,8 @@ function apache_config(){
 		$f[]="\tAction php-script /php5.fastcgi virtual";
 		$f[]="\t<Directory /var/run/artica-apache>";
 		$f[]="\t\t<Files php5.fastcgi>";
-		$f[]="\t\tOrder deny,allow";
-		$f[]="\t\tAllow from all";
+		//$f[]="\t\tOrder deny,allow";
+		//$f[]="\t\tAllow from all";
 		$f[]="\t\t</Files>";
 		$f[]="\t</Directory>";
 	}else{
@@ -1030,7 +1041,7 @@ function apache_config(){
 	$array["alias_module"]="mod_alias.so";
 	$array["auth_basic_module"]="mod_auth_basic.so";
 	$array["authn_file_module"]="mod_authn_file.so";	
-	$array["authz_host_module"]="mod_authz_host.so";
+	//$array["authz_host_module"]="mod_authz_host.so";
 	$array["autoindex_module"]="mod_autoindex.so";
 	$array["negotiation_module"]="mod_negotiation.so";
 	$array["ssl_module"]="mod_ssl.so";
@@ -1154,8 +1165,8 @@ function apache_nagios_config(){
 	$f[]="	Options FollowSymLinks";
 	$f[]="";
 	$f[]="	DirectoryIndex index.php";
-	$f[]="	Order Allow,Deny";
-	$f[]="	Allow From All";
+	//$f[]="	Order Allow,Deny";
+	//$f[]="	Allow From All";
 	$f[]="</DirectoryMatch>";
 	$f[]="";
 	$f[]="# Enable this ScriptAlias if you want to enable the grouplist patch.";

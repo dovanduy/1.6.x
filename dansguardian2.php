@@ -131,10 +131,7 @@ function tabs(){
 		$array["acls"]='{acls}';
 	
 	}
-	if($users->C_ICAP_INSTALLED){
-		$array["c-icap"]='{content_filtering}';
-		//$cicap=Paragraphe('c-icap-64.png','{APP_C_ICAP}','{CICAP_SERVICE_TEXT}',"javascript:Loadjs('c-icap.index.php');");
-	}
+
 	
 	
 	$array["unveiltech"]="{WebFilter_SaaS}";
@@ -448,7 +445,7 @@ function groups_search(){
 		$CountDeMembers=0;
 		$suffix=null;
 		if($GLOBALS["VERBOSE"]){print_r($ligne);}
-		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditGroup('{$ligne["ID"]}','{$ligne["groupname"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","DansGuardianEditGroup('{$ligne["ID"]}','{$ligne["groupname"]}')");
 		$delete=imgtootltip("delete-24.png","{delete}","DansGuardianDelGroup('{$ligne["ID"]}')");
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}

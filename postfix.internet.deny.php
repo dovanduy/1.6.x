@@ -72,7 +72,7 @@ function popup(){
 	$form
 	<div style='width:100%;text-align:right'>
 	<hr>
-		<input type='button' OnClick=\"javascript:EnableBlockUsersTroughInternetSave()\" value='{edit}&nbsp;&raquo;&raquo;'>
+		<input type='button' OnClick=\"javascript:EnableBlockUsersTroughInternetSave()\" value='{apply}&nbsp;&raquo;&raquo;'>
 	</div>
 	</div>";
 	

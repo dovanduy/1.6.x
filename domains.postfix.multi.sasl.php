@@ -111,17 +111,17 @@ $html="
 	<tr>
 		<td valign='top'>
 			$sasl
-			<div style='text-align:right'><hr>". button("{edit}","postfix_multi_enable_auth()",16). "</div>
+			<div style='text-align:right'><hr>". button("{apply}","postfix_multi_enable_auth()",16). "</div>
 		</td>
 	<td valign='top'>
 		$TrustMyNetwork
-		<div style='text-align:right'><hr>". button("{edit}","postfix_multi_enable_auth()",16). "</div>
+		<div style='text-align:right'><hr>". button("{apply}","postfix_multi_enable_auth()",16). "</div>
 	</td>
 	</tr>
 	<tr>
 	<td colspan=2>
 		$PostfixEnableSubmission_field
-		<div style='text-align:right'><hr>". button("{edit}","postfix_multi_enable_auth()",16). "</div>
+		<div style='text-align:right'><hr>". button("{apply}","postfix_multi_enable_auth()",16). "</div>
 	</td>
 	</tr>
 	</tbody>

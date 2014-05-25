@@ -324,7 +324,7 @@ function index(){
 					<td>
 						$enable_mailman	
 						<hr>
-						<div style='margin-top:5px;text-align:right'>".button("{edit}","EnableMailManList()","18px")."</div>
+						<div style='margin-top:5px;text-align:right'>".button("{apply}","EnableMailManList()","18px")."</div>
 					</td>
 				</tr>
 				<tr>
@@ -460,7 +460,7 @@ function popup_options(){
 	</tr>	
 	
 <tr>
-	<td colspan=2 align='right'>". button("{edit}","SaveAdvancedSettings()")."</td>
+	<td colspan=2 align='right'>". button("{apply}","SaveAdvancedSettings()")."</td>
 	</tr>		
 	</table>
 </div>";

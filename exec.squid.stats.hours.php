@@ -199,12 +199,26 @@ function repair_hours(){
 	
 }
 
+function cache_hours(){
+	// comprime les tables horaires de mise en cache en table jour.
+	$sock=new sockets();
+	$ArticaProxyStatisticsBackHourTables=$sock->GET_INFO("ArticaProxyStatisticsBackHourTables");
+	if(!is_numeric($ArticaProxyStatisticsBackHourTables)){$ArticaProxyStatisticsBackHourTables=1;}
+	$q=new mysql_squid_builder();
+	$prefix=date("YmdH");
+	
+	
+	
+}
+
+
 
 function tables_hours(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$RepairTimefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".Repair.time";
 	
 	if($GLOBALS["VERBOSE"]){echo "timefile=$timefile\n";}
 	
@@ -245,6 +259,7 @@ function tables_hours(){
 	if($GLOBALS["VERBOSE"]){echo "**********\nsquid_stats_tools->check_sizehours() in line ".__LINE__."\n**********\n";}
 	$squid_stats_tools=new squid_stats_tools();
 	$squid_stats_tools->check_sizehours();
+	$squid_stats_tools->check_cachehours();
 	if($GLOBALS["VERBOSE"]){echo "**********\nDone\n**********\n";}
 	
 	$currenttable="squidhour_$prefix";
@@ -260,15 +275,16 @@ function tables_hours(){
 			continue;
 		}
 		
-		
-		
-		
 		$t=time();
 		$q=new mysql_squid_builder();
 		if($GLOBALS["VERBOSE"]){echo "_table_hours_perform($tablename)\n";}
+		
+		ToSyslog("Parsing table `$tablename`");
+		
 		if(_table_hours_perform($tablename)){
 			$Entries=FormatNumber($q->COUNT_ROWS($tablename));
 			$took=$unix->distanceOfTimeInWords($t,time());
+			ToSyslog("Parsing table `$tablename` took: $took");
 			if($GLOBALS["VERBOSE"]){echo "Remove table: $tablename\n";}
 			if($Entries>0){
 				stats_admin_events(2, "$tablename, $Entries entrie(s) Took $took", "",__FILE__,__LINE__);
@@ -279,9 +295,15 @@ function tables_hours(){
 	
 		}
 	}
-
-$squid_stats_tools=new squid_stats_tools();
-$squid_stats_tools->check_to_hour_tables();
+	
+$RepairTime=$unix->file_time_min($RepairTimefile);
+if($RepairTime>180){
+	$squid_stats_tools=new squid_stats_tools();
+	$squid_stats_tools->NoCategorize=true;
+	$squid_stats_tools->check_to_hour_tables();
+	@unlink($RepairTimefile);
+	@file_put_contents($RepairTimefile, time());
+}
 
 }
 function FormatNumber($number, $decimals = 0, $thousand_separator = '&nbsp;', $decimal_point = '.'){
@@ -331,7 +353,7 @@ function _table_hours_perform($tablename){
 
 	$prefix="INSERT IGNORE INTO $dansguardian_table (sitename,uri,TYPE,REASON,CLIENT,MAC,zDate,zMD5,uid,remote_ip,country,QuerySize,hits,cached,hostname,account) VALUES ";
 
-
+	$SUM=mysql_num_rows($results);
 	$d=0;
 
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -357,6 +379,7 @@ function _table_hours_perform($tablename){
 		
 		$f[]="('{$ligne["sitename"]}','{$ligne["uri"]}','{$ligne["TYPE"]}','{$ligne["REASON"]}','{$ligne["CLIENT"]}','{$ligne["MAC"]}','{$ligne["zDate"]}','$zMD5','$uid','{$ligne["remote_ip"]}','{$ligne["country"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}','{$ligne["cached"]}','$hostname','$accountclient')";
 		if(count($f)>500){
+			ToSyslog("$dansguardian_table: $d/$SUM");
 			$GLOBALS["Q"]->UncompressTable($dansguardian_table);
 			$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 			$f=array();
@@ -370,6 +393,7 @@ function _table_hours_perform($tablename){
 		$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));
 		if(!$GLOBALS["Q"]->ok){writelogs_squid("Fatal: {$GLOBALS["Q"]->mysql_error} on `$dansguardian_table`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 		$squid_stats_tools=new squid_stats_tools();
+		$squid_stats_tools->NoCategorize=true;
 		$squid_stats_tools->check_table_days();
 	}
 	return true;
@@ -417,6 +441,7 @@ function backup_hourly_table($tablename){
 		stats_admin_events(0, "Fatal Error: day: Dump failed $tablename", "",__FILE__,__LINE__);
 	}
 	$size=@filesize($container);
+	@mkdir("/home/artica/squid/backup-statistics",0755,true);
 	chdir("/home/artica/squid/backup-statistics");
 	
 		
@@ -433,6 +458,7 @@ function backup_hourly_table($tablename){
 	}
 	
 	$size=FormatBytes($size/1024);
+	ToSyslog("Hourly Backup ".basename("$container.tar.gz")." $size");
 	stats_admin_events(2, "Hourly Backup ".basename("$container.tar.gz")." $size", "",__FILE__,__LINE__);
 	@unlink($container);
 	

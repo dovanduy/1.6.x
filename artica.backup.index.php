@@ -341,7 +341,7 @@ function main_config(){
 	 	<td>" .  Field_text('ArticaBackupMaxTimeToLiveInDay',$back->params["ArticaBackupMaxTimeToLiveInDay"],'width:15px')."&nbsp;{days}</td>
 	 </tr>	 
 	 <tr>
-	 <td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','$page',true);\"></td>
+	 <td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','$page',true);\"></td>
 	 </tr>
 	 </table>
 	 </form>";
@@ -1145,7 +1145,7 @@ function main_share_retranslation_list(){
 		
 		"<tr ". CellRollOver().">
 			<td width=1% valign='top'><img src='img/24-recipes-folder.png'></td>
-			<td valign='top'>$span<strong style='font-size:13px'>" . texttooltip("\\\\{$ar[0]}\\{$ar[1]} ({$ar[2]})","{edit}","Loadjs('$page?jsscript=addshare&index=$num')")."</strong></td>
+			<td valign='top'>$span<strong style='font-size:13px'>" . texttooltip("\\\\{$ar[0]}\\{$ar[1]} ({$ar[2]})","{apply}","Loadjs('$page?jsscript=addshare&index=$num')")."</strong></td>
 			<td width=1% valign='top'>" . imgtootltip('ed_delete.gif','{delete}',"DeleteRemoteShare($num)")."</td>
 		</tr>";
 		

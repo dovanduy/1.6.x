@@ -39,11 +39,19 @@ class IP {
 	}
 	
 	public static function isIPAddress( $ip ) {
+		$ip=trim($ip);
+		if($ip==null){return false;}
 		if ( !$ip ) return false;
 		if ( is_array( $ip ) ) {return false;}
-		if(preg_match("#(.+?)\/[0-9]+#", $ip,$re)){$ip=$re[1];}
-		// IPv6 IPs with two "::" strings are ambiguous and thus invalid
-		return preg_match( '/^' . IP_ADDRESS_STRING . '$/', $ip) && ( substr_count($ip, '::') < 2 );
+		if(preg_match("#(.+?)\/([0-9]+)$#", $ip,$re)){
+			$re[2]=trim($re[2]);
+			if(strlen($re[2])>2){return false;}
+			$ip=$re[1];
+		}
+		if(preg_match("#^".RE_IP_ADD."$#", $ip,$re)){return true;}
+		if(preg_match("#^".RE_IPV6_ADD."$#", $ip,$re)){return true;}
+		if(substr_count($ip, '::')>0){return false;}
+		return false;
 	}
 	
 	public static function isIPv6( $ip ) {

@@ -1109,6 +1109,7 @@ cmd:=cmd + ' --exclude artica-postfix/mysql';
 cmd:=cmd + ' --exclude artica-postfix/certs';
 cmd:=cmd + ' --exclude artica-postfix/sql';
 cmd:=cmd + ' --exclude artica-postfix/roundcube';
+cmd:=cmd + ' --exclude artica-postfix/computers';
 cmd:=cmd + ' --exclude artica-postfix/oma';
 cmd:=cmd + ' --exclude artica-postfix/etc';
 cmd:=cmd + ' --exclude artica-postfix/computers';
@@ -1845,9 +1846,9 @@ begin
  SYS:=Tsystem.CReate;
 for i:=0 to languages_bases.Count -1 do begin
    writeln('Compile lang '+languages_bases.Strings[i]+' on website');
-   SYS.WGET_DOWNLOAD_FILE('http://93.88.245.88/export.lang.php?lang='+languages_bases.Strings[i],'/tmp/'+languages_bases.Strings[i]+'.html');
+   SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/export.lang.php?lang='+languages_bases.Strings[i],'/tmp/'+languages_bases.Strings[i]+'.html');
    writeln('Downloading lang '+languages_bases.Strings[i]+' on website');
-   SYS.WGET_DOWNLOAD_FILE('http://93.88.245.88/languages/download/'+languages_bases.Strings[i]+'/'+languages_bases.Strings[i]+'.tar','/tmp/'+languages_bases.Strings[i]+'.tar');
+   SYS.WGET_DOWNLOAD_FILE('http://www.artica.fr/languages/download/'+languages_bases.Strings[i]+'/'+languages_bases.Strings[i]+'.tar','/tmp/'+languages_bases.Strings[i]+'.tar');
    writeln('installing lang '+languages_bases.Strings[i]);
    forceDirectories('/usr/share/artica-postfix/ressources/language/'+languages_bases.Strings[i]);
    fpsystem('/bin/rm -f /usr/share/artica-postfix/ressources/language/'+languages_bases.Strings[i]+'/*');

@@ -584,7 +584,7 @@ if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		if($EnableISCSI==0){$color="#8a8a8a";}
 		$html=$html."
 			<tr class=$classtr>
-			<td width=1%>". imgtootltip("48-idisk-server.png","{edit}","Addiscsi('{$ligne["ID"]}')")."</td>
+			<td width=1%>". imgtootltip("48-idisk-server.png","{apply}","Addiscsi('{$ligne["ID"]}')")."</td>
 			<td nowrap><strong style='font-size:14px;color:$color'>{$ligne["shared_folder"]}</strong><div style='font-size:12px'><i>{$ligne["dev"]}</i></div></td>
 			<td nowrap><strong style='font-size:14px;color:$color'>{$ligne["hostname"]}</strong></td>
 			<td width=1%>". imgtootltip("delete-24.png","{delete}","iCsciDiskDelete('{$ligne["ID"]}')")."</td>

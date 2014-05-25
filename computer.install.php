@@ -316,7 +316,7 @@ function add_task(){
 	
 	
 	
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:SaveTask('{$_GET["taskid"]}');\" value=\"{edit}&nbsp;&raquo;\"></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:SaveTask('{$_GET["taskid"]}');\" value=\"{apply}&nbsp;&raquo;\"></td>
 	</tr>		
 	</table>	
 	</div>

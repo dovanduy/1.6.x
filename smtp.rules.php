@@ -466,8 +466,8 @@ function postfix_regex(){
 				$html=$html."
 				<tr "  .CellRollOver_jaune().">
 					<td width=1% valign='top'><img src='img/fw_bold.gif'></td>
-					<td width=1% valign='top'>".texttooltip($i,'{edit}',"edit_postfix_regex_rule($i)")."</td>
-					<td nowrap valign='top'>" .texttooltip($pattern,'{edit}',"edit_postfix_regex_rule($i)")."</td>
+					<td width=1% valign='top'>".texttooltip($i,'{apply}',"edit_postfix_regex_rule($i)")."</td>
+					<td nowrap valign='top'>" .texttooltip($pattern,'{apply}',"edit_postfix_regex_rule($i)")."</td>
 					<td valign='top'>{$array[1]}</td>
 					<td nowrap valign='top'>$log</td>
 					<td nowrap valign='top'>". imgtootltip("x.gif","{delete}","PostfixRegexDelete($i)")."</td>
@@ -566,7 +566,7 @@ function postfix_regex_rule_edit(){
 			
 			<tr>
 			
-			<td align='right' colspan=2 class=legend><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:EditPostfixRegexRule('$id');\">
+			<td align='right' colspan=2 class=legend><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EditPostfixRegexRule('$id');\">
 			</table>
 			</div>
 	";

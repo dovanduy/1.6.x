@@ -2,6 +2,7 @@
 include_once(dirname(__FILE__)."/class.ldap.inc");
 include_once(dirname(__FILE__)."/class.maincf.multi.inc");
 include_once(dirname(__FILE__)."/class.mysql.inc");
+include_once(dirname(__FILE__)."/class.tcpip.inc");
 
 class milter_greylist{
 	var $hostname;
@@ -464,7 +465,35 @@ function BuildConfig(){
 				
 				$this->acl[]="acl whitelist from {$ligne["sender"]}";
 				
-			}	
+			}
+
+			$IP=new IP();
+			$ldap=new clladp();
+			$hash=$ldap->WhitelistsFromDomain("*");
+				while (list ($ToDestination, $MAIN_HASH) = each ($hash)){
+					while (list ($index, $from) = each ($MAIN_HASH)){
+						if(!preg_match("#(.*?)@(.+)#", $from,$re)){ $re[1]=".*?"; $re[2]=$from; }
+						$prefix_email=$re[1];
+						$suffix_email=$re[2];
+						if($IP->isIPAddress($suffix_email)){
+							$this->acl[]="acl whitelist addr $suffix_email # LDAP WhitelistsFromDomain: $from";
+							continue;
+						}
+						$suffix_email=str_replace(".", "\.", $suffix_email);
+						if($prefix_email==null){$prefix_email=".*";}
+						
+						if($prefix_email==".*"){
+							$this->acl[]="acl whitelist from /.*@$suffix_email/ # LDAP WhitelistsFromDomain: $from";
+							continue;
+						}
+						
+						$prefix_email=string_to_regex($prefix_email);
+						$this->acl[]="acl whitelist from /$prefix_email@$suffix_email/ # LDAP WhitelistsFromDomain: $from";
+					
+					}
+			}
+			
+			
 			
 			$sock=new sockets();
 			$ZarafaAdbksWhiteTask=$sock->GET_INFO("ZarafaAdbksWhiteTask");
@@ -812,19 +841,19 @@ private function multinets(){
 	
 		$q=new mysql();
 		$sql="SELECT * FROM postfix_whitelist_con";
+		$ipClass=new IP();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo "$q->mysql_error\n";}
 	
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-			if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+#",$ligne["ipaddr"])){
-				$this->acl[]="acl whitelist addr {$ligne["ipaddr"]} #postfix_whitelist_con";
-				continue;
+			
+			if(!$ipClass->isIPAddress($ligne["ipaddr"])){
+				$ligne["ipaddr"]=gethostbyname($ligne["ipaddr"]);
 			}
 			
-			
-			if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#",$ligne["ipaddr"])){continue;}
-			$this->acl[]="acl whitelist addr {$ligne["ipaddr"]} #multinets (postfix_whitelist_con)";
-			
+			if(!$ipClass->isIPAddress($ligne["ipaddr"])){continue;}
+			$this->acl[]="acl whitelist addr {$ligne["ipaddr"]} #postfix_whitelist_con";
+		
 		}	
 	
 	$ldap=new clladp();

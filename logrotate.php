@@ -15,6 +15,8 @@ if(!CheckRightsSyslog()){
 	die();	
 }
 
+if(isset($_GET["syslog-engine-tabs"])){syslog_engine_tab();exit;}
+if(isset($_GET["rotate-tabs"])){rotate_tab();exit;}
 if(isset($_POST["PurgeToNas"])){PurgeToNas();exit;}
 if(isset($_POST["BackupToNas"])){BackupToNas();exit;}
 if(isset($_POST["BackupSquidLogsUseNas"])){remote_nas_save();exit;}
@@ -329,16 +331,18 @@ function rotate_save(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$array["schedules"]="{schedules}";
-	$array["storage"]="{storage}";
 	$array["syslog"]="{syslog}";
+	$array["rotate-tabs"]="{rotate}";
+	$array["syslog-engine-tabs"]="{syslog_engine}";
+	
 
 
 	
-	$fontsize=14;
+	$fontsize=18;
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
+
 		if($num=="master"){
 			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
@@ -354,11 +358,95 @@ function tabs(){
 			continue;
 		}		
 	
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}'>$ligne</span></a></li>\n");
 		
 			
 		}
 	echo build_artica_tabs($html, "main_logrotate")."<script>LeftDesign('logs-256-white-opac20.png');</script>";
+}
+
+
+function rotate_tab(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$array["schedules"]="{schedules}";
+	$array["storage"]="{storage}";
+	$array["events"]="{events}";
+	
+	
+	
+	
+	$fontsize=18;
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="events"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"system.rotate.events.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="localx"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="client"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+	
+			
+	}
+	echo build_artica_tabs($html, "main_logrotate_tab")."<script>LeftDesign('logs-256-white-opac20.png');</script>";	
+	
+	
+}
+
+function syslog_engine_tab(){
+	$array["master"]='{syslog_server}';
+	$array["localx"]='localx';
+	$array["client"]='{client}';	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$fontsize=18;
+	
+	while (list ($num, $ligne) = each ($array) ){
+	
+		if($num=="artica"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"artica.events.php?popup=yes&full-size=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="syslog"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.php?popup=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+	
+		if($num=="master"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="localx"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		if($num=="client"){
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"syslog.engine.php?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+	
+			
+	}
+	echo build_artica_tabs($html, "main_logrotate_syslog_engine")."<script>LeftDesign('logs-256-white-opac20.png');</script>";
+	
+	
 }
 
 function syslog_tab(){
@@ -366,16 +454,15 @@ function syslog_tab(){
 	
 	$array["syslog"]='{events}';
 	$array["artica"]='{artica_events}';
-	https://192.168.1.243:9000/artica.events.php?popup=yes&full-size=yes&_=1392596928456
 	
-	$array["master"]='{syslog_server}';
-	$array["localx"]='localx';
-	$array["client"]='{client}';
+
+
+
 	
 	
 	$tpl=new templates();
 	$page=CurrentPageName();
-	$fontsize=14;
+	$fontsize=18;
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -791,7 +878,7 @@ $('#$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'ID', width : 32, sortable : true, align: 'center'},
-		{display: '$target', name : 'RotateFiles', width : 161, sortable : false, align: 'left'},
+		{display: '$target', name : 'RotateFiles', width : 326, sortable : false, align: 'left'},
 		{display: '$size', name : 'MaxSize', width : 66, sortable : false, align: 'left'},
 		{display: 'FREQ', name : 'RotateFreq', width : 79, sortable : false, align: 'left'},
 		{display: '$description', name : 'description', width : 318, sortable : false, align: 'left'},

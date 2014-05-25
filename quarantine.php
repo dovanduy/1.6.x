@@ -139,7 +139,7 @@ function popup_start(){
 			<tr>
 				<td colspan=2 align='right'>
 				<hr>
-				". button("{edit}","SaveQuarantineConfig()")."
+				". button("{apply}","SaveQuarantineConfig()")."
 				</td>
 			</tr>
 				

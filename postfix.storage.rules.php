@@ -109,19 +109,19 @@ function popup_index(){
 			   <td nowrap align='right' valign='top'><strong>{bounce_template_file}</strong>:</td>
 			       <td><table>
 			       	<tr>
-			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{edit}',"PostFixBounceTemplate('failure_template')") . "</td>
+			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{apply}',"PostFixBounceTemplate('failure_template')") . "</td>
 			       		<td><a href=\"javascript:PostFixBounceTemplate('failure_template');\"><strong>{failure_template}</strong></a>
 			       	</tr>
 			       	<tr>
-			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{edit}',"PostFixBounceTemplate('delay_template')") . "</td>
+			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{apply}',"PostFixBounceTemplate('delay_template')") . "</td>
 			       		<td><a href=\"javascript:PostFixBounceTemplate('delay_template');\"><strong>{delay_template}</strong></a>
 			       	</tr>
 			       	<tr>
-			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{edit}',"PostFixBounceTemplate('success_template')") . "</td>
+			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{apply}',"PostFixBounceTemplate('success_template')") . "</td>
 			       		<td><a href=\"javascript:PostFixBounceTemplate('success_template');\"><strong>{success_template}</strong></a>
 			       	</tr>
 			       	<tr>
-			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{edit}',"PostFixBounceTemplate('verify_template')") . "</td>
+			       		<td width='1%'>" . $link=imgtootltip('edit.jpg','{apply}',"PostFixBounceTemplate('verify_template')") . "</td>
 			       		<td><a href=\"javascript:PostFixBounceTemplate('verify_template');\"><strong>{verify_template}</strong></a>
 			       	</tr>	
 				</table>

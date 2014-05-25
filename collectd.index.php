@@ -414,7 +414,7 @@ function collectd_selector(){
 			<tr>
 			<td width=1%>" . Field_numeric_checkbox_img('EnableCollectdDaemon',$artica->EnableCollectdDaemon,'{enable_disable}')."</td>
 			<td class=legend align='left' width=1% nowrap>{enable_collected_daemon}</td>
-			<td align='left' width=98%><input type='button' OnClick=\"javascript:Loadjs('collectd.index.php?script=EnableCollectdDaemon')\" value='{edit}&nbsp;&raquo;'></td>
+			<td align='left' width=98%><input type='button' OnClick=\"javascript:Loadjs('collectd.index.php?script=EnableCollectdDaemon')\" value='{apply}&nbsp;&raquo;'></td>
 			</tr>
 			</table>
 			</div>

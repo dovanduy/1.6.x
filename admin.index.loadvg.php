@@ -47,15 +47,20 @@ if($GLOBALS["AS_ROOT"]){@mkdir("/usr/share/artica-postfix/ressources/web/cache1"
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 MySqlSyslog();
 ZarafaWebAccess_wizard();
+License();
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 injectSquid();
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
 PageDeGarde();
 if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
-License();
-if($GLOBALS['VERBOSE']){echo "<hr>".date("H:i.s")." ". __FUNCTION__."::".__LINE__."<br>\n";}
+
 exit;
 
+
+function SquidOneCPU(){
+	
+	
+}
 
 function MySqlSyslog(){
 	if($GLOBALS["AS_ROOT"]){return;}

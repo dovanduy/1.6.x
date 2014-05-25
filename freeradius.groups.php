@@ -1,8 +1,4 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('error_reporting', E_ALL);
-ini_set('error_prepend_string',"<p class='text-error'>");
-ini_set('error_append_string',"</p>");
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');

@@ -525,7 +525,7 @@ function popup_bandwith_list(){
 		$html=$html."
 		<tr>
 			<td width=1%><img src='img/time-30.png'></td>
-			<td ". CellRollOver("AddScheduleEDonkey({$ligne["ID"]})","{edit}")."><strong style='font-size:13px'>
+			<td ". CellRollOver("AddScheduleEDonkey({$ligne["ID"]})","{apply}")."><strong style='font-size:13px'>
 				{$params["hours"]}:{$params["minutes"]} &nbsp;-&raquo;&nbsp;
 				{max_hard_upload_rate}:&nbsp;{$params["max_hard_upload_rate"]}&nbsp;$max_hard_upload_rate_unit,&nbsp;
 				{max_hard_download_rate}:&nbsp;{$params["max_hard_download_rate"]}&nbsp;$max_hard_download_rate_unit,&nbsp;

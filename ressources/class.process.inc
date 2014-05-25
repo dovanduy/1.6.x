@@ -28,10 +28,14 @@ class processes_php{
 	
 	
 function MemoryInstances(){
+		if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();}
 		if(isset($GLOBALS["CLASS_UNIX/MemoryInstances"][date("Hi")])){return $GLOBALS["CLASS_UNIX/MemoryInstances"][date("Hi")];}
 		
 		$pgrep=$GLOBALS["PGREP"];
 		if(!is_file($pgrep)){if($GLOBALS["VERBOSE"]){echo "pgrep, no such bin\n";}return 0;}
+		$ArticaProxyStatisticsMaxTime=$GLOBALS["CLASS_SOCKET"]->GET_INFO("ArticaProxyStatisticsMaxTime");
+		if(!is_numeric($ArticaProxyStatisticsMaxTime)){$ArticaProxyStatisticsMaxTime=420;}
+		if($ArticaProxyStatisticsMaxTime<5){$ArticaProxyStatisticsMaxTime=420;}
 		
 		
 		$Toremove["exec.squid.blacklists.php"]=true;
@@ -132,6 +136,8 @@ function MemoryInstances(){
 		$arrayK["exec.zarafa.adbookldap.php"]=30;
 		$arrayK["exec.kerbauth.php"]=15;
 		$arrayK["exec.admin.smtp.flow.status.php"]=10;
+		$arrayK["exec.squid.stats.central.php"]=$ArticaProxyStatisticsMaxTime;
+		$arrayK["exec.squid.stats.hours.php"]=59;
 		
 			
 		$array=array();

@@ -33,6 +33,8 @@ function tabs_all(){
 	$array["today-squidaccess"]='{today}';
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
+	$array["events-ziproxy"]='{compressor_requests}';
+	
 	
 	
 	
@@ -50,7 +52,11 @@ function tabs_all(){
 			continue;
 		
 		}		
+		if($num=="events-ziproxy"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.zipproxy.access.php?popup=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
 		
+		}		
 		
 		if($num=="watchdog"){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.watchdog-events.php\">

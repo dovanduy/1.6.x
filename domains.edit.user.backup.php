@@ -119,7 +119,7 @@ $html="<H1>{backup_parameters}</H1>
 	</tr>	
 	<tr>
 		<td valign='top' align='right' colspan=2><hr>
-			<input type='button' OnClick=\"javascript:SaveBackupUserInfos();\" value='&nbsp;&nbsp;{edit}&nbsp;&raquo;&nbsp;&nbsp;'>
+			<input type='button' OnClick=\"javascript:SaveBackupUserInfos();\" value='&nbsp;&nbsp;{apply}&nbsp;&raquo;&nbsp;&nbsp;'>
 		</td>
 	</tr>
 </table>

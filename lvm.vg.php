@@ -551,7 +551,7 @@ function affectvg(){
 		<td class=legend>{organization}:</td>
 		<td>$field</td>
 	</tr>
-	<td colspan=2 align='right'><hr>". button("{edit}","lvmAffectSave();")."</td>
+	<td colspan=2 align='right'><hr>". button("{apply}","lvmAffectSave();")."</td>
 	</tr>
 	</table>
 	

@@ -111,7 +111,7 @@ if($md5file<>$_GET["md5file"]){
 	return;
 }
 
-if($prc>=100){
+if($prc==100){
 	echo "
 	function Start$time(){
 		if(!RTMMailOpen()){return;}
@@ -128,6 +128,23 @@ if($prc>=100){
 	";	
 	return;	
 }
+
+if($prc>100){
+	echo "
+	function Start$time(){
+	if(!RTMMailOpen()){return;}
+	document.getElementById('title-$t').innerHTML='$title';
+	document.getElementById('title-$t').style.border='1px solid #C60000';
+	document.getElementById('title-$t').style.color='#C60000';
+	$('#progress-$t').progressbar({ value: $prc });
+	$('#progress2-$t').progressbar({ value: 0 });
+}
+setTimeout(\"Start$time()\",1000);
+";
+	return;
+}
+
+
 
 echo "	
 function Start$time(){

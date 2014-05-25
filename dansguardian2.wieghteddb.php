@@ -120,7 +120,7 @@ function search(){
 		
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgsimple("32-parameters.png","{edit}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
+		$select=imgsimple("32-parameters.png","{apply}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
 		$delete=imgsimple("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
 		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";
@@ -267,7 +267,7 @@ function WeightedPhraseEdit_search(){
 		
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgsimple("32-parameters.png","{edit}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
+		$select=imgsimple("32-parameters.png","{apply}","WeightedPhraseEdit('{$ligne["language"]}','{$ligne["category"]}')");
 		$delete=imgsimple("delete-32.png","{delete}","DeleteWords('{$ligne["zmd5"]}')");
 		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";

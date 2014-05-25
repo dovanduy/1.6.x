@@ -346,7 +346,7 @@ $ssl
 	<tr><td colspan=2 align='right'>
 	
 		<hr>
-		<input type='button' OnClick=\"javascript:SaveRsyncClientConf();\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:SaveRsyncClientConf();\" value='{apply}&nbsp;&raquo;'>
 	</td>
 	</tr>
 	</table>

@@ -106,6 +106,7 @@ $q=new mysql_squid_builder();
 $GLOBALS["Q"]=$q;
 @mkdir("/home/artica/categories_databases",0755,true);
 $unix->chmod_func(0755, "/home/artica/categories_databases/*");
+$unix->chmod_func(0755, "/home/artica/categories_perso/*");
 
 $t=time();
 
@@ -114,6 +115,8 @@ percentage("Purge old days",1);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squidlogs.purge.php"));
 stats_admin_events(2,"1%) Purge days took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 
+percentage("Compile personal tables...",2);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.compile_category_perso.php"));
 percentage("Fix tables",2);
 $q->FixTables();
 $squid_stats_tools=new squid_stats_tools();
@@ -237,9 +240,15 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.days.websites.php --s
 stats_admin_events(2,"20%)  Days Websites took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
+$t=time();
+percentage("Week tables...",21);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --week --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"29%)  Week tables... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
 
 $t=time();
-percentage("Visited Websites",25);
+percentage("Visited Websites",22);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --visited-sites2 --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"25%)  Visited Websites took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
@@ -283,11 +292,6 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix//usr/share/artica-postfix/exec.squid-s
 stats_admin_events(2,"29%)  Search Words Weekly... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
-$t=time();
-percentage("Week tables...",29);
-shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --week --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
-stats_admin_events(2,"29%)  Week tables... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
-if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
 percentage("Week tables ( blocked )...",30);
@@ -296,32 +300,28 @@ stats_admin_events(2,"30%)  Week tables ( blocked ).... took:" .$unix->distanceO
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Months tables...",31);
+percentage("Months tables (1) ...",31);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --scan-months --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"31%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Months tables...",32);
+percentage("Months tables (2) ...",32);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.month.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"32%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Months tables...",33);
+percentage("Months tables (3)...",33);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.quotaday.php --quotamonth --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"33%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Months tables...",35);
+percentage("Months tables by users (4)...",35);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.uid-month.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"35%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
-
-
-
-
 
 $t=time();
 percentage("Repair categories",40);
@@ -706,6 +706,7 @@ function start_export(){
 	$LIST_TABLES_WEEKS=$q->LIST_TABLES_WEEKS();
 	$LIST_TABLES_MEMBERS=$q->LIST_TABLES_MEMBERS();
 	$LIST_TABLES_GSIZE=$q->LIST_TABLES_GSIZE();
+	$LIST_TABLES_GCACHE=$q->LIST_TABLES_GCACHE();
 	$LIST_TABLES_VISITED=$q->LIST_TABLES_VISITED();
 	$LIST_TABLES_BLOCKED=$q->LIST_TABLES_BLOCKED();
 	$LIST_TABLES_BLOCKED_WEEK=$q->LIST_TABLES_BLOCKED_WEEK();
@@ -786,6 +787,12 @@ function start_export(){
 		if(trim($tablename)==null){continue;}
 		$EXPORT_SOURCES[$tablename]=true;
 	}
+	
+	while (list ($tablename, $none) = each ($LIST_TABLES_GCACHE) ){
+		if(trim($tablename)==null){continue;}
+		$EXPORT_SOURCES[$tablename]=true;
+	}	
+	
 	while (list ($tablename, $none) = each ($LIST_TABLES_VISITED) ){
 		if(trim($tablename)==null){continue;}
 		$EXPORT_SOURCES[$tablename]=true;

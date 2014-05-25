@@ -37,17 +37,20 @@ function build(){
 	
 	
 	$mysar=$unix->find_program("mysar");
+	if($GLOBALS["VERBOSE"]){echo "mysar  = $mysar\n";}
 	
 	if(!is_file($mysar)){
 		$BaseWorkDir="/home/squid/access_logs";
 		if (!$handle = opendir($BaseWorkDir)) {@mkdir($BaseWorkDir,0755,true);return;}
 		$syslog=new mysql_storelogs();
+		if($GLOBALS["VERBOSE"]){echo "Scanning $BaseWorkDir\n";}
 		
 		while (false !== ($fileZ = readdir($handle))) {
 			if($fileZ=="."){continue;}
 			if($fileZ==".."){continue;}
 			$filename="$BaseWorkDir/$fileZ";
 			if(is_dir($filename)){continue;}
+			if($GLOBALS["VERBOSE"]){echo "ROTATE_TOMYSQL($filename)\n";}
 			$syslog->ROTATE_TOMYSQL($filename);
 			if(function_exists("system_is_overloaded")){if(system_is_overloaded()){return;}}
 		}

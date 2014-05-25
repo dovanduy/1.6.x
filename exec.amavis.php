@@ -1,12 +1,18 @@
 <?php
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 	$GLOBALS["EXECUTED_AS_ROOT"]=true;
+	$GLOBALS["OUTPUT"]=false;
 	if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	include(dirname(__FILE__).'/ressources/class.amavis.inc');
 	include_once(dirname(__FILE__).'/framework/frame.class.inc');
 	include_once(dirname(__FILE__).'/framework/class.unix.inc');
 	if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
+	$GLOBALS["TITLENAME"]="Amavisd-New daemon";
 	$me=basename(__FILE__);
+	
+	
+	if($argv[1]=="--whitelist"){$GLOBALS["OUTPUT"]=true;buildWhitelist();exit;}
+	
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/$me.pid";
 	$oldpid=$unix->get_pid_from_file($pidpath);
@@ -105,6 +111,73 @@ function PatchPyzor(){
 
 }
 
+
+function buildWhitelist($aspid=false){
+	$unix=new unix();
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$amavis=new amavis();
+	$amavis->whitelist_sender_maps();
+	if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Building Whitelist done\n";}
+	reload(true);
+}
+
+
+function reload($aspid=false){
+	$unix=new unix();
+	
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$oldpid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($oldpid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+			if($GLOBALS["OUTPUT"]){echo "Reloading.....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$amavisbin=$unix->LOCATE_AMAVISD_BIN_PATH();
+	$pid=PID_NUM();
+	
+	if(!$unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Reloading.....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Not running\n";}
+		return;
+	}
+	
+	$TTL=$unix->PROCESS_TTL($pid);
+	$nohup=$unix->find_program("nohup");
+	if($GLOBALS["OUTPUT"]){echo "Reloading.....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} reloading PID $pid running since {$TTL}mn\n";}
+	$cmd="$nohup $amavisbin -c /usr/local/etc/amavisd.conf reload >/dev/null 2>&1 &";
+	shell_exec($cmd);
+}
+//#############################################################################
+function AMAVISD_PID_PATH(){
+if(is_file('/var/spool/postfix/var/run/amavisd-new/amavisd-new.pid')){return "/var/spool/postfix/var/run/amavisd-new/amavisd-new.pid";}
+if(is_file('/var/run/amavis/amavisd.pid')){return '/var/run/amavis/amavisd.pid';}
+}
+//#############################################################################
+
+function PID_NUM(){
+
+	$unix=new unix();
+	$AMAVISD_PID_PATH=AMAVISD_PID_PATH();
+	$pid=$unix->get_pid_from_file($AMAVISD_PID_PATH);
+	if($unix->process_exists($pid)){return $pid;}
+	$Masterbin=$unix->find_program("haproxy");
+	return $unix->PIDOF_PATTERN("amavisd \(master");
+
+}
 
 
 

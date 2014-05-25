@@ -60,6 +60,7 @@ function page(){
 	if(!is_numeric($BackupSquidLogsUseNas)){$BackupSquidLogsUseNas=0;}
 	$SquidLogRotateFreq=intval($sock->GET_INFO("SquidLogRotateFreq"));
 	if($SquidLogRotateFreq<10){$SquidLogRotateFreq=1440;}
+	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
 	
 	$freq[10]="10mn";
 	$freq[20]="20mn";
@@ -74,9 +75,16 @@ function page(){
 	$freq[10080]="1 {week}";
 	
 	$html="
-<div style='width:100%;font-size:22px'>{log_retention}</div>
+<div style='width:100%;font-size:22px;margin-bottom:20px'>{log_retention}</div>
 	<div class=explain style='font-size:16px'>{log_retention_mysql_text}</div>	
-	<div style='width:95%'  class=form>		
+			
+			
+	<div style='width:98%'  class=form>	
+
+". Paragraphe_switch_img("{only_by_schedule}","{only_by_schedule_squid_rotation_explain}","SquidRotateOnlySchedule" ,$SquidRotateOnlySchedule,null,650)."		
+			
+			
+			
 <table style='width:100%'>
 	<tr>
 		<td class=legend style='font-size:18px'>{rotate_logs_each}:</td>
@@ -186,12 +194,11 @@ function LogRotateMysqlCheck$t(){
 	document.getElementById('BackupMaxDays').disabled=true;
 	document.getElementById('BackupMaxDaysDir').disabled=true;
 	if(document.getElementById('LogRotateMysql').checked){
-	document.getElementById('LogRotatePath').disabled=true;
-	document.getElementById('BackupMaxDays').disabled=false;
-	document.getElementById('BackupMaxDaysDir').disabled=false;
+		document.getElementById('LogRotatePath').disabled=true;
+		document.getElementById('BackupMaxDays').disabled=false;
+		document.getElementById('BackupMaxDaysDir').disabled=false;
 	}
-		
-	}
+}
 	
 	
 function SaveRotateOptions$t(){
@@ -208,6 +215,8 @@ function SaveRotateOptions$t(){
 	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays').value);
 	XHR.appendData('BackupMaxDaysDir',document.getElementById('BackupMaxDaysDir').value);
 	XHR.appendData('LogsRotateDeleteSize',document.getElementById('LogsRotateDeleteSize').value);
+	XHR.appendData('SquidRotateOnlySchedule',document.getElementById('SquidRotateOnlySchedule').value);
+	
 	XHR.sendAndLoad('$page', 'POST',x_SaveSettsLogRotate$t);
 	}
 	

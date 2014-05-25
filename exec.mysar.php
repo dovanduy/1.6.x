@@ -61,6 +61,10 @@ function build(){
 		if(is_dir($filename)){continue;}
 		$time=$unix->file_time_min($filename);
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+		
+		if(preg_match("#ziproxy#", $filename)){
+			continue;
+		}
 	
 		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
 			@mkdir("/home/squid/access_logs");

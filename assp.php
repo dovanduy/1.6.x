@@ -122,7 +122,7 @@ function scoring_popup(){
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'><hr>
-			<input type='button' OnClick=\"javascript:ASSPScaveScores();\" value='{edit}&nbsp;&raquo;'>
+			<input type='button' OnClick=\"javascript:ASSPScaveScores();\" value='{apply}&nbsp;&raquo;'>
 		</td>
 	</tr>	
 	</table>")."</div>";
@@ -263,7 +263,7 @@ $milter=Paragraphe_switch_img('{enable_backup}','{enable_backup_email_text}','En
 		</td>
 		</tr>
 		<td align='right'><hr>
-		<input type='button' OnClick=\"javascript:EnableASSPBackup();\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:EnableASSPBackup();\" value='{apply}&nbsp;&raquo;'>
 		</td>	
 		</tr>
 		</table>
@@ -379,7 +379,7 @@ function greylist_popup(){
 	</tr>	
 	<tr>
 		
-		<td colspan=3 align='right'><hr><input type='button' OnClick=\"javascript:ASSPGreyListSave();\" value='{edit}&nbsp;&raquo;'>
+		<td colspan=3 align='right'><hr><input type='button' OnClick=\"javascript:ASSPGreyListSave();\" value='{apply}&nbsp;&raquo;'>
 	</tr>
 	
 

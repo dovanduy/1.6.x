@@ -27,6 +27,10 @@ if(isset($_GET["uncompress-check"])){uncompress_file_check();exit;}
 if(isset($_GET["delete-check"])){uncompress_file_delete();exit;}
 if(isset($_POST["csv-delete"])){csv_delete();exit;}
 if(isset($_POST["empty-store"])){empty_store();exit;}
+if(isset($_GET["change-date-js"])){change_date_js();exit;}
+if(isset($_GET["change-date-popup"])){change_date_popup();exit;}
+
+
 page();
 
 function tabs_all(){
@@ -40,6 +44,7 @@ function tabs_all(){
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
 	$array["parameters"]='{log_retention}';
+	$array["schedule"]='{schedules}';
 
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -55,7 +60,12 @@ function tabs_all(){
 			continue;
 		
 		}
-				
+
+		if($num=="schedule"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php?TaskType=54\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}
 		
 		if($num=="today-squidaccess"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.access.today.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
@@ -122,6 +132,7 @@ function page(){
 	$realsize=$tpl->_ENGINE_parse_body("{realsize}");
 	$delete_file=$tpl->javascript_parse_text("{delete_file}");
 	$rotate_logs=$tpl->javascript_parse_text("{rotate_logs}");
+	$change_date=$tpl->javascript_parse_text("{change_date}");
 	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
 	$reload_proxy_service=$tpl->_ENGINE_parse_body("{reload_proxy_service}");
 	$table_size=855;
@@ -134,6 +145,7 @@ function page(){
 	$margin_left="-15";
 	if(is_numeric($_GET["table-size"])){$table_size=$_GET["table-size"];}
 	if(is_numeric($_GET["url-row"])){$url_row=$_GET["url-row"];}
+	
 		
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
@@ -162,11 +174,13 @@ function page(){
 	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
 	$error=$tpl->javascript_parse_text("{error}");
 	$sitename=$tpl->javascript_parse_text("{sitename}");
-	$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
+	//$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 
 	
-	$buttons[]="{name: '<strong>$reload_proxy_service</stong>', bclass: 'Reload', onpress : ReloadProxy$t},";
+	$buttons[]="{name: '<strong>$change_date</stong>', bclass: 'Reload', onpress : ChangeDate$t},";
+	//$buttons[]="{name: '<strong>$reload_proxy_service</stong>', bclass: 'Reload', onpress : ReloadProxy$t},";
 	
+	$buttons=@implode("", $buttons);
 	
 $html="
 	<div style='margin:{$margin}px;margin-left:{$margin_left}px' id='$t-main-form'>
@@ -190,7 +204,7 @@ function StartLogsSquidTable$t(){
 			],
 			
 	buttons : [
-			
+			$buttons
 			],
 			
 		
@@ -228,6 +242,10 @@ function OnlyAll$t(){
 function ReloadProxy$t(){
 	Loadjs('squid.reload.progress.php');
 
+}
+
+function ChangeDate$t(){
+	Loadjs('$page?change-date-js=yes&t=$t');
 }
 
 
@@ -409,7 +427,7 @@ $table="squidhour_".date("YmdH");
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show($q->mysql_error);}
-	if(mysql_num_rows($results)==0){json_error_show("no data",2);}
+	if(mysql_num_rows($results)==0){json_error_show("no data - $table",2);}
 	
 	$data = array();
 	$data['page'] = $page;
@@ -643,6 +661,7 @@ echo json_encode($data);
 }
 
 function log_js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	
 	if($_GET["filename"]==null){
@@ -654,6 +673,35 @@ function log_js(){
 	$html="YahooWin5('550','$page?store-file=yes&t={$_GET["t"]}&ID={$_GET["ID"]}','{$_GET["filename"]}')";
 	echo $html;
 }
+
+function change_date_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	header("content-type: application/x-javascript");
+	$change_date=$tpl->javascript_parse_text("{change_date}");
+	$html="YahooWin5('550','$page?change-date-popup=yes&t={$_GET["t"]}','$change_date');";
+	echo $html;	
+	
+}
+function change_date_popup(){
+	
+	$q=new mysql_squid_builder();
+	$tables=$q->LIST_TABLES_HOURS_TEMP();
+
+	
+	while (list ($table, $none) = each ($tables) ){
+		if(!preg_match("#squidhour_([0-9]+)#",$table,$re)){events_repair("No match `$table` abort... L: ".__LINE__);continue;}
+		$hour=$re[1];
+		$year=substr($hour,0,4);
+		$month=substr($hour,4,2);
+		$day=substr($hour,6,2);
+		$hour=substr($hour,8,2);
+		$time=strtotime("$year-$month-$day $hour:00:00");
+		
+	}
+}
+
+
 function store_file(){
 	$page=CurrentPageName();
 	$tpl=new templates();

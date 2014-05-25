@@ -279,8 +279,8 @@ function virtual_servers_list_old(){
 		if($ligne["hostname"]=="master"){continue;}
 
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","SambaVirtalServer('{$ligne["hostname"]}')");
-		$select2=imgtootltip("32-network-server.png","{edit}","SambaVirtalServer('{$ligne["hostname"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","SambaVirtalServer('{$ligne["hostname"]}')");
+		$select2=imgtootltip("32-network-server.png","{apply}","SambaVirtalServer('{$ligne["hostname"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","SambaVirtalDel('{$ligne["hostname"]}')");
 		$color="black";
 		if($EnableSambaVirtualsServers==0){$color="#8a8a8a";}

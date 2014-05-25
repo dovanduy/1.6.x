@@ -1,8 +1,5 @@
 <?php
 session_start();
-
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);
-ini_set('error_append_string',null);
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");

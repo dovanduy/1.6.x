@@ -366,19 +366,43 @@ function home_squid_access_logs(){
 	$sock=new sockets();
 	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
+	
+	
 	$mysar=$unix->find_program("mysar");
-	if(is_file($mysar)){return;}
+	if(!is_file($mysar)){
+		if($GLOBALS["VERBOSE"]){
+			echo "MySar, no such binary...\n";
+			
+		}
+		return;
+	}
 	if (!$handle = opendir($BaseWorkDir)) {return;}
 	
 	
-	
+	if($GLOBALS["VERBOSE"]){echo "Scanning $BaseWorkDir\n";}
 	while (false !== ($fileZ = readdir($handle))) {
 		if($fileZ=="."){continue;}
 		if($fileZ==".."){continue;}
 		$filename="$BaseWorkDir/$fileZ";
-		$extension = pathinfo($fileZ, PATHINFO_EXTENSION);
-		if(is_numeric($extension)){continue;}
+		
+		$size=@filesize($filename);
+		if($size==0){
+			if($GLOBALS["VERBOSE"]){echo "$filename -> 0 bytes, skip it\n";}
+			@unlink($filename);
+			continue;
+		}
+		
 		$filedate=date('Y-m-d H:i:s',filemtime($filename));
+		$extension = pathinfo($fileZ, PATHINFO_EXTENSION);
+		
+		if($GLOBALS["VERBOSE"]){echo "Analyze $fileZ / ext:$extension\n";}
+		if(preg_match("#access\.log#", $fileZ)){
+			$syslog->ROTATE_ACCESS_TOMYSQL($filename,$filedate);
+			continue;
+		}
+		
+		
+		
 		if($extension=="gz"){
 			rotate_admin_events("Insert into MySQL file $filename",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
 			$syslog->ROTATE_ACCESS_TOMYSQL($filename, $filedate);
@@ -418,7 +442,7 @@ function squidLogs($aspid=false){
 	@file_put_contents($TimeFile, getmypid());
 	
 
-	
+	home_squid_access_logs();
 	LogRotateTimeAndSize("/var/log/squid");
 	LogRotateTimeAndSize("/var/log/samba");
 	
@@ -435,6 +459,7 @@ function LogRotateTimeAndSize($BaseWorkDir){
 	$echo=$unix->find_program("echo");
 	$syslog=new mysql_storelogs();
 	$LogsRotateDefaultSizeRotation=$sock->GET_INFO("LogsRotateDefaultSizeRotation");
+	$SquidRotateOnlySchedule=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
 	if(!is_numeric($LogsRotateDefaultSizeRotation)){$LogsRotateDefaultSizeRotation=100;}
 	$LogsRotateDeleteSize=intval($sock->GET_INFO("LogsRotateDeleteSize"));
 	if($LogsRotateDeleteSize==0){$LogsRotateDeleteSize=5000;}
@@ -466,9 +491,20 @@ function LogRotateTimeAndSize($BaseWorkDir){
 	
 		if($fileZ=="cache.log"){
 			if($size>$LogsRotateDefaultSizeRotation){
-				exec("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --force 2>&1",$results);
-				squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
-				return;
+				if($SquidRotateOnlySchedule==0){
+					exec("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --force 2>&1",$results);
+					squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
+					return;
+				}else{
+					if($size>$LogsRotateDeleteSize){
+						$warnfile="/etc/artica-postfix/pids/squid.rotate.cache.warn";
+						if($unix->file_time_min($warnfile)>30){
+							squid_admin_mysql(1, "Warning $fileZ {$size}M Exceed {$LogsRotateDeleteSize}M",null,__FILE__,__LINE__);
+							@unlink($warnfile);
+							@file_put_contents($warnfile, time());
+						}
+					}
+				}
 			}
 			continue;
 		}
@@ -476,10 +512,22 @@ function LogRotateTimeAndSize($BaseWorkDir){
 		if($fileZ=="ufdbguardd.log"){continue;}
 		if($fileZ=="access.log"){
 			if($size>$LogsRotateDefaultSizeRotation){
-				exec("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --smooth 2>&1",$results);
-				rotate_admin_events("$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M perform a Proxy log rotation",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
-				squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
-				return;
+				if($SquidRotateOnlySchedule==0){
+					exec("$php5 /usr/share/artica-postfix/exec.squid.php --rotate --smooth 2>&1",$results);
+					rotate_admin_events("$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M perform a Proxy log rotation",__FUNCTION__,__FILE__,__LINE__,"proxy",$GLOBALS["SCHEDULE_ID"]);
+					squid_admin_mysql(2, "$fileZ {$size}M Exceed {$LogsRotateDefaultSizeRotation}M", "Artica flush a log rotation\n".@implode("\n", $results));
+					return;
+				}else{
+					
+					if($size>$LogsRotateDeleteSize){
+						$warnfile="/etc/artica-postfix/pids/squid.rotate.access.warn";
+						if($unix->file_time_min($warnfile)>30){
+							squid_admin_mysql(1, "Warning $fileZ {$size}M Exceed {$LogsRotateDeleteSize}M",null,__FILE__,__LINE__);
+							@unlink($warnfile);
+							@file_put_contents($warnfile, time());
+						}
+					}					
+				}
 			}
 		}
 		if($fileZ=="netdb.state"){continue;}
@@ -579,8 +627,7 @@ function CleanSquidStoreLogs(){
 	}
 	
 	if($deleted){
-		$squid=$unix->find_program("squid");
-		if(!is_file($squid)){$squid=$unix->find_program("squid3");}
+		$squid=$unix->LOCATE_SQUID_BIN();
 		if(!is_file($squid)){return;}
 		shell_exec("$php /usr/share/artica-postfix/exec.squid.php --rotate --force");
 
@@ -1109,16 +1156,21 @@ function Clean_tmp_path($aspid=false){
 	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.1",2880);
 	CleanAllindDir("/tmp",2880);
 	CleanAllindDir("/var/lib/c_icap/temporary",2880);
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.2",2880);
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/croned.1",2880);
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/croned.2",2880);
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/pids",2880);
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/pids.3",2880);
-	CleanAllindDir("/etc-artica-postfix/artica-postfix/loadavg.queue",750);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/cron.2",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.1",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.2",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/pids",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/pids.3",2880);
+	CleanAllindDir("/etc/artica-postfix/artica-postfix/loadavg.queue",750);
 	CleanAllindDir("/var/log/artica-postfix/sys_mem",750);
 	CleanAllindDir("/var/log/artica-postfix/sys_loadavg",750);
 	CleanAllindDir("/var/log/artica-postfix/events",240);
 	CleanAllindDir("/var/log/artica-postfix/postqueue",240);
+	CleanAllindDir("/var/log/artica-postfix/system_failover_events",240);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/logs",180);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/logs/web",180);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/conf/upload",30);
+	CleanAllindDir("/usr/share/artica-postfix/ressources/support",30);
 	
 	ZarafaLocks();
 	CleanSquidStoreLogs();
@@ -1661,6 +1713,7 @@ function CleanLogs(){
 	MakeSpace();
 	cleanRoot();
 	CleanSquidStoreLogs();
+	home_squid_access_logs();
 	$maxtime=480;
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";

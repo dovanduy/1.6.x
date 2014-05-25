@@ -72,10 +72,16 @@ function display_config_js(){
 
 function display_config_popup(){
 	$sock=new sockets();
-	$datas=base64_decode($sock->getFrameWork("freeweb.php?display-config=yes&servername={$_GET["servername"]}"));
+	$datas=base64_decode($sock->getFrameWork("freeweb.php?display-config=yes&servername=".urlencode($_GET["servername"])));
+	if($datas<>null){$conf[]=$datas;}
+	
+	$conf[]=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/vhost.conf");
+	
+	
 	echo "<textarea 
-	style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:550px;border:5px solid #8E8E8E;overflow:auto;font-size:13px' 
-	id='textToParseCats$t'>$datas</textarea>";
+	style='margin-top:5px;font-family:Courier New;font-weight:bold;width:100%;height:550px;
+	border:5px solid #8E8E8E;overflow:auto;font-size:14px !important' 
+	id='textToParseCats$t'>".@implode("\n", $conf)."</textarea>";
 	
 }
 	
@@ -168,7 +174,7 @@ RewriteRule (.*) "/wp-content/w3tc/pgcache/$1/_index%{ENV:W3TC_UA}%{ENV:W3TC_SSL
 	<div style='margin:5px;text-align:right'><a href=\"javascript:blur();\" OnClick=\"javascript:RewriteExample()\" style='text-decoration:underline;font-size:13px'>{example}</a></div>
 	<textarea style='width:100%;height:80%;font-size:13px;border:4px solid #CCCCCC;font-family:\"Courier New\",
 	Courier,monospace;background-color:white;color:black' id='rewrite-source-edit'>$mod_rewrite</textarea>
-	<center style='margin:5px'>". button("{edit}","SaveReWriteRule()")."</center>
+	<center style='margin:5px'>". button("{apply}","SaveReWriteRule()")."</center>
 	
 <script>
 	function RewriteExample(){
@@ -297,29 +303,15 @@ function groupwares_index(){
 		
 		$tr[]=$tpl->_ENGINE_parse_body(Paragraphe($h->IMG_ARRAY_64[$key],$title,"{{$h->TEXT_ARRAY[$key]["TEXT"]}}",$js));
 	}
-$tables[]="<table style='width:100%'><tr>";
-$t=0;
-while (list ($key, $line) = each ($tr) ){
-		$line=trim($line);
-		if($line==null){continue;}
-		$t=$t+1;
-		$tables[]="<td valign='top'>$line</td>";
-		if($t==3){$t=0;$tables[]="</tr><tr>";}
-		}
-
-if($t<3){
-	for($i=0;$i<=$t;$i++){
-		$tables[]="<td valign='top'>&nbsp;</td>";				
-	}
-}	
+$final=CompileTr4($tr);
 	
 $groupware_text=$tpl->_ENGINE_parse_body($groupware_text);
 $freeweb_groupware_explain=$tpl->_ENGINE_parse_body("{freeweb_groupware_explain}");
 $html="
-<div class=explain>$freeweb_groupware_explain</div>
+<div class=explain style='font-size:18px'>$freeweb_groupware_explain</div>
 $groupware_text
 <center>
-<div style='width:900px' class=form>". implode("\n",$tables)."</div>
+$final
 </center>
 <script>
 		var x_FreeWebToGroupWare=function (obj) {
@@ -673,7 +665,7 @@ function params2(){
 	$Params=unserialize(base64_decode($ligne["Params"]));
 	
 	if(!isset($Params["JkMount"])){$Params["JkMount"]=0;}
-	if(!isset($Params["ModeBw"])){$Params["ModeBw"]=0;}
+	
 	
 	$APACHE_MOD_TOMCAT=0;
 	if($users->TOMCAT_INSTALLED){if($user->APACHE_MOD_TOMCAT){$APACHE_MOD_TOMCAT=1;}}
@@ -691,28 +683,14 @@ function params2(){
 		<tr>
 			<td class=legend>{enable_mod_pagespeed}:</td>
 			<td>". Field_checkbox("PageSpeed",1,$Params["PageSpeed"])."</td>
-			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.mod.pagespeed.php?servername={$_GET["servername"]}')\" style='font-size:13px;text-decoration:underline'>{edit}</a></td>
+			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.mod.pagespeed.php?servername={$_GET["servername"]}')\" style='font-size:13px;text-decoration:underline'>{apply}</a></td>
 			<td width=1%>". help_icon("{enable_mod_pagespeed_explain}")."</td>
 		</tr>";
 	
-	$mod_bw="
-		<tr>
-			<td class=legend>{enable_bandwith_limitation}:</td>
-			<td>". Field_checkbox("ModeBw",1,$Params["ModeBw"])."</td>
-			<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.mod.bw.php?servername={$_GET["servername"]}')\" style='font-size:13px;text-decoration:underline'>{edit}</a></td>
-			<td width=1%>&nbsp;</td>
-		</tr>";
 
 
-if(!$users->APACHE_MOD_BW){
-	$mod_bwEnable=0;
-	$mod_bw="
-		<tr>
-			<td class=legend>{enable_bandwith_limitation}:</td>
-			<td>". Field_checkbox("ModeBw",1,$Params["ModeBw"])."</td>
-			<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{edit}</a></td>
-			<td width=1%>&nbsp;</td>
-		</tr>";	}
+
+
 
 if(!$users->APACHE_MOD_PAGESPEED){
 		$mod_pagespeedEnable=0;
@@ -720,7 +698,7 @@ if(!$users->APACHE_MOD_PAGESPEED){
 			<tr>
 				<td class=legend>{enable_mod_pagespeed}:</td>
 				<td>". Field_checkbox("PageSpeed",1,$Params["PageSpeed"])."</td>
-				<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{edit}</a></td>
+				<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{apply}</a></td>
 				<td width=1%>". help_icon("{enable_mod_pagespeed_explain}")."</td>
 			</tr>";}
 	
@@ -748,7 +726,7 @@ $html="
 		<td width=1%>". help_icon("{jkMount_explain}")."</td>
 	</tr>	
 	$mod_pagespeed
-	$mod_bw
+	
 	<tr>
 		<td colspan=4 align='right'><hr>". button("{apply}","ApacheOthersValuesSave()")."</td>
 	</tr>
@@ -769,7 +747,6 @@ $html="
 			XHR.appendData('AddDefaultCharset',document.getElementById('AddDefaultCharset').value);
 			if(document.getElementById('JkMount').checked){XHR.appendData('JkMount',1);}else{XHR.appendData('JkMount',0);}
 			if(document.getElementById('PageSpeed').checked){XHR.appendData('PageSpeed',1);}else{XHR.appendData('PageSpeed',0);}
-			if(document.getElementById('ModeBw').checked){XHR.appendData('ModeBw',1);}else{XHR.appendData('ModeBw',0);}
 			if(document.getElementById('DisableIndexPHPPage').checked){XHR.appendData('DisableIndexPHPPage',1);}else{XHR.appendData('DisableIndexPHPPage',0);}
 			XHR.appendData('servername','{$_GET["servername"]}');
     		XHR.sendAndLoad('$page', 'POST',x_ApacheOthersValuesSave);
@@ -778,10 +755,9 @@ $html="
 		function Checkjkmount(){
 			var APACHE_MOD_TOMCAT=$APACHE_MOD_TOMCAT;
 			var mod_pagespeedEnable=$mod_pagespeedEnable;
-			var mod_bwEnable=$mod_bwEnable;
 			if(APACHE_MOD_TOMCAT==0){document.getElementById('JkMount').disabled=true;document.getElementById('JkMount').checked=false;}
 			if(mod_pagespeedEnable==0){document.getElementById('PageSpeed').disabled=true;document.getElementById('PageSpeed').checked=false;}
-			if(mod_bwEnable==0){document.getElementById('ModeBw').disabled=true;document.getElementById('ModeBw').checked=false;}
+			
 		}
 		Checkjkmount();
 	</script>";	
@@ -801,7 +777,7 @@ function OthersValuesSave(){
 	$Params["AddDefaultCharset"]=$_POST["AddDefaultCharset"];
 	$Params["JkMount"]=$_POST["JkMount"];
 	$Params["PageSpeed"]=$_POST["PageSpeed"];
-	$Params["ModeBw"]=$_POST["ModeBw"];
+	
 	$Params["DisableIndexPHPPage"]=$_POST["DisableIndexPHPPage"];
 	$data=addslashes(base64_encode(serialize($Params)));
 	$sql="UPDATE freeweb SET `Params`='$data' WHERE servername='{$_POST["servername"]}'";
@@ -858,13 +834,13 @@ $mod_security="
 	<tr>
 		<td class=legend>{security_enforcement}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.mod.security.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 	</tr>
 ";
 
 $mod_geoip="	<tr>
 		<td class=legend style='color:#CCCCCC'>{country_block}:</td>
-		<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{edit}</span></td>
+		<td><span style='font-size:13px;text-decoration:underline;color:#CCCCCC'>{apply}</span></td>
 	</tr>
 ";
 
@@ -875,7 +851,7 @@ $mod_evasive="
 	<tr>
 		<td class=legend>{DDOS_prevention}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.mod.evasive.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 	</tr>
 ";
 	
@@ -884,7 +860,7 @@ if($FreeWebsEnableModSecurity==0){
 	<tr>
 		<td class=legend style='color:#CCCCCC'>{security_enforcement}:</td>
 		<td><a href=\"javascript:blur();\"
-		style='font-size:13px;color:#CCCCCC'>{edit}<a></td>
+		style='font-size:13px;color:#CCCCCC'>{apply}<a></td>
 	</tr>
 ";
 }
@@ -893,7 +869,7 @@ if($FreeWebsEnableModEvasive==0){
 	<tr>
 		<td class=legend style='color:#CCCCCC'>{DDOS_prevention}:</td>
 		<td><a href=\"javascript:blur();\"
-		style='font-size:13px;color:#CCCCCC'>{edit}<a></td>
+		style='font-size:13px;color:#CCCCCC'>{apply}<a></td>
 	</tr>
 ";
 }
@@ -903,7 +879,7 @@ if($APACHE_MOD_GEOIP==1){
 $mod_geoip="	<tr>
 		<td class=legend>{country_block}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.mode.geoip.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 	</tr>
 ";
 }
@@ -946,12 +922,12 @@ $mod_geoip="	<tr>
 	<tr>
 		<td class=legend>{RewriteRules}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('$page?rewrite=yes&servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 	</tr>				
 	<tr>
 		<td class=legend>{files_and_folders_permissions}:</td>
 		<td><a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.permissions.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;text-decoration:underline'>{edit}<a></td>
+		style='font-size:13px;text-decoration:underline'>{apply}<a></td>
 	</tr>		
 	$mod_security	
 	$mod_evasive	

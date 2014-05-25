@@ -17,6 +17,8 @@ function DAEMON_STATUS_ROUND($key,$bsini,$textoadd=null,$noenable=0,$newInterfac
 	if(!isset($bsini->_params[$key]["master_pid"])){$bsini->_params[$key]["master_pid"]=null;}
 	if(!isset($bsini->_params[$key]["uptime"])){$bsini->_params[$key]["uptime"]=null;}
 	if(!isset($bsini->_params[$key]["processes_number"])){$bsini->_params[$key]["processes_number"]=0;}
+	if(!isset($bsini->_params[$key]["running"])){$bsini->_params[$key]["running"]=0;}
+	
 	$pid=null;
 	$pid_text=null;
 	$emailqueue=null;

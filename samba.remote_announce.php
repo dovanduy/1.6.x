@@ -249,7 +249,7 @@ function net_list(){
 		$c=0;
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-			$select=imgtootltip("32-parameters.png","{edit}","SMBRemoteAnnounce('{$ligne["ID"]}')");
+			$select=imgtootltip("32-parameters.png","{apply}","SMBRemoteAnnounce('{$ligne["ID"]}')");
 			$delete=imgtootltip("delete-32.png","{delete}","SMBRemoteAnnounceDel('{$ligne["ID"]}')");
 			$color="black";
 			$c++;

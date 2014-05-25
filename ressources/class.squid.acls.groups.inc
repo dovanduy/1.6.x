@@ -171,6 +171,7 @@ class squid_acls_groups{
 			if($httpaccess=="adaptation_access_deny"){continue;}
 			if($httpaccess=="delay_access"){continue;}
 			if($httpaccess=="tcp_outgoing_address"){continue;}
+			if($httpaccess=="cache_parent"){continue;}
 			if($httpaccess=="snmp_access_allow"){continue;}
 			if($httpaccess=="log_access"){continue;}
 			if($httpaccess=="request_header_add"){continue;}
@@ -284,6 +285,101 @@ class squid_acls_groups{
 		return $array;
 	}
 	
+	public function cache_peer_explode($cache_id){
+		$q=new mysql();
+		$sql="SELECT * FROM squid_parents WHERE ID=$cache_id";
+		$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if(trim($ligne["servername"])==null){return;}
+		if(trim($ligne["server_port"])==null){return;}
+		if(trim($ligne["server_type"])==null){$ligne["server_type"]="parent";}
+		$NET="{$ligne["servername"]}:{$ligne["server_port"]}";
+		if(isset($GLOBALS["ALREADY_CACHE_PEER"][$NET])){return;}
+		$GLOBALS["ALREADY_CACHE_PEER"][$NET]=true;
+		$array=unserialize(base64_decode($ligne["options"]));
+		echo "Starting......: ".date("H:i:s")." [ LB ]: add `{$ligne["servername"]} backend...\n";
+		$htcp=null;
+		if($ligne["htcp_port"]>0){$ligne["icp_port"]=$ligne["htcp_port"];$htcp=" htcp";}
+		
+		
+		if(!is_array($array)){
+			if((!is_numeric($ligne["icp_port"]))  OR ($ligne["icp_port"]==0)){
+				$array["no-query"]=null;
+				$array["no-digest"]=null;
+			}else{
+				$array=array();
+			}
+		
+		}
+		$login=null;$parmType=null;
+		
+		
+		while (list($num,$val)=each($array)){
+			echo "\n\n***** \n $num $val *****\n\n";
+			if($num=="loginPASSTHRU"){$login="login=PASSTHRU";unset($array[$num]);continue;}
+			if($num=="login"){
+				if(!preg_match("#(.+?):(.+)#", $val)){unset($array[$num]);continue;}
+					$login="login=$val";
+					unset($array[$num]);
+					continue;
+				}
+			if($num=="loginPASS"){$login="login=PASS";unset($array[$num]);continue;}
+			if($num=="connection-auth"){
+				$val=strtolower($val);
+				$val=str_replace($val,"1","on");
+				$val=str_replace($val,"0","off");
+				$val=str_replace($val,"yes","on");
+				$val=str_replace($val,"no","off");
+				if(!preg_match("#(on|off)#i", $val)){$val="on";}
+				$array[$num]=$val;
+			}
+			
+			if ($num=="proxy-only"){$parmType=$num;unset($array[$num]);continue;}
+			if ($num=="round-robin"){$parmType=$num;unset($array[$num]);continue;}
+			if ($num=="userhash"){$parmType=$num;unset($array[$num]);continue;}
+			if ($num=="sourcehash"){$parmType=$num;unset($array[$num]);continue;}
+			if ($num=="multicast-siblings"){$parmType=$num;unset($array[$num]);continue;}
+			if ($num=="weighted-round-robin"){$parmType=$num;unset($array[$num]);continue;}
+		
+		
+			}
+			
+			
+			if($login<>null){$array[$login]=null;}
+			if($parmType<>null){$parmType=" $parmType ";}
+			reset($array);
+		
+			while (list($num,$val)=each($array)){
+				if(trim($num)==null){continue;}
+				if($num=="carp"){$num="carp carp-key=host,port,path";}
+				if(trim($val)<>null){$z[]="$num=$val";}else{$z[]=$num;}
+			}
+			
+			$options=implode(" ",$z)." name=Peer{$cache_id}";
+
+			return 
+			array("NET"=>$NET,
+			"NAME"=>"Peer{$cache_id}",
+			"LINE"=>"cache_peer {$ligne["servername"]} {$ligne["server_type"]} {$ligne["server_port"]} {$ligne["icp_port"]}$htcp $parmType$options");
+		
+	}
+	
+	
+	private function cache_peer($aclid){
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='cache_parent'"));
+		$cache_id=$ligne["httpaccess_data"];
+		if(!is_numeric($cache_id)){$cache_id=0;}
+		if($cache_id==0){
+			$this->debugOutput("cache_peer:: $aclid -> no cache_peer");
+			return array();
+		}
+		
+		return $this->cache_peer_explode($cache_id);
+		
+		
+		
+	}
+	
 	
 	function buildacls_bytype($ruletype,$aclport=0){
 		$this->error=null;
@@ -344,11 +440,17 @@ class squid_acls_groups{
 		if(!$q->ok){if(preg_match("#Error Table.*?doesn't exist#",$q->mysql_error)){$q->CheckTables();$results = $q->QUERY_SQL($sql);}}
 		if(!$q->ok){$this->error=str_replace("\n"," ",$q->mysql_error);}
 		
-		if(mysql_num_rows($results)==0){$this->error="MySQL:No item";}
+		if(mysql_num_rows($results)==0){
+			$this->debugOutput("$ruletype:$aclport MySQL > ABORTING ! NO items",__FUNCTION__,__LINE__);
+			$this->error="MySQL:No item";
+		}
 		$this->debugOutput("$ruletype:$aclport MySQL > ". mysql_num_rows($results)." items",__FUNCTION__,__LINE__);
 		
 		
+		
 		while ($ligne = mysql_fetch_assoc($results)) {
+			$MainRuleID=$ligne["ID"];
+			
 			$AddPort=true;
 			$PrefixAclsPort=null;
 			if($this->SquidBubbleMode==0){
@@ -364,6 +466,7 @@ class squid_acls_groups{
 			$aclid=$ligne["ID"];
 			if($ruletype=="deny_log"){$reverse=true;}
 			
+			$this->debugOutput("$ruletype:$aclport RuleID=$MainRuleID buildacls_bytype_items($aclid,$reverse)",__FUNCTION__,__LINE__);
 			$groups=$this->buildacls_bytype_items($aclid,$reverse);
 			if(count($groups)==0){
 				$this->debugOutput("$ruletype:$aclport No groups..");
@@ -383,6 +486,20 @@ class squid_acls_groups{
 				$valueToAdd=$ligne["httpaccess_data"];
 				if(!is_numeric($valueToAdd)){continue;}
 				$valueToAdd=$valueToAdd." MB ";
+			}
+			
+			
+			if($ruletype=="cache_parent"){
+				$cache_peer=$this->cache_peer($aclid);
+				if(!is_array($cache_peer)){continue;}
+				$NET=$cache_peer["NET"];
+				$LINE=$cache_peer["LINE"];
+				$NAME=$cache_peer["NAME"];
+				$rulesAcls[$NET]["LINE"]=$LINE;
+				$rulesAcls[$NET]["NAME"]=$NAME;
+				$rulesAcls[$NET]["PORTS_ACLS"]=$PrefixAclsPort;
+				$rulesAcls[$NET]["GROUPS"][]=$groups;
+				continue;
 			}
 			
 			
@@ -408,6 +525,8 @@ class squid_acls_groups{
 				
 				$valueToAdd=$valueToAdd." ";
 			}
+			
+
 			
 			if($ruletype=="request_header_add"){
 				$httpaccess_data=unserialize(base64_decode($ligne["httpaccess_data"]));
@@ -582,6 +701,7 @@ class squid_acls_groups{
 		}
 		
 		$sql="SELECT template_name,lang FROM squidtpls WHERE `zmd5`='{$ligne["acltpl"]}'";
+		if(is_numeric($ligne["lang"])){$ligne["lang"]="en";}
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!preg_match("#ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
 		$template_path="/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}";
@@ -649,7 +769,7 @@ class squid_acls_groups{
 	
 	function ACL_MULTIPLE_EXPLAIN($aclid,$ACCESSEnabled,$aclgroup=0,$miniadm=false){
 		$q=new mysql_squid_builder();
-		
+		$cache_parent_info=null;
 		$Mainjs="Loadjs('squid.acls-rules.php?Addacl-js=yes&ID=$aclid&t={$_GET["t"]}',true)";
 		if($miniadm){
 			$prefix="<a href=\"javascript:blur();\" OnClick=\"javascript:$Mainjs\">";
@@ -696,7 +816,7 @@ class squid_acls_groups{
 		$linkcolor="black";
 		$WarnColor="#EA0C0C";
 		if($ACCESSEnabled==0){$linkcolor="#8a8a8a";$WarnColor="#8a8a8a";}
-		$errorNoObjects="<div style='font-size:11px;fonct-weight:bold;color:$WarnColor'><img src='img/status_warning.png' align='left' style='margin-right:4px'>{error_acl_no_object}</div>";
+		$errorNoObjects="<div><img src='img/status_warning.png' align='left' style='margin-right:4px'><div style='font-size:11px;font-weight:bold;color:$WarnColor;margin-top:1px'>{error_acl_no_object}</div></div>";
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='url_rewrite_access_deny'"));
 		$url_rewrite_access_deny=$ligne["httpaccess_value"];
@@ -733,7 +853,22 @@ class squid_acls_groups{
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='deny_access_except'"));
 		$deny_access_except=$ligne["httpaccess_value"];
 		if(!is_numeric($deny_access_except)){$deny_access_except=0;}
-
+		
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='cache_parent'"));
+		$cache_parent=$ligne["httpaccess_value"];
+		if(!is_numeric($cache_parent)){$cache_parent=0;}
+		if($cache_parent==1){
+			$parentid=trim($ligne["httpaccess_data"]);
+			if($parentid>0){
+				$qz=new mysql();
+				$ligne2=mysql_fetch_array($qz->QUERY_SQL("SELECT * FROM squid_parents WHERE ID='$parentid'",'artica_backup'));
+				if($ligne2["servername"]<>null){
+					$cache_parent_info="{$ligne2["servername"]}:{$ligne2["server_port"]}";
+				}
+			}
+		}
+		
 		
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT httpaccess_value,httpaccess_data FROM webfilters_sqaclaccess WHERE aclid='$aclid' AND httpaccess='tcp_outgoing_tos'"));
 		$tcp_outgoing_tos=$ligne["httpaccess_value"];
@@ -813,6 +948,18 @@ class squid_acls_groups{
 		if($access_deny==1){$url_rewrite_access_deny=0;$adaptation_access_deny=0;$cache_deny=0;$access_allow=0;}
 		if($access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">$prefix{deny_access}</a></strong>";}
 		if($http_reply_access_deny==1){$explain[]="<strong style=\"color:$explain_deny_color\">$prefix{deny_reply_access}</a></strong>";}
+		if($cache_parent==1){
+			if($cache_parent_info<>null){
+				$objectsText=null;
+				$objects=$this->getobjectsNameFromAclrule($aclid,$linkcolor);
+				if(count($objects)==0){$error=$error.$errorNoObjects;}
+				$explain[]="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.acls.proxy.parent.php?aclid=$aclid');\"
+				style=\"color:$explain_allow_color;font-weight:bold;text-decoration:underline\">$prefix{use_parent_proxy}</a>&nbsp;<span style=\"color:$explain_allow_color;font-weight:bold;\">-</span>&nbsp;<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.parent.proxy.php?parent-js=yes&ID=$parentid&t={$_GET["t"]}');\" style=\"color:$explain_allow_color;font-weight:bold;text-decoration:underline\">$cache_parent_info</a>";
+			}else{
+				$explain[]="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.acls.proxy.parent.php?aclid=$aclid');\"
+				style=\"color:$explain_deny_color;font-weight:bold;text-decoration:underline\">$prefix{use_parent_proxy} - {no_defined_parent}:$parentid</a>";
+			}
+		}
 		
 				
 		if($http_reply_access_allow==1){$explain[]="<strong style=\"color:$explain_allow_color\">$prefix{allow_reply_access}</a></strong>";}
@@ -890,10 +1037,13 @@ class squid_acls_groups{
 		
 		
 		
-		$sql="SELECT template_name,lang FROM squidtpls WHERE `zmd5`='{$ligne["acltpl"]}'";
+		$sql="SELECT template_name,zmd5,lang,emptytpl FROM squidtpls WHERE `zmd5`='{$ligne["acltpl"]}'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$subject=base64_encode(addslashes($ligne["template_name"]));
 		$js="Loadjs('squid.templates.php?Zoom-js=$zmd5&subject=$subject');";
+		if($ligne["emptytpl"]==1){
+			$js="Loadjs('squid.templates.php?template-settings-js=yes&zmd5={$ligne["zmd5"]}');";
+		}
 		
 		if(trim($ligne["template_name"])==null){return;}
 		return "<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style=\"text-decoration:underline;color:$linkcolor\">{$ligne["template_name"]}</a>";	

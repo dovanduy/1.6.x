@@ -14,10 +14,12 @@ $GLOBALS["REFUSED_REQUESTS"]=0;
 $GLOBALS["COUNT_HASH_TABLE"]=0;
 $GLOBALS["KEYUSERS"]=array();
 $GLOBALS["RTTHASH"]=array();
+$timezones=@file_get_contents("/etc/artica-postfix/settings/Daemons/timezones"); 
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="{$GLOBALS["ARTICALOGDIR"]}"; } }
 @mkdir("/var/log/squid/mysql-queue",0755,true);
 @mkdir("/var/log/squid/mysql-rttime",0755,true);
 @mkdir("/var/log/squid/mysql-rthash",0755,true);
+if($timezones<>null){@date_default_timezone_set($timezones);}
 error_reporting(0);
 //ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 
@@ -28,7 +30,7 @@ $logthis=array();
 if($GLOBALS["VERBOSE"]){$logthis[]="Verbosed";}
 if($GLOBALS["ACT_AS_REVERSE"]){$logthis[]=" Act as reverse...";}
 $GLOBALS["MYPID"]=getmypid();
-events("Starting PID: {$GLOBALS["MYPID"]} version: {$GLOBALS["VERSION"]}, ".@implode(", ", $logthis) ." ({$argv[1]})");
+events("Starting PID: {$GLOBALS["MYPID"]} - TimeZone: $timezones,  version: {$GLOBALS["VERSION"]}, ".@implode(", ", $logthis) ." ({$argv[1]})");
 $GLOBALS["COUNT_RQS"]=0;
 $GLOBALS["PURGED"]=0;
 events("Starting PID: waiting connections...");
@@ -177,7 +179,7 @@ function ParseSizeBuffer($buffer){
 	
 	
 	$zdate=$re[4];
-	$xtime=strtotime($zdate);
+	$xtime=time();
 	$SUFFIX_DATE=date("YmdH",$xtime);
 	
 	$proto=$re[5];
@@ -253,6 +255,13 @@ function ParseSizeBuffer($buffer){
 	
 	$GLOBALS["COUNT_HASH_TABLE"]=$GLOBALS["COUNT_HASH_TABLE"]+1;
 	
+	$arrayURI=parse_url($uri);
+	$sitename=$arrayURI["host"];
+	if(strpos($sitename, ":")){
+		$xtr=explode(":",$sitename);
+		$sitename=$xtr[0];
+		if(preg_match("#^www\.(.+)#", $sitename,$rz)){$sitename=$rz[1];}
+	}
 	
 	
 	$GLOBALS["RTTHASH"][$SUFFIX_DATE][]=array(

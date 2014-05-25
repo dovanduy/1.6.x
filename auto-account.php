@@ -106,7 +106,7 @@ $enable=Paragraphe_switch_img('{enable_autocreate}','{auto_account_explain}','Au
 			</tr>								
 			<tr>
 				<td colspan=2 align='right'><input type='button' 
-				OnClick=\"javascript:ParseForm('FFMCOMPRESSS','$page',true,false,false,'iplist','$page?iplist=yes');\" value='{edit}&nbsp;&raquo;'></td>
+				OnClick=\"javascript:ParseForm('FFMCOMPRESSS','$page',true,false,false,'iplist','$page?iplist=yes');\" value='{apply}&nbsp;&raquo;'></td>
 			</tr>
 				
 			

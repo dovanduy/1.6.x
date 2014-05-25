@@ -45,6 +45,8 @@ function build(){
 	
 	progress("{get_all_logs}",40);
 	support_step2();
+	progress("{get_all_logs}",70);
+	export_tables();
 	progress("{compressing_package}",90);
 	support_step3();
 	progress("{success}",100);
@@ -88,6 +90,46 @@ function support_step1(){
 	@file_put_contents("/usr/share/artica-postfix/ressources/support/NETWORK_REPORT.txt", $report);
 }
 
+function export_tables(){
+	$q=new mysql();
+	$unix=new unix();
+	
+	$tmppath=$unix->TEMP_DIR();
+	$sql="SELECT *  FROM `squid_admin_mysql` ORDER BY zDate DESC";
+	$results = $q->QUERY_SQL($sql,"artica_events");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$f[]="{$ligne["zDate"]}:{$ligne["filename"]} {function}:{$ligne["function"]}, {line}:{$ligne["line"]}";
+		$f[]="{$ligne["subject"]}";
+		$f[]="{$ligne["content"]}";
+		$f[]="************************************************************************************************************";
+		$f[]="";
+	}
+	progress("{get_all_logs}",75);
+	@file_put_contents("$tmppath/squid_admin_mysql.log", @implode("\n", $f));
+	$unix->compress("$tmppath/squid_admin_mysql.log", "/usr/share/artica-postfix/ressources/support/squid_admin_mysql.log.gz");
+	@unlink("$tmppath/squid_admin_mysql.log");
+	$f=array();
+	progress("{get_all_logs}",80);
+	$sql="SELECT *  FROM `artica_update_task` ORDER BY zDate DESC";
+	$results = $q->QUERY_SQL($sql,"artica_events");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$f[]="{$ligne["zDate"]}:{$ligne["filename"]} {function}:{$ligne["function"]}, {line}:{$ligne["line"]}";
+		$f[]="{$ligne["subject"]}";
+		$f[]="{$ligne["content"]}";
+		$f[]="************************************************************************************************************";
+		$f[]="";
+	}
+	
+	@file_put_contents("$tmppath/artica_update_task.log", @implode("\n", $f));
+	$unix->compress("$tmppath/artica_update_task.log", "/usr/share/artica-postfix/ressources/support/artica_update_task.log.gz");
+	@unlink("$tmppath/artica_update_task.log");
+	progress("{get_all_logs}",85);
+	
+	
+	
+}
+
+
 function support_step2(){
 
 	$files[]="/var/log/squid/cache.log";
@@ -117,6 +159,8 @@ function support_step2(){
 	@mkdir("/usr/share/artica-postfix/ressources/support",0755,true);
 	shell_exec("$dmesg >/usr/share/artica-postfix/ressources/support/dmesg.txt");
 
+	
+	progress("{get_all_logs}",45);
 	if(is_dir("/etc/squid3")){
 		@mkdir("/usr/share/artica-postfix/ressources/support/etc-squid3",0755,true);
 		$cmd="/bin/cp -rf /etc/squid3/* /usr/share/artica-postfix/ressources/support/etc-squid3/";
@@ -125,6 +169,7 @@ function support_step2(){
 	
 	$squidbin=$unix->LOCATE_SQUID_BIN();
 	
+	progress("{get_all_logs}",46);
 	if(is_file("/tmp/squid.conf")){
 		if(is_file($squidbin)){
 			shell_exec("$squidbin -f /tmp/squid.conf -k parse >/etc-squid3/tmp.squid.conf.log 2>&1");
@@ -132,22 +177,27 @@ function support_step2(){
 		@copy("/tmp/squid.conf", "/usr/share/artica-postfix/ressources/support/etc-squid3/tmp.squid.conf");
 	}
 	
-	
+	progress("{get_all_logs}",47);
 	if(is_dir("/etc/postfix")){
 		@mkdir("/usr/share/artica-postfix/ressources/support/etc-postfix",0755,true);
 		$cmd="/bin/cp -rf /etc/postfix/* /usr/share/artica-postfix/ressources/support/etc-postfix/";
 		shell_exec("$cmd");
 	}
 
+	progress("{get_all_logs}",48);
 	while (list ($a, $b) = each ($files) ){
 		if(is_file($b)){
-			$destfile=basename($b);
-			shell_exec("$cp $b /usr/share/artica-postfix/ressources/support/$destfile");
+			$destfile=basename("$b.gz");
+			$unix->compress($b, "/usr/share/artica-postfix/ressources/support/$destfile");
+			
 		}
 	}
 
+	progress("{get_all_logs}",49);
 	$lshw=$unix->find_program("lshw");
 	exec("$lshw -class network 2>&1",$results);
+	
+	progress("{get_all_logs}",50);
 	$ifconfig=$unix->find_program("ifconfig");
 	exec("$ifconfig -a 2>&1",$results);
 	$results[]="\n\t***************\n";
@@ -169,7 +219,7 @@ function support_step2(){
 		$results[]="\n\t***************\n";
 	}
 
-	
+	progress("{get_all_logs}",51);
 	$unix=new unix();
 	$uname=$unix->find_program("uname");
 	$results[]="$uname -a:";
@@ -180,6 +230,7 @@ function support_step2(){
 
 	$results[]="\n";
 
+	progress("{get_all_logs}",52);
 	$gdb=$unix->find_program("gdb");
 	if(is_file($gdb)){
 		$results[]="$gdb --version:";
@@ -198,6 +249,7 @@ function support_step2(){
 
 	$results[]="\n";
 	
+	progress("{get_all_logs}",53);
 	if(is_file($squidbin)){
 		$results[]="$squidbin -v:";
 		exec("$squidbin -v 2>&1",$results);
@@ -209,6 +261,7 @@ function support_step2(){
 	}
 	$results[]="\n";
 	
+	progress("{get_all_logs}",54);
 	if(is_file($squidbin)){
 		$results[]="$squidbin -v:";
 		exec("$squidbin -v 2>&1",$results);
@@ -225,6 +278,8 @@ function support_step2(){
 	}else{
 		$results[]="squid3 no such binary....";
 	}
+	
+	progress("{get_all_logs}",55);
 	$results[]="\n";
 	$df=$unix->find_program("df");
 	if(is_file($df)){
@@ -234,12 +289,14 @@ function support_step2(){
 		$results[]="$df no such binary....";
 	}
 	
+	progress("{get_all_logs}",56);
 	@file_put_contents("/usr/share/artica-postfix/ressources/support/generated.versions.txt", @implode("\n", $results));
 	
 }
 
 function support_step3(){
 	$unix=new unix();
+	
 	$tar=$unix->find_program("tar");
 	$filename="support.tar.gz";
 	chdir("/usr/share/artica-postfix/ressources/support");

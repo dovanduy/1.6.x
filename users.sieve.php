@@ -365,7 +365,7 @@ function sieve_index(){
 		<tr " . CellRollOver().">
 			<td width=1%><img src='img/$img'></td>
 			<td><strong><a href='#' OnClick=\"javascript:SieveDisplayRule('$rulename');\"><code style='font-size:13px;font-weight:bold'>$rulename</code></a></td>
-			<td width=1%>" . imgtootltip("txt_small.gif","{edit}","SieveDisplayRule('$rulename');")."<td>
+			<td width=1%>" . imgtootltip("txt_small.gif","{apply}","SieveDisplayRule('$rulename');")."<td>
 			<td><strong>$link</td>
 			<td width=1%>" . imgtootltip("ed_delete.gif","{delete}","SieveDeleteRuleName('$rulename');")."<td>
 		</tr>	
@@ -595,7 +595,7 @@ $html="
 	<td width=1%>" . imgtootltip('ed_delete.gif',"{delete}","SieveDeleteAction('$rulename','$indexrule','$index_action')")."</td>	
 	<td align=\"right\">$minititle&nbsp;$action:</td>
 	<td><span id='action_field_{$index_action}'>$filedstring</span></td>
-	<td><input type='button' OnClick=\"javascript:SaveActionRule('$rulename','$indexrule','$index_action');\" value='{edit}&nbsp;&raquo;'></td>
+	<td><input type='button' OnClick=\"javascript:SaveActionRule('$rulename','$indexrule','$index_action');\" value='{apply}&nbsp;&raquo;'></td>
 </tr>
 </table>";
 
@@ -726,7 +726,7 @@ $html="
 	<td>" . Field_text("{$index}_matchStr",$array["matchStr"],"width:200px")."</td>
 </tr>
 <tr>
-<td colspan=3 align='right'><input type='button' OnClick=\"javascript:EditSieveRule('$rulename','$rulenumber','$index');\" value='{edit}&nbsp;&raquo;'></td>
+<td colspan=3 align='right'><input type='button' OnClick=\"javascript:EditSieveRule('$rulename','$rulenumber','$index');\" value='{apply}&nbsp;&raquo;'></td>
 </tr>
 </table>
 <br>";

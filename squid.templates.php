@@ -20,6 +20,7 @@
 	if(isset($_POST["TEMPLATE_DATA"])){TEMPLATE_SAVE();}
 	if(isset($_POST["template_header"])){TEMPLATE_HEADER_SAVE();exit;}
 	if(isset($_GET["popup"])){popup();exit;}
+	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["popup-table"])){popup_table();exit;}
 	if(isset($_GET["view-table"])){view_table();exit;}
 	if(isset($_GET["TEMP"])){FormTemplate();exit;}
@@ -40,6 +41,31 @@
 	if(isset($_POST["ImportDefault"])){DefaultTemplatesInMysql();exit;}
 	
 js();
+
+function tabs(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$q=new mysql();
+	
+	$array["popup"]='{squid_templates_error}';
+	//$array["ocsagent"]="{APP_OCSI_LNX_CLIENT}";
+	$fontsize=18;
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="ocsagent"){
+			$tab[]="<li><a href=\"ocs.agent.php?inline=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		$tab[]="<li><a href=\"$page?$num=yes&viatabs=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			
+	}
+	$html=build_artica_tabs($tab,'main_squid_templates-tabs',1035)."<script>LeftDesign('squid-templates-256-opac-20.png');</script>";
+	echo $html;
+	
+	
+}
 
 function ZOOM_JS(){
 	header("content-type: application/x-javascript");
@@ -303,7 +329,7 @@ function template_settings_js(){
 	$tpl=new templates();
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
-	echo "YahooWin5('655','$page?new-template=yes&t=$t&templateid={$_GET["zmd5"]}','{$_GET["zmd5"]}');";
+	echo "YahooWin5('815','$page?new-template=yes&t=$t&templateid={$_GET["zmd5"]}','{$_GET["zmd5"]}');";
 	
 }
 	
@@ -477,56 +503,63 @@ function TEMPLATE_ADD(){
 	$q=new mysql();
 	$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(*) as tcount FROM freeweb WHERE `groupware`='ERRSQUID'","artica_backup"));
 	if($ligne2["tcount"]>0){
-		$freewebsButton="<input type='button' OnClick=\"javascript:Loadjs('BrowseFreeWebs.php?groupware=ERRSQUID&field=template_uri-$t&withhttp=1');\"
+		$freewebsButton="<input type='button' 
+		OnClick=\"javascript:Loadjs('BrowseFreeWebs.php?groupware=ERRSQUID&field=template_uri-$t&withhttp=1');\"
 		value='{browse}...'>";
 	}
 	
 	
-	$field=Field_array_Hash($lang, "lang1-$t",$ligne["lang"],null,null,0,"font-size:16px");
+	$field=Field_array_Hash($lang, "lang1-$t",$ligne["lang"],null,null,0,"font-size:22px");
 	$html="<div id='$t'></div>
-		<table style='width:100%;margin-top:20px;margin-bottom:8px' class=form>
+	<div style='width:98%' class=form>
+		<table style='width:100%;margin-top:20px;margin-bottom:8px' >
 		<tbody>
 			<tr>
-				<td class=legend style='font-size:16px'>{template_name}:</td>
-				<td>". Field_text("tplname-$t",$ligne["template_name"],"font-size:16px;width:95%")."</td>
+				<td class=legend style='font-size:22px'>{template_name}:</td>
+				<td>". Field_text("tplname-$t",$ligne["template_name"],"font-size:22px;width:95%;font-weight:bold")."</td>
+				<td>&nbsp;</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:22px'>{empty_template}:</td>
+				<td>". Field_checkbox("empty-$t",1,$ligne["emptytpl"],"empty$t()")."</td>
+				<td>&nbsp;</td>
+			</tr>							
+			<tr>
+				<td class=legend style='font-size:22px'>{subject}:</td>
+				<td>". Field_text("template_title-$t",$ligne["template_title"],"font-size:22px;width:95%")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:16px'>{subject}:</td>
-				<td>". Field_text("template_title-$t",$ligne["template_title"],"font-size:16px;width:95%")."</td>
-				<td>&nbsp;</td>
-			</tr>	
-			<tr>
-				<td class=legend style='font-size:16px'>{language}:</td>
+				<td class=legend style='font-size:22px'>{language}:</td>
 				<td>$field</td>
 				<td>&nbsp;</td>
 			</tr>			
 			<tr>
-				<td class=legend style='font-size:16px'>{UseALink}:</td>
+				<td class=legend style='font-size:22px'>{UseALink}:</td>
 				<td>". Field_checkbox("template_link-$t",1,$ligne["template_link"],"UseALink$t()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:16px'>{http_status_code}:</td>
-				<td>". Field_array_Hash($statusCode, "status_code-$t",303,null,null,0,"font-size:16px;")."</td>
+				<td class=legend style='font-size:22px'>{http_status_code}:</td>
+				<td>". Field_array_Hash($statusCode, "status_code-$t",303,null,null,0,"font-size:22px;")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:16px'>{freewebs_compliance}:</td>
+				<td class=legend style='font-size:22px'>{freewebs_compliance}:</td>
 				<td>". Field_checkbox("freewebs_compliance-$t",1,$freewebs_compliance)."</td>
 				<td>&nbsp;</td>
 			</tr>								
 			<tr>
-				<td class=legend style='font-size:16px'>{url}:</td>
-				<td>". Field_text("template_uri-$t",$ligne["template_uri"],"font-size:16px;width:95%")."</td>
+				<td class=legend style='font-size:22px'>{url}:</td>
+				<td>". Field_text("template_uri-$t",$ligne["template_uri"],"font-size:22px;width:95%")."</td>
 				<td>$freewebsButton</td>
 			</tr>
 			<tr>
-				<td colspan=3 align='right'><hr>". button($btname,"SaveNewTemplate$t()",16)."</td>
+				<td colspan=3 align='right'><hr>". button($btname,"SaveNewTemplate$t()",32)."</td>
 			</tR>
 		</tbody>
 		</table>
-		
+	</div>	
 		
 		
 		<script>
@@ -539,6 +572,7 @@ function TEMPLATE_ADD(){
 			}	
 		function SaveNewTemplate$t(){
 				var template_link=0;
+				var emptytpl=0;
 				var freewebs_compliance=0;
 				var lang=document.getElementById('lang1-$t').value;
 				var tplname=document.getElementById('tplname-$t').value;
@@ -547,13 +581,16 @@ function TEMPLATE_ADD(){
 				template_uri=document.getElementById('template_uri-$t').value;
 				if(document.getElementById('template_link-$t').checked){template_link=1;}
 				if(document.getElementById('freewebs_compliance-$t').checked){freewebs_compliance=1;}
+				if(document.getElementById('empty-$t').checked){emptytpl=1;}
 				
-				if(template_link==0){
-					if(lang.length==0){alert('Please select a language..');return;}
-					if(tplname.length==0){alert('Please select a template name..');return;}
-					if(tplTitle.length==0){alert('Please select a template subject..');return;}
-				}else{
-					if(template_uri.length==0){alert('Please define an URL..');return;}
+				if(emptytpl==0){
+					if(template_link==0){
+						if(lang.length==0){alert('Please select a language..');return;}
+						if(tplname.length==0){alert('Please select a template name..');return;}
+						if(tplTitle.length==0){alert('Please select a template subject..');return;}
+					}else{
+						if(template_uri.length==0){alert('Please define an URL..');return;}
+					}
 				}
 				
 		    	var XHR = new XHRConnection();
@@ -562,6 +599,7 @@ function TEMPLATE_ADD(){
 		      	XHR.appendData('template_title',tplTitle);
 		      	XHR.appendData('template_link',template_link);
 		      	XHR.appendData('template_uri',template_uri);
+		      	XHR.appendData('emptytpl',emptytpl);
 		      	XHR.appendData('status_code',status_code);
 		      	XHR.appendData('freewebs_compliance',freewebs_compliance);
 		      	XHR.appendData('lang',lang);
@@ -577,16 +615,36 @@ function TEMPLATE_ADD(){
 			}
 			
 		function UseALink$t(){
+		
 			document.getElementById('status_code-$t').disabled=true;
 			document.getElementById('freewebs_compliance-$t').disabled=true;
 			document.getElementById('template_uri-$t').disabled=true;
+			
+			if(document.getElementById('empty-$t').checked){return;}
+			
 			if(document.getElementById('template_link-$t').checked){
 				document.getElementById('status_code-$t').disabled=false;
 				document.getElementById('freewebs_compliance-$t').disabled=false;
 				document.getElementById('template_uri-$t').disabled=false;		
 			}
 		}
+		
+		function empty$t(){
+			document.getElementById('template_link-$t').disabled=true;
+			document.getElementById('template_title-$t').disabled=true;
+			document.getElementById('lang1-$t').disabled=true;
+			
+			
+			
+			if(document.getElementById('empty-$t').checked){return;}
+			document.getElementById('template_link-$t').disabled=false;
+			document.getElementById('template_title-$t').disabled=false;
+			document.getElementById('lang1-$t').disabled=false;
+		}
+		
+		
 		 UseALink$t();
+		 empty$t();
 			
 		</script>
 		";
@@ -650,16 +708,19 @@ function TEMPLATE_ADD_SAVE(){
 	while (list ($num, $line) = each ($_POST)){
 		$_POST[$num]=addslashes($line);
 	}
+	
+	
 	 
-	$sql="INSERT IGNORE INTO squidtpls (zmd5,template_name,template_title,lang,template_body,template_link,template_uri) 
+	$sql="INSERT IGNORE INTO squidtpls (zmd5,template_name,template_title,lang,template_body,template_link,template_uri,emptytpl) 
 	VALUES ('$md5','{$_POST["template_name"]}','{$_POST["template_title"]}','{$_POST["lang"]}',
-	'{$_POST["template_body"]}','{$_POST["template_link"]}','{$_POST["template_uri"]}')";
+	'{$_POST["template_body"]}','{$_POST["template_link"]}','{$_POST["template_uri"]}','{$_POST["emptytpl"]}')";
 	
 	if(strlen($_POST["templateid"])>5){
 		$sql="UPDATE squidtpls SET 
 				template_name='{$_POST["template_name"]}',
 				template_title='{$_POST["template_title"]}',
 				lang='{$_POST["lang"]}',
+				emptytpl='{$_POST["emptytpl"]}',
 				template_link='{$_POST["template_link"]}',
 				template_uri='{$_POST["template_uri"]}'
 				WHERE zmd5='{$_POST["templateid"]}'";
@@ -669,6 +730,9 @@ function TEMPLATE_ADD_SAVE(){
 	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$q=new mysql_squid_builder();
+	if(!$q->FIELD_EXISTS("squidtpls", "emptytpl")){$q->QUERY_SQL("ALTER TABLE `squidtpls` ADD `emptytpl` smallint(1)  NOT NULL");}
+	
+	
 	$q->CheckTables();
 	$q->QUERY_SQL($sql,"artica_backup");			
 	if(!$q->ok){echo $q->mysql_error;	writelogs( $q->mysql_error,__FUNCTION__,__FILE__,__LINE__);return;}
@@ -751,6 +815,23 @@ function popup(){
 		$error="<p class=text-error>".$tpl->_ENGINE_parse_body("{MOD_TEMPLATE_ERROR_LICENSE}")."</p>";
 	}
 	
+	$table_width=771;
+	$row1=32;
+	$row2=190;
+	$rows3=$template_title_size;
+	$rows4=110;
+	$rows5=31;
+	if(isset($_GET["viatabs"])){
+		$viatabs="&viatabs=yes";
+		$table_width="'99%'";
+		$row1=75;
+		$row2=233;
+		$rows3=371;
+		$rows4=149;
+		$rows5=57;
+	}
+	
+	
 	
 	$html="
 	$error
@@ -761,17 +842,15 @@ function popup(){
 var mem$t='';
 $(document).ready(function(){
 $('#SquidTemplateErrorsTable').flexigrid({
-	url: '$page?view-table=yes&lang=&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}&divid={$_GET["divid"]}',
+	url: '$page?view-table=yes{$viatabs}&lang=&choose-acl={$_GET["choose-acl"]}&choose-generic={$_GET["choose-generic"]}&divid={$_GET["divid"]}',
 	dataType: 'json',
 	colModel : [
-		{display: '$lang', name : 'lang', width :32, sortable : true, align: 'left'},
-		{display: '$template_name', name : 'template_name', width :190, sortable : true, align: 'left'},
-		{display: '$title', name : 'template_title', width : $template_title_size, sortable : false, align: 'left'},
-		{display: '$date', name : 'template_time', width : 110, sortable : true, align: 'left'},
-		
-		
+		{display: '$lang', name : 'lang', width :$row1, sortable : true, align: 'left'},
+		{display: '$template_name', name : 'template_name', width :$row2, sortable : true, align: 'left'},
+		{display: '$title', name : 'template_title', width : $rows3, sortable : false, align: 'left'},
+		{display: '$date', name : 'template_time', width : $rows4, sortable : true, align: 'left'},
 		$chooseacl_column
-		{display: '&nbsp;', name : 'delete', width : 31, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'delete', width : $rows5, sortable : false, align: 'center'},
 	],
 	
 	buttons : [
@@ -799,7 +878,7 @@ $('#SquidTemplateErrorsTable').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 771,
+	width: $table_width,
 	height: 400,
 	singleSelect: true
 	
@@ -825,7 +904,7 @@ function Defaults$t(){
 	}
 	
 	function NewTemplateNew(){
-		YahooWin5('650','$page?new-template=yes&t=$t','$new_template');
+		YahooWin5('815','$page?new-template=yes&t=$t','$new_template');
 	}
 	
 	function NewTemplate(templateid){
@@ -836,7 +915,7 @@ function Defaults$t(){
 			templateid='';
 		}
 		
-		YahooWin5('650','$page?new-template=yes&t=$t&templateid='+templateid,title);
+		YahooWin5('700','$page?new-template=yes&t=$t&templateid='+templateid,title);
 	}
 	
 	var x_RebuidSquidTplDefault=function(obj){
@@ -953,7 +1032,13 @@ function view_table(){
 	$data = array();
 	$data['rows'] = array();
 	
-	$span="<span style='font-size:12px'>";
+	$delete_icon="delete-24.png";
+	$fontsize=12;
+	if(isset($_GET["viatabs"])){$fontsize=14;$delete_icon="delete-32.png";}
+	$span="<span style='font-size:{$fontsize}px'>";
+	
+	
+	
 	$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
 	$EnableSplashScreenAsObject=$sock->GET_INFO("EnableSplashScreenAsObject");
 	if(!is_numeric($EnableSplashScreen)){$EnableSplashScreen=0;}
@@ -970,8 +1055,8 @@ function view_table(){
 				$cell=array();
 				$delete="&nbsp;";
 				$cell[]=$tpl->_ENGINE_parse_body("{all}</span>");
-				$cell[]="<span style='font-size:12px;font-weight:bold'>$linkZoom$SplashScreenURI</a></span>";
-				$cell[]=$tpl->_ENGINE_parse_body("<span style='font-size:12px;fonct-weight:bold'>$linkZoom{hotspot_auth}</a></span>");
+				$cell[]="<span style='font-size:{$fontsize}px;font-weight:bold'>$linkZoom$SplashScreenURI</a></span>";
+				$cell[]=$tpl->_ENGINE_parse_body("<span style='font-size:{$fontsize}px;fonct-weight:bold'>$linkZoom{hotspot_auth}</a></span>");
 				$cell[]="&nbsp;</span>";
 				if($_GET["choose-acl"]>0){
 					$cell[]=imgsimple("arrow-right-24.png",null,"ChooseAclsTplSquid('{$_GET["choose-acl"]}','ARTICA_SLASH_SCREEN')");
@@ -1005,11 +1090,12 @@ function view_table(){
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error",2);}
 	$statuscodes=$q->LoadStatusCodes();
+	$empty_template=$tpl->_ENGINE_parse_body("{empty_template}");
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$zmd5=$ligne["zmd5"];
 		$title=base64_encode($ligne["template_title"]);
-		$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js={$ligne['zmd5']}&subject=$title');\" style='font-size:12px;text-decoration:underline'>";
+		$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?Zoom-js={$ligne['zmd5']}&subject=$title');\" style='font-size:{$fontsize}px;text-decoration:underline'>";
 	
 		
 		if($ligne["template_link"]==1){
@@ -1025,7 +1111,13 @@ function view_table(){
 		}
 		
 		$cell=array();
-		$delete=imgsimple("delete-24.png",null,"TemplateDelete('{$ligne['zmd5']}')");
+		if($ligne["template_title"]==null){$ligne["template_title"]=$empty_template;}
+		if($ligne["emptytpl"]==1){
+			$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?template-settings-js=yes&zmd5={$ligne["zmd5"]}&t={$_GET["t"]}');\" style='font-size:{$fontsize}px;text-decoration:underline'>";
+		}
+		
+		
+		$delete=imgsimple($delete_icon,null,"TemplateDelete('{$ligne['zmd5']}')");
 		$cell[]="$span$linkZoom{$ligne['lang']}</a></span>";
 		$cell[]="$span$linkZoom{$ligne['template_name']}</a></span>";
 		$cell[]="$span$linkZoom{$ligne["template_title"]}</a></span>";

@@ -331,7 +331,7 @@ $dns_text=$dns_text."
 <tr>
 	<td class=legend>{hostname}:</td>
 	<td><strong style='font-size:12px'><strong>$nic->hostname</strong></td>
-	<td width=1%>". button("{edit}","ChangeHostName('$nic->hostname');")."</td>
+	<td width=1%>". button("{apply}","ChangeHostName('$nic->hostname');")."</td>
 </tr>
 </table>";
 

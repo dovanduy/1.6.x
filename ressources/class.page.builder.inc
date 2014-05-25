@@ -164,19 +164,13 @@ class pagebuilder{
 			
 			$html="\n$backspace<!-- {$_SERVER['HTTP_USER_AGENT']}  -->\n" ;
 			$html="\n$backspace<!-- Prepend:{$GLOBALS['JS_HEAD_PREPREND']}  -->\n" ;
-			writelogs("HTTP_USER_AGENT::{$_SERVER['HTTP_USER_AGENT']} {$_SERVER["SERVER_NAME"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			
 			
 			if(preg_match("#curl\/[0-9\.]+#",$_SERVER['HTTP_USER_AGENT'])){
 				$IP=$_SERVER["REMOTE_ADDR"];
 				$file=basename($_SERVER["SCRIPT_FILENAME"]);
-				
 				if($file=="miniadm.php"){die();}
-				writelogs("HTTP_USER_AGENT::curl -> $IP {$_SERVER["SCRIPT_FILENAME"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				if(is_array($_SERVER["argv"])){
-					while (list ($num, $val) = each ($_SERVER["argv"]) ){
-						writelogs("HTTP_USER_AGENT::curl -> argv $num \"$val\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-					}
-				}
+
 			}
 			$jquerys[]="jquery-1.8.3.js";
 			$jquerys[]="jquery-1.8.0.min.js";
@@ -275,7 +269,7 @@ class pagebuilder{
 			if(preg_match("#Firefox\/4\.0b[0-9]+#",$_SERVER['HTTP_USER_AGENT'])){$oldMethod=true;}
 			$oldMethod=true;
 			
-			writelogs("Using old method to load js : $oldMethod",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			
 			
 			if($oldMethod){
 				$html=$html . "$backspace".@implode("\n",$chrome);

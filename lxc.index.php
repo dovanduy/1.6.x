@@ -1304,7 +1304,7 @@ while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$isartica=null;
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?form-vps-js=yes&ID={$ligne["ID"]}')\" style='font-size:14px;text-decoration:underline'>";
 		$delete=imgtootltip("delete-32.png","{delete}","VpsDelete('{$ligne["ID"]}')");
-		$select=imgtootltip("30-computer.png","{edit}","Loadjs('$page?form-vps-js=yes&ID={$ligne["ID"]}')");
+		$select=imgtootltip("30-computer.png","{apply}","Loadjs('$page?form-vps-js=yes&ID={$ligne["ID"]}')");
 		$text_uid=$ligne["uid"];
 		$org_state=$ligne["state"];
 		if($ligne["state"]=="create"){$ligne["state"]="{vps_create} {$ligne["events"]}";$link=null;$color="#8a8a8a";$select="&nbsp;";}
@@ -1334,7 +1334,7 @@ while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$isartica=trim($sock->getFrameWork("lxc.php?IsArtica=". urlencode($ligne["root_directory"])."&ID={$ligne["ID"]}"));
 		if($isartica<>null){
 			$isartica_text="&nbsp;&nbsp;|&nbsp;&nbsp;Artica v$isartica";
-			if($select<>"&nbsp;"){$select=imgtootltip("artica-logo-32.png","{edit}","Loadjs('$page?form-vps-js=yes&ID={$ligne["ID"]}')");}
+			if($select<>"&nbsp;"){$select=imgtootltip("artica-logo-32.png","{apply}","Loadjs('$page?form-vps-js=yes&ID={$ligne["ID"]}')");}
 		}
 		
 		if($run=="TRUE"){

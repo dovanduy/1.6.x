@@ -523,7 +523,7 @@ function EditInfosLocalDomain(){
 				$autoalias_p
 				<hr>
 				<div style='text-align:right'>
-					<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:EditLocalDomain('$num');\">
+					<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EditLocalDomain('$num');\">
 				</div>				
 				<br>
 				$amavis
@@ -578,7 +578,7 @@ function COPY_DOMAINS($domain,$ou){
 		<td>" .Field_text('duplicate_port',$amavis->copy_to_domain_array[$domain]["duplicate_port"],'width:30px')."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('ffmdup','domains.edit.domains.php',true);$refresh\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('ffmdup','domains.edit.domains.php',true);$refresh\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>
 	</form>
@@ -719,7 +719,7 @@ if($_GET["index"]<>"new domain"){
 	$dn="cn=@$num,cn=relay_recipient_maps,ou={$_GET["ou"]},dc=organizations,$ldap->suffix";
 	$trusted_smtp_domain=0;
 	if($ldap->ExistsDN($dn)){$trusted_smtp_domain=1;}
-	$edit_button="<hr>". button("{edit}","EditRelayDomain('$num')","22px");
+	$edit_button="<hr>". button("{apply}","EditRelayDomain('$num')","22px");
 	
 	$trusted=Paragraphe_switch_img("{trusted_smtp_domain}","{trusted_smtp_domain_text}","trusted_smtp_domain",$trusted_smtp_domain,"{enable_disable}",220);
 	$roundrobin=Paragraphe('64-computer-alias.png','{roundrobin}','{roundrobin_text}',"javascript:Loadjs('$page?round-robin=yes&ou={$_GET["ou"]}&domain=$num');");
@@ -972,7 +972,7 @@ if(is_array($HashDomains)){
 	
 
 			$html=$html."<tr class=$classtr>
-						<td width=1% valign='top'>". imgtootltip("domain-32.png","{edit}",$js)."</td>
+						<td width=1% valign='top'>". imgtootltip("domain-32.png","{apply}",$js)."</td>
 						<td><div style='font-size:16px;font-weight:bold'>". texttooltip("$num","{parameters}",$js,null,0,"font-size:18px")."</div></td>
 						<td><div style='font-size:16px;font-weight:bold'>". texttooltip("$relay","{parameters}",$js,null,0,"font-size:18px")."</div></td>
 						<td width=1%>".imgtootltip("delete-24.png",'{label_delete_transport}',"DeleteRelayDomain('$num')")."</td>
@@ -992,7 +992,7 @@ if(is_array($HashDomains)){
 			$js="PostfixAddRoutingTable('$domain')";
 			if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 			$html=$html."<tr class=$classtr>
-						<td width=1% valign='top'>". imgtootltip("domain-32.png","{edit}",$js)."</td>
+						<td width=1% valign='top'>". imgtootltip("domain-32.png","{apply}",$js)."</td>
 						<td><div style='font-size:16px;font-weight:bold'>". texttooltip("$domain","{parameters}",$js,null,0,"font-size:18px")."</div>						</td>
 						<td><div style='font-size:16px;font-weight:bold'>". texttooltip("$relay","{parameters}",$js,null,0,"font-size:18px")."</div>						</td>
 						<td width=1%>&nbsp;</td>

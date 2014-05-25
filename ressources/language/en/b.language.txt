@@ -6157,3 +6157,114 @@ You will be able to enable messaging section in the "server section" on the top 
 <ldap_members>LDAP Members</ldap_members>
 <content_extension>Content addon</content_extension>
 <create_mailbox2>Create Mailbox</create_mailbox2>
+<squid_dynamic_cache_rules_explain>This feature allow artica to dynamically enforce Proxy cache rules by analyzing statistics.[br]
+Artica will scan each 4 hours statistics and enforce the TOP downloaded websites into system cache with the level 5.[br]
+If you using default parameters, the top 100 websites that are "not already cached" will be enforced.[br]
+The level 5 defines caching data for a minimal of 3 days and for a maximal of 1 week with a minimal refresh interval.[br]
+To not encounter issues on some websites that require to not be freshed, you can use the blacklist in order to ban Artica enforcing the cache system. 
+</squid_dynamic_cache_rules_explain> 
+<dynamic_enforce_rules>Dynamic enforce rules</dynamic_enforce_rules>
+<enforce_level>Enforce level</enforce_level>
+<not_cached_data>Not cached data</not_cached_data>
+<top_cached_websites>TOP cached websites</top_cached_websites>
+<top_not_cached_websites>TOP not cached websites</top_not_cached_websites>
+<scan_interval>Scan interval</scan_interval>
+<rules_retention>Rules retention</rules_retention>
+<max_websites>MAX websites</max_websites>
+<webfiltering_databases>Web filtering databases</webfiltering_database>
+<rotate>Rotate</rotate>
+<automatic_memory_cleaning>Automatic memory cleaning</automatic_memory_cleaning>
+<automatic_memory_cleaning_explain>This feature will launch the kernel memory cleaning procedure and restart/reload services that consume memory such as 
+Apache Web server, nginx, MySQL service.
+</automatic_memory_cleaning_explain>
+<max_usage>MAX usage</max_usage>
+<limit_rate_after>Limit Bandwidth after</limit_rate_after>
+<limit_rate>Bandwidth limitation</limit_rate>
+<limit_rate_after_text>Limits the connection rate after the size you specify.[br]
+Be aware that this solution limits download speed per connection, so, 
+if one user opens multiple video files, it will be able to download xMB multiply the number 
+of times he connected to the video files.</limit_rate_after_text>
+<limit_rate_text>Set here the maximum bandwidth defined after the downloaded size.[br][b]Set it to 0 to disable the bandwidth limitation.[/b]
+</limit_rate_text>
+<limit_rate_after_caption>Limit Bandwidth to %s after %f downloaded</limit_rate_after_caption>
+<reload_into_ims_explain>
+When turn to green this option, client no-cache or "reload" requests will be changed to If-Modified-Since requests.[br]
+Doing this VIOLATES the HTTP standard.[br]
+Turning it green may give proxy a better hit ratio, but it will no longer be
+possible for the end users to use shift+reload to force the download of
+a fresh copy.
+</reload_into_ims_explain>
+<reload_into_ims>Reload redirected to cache</reload_into_ims>
+<ForceWindowsUpdateCaching_explain>
+If green, Artica will add rules in order to enforce proxy to cache Microsoft Windows updates.
+</ForceWindowsUpdateCaching_explain>
+<ProxyDedicateMicrosoftRules_explain>If green, Artica will add rules that allows any computer/user to be connected to Microsoft updates Websites.[br]
+This prevents any non-NTLM/authenticated computer to be banned by the proxy.
+</ProxyDedicateMicrosoftRules_explain>
+<cache_childs_requests>Cache Proxy children requests</cache_childs_requests>
+<cache_childs_requests_explain>If turn to green, requests from children will be cached.[br]
+If red, requests from proxy children will be deny from cache</cache_childs_requests_explain>
+<update_schedule>Update schedule</update_schedule>
+<articadb_update_only_by_schedule>If turn to green both categories databases and webfiltering databases will be downloaded only with defined schedules.[br]
+By default this option is red (off) and Artica check each 48H our update server in order to update freshed databases.
+</articadb_update_only_by_schedule>
+<new_version>New version</new_version>
+<net_mii_title>Link speed and duplex setting</net_mii_title>
+<hardware_error_nic>Interface hardware error, perhaps this is a virtual machine...</hardware_error_nic>
+<flow_control>Flow control</flow_control>
+<empty_template>Empty template</empty_template>
+<only_internet_documents>Only Web files</only_internet_documents>
+<only_files>Only files</only_files>
+<only_pictures>Only pictures</only_pictures>
+<only_multimedia>Only multimedia</only_multimedia>
+<warn_proxy_service_reloaded>This operation will reload the proxy service.
+Do you want to carry out this operation ?</warn_proxy_service_reloaded>
+<profiles>Profils</profiles>
+<new_profile>New profil</new_profile>
+<perfom_proxy_log_rotation_explain>This task is able to perform Proxy service logs rotation operation.</perfom_proxy_log_rotation_explain>
+<perfom_proxy_log_rotation>Proxy logs rotation</perfom_proxy_log_rotation>
+<only_by_schedule>Only executed by schedule</only_by_schedule>
+<only_by_schedule_squid_rotation_explain>If green, rotation task will be executed only by defined schedules.[br]
+By default, Artica will run rotation if file exceed 100M and each 24H.[br]
+A rotation task reload the proxy.[br]
+If you want to not disturb the proxy, turn it to green and set your own schedule.
+</only_by_schedule_squid_rotation_explain>  
+<use_parent_proxy>Use a parent proxy</use_parent_proxy>
+<no_defined_parent>No defined parent</no_defined_parent>
+<operation_failed>Operation failed</operation_failed>
+<only_images>Only images</only_images>
+<http_compression>HTTP compression</http_compression>
+<enable_http_compression_service>Activate HTTP compression service</enable_http_compression_service>
+<enable_http_compression_service_text>Is turn to green, you will be able to provide a compressing HTTP proxy service.[br]
+Basically, it squeezes images by converting them to lower quality JPEGs and compresses (gzip) HTML and other text-like data.[br]
+It also provides other features such as: HTML/JS/CSS optimization
+</enable_http_compression_service_text>
+<ProcessHTML>Process HTML content</ProcessHTML>
+<ProcessCSS>Process CSS content</ProcessCSS>
+<ProcessJS>Process javascripts</ProcessJS>
+<unrestricted_networks>Unrestricted networks</unrestricted_networks>
+<unrestricted_networks_text>By default the HTTP compressor restrict access to proxy addresses defined in the Proxy clients section.[br]
+If green the all clients are allowed to use the service</unrestricted_networks_text>
+<the_specified_module_is_not_installed>The specified module is not installed</the_specified_module_is_not_installed>
+<this_server_is_not_enabled_proxy_parent>This module can only be used if this server is enabled has proxy parent.</this_server_is_not_enabled_proxy_parent>
+<APP_ZIPROXY>HTTP Compression service</APP_ZIPROXY>
+<ConvertToGrayscale>Convert to Gray scale</ConvertToGrayscale>
+<ConvertToGrayscale_explain>
+If enabled, convert images to grayscale before recompressing.[br]
+This provides extra compression, at the cost of losing color data.[br]
+[b]Note: Not all images sent will be in grayscale, only the ones
+considered worth recompression that way.[/b]
+</ConvertToGrayscale_explain>
+<compressor_requests>Compressor RT requests</compressor_requests>
+<compressor_requests2>Compressor realtime requests</compressor_requests2>
+<compressed>Compressed</compressed>
+<compressed_data>Compressed data</compressed_data>
+<non_compressed_data>Uncompressed data</non_compressed_data>
+<apache_Bandwidth_enable>Enable Bandwidth Limiting Module</apache_Bandwidth_enable> 
+<apache_Bandwidth_explain>
+This feature allows you to completely control a users Web utilization.[br]
+Limit bandwidth per second, number of concurrent connections, file sizes and more.[br]
+It enables the setting of server-wide or per connection bandwidth limits, based on the directory, size of files and remote IP/domain.[br]
+</apache_Bandwidth_explain>
+<limit_all_requests>Limit all requests</limit_all_requests>
+<default_limit>Default limit</default_limit>

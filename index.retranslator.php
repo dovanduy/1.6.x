@@ -360,7 +360,7 @@ function main_config(){
 		<tr>
 			<td colspan=2 align='right'>
 			<hr>
-			". button("{edit}","ParseForm('FFM1','$page',true);")."
+			". button("{apply}","ParseForm('FFM1','$page',true);")."
 			
 		</td>
 		</tr>
@@ -449,7 +449,7 @@ function main_config(){
 			
 		<tr>
 			<td colspan=3 align='right'>
-					<hr>". button("{edit}","ParseForm('FFM2','$page',true);")."
+					<hr>". button("{apply}","ParseForm('FFM2','$page',true);")."
 		</td>
 		</tr>
 	</table>

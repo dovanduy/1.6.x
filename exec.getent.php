@@ -18,6 +18,12 @@ if($argv[1]=='--domains'){samba_domains_info();die();}
 if($argv[1]=='--adgprs'){ActiveDirectoryGroups();die();}
 
 
+$ldap=new clladp();
+if($GLOBALS["VERBOSE"]){echo "IsKerbAuth() return false;\n";}
+if(!$ldap->IsKerbAuth()){
+	die();
+}
+
 ActiveDirectoryGroups();
 samba_domains_info();
 getent();

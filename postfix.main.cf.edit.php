@@ -216,7 +216,7 @@ function main_table(){
 				<table style='width:100%'>
 					<tr ". CellRollOver().">
 					<td width=99%><code style='font-size:13px'>$num={$val["VALUE"]}</code>&nbsp;</td>
-					<td width=1% align='right'>". button("{edit}","ParseForm('FFM_$fmname','$page',true);ChargeTable()")."</td>
+					<td width=1% align='right'>". button("{apply}","ParseForm('FFM_$fmname','$page',true);ChargeTable()")."</td>
 					</tr>
 				</table>
 			</td>

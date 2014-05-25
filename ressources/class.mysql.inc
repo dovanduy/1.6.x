@@ -1932,7 +1932,13 @@ function mysql_real_escape_string2($query){
 	
 	FUNCTION INDEX_EXISTS($table,$index,$database){
 		
-		if(isset($_SESSION["MYSQL_INDEX_EXISTS"])){if($_SESSION["MYSQL_INDEX_EXISTS"][$database][$table][$index]==true){return true;}}
+		if(isset($_SESSION["MYSQL_INDEX_EXISTS"])){
+			if(isset($_SESSION["MYSQL_INDEX_EXISTS"][$database])){
+				if($_SESSION["MYSQL_INDEX_EXISTS"][$database][$table][$index]==true){
+					return true;
+				}
+			}
+		}
 		$sql="SHOW INDEX FROM $table WHERE Key_name='$index'";
 		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,$database));
 		if($ligne["Key_name"]<>null){

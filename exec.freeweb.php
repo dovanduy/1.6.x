@@ -69,13 +69,26 @@ if($argv[1]=="--build"){$GLOBALS["NO_HTTPD_RESTART"]=true;build();reload_apache(
 if($argv[1]=="--apache-user"){apache_user();die();}
 
 if($argv[1]=="--sitename"){
+		$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress";
 		$GLOBALS["NGINX_CONFIGURE"]=true;
-		buildHost(null,$argv[2]);
-		if(!$GLOBALS["NO_HTTPD_CONF"]){CheckHttpdConf();}
-		if(!$GLOBALS["NO_HTTPD_RELOAD"]){reload_apache();}
-		sync_squid();
+		build_progress("{reconfigure} ".$argv[2], 5);
+		if(buildHost(null,$argv[2])){
+			if(!$GLOBALS["NO_HTTPD_CONF"]){
+				build_progress("CheckHttpdConf() ".$argv[2], 50);
+				CheckHttpdConf();
+			}
+			if(!$GLOBALS["NO_HTTPD_RELOAD"]){
+				build_progress("Reloading apache for ".$argv[2], 70);
+				reload_apache();
+			}
+			build_progress("sync_squid() ".$argv[2], 80);
+			sync_squid();
+			build_progress("{success} ".$argv[2], 100);
+		}
 		die();
 }
+
+
 if($argv[1]=="--remove-host"){remove_host($argv[2]);reload_apache();sync_squid();die();}
 if($argv[1]=="--perms"){FDpermissions($argv[2]);die();}
 if($argv[1]=="--failed-start"){CheckFailedStart();die();exit;}
@@ -125,6 +138,15 @@ help();
 //mod_deflate.so
 
 //http://www.tux-planet.fr/installation-et-configuration-de-modsecurity/
+
+function build_progress($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+
+}
+
 
 function help(){
 	echo @implode(" ", $argv)."\n";
@@ -1142,7 +1164,8 @@ function php5_conf($DAEMON_PATH){
 	$f[]="        </Directory>";
 	$f[]="    </IfModule>";
 	$f[]="</IfModule>";	
-	@file_put_contents("$DAEMON_PATH/mods-enabled/php5.conf", @implode("\n", $f));
+	
+	@file_put_contents("$DAEMON_PATH/mods-enabled/mod_php5.conf", @implode("\n", $f));
 	
 	$f=array();
 	$f[]="<IfModule mod_suphp.c>";
@@ -1250,7 +1273,8 @@ function CheckHttpdConf(){
 	if($ApacheServerTokens==null){$ApacheServerTokens="Full";}
 	$hostname=$sock->GET_INFO("ApacheServerName");
 	if($hostname==null){$hostname=$unix->hostname_g();}
-	
+	$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
+	if(!is_numeric($ZarafaWebAccessInFrontEnd)){$ZarafaWebAccessInFrontEnd=1;}
 	
 	
 	$TomcatEnable=$sock->GET_INFO("TomcatEnable");
@@ -1308,9 +1332,9 @@ function CheckHttpdConf(){
 	$toremove[]="php5-fpm.load";
 	$toremove[]="fastcgi.load";
 	$toremove[]="php5-fpm.conf";
+	$toremove[]="bw.load";
+
 	
-
-
 
 	
 	if(is_file("/etc/apache2/sites-enabled/000-default")){
@@ -1319,12 +1343,17 @@ function CheckHttpdConf(){
 		$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT servername,enabled FROM freeweb WHERE servername='_default_'",'artica_backup'));
 		if($q->ok){
 			if($ligne["servername"]=="_default_"){ if($ligne["enabled"]==1){ $ToDeleteDefault=false; } }
-			if($ToDeleteDefault){ @unlink("/etc/apache2/sites-enabled/000-default");}
+		}else{
+			$ToDeleteDefault=false;
 		}
+		
+		if($ZarafaWebAccessInFrontEnd==1){ $ToDeleteDefault=false; }
+		if($ToDeleteDefault){ @unlink("/etc/apache2/sites-enabled/000-default");}
 	}
 	if(is_file("/etc/apache2/conf.d/other-vhosts-access-log")){@unlink("/etc/apache2/conf.d/other-vhosts-access-log");}
 	@mkdir("/etc/apache2/htdocs",0755,true);
 	
+	if(is_file("/etc/apache2/sites-enabled/default-www")){@unlink("/etc/apache2/sites-enabled/default-www");}
 	if(is_file("/etc/apache2/sites-available/default")){@unlink("/etc/apache2/sites-available/default");}
 	if(is_file("/etc/apache2/conf.d/zarafa-webaccess.conf")){@unlink("/etc/apache2/conf.d/zarafa-webaccess.conf");}
 	if(is_file("/etc/apache2/conf.d/zarafa-webaccess-mobile.conf")){@unlink("/etc/apache2/conf.d/zarafa-webaccess-mobile.conf");}
@@ -1639,8 +1668,9 @@ function CheckHttpdConf(){
 	$mod_php5[]="        </Directory>";
 	$mod_php5[]="    </IfModule>";
 	$mod_php5[]="</IfModule>";
-	@file_put_contents("$DAEMON_PATH/mod_php5.conf", @implode("\n", $f));
+	@file_put_contents("$DAEMON_PATH/mods-enabled/mod_php5.conf", @implode("\n", $mod_php5));
 	$httpd[]="Include $DAEMON_PATH/mod_php5.conf";
+	$mod_php5=array();
 	
 	if(basename($httpdconf)<>"httpd.conf"){$httpd[]="Include $DAEMON_PATH/httpd.conf";}
 	$httpd[]="Include $DAEMON_PATH/ports.conf";
@@ -1807,7 +1837,10 @@ function CheckHttpdConf(){
 		$array["log_sql_module"]="mod_log_sql.so";
 		$array["log_sql_mysql_module"]="mod_log_sql_mysql.so";
 	}
-	$array["bw_module"]="mod_bw.so";
+	
+	if(mod_bw_module_must_be_enabled()){
+		$array["bw_module"]="mod_bw.so";
+	}
 	$array["actions_module"]="mod_actions.so";
 	$array["expires_module"]="mod_expires.so";
 	$array["include_module"]="mod_include.so";
@@ -2066,6 +2099,14 @@ function mod_security(){
 	
 }
 
+function mod_bw_module_must_be_enabled(){
+	$q=new mysql();
+	$sql="SELECT COUNT(*) as tcount FROM freeweb WHERE enabled=1 AND bandlimit=1";
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	$sum=$ligne["tcount"];
+	if($sum>0){return true;}
+}
+
 
 function YfiAdds(){
 	if(!is_file("/var/www/c2/index.php")){return;}
@@ -2227,7 +2268,9 @@ function TestingApacheConfigurationFile(){
 function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	$prefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\"";
 	echo "$prefixOutput [".__LINE__."] Building \"$hostname\"\n";
+	build_progress("create_cron_task()", 6);
 	create_cron_task();
+	build_progress("CheckLibraries()", 7);
 	CheckLibraries();
 	$unix=$GLOBALS["CLASS_UNIX"];
 	$sock=$GLOBALS["CLASS_SOCKETS"];
@@ -2236,12 +2279,15 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	$EnableLDAPAllSubDirectories=0;
 	$APACHE_MOD_AUTHNZ_LDAP=$users->APACHE_MOD_AUTHNZ_LDAP;
 	$APACHE_MOD_PAGESPEED=$users->APACHE_MOD_PAGESPEED;
+	build_progress("Loading $hostname configuration", 8);
 	$freeweb=new freeweb($hostname);
 	$Params=$freeweb->Params;
 	
 	
 	
-	if($freeweb->servername==null){echo "$prefixOutput [".__LINE__."] freeweb->servername no such servername \n";return;}
+	if($freeweb->servername==null){
+		build_progress("Fatal $hostname no such servername", 110);
+		echo "$prefixOutput [".__LINE__."] freeweb->servername no such servername \n";return;}
 	
 	$FreeWebsEnableOpenVPNProxy=$sock->GET_INFO("FreeWebsEnableOpenVPNProxy");
 	$FreeWebsOpenVPNRemotPort=trim($sock->GET_INFO("FreeWebsOpenVPNRemotPort"));
@@ -2278,8 +2324,13 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	$FreeWebListenSSLPort=$sock->GET_INFO("FreeWebListenSSLPort");
 	$FreeWebListen=$unix->APACHE_ListenDefaultAddress();
 	$FreeWebsDisableSSLv2=$sock->GET_INFO("FreeWebsDisableSSLv2");
+	build_progress("Building $hostname configuration [".__LINE__."]", 10);
 	
-	if($apache_usr==null){echo "WARNING !!! could not find apache username!!!\n";}
+	if($apache_usr==null){
+		build_progress("Fatal could not find apache username", 110);
+		echo "WARNING !!! could not find apache username!!!\n";
+		return false;
+	}
 	
 	if($FreeWebListen==null){$FreeWebListen="*";}
 	if($FreeWebListen<>"*"){$FreeWebListenApache="$FreeWebListen";}	
@@ -2313,6 +2364,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	
 	if($unix->isNGnx()){$freeweb->SSL_enabled=0;}
 	if($FreeWebDisableSSL==1){$freeweb->SSL_enabled=0;}
+	build_progress("Building $hostname configuration [".__LINE__."]", 11);
 	
 	if($freeweb->SSL_enabled){
 		$unix->vhosts_BuildCertificate($hostname);
@@ -2347,11 +2399,15 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$conf[]="";
 		$FreeWebListenPort=$FreeWebListenSSLPort;
 	}
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 12);
 	$freeweb->CheckDefaultPage();
+	build_progress("Building $hostname configuration [".__LINE__."]", 13);
 	$freeweb->CheckWorkingDirectory();
+	build_progress("Building $hostname configuration [".__LINE__."]", 14);
 	$ServerAlias=$freeweb->ServerAlias();
 	
+	
+	build_progress("Building $hostname configuration [".__LINE__."]", 15);
 	echo "$prefixOutput [".__LINE__."] Listen $FreeWebListen:$FreeWebListenPort\n";
 	echo "$prefixOutput [".__LINE__."] Directory $freeweb->WORKING_DIRECTORY\n";
 	echo "$prefixOutput [".__LINE__."] Groupware \"$freeweb->groupware\"\n";
@@ -2374,7 +2430,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 			}
 		
 	}
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 16);
 	$AddType=$freeweb->AddType();
 	if($AddType<>null){$conf[]=$AddType;}	
 	
@@ -2410,7 +2466,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 			}
 		}
 	}
-	
+		build_progress("Building $hostname configuration [".__LINE__."]", 17);
 		$content_plus=$freeweb->content_plus;
 		$php_open_base_dir=$freeweb->open_basedir();
 		$geoip=$freeweb->mod_geoip();
@@ -2451,7 +2507,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		
 		shell_exec("/bin/chown -R $apache_usr:$apache_group /var/cache/apache2/mod_pagespeed/$hostname");}
 		if($mod_status<>null){    $conf[]=$mod_status;}
-		
+		build_progress("Building $hostname configuration [".__LINE__."]", 18);
 		
 		$ldapRule=null;
 		
@@ -2465,7 +2521,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 				if($ZarafaWebNTLM==1){$AuthLDAP=1;}
 			}		
 		
-		
+			build_progress("Building $hostname configuration [".__LINE__."]", 19);
 		if($AuthLDAP==1){
 			echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" ldap authentication enabled\n";
 			$ldap=$GLOBALS["CLASS_LDAP"];
@@ -2494,6 +2550,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	
 	
 	//DIRECTORY
+	build_progress("Building $hostname configuration [".__LINE__."]", 20);
 	$OptionExecCGI=null;
 	$allowFrom=$freeweb->AllowFrom();
 	$JkMount=$freeweb->JkMount();	
@@ -2515,7 +2572,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		
 		
 		
-		
+		build_progress("Building $hostname configuration [".__LINE__."]", 21);
 		$conf[]="\n\t<Directory \"$freeweb->WORKING_DIRECTORY/\">";
 		if($Apache2_AuthenNTLM<>null){
 			$conf[]=$Apache2_AuthenNTLM;
@@ -2535,6 +2592,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		}else{
 			$conf[]=$DirectoryContent;
 		}
+		build_progress("Building $hostname configuration [".__LINE__."]", 22);
 		if($geoip<>null){$conf[]="\t\tDeny from env=BlockCountry";}
 		if($mod_rewrite<>null){$conf[]=$mod_rewrite;}
 		if($ldapRule<>null){$conf[]=$ldapRule;}
@@ -2544,8 +2602,10 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$conf[]="\t</Directory>\n";
 		if($mod_fcgid<>null){    $conf[]=$mod_fcgid;}
 		if($DirectorySecond<>null){$conf[]=$DirectorySecond;}
+		build_progress("Building $hostname configuration [".__LINE__."]", 23);
 		$zarafaProxy=$freeweb->ZarafaProxyJabberd();
 		if($zarafaProxy<>null){$conf[]=$zarafaProxy;}
+		build_progress("Building $hostname configuration [".__LINE__."]", 24);
 		$WebDavFree=$freeweb->WebDavTable();
 		if($WebDavFree<>null){$conf[]=$WebDavFree;}
 		if($freeweb->UseReverseProxy==1){
@@ -2580,10 +2640,13 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$conf[]="\t</Proxy>";
 	
 	}
+	build_progress("Building $hostname configuration [".__LINE__."]", 25);
 	$conf[]=$freeweb->FilesRestrictions();	
+	build_progress("Building $hostname configuration [".__LINE__."]", 26);
 	$conf[]=$freeweb->mod_security();
+	build_progress("Building $hostname configuration [".__LINE__."]", 27);
 	$ScriptAliases=$freeweb->ScriptAliases();
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 28);
 	
 	
 	if(!is_dir("/var/log/apache2/$hostname")){@mkdir("/var/log/apache2/$hostname",0755,true);}
@@ -2601,7 +2664,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	$suffix_filename=".conf";
 	$middle_filename=$hostname;
 	
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 29);
 	if($hostname=="_default_"){
 		$prefix_filename="000-";
 		$middle_filename="default";
@@ -2613,7 +2676,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		}
 	}
 		
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 30);
 	$FileConfigurationPath="$d_path/$prefix_filename$middle_filename$suffix_filename";
 	$FileConfigurationBackupPath="/root/$prefix_filename$middle_filename$suffix_filename";
 	
@@ -2627,29 +2690,32 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		echo "Starting......: ".date("H:i:s")." [INIT]: Apache saving *** $d_path/$prefix_filename$middle_filename$suffix_filename *** line ".__LINE__."\n";
 	}
 	
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 31);
 	@file_put_contents($FileConfigurationPath,@implode("\n",$conf));
 	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$hostname\" filename: '". basename("$d_path/$prefix_filename$middle_filename$suffix_filename")."' done\n";
 	
 	
-	
+	build_progress("Building $hostname configuration [".__LINE__."]", 32);
 	$freeweb->phpmyadmin();
 	if(!is_dir("$freeweb->WORKING_DIRECTORY")){
 		@mkdir("$freeweb->WORKING_DIRECTORY",0755,true);
 	}
 	
+	build_progress("Building $hostname Testing configuration", 33);
 	if(!TestingApacheConfigurationFile()){
+		build_progress("Building $hostname Testing configuration failed", 110);
 		$freeweb->SetError(1);
 		@unlink($FileConfigurationPath);
 		if(is_file($FileConfigurationBackupPath)){
 			echo "Starting......: ".date("H:i:s")." [INIT]: Apache restore old configuration file\n";
 			@copy($FileConfigurationBackupPath,$FileConfigurationPath);
 		}
+		return false;
 	}else{
 		$freeweb->SetError(0);
 	}
 	
-	
+	build_progress("Building $hostname Testing configuration", 34);
 	@chmod("$freeweb->WORKING_DIRECTORY",0755);
 	if($apache_usr<>null){@chown("$freeweb->WORKING_DIRECTORY", $apache_usr);}
 	if($apache_group<>null){@chgrp("$freeweb->WORKING_DIRECTORY", $apache_group);}
@@ -2661,7 +2727,7 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		if($timephpini>60){shell_exec("/usr/share/artica-postfix/bin/artica-install --php-ini >/dev/null 2>&1");}
 	}
 	
-	
+	build_progress("Building $hostname Testing configuration", 35);
 	if($freeweb->groupware=="EYEOS"){install_EYEOS($hostname);}
 	if($freeweb->groupware=="GROUPOFFICE"){group_office_install($hostname,true);}
 	if($freeweb->groupware=="PIWIK"){install_PIWIK($hostname,true);}
@@ -2670,20 +2736,27 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$nohup=$unix->find_program("nohup");
 		shell_exec("$nohup ". $unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.freeweb.php --drupal-infos \"$hostname\" >/dev/null 2>&1 &");
 	}
+	
+	build_progress("Building $hostname Testing configuration", 36);
 	if(is_dir($freeweb->WORKING_DIRECTORY)){
 		$nice=EXEC_NICE();
 		shell_exec("$nohup $nice $chown -R $apache_usr:$apache_group $freeweb->WORKING_DIRECTORY >/dev/null 2>&1 &");
 	}
+	
+	build_progress("Building $hostname Testing configuration", 37);
 	$freeweb->update_groupware_version();
 	if($GLOBALS["NGINX_CONFIGURE"]){
 		$EnableNginx=$sock->GET_INFO("EnableNginx");
 		if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 		if($EnableNginx==1){
 			$php=$unix->LOCATE_PHP5_BIN();
+			build_progress("Building $hostname -> NGINX", 38);
 			shell_exec("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure \"$hostname\"");
+			build_progress("Building $hostname NGINX OK", 39);
 		}
 	}
-	
+	build_progress("Building $hostname -> DONE", 40);
+	return true;
 }
 
 function remove_host($hostname){
@@ -2970,6 +3043,7 @@ function chmod_files($path, $ext="*",$filemode=755) {
         		if($GLOBALS["VERBOSE"]){echo "chmod_files($fullpath,$ext,$filemode);\n";}
         		chmod_files($fullpath,$ext,$filemode);
         		continue;
+        		
         	}
         	
             
@@ -4240,8 +4314,16 @@ function ZarafaWebAccessInFrontEnd($DAEMON_PATH){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$unix=new unix();
+	$free=new freeweb("__default__");
 	@unlink("/etc/apache2/sites-enabled/default-www");
 	@unlink("/etc/apache2/sites-enabled/default-ssl");
+	if($free->servername<>null){
+		echo "Starting......: ".date("H:i:s")." [INIT]: A default website is already setup.\n";
+		return;
+	}
+	
+	
+	
 	if(!$users->ZARAFA_INSTALLED){
 		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Zarafa not Installed\n";
 		return null;}
@@ -4255,6 +4337,7 @@ function ZarafaWebAccessInFrontEnd($DAEMON_PATH){
 	$FreeWebListenPort=$sock->GET_INFO("FreeWebListenPort");
 	if(!is_numeric($FreeWebListenSSLPort)){$FreeWebListenSSLPort=443;}
 	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
+	$FreeWebDisableSSL=intval(trim($sock->GET_INFO("FreeWebDisableSSL")));
 	
 	if($unix->isNGnx()){
 		$FreeWebListenSSLPort=447;
@@ -4276,10 +4359,11 @@ function ZarafaWebAccessInFrontEnd($DAEMON_PATH){
 	if($SquidActHasReverse==1){
 		$FreeWebListenSSLPort=447;
 	}
-	
+	$f[]="# ". basename(__FILE__)." ZarafaWebAccessInFrontEnd=1 FreeWebDisableSSL=$FreeWebDisableSSL L.".__LINE__;
 	$f[]="<VirtualHost _default_:$FreeWebListenPort>";
 	$f[]="\tServerAdmin webmaster@_default_";
 	$f[]="\tDocumentRoot /usr/share/zarafa-webaccess";
+	$f[]="";
 	$f[]="\t<Directory /usr/share/zarafa-webaccess/>";
 	$f[]="\t\tOptions -Indexes +FollowSymLinks";
 	$f[]="\t\tphp_flag register_globals off";
@@ -4288,39 +4372,45 @@ function ZarafaWebAccessInFrontEnd($DAEMON_PATH){
 	$f[]="\t\tphp_value post_max_size 50M";
 	$f[]="\t\tphp_value upload_max_filesize 50M";
 	$f[]="\t\tphp_flag short_open_tag on";
+	$f[]="\t\tphp_flag safe_mode off";
 	$f[]="\t</Directory>";
 	$f[]="</VirtualHost>";
-	echo "Starting......: ".date("H:i:s")." [INIT]: Apache /etc/apache2/sites-enabled/default-www done\n";
-	@file_put_contents("/etc/apache2/sites-enabled/default-www", @implode("\n", $f));
-	
-	$f=array();
-	$f[]="<IfModule mod_ssl.c>";
-	$f[]="\t<VirtualHost _default_:$FreeWebListenSSLPort>";
-	$f[]="\t\tServerAdmin webmaster@_default_";
-	$f[]="\t\tDocumentRoot /usr/share/zarafa-webaccess";
-	$f[]="\t<Directory />";
-	$f[]="\t\tOptions FollowSymLinks";
-	$f[]="\t\tAllowOverride None";
-	$f[]="\t</Directory>";
-	$f[]="\t<Directory /usr/share/zarafa-webaccess>";
-	$f[]="\t\tOptions -Indexes +FollowSymLinks";
-	$f[]="\t\tphp_flag register_globals off";
-	$f[]="\t\tphp_flag magic_quotes_gpc off";
-	$f[]="\t\tphp_flag magic_quotes_runtime off";
-	$f[]="\t\tphp_value post_max_size 50M";
-	$f[]="\t\tphp_value upload_max_filesize 50M";
-	$f[]="\t\tphp_flag short_open_tag on";
-	$f[]="\t</Directory>";
-	$f[]="\tErrorLog /var/log/apache2/error.log";
 
-	$f[]="\tLogLevel warn";
-	$f[]="\tCustomLog /var/log/apache2/ssl_access.log combined";
-	$f[]="\tSSLEngine on";
-	$f[]="\tSSLCertificateFile /etc/ssl/certs/apache/_default_.crt";
-	$f[]="\tSSLCertificateKeyFile /etc/ssl/certs/apache/_default_.key";
-	$f[]="\t</VirtualHost>";
-	$f[]="</IfModule>";
 	
+	if($FreeWebDisableSSL==0){
+		$f[]="<IfModule mod_ssl.c>";
+		$f[]="\t<VirtualHost _default_:$FreeWebListenSSLPort>";
+		$f[]="\t\tServerAdmin webmaster@_default_";
+		$f[]="\t\tDocumentRoot /usr/share/zarafa-webaccess";
+		$f[]="\t<Directory />";
+		$f[]="\t\tOptions FollowSymLinks";
+		$f[]="\t\tAllowOverride None";
+		$f[]="\t</Directory>";
+		$f[]="\t<Directory /usr/share/zarafa-webaccess>";
+		$f[]="\t\tOptions -Indexes +FollowSymLinks";
+		$f[]="\t\tphp_flag register_globals off";
+		$f[]="\t\tphp_flag magic_quotes_gpc off";
+		$f[]="\t\tphp_flag magic_quotes_runtime off";
+		$f[]="\t\tphp_value post_max_size 50M";
+		$f[]="\t\tphp_value upload_max_filesize 50M";
+		$f[]="\t\tphp_flag short_open_tag on";
+		$f[]="\t\tphp_flag safe_mode off";
+		
+
+		
+		$f[]="\t</Directory>";
+		$f[]="\tErrorLog /var/log/apache2/error.log";
+	
+		$f[]="\tLogLevel warn";
+		$f[]="\tCustomLog /var/log/apache2/ssl_access.log combined";
+		$f[]="\tSSLEngine on";
+		$f[]="\tSSLCertificateFile /etc/ssl/certs/apache/_default_.crt";
+		$f[]="\tSSLCertificateKeyFile /etc/ssl/certs/apache/_default_.key";
+		$f[]="\t</VirtualHost>";
+		$f[]="</IfModule>";
+	}
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache /etc/apache2/sites-enabled/000-default done\n";
+	@file_put_contents("/etc/apache2/sites-enabled/000-default", @implode("\n", $f));	
 	
 	
 	

@@ -163,7 +163,7 @@ function main_rules_weightedphraselist_list($rule_main,$noecho=0){
 		$category_name=$dans->array_weighted_phrases_lists[$val];
 		
 		if($users_rules[$val]==$val){
-			$edit_icon=imgtootltip("icon_edit.gif","{edit}","dansguardian_edit_user_categoryWeight('$val')");
+			$edit_icon=imgtootltip("icon_edit.gif","{apply}","dansguardian_edit_user_categoryWeight('$val')");
 			if(strlen($val)>11){
 				$category_name=texttooltip("{your_category}:&nbsp;".substr($val,0,8)."...",$val,"dansguardian_edit_user_categoryWeight('$val')");
 			}

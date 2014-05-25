@@ -210,6 +210,8 @@ class mysql_services{
 			$innodb_buffer_pool_sized=128;
 			$innodb_log_buffer_sized=1;
 			$sort_buffer_size=1;
+			$max_heap_table_size=16;
+			if($read_buffer_size==0){$read_buffer_size=1;}
 		}
 		if($memory>1024){
 				if($max_allowed_packet<64){$max_allowed_packet=64;}
@@ -218,6 +220,8 @@ class mysql_services{
 				$innodb_buffer_pool_sized=128;
 				$innodb_log_buffer_sized=4;
 				if($sort_buffer_size_canbechanged){$sort_buffer_size=2;}
+				$max_heap_table_size=256;
+				if($read_buffer_size==0){$read_buffer_size=2;}
 		
 		}
 		if($memory>1500){
@@ -229,7 +233,9 @@ class mysql_services{
 			$tmp_table_sized=8;
 			$innodb_buffer_pool_sized=256;
 			$innodb_log_buffer_sized=6;
+			$max_heap_table_size=512;
 			if($sort_buffer_size_canbechanged){$sort_buffer_size=4;}
+			if($read_buffer_size==0){$read_buffer_size=4;}
 		}
 		if($memory>2048){
 			if($max_allowed_packet==0){$max_allowed_packet=128;}
@@ -239,8 +245,10 @@ class mysql_services{
 			$max_connections=50;
 			$innodb_buffer_pool_sized=256;
 			$innodb_log_buffer_sized=6;
+			$max_heap_table_size=750;
 			if($thread_stack_canbechanged){$thread_stack=0.524;}
 			if($sort_buffer_size_canbechanged){$sort_buffer_size=4;}
+			if($read_buffer_size==0){$read_buffer_size=6;}
 		}
 		if($memory>2500){
 			if($max_allowed_packet<128){$max_allowed_packet=128;}
@@ -251,8 +259,10 @@ class mysql_services{
 			$max_connections=60;
 			$innodb_buffer_pool_sized=384;
 			$innodb_log_buffer_sized=8;
+			$max_heap_table_size=800;
 			if($thread_stack_canbechanged){$thread_stack=0.524;}
 			if($sort_buffer_size_canbechanged){$sort_buffer_size=6;}
+			if($read_buffer_size==0){$read_buffer_size=8;}
 		}
 		if($memory>3000){
 			if($max_allowed_packet<128){$max_allowed_packet=128;}
@@ -262,8 +272,10 @@ class mysql_services{
 			$tmp_table_sized=96;
 			$innodb_log_buffer_sized=14;
 			$max_connections=60;
+			$max_heap_table_size=1200;
 			if($thread_stack_canbechanged){$thread_stack=0.524;}
 			if($sort_buffer_size_canbechanged){$sort_buffer_size=8;}
+			if($read_buffer_size==0){$read_buffer_size=8;}
 		}
 		if($memory>3500){
 			if($max_allowed_packet<128){$max_allowed_packet=128;}
@@ -272,8 +284,10 @@ class mysql_services{
 			$tmp_table_sized=128;
 			$innodb_log_buffer_sized=16;
 			$max_connections=80;
+			$max_heap_table_size=1500;
 			if($thread_stack_canbechanged){$thread_stack=0.524;}
 			if($sort_buffer_size_canbechanged){$sort_buffer_size=8;}
+			if($read_buffer_size==0){$read_buffer_size=16;}
 		}
 		if($memory>4000){
 			if($max_allowed_packet<196){$max_allowed_packet=196;}
@@ -285,8 +299,22 @@ class mysql_services{
 			$innodb_buffer_pool_size=512;
 			$innodb_log_buffer_size=18;
 			$max_connections=100;
+			$max_heap_table_size=2000;
 			if($thread_stack_canbechanged){$thread_stack=1;}
 			if($sort_buffer_size_canbechanged){$sort_buffer_size=10;}
+			if($read_buffer_size==0){$read_buffer_size=32;}
+		}
+		
+		if($memory>6000){
+			$bulk_insert_buffer_sized=404;
+			$key_buffer_size_d=400;
+			$max_allowed_packetd=180;
+			$thread_cache_sized=128;
+			$tmp_table_sized=256;
+			$max_heap_table_size=3000;
+			if($thread_stack_canbechanged){$thread_stack=2;}
+			if($sort_buffer_size_canbechanged){$sort_buffer_size=20;}
+			if($read_buffer_size==0){$read_buffer_size=32;}
 		}
 		
 		if(!is_numeric($bulk_insert_buffer_size)){$bulk_insert_buffer_size=$bulk_insert_buffer_sized;}
@@ -356,11 +384,11 @@ class mysql_services{
 		@mkdir("$WORKDIR/lib/plugin",0755,true);
 		@mkdir("/var/run/mysqld",0755,true);
 
-		$sort_buffer_size_calc=($sort_buffer_size*1024)*1000;
-		$key_buffer_size_calc=($key_buffer_size*1024)*1000;
-		$read_buffer_size_calc=($read_buffer_size_calc*1024)*1000;
+		$sort_buffer_size_calc=($sort_buffer_size*1024)*1024;
+		$key_buffer_size_calc=($key_buffer_size*1024)*1024;
+		$read_buffer_size_calc=($read_buffer_size_calc*1024)*1024;
 		$memory_calculated=$key_buffer_size_calc + ($read_buffer_size + $sort_buffer_size_calc)*$max_connections;
-		$memory_calculated=round(($memory_calculated/1024)/1000);
+		$memory_calculated=round(($memory_calculated/1024)/1024);
 		
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $SERV_NAME sort_buffer_size..........: $sort_buffer_size_calc bytes\n";}
@@ -474,6 +502,8 @@ class mysql_services{
 			
 		}
 		
+		$max_allowed_packet=round($max_allowed_packet);
+		
 		if($max_allowed_packet>0){
 			$f[]="--max-allowed-packet={$max_allowed_packet}M";
 			$f[]="--net_buffer_length={$max_allowed_packet}M";
@@ -491,7 +521,7 @@ class mysql_services{
 		$f[]="--myisam_repair_threads=4";
 		if($key_buffer_size>0){
 			if($GetStartedValues["--key-buffer-size"]){
-				$key_buffer_size=($key_buffer_size*1024)*1000;
+				$key_buffer_size=round(($key_buffer_size*1024)*1000);
 				$f[]="--key_buffer_size={$key_buffer_size}";
 			}
 		}
@@ -519,17 +549,17 @@ class mysql_services{
 		
 		$f[]="--max_user_connections=0";
 		if($myisam_sort_buffer_size>0){
-			$myisam_sort_buffer_size=($myisam_sort_buffer_size*1024)*1000;
+			$myisam_sort_buffer_size=round(($myisam_sort_buffer_size*1024)*1024);
 			$f[]="--myisam_sort_buffer_size={$myisam_sort_buffer_size}";
 		}
 		if($bulk_insert_buffer_size>0){
-			$bulk_insert_buffer_size=($bulk_insert_buffer_size*1024)*1000;
+			$bulk_insert_buffer_size=round(($bulk_insert_buffer_size*1024)*1024);
 			$f[]="--bulk_insert_buffer_size={$bulk_insert_buffer_size}";
 		}
 		
 		
 		if($read_rnd_buffer_size>1){
-			$read_rnd_buffer_size=($read_rnd_buffer_size*1024)*1000;
+			$read_rnd_buffer_size=round(($read_rnd_buffer_size*1024)*1024);
 			$f[]="--read_rnd_buffer_size={$read_rnd_buffer_size}";
 		}
 		
@@ -538,32 +568,32 @@ class mysql_services{
 		}
 		
 		if($tmp_table_size>0){
-			$tmp_table_size=($tmp_table_size*1024)*1000;
+			$tmp_table_size=round(($tmp_table_size*1024)*1024);
 			$f[]="--tmp_table_size={$tmp_table_size}";
-			$f[]="--max_heap_table_size={$tmp_table_size}";
+			$f[]="--max_heap_table_size={$max_heap_table_size}M";
 		}
 		
 		if($max_tmp_table_size>0){
 			if($GetStartedValues["--max_tmp_table_size"]){
-				$max_tmp_table_size=($max_tmp_table_size*1024)*1000;
+				$max_tmp_table_size=($max_tmp_table_size*1024)*1024;
 				$f[]="--max_tmp_table_size={$max_tmp_table_size}";
 			}
 		}
 		if($sort_buffer_size>0){
-			$sort_buffer_size=($sort_buffer_size*1024)*1000;
+			$sort_buffer_size=($sort_buffer_size*1024)*1024;
 			$f[]="--sort_buffer_size={$sort_buffer_size}";
 		}
 		if($read_buffer_size>0){
-			$read_buffer_size=($read_buffer_size*1024)*1000;
+			$read_buffer_size=round(($read_buffer_size*1024)*1024);
 			$f[]="--read_buffer_size={$read_buffer_size}";
 		}
 		if($join_buffer_size>0){
-			$join_buffer_size=($join_buffer_size*1024)*1000;
+			$join_buffer_size=($join_buffer_size*1024)*1024;
 			$f[]="--join_buffer_size={$join_buffer_size}";
 		}
 		
 		if($thread_stack>0){
-			$thread_stack=($thread_stack*1024)*1000;
+			$thread_stack=round(($thread_stack*1024)*1024);
 			$f[]="--thread_stack={$thread_stack}";
 		}
 		

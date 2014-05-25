@@ -85,7 +85,7 @@ $page=CurrentPageName();
 	 			<strong style='font-size:14px'>{current}:{$squid->global_conf_array["minimum_object_size"]} {and} {$squid->global_conf_array["maximum_object_size"]}
 	 			</strong><div class=explain>{minimum_object_size_squid_howto}</div>
 	 			<div style='text-align:right;width:100%'>
-	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.php?parameters-js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{edit} {minimum_object_size} and {maximum_object_size}</a>
+	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.php?parameters-js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{apply} {minimum_object_size} and {maximum_object_size}</a>
 	 			</div>
 	 		</td>
 	 	</tr>
@@ -103,7 +103,7 @@ $page=CurrentPageName();
 	 			<strong style='font-size:14px'>
 	 			</strong><div class=explain>{caches_storage_resources_howto}</div>
 	 			<div style='text-align:right;width:100%'>
-	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.php?caches-js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{edit} {caches_storage_resources}</a>
+	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.caches.php?caches-js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{apply} {caches_storage_resources}</a>
 	 			</div>
 	 		</td>
 	 	</tr>
@@ -121,7 +121,7 @@ $page=CurrentPageName();
 	 			<strong style='font-size:14px'>
 	 			</strong><div class=explain>{cache_storage_rules_explain}</div>
 	 			<div style='text-align:right;width:100%'>
-	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.cached.sitesinfos.php?js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{edit} {cache_storage_rules}</a>
+	 			<a href=\"javascript:blur();\" OnClick=\"Loadjs('squid.cached.sitesinfos.php?js=yes');\" style='text-decoration:underline;font-size:14px;color:#0088CC'>{apply} {cache_storage_rules}</a>
 	 			</div>
 	 		</td>
 	 	</tr>

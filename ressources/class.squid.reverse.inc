@@ -147,7 +147,16 @@ class squid_reverse{
 			  KEY `zDate` (`zDate`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
-			if(!$q->ok){echo $q->mysql_error_html();return;}			
+			if(!$q->ok){echo $q->mysql_error_html();return;}	
+
+
+		if(!$q->FIELD_EXISTS("reverse_dirs", "limit_rate_after")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `limit_rate_after` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+			
+		if(!$q->FIELD_EXISTS("reverse_dirs", "limit_rate")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `limit_rate` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+			
+						
 			
 		if(!$q->FIELD_EXISTS("reverse_dirs", "webpageid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `webpageid` INT UNSIGNED, ADD INDEX ( `webpageid`)");
@@ -562,7 +571,11 @@ class squid_reverse{
 			if(!$q->ok){echo $q->mysql_error_html();}
 		}		
 		
+		if(!$q->FIELD_EXISTS("reverse_www", "limit_rate_after")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `limit_rate_after` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
 		
+		if(!$q->FIELD_EXISTS("reverse_www", "limit_rate")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `limit_rate` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
 		 
 		if(!$q->FIELD_EXISTS("reverse_www", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `proxy_read_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}

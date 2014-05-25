@@ -418,7 +418,7 @@ function squid_groups_popup_selected(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM webfilters_sqgroups WHERE ID='{$_GET["squid-groups-popup-selected"]}'"));
 	$GroupName=utf8_encode($ligne["GroupName"]);
 	$html="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddGroup-js=yes&ID={$_GET["squid-groups-popup-selected"]}')\"
-	style='font-size:14px;text-decoration:underline'>{edit}: $GroupName</a>";
+	style='font-size:14px;text-decoration:underline'>{apply}: $GroupName</a>";
 	echo $tpl->_ENGINE_parse_body($html);
 }
 

@@ -537,7 +537,7 @@ function vlan_list_list(){
 			$ligne["org"]=$tpl->_ENGINE_parse_body("<strong style='color:red'>{no_organization}</strong>");
 		}
 		
-		$edit=imgsimple("24-administrative-tools.png","{edit}","VLANEdit({$ligne["ID"]})");
+		$edit=imgsimple("24-administrative-tools.png","{apply}","VLANEdit({$ligne["ID"]})");
 		$delete=imgsimple("delete-24.png","{delete}","VLANDelete({$ligne["ID"]})");
 		
 		if($DisableNetworksManagement==1){
@@ -648,7 +648,7 @@ function vlan_list_old(){
 			<td><strong style='font-size:16px' align='right'>$eth</strong></td>
 			<td><strong style='font-size:16px' align='right'>{$ligne["ipaddr"]}</strong></td>
 			<td><strong style='font-size:16px' align='right'>{$ligne["netmask"]}</strong></td>
-			<td width=1%>". imgtootltip("24-administrative-tools.png","{edit}","VLANEdit({$ligne["ID"]})")."</td>
+			<td width=1%>". imgtootltip("24-administrative-tools.png","{apply}","VLANEdit({$ligne["ID"]})")."</td>
 			<td width=1%>". imgtootltip("ed_delete.gif","{delete}","VLANDelete({$ligne["ID"]})")."</td>
 		</tr>
 		

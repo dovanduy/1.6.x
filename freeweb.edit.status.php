@@ -20,6 +20,9 @@
 	if(isset($_GET["traffic-today"])){traffic_today();exit;}
 	if(isset($_GET["memory-today"])){memory_today();exit;}
 	if(isset($_GET["today"])){stats_today();exit;}
+	if(isset($_GET["tasks"])){tasks();exit;}
+	
+	
 tabs_start();
 
 
@@ -59,37 +62,78 @@ function tabs(){
 	$array["today"]="{last_24h}";}
 	}
 
-
+	$array["tasks"]="{tasks}";
 	$array["errors"]="{errors}";
 	$array["requests"]="{requests}";
-	
+	$font=18;
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="errors"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.events.php?type=errors&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.events.php?type=errors&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span style='font-size:{$font}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="requests"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.events.php?type=requests&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.events.php?type=requests&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span span style='font-size:{$font}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&servername={$_GET["servername"]}&group_id={$_REQUEST["group_id"]}\"><span span style='font-size:{$font}px'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_freewebstatus style='width:100%;font-size:14px'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_freewebstatus\").tabs();});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_freewebstatus");
+		
 	
 	
 }
+
+function tasks(){
+	$servername=$_GET["servername"];
+	$servernameenc=urlencode($_GET["servername"]);
+	$tpl=new templates();
+	$check_configuration=$tpl->_ENGINE_parse_body("{check_configuration}");
+	$reconfigure=ParagrapheTEXT("48-settings-refresh.png", "{rebuild}", "{rebuild_apache_text}","javascript:FreeWebsRebuildvHosts()");
+	
+	$see_config=ParagrapheTEXT("48-notes.png", "{display_config}", "{display_config_text}",
+			"javascript:Loadjs('freeweb.edit.php?display-config-js={$_GET["servername"]}')");
+	
+	
+	$checksDebug=ParagrapheTEXT("setup-check-icon-48.png", "{check_configuration}", "{check_configuration_text}",
+			"javascript:FreeWebsCheckGroupware()");
+	
+	
+	$html="<center style='width:98%' class=form>
+		
+			<div style='margin:30px'>". button("{rebuild}", 
+						"Loadjs('freeweb.rebuild.progress.php?servername=$servernameenc')",30)."
+				<p style='font-size:20px'>{rebuild_apache_text}</p>
+			</div>
+								
+			<div style='margin:30px'>". button("{display_config}", 
+						"Loadjs('freeweb.edit.php?display-config-js=$servernameenc')",30)."
+				<p style='font-size:20px'>{display_config_text}</p>
+			</div>								
+								
+			<div style='margin:30px'>". button("{check_configuration}", 
+						"Loadjs('freeweb.edit.php?display-config-js=$servernameenc')",30)."
+				<p style='font-size:20px'>{check_configuration_text}</p>
+			</div>									
+		</center>
+								
+		<script>
+			function FreeWebsCheckGroupware(){
+				LoadWinORG2('650','freeweb.edit.php?FreeWebsCheck=yes&servername={$ligne["servername"]}','{$check_configuration}::{$ligne["servername"]}');
+			}
+		</script>
+		";
+	
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+}
+
 
 function status(){
 	$servername=$_GET["servername"];

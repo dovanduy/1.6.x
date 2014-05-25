@@ -282,8 +282,8 @@ function rules_list(){
 	
 
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","RulesiptAccount('{$ligne["ID"]}')");
-		$select2=imgtootltip("folder-network-32.png","{edit}","RulesiptAccount('{$ligne["ID"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","RulesiptAccount('{$ligne["ID"]}')");
+		$select2=imgtootltip("folder-network-32.png","{apply}","RulesiptAccount('{$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","RulesiptAccountDel('{$ligne["ID"]}')");
 		$color="black";
 		$html=$html."

@@ -1,7 +1,16 @@
 <?php
-
-session_start();
+if(!isset($_SESSION["uid"])){session_start();}
 if(!isset($GLOBALS["VERBOSE"])){$GLOBALS["VERBOSE"]=false;}
+
+if($GLOBALS["VERBOSE"]){
+	ini_set('display_errors', 1);
+	ini_set('error_reporting', E_ALL);
+	ini_set('error_prepend_string',null);
+	ini_set('error_append_string',null);
+}else{
+	ini_set('display_errors', 0);
+	ini_set('error_reporting', 0);
+}
 include_once(dirname(__FILE__)."/class.browser.detection.inc");
 include_once(dirname(__FILE__)."/class.highcharts.inc");
 include_once(dirname(__FILE__)."/class.sockets.inc");
@@ -144,8 +153,21 @@ class miniadm{
 	
 	function NavBar(){
 		$users=new usersMenus();
-		$ct=new user($_SESSION["uid"]);
-		if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}
+		$hrefProfile=null;
+		$DisplayName=null;
+		if($_SESSION["uid"]<>-100){
+			$ct=new user($_SESSION["uid"]);
+			if($ct->DisplayName==null){$ct->DisplayName=$_SESSION["uid"];}
+			$hrefProfile="miniadm.profile.php";
+			$DisplayName=$ct->DisplayName;
+		}
+		
+		if($_SESSION["uid"]==-100){
+			include(dirname(__FILE__)."/settings.inc");
+			$DisplayName=$_GLOBAL["ldap_admin"];
+			$hrefProfile="#";
+		}
+		
 		$tpl=new templates();
 		$storage=null;
 		$messaging=null;
@@ -169,7 +191,7 @@ class miniadm{
           
           <div class=\"nav-collapse collapse\">
             <p class=\"navbar-text pull-right\">
-           &nbsp;&nbsp;&nbsp;<i class='icon-user icon-white'></i> {logged_in_as} <a href=\"miniadm.profile.php\" class=\"navbar-link\">$ct->DisplayName</a>
+           &nbsp;&nbsp;&nbsp;<i class='icon-user icon-white'></i> {logged_in_as} <a href=\"$hrefProfile\" class=\"navbar-link\">$DisplayName</a>
             </p>
              <p class=\"navbar-text pull-right\">
              	<a href=\"miniadm.logoff.php\" class=\"navbar-link\"><i class='icon-off icon-white'></i> {logoff}</a>
@@ -1172,6 +1194,7 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 		$final0=null;
 		$btJSLOCK=0;
 		$final0=null;
+		$formtitle=null;
 		$t=rand(50, time());
 		$page=CurrentPageName();
 		$tpl=new templates();
@@ -1209,22 +1232,32 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			$disabled=null;
 			$c++;
 			$button=null;
+			$params=array();
 			$FieldButton=null;
+			$SPECIALSCHARS=false;
+			$VALUE=null;
 			$MANDATORY=false;
 			$ClassPrepend=null;
+			$CAPTION=null;
+			$CAPTIONjs=null;
 			$SCHEDULE=false;
 			$classField=null;
 			$MAXSIZE=false;
 			$FIELD_HEIGHT=0;
+			$FIELDN=null;
 			$TYPE=$array["TYPE"];
 			$jsipv4Validator=false;
 			$DISABLEALL=false;
-			$CAPTION=$tpl->_ENGINE_parse_body($array["CAPTION"]);
+			if(!isset($array["PARAMS"])){$array["PARAMS"]=array();}
+			if(isset($array["CAPTION"])){
+				$CAPTION=$tpl->_ENGINE_parse_body($array["CAPTION"]);
+				$CAPTIONjs=$tpl->javascript_parse_text($array["CAPTION"]);
+			}
 			$char_alert_error=$tpl->javascript_parse_text("{char_alert_error}");
-			$CAPTIONjs=$tpl->javascript_parse_text($array["CAPTION"]);
-			$VALUE=$array["VALUE"];
-			$FIELDN=$array["FIELDN"];
-			$params=$array["PARAMS"];
+			if(isset($array["VALUE"])){ $VALUE=$array["VALUE"];; }
+			if(isset($array["FIELDN"])){ $FIELDN=$array["FIELDN"]; }
+			if(isset($array["PARAMS"])){ $params=$array["PARAMS"]; }
+			
 			
 			$checked=null;
 			$KEYPRESS=null;
@@ -1524,12 +1557,13 @@ public function SearchFormGen($qtype=null,$field="SearchQuery",$additional=null,
 			
 		}
 		$this->buttonname=$tpl->_ENGINE_parse_body("$this->buttonname");
-		if($this->CloseYahoo<>null){$CloseYahoo="{$this->CloseYahoo}Hide()";}
+		if($this->CloseYahoo<>null){$CloseYahoo="{$this->CloseYahoo}Hide()";}else{$CloseYahoo=null;}
 		
 		
 		while (list ($index, $ids) = each ($fieldsid) ){
 			$jsdisableAll[]="\tdocument.getElementById('$ids').disabled=true;";
 			$jsEnableAll[]="\tdocument.getElementById('$ids').disabled=false;";
+			if(!isset($DIVERRORSTEXT["$ids-error"])){$DIVERRORSTEXT["$ids-error"]=null;}
 			$DIVERRORS[]="<div id='$ids-error' style='display:none' class=explainWarn>\n\t{$DIVERRORSTEXT["$ids-error"]}\n</div>";
 			
 		}

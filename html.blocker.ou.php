@@ -53,7 +53,7 @@ function blocker_body(){
 	<p class=caption>{body_notification_text}</p><br>
 	<form name='FFM2'>
 	<input type='hidden' name=ou value='$ou'>
-	<div style='text-align:right'><input type='button' value='&nbsp;&nbsp;{edit}&nbsp;&raquo;&nbsp;&nbsp;' OnClick=\"javascript:ParseForm('FFM2','$page',true);\"></div>
+	<div style='text-align:right'><input type='button' value='&nbsp;&nbsp;{apply}&nbsp;&raquo;&nbsp;&nbsp;' OnClick=\"javascript:ParseForm('FFM2','$page',true);\"></div>
 	
 	<textarea name='BigMailHtmlBody' style='width:100%' rows=10>$htmlblocker->BigMailHtmlBody</textarea>
 	</FORM>
@@ -144,7 +144,7 @@ $tb=$tb."
 		while (list ($num, $ligne) = each ($htmlblocker->ruleslist) ){
 			$tbl=explode(';',$ligne);
 			
-			$editlnk=imgtootltip('icon_newest_reply.gif','{edit}',"BlockerAddNewRule('{$_GET["ou"]}','$num')");
+			$editlnk=imgtootltip('icon_newest_reply.gif','{apply}',"BlockerAddNewRule('{$_GET["ou"]}','$num')");
 			
 			$tb=$tb . "<tr " . CellRollOver().">
 			<td width=1%>$editlnk</td>
@@ -206,7 +206,7 @@ function blocker_settings(){
 	</tr>	
 	</tr>	
 <tr>
-	<td align='right' colspan=2><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td>
+	<td align='right' colspan=2><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td>
 	</tr>	
 	</table>
 	</form>

@@ -329,7 +329,7 @@ function tabs(){
 	
 	
 	
-	$array["status"]='{status}';
+	//$array["status"]='{status}';
 	$array["categories"]='{all_categories}';
 	
 	//$array["events-status"]='{update_status}';
@@ -656,7 +656,7 @@ function categories_search($forceArtica=false){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$table=$ligne["c"];
 		writelogs("Scanning table $table",__FUNCTION__,__FILE__,__LINE__);
-		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		
 			
 		$items=$q->COUNT_ROWS($ligne["c"]);
@@ -784,7 +784,7 @@ function categories_search2(){
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgsimple("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
+		$select=imgsimple("32-parameters.png","{apply}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		$delete=imgsimple("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
 		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";
@@ -1905,6 +1905,10 @@ function global_status_artica_db(){
 	$t=$_GET["t"];
 	$dateDB=$sock->getFrameWork("squid.php?articadb-version=yes");
 	
+	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+	$dateDB=$CATZ_ARRAY["TIME"];
+	$dateDB_text=$tpl->time_to_date($dateDB);
+	
 	
 	$DB_STATUS=unserialize(base64_decode($sock->getFrameWork("ufdbguard.php?databases-percent=yes")));
 	$DB_STATUS_TIME=$DB_STATUS["ARTICA"]["LAST_TIME"];
@@ -1997,7 +2001,7 @@ function global_status_artica_db(){
 			</td>			
 		<tr>
 			<td class=legend style='font-size:14px;font-weight:bold;$color'>{articaitems}:</td>
-			<td style='font-size:14px;font-weight:bold;$color'>$itemsArtica v.$dateDB</td>
+			<td style='font-size:14px;font-weight:bold;$color'>$itemsArtica v.$dateDB <i style='font-size:11px'>$dateDB_text</i></td>
 		</tr>
 		<tr>
 			<td class=legend style='font-size:12px;font-weight:bold;$color'>{update_status}:</td>
@@ -2015,21 +2019,12 @@ function global_status_artica_db(){
 				<tr>
 					<td width=1%><img src='img/arrow-right-16.png'>
 					<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBDisable();\" style='font-size:12px;text-decoration:underline;$color'>$disable_text</a></td>
-				</tr>	
-				<tr>
-					<td width=1%><img src='img/arrow-right-16.png'>
-					<td nowrap><a href=\"javascript:blur();\" 
-						OnClick=\"javascript:Loadjs('squid.categories.php?onlyDB=yes',true);\" 
-						style='font-size:12px;text-decoration:underline;$color'>{status}/{schedule}</a></td>
 				</tr>						
 			<tr>
 				<td width=1%><img src='img/arrow-right-16.png'>
 				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:ArticaDBUpdateNow();\" style='font-size:12px;text-decoration:underline;$color'>{update_now}</a></td>
 			</tr>
-			<tr>
-				<td width=1%><img src='img/arrow-right-16.png'>
-				<td nowrap><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php');\" style='font-size:12px;text-decoration:underline;$color'>{display_update_events}</a></td>
-			</tr>	
+	
 						
 			</tbody>
 			</table>

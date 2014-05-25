@@ -78,7 +78,7 @@ function popup(){
 	{LOGON_SCRIPT_PUT}</div>
 	<div style='float:right;margin-bottom:8px;'>". imgtootltip("delete-32.png","{delete}","LOGON_SCRIPT_DEL()")."</div>
 	<textarea id='script_code' style='width:100%;height:350px;overflow:auto; font-family: \"Courier New\", Courier, monospace;padding:3px;border:3px solid #CCCCCC'>". $ligne["script_code"]."</textarea>
-	<div style='text-align:right'><hr>". button("{edit}","LOGON_SCRIPT_SAVE()","18px")."</div>";
+	<div style='text-align:right'><hr>". button("{apply}","LOGON_SCRIPT_SAVE()","18px")."</div>";
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);

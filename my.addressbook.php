@@ -130,7 +130,7 @@ $html="
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$html=$html."
 		<tr class=$classtr>
-		<td width=1%>". imgtootltip("contact-32.png","{edit}","Loadjs('contact.php?uidUser={$array["uid"][0]}')")."</td>
+		<td width=1%>". imgtootltip("contact-32.png","{apply}","Loadjs('contact.php?uidUser={$array["uid"][0]}')")."</td>
 		<td style='font-size:13px'>{$array["displayname"][0]}&nbsp;</td>
 		<td style='font-size:13px'>{$array["telephonenumber"][0]}&nbsp;</td>
 		<td style='font-size:13px'>{$array["mobile"][0]}&nbsp;</td>
@@ -234,7 +234,7 @@ $html="
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$html=$html."
 		<tr class=$classtr>
-		<td width=1%>". imgtootltip("contact-32.png","{edit}","Loadjs('contact.php?employeeNumber={$array["employeenumber"][0]}')")."</td>
+		<td width=1%>". imgtootltip("contact-32.png","{apply}","Loadjs('contact.php?employeeNumber={$array["employeenumber"][0]}')")."</td>
 		<td style='font-size:13px'>{$array["displayname"][0]}&nbsp;</td>
 		<td style='font-size:13px'>{$array["telephonenumber"][0]}&nbsp;</td>
 		<td style='font-size:13px'>{$array["mobile"][0]}&nbsp;</td>

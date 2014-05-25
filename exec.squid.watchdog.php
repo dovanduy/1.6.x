@@ -13,9 +13,6 @@ $GLOBALS["BY_FRAMEWORK"]=false;
 $GLOBALS["BY_OTHER_SCRIPT"]=false;
 $GLOBALS["BY_ARTICA_INSTALL"]=false;
 $GLOBALS["BY_RESET_CACHES"]=false;
-
-
-
 $GLOBALS["OUTPUT"]=false;
 
 
@@ -1374,12 +1371,14 @@ function ntlmauthenticator(){
 			Events("ntlmauthenticator: CPU.$CPU = $PRC%");
 			$LOG[]="Instance on CPU $CPU is $PRC% used.";
 			if($PRC>94){
-				$NewMax=$Max+5;
-				$ADDNNEW=true;
-				squid_admin_notifs("Warning NTLM Authenticator on CPU $CPU reach 95%:\nArtica will increase your ntlm authenticator processes to $NewMax instances per CPU and reload the Proxy service\r\nCurrent status:\r\n".@implode("\r\n", $LOG), __FUNCTION__, __FILE__, __LINE__, "proxy");
-				squid_admin_mysql(2,"NTLM Authenticator on CPU $CPU reach 95%",
-				"Artica will increase your ntlm authenticator processes to $NewMax instances 
-				per CPU and reload the Proxy service\r\nCurrent status:\r\n".@implode("\r\n", $LOG));
+				if($Max+5<151){
+					$NewMax=$Max+5;
+					$ADDNNEW=true;
+					squid_admin_notifs("Warning NTLM Authenticator on CPU $CPU reach 95%:\nArtica will increase your ntlm authenticator processes to $NewMax instances per CPU and reload the Proxy service\r\nCurrent status:\r\n".@implode("\r\n", $LOG), __FUNCTION__, __FILE__, __LINE__, "proxy");
+					squid_admin_mysql(2,"NTLM Authenticator on CPU $CPU reach 95%",
+					"Artica will increase your ntlm authenticator processes to $NewMax instances 
+					per CPU and reload the Proxy service\r\nCurrent status:\r\n".@implode("\r\n", $LOG));
+				}
 			}
 		}
 	}
@@ -1391,7 +1390,7 @@ function ntlmauthenticator(){
 			$Old=$SquidClientParams["auth_param_ntlm_children"];
 			$SquidClientParams["auth_param_ntlm_children"]=$NewMax;
 			$SquidClientParams["auth_param_ntlm_startup"]=round($NewMax*0.2);
-			$SquidClientParams["auth_param_ntlm_startup"]=round($NewMax*0.1);
+			
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/SquidClientParams", base64_encode(serialize($SquidClientParams)));
 			if(ntlmauthenticator_edit($NewMax)){
 				$squid=$unix->LOCATE_SQUID_BIN();
@@ -1414,6 +1413,7 @@ function ntlmauthenticator(){
 function ntlmauthenticator_edit($newvalue=0){
 	if(!is_numeric($newvalue)){$newvalue=20;}
 	if($newvalue<20){$newvalue=20;}
+	if($newvalue>150){$newvalue=150;}
 	$FOUND=false;
 	$ARRAY=explode("\n",@file_get_contents("/etc/squid3/squid.conf"));
 	while (list ($index, $line) = each ($ARRAY) ){
@@ -2571,6 +2571,17 @@ function Checks_external_webpage($MonitConfig){
 	
 if(!$curl->get()){
 		$took=$unix->distanceOfTimeInWords($StartTime,time(),true);
+		
+		
+		if( ($curl->CURLINFO_HTTP_CODE==403)  OR ($curl->CURLINFO_HTTP_CODE==407) ){
+			while (list ($index, $val) = each ($curl->CURL_ALL_INFOS)){
+				if($GLOBALS["VERBOSE"]){echo "$index: $val\n";}
+				$tr[]="$index: $val";
+			}
+			squid_admin_mysql(1, "Error $curl->CURLINFO_HTTP_CODE/$curl->error while checking external web page", @implode("\n", $tr));
+			return;
+		}
+		
 		$GLOBALS["RESTART_SQUID_WHY_EVTS"][]="Task took: $took";
 		$GLOBALS["RESTART_SQUID_WHY_EVTS"][]="CURLINFO_HTTP_CODE:: $curl->CURLINFO_HTTP_CODE";
 		$GLOBALS["ALL_SCORES_WHY"][]="function ".__FUNCTION__." return failed";

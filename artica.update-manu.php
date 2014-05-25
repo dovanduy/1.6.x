@@ -50,12 +50,12 @@ function manual_update(){
 	</center>
 	
 	<center style='margin:10px;width:99%'>
-		<center id='file-uploader-demo1' style='width:100%;text-align:center'></center>
+		<center id='file-uploader-demo-$t' style='width:100%;text-align:center'></center>
 	</center>
 	<script>
 function createUploader$t(){
 	var uploader$t = new qq.FileUploader({
-		element: document.getElementById('file-uploader-demo1'),
+		element: document.getElementById('file-uploader-demo-$t'),
 		action: '$page',$allowedExtensions
 		template: '<div class=\"qq-uploader\">' +
 		'<div class=\"qq-upload-drop-area\"><span>Drop files here to upload</span></div>' +
@@ -68,14 +68,14 @@ function createUploader$t(){
 		//select-file: '{$_GET["select-file"]}'
 		},
 		onComplete: function(id, fileName){
-		PathUploaded(fileName);
+		PathUploaded$t(fileName);
 		}
 	});
 
 }
 
-function PathUploaded(fileName){
-	LoadAjax('file-uploader-demo1','$page?file-uploader-demo1=yes&fileName='+fileName);
+function PathUploaded$t(fileName){
+	LoadAjax('file-uploader-demo-$t','$page?file-uploader-demo1=yes&fileName='+fileName);
 }
 createUploader$t();
 </script>
@@ -160,66 +160,12 @@ function upload_artica_final(){
 	$t=time();
 	$fileNameEnc=urlencode($fileName);
 	$text=$tpl->_ENGINE_parse_body("<div style='font-size:16px'>{uncompressing} $fileName</div>");
-	echo "$text<div id='$t'></div>
+	echo "
 	<script>
-		LoadAjaxTiny('$t','$page?uncompress=$fileNameEnc');
+		Loadjs('artica.update.manu.progress.php?filename=$fileNameEnc');
 	</script>
 	
 	";
 	
 }
 
-function uncompress(){
-	$tpl=new templates();
-	$t=time();
-	$page=CurrentPageName();
-	$fileName=$_GET["uncompress"];
-	$sock=new sockets();
-	$fileName=urlencode($fileName);
-	$data=unserialize(base64_decode($sock->getFrameWork("artica.php?uncompress=$fileName")));
-	
-	if($data==null){
-		echo $tpl->_ENGINE_parse_body("<div style='font-size:16px'>{failed}</div>");
-		return;
-	}
-	
-	if(!is_array($data)){
-		echo $tpl->_ENGINE_parse_body("<div style='font-size:16px'>{failed}</div>");
-		return;
-	}
-	
-	if(!$data["R"]){
-		echo $tpl->_ENGINE_parse_body("<div style='font-size:16px'>{$data["T"]}</div>");
-		return;
-	}
-	
-	
-	$text=$tpl->_ENGINE_parse_body("<div style='font-size:16px'>{$data["T"]}</div>");
-	echo "$text<div id='$t'></div>
-	<script>
-		LoadAjaxTiny('$t','$page?remove=$fileName');
-	</script>
-	
-	";
-	
-}
-
-function remove(){
-	$tpl=new templates();
-	$t=time();
-	$page=CurrentPageName();
-	$fileName=$_GET["remove"];
-	$sock=new sockets();
-	
-	$content_dir=dirname(__FILE__)."/ressources/conf/upload/$fileName";
-	@unlink($content_dir);
-	$text=$tpl->_ENGINE_parse_body("<div style='font-size:16px'>$fileName: {deleted}</div>");
-	echo "$text<div id='$t'></div>
-	<script>
-		CacheOff();
-		RefreshTab('main_config_artica_update');
-	</script>
-	
-	";	
-	
-}

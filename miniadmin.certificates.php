@@ -1,10 +1,5 @@
 <?php
 session_start();
-
-ini_set('display_errors', 1);
-ini_set('error_reporting', E_ALL);
-ini_set('error_prepend_string',"<p class=text-error>\n");
-ini_set('error_append_string',"\n</p>");
 if(!isset($_SESSION["uid"])){header("location:miniadm.logon.php");}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
@@ -77,7 +72,7 @@ function wizard_certificate_js(){
 	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$title=$tpl->_ENGINE_parse_body("{new_certificate}");
+	$title=$tpl->javascript_parse_text("{new_certificate}");
 	echo "YahooWin6(800,'$page?wizard-certificate-1=yes&t={$_GET["t"]}','$title')";	
 }
 function certificate_upload_js(){

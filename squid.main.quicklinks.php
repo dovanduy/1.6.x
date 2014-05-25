@@ -8,14 +8,16 @@ include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.users.menus.inc');
 include_once(dirname(__FILE__).'/ressources/class.squid.inc');
 
-if($argv[1]=="--squid-status"){ 
-	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
-	section_status(true);
-	status_squid_left(true); 
-	all_status(true);
-	ptx_status(true);
-	section_architecture_status(true);
-	die(); 
+if(isset($argv[1])){
+	if($argv[1]=="--squid-status"){ 
+		ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+		section_status(true);
+		status_squid_left(true); 
+		all_status(true);
+		ptx_status(true);
+		section_architecture_status(true);
+		die(); 
+	}
 }
 
 
@@ -622,7 +624,7 @@ function section_architecture_users(){
 	//$blackcomputer=Paragraphe("64-black-computer.png","{black_ip_group}",'{black_ip_group_text}',"javascript:Loadjs('dansguardian.bannediplist.php');");
 	//$whitecomputer=Paragraphe("64-white-computer.png","{white_ip_group}",'{white_ip_group_text}',"javascript:Loadjs('dansguardian.exceptioniplist.php');");
     $proxy_pac_rules=Paragraphe('user-script-64.png','{proxy_pac_rules}','{proxy_pac_text}',"javascript:Loadjs('squid.proxy.pac.rules.php')");
-    $templates_error=Paragraphe('squid-templates-64.png','{squid_templates_error}','{squid_templates_error_text}',"javascript:Loadjs('squid.templates.php')");
+   
 	$APP_SQUIDKERAUTH=Paragraphe('wink3_bg.png','{APP_SQUIDKERAUTH}','{APP_SQUIDKERAUTH_TEXT}',"javascript:Loadjs('squid.adker.php')");
 	$forwarded_for=Paragraphe("icon-html-64.png", "x-Forwarded-For", "{x-Forwarded-For_explain}",
 			"javascript:Loadjs('squid.forwarded_for.php')");
@@ -1689,6 +1691,8 @@ function all_status($asroot=false){
 	$UCARP_SLAVE=DAEMON_STATUS_ROUND("UCARP_SLAVE",$ini,null,1);
 	$HOTSPOT_WWW=DAEMON_STATUS_ROUND("HOTSPOT_WWW",$ini,null,1);
 	$HOTSPOT_FW=DAEMON_STATUS_ROUND("HOTSPOT_FW",$ini,null,1);
+	$APP_ZIPROXY=DAEMON_STATUS_ROUND("APP_ZIPROXY",$ini,null,1);
+	$APP_SARG=DAEMON_STATUS_ROUND("APP_SARG",$ini,null,1);
 	$APP_SARG=DAEMON_STATUS_ROUND("APP_SARG",$ini,null,1);
 	//$APP_CONNTRACKD=DAEMON_STATUS_ROUND("APP_CONNTRACKD",$ini,null,1);
 	if($users->PROXYTINY_APPLIANCE){$APP_ARTICADB=null;}
@@ -1832,7 +1836,9 @@ function all_status($asroot=false){
 	$tr[]=$APP_SQUIDGUARD_HTTP;
 	$tr[]=$APP_SARG;
 	$tr[]=$HOTSPOT_WWW;
+	
 	$tr[]=$HOTSPOT_FW;
+	$tr[]=$APP_ZIPROXY;
 	$tr[]=$APP_UFDBGUARD;
 	$tr[]=$APP_UFDBGUARD_CLIENT;
 	$tr[]=$APP_ARTICADB;

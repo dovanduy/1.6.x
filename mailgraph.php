@@ -116,7 +116,7 @@ function popup(){
 			$enable
 			<hr>
 			<div style='width:100%;text-align:right'>
-			<input type='button' OnClick=\"javascript:EnableMailGraph()\" value='{edit}&nbsp;&raquo;'>
+			<input type='button' OnClick=\"javascript:EnableMailGraph()\" value='{apply}&nbsp;&raquo;'>
 			</div>
 		</td>
 		<td valign='top'><div id='mailgraph-status'>$status</div>

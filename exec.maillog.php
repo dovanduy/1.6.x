@@ -94,6 +94,7 @@ $GLOBALS["CLASS_UNIX"]=$unix;
 $GLOBALS["postfix_bin_path"]=$unix->find_program("postfix");
 $GLOBALS["postconf_bin_path"]=$unix->find_program("postconf");
 $GLOBALS["CHOWN"]=$unix->find_program("chown");
+$GLOBALS["GROUPADD"]=$unix->find_program("groupadd");
 $GLOBALS["CHMOD"]=$unix->find_program("chmod");
 $GLOBALS["fuser"]=$unix->find_program("fuser");
 $GLOBALS["kill"]=$unix->find_program("kill");
@@ -460,6 +461,12 @@ if(strpos($buffer, "MGREYSTATS")>0){$md5=md5($buffer);@file_put_contents("{$GLOB
 
 
 
+
+// ---------------------------------------------------------------------------------------------------------------
+if(preg_match("#unknown group name:\s+postdrop#i", $buffer,$re)){
+	shell_exec("{$GLOBALS["GROUPADD"]} postdrop >/dev/null 2>&1");
+	return;
+}
 // ---------------------------------------------------------------------------------------------------------------
 if(preg_match("#warning: SASL authentication problem: unable to open Berkeley db \/etc\/sasldb2: Permission denied#", $buffer,$re)){
 	$file="/etc/artica-postfix/pids/SASL.authentication.problem.".__LINE__.".time";

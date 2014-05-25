@@ -1,9 +1,11 @@
 <?php
-define('BS_INIHANDLER_UNQUOTE_NONE',   0);
-define('BS_INIHANDLER_UNQUOTE_DOUBLE', 1);
-define('BS_INIHANDLER_UNQUOTE_SINGLE', 2);
-define('BS_INIHANDLER_UNQUOTE_ALL',    3);
-define('BS_INIHANDLER_HEAD_COMMENT',   "#\n\n");
+if(!defined("BS_INIHANDLER_UNQUOTE_NONE")){
+	define('BS_INIHANDLER_UNQUOTE_NONE',   0);
+	define('BS_INIHANDLER_UNQUOTE_DOUBLE', 1);
+	define('BS_INIHANDLER_UNQUOTE_SINGLE', 2);
+	define('BS_INIHANDLER_UNQUOTE_ALL',    3);
+	define('BS_INIHANDLER_HEAD_COMMENT',   "#\n\n");
+}
 
 class Bs_IniHandler {
   	var $commentChars = array('#', '/', ';');

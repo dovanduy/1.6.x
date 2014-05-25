@@ -73,7 +73,7 @@ function sa_blacklist(){
 			<H3 style='text-align:right'>$SpamassassinSablackListCount</H3><hr>
 		$form
 		<hr>
-			<div style='width:100%;text-align:right'><input type='button' OnClick=\"javascript:EnableSaBlackListUpdateSave();\" value='{edit}&nbsp;&raquo;&raquo;'></div>
+			<div style='width:100%;text-align:right'><input type='button' OnClick=\"javascript:EnableSaBlackListUpdateSave();\" value='{apply}&nbsp;&raquo;&raquo;'></div>
 		</td>
 	</tr>
 	</table>

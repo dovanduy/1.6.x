@@ -2430,7 +2430,7 @@ if($users->SAMBA_MYSQL_AUDIT){
 	$scannedonly_vfs
 	<tr>
 	<td colspan=2 align='right'><hr>
-		<input type='button' OnClick=\"javascript:SambaSaveVFSModules();\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:SambaSaveVFSModules();\" value='{apply}&nbsp;&raquo;'>
 	</td>
 	</tr>
 	</table>
@@ -3162,7 +3162,7 @@ function main_kav4samba_Objects_action(){
 	<td align='left'>".Field_array_Hash($arr,"OnError",$kav->main_array["samba.actions"]["OnError"])."</td>
 	</tr>				
 	</tr>			
-	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true)\" value='{edit}&nbsp;&raquo;'><hr></td></tr>
+	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true)\" value='{apply}&nbsp;&raquo;'><hr></td></tr>
 	</table>
 	</div>
 	</form>
@@ -3247,7 +3247,7 @@ function main_kav4samba(){
 	<td align='left'>" .Field_yesno_checkbox('MailBases',$kav->main_array["scanner.options"]["MailBases"])."</td>
 	</tr>			
 
-	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true)\" value='{edit}&nbsp;&raquo;'><hr></td></tr>
+	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1','$page',true)\" value='{apply}&nbsp;&raquo;'><hr></td></tr>
 	
 	
 	
@@ -3320,7 +3320,7 @@ function DomainAdmin_index(){
 	<tr>
 	<td colspan=2 align='right'>
 	<hr>
-	". button("{edit}","DomainAdminSave()")."
+	". button("{apply}","DomainAdminSave()")."
 	
 	</tr>
 	</table>

@@ -1242,7 +1242,7 @@ function milter_behavior_popup(){
 			<td>$ArticaFilterMaxProc</td>
 		</tr>
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{edit}","ApplyMilterBehavior()")."</td>
+			<td colspan=2 align='right'><hr>". button("{apply}","ApplyMilterBehavior()")."</td>
 		</tr>
 		</table>
 		";
@@ -2461,7 +2461,7 @@ function main_mastercf(){
 	$page=CurrentPageName();
 	
 	$html="<H5>{master.cf}</H5>
-	<div style='width:100%;text-align:right'><input type='button' OnClick=\"javascript:ParseForm('ffmmaster','$page',true);\" value='{edit}&nbsp;&raquo;'></div>
+	<div style='width:100%;text-align:right'><input type='button' OnClick=\"javascript:ParseForm('ffmmaster','$page',true);\" value='{apply}&nbsp;&raquo;'></div>
 	<form name='ffmmaster'>
 	<p class=caption>{mastercf_explain}</p>
 	<textarea id='master_datas' name='master_datas' cols=100 rows=30>$master->PostfixMasterCfFile</textarea>
@@ -2544,7 +2544,7 @@ function orangefr_popup(){
 		<tr><td colspan=2>&nbsp;</td></tr>
 		<tr>
 			<td colspan=2 style='padding-top:4px;border-top:1px solid #CCCCCC' align='right'>
-			". button("{edit}","FFMISPRELAY_SAVE()")."
+			". button("{apply}","FFMISPRELAY_SAVE()")."
 				
 			</td
 		</tr>

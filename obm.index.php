@@ -195,7 +195,7 @@ function main_config(){
 	 	<td>" . Field_text('OBMSyncCron',$obm->OBMSyncCron,'width:90px',null,null,'{OBMSyncCron_text}')."</td>
 	 </tr>		 	 	 
 	 <tr>
-	 <td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('ffm1','$page',true,false,false,'main_config','$page?main=yes');\" value='{edit}&nbsp;&raquo;'>
+	 <td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('ffm1','$page',true,false,false,'main_config','$page?main=yes');\" value='{apply}&nbsp;&raquo;'>
 	 </table>
 	 </form>")."
 	 </td>

@@ -103,7 +103,7 @@ function settings(){
 	
 	
 	<tr>
-		<td colspan=2 align='right' style='margin-bottom:5px'><input type='button' OnClick=\"javascript:ParseForm('FF1','$page',true);\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right' style='margin-bottom:5px'><input type='button' OnClick=\"javascript:ParseForm('FF1','$page',true);\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	
 	

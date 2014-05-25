@@ -236,7 +236,7 @@ function pflogsumm_popup(){
 		<td colspan=2><hr></td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:pflogsummSave();\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:pflogsummSave();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	
 	

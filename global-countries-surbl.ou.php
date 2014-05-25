@@ -29,7 +29,7 @@ function INDEX(){
 	$form="<table style='width:60%'>
 	<td align='right' nowrap><strong>{action_100_pourc}:</strong>
 	<td>$action</td>
-	<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:EditActionSURbl();\"></td>
+	<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EditActionSURbl();\"></td>
 	</tr>
 	<tr>
 	<td align='right'><strong>{rbl_servers}:</strong></td>

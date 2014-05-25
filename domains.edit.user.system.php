@@ -144,7 +144,7 @@ function popup(){
 		
 	<tr><td colspan=3><hr></td></tr>
 	<tr>
-		<td colspan=3 align='right'>".button("{edit}","UserSystemInfosSave()","18")."
+		<td colspan=3 align='right'>".button("{apply}","UserSystemInfosSave()","18")."
 	</tr>
 	</table>
 	</div>

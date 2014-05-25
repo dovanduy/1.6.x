@@ -1729,20 +1729,27 @@ function change_ldap_suffix(){
 }
 function chown_medir(){
 	$dir=base64_decode($_GET["chown-medir"]);
-	if($dir==null){return;}
-	@mkdir($dir,0777,true);
 	
-	$f=explode("\n",@file_get_contents("/etc/lighttpd/lighttpd.conf"));
-	while (list ($num, $line) = each ($f) ){
-		if(preg_match("#server\.username.*?\"(.+?)\"#", $line,$re)){$username=$re[1];continue;}
-		if(preg_match("#server\.groupname.*?\"(.+?)\"#", $line,$re)){$groupname=$re[1];continue;}
-		if($groupname<>null){if($username<>null){break;}}
+	$unix=new unix();
+	$APACHE=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_GROUP=$unix->APACHE_SRC_GROUP();
+	@mkdir("/etc/artica-postfix/settings/Daemons",0755,true);
+	@mkdir("/usr/share/artica-postfix/ressources/logs",0755,true);
 	
+	$f[]="/etc/artica-postfix/settings/Daemons";
+	$f[]="/usr/share/artica-postfix/ressources/logs";
+	if($dir<>null){ $f[]=$dir; }
+	while (list ($key, $directory) = each ($f) ){
+		writelogs_framework("Permissions on `$directory` for $APACHE:$APACHE_GROUP",__FUNCTION__,__FILE__,__LINE__);
+		@mkdir($directory,0755,true);
+		$unix->chown_func($APACHE,null,$directory);
+		$unix->chown_func($APACHE,null,"$directory/*");
+		$unix->chmod_func(0755, "$directory");
+		$unix->chmod_func(0755, "$directory/*");
 	}
-	writelogs_framework("Chown `$dir` for $username:$groupname",__FUNCTION__,__FILE__,__LINE__);
-	@chmod($dir,0777);
-	@chown($dir, $username);
-	@chgrp($dir, $groupname);
+	if($dir==null){return;}
+	@chown($dir, $APACHE);
+	@chgrp($dir, $APACHE_GROUP);
 		
 }
 

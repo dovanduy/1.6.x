@@ -52,7 +52,7 @@ function page(){
 	<tr>
 		<td class=legend>{php_values}:<td>
 		<td><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.edit.fcgid.php.php?servername={$_GET["servername"]}');\"
-		style='font-size:13px;font-weight:bold;text-decoration:underline'>{edit}</a>
+		style='font-size:13px;font-weight:bold;text-decoration:underline'>{apply}</a>
 		</td>
 		<td>&nbsp;</td>
 	</tr>	

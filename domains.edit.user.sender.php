@@ -490,7 +490,7 @@ function sender_bcc_maps_popup(){
 	<tr>
 		<td colspan=2 align='right'>
 			<hr>
-				". button("{edit}","SendBCCMapsSave()")."
+				". button("{apply}","SendBCCMapsSave()")."
 		</td>
 	</tr>
 	</table>
@@ -532,7 +532,7 @@ $html="<div style='font-size:16px;font-weight:bolder;padding:5px'>{sender_canoni
 				<hr>
 				<div style='text-align:right'>
 					
-					". button("{edit}","EditSenderCanonical();")."
+					". button("{apply}","EditSenderCanonical();")."
 					
 				</div>
 				</div>
@@ -589,7 +589,7 @@ $html="
 				<hr>
 				$error
 				<div style='text-align:right'>
-					". button("{edit}","EditAllowedSMTPTroughtInternet();")."
+					". button("{apply}","EditAllowedSMTPTroughtInternet();")."
 					
 				</div>
 				</div>
@@ -743,7 +743,7 @@ function USER_SENDER_PARAM($userid){
 			
 			$priv=new usersMenus();
 			$button="<input type='button' value='{submit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform2','$page',true);\">";
-			$buttonSenderCanonical="<input type='button' OnClick=\"EditSenderCanonical('{$_GET["userid"]}')\" value='{edit} {sender_canonical}&nbsp;&raquo'>";
+			$buttonSenderCanonical="<input type='button' OnClick=\"EditSenderCanonical('{$_GET["userid"]}')\" value='{apply} {sender_canonical}&nbsp;&raquo'>";
 			if($priv->AllowAddUsers==false){$button=null;$delete=null;$buttonSenderCanonical=null;}
 	
 	
@@ -790,7 +790,7 @@ function USER_SENDER_PARAM($userid){
 		</tr>
 		<tr>
 		<td colspan=2 align='right'>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform3','$page',true);\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform3','$page',true);\">
 		</td>
 		</tr>
 		</table>
@@ -902,7 +902,7 @@ $form2="
 
 $delete=imgtootltip("ed_delete.gif","{delete}","DeleteUserSenderTransport()");
 $button="<div style='width:100%;text-align:right'>
-". button("{edit}","SaveUserSenderTransport();")."
+". button("{apply}","SaveUserSenderTransport();")."
 </div>";
 
 if(!$users->AllowSenderCanonical){$form2=null;$button=null;$delete=null;}
@@ -988,7 +988,7 @@ $dusbin="
 	<td>{MX_lookups}</td>	
 	</tr>
 	<tr>
-	<td align='right' colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveUserTransport();\"></td>
+	<td align='right' colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveUserTransport();\"></td>
 	</tr>		
 	<tr>
 	<td align='left' colspan=2><hr><p class=caption>{MX_lookups}<br>{MX_lookups_text}</p></td>

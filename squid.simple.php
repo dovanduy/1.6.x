@@ -215,7 +215,7 @@ if(strpos($squid->http_port_array[0],':')>0){
 	<td class=caption>{listen_port_chain}</td>
 	</tr>
 	<tr>
-	<td class=caption align='right' colspan=3><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SquidSimpleEditDansPort('$hostname');\"></td>
+	<td class=caption align='right' colspan=3><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SquidSimpleEditDansPort('$hostname');\"></td>
 	</tr>	
 	
 
@@ -247,7 +247,7 @@ if(strpos($squid->http_port_array[0],':')>0){
 	<tr>
 		<td align='right'><strong>{tcp_address}</strong>:</td>
 		<td align='left'>" . Field_array_Hash($sys->array_tcp_addr,'http_port_ip',$squid_ip_port,null,null,0,'width:150px')."</td>
-		<td class=caption><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SquidSimpleEditSquidPort('$hostname');\"></td>
+		<td class=caption><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SquidSimpleEditSquidPort('$hostname');\"></td>
 	</tr>	
 	
 	</table>";
@@ -361,7 +361,7 @@ $form="<br>
 	</tr>		
 	<tr>
 	<td colspan=3 align='right'>
-	<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SquidSimpleKav4Proxy('$hostname');\">
+	<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SquidSimpleKav4Proxy('$hostname');\">
 	</td>
 	</table>
 	");	

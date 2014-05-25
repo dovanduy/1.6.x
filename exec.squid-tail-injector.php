@@ -246,7 +246,7 @@ function GetComputerName($ip){
 function nudityScan(){
 	if(function_exists("system_is_overloaded")){
 		if(system_is_overloaded()){
-			writelogs_squid("Fatal Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
+			
 			return;
 		}	
 	}

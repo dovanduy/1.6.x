@@ -141,6 +141,7 @@ function delete_category(){
 
 function CategoriesDatabasesByCron(){
 	$sock=new sockets();
+	
 	$sock->SET_INFO("CategoriesDatabasesByCron", $_POST["CategoriesDatabasesByCron"]);
 	$sock->SET_INFO("CategoriesDatabasesShowIndex", $_POST["CategoriesDatabasesShowIndex"]);
 
@@ -227,6 +228,7 @@ function statusDB(){
 	$LOCAL_VERSION=$CATZ_ARRAY["TIME"];
 	$title=$tpl->_ENGINE_parse_body("{APP_ARTICADB}");
 	$q=new mysql_catz();
+	$LOCAL_VERSION_TEXT=$tpl->time_to_date($date);
 	
 	
 	unset($CATZ_ARRAY["TIME"]);
@@ -246,8 +248,9 @@ function statusDB(){
 	
 	$APP_SQUID_DB=DAEMON_STATUS_ROUND("APP_SQUID_DB",$ini,null,1);
 	
-	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabasesByCron");
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	
 	$CategoriesDatabasesShowIndex=$sock->GET_INFO("CategoriesDatabasesShowIndex");
 	if(!is_numeric($CategoriesDatabasesShowIndex)){$CategoriesDatabasesShowIndex=1;}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -258,26 +261,24 @@ function statusDB(){
 	$POURC=$fbdize["POURC"];
 	if(is_numeric($POURC)){$POURC_TXT="&nbsp;{$POURC}% {used}";}
 	
+	$p=Paragraphe_switch_img("{update_only_by_schedule}", 
+	"{articadb_update_only_by_schedule}","CategoriesDatabasesByCron",
+	$CategoriesDatabasesByCron,null,522);
 	
-	$tt0[]="<tr>
-			<td width=1%>". Field_checkbox("CategoriesDatabasesByCron", 1,$CategoriesDatabasesByCron,"CategoriesDatabasesByCron()")."</td>
-			<td nowrap style='font-size:14px;'>:{update_only_by_schedule}</a></td>
-		</tr>";	
+	$tt0[]="<tr><td colspan=2>$p</td></tr>";	
 	
 	$tt0[]="<tr>
 			<td width=1%>". Field_checkbox("CategoriesDatabasesShowIndex", 1,$CategoriesDatabasesShowIndex,"CategoriesDatabasesByCron()")."</td>
 			<td nowrap style='font-size:14px;'>:{display_update_info_index}</a></td>
-		</tr>";
+		</tr>
+		<tr><td colspan=2 align='right'>".button("{apply}","CategoriesDatabasesByCron()",22)."</td></tr>			
+					
+					";
 	
 	
 	
 		
-		$tt[]="<tr>
-		<td width=1%><img src='img/arrow-right-16.png'>
-		<td nowrap><a href=\"javascript:blur();\" 
-		OnClick=\"javascript:Loadjs('squid.update.logs.php?filename=exec.squid.blacklists.php&category=update');\" 
-		style='font-size:14px;text-decoration:underline;'>{display_update_events}</a></td>
-		</tr>";	
+
 		
 		/*$tt[]="<tr>
 		<td width=1%><img src='img/arrow-right-16.png'>
@@ -318,7 +319,13 @@ function statusDB(){
 	$arrayV=unserialize(base64_decode($sock->getFrameWork("squid.php?articadb-nextversion=yes")));
 	$REMOTE_VERSION=$arrayV["TIME"];
 	if($REMOTE_VERSION>$date){
-		$updaebutton="<div style='text-align:right'><hr>".button("{update}:{version} $REMOTE_VERSION", "Loadjs('squid.blacklist.upd.php')",16)."</div>";
+		$REMOTE_VERSION_TEXT=$tpl->time_to_date($REMOTE_VERSION);
+		$newver="	<tr>
+		<td colspan=2><div style='font-size:16px;color:#D52210'>{new_version}:&nbsp;$REMOTE_VERSION <i style='font-size:11px'>$REMOTE_VERSION_TEXT</i>&nbsp</div></td>
+	</tr>";
+		
+		
+		$updaebutton="<div style='text-align:right'><hr>".button("{update_now}", "Loadjs('squid.blacklist.upd.php')",22)."</div>";
 	}
 	
 	$nextcheck=$sock->getFrameWork("squid.php?articadb-nextcheck=yes");
@@ -356,8 +363,9 @@ function statusDB(){
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date&nbsp($dbsize)$POURC_TXT</div></td>
+		<td colspan=2><div style='font-size:16px'>{pattern_database_version}:&nbsp;$date <i style='font-size:11px'>$LOCAL_VERSION_TEXT</i>&nbsp$POURC_TXT</div></td>
 	</tr>
+	$newver
 	$nextcheck_text
 	<tr>
 		<td colspan=2><div style='font-size:16px'>{categories}:&nbsp;$CountDeDatabases</a></div></td>
@@ -383,7 +391,7 @@ var xCategoriesDatabasesByCron= function (obj) {
 	
 function CategoriesDatabasesByCron(){
 	var XHR = new XHRConnection();
-	if(document.getElementById('CategoriesDatabasesByCron').checked){XHR.appendData('CategoriesDatabasesByCron','1');}else{XHR.appendData('CategoriesDatabasesByCron','0');}
+	XHR.appendData('CategoriesDatabasesByCron',document.getElementById('CategoriesDatabasesByCron').value);
 	if(document.getElementById('CategoriesDatabasesShowIndex').checked){XHR.appendData('CategoriesDatabasesShowIndex','1');}else{XHR.appendData('CategoriesDatabasesShowIndex','0');}
 	XHR.sendAndLoad('$page', 'POST',xCategoriesDatabasesByCron);
 }
@@ -1008,7 +1016,7 @@ function categories_search2(){
 		if(!preg_match("#^category_(.+)#", $table,$re)){continue;}
 		$categoryname=$re[1];
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgsimple("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
+		$select=imgsimple("32-parameters.png","{apply}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		$delete=imgsimple("delete-32.png","{delete}","DansGuardianDeleteMember('{$ligne["ID"]}')");
 		$compile=imgsimple("compile-distri-32.png","{saveToDisk}","DansGuardianCompileDB('$categoryname')");
 		$color="black";

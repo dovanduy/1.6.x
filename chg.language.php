@@ -16,7 +16,7 @@ function js(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{language}");
-	$html="YahooWin4('350','$page?popup=yes','$title')";
+	$html="YahooWin4('500','$page?popup=yes','$title')";
 	echo $html;
 	
 }
@@ -30,21 +30,22 @@ function popup(){
 		$FixedLanguage=$sock->GET_INFO("FixedLanguage");
 		$enabled=0;
 		if($FixedLanguage<>null){$_COOKIE["artica-language"]=$FixedLanguage;$enabled=1;}
-		$field_lang=Field_array_Hash($lang,'lang',$_COOKIE["artica-language"],"style:font-size:16px");
+		$field_lang=Field_array_Hash($lang,'lang',$_COOKIE["artica-language"],"style:font-size:22px");
 		
 		$html="
-		<table class=form style='width:99%;margin-top:0px'>
+		<div style='width:98%' class=form>
+		<table style='width:100%'>
 		<tr>
-			<td class=legend>{language}:</td>
+			<td class=legend style='font-size:22px'>{language}:</td>
 			<td>$field_lang</td>
 			
 		</tr>
 		<tr>
-			<td class=legend>{fix_value}:</td>
+			<td class=legend style='font-size:22px'>{fix_value}:</td>
 			<td>". Field_checkbox("Fixit", 1,$enabled)."</td>
 		</tr>
 		<tr>
-			<td colspan=2 align='right'><hr>".button("{apply}", "ChangeAdminLang()",16)."</td></td>
+			<td colspan=2 align='right'><hr>".button("{apply}", "ChangeAdminLang()",34)."</td></td>
 		</tr>
 		</table>		
 <script>

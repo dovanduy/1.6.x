@@ -9,7 +9,6 @@ class system_tasks{
 		$this->fill_task_array();
 		$q=new mysql();
 		$tasknum=$q->COUNT_ROWS("system_schedules","artica_backup");
-		writelogs("Tasks: ".$tasknum,__FUNCTION__,__FILE__,__LINE__);
 		if($q->COUNT_ROWS("system_schedules","artica_backup")==0){$this->CheckDefaultSchedules();}else{
 			
 		}

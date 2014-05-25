@@ -356,7 +356,7 @@ function mailer_settings_js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{mailer_engine_settings}");
 	$add_server=$tpl->_ENGINE_parse_body("{add_new_smtp_server}");
-	$edit=$tpl->_ENGINE_parse_body("{edit}");
+	$edit=$tpl->_ENGINE_parse_body("{apply}");
 	
 	$html="
 		function mailer_engine_settings_load(){
@@ -497,7 +497,7 @@ function mailer_settings_popup_list(){
 		
 		
 		
-		$html=$html."<tr ". CellRollOver($js,"{edit}").">
+		$html=$html."<tr ". CellRollOver($js,"{apply}").">
 		<td width=1%><img src='img/fw_bold.gif'></td>
 		<td><strong style='font-size:14px'>{$ligne["smtpserver"]}</td>
 		<td><strong style='font-size:12px'>$status_text</td>
@@ -524,7 +524,7 @@ function mailer_settings_popup_add(){
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));	
 		$datas=unserialize(base64_decode($ligne["parameters"]));
 		
-		$button_name="{edit}";
+		$button_name="{apply}";
 		$delete="
 			<tr>
 				<td colspan=2 align='right'>". imgtootltip("delete-32.png","{delete}","mailer_engine_settings_delete($ID)")."</strong></td>

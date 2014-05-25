@@ -54,7 +54,7 @@ function postfix_sasl(){
 			<td><strong>{smtp_sender_dependent_authentication}</strong><div class=caption>{smtp_sender_dependent_authentication_text}</div>
 			</tr>			
 			<tr>
-			<td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveEnableSasl();\"></td>
+			<td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveEnableSasl();\"></td>
 			</tr>
 		</table>
 			<br><br><br>") . "</td></tr></table></form>";
@@ -119,7 +119,7 @@ function playis(){
 $play_is=RoundedLightGrey("
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'>". imgtootltip('icon_settings-64.png','{edit}',"MyHref('artica.wizard.ispout.php')")."</td>
+	<td valign='top'>". imgtootltip('icon_settings-64.png','{apply}',"MyHref('artica.wizard.ispout.php')")."</td>
 	<td valign='top'>
 		<H5>{fill_database}</h5>
 		{fill_database_text}

@@ -338,10 +338,10 @@ function backupBlackoutExplode($uid,$index,$config=array(),$nodelete=FALSE){
 	$hourBegin=$config["hourBegin"];
 	$hourEnd=$config["hourEnd"];
 	$days=array();
-	$days[]=texttooltip("{days}:","{edit}","javascript:BlackoutPeriodsDays{$index}($index);",null,0,"font-size:13px;float:left;margin-left:5px");
+	$days[]=texttooltip("{days}:","{apply}","javascript:BlackoutPeriodsDays{$index}($index);",null,0,"font-size:13px;float:left;margin-left:5px");
 	if(is_array($config["weekDays"])){
 		while (list ($day, $b) = each ($config["weekDays"]) ){
-			$days[]=texttooltip($cron->cron_days[$day],"{edit}","javascript:BlackoutPeriodsDays{$index}($index);",null,0,"font-size:13px;float:left;margin-left:5px");
+			$days[]=texttooltip($cron->cron_days[$day],"{apply}","javascript:BlackoutPeriodsDays{$index}($index);",null,0,"font-size:13px;float:left;margin-left:5px");
 		}
 	}	
 	

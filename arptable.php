@@ -62,7 +62,7 @@ echo $html;
 function add_arp_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$title=$tpl->_ENGINE_parse_body("{arp_table} {edit}");
+	$title=$tpl->_ENGINE_parse_body("{arp_table} {apply}");
 	if($_GET["add-arp-js"]<1){
 		$title=$tpl->_ENGINE_parse_body("{arp_table} {add}");
 	}
@@ -194,7 +194,7 @@ function arp_form(){
 	$page=CurrentPageName();
 	$q=new mysql();
 	$ID=$_GET["arp-edit"];
-	$button="{edit}";
+	$button="{apply}";
 	if($ID<1){$button="{add}";}
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM arpcache WHERE ID=$ID","artica_backup"));	
 	$html="

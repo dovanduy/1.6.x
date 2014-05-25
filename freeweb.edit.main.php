@@ -340,10 +340,8 @@ function webservice(){
 		
 	}
 	$NewServer=0;
-	$reconfigure=ParagrapheTEXT("48-settings-refresh.png", "{rebuild}", "{rebuild_apache_text}","javascript:FreeWebsRebuildvHosts()");
-	if(trim($ligne["servername"]==null)){
-		$reconfigure=ParagrapheTEXT_disabled("48-settings-refresh.png", "{rebuild}", "{rebuild_apache_text}");
-		$NewServer=1;}
+	
+	if(trim($ligne["servername"]==null)){$NewServer=1;}
 	
 	if($NewServer==0){
 		$domain="<div style='font-size:22px'>{$ligne["servername"]}</div>
@@ -351,31 +349,17 @@ function webservice(){
 			<input type='hidden' value='{$ligne["domainname"]}' id='domainname'>";
 	}
 	
-	if(trim($_GET["servername"]<>null)){
-	$see_config=ParagrapheTEXT("48-notes.png", "{display_config}", "{display_config_text}",
-	"javascript:Loadjs('freeweb.edit.php?display-config-js={$_GET["servername"]}')");
-	
-	}
+
 	
 	
 	if($ligne["groupware"]<>null){
 		$apache=new vhosts();
 		$img=$apache->IMG_ARRAY_64[$ligne["groupware"]];
-		$rebuild_groupware=ParagrapheTEXT("setup-icon-48.png", "{software}", "{rebuild_apache_groupware_text}","javascript:FreeWebsRebuildGroupware()");
-		$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='REBUILD_GROUPWARE' AND `servername`='$servername'";
-		$ligneDrup=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
-		if(!is_numeric($ligneDrup["ID"])){$ligneDrup["ID"]=0;}	
-		if($ligneDrup["ID"]>0){
-			$rebuild_groupware=ParagrapheTEXT_disabled("setup-icon-48.png", "{software}", "{rebuild_apache_groupware_text}");
-		}
-		
-
 		if($ligne["groupware"]=="ROUNDCUBE"){$OnlyWebSite=true;}		
 		if($ligne["ForceInstanceZarafaID"]>0){$_GET["ForceInstanceZarafaID"]=$ligne["ForceInstanceZarafaID"];}
 	}
 	
-	$checksDebug=ParagrapheTEXT("setup-check-icon-48.png", "{check_configuration}", "{check_configuration_text}",
-	"javascript:FreeWebsCheckGroupware()");
+	
 	
 	
 	
@@ -410,7 +394,7 @@ function webservice(){
 				<img src='img/$img'>$imgtitle
 			</center><br>
 			<div style='width:190px'>
-			$reconfigure$rebuild_groupware$checksDebug$see_config
+			
 			</div>
 		</td>
 		<td valign='top' width=99%>
@@ -690,10 +674,7 @@ function webservice(){
 	}
 	
 	
-	function FreeWebsCheckGroupware(){
-		LoadWinORG2('650','freeweb.edit.php?FreeWebsCheck=yes&servername={$ligne["servername"]}','{$check_configuration}::{$ligne["servername"]}');
-	
-	}
+
 	
 		
 	function CheckLoops(){
@@ -796,7 +777,7 @@ function mysql_settings(){
 	if($users->POWER_DNS_INSTALLED){$DNS_INSTALLED=true;}
 	$FreeWebDisableSSL=trim($sock->GET_INFO("FreeWebDisableSSL"));
 	if(!is_numeric($FreeWebDisableSSL)){$FreeWebDisableSSL=0;}	
-	$check_configuration=$tpl->_ENGINE_parse_body("{check_configuration}");	
+	
 	$webservice=$tpl->_ENGINE_parse_body("{webservice}");	
 	$ServerIPVAL="{$ServerIPVAL}:$ServerPort";	
 	

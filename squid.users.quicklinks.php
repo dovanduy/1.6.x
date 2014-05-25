@@ -596,7 +596,7 @@ function squidcklinks_host_infos(){
 	$sock=new sockets();
 	
 	$host=$sock->getFrameWork("cmd.php?full-hostname=yes");
-	$host=texttooltip($host,"{edit}","Loadjs('system.nic.config.php?change-hostname-js=yes')",null,0,"font-size:14px;text-decoration:underline;font-weight:bold");
+	$host=texttooltip($host,"{apply}","Loadjs('system.nic.config.php?change-hostname-js=yes')",null,0,"font-size:14px;text-decoration:underline;font-weight:bold");
 	echo $tpl->_ENGINE_parse_body($host)."<script>ChangeHTMLTitlePerform()</script>";
 }
 

@@ -19,6 +19,7 @@ if(count($argv)>0){
 	if(isset($argv[1])){
 		if($argv[1]=="--tables-primaires"){parse_tables_primaires();die();}
 		if($argv[1]=="--wakeup"){Wakeup();die();}
+		if($argv[1]=="--caches"){parse_tables_cache_primaires();die();}
 		
 		
 	}
@@ -34,7 +35,8 @@ parse_realtime_events();
 
 function parse_tables_primaires(){
 	$unix=new unix();
-	@mkdir("/var/log/squid/mysql-rttime",0755,true);
+	
+	
 	$unix->chown_func("squid","squid","/var/log/squid/mysql-rttime");
 	$TimePID="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$TimeExec="/etc/artica-postfix/pids/".basename(__FILE__).".time";
@@ -79,6 +81,7 @@ function parse_tables_primaires(){
 		VALUES ".@implode(",", $content);
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "\n\n ********************************************************************* \n\n$q->mysql_error\n*********************************************************************\n\n";}
 			
 			if(preg_match("#Table 'squidlogs\.(.+?)' doesn't exist#",$q->mysql_error,$re)){
 				if($GLOBALS["VERBOSE"]){
@@ -91,7 +94,7 @@ function parse_tables_primaires(){
 		}
 		
 		if(!$q->ok){
-			echo $q->mysql_error;
+			if($GLOBALS["VERBOSE"]){echo "\n\n ******* FAILED *******\n";}
 			continue;
 		}
 		
@@ -103,10 +106,72 @@ function parse_tables_primaires(){
 		}
 		
 	if($GLOBALS["VERBOSE"]){echo "$countDeFiles Files parsed done\n";}
+	parse_tables_cache_primaires();
+}
+function parse_tables_cache_primaires(){
+	$unix=new unix();
+	if (!$handle = opendir("/var/log/squid/mysql-rtcaches")){return;}
+	$q=new mysql_squid_builder();
+	$q->TablePrimaireCacheHour(date("YmdH"));
+
+	$countDeFiles=0;
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$filepath="/var/log/squid/mysql-rtcaches/$filename";
+		events("parse_tables_primaires():: Scanning $filepath");
+		if(!preg_match("#^cachehour_([0-9]+)\.#", $filename,$re)){
+			events("parse_tables_cache_primaires():: Failed $filepath -> not match #^cachehour_([0-9]+)\.");
+			@unlink($filepath);
+			continue;
+		}
+		$xtime=$re[1];
+		
+		if($GLOBALS["VERBOSE"]){echo "Checking cachehour_$xtime\n";}
+		
+		$q->TablePrimaireCacheHour($xtime);
+		$content=unserialize(@file_get_contents($filepath));
+		$contentSize=filesize($filepath)/1024;
+		$ArraySize=count($content);
+
+		if($ArraySize==0){continue;}
+		events("parse_tables_cache_primaires():: cachehour_{$xtime} Inserting ".count($content)." element(s)");
+		$sql="INSERT IGNORE INTO `cachehour_{$xtime}` (`zDate`,`size`,`cached`,`familysite`) VALUES ".@implode(",", $content);
+		$q->QUERY_SQL($sql);
+		
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "\n\n ********************************************************************* \n\n$q->mysql_error\n*********************************************************************\n\n";}
+			if(preg_match("#Table 'squidlogs.(.+?)'\s+doesn't exist#is",$q->mysql_error,$re)){
+				ToSyslog("parse_tables_cache_primaires:: Creating Table $re[1]...");
+				if($GLOBALS["VERBOSE"]){echo "\n\n Creating Table {$re[1]}\n\n";}
+				$q->TablePrimaireCacheHour(null,false,$re[1]);
+				$q->QUERY_SQL($sql);
+				if(!$q->ok){ToSyslog("parse_tables_cache_primaires:: Creating Table $re[1] failed...");}
+			
+			}else{
+				if($GLOBALS["VERBOSE"]){echo "\n\n NO PREG MATCH\n\n";}
+			}
+			
+		}
+
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo "\n\n [".__LINE__."] *****************************************************\n\n";}
+			echo $q->mysql_error;
+			continue;
+		}
+
+		if($GLOBALS["VERBOSE"]){echo $filepath." ($contentSize KB) done with $ArraySize elements...\n";}
+		@unlink($filepath);
+		$countDeFiles++;
+	}
+
+	if($GLOBALS["VERBOSE"]){echo "$countDeFiles Files parsed done\n";}
 }
 
 function parse_realtime_hash(){
-
+	@mkdir("/var/log/squid/mysql-rtcaches",0755,true);
+	@mkdir("/var/log/squid/mysql-rttime",0755,true);
+	
 	$GLOBALS["TablePrimaireHour"]=array();
 	$GLOBALS["TABLES_PRIMAIRES_SEARCHWORDS"]=array();
 	$GLOBALS["MacResolvFrfomIP"]=null;
@@ -144,6 +209,7 @@ function parse_realtime_hash(){
 	$logfileD=new logfile_daemon();
 	$IpClass=new IP();
 	$CountDeFiles=0;
+	$AA=0;
 	
 	$countDeFiles=0;
 	while (false !== ($filename = readdir($handle))) {
@@ -159,7 +225,7 @@ function parse_realtime_hash(){
 		
 		while (list ($SUFFIX_TABLE, $Arrayz) = each ($content) ){
 			while (list ($index, $rows) = each ($Arrayz) ){
-		
+			$AA++;
 			$cached=0;
 			$hostname=null;
 			$SUFFIX_DATE=$SUFFIX_TABLE;
@@ -179,8 +245,10 @@ function parse_realtime_hash(){
 			if($IpClass->isValid($uid)){ $uid=null; }
 			$RESPONSE_TIME=$rows["RESPONSE_TIME"];
 			if($GLOBALS["VERBOSE"]){echo "Scanning $SUFFIX_DATE $xtime $ipaddr $sitename\n";}
-			
-			
+			if(isset($GLOBALS["ZMD5"][$zMD5])){
+				events("$uri - md5 = $zMD5 is the same !!!");
+			}
+			$GLOBALS["ZMD5"][$zMD5]=true;
 			
 			if($mac==null){
 				if($GLOBALS["EnableMacAddressFilter"]==1){ $mac=IpToMac($ipaddr); }
@@ -228,7 +296,7 @@ function parse_realtime_hash(){
 			if(trim($hostname)==null){
 				if($GLOBALS["LOG_HOSTNAME"]){ $hostname=gethostbyaddr2($ipaddr); }
 			}
-
+			if(preg_match("#(.+?):(.+)#", $SquidCode,$re)){ $SquidCode=$re[1]; }
 			
 			if($logfileD->CACHEDORNOT($SquidCode)){$cached=1;}
 			
@@ -236,7 +304,7 @@ function parse_realtime_hash(){
 				echo "[".__LINE__."]: Uri <$uri> Squid code=$SquidCode cached=$cached  Client = $uid/$mac/$hostname [$ipaddr] , Size=$SIZE bytes\n";
 			}
 
-			
+			//events("$familysite - Squid code=$SquidCode cached=$cached  Client = $uid/$mac/$hostname [$ipaddr] , Size=$SIZE bytes");
 			$KeyUser=md5($uid.$hostname.$ipaddr.$mac.$UserAgent);
 			if(!isset($GLOBALS["KEYUSERS"][$KeyUser])){
 				$UserAgent=x_mysql_escape_string2($UserAgent);
@@ -246,6 +314,7 @@ function parse_realtime_hash(){
 
 			$TablePrimaireHour="squidhour_".$SUFFIX_DATE;
 			$TableSizeHours="sizehour_".$SUFFIX_DATE;
+			$TableCacheHours="cachehour_".$SUFFIX_DATE;
 			$tableYoutube="youtubehours_".$SUFFIX_DATE;
 			$tableSearchWords="searchwords_".$SUFFIX_DATE;
 			$sitename=x_mysql_escape_string2($sitename);
@@ -261,6 +330,9 @@ function parse_realtime_hash(){
 			$GLOBALS["TablePrimaireHour"][$TablePrimaireHour][]="('$sitename','$uriT','$TYPE','$REASON','$ipaddr','$hostname','$date','$zMD5','$uid','$SIZE','$cached','$mac')";
 			//$sql="INSERT IGNORE INTO `$TableSizeHours` (`zDate`,`size`,`cached`) VALUES('$date','$SIZE','$cached')";
 			$GLOBALS["TABLES_PRIMAIRES_SIZEHOUR"][$TableSizeHours][]="('$date','$SIZE','$cached')";
+			if($SIZE>0){
+				$GLOBALS["TABLES_PRIMAIRES_CACHEHOUR"][$TableCacheHours][]="('$date','$SIZE','$cached','$familysite')";
+			}
 						
 			if(strpos(" $uri", "youtube")>0){
 				$VIDEOID=$logfileD->GetYoutubeID($uri);
@@ -292,7 +364,10 @@ function parse_realtime_hash(){
 		
 	}
 
-}		
+}
+events("$WORKDIR -> $AA elements scanned");
+
+
 if($CountDeFiles>0){
 	$GLOBALS["PARSE_SECOND_TIME"]=true;	
 	events(__FUNCTION__."():: $CountDeFiles parsed files");	
@@ -312,11 +387,23 @@ function empty_TablePrimaireHour(){
 	while (list ($tablename, $rows) = each ($GLOBALS["TablePrimaireHour"]) ){
 		if(count($rows)>0){
 			$filename="/var/log/squid/mysql-rttime/$tablename.".microtime(true).".$rand.sql";
-			events("Purge: $tablename ".count($rows)." Into $filename");
+			events("empty_TablePrimaireHour:: Purge: $tablename ".count($rows)." Into $filename");
 			@file_put_contents("$filename", serialize($rows));
 		}
 	}
 	$GLOBALS["TablePrimaireHour"]=array();
+	
+	if(count($GLOBALS["TABLES_PRIMAIRES_CACHEHOUR"])>0){
+		while (list ($tablename, $rows) = each ($GLOBALS["TABLES_PRIMAIRES_CACHEHOUR"]) ){
+			if(count($rows)>0){
+				$filename="/var/log/squid/mysql-rtcaches/$tablename.".microtime(true).".$rand.sql";
+				events("empty_TablePrimaireHour:: Purge: $tablename ".count($rows)." Into $filename");
+				@file_put_contents("$filename", serialize($rows));
+			}
+		}
+	}
+	
+	$GLOBALS["TABLES_PRIMAIRES_CACHEHOUR"]=array();
 
 }
 
@@ -360,6 +447,7 @@ function PurgeMemory(){
 
 	if(count($GLOBALS["TABLES_PRIMAIRES_SIZEHOUR"])>0){
 		while (list ($tablename, $rows) = each ($GLOBALS["TABLES_PRIMAIRES_SIZEHOUR"]) ){
+			events("$tablename: Saving ".count($rows));
 			@file_put_contents("$Dir/$tablename.".microtime(true).".$rand.sql", serialize($rows));
 		}
 		$GLOBALS["TABLES_PRIMAIRES_SIZEHOUR"]=array();
@@ -367,6 +455,7 @@ function PurgeMemory(){
 
 	if(count($GLOBALS["TABLES_PRIMAIRES_SEARCHWORDS"])>0){
 		while (list ($tablename, $rows) = each ($GLOBALS["TABLES_PRIMAIRES_SEARCHWORDS"]) ){
+			events("$tablename: Saving ".count($rows));
 			@file_put_contents("$Dir/$tablename.".microtime(true).".$rand.sql", serialize($rows));
 		}
 		$GLOBALS["TABLES_PRIMAIRES_SEARCHWORDS"]=array();
@@ -374,6 +463,7 @@ function PurgeMemory(){
 
 	if(count($GLOBALS["TABLES_PRIMAIRES_QUOTATEMP"])>0){
 		while (list ($tablename, $rows) = each ($GLOBALS["TABLES_PRIMAIRES_QUOTATEMP"]) ){
+			events("$tablename: Saving ".count($rows));
 			@file_put_contents("$Dir/$tablename.".microtime(true).".$rand.sql", serialize($rows));
 		}
 		$GLOBALS["TABLES_PRIMAIRES_QUOTATEMP"]=array();

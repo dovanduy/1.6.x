@@ -21,8 +21,6 @@ if (!isset($_SERVER['PHP_AUTH_USER'])) {
 }
 
 
-
-
 if($_SESSION["uid"]==null){
 	header('WWW-Authenticate: Basic realm="auth please"');
 	header('HTTP/1.0 401 Unauthorized');	
@@ -335,7 +333,7 @@ function popup(){
 	
 	$html="
 			
-	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:$tableprc'></table>
+	<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:99%'></table>
 	
 	<input type='hidden' id='refresh$t' value='1'>
 	<script>
@@ -375,7 +373,7 @@ function popup(){
 			useRp: true,
 			rp: 50,
 			showTableToggleBtn: false,
-			width: '99%',
+			width: '98.5%',
 			height: 640,
 			singleSelect: true,
 			rpOptions: [10, 20, 30, 50,100,200,500]

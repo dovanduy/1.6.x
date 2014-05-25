@@ -92,7 +92,7 @@ function FormRule($ruleid,$userid,$number=0){
 		$SieveSelectOperator=SieveSelectOperator($field_conditions,$hash[$number]["string"]);
 		$cancel="<input type='button' value='{cancel}&nbsp;&raquo;' OnClick=\"javascript:SieveListRules('$userid','$ruleid');\">&nbsp;&nbsp;";
 		$title='{rule_number}:'.$_GET["subrule_id"];
-		$button_name='{edit}';
+		$button_name='{apply}';
 	}
 	$field_or=Field_array_Hash(array('or'=>'{or}','and'=>'{and}'),'field_andor',$field_andor,null,null,null,'width:50px');
 	$field_header=Field_array_Hash($sieve->array_field_header,'field_header',$field_header,'SieveSelectCondition()');
@@ -206,9 +206,9 @@ function NewAction($ruleid,$userid,$action_id=null){
 		$array=$hash[$action_id];
 		$default_action=$array["action"];
 		$defaultOp=SieveSelectAction($default_action,$array["operation"]);
-		$title='{edit}';
+		$title='{apply}';
 		$cancel="<input type='button' value='{cancel}&nbsp;&raquo;' OnClick=\"javascript:SieveListRules('$userid','$ruleid');\">&nbsp;&nbsp;";
-		$button_name='{edit}';
+		$button_name='{apply}';
 	}
 
 	$html=

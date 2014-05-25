@@ -94,7 +94,7 @@ function folders_list(){
 	
 		
 				if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-				$select=imgtootltip("folder-granted-properties-32.png","{edit}","SambaVirtalServerEditShare('{$ligne["ID"]}','{$ligne["share_name"]}')");
+				$select=imgtootltip("folder-granted-properties-32.png","{apply}","SambaVirtalServerEditShare('{$ligne["ID"]}','{$ligne["share_name"]}')");
 				$delete=imgtootltip("delete-32.png","{delete}","SambaVirtalServerDeleteShare('{$ligne["ID"]}')");
 				$color="black";
 				$html=$html."

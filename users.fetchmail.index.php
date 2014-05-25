@@ -79,7 +79,7 @@ function RULES(){
 				<table style='width:1%'>
 					<tr>
 						<td>" . imgtootltip('32-zoom-in.png','{view}',"LoadAjax('$id','$page?ViewScript=$num&id=$id');") . "</td>
-						<td>" . imgtootltip('32-edit.png','{edit}',"UserFetchMailRule($num,'$uid');") . "</td>
+						<td>" . imgtootltip('32-edit.png','{apply}',"UserFetchMailRule($num,'$uid');") . "</td>
 						<td>" . imgtootltip('32-cancel.png','{delete}',"UserDeleteFetchMailRule($num);") . "</td>
 					</tr>
 				</table>

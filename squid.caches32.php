@@ -598,7 +598,7 @@ function squid_cache_status(){
 			$NICKEL[$ligne["cachedir"]]=true;
 			if($ligne["cachedir"]==$squid->CACHE_PATH){
 				$cache_type=$squid->CACHE_TYPE;
-				$delete=imgtootltip("disk-64-config.png","{edit}","Loadjs('$page?add-new-disk-js=yes&chdef=yes')");
+				$delete=imgtootltip("disk-64-config.png","{apply}","Loadjs('$page?add-new-disk-js=yes&chdef=yes')");
 			}else{
 				$cache_type=$squid->cache_list[$ligne["cachedir"]]["cache_type"];
 				

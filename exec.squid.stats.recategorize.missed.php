@@ -4,6 +4,10 @@ $GLOBALS["REBUILD"]=false;
 $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
 $GLOBALS["VERBOSE"]=false;
+ini_set('display_errors', 1);
+ini_set('html_errors',0);
+ini_set('display_errors', 1);
+ini_set('error_reporting', E_ALL);
 
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){
@@ -44,14 +48,18 @@ categorize($argv[1]);
 function categorize($day=null){
 	
 	$unix=new unix();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$date.". __FUNCTION__.".pid";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$day.". __FUNCTION__.".pid";
 	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		return;
+	}
 	
 	
 	if($day==null){ return; }
 	
 	if(system_is_overloaded()){
+		echo "Overloaded system, aborting task\n";
 		writelogs_squid("Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__,"categorize");
 		return ;
 	}
@@ -69,7 +77,7 @@ function categorize($day=null){
 	$table_week=date("YW",$time)."_week";
 	$table_week_blocked=date("YW",$time)."_blocked_week";
 	$ipClass=new IP();
-	
+	echo "$daySource time: $time Table day=$table, table_blocked=$table_blocked, table_month=$table_month, table_week=$table_week\n";
 	events("$daySource time: $time Table day=$table, table_blocked=$table_blocked, table_month=$table_month, table_week=$table_week");
 	$t=time();
 	$f=0;
@@ -94,6 +102,9 @@ function categorize($day=null){
 	}
 	
 	$L=0;
+	
+	$q->QUERY_SQL("DELETE FROM `catztemp` WHERE `category`=''");
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$website=trim($ligne["sitename"]);
 		

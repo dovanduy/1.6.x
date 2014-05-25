@@ -36,6 +36,7 @@ $GLOBALS["nohup"]=$unix->find_program("nohup");
 $GLOBALS["CHMOD"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN"]=$unix->find_program("chown");
 $GLOBALS["KILLBIN"]=$unix->find_program("kill");
+$GLOBALS["SquidRotateOnlySchedule"]=intval($sock->GET_INFO("SquidRotateOnlySchedule"));
 $GLOBALS["SQUID_BIN"]=$unix->LOCATE_SQUID_BIN();
 if(is_file($GLOBALS["SQUID_BIN"])){$GLOBALS["SQUID_INSTALLED"]=true;}
 $GLOBALS["KILL"]=$GLOBALS["KILLBIN"];
@@ -234,6 +235,7 @@ if($argv[1]=="--squid-db"){echo squid_db();die();}
 if($argv[1]=="--sarg"){echo sarg();die();}
 if($argv[1]=="--snmpd"){echo snmpd();die();}
 if($argv[1]=="--squid-nat"){echo squid_nat();die();}
+if($argv[1]=="--ziproxy"){echo ziproxy();die();}
 if($argv[1]=="--videocache"){
 	
 	$conf[]=videocache();
@@ -293,6 +295,7 @@ if($argv[1]=="--all-squid"){
 	$conf[]=hotspot_fw();
 	$conf[]=sarg();
 	$conf[]=squid_nat();
+	$conf[]=ziproxy();
 	
 	@unlink($cachefile);
 	@file_put_contents($cachefile, @implode("\n",$conf));
@@ -1011,6 +1014,17 @@ function xdcloudlogs($text=null){
 	@fclose($f);
 }
 
+function MemoryWatchdog(){
+	$SwapOffOn=unserialize(base64_decode($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SwapOffOn")));
+	if(!is_numeric($SwapOffOn["AutoMemWatchdog"])){$SwapOffOn["AutoMemWatchdog"]=1;}
+	if(!is_numeric($SwapOffOn["AutoMemPerc"])){$SwapOffOn["AutoMemPerc"]=90;}
+	if(!is_numeric($SwapOffOn["AutoMemInterval"])){$SwapOffOn["AutoMemInterval"]=180;}
+	if($SwapOffOn["AutoMemWatchdog"]==0){return;}
+	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.swap-monitor.php.Watch.time");
+	if($filetime<$SwapOffOn["AutoMemInterval"]){return;}
+	$cmd=trim("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.swap-monitor.php --watchdog >/dev/null 2>&1");
+	shell_exec($cmd);
+}
 
 function SwapWatchdog(){
 	$reboot=false;
@@ -1028,7 +1042,7 @@ function SwapWatchdog(){
 	
 	
 	if($SwapOffOn["SwapEnabled"]==0){return;}
-	$filetime=file_time_min($filecache);
+	$filetime=$GLOBALS["CLASS_UNIX"]->file_time_min($filecache);
 	if($filetime<$SwapOffOn["SwapTimeOut"]){
 		events("{$filetime}Mn need to wait {$SwapOffOn["SwapTimeOut"]}mn",__FUNCTION__,__LINE__);
 		return;
@@ -1153,20 +1167,20 @@ function CleanLogs(){
 	}
 	
 
-	
-	$NextFile="/var/log/squid/cache.log";
-	if(is_file($NextFile)){
-		$size=$GLOBALS["CLASS_UNIX"]->file_size($NextFile);
-		$size=intval(round(($size/1024))/1000);
-		if($size>512){
-			$sqdbin=$GLOBALS["CLASS_UNIX"]->find_program("squid");
-			if(!is_file($sqdbin)){$sqdbin=$GLOBALS["CLASS_UNIX"]->find_program("squid3");}			
-			if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("CleanLogs:: Warning $NextFile was deleted execeed 512M ({$size}M) and squid was ordered to perform a rotation", basename(__FILE__));}
-			@unlink($NextFile);
-			shell_exec2("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --rotate >/dev/null 2>&1 &");
+	if($GLOBALS["SquidRotateOnlySchedule"]==0){
+		$NextFile="/var/log/squid/cache.log";
+		if(is_file($NextFile)){
+			$size=$GLOBALS["CLASS_UNIX"]->file_size($NextFile);
+			$size=intval(round(($size/1024))/1000);
+			if($size>512){
+				$sqdbin=$GLOBALS["CLASS_UNIX"]->find_program("squid");
+				if(!is_file($sqdbin)){$sqdbin=$GLOBALS["CLASS_UNIX"]->find_program("squid3");}			
+				if(function_exists("WriteToSyslogMail")){WriteToSyslogMail("CleanLogs:: Warning $NextFile was deleted execeed 512M ({$size}M) and squid was ordered to perform a rotation", basename(__FILE__));}
+				@unlink($NextFile);
+				shell_exec2("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --rotate >/dev/null 2>&1 &");
+			}
 		}
 	}
-
 	
 	$MirrorEnableDebian=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MirrorEnableDebian");
 	if(!is_numeric($MirrorEnableDebian)){$MirrorEnableDebian=0;}
@@ -1318,7 +1332,7 @@ function launch_all_status($force=false){
 	"apache_ocsweb","web_download","ocs_agent","openssh","gluster","auditd","opendkim","milter_dkim","dropbox",
 	"artica_policy","virtualbox_webserv","tftpd","dhcpd_server","crossroads","artica_status","artica_executor","bandwith",
 	 "pptpd","pptp_clients","apt_mirror","ddclient","cluebringer","apachesrc","zarafa_web","zarafa_ical","zarafa_dagent","zarafa_indexer",
-	"zarafa_monitor","zarafa_gateway","zarafa_spooler","zarafa_server","zarafa_server2","assp","openvpn","vboxguest","sabnzbdplus","SwapWatchdog","artica_meta_scheduler",
+	"zarafa_monitor","zarafa_gateway","zarafa_spooler","zarafa_server","zarafa_server2","assp","openvpn","vboxguest","sabnzbdplus","MemoryWatchdog","SwapWatchdog","artica_meta_scheduler",
 	"OpenVPNClientsStatus","stunnel","meta_checks","zarafa_licensed","zarafa_db","avahi_daemon","CheckCurl","vnstat","NetAdsWatchdog","munin","autofs","greyhole",
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
@@ -7705,7 +7719,7 @@ function zarafa_dagent(){
 	$l[]="[APP_ZARAFA_DAGENT]";
 	$l[]="service_name=APP_ZARAFA_DAGENT";
 	$l[]="master_version=".$GLOBALS["CLASS_UNIX"]->ZARAFA_VERSION();
-	$l[]="service_cmd=zarafa";
+	$l[]="service_cmd=/etc/init.d/zarafa-dagent";
 	$l[]="service_disabled=$enabled";
 	$l[]="family=mailbox";
 	$l[]="pid_path=$pid_path";
@@ -7713,7 +7727,9 @@ function zarafa_dagent(){
 	$l[]="watchdog_features=1";
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		WATCHDOG("APP_ZARAFA_DAGENT","zarafa");
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/zarafa-dagent start >/dev/null 2>&1 &");
+		}
 		$l[]="running=0\ninstalled=1";$l[]="";
 		return implode("\n",$l);
 		return;
@@ -8786,7 +8802,7 @@ function zarafa_server(){
 	$l[]="[APP_ZARAFA_SERVER]";
 	$l[]="service_name=APP_ZARAFA_SERVER";
 	$l[]="master_version=$master_version";
-	$l[]="service_cmd=zarafa";
+	$l[]="service_cmd=/etc/init.d/zarafa-server";
 	$l[]="service_disabled=$enabled";
 	$l[]="pid_path=$pid_path";
 	$l[]="remove_cmd=--zarafa-remove";

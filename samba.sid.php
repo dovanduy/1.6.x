@@ -172,7 +172,7 @@ function popup(){
 		<td valign='top'><span style='font-size:16px'>-</span>&nbsp;" . Field_text('SID_SUFFIX',$SID_PREFIX,'font-size:16px')."</td>
 	</tr>
 	<tr><td colspan=2><hr></td></tr>
-	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:SaveSambaSID();\" value='&nbsp;&nbsp;{edit}&nbsp;&raquo;&nbsp;&nbsp;'></td></tr>
+	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:SaveSambaSID();\" value='&nbsp;&nbsp;{apply}&nbsp;&raquo;&nbsp;&nbsp;'></td></tr>
 	</table>
 	";
 	
@@ -296,7 +296,7 @@ function SMBCHANGEUSERS(){
 		$u=new user($realuid);
 		if(posix_getuid()==0){echo "Update $realuid $u->dn\n";}
 		$tpl=new templates();
-		if(posix_getuid()<>0){echo "{edit}:$u->DisplayName\n";}
+		if(posix_getuid()<>0){echo "{apply}:$u->DisplayName\n";}
 		$u->Samba_edit_user();
 		
 

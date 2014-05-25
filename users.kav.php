@@ -545,7 +545,7 @@ function LoadAvNotify(){
 		<td colspan=2><textarea name='body_template' style='width:100%' rows=20>$templ</textarea></td>
 		</tr>
 		<tr>
-		<td colspan=2 align='right'><input type='button' value='{edit}&nbsp&raquo;' OnClick=\"javascript:ParseForm('$notifyLdapField','$page',true);\"></td>
+		<td colspan=2 align='right'><input type='button' value='{apply}&nbsp&raquo;' OnClick=\"javascript:ParseForm('$notifyLdapField','$page',true);\"></td>
 		</tr>		
 		</table>
 		<div class=caption>%SENDER%, %RECIPIENT%,, %DATE%, %VIRUSNAME%, %MSGID%, %SUBJECT%, %DATETIME%, %HEADERS%, %ACTION%</div>

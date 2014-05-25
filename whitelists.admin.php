@@ -133,7 +133,7 @@ function ArticaRobots(){
 	<td>
 	<div style='padding:3px;'>$p
 	<div style='width:101%;text-align:right'>
-		<input type='button' value='{edit}&nbsp;&nbsp;&raquo;&raquo;' OnClick=\"javascript:EnableWhiteListAndBlackListPostfixEdit();\">
+		<input type='button' value='{apply}&nbsp;&nbsp;&raquo;&raquo;' OnClick=\"javascript:EnableWhiteListAndBlackListPostfixEdit();\">
 	</div>
 	</div>
 	</td>
@@ -256,7 +256,7 @@ $days=$days."
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'>
-			<input type='button' OnClick=\"javascript:ParseForm('ffm1rep','$page',true);\" value='{edit}&nbsp;&raquo;'>
+			<input type='button' OnClick=\"javascript:ParseForm('ffm1rep','$page',true);\" value='{apply}&nbsp;&raquo;'>
 		</td>
 	</tr>	
 	</table>
@@ -303,20 +303,22 @@ function form_blacklist(){
 	$html="
 	
 	<div id='wblarea_B_$t'></div>
-	<table style='width:99%' class=form>
+<div style='width:98%' class=form>
+	<table style='width:99%'>
 			<tr>
-			<td class=legend style='font-size:14px'>{from}:</td>
-			<td>" . Field_text("wlfrom-$tt",$_GET["whitelist"],'width:220px;font-size:14px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
+			<td class=legend style='font-size:18px'>{from}:</td>
+			<td>" . Field_text("wlfrom-$tt",$_GET["whitelist"],'width:220px;font-size:18px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
 			</tr>
 			<tr>
-			<td class=legend><strong style='font-size:14px'>{recipient}:</td>
-			<td>" . Field_text("wlto-$tt",$_GET["recipient"],'width:220px;font-size:14px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
+			<td class=legend><strong style='font-size:18px'>{recipient}:</td>
+			<td>" . Field_text("wlto-$tt",$_GET["recipient"],'width:220px;font-size:18px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
 			</tr>
 			<tr>
 			<td colspan=2 align='right'>
-				". button("{add}","Addblwform_black$tt(0)",16)."</td>
+				". button("{add}","Addblwform_black$tt(0)",22)."</td>
 			</tr>
 		</table>
+</div>
 	<script>
 		
 		
@@ -360,20 +362,22 @@ function form_whitelist(){
 	$html="
 	
 	<div id='wblarea_A_$t'></div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 			<tr>
 			<td class=legend style='font-size:14px'>{from}:</td>
-			<td>" . Field_text("wlfrom-$tt",$_GET["whitelist"],'width:220px;font-size:14px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
+			<td>" . Field_text("wlfrom-$tt",$_GET["whitelist"],'width:220px;font-size:18px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
 			</tr>
 			<tr>
 			<td class=legend><strong style='font-size:14px'>{recipient}:</td>
-			<td>" . Field_text("wlto-$tt",$_GET["recipient"],'width:220px;font-size:14px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
+			<td>" . Field_text("wlto-$tt",$_GET["recipient"],'width:220px;font-size:18px;padding:3px',null,null,null,false,"AddblwformCheck$tt(0,event)") ."</td>
 			</tr>
 			<tr>
 			<td colspan=2 align='right'>
-				". button("{add}","Addblwform$tt(0)",16)."</td>
+				". button("{add}","Addblwform$tt(0)",22)."</td>
 			</tr>
 		</table>
+	</div>
 	<script>
 		
 		
@@ -574,21 +578,11 @@ function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	
-	
-	echo "
-	<div id=main_config_wbladmin style='width:100%;height:750px;overflow:auto;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_wbladmin').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_wbladmin",1100);
+		
 	
 }
 
@@ -613,20 +607,21 @@ function popup_domains(){
 	
 	$selected_type="black";
 	$buttonClk="BlackListForm";	
+	$about2=$tpl->javascript_parse_text("{about2}");
 	
-	$whitelist_explain=$tpl->_ENGINE_parse_body("{blacklist_explain}");
+	$about_text=$tpl->javascript_parse_text("{blacklist_explain}");
 	
 	if(isset($_GET["popup-domain-white"])){
 			$selected_type="white";
 			$buttonClk="WhiteListForm";
-			$whitelist_explain=$tpl->_ENGINE_parse_body("{whitelist_explain}");
+			$about_text=$tpl->javascript_parse_text("{whitelist_explain}");
 	}
 			
 $title=$tpl->_ENGINE_parse_body($array[$selected_type]);	
 
 
-$html="<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
-<div class=explain>$whitelist_explain</div>
+$html="
+<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
 var mem_$t='';
 var selected_id=0;
@@ -635,14 +630,15 @@ $('#table-$t').flexigrid({
 	url: '$page?SelectedDomain=$domainSE&type=$selected_type&time=$time',
 	dataType: 'json',
 	colModel : [
-		{display: '$search:$domainSE', name : 'type', width : 70, sortable : false, align: 'left'},
-		{display: '$from', name : 'from', width : 311, sortable : true, align: 'left'},
-		{display: '$recipients', recipients : 'category2', width : 385, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'none2', width : 25, sortable : false, align: 'left'},
+		{display: '$search:$domainSE', name : 'type', width : 102, sortable : false, align: 'left'},
+		{display: '$from', name : 'from', width : 437, sortable : true, align: 'left'},
+		{display: '$recipients', recipients : 'category2', width : 417, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'none2', width : 42, sortable : false, align: 'center'},
 		
 	],
 buttons : [
 	{name: '$new_item', bclass: 'add', onpress : $buttonClk},
+	{name: '$about2', bclass: 'help', onpress : About2$t},
 		],	
 	searchitems : [
 		{display: '$from', name : 'from'},
@@ -654,8 +650,8 @@ buttons : [
 	useRp: false,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 859,
-	height: 350,
+	width: '99%',
+	height: 450,
 	singleSelect: true
 	
 	});   
@@ -664,11 +660,11 @@ buttons : [
 
       
 	function WhiteListForm(){
-		YahooWin3(550,'$page?whitelist-form-add=yes&t=$t&domain=$domainSE','$new_item::$domainSE::$title');
+		YahooWin3(650,'$page?whitelist-form-add=yes&t=$t&domain=$domainSE','$new_item::$domainSE::$title');
 	
 	}
 	function BlackListForm(){
-		YahooWin3(550,'$page?blacklist-form-add=yes&t=$t&domain=$domainSE','$new_item::$domainSE::$title');
+		YahooWin3(650,'$page?blacklist-form-add=yes&t=$t&domain=$domainSE','$new_item::$domainSE::$title');
 	
 	}	
 
@@ -676,7 +672,11 @@ buttons : [
 		var tempvalue=obj.responseText;
       	if(tempvalue.length>3){alert(tempvalue);return;}
 		$('#row'+mem_$t).remove();
-      }      
+      } 
+
+function About2$t(){
+	alert('$about_text');
+}
       
       
 function DeleteWhiteList(to,from,md){
@@ -708,79 +708,6 @@ echo $html;
 }
 
 
-function popup_domains_old(){
-	$ldap=new clladp();
-	$page=CurrentPageName();
-	$domain=$ldap->hash_get_all_domains();
-	$domain[null]='{all}';
-	$t=time();
-	
-	
-	
-	$array["white"]='{white list}';
-	$array["black"]='{black list}';	
-	$array[null]='{all}';
-	$field=Field_array_Hash($domain,'selected_domain',null,"SelectDomain()",null,0,"font-size:13px;padding:3px");
-	$tpl=new templates();
-	
-	$whitelist_explain=$tpl->_ENGINE_parse_body("{whitelist_explain}");
-	
-	
-	$old_wbl="<td valign='top'>
-			<table style='width:99%' class=form ". element_rollover("Loadjs('$page?wblopt=yes')").">
-				<tr>
-					<td width=1% valign='top'>" . imgtootltip('32-settings-black.png',"{options}","Loadjs('$page?wblopt=yes')")."</td>
-					<td valign='top'>
-						<div style='font-size:13px;font-weight:bold'>{autolearning}</div>
-						<p class=caption>{autolearning_text}</p>
-					</td>
-				</tr>
-			</table>
-		</td>";
-	
-	$html="
-	<input type='hidden' id='selected_form' name='selected_form' value='$selected_type'>
-	<input type='hidden' id='selected_form_$time' name='selected_form' value='$selected_type'>
-	
-	<div style='width:100%;text-align:right'>
-	<table>
-		<tr>
-			<td class=legend style='font-size:13px'>{domains}:</td>
-			<td>$field</td>
-		</tr>
-	</table>
-	</div>
-	
-	<div id='wblarea_$time' style='width:100%;height:250px;overflow:auto'></div>
-	
-	<script>
-	function SelectDomain(){
-		var selected_domain=document.getElementById('selected_domain').value;
-		var selected_form=document.getElementById('selected_form_$time').value;
-		LoadAjax('wblarea_$time','$page?SelectedDomain='+selected_domain+'&type=$selected_type&time=$time');
-	}
-	
-
-
-function AddblwformCheck2(ztype,e){
-	if(checkEnter(e)){
-		Addblwform_black(ztype);
-	}
-}	 
-	
-	
-	SelectDomain();
-	
-	</script>
-	
-	";
-	
-	
-	
-	echo $tpl->_ENGINE_parse_body($html);	
-	
-}
-
 function main_tabs(){
 	$page=CurrentPageName();
 	$array["white"]='{white list}';
@@ -802,10 +729,12 @@ function whitelistdom($domain=null){
 	$ldap=new clladp();
 	if($domain<>null){$domain="*";}
 	$hash=$ldap->WhitelistsFromDomain($domain);
-	
+	if($GLOBALS["VERBOSE"]){echo "HASH -> " .count($hash)." Items\n<br>";
+	print_r($hash);
+	}
 	$data = array();
-	$data['page'] = $page;
-	$data['total'] = $total;
+	$data['page'] = 1;
+	$data['total'] = 0;
 	$data['rows'] = array();	
 	
 	if($_POST["query"]<>null){
@@ -823,74 +752,27 @@ if(is_array($hash)){
 		if(preg_match("#(.+?)@(.+)#",$recipient_domain,$re)){$recipient_domain=$re[2];}
 		$ou=$ldap->ou_by_smtp_domain($recipient_domain);		
 		while (list ($num, $wl) = each ($line)){
-		if($search<>null){
-			if(!preg_match("#$search#", $wl)){continue;}
-		}
+			if($search<>null){ if(!preg_match("#$search#", $wl)){continue;} }
 			$c++;
 			$id=md5("$from$wl");
-			$delete=imgsimple("delete-24.png","{delete}","DeleteWhiteList('$from','$wl','$id');");
-	$data['rows'][] = array(
-		'id' => $id,
-		'cell' => array(
-		"<span style='font-size:14px;color:$color'>$ou</span>",
-		"<span style='font-size:14px;color:$color'>$wl</span>",
-		"<span style='font-size:14px;color:$color'>$from</span>",
-		 $delete)
-		);
-	
-		
-	}}
+			$delete=imgsimple("delete-32.png","{delete}","DeleteWhiteList('$from','$wl','$id');");
+			$data['rows'][] = array(
+				'id' => $id,
+				'cell' => array(
+				"<span style='font-size:14px;color:$color'>$ou</span>",
+				"<span style='font-size:14px;color:$color'>$wl</span>",
+				"<span style='font-size:14px;color:$color'>$from</span>",
+				 $delete)
+				);
+			}
+	}
 }
 	
 	$data['total'] = $c;
 	echo json_encode($data);
 }
 
-function whitelistdom_old($domain=null){
 
-	$ldap=new clladp();
-	if($domain<>null){$domain="*";}
-	$hash=$ldap->WhitelistsFromDomain($domain);
-	
-	
-	
-	$html="
-	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-	<thead class='thead'>
-		<tr>
-			<th colspan=2>{search}:$domain</th>
-			<th>{from}</th>
-			<th>{recipients}</th>
-			<th>&nbsp;</th>
-		</tr>
-	</thead>
-	<tbody class='tbody'>";	
-
-if(is_array($hash)){	
-	while (list ($from, $line) = each ($hash)){
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$recipient_domain=$from;
-		if(preg_match("#(.+?)@(.+)#",$recipient_domain,$re)){$recipient_domain=$re[2];}
-		$ou=$ldap->ou_by_smtp_domain($recipient_domain);		
-		while (list ($num, $wl) = each ($line)){
-		$html=$html . 
-			"<tr class=$classtr>
-				<td width=1%><img src='img/fw_bold.gif'></td>
-				<td><strong style='font-size:13px'>$ou</strong></td>
-				<td><strong style='font-size:13px'>$wl</strong>
-				<td><strong style='font-size:13px'>$from</strong></td>
-				<td width=1%>" . imgtootltip('delete-32.png','{delete}',"DeleteWhiteList('$from','$wl');")."</td>
-			</tr>";}
-		
-	}}
-	
-$html=$html . "</tbody></table>";
-$form=$html;
-
-
-return $form;
-
-}
 
 function SaveWhiteList(){
 	$tpl=new templates();
@@ -1099,19 +981,18 @@ function whitelist_global_popup(){
 	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
 	if($_GET["ou"]==null){$_GET["ou"]="master";}
 	$popup_title=$tpl->_ENGINE_parse_body("{domains}:{white list}:{global}::{add}");
-	$explain=$tpl->_ENGINE_parse_body("{whitelist_global_explain}");
+	$explain=$tpl->javascript_parse_text("{whitelist_global_explain}");
 	$wbl_resolv_mx=$tpl->_ENGINE_parse_body("{wbl_resolv_mx}");
 	$sender=$tpl->_ENGINE_parse_body("{sender}");
 	$score=$tpl->_ENGINE_parse_body("{score}");
 	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
 	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
+	$about2=$tpl->javascript_parse_text("{about2}");
+	
+	
 	$html="
 <table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 	<table>
-	<tr>
-	<td width=99%><div class=explain>$explain</div></td>
-	<td width=1%>&nbsp;</td>
-	</tr>
 	<tr>
 		<td colspan=2 align='right'>
 		<table style='width:220px'>
@@ -1132,13 +1013,14 @@ $('#table-$t').flexigrid({
 	colModel : [
 		{display: '&nbsp;', name : 'none4', width : 39, sortable : false, align: 'left'},	
 		{display: '$sender', name : 'type', width : 593, sortable : false, align: 'left'},
-		{display: '$score', name : 'from', width : 50, sortable : true, align: 'left'},
+		{display: '$score', name : 'from', width : 109, sortable : true, align: 'left'},
 		{display: '$enabled', recipients : 'category2', width : 72, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'none2', width : 25, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'none2', width : 42, sortable : false, align: 'center'},
 		
 	],
 buttons : [
 	{name: '$new_item', bclass: 'add', onpress : GlobalWhiteListAdd},
+	{name: '$about2', bclass: 'help', onpress : About$t},
 		],	
 	searchitems : [
 		{display: '$sender', name : 'sender'},
@@ -1146,12 +1028,12 @@ buttons : [
 	sortname: 'sender',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$popup_title',
+	title: '<span style=font-size:18px>$popup_title</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: 859,
-	height: 350,
+	width: '99%',
+	height: 400,
 	singleSelect: true
 	
 	});   
@@ -1159,6 +1041,10 @@ buttons : [
 	function GlobalWhiteListAdd(){
 		YahooWin4('550','$page?popup-global-white-add=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}&t=$t','{$_GET["hostname"]}::$popup_title');
 	}
+	
+function About$t(){
+	alert('$explain');
+}
 		
 	function WhiteListResolvMXSave(){
 		var enabled=0;
@@ -1259,14 +1145,9 @@ function whitelist_global_list(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		if(!$q->ok){json_error_show($q->mysql_error." LINE:".__LINE__);}
@@ -1295,12 +1176,13 @@ function whitelist_global_list(){
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){json_error_show($q->mysql_error." LINE:".__LINE__);}
+	if(mysql_num_rows($results)==0){json_error_show("no row");}
 	$score=0;
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$allmxText=null;
 		$disable=Field_checkbox("enabled_{$ligne["ID"]}",1,$ligne["enabled"],"GlobalWhiteDisable('{$ligne["ID"]}')");
-		$delete=imgsimple("delete-24.png","{delete}","GlobalWhiteDelete('{$ligne["ID"]}')");
+		$delete=imgsimple("delete-32.png","{delete}","GlobalWhiteDelete('{$ligne["ID"]}')");
 		$modifyScore="<a href=\"javascript:blur();\" OnClick=\"javascript:GlobalScoreModify('{$ligne["ID"]}','$score');\" style='text-decoration:underline;font-weight:bold'>";
 		$allmx=unserialize($ligne["allmx"]);
 		if($score==0){$score="{no}";}else{$score="-{$ligne["score"]}";}
@@ -1315,7 +1197,7 @@ function whitelist_global_list(){
 		'id' => $ligne['ID'],
 		'cell' => array(
 			"<img src='img/$icon'>",
-			"<span style='font-size:14px'><code>{$ligne["sender"]}</code></span>$allmxText",
+			"<span style='font-size:16px'><code>{$ligne["sender"]}</code></span>$allmxText",
 			$tpl->_ENGINE_parse_body("<span style='font-size:14px'><strong style='font-size:14px' id='score_{$ligne["ID"]}'>$modifyScore$score</a></strong></span>"),
 			"$disable",
 			$delete )
@@ -1503,9 +1385,11 @@ function blacklist_global_add(){
 
 	$html="
 	<div id='globalblack-smtp-div'></div>
-	<div class=explain style='font-size:14px'>{blacklist_global_add_explain}</div>
-	<textarea id='globalblack-servers-container' style='width:100%;height:350px;overflow:auto;font-size:14px'></textarea>
-	<div style='text-align:right'>". button("{add}","GlobalBlackSave()",16)."</div>
+	<div class=explain style='font-size:16px'>{blacklist_global_add_explain}</div>
+	<div style='width:98%' class=form>
+		<textarea id='globalblack-servers-container' 
+			style='width:100%;border:0px;height:350px;overflow:auto;font-size:16px !important'></textarea>
+		<div style='text-align:right'>". button("{add}","GlobalBlackSave()",22)."</div>
 	</div>
 	<script>
 	
@@ -1537,10 +1421,12 @@ function whitelist_global_add(){
 
 	$html="
 	<div id='globalwhite-smtp-div'></div>
-	<div class=explain>{whitelist_global_add_explain}</div>
-	<textarea id='globalwhite-servers-container' style='width:100%;height:350px;overflow:auto;font-size:14px'></textarea>
-	<div style='text-align:right'>". button("{add}","GlobalWhiteSave()",16)."</div>
+	<div class=explain style='font-size:16px'>{whitelist_global_add_explain}</div>
+	<div style='width:98%' class=form>
+		<textarea id='globalwhite-servers-container' style='width:100%;height:350px;border:0px;overflow:auto;font-size:16px !important'></textarea>
+		<div style='text-align:right'>". button("{add}","GlobalWhiteSave()",22)."</div>
 	</div>
+	
 	<script>
 	
 	var x_GlobalWhiteSave= function (obj) {

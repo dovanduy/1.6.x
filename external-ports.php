@@ -169,7 +169,7 @@ function external_ports_index(){
 			<td  nowrap>(HTTP)</td>
 			<td align=center>". Field_checkbox("EnableApacheSystem",1,$EnableApacheSystem,"EnableApacheSystemS()")."</td>
 			<td  width=1%>" . Field_text('APP_APACHE',$FreeWebListenPort,'width:60px;font-size:13px;padding:3px')."</td>
-			<td  width=1%><input type='button' OnClick=\"javascript:ChangeApachePort()\" value='{edit}&nbsp;&raquo;' ></td>
+			<td  width=1%><input type='button' OnClick=\"javascript:ChangeApachePort()\" value='{apply}&nbsp;&raquo;' ></td>
 		</tr>
 
 		<tr>
@@ -177,7 +177,7 @@ function external_ports_index(){
 			<td  nowrap>(SSL)</td>
 			<td align=center>&nbsp;</td>
 			<td  width=1%>" . Field_text('APP_APACHE_SSL',$FreeWebListenSSLPort,'width:60px;font-size:13px;padding:3px')."</td>
-			<td  width=1%><input type='button' OnClick=\"javascript:ChangeApachePort()\" value='{edit}&nbsp;&raquo;' ></td>
+			<td  width=1%><input type='button' OnClick=\"javascript:ChangeApachePort()\" value='{apply}&nbsp;&raquo;' ></td>
 		</tr>		
 		
 		
@@ -186,7 +186,7 @@ function external_ports_index(){
 			<td  nowrap>(HTTP)</td>
 			<td align=center>". Field_checkbox("ApacheGroupware",1,$ApacheGroupware,"EnableApacheGroupware()")."</td>
 			<td  width=1%>" . Field_text('APP_GROUPWARE_APACHE',$port,'width:60px;font-size:13px;padding:3px')."</td>
-			<td  width=1%><input type='button' OnClick=\"javascript:ChangeApachePort()\" value='{edit}&nbsp;&raquo;' ></td>
+			<td  width=1%><input type='button' OnClick=\"javascript:ChangeApachePort()\" value='{apply}&nbsp;&raquo;' ></td>
 		</tr>";
 		
 	}else{
@@ -221,7 +221,7 @@ $APP_ROUNDCUBE="
 		<td  nowrap>(HTTPS)</td>
 		<td>&nbsp;</td>
 		<td  width=1%>" . Field_text('APP_ROUNDCUBE',$port,'width:60px;font-size:13px;padding:3px')."</td>
-		<td  width=1%><input type='button' OnClick=\"javascript:ChangeRoundCubePort()\" value='{edit}&nbsp;&raquo;' ></td>
+		<td  width=1%><input type='button' OnClick=\"javascript:ChangeRoundCubePort()\" value='{apply}&nbsp;&raquo;' ></td>
 		</tr>";
 		}}
 	
@@ -242,7 +242,7 @@ if($users->OBM2_INSTALLED){
 		<td  nowrap>(HTTP)</td>
 		<td>&nbsp;</td>
 		<td  width=1%>" . Field_text('APP_OBM2',$Obm2ListenPort,'width:60px;font-size:13px;padding:3px')."</td>
-		<td  width=1%><input type='button' OnClick=\"javascript:ChangeOBM2Port()\" value='{edit}&nbsp;&raquo;' ></td>
+		<td  width=1%><input type='button' OnClick=\"javascript:ChangeOBM2Port()\" value='{apply}&nbsp;&raquo;' ></td>
 		</tr>";
 		}
 		
@@ -319,7 +319,7 @@ if($users->POSTFIX_INSTALLED){
 		<td  nowrap>(HTTPS)</td>
 		<td>&nbsp;</td>
 		<td  width=1%>" . Field_text('artica_port',$artica_port,'width:60px;font-size:13px;padding:3px')."</td>
-		<td  width=1%><input type='button' OnClick=\"javascript:ChangeArticaPort()\" value='{edit}&nbsp;&raquo;' ></td>
+		<td  width=1%><input type='button' OnClick=\"javascript:ChangeArticaPort()\" value='{apply}&nbsp;&raquo;' ></td>
 	</tr>
 	$APACHE_GROUPWARE
 	$APP_ROUNDCUBE

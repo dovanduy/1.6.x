@@ -82,7 +82,7 @@ function folders_list(){
 			$html=$html."<tr>
 			<td width=1%><img src='img/fw_bold.gif'></td>
 			<td>" . Field_text($id,$ligne) . "</td>
-			<td><input type='button' OnClick=\"javascript:SaveFolderList($num,'$id');\" value='{edit}&nbsp;&raquo;'></td>
+			<td><input type='button' OnClick=\"javascript:SaveFolderList($num,'$id');\" value='{apply}&nbsp;&raquo;'></td>
 			<td>" . imgtootltip('x.gif','{delete}',"DeleteFolderList($num)") . "</td>
 			</tr>
 			

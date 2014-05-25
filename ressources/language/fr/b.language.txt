@@ -512,6 +512,7 @@ Le partage des courriels en toute facilit&eacute;
 <APP_ZARAFA_WEBAPP>Interface Web pour Zarafa</APP_ZARAFA_WEBAPP>
 <APP_ZARAFA_WEBAPP_TEXT>Web Access 7.0 est le successeur du Webmail existant Zarafa WebAccess.[br]
 Ce webmail peut fonctionner en parall&egrave;le avec le WebMail Zarafa WebAccess bas&eacute; sur les version 7.x ou sup&eacute;rieures.</APP_ZARAFA_WEBAPP_TEXT>
+<APP_ZIPROXY>Service de compression Web</APP_ZIPROXY>
 <APP_Z_PUSH_WEB>Application z-Push</APP_Z_PUSH_WEB>
 <archive_module>Module d'archivage</archive_module>
 <archive_rule>R&egrave;gle d'archivage</archive_rule>
@@ -527,6 +528,7 @@ Si vous utilisez kaspersky Anti-Spam 3.x, il offrira aussi les capacit&eacute;s 
 <ARTICADB_NOT_INSTALLED>Manquante: Base de statistiques</ARTICADB_NOT_INSTALLED>
 <ARTICADB_NOT_INSTALLED_EXPLAIN>Le service de base de donn&eacute;es des cat&eacute;gories Artica n'est pas install&eacute;.[br]Ce service est utilis&eacute; afin de cat&eacute;goriser les sites web visit&eacute;s.[br]
 Si vous d&eacute;sirez g&eacute;n&eacute;rer des statistiques, vous devez mettre &agrave; jour ce module.</ARTICADB_NOT_INSTALLED_EXPLAIN>
+<articadb_update_only_by_schedule>Si vert, les cat&eacute;gories et les bases de filtrage seront t&eacute;l&eacute;charg&eacute;es uniquement via la programmation.[br]Le cas &eacute;ch&eacute;ant ( par d&eacute;faut ), Artica v&eacute;rifie la pr&eacute;sence des mises &agrave; jour toutes les 48H sur les serveurs de mise &agrave; jour afin de r&eacute;cup&eacute;rer les nouvelles bases.</articadb_update_only_by_schedule>
 <articaitems>&Eacute;l&eacute;ments Artica</articaitems>
 <ARTICASTATISTICS_DISABLED>Les statistiques Artica sont d&eacute;sactiv&eacute;es dans votre configuration.</ARTICASTATISTICS_DISABLED>
 <ArticaTabsTimeout>Pause de l'affichage des onglets</ArticaTabsTimeout>
@@ -628,6 +630,9 @@ S&eacute;lectionnez votre connexion ajout&eacute;e ou utilisez l'assistant de cr
 <automated_compression>Compression automatique</automated_compression>
 <automatically_compress_when_attachments_exceed>Automatiquement compresser les pi&egrave;ces jointes lorsqu'elles sont sup&eacute;rieurs &agrave;:</automatically_compress_when_attachments_exceed>
 <automatically_uncompress_attachments>D&eacute;compression automatique des pi&egrave;ces jointes</automatically_uncompress_attachments>
+<automatic_memory_cleaning>Nettoyage automatique de la m&eacute;moire</automatic_memory_cleaning>
+<automatic_memory_cleaning_explain>Cette fonction active le nettoyage automatique de la m&eacute;moire par le noyau lorsque celle-ci d&eacute;passe un certain pourcentage d\'utilisation.[br]
+Une fois le pourcentage d&eacute;pass&eacute;, une proc&eacute;dure de rechargement de services comme le serveur Apache, Nginx, les services MySQL vous s\'op&eacute;rer.</automatic_memory_cleaning_explain>
 <automation_script_explain>The script d'Automation vous permet de copier le contenu dans ce formulaire, de le modifier et de le coller au m&ecirc;me endroit.[br]
 Il permet de rapidement passer les &eacute;tapes de l'assistant afin de d&eacute;ployer plus rapidement votre serveur.</automation_script_explain>
 <awstats_postfix>Construit les &eacute;v&egrave;nements de messagerie</awstats_postfix>
@@ -844,6 +849,8 @@ Vous pouvez utiliser une valeur plus &eacute;lev&eacute;e si vous &ecirc;tes abs
 <CACHE_AUTH>Afficher la page d'accueil chaque</CACHE_AUTH>
 <cache_cell_size>Taille de Cache globale</cache_cell_size>
 <cache_central_for_all_nodes>Cache central pour tous les n%u0153uds</cache_central_for_all_nodes>
+<cache_childs_requests>Cacher les requ&ecirc;tes des enfants</cache_childs_requests>
+<cache_childs_requests_explain>Si vert, les requ&ecirc;tes des enfants seront mis en cache.[br]Le cas contraire, rouge, les requ&ecirc;tes provenant des proxy enfants ne seront pas mis en cache.</cache_childs_requests_explain>
 <cache_indexedobject_size>Taille des indexes des objets</cache_indexedobject_size>
 <cache_indexedobject_size_explain>Ce cache contient les indexes des identifiants des objets (a peu pr&egrave;s 512Kb par utilisateur).</cache_indexedobject_size_explain>
 <cache_items>&Eacute;l&eacute;ment(s) du cache</cache_items>
@@ -1086,8 +1093,12 @@ Si non, vous devez effectuer cette op&eacute;ration de reparam&eacute;trage dans
 <compile_ufdb_repos_explain>Cette t&acirc;che est &agrave; utiliser si votre serveur est en mode ASP.[br]
 Elle permet de compiler les cat&eacute;gories en mode [b].ufdb[/b] et de les sauvegarder &agrave; distance sur un serveur FTP.</compile_ufdb_repos_explain>
 <completed>Effectu&eacute;.</completed>
+<compressed>Compress&eacute;</compressed>
+<compressed_data>Compress&eacute;</compressed_data>
 <compressed_size>Taille compress&eacute;e</compressed_size>
 <compressing_package>Compresse le paquetage</compressing_package>
+<compressor_requests>Requ&ecirc;tes TR du compresseur</compressor_requests>
+<compressor_requests2>Requ&ecirc;tes en temps r&eacute;el du compresseur</compressor_requests2>
 <compress_container>Compresser le conteneur</compress_container>
 <compress_files>Compresser les fichiers</compress_files>
 <COMPUTERS_BRANCH>Branche des ordinateurs</COMPUTERS_BRANCH>
@@ -1132,6 +1143,10 @@ L'ordinateur va penser que ce disque est un disque r&eacute;el et physique.</con
 <continue>Continuer</continue>
 <controller>Contr&ocirc;leur</controller>
 <controllers>Contr&ocirc;leurs</controllers>
+<ConvertToGrayscale>Convert to Gray scale</ConvertToGrayscale>
+<ConvertToGrayscale_explain>Si activ&eacute;, les images vont &ecirc;tre transform&eacute;es en niveau de gris afin de diminuer leur taille.[br]
+Mais toutefois cette fonction va d&eacute;grader le design des sites Web.
+[b]Note:[/b] Toutes les images ne vont pas &ecirc;tre converties. Seules celles dont le taux de compression peut &ecirc;tre am&eacute;lior&eacute; par cette m&eacute;thode.</ConvertToGrayscale_explain>
 <convertto_innodb_file_per_table>Convertir vers innodb, un fichier par table</convertto_innodb_file_per_table>
 <convertto_innodb_file_per_tableask>Cette op&eacute;ration va sauvegarder %tablesnum tables et les supprimer pour les reconstruire.
 Vous avez besoin au minimum de %free d'espace libre.
@@ -1536,6 +1551,7 @@ Address IP: re:192\.168\.[0-5]\.*[br]</dynaacl_howto>
 <dynamic_activedirectory_group>Groupe Active Directory dynamique</dynamic_activedirectory_group>
 <dynamic_categories_newbee_explain>Administrer les %s cat&eacute;gorie(s) de filtrage Internet autoris&eacute;e(s) par l'administrateur du service Proxy.</dynamic_categories_newbee_explain>
 <dynamic_chain>Chaine dynamique</dynamic_chain>
+<dynamic_enforce_rules>R&egrave;gles dynamiques de renforcement</dynamic_enforce_rules>
 <D_MODEL_ENC>ID mod&egrave;le</D_MODEL_ENC>
 <economy>&Eacute;conomie</economy>
 <empty_all_firewall_rules>Vider toutes les r&egrave;gles du par-feu</empty_all_firewall_rules>
@@ -1544,6 +1560,7 @@ Address IP: re:192\.168\.[0-5]\.*[br]</dynaacl_howto>
 <empty_database>Vider la base</empty_database>
 <empty_database_explain>Vider tout le contenu de la base de donn&eacute;es</empty_database_explain>
 <empty_store>Vider la banque d'informations</empty_store>
+<empty_template>Mod&egrave;le vide</empty_template>
 <enable-ssl-crtd-not-compiled>Le moteur de g&eacute;n&eacute;ration dynamique des certificats n'est pas install&eacute; dans version Squid-Cache. Cette fonctionnalit&eacute; ne sera pas impl&eacute;ment&eacute;e.</enable-ssl-crtd-not-compiled>
 <EnableArpDaemon>Activer le d&eacute;mon ARP</EnableArpDaemon>
 <EnableArpDaemon_disable_explain>Le d&eacute;mon ARP est un service qui aide le syst&egrave;me &agrave; r&eacute;soudre les adresses MAC.[br]
@@ -1672,6 +1689,10 @@ Les param&egrave;tres sp&eacute;cifiques au proxy FTP sont disponibles dans l'in
 <enable_fw_autorules_text>Si mis en vert, Artica sera en mesure de cr&eacute;er automatiquement des r&egrave;gles de Pare-feux en fonction des tentatives de connexion sur les protocoles standards tels que SSH,IMAP,SMTP...</enable_fw_autorules_text>
 <enable_group_checking>V&eacute;rifier les groupes</enable_group_checking>
 <enable_helo_randomize>Activer l'envoi HELO al&eacute;atoire</enable_helo_randomize>
+<enable_http_compression_service>Activer le service de compression Web</enable_http_compression_service>
+<enable_http_compression_service_text>Si vous mettez en vert cette option, vous serez en mesure de fournir un service de compression HTTP.[br]
+Classiquement, ce service sera en mesure de compresser les objets Web (images, fichiers javascript, css, html) afin de r&eacute;duire leur taille.[br]
+Ceci permettant de favoriser la bande passante par un taux de compression de plus de 50%.</enable_http_compression_service_text>
 <enable_http_service_zarafa_explain>Si vert, Artica va d&eacute;marrer un service [b]D&eacute;di&eacute;[/b] afin d'afficher le WebMail Zarafa.[br]
 [b]Note:[/b]: Ce service d&eacute;dier ne peut s'activer dur les ports standards 80/433 si la fonctionnalit&eacute; FreeWeb/Reverse Proxy est activ&eacute;e.</enable_http_service_zarafa_explain>
 <enable_imap_text>Activer le protocole IMAP afin d'autoriser vos utilisateurs &agrave; utiliser leur client de messagerie pour r&eacute;cup&eacute;rer les messages sur le serveur. via IMAP</enable_imap_text>
@@ -1747,6 +1768,7 @@ En fonction de vos privil&egrave;ges, vous serez en mesure de personnaliser les 
 Google n'assure pas de flux SSL lors de l'utilisation de cette adresse virtuelle.[br]
 Le certificat est de toute fa&ccedil;on identique et le site  nosslsearch sera en mesure de rediriger les requpetes vers les sites non-SSL de Google.
 Si vous activez cette option, Artica va renseigner le fichier d'h&ocirc;tes avec les principaux sites de recherche de Google vers  nosslsearch.[br]Vous pouvez cliquer sur le lien ci-dessous afin de visualiser les adresses ajout&eacute;es.</enforce_google_to_non_ssl_text>
+<enforce_level>Niveau de renforcement</enforce_level>
 <errors_pages>Pages d'erreurs</errors_pages>
 <error_acl_no_object>Cette r&egrave;gle sera indisponible car aucun objet n'est li&eacute; &agrave; cette r&egrave;gle.</error_acl_no_object>
 <error_category_nomore5>Erreur, le nom de la cat&eacute;gorie ne peut &ecirc;tre en dessous &agrave; 5 caract&egrave;res.</error_category_nomore5>
@@ -1927,6 +1949,7 @@ Cochez la case Configuration automatique du proxy et indiquez l'url suivante;</f
 <firewall_script_builded>Script pare-feu construit</firewall_script_builded>
 <firewall_services>Services pare-feu</firewall_services>
 <fix_value>Fixer la valeur</fix_value>
+<flow_control>Contr&ocirc;le du flux</flow_control>
 <flush_arp_cache>Vider le Cache ARP</flush_arp_cache>
 <flush_arp_cache_all_explain>Nettoyer tous les caches ARP et construire un nouveau cache.</flush_arp_cache_all_explain>
 <folders_status>&Eacute;tat des dossiers</folders_status>
@@ -1939,6 +1962,7 @@ Cochez la case Configuration automatique du proxy et indiquez l'url suivante;</f
 <ForceRedirectno_explain_table>Les redirections distantes ne sont pas forc&eacute;es</ForceRedirectno_explain_table>
 <ForceRedirectyes_explain_table>Les redirections distantes seront forc&eacute;es vers le service de proxy invers&eacute;</ForceRedirectyes_explain_table>
 <ForceWindowsUpdateCaching>Mettre en cache les mises &agrave; jour Microsoft</ForceWindowsUpdateCaching>
+<ForceWindowsUpdateCaching_explain>Si vert, Artica va cr&eacute;er des r&egrave;gle afin de renforcer la mise en caches des sites de mise &agrave; jour Microsoft.</ForceWindowsUpdateCaching_explain>
 <force_dns_redirection>Forcer la redirection DNS.</force_dns_redirection>
 <FORWARD>Transfert</FORWARD>
 <forwarded>transf&eacute;r&eacute;</forwarded>
@@ -2047,6 +2071,7 @@ G&eacute;n&eacute;ralement ceux ajout&eacute;s dans le syst&egrave;me LDAP local
 <halfaminute>une demi-minute</halfaminute>
 <handles>Trait&eacute;es</handles>
 <haproxy_local_interface_help>Indique l'adresse IP locale et source pour les connexions sortantes</haproxy_local_interface_help>
+<hardware_error_nic>Probl&egrave;me mat&eacute;riel sur la carte, peut &ecirc;tre que c\'est une machine virtuelle....</hardware_error_nic>
 <hard_drive>Disque Dur</hard_drive>
 <hard_drive_status>&Eacute;tat du disque</hard_drive_status>
 <has_been_sent_to_import_task>a &eacute;t&eacute; envoy&eacute;e &agrave; la t&acirc;che d'importation.</has_been_sent_to_import_task>
@@ -2128,6 +2153,7 @@ Cette valeur repr&eacute;sente alors le port d'&eacute;coute o&ugrave; Squid va 
 Pour l'activer, mettez une valeur du port sup&eacute;rieure &agrave; 0 ( d'un point de vue g&eacute;n&eacute;ral le [b]4872[/b]).</htcp_port_explain>
 <html_body>Corps HTML</html_body>
 <html_mode>Mode HTML</html_mode>
+<http_compression>Compression Web</http_compression>
 <http_port>Port HTTP</http_port>
 <http_sharing>Partage Web</http_sharing>
 <http_status_code>Code d'&eacute;tat HTTP</http_status_code>
@@ -2424,6 +2450,12 @@ Cette section vous permet de visualiser le nombre de d&eacute;mons utilis&eacute
 <limit_bandwidth>Limiter la bande passante</limit_bandwidth>
 <limit_connections_to_these_networks>Limiter les connexions &agrave; ces r&eacute;seaux</limit_connections_to_these_networks>
 <limit_connections_to_these_networks_explain>Si vert, Artica va construire des r&egrave;gle de pare-feu afin d'interdire toutes connexions sur le port SMTP provenant d'adresses &eacute;trang&egrave;res aux r&eacute;seaux d&eacute;finis</limit_connections_to_these_networks_explain>
+<limit_rate>Limitation de la bande passante</limit_rate>
+<limit_rate_after>Limiter la bande passante apr&egrave;s</limit_rate_after>
+<limit_rate_after_caption>Limite la bande passante &agrave; %s apr&egrave;s %f t&eacute;l&eacute;charg&eacute;s</limit_rate_after_caption>
+<limit_rate_after_text>Limite la bande passante apr&egrave;s la taille sp&eacute;cifi&eacute;e.[br][b]Note:[/b]Cette solution limite le t&eacute;l&eacute;chargement par acc&egrave;s. Si un Internaute utilise plusieurs liens il sera en mesure de t&eacute;l&eacute;charger avec la limitation de bande passante autant de fichiers qu\'il d&eacute;sire.</limit_rate_after_text>
+<limit_rate_text>Indiquez ici la bande passante maximale apr&egrave;s le t&eacute;l&eacute;chargement de la taille maximale.[br]
+[b]Indiquez 0 pour d&eacute;sactiver cette limitation[/b]</limit_rate_text>
 <links>liens</links>
 <link_computer>Lier un ordinateur</link_computer>
 <link_expression>Lier une expression</link_expression>
@@ -2635,8 +2667,10 @@ param&egrave;tre peut &ecirc;tre [b] coch&eacute; [/b] pour renverser le comport
 <max_time>Temps maximal</max_time>
 <max_time_in_tmp>Temps de vie d'un fichier temporaire</max_time_in_tmp>
 <max_time_in_tmp_explain>Combien de temps un fichier temporaire peut vivre dans le r&eacute;pertoire de travail temporaire.</max_time_in_tmp_explain>
+<max_usage>MAX usage</max_usage>
 <Max_used_connections>Connexions MAX utilis&eacute;es</Max_used_connections>
 <max_waiting_minutes_onload>Temps Max d'attente si le syst&egrave;me est charg&eacute;</max_waiting_minutes_onload>
+<max_websites>Max sites web</max_websites>
 <members_by_day>Membres par jour</members_by_day>
 <members_by_month>Membres par mois</members_by_month>
 <members_stats>Statistiques des members</members_stats>
@@ -2863,6 +2897,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <network_text>Un r&eacute;seau</network_text>
 <netzone>Zone r&eacute;seau</netzone>
 <netzones>Zones r&eacute;seau</netzones>
+<net_mii_title>Vitesse et param&egrave;tres duplex de la carte</net_mii_title>
 <net_read_timeout>D&eacute;lai MAX lecture r&eacute;seau</net_read_timeout>
 <new_account>Nouveau compte</new_account>
 <new_address>Nouvelle adresse</new_address>
@@ -2944,6 +2979,7 @@ Cliquez ici pour mettre &agrave; jour.</NEW_RELEASE_TEXT>
 <new_statistics_interface_text>Afficher la documentation permettant d'acc&eacute;der &agrave; l'interface de statistiques avanc&eacute;es.</new_statistics_interface_text>
 <new_template>Nouveau mod&egrave;le</new_template>
 <new_useragent_pattern>Nouveau masque Agent Client</new_useragent_pattern>
+<new_version>Nouvelle version</new_version>
 <new_virtual_ip>Nouvelle adresse virtuelle</new_virtual_ip>
 <new_vlan>Nouveau VLAN</new_vlan>
 <new_volume>Nouveau volume</new_volume>
@@ -2998,6 +3034,7 @@ Si vous activez cette option et que vous indiquez le port 80 comme port d'&eacut
 <NoMalwareUris_explain>Si vous utilisez la base de donn&eacute;es malware en tant que liste interdite, vous pourriez rencontrer des fausses alertes.[br]
 Vous pouvez activer cette fonctionnalit&eacute; qui interdit Artica d'utiliser les expression r&eacute;guli&egrave;res avec la base de filtrage des URLs.</NoMalwareUris_explain>
 <nonhierarchical_direct>Requ&ecirc;tes non-hi&eacute;rarchiques en direct</nonhierarchical_direct>
+<non_compressed_data>non-compress&eacute;</non_compressed_data>
 <non_ntlm_domain>Domaine (sans NTLM)</non_ntlm_domain>
 <non_spam_messages>Messages non-SPAM</non_spam_messages>
 <not>pas</not>
@@ -3010,6 +3047,7 @@ Vous pouvez activer cette fonctionnalit&eacute; qui interdit Artica d'utiliser l
 <notify_when_cpu_exceed>Notifier lorsque la conso. CPU exc&egrave;de</notify_when_cpu_exceed>
 <notify_when_memory_exceed>Notifier lorsque la m&eacute;moire exc&egrave;de</notify_when_memory_exceed>
 <not_authenticated_trough>non authentifi&eacute; via</not_authenticated_trough>
+<not_cached_data>Donn&eacute;es non cach&eacute;es</not_cached_data>
 <not_caching>Non mis en cache</not_caching>
 <not_categorized_day_explain>Artica met &agrave; jour p&eacute;riodiquement ses bases de cat&eacute;gories a peu pr&egrave;s tous les 3 jours.[br]Nous analysons 8.000 sites et cat&eacute;gorisons &agrave; peut pr&egrave;s 1.000 sites par jour.[br]
 Nous vous sugg&eacute;rons de r&eacute;guli&egrave;rement analyser les tables avec l'option cat&eacute;goriser les sites Internet dans la section outils afin de rafra&icirc;chir vos tables.</not_categorized_day_explain>
@@ -3024,6 +3062,7 @@ Afficher la section et essayez de les classer vous-m&ecirc;me afin d'enrichir vo
 Artica n'a pas encore consult&eacute; le service proxy.[br]
 Vous n'avez pas param&eacute;tr&eacute; de syst&egrave;me de cache.[br]
 Le service proxy refuse de discuter avec Artica.</no_cache_as_been_detected>
+<no_defined_parent>Aucun p&egrave;re &agrave; &eacute;t&eacute; d&eacute;fini</no_defined_parent>
 <no_enough_free_space_on_target>Pas assez d'espace libre dans la cible</no_enough_free_space_on_target>
 <NO_ENOUGH_MEMORY_FOR_THIS_SECTION>Votre serveur ne dispose pas assez de m&eacute;moire pour faire tourner les fonctionnalit&eacute;s list&eacute;es dans cette section.</NO_ENOUGH_MEMORY_FOR_THIS_SECTION>
 <no_entry>Pas d'entr&eacute;e</no_entry>
@@ -3084,12 +3123,21 @@ Le processus va reprendre le mod&egrave;le par d&eacute;faut et replacer les cou
 Continuer ?</onlydefaulttemplate_remove>
 <OnlyEnabled>Seulement actif</OnlyEnabled>
 <only_basic_authentication>Seulement Basique</only_basic_authentication>
+<only_by_schedule>Seulement lanc&eacute; par programmation</only_by_schedule>
+<only_by_schedule_squid_rotation_explain>Si vert, la t&acirc;che de rotation sera ex&eacute;cut&eacute;e par les programmation d&eacute;finis.[br]Par d&eacute;faut, Artica lance la rotation des fichiers si ils exc&egrave;dent 100M ou bien  toutes les 24 Heures.[br]
+Une t&acirc;che de rotation recharge le service Proxy.[br]
+Si vous &ecirc;tes soucieux de la stabilit&eacute; du service Proxy, mettez vert et indiquez votre propre ordonnancement.</only_by_schedule_squid_rotation_explain>
+<only_files>Seulement les fichiers</only_files>
 <only_from_activedirectory>Seulement depuis l'Active Directory</only_from_activedirectory>
+<only_images>Seulement les images</only_images>
 <only_incoming_mails>Seulement les messages entrants</only_incoming_mails>
+<only_internet_documents>Seulement les fichiers de sites Web</only_internet_documents>
 <only_miniadm>Cette fonctionnalit&eacute; ne peut &ecirc;tre administr&eacute; qu'avec l'interface Web EndUsers WebAccess.</only_miniadm>
+<only_multimedia>Seulement le multim&eacute;dia</only_multimedia>
 <only_ntlm>Seulement NTLM</only_ntlm>
 <only_one_value_cannot_generate_graph>La requ&ecirc;te envoy&eacute;e ne retourne qu'une seule valeur, le graphique ne peut &ecirc;tre construit, la valeur retourn&eacute;e est:</only_one_value_cannot_generate_graph>
 <only_one_value_no_graph>Seulement une seule valeur &agrave; &eacute;t&eacute; trouv&eacute;e pour cette requ&ecirc;te.[br]Dans cette condition les graphiques ne peuvent &ecirc;tre g&eacute;n&eacute;r&eacute;s.</only_one_value_no_graph>
+<only_pictures>Seulement les images</only_pictures>
 <ON_ERRORS>Sur erreurs</ON_ERRORS>
 <on_port>sur le port</on_port>
 <oom_kill_allocating_task>Laisser le noyau tuer les t&acirc;ches</oom_kill_allocating_task>
@@ -3101,6 +3149,7 @@ Continuer ?</onlydefaulttemplate_remove>
 <open_files_limit_explain>Si open_files_limit ne vaut pas 0, alors mysqld va utiliser cette valeur pour r&eacute;server des pointeurs de fichiers &agrave; utiliser avec setrlimit().[br]
 Si cette valeur est 0, alors mysqld va r&eacute;server max_connections*5 ou max_connections   table_cache*2 (le plus grand des deux) pointeurs de fichiers.[br]Vous devriez augmenter cette valeur si mysqld vous donne des erreurs du type [b]Too many open files[/b]. 
 Indiquez une valeur entre 0 et 65535</open_files_limit_explain>
+<operation_failed>&Eacute;chec de l\'op&eacute;ration</operation_failed>
 <operation_in_background>L'op&eacute;ration &agrave; &eacute;t&eacute; ex&eacute;cut&eacute;e en t&acirc;che de fond...</operation_in_background>
 <operation_in_background_restart_service>L'op&eacute;ration est ex&eacute;cut&eacute;e en t&acirc;che de fond.
 Le service principal va &ecirc;tre recharg&eacute;.</operation_in_background_restart_service>
@@ -3186,6 +3235,8 @@ Toutes les entr&eacute;es seront import&eacute;es automatiquement</PDNS_IMPORT_E
 Vous pouvez indiquez ici une addresse IP comme 10.0.0.2 ou bien un r&eacute;seau CDIR tel que 192.168.0/24</pdns_restrict_explain>
 <per>par</per>
 <percent>Pourcentage</percent>
+<perfom_proxy_log_rotation>Rotation des logs proxy</perfom_proxy_log_rotation>
+<perfom_proxy_log_rotation_explain>Cette t&acirc;che est en charge d\'effectuer la rotation des fichiers &eacute;v&egrave;nements Proxy.</perfom_proxy_log_rotation_explain>
 <performances>Performances</performances>
 <performance_issue>Probl&egrave;me de performance</performance_issue>
 <performance_issue_cpu_number_text>Il semble que votre serveur dispose que d'un seul processeur ![br]Un seul processeur risque de surcharger votre serveur.[br]Veuillez ajouter au moins 2 ou 4 processeurs afin de pouvoir utiliser ce serveur en production.</performance_issue_cpu_number_text>
@@ -3298,9 +3349,13 @@ En particulier soyez sur de pouvoir la restaurer si elle est &eacute;gar&eacute;
 <privkey>Clef priv&eacute;e</privkey>
 <privkey_ssl_explain>Une cl&eacute; priv&eacute;e est cr&eacute;&eacute;e lors du cryptage asym&eacute;trique de la cl&eacute; publique, dans le cadre de [b] cryptographie &agrave; cl&eacute; publique [/b] [br] La cl&eacute; priv&eacute;e est utilis&eacute;e pour d&eacute;chiffrer le contenu et le transformer en une forme lisible [br] La cl&eacute; priv&eacute;e est une cl&eacute; correspondante, mais diff&eacute;rente, de la publique. [br] Les cl&eacute;s publiques et priv&eacute;es sont jumel&eacute;s pour &eacute;tablir  une communication s&eacute;curis&eacute;e</privkey_ssl_explain>
 <probability>Probabilit&eacute;</probability>
+<ProcessCSS>Inclut le contenu CSS</ProcessCSS>
 <processes_list>Liste des processus</processes_list>
 <processes_list_mysql_explain>Voir la liste des threads actifs sur ce service</processes_list_mysql_explain>
+<ProcessHTML>Inclut le contenu HTML</ProcessHTML>
 <processing>En traitement</processing>
+<ProcessJS>Inclut le contenu javascript</ProcessJS>
+<profiles>Profiles</profiles>
 <protect_owa>Prot&eacute;ger Outlook WebAccess</protect_owa>
 <protect_phpmyadmin>S&eacute;curiser PhpMyAdmin</protect_phpmyadmin>
 <protect_phpmyadmin_item_text>Le moteur vous autorise &agrave; indiquer des &eacute;l&eacute;ments comme suit.[br]
@@ -3314,6 +3369,7 @@ Autoriser une seule adresse: &quot;192.168.1.5&quot;</protect_phpmyadmin_item_te
 <provider>Fournisseur</provider>
 <providers>Fournisseurs</providers>
 <ProxyDedicateMicrosoftRules>Service Windows Updates non restreint</ProxyDedicateMicrosoftRules>
+<ProxyDedicateMicrosoftRules_explain>Si vert, Artica va obliger le proxy &agrave; ne pas identifier les acc&egrave;s vers les sites de mise &agrave; jour Microsoft.[br]Ceci afin d\'autoriser toutes les mises &agrave; jour quelque soit le type de n%u0153ud dans votre r&eacute;seau</ProxyDedicateMicrosoftRules_explain>
 <proxy_access_events>Requ&ecirc;tes Proxy</proxy_access_events>
 <proxy_behavior>Comportement du proxy</proxy_behavior>
 <proxy_behavior_explain>Vous pouvez d&eacute;finir le comportement du service Proxy.[br]
@@ -3536,6 +3592,10 @@ Voulez-vous effectuer cette op&eacute;ration ?</reinstall_software_ask>
 <reload-into-ims>Force le proxy &agrave; convertir l'ent&ecirc;te [b]no-cache[/b] vers l'ent&ecirc;te [b]If-Modified-Since[/b].[br]
 L'utilisation de cette option est utile  uniquement si lent&ecirc;te [b]Last-Modified[/b] est &eacute;mise par le site Web.</reload-into-ims>
 <reloading_service>Rafra&icirc;chissement du service</reloading_service>
+<reload_into_ims>Rechargement redirig&eacute; sur le cache</reload_into_ims>
+<reload_into_ims_explain>Si vert, les ent&ecirc;tes \&quot;no-cache\&quot; ou \&quot;reload\&quot; n\'auront plsu d\'effets et seront modifi&eacute;es par \&quot;If-Modified-Since\&quot;.[br]
+Activer cette fonction vous met hors norme HTTP.[br]
+Ceci va augmenter le taux de cache mais peut avoir des effets n&eacute;gatifs.[br]Il ne sera plus possible d\'utiliser la combinaison de shift reload afin de forcer le rafra&icirc;chissement.</reload_into_ims_explain>
 <reload_network>Recharger le r&eacute;seau</reload_network>
 <reload_proxy>Recharge le service Proxy</reload_proxy>
 <reload_proxy_service>Recharger le service Proxy</reload_proxy_service>
@@ -3739,9 +3799,10 @@ Elles peuvent aussi interdire l'acc&egrave;s &agrave; certains sites Internet en
 <roles>R&ocirc;les</roles>
 <root_account>Compte Root</root_account>
 <root_password2>Mot de passe root</root_password2>
+<rotate>Rotation</rotate>
 <rotate_events>&Eacute;v&egrave;nements de rotation</rotate_events>
 <rotate_logs_each>Rotation des logs chaque</rotate_logs_each>
-<rotate_logs_files>Rotate log files</rotate_logs_files>
+<rotate_logs_files>Rotation des fichiers de logs</rotate_logs_files>
 <RoundCube>RoundCube</RoundCube>
 <routes_center_explain>Cette section vous permet de cr&eacute;er des r&egrave;gles de routage IP sur votre serveur.</routes_center_explain>
 <routes_goto_miniadm>La gestion des routes TCP/IP s'effectue &agrave; travers l'interface EndUsers WebAccess.[br]Munissez-vous d'un compte qui dispose du droit Syst&egrave;me Linux.</routes_goto_miniadm>
@@ -3756,6 +3817,7 @@ De fa&ccedil;on g&eacute;n&eacute;rale le protocole LMTP est utilis&eacute; afin
 <routing_track>Tracker les connexions</routing_track>
 <rsync_out_port_explain>V&eacute;rifiez que le port 873 TCP soit ouvert en sortie sur votre pare-feu afin d'autoriser les rapatriements des paquetages de mise &agrave; jour.</rsync_out_port_explain>
 <rsyslogd>D&eacute;mon syslog</rsyslogd>
+<rules_retention>R&eacute;tention des r&egrave;gles</rules_retention>
 <rule_group>R&egrave;gle de groupe</rule_group>
 <running_since>Fonctionne depuis</running_since>
 <run_backup>Lancer la sauvegarde</run_backup>
@@ -3806,6 +3868,7 @@ A chaque fois qu'un rapport est g&eacute;n&eacute;r&eacute;, la t&acirc;che de s
 <scan_filesystem_size>Analyse de l'occupation disque</scan_filesystem_size>
 <scan_filesystem_size_explain>Cette t&acirc;che parcours l'ensemble des r&eacute;pertoires de votre syst&egrave;me afin de calculer l'occupation disque de chaque r&eacute;pertoire.[br]
 De cette fa&ccedil;on, vous serez en mesure de visualiser des graphique des taux d'occupation de votre disque dur.</scan_filesystem_size_explain>
+<scan_interval>Intervalle d\'analyse</scan_interval>
 <scan_mailattachments_queue>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e si des r&egrave;gles ont &eacute;t&eacute;s cr&eacute;es dans la section &quot;H&eacute;bergement de pi&egrave;ces jointes&quot; de MimeDefang.[br]
 Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la base MySQL et d'effectuer le nettoyage des pi&egrave;ces jointes p&eacute;rim&eacute;es.</scan_mailattachments_queue>
 <scan_mailattachments_queue_explain>Analyse les pi&egrave;ces jointes remplac&eacute;es</scan_mailattachments_queue_explain>
@@ -4070,6 +4133,10 @@ Cette t&acirc;che parcours les tables horaires non trait&eacute;es et injecte le
 <squid_csv_logs_explain>Sauvegardez les &eacute;v&egrave;nements au format CSV afin de jouer avec les logs avec un logiciel qui comprend le format CSV comme Microsoft Excel ou OpenOffice.</squid_csv_logs_explain>
 <squid_DisableDeadParents>Si le proxy d&eacute;tecte un proxy parent mort, l'outil de surveillance Artica va le supprimer temporairement dans le fichier de configuration et va recharger le service proxy.</squid_DisableDeadParents>
 <squid_DisableDeadSqlParents>Si l'option d&eacute;sactiver les parents morts est coch&eacute;e et que celle-ci est aussi coch&eacute;e alors le proxy parent d&eacute;faillant sera d&eacute;sactiv&eacute; de fa&ccedil;on illimit&eacute; dans la configuration d'Artica</squid_DisableDeadSqlParents>
+<squid_dynamic_cache_rules_explain>Cette fonctionnalit&eacute; autorise Artica &agrave; renforcer dynamiquement les r&egrave;gles proxy de mise en cache.[br]
+Ceci est effectu&eacute; apr&egrave;s analyse des statistiques o&ugrave; le TOP des sites internet en poids sera alors renforc&eacute; avec le niveau 5.[br]
+Si vous utilisez les param&egrave;tres par d&eacute;faut, les 100 plus gros sites internet consult&eacute;s et non mis en cache seront alors renforc&eacute;s.[br]
+Le niveau 5 indique au proxy de conserver les &eacute;l&eacute;ments pendant une dur&eacute;e minimal de 3 jours avec une dur&eacute;e maximale de 1 semaine.</squid_dynamic_cache_rules_explain>
 <squid_enable_nat_compatibility_text>Si vert, le proxy sera activ&eacute; en mode &quot;compatibilit&eacute; NAT pare-feu&quot;.[br]
 La compatibilit&eacute; NAT ne requi&egrave;re pas l'obligation de mettre le proxy en passerelle principale.[br]
 Votre pare-feu sera en charge de transf&eacute;rer les requ&ecirc;tes vers les ports du proxy indiqu&eacute;s.[br]
@@ -4369,6 +4436,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <TEXT_TO_CSV>CSV vers LDAP</TEXT_TO_CSV>
 <then_set_proxy_parameters>alors indiquer les param&egrave;tres proxy</then_set_proxy_parameters>
 <thewebproxy_appliance>L'appliance de Statistiques Proxy</thewebproxy_appliance>
+<the_specified_module_is_not_installed>Le module sp&eacute;cifi&eacute; n\'est pas install&eacute;</the_specified_module_is_not_installed>
 <the_transarent_mode_is_disabled_acl>Cette r&egrave;gle ne sera pas utilis&eacute;e, le mode transparent est actuellement d&eacute;sactiv&eacute;</the_transarent_mode_is_disabled_acl>
 <thishour>cette heure</thishour>
 <this_computer_already_exists>Cet ordinateur existe d&eacute;j&agrave;</this_computer_already_exists>
@@ -4380,6 +4448,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <this_month>Ce mois</this_month>
 <this_request_contains_no_data>Cette requ&ecirc;te contient aucune donn&eacute;e</this_request_contains_no_data>
 <this_rule_is_disabled>Cette r&egrave;gle est d&eacute;sactiv&eacute;e, elle ne sera pas appliqu&eacute;e pour ce service</this_rule_is_disabled>
+<this_server_is_not_enabled_proxy_parent>Ce module ne peut &ecirc;tre utilis&eacute; si et seulement si ce serveur est activ&eacute; en tant que proxy Parent</this_server_is_not_enabled_proxy_parent>
 <this_service_is_managed_remote_statsappliance>Impossible d'afficher cette fonctionnalit&eacute;.[br]
 Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.</this_service_is_managed_remote_statsappliance>
 <this_table_is_categorized>Cette table est cat&eacute;goris&eacute;e</this_table_is_categorized>
@@ -4401,6 +4470,7 @@ Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.<
 <title2>Titre</title2>
 <token>Jeton</token>
 <top_10>TOP 10</top_10>
+<top_cached_websites>TOP des sites mis en cache</top_cached_websites>
 <top_categories>TOP des cat&eacute;gories</top_categories>
 <top_categories_by_hits>Top des cat&eacute;gories par acc&egrave;s</top_categories_by_hits>
 <top_categories_by_size>Top des cat&eacute;gories par poids</top_categories_by_size>
@@ -4408,6 +4478,7 @@ Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.<
 <top_members>TOP des membres</top_members>
 <top_members_by_hits>TOP des membres par requ&ecirc;tes</top_members_by_hits>
 <top_members_by_size>TOP des membres par poids</top_members_by_size>
+<top_not_cached_websites>TOP des sites non mis en cache</top_not_cached_websites>
 <top_ou>Top des organisations</top_ou>
 <top_searchengines_by_hits>TOP des moteurs de recherche</top_searchengines_by_hits>
 <top_videos>TOP des Vid&eacute;os</top_videos>
@@ -4525,6 +4596,9 @@ Vous trouverez ici les sites consid&eacute;r&eacute;s comme inconnus.[br]Lorsque
 <unlock_webstats_explain>Verrouiller/d&eacute;verrouiller les param&egrave;tres proxy de l'appliance de statistiques.</unlock_webstats_explain>
 <unlock_webstats_explain2>Si vert, vous aurez acc&egrave;s aux fonctionnalit&eacute;s locales du serveur.[br]
 Les &eacute;v&egrave;nements d'acc&egrave;s seront toujours envoy&eacute;s vers l'appliance de statistiques mais les param&egrave;tres centraux ne seront plus appliqu&eacute;s localement.</unlock_webstats_explain2>
+<unrestricted_networks>R&eacute;seaux non restreints</unrestricted_networks>
+<unrestricted_networks_text>Par d&eacute;faut, le compresseur HTTP restreint les acc&egrave;s aux proxy enfants sp&eacute;cifi&eacute;s dans la section proxy p&egrave;re.[br]
+Si vert, tous les clients seront en mesure de se connecter sur le port du proxy.</unrestricted_networks_text>
 <update2>Mise &agrave; jour</update2>
 <UpdateUtility>UpdateUtility</UpdateUtility>
 <UpdateUtilityEnableHTTP_explain>Si vous activez le service HTTP, l'ensemble de vos outils antivirus Kaspersky seront redirig&eacute;s vers le d&eacute;p&ocirc;t local.[br]
@@ -4548,6 +4622,7 @@ Indiquez ici le chemin vers le conteneur.</updateutility_setup1>
 <update_precompiled_ufdb>Mettre &agrave; jour les bases pr&eacute;-compil&eacute;es</update_precompiled_ufdb>
 <update_precompiled_ufdb_explain>Cette t&acirc;che va t&eacute;l&eacute;charger les bases pr&eacute;-compil&eacute;es pour le moteur de filtrage Web.[br]
 Les bases pr&eacute;-compil&eacute;es sont les bases de production afin de filtrer vos utilisateurs.</update_precompiled_ufdb_explain>
+<update_schedule>Mise &agrave; jour programm&eacute;e</update_schedule>
 <update_squid>Mettre &agrave; jour le proxy</update_squid>
 <update_SQUIDAB_EXP>Les bases de cat&eacute;gories des statistiques sont actuellement en train de se mettre &agrave; jour.[br]
 Pendant l'ex&eacute;cution de cette t&acirc;che votre serveur peut &ecirc;tre surcharg&eacute;.[br]
@@ -4629,6 +4704,7 @@ auth@ pour authuser@[ftpuser@host:port]</UserAuthMagic_explain>
 <use_milter_remote_service_explain>Indiquez dans ce champs l'adresse du service milter distant.[br]
 Ceci doit &ecirc;tre sous la forme  inet:IP:PORT comme net:127.0.0.1:1052  ou inet:myhostname:1052.[br]
 Indiquez le champs vide pour ne pas utiliser de service milter distant.</use_milter_remote_service_explain>
+<use_parent_proxy>Utilise un proxy p&egrave;re</use_parent_proxy>
 <use_radius>Utiliser RADIUS</use_radius>
 <use_remote_dhcp_server>Utiliser un serveur DHCP distant</use_remote_dhcp_server>
 <use_remote_dhcp_server_chilli>Le HotSpot doit &ecirc;tre le serveur DHCP, si cette option est activ&eacute;e, les requ&ecirc;tes DHCP seront transf&eacute;r&eacute;es au serveur DHCP sp&eacute;cifi&eacute;.</use_remote_dhcp_server_chilli>
@@ -4781,6 +4857,8 @@ Notez qu'apr&egrave;s cette op&eacute;ration, vous devrez red&eacute;marrer les 
 La performance de votre serveur est en dessous des recommandations.[br]Il n&eacute;cessaire de disposer au moins d'un serveur disposant de 2 CPUs et de 2GB de m&eacute;moire vive..</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>Cette op&eacute;ration va faire red&eacute;marrer le service proxy et stopper toutes les connexions actuelles.
 Voulez-vous effectuer cette op&eacute;ration ?</WARN_OPE_RESTART_SQUID_ASK>
+<warn_proxy_service_reloaded>Cette op&eacute;ration va recharger le service Proxy.
+Voulez-vous effectuer cette op&eacute;ration ?</warn_proxy_service_reloaded>
 <warn_restore_articadb>Restaurer cette sauvegarde vers l'instance Zarafa d&eacute;di&eacute;e ?
 Les donn&eacute;es d&eacute;j&agrave; enregistr&eacute;es seront alors d&eacute;truites.
 Fichier de sauvegarde:</warn_restore_articadb>

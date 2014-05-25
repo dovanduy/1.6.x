@@ -294,7 +294,7 @@ function CleanHtml($data){
 	return $data;
 }
 
-function BuildNetworks(){
+public function BuildNetworks(){
 	include_once(dirname(__FILE__).'/class.tcpip.inc');
 	if($this->main_array["NETWORK"]["TrustLocalHost"]==1){
 		$net[]="127.0.0.0/8";
@@ -336,16 +336,35 @@ function BuildNetworks(){
 	}	
 	
 	
-	if(is_array($net)){
-		while (list ($num, $val) = each ($net) ){
-			if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new Network :$val\n";}
+	$q=new mysql();
+	$IPClass=new IP();
+	$sql="SELECT ipaddr FROM postfix_whitelist_con";
+	$results=$q->QUERY_SQL($sql,"artica_backup");	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ligne["ipaddr"]=trim($ligne["ipaddr"]);
+		if(!$IPClass->isIPAddress($ligne["ipaddr"])){
+			$ligne["ipaddr"]=gethostbyname($ligne["ipaddr"]);
 		}
+		if(!$IPClass->isIPAddress($ligne["ipaddr"])){continue;}
+		$net[]="{$ligne["ipaddr"]}";
 	}
 	
 	
 	if(is_array($net)){
-		reset($net);
-		$conf=implode(' ',$net);
+		while (list ($num, $val) = each ($net) ){
+			if($GLOBALS["EXECUTED_AS_ROOT"]){echo "Starting......: ".date("H:i:s")." amavisd-new Network :$val\n";}
+			$T[$val]=true;
+		}
+	}
+	
+	
+	
+	
+	if(is_array($T)){
+		while (list ($num, $val) = each ($T) ){
+		$net2[]=$num;
+		}
+		$conf=implode(' ',$net2);
 	}
 	return $conf;
 	
@@ -383,15 +402,18 @@ function DelNetwork($index){
 function GetLocalDomains(){
 	//parse ldap table and format maps.
 	$ldap=new clladp();
-	$domains=null;
+	$domains=array();
 	$hash=$ldap->AllDomains();
 	if(!is_array($hash)){return null;}
-	while (list ($num, $ligne) = each ($hash) ){
-		$domains=$domains ."'$num',";
+	while (list ($DOMAIN, $ligne) = each ($hash) ){
+		$DOMAIN=strtolower($DOMAIN);
+		if(strpos(" $DOMAIN", ".")==0){continue;}
+		if(preg_match("#in-addr\.arpa$#", $DOMAIN)){continue;}
+		$domains[]="'$DOMAIN'";
 		
 	}
-	if(substr($domains,strlen($domains)-1,1)==','){$domains=substr($domains,0,strlen($domains)-1);}
-	return $domains;
+	
+	return @implode(",", $domains);
 	}
 	
 	
@@ -1096,36 +1118,94 @@ private function admin_maps_by_ccat(){
   
 }
 
-private function whitelist_sender_maps(){
+public function whitelist_sender_maps(){
 	$f=array();
 	if(!function_exists("string_to_regex")){
 		include_once(dirname(__FILE__)."/class.templates.inc");
 	}
-	$sql="SELECT * FROM postfix_global_whitelist WHERE enabled=1 ORDER BY sender";	
+	$sql="SELECT * FROM postfix_global_whitelist ORDER BY sender";	
 	$q=new mysql();
 	if(!$q->TestingConnection()){
-		echo "Starting......: ".date("H:i:s")." amavisd-new whitelisted senders Connection to MySQL server failed\n";
+	if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} whitelisted senders Connection to MySQL server failed\n";}
 		return;
 	}
+	$IP=new IP();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){echo $q->mysql_error."\n$sql\n";return null;}	
+	
+	$MAX=mysql_num_rows($results);
+	if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} whitelisted senders $MAX items\n";}
+	
+	$c=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$pattern=trim($ligne["sender"]);
-		if($pattern==null){continue;}
-		$already[$ligne["sender"]]=true;
-		$pattern=str_replace('.','\.',$pattern);
-		$pattern=str_replace("*",".*",$pattern);
-		$pattern="\tqr'$pattern$'i\n";	
-		$f[]=$pattern;
+		$pattern=trim(strtolower($ligne["sender"]));
+		$c++;
+		if($pattern==null){
+			if($GLOBALS["VERBOSE"]){echo "postfix_global_whitelist: SKIP: `NULL`\n";}
+			continue;}
+			
+		$enabled=$ligne["enabled"];
+		if(!is_numeric($enabled)){$enabled=1;}
+		if($enabled==0){continue;}
+		if($GLOBALS["VERBOSE"]){echo "postfix_global_whitelist: `$pattern`, enabled='$enabled'\n";}
+		if(substr($pattern, 0,1)=="."){$pattern=substr($pattern, 1,strlen($pattern));}
+		if(!preg_match("#(.*?)@(.+)#", $pattern,$re)){ $re[1]=null; $re[2]=$pattern; }
+		$prefix_email=trim($re[1]);
+		$suffix_email=trim($re[2]);
+		if($prefix_email=="*"){$prefix_email=null;}
+		if($prefix_email==".*"){$prefix_email=null;}
+		if($prefix_email==null){$pattern=$suffix_email;}
+		if(preg_match("#^www\.(.+)#", $suffix_email,$re)){$suffix_email=$re[1];}
+		if(substr($suffix_email, 0,1)=="."){$suffix_email=substr($suffix_email, 1,strlen($suffix_email));}
+		
+		if($IP->isIPAddress($suffix_email)){
+			if($GLOBALS["VERBOSE"]){echo "postfix_global_whitelist: SKIP: `$pattern`\n";}
+			continue;
+		}
+		if($prefix_email<>null){$pattern="$prefix_email@$suffix_email";}
+		if($GLOBALS["VERBOSE"]){echo "postfix_global_whitelist:$c/$MAX `$pattern`\n";}
+		$f[$pattern]=true;
+	}
+	
+	
+	$ldap=new clladp();
+	$hash=$ldap->WhitelistsFromDomain("*");
+	
+	if($GLOBALS["VERBOSE"]){echo "WhitelistsFromDomain ->". count($hash)." items\n";}
+	
+	while (list ($ToDestination, $MAIN_HASH) = each ($hash)){
+		while (list ($index, $pattern) = each ($MAIN_HASH)){
+			$pattern=trim(strtolower($pattern));
+			if($pattern==null){continue;}
+			if(substr($pattern, 0,1)=="."){$pattern=substr($pattern, 1,strlen($pattern));}
+			if(!preg_match("#(.*?)@(.+)#", $pattern,$re)){ $re[1]=null; $re[2]=$pattern; }
+			$prefix_email=trim($re[1]);
+			$suffix_email=trim($re[2]);
+			if($IP->isIPAddress($suffix_email)){continue;}
+			if(preg_match("#^www\.(.+)#", $suffix_email,$re)){$suffix_email=$re[1];}
+			if($prefix_email=="*"){$prefix_email=null;}
+			if($prefix_email==".*"){$prefix_email=null;}
+			if($prefix_email==null){$pattern=$suffix_email;}
+			if(substr($suffix_email, 0,1)=="."){$suffix_email=substr($suffix_email, 1,strlen($suffix_email));}
+			if($prefix_email<>null){$pattern="$prefix_email@$suffix_email";}
+			if($GLOBALS["VERBOSE"]){echo "WhitelistsFromDomain: `$pattern`\n";}
+			$f[$pattern]=true;
+		}
 	}
 
 	
 	
 	if(count($f)==0){return;}
-	echo "Starting......: ".date("H:i:s")." amavisd-new whitelisted senders ". count($f)." items\n";
-	$final[]="@whitelist_sender_maps = ( new_RE(\n";
-   	$final[]=@implode(",",$f);
-	$final[]="));";
+	
+	while (list ($pattern, $line) = each ($f)){
+		$t[]=$pattern;
+		
+	}
+	
+	@file_put_contents("/usr/local/etc/amavis/global.whitelist.db", @implode("\n", $t)."\n");
+	if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} whitelisted senders ". count($f)." items\n";}
+	$final[]="read_hash(\%whitelist_sender, '/usr/local/etc/amavis/global.whitelist.db');";
+	$final[]="@whitelist_sender_maps = (\%whitelist_sender);";
 	$final[]="";
 	
 	return @implode("\n",$final);

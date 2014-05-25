@@ -710,7 +710,7 @@ function rules_add(){
 		$delay_pool_max_file=$t[1];
 		$delay_pool_max_file=$delay_pool_max_file*8;
 		$delay_pool_max_file=$delay_pool_max_file/1000;			
-		$button_title="{edit}";
+		$button_title="{apply}";
 		$enable=$ligne["enable"];
 		
 		$rule_class=$ligne["rule_class"];

@@ -1,9 +1,10 @@
 <?php
-
+$GLOBALS["BYCRON"]=false;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 $GLOBALS["FORCE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
+if(preg_match("#--bycron#",implode(" ",$argv))){$GLOBALS["BYCRON"]=true;}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -34,12 +35,38 @@ if($argv[1]=="--status"){BuildDatabaseStatus();die();}
 Execute();
 
 function Execute(){
-	if(!ifMustBeExecuted()){
-		
-		
-		if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die();
-	}
+	if(!ifMustBeExecuted()){ if($GLOBALS["VERBOSE"]){echo "No make sense to execute this script...\n";}die(); }
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
+	$StandardTime=240;
+	$sock=new sockets();
+	$kill=$unix->find_program("kill");
+	
+	
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,__FILE__)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($time>240){shell_exec("$kill -9 $pid");}
+	}
+	if($unix->process_exists($pid,__FILE__)){return;}
+	@file_put_contents($pidfile, getmypid());
+	
+	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
+	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
+	
+	if($CategoriesDatabasesByCron==1){
+		if(!$GLOBALS["BYCRON"]){ return; }
+	}
+	
+	if(!$GLOBALS["BYCRON"]){
+		$timeFile=$unix->file_time_min($timeFile);
+		if($timeFile<$StandardTime){return;}
+	}
+	
+	
+	@unlink($timeFile);
+	@file_put_contents($timeFile, time());
 	
 	
 	$BASE_URI="ftp://ftp.univ-tlse1.fr/pub/reseau/cache/squidguard_contrib";
@@ -75,6 +102,7 @@ function Execute(){
 	
 	if($SquidDatabasesUtlseEnable==0){
 		echo "Toulouse university is disabled\n";
+		artica_update_event(2, "Toulouse university is disabled, aborting", null,__FILE__,__LINE__);
 	}
 	if(!$GLOBALS["FORCE"]){
 		$time=$unix->file_time_min($cachetime);
@@ -118,7 +146,9 @@ function Execute(){
 	}
 	
 	if(count($GLOBALS["squid_admin_mysql"])){
-		artica_update_event(2, count($GLOBALS["squid_admin_mysql"])." Webfiltering Toulouse Databases updated", @implode("\n", $GLOBALS["squid_admin_mysql"]),__FILE__,__LINE__);
+		$UFDB_SIZE=FormatBytes($GLOBALS["UFDB_SIZE"]/1024);
+		artica_update_event(2, count($GLOBALS["squid_admin_mysql"])." downloaded items - $UFDB_SIZE - Webfiltering Toulouse Databases updated",
+		 @implode("\n", $GLOBALS["squid_admin_mysql"]),__FILE__,__LINE__);
 		unset($GLOBALS["squid_admin_mysql"]);
 	}
 	
@@ -251,6 +281,7 @@ function GET_MD5S_REMOTE(){
 
 
 function update_remote_file($BASE_URI,$filename,$md5){
+	if(!isset($GLOBALS["UFDB_SIZE"])){$GLOBALS["UFDB_SIZE"]=0;}
 	WriteMyLogs("update_remote_file($BASE_URI,$filename,$md5)",__FUNCTION__,__FILE__,__LINE__);
 	$indexuri="$BASE_URI/$filename";
 	$unix=new unix();
@@ -272,7 +303,7 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	}
 	
 	$filesize=$unix->file_size($cache_temp);
-	
+	$GLOBALS["UFDB_SIZE"]=$GLOBALS["UFDB_SIZE"]+$filesize;
 	
 	
 	@mkdir("/var/lib/ftpunivtlse1fr",755,true);

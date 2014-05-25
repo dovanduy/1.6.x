@@ -2326,6 +2326,10 @@ public function shellEscapeChars($path){
 	function dskspace_bytes($dir_name){
 		$EXEC_NICE=$this->EXEC_NICE();
 		$du=$this->find_program("du");
+		
+		$pid=$this->PIDOF_PATTERN("$du -bs $dir_name");
+		if($this->process_exists($pid)){return 0;}
+		
 		if(is_file($du)){
 			exec("$EXEC_NICE$du -bs $dir_name 2>&1",$results);
 			while (list ($num, $ligne) = each ($results) ){
@@ -3372,12 +3376,14 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 			$group=$re[2];
 		}
 		
+		if($group<>null){$group=":$group";}
+		
 		if($recursive){
-			shell_exec("$chown -R $user:$group $dir >/dev/null");
+			shell_exec("$chown -R $user$group $dir >/dev/null");
 			
 			
 		}else{		
-			shell_exec("$chown $user:$group $dir >/dev/null");
+			shell_exec("$chown $user$group $dir >/dev/null");
 		}
 		
 		$GLOBALS["chown_func"][md5("$user$group$dir")]=true;
@@ -4264,12 +4270,19 @@ public function IpToMac($ipaddr){
 }
 	
 	public static function isIPAddress( $ip ) {
+		$ip=trim($ip);
+		if($ip==null){return false;}
 		if ( !$ip ) return false;
-		if ( is_array( $ip ) ) {
-			return;
+		if ( is_array( $ip ) ) {return false;}
+		if(preg_match("#(.+?)\/([0-9]+)$#", $ip,$re)){
+			$re[2]=trim($re[2]);
+			if(strlen($re[2])>2){return false;}
+			$ip=$re[1];
 		}
-		// IPv6 IPs with two "::" strings are ambiguous and thus invalid
-		return preg_match( '/^' . IP_ADDRESS_STRING . '$/', $ip) && ( substr_count($ip, '::') < 2 );
+		if(preg_match("#^".RE_IP_ADD."$#", $ip,$re)){return true;}
+		if(preg_match("#^".RE_IPV6_ADD."$#", $ip,$re)){return true;}
+		if(substr_count($ip, '::')>0){return false;}
+		return false;
 	}	
 private static function IsvalidMAC($MAC){
 		$MAC=str_replace(":", "-", $MAC);
@@ -4428,6 +4441,24 @@ private static function IsvalidMAC($MAC){
 		}
 		
 	}
+	
+	public function TOTAL_MEM_POURCENT_USED(){
+		$unix=new unix();
+		$free=$unix->find_program("free");
+		exec("$free -m 2>&1",$results);
+		while (list ($num, $ligne) = each ($results) ){
+			if(!preg_match("#Mem:\s+([0-9]+)\s+([0-9]+)#",$ligne,$re)){continue;}
+			$Total=$re[1];
+			$Used=$re[2];
+			if($GLOBALS["VERBOSE"]){echo "$Total: {$Total}MB - Used: {$Used}MB\n";}
+			break;
+		}
+		
+		$prc=$Used/$Total;
+		$prc=round($prc*100);
+		return $prc;
+	}
+	
 
 	public function TOTAL_MEMORY_MB_USED(){
 		$unix=new unix();
@@ -5772,6 +5803,13 @@ public function LOCATE_APACHE_CTL(){
 	if(is_file($apachectl)){return $apachectl;}	
 }
 
+
+public function LOCATE_AMAVISD_BIN_PATH(){
+	if(is_file('/usr/local/sbin/amavisd')){return '/usr/local/sbin/amavisd';}
+	if(is_file('/usr/sbin/amavisd-new')){return '/usr/sbin/amavisd-new';}
+	return $this->find_program('amavisd');
+}
+
 public function SAMBA_GetNetAdsInfos(){
 	$unix=new unix();
 	$net=$this->LOCATE_NET_BIN_PATH();
@@ -6698,8 +6736,9 @@ function Mysql_TestDump($array,$container){
 
 		}
 	}
-
+	$array_text=@implode(" ", $array);
 	if(!is_file($container)){
+		$this->ToSyslog("Mysql_TestDump:: Dump failed $container, no such file $array_text");
 		if($GLOBALS["VERBOSE"]){echo "Dump failed $container, no such file ...\n";}
 		ufdbguard_admin_events("Fatal Error: day: Dump failed $container, no such file",__FUNCTION__,__FILE__,__LINE__,"backup");
 		return;

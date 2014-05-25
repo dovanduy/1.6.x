@@ -118,7 +118,7 @@ function popup(){
 		<tr>
 			<td colspan=2>$wizard</td>
 		</tr>
-		<tr><td colspan=2 align='right'><hr><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:EnableImapMurderedFrontEnd();\"></td></tr>
+		<tr><td colspan=2 align='right'><hr><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EnableImapMurderedFrontEnd();\"></td></tr>
 		</table>
 		";
 	}

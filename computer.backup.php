@@ -168,7 +168,7 @@ $html="
 		</table>
 		
 	<hr>
-	<div style='width:100%;text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveComputerBackupInfo();\"></div>
+	<div style='width:100%;text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveComputerBackupInfo();\"></div>
 	</div>
 	</td>
 </tr>

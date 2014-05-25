@@ -460,7 +460,7 @@ function load_balance_form_backend_search(){
 		$uid=$ligne["uid"];
 		$cmp=new computers($uid);
 		$jsfiche=MEMBER_JS($uid,1,1);
-		$select=imgtootltip("32-parameters.png","{edit}","Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","DeleteBalancerBackend('{$ligne["backendmd"]}')");
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}
@@ -470,7 +470,7 @@ function load_balance_form_backend_search(){
 		$uri=texttooltip($cmp->ComputerRealName,"{view}",$jsfiche,null,0,"font-size:16px;text-decoration:underline");
 		if($ligne["max_connections"]==0){$ligne["max_connections"]="{unlimited}";}
 		$cs++;
-		$select=imgtootltip("32-network-server.png","{edit}","Loadjs('$page?backend-server-edit-js={$ligne["backendmd"]}')");
+		$select=imgtootltip("32-network-server.png","{apply}","Loadjs('$page?backend-server-edit-js={$ligne["backendmd"]}')");
 		
 		$html=$html."
 		<tr class=$classtr>
@@ -608,7 +608,7 @@ function xr_list_search(){
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		
-		$select=imgtootltip("32-parameters.png","{edit}","Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","Loadjs('$page?add-load-balance-js=yes&ID={$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","DeleteBalancerService('{$ligne["ID"]}')");
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}

@@ -295,7 +295,7 @@ function server_list(){
 		<table style='width:99%;margin-top:10px;padding:10px' class=form>
 		<tbody>
 		<tr >
-			<td valign=top width=1% style='padding:5px'>". imgtootltip($img,"{edit}",$js)."</td>
+			<td valign=top width=1% style='padding:5px'>". imgtootltip($img,"{apply}",$js)."</td>
 			<td valign='top' style='padding:5px'>
 			<div>
 				<strong style='font-size:13px;text-decoration:underline' OnClick=\"javascript:$js\" OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >$servername</strong>

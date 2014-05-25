@@ -1156,20 +1156,12 @@ function section_computers_infos_OS(){
 	$page=CurrentPageName();
 	$users=new usersMenus();
 	$q=new mysql();
-	
-		$array["section_computers_infos_OS_2"]='{manage_your_server}';
-		$array["ocsagent"]="{APP_OCSI_LNX_CLIENT}";
-		
-		
-		
-		
-		
-		$fontsize=14;
+	$array["section_computers_infos_OS_2"]='{manage_your_server}';
+	$array["ocsagent"]="{APP_OCSI_LNX_CLIENT}";
+	$fontsize=14;
 		
 		
 	while (list ($num, $ligne) = each ($array) ){
-		
-		
 		if($num=="ocsagent"){
 			$tab[]="<li><a href=\"ocs.agent.php?inline=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
@@ -1823,20 +1815,27 @@ function quicklinks_proxy(){
 	$CacheManagement2=$sock->GET_INFO("CacheManagement2");
 	if(!is_numeric($CacheManagement2)){$CacheManagement2=0;}
 	
-	if($CacheManagement2==1){
+	
 		$tr[]=paragrapheWin("caches-center-white-64.png","{caches_center}",
 				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.caches.rules.php?main-tabs=yes')");
 		
-	}
 	
 	
 	
+		//$templates_error=Paragraphe('squid-templates-64.png','{squid_templates_error}',
+		//'{squid_templates_error_text}',"javascript:Loadjs('squid.templates.php')");
 	
-	//$tr[]=paragrapheWin("settings-white-60.png","{parameters}",
-		//	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.main.quicklinks.php?architecture-tabs=yes')");
+	$tr[]=paragrapheWin("squid-templates-64-white.png","{squid_templates_error}",
+	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.templates.php?tabs=yes')");
 	
 	$tr[]=paragrapheWin("autoconf-64-white.png","{autoconfiguration}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");	
+			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");
+
+	if($users->C_ICAP_INSTALLED){
+	$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
+			"AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-webfilter.php')");
+	}
+	
 	
 	$tr[]=paragrapheWin("webfiltering-white-64.png","{web_filtering}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");
@@ -1886,8 +1885,8 @@ $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyConte
 	$tr[]=paragrapheWin("tasks-white-64.png","{tasks}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid-quicklinks.php?function=section_tasks')");
 	
-	$tr[]=paragrapheWin("artica-watchdog.png","Artica Watchdog",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.watchdog.php?tabs=yes')");	
+	//$tr[]=paragrapheWin("artica-watchdog.png","Artica Watchdog",
+		//	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.watchdog.php?tabs=yes')");	
 	
 	$tr[]=paragrapheWin("failover-64.png","{failover}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.failover.php?tabs=yes')");	

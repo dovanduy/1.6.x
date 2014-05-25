@@ -438,7 +438,7 @@ $html="<div style='padding:20px'>
 	<td>$field<div class='caption'>{use_tls_relay_explain}</div></td>	
 	</tr>		
 	<tr>
-	<td align='right' class=caption colspan=2><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('tls_smtp_server','$page',true);TLSLoadTable();\"></td>
+	<td align='right' class=caption colspan=2><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('tls_smtp_server','$page',true);TLSLoadTable();\"></td>
 	</tr>		
 	<tr>
 	<td align='left' class=caption colspan=2><strong>{MX_lookups}</strong><br>{MX_lookups_text}</td>
@@ -708,7 +708,7 @@ function postfix_tls_settings(){
 	
 	
 	<tr><td colspan=2 align='right'>
-		<input type='button' value='&nbsp;&nbsp;{edit}&nbsp;&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffmtls','$page',true);\"></td>
+		<input type='button' value='&nbsp;&nbsp;{apply}&nbsp;&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffmtls','$page',true);\"></td>
 	
 	
 	</table>
@@ -733,7 +733,7 @@ $button_postfix="<center><table style='width:100%'><tr>
 		</tr>
 		</table>
 		<br><br>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:TLSStartTLSOfferSave();\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:TLSStartTLSOfferSave();\">
 		</div>
 	</div>
 	</form>");
@@ -746,7 +746,7 @@ $button_postfix="<center><table style='width:100%'><tr>
 	<div class=caption>{tls_logging_intro}</div>
 		<div style='padding:5px;text-align:right'>$field
 		<br><br>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:TLSLoggingLevelSave();\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:TLSLoggingLevelSave();\">
 		</div>
 	</div>
 	</form>");

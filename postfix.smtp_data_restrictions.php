@@ -511,7 +511,7 @@ $html="<table cellspacing='0' cellpadding='0' border='0' class='tableView' style
 	if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","smtpd_data_restrictions_edit('{$ligne["ID"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","smtpd_data_restrictions_edit('{$ligne["ID"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","smtpd_data_restrictions_del('{$ligne["ID"]}')");
 		$color="black";
 		if($ligne["enabled"]==0){$color="#8a8a8a";}

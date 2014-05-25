@@ -108,7 +108,7 @@ function popup(){
 		<td>".Field_TRUEFALSE_checkbox_img("DisclaimerUserOverwrite",$dd->DisclaimerUserOverwrite,"{enable_disable}")."</td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:DisclaimerGlobalConfSave();\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:DisclaimerGlobalConfSave();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>";
 	

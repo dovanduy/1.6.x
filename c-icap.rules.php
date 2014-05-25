@@ -23,17 +23,25 @@ function tabs(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$sock=new sockets();
-	
+	$sock=new sockets();	
 	
 	$array["status"]='{status}';
+	$array["rules"]='{rules}';
+	$array["profiles"]='{profiles}';
+	
+	
 	//$array["logs"]='{icap_logs}';
 	$fontsize="16";
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="rules"){
-			$html[]= "<li><a href=\"c-icap.rules.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			$html[]= "<li><a href=\"c-icap.webfilter.rules.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 			continue;
 		}
+		
+		if($num=="profiles"){
+			$html[]= "<li><a href=\"c-icap.profiles.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}		
 	
 		$html[]= "<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
 	}

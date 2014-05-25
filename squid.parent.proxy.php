@@ -55,6 +55,7 @@ function tabs(){
 	$array["status"]='{status}';
 	$array["popup"]='{proxy_parents}';
 	$array["master"]='{master_proxy}';
+	$array["zipproxy"]='{http_compression}';
 	
 	
 	$t=time();
@@ -70,12 +71,18 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-proxy.php?byQuicklinks=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 			continue;
 		
+		}	
+
+		if($num=="zipproxy"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.zipproxy.php\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		
 		}		
 	
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	
-	echo build_artica_tabs($html, "main_squid_prents_tabs",950);
+	echo build_artica_tabs($html, "main_squid_prents_tabs",1100);
 	
 	
 	
@@ -446,9 +453,6 @@ function Save$t(){
 	XHR.appendData('prefer_direct',document.getElementById('prefer_direct').value);
 	XHR.appendData('nonhierarchical_direct',document.getElementById('nonhierarchical_direct').value);
 	XHR.appendData('forwarded_for',document.getElementById('x-Forwarded-For-$t').value);
-	
-	
-	
 	XHR.sendAndLoad('$page', 'GET',xSave$t);
 }		
 </script>";
@@ -460,7 +464,7 @@ function Save$t(){
 
 
 function popup(){
-	
+	$ASBROWSER=false;
 	$squid=new squidbee();
 	$page=CurrentPageName();
 	$tpl=new templates();
@@ -474,8 +478,35 @@ function popup(){
 	$apply_params=$tpl->_ENGINE_parse_body("{apply}");
 	$status=$tpl->_ENGINE_parse_body("{status}");
 	$enabled=$tpl->_ENGINE_parse_body("{enabled}");
+	$select=$tpl->javascript_parse_text("{select}");
+	$delete=$tpl->javascript_parse_text("{delete}");
 	if(isset($_GET["t"])){ $t=$_GET["t"]; }
 	if(!is_numeric($t)){$t=time();}
+	
+	$servername_width=343;
+	
+	if(isset($_GET["browser"])){
+		$browser_uri="&browser=yes&callback={$_GET["callback"]}";
+		$ASBROWSER=true;
+		$servername_width=269;
+	}
+	
+	
+	if(!$ASBROWSER){$display[]="{display: '$status', name : 'icon', width :75, sortable : true, align: 'center'}";}
+	if($ASBROWSER){$display[]="{display: '&nbsp;', name : 'icon', width :75, sortable : true, align: 'center'}";}
+	$display[]="{display: '$servername', name : 'servername', width :$servername_width, sortable : true, align: 'left'}";
+	$display[]="{display: '$listen_port', name : 'server_port', width : 84, sortable : true, align: 'center'}";
+	$display[]="{display: '$server_type', name : 'server_type', width : 103, sortable : true, align: 'center'}";
+	if(!$ASBROWSER){
+		$display[]="{display: '$enabled', name : 'enabled', width : 50, sortable : true, align: 'center'}";
+		$display[]="{display: '&nbsp;', name : 'zOrder', width : 50, sortable : true, align: 'center'}";
+		$display[]="{display: '&nbsp;', name : 'down', width : 50, sortable : false, align: 'center'}";
+		$display[]="{display: '$delete', name : 'delete', width : 50, sortable : false, align: 'center'}";
+	}
+	if($ASBROWSER){
+		$display[]="{display: '$select', name : 'enabled', width : 50, sortable : false, align: 'center'}";
+		$display[]="{display: '$delete', name : 'delete', width : 50, sortable : false, align: 'center'}";
+	}
 	
 $html="
 <input type='hidden' id='proxy-parent-flexigrid' value='flexRT$t'>
@@ -484,18 +515,10 @@ $html="
 <script>
 $(document).ready(function(){
 $('#flexRT$t').flexigrid({
-	url: '$page?parent-list=yes&t=$t',
+	url: '$page?parent-list=yes&t=$t$browser_uri',
 	dataType: 'json',
 	colModel : [
-		{display: '$status', name : 'icon', width :75, sortable : true, align: 'center'},
-		{display: '$servername', name : 'servername', width :343, sortable : true, align: 'left'},
-		{display: '$listen_port', name : 'server_port', width : 84, sortable : true, align: 'left'},
-		{display: '$server_type', name : 'server_type', width : 103, sortable : true, align: 'left'},
-		{display: '$enabled', name : 'enabled', width : 50, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'zOrder', width : 50, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'down', width : 50, sortable : false, align: 'center'},
-		{display: 'delete', name : 'delete', width : 50, sortable : false, align: 'center'}
-
+		".@implode(",\n", $display)."		
 		],
 		
 buttons : [
@@ -542,6 +565,11 @@ function popup_list(){
 	$squid=new squidbee();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
+	$ASBROWSER=false;
+	if(isset($_GET["browser"])){
+		$ASBROWSER=true;
+	}
+	
 	
 	if(!$q->FIELD_EXISTS("squid_parents", "weight", "artica_backup")){
 		$sql="ALTER TABLE `squid_parents` ADD `weight` SMALLINT( 20 ) NOT NULL DEFAULT '1',ADD INDEX ( `weight` )";
@@ -612,6 +640,7 @@ function popup_list(){
 		
 		$fetches=null;
 		$options=null;
+		$domainsInfos=null;
 		$arrayT=array();
 		$img="48-server.png";
 		$Check="check-48.png";
@@ -620,32 +649,34 @@ function popup_list(){
 			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$ligne["servername"]]["FETCHES"]).")</span>";
 		}
 		
-		if(!isset($STATUS[$ligne["servername"]]["STATUS"])){
-			$img="42-server-grey.png";
-			$STATUS[$ligne["servername"]]["STATUS"]="{unknown}";
-		}else{
-			if($STATUS[$ligne["servername"]]["STATUS"]=="Down"){
-				$STATUS[$ligne["servername"]]["STATUS"]="{stopped}";
-				$img="42-server-red.png";
+		if(!$ASBROWSER){
+			if(!isset($STATUS[$ligne["servername"]]["STATUS"])){
+				$img="42-server-grey.png";
+				$STATUS[$ligne["servername"]]["STATUS"]="{unknown}";
 			}else{
-				$STATUS[$ligne["servername"]]["STATUS"]="{running}";
+				if($STATUS[$ligne["servername"]]["STATUS"]=="Down"){
+					$STATUS[$ligne["servername"]]["STATUS"]="{stopped}";
+					$img="42-server-red.png";
+				}else{
+					$STATUS[$ligne["servername"]]["STATUS"]="{running}";
+				}
+			}
+			
+			
+			if($EnableParentProxy==0){
+				$color="#CACACA";
+				$img="42-server-grey.png";
 			}
 		}
-		
-		
-		if($EnableParentProxy==0){
-			$color="#CACACA";
-			$img="42-server-grey.png";
-		}
-		
-		
 
 		
 		if($ligne["icp_port"]>0){$ligne["server_port"]=$ligne["server_port"]."/".$ligne["icp_port"];}
 		
-		$ligne3=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(md5) as tcount FROM cache_peer_domain WHERE `servername`='{$ligne["servername"]}'","artica_backup"));
-		$countDeDomains=$ligne3["tcount"];
-		if($countDeDomains==0){$countDeDomains=$all;}
+		if(!$ASBROWSER){
+			$ligne3=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(md5) as tcount FROM cache_peer_domain WHERE `servername`='{$ligne["servername"]}'","artica_backup"));
+			$countDeDomains=$ligne3["tcount"];
+			if($countDeDomains==0){$countDeDomains=$all;}
+		}
 		
 		$up=imgsimple("arrow-up-42.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=0&t={$_GET["t"]}')");
 		$down=imgsimple("arrow-down-42.png",null,"Loadjs('$MyPage?move-item-js=yes&ID={$ligne["ID"]}&dir=1&t={$_GET["t"]}')");
@@ -673,19 +704,39 @@ function popup_list(){
 		<img src='img/delete-42.png' style='border:0px;color:$color'>
 		</a>";
 		
+		if(!$ASBROWSER){
+		$domainsInfos="&nbsp;<a href=\"javascript:Loadjs('squid.cache_peer_domain.php?servername={$ligne["servername"]}&t=$t')\" 
+				style='font-weight:bold;color:$color;text-decoration:underline;font-size:18px'>($countDeDomains $domains)</a>";
+		}
+		
 		$enabled=imgsimple($Check,null,"Loadjs('$MyPage?enable-js=yes&ID={$ligne["ID"]}&t=$t')");
+		if($ASBROWSER){
+			$enabled="<div style='margin-top:4px'>".imgsimple("arrow-blue-left-32.png",null,"{$_GET["callback"]}({$ligne["ID"]})")."</div>";
+		}
 		
 		$STATUS[$ligne["servername"]]["STATUS"]=$tpl->_ENGINE_parse_body($STATUS[$ligne["servername"]]["STATUS"]);
 		
+		$CELLS=array();
+		$CELLS[]="<img src='img/$img'><br>{$STATUS[$ligne["servername"]]["STATUS"]}";
+		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["servername"]}</a>$domainsInfos$options</div>";
+		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["server_port"]}</a></div>";
+		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["server_type"]}</a></div>";
+		$CELLS[]=$enabled;
+		
+		
+		if(!$ASBROWSER){
+			
+			$CELLS[]=$up;
+			$CELLS[]=$down;
+			
+		}
+		$CELLS[]=$delete;
+		
+		
+		
 	$data['rows'][] = array(
 		'id' =>"PPROXY-". $ligne['ID'],
-		'cell' => array(
-				"<img src='img/$img'><br>{$STATUS[$ligne["servername"]]["STATUS"]}",
-				"$ahref{$ligne["servername"]}</a> <a href=\"javascript:Loadjs('squid.cache_peer_domain.php?servername={$ligne["servername"]}&t=$t')\" 
-				style='font-weight:bold;color:$color;text-decoration:underline;font-size:18px'>($countDeDomains $domains)</a>$options",
-				
-				"$ahref{$ligne["server_port"]}</a>",
-				"$ahref{$ligne["server_type"]}</a>",$enabled,$up,$down,$delete )
+		'cell' => $CELLS
 		);
 	}
 	

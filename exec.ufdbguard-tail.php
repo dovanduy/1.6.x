@@ -32,11 +32,9 @@ if(!isset($GLOBALS["UfdbguardSMTPNotifs"]["ENABLED"])){$GLOBALS["UfdbguardSMTPNo
 $GLOBALS["RELOADCMD"]="{$GLOBALS["nohup"]} {$GLOBALS["PHP5_BIN"]} ".dirname(__FILE__)."/exec.squidguard.php --reload-ufdb";
 if($argv[1]=='--date'){echo date("Y-m-d H:i:s")."\n";}
 @mkdir("{$GLOBALS["ARTICALOGDIR"]}/squid-stats",0666,true);
-
+@mkdir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker",600,true);
 @mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks",0666,true);
-events("Running new $pid ");
-events_ufdb_exec("Artica ufdb-tail running $pid");
-ufdbguard_admin_events("Watchdog running pid $pid","MAIN",__FILE__,__LINE__,"ufdbguard-service");
+ToSyslog("Watchdog started pid $pid");
 events("ufdbGenTable = {$GLOBALS["ufdbGenTable"]}");
 
 
@@ -60,6 +58,12 @@ die();
 function Parseline($buffer){
 $buffer=trim($buffer);
 if($buffer==null){return null;}
+$mdbuff=md5($buffer);
+if(isset($GLOBALS['MDBUFF'][$mdbuff])){return;}
+$GLOBALS['MDBUFF'][$mdbuff]=true;
+if(count($GLOBALS['MDBUFF'])>1000){$GLOBALS['MDBUFF']=array();}
+
+
 if(strpos($buffer,"] PASS ")>0){return ;}
 if(strpos($buffer,"UFDBinitHTTPSchecker")>0){return ;}
 if(strpos($buffer,"IP socket port")>0){return ;}
@@ -374,15 +378,11 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 		$array["website"]=$www;
 		$array["client"]=$local_ip;
 		$LLOG=array();
-		while (list ($key, $line) = each ($array) ){$LLOG[]="$key = $line";}
-		events(@implode(",", $LLOG)." on line ".__LINE__);
 		$serialize=serialize($array);
 		$md5=md5($serialize);
 
-		
-		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks");}
+		if(is_file("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql")){return;}
 		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql",$serialize);
-		
 		if(!is_file("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www))){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www), $www);}			
 		
 		return;
@@ -390,7 +390,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	}
 	
 	if(preg_match("#BLOCK\s+(.*?)\s+(.+?)\s+(.*?)\s+(.+?)\s+(.+?)\s+[A-Z]+#", $buffer,$re)){
-		if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker",600,true);}
+		
 		$date=time();
 		$table=date('Ymd')."_blocked";
 		$user=trim($re[1]);
@@ -427,13 +427,13 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 		$array["client"]=$local_ip;
 		
 		$LLOG=array();
-		while (list ($key, $line) = each ($array) ){events("array[$key] = `$line`");}
 		$serialize=serialize($array);
 		$md5=md5($serialize);
-		
+		if(is_file("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql")){return;}
 		@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql",$serialize);
 		events("$www ($public_ip) blocked by rule $rulename/$category from $user/$local_ip/$Clienthostname/$MAC ".@filesize("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-blocks/$md5.sql")." bytes");
 		if(!is_file("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www))){@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/pagepeeker/".md5($www), $www);}					
+		$buffer=null;
 		return;
 		
 	}
@@ -557,7 +557,13 @@ function recover_a_database($filename){
 	shell_exec("{$GLOBALS["nohup"]} /etc/init.d/ufdb restart >/dev/null 2>&1 &");
 	
 }
+function ToSyslog($text){
 
+	$LOG_SEV=LOG_INFO;
+	if(function_exists("openlog")){openlog("ufdbguard-tail", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
+}
 
 
 ?>

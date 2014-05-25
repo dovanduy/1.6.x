@@ -23,7 +23,7 @@ $users=new usersMenus()	;
 $play_is=RoundedLightGrey("
 	<table style='width:100%'>
 	<tr>
-	<td valign='top'>". imgtootltip('icon_settings-64.png','{edit}',"MyHref('artica.wizard.ispout.php')")."</td>
+	<td valign='top'>". imgtootltip('icon_settings-64.png','{apply}',"MyHref('artica.wizard.ispout.php')")."</td>
 	<td valign='top'>
 		<H5>{send_to_isp}</h5>
 		{send_to_isp_text}
@@ -35,7 +35,7 @@ $play_is=RoundedLightGrey("
 
 $plays_is1=RoundedLightGrey("	<table style='width:100%'>
 	<tr>
-		<td valign='top'>". imgtootltip('icon_settings-64.png','{edit}',"MyHref('artica.wizard.isprelay.php')")."</td>
+		<td valign='top'>". imgtootltip('icon_settings-64.png','{apply}',"MyHref('artica.wizard.isprelay.php')")."</td>
 		<td valign='top'>
 			<H5>{send_isp_relay}</h5>
 			{send_isp_relay_text}
@@ -48,7 +48,7 @@ $plays_is1=RoundedLightGrey("	<table style='width:100%'>
 
 $plays_is2=RoundedLightGrey("	<table style='width:100%'>
 	<tr>
-		<td valign='top'>". imgtootltip('icon_settings-64.png','{edit}',"MyHref('artica.wizard.fetchmail.php')")."</td>
+		<td valign='top'>". imgtootltip('icon_settings-64.png','{apply}',"MyHref('artica.wizard.fetchmail.php')")."</td>
 		<td valign='top'>
 			<H5>{get_mails_isp}</h5>
 			{get_mails_isp_text}

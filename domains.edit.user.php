@@ -2076,7 +2076,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 		<tr>
 			<td colspan=2 align='right'>
 			<hr>
-			" . button ( "{edit}", "SetSambaPrimaryGroupGID()" ) . "
+			" . button ( "{apply}", "SetSambaPrimaryGroupGID()" ) . "
 		</tr>
 	</table></div>
 	<br>
@@ -2089,7 +2089,7 @@ function USER_SAMBA_PRIVILEGES_PAGE() {
 	<tr>
 		<td colspan=2 align='right'>
 		<hr>
-		" . button ( "{edit}", "ParseForm('FFMPRIVS_$userid','$page',true);" ) . "
+		" . button ( "{apply}", "ParseForm('FFMPRIVS_$userid','$page',true);" ) . "
 	
 	</tr>
 	</table>
@@ -2540,7 +2540,7 @@ function USER_SENDER_PARAM($userid) {
 		</tr>
 		<tr>
 		<td colspan=2 align='right'>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform3','$page',true);\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('userLdapform3','$page',true);\">
 		</td>
 		</tr>
 		</table>
@@ -2650,7 +2650,7 @@ function USER_ENDOFLIFE() {
 	</tr>
 	<tr><td colspan=3><hr></td></tr>
 	<tr>
-		<td colspan=3 align='right'><input type='button' OnClick=\"javascript:UserSystemInfosSave();\" value='{edit}&nbsp;&raquo;'>
+		<td colspan=3 align='right'><input type='button' OnClick=\"javascript:UserSystemInfosSave();\" value='{apply}&nbsp;&raquo;'>
 	</tr>
 	</table>
 	</div>
@@ -4177,7 +4177,7 @@ function SaveLdapUser() {
 			writelogs ( "[{$user->uid}]:: warning \"$SimpleGroupWareActive\" is not numeric for SimpleGroupWareActive", __FUNCTION__, __FILE__, __LINE__ );
 		}
 		
-		echo html_entity_decode ( $tpl->_ENGINE_parse_body ( "{edit} $uid:{success}\n" ) );
+		echo html_entity_decode ( $tpl->_ENGINE_parse_body ( "{apply} $uid:{success}\n" ) );
 	} else {
 		echo "ERROR $user->ldap_error";
 	}
@@ -4834,7 +4834,7 @@ function USER_FETCHMAIL_LIST($uid) {
 	while ( list ( $num, $ligne ) = each ( $rules ) ) {
 		$html = $html . "<tr " . CellRollOver () . ">
 		<td width=1%><img src='img/fw_bold.gif'></td>
-		<td><strong style='font-size:12px'>" . texttooltip ( $ligne ["server_name"], '{edit}', "fdm_ShowRule('$uid','$num')" ) . "</strong></td>
+		<td><strong style='font-size:12px'>" . texttooltip ( $ligne ["server_name"], '{apply}', "fdm_ShowRule('$uid','$num')" ) . "</strong></td>
 		<td width=1% nowrap><strong>{$ligne["server_type"]}</strong></td>
 		<td width=1% nowrap><strong>{$ligne["username"]}</strong></td>
 		<td width=1% nowrap>" . imgtootltip ( 'nsf_small.gif', '{see_config}', "fdm_ShowScript('$uid','$num')" ) . "</strong></td>
@@ -4936,7 +4936,7 @@ function USER_CANONICAL_POPUP() {
 			<td $styleTDLeft>" . Field_text ( 'SaveSenderCanonical', $canonical, 'width:70%' ) . "&nbsp;" . imgtootltip ( 'ed_delete.gif', '{delete}', "USER_CANONICAL_DELETE()" ) . "</td>
 		</tr>
 		<tr>
-			<td colspan=2 align='right'><input type=button value='{edit}&nbsp;&raquo;' OnClick=\"javascript:USER_CANONICAL_ADD();\"></td>
+			<td colspan=2 align='right'><input type=button value='{apply}&nbsp;&raquo;' OnClick=\"javascript:USER_CANONICAL_ADD();\"></td>
 		</tr>
 </table>
 </div>
@@ -5075,7 +5075,7 @@ function USER_TRANSPORT_SALS_POPUP() {
 				<tr>
 					<td colspan=2 ALIGN='RIGHT'>
 					<hr>
-					<input type='button' OnClick=\"javascript:USER_TRANSPORT_SASL_SAVE();\" value='{edit}&nbsp;&raquo;'>
+					<input type='button' OnClick=\"javascript:USER_TRANSPORT_SASL_SAVE();\" value='{apply}&nbsp;&raquo;'>
 					</td>
 				</tr>
 			</table></div>

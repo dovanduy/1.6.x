@@ -425,6 +425,15 @@ function websites_directories_popup(){
 	$boot->set_list("replaceid", "{replace_rule}", $nginx_replaces,$ligne["replaceid"]);
 	$boot->set_list("cacheid", "{cache}", $nginx_caches,$ligne["cacheid"]);
 	$boot->set_list("cache_peer_id", "{source}", $array,$ligne["cache_peer_id"]);
+	
+	$boot->set_field("limit_rate_after", "{limit_rate_after}  MB", $ligne["limit_rate_after"],
+			array("TOOLTIP"=>"{limit_rate_after_text}"));
+	
+	$boot->set_field("limit_rate", "{limit_rate}  MB/s", $ligne["limit_rate"],
+			array("TOOLTIP"=>"{limit_rate_text}"));
+	
+	
+	
 	$boot->set_button($bt);
 	if($folderid==0){$boot->set_CloseYahoo("YahooWin2");}
 	$boot->set_RefreshSearchs();
@@ -810,6 +819,14 @@ function websites_popup_webserver_options_section(){
 	$boot=new boostrap_form();
 	$squid_reverse=new squid_reverse();
 	
+	
+	
+	if(!$q->FIELD_EXISTS("reverse_www", "limit_rate_after")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `limit_rate_after` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+
+	if(!$q->FIELD_EXISTS("reverse_www", "limit_rate")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `limit_rate` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}	
+	
 	if(!$q->FIELD_EXISTS("reverse_www", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `proxy_read_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
 	
@@ -863,11 +880,19 @@ function websites_popup_webserver_options_section(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
 	
 	
+	$boot->set_formtitle("{options}");
+	
+	$boot->set_spacertitle("{bandwith_limitation_full}");
+	
+	$boot->set_field("limit_rate_after", "{limit_rate_after}  MB", $ligne["limit_rate_after"],
+			array("TOOLTIP"=>"{limit_rate_after_text}"));
+	
+	$boot->set_field("limit_rate", "{limit_rate}  MB/s", $ligne["limit_rate"],
+			array("TOOLTIP"=>"{limit_rate_text}"));	
 	
 	
 	
-		
-	$boot->set_formtitle("{limits}");
+	$boot->set_spacertitle("{limits}");
 	$boot->set_field("LimitCnx", "{LimitCnx}", $ligne["LimitCnx"],
 			array("TOOLTIP"=>"{LimitCnx_text}"));	
 	$boot->set_field("LimitReqs", "{LimitReqs}", $ligne["LimitReqs"],
@@ -875,7 +900,7 @@ function websites_popup_webserver_options_section(){
 
 	
 	
-	$boot->set_formtitle("{timeouts}");
+
 	
 	
 	if($ligne["ssl_protocols"]==null){
@@ -886,8 +911,6 @@ function websites_popup_webserver_options_section(){
 		$ligne["ssl_ciphers"]="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";
 	}
 
-
-	
 
 
 
@@ -1144,6 +1167,13 @@ function websites_directories_save(){
 	if(!$q->FIELD_EXISTS("reverse_dirs","authenticator")){
 		$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `authenticator` INT(10) NOT NULL, ADD INDEX ( `authenticator`)");
 	}
+	
+	if(!$q->FIELD_EXISTS("reverse_dirs", "limit_rate_after")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `limit_rate_after` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+	
+	if(!$q->FIELD_EXISTS("reverse_dirs", "limit_rate")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `limit_rate` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+		
 	
 	
 	
@@ -1561,6 +1591,7 @@ function websites_search(){
 				$icon="domain-main-64.png";
 				$freewebicon="64-firewall-search.png";
 				$color="black";
+				$status=array();
 				$portText=null;
 				if($ligne["ssl"]==1){
 					$certificate_text=$tpl->_ENGINE_parse_body("<div>{certificate}: {default}</div>");;
@@ -1572,6 +1603,8 @@ function websites_search(){
 				$SiteEnabled=$ligne["enabled"];
 				$servername=$ligne["servername"];
 				$servername_enc=urlencode($servername);
+				$limit_rate=$ligne["limit_rate"];
+				$limit_rate_after=$ligne["limit_rate_after"];
 				
 				$DeleteFreeWeb="Loadjs('$page?delete-websites-js=yes&servername=$servername_enc&md=$md')";
 				
@@ -1597,7 +1630,6 @@ function websites_search(){
 				
 				if(isset($STATUS[$servername])){
 					$ac=FormatNumber($STATUS[$servername]["AC"]);
-					$status=array();
 					$ACCP=FormatNumber($STATUS[$servername]["ACCP"]);
 					$ACHDL=FormatNumber($STATUS[$servername]["ACHDL"]);
 					$ACRAQS=FormatNumber($STATUS[$servername]["ACRAQS"]);
@@ -1612,10 +1644,21 @@ function websites_search(){
 					
 					$status[]="{active_connections}: $ac&nbsp;|&nbsp;{accepteds}: $ACCP&nbsp;|&nbsp;{handles}:$ACRAQS ($ss/{second})";
 					$status[]="&nbsp;|&nbsp;{keepalive}: $waiting&nbsp;|&nbsp;{reading}: $reading&nbsp;|&nbsp;{writing}:$writing";
-					$status_text=$tpl->_ENGINE_parse_body("<div style='font-size:12px'>".@implode("", $status)."</div>");
-					
-					
 				}
+				
+				
+				if($limit_rate>0){
+					$limit_rate_after_caption=$tpl->_ENGINE_parse_body("{limit_rate_after_caption}");
+					$limit_rate_after_caption=str_replace("%s", "{$limit_rate}MB/s", $limit_rate_after_caption);
+					$limit_rate_after_caption=str_replace("%f", "{$limit_rate_after}MB", $limit_rate_after_caption);
+					$status[]="<div style='font-size:12px;font-weight:bold;color:#EEB853'>$limit_rate_after_caption</div>";
+				}
+				
+				
+				if(count($status)>0){
+					$status_text=$tpl->_ENGINE_parse_body("<div style='font-size:12px'>".@implode("", $status)."</div>");
+				}
+				
 				$FreeWebText=null;
 				$explain_text=null;
 				
@@ -1679,7 +1722,8 @@ function websites_search(){
 				$ligne2=mysql_fetch_array($q1->QUERY_SQL("SELECT COUNT(*) as tcount FROM awstats_files WHERE servername='$servername'","artica_backup"));
 				if(!$q1->ok){echo "<p class=text-error>$q1->mysql_error</p>";}
 				if($ligne2["tcount"]>0){
-					$stats="<a href='miniadmin.proxy.reverse.awstats.php?servername=".urlencode($servername)."'><img src='img/statistics-48.png'></a>";
+					// Abandonné pour l'instant
+					//$stats="<a href='miniadmin.proxy.reverse.awstats.php?servername=".urlencode($servername)."'><img src='img/statistics-48.png'></a>";
 				}
 
 				$FinalDestination="{$ligne["ipaddr"]}$FreeWebText";

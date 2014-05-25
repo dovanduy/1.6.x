@@ -331,7 +331,7 @@ function main_config(){
 	
 	<table style='width:100%'>
 	<tr><td><hr></td></tr>
-	<tr><td align='right'>". button("{edit}","SaveADSettings();")."</td>
+	<tr><td align='right'>". button("{apply}","SaveADSettings();")."</td>
 	</tr>
 	</table>	
 	<script>

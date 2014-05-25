@@ -223,7 +223,7 @@ $cache_settings="
 		<td>" . help_icon('{fqdncache_size_text}',false,'squid.index.php')."</td>
 		</tr>
 		<tr>
-			<td align='right' colspan=3><hr>". button('{edit}',"SaveCacheSettingsInfos()","18px")."</td>
+			<td align='right' colspan=3><hr>". button('{apply}',"SaveCacheSettingsInfos()","18px")."</td>
 		</tr>		
 								
 </table>
@@ -302,7 +302,7 @@ function caches_list(){
 	
 		$html=$html."
 			<tr class=$classtr>
-			<td width=1%>". imgtootltip("database-32.png","{edit}","AddCache('$squid->CACHE_PATH')")."</td>
+			<td width=1%>". imgtootltip("database-32.png","{apply}","AddCache('$squid->CACHE_PATH')")."</td>
 			<td nowrap><strong style='font-size:14px'>". basename($squid->CACHE_PATH)."</strong><div style='font-size:11px'><i>$squid->CACHE_PATH</i></div></td>
 			<td width=1%><strong style='font-size:14px'>$squid->CACHE_TYPE</strong></td>
 			<td width=1%><strong style='font-size:14px'>$squid->CACHE_SIZE$unit</strong></td>
@@ -331,7 +331,7 @@ function caches_list(){
 	
 		$html=$html."
 			<tr class=$classtr>
-			<td width=1%>". imgtootltip("database-32.png","{edit}","AddCache('$path')")."</td>
+			<td width=1%>". imgtootltip("database-32.png","{apply}","AddCache('$path')")."</td>
 			<td nowrap><strong style='font-size:14px'>". basename($path)."</strong><div style='font-size:11px'><i>$path&nbsp;$maxcachesize</i></div></td>
 			<td width=1%><strong style='font-size:14px'>{$array["cache_type"]}</strong></td>
 			<td width=1%><strong style='font-size:14px'>{$array["cache_size"]}$unit</strong></td>
@@ -535,7 +535,7 @@ if(isset($_GET["main-is-cache"])){
 	);
 }
 $sock=new sockets();
-$_GET["OP"]="{edit}/{add}";
+$_GET["OP"]="{apply}/{add}";
 $SquidCacheTasks=unserialize(base64_decode($sock->GET_INFO("SquidCacheTask")));
 $SquidCacheTasks[$_GET["cache_directory"]]=$_GET;
 $sock->SaveConfigFile(base64_encode(serialize($SquidCacheTasks)),"SquidCacheTask");

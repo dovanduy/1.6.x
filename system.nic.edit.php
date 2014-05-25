@@ -28,14 +28,14 @@
 	if(isset($_GET["ipconfig-tools"])){ipconfig_tools();exit;}
 	if(isset($_GET["flush-arp-cache-js"])){flus_arp_cache_js();;exit;}
 	if(isset($_GET["flush-arp-cache-popup"])){flus_arp_cache_popup();;exit;}
-	
+	if(isset($_POST["MII-TOOL"])){MII_TOOLS();exit;}
 	js();
 
 	
 function js(){
 	$page=CurrentPageName();
 	header("content-type: application/x-javascript");
-	$html="YahooWin2('585','$page?tabs=yes&netconfig={$_GET["nic"]}&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}','{$_GET["nic"]}');";
+	$html="YahooWin2('650','$page?tabs=yes&netconfig={$_GET["nic"]}&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}','{$_GET["nic"]}');";
 	echo $html;
 	
 	
@@ -115,14 +115,14 @@ function tabs(){
 	if($EnableipV6==1){
 		$array["ipconfig-v6"]='ipV6';
 	}
-	$array["ipconfig-routes"]='{routes}';
+	//$array["ipconfig-routes"]='{routes}';
 	$array["ipconfig-tools"]='{tools}';
 	
 	//ip neigh flush dev eth0
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= "<li><a href=\"$page?$num=yes&nic=$nic&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}\"><span style='font-size:14px'>$ligne</span></a></li>\n";
+		$html[]= "<li><a href=\"$page?$num=yes&nic=$nic&button={$_GET["button"]}&noreboot={$_GET["noreboot"]}\"><span style='font-size:18px'>$ligne</span></a></li>\n";
 	}
 	
 	
@@ -148,20 +148,20 @@ function ipconfig_nic6(){
 	
 $html="	<table style='width:99.5%' class=form>
 	<tr>
-		<td class=legend style='font-size:14px'>{use_ipv6}:</td>
+		<td class=legend style='font-size:16px'>{use_ipv6}:</td>
 		<td width=1%>" . Field_checkbox("ipv6-$t",1,$nic->ipv6,"SwitchIpv6$t()")."</td>
 	</tr>		
 
 		<tr>
-			<td class=legend style='font-size:14px'>{tcp_address}:</td>
+			<td class=legend style='font-size:16px'>{tcp_address}:</td>
 			<td>" . Field_text("ipv6addr-$t",$nic->ipv6addr,'padding:3px;font-size:18px;width:220px')."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{netmask} ipv6:</td>
+			<td class=legend style='font-size:16px'>{netmask} ipv6:</td>
 			<td>" . Field_array_Hash($array,"ipv6mask-$t",$nic->ipv6mask,"blur()",null,0,'padding:3px;font-size:18px')."</td>
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:14px'>{gateway}:</td>
+			<td class=legend style='font-size:16px'>{gateway}:</td>
 			<td>" . Field_text("ipv6gw-$t",$nic->ipv6gw,'padding:3px;font-size:18px;width:220px')."</td>
 		</tr>
 		<tr>
@@ -258,94 +258,123 @@ function ipconfig_nic(){
 	$button="{apply}";
 	if($_GET["button"]=="confirm"){$button="{button_i_confirm_nic}";}
 	
+	$MIITOOLS=unserialize(base64_decode($sock->getFrameWork("system.php?mii-tools=yes&eth=$eth")));
+	$form_miitolsA[null]="{select}";
+	if(!$MIITOOLS["STATUS"]){
+		$form_miitols="<p class=text-error>{hardware_error_nic}<br>{$MIITOOLS["ERROR"]}</p>";
+		
+	}else{
+		$form_miitolsHT["HD"]="Half duplex";
+		$form_miitolsHT["FD"]="Full duplex";
+		
+		while (list ($val, $b) = each ($MIITOOLS["CAP"])){
+			$caption=$val;
+			if(strpos($MIITOOLS["INFOS"], $val)>0){$MII_DEFAULT=$val;}
+			if(preg_match("#([0-9]+)(.*?)-([A-Z]+)#", $val,$re)){
+				$caption="{$re[1]} {$re[2]} {$form_miitolsHT[$re[3]]}";
+			}
+			
+			$form_miitolsA[$val]=$caption;
+			
+		}
+		
+		if($MIITOOLS["FLOWC"]==1){$explflw=" {flow_control}";}
+		$form_miitols="
+		<p class=text-info style='font-size:18px;font-weight:bold'>{$MIITOOLS["INFOS"]} $explflw</p>
+		<table style='width:100%'>			
+		<tr>
+			<td class=legend style='font-size:18px'>Autonegotiation:</td>
+			<td width=1%>" . Field_checkbox("autonegotiation-$t",1,$MIITOOLS["AUTONEG"])."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{flow_control}:</td>
+			<td width=1%>" . Field_checkbox("flow-control-$t",1,$MIITOOLS["FLOWC"])."</td>
+		</tr>					
+					
+					
+		<tr>
+			<td class=legend style='font-size:18px'>{type}:</td>
+			<td width=1%>" . Field_array_Hash($form_miitolsA, "media-$t",$MII_DEFAULT,"style:font-size:18px")."</td>
+		</tr>
+		</table>
+		<div style='text-align:right'><hr> ". button("{apply}","SaveMII$t()",22)."</div>";		
+	}
+	
 	
 	
 	$html="
 	<div id='edit-config-$eth'>
 	<form name='ffm$eth'>
-	<table style='width:100%'>
 	<input type='hidden' name='save_nic' id='save_nic' id='save_nic' value='$eth'>
-	
-	<tr>
-		<td class=legend style='font-size:14px'>{enabled}:</td>
-		<td width=1%>" . Field_checkbox('enabled',1,$nic->enabled,'SwitchDHCP()')."</td>
-	</tr>		
-	<tr>
-		<td class=legend style='font-size:14px'>{use_dhcp}:</td>
-		<td width=1%>" . Field_checkbox('dhcp',1,$nic->dhcp,'SwitchDHCP()')."</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px'>{enable_ids}:</td>
-		<td width=1%>" . Field_checkbox('UseSnort',1,$snortInterfaces[$eth],'SwitchSnort()')."</td>
-	</tr>
-				
-				
-				
-	</tr>
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:18px'>{enabled}:</td>
+			<td width=1%>" . Field_checkbox('enabled',1,$nic->enabled,'SwitchDHCP()')."</td>
+		</tr>		
+		<tr>
+			<td class=legend style='font-size:18px'>{use_dhcp}:</td>
+			<td width=1%>" . Field_checkbox('dhcp',1,$nic->dhcp,'SwitchDHCP()')."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{enable_ids}:</td>
+			<td width=1%>" . Field_checkbox('UseSnort',1,$snortInterfaces[$eth],'SwitchSnort()')."</td>
+		</tr>
 	</table>
 	
 	
 	<div style='width:98%' class=form>
 	<table style='100%'>
 		<tr>
-			<td class=legend style='font-size:14px'>{netzone}:</td>
+			<td class=legend style='font-size:18px'>{netzone}:</td>
 			<td>" . field_text("netzone-$t",$nic->netzone,'padding:3px;font-size:18px;width:85px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:14px'>{name}:</td>
+			<td class=legend style='font-size:18px'>{name}:</td>
 			<td>" . field_text("NICNAME-$t",$nic->NICNAME,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>		
 		<tr>
-			<td class=legend style='font-size:14px'>{tcp_address}:</td>
+			<td class=legend style='font-size:18px'>{tcp_address}:</td>
 			<td>" . field_ipv4("IPADDR",$nic->IPADDR,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{netmask}:</td>
+			<td class=legend style='font-size:18px'>{netmask}:</td>
 			<td>" . field_ipv4("NETMASK",$nic->NETMASK,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 			
 		<tr>
-			<td class=legend style='font-size:14px'>{gateway}:</td>
+			<td class=legend style='font-size:18px'>{gateway}:</td>
 			<td>" . field_ipv4("GATEWAY",$nic->GATEWAY,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{default_gateway}:</td>
+			<td class=legend style='font-size:18px'>{default_gateway}:</td>
 			<td>" . Field_checkbox("defaultroute-$t",1,$nic->defaultroute)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{metric}:</td>
+			<td class=legend style='font-size:18px'>{metric}:</td>
 			<td>" . field_text("metric-$t",$nic->metric,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
-		</tr>					
-		<tr>
-			<td class=legend style='font-size:14px'>{broadcast}:</td>
-			<td>" . field_ipv4("BROADCAST",$nic->BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
-		</tr>		
-	</table>
-	</div>
-	<br>
-	
-	<div style='width:98%' class=form>
-		<table style='width:100%'>
-		<tr>
-			<td class=legend style='font-size:14px'>{primary_dns}:</td>
-			<td>" . field_ipv4("DNS_1",$nic->DNS1,'padding:3px;font-size:18px',null,null,null,false,null)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{secondary_dns}:</td>
-			<td>" . field_ipv4("DNS_2",$nic->DNS2,'padding:3px;font-size:18px',null,null,null,false,null)."</td>
+			<td class=legend style='font-size:18px'>MTU:</td>
+			<td>" . field_text("mtu-$t",$nic->mtu,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+		</tr>										
+		<tr>
+			<td class=legend style='font-size:18px'>{broadcast}:</td>
+			<td>" . field_ipv4("BROADCAST",$nic->BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>	
-		</table>
-	</div>	
-	
-	
-	<table style='width:100%'>
-	<tr>
-	<td align='right' style='padding-top:10px'>
-		". button("$button","SaveNicSettings()",16)."
-	</td>
-	</tr>
+			
 	</table>
+	<div style='text-align:right'><hr> ". button("$button","SaveNicSettings()",22)."</div>
 	</div>
+	
+	
+	</form>
+	</div>
+	<p>&nbsp;</p>
+	<div style='width:98%' class=form>
+	<div style='font-size:22px;margin-bottom:12px'>{net_mii_title}</div>
+	$form_miitols
+	</div>
+	
 	<script>
 	
 		var X_SaveNicSettings= function (obj) {
@@ -372,8 +401,16 @@ function ipconfig_nic(){
 			XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
 			XHR.appendData('NETMASK',document.getElementById('NETMASK').value);
 			XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
-			XHR.appendData('DNS_1',document.getElementById('DNS_1').value);
-			XHR.appendData('DNS_2',document.getElementById('DNS_2').value);
+			XHR.appendData('mtu',document.getElementById('mtu-$t').value);
+			
+			
+			
+			if(document.getElementById('DNS_1')){
+				XHR.appendData('DNS_1',document.getElementById('DNS_1').value);
+			}
+			if(document.getElementById('DNS_2')){
+				XHR.appendData('DNS_2',document.getElementById('DNS_2').value);
+			}
 			XHR.appendData('BROADCAST',document.getElementById('BROADCAST').value);
 			XHR.appendData('metric',document.getElementById('metric-$t').value);
 			XHR.appendData('save_nic',document.getElementById('save_nic').value);
@@ -405,7 +442,16 @@ function ipconfig_nic(){
 		
 		
 		
-
+		function SaveMII$t(){
+			var XHR = new XHRConnection();
+			var DisableNetworksManagement=$DisableNetworksManagement;
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}
+			if(document.getElementById('flow-control-$t').checked){XHR.appendData('flow-control','1');}else{XHR.appendData('flow-control','0');}
+			if(document.getElementById('autonegotiation-$t').checked){XHR.appendData('autonegotiation','1');}else{XHR.appendData('autonegotiation','0');}
+			XHR.appendData('duptype',document.getElementById('media-$t').value);
+			XHR.appendData('MII-TOOL','$eth');
+			XHR.sendAndLoad('$page', 'POST',X_SaveNicSettings)
+		}
 		
 		
 		function LockNic(){
@@ -414,16 +460,18 @@ function ipconfig_nic(){
 			document.getElementById('IPADDR').disabled=true;
 			document.getElementById('NETMASK').disabled=true;
 			document.getElementById('GATEWAY').disabled=true;
-			document.getElementById('DNS_1').disabled=true;
-			document.getElementById('DNS_2').disabled=true;
+			document.getElementById('mtu-$t').disabled=true;
+			if(document.getElementById('DNS_1')){document.getElementById('DNS_1').disabled=true;}
+			if(document.getElementById('DNS_2')){document.getElementById('DNS_2').disabled=true;}
 			document.getElementById('save_nic').disabled=true;
 			if(DisableNetworksManagement==1){return;}
 			document.getElementById('dhcp').disabled=false;
 			document.getElementById('IPADDR').disabled=false;
 			document.getElementById('NETMASK').disabled=false;
 			document.getElementById('GATEWAY').disabled=false;
-			document.getElementById('DNS_1').disabled=false;
-			document.getElementById('DNS_2').disabled=false;
+			document.getElementById('mtu-$t').disabled=false;
+			if(document.getElementById('DNS_1')){document.getElementById('DNS_1').disabled=false;}
+			if(document.getElementById('DNS_2')){document.getElementById('DNS_2').disabled=false;}
 			document.getElementById('save_nic').disabled=false;	
 			if(document.getElementById('zlistnic-info-$eth')){LoadAjax('zlistnic-info-$eth','system.nic.config.php?nic-builder=$eth');}
 			SwitchDHCP();		
@@ -435,8 +483,9 @@ function ipconfig_nic(){
 		document.getElementById('NETMASK').disabled=true;
 		document.getElementById('GATEWAY').disabled=true;
 		document.getElementById('BROADCAST').disabled=true;
-		document.getElementById('DNS_1').disabled=true;
-		document.getElementById('DNS_2').disabled=true;
+		document.getElementById('mtu-$t').disabled=true;
+		if(document.getElementById('DNS_1')){document.getElementById('DNS_1').disabled=true;}
+		if(document.getElementById('DNS_2')){document.getElementById('DNS_2').disabled=true;}
 		document.getElementById('dhcp').disabled=true;
 		
 		if(document.getElementById('enabled').checked==false){return;}
@@ -447,8 +496,9 @@ function ipconfig_nic(){
 		document.getElementById('NETMASK').disabled=false;
 		document.getElementById('GATEWAY').disabled=false;
 		document.getElementById('BROADCAST').disabled=false;
-		document.getElementById('DNS_1').disabled=false;
-		document.getElementById('DNS_2').disabled=false;
+		document.getElementById('mtu-$t').disabled=false;
+		if(document.getElementById('DNS_1')){document.getElementById('DNS_1').disabled=false;}
+		if(document.getElementById('DNS_2')){document.getElementById('DNS_2').disabled=false;}
 	}		
 	
 	function DisableSnortInterface(){
@@ -487,7 +537,7 @@ $sock=new sockets();
 }
 	
 function save_nic(){
-	
+	$DNS_1=null;$DNS_2=null;
 	$sock=new sockets();
 	$tpl=new templates();
 	$ip=new networking();
@@ -515,8 +565,8 @@ function save_nic(){
 	$NETMASK=trim($_GET["NETMASK"]);
 	$GATEWAY=trim($_GET["GATEWAY"]);
 	$BROADCAST=trim($_GET["BROADCAST"]);
-	$DNS_1=$_GET["DNS_1"];
-	$DNS_2=$_GET["DNS_2"];
+	if(isset($_GET["DNS_1"])){$DNS_1=$_GET["DNS_1"];}
+	if(isset($_GET["DNS_2"])){$DNS_2=$_GET["DNS_2"];}
 	$dhcp=trim($_GET["dhcp"]);
 	$arrayNic=$ip->GetNicInfos($nic);
 	
@@ -529,7 +579,7 @@ function save_nic(){
 		return;
 	}
 	
-	$sql="SELECT ipaddr FROM nic_vlan WHERE ipaddr='$IPADDR'";
+	$sql="SELECT ipaddr FROM nics_vlan WHERE ipaddr='$IPADDR'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	if($ligne["ipaddr"]<>null){
 		echo $tpl->javascript_parse_text("{already_used}: $IPADDR (VLAN)");
@@ -553,29 +603,24 @@ function save_nic(){
 			if(!$ip->checkIP($DNS_2)){echo "CheckIP: DNS 2 $DNS_2 = False;\nOr set null value to remove this message";return;}	
 		}
 
-		if($DNS_1==null){
-			$resolv=new resolv_conf();
-			$DNS_1=$resolv->MainArray["DNS1"];
-			if($DNS_2==null){$DNS_2=$resolv->MainArray["DNS2"];}
-		}
+	
 	
 	$tpl=new templates();
 	$nics=new system_nic($nic);
 	$text[]="$NICNAME $nic $IPADDR";
-	if($NICNAME<>null){
-		$nics->NICNAME=$NICNAME;
-	}
+	if($NICNAME<>null){ $nics->NICNAME=$NICNAME; }
 	$nics->eth=$nic;
 	$nics->IPADDR=$IPADDR;
 	$nics->NETMASK=$NETMASK;
 	$nics->GATEWAY=$GATEWAY;
 	$nics->BROADCAST=$BROADCAST;
-	$nics->DNS1=$DNS_1;
-	$nics->DNS2=$DNS_2;
+	if($DNS_1<>null){$nics->DNS1=$DNS_1; }
+	if($DNS_2<>null){ $nics->DNS2=$DNS_2; }
 	$nics->dhcp=$_GET["dhcp"];
 	$nics->metric=$_GET["metric"];
 	$nics->enabled=$_GET["enabled"];
 	$nics->netzone=$_GET["netzone"];
+	$nics->mtu=$_GET["mtu"];
 	
 	if(isset($_GET["defaultroute"])){
 		$nics->defaultroute=$_GET["defaultroute"];
@@ -856,3 +901,16 @@ function ipconfig_routes_del(){
 	unset($nic->ROUTES[$_GET["IP"]]);
 	$nic->SaveNic();	
 }
+
+function MII_TOOLS(){
+	$sock=new sockets();
+	while (list ($a, $b) = each ($_POST)){
+		$f[]="$a=$b";
+		
+	}
+	
+	$data=trim(base64_decode($sock->getFrameWork("system.php?mii-tool-save=yes&".@implode("&", $f))));
+	if($data<>null){echo $data;}
+	
+}
+

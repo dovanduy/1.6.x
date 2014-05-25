@@ -203,7 +203,7 @@ $html="
 <tr>
 
 
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveTaskSettings();\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveTaskSettings();\"></td>
 </tr>
 
 

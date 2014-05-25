@@ -182,7 +182,7 @@ $form_time="
 <input type='hidden' id='vacationStart' value='$vacationStart_time'>
 <input type='hidden' id='vacationEnd' value='$vacationEnd_time'>
 <hr>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveOutOfOffice();\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveOutOfOffice();\"></div>
 ";
 $form_time=RoundedLightWhite($form_time);
 $form="
@@ -190,7 +190,7 @@ $form="
 <tr>
 	<td valign='top'>$activate<br>$status
 	<hr>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveOutOfOffice();\"></div></td>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveOutOfOffice();\"></div></td>
 	<td valign='top'>$form_time</td>
 </tr>
 </table>
@@ -278,7 +278,7 @@ $html="
 $users->vacationInfo
 </textarea>
 <hr>
-<div style='text-align:right'><input type='button' OnClick=\"javascript:SaveVacationInfo()\" value='{edit}&nbsp;&raquo;'></div>
+<div style='text-align:right'><input type='button' OnClick=\"javascript:SaveVacationInfo()\" value='{apply}&nbsp;&raquo;'></div>
 </div>
 
 

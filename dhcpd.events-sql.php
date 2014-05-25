@@ -57,7 +57,7 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [	
 		{display: '$zDate', name : 'zDate', width :146, sortable : true, align: 'left'},
-		{display: '$event', name : 'description', width :683, sortable : true, align: 'left'},
+		{display: '$event', name : 'description', width :961, sortable : true, align: 'left'},
 
 	],
 	$buttons

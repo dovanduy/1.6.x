@@ -307,11 +307,42 @@ class dhcpd{
 		if(!is_numeric($this->DHCPDEnableCacheDNS)){$this->DHCPDEnableCacheDNS=0;}
 	}
 	
-	function Save(){
+	function Save($norestart=false){
 		writelogs("Save Config file ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		if($this->noload<>0){return;}
 		if(!is_numeric($this->authoritative)){$this->authoritative=0;}
 		if(!is_numeric($this->ping_check)){$this->ping_check=1;}
+		
+		if(!preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", $this->range1)){
+			if($this->listen_nic<>null){
+				$tcp=new networking();
+				$tcp->ifconfig($this->listen_nic);
+				$tcp_addr=$tcp->tcp_addr;
+				preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$#", $tcp_addr,$ri);
+				$this->range1="{$ri[1]}.{$ri[2]}.{$ri[3]}.50";
+				$this->range2="{$ri[1]}.{$ri[2]}.{$ri[3]}.253";
+				
+			}
+			
+		}
+		
+		if(!preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", $this->gateway)){
+			if($this->listen_nic<>null){
+				$tcp=new networking();
+				$tcp->ifconfig($this->listen_nic);
+				$this->gateway=$tcp->gateway;
+			}
+		}
+		
+		if(!preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", $this->DNS_1)){
+			if($this->listen_nic<>null){
+				$tcp=new networking();
+				$tcp->ifconfig($this->listen_nic);
+				$this->DNS_1=$tcp->tcp_addr;
+			}
+		}
+		
+		
 		$ini=$ini."[SET]\n";
 		$ini=$ini."ddns_domainname=$this->ddns_domainname\n";
 		$ini=$ini."max_lease_time=$this->max_lease_time\n";
@@ -339,7 +370,9 @@ class dhcpd{
 		$sock->SaveConfigFile($this->BuildConf(),'DHCP3ConfigurationFile');
 		$sock->SET_INFO('DHCP3ListenNIC',$this->listen_nic);
 		if($this->OnlySetGateway==0){if($this->EnableArticaAsDNSFirst==1){$sock->getFrameWork('cmd.php?apply-bind=yes');}}
-		$sock->getFrameWork('cmd.php?restart-dhcpd=yes');
+		if(!$norestart){
+			$sock->getFrameWork('cmd.php?restart-dhcpd=yes');
+		}
 		
 		
 		

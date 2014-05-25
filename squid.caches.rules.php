@@ -209,6 +209,13 @@ function global_parameters(){
 	$ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
 	$ProxyDedicateMicrosoftRules=$sock->GET_INFO("ProxyDedicateMicrosoftRules");
 	
+	$compilefile="ressources/logs/squid.compilation.params";
+	if(!is_file($compilefile)){$sock->getFrameWork("squid.php?compil-params=yes");}
+	$COMPILATION_PARAMS=unserialize(base64_decode(file_get_contents($compilefile)));
+	
+	$SquidReloadIntoIMS=$sock->GET_INFO("SquidReloadIntoIMS");
+	
+	
 	$license_error=null;
 	
 	
@@ -225,7 +232,7 @@ function global_parameters(){
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	if(!is_numeric($ForceWindowsUpdateCaching)){$ForceWindowsUpdateCaching=0;}
 	if(!is_numeric($ProxyDedicateMicrosoftRules)){$ProxyDedicateMicrosoftRules=0;}
-	
+	if(!is_numeric($SquidReloadIntoIMS)){$SquidReloadIntoIMS=1;}
 	
 	
 	
@@ -257,72 +264,86 @@ function global_parameters(){
 	
 	
 	$level=Paragraphe_switch_img('{DisableAnyCache}',"{DisableAnyCache_explain2}","DisableAnyCache-$t",
-			$DisableAnyCache,null,550);
+			$DisableAnyCache,null,850);
 	
 	if(!$users->CORP_LICENSE){$license_error="<strong style='color:red'>".$tpl->_ENGINE_parse_body("{license_error}")."</strong>";}
 
 	
+	$reload_into_ims_p=Paragraphe_switch_img("{reload_into_ims}", "{reload_into_ims_explain}",
+			"SquidReloadIntoIMS-$t",$SquidReloadIntoIMS,
+			null,850);
 	
+	$ForceWindowsUpdateCaching=Paragraphe_switch_img("{ForceWindowsUpdateCaching}", "{ForceWindowsUpdateCaching_explain}",
+			"ForceWindowsUpdateCaching-$t",$ForceWindowsUpdateCaching,
+			null,850);
+	
+	$ProxyDedicateMicrosoftRules=Paragraphe_switch_img("{ProxyDedicateMicrosoftRules}", "{ProxyDedicateMicrosoftRules_explain}",
+			"ProxyDedicateMicrosoftRules-$t",$ProxyDedicateMicrosoftRules,
+			null,850);
 	
 	$html="
+	$license_error
 	<div id='animate-$t'></div>
 	<div style='margin:10px;padding:10px;width:98%' class=form>
 	<table style='width:100%'>
 	<tr>
-	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$level<p>&nbsp;</p></td>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$level</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{ForceWindowsUpdateCaching}:</td>
-		<td>". Field_checkbox("ForceWindowsUpdateCaching-$t",1,$ForceWindowsUpdateCaching)."</td>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$reload_into_ims_p</td>
+	</tr>	
+	<tr>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$ForceWindowsUpdateCaching</td>
+	</tr>	
+	<tr>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top'>$ProxyDedicateMicrosoftRules</td>
 	</tr>
+	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",26)."</td><tr>
+	<tr><td colspan=3 style='margin-bottom:15px;vertical-align:top'><p>&nbsp;</p></td></tr>
+	<td colspan=3 style='margin-bottom:15px;vertical-align:top;font-size:26px'>{advanced_options}</td>
+	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{ProxyDedicateMicrosoftRules}:</td>
-		<td>". Field_checkbox("ProxyDedicateMicrosoftRules-$t",1,$ProxyDedicateMicrosoftRules)."</td>
-	</tr>		
-		
-	
-	<tr>
-	<td class=legend style='font-size:16px'>{cache_replacement_policy}:</td>
-	<td>". Field_array_Hash($array, "CacheReplacementPolicy-$t",$CacheReplacementPolicy,null,null,0,"font-size:16px")."</td>
+	<td class=legend style='font-size:18px'>{cache_replacement_policy}:</td>
+	<td>". Field_array_Hash($array, "CacheReplacementPolicy-$t",$CacheReplacementPolicy,null,null,0,"font-size:18px")."</td>
 	<td width=1%>" . help_icon('{cache_replacement_policy_explain}',true)."</td>
 	</tr>
 			
 	<tr>
-		<td align='right' class=legend nowrap style='font-size:16px'>{cache_swap_low}:</strong></td>
-		<td style='font-size:14px'>" . Field_text("cache_swap_low-$t",$squid->global_conf_array["cache_swap_low"],'width:90px;font-size:16px')."&nbsp;%</td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{cache_swap_low}:</strong></td>
+		<td style='font-size:18px'>" . Field_text("cache_swap_low-$t",$squid->global_conf_array["cache_swap_low"],'width:90px;font-size:18px')."&nbsp;%</td>
 		<td>" . help_icon('{cache_swap_low_text}',false,'squid.index.php')."</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend nowrap style='font-size:16px'>{cache_swap_high}:</strong></td>
-		<td style='font-size:14px'>" . Field_text("cache_swap_high-$t",$squid->global_conf_array["cache_swap_high"],'width:90px;font-size:16px')."&nbsp;%</td>
+		<td align='right' class=legend nowrap style='font-size:18px'>{cache_swap_high}:</strong></td>
+		<td style='font-size:18px'>" . Field_text("cache_swap_high-$t",$squid->global_conf_array["cache_swap_high"],'width:90px;font-size:18px')."&nbsp;%</td>
 		<td>" . help_icon('{cache_swap_high_text}',false,'squid.index.php')."</td>
 	</tr>			
 			
 	<tr><td colspan=3><hr></td></tr>
 				
 			
-				
+		
 	<tr>
-		<td class=legend style='font-size:16px'>{read_ahead_gap}:</td>
-		<td style='font-size:16px'>". Field_text("read_ahead_gap-$t",$read_ahead_gap,"font-size:16px;width:65px")."&nbsp;MB</td>
-		<td style='font-size:16px' width=1%>". help_icon("{read_ahead_gap_text}")."</td>
+		<td class=legend style='font-size:18px'>{read_ahead_gap}:</td>
+		<td style='font-size:18px'>". Field_text("read_ahead_gap-$t",$read_ahead_gap,"font-size:18px;width:65px")."&nbsp;MB</td>
+		<td style='font-size:18px' width=1%>". help_icon("{read_ahead_gap_text}")."</td>
 	</tr>						
 	<tr>
-	<td style='font-size:16px' class=legend>{maximum_object_size}:</td>
-	<td align='left' style='font-size:16px'>" . Field_text("maximum_object_size-$t",$maximum_object_size,'width:90px;font-size:16px')."&nbsp;MB</td>
+	<td style='font-size:18px' class=legend>{maximum_object_size}:</td>
+	<td align='left' style='font-size:18px'>" . Field_text("maximum_object_size-$t",$maximum_object_size,'width:90px;font-size:18px')."&nbsp;MB</td>
 	<td width=1%>" . help_icon('{maximum_object_size_text}',true)."</td>
 	</tr>
 			
 <tr>
 		<td align='right' class=legend nowrap style='font-size:16px'>{minimum_object_size}:</strong></td>
-		<td>" . Field_text("minimum_object_size-$t",$minimum_object_size,'width:90px;font-size:16px')."&nbsp;KB</td>
+		<td align='left' style='font-size:18px'>" . Field_text("minimum_object_size-$t",$minimum_object_size,'width:90px;font-size:16px')."&nbsp;KB</td>
 		<td>" . help_icon('{minimum_object_size_text}',false,'squid.index.php')."</td>
 </tr>
 <tr>			
 
 	<tr>
-	<td style='font-size:16px' class=legend>{debug_cache_processing}:</td>
-	<td align='left' style='font-size:16px'>" . Field_checkbox("SquidDebugCacheProc-$t",1,$SquidDebugCacheProc)."</td>
+	<td style='font-size:18px' class=legend>{debug_cache_processing}:</td>
+	<td align='left' style='font-size:18px'>" . Field_checkbox("SquidDebugCacheProc-$t",1,$SquidDebugCacheProc)."</td>
 	<td width=1%></td>
 	</tr>	
 	<tr><td colspan=3 style='text-align:right'><hr>". button("{apply}","Save$t()",26)."</td>
@@ -347,10 +368,14 @@ function global_parameters(){
 			var ProxyDedicateMicrosoftRules=0;
 			var XHR = new XHRConnection();
 			XHR.appendData('DisableAnyCache',document.getElementById('DisableAnyCache-$t').value);
+			XHR.appendData('ForceWindowsUpdateCaching',document.getElementById('ForceWindowsUpdateCaching-$t').value);
+			XHR.appendData('ProxyDedicateMicrosoftRules',document.getElementById('ProxyDedicateMicrosoftRules-$t').value);
+			XHR.appendData('SquidReloadIntoIMS',document.getElementById('SquidReloadIntoIMS-$t').value);
+			
+			
 			
 			if(document.getElementById('SquidDebugCacheProc-$t').checked){SquidDebugCacheProc=1;}
-			if(document.getElementById('ForceWindowsUpdateCaching-$t').checked){ForceWindowsUpdateCaching=1;}
-			if(document.getElementById('ProxyDedicateMicrosoftRules-$t').checked){ProxyDedicateMicrosoftRules=1;}
+
 			
 			
 			
@@ -404,6 +429,7 @@ function global_parameters_save(){
 	$sock->SET_INFO("DisableAnyCache", $_POST["DisableAnyCache"]);
 	$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);
 	$sock->SET_INFO("ProxyDedicateMicrosoftRules", $_POST["ProxyDedicateMicrosoftRules"]);
+	$sock->SET_INFO("SquidReloadIntoIMS", $_POST["SquidReloadIntoIMS"]);
 	
 	
 	
@@ -504,7 +530,7 @@ function main_tabs(){
 		$array["caches-center"]='{caches_center}';
 	}
 	
-	
+	$array["dyn-section"]="{dynamic_enforce_rules}";
 	$array["main-section"]="{cache_rules}";
 	$array["parameters"]='{global_parameters}';
 	if($CacheManagement2==0){
@@ -549,6 +575,11 @@ function main_tabs(){
 		if($num=="cached_items"){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.cached.itemps.php?hostid=localhost\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
+		}
+		
+		if($num=="dyn-section"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:{$fontsize}px'><a href=\"squid.cache.dynamic.rules.php\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;			
 		}
 						
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&ID=$ID&tt={$_GET["tt"]}&SourceT={$_GET["SourceT"]}\" style='font-size:14px'><span>$ligne</span></a></li>\n");

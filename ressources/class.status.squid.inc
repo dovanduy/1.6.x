@@ -19,7 +19,63 @@ function squid_increment_func($array){
 	$array[]="squidguardweb";
 	$array[]="squidguard_logger";
 	$array[]="dnsmasq_squid";
+	$array[]="ziproxy";
 	return $array;
+}
+
+function zipproxy_pid(){
+	
+	$masterbin=$GLOBALS["CLASS_UNIX"]->find_program("ziproxy");
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file('/var/run/squid/ziproxy.pid');
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){return $pid;}
+	return $GLOBALS["CLASS_UNIX"]->PIDOF($masterbin);
+}
+function zipproxy_version(){
+	
+	if(isset($GLOBALS["zipproxy_version"])){return $GLOBALS["zipproxy_version"];}
+	$squidbin=$GLOBALS["CLASS_UNIX"]->find_program("ziproxy");
+	if(!is_file($squidbin)){return "0.0.0";}
+	exec("$squidbin -h 2>&1",$results);
+	while (list ($num, $val) = each ($results)){
+		if(preg_match("#Ziproxy\s+([0-9\.]+)#", $val,$re)){
+			$GLOBALS["zipproxy_version"]=trim($re[1]);
+			return $GLOBALS["zipproxy_version"];
+		}
+	}
+}
+
+function ziproxy(){
+	$binpath=$GLOBALS["CLASS_UNIX"]->find_program('ziproxy');
+	if($binpath==null){if($GLOBALS["VERBOSE"]){echo "ziproxy no such binary.\n";}return;}
+	$SquidAsMasterPeer=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidAsMasterPeer"));
+	$EnableProxyCompressor=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableProxyCompressor"));
+	if($SquidAsMasterPeer==0){$EnableProxyCompressor=0;}
+	
+	$l[]="[APP_ZIPROXY]";
+	$l[]="service_name=APP_ZIPROXY";
+	$l[]="service_cmd=/etc/init.d/zipproxy";
+	$l[]="master_version=".zipproxy_version();
+	$l[]="service_disabled=$EnableProxyCompressor";
+	$l[]="family=network";
+	$l[]="watchdog_features=1";
+	if($EnableProxyCompressor==0){return implode("\n",$l);return;}	
+	$master_pid=zipproxy_pid();
+	
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
+			if(!is_file("/etc/init.d/zipproxy")){
+				shell_exec2("{$GLOBALS["PHP5"]} {$GLOBALS["BASE_ROOT"]}/exec.initslapd.php --zipproxy >/dev/null 2>&1");
+			}
+			shell_exec2("$nohup {$GLOBALS["NICE"]} /etc/init.d/zipproxy start >/dev/null 2>&1 &");
+		
+		}
+	}
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;
+	
 }
 
 function dnsmasq_squid(){

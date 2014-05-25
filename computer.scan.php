@@ -252,7 +252,7 @@ function scan_parameters(){
 	
 	<td colspan=2 align='right'>
 	<hr>
-	<input type='button' OnClick=\"javascript:SaveComputerScannerOptions();\" value='{edit}&nbsp;&raquo;'></td>
+	<input type='button' OnClick=\"javascript:SaveComputerScannerOptions();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>
 	
@@ -365,7 +365,7 @@ function Credentials(){
 	</tr>	
 	<tr>
 	<td colspan=2 align='right'><hr>
-	<input type='button' OnClick=\"javascript:SaveCredentialComputer();\" value='{edit}&nbsp;&raquo;'>
+	<input type='button' OnClick=\"javascript:SaveCredentialComputer();\" value='{apply}&nbsp;&raquo;'>
 	</td>
 	</tr>		
 	</table>")."

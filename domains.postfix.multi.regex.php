@@ -503,8 +503,8 @@ function postfix_regex(){
 				$html=$html."
 				<tr  class=$classtr>
 					<td width=1% valign='top' style='height:auto'><img src='img/20-reaffect.png'></td>
-					<td width=1% valign='top' style='height:auto;font-size:13px'>".texttooltip($i,'{edit}',"edit_postfix_regex_rule($i)")."</td>
-					<td nowrap valign='top' style='height:auto;font-size:13px'>" .texttooltip($pattern,'{edit}',"edit_postfix_regex_rule($i)")."</td>
+					<td width=1% valign='top' style='height:auto;font-size:13px'>".texttooltip($i,'{apply}',"edit_postfix_regex_rule($i)")."</td>
+					<td nowrap valign='top' style='height:auto;font-size:13px'>" .texttooltip($pattern,'{apply}',"edit_postfix_regex_rule($i)")."</td>
 					<td valign='top' style='height:auto;font-size:13px'>{$array[1]}</td>
 					<td nowrap valign='top' style='height:auto;font-size:13px'>$log</td>
 					<td nowrap valign='top' style='height:auto;font-size:13px'>". imgtootltip("22-delete.png","{delete}","PostfixRegexDelete($i)")."</td>
@@ -616,7 +616,7 @@ function postfix_regex_rule_edit(){
 			
 			<tr>
 			
-			<td align='right' colspan=2>". button("{edit}","MultiEditPostfixRegexRule('$id')")."</td>
+			<td align='right' colspan=2>". button("{apply}","MultiEditPostfixRegexRule('$id')")."</td>
 			</tr>
 			</table>
 			</div>

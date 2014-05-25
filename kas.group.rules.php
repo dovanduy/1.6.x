@@ -222,7 +222,7 @@ $html="$tab<H5>{eastern_encodings}</H5>
 	<td>" . Field_numeric_checkbox_img('OPT_LANG_THAI',$kas->main_array["OPT_LANG_THAI"],'{enable_disable_kas}') . "</td>
 	<td>&nbsp;</td>
 </tr>
-<tr><td colspan=3 align=right><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
+<tr><td colspan=3 align=right><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
 </table>";
 
 
@@ -274,7 +274,7 @@ $html="	$tab
 	<td>" . Field_numeric_checkbox_img('OPT_HEADERS_SUBJECT_DIGIT_OR_TIME_ID',$kas->main_array["OPT_HEADERS_SUBJECT_DIGIT_OR_TIME_ID"],'{enable_disable}') . "</td>
 	<td>{OPT_HEADERS_SUBJECT_DIGIT_OR_TIME_ID_TEXT}</td>
 </tr>
-<tr><td colspan=3 align=right><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
+<tr><td colspan=3 align=right><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
 </table>";
 
 $tpl=new templates();
@@ -309,7 +309,7 @@ $html="	$tab
 	<td>" . Field_numeric_checkbox_img('OPT_DNS_DNSBL',$kas->main_array["OPT_SPF"],'{enable_disable}') . "</td>
 	<td>{OPT_SPF_TEXT}</td>
 </tr>
-<tr><td colspan=3 align=right><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
+<tr><td colspan=3 align=right><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
 </table>
 ";	
 
@@ -377,7 +377,7 @@ $html="	$tab
 
 
 
-<tr><td colspan=3 align=right><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
+<tr><td colspan=3 align=right><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\"></td></tr>
 </table>"; 	
 
 $tpl=new templates();

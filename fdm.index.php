@@ -88,7 +88,7 @@ function ShowRule(){
 		
 	
 	<tr>
-	<td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo' OnClick=\"javascript:fdm_editrule();\"></td>
+	<td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo' OnClick=\"javascript:fdm_editrule();\"></td>
 	</tr>
 	</table>
 	</form>

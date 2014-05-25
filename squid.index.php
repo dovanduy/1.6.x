@@ -833,7 +833,7 @@ function main_icap_service_add_service_form(){
 		<td>icap://" . Field_text('icap_service_url',$serv["url"],'width:180px') . "</td>
 	</tr>	
 	<tr>
-	<td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:icap_edit_service('{$_GET["hostname"]}');\"></td>
+	<td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:icap_edit_service('{$_GET["hostname"]}');\"></td>
 	</tr>	
 	</table>
 	</form>
@@ -1372,7 +1372,7 @@ function main_networking(){
 		</tr>
 		<tr>
 		<td align='right' colspan=2>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\">
 		</td>
 		</tr>
 	</table>
@@ -1404,7 +1404,7 @@ function main_networking(){
 			
 		<tr>
 		<td align='right' colspan=2>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\">
 		</td>
 		</tr>
 	</table>
@@ -1422,7 +1422,7 @@ function main_networking(){
 			<td width=1%>" . help_icon('{maximum_object_size_text}',true)."</td>
 		</tr>				
 		<td align='right' colspan=2>
-			<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\">
+			<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\">
 		</td>
 		</tr>
 	</table>
@@ -1503,8 +1503,8 @@ if(is_array($squid->acls_rules_array)){
 		
 		$html=$html . "<tr>
 				<td width=1% valign='top'><img src='img/scripts-16.png'></td>
-				<td nowrap " . CellRollOver($edit,'{edit}')."><strong style='font-size:10px'>$num</td>
-				<td nowrap " . CellRollOver($edit,'{edit}')."><strong style='font-size:10px'>{$squid->acl_list[$val["acl_type"]]}</td>
+				<td nowrap " . CellRollOver($edit,'{apply}')."><strong style='font-size:10px'>$num</td>
+				<td nowrap " . CellRollOver($edit,'{apply}')."><strong style='font-size:10px'>{$squid->acl_list[$val["acl_type"]]}</td>
 				<td nowrap><strong style='font-size:10px'>" . imgtootltip($img,$tooltip,$jss)."</td>
 				<td width=1%>" . imgtootltip('x.gif','{delete}',"SquidAclDeleteRule('{$_GET["hostname"]}','$num')") ."</td>
 				<tr>";
@@ -1906,7 +1906,7 @@ $cache_settings="<table style='width:100%'>
 		<td>" . help_icon('{fqdncache_size_text}')."</td>
 		</tr>
 <tr>
-		<td align='right' colspan=3><input type='button' value='{edit}&nbsp;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\"></td>
+		<td align='right' colspan=3><input type='button' value='{apply}&nbsp;' OnClick=\"javascript:SquidUpdateNetworkConfig('{$_GET["hostname"]}');\"></td>
 		</tr>				
 									
 		

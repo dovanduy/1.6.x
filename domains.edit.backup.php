@@ -51,7 +51,7 @@ function popup(){
 	
 	
 	<tr>
-		<td colspan=2 align='right'>". button("{edit}","SaveBackupHDEnable()")."</td>
+		<td colspan=2 align='right'>". button("{apply}","SaveBackupHDEnable()")."</td>
 	</tr>
 	</table>
 	</div>

@@ -6,25 +6,21 @@ include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.user.inc");
 include_once(dirname(__FILE__)."/ressources/class.users.menus.inc");
 include_once(dirname(__FILE__)."/ressources/class.miniadm.inc");
-ini_set('display_errors', 1);
-ini_set('error_prepend_string',"<p class=text-error>");
-ini_set('error_append_string',"</p>");
+
 
 if(isset($_GET["verbose"])){
-		$GLOBALS["VERBOSE"]=true;ini_set('error_reporting', E_ALL);
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('error_reporting', E_ALL);
 		ini_set('error_prepend_string',"<p class=text-error style='color:red'>");
 		ini_set('error_append_string',"</p>");
 }
 if(!isset($_SESSION["uid"])){
 	writelogs("Redirecto to miniadm.logon.php...","NULL",__FILE__,__LINE__);
-	header("location:miniadm.logon.php");}
-BuildSessionAuth();
-if($_SESSION["uid"]=="-100"){
-	writelogs("Redirecto to location:admin.index.php...","NULL",__FILE__,__LINE__);
-	header("location:admin.index.php");
+	header("location:miniadm.logon.php");
 	die();
-	
 }
+BuildSessionAuth();
+
 if(isset($_POST["SourceParams"])){SourceParams();exit;}
 
 if(isset($_GET["top-menu"])){top_menu();exit;}

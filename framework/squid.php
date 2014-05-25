@@ -20,6 +20,16 @@ if(isset($_GET["videocache-query"])){videocache_query();exit;}
 if(isset($_GET["videocache-reinstall"])){videocache_reinstall();exit;}
 if(isset($_GET["loggers-status"])){loggers_status();exit;}
 if(isset($_GET["access-real"])){access_real();exit;}
+if(isset($_GET["dynamic-cache-apply"])){dynamic_caches_apply();exit;}
+
+
+if(isset($_GET["ziproxy-isinstalled"])){ziproxy_installed();exit;}
+if(isset($_GET["zipproxy-status"])){ziproxy_status();exit;}
+if(isset($_GET["ziproxy-restart"])){ziproxy_restart();exit;}
+if(isset($_GET["ziproxy-reload"])){zipproxy_reload();exit;}
+if(isset($_GET["zipproxy-real"])){zipproxy_real();exit;}
+
+
 
 if(isset($_GET["rttlogs-parse"])){realtime_logs_parse();exit;}
 
@@ -1179,7 +1189,7 @@ function schedule_maintenance_db(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
-	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.blacklists.php --schedule-maintenance >/dev/null &");
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.blacklists.php --v2 --force >/dev/null &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);			
 }
@@ -2765,6 +2775,15 @@ function squid_nat_status(){
 	writelogs_framework($cmd." ->".count($results)." lines",__FUNCTION__,__FILE__,__LINE__);
 	echo "<articadatascgi>". base64_encode(implode("\n",$results))."</articadatascgi>";
 }
+function ziproxy_status(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php5 /usr/share/artica-postfix/exec.status.php --ziproxy --nowachdog";
+	exec($cmd,$results);
+	writelogs_framework($cmd." ->".count($results)." lines",__FUNCTION__,__FILE__,__LINE__);
+	echo "<articadatascgi>". base64_encode(implode("\n",$results))."</articadatascgi>";	
+}
+
 function videocache_status(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -2973,14 +2992,75 @@ function access_real(){
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 	@chmod(0755,"$targetfile");
-	
-	
-	
-	
-	
-	
+}
+function dynamic_caches_apply(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squid.php --dyn-caches --reload >/dev/null 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 
+function ziproxy_installed(){
+	$unix=new unix();
+	if(!is_file($unix->find_program('ziproxy'))){
+		echo "<articadatascgi>". base64_encode("FALSE")."</articadatascgi>";
+		return;
+	}
+	echo "<articadatascgi>". base64_encode("TRUE")."</articadatascgi>";
+	
+}
+function zipproxy_reload(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	if(!is_file("/etc/init.d/zipproxy")){
+		$cmd="$php5 /usr/share/artica-postfix/exec.initslapd.php --zipproxy >/dev/null 2>&1";
+		writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);
+	}
+	$cmd="$nohup /etc/init.d/zipproxy reload >/dev/null 2>&1";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+function zipproxy_real(){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$targetfile="/usr/share/artica-postfix/ressources/logs/zipproxy-access.log.tmp";
+	$rp=$_GET["rp"];
+	$query=$_GET["query"];
+	$cmd="$tail -n $rp /var/log/squid/access-ziproxy.log  >$targetfile 2>&1";
 
+	if($query<>null){
+		if(preg_match("#regex:(.*)#", $query,$re)){$pattern=$re[1];}else{
+			$pattern=str_replace(".", "\.", $query);
+			$pattern=str_replace("*", ".*?", $pattern);
+			$pattern=str_replace("/", "\/", $pattern);
+		}
+	}
+	if($pattern<>null){
+		$grep=$unix->find_program("grep");
+		$cmd="$grep -E \"$pattern\" /var/log/squid/access-ziproxy.log | $tail -n $rp  >$targetfile 2>&1";
+	}
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	@chmod(0755,"$targetfile");
+}
+
+function ziproxy_restart(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	if(!is_file("/etc/init.d/zipproxy")){
+		$cmd="$php5 /usr/share/artica-postfix/exec.initslapd.php --zipproxy >/dev/null 2>&1";
+		writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);	
+	}
+	$cmd="$nohup /etc/init.d/zipproxy restart >/dev/null 2>&1";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+}
 
 ?>

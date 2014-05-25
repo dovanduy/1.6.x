@@ -128,7 +128,9 @@ class logfile_daemon{
 	
 	
 	public function CACHEDORNOT($SquidCode){
-	
+		if(preg_match("#(.+?):(.+)#", $SquidCode,$re)){
+			$SquidCode=$re[1];
+		}
 		switch ($SquidCode) {
 	
 			case "TCP_HIT":

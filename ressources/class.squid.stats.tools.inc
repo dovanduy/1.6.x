@@ -3,7 +3,7 @@
 
 class squid_stats_tools{
 	
-	
+	public $NoCategorize=false;
 	
 	
 	
@@ -80,6 +80,116 @@ class squid_stats_tools{
 	}
 	
 // ***************************************************************************************************************
+// Analyse les tables Cache.
+	public function check_cachehours(){
+		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+		$CurrentTableCacheHours="cachehour_".date("YmdH");
+	
+		if($GLOBALS["VERBOSE"]){echo "Current Table: $CurrentTableCacheHours\n";}
+	
+		$TABLES_HOURS=$GLOBALS["Q"]->LIST_TABLES_CACHEHOURS();
+	
+		if($GLOBALS["VERBOSE"]){echo "TABLES_HOURS = ". count($TABLES_HOURS)." tables`\n";}
+	
+		while (list ($tablename,$none) = each ($TABLES_HOURS) ){
+			if($tablename==$CurrentTableCacheHours){
+				if($GLOBALS["VERBOSE"]){echo "->check_cachehours  $tablename SKIP IT\n";}
+				continue;
+			}
+			if($GLOBALS["VERBOSE"]){echo "->check_cachehours_parse($tablename)\n";}
+			$this->check_cachehours_parse($tablename);
+		}
+	
+	}
+	
+	public function check_cachedays(){
+		if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
+		$CurrentTableCacheDay=date("Ymd")."_gcache";
+		$TABLES=$GLOBALS["Q"]->LIST_TABLES_GCACHE();
+		while (list ($tablename,$none) = each ($TABLES) ){
+			if($tablename==$CurrentTableCacheDay){
+				if($GLOBALS["VERBOSE"]){echo "->check_cachedays $tablename SKIP IT\n";}
+				continue;
+			}
+			if($GLOBALS["VERBOSE"]){echo "->check_cachedays($tablename)\n";}
+			$this->check_cachedays_parse($tablename);
+		}		
+	}
+	
+	private function check_cachedays_parse($tablename){
+		if(!preg_match("#([0-9]+)_gcache#", $tablename,$re)){return;}
+		$day_table="{$re[1]}_dcache";
+		$sql="CREATE TABLE IF NOT EXISTS `$day_table` (
+		`zmd5` VARCHAR(90) NOT NULL PRIMARY KEY,
+		`size` BIGINT UNSIGNED,
+		`cached` smallint(1),
+		`familysite` VARCHAR(128) NOT NULL,
+		KEY `cached` (`cached`),
+		KEY `size` (`size`),
+		KEY `familysite` (`familysite`)
+		) ENGINE=MYISAM;";	
+		$GLOBALS["Q"]->QUERY_SQL($sql,$this->database);
+		if(!$GLOBALS["Q"]->ok){if($GLOBALS["VERBOSE"]){echo $GLOBALS["Q"]->mysql_error;}return;}
+		$f=array();
+		$sql="SELECT SUM(`size`) AS size, cached,familysite FROM `$tablename`
+		GROUP BY cached,familysite";
+		$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+		if(!$GLOBALS["Q"]->ok){return;}
+		
+		$pref="INSERT IGNORE INTO `$day_table` (`zmd5`,`size`,`cached`,`familysite`) VALUES ";
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$zmd5=md5(serialize($ligne));
+			$f[]="('$zmd5','{$ligne["size"]}','{$ligne["cached"]}','{$ligne["familysite"]}')";
+		}
+		if(count($f)>0){
+			$GLOBALS["Q"]->QUERY_SQL($pref.@implode(",", $f));
+			if(!$GLOBALS["Q"]->ok){return;}
+		}
+		
+	}
+	
+
+	private function check_cachehours_parse($tablename){
+		if(!preg_match("#cachehour_([0-9]+)#",$tablename,$re)){if($GLOBALS["VERBOSE"]){echo "NOT A CACHE HOUR TABLE `$tablename`\n";}return;}
+		$hour=$re[1];
+		$year=substr($hour,0,4);
+		$month=substr($hour,4,2);
+		$day=substr($hour,6,2);
+		$day_table="{$year}{$month}{$day}_gcache";
+	
+		$sql="CREATE TABLE IF NOT EXISTS `$day_table` ( 
+			`hour` smallint(2) NOT NULL, 
+			`size` BIGINT UNSIGNED, 
+			`cached` smallint(1),
+			`familysite` VARCHAR(128) NOT NULL,
+			KEY `hour` (`hour`), KEY `cached` (`cached`), 
+			KEY `size` (`size`), 
+			KEY `familysite` (`familysite`) 
+		) ENGINE=MYISAM;";
+		$GLOBALS["Q"]->QUERY_SQL($sql,$this->database);
+		if(!$GLOBALS["Q"]->ok){return;}
+		$f=array();
+		$sql="SELECT SUM(`size`) AS size, HOUR(`zDate`) AS thour,cached,familysite FROM `$tablename` 
+		GROUP BY thour,cached,familysite";
+		$results=$GLOBALS["Q"]->QUERY_SQL($sql);
+		if(!$GLOBALS["Q"]->ok){return;}
+	
+		$pref="INSERT INTO `$day_table` (`hour`,`size`,`cached`,`familysite`) VALUES ";
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$f[]="('{$ligne["thour"]}','{$ligne["size"]}','{$ligne["cached"]}','{$ligne["familysite"]}')";
+				
+		}
+	
+		if(count($f)>0){
+			$GLOBALS["Q"]->QUERY_SQL($pref.@implode(",", $f));
+			if(!$GLOBALS["Q"]->ok){return;}
+		}
+	
+		$GLOBALS["Q"]->QUERY_SQL("DROP TABLE `$tablename`");
+	}	
+	
+	
+// ***************************************************************************************************************
 	// Analyse les tables taille.
 	public function check_sizehours(){
 		//currenttable
@@ -133,6 +243,7 @@ class squid_stats_tools{
 // Analyse les tables heures, et les catégorises.
 	
 	public function not_categorized_day_scan(){
+		if($this->NoCategorize){return;}
 		$TABLES_HOURS=$GLOBALS["Q"]->LIST_TABLES_HOURS();
 		while (list ($tablename,$none) = each ($TABLES_HOURS) ){
 			$this->categorize_table($tablename);

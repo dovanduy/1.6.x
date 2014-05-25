@@ -108,7 +108,7 @@ function re_categorize_popup(){
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:14px'>{schedule}:</td>
-		<td>". texttooltip("{schedule}","{edit}:{schedule}",$js,null,0,"font-size:14px;font-weight:bold;text-decoration:underline")."</td>
+		<td>". texttooltip("{schedule}","{apply}:{schedule}",$js,null,0,"font-size:14px;font-weight:bold;text-decoration:underline")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:14px'>{RecategorizeSecondsToWaitOverload}:</td>

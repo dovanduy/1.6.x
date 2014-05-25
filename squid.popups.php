@@ -440,7 +440,7 @@ function url_regex_MalwarePatrol_popup(){
 	<table style='width:100%'>
 	<tr>
 	<td >$EnableMalwarePatrol</td>
-	<td valign='middle'>".button("{edit}","EnableMalwarePatrol()")."</td>
+	<td valign='middle'>".button("{apply}","EnableMalwarePatrol()")."</td>
 	</tr>
 	</table>
 	<hr>
@@ -1719,7 +1719,7 @@ if($t<2){
 	$form="<div id='div-poubelle'></div>
 		 ".implode("\n",$tables)."
 		</table> 	
-			<div   style='text-align:right'><hr>". button("{edit}","save_plugins()")."</div>
+			<div   style='text-align:right'><hr>". button("{apply}","save_plugins()")."</div>
 					
 		";
 		
@@ -1981,7 +1981,7 @@ $form="<center id='animate-$t'></center>
 						
 						
 			<tr>
-			<td colspan=4 align='right'><hr>". button("{edit}","listenport$t()",16)."</td>
+			<td colspan=4 align='right'><hr>". button("{apply}","listenport$t()",16)."</td>
 			</tr>
 		</table>
 		</div>
@@ -2056,7 +2056,7 @@ $form="
 			<td><strong style='font-size:16px;'>$squid->alt_listen_port</strong></td>
 			</tr>
 			<tr>
-			<td colspan=2 align='right'><hr>". button("{edit}","listenport()")."
+			<td colspan=2 align='right'><hr>". button("{apply}","listenport()")."
 			</td>
 			</tr>
 		</table>";	

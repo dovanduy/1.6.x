@@ -47,7 +47,7 @@ class mysql_storelogs{
 			$GLOBALS["CLASS_SOCKETS"]=$sock;
 		}
 		
-		
+		if(!function_exists("rotate_events")){include_once("/usr/share/artica-postfix/framework/class.unix.inc"); }
 		$this->EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
 		if(!is_numeric($this->EnableSargGenerator)){$this->EnableSargGenerator=0;}
 		if(isset($GLOBALS["CLASS_UNIX"])){
@@ -681,7 +681,14 @@ class mysql_storelogs{
 		$sql="CREATE TABLE IF NOT EXISTS `sarg_performed` (`md5file` VARCHAR(128) PRIMARY KEY ,
 				`filename` VARCHAR(128) ,`zDate` datetime )  ENGINE = MYISAM;";
 		$q=new mysql_squid_builder();
-		if(!$q->QUERY_SQL($sql)){if($GLOBALS["VERBOSE"]){echo "$sql\n$q->mysql_error\n";}return false;}
+		
+		
+		
+		if(!$q->QUERY_SQL($sql)){
+			if($GLOBALS["VERBOSE"]){echo "$sql\n$q->mysql_error\n";}
+			rotate_events("Error: $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			return false;
+		}
 		$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
 		shell_exec("$php /usr/share/artica-postfix/exec.mysar.php --mysql");
 		shell_exec("$php /usr/share/artica-postfix/exec.sarg.php --conf");
@@ -690,83 +697,120 @@ class mysql_storelogs{
 	}
 	
 	private function MySarExec($filename){
+		if(!isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]=new unix();}
 		$q=new mysql_squid_builder();
 		$NICE=$GLOBALS["CLASS_UNIX"]->EXEC_NICE();
-		$f[]="username=$q->mysql_admin";
-		$f[]="password=$q->mysql_password";
+		
+		$q->PRIVILEGES("mysar",$GLOBALS["CLASS_UNIX"]->GetUniqueID());
+		$f[]="username=mysar";
+		$f[]="password=".$GLOBALS["CLASS_UNIX"]->GetUniqueID();
 		$f[]="database=squidlogs";
 		
 		if($q->mysql_port<>3306){$q->EnableSquidRemoteMySQL=0;}
 		if($q->EnableSquidRemoteMySQL==1){	
-				echo "Build config Use remote MySQL server = $q->mysql_admin@$q->mysql_server::$q->mysql_port / $q->mysql_password\n";
-				$f[]="server={$q->mysql_server}:$q->mysql_port";
-			
-		
+			echo "Build config Use remote MySQL server = $q->mysql_admin@$q->mysql_server::$q->mysql_port / $q->mysql_password\n";
+			$f[]="server={$q->mysql_server}:$q->mysql_port";
 		}else{
 			echo "Build config Use Local MySQL server = $q->SocketName\n";
 			$f[]="server=127.0.0.1";
-			@file_put_contents("/etc/mysar.conf", @implode("\n", $f));
+			
 		}
 		
 		$f[]="pidfile=/var/run/mysar.pid";
+		@file_put_contents("/etc/mysar.conf", @implode("\n", $f));
+		@mkdir("/usr/etc");
+		@file_put_contents("/usr/etc/mysar.conf", @implode("\n", $f));
+		
+		
+		
 		$cmdline="$NICE $this->mySarBin --logfile $filename --stats --offline 2>&1";
 		$results=array();
+		$t=time();
+		
 		exec($cmdline,$results);
+		$took=$GLOBALS["CLASS_UNIX"]->distanceOfTimeInWords($t,time());
+		rotate_events("MySar executed on $filename took:$took",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		if($GLOBALS["VERBOSE"]){echo @implode("\n", $results);}
 		
 	}
 	
 	public function SargTask($filename){
+		if(is_dir($filename)){return;}
 		if(isset($GLOBALS["SARG_TASK"][$filename])){return $GLOBALS["SARG_TASK"][$filename];}
 		if(!isset($GLOBALS["CLASS_UNIX"])){return;}
 		
-		$bzip2=$GLOBALS["CLASS_UNIX"]->find_program("bzip2");
+		$size=@filesize($filename);
+		if($size==0){return true;}
 		$basename=basename($filename);
-		if(!preg_match("#^access\.log#", $basename)){
+		if($basename=="."){return;}
+		if($basename==".."){return;}
+		
+		if(preg_match("#ziproxy#", $basename)){
+			rotate_events("$basename is not an proxy access events",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$GLOBALS["SARG_TASK"][$filename]=true;
-			return true;}
+			return true;
+		}
+		
+		if(!preg_match("#^access\.log#", $basename)){
+			rotate_events("$basename is not an proxy access events",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$GLOBALS["SARG_TASK"][$filename]=true;
+			return true;
+		}
 		
 		if($this->EnableSargGenerator==0){
 			if($this->mySar==0){
 				$GLOBALS["SARG_TASK"][$filename]=true;
-				return true;}
+				return true;
+			}
 		}
 
-		if(!isset($GLOBALS["SARGTESTS"])){$GLOBALS["SARGTESTS"]=$this->SargTests();}
+		if(!isset($GLOBALS["SARGTESTS"])){
+			$GLOBALS["SARGTESTS"]=$this->SargTests();
+		}
 		if(!$GLOBALS["SARGTESTS"]){
 			$GLOBALS["SARG_TASK"][$filename]=false;
-			return false;}
+			return false;
+		}
 		
 		$md5=md5_file($filename);
 		$q=new mysql_squid_builder();
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT filename FROM `sarg_performed` WHERE `md5file`='$md5'"));
 		if($ligne["filename"]<>null){
+			rotate_events("$basename, already runned Sarg on $md5",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$GLOBALS["SARG_TASK"][$filename]=true;
-			return true;}
+			return true;
+		}
 		
 		
 		$extension = pathinfo($filename, PATHINFO_EXTENSION);
-		rotate_events("$filename md5:$md5 extension:$extension",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+		
 		if($extension=="bz2"){
+			$bzip2=$GLOBALS["CLASS_UNIX"]->find_program("bzip2");
+			rotate_events("Uncompress $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			shell_exec("$bzip2 -dkc $filename > $filename.log");
+			$filename="$filename.log";
 		}
-		if(!is_file("$filename.log")){
+
+		
+		if(!is_file($filename)){
 			if($GLOBALS["VERBOSE"]){echo "$filename.log no such file\n";}
 			$GLOBALS["SARG_TASK"][$filename]=false;
 			return false;
 		}
 		if($this->mySar==1){
+			rotate_events("Running MySAR on $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			if($GLOBALS["VERBOSE"]){echo "->MySAR\n";}
 			$this->MySarExec($filename);
 		}
 		if($this->EnableSargGenerator==1){
 			$php=$GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
-			if($GLOBALS["VERBOSE"]){echo "-> exec.sarg.php --tofile \"$filename.log\"\n";}
-			shell_exec("$php /usr/share/artica-postfix/exec.sarg.php --tofile \"$filename.log\"");
+			if($GLOBALS["VERBOSE"]){echo "-> exec.sarg.php --tofile \"$filename\"\n";}
+			rotate_events("Launching sarg on executed on $filename",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			shell_exec("$php /usr/share/artica-postfix/exec.sarg.php --tofile \"$filename\"");
 		}
 		
 		
-		@unlink("$filename.log");
+		@unlink("$filename");
 		$zDate=date("Y-m-d H:i:s");
 		$sql="INSERT IGNORE INTO `sarg_performed` (`md5file`,`filename`,`zDate`) VALUES ('$md5','$basename','$zDate')";
 		$q->QUERY_SQL($sql);
@@ -921,9 +965,11 @@ class mysql_storelogs{
 			$destfile="$BackupMaxDaysDir/$basename";
 		}
 		if(!@copy($filepath, $destfile)){
+			rotate_events("Failed to backup $filepath to $destfile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			@unlink($destfile);
 			return false;
 		}
+		rotate_events("Success backup $destfile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		@unlink($filepath);
 		return true;
 		
@@ -931,6 +977,17 @@ class mysql_storelogs{
 	}
 	
 	private function InjectFileToNas($filepath){
+		if(is_dir($filepath)){return;}
+		
+		$BaseName=basename($filepath);
+		if($BaseName=="."){return;}
+		if($BaseName==".."){return;}
+		$size=@filesize($filepath);
+		if($size==0){
+			rotate_events("$filepath 0 bytes, skip and return true",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			return true;
+		}
+		
 		$sock=new sockets();
 		$users=new usersMenus();
 		$unix=new unix();
@@ -950,24 +1007,40 @@ class mysql_storelogs{
 		if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}
 		$mountPoint="/mnt/BackupSquidLogsUseNas";
 		if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
-			events("Unable to connect to NAS storage system (1): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+			rotate_events("Unable to connect to NAS storage system (1): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			
 			if($BackupSquidLogsNASRetry==0){return;}
 			sleep(3);
 			$mount=new mount("/var/log/artica-postfix/logrotate.debug");
 			if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
-				events("Unable to connect to NAS storage system (2): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr");
+				rotate_events("Unable to connect to NAS storage system (1): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 				return;
 			}
 				
 		}
 		
+		$DirSuffix=null;
 		
-		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog/$users->hostname";
+		if(preg_match("#ziproxy#", $BaseName)){
+			$DirSuffix="/proxy_access";
+		}
+		if(preg_match("#access\.log#", $BaseName)){
+			$DirSuffix="/proxy_access";
+		}
+		if(preg_match("#cache\.log#", $BaseName)){
+			$DirSuffix="/proxy_service";
+		}
+		
+		if(preg_match("#(syslog|daemon|user|)\.log#", $BaseName)){
+			$DirSuffix="/system";
+		}		
+		
+		$BackupMaxDaysDir="$mountPoint/artica-backup-syslog/$users->hostname$DirSuffix";
 		@mkdir("$BackupMaxDaysDir",0755,true);
 		
 		if(!is_dir($BackupMaxDaysDir)){
 			if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
-			events("FATAL $BackupMaxDaysDir permission denied");
+			rotate_events("FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 			system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$mount->umount($mountPoint);
@@ -978,22 +1051,27 @@ class mysql_storelogs{
 		$t=time();
 		@file_put_contents("$BackupMaxDaysDir/$t", time());
 		if(!is_file("$BackupMaxDaysDir/$t")){
-			events("FATAL $BackupMaxDaysDir permission denied");
+			rotate_events("FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
 			squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 			system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$mount->umount($mountPoint);
 			return false;
 		}
+		
+		
 		@unlink("$BackupMaxDaysDir/$t");
-		$targetFile="$mountPoint/".basename($filepath);
+		
+		$targetFile="$BackupMaxDaysDir/".basename($filepath);
 		if(!copy($filepath, $targetFile)){
+			rotate_events("Failed to copy $filepath -> $targetFile",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			@unlink($targetFile);
 			$mount->umount($mountPoint);
 			echo "Failed to copy $filepath -> $targetFile\n";
 			return;
 		}
 		
+		rotate_events("Success to backup $targetFile to $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr/artica-backup-syslog/$users->hostname",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		@unlink($filepath);
 		$mount->umount($mountPoint);
 		return true;
@@ -1005,6 +1083,11 @@ class mysql_storelogs{
 	
 	public function InjectFile($filepath,$sourceDate=null){
 		if(is_dir($filepath)){return;}
+		$BaseName=basename($filepath);
+		if($BaseName=="."){return;}
+		if($BaseName==".."){return;}
+		if(is_link($filepath)){$filepath=@readlink($filepath);}
+		
 		$FILE_SOURCE_TO_DELETE=$filepath;
 		$taskid=0;
 		$unix=new unix();
@@ -1032,7 +1115,7 @@ class mysql_storelogs{
 				@unlink($filepath);
 				return;
 			}
-			
+			rotate_events("Success to backup $SourceFile to $filepath",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			@unlink($SourceFile);
 		}
 		
@@ -1043,6 +1126,7 @@ class mysql_storelogs{
 				$this->events("Failed to copy $filepath => N.A.S");
 				return false;
 			}
+			$this->events("Success to copy $filepath => N.A.S");
 			return true;
 		}
 		
@@ -1051,6 +1135,7 @@ class mysql_storelogs{
 				$this->events("Failed to copy $filepath => N.A.S");
 				return false;
 			}	
+			$this->events("Success to copy $filepath => N.A.S");
 			return true;
 		}
 		
@@ -1137,6 +1222,9 @@ class mysql_storelogs{
 	}
 	
 	public function InjectFile_accesslog($filepath,$sourceDate=null){
+		$basename=basename($filepath);
+		if($basename=="."){return;}
+		if($basename==".."){return;}
 		$FILE_SOURCE_TO_DELETE=$filepath;
 		$taskid=0;
 		$unix=new unix();
@@ -1154,6 +1242,8 @@ class mysql_storelogs{
 				$this->events("Failed to copy $filepath => N.A.S");
 				return false;
 			}
+			$this->events("Success to copy $filepath => N.A.S");
+			return true;
 		}
 		
 		if($this->MySQLSyslogType==4){
@@ -1161,6 +1251,8 @@ class mysql_storelogs{
 				$this->events("Failed to copy $filepath => LOCAL");
 				return false;
 			}
+			$this->events("Success to copy $filepath => LOCAL");
+			return true;
 		}
 	
 		if(!$this->TABLE_EXISTS("access_store")){$this->checkTables();}
@@ -1248,18 +1340,9 @@ class mysql_storelogs{
 			}
 		}		
 		
-		if(function_exists("rotate_events")){rotate_events($text,$function,$file,$line);}
 		
-		
-		$date=@date("H:i:s");
-		$logFile="/var/log/artica-postfix/logrotate.debug";
-		$textF="$date [$pid] $file $text <div><i>function:$function, line:$line</i></div>\n";
-		if($GLOBALS["VERBOSE"]){echo $textF;}
-		$size=@filesize($logFile);
-		if($size>8000000){@unlink($logFile);}
-		$f = @fopen($logFile, 'a');
-		@fwrite($f, $textF);
-		@fclose($f);	
+		rotate_events($text,$function,$file,$line);
+	
 		}
 		
 	function writelogs($text=null,$function=null,$line=0){

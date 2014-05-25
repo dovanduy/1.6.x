@@ -735,10 +735,10 @@ function index(){
 	$TOTAL_MEMORY_MB=$sock->getFrameWork("system.php?TOTAL_MEMORY_MB=yes");
 	
 	$p=Paragraphe_switch_img("{enable_freeweb}","{enable_freeweb_text}",
-			"EnableFreeWeb",$EnableFreeWeb,null,400);
+			"EnableFreeWeb",$EnableFreeWeb,null,570);
 	
 	if($TOTAL_MEMORY_MB<1500){
-		$p_error=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB {current}:{$TOTAL_MEMORY_MB}MB</strong>",true,true);
+		$p_error=FATAL_ERROR_SHOW_128("{NO_ENOUGH_MEMORY_FOR_THIS_SECTION}<br><strong style='font-size:18px'>{require}:1500MB {current}:{$TOTAL_MEMORY_MB}MB</strong>",true,true)."<p>&nbsp;</p>";
 	}
 	
 	
@@ -751,19 +751,20 @@ function index(){
 			<hr>
 			<div id='apache-src-status'></div>
 		</td>
-			<td valign='top'>
+		<td valign='top'>
 				<table class=form>
 				<tr>
 					<td class=legend style='font-size:14px'>{add_to_menu}:</td>
 					<td>". Field_checkbox("FreeWebLeftMenu",1,$FreeWebLeftMenu,"FreeWebLeftMenuCheck()")."</td>
 				</tr>
 				<tr>
-					<td colspan=2>
-						$p_error
-						$p
-						<hr>
-						<div style='width:100%;text-align:right'>". button("{apply}","EnableFreeWebSave()",16)."</div>
-					</td>
+				<td colspan=2>
+					$p_error
+					$p
+					<hr>
+					<div style='width:100%;text-align:right'>". button("{apply}","EnableFreeWebSave()",22)."</div>
+				</td>
+				</tr>
 				</table>
 				<p>&nbsp;</p>		
 		
@@ -775,9 +776,6 @@ function index(){
 			
 			
 		</td>
-	
-		
-
 	</tr>
 	</table>
 	
@@ -987,7 +985,7 @@ function listwebs_search(){
 				$icon="webdav-32.png";
 				$groupware="<span style='text-align:right;font-size:11px;font-weight:bold;font-style:italic;color:#B64B13;float:right'>&nbsp;WebDav</span>";
 				$href="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.webdavusr.php')\" style='font-size:13px;text-decoration:underline;font-weight:bold'>";
-				$edit=imgtootltip($icon,"{edit} *.{$WebDavPerUserSets["WebDavSuffix"]}","Loadjs('freeweb.webdavusr.php')");
+				$edit=imgtootltip($icon,"{apply} *.{$WebDavPerUserSets["WebDavSuffix"]}","Loadjs('freeweb.webdavusr.php')");
 				if($WebDavPerUserSets["EnableSSL"]==1){$ssl="20-check.png";}else{$ssl="none-20.png";}
 				
 		$WebdavTR="
@@ -1105,7 +1103,7 @@ function listwebs_search(){
 		}
 		
 		if($ligne["Forwarder"]==1){$forward_text="<span style='text-align:right;font-size:11px;font-weight:bold;font-style:italic;color:#B64B13;float:right'>{www_forward} <b>{$ligne["ForwardTo"]}</b></span>";}
-		$edit=imgtootltip($icon,"{$ligne["resolved_ipaddr"]}<br>{edit}","Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}')");
+		$edit=imgtootltip($icon,"{$ligne["resolved_ipaddr"]}<br>{apply}","Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}')");
 		
 		
 		$servername_text=$ligne["servername"];

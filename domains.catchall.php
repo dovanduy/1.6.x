@@ -111,7 +111,7 @@ function catchall_index(){
 			<td><strong style='font-size:12px'>@{$_GET["domain"]}</strong></td>
 		</tr>
 		<tr>
-			<td colspan=3 align='right'><hr><input type='button' OnClick=\"javascript:SaveCatchAll();\" value='{edit}&nbsp;&raquo;'></td>
+			<td colspan=3 align='right'><hr><input type='button' OnClick=\"javascript:SaveCatchAll();\" value='{apply}&nbsp;&raquo;'></td>
 		</tr>
 	</table>
 			

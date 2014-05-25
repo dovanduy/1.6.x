@@ -50,7 +50,7 @@ function popup(){
 		$link="$prefix://{$ligne["servername"]}:$FreeWebListenPort";
 		$linkjs="javascript:s_PopUpFull('$link',800,800,'Squid Cache Manager')";
 		$link="<a href=\"javascript:blur();\" OnClick=\"$linkjs\" style='font-size:14px;text-decoration:underline'>$link</a>";
-		$edit_www="<a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}');\" style='font-size:14px;text-decoration:underline'>{edit}</a>";
+		$edit_www="<a href=\"javascript:blur();\" OnClick=\"Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}');\" style='font-size:14px;text-decoration:underline'>{apply}</a>";
 	}
 	
 	

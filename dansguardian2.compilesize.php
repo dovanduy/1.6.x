@@ -204,7 +204,7 @@ function categories_search(){
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$table=$ligne["c"];
 		writelogs("Scanning table $table",__FUNCTION__,__FILE__,__LINE__);
-		$select=imgtootltip("32-parameters.png","{edit}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","DansGuardianEditMember('{$ligne["ID"]}','{$ligne["pattern"]}')");
 		$color="black";
 			
 		

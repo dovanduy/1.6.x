@@ -354,6 +354,9 @@ class squid_acls{
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if($ligne["acltpl"]==null){return;}
 		
+
+		
+		
 		if($ligne["acltpl"]=="ARTICA_SLASH_SCREEN"){
 			$sock=new sockets();
 			$EnableSplashScreen=$sock->GET_INFO("EnableSplashScreen");
@@ -370,19 +373,32 @@ class squid_acls{
 		
 		
 		$acltpl=$ligne["acltpl"];
-		$sql="SELECT template_name,lang,template_link,template_uri FROM squidtpls WHERE `zmd5`='$acltpl'";
+		$sql="SELECT template_name,lang,template_link,template_uri,emptytpl FROM squidtpls WHERE `zmd5`='$acltpl'";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$tplname=$ligne["template_name"];
+		
+		
+		
+		if(is_numeric($ligne["lang"])){$ligne["lang"]="en";}
 		if(!preg_match("#^ERR_.+#", $ligne["template_name"])){$ligne["template_name"]="ERR_".$ligne["template_name"];}
 		$template_path="/usr/share/squid3/errors/{$ligne["lang"]}/{$ligne["template_name"]}";
+		
+		
+		if($ligne["emptytpl"]==1){
+			if(!is_file($template_path)){return null;}
+			return "200:{$ligne["template_name"]}";
+		}
+		
+		
+		
+		
 		if($ligne["template_link"]==1){
 			$freeWebsLink="?a=%a&e=%e&ee=%E&www=%H&url=%R&x=%x&T=$acltpl&M=%M";
 			$ligne["template_uri"]=str_replace("%FREEWEBS%", $freeWebsLink, $ligne["template_uri"]);
 			return $ligne["template_uri"];
 		
 		}
-		if(!is_file($template_path)){return null;}
-		return $ligne["template_name"];
+
 		
 	}
 	

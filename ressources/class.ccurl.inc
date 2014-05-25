@@ -58,6 +58,9 @@ class ccurl{
 			$this->interface=$interface;
 			$this->noproxyload=$noproxyload;
 			$this->NoCheckSquid=$NoCheckSquid;
+			$this->OutPutlogs("*");
+			$this->OutPutlogs("******************************");
+			$this->OutPutlogs("*");
 			$sock=new sockets();
 			if(!isset($GLOBALS["WgetBindIpAddress"])){
 				$GLOBALS["WgetBindIpAddress"]=$sock->GET_INFO("WgetBindIpAddress");
@@ -477,6 +480,15 @@ class ccurl{
 	
 	
 	private function ParseCodeError(){
+		
+		if($this->CURLINFO_HTTP_CODE==300){
+			if($GLOBALS["VERBOSE"]){echo "ParseCodeError:: $this->CURLINFO_HTTP_CODE == 300 (300 Multiple Choices) return false\n";}
+			$this->data=null;
+			$this->error="503 Multiple Choices";
+			$this->error_num=300;
+			return false;
+		}
+		
 		if($this->CURLINFO_HTTP_CODE<400){
 			if($GLOBALS["VERBOSE"]){echo "ParseCodeError:: $this->CURLINFO_HTTP_CODE < 400 return true\n";}
 			return true;}
@@ -767,8 +779,36 @@ class ccurl{
 		if($GLOBALS["VERBOSE"]){echo "CURLOPT_INTERFACE: `$this->interface`\n";}
 		$GLOBALS["CURLDEBUG"][]="CURLOPT_INTERFACE: \"$this->interface\" Line ". __LINE__;
 		curl_setopt($this->ch, CURLOPT_INTERFACE,$this->interface);
-
 		
+		
+	}
+	
+	function GetHeads(){
+		$SUFFIX_VERBOSE=__CLASS__."/".__FUNCTION__;
+		if (!extension_loaded('curl') or ($this->ch = curl_init($this->uri)) === false) {echo "No curl extentions can be loaded\n";return;}
+		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER,true);
+		curl_setopt($this->ch, CURLOPT_URL, "$this->uri");
+		curl_setopt($this->ch, CURLOPT_FRESH_CONNECT, TRUE);
+		curl_setopt($this->ch, CURLOPT_NOBODY, TRUE);
+		curl_setopt($this->ch, CURLOPT_FILETIME, TRUE);
+		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array("Pragma: no-cache,must-revalidate", "Cache-Control: no-cache,must revalidate",'Expect:'));
+		if(!is_numeric($this->Timeout)){$this->Timeout=120;}
+		if(preg_match("#https:#",$this->uri)){
+			curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, 0);
+			curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
+		}
+		
+		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array('Expect:'));
+		curl_setopt($this->ch, CURLOPT_TIMEOUT, $this->Timeout);
+		$result=curl_exec($this->ch);
+		$this->CURL_ALL_INFOS=curl_getinfo($this->ch);
+		$this->CURLINFO_HTTP_CODE=curl_getinfo($this->ch,CURLINFO_HTTP_CODE);
+		$error=curl_errno($this->ch);
+		if($GLOBALS["VERBOSE"]){echo "GetHeads:: Error N.$error\n";}
+		
+		curl_close($this->ch);
+		if(!$this->ParseError($error)){return false;}
+		return $this->ParseCodeError();
 	}
 	
 	
@@ -825,15 +865,20 @@ class ccurl{
 		
 		
 		$this->CURLINFO_HTTP_CODE=curl_getinfo($this->ch,CURLINFO_HTTP_CODE);
+		$this->OutPutlogs("CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE");
+		
+		
 		$this->CURL_ALL_INFOS=curl_getinfo($this->ch);
 		
 		fclose($fp);
 		$error=curl_errno($this->ch);	
+		$this->OutPutlogs("CURL_ERROR_TEXT: $error");
 		curl_close($this->ch);
 		
 		if($GLOBALS["VERBOSE"]){echo "Check \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]\n";}
 		
 		if(!$this->ParseTextError()){
+			$this->OutPutlogs("* * * ParseTextError() return false * * * ");
 			@unlink($targetpath);
 			$this->OutPutlogs("Return False....");
 			writelogs("*** FAILED *** datas: $this->uri Error.$this->CURLINFO_HTTP_CODE",__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -842,6 +887,7 @@ class ccurl{
 		
 		
 		if($this->CURLINFO_HTTP_CODE==404){
+			$this->OutPutlogs("* * * 404 not found * * * ");
 			@unlink($targetpath);
 			$this->error_num=404;
 			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** [".__LINE__."]\n";}
@@ -851,6 +897,7 @@ class ccurl{
 		
 		if($GLOBALS["VERBOSE"]){echo "Check \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]\n";}
 		if(!is_file($targetpath)){
+			$this->OutPutlogs("* * * $targetpath no such file * * * ");
 			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]\n";}
 			if($GLOBALS["VERBOSE"]){echo "path \"$targetpath\" CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE no such file\n";}
 			return false;
@@ -858,6 +905,7 @@ class ccurl{
 			
 		if($GLOBALS["VERBOSE"]){echo "Check \"ParseError($error) - ERR: $this->CURLINFO_HTTP_CODE\" [".__LINE__."]\n";}	
 		if(!$this->ParseError($error)){
+			$this->OutPutlogs("* * * $error return false * * * ");
 			if($GLOBALS["VERBOSE"]){echo "*** FAILED *** [".__LINE__."]\n";}
 			writelogs("*** FAILED *** datas: $this->uri (". strlen($this->data)." bytes) error: $error",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			return false;
@@ -869,6 +917,7 @@ class ccurl{
 		if($filesize>1024){$filesizeText=$filesize/1024;$filesizeUnit="Ko";}
 			
 		if($error>0){
+			$this->OutPutlogs("* * * $error > 0 * * * ");
 			writelogs("datas: $this->uri (". strlen($result)." bytes) filesize=$filesizeText $filesizeUnit error:$error",__CLASS__.'/'.__FUNCTION__,__FILE__);
 		}
 			

@@ -19,6 +19,9 @@ if(function_exists("posix_getuid")){
 	if(isset($_GET["graph1"])){graph1();exit;}
 	if(isset($_GET["graph2"])){graph2();exit;}
 	if(isset($_GET["graph3"])){graph3();exit;}
+	if(isset($_GET["graph001"])){top_cached_sites();exit;}
+	if(isset($_GET["graph002"])){top_not_cached_sites();exit;}
+	
 	
 	PageDeGarde();
 	
@@ -28,13 +31,36 @@ function PageDeGarde(){
 	$time=time();
 	$tpl=new templates();
 	$f1[]=$tpl->_ENGINE_parse_body("<div style='font-size:26px;margin-bottom:20px'>{top_web} {today}</div>");
+	
+	$file1="/usr/share/artica-postfix/ressources/logs/web/TOP_CACHED.db";
+	$file2="/usr/share/artica-postfix/ressources/logs/web/TOP_NOT_CACHED.db";
+	
+	if(is_file($file1)){
+		$tr[]="<div style='width:500px;height:500px' id='$time-001'></div>";
+		$f2[]="function X001$time(){
+		AnimateDiv('$time-001');
+		Loadjs('$page?graph001=yes&container=$time-001&time=$time',true);
+		}
+		setTimeout(\"X001$time()\",500);";
+	}
+	
+	if(is_file($file2)){
+		$tr[]="<div style='width:500px;height:500px' id='$time-002'></div>";
+
+		$f2[]="function X002$time(){
+		AnimateDiv('$time-002');
+		Loadjs('$page?graph002=yes&container=$time-002&time=$time',true);
+		}
+		setTimeout(\"X002$time()\",500);";
+	}	
+	
 	$tr[]="<div style='width:500px;height:500px' id='$time-01'></div>";
 	$tr[]="<div style='width:500px;height:500px' id='$time-02'></div>";
 	$tr[]="<div style='width:500px;height:500px' id='$time-03'></div>";
 	$f1[]=CompileTr2($tr);
 	if(is_file("/usr/share/artica-postfix/ressources/logs/bandwith_stats_today-fam.db")){
 		
-		$f2[]="function XDeux$time(){
+	$f2[]="function XDeux$time(){
 		AnimateDiv('$time-01');
 		Loadjs('$page?graph1=yes&container=$time-01&time=$time',true);
 	}
@@ -61,6 +87,35 @@ function graph1(){
 	$highcharts->Title=$tpl->_ENGINE_parse_body("{top_websites}");
 	echo $highcharts->BuildChart()."\nLoadjs('$page?graph2=yes&container={$_GET["time"]}-02&time={$_GET["time"]}',true);";
 	
+}
+
+function top_cached_sites(){
+	$page=CurrentPageName();
+	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOP_CACHED.db"));
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{size} MB";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{top_cached_websites}");
+	echo $highcharts->BuildChart();
+}
+function top_not_cached_sites(){
+	$page=CurrentPageName();
+	$PieData=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/TOP_NOT_CACHED.db"));
+	$tpl=new templates();
+	$highcharts=new highcharts();
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->container=$_GET["container"];
+	$highcharts->PieDatas=$PieData;
+	$highcharts->ChartType="pie";
+	$highcharts->PiePlotTitle="{size} MB";
+	$highcharts->Title=$tpl->_ENGINE_parse_body("{top_not_cached_websites}");
+	echo $highcharts->BuildChart();
 }
 function graph2(){
 

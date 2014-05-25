@@ -1272,6 +1272,9 @@ begin
         end;
 
         if FileExists(APACHE_MODULES_PATH+'/mod_vhost_ldap.so') then  list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=False;');
+        if FileExists(APACHE_MODULES_PATH+'/mod_bw.so') then  list.Add('$_GLOBAL["APACHE_MODE_BW"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_BW"]=False;');
+
+
         if FileExists(APACHE_MODULES_PATH+'/mod_dav.so') then begin
            if FileExists(APACHE_MODULES_PATH+'/mod_ldap.so') then begin
                list.Add('$_GLOBAL["APACHE_MODE_WEBDAV"]=True;');

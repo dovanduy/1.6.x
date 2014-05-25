@@ -22,6 +22,9 @@ if(isset($_GET["index_popup"])){index_page();exit;}
 if(isset($_GET["dhcp-tab"])){dhcp_switch();exit;}
 if(isset($_GET["dhcp-status"])){dhcp_status();exit;}
 if(isset($_GET["index_dhcp_popup"])){dhcp_tabs();exit;}
+
+
+if(isset($_GET["dhcp-enable-js"])){dhcp_enable_js();exit;}
 if(isset($_GET["dhcp_enable_popup"])){dhcp_enable();exit;}
 if(isset($_GET["dhcp_form"])){echo dhcp_form();exit;}
 if(isset($_GET["dhcp-list"])){echo dhcp_computers_scripts();exit;}
@@ -29,7 +32,7 @@ if(isset($_GET["dhcp-pxe"])){echo dhcp_pxe_form();exit;}
 if(isset($_GET["pxe_enable"])){echo dhcp_pxe_save();exit;}
 
 if(isset($_GET["SaveDHCPSettings"])){dhcp_save();exit;}
-if(isset($_GET["EnableDHCPServer"])){dhcp_enable_save();exit;}
+if(isset($_POST["EnableDHCPServer"])){dhcp_enable_save();exit;}
 if(isset($_GET["AsGatewayForm"])){echo gateway_page();exit;}
 if(isset($_GET["gayteway_enable"])){echo gateway_enable();exit;}
 if(isset($_GET["EnableArticaAsGateway"])){gateway_save();exit;}
@@ -145,7 +148,7 @@ function dhcp_index_js(){
 		}		
 
 		function EnableDHCPServerForm(){
-			YahooWin3(400,'$page?dhcp_enable_popup=yes','$enable');
+			YahooWin3(650,'$page?dhcp_enable_popup=yes','$enable');
 		}
 		
 		function PxeConfig(){
@@ -153,22 +156,7 @@ function dhcp_index_js(){
 		
 		}
 		
-		var x_EnableDHCPServerSave= function (obj) {
-			var tempvalue=obj.responseText;
-			if(tempvalue.length>3){alert(tempvalue);}
-			if(document.getElementById('main_config_dhcpd')){RefreshTab('main_config_dhcpd');}
-			YahooWin3Hide();
-		}			
-		
-		
-		function EnableDHCPServerSave(){
-			var DisableNetworksManagement=$DisableNetworksManagement;	
-			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
-			var XHR = new XHRConnection();
-			XHR.appendData('EnableDHCPServer',document.getElementById('EnableDHCPServer').value);
-			document.getElementById('img_EnableDHCPServer').src='img/wait_verybig.gif';
-			XHR.sendAndLoad('$page', 'GET',x_EnableDHCPServerSave);	
-		}
+
 
 	function DHCPCOmputers(){
 			if(!document.getElementById('dhcpd_lists')){
@@ -367,13 +355,15 @@ function dhcp_form(){
 	if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
 	
 	
-	if(count($domains)==0){$dom=Field_text('ddns_domainname',$dhcp->ddns_domainname,"font-size:16px;");}
-	else{
+	if(count($domains)==0){
+		$dom=Field_text('ddns_domainname',$dhcp->ddns_domainname,"font-size:16px;");
+	}else{
 		$domains[null]="{select}";
-		$dom=Field_array_Hash($domains,'ddns_domainname',$dhcp->ddns_domainname,null,null,null,";font-size:16px;padding:3px");}
-		$nic=$dhcp->array_tcp;
-		if($dhcp->listen_nic==null){$dhcp->listen_nic="eth0";
+		$dom=Field_array_Hash($domains,'ddns_domainname',$dhcp->ddns_domainname,null,null,null,";font-size:16px;padding:3px");
 	}
+	
+	$nic=$dhcp->array_tcp;
+	if($dhcp->listen_nic==null){$dhcp->listen_nic="eth0";}
 	
 	
 	while (list ($num, $val) = each ($nic) ){
@@ -387,9 +377,7 @@ function dhcp_form(){
 	$nics[null]='{select}';
 	$dnsmasq_installed=0;
 	$EnableArticaAsDNSFirst_enabled=0;
-	if($users->dnsmasq_installed){
-		$dnsmasq_installed=1;
-	}
+	if($users->dnsmasq_installed){ $dnsmasq_installed=1; }
 	
 	if(($users->BIND9_INSTALLED) OR ($users->POWER_DNS_INSTALLED) OR ($users->dnsmasq_installed) ){
 		$EnableArticaAsDNSFirst_enabled=1;
@@ -549,7 +537,7 @@ function dhcp_form(){
 				</tr>					
 				<tr>
 					<td colspan=4 align='right'><hr>
-					". button("{edit}","SaveDHCPSettings()",16)."
+					". button("{apply}","SaveDHCPSettings()",16)."
 						
 					
 					</td>
@@ -683,23 +671,13 @@ function dhcp_status(){
 	$restart="<div style='margin-top:15px'><center>". button("{restart_service}","RestartDHCPService()")."</center></div>";
 	if($ini->_params["DHCPD"]["running"]==0){$restart=null;}
 	
-	$cmds="<center style='margin-top:10px;margin-bottom:10px;width:95%' class=form>
-		<table style='width:70%'>
-		<tbody>
-		<tr>
-			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-		</tr>
-		</tbody>
-		</table>
-		</center>";
+
 	
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body(
 	"$status
 	<div style='text-align:right'>". imgtootltip("refresh-24.png","{refresh}","LoadAjax('dhcp-status','$page?dhcp-status=yes');")."
-	$cmds
+	
 	");
 }
 
@@ -713,9 +691,10 @@ function dhcp_tabs(){
 	$array["leases"]='{leases}';
 	$array["events"]='{events}';
 	
-	$fontsize=null;
-	if(isset($_GET["newinterface"])){$newinterface="&newinterface=yes";$newinterfacesuffix="?newinterface=yes";$fontsize="font-size:14px;";}
 	
+	if(isset($_GET["newinterface"])){
+		$newinterface="&newinterface=yes";$newinterfacesuffix="?newinterface=yes";$fontsize="font-size:14px;";}
+		$fontsize="font-size:18px";
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="shared-network"){
@@ -752,10 +731,10 @@ function dhcp_index(){
 	$config=Paragraphe("64-settings.png","{APP_DHCP_MAIN_CONF}","{APP_DHCP_MAIN_CONF_TEXT}","javascript:YahooWin3(700,'index.gateway.php?show-script=yes','{APP_DHCP_MAIN_CONF}');");
 	$pxe=	Paragraphe("pxe-64.png","{PXE}","{PXE_DHCP_MINI_TEXT}","javascript:PxeConfig();");
 	$routes=Buildicon64('DEF_ICO_DHCP_ROUTES');
-	$events=Buildicon64('DEF_ICO_DHCP_EVENTS');
+	
 	$pcs=Buildicon64('DEF_ICO_BROWSE_COMP');
 	$enable=Paragraphe("check-64.png","{EnableDHCPServer}","{EnableDHCPServer_text}",
-	"javascript:EnableDHCPServerForm()","{EnableDHCPServer_text}");
+	"javascript:Loadjs('$page?dhcp-enable-js=yes');","{EnableDHCPServer_text}");
 	$title="<div style='font-size:42px;'>{APP_DHCP}</div>";
 	$class_from="form";
 	
@@ -787,8 +766,8 @@ function dhcp_index(){
 							
 							
 							<td valign='top'>$pxe</td>
-							<td valign='top'>$events</td>
 							<td valign='top'>$pcs</td>
+							<td valign='top'></td>
 							
 						</tr>
 						<tr>
@@ -816,6 +795,7 @@ function dhcp_pxe_save(){
 	
 	$sock=new sockets();
 	$tpl=new templates();
+	
 	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
 	$DisableNetworksManagement=$sock->GET_INFO("DisableNetworksManagement");
 	if($DisableNetworksManagement==null){$DisableNetworksManagement=0;}		
@@ -829,17 +809,71 @@ function dhcp_pxe_save(){
 	
 }
 
+function  dhcp_enable_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{EnableDHCPServer}");
+	echo "YahooWin3('650','$page?dhcp_enable_popup=yes','$title');";
+	
+}
+
+
 function dhcp_enable(){
 	$sock=new sockets();
-	$form=Paragraphe_switch_img("{EnableDHCPServer}","{EnableDHCPServer_text}","EnableDHCPServer",
-	$sock->GET_INFO("EnableDHCPServer"),"EnableDHCPServer_text",330);
-	$html="
-	$form
-	<div style='text-align:right;width:100%'>
-	<HR>
-		". button("{edit}","EnableDHCPServerSave()",18)."</div>
-	";
+	$page=CurrentPageName();
 	$tpl=new templates();
+	$t=time();
+	$form=Paragraphe_switch_img("{EnableDHCPServer}","{EnableDHCPServer_text}","EnableDHCPServer-$t",
+	intval($sock->GET_INFO("EnableDHCPServer")),"EnableDHCPServer_text",600);
+	$DisableNetworksManagement=intval($sock->GET_INFO("DisableNetworksManagement"));
+	$ERROR_NO_PRIVS=$tpl->javascript_parse_text("{ERROR_NO_PRIVS}");
+	$dhcp=new dhcpd(0,1);
+	$nic=$dhcp->array_tcp;
+	if($dhcp->listen_nic==null){$dhcp->listen_nic="eth0";}
+	
+	
+	while (list ($num, $val) = each ($nic) ){
+		if($num==null){continue;}
+		if($num=="lo"){continue;}
+		$nics[$num]=$num;
+	}
+	
+	
+	$html="
+	<div style='width:98%' class=form>
+		$form
+		<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:18px'>{interface}:</td>
+			<td>".Field_array_Hash($nics, "listen-$t",$dhcp->listen_nic,"style:font-size:18px")."</td>
+		</tr>
+		</table>
+		<div style='text-align:right;width:100%'><HR>
+			". button("{apply}","EnableDHCPServerSave$t()",22)."
+		</div>
+	</div>
+	<script>
+		var x_EnableDHCPServerSave$t= function (obj) {
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue);}
+			if(document.getElementById('main_config_dhcpd')){RefreshTab('main_config_dhcpd');}
+			YahooWin3Hide();
+			Loadjs('system.services.cmd.php?APPNAME=APP_DHCP&action=restart&cmd=%2Fetc%2Finit.d%2Fisc-dhcp-server&appcode=DHCPD');
+		}			
+		
+		
+		function EnableDHCPServerSave$t(){
+			var DisableNetworksManagement=$DisableNetworksManagement;	
+			if(DisableNetworksManagement==1){alert('$ERROR_NO_PRIVS');return;}	
+			var XHR = new XHRConnection();
+			XHR.appendData('EnableDHCPServer',document.getElementById('EnableDHCPServer-$t').value);
+			XHR.appendData('listen_nic',document.getElementById('listen-$t').value);
+			XHR.sendAndLoad('$page', 'POST',x_EnableDHCPServerSave$t);	
+		}
+</script>
+	";
+	
 	echo $tpl->_ENGINE_parse_body($html);	
 	
 }
@@ -855,10 +889,9 @@ function dhcp_enable_save(){
 	
 	$dhcp=new dhcpd();
 	$sock=new sockets();
-	$sock->SET_INFO('EnableDHCPServer',$_GET["EnableDHCPServer"]);
-	$dhcp->Save();
-	$tpl=new templates();
-	echo $tpl->javascript_parse_text("{success}");
+	$sock->SET_INFO('EnableDHCPServer',$_POST["EnableDHCPServer"]);
+	$dhcp->listen_nic=$_POST["listen_nic"];
+	$dhcp->Save(true);
 }
 
 function dhcp_save(){

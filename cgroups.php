@@ -175,7 +175,7 @@ function cgroups_list(){
 		if($cgroupsEnabled==0){$color="#8a8a8a";}
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$select=imgtootltip("software-task-32.png","{processes}","CgroupsProcesses('{$ligne["ID"]}')");
-		$select2=imgtootltip("32-network-server.png","{edit}","SambaVirtalServer('{$ligne["hostname"]}')");
+		$select2=imgtootltip("32-network-server.png","{apply}","SambaVirtalServer('{$ligne["hostname"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","CgroupsDel('{$ligne["ID"]}')");
 		$link="<a href=\"javascript:blur();\" OnClick=\"javascript:CgroupsEdit({$ligne["ID"]});\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";
 		$linkADD="<a href=\"javascript:blur();\" OnClick=\"javascript:CgroupsProcesses({$ligne["ID"]});\" style='font-size:14px;font-weight:bold;color:$color;text-decoration:underline'>";

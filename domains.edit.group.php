@@ -404,7 +404,7 @@ function GROUP_SIEVE_INDEX(){
 	$html="<H1>{sieve_auto_script}</H1>
 	<div id='div-sieve-filters'>
 		$form
-		<div style='text-align:right'><input type='button' OnClick=\"javascript:SieveSaveArticaFilters();\" value='{edit}&nbsp;&raquo;'></div>
+		<div style='text-align:right'><input type='button' OnClick=\"javascript:SieveSaveArticaFilters();\" value='{apply}&nbsp;&raquo;'></div>
 	</div>
 	";
 	
@@ -831,7 +831,7 @@ function GROUP_DEFAULT_PASSWORD(){
 		<td>" . Field_onoff_checkbox_img('change_now','no','{group_default_password_change}')."</td>
 		</tr>
 		<tr>
-			<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ChangeDefaultGroupPassword($gpid);\" value='{edit}&nbsp;&raquo;'>
+			<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ChangeDefaultGroupPassword($gpid);\" value='{apply}&nbsp;&raquo;'>
 		</tr>
 	</table>	
 	</div>
@@ -1884,7 +1884,7 @@ function FORBIDDEN_ATTACHMENTS_GROUPS($gid){
 		return $html."
 		<tr>
 		<td width=1% valign='top' align='right' style='background-color:#F6F5E7' colspan=3>
-		<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\">
+		<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFM1','$page',true);\">
 		</td>
 		</FORM>
 		</table>";	
@@ -1957,7 +1957,7 @@ function GROUP_DANSGUARDIAN($gid){
     	<tr>
     	<td align='right' nowrap><strong style='font-size:13.5px'>{selected_rule}:&nbsp;</strong></td>
     	<td width=70%>$field</td>
-    	<td align=left><input type=button value='{edit}&nbsp;&raquo;' OnClick=\"javascript:EditGroupDansGuardianRule('$gid','$ou');\" style='width:200px'></td>
+    	<td align=left><input type=button value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EditGroupDansGuardianRule('$gid','$ou');\" style='width:200px'></td>
     	</tr>
     	</table>
     	";

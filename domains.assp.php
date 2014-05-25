@@ -80,7 +80,7 @@ function popup(){
 	
 	
 	$html="
-	<div style='text-align:right;float:right'>". button("{edit}","AssPEnable()")."</div>
+	<div style='text-align:right;float:right'>". button("{apply}","AssPEnable()")."</div>
 	$assp
 	<hr>
 	

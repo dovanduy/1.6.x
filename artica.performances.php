@@ -528,7 +528,7 @@ function cron_popup(){
 				</tr>
 				<tr>
 					<td colspan=2 align='right'>
-						<hr>". button("{edit}","SaveArticaProcessesSchedule()",16)."
+						<hr>". button("{apply}","SaveArticaProcessesSchedule()",16)."
 							
 					</td>
 				</tr>
@@ -976,7 +976,7 @@ $html="
 			<td nowrap>". Field_text("SysTmpDir",$SysTmpDir,"width:190px;font-size:13px;padding:3px")."</td>
 			<td></td>
 		</tr>	
-			<td colspan=3 align='right'><hr>". button("{edit}","SavePerformancesMasterForm()",14)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesMasterForm()",14)."</td>
 		</tr>
 		</tbody>
 		</table>
@@ -1093,7 +1093,7 @@ $title_perfs=$tpl->_ENGINE_parse_body('{service_performances}');
 	<td>" . help_icon("{mysql_server_text}")."</td>
 </tr>
 <tr>
-	<td colspan=3 align='right'>". button("{edit}","ParseForm('ffmsql','$page',true);")."
+	<td colspan=3 align='right'>". button("{apply}","ParseForm('ffmsql','$page',true);")."
 </tr>
 <tr>
 	<td colspan=3 align='right'>". button("{service_performances}",$testperfs)."
@@ -1166,7 +1166,7 @@ if($ini->_params["PERFORMANCES"]["syslogng_max_connections"]==null){$ini->_param
 
 
 <tr>
-	<td colspan=2 align='right'><input type=button OnClick=\"javascript:ParseForm('ffmsyslog','$page',true);\" value='{edit}&nbsp;&raquo;'>
+	<td colspan=2 align='right'><input type=button OnClick=\"javascript:ParseForm('ffmsyslog','$page',true);\" value='{apply}&nbsp;&raquo;'>
 </tr>
 </table>
 </form>	
@@ -1254,7 +1254,7 @@ $html="<H5>{mimedefang_consumption}</h5>
 	<td nowrap width=1% align='left'>".help_icon('{MX_MAX_AS_TEXT}')."</td>
 </tr>
 <tr>
-	<td colspan=2 align='right'><input type=button OnClick=\"javascript:ParseForm('ffmmimedefang','$page',true);\" value='{edit}&nbsp;&raquo;'>
+	<td colspan=2 align='right'><input type=button OnClick=\"javascript:ParseForm('ffmmimedefang','$page',true);\" value='{apply}&nbsp;&raquo;'>
 </tr>
 </table>
 </form>	";	

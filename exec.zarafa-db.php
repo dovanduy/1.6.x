@@ -2,7 +2,9 @@
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["FORCE"]=false;
 $GLOBALS["RECONFIGURE"]=false;
-if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
+if(preg_match("#--verbose#",implode(" ",$argv))){
+		$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;
+		$GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--force#",implode(" ",$argv),$re)){$GLOBALS["FORCE"]=true;}
@@ -167,7 +169,7 @@ function start($nopid=false,$forceInnoDbRecover=false){
 	if($GLOBALS["VERBOSE"]){echo $cmdline."\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting MySQL daemon\n";}
 	@unlink("/home/zarafa-db/error.log");
-	shell_exec("$nohup $cmdline >/dev/null 2>&1 &");
+	shell_exec("$nohup $cmdline >$TMP 2>&1 &");
 	sleep(2);
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Checking potentials errors\n";}
@@ -189,7 +191,8 @@ function start($nopid=false,$forceInnoDbRecover=false){
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon failed to start\n";}
 		$f=explode("\n",@file_get_contents($TMP));
-		while (list ($num, $ligne) = each ($TMP) ){
+		@unlink($TMP);
+		while (list ($num, $ligne) = each ($f) ){
 			if(trim($ligne)==null){continue;}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $ligne\n";}
 		}
@@ -227,6 +230,11 @@ function ChecksError(){
 				@unlink("$WORKDIR/data/ib_logfile1");
 			}
 			
+			if(is_file("$WORKDIR/data/ibdata_dir/ibdata1")){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing data/ibdata_dir/ibdata1 files Working directory `$WORKDIR`...\n";}
+				@unlink("$WORKDIR/data/ibdata_dir/ibdata1");
+			}			
+			
 			return true;
 		}
 		
@@ -246,6 +254,11 @@ function ChecksError(){
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing ib_logfile1 files Working directory `$WORKDIR`...\n";}
 				@unlink("$WORKDIR/data/ib_logfile1");
 			}
+			
+			if(is_file("$WORKDIR/data/ibdata_dir/ibdata1")){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing data/ibdata_dir/ibdata1 files Working directory `$WORKDIR`...\n";}
+				@unlink("$WORKDIR/data/ibdata_dir/ibdata1");
+			}			
 			
 			return true;
 		}

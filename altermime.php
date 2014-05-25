@@ -88,7 +88,7 @@ function popup(){
 		<td>".Field_numeric_checkbox_img("DisclaimerOrgOverwrite",$DisclaimerOrgOverwrite,"{enable_disable}")."</td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:DisclaimerGlobalConfSave();\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:DisclaimerGlobalConfSave();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>";
 	

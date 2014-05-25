@@ -852,7 +852,7 @@ function artica_update_task($nopid=false){
 		$TASKID=$array["TASKID"];
 		$severity=$array["severity"];
 	
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `artica_update_task`
+		$q->QUERY_SQL("INSERT IGNORE INTO `artica_update_task`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity')","artica_events");
 	
@@ -929,7 +929,7 @@ function checks_stats_admin_events($nopid=false){
 		$TASKID=$array["TASKID"];
 		$severity=$array["severity"];
 	
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `stats_admin_events`
+		$q->QUERY_SQL("INSERT IGNORE INTO `stats_admin_events`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity')","artica_events");
 	
@@ -1007,7 +1007,7 @@ function checks_hotspot_admin_mysql($nopid=false){
 		$TASKID=$array["TASKID"];
 		$severity=$array["severity"];
 
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `hotspot_admin_mysql`
+		$q->QUERY_SQL("INSERT IGNORE INTO `hotspot_admin_mysql`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity')","artica_events");
 
@@ -1132,7 +1132,7 @@ function squid_admin_purge_check($nopid=false){
 		$TASKID=$array["TASKID"];
 		$severity=$array["severity"];
 
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `squid_admin_purge`
+		$q->QUERY_SQL("INSERT IGNORE INTO `squid_admin_purge`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity')","artica_events");
 
@@ -1225,7 +1225,7 @@ function rotate_admin_events_checks($nopid=false){
 		$TASKID=$array["TASKID"];
 		$category=$array["category"];
 	
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `rotate_admin_events`
+		$q->QUERY_SQL("INSERT IGNORE INTO `rotate_admin_events`
 				(`zDate`,`description`,`function`,`filename`,`line`,`category`,`hostname`,`TASKID`) VALUES
 				('$zdate','$content','$function','$file','$line','$category','$hostname','$TASKID')","artica_events");
 	
@@ -1306,7 +1306,7 @@ function rdpproxy_admin_mysql_check($nopid=false){
 		$TASKID=$array["TASKID"];
 		$severity=$array["severity"];
 
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `rdpproxy_admin_mysql`
+		$q->QUERY_SQL("INSERT IGNORE INTO `rdpproxy_admin_mysql`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
 
@@ -1392,7 +1392,7 @@ function squid_admin_mysql_check($nopid=false){
 		$TASKID=$array["TASKID"];
 		$severity=$array["severity"];
 		
-		$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `squid_admin_mysql`
+		$q->QUERY_SQL("INSERT IGNORE INTO `squid_admin_mysql`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
 		
@@ -1416,6 +1416,13 @@ function squid_admin_notifs_check($nopid=false){
 		$t=0;
 
 	}
+	
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs";
+	if(!is_dir($BaseWorkDir)){return;}
+	if (!$handle = opendir($BaseWorkDir)) {
+		echo "Failed open $BaseWorkDir\n";
+		return;
+	}
 
 	$sock=new sockets();
 	$users=new usersMenus();
@@ -1424,16 +1431,15 @@ function squid_admin_notifs_check($nopid=false){
 	if(!is_numeric($UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"])){$UfdbguardSMTPNotifs["ENABLED_SQUID_WATCHDOG"]=0;}
 	
 	// removed : foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/system_admin_events/*") as $filename) {
-	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/squid_admin_notifs";
 	
-	if (!$handle = opendir($BaseWorkDir)) {
-		echo "Failed open $BaseWorkDir\n";
-		return;
-	}
+
 
 	
 	include_once(dirname(__FILE__) . '/ressources/class.mail.inc');
 	include_once(dirname(__FILE__)."/ressources/smtp/class.phpmailer.inc");
+	
+	if(!isset($UfdbguardSMTPNotifs["smtp_dest"])){return;}
+	if(!isset($UfdbguardSMTPNotifs["smtp_sender"])){$UfdbguardSMTPNotifs["smtp_sender"]=null;}
 	
 	
 	$smtp_dest=$UfdbguardSMTPNotifs["smtp_dest"];
@@ -1526,8 +1532,30 @@ function system_rotate_events_checks($nopid=false){
 	}	
 	
 	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}	
-	$q=new mysql_storelogs();
-	$prefix="INSERT IGNORE INTO evnts (`zmd5`,`zDate`,`hostname`,`subject`,`content`) VALUES ";
+	$q=new mysql();
+	
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`system_rotate_events` (
+	`zDate` TIMESTAMP NOT NULL ,
+	`description` MEDIUMTEXT NOT NULL ,
+	`hostname` VARCHAR( 90 ) NOT NULL ,
+	`function` VARCHAR( 60 ) NOT NULL ,
+	`filename` VARCHAR( 50 ) NOT NULL ,
+	`line` INT( 10 ) NOT NULL ,
+	`category` VARCHAR( 50 ) NOT NULL ,
+	`TASKID` INT(10) NOT NULL,
+	KEY  `zDate` ( `zDate`),
+	KEY `function` (`function`),
+	KEY `filename` (`filename`),
+	KEY `line` (`line`),
+	KEY `hostname` (`hostname`),
+	KEY `TASKID` (`TASKID`),
+	KEY `category` (`category`)
+	) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,"artica_events");	
+	
+	
+	
+	$prefix="INSERT IGNORE INTO system_rotate_events (`zDate`,`function`,`filename`,`line`,`description`,`category`,`TASKID`,`hostname`) VALUES ";
 	$hostname=$unix->hostname_g();
 	
 	while (false !== ($filename = readdir($handle))) {
@@ -1550,30 +1578,18 @@ function system_rotate_events_checks($nopid=false){
 			
 			
 		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
-		while (list ($key, $val) = each ($array)){$val=mysql_escape_string2($val);$array[$key]=str_replace("'", "`", $val);}
-		
-		$array["text"]=$array["text"]."<div>Pid: {$array["pid"]} File: {$array["file"]}, function: {$array["function"]} in line {$array["line"]}</div>";
-		
-		$md5=md5(serialize($array));
-		$array["text"]=str_replace("\n","", $array["text"]);
-		$array["subject"]=substr($array["text"],0,250)."...";
-		
-		$f[]="('$md5','{$array["zdate"]}','$hostname','{$array["subject"]}','{$array["text"]}')";
-		if(count($f)>500){
-			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){return;}
-			$f=array();
+		while (list ($key, $val) = each ($array)){
+			$val=mysql_escape_string2($val);
+			$array[$key]=str_replace("'", "`", $val);
 		}
-		
+	
+		$suffix="('{$array["zdate"]}','{$array["function"]}','{$array["file"]}','{$array["line"]}','{$array["text"]}','{$array["category"]}','{$array["TASKID"]}','$hostname')";
+		$q->QUERY_SQL($prefix.$suffix,"artica_events");
+		if(!$q->ok){continue;}
 		@unlink($targetFile);
 	}
 	
-	if(count($f)>0){
-		$q->QUERY_SQL($prefix.@implode(",", $f));
-		$f=array();
-	}
 	
-
 		
 }
 
@@ -2042,7 +2058,10 @@ function clean_mysql_events(){
 	$array["squid_admin_purge"]=true;
 	$array["system_failover_events"]=true;
 	$array["system_admin_events"]=true;
+	$array["system_rotate_events"]=true;
 	$array["update_events"];
+	$array["squid_admin_mysql"];
+	
 	while (list ($table, $lib) = each ($array) ){
 	
 		$NumRows=$q->COUNT_ROWS($table, "artica_events");
@@ -2339,6 +2358,7 @@ function sys_load(){
 	$q=new mysql();
 	$sock=new sockets();
 	$unix=new unix();
+	$f=array();
 	
 	$sql="CREATE TABLE IF NOT EXISTS `sys_loadvg` (
 			 	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2391,13 +2411,14 @@ function sys_load(){
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}	
 	if($EnableSyslogDB==1){
 		$php=$unix->LOCATE_PHP5_BIN();
-		$nohup=$unix->find_program($nohup);
+		$nohup=$unix->find_program("nohup");
 		shell_exec("$nohup $php /usr/share/artica-postfix/exec.logrotate.php --convert >/dev/null 2>&1 &");
 	}
 		
 	
 }
 function sys_mem(){
+	$f=array();
 	$q=new mysql();
 	if(!$q->TABLE_EXISTS('sys_mem','artica_events')){
 		$sql="CREATE TABLE IF NOT EXISTS `sys_mem` (
@@ -2443,6 +2464,7 @@ function sys_mem(){
 }
 function sys_alert(){
 	$q=new mysql();
+	$f=array();
 	if(!$q->TABLE_EXISTS('sys_alert','artica_events')){
 		$sql="CREATE TABLE IF NOT EXISTS `sys_alert` (
 			 	`zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2481,9 +2503,9 @@ function sys_alert(){
 }
 function ps_mem($nopid=false){
 	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	
 	if($nopid){
-		
-		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pid=@file_get_contents($pidfile);
 		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}	
 		$t=0;		
@@ -2499,7 +2521,7 @@ function ps_mem($nopid=false){
 	
 	
 	
-	
+	$f=array();
 	$q=new mysql();
 	$prefix="INSERT IGNORE INTO ps_mem (zmd5,zDate,process,memory) VALUES ";
 	if($GLOBALS["VERBOSE"]){writelogs("Starting glob()...",__FUNCTION__,__FILE__,__LINE__);}
@@ -2530,7 +2552,7 @@ function ps_mem($nopid=false){
 		
 // -------------------------------------------------------------------------
 
-		
+	$f=array();
 	$prefix="INSERT IGNORE INTO ps_mem_tot (zDate,mem) VALUES ";
 	foreach (glob("{$GLOBALS["ARTICALOGDIR"]}/ps-mem-tot/*") as $filename) {	
 		$array=unserialize(@file_get_contents($filename));

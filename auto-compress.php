@@ -92,7 +92,7 @@ function popup_start(){
 					<td>" . Field_numeric_checkbox_img('autcompress_enabled',$autocompress->autcompress_enabled,'{enable_disable}')."</td>
 				</tr>
 			<tr>
-				<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMCOMPRESSS','$page',true);\" value='{edit}&nbsp;&raquo;'></td>
+				<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMCOMPRESSS','$page',true);\" value='{apply}&nbsp;&raquo;'></td>
 			</tr>
 				
 			

@@ -457,7 +457,7 @@ $sock=new sockets();
 		<td>" . Field_text('uusb_label',$label,"width:90px")."</td>
 	</tr>
 	<td colspan=2 align='right'>
-		<input type='button' OnClick=\"javascript:ChangeUsbLabelEdit();\" value='{edit}&nbsp;&raquo;'>
+		<input type='button' OnClick=\"javascript:ChangeUsbLabelEdit();\" value='{apply}&nbsp;&raquo;'>
 	</td>
 	</tr>
 	</table>

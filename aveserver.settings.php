@@ -61,7 +61,7 @@ $html="
 			<td>" .Field_text('NotifyMessageSubject',$ave->main_array["NotifyMessageSubject"])  . "</td>
 		</tr>		
 		<tr><td colspan=2>" . TinyMce('NotifyMessageTemplate',$ave->main_array["NotifyMessageTemplate"]) . "</td></tr>					
-		<tr><td colspan=2 align='right'><input type='submit' value='{edit}&nbsp;&raquo;'></td></tr>
+		<tr><td colspan=2 align='right'><input type='submit' value='{apply}&nbsp;&raquo;'></td></tr>
 </table>
 </td>
 </tr>

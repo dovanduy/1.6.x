@@ -1272,6 +1272,9 @@ begin
         end;
 
         if FileExists(APACHE_MODULES_PATH+'/mod_vhost_ldap.so') then  list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=False;');
+        if FileExists(APACHE_MODULES_PATH+'/mod_bw.so') then  list.Add('$_GLOBAL["APACHE_MODE_BW"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=False;');
+
+
         if FileExists(APACHE_MODULES_PATH+'/mod_dav.so') then begin
            if FileExists(APACHE_MODULES_PATH+'/mod_ldap.so') then begin
                list.Add('$_GLOBAL["APACHE_MODE_WEBDAV"]=True;');
@@ -1482,7 +1485,7 @@ end;
         if(samba.CLUSTER_SUPPORT()) then  list.Add('$_GLOBAL["SAMBA_CLUSTER_SUPPORT"]=True;') else list.Add('$_GLOBAL["SAMBA_CLUSTER_SUPPORT"]=False;');
         if FileExists(samba.vfs_path()+'/mysql_audit.so')  then list.Add('$_GLOBAL["SAMBA_MYSQL_AUDIT"]=True;') else list.Add('$_GLOBAL["SAMBA_MYSQL_AUDIT"]=False;');
         if FileExists('/usr/sbin/scannedonlyd_clamav')  then list.Add('$_GLOBAL["SCANNED_ONLY_INSTALLED"]=True;') else list.Add('$_GLOBAL["SCANNED_ONLY_INSTALLED"]=False;');
-        if FileExists(samba.WINBIND_BIN_PATH()) then list.Add('$_GLOBAL["WINBINDD_INSTALLED"]=True;') else list.Add('$_GLOBAL["WINBINDD_INSTALLED"]=False;');
+        if FileExists(SYS.LOCATE_GENERIC_BIN('winbindd')) then list.Add('$_GLOBAL["WINBINDD_INSTALLED"]=True;') else list.Add('$_GLOBAL["WINBINDD_INSTALLED"]=False;');
         if FileExists(SYS.LOCATE_GENERIC_BIN('greyhole')) then list.Add('$_GLOBAL["GREYHOLE_INSTALLED"]=True;') else list.Add('$_GLOBAL["GREYHOLE_INSTALLED"]=False;');
         cups:=tcups.Create;
         if FileExists(cups.Daemon_bin_path()) then list.Add('$_GLOBAL["CUPS_INSTALLED"]=True;') else list.Add('$_GLOBAL["CUPS_INSTALLED"]=False;');

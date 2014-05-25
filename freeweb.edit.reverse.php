@@ -134,7 +134,7 @@ function lists(){
 		
 		$html=$html."
 			<tr class=$classtr>
-			<td width=1%>". imgtootltip("Firewall-Move-Right-32.png","{edit}","Loadjs('$page?zmd5-js={$ligne["zmd5"]}&servername={$_GET["servername"]}')")."</td>
+			<td width=1%>". imgtootltip("Firewall-Move-Right-32.png","{apply}","Loadjs('$page?zmd5-js={$ligne["zmd5"]}&servername={$_GET["servername"]}')")."</td>
 			<td nowrap><strong style='font-size:14px'>$request_from</strong></td>
 			<td width=1%><img src='img/fleche-20-right.png'></td>
 			<td nowrap><strong style='font-size:14px'>$redirect_to</strong></td>
@@ -179,7 +179,7 @@ function form_edit(){
 	$tpl=new templates();	
 	$sql="SELECT * FROM freewebs_proxy WHERE zmd5='{$_GET["zmd5"]}'";
 	$q=new mysql();
-	$button="{edit}";
+	$button="{apply}";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
 	if($_GET["zmd5"]==null){$button="{add}";}
 	

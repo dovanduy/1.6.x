@@ -12,7 +12,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
-if($GLOBALS["VERBOSE"]){echo "Starting analyze command lines\n";}
+if($GLOBALS["VERBOSE"]){echo "Starting analyze command lines\n";$GLOBALS["OUTPUT"]=true;}
 
 if($argv[1]=="syslog-deb"){die();}
 if($argv[1]=="--ldapd-conf"){ldap_conf();exit;}
@@ -73,6 +73,8 @@ if($argv[1]=="--squid-nat"){squidnat();exit;}
 if($argv[1]=="--ntopng"){ntopng();redis_server();exit;}
 if($argv[1]=="--squid-stream"){squidstream();squidstream_scheduler();exit;}
 if($argv[1]=="--zipproxy"){zipproxy();exit;}
+if($argv[1]=="--squid-db"){$GLOBALS["OUTPUT"]=true;squid_db();exit;}
+
 
 
 	if($GLOBALS["VERBOSE"]){echo "Open unix class\n";}
@@ -93,7 +95,7 @@ if($argv[1]=="--zipproxy"){zipproxy();exit;}
 	$oldpid=$unix->get_pid_from_file($PID_FILE);
 	if($unix->process_exists($oldpid)){echo "slapd: [INFO] Already executed pid $oldpid\n";die();}
 	@file_put_contents($PID_FILE, getmypid());
-
+$GLOBALS["OUTPUT"]=true;
 $functions=array("artica_syslog","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
 		"haproxy","specialreboot","buildscript","artica_status","mysqlInit","remove_nested_services",
 "conntrackd","process1","monit","dnsmasq_init_debian","nscd_init_debian","wsgate_init_debian",
@@ -6081,14 +6083,37 @@ function iscsitarget_debian(){
 	
 	
 }
+
+function LOCATE_SQUID_BIN(){
+	$unix=new unix();
+	if(isset($GLOBALS["UNIX_LOCATE_SQUID_BIN"])){return $GLOBALS["UNIX_LOCATE_SQUID_BIN"];}
+	$GLOBALS["UNIX_LOCATE_SQUID_BIN"]=$unix->find_program("squid3");
+	if(!is_file($GLOBALS["UNIX_LOCATE_SQUID_BIN"])){$GLOBALS["UNIX_LOCATE_SQUID_BIN"]=$unix->find_program("squid");}
+	return $GLOBALS["UNIX_LOCATE_SQUID_BIN"];
+
+}
+
+
 function squid_db(){
 
+	
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
-	$squid=$unix->LOCATE_SQUID_BIN();
+	$squid=LOCATE_SQUID_BIN();
 	$SCRIPTFILENAME=dirname(__FILE__)."/exec.squid-db.php";
-	if(!is_file($squid)){return;}
-	if(!is_file("/etc/artica-postfix/FROM_ISO")){return;}
+	
+	if($GLOBALS["VERBOSE"]){
+		echo "Starting......: ".date("H:i:s")." [INIT]: PHP...: $php\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Squid.: $squid\n";
+		echo "Starting......: ".date("H:i:s")." [INIT]: Script: $SCRIPTFILENAME\n";
+	}
+	
+	if(!is_file($squid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon (squid-db) no such squid\n";}
+		return;}
+	if(!is_file("/etc/artica-postfix/FROM_ISO")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon (squid-db) not from ISO\n";}
+		return;}
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
 	$f[]="# Provides:         squid-db";
@@ -6123,7 +6148,9 @@ function squid_db(){
 	$f[]="    ;;";
 	$f[]="esac";
 	$f[]="exit 0\n";
+	
 	@file_put_contents("/etc/init.d/squid-db", @implode("\n", $f));
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon (squid-db) /etc/init.d/squid-db done\n";}
 	@chmod("/etc/init.d/squid-db",0755);
 
 	if(is_file('/usr/sbin/update-rc.d')){

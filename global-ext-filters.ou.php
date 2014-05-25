@@ -117,7 +117,7 @@ function LoadGroups(){
 		$html=$html . "<tr ><td width='1%'><img src='img/red-pushpin-24.png'></td>
 		<td " .CellRollOver("group_attachment_edit('$val')",'edit')."><strong style='font-size:13px'>$val</strong></td>
 		<td width=1% >" . imgtootltip("x.gif","{delete}","group_attachment_delete('$val');") . "</td>
-		<td width=1% >" . imgtootltip("icon_edit.gif","{edit}","group_attachment_edit('$val');") . "</td>
+		<td width=1% >" . imgtootltip("icon_edit.gif","{apply}","group_attachment_edit('$val');") . "</td>
 		</tr>
 		";
 			
@@ -148,7 +148,7 @@ function LoadGroupSettings($group,$ou){
 			<td valign='top' class='bottom'>$val<input type='hidden' id='ext_name_$num' value='$val'></td>
 			<td style='font-size:9px' class='bottom'>{$ren->knowExtList[strtoupper($val)]}</td>
 			<td style='font-size:9px' class='bottom'>" . Field_array_Hash($actionsARR,"ext_action_$num",$action)."</td>
-			<td style='font-size:9px' class='bottom'><input type='button' value='{edit}' OnClick=\"javascript:EditExtension($num,'$group');\"></td>
+			<td style='font-size:9px' class='bottom'><input type='button' value='{apply}' OnClick=\"javascript:EditExtension($num,'$group');\"></td>
 			<td valign='middle' class='bottom'>" . imgtootltip("x.gif","{delete}","DeleteExtension($num,'$group');")."</td>";
 		}
 		$badlist=$badlist . "</table>";

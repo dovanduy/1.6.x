@@ -595,7 +595,7 @@ function SmtpdRejectUnlistedRecipientLoad(){
 			<td><strong>{smtpd_reject_unlisted_recipient}</strong>
 			</tr>
 			<tr>
-			<td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveEnableSasl();\"></td>
+			<td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveEnableSasl();\"></td>
 			</tr>
 		</table>
 			</form>	
@@ -618,7 +618,7 @@ function LoadSmtpdHeloRequired(){
 			<td><strong>{smtpd_helo_required}</strong>
 			</tr>
 			<tr>
-			<td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveEnableHeloRequired();\"></td>
+			<td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveEnableHeloRequired();\"></td>
 			</tr>
 		</table>
 			</form>	
@@ -680,7 +680,7 @@ $html="
 	<tr>
 	<td class=caption><div id='selected'></div></td>
 	</tr>	
-	<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('$field','$page',true);Load_postfix_security_rules_table();\"></td>
+	<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('$field','$page',true);Load_postfix_security_rules_table();\"></td>
 	</tr>		
 	<tr>		
 	</table>
@@ -724,7 +724,7 @@ function PostFixCheckHashTableSelectFilterAction(){
 		</tr>
 		</table>
 		<div id='FilterTableSelected'></div>
-		<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' onClick=\"javascript:PostFixCheckHashTableSelectFilterActionSave()\"></div>
+		<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' onClick=\"javascript:PostFixCheckHashTableSelectFilterActionSave()\"></div>
 	</div>";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);	
@@ -810,7 +810,7 @@ function PostFixCheckHashTableSelectPrependAction(){
 		</tr>		
 		</table>
 		<div id='FilterTableSelected'></div>
-		<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' onClick=\"javascript:PostFixCheckHashTableSelectPrependActionSave()\"></div>
+		<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' onClick=\"javascript:PostFixCheckHashTableSelectPrependActionSave()\"></div>
 	</div>";	
 	
 	$tpl=new templates();

@@ -135,7 +135,7 @@ function popup(){
 	</TR>	
 	<tr>
 		<td colspan=2 align='right'><hr>
-		". button("{edit}","SaveSambaPlugins()",16)."
+		". button("{apply}","SaveSambaPlugins()",16)."
 		
 	</tr>
 	</TABLE>

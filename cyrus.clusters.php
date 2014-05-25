@@ -167,7 +167,7 @@ function popup(){
 	</tr>
 	<tr>
 		<td valign='top' align='right'><hr>
-		". button("{edit}","EnableCyrusMasterCluster()")."
+		". button("{apply}","EnableCyrusMasterCluster()")."
 			
 		</td>
 	</tr>
@@ -315,7 +315,7 @@ function ConfigureReplicat(){
 	<tr>
 	<td colspan=2 align='right'>
 	<hr>
-	". button("{edit} {notify}","SaveReplicaInfos()")."
+	". button("{apply} {notify}","SaveReplicaInfos()")."
 	</tr>
 	</table>	
 	</div>

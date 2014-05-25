@@ -696,7 +696,7 @@ function html_Memory_usage(){
 						if($hdparms_info>100){$hdparms_text_add="&nbsp;|{$hdparms_info}Mbs/s";$hdparms_info=100;}
 						if($hdparms_info<70){$hdparms_color="#F59C44";}
 						if($hdparms_info<31){$hdparms_color="#D32D2D";}
-						 $pouc_hdparm_text=texttooltip("{performance}:$hdparms_info%$hdparms_text_add","<strong>{performance}:$hdparms_info%</strong><hr><br>{hdparm_infos_text}",null,null,0,"font-size:9px");
+						 $pouc_hdparm_text="<span style='font-size:9px'>{performance}:$hdparms_info%$hdparms_text_add</span>";
 						 $this->meta_array["DISKS"]["$disk_name"]["HDPARM_COLOR"]=$hdparms_color;
 							$hdparm="
 							<div style='width:100px;background-color:white;padding-left:0px;border:1px solid $hdparms_color;margin-top:3px'>

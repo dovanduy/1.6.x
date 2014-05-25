@@ -75,7 +75,7 @@ function INDEX(){
 	</td>
 	</tr>
 	<tr>
-	<td colspan=2 align='right' style='border-top:1px solid #CCCCCC'><input type='submit' value='{edit}&nbsp;&raquo;' style='width:150px'></td>
+	<td colspan=2 align='right' style='border-top:1px solid #CCCCCC'><input type='submit' value='{apply}&nbsp;&raquo;' style='width:150px'></td>
 	</tr>
 	</table>
 	</form>";

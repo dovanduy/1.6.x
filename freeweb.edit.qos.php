@@ -14,10 +14,45 @@
 		die();exit();
 	}
 	
+	if(isset($_GET["popup"])){page();exit;}
 	if(isset($_GET["EnableQOS"])){SaveWebQOS();exit;}
 
-page();	
+tabs();	
 	
+function tabs(){
+	
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$fontsize=18;
+	
+	$array["bandw"]="{limit_rate}";
+	$array["qos"]="{QOS}";
+	
+	$servername=urlencode($_GET["servername"]);	
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="qos"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?popup=$t&servername=$servername\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="bandw"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.bw.php?popup=$t&servername=$servername\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+	
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+	}
+	
+	
+	
+	echo build_artica_tabs($html, "main_freeweb_qos");	
+	
+}
 	
 function page(){
 	
@@ -47,73 +82,61 @@ function page(){
 	
 	$html="
 	<div id='webdav-qos'>
-	<div style='font-size:16px'>{QOS}</div>
-	<div class=explain style='font-size:14px'>{mod_qos_explain}</div>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	". Paragraphe_switch_img("{enable_qos_service}", "{mod_qos_explain}","EnableQOS","$EnableQOS",null,650)."
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{enable_qos_service}:</td>
-		<td>". Field_checkbox("EnableQOS",1,$EnableQOS)."</td>
-		<td width=1%>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:16px'>{QS_ClientEntries}:</td>
-		<td>". Field_text("QS_ClientEntries",$QS_ClientEntries,"font-size:16px;width:120px")."</td>
+		<td class=legend style='font-size:18px'>{QS_ClientEntries}:</td>
+		<td>". Field_text("QS_ClientEntries",$QS_ClientEntries,"font-size:18px;width:120px")."</td>
 		<td>". help_icon("{QS_ClientEntries_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{QS_SrvMaxConnPerIP}:</td>
-		<td>". Field_text("QS_SrvMaxConnPerIP",$QS_SrvMaxConnPerIP,"font-size:16px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{QS_SrvMaxConnPerIP}:</td>
+		<td>". Field_text("QS_SrvMaxConnPerIP",$QS_SrvMaxConnPerIP,"font-size:18px;width:90px")."</td>
 		<td>". help_icon("{QS_SrvMaxConnPerIP_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{QOSMaxClients}:</td>
-		<td>". Field_text("MaxClients",$MaxClients,"font-size:16px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{QOSMaxClients}:</td>
+		<td>". Field_text("MaxClients",$MaxClients,"font-size:18px;width:90px")."</td>
 		<td>". help_icon("{QOSMaxClients_explain}")."</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{QS_SrvMaxConnClose}:</td>
-		<td>". Field_text("QS_SrvMaxConnClose",$QS_SrvMaxConnClose,"font-size:16px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{QS_SrvMaxConnClose}:</td>
+		<td>". Field_text("QS_SrvMaxConnClose",$QS_SrvMaxConnClose,"font-size:18px;width:90px")."</td>
 		<td>". help_icon("{QS_SrvMaxConnClose_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{QS_SrvMinDataRate}:</td>
-		<td>". Field_text("QS_SrvMinDataRate",$QS_SrvMinDataRate,"font-size:16px;width:120px")."</td>
+		<td class=legend style='font-size:18px'>{QS_SrvMinDataRate}:</td>
+		<td>". Field_text("QS_SrvMinDataRate",$QS_SrvMinDataRate,"font-size:18px;width:120px")."</td>
 		<td>". help_icon("{QS_SrvMinDataRate_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{LimitRequestFields}:</td>
-		<td>". Field_text("LimitRequestFields",$LimitRequestFields,"font-size:16px;width:60px")."</td>
+		<td class=legend style='font-size:18px'>{LimitRequestFields}:</td>
+		<td>". Field_text("LimitRequestFields",$LimitRequestFields,"font-size:18px;width:60px")."</td>
 		<td></td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{QS_LimitRequestBody}:</td>
-		<td>". Field_text("QS_LimitRequestBody",$QS_LimitRequestBody,"font-size:16px;width:120px")."</td>
+		<td class=legend style='font-size:18px'>{QS_LimitRequestBody}:</td>
+		<td>". Field_text("QS_LimitRequestBody",$QS_LimitRequestBody,"font-size:18px;width:120px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td colspan=3 align=right><hr>". button("{apply}","SaveWebQOS()",18)."</td>
+		<td colspan=3 align=right><hr>". button("{apply}","SaveWebQOS()",24)."</td>
 	</tr>
 	</table>
 	<p>&nbsp;</p>
 	</div>
-	
+	</div>
 	<script>
 	
 		var x_SaveWebQOS=function (obj) {
 			var results=obj.responseText;
 			if(results.length>0){alert(results);}	
-			RefreshTab('main_config_freewebedit');	
+			RefreshTab('main_freeweb_qos');	
 		}		
 	
 		function SaveWebQOS(){
-			var XHR = new XHRConnection();
-			if(document.getElementById('EnableQOS').checked){
-				XHR.appendData('EnableQOS',1);
-			}else{
-				XHR.appendData('EnableQOS',0);
-			}
-			
-			
+			XHR.appendData('EnableQOS',document.getElementById('EnableQOS').value);
 			XHR.appendData('QS_ClientEntries',document.getElementById('QS_ClientEntries').value);
 			XHR.appendData('QS_SrvMaxConnPerIP',document.getElementById('QS_SrvMaxConnPerIP').value);
 			XHR.appendData('MaxClients',document.getElementById('MaxClients').value);
@@ -122,7 +145,6 @@ function page(){
 			XHR.appendData('LimitRequestFields',document.getElementById('LimitRequestFields').value);
 			XHR.appendData('QS_LimitRequestBody',document.getElementById('QS_LimitRequestBody').value);
 			XHR.appendData('servername','{$_GET["servername"]}');
-			document.getElementById('webdav-qos').innerHTML='<center style=\"width:100%\"><img src=img/wait_verybig.gif></center>';
     		XHR.sendAndLoad('$page', 'GET',x_SaveWebQOS);
 		}
 		

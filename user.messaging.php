@@ -440,13 +440,13 @@ function altermime_disclaimer(){
 		<td>".Field_TRUEFALSE_checkbox_img("DisclaimerInbound",$dd->DisclaimerInbound,"{enable_disable}")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{edit}","document.forms['tinymcedisclaimer'].submit();")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","document.forms['tinymcedisclaimer'].submit();")."</td>
 	</tr>
 	</table>
 	</div>
 	$tiny
 	<hr>
-	<center>". button("{edit}","document.forms['tinymcedisclaimer'].submit();")."</center>
+	<center>". button("{apply}","document.forms['tinymcedisclaimer'].submit();")."</center>
 	</form>
 	
 	

@@ -73,7 +73,7 @@ function js(){
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{import_mailbox}","domains.edit.users.php");
 	$add=$tpl->_ENGINE_parse_body("{add}");
-	$edit=$tpl->_ENGINE_parse_body("{edit}");
+	$edit=$tpl->_ENGINE_parse_body("{apply}");
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$schedule=$tpl->_ENGINE_parse_body("{schedule}");
 	$apply_upgrade_help=$tpl->javascript_parse_text("{apply_upgrade_help}");
@@ -251,7 +251,7 @@ function add_popup(){
 		$remote_imap_username=$ligne["username"];
 		$remote_imap_password=$ligne["password"];
 		$use_ssl=$ligne["ssl"];
-  		$title="{edit}:$remote_imap_server";
+  		$title="{apply}:$remote_imap_server";
 		$button_title="{apply}";
 	}
 
@@ -870,7 +870,7 @@ function imapsynclist(){
  	
  		$status=imgtootltip($img,$text."<br>$running","imapSyncEvents({$ligne["ID"]})");
  		$schedule=imgtootltip("time-30.png","{schedule}$sched","imapSyncSchedule({$ligne["ID"]})");
- 		$settings=imgtootltip("settings-30.png","{edit}","ImapSyncEdit({$ligne["ID"]})");
+ 		$settings=imgtootltip("settings-30.png","{apply}","ImapSyncEdit({$ligne["ID"]})");
  		
  		
  		

@@ -191,7 +191,7 @@ function id_sender(){
 	<tr>
 		<td colspan=3 align='right'>
 		<hr>
-		". button("{edit}","SavePostfixNotificationsForm()")."
+		". button("{apply}","SavePostfixNotificationsForm()")."
 		</td>
 	</tr>		
 </table>	

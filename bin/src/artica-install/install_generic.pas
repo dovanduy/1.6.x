@@ -83,8 +83,7 @@ begin
  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.setup-center.php --force');
  fpsystem('/usr/share/artica-postfix/bin/process1 --force &');
  fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.shm.php --remove &');
- fpsystem('/etc/init.d/artica-postfix restart artica-status &');
- fpsystem('/etc/init.d/artica-postfix restart artica-exec &');
+ fpsystem('/etc/init.d/artica-status restart');
  fpsystem('rm -rf /usr/share/artica-postfix/ressources/web/logs/*.cache');
  if not TryStrToInt(SYS.GET_INFO('ArticaMetaEnabled'),ArticaMetaEnabled) then ArticaMetaEnabled:=0;
  if ArticaMetaEnabled=1 then begin

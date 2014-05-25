@@ -27,6 +27,7 @@ class system_nic{
 	var $ipv6addr=null;
 	var $ipv6gw=null;
 	var $metric=0;
+	var $mtu=1500;
 	var $ucarp_enabled=0;
 	var $ucarp_master=0;
 	var $ucarp_vid=3;
@@ -148,6 +149,11 @@ class system_nic{
 		if(!$q->FIELD_EXISTS("nics","netzone","artica_backup")){
 			$sql="ALTER TABLE `nics` ADD `netzone` VARCHAR( 10 ) ,ADD INDEX ( `netzone` )";
 			$q->QUERY_SQL($sql,'artica_backup');
+		}
+
+		if(!$q->FIELD_EXISTS("nics","MTU","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `MTU` smallint( 3 ) ,ADD INDEX ( `MTU` )";
+			$q->QUERY_SQL($sql,'artica_backup');
 		}		
 		
 	}
@@ -266,14 +272,18 @@ class system_nic{
 		$this->isFW=$ligne["isFW"];
 		$this->isFWAcceptNet=$ligne["isFWAcceptNet"];
 		$this->isFWLogBlocked=$ligne["isFWLogBlocked"];
+		writelogs("$this->eth mtu= {$ligne["MTU"]}",__CLASS__,__FUNCTION__,__FILE__,__LINE__);
+		$this->mtu=intval($ligne["MTU"]);
 		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
 		if(!is_numeric($this->ucarp_vid)){$this->ucarp_vid=0;}
 		if(!is_numeric($this->ucarp_advbase)){$this->ucarp_advbase=0;}
+		if(!is_numeric($this->mtu)){$this->mtu=1500;}
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
 		$this->ShoreWallServices=unserialize(base64_decode($ligne["ShoreWallServices"]));
 		if(!is_numeric($this->isFWAcceptNet)){$this->isFWAcceptNet=1;}
 		if($this->metric==0){$this->metric=$this->lastmetric();}
+		if($this->mtu==0){$this->mtu=1500;}
 		
 		if($this->ipv6addr==null){
 			$ip=new IP();
@@ -318,6 +328,7 @@ class system_nic{
 		
 		
 		if(!$q->FIELD_EXISTS("nics","enabled","artica_backup")){$sql="ALTER TABLE `nics` ADD `enabled` INT( 1 ) NOT NULL DEFAULT '0'";$q->QUERY_SQL($sql,'artica_backup');}
+		if(!$q->FIELD_EXISTS("nics","MTU","artica_backup")){$sql="ALTER TABLE `nics` ADD `MTU` smallint( 3 ) NOT NULL DEFAULT '1500'";$q->QUERY_SQL($sql,'artica_backup');}
 		$sql="SELECT COUNT(Interface) as tcount FROM `nics` WHERE enabled=1";
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo basename(__FILE__)."\nFunction:".__FUNCTION__."\nLine:".__LINE__."\n$q->mysql_error\n";}
@@ -488,17 +499,18 @@ class system_nic{
 		$this->eth=str_replace("\r", "", $this->eth);
 		$this->eth=str_replace("\n", "", $this->eth);		
 		if($this->NICNAME==null){$this->NICNAME="Interface $this->eth";}
+		if($this->mtu==0){$this->mtu=1500;}
 		if(!is_numeric($this->isFWAcceptNet)){$this->isFWAcceptNet=1;}
 		writelogs("save nic infos : NIC: `$this->eth`;CheckMySQLFields()",__CLASS__."/".__FUNCTION__,__FILE__);
 		$this->CheckMySQLFields();
 		$sql_add="
 		INSERT INTO `nics` (`Interface`,`IPADDR`,`NETMASK`,`GATEWAY`,`BROADCAST`,`DNS1`,`DNS2`,
 		`dhcp`,`ROUTES`,`NETWORK`,`enabled`,`ipv6`,`ipv6mask`,`ipv6gw`,`ipv6addr`,`metric`,`Bridged`,
-		`BridgedTo`,`defaultroute`,`NICNAME`,`netzone`,`isFW`,`isFWAcceptNet`,`isFWLogBlocked`)
+		`BridgedTo`,`defaultroute`,`NICNAME`,`netzone`,`isFW`,`isFWAcceptNet`,`isFWLogBlocked`,`MTU`)
 		VALUES('$this->eth','$this->IPADDR','$this->NETMASK','$this->GATEWAY','$this->BROADCAST','$this->DNS_1',
 		'$this->DNS_2','$this->dhcp','$routes','$this->NETWORK',1,'$this->ipv6','$this->ipv6mask',
 		'$this->ipv6gw','$this->ipv6addr','$this->metric','$this->Bridged','$this->BridgedTo',
-		'$this->defaultroute','$this->NICNAME','$this->netzone','$this->isFW','$this->isFWAcceptNet','$this->isFWLogBlocked');
+		'$this->defaultroute','$this->NICNAME','$this->netzone','$this->isFW','$this->isFWAcceptNet','$this->isFWLogBlocked','$this->mtu');
 		";
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
@@ -556,12 +568,13 @@ class system_nic{
 		`isFW`='$this->isFW',
 		`isFWAcceptNet`='$this->isFWAcceptNet',
 		`isFWLogBlocked`='$this->isFWLogBlocked',
+		`MTU`='$this->mtu',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
 
 		
 		
-		writelogs("save nic infos : NIC:ipv6=$this->ipv6; `$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
+		writelogs("save nic infos : NIC: MTU=$this->mtu; ipv6=$this->ipv6; `$this->eth`;$this->IPADDR;$this->NETMASK;$this->GATEWAY;$this->dhcp;$this->BROADCAST",__CLASS__."/".__FUNCTION__,__FILE__);
 		
 		if(!isset($GLOBALS["NIC_TABLE_CHECKED"])){
 			$q->check_networks_tables();
@@ -706,6 +719,8 @@ class system_nic{
 
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$eth=$ligne["Interface"];
+			$MTU=intval($ligne["MTU"]);
+			if($MTU==0){$MTU=1500;}
 			if(trim($eth)==null){echo "Starting......: ".date("H:i:s")." no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			$GLOBALS["SAVED_INTERFACES"][]=$eth;
 			
@@ -755,13 +770,13 @@ class system_nic{
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
-			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]}";
+			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]} mtu: $MTU";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["sleepbin"]} 1";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";			
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} mtu $MTU up";			
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["sleepbin"]} 1";
-			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";			
+			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} mtu $MTU up";			
 
 			
 			
@@ -850,6 +865,8 @@ class system_nic{
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");	
 				
+// ------------------------------- DEBUT DES CARTES VIRTUELLES ----------------------------------------		
+		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			
 			$array=array();
@@ -874,7 +891,10 @@ class system_nic{
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." {$ligne["ipaddr"]}/{$ligne["netmask"]}:=> ifcfg-$eth\n";}	
 			$this->root_build_redhat_ifcfg($eth,@implode("\n",$array));			
 		}
+// ------------------------------- FIN DES CARTES VIRTUELLES ----------------------------------------
 
+
+// ------------------------------- DEBUT DES CARTES VLAN ----------------------------------------		
 		$sql="SELECT * FROM nics_vlan ORDER BY ID DESC";
 		$q=new mysql();
 		$results=$q->QUERY_SQL($sql,"artica_backup");	
@@ -906,7 +926,9 @@ class system_nic{
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." {$ligne["ipaddr"]}/{$ligne["netmask"]}:=> ifcfg-$eth\n";}	
 			$this->root_build_redhat_ifcfg($eth,@implode("\n",$array));			
 			
-		}			
+		}
+
+// ------------------------------- FIN DES CARTES VLAN ----------------------------------------
 	
 	
 }
@@ -1245,10 +1267,13 @@ class system_nic{
 		$f[]="iface lo inet loopback";
 		$f[]="";
 		$ISREAL=0;
+// ------------------------ DEBUT DES CARTES REELES ----------------------------------------------		
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 			$eth=trim($ligne["Interface"]);
 			$eth=str_replace("\n", "", $eth);
-			$eth=str_replace("\r", "", $eth);			
+			$eth=str_replace("\r", "", $eth);		
+			$MTU=intval($ligne["MTU"]);
+			if($MTU==0){$MTU=1500;}	
 			if(trim($eth)==null){echo "Starting......: ".date("H:i:s")." no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			if(isset($eth_SKIP[$eth])){
 				$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
@@ -1277,7 +1302,7 @@ class system_nic{
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] **** SETTINGS for \"$eth\" ****";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
-			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Reload/flush Interface $eth";
+			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] Reload/flush Interface $eth (MTU $MTU)";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth up";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ipbin"]} addr flush $eth";
@@ -1339,8 +1364,8 @@ class system_nic{
 			}
 			
 			if($REMOVE_GATEWAY==true){$ligne["GATEWAY"]="0.0.0.0";}
-			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]}";
-			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} up";
+			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]} mtu:$MTU";
+			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} mtu $MTU up";
 			$GLOBALS["SCRIPTS"][]="$ifconfig";
 			
 			$f[]="\taddress {$ligne["IPADDR"]}";

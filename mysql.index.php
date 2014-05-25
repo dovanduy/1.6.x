@@ -207,7 +207,7 @@ $icon=Paragraphe_switch_img('{enable_mysql}',"{enable_mysql_text}","enable_mysql
 $html="
 
 <div>$icon
-	<div style='text-align:right;margin-top:5px'><input type='button' OnClick=\"javascript:Loadjs('$page?script=mysql_enabled')\" value='{edit}&nbsp;&raquo;'></div>
+	<div style='text-align:right;margin-top:5px'><input type='button' OnClick=\"javascript:Loadjs('$page?script=mysql_enabled')\" value='{apply}&nbsp;&raquo;'></div>
 </div>
 
 ";
@@ -504,7 +504,7 @@ function testsMysql(){
 	
 	
 	$tpl=new templates();
-	echo $tpl->javascript_parse_text("{success}: {edit} {mysql_account}");
+	echo $tpl->javascript_parse_text("{success}: {apply} {mysql_account}");
 
 	
 	

@@ -152,7 +152,7 @@ if(is_object($GLOBALS["CLASS_USER"])){$user=$GLOBALS["CLASS_USER"];}else{$user=n
 	<table style='width:100%'>
 	<tr>
 		<td valign='top'>
-			<div style='border:1px solid #BBD8FB;text-align:center;padding:5px;background-color:#FFF'>".imgtootltip("$user->img_identity","{edit}","Loadjs('user.picture.php')")."</div>
+			<div style='border:1px solid #BBD8FB;text-align:center;padding:5px;background-color:#FFF'>".imgtootltip("$user->img_identity","{apply}","Loadjs('user.picture.php')")."</div>
 		</td>
 		</td>
 		<td valign='top'>	
@@ -172,7 +172,7 @@ if(is_object($GLOBALS["CLASS_USER"])){$user=$GLOBALS["CLASS_USER"];}else{$user=n
 	</tr>
 	<tr>
 		<td colspan=2 align='right' style='border-top:1px dotted #BBD8FB'>
-		".button("{edit}","Loadjs('user.edit.php')")."</td>
+		".button("{apply}","Loadjs('user.edit.php')")."</td>
 		</tr>
 </table></div>	";
 $tpl=new templates();	

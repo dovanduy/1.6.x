@@ -3829,11 +3829,13 @@ function load_mynetworks(){
 
 function WhitelistsFromDomain($domain=null){
 	if($domain==null){$domain="*";}
-	
-	$filter="(&(objectClass=ArticaSettings)(mail=*@$domain)(amavisWhitelistSender=*))";
+	$mainF="*@$domain";
+	if($mainF=="*@*"){$mainF="*";}
+	$filter="(&(objectClass=ArticaSettings)(mail=$mainF)(amavisWhitelistSender=*))";
 	$sr=@ldap_search($this->ldap_connection,$this->suffix,$filter,array("mail","amavisWhitelistSender"));
 	if ($sr) {
 			$hash=ldap_get_entries($this->ldap_connection,$sr);	
+			if($GLOBALS["VERBOSE"]){echo "$filter -> {$hash["count"]}\n";}
 			for($i=0;$i<$hash["count"];$i++){
 				$mail=$hash[$i]["mail"][0];
 				for($j=0;$j<$hash[$i][strtolower("amavisWhitelistSender")]["count"];$j++){
@@ -3847,6 +3849,7 @@ function WhitelistsFromDomain($domain=null){
 	$sr=@ldap_search($this->ldap_connection,$this->suffix,$filter,array("cn","KasperkyASDatasAllow"));
 	if ($sr) {
 			$hash=ldap_get_entries($this->ldap_connection,$sr);	
+			if($GLOBALS["VERBOSE"]){echo "$filter -> {$hash["count"]}\n";}
 			for($i=0;$i<$hash["count"];$i++){
 				$mail=$hash[$i]["cn"][0];
 				for($j=0;$j<$hash[$i]["kasperkyasdatasallow"]["count"];$j++){

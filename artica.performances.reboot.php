@@ -56,7 +56,7 @@ $html="
 				<td align=left><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('cron.php?field=AutoRebootScheduleText')\" style='font-size:13px;text-decoration:underline;color:black' id='scheduleAID2'>{schedule}</a></td>
 			</tr>
 		</tr>		
-			<td colspan=3 align='right'><hr>". button("{edit}","SavePerformancesReboot$t()",14)."</td>
+			<td colspan=3 align='right'><hr>". button("{apply}","SavePerformancesReboot$t()",14)."</td>
 		</tr>			
 		</tbody>							
 		</table>

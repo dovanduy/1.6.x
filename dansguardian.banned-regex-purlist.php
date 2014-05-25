@@ -171,7 +171,7 @@ $users=new usersMenus();
 	<td colspan=2><textarea id='pattern_{$id}' rows=5 style='width:100%;font-size:12px'>{$ligne["pattern"]}</textarea></td>
 	</tr>
 	<tr>
-	<td colspan=2 align='right'>".button("{edit}","bannedregexpurllist_edit('$hostname','$rule_main','{$_GET["bannedregexpurllist_form"]}','$id');")
+	<td colspan=2 align='right'>".button("{apply}","bannedregexpurllist_edit('$hostname','$rule_main','{$_GET["bannedregexpurllist_form"]}','$id');")
 		."
 	</td>
 	</tr>	
@@ -193,7 +193,7 @@ $users=new usersMenus();
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	
 	echo "<span " . 
-			CellRollOver("bannedregexpurllist_form('$hostname','$rule_main','{$_GET["id"]}','{$_GET["dansguardian_bannedregexpurllist_closeform"]}')",'{edit} - ' . $_GET["dansguardian_bannedregexpurllist_closeform"]).">{$ligne["infos"]}</span></a></strong>";
+			CellRollOver("bannedregexpurllist_form('$hostname','$rule_main','{$_GET["id"]}','{$_GET["dansguardian_bannedregexpurllist_closeform"]}')",'{apply} - ' . $_GET["dansguardian_bannedregexpurllist_closeform"]).">{$ligne["infos"]}</span></a></strong>";
 	
 }
 

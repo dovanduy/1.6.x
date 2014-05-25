@@ -77,7 +77,7 @@ $html="
 <td>".Field_text("PommoFieldhostname",$sock->GET_INFO("PommoFieldhostname"),'width:150px')."</td>
 </tr>
 <tr>
-	<td colspan=2 align='right'><input type='button' OnClick=\"javascript:PommoSave();\" value='{edit}&nbsp;&raquo;'>
+	<td colspan=2 align='right'><input type='button' OnClick=\"javascript:PommoSave();\" value='{apply}&nbsp;&raquo;'>
 </tr>
 <tr>
 	<td colspan=2 align='right'><input type='button' OnClick=\"javascript:PommoReset();\" value='{restore_admin}&nbsp;&raquo;'>

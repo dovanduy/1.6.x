@@ -75,7 +75,7 @@ function popup(){
 		<tr>
 			<td colspan=3 align='right'>
 				<hr>
-					<input type='button' OnClick=\"SaveSanCLusterExport();\" value='{edit}&nbsp;&raquo;'>
+					<input type='button' OnClick=\"SaveSanCLusterExport();\" value='{apply}&nbsp;&raquo;'>
 			</td>
 		</tr>
 		</table>

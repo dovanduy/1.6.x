@@ -143,7 +143,7 @@ while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 	$propertiesjs="Loadjs('$page?folderprop-js=yes&root=".base64_encode($ligne["directory"])."');";
 	$html=$html . "
 	<tr class=$classtr id='$id'>
-	<td width=1%>". imgtootltip("$icon","{edit}",$propertiesjs)."</td>
+	<td width=1%>". imgtootltip("$icon","{apply}",$propertiesjs)."</td>
 	<td><strong style='font-size:13px'><code style='font-size:13px'>{$ligne["sharedname"]}</a></code></td>
 	<td><strong ><code style='font-size:13px'>{$ligne["directory"]}</a></code></td>
 	<td width=1%>$delete</td>

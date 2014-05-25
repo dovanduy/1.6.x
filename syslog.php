@@ -61,7 +61,7 @@ function popup(){
 	if($_GET["force-prefix"]<>null){$MasterTitle=$_GET["force-prefix"];$TB_SERV=null;$SE_SERV=null;}
 	if($_GET["prepend"]<>null){$MasterTitle=$MasterTitle."&raquo;{$_GET["prepend"]}";}
 	
-	
+	if($MasterTitle==null){$MasterTitle=$tpl->javascript_parse_text("{syslog_events}");}
 	
 	$buttons="
 	buttons : [
@@ -83,7 +83,7 @@ $('#events-table-$t').flexigrid({
 		{display: '$date', name : 'zDate', width :93, sortable : true, align: 'left'},
 		$TB_SERV
 		{display: 'PID', name : 'zDate', width :40, sortable : false, align: 'left'},
-		{display: '$events', name : 'events', width : $TB_EV, sortable : false, align: 'left'},
+		{display: '$events', name : 'events', width : 835, sortable : false, align: 'left'},
 	],
 	$buttons
 
@@ -94,7 +94,7 @@ $('#events-table-$t').flexigrid({
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$MasterTitle',
+	title: '<strong style=font-size:16px>$MasterTitle</strong>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,

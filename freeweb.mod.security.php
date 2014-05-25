@@ -220,7 +220,7 @@ function rules_list(){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
 		$delete=imgtootltip("delete-32.png","{delete}","DeleteSingleRule({$ligne["ID"]})");
 		
-		$edit=imgtootltip("rule-24.png","{edit}","RuleForm({$ligne["ID"]})");
+		$edit=imgtootltip("rule-24.png","{apply}","RuleForm({$ligne["ID"]})");
 		$html=$html."
 		<tr class=$classtr>
 		<td width=1%>$edit</td>

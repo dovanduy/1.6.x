@@ -743,7 +743,7 @@ $html="<H1>{schedule}</H1>
 		</tr>
 		<tr>
 			<td colspan=2 align='right'>
-				<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffmsched','$page',true);\">
+				<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffmsched','$page',true);\">
 			</td>
 		</tr>
 		</table>
@@ -1275,7 +1275,7 @@ function  external_storage_form(){
 		<td>". Field_password('net_storage_password',$re[2],'width:120px')."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:ParseForm('FFMNET','$page',true);\" value='{edit}&nbsp;&raquo;'></td>
+		<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:ParseForm('FFMNET','$page',true);\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>
 	</form>				
@@ -1772,7 +1772,7 @@ $html="<H1>{backup_engine}</H1>
 
 	
 	<tr>
-		<td colspan=3 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1DGN','$page',true);\" value='{edit}&nbsp;&raquo;'>		
+		<td colspan=3 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1DGN','$page',true);\" value='{apply}&nbsp;&raquo;'>		
 	</table>
 	</form>";
 
@@ -1882,7 +1882,7 @@ $backup_engine</td>
 	
 	
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1GN','$page',true);\" value='{edit}&nbsp;&raquo;'>		
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1GN','$page',true);\" value='{apply}&nbsp;&raquo;'>		
 	</table>
 	</form>
 </td></tr></table>";
@@ -1961,7 +1961,7 @@ if($line=="user_defined"){
 
 	$html=$html . "$form
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1GB','$page',true);\" value='{edit}&nbsp;&raquo;'>		
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFM1GB','$page',true);\" value='{apply}&nbsp;&raquo;'>		
 	</table>
 	</form>";
 
@@ -2135,10 +2135,10 @@ function homes_excludes(){
 	
 	$html="<h1>{homes_folder_exclude}</H1>
 	<p class=caption>{shares_folder_exclude_text}</p>
-	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{edit}&nbsp;&raquo;'></div>
+	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{apply}&nbsp;&raquo;'></div>
 	<center>
 	<div style='width:100%;height:350px;overflow:auto'>$table</div></center>
-	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{edit}&nbsp;&raquo;'></div>
+	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{apply}&nbsp;&raquo;'></div>
 	";
 	echo $tpl->_ENGINE_parse_body($html);	
 	
@@ -2183,10 +2183,10 @@ function samba_excludes_shared(){
 	
 	$html="<h1>{shares_folder_exclude}</H1>
 	<p class=caption>{shares_folder_exclude_text}</p>
-	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{edit}&nbsp;&raquo;'></div>
+	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{apply}&nbsp;&raquo;'></div>
 	<center>
 	<div style='width:100%;height:350px;overflow:auto'>$table</div></center>
-	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{edit}&nbsp;&raquo;'></div>
+	<div style='width:100%;text-align:right'><input type='button' OnClick=\"ParseForm('FFMSMBEXC','$page',true)\" value='{apply}&nbsp;&raquo;'></div>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
 	}
@@ -2298,7 +2298,7 @@ function user_defined_schedule(){
 		<td>" . Field_array_Hash($sch,'user-defined-schedule-min',$default[0])."&nbsp;{minutes}</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMUSCH','$page',true)\" value='{edit}&nbsp;'>
+		<td colspan=2 align='right'><input type='button' OnClick=\"javascript:ParseForm('FFMUSCH','$page',true)\" value='{apply}&nbsp;'>
 	</table>
 	</form>
 	";

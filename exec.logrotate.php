@@ -96,7 +96,7 @@ $t=time();
 $results[]="Results of : $cmd";
 exec($cmd,$results);
 $took=$unix->distanceOfTimeInWords($t,time(),true);
-rotate_events("Success took: $took".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
+rotate_events("Success took: $took\n\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"logrotate");
 
 
 
@@ -799,6 +799,8 @@ function reconfigure(){
 		if(is_numeric($ligne["MaxSize"])){$ligne["MaxSize"]=100;}
 		if(!is_numeric($ligne["RotateCount"])){$ligne["RotateCount"]=5;}
 		
+		if(preg_match("#\/var\/log\/squid#", $ligne["RotateFiles"])){continue;}
+		
 		$f[]="{$ligne["RotateFiles"]} {";
 		$f[]="\t{$ligne["RotateFreq"]}";
 		$f[]="\tmissingok";
@@ -852,6 +854,7 @@ function LoagRotateApache(){
 			$f=array();		
 			$f[]="/var/log/apache2/$servername/*.log {";
 			$f[]="\t{$ligneC["RotateFreq"]}";
+			$f[]="\tsu ".$unix->APACHE_SRC_ACCOUNT()." ".$unix->APACHE_SRC_GROUP();
 			$f[]="\tmissingok";
 			if($ligneC["MaxSize"]>0){$f[]="\tsize {$ligneC["MaxSize"]}M";}
 			if($ligneC["RotateCount"]>0){$f[]="\trotate {$ligneC["RotateCount"]}";}

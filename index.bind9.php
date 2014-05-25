@@ -437,7 +437,7 @@ function main_zone_edit(){
 			<td valign='top'><div id='ttl_text' class='caption'>{minimal_ttl_text}<br>({$bindZone->numeric_options[4]} seconds)</div></td>
 		</tr>	
 		<tr>
-		<td colspan=3 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','$page',true);\"></td>
+		<td colspan=3 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','$page',true);\"></td>
 		</tr>
 			
 				
@@ -541,7 +541,7 @@ $html="<table style='width:100%'>";
 while (list ($num, $ligne) = each ($bind->zones) ){
 	
 	$delete=imgtootltip('ed_delete.gif',"{delete} $num {dns_zones}","zone_delete('$num');");
-	$edit=imgtootltip('settings-20.gif',"{edit} $num {dns_zones}","zone_edit('$num');");
+	$edit=imgtootltip('settings-20.gif',"{apply} $num {dns_zones}","zone_edit('$num');");
 	if(($num=='.') OR ($num=='localhost') OR ($num=='127.in-addr.arpa') OR($num=='0.in-addr.arpa') OR ($num=='255.in-addr.arpa')){$delete='&nbsp;';$edit="&nbsp;";}
 	
 	

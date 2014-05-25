@@ -70,7 +70,7 @@ $page=CurrentPageName();
 	</div>
 	<br>
 	<div style='text-align:right;width:100%'><hr>
-	". button("{edit}","USER_JUNK_LEARNING_SAVE()")."
+	". button("{apply}","USER_JUNK_LEARNING_SAVE()")."
 	
 	</td>
 	</tr>

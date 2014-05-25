@@ -64,10 +64,10 @@ function scan_stored_items($nopid=true){
 	$cmd="$nice$purge -c /etc/squid3/squid.conf -e \".\" -P 0 -n >/var/cache/purge.calculated.db 2>&1";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	$t1=time();
-	shell_exec(trim($cmd));
+	system(trim($cmd));
 	$took =$unix->distanceOfTimeInWords($t1,time());
 	if($GLOBALS["VERBOSE"]){echo "done $took\n";}
-	ufdbguard_admin_events("Extracting items information from cache done took:$took",__FUNCTION__,__FILE__,__LINE__,"proxy");
+	squid_admin_mysql(2,"Stored items: Extracting items information from cache done took:$took",null,__FILE__,__LINE__,"proxy");
 	inject_stored_items(true);
 	
 }	
@@ -156,7 +156,7 @@ function inject_stored_items($nopid=false){
 	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
-	
+	$t1=time();
 	
 	
 	$file="/var/cache/purge.calculated.db";
@@ -173,14 +173,15 @@ function inject_stored_items($nopid=false){
 		$f[]="('$sitename','{$array["FAMILY"]}','{$array["SIZE"]}','{$array["ITEMS"]}')";
 		if(count($f)>500){
 			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"proxy");return;}
+			if(!$q->ok){squid_admin_mysql(0,"MySQL error!",$q->mysql_error,__FILE__,__LINE__);return;}
 		}
 	}
 	
 	if(count($f)>0){
 		$q->QUERY_SQL($prefix.@implode(",", $f));
-		if(!$q->ok){ufdbguard_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"proxy");return;}
+		if(!$q->ok){squid_admin_mysql(0,"MySQL error!",$q->mysql_error,__FILE__,__LINE__);return;}
 	}	
-	ufdbguard_admin_events("Sucess adding $c cached websites",__FUNCTION__,__FILE__,__LINE__,"proxy");
+	$took =$unix->distanceOfTimeInWords($t1,time());
+	squid_admin_mysql(2,"Sucess adding $c cached websites took:$took",null,__FILE__,__LINE__);
 	@unlink($file);
 }

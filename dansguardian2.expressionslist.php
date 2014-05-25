@@ -421,7 +421,7 @@ function edit_search(){
 		
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$select=imgtootltip("32-parameters.png","{edit}","ExpressionEdit('{$ligne["zmd5"]}')");
+		$select=imgtootltip("32-parameters.png","{apply}","ExpressionEdit('{$ligne["zmd5"]}')");
 		$delete=imgtootltip("delete-32.png","{delete}","ExpressionDelete('{$ligne["zmd5"]}')");
 		$color="black;font-weight:bolder;";
 		if(trim($ligne["pattern"]==null)){continue;}

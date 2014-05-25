@@ -51,7 +51,7 @@ function INDEX(){
 	<H5>{spam_action}</H5>
 	{spam_action_text} " . Field_array_Hash($h_level,'exceed',$actions_datas[0],null,null,0,'width:60px')." {then} " . Field_array_Hash($hash_action,'action',$actions_datas[1],null,null,0,'width:160px') . "<br><br>
 	{if_bogo_prepend} " . Field_text('bogo_prepend',$actions_datas[2],'width:150px') . "
-	<div style='width:100%;text-align:right'><input type='button' value='{edit}&nbsp;&raquo;&raquo;' OnClick=\"javascript:BogoFilterAction();\"></div>
+	<div style='width:100%;text-align:right'><input type='button' value='{apply}&nbsp;&raquo;&raquo;' OnClick=\"javascript:BogoFilterAction();\"></div>
 	
 	";
 	

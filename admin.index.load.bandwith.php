@@ -21,11 +21,85 @@ if(isset($_GET["graph3"])){graph3();exit;}
 if(isset($_GET["graph5"])){graph5();exit;}
 if(isset($_GET["graph-bwrt-out"])){graph_bwrt_out();exit;}
 if(isset($_GET["graph-bwrt-in"])){graph_bwrt_in();exit;}
+if(isset($_GET["graph-squid-01"])){graph_squid_cached_minutes();exit;}
+if(isset($_GET["graph-squid-02"])){graph_squid_not_cached_minutes();exit;}
+
+if(isset($_GET["graph-squid-03"])){graph_squid_cached_hours();exit;}
+if(isset($_GET["graph-squid-04"])){graph_squid_not_cached_hours();exit;}
+
+if(isset($_GET["graph-squid-05"])){graph_squid_cached_hier_hours();exit;}
+if(isset($_GET["graph-squid-06"])){graph_squid_not_cached_hier_hours();exit;}
 
 PageDeGarde();
 function PageDeGarde(){
 	$page=CurrentPageName();
 	$time=time();
+	
+	if(is_file("/usr/share/artica-postfix/ressources/logs/web/CACHED_HOUR.db")){
+		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-01'></div>";
+		$f2[]="function XSquid01$time(){
+		AnimateDiv('$time-squid-01');
+		Loadjs('$page?graph-squid-01=yes&container=$time-squid-01&time=$time',true);
+	}
+	setTimeout(\"XSquid01$time()\",500);";
+	
+	}
+	
+	if(is_file("/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HOUR.db")){
+		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-02'></div>";
+		$f2[]="function XSquid02$time(){
+		AnimateDiv('$time-squid-02');
+		Loadjs('$page?graph-squid-02=yes&container=$time-squid-02&time=$time',true);
+	}
+	setTimeout(\"XSquid02$time()\",500);";
+	
+	}	
+	
+	$file1="/usr/share/artica-postfix/ressources/logs/web/CACHED_DAY.db";
+	$file2="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_DAY.db";
+	
+	if(is_file($file1)){
+		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-03'></div>";
+		$f2[]="function XSquid03$time(){
+		AnimateDiv('$time-squid-03');
+		Loadjs('$page?graph-squid-03=yes&container=$time-squid-03&time=$time',true);
+	}
+	setTimeout(\"XSquid03$time()\",500);";
+	
+	}	
+	if(is_file($file2)){
+		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-04'></div>";
+		$f2[]="function XSquid04$time(){
+		AnimateDiv('$time-squid-04');
+		Loadjs('$page?graph-squid-04=yes&container=$time-squid-04&time=$time',true);
+	}
+	setTimeout(\"XSquid04$time()\",500);";
+	
+	}	
+	
+	
+	$file1="/usr/share/artica-postfix/ressources/logs/web/CACHED_HIER_DAY.db";
+	$file2="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HIER_DAY.db";
+
+	if(is_file($file1)){
+		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-05'></div>";
+		$f2[]="function XSquid05$time(){
+		AnimateDiv('$time-squid-05');
+		Loadjs('$page?graph-squid-05=yes&container=$time-squid-05&time=$time',true);
+	}
+	setTimeout(\"XSquid05$time()\",500);";
+	
+	}
+	if(is_file($file2)){
+		$f1[]="<div style='width:1150px;height:340px' id='$time-squid-06'></div>";
+		$f2[]="function XSquid06$time(){
+		AnimateDiv('$time-squid-06');
+		Loadjs('$page?graph-squid-06=yes&container=$time-squid-06&time=$time',true);
+	}
+	setTimeout(\"XSquid06$time()\",500);";
+	
+	}	
+	
 	
 	if(is_file("ressources/logs/web/BWMRT_OUT.db")){
 		$f1[]="<div style='width:1150px;height:340px' id='$time-01'></div>";
@@ -186,4 +260,166 @@ function graph_bwrt_in(){
 	echo $highcharts->BuildChart();
 
 
+}
+
+function graph_squid_cached_minutes(){
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/CACHED_HOUR.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{cached_data} {this_hour}";
+	$timetext="{minutes}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{size} KB";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix="Mn";
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();
+}
+
+function graph_squid_cached_hours(){
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/CACHED_DAY.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{cached_data} {this_day}";
+	$timetext="{hours}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{size} KB";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix="H";
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();	
+}
+
+function graph_squid_cached_hier_hours(){
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/CACHED_HIER_DAY.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{cached_data} {yesterday}";
+	$timetext="{hours}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{size} KB";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix="H";
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();	
+}
+
+function graph_squid_not_cached_minutes(){
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HOUR.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{not_cached_data} {this_hour}";
+	$timetext="{minutes}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{size} KB";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix="{minute}:";
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();	
+}
+
+function graph_squid_not_cached_hours(){
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_DAY.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{not_cached_data} {this_day}";
+	$timetext="{hours}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{size} KB";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix="{hour}:";
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();	
+}
+
+function graph_squid_not_cached_hier_hours(){
+	$filecache="/usr/share/artica-postfix/ressources/logs/web/NOT_CACHED_HIER_DAY.db";
+	if(!is_file($filecache)){if($GLOBALS["VERBOSE"]){echo "$filecache no such file\n<br>";}return;}
+	if(!class_exists("highcharts")){return ;}
+	$tpl=new templates();
+	$title="{not_cached_data} {yesterday}";
+	$timetext="{hours}";
+	$ARRAY=unserialize(@file_get_contents($filecache));
+	$xdata=$ARRAY[0];
+	$ydata=$ARRAY[1];
+	
+	$highcharts=new highcharts();
+	$highcharts->container=$_GET["container"];
+	$highcharts->xAxis=$xdata;
+	$highcharts->TitleFontSize="14px";
+	$highcharts->AxisFontsize="12px";
+	$highcharts->Title=$title;
+	$highcharts->yAxisTtitle="{size} KB";
+	$highcharts->xAxisTtitle=$timetext;
+	$highcharts->xAxis_labels=false;
+	$highcharts->LegendPrefix="{hour}:";
+	$highcharts->LegendSuffix=$tpl->_ENGINE_parse_body("KB");
+	//$highcharts->subtitle="<a href=\"javascript:Loadjs('squid.blocked.events.php?full-js=yes')\" style='text-decoration:underline'>{more_details}</a>";
+	$highcharts->datas=array("{size}"=>$ydata);
+	echo $highcharts->BuildChart();	
 }

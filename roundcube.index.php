@@ -704,7 +704,7 @@ $html="
 			</tr>				
 			<tr>
 			<td colspan=2 align='right'>
-				".button('{edit}','SaveRoundCubeForm1()',18)."
+				".button('{apply}','SaveRoundCubeForm1()',18)."
 			</tr>
 			</table>
 			</form>		
@@ -889,7 +889,7 @@ $html="<div id='wait'></div><table style='width:99%' class=form>
 				</td>
 			</tr>					
 			<tr>
-			<td colspan=2 align='right'>". button("{edit}","SaveRoundCubeForm2();",18)."
+			<td colspan=2 align='right'>". button("{apply}","SaveRoundCubeForm2();",18)."
 			
 			</td>
 			</tr>

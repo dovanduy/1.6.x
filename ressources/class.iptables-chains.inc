@@ -302,7 +302,7 @@ function loadPostfix_chains($limit=0,$search=null){
 }
 
 function LoadWhiteLists(){
-	
+	$WHITELISTED=array();
 	$GLOBALS["WHITELISTED_REGEX"]=array();
 	$sock=new sockets();
 
@@ -364,7 +364,7 @@ function LoadWhiteLists(){
 	}
 		
 	if($GLOBALS["VERBOSE"]){
-		if(is_array($WHITELISTED)){
+		if(count($WHITELISTED)>0){
 			while (list ($ip, $ligne) = each ($WHITELISTED) ){
 				echo "Loading Whitelisted:$ip\n ";
 			}

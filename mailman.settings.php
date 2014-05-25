@@ -211,7 +211,7 @@ $html="<H3>{member_moderation_notice} &laquo;{$_GET["id"]}&raquo;</h3><br> <p>" 
 </table>
 <textarea name='member_moderation_notice' id='member_moderation_notice' style='width:100%' rows=5>{$mailman->main_array["member_moderation_notice"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);	
@@ -226,7 +226,7 @@ $html="<H3>{nonmember_rejection_notice} &laquo;{$_GET["id"]}&raquo;</h3><br> <p>
 </table>
 <textarea name='nonmember_rejection_notice' id='nonmember_rejection_notice' style='width:100%' rows=5>{$mailman->main_array["nonmember_rejection_notice"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);	
@@ -260,7 +260,7 @@ $html="<H3>{archiving_options} &laquo;{$_GET["id"]}&raquo;</h3>
 
 
 
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
 
 $tpl=new templates();
 echo  $tpl->_ENGINE_parse_body($html);	
@@ -343,7 +343,7 @@ $html="<H3>{topics} &laquo;{$_GET["id"]}&raquo;</h3>
 <td>". Field_text('topics_bodylines_limit',$mailman->main_array["topics_bodylines_limit"],'width:30%',null,null,'{topics_bodylines_limit_text}')."</td>
 </tr>
 
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div></form>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div></form>");
 
 
 $form1="<form name=ffm2>
@@ -427,7 +427,7 @@ $html="<H3>{autoresponder} &laquo;{$_GET["id"]}&raquo;</h3>
 </tr>
 
 
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
 
 $tpl=new templates();
 echo  $tpl->_ENGINE_parse_body($html);	
@@ -484,7 +484,7 @@ $html="
 <td align='right'><strong>{filter_action}:</strong></td>
 <td><table><tr><td>". Field_array_Hash($arr,'filter_action',$mailman->main_array["filter_action"])."</td><td>" . help_icon('{filter_action_text}',true)."</td></tr></table></td>
 </tr>
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div></form>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div></form>");
 
 $intro="
 <br>" . content_filtering_tabs() . "<br>";
@@ -612,7 +612,7 @@ $html="<H3>{mail_new_gateways} &laquo;{$_GET["id"]}&raquo;</h3>
 <td align='right'><strong>{news_prefix_subject_too}:</strong></td>
 <td>". Field_numeric_checkbox_img('news_prefix_subject_too',$mailman->main_array["news_prefix_subject_too"],'{news_prefix_subject_too_text}')."</td>
 </tr>
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
 
 $tpl=new templates();
 echo  $tpl->_ENGINE_parse_body($html);	
@@ -814,7 +814,7 @@ $html="<H3>{sender_filters} &laquo;{$_GET["id"]}&raquo;</h3>
 </tr>
 
 </table>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 </form>");
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);		
@@ -842,7 +842,7 @@ $html="<H3>{recipient_filters} &laquo;{$_GET["id"]}&raquo;</h3>
 <td>". Field_text('max_num_recipients',$mailman->main_array["max_num_recipients"],'width:30%',null,null,'{max_num_recipients_text}',false)."</td>
 </tr>
 </table>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 </form>");
 
 
@@ -992,7 +992,7 @@ $html="<H3>{bounce_processing_sec} &laquo;{$_GET["id"]}&raquo;</h3>
 <td valign='top'>" . Field_text('bounce_you_are_disabled_warnings_interval',$mailman->main_array["bounce_you_are_disabled_warnings_interval"],"width:30%",null,null,'{bounce_you_are_disabled_warnings_interval_text}')."</td>
 </tr>
 
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
 
 $tpl=new templates();
 echo  $tpl->_ENGINE_parse_body($html);	
@@ -1025,7 +1025,7 @@ $html="<H3>{bounce_processing_sec} &laquo;{$_GET["id"]}&raquo;</h3>
 <td>". Field_numeric_checkbox_img('bounce_notify_owner_on_removal',$mailman->main_array["bounce_notify_owner_on_removal"],'{bounce_notify_owner_on_removal_text}')."</td>
 </tr>
 </table>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div></form>");
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div></form>");
 
 $tpl=new templates();
 echo  $tpl->_ENGINE_parse_body($html);	
@@ -1079,7 +1079,7 @@ $html="<H3>{privacy_options} &laquo;{$_GET["id"]}&raquo;</h3>
 <td>". Field_numeric_checkbox_img('obscure_addresses',$mailman->main_array["obscure_addresses"],'{obscure_addresses_text}')."</td>
 </tr>
 
-</table><div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
+</table><div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>");
 
 $tpl=new templates();
 echo  $tpl->_ENGINE_parse_body($html);
@@ -1122,7 +1122,7 @@ $html="<H3>{welcome_message} &laquo;{$_GET["id"]}&raquo;</h3>
 </table>
 <textarea name='welcome_msg' id='welcome_msg' style='width:100%' rows=5>{$mailman->main_array["welcome_msg"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 	
 
@@ -1149,7 +1149,7 @@ $html="
 </table>
 <textarea name='msg_header' id='msg_header' style='width:100%' rows=5>{$mailman->main_array["msg_header"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);	
@@ -1171,7 +1171,7 @@ $html="
 </table>
 <textarea name='msg_header' id='msg_header' style='width:100%' rows=5>{$mailman->main_array["msg_footer"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);	
@@ -1286,7 +1286,7 @@ $html="<H3>{new_member_options} &laquo;{$_GET["id"]}&raquo;</h3>
 </tr>
 </table>")."
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>";
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>";
 
 
 $tpl=new templates();
@@ -1311,7 +1311,7 @@ $html="<H3>{send_goodbye_msg} &laquo;{$_GET["id"]}&raquo;</h3>
 </table>
 <textarea name='goodbye_msg' id='goodbye_msg' style='width:100%' rows=5>{$mailman->main_array["goodbye_msg"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 	
 
@@ -1352,7 +1352,7 @@ $id=$_GET["id"];
 
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
 </tr>
 
 
@@ -1396,7 +1396,7 @@ $html="
 </table>
 <textarea name='digest_header' id='digest_header' style='width:100%' rows=5>{$mailman->main_array["digest_header"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);	
@@ -1412,7 +1412,7 @@ $html="<H3>{deliver} &laquo;{$_GET["id"]}&raquo;</h3>
 </table>
 <textarea name='digest_footer' id='digest_footer' style='width:100%' rows=5>{$mailman->main_array["digest_footer"]}</textarea>
 </form>
-<div style='text-align:right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
+<div style='text-align:right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></div>
 ";
 $tpl=new templates();
 return  $tpl->_ENGINE_parse_body($html);	
@@ -1520,7 +1520,7 @@ $html="
 
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
 </tr>
 </table></form>");
 
@@ -1550,7 +1550,7 @@ $html="
 
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
 </tr>
 </table></form>");
 
@@ -1578,7 +1578,7 @@ $html="
 
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
 </tr>
 </table></form>");
 
@@ -1606,7 +1606,7 @@ $html="
 
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
 </tr>
 </table></form>");
 
@@ -1634,7 +1634,7 @@ $html="
 </form>
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
 </tr>
 </table>");
 
@@ -1670,7 +1670,7 @@ $html="
 </form>
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
 </tr>
 </table>")."<br>".RoundedLightGrey("
 <table style='width:100%'>
@@ -1750,7 +1750,7 @@ $html="
 </form>
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
 </tr>
 </table>");
 
@@ -1925,7 +1925,7 @@ function GeneralOptions(){
 				</tr>	
 				<tr>
 				<td align='right'>&nbsp;</td>
-				<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:affect_org();\"></td>
+				<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:affect_org();\"></td>
 				</tr>
 				</table>";
 	
@@ -1997,7 +1997,7 @@ $form
 
 <tr>
 <td align='right'>&nbsp;</td>
-<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
+<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true)\"></td>
 </tr>
 
 
@@ -2762,7 +2762,7 @@ $html="<div style='padding:20px'>
 		</form>
 		<tr>
 		<td align='right'>&nbsp;</td>
-		<td align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
+		<td align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1','" . CurrentPageName() . "',true);\"></td>
 		</tr>
 		</table>") . "</div>";
 

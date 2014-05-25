@@ -589,7 +589,7 @@ $style="style=font-size:16px";
 $t=time();	
 
 return build_artica_tabs($html, "admin_perso_tabs-$t")."
-		<div id='admin_perso_tabs-ID' value='admin_perso_tabs-$t'>
+		<input type=hidden id='admin_perso_tabs-ID' value='admin_perso_tabs-$t'>
 		<script>LeftDesign('dashboard-256-opac20.png');</script>";
 
 		
@@ -820,21 +820,23 @@ function status_mysql(){
 	
 	OutputDebugVerbose("Init");
 	if($MySQLSyslogType<>3){
-		if($EnableSyslogDB==1){
-			$syslog=new mysql_storelogs();
-			OutputDebugVerbose("mysql_storelogs() initlized");
-			if($syslog->EnableSyslogDB==1){
-				OutputDebugVerbose("EnableSyslogDB is OK testing the connection... syslog->THIS_BD_CONNECT()");
-				if(!$syslog->THIS_BD_CONNECT()){
-					OutputDebugVerbose("syslog->THIS_BD_CONNECT() DONE");
-					echo "<center>".$tpl->_ENGINE_parse_body(Paragraphe('danger64.png',"Syslog:{mysql_error}", $syslog->mysql_error,"Loadjs('MySQLSyslog.wizard.php')",null,420,80))."</center>";
+		if($MySQLSyslogType<>4){
+			if($EnableSyslogDB==1){
+				$syslog=new mysql_storelogs();
+				OutputDebugVerbose("mysql_storelogs() initlized");
+				if($syslog->EnableSyslogDB==1){
+					OutputDebugVerbose("EnableSyslogDB is OK testing the connection... syslog->THIS_BD_CONNECT()");
+					if(!$syslog->THIS_BD_CONNECT()){
+						OutputDebugVerbose("syslog->THIS_BD_CONNECT() DONE");
+						echo "<center>".$tpl->_ENGINE_parse_body(
+								Paragraphe('danger64.png',"Syslog:{mysql_error}", $syslog->mysql_error,"javascript:Loadjs('MySQLSyslog.wizard.php')",null,420,80))."</center>";
+					}
+					
 				}
-				
+			
 			}
-		
 		}
 	}
-
 	
 	if(is_file("ressources/logs/zarafa.notify.MySQLIssue")){
 		echo "<center>".$tpl->_ENGINE_parse_body(

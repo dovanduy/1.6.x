@@ -137,7 +137,7 @@ function popup(){
 	<tr><td colspan=2><textarea name='body' id='bodyEmailingOrg' style='width:100%;height:120px;overflow:auto'>$body</textarea></td>
 	</tr>
 	<tr><td colspan=2><hr></td></tr>
-	<tr><td colspan=2 align=right><input type='button' OnClick=\"javascript:SaveEmailText();\" value='{edit}&nbsp;&raquo;'></td></tr>
+	<tr><td colspan=2 align=right><input type='button' OnClick=\"javascript:SaveEmailText();\" value='{apply}&nbsp;&raquo;'></td></tr>
 	</table>
 	</div>
 	";

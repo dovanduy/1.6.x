@@ -188,7 +188,7 @@ function remote_site_edit(){
 	
 	$title=$ligne["sitename"];
 	if(!is_numeric($ligne["FixedIPAddr"])){$ligne["FixedIPAddr"]=0;}
-	$button_title="{edit}";
+	$button_title="{apply}";
 	
 	if($title==null){
 		$title="{ADD_REMOTE_SITES_VPN}";

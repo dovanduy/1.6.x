@@ -262,7 +262,7 @@ $not="<hr>
 		<td align='center'>". Field_checkbox("recipient_error","error",$NotifyRecipients["error"])."</td>
 	</tR>			
 </table>
-<div style='text-align:right'><hr>". button("{edit}","SAVE_NOTIFICATIONS()")."</div>
+<div style='text-align:right'><hr>". button("{apply}","SAVE_NOTIFICATIONS()")."</div>
 
 <script>
 var x_SAVE_NOTIFICATIONSKAV= function (obj) {
@@ -399,7 +399,7 @@ $html="
 				
 				<tr>
 				<td colspan=3 align='right'>
-					<hr>".button("{edit}","KAVMILTER_SAVECF()")."
+					<hr>".button("{apply}","KAVMILTER_SAVECF()")."
 				</td>
 				</tr>		
 				

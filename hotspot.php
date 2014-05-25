@@ -713,7 +713,7 @@ function events($severity,$subject,$content){
 	}
 	
 	
-	$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `hotspot_admin_mysql`
+	$q->QUERY_SQL("INSERT IGNORE INTO `hotspot_admin_mysql`
 			(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
 			('$zdate','$content','$subject','$function','$file','$line','$severity')","artica_events");
 }

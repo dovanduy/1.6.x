@@ -1,5 +1,16 @@
 <?php
-if(isset($_GET["debug"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+if( (isset($_GET["debug"])) OR  (isset($_GET["verbose"])) ){
+		$GLOBALS["VERBOSE"]=true;
+		ini_set('display_errors', 1);
+		ini_set('html_errors',0);
+		ini_set('display_errors', 1);
+		ini_set('error_reporting', E_ALL);
+}else{
+	ini_set('display_errors', 0);
+	ini_set('html_errors',0);
+	ini_set('display_errors', 0);
+	ini_set('error_reporting', 0);
+}
 include_once(dirname(__FILE__)."/ressources/class.templates.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.inc");
 include_once(dirname(__FILE__)."/ressources/class.squid.accesslogs.inc");

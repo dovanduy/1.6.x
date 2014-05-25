@@ -24,7 +24,7 @@ class cicap_squidguard{
 		
 		
 		$this->BuildCategories();
-		$this->BuildProfiles(0);
+		$this->BuildProfiles_list();
 		
 		$f[]="Service url_check_module srv_url_check.so";
 		$f[]="url_check.EarlyResponses on";
@@ -58,7 +58,7 @@ class cicap_squidguard{
 		$q=new mysql_squid_builder();
 		$sock=new sockets();
 
-		$sql="SELECT category FROM webfilter_blks GROUP BY category";
+		$sql="SELECT category FROM cicap_profiles_blks GROUP BY category";
 		$results=$q->QUERY_SQL($sql);
 		if(!$q->ok){$this->headerlogs[]=$q->mysql_error;}
 		if(mysql_num_rows($results)>0){
@@ -68,48 +68,60 @@ class cicap_squidguard{
 			}
 		}
 		
-		$sql="SELECT category FROM webfilter_blkcnt GROUP BY category";
-		$results=$q->QUERY_SQL($sql);
-		if(!$q->ok){$this->headerlogs[]=$q->mysql_error;}
-		if(mysql_num_rows($results)>0){
-			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-				$category=$ligne["category"];
-				$this->build_categories_paragraph($category);
-			}
-		}
+		
 		
 		
 	}
 	
-	private function BuildProfiles($ruleid){
+	private function BuildProfile_categories($ID){
+		$ProfileName="Profile$ID";
 		$q=new mysql_squid_builder();
-		$sql="SELECT category,modeblk FROM webfilter_blks WHERE webfilter_id=$ruleid";
+		$sql="SELECT * FROM cicap_profiles_blks WHERE mainid='$ID'";
 		$results=$q->QUERY_SQL($sql);
-		if(!$q->ok){$this->headerlogs[]=__LINE__."]: $q->mysql_error";return;}
-		$ProfileName="Profile$ruleid";
-		if($ruleid==0){$ProfileName="default";}
+		if(mysql_num_rows($results)==0){
+			$this->Profiles[$ID][]="url_check.Profile $ProfileName pass ALL";
+		}
 		
 		$ACTIONS[0]="block";
 		$ACTIONS[1]="pass";
 		
-		if(mysql_num_rows($results)==0){
-			if($ruleid==0){
-				$this->Profiles[$ruleid][]="url_check.Profile default pass ALL";
-			}
-		}
-		
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$category=trim($ligne["category"]);
 			if($category==null){continue;}
-			
+				
 			$tablename=$q->cat_totablename($category);
 			if(!isset($this->categories_available[$category])){
 				$this->headerlogs[]=__LINE__."]: $category no such category";
 				continue;
 			}
-			$this->Profiles[$ruleid][]="url_check.Profile $ProfileName {$ACTIONS[$ligne["modeblk"]]} $category";
-			
+			$this->Profiles[$ID][]="url_check.Profile $ProfileName {$ACTIONS[$ligne["bltype"]]} $category";
 		}
+		
+	}
+	
+	
+	private function BuildProfile($ID){
+		$q=new mysql_squid_builder();
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM cicap_profiles WHERE ID='$ID'"));
+		$ID=$ligne["ID"];
+		$ProfileName="Profile$ID";
+		if($ID==0){$ProfileName="default";}
+		$ProfilesCat=$this->BuildProfile_categories($ID);
+	}
+	
+	
+	private function BuildProfiles_list(){
+		$q=new mysql_squid_builder();
+		$this->BuildProfile(0);
+		$sql="SELECT rulename,ID FROM cicap_profiles WHERE enabled=1";
+		$results=$q->QUERY_SQL($sql);
+		if(mysql_num_rows($results)==0){return;}
+		
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ID=$ligne["ID"];
+			$this->BuildProfile($ID);
+		}
+
 	}
 	
 	

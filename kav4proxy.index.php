@@ -323,7 +323,7 @@ $scan_engine=RoundedLightGrey("
 				</tr>	
 				</table>");	
 
-$button="<input type='button' style='margin:5px;width:150px' OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('mainconfig','$page?main=yes&tab=0')\" value='{edit}&nbsp;&raquo;'>";
+$button="<input type='button' style='margin:5px;width:150px' OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('mainconfig','$page?main=yes&tab=0')\" value='{apply}&nbsp;&raquo;'>";
 	
 	
 	$html=main_tabs() . "<br>
@@ -405,7 +405,7 @@ $arr=RoundedLightGrey("
 				</tr>																
 				
 				</table>");	
-$arr4="<input type='button' style='margin:5px;width:150px' OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('mainconfig','$page?main=yes&tab=1')\" value='{edit}&nbsp;&raquo;'>";
+$arr4="<input type='button' style='margin:5px;width:150px' OnClick=\"javascript:ParseForm('ffm1','$page',true);LoadAjax('mainconfig','$page?main=yes&tab=1')\" value='{apply}&nbsp;&raquo;'>";
 	
 	
 	$html=main_tabs() . "<br>
@@ -631,7 +631,7 @@ $main=RoundedLightGrey("
 					<td valign='top' align='center'>" . Field_deny_skip_checkbox_img('InfectedAction',$hash["InfectedAction"])."</td>
 				</tr>
 				<tr>
-					<td valign='top' colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm_$gid','$page',true);\"></td>
+					<td valign='top' colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm_$gid','$page',true);\"></td>
 				</tr>																				
 			</table></form>");
 
@@ -679,7 +679,7 @@ $scan_engine=RoundedLightGrey("
 				<td align='left'>" . help_icon('{UseAVBasesSet_text}',false,'milter.index.php') . "</td>
 				</tr>	
 				<tr>
-					<td valign='top' colspan=3 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1_$gid','$page',true);\"></td>
+					<td valign='top' colspan=3 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('ffm1_$gid','$page',true);\"></td>
 				</tr>					
 				</table></form>");	
 

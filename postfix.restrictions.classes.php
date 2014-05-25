@@ -320,7 +320,7 @@ function PostFixAddRestriction(){
 	<tr>
 	<td><strong>{note}:</strong></td>
 	<td>" . Field_text('PostFixRestrictionClassDetailsForm',$class_description) . "</td>
-	<td width=1%><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:PostfixClassEditDescription();\"></td>
+	<td width=1%><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:PostfixClassEditDescription();\"></td>
 	</tr>
 	</table>
 	</form>

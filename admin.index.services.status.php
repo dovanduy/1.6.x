@@ -177,7 +177,7 @@ function MONIT_POPUP(){
 	<tr>
 		<td colspan=4 align='right'>
 			<hr>
-				". button("{edit}","ServiceMonitEdit()")."
+				". button("{apply}","ServiceMonitEdit()")."
 		</td>
 	</tR>	
 	

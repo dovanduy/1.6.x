@@ -133,16 +133,16 @@ $('#freewebs-table-$t').flexigrid({
 	colModel : [
 		{display: '&nbsp;', name : 'icon', width : 31, sortable : false, align: 'center'},
 		{display: '$joomlaservername', name : 'servername', width :$servername_size, sortable : true, align: 'left'},
-		{display: 'compile', name : 'compile', width :40, sortable : false, align: 'center'},
-		{display: '$enable', name : 'enabled', width :31, sortable : true, align: 'center'},
-		{display: '$size', name : 'DirectorySize', width :60, sortable : true, align: 'center'},
+		{display: 'compile', name : 'compile', width :80, sortable : false, align: 'center'},
+		{display: '$enable', name : 'enabled', width :80, sortable : true, align: 'center'},
+		{display: '$size', name : 'DirectorySize', width :80, sortable : true, align: 'center'},
 		{display: '$memory', name : 'memory', width :80, sortable : false, align: 'center'},
 		{display: '$requests', name : 'requests', width : 72, sortable : false, align: 'center'},
 		{display: 'SSL', name : 'useSSL', width : 31, sortable : true, align: 'center'},
 		{display: 'RESOLV', name : 'resolved_ipaddr', width : 31, sortable : true, align: 'center'},
 		{display: 'DNS', name : 'dns', width : 31, sortable : false, align: 'center'},
 		{display: '$member', name : 'member', width : 31, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'none1', width : 31, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'none1', width : 80, sortable : false, align: 'center'},
 	],
 	$buttons
 
@@ -311,6 +311,11 @@ function servers_list(){
 	$sock=new sockets();	
 	$where=null;
 	$query_groupware=null;
+	$ZarafaWebAccessInFrontEnd=$sock->GET_INFO("ZarafaWebAccessInFrontEnd");
+	if(!is_numeric($ZarafaWebAccessInFrontEnd)){$ZarafaWebAccessInFrontEnd=1;}
+	if(!$users->ZARAFA_INSTALLED){$ZarafaWebAccessInFrontEnd=0;}
+	$FreeWebDisableSSL=intval(trim($sock->GET_INFO("FreeWebDisableSSL")));
+	
 	$addg=imgtootltip("plus-24.png","{add} {joomlaservername}","Loadjs('freeweb.edit.php?hostname=&force-groupware={$_GET["force-groupware"]}')");
 	if($_POST["query"]<>null){$search=$_POST["query"];}
 	
@@ -362,7 +367,7 @@ function servers_list(){
 				$href="<a href=\"javascript:blur();\" 
 				OnClick=\"javascript:Loadjs('freeweb.webdavusr.php')\" 
 				style='font-size:13px;text-decoration:underline;font-weight:bold'>";
-				$edit=imgtootltip($icon,"{edit} *.{$WebDavPerUserSets["WebDavSuffix"]}","Loadjs('freeweb.webdavusr.php')");
+				$edit=imgtootltip($icon,"{apply} *.{$WebDavPerUserSets["WebDavSuffix"]}","Loadjs('freeweb.webdavusr.php')");
 				if($WebDavPerUserSets["EnableSSL"]==1){$ssl="20-check.png";}else{$ssl="none-20.png";}
 				
 				
@@ -429,6 +434,7 @@ function servers_list(){
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["useSSL"]==1){$ssl="20-check.png";}else{$ssl="20-check-grey.png";}
+		if($FreeWebDisableSSL==1){$ssl="20-check-grey.png";}
 		$DirectorySize=FormatBytes($ligne["DirectorySize"]/1024);
 		$WebCopyID=$ligne["WebCopyID"];
 		$statistics="&nbsp;";
@@ -483,6 +489,9 @@ function servers_list(){
 		$servername_text=$ligne["servername"];
 		if($servername_text=="_default_"){
 			$servername_text="{all}";
+			if($ZarafaWebAccessInFrontEnd==1){$servername_text="{APP_ZARAFA}";}
+			if($FreeWebDisableSSL==0){$ssl="20-check.png";}
+			
 			$groupware=div_groupware("({default_website})",$ligne["enabled"]);
 		}else{
 			$checkResolv="<img src='img/20-check.png'>";
@@ -502,7 +511,7 @@ function servers_list(){
 		style='font-size:13px;text-decoration:underline;font-weight:bold;$colorhref'>";
 		$color="black";
 		$md5S=md5($ligne["servername"]);
-		$delete=icon_href("delete-24.png","FreeWebDelete('{$ligne["servername"]}',$JSDNS,'$md5S')");
+		$delete=icon_href("delete-32.png","FreeWebDelete('{$ligne["servername"]}',$JSDNS,'$md5S')");
 		
 		$sql="SELECT ID FROM drupal_queue_orders WHERE `ORDER`='DELETE_FREEWEB' AND `servername`='{$ligne["servername"]}'";
 		$ligneDrup=@mysql_fetch_array($q->QUERY_SQL($sql,'artica_backup'));	
@@ -572,9 +581,10 @@ function servers_list(){
 			$iconPlus="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('UpdateUtility.php?js=yes');\"><img src='img/settings-15.png' align='left'></a>";
 		}
 		
+		$servername_enc=urlencode($ligne["servername"]);
 		$color_span="#5F5656";
 		if($ligne["enabled"]==0){$color_span="#8C8C8C";}
-		$compile=imgsimple("refresh-32.png",null,"FreeWebsRebuildvHostsTable('{$ligne["servername"]}')");
+		$compile=imgsimple("apply-config-32.png",null,"Loadjs('freeweb.rebuild.progress.php?servername=$servername_enc')");
 		$enable=Field_checkbox("enable_$md5S", 1,$ligne["enabled"],"FreeWebsEnableSite('{$ligne["servername"]}')");
 		
 		if($ligne["enabled"]==0){

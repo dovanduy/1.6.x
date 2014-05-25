@@ -31,7 +31,7 @@ $main=new main_cf();
 	</td>
 	</tr>
 	<tr>
-		<td align='right' colspan=2><input type='button' OnClick=\"javascript:EditSasl();\" value='{edit}&nbsp;&raquo;'></td>
+		<td align='right' colspan=2><input type='button' OnClick=\"javascript:EditSasl();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>") . "
 	<br>

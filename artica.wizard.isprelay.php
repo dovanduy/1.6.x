@@ -32,7 +32,7 @@ $main=new main_cf();
 			<td colspan=2>" . Field_text('isp_server_ip',$main->main_array["relayhost"])."</td>
 		</tr>	
 	<tr>
-		<td align='right' colspan=2><input type='button' OnClick=\"javascript:EditRelayhost();\" value='{edit}&nbsp;&raquo;'></td>
+		<td align='right' colspan=2><input type='button' OnClick=\"javascript:EditRelayhost();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>") . "
 	<br>";

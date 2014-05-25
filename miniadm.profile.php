@@ -55,7 +55,13 @@ function content(){
 	$boot=new boostrap_form();
 	if($VirtualUser){$ct->DisplayName=$_SESSION["uid"];}
 
-	
+	if($_SESSION["uid"]==-100){
+		include("ressources/settings.inc");
+		$ct->DisplayName=$_GLOBAL["ldap_admin"];
+		$ct->sn=$ct->DisplayName;
+		$ct->givenName=$ct->DisplayName;
+		$VirtualUser=true;
+	}
 	$boot->set_field("DisplayName", "{displayName}", $ct->DisplayName);
 	$boot->set_field("sn", "{sn}", $ct->sn);
 	$boot->set_field("givenName", "{givenName}", $ct->givenName);

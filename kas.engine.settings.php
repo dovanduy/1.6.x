@@ -182,7 +182,7 @@ $table="<table style='width:80%;;padding:4px;'>
 					<td class=bottom width=1%><img src='img/icn_machinesList.gif'></td>
 					<td class=bottom style='font-size:12px;padding:4px'>$num</td>
 					<td class=bottom style='font-size:12px;padding:4px'>" . Field_text($num,$line)."</td>
-					<td class=bottom style='font-size:12px;padding:4px'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:EditKasDnsBlackList('$num');\"></td>
+					<td class=bottom style='font-size:12px;padding:4px'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:EditKasDnsBlackList('$num');\"></td>
 					<td class=bottom style='font-size:12px;padding:4px'>" . imgtootltip('x.gif','{delete}',"KasDnsBlackListDelete('$num');")."</td>
 					</tr>";
 					

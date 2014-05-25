@@ -680,7 +680,7 @@ if($users->APP_SQUIDCLAMAV_INSTALLED){
 	$authenticate_users=Paragraphe('members-priv-64.png','{authenticate_users}','{authenticate_users_text}',"javascript:Loadjs('squid.popups.php?script=ldap')");
 	$useragent_db=Paragraphe('user-agent-64.png','{useragent_database}','{useragent_database_text}',"javascript:Loadjs('squid.user.agent.php')");
 	$ftp_user=Paragraphe('ftp-user-64.png','{squid_ftp_user}','{squid_ftp_user_text}',"javascript:Loadjs('squid.ftp.user.php')");
-	$templates_error=Paragraphe('squid-templates-64.png','{squid_templates_error}','{squid_templates_error_text}',"javascript:Loadjs('squid.templates.php')");	
+	//$templates_error=Paragraphe('squid-templates-64.png','{squid_templates_error}','{squid_templates_error_text}',"javascript:Loadjs('squid.templates.php')");	
 	$messengers=Paragraphe('messengers-64.png','{instant_messengers}','{squid_instant_messengers_text}',"javascript:Loadjs('squid.messengers.php')");
 	
 	if($users->SQUID_ICAP_ENABLED){

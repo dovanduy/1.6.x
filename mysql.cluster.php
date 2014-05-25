@@ -243,7 +243,7 @@ $html="
 	<td valign='top' style='padding-left:10px'>". RoundedLightWhite($form)."</td>
 </tr>
 <tr>
-<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:MysqlClusterManagerSave();\" value='{edit}&nbsp;&raquo;'></td>
+<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:MysqlClusterManagerSave();\" value='{apply}&nbsp;&raquo;'></td>
 </tr>
 </table>
 </div>
@@ -292,7 +292,7 @@ $html="
 	<td valign='top' style='padding-left:10px'>". RoundedLightWhite($form)."</td>
 </tr>
 <tr>
-<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:MysqlClusterReplicatSave();\" value='{edit}&nbsp;&raquo;'></td>
+<td colspan=2 align='right'><hr><input type='button' OnClick=\"javascript:MysqlClusterReplicatSave();\" value='{apply}&nbsp;&raquo;'></td>
 </tr>
 </table>
 </div>

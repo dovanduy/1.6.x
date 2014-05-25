@@ -1439,13 +1439,11 @@ class squidbee{
 		
 	}
 	
-	private function backends_list(){
+	public function backends_list(){
 		$tr=array();
 		if(isset($GLOBALS["BACKENDS"])){return $GLOBALS["BACKENDS"];}
+		$GLOBALS["BACKENDS"][]="127.0.0.1";
 		
-		if($this->EnableTransparent27==1){
-			$GLOBALS["BACKENDS"][]="127.0.0.1";
-		}
 		
 		$sql="SELECT ipsrc FROM squid_balancers WHERE enabled=1";
 		$q=new mysql();
@@ -3598,6 +3596,9 @@ function SaveToLdap($norestart=false){
 			$auth_param_ntlm_children=$this->SquidClientParams["auth_param_ntlm_children"];
 			$auth_param_ntlm_startup=$this->SquidClientParams["auth_param_ntlm_startup"];
 			$auth_param_ntlm_idle=$this->SquidClientParams["auth_param_ntlm_idle"];
+			if($auth_param_ntlm_children>151){$auth_param_ntlm_children=150;}
+			if($auth_param_ntlm_startup>100){$auth_param_ntlm_startup=100;}
+			if($auth_param_ntlm_idle+$auth_param_ntlm_children>151){$auth_param_ntlm_idle=1;}
 			
 			$external_acl_children=$this->SquidClientParams["external_acl_children"];
 			$external_acl_startup=$this->SquidClientParams["external_acl_startup"];
@@ -4206,6 +4207,37 @@ function SaveToLdap($norestart=false){
 	}
 	
 	
+	public function cache_peer_acls(){
+		$f=array();
+		$acls=new squid_acls_groups();
+		$cache_parents=$acls->buildacls_bytype("cache_parent");
+		if(count($cache_parents)==0){
+			$f[]="# --------- SQUID Parents in ACLS = No row [".__LINE__."]";
+			return @implode("\n", $f);
+		}
+			
+		while (list ($index, $MAINS) = each ($cache_parents) ){
+			$f[]=$MAINS["LINE"];
+			$PortsAcls=$MAINS["PORTS_ACLS"];
+			$PeerName=$MAINS["NAME"];
+			$f[]="# --------- SQUID Parents in ACLS $PeerName [".__LINE__."]";
+			if($PortsAcls<>null){$PortsAcls="$PortsAcls ";}
+				while (list ($index, $groups) = each ($MAINS["GROUPS"]) ){
+						$f[]="cache_peer_access $PeerName allow $PortsAcls".@implode(" ", $groups);
+				}
+				$f[]="cache_peer_access $PeerName deny all";
+			}
+			
+	
+		return @implode("\n", $f);
+		
+		
+		
+	}
+	
+	
+	
+	
 	public function cache_peer(){
 		if(!$this->ASROOT){return;}
 		$sock=new sockets();
@@ -4217,6 +4249,7 @@ function SaveToLdap($norestart=false){
 		$f[]="#";
 		$f[]="# --------- SQUID PARENTS --------- [".__LINE__."]";
 		$f[]="# --------- EnableParentProxy ini=NETWORK/EnableParentProxy = $EnableParentProxy [".__LINE__."]";
+		$f[]=$this->cache_peer_acls();
 		
 		if($EnableParentProxy==0){
 			echo "Starting......: ".date("H:i:s")." [ LB ]: Load-balancing mode is disabled\n";
@@ -4261,71 +4294,22 @@ function SaveToLdap($norestart=false){
 		}else{
 			$f[]="nonhierarchical_direct on";
 		}		
+		$acls=new squid_acls_groups();
 		
-		$ALREADY_CACHE_PEER=array();
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			
+			
 			if(trim($ligne["servername"])==null){continue;}
 			if(trim($ligne["server_port"])==null){continue;}
 			if(trim($ligne["server_type"])==null){$ligne["server_type"]="parent";}
 			if(strlen(trim($ligne["icp_port"]))==0){$ligne["icp_port"]=0;}
-			if($ALREADY_CACHE_PEER[$ligne["servername"]]){continue;}
-			$array=unserialize(base64_decode($ligne["options"]));
-			echo "Starting......: ".date("H:i:s")." [ LB ]: add `{$ligne["servername"]} backend...\n";
-			$htcp=null;
-			if($ligne["htcp_port"]>0){$ligne["icp_port"]=$ligne["htcp_port"];$htcp=" htcp";}
-			if(!is_array($array)){
-				if((!is_numeric($ligne["icp_port"]))  OR ($ligne["icp_port"]==0)){
-						$array["no-query"]=null;
-						$array["no-digest"]=null;
-				}else{
-					$array=array();
-				}
-				
-			}
-			$login=null;$parmType=null;
-			while (list($num,$val)=each($array)){
-				echo "\n\n***** \n $num $val *****\n\n";
-				if($num=="loginPASSTHRU"){$login="login=PASSTHRU";unset($array[$num]);continue;}
-				if($num=="login"){
-					if(!preg_match("#(.+?):(.+)#", $val)){unset($array[$num]);continue;}
-					$login="login=$val";
-					unset($array[$num]);
-					continue;
-				}
-				if($num=="loginPASS"){$login="login=PASS";unset($array[$num]);continue;}
-				if($num=="connection-auth"){
-					$val=strtolower($val);
-					$val=str_replace($val,"1","on");
-					$val=str_replace($val,"0","off");
-					$val=str_replace($val,"yes","on");
-					$val=str_replace($val,"no","off");
-					if(!preg_match("#(on|off)#i", $val)){$val="on";}
-					$array[$num]=$val;
-				}
-				if ($num=="proxy-only"){$parmType=$num;unset($array[$num]);continue;}
+			$MAIN_RESULTS=$acls->cache_peer_explode($ligne["ID"]);
+			if(!is_array($MAIN_RESULTS)){continue;}
+			if(!isset($MAIN_RESULTS["NET"])){continue;}
+			$NET=$MAIN_RESULTS["NET"];
+			$f[]=$MAIN_RESULTS["LINE"];
+			
 
-				if ($num=="round-robin"){$parmType=$num;unset($array[$num]);continue;}
-				if ($num=="userhash"){$parmType=$num;unset($array[$num]);continue;}
-				if ($num=="sourcehash"){$parmType=$num;unset($array[$num]);continue;}
-				if ($num=="multicast-siblings"){$parmType=$num;unset($array[$num]);continue;}
-				if ($num=="weighted-round-robin"){$parmType=$num;unset($array[$num]);continue;}				
-				
-				
-			}
-			if($login<>null){$array[$login]=null;}
-			if($parmType<>null){$parmType=" $parmType ";}	
-			reset($array);
-				
-			while (list($num,$val)=each($array)){
-				if(trim($num)==null){continue;}
-				if($num=="carp"){$num="carp carp-key=host,port,path";}
-				if(trim($val)<>null){$z[]="$num=$val";}else{$z[]=$num;}
-			}
-			$options=implode(" ",$z);
-			unset($z);unset($array);
-			$NewLine="cache_peer {$ligne["servername"]} {$ligne["server_type"]} {$ligne["server_port"]} {$ligne["icp_port"]}$htcp $parmType$options";
-			$f[]=$NewLine;
-			$ALREADY_CACHE_PEER[$ligne["servername"]]=true;
 			}
 			
 			
@@ -4347,34 +4331,7 @@ function SaveToLdap($norestart=false){
 	}
 	
 	
-	private function cache_peer_zipproxy(){
-		return;
-		$sock=new sockets();
-		$enableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
-		
-		$EnableProxyCompressor=intval($sock->GET_INFO("EnableProxyCompressor"));
-		if($EnableProxyCompressor==0){
-			$f[]="#";
-			$f[]="# --------- LOCAL PARENT FOR PROXY COMPRESSOR - disabled - [".__LINE__."]";
-			$f[]="#";
-			$f[]="";
-			return @implode("\n", $f);
-			
-			}
-			
-		$f[]="#";
-		$f[]="# --------- LOCAL PARENT FOR PROXY COMPRESSOR [".__LINE__."]";
-		$zipproxy_port=intval($sock->GET_INFO("zipproxy_port"));
-		if($zipproxy_port==0){$zipproxy_port=5561;}
-		$f[]="cache_peer 127.0.0.25\tparent\t$zipproxy_port\t0\tno-query no-netdb-exchange weight=9999 name=ziproxy";
-		$f[]="cache_peer_access ziproxy deny CONNECT";
-		//if($enableStreamCache==1){ $f[]="cache_peer_access ziproxy deny vc_dom"; }
-		$f[]="cache_peer_access ziproxy allow all";
-		
-		$f[]="#";
-		$f[]="#";
-		return @implode("\n", $f);
-	}
+
 	
 	
 	
@@ -4553,12 +4510,16 @@ private function access_logs(){
 	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
 	$ActAsASyslogServer=$sock->GET_INFO("ActAsASyslogServer");
 	$SquidStoreLogLogging=$sock->GET_INFO("SquidStoreLogLogging");
+	$SquidAsMasterCacheChilds=$sock->GET_INFO("SquidAsMasterCacheChilds");
 	if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
 	if(!is_numeric($ActAsASyslogServer)){$ActAsASyslogServer=0;}
 	if(!is_numeric($SquidStoreLogLogging)){$SquidStoreLogLogging=0;}
+	if(!is_numeric($SquidAsMasterCacheChilds)){$SquidAsMasterCacheChilds=1;}
 	$isRemoteStatsAppliance=$this->isRemoteStatsAppliance();
 	$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 	$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
+	
+	
 	$ChildProxysIPs=null;
 	
 	$acls=new squid_acls_groups();
@@ -4581,12 +4542,13 @@ private function access_logs(){
 	}
 
 	
-	$conf[]="# --------- ActAsASyslogServer 	=$ActAsASyslogServer [".__LINE__."]";
-	$conf[]="# --------- EnableSargGenerator	=$EnableSargGenerator [".__LINE__."]";
-	$conf[]="# --------- isRemoteStatsAppliance	=$isRemoteStatsAppliance [".__LINE__."]";;
-	$conf[]="# --------- SquidAsMasterPeer		=$SquidAsMasterPeer [".__LINE__."]";
-	$conf[]="# --------- SquidAsMasterLogChilds	=$SquidAsMasterLogChilds [".__LINE__."]";
-	$conf[]="# --------- EnableMacAddressFilter	=$this->EnableMacAddressFilter [".__LINE__."]";
+	$conf[]="# --------- ActAsASyslogServer 	 = $ActAsASyslogServer [".__LINE__."]";
+	$conf[]="# --------- EnableSargGenerator	 = $EnableSargGenerator [".__LINE__."]";
+	$conf[]="# --------- isRemoteStatsAppliance	 = $isRemoteStatsAppliance [".__LINE__."]";;
+	$conf[]="# --------- SquidAsMasterPeer		 = $SquidAsMasterPeer [".__LINE__."]";
+	$conf[]="# --------- SquidAsMasterLogChilds	 = $SquidAsMasterLogChilds [".__LINE__."]";
+	$conf[]="# --------- EnableMacAddressFilter	 = $this->EnableMacAddressFilter [".__LINE__."]";
+	$conf[]="# --------- SquidAsMasterCacheChilds= $SquidAsMasterLogChilds [".__LINE__."]";
 	
 	if($this->EnableMacAddressFilter==1){$conf[]="eui_lookup on";}
 	if($this->EnableMacAddressFilter==0){$conf[]="eui_lookup off";}
@@ -4973,10 +4935,12 @@ function BuildSquidConf(){
 		if($this->CnTLMPORT==0){$this->CnTLMPORT=rand(35000, 64000);$sock->SET_INFO("CnTLMPORT", $this->CnTLMPORT);}
 		if($this->ArticaHotSpotPort==0){$this->ArticaHotSpotPort=rand(38000, 64000);$sock->SET_INFO("ArticaHotSpotPort", $this->ArticaHotSpotPort);}
 		if($this->ArticaSSLHotSpotPort==0){$this->ArticaSSLHotSpotPort=rand(38500, 64000);$sock->SET_INFO("ArticaSSLHotSpotPort", $this->ArticaSSLHotSpotPort);}
+		$SquidAsMasterCacheChilds=$sock->GET_INFO("SquidAsMasterCacheChilds");
 		$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 		$SquidAsMasterPeerPort=intval($sock->GET_INFO("SquidAsMasterPeerPort"));
 		$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
-		
+		if(!is_numeric($SquidAsMasterCacheChilds)){$SquidAsMasterCacheChilds=1;}
+
 		
 		$this->listen_port=intval(trim($this->listen_port));
 		if($this->enable_dansguardian==1){$this->listen_port=$this->alt_listen_port;}
@@ -5263,15 +5227,6 @@ function BuildSquidConf(){
 		$conf=$conf. "acl CONNECT method CONNECT\n";
 		$conf=$conf. "acl purge method PURGE\n";
 		$conf=$conf . "#\n";
-		$conf=$conf . "# # # # # # # # EXTERNAL CACHES # # # # # # # #\n";
-		$conf=$conf . "#\n";
-		$conf=$conf . $this->cache_peer_streamcache()."\n";
-		$conf=$conf . $this->cache_peer_zipproxy()."\n";
-		if(isset($GLOBALS["HAARP_CACHE_PEER"])){$conf=$conf . "{$GLOBALS["HAARP_CACHE_PEER"]}\n";}else{$conf=$conf . "# HAARP_CACHE_PEER not set\n";}
-		
-		$conf=$conf . $this->cache_peer()."\n";
-		$conf=$conf . "#\n";
-		$conf=$conf . "#\n";
 		$conf=$conf  ."\n#--------- acls\n";
 		$conf=$conf  .$acl_blocked_sites;
 		
@@ -5336,7 +5291,7 @@ function BuildSquidConf(){
 				$conf=$conf ."#no groups";
 			}
 		}
-
+		
 		$conf=$conf."\n\n#--------- MAIN RULES... [".__LINE__."]\n";
 		
 		if($this->ProxyDedicateMicrosoftRules==1){
@@ -5542,7 +5497,16 @@ function BuildSquidConf(){
 			$conf=$conf. $bandwith->compile()."\n";
 		}
 		
-		$conf=$conf."\n# ---------  RULES DEFINITIONS\n";
+		$conf=$conf . "\n# # # # # # # # # # # # # # # # # # EXTERNAL CACHES # # # # # # # # # # # # # # # # # #\n";
+		$conf=$conf . "#\n";
+		$conf=$conf . $this->cache_peer_streamcache()."\n";
+		if(isset($GLOBALS["HAARP_CACHE_PEER"])){$conf=$conf . "{$GLOBALS["HAARP_CACHE_PEER"]}\n";}else{$conf=$conf . "# HAARP_CACHE_PEER not set\n";}
+		$conf=$conf . $this->cache_peer()."\n";
+		$conf=$conf . "#\n";
+		$conf=$conf . "#\n";
+		
+		
+		$conf=$conf."\n# # # # # # # # # # # # # # # # # # RULES DEFINITIONS # # # # # # # # # # # # # # # # # #\n";
 		
 		$conf=$conf.$this->http_access();
 		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ICAP]: SquidDisableAllFilters=$this->SquidDisableAllFilters\n";}
@@ -5681,11 +5645,17 @@ function BuildSquidConf(){
 			$conf=$conf ."{$GLOBALS["HAARP_CACHE_DENY"]}\n";
 		}
 		
-		$conf=$conf ."# --------- DisableAnyCache =  $this->DisableAnyCache [". __LINE__."]\n";
+		$conf=$conf ."# --------- DisableAnyCache 	=  $this->DisableAnyCache [". __LINE__."]\n";
+		$conf=$conf ."# --------- SquidAsMasterPeer =  $SquidAsMasterPeer [". __LINE__."]\n";
+		$conf=$conf ."# --------- SquidAsMasterCacheChilds =  $SquidAsMasterCacheChilds [". __LINE__."]\n";
 		
 		if($this->DisableAnyCache==0){
-			
-
+			if($SquidAsMasterPeer==1){
+				if($SquidAsMasterCacheChilds==0){
+					$conf=$conf ."# --------- Do not cache requests from Proxy children  [". __LINE__."]\n";
+					$conf=$conf ."cache deny ChildProxysIPs\n";
+				}
+			}
 			
 			
 			$cache_deny_array=$this->cache_deny_array();
@@ -5738,7 +5708,7 @@ function BuildSquidConf(){
 			$conf=$conf . "cache_swap_low {$this->global_conf_array["cache_swap_low"]}\n";
 			$conf=$conf . "store_avg_object_size 32 KB\n";
 			$conf=$conf . "store_objects_per_bucket 50\n";
-		
+			$conf=$conf . "memory_replacement_policy lru\n";
 		
 			if($this->DisableAnyCache==0){
 				$CacheReplacementPolicyZ["lru"]="lru";
@@ -5784,6 +5754,9 @@ function BuildSquidConf(){
 		$conf=$conf."debug_options ".$this->debug_options()."\n";
 		
 		$conf=$conf."# --------- CACHES RULES [".__LINE__."]\n";
+		$conf=$conf."include /etc/squid3/refresh_patterns.conf\n";
+		if(!is_file("/etc/squid3/refresh_patterns.conf")){@touch("/etc/squid3/refresh_patterns.conf");}
+		@chown("/etc/squid3/refresh_patterns.conf","squid");
 		$refresh_pattern_list=$this->refresh_pattern_list();
 		$conf=$conf.$refresh_pattern_list;
 		
@@ -7589,6 +7562,9 @@ public function refresh_pattern_list(){
 	
 	if($this->DisableAnyCache==1){return;}
 	
+	$reload_into_ims=$sock->GET_INFO("SquidReloadIntoIMS");
+	if(!is_numeric($reload_into_ims)){$reload_into_ims=1;}
+	
 	$refresh_pattern_def_min=$sock->GET_INFO("refresh_pattern_def_min");
 	$refresh_pattern_def_max=$sock->GET_INFO("refresh_pattern_def_max");
 	$refresh_pattern_def_perc=$sock->GET_INFO("refresh_pattern_def_perc");
@@ -7597,26 +7573,29 @@ public function refresh_pattern_list(){
 	if(!is_numeric($refresh_pattern_def_max)){$refresh_pattern_def_max=43200;}
 	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=40;}
 	
+	$compilation_params=$this->compilation_params();
+	if(isset($compilation_params["enable-http-violations"])){
+		if($reload_into_ims==1){
+			$conf[]="reload_into_ims on";
+		}else{
+			$conf[]="reload_into_ims off";
+		}
+	}
+	
 	
 	if(!$users->CORP_LICENSE){
 		$conf[]="# --------- No license, keep default one for minimalist settings";
-		$conf[]="refresh_pattern ^ftp: 1440 20% 10080";
-		$conf[]="refresh_pattern ^gopher: 1440 0% 1440";
-		$conf[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico)$ 10080 90% 43200 override-expire ignore-no-cache ignore-no-store ignore-private";
-		$conf[]="refresh_pattern -i \.(iso|avi|wav|mp3|mp4|mpeg|swf|flv|x-flv)$ 43200 90% 432000 override-expire ignore-no-cache ignore-no-store ignore-private";
-		$conf[]="refresh_pattern -i \.(deb|rpm|exe|zip|tar|tgz|ram|rar|bin|ppt|doc|tiff)$ 10080 90% 43200 override-expire ignore-no-cache ignore-no-store ignore-private";;
-		$conf[]="refresh_pattern -i \.index.(html|htm)$ 0 40% 10080";
-		$conf[]="refresh_pattern -i \.(html|htm|css|js)$ 1440 40% 40320";
-		$conf[]="refresh_pattern . 0 40% 40320";
+		$conf[]=$this->refresh_pattern_defaults();
 		return implode("\n",$conf)."\n";
 	}
 	
 
 	if($this->ForceWindowsUpdateCaching==1){
 		$conf[]="# --------- Make Windows Updates cache";
-		$conf[]="refresh_pattern -i microsoft\.com.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
-		$conf[]="refresh_pattern -i windowsupdate\.com.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
-		$conf[]="refresh_pattern -i windows\.com.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$conff[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$conf[]="refresh_pattern -i windows.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+	
 	}
 	$q=new mysql_squid_builder();
 	$count=$q->COUNT_ROWS("main_cache_rules");
@@ -7690,26 +7669,36 @@ public function refresh_pattern_list(){
 		
 	}
 	if($CountOfUsersRules>0){
-		$conf[]="refresh_pattern .	$refresh_pattern_def_min\t{$refresh_pattern_def_perc}%\t$refresh_pattern_def_max";
+		$conf[]="refresh_pattern .	$refresh_pattern_def_min\t{$refresh_pattern_def_perc}%\t$refresh_pattern_def_max reload-into-ims ignore-reload";
 		return implode("\n",$conf)."\n";
 	}
 	
 	
 	$conf[]="# --------- License OK but no rules defined, add minimalistics patterns";
-	$conf[]="refresh_pattern ^ftp: 1440 20% 10080";
-	$conf[]="refresh_pattern ^gopher: 1440 0% 1440";
-	$conf[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico)$ 10080 90% 43200 override-expire ignore-no-cache ignore-no-store ignore-private";
-	$conf[]="refresh_pattern -i \.(iso|avi|wav|mp3|mp4|mpeg|swf|flv|x-flv)$ 43200 90% 432000 override-expire ignore-no-cache ignore-no-store ignore-private";
-	$conf[]="refresh_pattern -i \.(deb|rpm|exe|zip|tar|tgz|ram|rar|bin|ppt|doc|tiff)$ 10080 90% 43200 override-expire ignore-no-cache ignore-no-store ignore-private";;
-	$conf[]="refresh_pattern -i \.index.(html|htm)$ 0 40% 10080";
-	$conf[]="refresh_pattern -i \.(html|htm|css|js)$ 1440 40% 40320";
-	$conf[]="refresh_pattern . 0 40% 40320";
+	$conf[]=$this->refresh_pattern_defaults();
 	return implode("\n",$conf)."\n";
-		
-	
-	
-	
 }
+
+private function refresh_pattern_defaults(){
+	
+	$ignore_no_cache="ignore-no-cache ";
+	if($this->IS_33){$ignore_no_cache=null;}
+	$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico|bmp|tiff|webp|bif|ver|pict) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-private ignore-no-store";
+	$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private";
+	$f[]="refresh_pattern -i \.(html|htm|crl) 9440 90% 100000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
+	$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";
+	$f[]="refresh_pattern -i \.(json|json\?) 1440 90% 5760 reload-into-ims";
+	$f[]="refresh_pattern -i (/cgi-bin/|\?) 0 0% 0";
+	$f[]="refresh_pattern -i ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 0 0% 0";
+	$f[]="refresh_pattern -i \.(bin|deb|rpm|drpm|exe|zip|tar|tgz|bz2|ipa|bz|ram|rar|bin|uxx|gz|crl|msi|dll|hz|cab|psf|vidt|apk|wtex|hz) 220000 90% 500000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
+	$f[]="refresh_pattern -i \.(ppt|ppt\?|pptx|doc|docx|pdf|xls|xlsx|csv|txt) 220000 90% 200000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
+	$f[]="refresh_pattern -i ^ftp: 66000 90% 200000";
+	$f[]="refresh_pattern -i ^gopher: 1440 0% 1440";
+	$f[]="refresh_pattern -i . 0 90% 5760 reload-into-ims ignore-reload";
+	return @implode("\n", $f);
+}
+
+
 
 public function SQUID_LOCAL_NETWORKS(){
 		$sock=new sockets();

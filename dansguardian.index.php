@@ -2317,7 +2317,7 @@ function popup_template(){
 	<H1>{template_label}</H1>
 	<div id='popup_template'>
 	<textarea id='template_content' style='width:100%;height:300px'>$template</textarea>
-	<div style='text-align:right;width:100%'><input type='button' OnClick=\"javascript:SaveDansGuardianTemplate()\" value='{edit}&nbsp;&raquo;'>
+	<div style='text-align:right;width:100%'><input type='button' OnClick=\"javascript:SaveDansGuardianTemplate()\" value='{apply}&nbsp;&raquo;'>
 	</div>
 	";
 	
@@ -2382,7 +2382,7 @@ function template_options_page(){
 		<td>" . Field_text('DansGuardianEnableUserArticaIP',$dans->DansGuardianEnableUserArticaIP,"width:120px")."</td>
 	</tr>
 	<tr><td colspan=2><hr></td></tr>
-	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:TemplateOptionsSave();\" value='{edit}&nbsp;&raquo;'></td></tr>
+	<tr><td colspan=2 align='right'><input type='button' OnClick=\"javascript:TemplateOptionsSave();\" value='{apply}&nbsp;&raquo;'></td></tr>
 	
 	
 	</table>

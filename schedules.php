@@ -55,6 +55,7 @@ function AddNewSchedule_js(){
 }
 
 function schedules_params_js(){
+	header("content-type: application/x-javascript");
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$title=$tpl->_ENGINE_parse_body("{schedule}::{parameters}");
@@ -532,7 +533,7 @@ buttons : [
 	 }
 	
 	var x_SystemTaskEnable=function (obj) {
-		var ID='{$_GET["ID"]}';
+		var ID='{$_GET["ID"]}';$array
 		var results=obj.responseText;
 		if(results.length>0){alert(results);}		
 	}

@@ -1,4 +1,5 @@
 <?php
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -148,7 +149,7 @@ for($i=0;$i<10;$i++){
 	$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG",$ZARAFA_LANG,"style:font-size:18px;padding:3px");
 	$html="
 	<div id='$t'>
-	<div class=explain style='font-size:13px'>{zarafa_tune_explain}</div>
+	<div class=explain style='font-size:16px'>{zarafa_tune_explain}</div>
 	
 <div style='width:98%' class=form>	
 	<table style='width:99%'>	
@@ -427,8 +428,7 @@ function SaveZarafaNet(){
 
 function ZarafaStoreOutside_save(){
 	
-	
-	
+	$sock=new sockets();
 	$sock->SET_INFO("ZarafaStoreOutside", $_POST["ZarafaStoreOutside"]);
 	$sock->SET_INFO("ZarafaStoreOutsidePath", $_POST["ZarafaStoreOutsidePath"]);
 	$sock->SET_INFO("ZarafaStoreCompressionLevel", $_POST["ZarafaStoreCompressionLevel"]);	

@@ -723,7 +723,7 @@ function session_settings(){
 	<td class='legend'>{language}:</td>
 	<td>$field_lang</td>
 	</tr>	
-	<td colspan=2 align='right'><input type='button' OnClick=\"javascript:SaveSession();\" value='{edit}&nbsp;&raquo;'></td>
+	<td colspan=2 align='right'><input type='button' OnClick=\"javascript:SaveSession();\" value='{apply}&nbsp;&raquo;'></td>
 	</tr>
 	</table>
 	

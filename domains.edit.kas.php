@@ -171,7 +171,7 @@ function main_actions(){
 			<tr>
 			<td colspan=2 align='right' style='padding-left:15px'>
 			<hr>
-				". button("{edit}","ACTION_SPAM_MODE_SAVE()")."</td>
+				". button("{apply}","ACTION_SPAM_MODE_SAVE()")."</td>
 			</tr>
 		</table>
 		";
@@ -200,7 +200,7 @@ $html=$html."<br>
 			<tr>
 						<td colspan=2 align='right' style='padding-left:15px'>
 			<hr>
-				". button("{edit}","ACTION_SPAM_MODE_SAVE()")."</td>
+				". button("{apply}","ACTION_SPAM_MODE_SAVE()")."</td>
 			</tr>
 		</table>
 		";	
@@ -224,7 +224,7 @@ $html=$html."<br>
 			<tr>	
 						<td colspan=2 align='right' style='padding-left:15px'>
 			<hr>
-				". button("{edit}","ACTION_SPAM_MODE_SAVE()")."</td>
+				". button("{apply}","ACTION_SPAM_MODE_SAVE()")."</td>
 			</tr>
 		</table>
 		";	
@@ -247,7 +247,7 @@ $html=$html."<br>
 			<tr>	
 						<td colspan=2 align='right' style='padding-left:15px'>
 			<hr>
-				". button("{edit}","ACTION_SPAM_MODE_SAVE()")."</td>
+				". button("{apply}","ACTION_SPAM_MODE_SAVE()")."</td>
 			</tr>
 		</table>
 		</div>	";				
@@ -356,7 +356,7 @@ $html="	$tab
 
 <tr><td colspan=3 align=right>
 			<hr>
-				". button("{edit}","OPT_SPAM_RATE_LIMIT()"). "
+				". button("{apply}","OPT_SPAM_RATE_LIMIT()"). "
 		</td></tr>
 </table>
 
@@ -447,7 +447,7 @@ function main_index(){
 	<tr>
 		<td colspan=2 align='right'>
 			<hr>
-				". button("{edit}","OPT_FILTRATION_ON()"). "
+				". button("{apply}","OPT_FILTRATION_ON()"). "
 		</td>
 	</tr>
 	</table>

@@ -58,15 +58,8 @@ function tabs(){
 	
 	
 	
-	echo "
-	<div id=main_browser_tabs style='width:99%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-			$(document).ready(function(){
-				$('#main_browser_tabs').tabs();
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_browser_tabs");
+	
 
 }
 

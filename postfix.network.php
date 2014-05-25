@@ -295,7 +295,7 @@ $html="
 	<div style='width:300px'>$enable</div>
 	<div style='text-align:right'>
 	<hr>
-		<input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:PostfixEnabledInBind9();\">
+		<input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:PostfixEnabledInBind9();\">
 	</div>
 	";	
 	
@@ -547,7 +547,7 @@ $html="<div id='QueryDNSFormSaveid'>
 	<td align='left'  width=1% $styleadd>" . Field_checkbox('disable_dns_lookups','1',$main->GET("disable_dns_lookups")) ."</td>
 	<td valign='top' width=1% $styleadd>".help_icon('{disable_dns_lookups_text}')."</td>
 	</tr>
-	<tr><td colspan=3 align='right'><hr>". button("{edit}","QueryDNSFormSave()",16)."</td></tr>
+	<tr><td colspan=3 align='right'><hr>". button("{apply}","QueryDNSFormSave()",16)."</td></tr>
 	</table>
 	</div>
 	
@@ -1010,7 +1010,7 @@ function POSTFIX_MULTI_INSTANCE(){
 	</table>
 	<div class=explain style='font-size:13px'>{POSTFIX_MULTI_INSTANCE_HOWTO}</div>
 		<div style='text-align:right'><hr>
-		". button("{edit}","POSTFIX_MULTI_INSTANCE()",16)."
+		". button("{apply}","POSTFIX_MULTI_INSTANCE()",16)."
 		</div>
 		
 	<script>

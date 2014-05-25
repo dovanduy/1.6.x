@@ -60,6 +60,12 @@ class squid_auto_tasks{
 		$CacheManagement2=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("CacheManagement2");
 		if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=0;}
 		if(!is_numeric($CacheManagement2)){$CacheManagement2=0;}
+		$CACHE_DYN_PARAMS=unserialize(base64_decode($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidDynamicCaches")));
+		if(!is_numeric($CACHE_DYN_PARAMS["INTERVAL"])){$CACHE_DYN_PARAMS["INTERVAL"]=420;}
+		if($CACHE_DYN_PARAMS["INTERVAL"]<60){$CACHE_DYN_PARAMS["INTERVAL"]=60;}
+		$EnableProxyCompressor=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableProxyCompressor"));
+		
+		
 		
 		
 		$EnableArticaHotSpot=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableArticaHotSpot"));
@@ -77,11 +83,49 @@ class squid_auto_tasks{
 		$ifStatisticsMustBeExecuted=$this->ifStatisticsMustBeExecuted();
 		$BASEPATH="/usr/share/artica-postfix";
 		
+if($EnableProxyCompressor==1){		
+//**********************************************************************************************************************
+// ZipProxy statistiques globales
+		$TimeFile="/etc/artica-postfix/pids/exec.zipproxy.php.zipproxy_global.time";
+		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
+		if($CacheSchedules>10){
+			$cmd=trim($prefixcmd."$BASEPATH/exec.zipproxy.php --global >/dev/null 2>&1 &");
+			$this->squid_rtt_events("Running $cmd");
+			shell_exec($cmd);
+		}	
+//**********************************************************************************************************************
+// ZipProxy injection des access.log
+		$TimeFile="/etc/artica-postfix/pids/exec.zipproxy.php.zipproxy_access.time";
+		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
+		if($CacheSchedules>60){
+			$cmd=trim($prefixcmd."$BASEPATH/exec.zipproxy.php --access >/dev/null 2>&1 &");
+			$this->squid_rtt_events("Running $cmd");
+			shell_exec($cmd);
+		}
 		
+}
+		
+//**********************************************************************************************************************
+//Construction des données graphiques pour les sites mis en cache.
+		$TimeFile="/etc/artica-postfix/pids/exec.squid.cache.optimize.php.gencaches_start.time";
+		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
+		if($CacheSchedules>10){
+			$cmd=trim($prefixcmd."$BASEPATH/exec.squid.cache.optimize.php --gencaches >/dev/null 2>&1 &");
+			$this->squid_rtt_events("Running $cmd");
+			shell_exec($cmd);
+		}		
+//**********************************************************************************************************************
+//Analyse les statistiques de caches pour le refresh_pattern
+		$TimeFile="/etc/artica-postfix/pids/exec.squid.cache.optimize.php.scan_stats.time";
+		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
+		if($CacheSchedules>$CACHE_DYN_PARAMS["INTERVAL"]){
+			$cmd=trim($prefixcmd."$BASEPATH/exec.squid.cache.optimize.php >/dev/null 2>&1 &");
+			$this->squid_rtt_events("Running $cmd");
+			shell_exec($cmd);
+		}				
 		
 //**********************************************************************************************************************		
 //D'importe quel cas, vider le dossier /var/log/squid/mysql-queue
-		
 		$TimeFile="/etc/artica-postfix/pids/exec.logfile_daemon-parse.php.time";
 		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
 		$this->squid_rtt_events("exec.logfile_daemon-parse.php.time = {$CacheSchedules}s");
@@ -104,9 +148,17 @@ class squid_auto_tasks{
 			$this->shell_exec2($cmd);
 		}
 //**********************************************************************************************************************		
-
+// Analyse les statistics de mise en cache / Jour ( chaque 24h).
+		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.cache.optimize.php.StatsDaysTables.time");
+		if($CacheSchedules>1440){
+			$cmd=trim($prefixcmd."$BASEPATH/exec.squid.cache.optimize.php --stats-days >/dev/null 2>&1 &");
+			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+			$this->shell_exec2($cmd);
+			if(!is_file($TimeFile)){ @file_put_contents($TimeFile, time()); }
+		}		
 		
-		// Scan les videos Youtube toutes les heures.
+//**********************************************************************************************************************		
+// Scan les videos Youtube toutes les heures.
 		if($ifStatisticsMustBeExecuted){
 			$TimeFile="/etc/artica-postfix/pids/YoutubeByHour.time";
 			$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min($TimeFile);

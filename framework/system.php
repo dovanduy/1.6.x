@@ -3,6 +3,10 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
+
+if(isset($_GET["install-artica-tgz"])){install_artica_tgz();exit;}
+if(isset($_GET["mii-tool-save"])){MII_TOOLS_SAVE();exit;}
+if(isset($_GET["mii-tools"])){MII_TOOLS();exit;}
 if(isset($_GET["create-new-uuid"])){CREATE_NEW_UUID();exit;}
 if(isset($_GET["MEM_TOTAL_INSTALLEE"])){MEM_TOTAL_INSTALLEE();exit;}
 if(isset($_GET["mylinux"])){mylinux();exit;}
@@ -77,6 +81,7 @@ if(isset($_GET["nmap-scan-single"])){nmap_scan_single();exit;}
 if(isset($_GET["ntopng-installed"])){ntopng_installed();exit;}
 if(isset($_GET["ntopng-restart"])){ntopng_restart();exit;}
 if(isset($_GET["ntopng-status"])){ntopng_status();exit;}
+if(isset($_GET["set-apache-perms"])){set_apache_perms();exit;}
 
 
 
@@ -1146,8 +1151,112 @@ function installv2(){
 	
 }
 
-function CREATE_NEW_UUID(){
+function CREATE_NEW_UUID(){$unix=new unix(); $unix->CREATE_NEW_UUID(); }
+function MII_TOOLS(){
 	$unix=new unix();
-	$unix->CREATE_NEW_UUID();
-
+	$eth=$_GET["eth"];
+	$miitool=$unix->find_program("mii-tool");
+	if(!is_file($miitool)){
+		$ARRAY["STATUS"]=false;
+		$ARRAY["ERROR"]="mii-tool no such binary";
+		echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
+		return;
+	}
+	
+	exec("$miitool -v $eth 2>&1",$results);
+	while (list ($num, $line) = each ($results)){
+		if(preg_match("#failed#", $line)){
+			$ARRAY["STATUS"]=false;
+			$ARRAY["ERROR"]="$line";
+			echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
+			return;
+		}
+		if(preg_match("#$eth:\s+(.+)#", $line,$re)){
+			$ARRAY["STATUS"]=true;
+			$ARRAY["INFOS"]=$line;
+			$ARRAY["AUTONEG"]=0;
+			$ARRAY["FLOWC"]=0;
+			if(preg_match("#flow-control#", $line)){
+				$ARRAY["FLOWC"]=1;
+			}
+			
+			continue;
+		}
+		
+		if(preg_match("#product info:\s+(.+)#", $line,$re)){
+			$ARRAY["PRODUCT"]=trim($re[1]);
+		}
+		
+		if(preg_match("#autonegotiation.*?enabled#", $line,$re)){
+			$ARRAY["AUTONEG"]=1;
+		}
+		
+		if(preg_match("#capabilities:\s+(.+)#",$line,$re)){
+			$cap=explode(" ",$re[1]);
+			while (list ($a, $b) = each ($cap)){
+				if(trim($b)==null){continue;}
+				$ARRAY["CAP"][$b]=true;
+			}
+		}
+		
+	}
+	
+	echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
+	
 }
+function MII_TOOLS_SAVE(){
+	while (list ($a, $b) = each ($_GET)){
+		writelogs_framework("$a=$b",__FUNCTION__,__LINE__);
+	}
+	$unix=new unix();
+	$flow_control=$_GET["flow-control"];
+	$autonegotiation=$_GET["autonegotiation"];
+	$duptype=$_GET["duptype"];
+	$eth=$_GET["MII-TOOL"];
+	$miitool=$unix->find_program("mii-tool");
+	if(!is_file($miitool)){return;}
+	if($flow_control==1){$flow_control_text=" flow-control";}
+	
+	if($autonegotiation==1){
+	$cmd="$miitool --force=$duptype$flow_control_text $eth";
+	}else{
+		$cmd="$miitool --advertise=$duptype$flow_control_text $eth";
+	}
+	writelogs_framework("$cmd",__FUNCTION__,__LINE__);
+	echo "<articadatascgi>".base64_encode(shell_exec($cmd))."</articadatascgi>";
+}
+function install_artica_tgz(){
+	$filename=$_GET["filename"];
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/artica.install.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/artica.install.progress.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	$array["POURC"]=0;
+	$array["TEXT"]="{please_wait}";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+	$cachefile="/usr/share/artica-postfix/ressources/logs/web/$filename-progress.txt";
+	@unlink($GLOBALS["LOG_FILE"]);
+	@file_put_contents($GLOBALS["LOG_FILE"], "Please Wait....\n");
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.artica.update.manu.php \"$filename\" >>{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+
+function set_apache_perms(){
+	$unix=new unix();
+	$APACHE=$unix->APACHE_SRC_ACCOUNT();
+	@mkdir("/etc/artica-postfix/settings/Daemons",0755,true);
+	@mkdir("/usr/share/artica-postfix/ressources/logs",0755,true);
+	$unix->chown_func($APACHE,null,"/etc/artica-postfix/settings/Daemons");
+	$unix->chown_func($APACHE,null,"/usr/share/artica-postfix/ressources/logs");
+	$unix->chown_func($APACHE,null,"/etc/artica-postfix/settings/Daemons/*");
+	$unix->chown_func($APACHE,null,"/usr/share/artica-postfix/ressources/logs/*");
+	$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
+	$unix->chmod_func(0755, "/usr/share/artica-postfix/ressources/logs/*");
+}
+

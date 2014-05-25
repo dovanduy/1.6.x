@@ -659,7 +659,7 @@ function PagePostfixSMTPSaslAuth(){
 			while (list ($num, $ligne) = each ($main->smtp_sasl_password_hash) ){
 						if($ligne["DOMAIN"]<>null){
 							$formadd=$formadd . "<tr>
-							<td width=1%>" . imgtootltip('tree-auth-20.gif','{edit}',"TreeSMTPAuthEdit($num)")."</td>
+							<td width=1%>" . imgtootltip('tree-auth-20.gif','{apply}',"TreeSMTPAuthEdit($num)")."</td>
 							<td><strong>{$ligne["DOMAIN"]}</td>
 							<td>{$ligne["USERNAME"]}:{$ligne["PASSWORD"]}</td>
 							<td width=1%>" . imgtootltip("x.gif",'{delete}',"TreeSMTPSaslAuthDelete($num)") . "</td>

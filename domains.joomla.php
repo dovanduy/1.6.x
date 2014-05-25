@@ -180,7 +180,7 @@ function joomla_form1($ou){
 		<td>" . help_icon('{admin_password_help}')."</td>
 	</tr>	
 	<tr><td colspan=3><hr></tr>
-	<tr><td colspan=3 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:SaveJoomlaForm();\"></td></tr>
+	<tr><td colspan=3 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:SaveJoomlaForm();\"></td></tr>
 	</table>";
 	
 	

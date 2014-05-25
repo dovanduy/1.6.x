@@ -240,7 +240,7 @@ $html="
 	</div>
 <hr>
 	<div style='width:100%;text-align:right'>
-	". button("{edit}","smtpd_client_restrictions_multi_save()")."
+	". button("{apply}","smtpd_client_restrictions_multi_save()")."
 	
 	</div>	
 	";

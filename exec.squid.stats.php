@@ -1490,21 +1490,21 @@ function visited_sites(){
 
 function _visited_sites_calculate($sitename){
 	
-		if(!isset($GLOBALS["HOURS_TABLES"])){
-			$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE '%_hour'";
+		if(!isset($GLOBALS["WEEK_TABLES"])){
+			$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = 'squidlogs' AND table_name LIKE '%_week'";
 			$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 			if(!$GLOBALS["Q"]->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
 			if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
 			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-				$GLOBALS["HOURS_TABLES"][$ligne["c"]]=$ligne["c"];
+				$GLOBALS["WEEK_TABLES"][$ligne["c"]]=$ligne["c"];
 			}
 			
 		}
 			
 		$size=0;
 		$hits=0;
-		reset($GLOBALS["HOURS_TABLES"]);
-		while (list ($num, $table) = each ($GLOBALS["HOURS_TABLES"]) ){
+		reset($GLOBALS["WEEK_TABLES"]);
+		while (list ($num, $table) = each ($GLOBALS["WEEK_TABLES"]) ){
 			$ligne2=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(size) AS tsize,SUM(hits) AS thits FROM $table WHERE sitename='$sitename'"));
 			$size=$size+$ligne2["tsize"];
 			$hits=$hits+$ligne2["thits"];

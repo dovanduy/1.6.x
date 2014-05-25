@@ -275,7 +275,7 @@ if($CyrusiPurgeTrash==null){$CyrusiPurgeTrash="1";}
 	</td>
 	</tr>
 	</table>		
-	<div style='text-align:right'><hr>". button("{edit}","IPURGE_SERVICE_SAVE()")."</div>			
+	<div style='text-align:right'><hr>". button("{apply}","IPURGE_SERVICE_SAVE()")."</div>			
 	
 	";
 $tpl=new templates();

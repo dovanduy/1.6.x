@@ -93,7 +93,7 @@ function popup(){
 		</tr>
 		<tr>
 			<td colspan=2 align='right'><hr>
-				". button("{edit}","SaveZabbixConf()")."</td>
+				". button("{apply}","SaveZabbixConf()")."</td>
 			</tr>
 	</table>
 	</div>

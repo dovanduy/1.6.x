@@ -96,6 +96,7 @@ echo $html;
 
 function checklogonCreds($Aspost=false){
 	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include("ressources/settings.inc");
 	$FixedLanguage=null;
 
 	if(!isset($_GET["credentials"])){
@@ -104,13 +105,35 @@ function checklogonCreds($Aspost=false){
 	}
 	$array=unserialize(base64_decode($_GET["credentials"]));
 	
-	
-	
-	
-	
-	
 	$username=$array["USERNAME"];
 	$password=$array["PASSWORD"];
+	
+	if(trim($_POST["artica_username"])==trim($_GLOBAL["ldap_admin"])){
+		if($password==md5(trim($_GLOBAL["ldap_password"]))){
+			$_SESSION["uid"]='-100';
+			$_SESSION["groupid"]='-100';
+			$_SESSION["passwd"]=$_GLOBAL["ldap_password"];
+			$_SESSION["CORP"]=$users->CORP_LICENSE;
+			$_SESSION["privileges"]["ArticaGroupPrivileges"]='
+			[AllowAddGroup]="yes"
+			[AllowAddUsers]="yes"
+			[AllowChangeKav]="yes"
+			[AllowChangeKas]="yes"
+			[AllowChangeUserPassword]="yes"
+			[AllowEditAliases]="yes"
+			[AllowEditAsWbl]="yes"
+			[AsSystemAdministrator]="yes"
+			[AsPostfixAdministrator]="yes"
+			[AsArticaAdministrator]="yes"';
+			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+			$_SESSION["AsWebStatisticsAdministrator"]=true;
+			header("location:miniadm.index.php");
+			if($Aspost){return;}
+		}
+		
+	}
+	
+	
 
 	
 	$ldap=new clladp();
@@ -206,6 +229,7 @@ function checklogon_ie(){
 function checklogon($Aspost=false){
 	
 	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include("ressources/settings.inc");
 	$FixedLanguage=null;
 	$username=$_POST["username"];
 	$_POST["password"]=url_decode_special_tool($_POST["password"]);
@@ -219,6 +243,34 @@ function checklogon($Aspost=false){
 		echo "Bad password";
 		return;
 	}
+	
+	if(trim($username)==trim($_GLOBAL["ldap_admin"])){
+		$passwordMD=md5(trim($_GLOBAL["ldap_password"]));
+		if($password==$passwordMD){
+			$_SESSION["uid"]='-100';
+			$_SESSION["groupid"]='-100';
+			$_SESSION["passwd"]=$_GLOBAL["ldap_password"];
+			$_SESSION["CORP"]=$users->CORP_LICENSE;
+			$_SESSION["privileges"]["ArticaGroupPrivileges"]='
+			[AllowAddGroup]="yes"
+			[AllowAddUsers]="yes"
+			[AllowChangeKav]="yes"
+			[AllowChangeKas]="yes"
+			[AllowChangeUserPassword]="yes"
+			[AllowEditAliases]="yes"
+			[AllowEditAsWbl]="yes"
+			[AsSystemAdministrator]="yes"
+			[AsPostfixAdministrator]="yes"
+			[AsArticaAdministrator]="yes"';
+			$_SESSION["InterfaceType"]="{APP_ARTICA_ADM}";
+			$_SESSION["AsWebStatisticsAdministrator"]=true;
+			if($Aspost){header("location:miniadm.index.php");return;}
+			return;
+		}
+	
+	}	
+	
+	
 	
 	if($users->SQUID_INSTALLED){
 		$q=new mysql_squid_builder();

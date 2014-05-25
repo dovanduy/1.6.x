@@ -1302,7 +1302,7 @@ function stats_admin_events_mysql($severity, $subject, $text,$function,$file,$li
 	$q=new mysql();
 	$subject=mysql_escape_string2($text);
 	$file=basename($file);
-	$q->QUERY_SQL("INSERT IGNORE IGNORE INTO `stats_admin_events`
+	$q->QUERY_SQL("INSERT IGNORE INTO `stats_admin_events`
 			(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`) VALUES
 			('$zdate','$text','$subject','$function','$file','$line','$severity')","artica_events");
 		

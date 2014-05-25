@@ -64,6 +64,7 @@
 		public $NginxFrontEnd=0;
 		public $PERL_AUTHNTLM=false;
 		public $enabled=1;
+		public $bandlimit=0;
 		private $PrefixOutput;
 		
 		function freeweb($servername=null){
@@ -170,6 +171,7 @@
 			$this->content_plus=$ligne["content_plus"];
 			if(!isset($ligne["WebCopyID"])){$ligne["WebCopyID"]=0;}
 			$this->WebCopyID=$ligne["WebCopyID"];
+			$this->bandlimit=intval($ligne["bandlimit"]);
 			
 			if(isset($ligne["sslcertificate"])){$this->sslcertificate=$ligne["sslcertificate"];}
 			if(isset($ligne["enabled"])){$this->enabled=$ligne["enabled"];}
@@ -457,6 +459,7 @@
 		$sqlzedit[]="ou='$this->ou',";
 		$sqlzedit[]="groupware='$this->groupware',";
 		$sqlzedit[]="www_dir='$this->www_dir'";
+		
 		$sqlzedit[]="WHERE servername='$this->servername'";	
 		$sqledit=@implode(" ", $sqlzedit);
 		
@@ -611,34 +614,42 @@
 		}
 		
 		public function mod_bw(){
-			if(!isset($this->Params["ModeBw"])){$this->Params["ModeBw"]=0;}
-			if($this->Params["ModeBw"]==0){if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() ModeBw Not enabled\n";}return;}
-			if(!isset($this->Params["ModBwParams"])){if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() ModBwParams Not filled\n";}return;}
-			$users=new usersMenus();
-			if(!$users->APACHE_MOD_BW){return;}
-			$CONF=$this->Params["ModBwParams"];
-			if(count($CONF)==0){return;}
-			while (list ($index, $RuleArray) = each ($CONF) ){
-				$BW_SOURCE=trim(strtolower($RuleArray["BW_SOURCE"]));
-				$BW_ENGINE=$RuleArray["BW_ENGINE"];
-				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() Bandwith source:$BW_SOURCE -> $BW_ENGINE\n";}
-				if($BW_SOURCE=="all"){continue;}
-				
-				$BW_MAX=$RuleArray["BW_MAX"];
-				if(!isset($RuleArray["BW_SIZE"])){$RuleArray["BW_SIZE"]=0;}
-				$BW_SIZE=$RuleArray["BW_SIZE"];
-				if(!is_numeric($BW_MAX)){unset($CONF[$index]);continue;}
-				if($BW_ENGINE=="BandWidth"){$f[]="\t\tBandWidth $BW_SOURCE $BW_MAX";}
-				if($BW_ENGINE=="MaxConnection"){$f[]="\t\tMaxConnection $BW_SOURCE $BW_MAX";}
-				if($BW_ENGINE=="LargeFileLimit"){$f[]="\t\tLargeFileLimit $BW_SOURCE $BW_SIZE $BW_MAX";}
-				if($BW_ENGINE=="MinBandWidth"){$f[]="\t\tMinBandWidth $BW_SOURCE $BW_MAX";}
-				unset($CONF[$index]);
+			$f=array();
+			if($this->bandlimit==0){
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() ModeBw Not enabled\n";}
+				return;
 			}
+			if(!isset($this->Params["ModBwParams"])){
+				if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() ModBwParams Not filled\n";}
+				return;
+			}
+			$users=new usersMenus();
+			if(!$users->APACHE_MOD_BW){return "# Mod Bandwith is not detected L.".__LINE__."\n";}
+			
+			$Params=$this->Params;
+			
+			$ForceBandWidthModule=intval($Params["ModeBw"]["ForceBandWidthModule"]);
+			$BandwidthAll=intval($Params["ModeBw"]["BandwidthAll"]);
+			if($BandwidthAll==0){$BandwidthAll=1536000;}
+			
+			$results[]="\t<IfModule mod_bw.c>";
+			$results[]="\t\tBandwidthModule On";
+			if($ForceBandWidthModule==1){
+				$results[]="\t\tForceBandWidthModule On";
+			}else{
+				$results[]="\t\tForceBandWidthModule Off";
+			}
+			$results[]="\t\tBandWidthError 510";
+			
+			$CONF=$Params["ModBwParams"];
 			
 			if(count($CONF)>0){
 				while (list ($index, $RuleArray) = each ($CONF) ){
 					$BW_SOURCE=trim(strtolower($RuleArray["BW_SOURCE"]));
 					$BW_ENGINE=$RuleArray["BW_ENGINE"];
+					if($GLOBALS["VERBOSE"]){echo "$this->PrefixOutput [CLASS/".__LINE__."] mod_bw() Bandwith source:$BW_SOURCE -> $BW_ENGINE\n";}
+					if($BW_SOURCE=="all"){continue;}
+					
 					$BW_MAX=$RuleArray["BW_MAX"];
 					if(!isset($RuleArray["BW_SIZE"])){$RuleArray["BW_SIZE"]=0;}
 					$BW_SIZE=$RuleArray["BW_SIZE"];
@@ -646,16 +657,30 @@
 					if($BW_ENGINE=="BandWidth"){$f[]="\t\tBandWidth $BW_SOURCE $BW_MAX";}
 					if($BW_ENGINE=="MaxConnection"){$f[]="\t\tMaxConnection $BW_SOURCE $BW_MAX";}
 					if($BW_ENGINE=="LargeFileLimit"){$f[]="\t\tLargeFileLimit $BW_SOURCE $BW_SIZE $BW_MAX";}
-					if($BW_ENGINE=="MinBandWidth"){$f[]="\t\tMinBandWidth $BW_SOURCE $BW_MAX";}					
-					
+					if($BW_ENGINE=="MinBandWidth"){$f[]="\t\tMinBandWidth $BW_SOURCE $BW_MAX";}
+					unset($CONF[$index]);
+				}
+				
+				if(count($CONF)>0){
+					while (list ($index, $RuleArray) = each ($CONF) ){
+						$BW_SOURCE=trim(strtolower($RuleArray["BW_SOURCE"]));
+						$BW_ENGINE=$RuleArray["BW_ENGINE"];
+						$BW_MAX=$RuleArray["BW_MAX"];
+						if(!isset($RuleArray["BW_SIZE"])){$RuleArray["BW_SIZE"]=0;}
+						$BW_SIZE=$RuleArray["BW_SIZE"];
+						if(!is_numeric($BW_MAX)){unset($CONF[$index]);continue;}
+						if($BW_ENGINE=="BandWidth"){$f[]="\t\tBandWidth $BW_SOURCE $BW_MAX";}
+						if($BW_ENGINE=="MaxConnection"){$f[]="\t\tMaxConnection $BW_SOURCE $BW_MAX";}
+						if($BW_ENGINE=="LargeFileLimit"){$f[]="\t\tLargeFileLimit $BW_SOURCE $BW_SIZE $BW_MAX";}
+						if($BW_ENGINE=="MinBandWidth"){$f[]="\t\tMinBandWidth $BW_SOURCE $BW_MAX";}					
+						
+					}
 				}
 			}
-			
-			if(count($f)==0){return;}
-			$results[]="\t<IfModule mod_bw.c>";
-			$results[]="\t\tBandwidthModule On";
-			$results[]="\t\tForceBandWidthModule On";
-			$results[]=@implode("\n", $f);
+			if(count($f)>0){
+				$results[]=@implode("\n", $f);
+			}
+			$results[]="\t\tBandwidth all $BandwidthAll";
 			$results[]="\t</IfModule>";
 			return @implode("\n", $results);
 			
@@ -1927,8 +1952,8 @@
 				$fa[]="\t<IfModule mod_fcgid.c>";
 				if($this->uid<>null){
 					if($this->UserInSystem($this->uid)){
-						$apacheusername=$user;
-						$apachegroup=$user;
+						$apacheusername=$this->uid;
+						$apachegroup=$this->uid;
 						$user=$this->uid;$group=$this->uid;
 						$fa[]="\t\tSuexecUserGroup $user $group";
 					}

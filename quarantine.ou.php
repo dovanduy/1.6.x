@@ -31,7 +31,7 @@ function INDEX(){
 	<td>$ArticaMaxDayQuarantine</td>
 	</tr>
 	<tr>
-	<td colspan=2 align='right'><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFMQ','$page',true);\"></td>
+	<td colspan=2 align='right'><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseForm('FFMQ','$page',true);\"></td>
 	</table>") ."
 	</form><br>
 	<div id=\"ButtonCloseIframe\" style='text-align:right'></div>
@@ -68,7 +68,7 @@ function TemplatesForms(){
 	
 	$messages_deleted=RoundedLightGrey("<table style='width:100%'>
 	<tr>
-	<td valign='top'>". imgtootltip('icon_settings-64.png','{edit}',"LoadQuarantineTemplate('ArticaMaxDayTemplate')")."</td>
+	<td valign='top'>". imgtootltip('icon_settings-64.png','{apply}',"LoadQuarantineTemplate('ArticaMaxDayTemplate')")."</td>
 	<td valign='top'>
 		<H5>{template_deleted}</h5>
 		{template_deleted_text}
@@ -79,7 +79,7 @@ function TemplatesForms(){
 	
 	$messages_report=RoundedLightGrey("<table style='width:100%'>
 	<tr>
-	<td valign='top'>". imgtootltip('icon_settings-64.png','{edit}',"LoadQuarantineTemplate('ArticaReportQuarantineTemplate')")."</td>
+	<td valign='top'>". imgtootltip('icon_settings-64.png','{apply}',"LoadQuarantineTemplate('ArticaReportQuarantineTemplate')")."</td>
 	<td valign='top'>
 		<H5>{ArticaReportQuarantineTemplate}</h5>
 		{ArticaReportQuarantineTemplate_text}

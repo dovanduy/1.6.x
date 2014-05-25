@@ -313,7 +313,7 @@ function page_list_old(){
 			$enabled=Field_checkbox("{$num}_enabled",1,$ligne["enabled"],"Loadjs('$page?enable-js-rule=$num&uid={$_GET["page-display"]}')");
 			if($ligne["enabled"]==0){$color="#E60B03";}else{$color="black";}
 			
-			$edit=imgtootltip("32-administrative-tools.png","{edit}","ModifyFetchAccount($num)");
+			$edit=imgtootltip("32-administrative-tools.png","{apply}","ModifyFetchAccount($num)");
 			$delete=imgtootltip("delete-32.png","{delete}","DeleteFetchAccount($num,'{$ligne["poll"]}');");
 			$execute=imgtootltip("mailbox-32.png","{execute_in_debug}","ExecuteFetchAccount($num);");
 			$warn="<img src='img/fetchmail-rule-32.png'>";
@@ -394,7 +394,7 @@ function page_list_buttons(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td>". button("{edit}","ModifyFetchAccount($num)")."</td>
+		<td>". button("{apply}","ModifyFetchAccount($num)")."</td>
 	</tr>
 	<tr>
 		<td>". button("{delete}","DeleteFetchAccount($num,'{$array["poll"]}');")."</td>
@@ -458,7 +458,7 @@ function page_modify_rule(){
 		
 	}
 	
-	$buttonadd="{edit}";
+	$buttonadd="{apply}";
 	$advanced=button("{advanced_options}...","UserFetchMailRule({$_GET["page-modify"]},'{$_GET["uid"]}')","14px");
 	
 	

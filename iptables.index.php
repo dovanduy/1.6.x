@@ -509,7 +509,7 @@ function main_frm(){
 		<td>" . Field_numeric_checkbox_img('LOG',$array_rule["LOG"],'{log_this_event}')."</td>
 	</tr>		
 	<tr>
-	<td align='right' colspan=2><input type='button' value='{edit}&nbsp;&raquo;' OnClick=\"javascript:ParseYahooForm('FFM1','$page',true);RefreshTable('{$array_rule["CARTE"]}')\">
+	<td align='right' colspan=2><input type='button' value='{apply}&nbsp;&raquo;' OnClick=\"javascript:ParseYahooForm('FFM1','$page',true);RefreshTable('{$array_rule["CARTE"]}')\">
 	
 	</table>
 	</FORM>

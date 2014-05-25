@@ -188,7 +188,7 @@ if($_GET["host"]<>null){
 
 	
 		$title=$_GET["host"];
-		$button="{edit}";
+		$button="{apply}";
 		$LoadVhosts=$h->LoadHost($_GET["ou"],$_GET["host"]);
 		$serv=$LoadVhosts["wwwservertype"];
 		

@@ -13,7 +13,7 @@
 	if(isset($_GET["ArticaUpdateInstallPackage"])){ArticaUpdateInstallPackage();exit;}
 	if(isset($_GET["auto_update_perform"])){auto_update_perform();exit;}
 	if(isset($_GET["ajax-events"])){main_artica_update_events_display();exit;}
-	
+	if(isset($_GET["webfiltering-tabs"])){webfiltering_tabs();exit;}
 	
 	if(isset($_GET["patchs-list"])){patchs_list();exit;}
 	if(isset($_POST["UpdatePatchNow"])){patchs_update();exit;}
@@ -23,7 +23,7 @@
 	if(isset($_POST["pkg-upgrade"])){apt_upgrade();exit;}
 	
 	if(isset($_GET["sys-update-button"])){apt_sys_update_button();exit;}
-	
+	if(isset($_GET["status-versions"])){status_versions();exit;}
 	if(isset($_GET["js"])){popup_js();exit;}
 	if(isset($_GET["ajax-pop"])){popup();exit;}
 	
@@ -162,11 +162,21 @@ $CURVER=@file_get_contents("VERSION");
 	"
 			
 	<div id='ArticaUpdateForm' class='form' style='width:95%'>
+	
+	<table style='width:100%'>
+	<tr>
+		<td style='width:30%' valign=middle><div id='status-versions'></div></td>
+		<td style='width:70%'>
 	<div class=explain style='font-size:16px'>
 		<div style='margin-bottom:5px;text-align:right;padding-bottom:1px;border-bottom:1px solid #999999;width:97%'>
 			<strong style='font-size:22px'>Artica v.$CURVER</strong>
 		</div>{autoupdate_text}
 	</div>
+	</td>
+	</tr>
+	</table>
+	<script>LoadAjax('status-versions','$page?status-versions=yes');</script>
+	
 	<form name='ffm1' >
 	<table style='width:99%' >
 	<tr>
@@ -570,18 +580,69 @@ function main_artica_update_switch(){
 	
 }
 
+function webfiltering_tabs(){
+	$array["databases"]='{databases}';
+	$array["status"]='{status}';
+	$array["schedule"]='{update_schedule}';
+	$array["categories"]='{categories}';
+	$tpl=new templates();
+	$fontsize=18;
+	
+	
+	while (list ($num, $ligne) = each ($array) ){
+		if($num=="status"){
+			$html[]= "<li>
+			<a href=\"dansguardian2.databases.php?statusDB=yes\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		if($num=="databases"){
+			$html[]= $tpl->_ENGINE_parse_body("<li>
+					<a href=\"dansguardian2.databases.php?status=yes&maximize=yes\">
+					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="schedule"){
+			$html[]= "<li>
+			<a href=\"squid.databases.schedules.php?TaskType=1\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		if($num=="articaufdb"){
+			$html[]= "<li>
+			<a href=\"dansguardian2.databases.compiled.php?articaufdb=yes\">
+			<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			continue;
+		}
+	}
+	
+	echo build_artica_tabs($html, "main_webfiltering_updates")."<script>LeftDesign('update-256-white-opac20.png');</script>";
+	
+}
+
+
 function main_artica_update_tabs(){
 	
 	
 	$sock=new sockets();
 	$EnableSystemUpdates=$sock->GET_INFO("EnableSystemUpdates");
 	if(!is_numeric($EnableSystemUpdates)){$EnableSystemUpdates=0;}
+	$users=new usersMenus();
 	$page=CurrentPageName();
 	if($EnableSystemUpdates==1){
 		$array["apt"]='{system}';
 	}
 	$array["config"]='{parameters}';
 	$array["softwares"]='{softwares}';
+	
+	if($users->SQUID_INSTALLED){
+		$array["articadb"]='{webfiltering_databases}';
+		
+	}
+	
 	$array["events"]='{events}';
 	$tpl=new templates();
 	
@@ -592,9 +653,22 @@ function main_artica_update_tabs(){
 		}
 		
 		if($num=="softwares"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.softwares.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.softwares.php\">
+					<span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="articadb2"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dansguardian2.databases.php?status=yes&maximize=yes\">
+					<span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
+		if($num=="articadb"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?webfiltering-tabs=yes\">
+					<span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}		
+		
 		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main_artica_update=$num\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
