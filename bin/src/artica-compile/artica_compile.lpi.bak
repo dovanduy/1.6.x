@@ -188,8 +188,8 @@
         <Filename Value="compile.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="compile"/>
-        <CursorPos X="48" Y="1797"/>
-        <TopLine Value="1764"/>
+        <CursorPos X="71" Y="1771"/>
+        <TopLine Value="1762"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="161"/>
         <Loaded Value="True"/>
@@ -248,7 +248,7 @@
         <Loaded Value="True"/>
       </Unit27>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="compile.pas"/>
         <Caret Line="1142" Column="43" TopLine="1115"/>
@@ -365,6 +365,10 @@
         <Filename Value="compile.pas"/>
         <Caret Line="10" Column="47" TopLine="1"/>
       </Position29>
+      <Position30>
+        <Filename Value="compile.pas"/>
+        <Caret Line="1749" Column="31" TopLine="1720"/>
+      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

@@ -1835,6 +1835,11 @@ logs:=Tlogs.Create;
          fpsystem(cmd);
     end;
 
+    for i:=0 to languages_bases.Count -1 do begin
+   writeln('Compile lang '+languages_bases.Strings[i]+' on website');
+
+end;
+
     fpsystem('/bin/rm  '+FULL_PATCH_PATH+'/MAIN_RELEASE');
     fpsystem('/bin/rm  '+dir+'/MAIN_RELEASE');
     patchname:=AnsiReplaceText(version,'.','');

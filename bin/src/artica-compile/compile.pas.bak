@@ -1768,7 +1768,7 @@ end;
 dirorg:=dir;
 logs:=Tlogs.Create;
     version:=COMPILE_GEN_VERSION();
-    MAIN_RELEASE:=logs.ReadFromFile(BasePath + '/MAIN_RELEASE');
+    MAIN_RELEASE:=trim(logs.ReadFromFile(BasePath + '/MAIN_RELEASE'));
     l:=Tstringlist.Create;
     l.LoadFromFile(targetfile);
     RegExpr:=TRegExpr.Create;
