@@ -22,6 +22,7 @@ function install($filename){
 	$LINUX_DISTRIBUTION=$unix->LINUX_DISTRIBUTION();
 	$LINUX_VERS=$unix->LINUX_VERS();
 	$LINUX_ARCHITECTURE=$unix->LINUX_ARCHITECTURE();
+	$APACHEUSER=$unix->APACHE_SRC_ACCOUNT();
 	$DebianVer="debian{$LINUX_VERS[0]}";
 	$TMP_DIR=$unix->TEMP_DIR();
 	$ORGV=@file_get_contents("/usr/share/artica-postfix/VERSION");
@@ -37,6 +38,7 @@ function install($filename){
 	echo "Current system..........: $LINUX_CODE_NAME $LINUX_DISTRIBUTION {$LINUX_VERS[0]}/{$LINUX_VERS[1]} $LINUX_ARCHITECTURE\n";
 	echo "Package.................: $filename\n";
 	echo "Temp dir................: $TMP_DIR\n";
+	echo "Apache User.............: $APACHEUSER\n";
 	
 	
 	
@@ -49,7 +51,8 @@ function install($filename){
 	build_progress("{extracting} $filename...",20);
 	
 	
-	
+	$chown=$unix->find_program("chown");
+	$chmod=$unix->find_program("chmod");
 	$tar=$unix->find_program("tar");
 	$rm=$unix->find_program("rm");
 	$nohup=$unix->find_program("nohup");
@@ -60,6 +63,9 @@ function install($filename){
 	system("$tar xf $tarballs_file -C /usr/share/");
 	@unlink($tarballs_file);
 	shell_exec("$rm -rf /usr/share/artica-postfix/ressources/conf/upload/*");
+	build_progress("Apply permissions...",55);
+	shell_exec("$chown -R $APACHEUSER /usr/share/artica-postfix");
+	shell_exec("$chmod -R 0755 /usr/share/artica-postfix");
 	$ORGD=@file_get_contents("/usr/share/artica-postfix/VERSION");
 	echo "Old version.............: $ORGV\n";
 	echo "Current version.........: $ORGD\n";
@@ -71,18 +77,13 @@ function install($filename){
 	
 	build_progress("{restarting} Artica...",60);
 	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.web-community-filter.php --register");
-	events("Starting artica");
-	echo "Starting......: ".date("H:i:s")." nightly builds starting artica...\n";
 	build_progress("{restarting} Artica...",65);
-	system("/etc/init.d/artica-postfix start");
-	echo "Starting......: ".date("H:i:s")." nightly builds building init scripts\n";
-	build_progress("{restarting} Artica...",70);
+	build_progress("building init scripts...",70);
 	system("$php /usr/share/artica-postfix/exec.initslapd.php --force >/dev/null 2>&1");
-	echo "Starting......: ".date("H:i:s")." nightly builds updating network\n";
-	build_progress("{restarting} Artica...",75);
+	build_progress("updating network...",75);
 	system("$php /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1");
 	system("$php /usr/share/artica-postfix/exec.monit.php --build >/dev/null 2>&1");
-	echo "Starting......: ".date("H:i:s")." nightly builds purge and clean....\n";
+	echo "Starting......: ".date("H:i:s")." Purge and clean....\n";
 	build_progress("{restarting} Artica...",80);
 	if(is_file("/etc/init.d/nginx")){shell_exec("$nohup /etc/init.d/nginx reload >/dev/null 2>&1 &");}
 	build_progress("{restarting} Artica...",81);
@@ -102,10 +103,9 @@ function install($filename){
 	build_progress("{restarting} Artica...",88);
 	shell_exec("$nohup $php /usr/share/artica-postfix/exec.schedules.php --defaults >/dev/null 2>&1 &");
 	build_progress("{restarting} Artica...",90);
-	
 	build_progress("{restarting} Artica...",100);
 	echo "Starting......: ".date("H:i:s")." Done you can close the screen....\n";
-	_artica_update_event(2,"RestartDedicatedServices(): finish",null,__FILE__,__LINE__);	
+		
 	
 	
 	

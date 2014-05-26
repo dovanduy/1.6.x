@@ -1751,7 +1751,7 @@ var
 l:TstringList;
 RegExpr:TRegExpr;
 i:integer;
-   dir,newdir,cmd,targetfile,MAIN_RELEASE,FULL_PATCH_PATH,FULL_PATCH_PATH_NEW_DIR,FULL_PATCH_PATH_ROOT,MAIN_RELEASE_NAME:string;
+   dir,newdir,cmd,targetfile,MAIN_RELEASE,FULL_PATCH_PATH,FULL_PATCH_PATH_NEW_DIR,FULL_PATCH_PATH_ROOT,MAIN_RELEASE_NAME,CURVERSION:string;
    ll:TstringList;
    patchname:string;
    dirorg:string;
@@ -1769,6 +1769,7 @@ dirorg:=dir;
 logs:=Tlogs.Create;
     version:=COMPILE_GEN_VERSION();
     MAIN_RELEASE:=trim(logs.ReadFromFile(BasePath + '/MAIN_RELEASE'));
+    CURVERSION:=trim(logs.ReadFromFile('/usr/share/artica-postfix/VERSION'));
     l:=Tstringlist.Create;
     l.LoadFromFile(targetfile);
     RegExpr:=TRegExpr.Create;
@@ -1835,18 +1836,30 @@ logs:=Tlogs.Create;
          fpsystem(cmd);
     end;
 
+    forceDirectories(FULL_PATCH_PATH+'/ressources/language');
+    for i:=0 to languages_bases.Count -1 do begin
+    writeln('copy lang '+languages_bases.Strings[i]+' ');
+   fpsystem('/bin/cp /usr/share/artica-postfix/ressources/language/'+languages_bases.Strings[i]+'.db '+FULL_PATCH_PATH+'/ressources/language/');
+
+end;
+    fpsystem('/bin/cp /usr/share/artica-postfix/VERSION '+FULL_PATCH_PATH+'/');
     fpsystem('/bin/rm  '+FULL_PATCH_PATH+'/MAIN_RELEASE');
     fpsystem('/bin/rm  '+dir+'/MAIN_RELEASE');
     patchname:=AnsiReplaceText(version,'.','');
-    MAIN_RELEASE_NAME:=MAIN_RELEASE+'_'+ patchname;
+    MAIN_RELEASE_NAME:=MAIN_RELEASE+'_'+ CURVERSION+'-'+patchname;
     fpsystem('/bin/touch '+dirorg+'/Bureau/artica-patchs/'+patchname+'.txt');
     SetCurrentDir(dir);
     if FileExists(dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz') then fpsystem('/bin/rm -f '+dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz');
     fpsystem('/bin/tar -czf '+dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz *');
     SetCurrentDir(FULL_PATCH_PATH_ROOT);
     if FileExists(FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz') then fpsystem('/bin/rm -f '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz');
-    writeln('compressing '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz FROM  '+FULL_PATCH_PATH_ROOT);
-    fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz *');
+    writeln('compressing '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz FROM  '+FULL_PATCH_PATH_ROOT);
+    fpsystem('/bin/rm '+FULL_PATCH_PATH_ROOT+'/*.tgz');
+    fpsystem('/bin/chown -R www-data:www-data '+FULL_PATCH_PATH_ROOT);
+    fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz *');
+    fpsystem('/bin/chown dtouzeau:dtouzeau '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz');
+    fpsystem('/bin/chown dtouzeau '+FULL_PATCH_PATH_ROOT+'/*');
+    fpsystem('/chmod -R 0755 /home/dtouzeau/Bureau/artica-P0');
 
 end;
 
