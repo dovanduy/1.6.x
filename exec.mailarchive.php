@@ -23,6 +23,9 @@ if(!Build_pid_func(__FILE__,"MAIN")){
 	die();
 }
 
+$q=new mysql();
+$q->EXECUTE_SQL("set global net_buffer_length=1000000");
+$q->EXECUTE_SQL("set global max_allowed_packet=1000000000");
 
 $quarantine_dir="/var/virusmails";
 @mkdir("/var/log/artica-postfix/artica-meta-msgs",666,true);
@@ -194,6 +197,7 @@ function quarantine_process($file){
 	
 	$ldap=new clladp();
 	$q=new mysql();
+	
 
 	events("Unpack $target_file " .@filesize($target_file)." bytes");
 	$mm=new demime($target_file);

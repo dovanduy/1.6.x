@@ -132,9 +132,9 @@ function tabs(){
 	
 	}
 
+	$array["macros"]='{macros}';
 	
-	
-	$array["unveiltech"]="{WebFilter_SaaS}";
+	//$array["unveiltech"]="{WebFilter_SaaS}";
 	
 	
 	
@@ -197,6 +197,12 @@ function tabs(){
 			continue;
 		
 		}
+		
+		if($num=="macros"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.macros.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
 		
 
 		if($num=="rules"){

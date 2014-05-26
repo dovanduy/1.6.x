@@ -6989,7 +6989,7 @@ begin
           except
             xxxlogs.Debuglogs('Fatal error while try to transfrom '+RegExpr.Match[8]);
           end;
-          if ss>70 then begin
+          if ss>98 then begin
              xxxlogs.NOTIFICATION('[ARTICA]: ('+HOSTNAME_g()+') warning too many files !! on device ' + RegExpr.Match[1],'You need to check number of files on this disk, ' + RegExpr.Match[1] + ' has '+RegExpr.Match[8] +'% used','system');
           end;
       end else begin

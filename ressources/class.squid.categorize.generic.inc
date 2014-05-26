@@ -1966,6 +1966,7 @@ private function socialnet($www){
 		
 		if($this->ParseArray($array, $www)){return "jobsearch";}
 		if(preg_match("#^[0-9]+job\.[a-z]+$#", $www)){return "jobsearch";}
+		if(preg_match("#\.jobs$#", $www)){return "jobsearch";}
 		
 		if(preg_match("#^jobs\..+#", $www)){return "jobsearch";}
 		if(preg_match("#^emploi\..+#", $www)){return "jobsearch";}
@@ -2295,6 +2296,8 @@ private function socialnet($www){
 		if(preg_match("#^dyn.*?\.apogeenet\.net$#", $www)){return "dynamic";}
 		if(preg_match("#^dyn[0-9]+\.#", $www)){return "dynamic";}
 		if(preg_match("#^[0-9\-\.]+dynamic#", $www)){return "dynamic";}
+		if(preg_match("#^dsl[0-9]+-[0-9\-]+#", $www)){return "dynamic";}
+		if(preg_match("#^ppp-[0-9\-]+#", $www)){return "dynamic";}
 		
 		if(preg_match("#^cpe.*?\.tvcom\.net\.ua$#", $www)){return "dynamic";}
 		if(preg_match("#^res.*?\.mediana\.net\.ua$#", $www)){return "dynamic";}
@@ -2542,7 +2545,7 @@ private function socialnet($www){
 		if(strpos($www, "voyages")>0){return "recreation/travel";}
 		if(preg_match("#\.travel$#", $www)){return "recreation/travel";}
 		if(preg_match("#camping.*?car#", $www)){return "automobile/cars";}
-		
+		if(preg_match("#\.travel$#", $www)){return "jobsearch";}
 		if(preg_match("#cruise.*?tour#", $www)){return "recreation/travel";}
 		
 		if(preg_match("#^travel\..*?$#", $www)){return "recreation/travel";}

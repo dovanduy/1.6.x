@@ -579,6 +579,7 @@ end;
    writeln('Use Apache as Web engine..................: [A]');
    writeln('Use LIGHTTPD as Web engine................: [B]');
    writeln('MySQL service setup.......................: [C]');
+   writeln('SuperAdmin Account & Password.............: [D]');
    writeln('Change the Artica Web console listen port.: [L]');
    writeln('Create an Artica Web console with FreeWebs: [F]');
    writeln('Restart the framework service.............: [G]');
@@ -595,6 +596,15 @@ end;
    if a='C' then begin
       fpsystem('clear');
       fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.users.mysql-menu.php');
+      writeln('Press [Enter] key to Exit');
+      readln();
+      WebConsoleSetup();
+      exit;
+   end;
+
+   if a='D' then begin
+      fpsystem('clear');
+      fpsystem(SYS.LOCATE_PHP5_BIN()+' /usr/share/artica-postfix/exec.users.SuperAdmin.php');
       writeln('Press [Enter] key to Exit');
       readln();
       WebConsoleSetup();

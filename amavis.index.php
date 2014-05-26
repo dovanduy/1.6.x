@@ -373,6 +373,7 @@ function ajax_popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$t=time();
+	$users=new usersMenus();
 	$EnableAmavisInMasterCF=$sock->GET_INFO("EnableAmavisInMasterCF");
 	if(!is_numeric($EnableAmavisInMasterCF)){$EnableAmavisInMasterCF=0;}
 	
@@ -383,7 +384,11 @@ function ajax_popup(){
 	}
 	
 	$array["perfs"]='{performances}';
-	$array["global-settings"]='{global_settings}';
+	if($users->spamassassin_installed){
+		$array["spamassassins"]='{global_settings}';
+	}
+	$array["global-settings"]='{tools}';
+	
 	$array["plugins"]='{pluginsw}';
 	if($EnableAmavisInMasterCF==1){
 		$array["bypass"]='{bypass}';
@@ -393,38 +398,43 @@ function ajax_popup(){
 	if(!isset($_GET["in-front-ajax"])){$array["global-status"]='{status}';}
 	
 
-
+$fontsize=18;
 
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="amavis-status"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.general.status.php?$t=$t&$ajaxpop\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.general.status.php?$t=$t&$ajaxpop\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
-		}		
+		}	
+		if($num=="spamassassins"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.index.php?popup=spamassassin\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		
 		
 		if($num=="perfs"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.daemon.status.php?$t=$t&$ajaxpop\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.daemon.status.php?$t=$t&$ajaxpop\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="bypass"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.bypass.php?$t=$t&$ajaxpop\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.bypass.php?$t=$t&$ajaxpop\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
 		if($num=="plugins"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.daemon.plugins.php?$t=$t&$ajaxpop\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.daemon.plugins.php?$t=$t&$ajaxpop\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="events"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.daemon.events.php?$t=$t&$ajaxpop\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.daemon.events.php?$t=$t&$ajaxpop\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main=$num&section=$num&$ajaxpop\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?main=$num&section=$num&$ajaxpop\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -432,17 +442,8 @@ function ajax_popup(){
 	$height="600px";
 	if(isset($_GET["in-front-ajax"])){$width="100%";$height="100%";}
 	
-	echo "
-	<div id=main_config_amavis style='width:{$width};height:{$height};overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_amavis').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_amavis",1100);
+	
 
 	
 }
@@ -545,15 +546,15 @@ function main_settings($noecho=0){
 	$localNetwork=Paragraphe("64-ip-settings.png",'{local_network}','{local_network_text}',"javascript:Loadjs('$page?script=localnetwork')",null,210,100);
 	$filterbhavior=Paragraphe("64-milter-behavior.png",'{filter_behavior}','{filter_behavior_text}',"javascript:Loadjs('$page?script=filterbehavior')",null,210,100);
 	$notification=Paragraphe("mail4-64.png",'{smtp_notification}','{notification_text}',"javascript:Loadjs('$page?script=notification')",null,210,100);
-	$spamassassin=Paragraphe("folder-64-spamassassin-grey.png",'{spamassassin}','{feature_not_installed}',null,null,210,100);
+
 	$whitelist=Paragraphe("folder-64-spamassassin-grey.png",'{spamassassin}','{feature_not_installed}',null,null,210,100);
 	
 	$pieces_jointes=Paragraphe("pieces-jointes.png",
 	'{filter_extension}','{filter_extension_text}',"javascript:Loadjs('amavis.exts.php')",null,210,100);
 	
-	if($users->spamassassin_installed){
-	$spamassassin=Paragraphe("folder-64-spamassassin.png",'{spamassassin}','{spamassassin_text}',"javascript:Loadjs('$page?script=spamassassin')",null,210,100);
-	}
+	
+	
+	
 	
 	//$apply=Paragraphe('system-64.png','{apply config}','{APPLY_SETTINGS_AMAVIS}',"javascript:Loadjs('$page?script=apply')",'APPLY_SETTINGS_AMAVIS',210,100);
 	$apply=Buildicon64("DEF_ICO_AMAVIS_RESTART",210,100);
@@ -889,83 +890,75 @@ $sa_quarantine_cutoff_level=$tpl->_ENGINE_parse_body('{sa_quarantine_cutoff_leve
 $sa_tag3_level_defltl=$tpl->_ENGINE_parse_body('{sa_tag3_level_deflt}','spamassassin.index.php');
 
 
-if(strlen($sa_quarantine_cutoff_level)>70){
-	$sa_quarantine_cutoff_level=texttooltip(substr($sa_quarantine_cutoff_level,0,67)."..:",$sa_quarantine_cutoff_level,null,null,1);
-}
-
-if(strlen($sa_tag3_level_defltl)>70){
-	$sa_tag3_level_defltl=texttooltip(substr($sa_tag3_level_defltl,0,67)."..:",$sa_tag3_level_defltl,null,null,1);
-}
-
 $html="<div id='$t'></div>
 <div id='amavisspamassassin'>
 	<form name='FFM_filterbehavior_popup'>
 	<input type='hidden' name='INI_SAVE' value='BEHAVIORS' id='INI_SAVE'>
 	<table style='width:99%' class=form>	
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{replicate_all_domains}:</td>
+			<td class=legend nowrap style='font-size:18px'>{replicate_all_domains}:</td>
 			<td width=1%>" . Field_checkbox('replicate_conf_all_domains',1,$amavis->main_array["BEHAVIORS"]["replicate_conf_all_domains"]) . "</td>		
 		</tr>	
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{sa_tag2_level_deflt}:</td>
-			<td width=1%>". Field_text("$t-sa_tag2_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_tag2_level_deflt"],'width:90px;font-size:14px')."</td>		
+			<td class=legend nowrap style='font-size:18px'>{sa_tag2_level_deflt}:</td>
+			<td width=1%>". Field_text("$t-sa_tag2_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_tag2_level_deflt"],'width:90px;font-size:18px')."</td>		
 		</tr>
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{quarantine}:</td>
+			<td class=legend nowrap style='font-size:18px'>{quarantine}:</td>
 			<td width=1%>" . Field_checkbox("$t-spam_quarantine_spammy",1,$amavis->EnableQuarantineSpammy) . "</td>		
 		</tr>		
 		
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>$sa_tag3_level_defltl</td>
-			<td width=1%>". Field_text("$t-sa_tag3_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_tag3_level_deflt"],'width:90px;font-size:14px')."</td>
+			<td class=legend nowrap style='font-size:18px'>$sa_tag3_level_defltl</td>
+			<td width=1%>". Field_text("$t-sa_tag3_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_tag3_level_deflt"],'width:90px;font-size:18px')."</td>
 		</tr>
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{quarantine}:</td>
+			<td class=legend nowrap style='font-size:18px'>{quarantine}:</td>
 			<td width=1%>" . Field_checkbox("$t-spam_quarantine_spammy2",1,$amavis->EnableQuarantineSpammy2) . "</td>		
 		</tr>				
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{sa_kill_level_deflt}:</td>
-			<td width=1%>". Field_text("$t-sa_kill_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_kill_level_deflt"],'width:90px;font-size:14px')."</td>
+			<td class=legend nowrap style='font-size:18px'>{sa_kill_level_deflt}:</td>
+			<td width=1%>". Field_text("$t-sa_kill_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_kill_level_deflt"],'width:90px;font-size:18px')."</td>
 			<td>&nbsp;</td>
 		</tr>	
 		</tr>		
 		<tr><td colspan=2><hr></td></tR>
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{sa_dsn_cutoff_level}:</td>
-			<td width=1%>". Field_text("$t-sa_dsn_cutoff_level",$amavis->main_array["BEHAVIORS"]["sa_dsn_cutoff_level"],'width:90px;font-size:14px')."</td>
+			<td class=legend nowrap style='font-size:18px'>{sa_dsn_cutoff_level}:</td>
+			<td width=1%>". Field_text("$t-sa_dsn_cutoff_level",$amavis->main_array["BEHAVIORS"]["sa_dsn_cutoff_level"],'width:90px;font-size:18px')."</td>
 		</tr>
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>$sa_quarantine_cutoff_level</td>
-			<td width=1%>". Field_text("$t-sa_quarantine_cutoff_level",$amavis->main_array["BEHAVIORS"]["sa_quarantine_cutoff_level"],'width:90px;font-size:14px')."</td>
+			<td class=legend nowrap style='font-size:18px'>$sa_quarantine_cutoff_level</td>
+			<td width=1%>". Field_text("$t-sa_quarantine_cutoff_level",$amavis->main_array["BEHAVIORS"]["sa_quarantine_cutoff_level"],'width:90px;font-size:18px')."</td>
 		</tr>
 	</table>
 	
 <table style='width:99%' class=form>	
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{spam_subject_tag_maps}:</td>
+			<td class=legend nowrap style='font-size:18px'>{spam_subject_tag_maps}:</td>
 			<td width=1%>" . Field_checkbox("$t-spam_subject_tag_maps_enable",1,$amavis->main_array["BEHAVIORS"]["spam_subject_tag_maps_enable"],'spam_subject_tag_maps_enableCheck()')."</td>
 		</tr>
 		<tr>
 			<td>&nbsp;</td>
-			<td width=1%>". Field_text("$t-spam_subject_tag_maps",$amavis->main_array["BEHAVIORS"]["spam_subject_tag_maps"],'width:290px;font-size:14px')."</td>
+			<td width=1%>". Field_text("$t-spam_subject_tag_maps",$amavis->main_array["BEHAVIORS"]["spam_subject_tag_maps"],'width:530px;font-size:18px')."</td>
 		</tr>
 		<tr>
-			<td class=legend nowrap style=';font-size:14px'>{score}:</td>
-			<td>" . Field_text("$t-sa_tag_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_tag_level_deflt"],'width:33px;font-size:14px')."</td>
+			<td class=legend nowrap style=';font-size:18px'>{score}:</td>
+			<td>" . Field_text("$t-sa_tag_level_deflt",$amavis->main_array["BEHAVIORS"]["sa_tag_level_deflt"],'width:90px;font-size:18px')."</td>
 		</tr>	
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{spam_subject_tag2_maps}:</td>
-			<td width=1%>". Field_text("$t-spam_subject_tag2_maps",$amavis->main_array["BEHAVIORS"]["spam_subject_tag2_maps"],'width:290px;font-size:14px')."</td>
+			<td class=legend nowrap style='font-size:18px'>{spam_subject_tag2_maps}:</td>
+			<td width=1%>". Field_text("$t-spam_subject_tag2_maps",$amavis->main_array["BEHAVIORS"]["spam_subject_tag2_maps"],'width:530px;font-size:18px')."</td>
 		</tr>	
 		<tr>
-			<td class=legend nowrap style='font-size:14px'>{sa_timeout}:</td>
-			<td width=1%>". Field_text("$t-sa_timeout",$amavis->main_array["BEHAVIORS"]["sa_timeout"],'width:60px;font-size:14px')."&nbsp;<span style='font-size:13px'>{seconds}</span></td>
+			<td class=legend nowrap style='font-size:18px'>{sa_timeout}:</td>
+			<td width=1%>". Field_text("$t-sa_timeout",$amavis->main_array["BEHAVIORS"]["sa_timeout"],'width:60px;font-size:18px')."&nbsp;<span style='font-size:18px'>{seconds}</span></td>
 		</tr>		
 		
 	<tr>
 		<td colspan=2 align='right'>
 		<hr>
-		". button("{apply}","SaveAmavisSpamAssassinSingle()",16)."
+		". button("{apply}","SaveAmavisSpamAssassinSingle()",28)."
 		</td>
 	</tr>			
 	</table>
@@ -981,7 +974,7 @@ $html="<div id='$t'></div>
 	var x_SaveAmavisSpamAssassinSingle= function (obj) {
 			var tempvalue=obj.responseText;
 			if(tempvalue.length>3){alert(tempvalue)};
-			document.getElementById('$t').innerHTML='';
+			RefreshTab('main_config_amavis');
 		}			
 	
 		function SaveAmavisSpamAssassinSingle(){
@@ -1011,9 +1004,9 @@ $html="<div id='$t'></div>
 	
 	
 		function spam_subject_tag_maps_enableCheck(){
-			document.getElementById('spam_subject_tag_maps').disabled=true;
-			if(document.getElementById('spam_subject_tag_maps_enable').checked){
-				document.getElementById('spam_subject_tag_maps').disabled=false;
+			document.getElementById('$t-spam_subject_tag_maps').disabled=true;
+			if(document.getElementById('$t-spam_subject_tag_maps_enable').checked){
+				document.getElementById('$t-spam_subject_tag_maps').disabled=false;
 			}
 		}
 	spam_subject_tag_maps_enableCheck();

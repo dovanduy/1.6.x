@@ -74,7 +74,7 @@ function status_table(){
 	
 	$html="
 	<div id='div$t'>
-	<center>
+	
 	<table class='jabberd-table-$t' style='display: none' id='jabberd-table-$t' style='width:100%;margin:-10px'></table>
 	</center>
 	</div>
@@ -85,11 +85,11 @@ $('#jabberd-table-$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		
-		{display: '$cpu', name : 'cpu', width : 56, sortable : false, align: 'center'},
-		{display: '-   ', name : 'none2', width :38, sortable : false, align: 'center'},
+		{display: '$cpu', name : 'cpu', width : 105, sortable : false, align: 'center'},
+		{display: '-   ', name : 'none2', width :105, sortable : false, align: 'center'},
 		{display: '$type', name : 'enabled', width :105, sortable : false, align: 'center'},
-		{display: '-    ', name : 'none3', width :68, sortable : false, align: 'center'},
-		{display: 'RSS  ', name : 'uid', width : 89, sortable : false, align: 'center'},
+		{display: '-    ', name : 'none3', width :105, sortable : false, align: 'center'},
+		{display: 'RSS  ', name : 'uid', width : 105, sortable : false, align: 'center'},
 		{display: 'VMSIZE', name : 'none4', width : 105, sortable : false, align: 'center'},
 	],
 	$buttons
@@ -102,8 +102,8 @@ $('#jabberd-table-$t').flexigrid({
 	useRp: false,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 720,
-	height: 350,
+	width: '99%',
+	height: 450,
 	singleSelect: true
 	
 	});   
@@ -188,12 +188,12 @@ $c=0;
 							'id' => $c,
 							'cell' => array(
 								
-								"$CPU%",
-								"$childs_text",
-								"$TYPE",
-								"{$TIME}Mn",
-								"{$RSS}Mb",
-								"{$VMSIZE}Mb",
+								"<span style='font-size:18px'>$CPU%</span>",
+								"<span style='font-size:18px'>$childs_text</span>",
+								"<span style='font-size:18px'>$TYPE</span>",
+								"<span style='font-size:18px'>{$TIME}Mn</span>",
+								"<span style='font-size:18px'>{$RSS}Mb</span>",
+								"<span style='font-size:18px'>{$VMSIZE}Mb</span>",
 								)
 							);					
 		}

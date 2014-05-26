@@ -26,6 +26,9 @@ include_once(dirname(__FILE__).'/ressources/whois/whois.main.php');
 if($argv[1]=="--export"){start_export();exit;}
 if($argv[1]=="--import"){start_import();exit;}
 if($argv[1]=="--push"){export_push();exit;}
+if($argv[1]=="--clients-hours"){clients_hours();exit;}
+
+
 
 
 
@@ -444,6 +447,10 @@ function percentage($text,$purc){
 }
 
 function clients_hours($nopid=false){
+	
+	if($GLOBALS["VERBOSE"]){
+		echo "L.[".__LINE__."]: processing clients_hours()\n";
+	}
 	if(isset($GLOBALS["clients_hours_executed"])){
 		if($GLOBALS["VERBOSE"]){echo "clients_hours():: Already executed\n";}
 		return true;
@@ -460,6 +467,9 @@ function clients_hours($nopid=false){
 
 	$currenttable="dansguardian_events_".date('Ymd');
 	$next_table=date('Ymd')."_hour";
+	
+	echo "L.[".__LINE__."]:_clients_hours_perfom($currenttable,$next_table)\n";
+	
 	_clients_hours_perfom($currenttable,$next_table);
 
 
@@ -488,6 +498,7 @@ function _clients_hours_perfom($tabledata,$nexttable){
 	$filter_hour=null;
 	$filter_hour_1=null;
 	$filter_hour_2=null;
+	if(!isset($GLOBALS["Q"])){$GLOBALS["Q"]=new mysql_squid_builder();}
 	if(isset($GLOBALS["$tabledata$nexttable"])){
 		if($GLOBALS["VERBOSE"]){echo "$tabledata -> $nexttable already executed, return true\n";}
 		return true;
@@ -495,6 +506,7 @@ function _clients_hours_perfom($tabledata,$nexttable){
 
 	$GLOBALS["$tabledata$nexttable"]=true;
 
+	echo "L.[".__LINE__."]:CreateHourTable($nexttable)\n";
 	$GLOBALS["Q"]->CreateHourTable($nexttable);
 	$todaytable=date('Ymd')."_hour";
 	$CloseTable=true;
@@ -510,6 +522,7 @@ function _clients_hours_perfom($tabledata,$nexttable){
 		if($GLOBALS["VERBOSE"]){echo "Ordered to not close table `$nexttable` == `$todaytable`...\n";}
 	}
 
+	echo "L.[".__LINE__."]: Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_1' in line \n";
 	events_tail("Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_1' in line ".__LINE__);
 	if(!$GLOBALS["Q"]->TABLE_EXISTS($tabledata)){
 		events_tail("Create $tabledata in line ".__LINE__);
@@ -521,10 +534,14 @@ function _clients_hours_perfom($tabledata,$nexttable){
 	FROM $tabledata
 	GROUP BY cached, HOUR( zDate ) , CLIENT, Country, uid, sitename,MAC,hostname,account
 	HAVING QuerySize>0  $filter_hour_1$filter_hour_2";
-
+	
+	
+	echo "L.[".__LINE__."]: $sql\n";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	$num_rows=mysql_num_rows($results);
-	events_tail("Processing $tabledata -> $num_rows  rows in line ".__LINE__);
+	
+	echo "L.[".__LINE__."]: Processing $tabledata -> $num_rows  rows\n";
+	
 	if($num_rows<10){$output_rows=true;}
 
 	if($num_rows==0){

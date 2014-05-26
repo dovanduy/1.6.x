@@ -4380,7 +4380,7 @@ Si il est en rouge, vous allez devoir maintenir la base des utilisateurs.[br]Cet
 <UNLINK_VOLUME>D&eacute;connecter ce volume</UNLINK_VOLUME>
 <UNLINK_VOLUME_TEXT>D&eacute;connectez ce volume de votre organisation[br]Les donn&eacute;es sont conserv&eacute;es</UNLINK_VOLUME_TEXT>
 <unlock_imap_session>D&eacute;bloquer et essayez de vous connecter au serveur imap</unlock_imap_session>
-<unselect_all>retirer tout</unselect_all>
+<unselect_all>Retirer tout</unselect_all>
 <unshare_this>Retirer le partage de cet &eacute;l&eacute;ment ?</unshare_this>
 <unshare_this_rsync>Retirer le partage Rsync.</unshare_this_rsync>
 <up>haut</up>

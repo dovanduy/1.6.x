@@ -559,7 +559,7 @@ function downloadFile($url,$hostname)  {
    			}
    		}else{
    			writelogs("SET $key=".strlen($value)." Permission denied...!!",__CLASS__ . "/" . __FUNCTION__,__FILE__,__LINE__);
-   			$this->set_apache_perms("services.php?chown-medir=yes");
+   			$this->getFrameWork("services.php?chown-medir=yes");
    		}
    		
    		

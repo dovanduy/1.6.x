@@ -27,6 +27,11 @@ end;
  REGEX:=TRegExpr.Create;
  s:='';
 
+  if fpgeteuid<>0  then begin
+     writeln('You need to be root to execute this program...');
+     halt(0);
+ end;
+
     if ParamStr(1)='--git' then begin
         comp.git();
         halt(0);
@@ -36,17 +41,7 @@ end;
         halt(0);
      end;
 
-
-
- if fpgeteuid<>0  then begin
- writeln('You need to be root to execute this program...');
- halt(0);
- end;
-
-
-
-
-      if ParamStr(1)='--lang' then begin
+     if ParamStr(1)='--lang' then begin
         comp.langues();
         halt(0);
      end;

@@ -2044,6 +2044,7 @@ public function shellEscapeChars($path){
 		$path=str_replace("!","\!",$path);
 		$path=str_replace("+","\+",$path);
 		$path=str_replace(";","\;",$path);
+		$path=str_replace("|","\|",$path);
 		return $path;	
 }
 

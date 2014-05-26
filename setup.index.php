@@ -45,6 +45,7 @@ if($_GET["script"]=="mysql_enabled"){echo js_mysql_enabled();exit;}
 if($_GET["script"]=="mysql_save_account"){echo js_mysql_save_account();exit;}
 if(isset($_GET["install_app"])){install_app();exit;}
 if(isset($_GET["InstallLogs"])){GetLogsStatus();exit;}
+if(isset($_GET["TestConnection-js"])){TestConnection_js();exit;}
 if(isset($_GET["testConnection"])){testConnection();exit;}
 if(isset($_GET["remove"])){remove();exit;}
 if(isset($_GET["uninstall_app"])){remove_perform();exit;}
@@ -306,6 +307,15 @@ function events_download(){
 		}			
 		
 	
+
+}
+
+function TestConnection_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body('{application_setup}');
+	$page=CurrentPageName();
+	echo "YahooWin('700','$page?testConnection=yes','$title',true);";
 
 }
 
@@ -1976,51 +1986,26 @@ function testConnection(){
 	$sock=new sockets();
 	$datas=$sock->getFrameWork('cmd.php?SetupIndexFile=yes');
 	
-	$tbl=explode("\n",$datas);
-	
-$table="	<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:98%'>
-	<thead class='thead'>
-		<tr>
-		<th>{refresh_index_file}</th>
-		</tr>
-	</thead>
-	<tbody class='tbody'>";	
-	
-	while (list ($num, $line) = each ($tbl) ){
-		if(trim($line)==null){continue;}
-		if(preg_match("#MEMORY_INSTALLED#", $line)){continue;}
-		$line=str_replace("/usr/share/artica-postfix/ressources","/..",$line);
-		$line=htmlentities($line);
-		if(strpos($line,"couldn't connect")>0){$line="<span style='color:red'>$line</span>";}
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		
-		$ligne[]="
-		<tr class=$classtr>
-		<td style='font-size:13px'>$line</td>
-		</tr>";
-	}
-	if(is_array($ligne)){
-		$logs=implode("\n",$ligne);
-	}
-	$html="
-	<div style='width:100%;height:250px;overflow:auto'>$table$logs</tbody></table></div>
-	
-	";
-	
+
 	
 	$t=time();
 	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);"
+	echo $tpl->_ENGINE_parse_body("
+				<p>&nbsp;</p>
+<textarea style='margin-top:5px;font-family:Courier New;
+font-weight:bold;width:99%;height:446px;border:5px solid #8E8E8E;
+overflow:auto;font-size:11px' id='text-$t'>$datas</textarea>
 	<script>
 			function Refresh$t(){
 				if(document.getElementById('squid_main_svc')){ RefreshTab('squid_main_svc'); }
+				if(document.getElementById('main_config_artica_update')){ RefreshTab('main_config_artica_update'); }
 				YahooWinHide();
 			}
 			
-			setTimeout(\"Refresh$t()\",5000);
+			setTimeout(\"Refresh$t()\",8000);
 			
 	</script>
-	";
+	");
 	
 }
 

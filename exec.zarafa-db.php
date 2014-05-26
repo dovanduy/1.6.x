@@ -579,8 +579,13 @@ function databasesize($force=false){
 
 function build_progress_status($pourc,$text){
 	$cachefile="/usr/share/artica-postfix/ressources/logs/zarafatrash.build.progress";
-	$array["POURC"]=$pourc;
-	$array["TEXT"]=$text;
+	if(is_numeric($text)){
+		$array["POURC"]=$text;
+		$array["TEXT"]=$pourc;
+	}else{
+		$array["POURC"]=$pourc;
+		$array["TEXT"]=$text;
+	}
 	@file_put_contents($cachefile, serialize($array));
 	@chmod($cachefile,0755);
 

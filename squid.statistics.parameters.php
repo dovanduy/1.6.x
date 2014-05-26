@@ -112,6 +112,10 @@ function Save$t(){
 	XHR.appendData('BackupSquidStatsNASFolder',encodeURIComponent(document.getElementById('BackupSquidStatsNASFolder-$t').value));
 	XHR.appendData('BackupSquidStatsNASUser',encodeURIComponent(document.getElementById('BackupSquidStatsNASUser-$t').value));
 	XHR.appendData('BackupSquidStatsNASPassword',encodeURIComponent(document.getElementById('BackupSquidStatsNASPassword-$t').value));
+	XHR.appendData('ArticaProxyStatisticsMaxTime',document.getElementById('ArticaProxyStatisticsMaxTime-$t').value);
+	
+	
+	
 	XHR.sendAndLoad('$page', 'POST',x_Save$t);
 }
 
@@ -149,6 +153,10 @@ LicenseCheck$t();
 function Save(){
 	$sock=new sockets();
 	$sock->SET_INFO("ArticaProxyStatisticsBackHourTables", $_POST["ArticaProxyStatisticsBackHourTables"]);
+	$sock->SET_INFO("ArticaProxyStatisticsMaxTime", $_POST["ArticaProxyStatisticsMaxTime"]);
+	
+	
+	
 	$sock->SET_INFO("BackupSquidStatsUseNas", $_POST["BackupSquidStatsUseNas"]);
 	$sock->SET_INFO("ArticaProxyStatisticsBackupFolder", $_POST["ArticaProxyStatisticsBackupFolder"]);
 	if(isset($_POST["ArticaProxyStatisticsBackupDays"])){$sock->SET_INFO("ArticaProxyStatisticsBackupDays", $_POST["ArticaProxyStatisticsBackupDays"]); }

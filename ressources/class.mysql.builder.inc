@@ -166,7 +166,7 @@ public function check_storage_table($force=false){
 				if($XT_TIME<30){return true;}
 				@unlink($timefile);
 				@file_put_contents($timefile,time());
-				$this->ToSyslog("check_storage_table():: Verify MySQL Tables ( as root) for database $this->database last check since {$XT_TIME}Mn");
+				$this->ToSyslog("check_storage_table():: Verify MySQL Tables ( as root) for database artica_backup last check since {$XT_TIME}Mn");
 			}
 		}
 	

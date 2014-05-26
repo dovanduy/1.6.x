@@ -250,6 +250,12 @@ Utilisez ce lien Youtube afin de visualiser la proc&eacute;dure de cr&eacute;ati
 <AllowSenderCanonical>Can modify sent email address</AllowSenderCanonical>
 <AllowSmartphonesRuleExplain>Cette r&egrave;gles autorise tous les ordiphones.[br]Android,BlackBerry,PalmOS,SymbianOS,IE Mobile,iPhone,iPad,iPod)[br]A seulement passer &agrave; travers le syst&egrave;me d'authentification principal.</AllowSmartphonesRuleExplain>
 <AllowSmartphonesRuleText>Autoriser les ordiphones &agrave; passer l'authentification</AllowSmartphonesRuleText>
+<AllowSquidDropBox>Autoriser DropBox dans tous les cas</AllowSquidDropBox>
+<AllowSquidDropBox_explain>Si vert, les sites de DropBox seront toujours autoris&eacute;s dans tous les cas ( incluant aussi le syst&egrave;me d\'authentification )</AllowSquidDropBox_explain>
+<AllowSquidOffice365>Autoriser Lync Online et Office 365</AllowSquidOffice365>
+<AllowSquidOffice365_explain>Si vert, les sites de Lync Online et Office 365  seront toujours autoris&eacute;s dans tous les cas ( incluant aussi le syst&egrave;me d\'authentification )</AllowSquidOffice365_explain>
+<AllowSquidSkype>Autoriser Skype dans tous les cas</AllowSquidSkype>
+<AllowSquidSkype_explain>Si vert, les sites de Skype seront toujours autoris&eacute;s dans tous les cas ( incluant aussi le syst&egrave;me d\'authentification )</AllowSquidSkype_explain>
 <AllowUserMaillog>Peut rechercher/visualiser leurs &eacute;v&egrave;nements SMTP</AllowUserMaillog>
 <allow_download_certificate_public>Autorise le t&eacute;l&eacute;chargement du certificat depuis la page de login.</allow_download_certificate_public>
 <allow_download_certificate_public_explain>Si vert, un lien de t&eacute;l&eacute;chargement du certificat sera plac&eacute; en bas du formulaire de demande de session.</allow_download_certificate_public_explain>
@@ -317,6 +323,10 @@ Vous avez besoin de construire une interface Web utilisateur Final &agrave; trav
 <apache>Serveur Web Apache</apache>
 <ApacheLogRotate>Activer la rotation des logs par serveur</ApacheLogRotate>
 <ApacheLogRotate_explain>Effectue une rotation des fichiers de logs avec les param&egrave;tres sp&eacute;cifi&eacute;s.</ApacheLogRotate_explain>
+<apache_Bandwidth_enable>Activer le module de limitation de bande passante</apache_Bandwidth_enable>
+<apache_Bandwidth_explain>Cette fonction vous permet de contr&ocirc;ler l\'utilisation de votre site web.[br]
+En limitant la bande passante par seconde, le nombre ce connexions simultan&eacute;es, la taille des fichiers...[br]
+Il permet de d&eacute;finir la bande passante par fichier, IP, r&eacute;pertoire...</apache_Bandwidth_explain>
 <apache_chain>Certificat cha&icirc;ne</apache_chain>
 <appliances>Appliances</appliances>
 <apply_changes>Appliquer les changements</apply_changes>
@@ -635,6 +645,7 @@ S&eacute;lectionnez votre connexion ajout&eacute;e ou utilisez l'assistant de cr
 Une fois le pourcentage d&eacute;pass&eacute;, une proc&eacute;dure de rechargement de services comme le serveur Apache, Nginx, les services MySQL vous s\'op&eacute;rer.</automatic_memory_cleaning_explain>
 <automation_script_explain>The script d'Automation vous permet de copier le contenu dans ce formulaire, de le modifier et de le coller au m&ecirc;me endroit.[br]
 Il permet de rapidement passer les &eacute;tapes de l'assistant afin de d&eacute;ployer plus rapidement votre serveur.</automation_script_explain>
+<available_versions>Versions disponibles</available_versions>
 <awstats_postfix>Construit les &eacute;v&egrave;nements de messagerie</awstats_postfix>
 <awstats_postfix_explain>Cette t&acirc;che extrait les &eacute;v&egrave;nements de messagerie depuis le syst&egrave;me d'&eacute;v&egrave;nements du syst&egrave;me et les transforme en &eacute;v&egrave;nements MySQL.[br]
 Elle va sauvegarder les fichiers transform&eacute;s dans un r&eacute;pertoire temporaire.</awstats_postfix_explain>
@@ -1242,6 +1253,7 @@ Il peut &ecirc;tre utilis&eacute; afin de sauvegarder votre bande passant car to
 <default_file_lifetime>Temps de vie par d&eacute;faut d'un fichier</default_file_lifetime>
 <default_gateway>Passerelle par d&eacute;faut</default_gateway>
 <default_ldap_group>Groupe LDAP par d&eacute;faut</default_ldap_group>
+<default_limit>Limite par d&eacute;faut</default_limit>
 <default_route>Route par d&eacute;faut</default_route>
 <default_rule2>R&egrave;gle par d&eacute;faut</default_rule2>
 <default_rules>R&egrave;gles par d&eacute;faut</default_rules>
@@ -1715,6 +1727,7 @@ Il est le moteur principal d'Artica afin de produire la fonctionnalit&eacute; de
 <enable_ntopng_text>Le d&eacute;mon d'analyse du trafique est un moniteur r&eacute;seau vous permettant de visualiser les connections en temps r&eacute;els et les d&eacute;buts de chaque ordinateurs qui traversent Artica.</enable_ntopng_text>
 <enable_phpfpm_service>Activer le service PHP-FPM</enable_phpfpm_service>
 <enable_phpfpm_service_explain>Le gestionnaire de processus FastCGI (FPM)  est con&ccedil;u pour pr&eacute;charger les libraires PHP et doit &ecirc;tre plus rapide que le syst&egrave;me PHP standard</enable_phpfpm_service_explain>
+<ENABLE_PING_GATEWAY>Ping sur une adresse</ENABLE_PING_GATEWAY>
 <ENABLE_PING_GATEWAY_EXPLAIN>si activ&eacute;, le proxy va essayer d'effecuter un ping &agrave; l'adresse sp&eacute;cifi&eacute;e afin de voir si elle est disponible</ENABLE_PING_GATEWAY_EXPLAIN>
 <enable_pop3_text>Activer le protocole POP3 afin d'autoriser vos utilisateurs &agrave; utiliser leur client de messagerie pour r&eacute;cup&eacute;rer les messages sur le serveur. via POP3</enable_pop3_text>
 <enable_proxy_mode>Activer le mode proxy</enable_proxy_mode>
@@ -1744,6 +1757,7 @@ Lors de son activation, vous serez en mesure de param&eacute;trer votre navigate
 Il est cependant n&eacute;cessaire d'assurer un minimum de restrictions sur ce port.</enable_test_port_explain>
 <enable_test_port_table_explain>Comme le port de test retire toutes les restrictions que vous avez ajout&eacute; pour vos utilisateurs, vous devez restreindre l'acc&egrave;s uniquement &agrave; certaines adresses de votre r&eacute;seau.[br]Ceci afin d'&eacute;viter que tout le monde utilise ce port pour acc&eacute;der &agrave; Internet.</enable_test_port_table_explain>
 <enable_watchdog>Activer la surveillance du service</enable_watchdog>
+<enable_watchdog_squid_explain>Si vert, Artica va surveiller le service Proxy et r&eacute;agir automatiquement sur les probl&egrave;mes d&eacute;tect&eacute;s en fonction de ses param&egrave;tres.</enable_watchdog_squid_explain>
 <enable_webdav_per_user>Activer le WebDav par utilisateur</enable_webdav_per_user>
 <enable_webdav_per_user_explain>Cette fonctionnalit&eacute; va cr&eacute;er un acc&egrave;s WebDav par utilisateur.[br]Si elle est activ&eacute;e, vous serez en mesure d'activer/d&eacute;sactiver la possibilit&eacute; pour chaque utilisateur d'acc&eacute;der &agrave; leur r&eacute;pertoire personnel (Home) &agrave; travers le protocole WebDav</enable_webdav_per_user_explain>
 <enable_webfilter_engine>Activer le filtrage d'URLs</enable_webfilter_engine>
@@ -2447,6 +2461,7 @@ Cette section vous permet de visualiser le nombre de d&eacute;mons utilis&eacute
 <LimitCnx_text>Si sup&eacute;rieur &agrave; 0, cette option va limiter le nombre de connexions simultan&eacute;es pour la session en cours ou dans un cas sp&eacute;cial, depuis une adresse IP</LimitCnx_text>
 <LimitReqs>Requ&ecirc;tes MAX par seconde</LimitReqs>
 <LimitReqs_text>Cette option, si sup&eacute;rieur &agrave; 0 va limiter le nombre de requ&ecirc;tes demand&eacute;es pendant une seconde</LimitReqs_text>
+<limit_all_requests>Limiter toutes les requ&ecirc;tes</limit_all_requests>
 <limit_bandwidth>Limiter la bande passante</limit_bandwidth>
 <limit_connections_to_these_networks>Limiter les connexions &agrave; ces r&eacute;seaux</limit_connections_to_these_networks>
 <limit_connections_to_these_networks_explain>Si vert, Artica va construire des r&egrave;gle de pare-feu afin d'interdire toutes connexions sur le port SMTP provenant d'adresses &eacute;trang&egrave;res aux r&eacute;seaux d&eacute;finis</limit_connections_to_these_networks_explain>
@@ -2528,6 +2543,7 @@ Veuillez entrer votre adresse eMail et cliquez sur le bouton &quot;Envoyer le mo
 Vous recevrez un nouveau mot de passe rapidement.[br]
 Utilisez-le afin de vous connecter sur le site.</lost_password_explain>
 <MAC>Adresse MAC</MAC>
+<macros>Macros</macros>
 <macro_remove_disk>Supprimer le disque du syst&egrave;me</macro_remove_disk>
 <macro_remove_disk_explain>D&eacute;connecte le disque et le d&eacute;-configure du syst&egrave;me</macro_remove_disk_explain>
 <MACtoMembers>MAC vers membres</MACtoMembers>
@@ -3887,6 +3903,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <SecServerSignatureOffExplain>Pour activer cette option, il faut que les options globales &quot;Ent&ecirc;te de r&eacute;ponse du serveur&quot; soit plac&eacute; sur &quot;Toutes les informations&quot; et que l'option &quot;Activer le renforcement de la s&eacute;curit&eacute;&quot; soit activ&eacute;.</SecServerSignatureOffExplain>
 <security_logging>&Eacute;v&egrave;nements de s&eacute;curit&eacute;</security_logging>
 <selector>S&eacute;lecteur</selector>
+<select_all>Tout s&eacute;lectionner</select_all>
 <select_this_group>S&eacute;lection du groupe</select_this_group>
 <select_this_item>S&eacute;lectionner cet &eacute;l&eacute;ment</select_this_item>
 <sended_messages>Message(s) envoy&eacute;(s)</sended_messages>
@@ -4008,6 +4025,7 @@ Activer cette options augmente le niveau de verbosit&eacute;.</smtp_adv_debug_ex
 <smtp_authentication>Authentification SMTP</smtp_authentication>
 <SMTP_BANNER>Banni&egrave;re SMTP</SMTP_BANNER>
 <SMTP_BANNER_TEXT>Texte de la banni&egrave;re d'accueil lors de la connexion au port SMTP</SMTP_BANNER_TEXT>
+<smtp_enabled_watchdog_explain>Si vert, le d&eacute;mon de surveillance va &eacute;mettre des notifications SMTP sur les probl&egrave;mes rencontr&eacute;s</smtp_enabled_watchdog_explain>
 <smtp_events_database_explain>Les compteurs et &eacute;v&egrave;nements SMTP sont enregistr&eacute;s dans la table MySQL.[br]
 Cette section vous permet de sauvegarder ces &eacute;v&egrave;nements sur disque et de pouvoir aussi remettre &agrave; 0 les compteurs</smtp_events_database_explain>
 <smtp_events_table>Table des &eacute;v&egrave;nements SMTP</smtp_events_table>
@@ -4468,6 +4486,7 @@ Le service est actuellement g&eacute;r&eacute; par l'appliance de statistiques.<
 <times>fois</times>
 <time_duration>Dur&eacute;e</time_duration>
 <title2>Titre</title2>
+<tls_enabled_explain>If green this the SMTP client will use TLS in order to be authenticated to the remote SMTP service</tls_enabled_explain>
 <token>Jeton</token>
 <top_10>TOP 10</top_10>
 <top_cached_websites>TOP des sites mis en cache</top_cached_websites>
@@ -4901,6 +4920,7 @@ Votre licence gratuite vous permet d'utiliser la base de donn&eacute;es de filtr
 <watchdog_klms8_text>S'assure que les services de Kaspersky For Linux Mail server fonctionnent et ne consomme pas les limites ressources syst&egrave;me.</watchdog_klms8_text>
 <watchdog_queue>Moniteur de file d'attente</watchdog_queue>
 <watchdog_queue_text>Param&egrave;tres si la file d'attente exc&egrave;de des limites</watchdog_queue_text>
+<watchdog_squid_settings>Param&egrave;tres du d&eacute;mon de surveillance</watchdog_squid_settings>
 <wccp2_routers>Routeurs WCCP</wccp2_routers>
 <wccp2_routers_explain>S&eacute;parez les adresses IP par une virule (si plusieurs)</wccp2_routers_explain>
 <webaccess>Acc&egrave;s Internet</webaccess>

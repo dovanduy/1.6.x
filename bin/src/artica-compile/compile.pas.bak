@@ -1113,7 +1113,7 @@ cmd:=cmd + ' --exclude artica-postfix/computers';
 cmd:=cmd + ' --exclude artica-postfix/oma';
 cmd:=cmd + ' --exclude artica-postfix/etc';
 cmd:=cmd + ' --exclude artica-postfix/computers';
-cmd:=cmd + ' --exclude artica-postfix/groupware';
+cmd:=cmd + ' --exclude artica-postfix/virtualbox';
 cmd:=cmd + ' --exclude artica-postfix/groupware';
 cmd:=cmd + ' --exclude artica-postfix/certs';
 cmd:=cmd + ' --exclude artica-postfix/bin/artica-compile';
@@ -1751,8 +1751,7 @@ var
 l:TstringList;
 RegExpr:TRegExpr;
 i:integer;
-
-   dir,newdir,cmd,targetfile:string;
+   dir,newdir,cmd,targetfile,MAIN_RELEASE,FULL_PATCH_PATH,FULL_PATCH_PATH_NEW_DIR,FULL_PATCH_PATH_ROOT,MAIN_RELEASE_NAME:string;
    ll:TstringList;
    patchname:string;
    dirorg:string;
@@ -1761,12 +1760,15 @@ CurrentUser:=GET_curUSER();
 if CurrentUser='root' then dir:='/root' else dir:='/home/'+CurrentUser;
 if not FileExists('/usr/bin/git') then exit;
 targetfile:=dir+'/git';
+writeln('GIT file ',targetfile);
 if not FileExists(targetfile) then begin
    writeln(targetfile,' no such file..');
    exit;
 end;
 dirorg:=dir;
+logs:=Tlogs.Create;
     version:=COMPILE_GEN_VERSION();
+    MAIN_RELEASE:=logs.ReadFromFile(BasePath + '/MAIN_RELEASE');
     l:=Tstringlist.Create;
     l.LoadFromFile(targetfile);
     RegExpr:=TRegExpr.Create;
@@ -1786,11 +1788,13 @@ dirorg:=dir;
               ll.Add(trim(RegExpr.Match[1]));
          end;
     end;
-
+    FULL_PATCH_PATH_ROOT:=dir+'/Bureau/artica-P0/'+MAIN_RELEASE;
+    FULL_PATCH_PATH:=dir+'/Bureau/artica-P0/'+MAIN_RELEASE+'/artica-postfix';
     dir:=dir+'/Bureau/artica-patchs/'+version+'/artica-postfix';
     writeln('path will be stored in ',dir) ;
     if DirectoryExists(dir) then fpsystem('/bin/rm -rf '+dir);
     forcedirectories(dir);
+    forcedirectories(FULL_PATCH_PATH);
     for i:=0 to ll.Count-1 do begin
          RegExpr.Expression:='ressources\/language\/[a-z]+\/.+';
          if RegExpr.Exec(ll.Strings[i]) then continue;
@@ -1817,21 +1821,31 @@ dirorg:=dir;
 
          if pos('/',ll.Strings[i])>0 then begin
             newdir:=dir+'/'+ExtractFilePath(ll.Strings[i]);
+            FULL_PATCH_PATH_NEW_DIR:=FULL_PATCH_PATH+'/'+ExtractFilePath(ll.Strings[i]);
             writeln('Create directory ',newdir);
+            writeln('Create directory ',FULL_PATCH_PATH_NEW_DIR);
             forcedirectories(newdir);
+            forcedirectories(FULL_PATCH_PATH_NEW_DIR);
          end;
 
+         cmd:='/bin/cp /usr/share/artica-postfix/'+ll.strings[i]+' '+FULL_PATCH_PATH+'/'+ll.strings[i];
          cmd:='/bin/cp /usr/share/artica-postfix/'+ll.strings[i]+' '+dir+'/'+ll.strings[i];
          writeln(cmd);
          fpsystem(cmd);
     end;
 
-
+    fpsystem('/bin/rm  '+FULL_PATCH_PATH+'/MAIN_RELEASE');
+    fpsystem('/bin/rm  '+dir+'/MAIN_RELEASE');
     patchname:=AnsiReplaceText(version,'.','');
+    MAIN_RELEASE_NAME:=MAIN_RELEASE+'_'+ patchname;
     fpsystem('/bin/touch '+dirorg+'/Bureau/artica-patchs/'+patchname+'.txt');
     SetCurrentDir(dir);
     if FileExists(dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz') then fpsystem('/bin/rm -f '+dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz');
     fpsystem('/bin/tar -czf '+dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz *');
+    SetCurrentDir(FULL_PATCH_PATH_ROOT);
+    if FileExists(FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz') then fpsystem('/bin/rm -f '+FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz');
+    writeln('compressing '+FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz FROM  '+FULL_PATCH_PATH_ROOT);
+    fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz *');
 
 end;
 

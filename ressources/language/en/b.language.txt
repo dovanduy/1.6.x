@@ -6268,3 +6268,18 @@ It enables the setting of server-wide or per connection bandwidth limits, based 
 </apache_Bandwidth_explain>
 <limit_all_requests>Limit all requests</limit_all_requests>
 <default_limit>Default limit</default_limit>
+<available_versions>Available versions</available_versions>
+<AllowSquidDropBox>Allow DropBox in all cases</AllowSquidDropBox>
+<AllowSquidDropBox_explain>If turned to green, DropBox websites will be whitelisted in all cases ( including authentication too)</AllowSquidDropBox_explain>
+<AllowSquidSkype>Allow Skype in all cases</AllowSquidSkype>
+<AllowSquidSkype_explain>If turned to green, Skypes websites will be whitelisted in all cases ( including authentication too)</AllowSquidSkype_explain>
+<AllowSquidOffice365>Allow Lync Online and Office 365</AllowSquidOffice365>
+<AllowSquidOffice365_explain>If turned to green, Lync Online and Office 365 websites will be whitelisted in all cases ( including authentication too)</AllowSquidOffice365_explain>
+<macros>Macros</macros>
+<enable_watchdog_squid_explain>If turned to green, Artica will be able to monitor proxy service and react automatically on detected troubles according configuration.
+</enable_watchdog_squid_explain>
+<smtp_enabled_watchdog_explain>If green then watchdog will send SMTP notifications when encounter issues</smtp_enabled_watchdog_explain>
+<tls_enabled_explain>If green this the SMTP client will use TLS in order to be authenticated to the remote SMTP service</tls_enabled_explain>
+<watchdog_squid_settings>Watchdog service parameters</watchdog_squid_settings>
+<ENABLE_PING_GATEWAY>Ping an address</ENABLE_PING_GATEWAY>
+<select_all>Select all</select_all>

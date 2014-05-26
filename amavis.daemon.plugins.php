@@ -84,53 +84,53 @@ function popup(){
 	
 	
 	$html="
-	<div class=explain >{spamassassin_pkugins_explain}</div>
-	
-	<table style='width:99%' class=form>
+	<div class=explain style='font-size:18px'>{spamassassin_pkugins_explain}</div>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-		<td class=legend style='font-size:14px'>{EnableLDAPAmavis}:</td>
+		<td class=legend style='font-size:18px'>{EnableLDAPAmavis}:</td>
 		<td>". Field_checkbox("EnableLDAPAmavis",1,$EnableLDAPAmavis)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{EnableLDAPAmavis_explain}")."</td>
 	<tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{EnableClamavDaemon}:</td>
+		<td class=legend style='font-size:18px'>{EnableClamavDaemon}:</td>
 		<td>". Field_checkbox("EnableClamavDaemon",1,$EnableClamavDaemon)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{EnableClamavDaemon_explain}")."</td>
 	<tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{ArticaAmavisEnablePlugin}:</td>
+		<td class=legend style='font-size:18px'>{ArticaAmavisEnablePlugin}:</td>
 		<td>". Field_checkbox("ArticaAmavisEnablePlugin",1,$ArticaAmavisEnablePlugin)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{ArticaAmavisEnablePlugin_explain}")."</td>
 	<tr>	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{AmavisNoInternetTests}:</td>
+		<td class=legend style='font-size:18px'>{AmavisNoInternetTests}:</td>
 		<td>". Field_checkbox("AmavisNoInternetTests",1,$AmavisNoInternetTests,"AmavisNoInternetTestsCheck()")."</td>
 		<td width=1%>&nbsp;</td>
 	<tr>
-		<td class=legend style='font-size:14px'>FuzzyOcr:</td>
+		<td class=legend style='font-size:18px'>FuzzyOcr:</td>
 		<td>". Field_checkbox("EnableFuzzyOcr",1,$EnableFuzzyOcr)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>Razor:</td>
+		<td class=legend style='font-size:18px'>Razor:</td>
 		<td>". Field_checkbox("use_razor2",1,$spam->main_array["use_razor2"])."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{razor_text}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>Pyzor:</td>
+		<td class=legend style='font-size:18px'>Pyzor:</td>
 		<td>". Field_checkbox("use_pyzor",1,$spam->main_array["use_pyzor"])."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("$pyzor_not_installed{pyzor_text}")."</td>
 	</tr>		
 	
 	<tr>
-		<td class=legend style='font-size:14px'>RelayCountry:</td>
+		<td class=legend style='font-size:18px'>RelayCountry:</td>
 		<td>". Field_checkbox("EnableRelayCountry",1,$EnableRelayCountry)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{deny_countries_text_spam}")."</td>
@@ -140,50 +140,50 @@ function popup(){
 	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>WrongMX:</td>
+		<td class=legend style='font-size:18px'>WrongMX:</td>
 		<td>". Field_checkbox("EnableSpamassassinWrongMX",1,$EnableSpamassassinWrongMX)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{WrongMXPlugin}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>RBL DNSBL:</td>
+		<td class=legend style='font-size:18px'>RBL DNSBL:</td>
 		<td>". Field_checkbox("EnableSpamassassinDnsEval",1,$EnableSpamassassinDnsEval)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>URIDNSBL:</td>
+		<td class=legend style='font-size:18px'>URIDNSBL:</td>
 		<td>". Field_checkbox("EnableSpamassassinURIDNSBL",1,$EnableSpamassassinURIDNSBL)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{ACTIVATE_SPF}:</td>
+		<td class=legend style='font-size:18px'>{ACTIVATE_SPF}:</td>
 		<td>". Field_checkbox("EnableSPF",1,$EnableSPF)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{ACTIVATE_SPF_TEXT}<br>{APP_SPF_TEXT}")."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:14px'>{enable_dkim_verification}:</td>
+		<td class=legend style='font-size:18px'>{enable_dkim_verification}:</td>
 		<td>". Field_checkbox("enable_dkim_verification",1,$enable_dkim_verification)."</td>
 		<td>$dkim</td>
 		<td width=1%>". help_icon("{dkim_about}<br>{dkim_about2}")."</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{enable_DecodeShortURLs}:</td>
+		<td class=legend style='font-size:18px'>{enable_DecodeShortURLs}:</td>
 		<td>". Field_checkbox("EnableDecodeShortURLs",1,$EnableDecodeShortURLs)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{DecodeShortURLs_explain}")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{FreeMail}:</td>
+		<td class=legend style='font-size:18px'>{FreeMail}:</td>
 		<td>". Field_checkbox("EnableSpamAssassinFreeMail",1,$EnableSpamAssassinFreeMail)."</td>
 		<td>&nbsp;</td>
 		<td width=1%>". help_icon("{EnableSpamAssassinFreeMail_explain}")."</td>
 		
 	</tr>	
 	<tr>
-		<td class=legend width=99%>PhishTag:</td>
+		<td class=legend width=99% style='font-size:18px'>PhishTag:</td>
 		<td width=1%>". Field_checkbox("EnablePhishTag",1,$EnablePhishTag)."</td>
 		<td width=1%>". imgtootltip("settings-20.gif","{parameters}","Loadjs('spamassassin.phishtag.php')")."</td>
 		<td width=1%>". help_icon("{EnablePhishTag_explain}")."</td>
@@ -191,11 +191,11 @@ function popup(){
 	
 	
 	<tr>
-		<td colspan=4 align='right'><hr>". button("{apply}","SaveAmavisPlugins()",16)."</td>
+		<td colspan=4 align='right'><hr>". button("{apply}","SaveAmavisPlugins()",28)."</td>
 	</tr>
 	
 </table>	
-
+</div>
 
 <script>
 

@@ -19,6 +19,7 @@ include_once(dirname(__FILE__)."/class.system.nics.inc");
 include_once(dirname(__FILE__)."/class.haarp.inc");
 include_once(dirname(__FILE__)."/class.squid.caches.rules.inc");
 include_once(dirname(__FILE__)."/class.squid.caches.inc");
+include_once(dirname(__FILE__)."/class.products-ip-ranges.inc");
 class squid{
 	
 
@@ -5103,11 +5104,11 @@ function BuildSquidConf(){
 		$conf=$conf."acl ToArticaWWW dstdomain .artica.fr .articatech.net .articatech.com\n";
 		$conf=$conf."acl DenyBlacksites dstdomain \"/etc/squid3/www-blacklists.db\"\n";
 		if(!is_file("/etc/squid3/www-blacklists.db")){@touch("/etc/squid3/www-blacklists.db");}
+		$conf=$conf .$this->ACL_ChildProxysIPs()."\n";
 		
 		if($SquidAsMasterPeer==1){
 			$conf=$conf."acl ChildProxyPorts $token $SquidAsMasterPeerPort $SquidAsMasterPeerPortSSL\n";
-			$ChildProxysIPsACLs=$this->ACL_ChildProxysIPs();
-			if($ChildProxysIPsACLs<>null){ $conf=$conf."$ChildProxysIPsACLs\n"; }
+
 		
 		}
 		
@@ -5124,8 +5125,9 @@ function BuildSquidConf(){
 			$acl_blocked_sites="acl blockedsites url_regex \"/etc/squid3/squid-block.acl\"\n";
 		}
 			
-
-		
+		$conf=$conf.$this->ACLS_DROPBOX()."\n";
+		$conf=$conf.$this->ACLS_SKYPE()."\n";
+		$conf=$conf.$this->ACLS_OFFICE365()."\n";
 		
 		$squid_sessions_builder=$this->squid_sessions_builder();
 	
@@ -5525,6 +5527,8 @@ function BuildSquidConf(){
 		}
 		
 		
+		
+		
 		$conf=$conf."\n";
 		$conf=$conf.$this->WCCP();
 		$conf=$conf.$this->SNMP();
@@ -5638,6 +5642,7 @@ function BuildSquidConf(){
 		$conf=$conf ."# -----------------------------\n";
 		$conf=$conf .$this->ssl_dropbox();
 		$conf=$conf .$this->ssl_skype();
+		$conf=$conf. $this->ssl_office365();
 		$conf=$conf .$this->ssl_bump_access();
 		$conf=$conf."\n\n";
 		$conf=$conf ."# --------- Caches \n\n";
@@ -6209,8 +6214,13 @@ function BuildSquidConf(){
 				$SquidAsMasterPeerPort=intval($sock->GET_INFO("SquidAsMasterPeerPort"));
 				$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 				$token=$this->myport_token();
-				$f[]="# ACL_ChildProxysIPs: Backends = > Only set myport";
-				$f[]="acl ChildProxysIPs $token $SquidAsMasterPeerPort $SquidAsMasterPeerPortSSL";
+				$f[]="# ACL_ChildProxysIPs: Backends = > Only set myport $SquidAsMasterPeerPort/$SquidAsMasterPeerPortSSL";
+				if($SquidAsMasterPeerPort>0){
+					$f[]="acl ChildProxysIPs $token $SquidAsMasterPeerPort $SquidAsMasterPeerPortSSL";
+				}else{
+					$f[]="# ACL_ChildProxysIPs: Backends = > Myport not set => 127.0.0.1";
+					$f[]="acl ChildProxysIPs src 127.0.0.1";
+				}
 				return @implode("\n", $f);
 			}
 			$f[]="acl ChildProxysIPs src ".@implode(" ", $backends);
@@ -6271,6 +6281,28 @@ function BuildSquidConf(){
 				$conf[]="http_access deny ChildProxyPorts all";
 			}
 			
+			$AllowSquidDropBox=intval($sock->GET_INFO("AllowSquidDropBox"));
+			$AllowSquidSkype=intval($sock->GET_INFO("AllowSquidSkype"));
+			$AllowSquidOffice365=intval($sock->GET_INFO("AllowSquidOffice365"));
+			$conf[]="#--------- AllowSquidDropBox:$AllowSquidDropBox, AllowSquidSkype:$AllowSquidSkype, AllowSquidOffice365:$AllowSquidOffice365 F:".__FUNCTION__." line:".__LINE__;
+			if($AllowSquidDropBox==1){
+				$conf[]="http_access allow dropbox_ips";
+				$conf[]="http_access allow dropbox_www";
+				$conf[]="url_rewrite_access deny dropbox_ips";
+				$conf[]="url_rewrite_access deny dropbox_www";
+			}
+			if($AllowSquidSkype==1){
+				$conf[]="http_access allow skype_ips";
+				$conf[]="http_access allow skype_www";
+				$conf[]="url_rewrite_access deny skype_ips";
+				$conf[]="url_rewrite_access deny skype_ips";
+			}
+			if($AllowSquidOffice365==1){
+				$conf[]="http_access allow office365_ips";
+				$conf[]="http_access allow office365_www";
+				$conf[]="url_rewrite_access deny office365_ips";
+				$conf[]="url_rewrite_access deny office365_www";
+			}
 			
 			
 			if($this->SquidUrgency==1){
@@ -7010,17 +7042,76 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			
 		}
 		
+		private function ACLS_DROPBOX(){
+			$sock=new sockets();
+			$AllowSquidSSLDropBox=intval($sock->GET_INFO("AllowSquidSSLDropBox"));
+			$AllowSquidDropBox=intval($sock->GET_INFO("AllowSquidDropBox"));
+			if($AllowSquidDropBox==1){$AllowSquidSSLDropBox=1;}
+			if($AllowSquidSSLDropBox==1){$AllowSquidDropBox=1;}
+			if($AllowSquidDropBox==0){return;}
+			$ips=new products_ip_ranges();
+			$ips->dropbox_networks();
+			$f[]="# --------- AllowSquidSSLDropBox = $AllowSquidDropBox AllowSquidDropBox = $AllowSquidDropBox [".__LINE__."]";
+			$f[]="acl dropbox_ips dst \"/etc/squid3/acls/dropbox-nets.acl\"";
+			$f[]="acl dropbox_www dstdomain  .dropbox.com";
+			return @implode("\n", $f)."\n";
+		}
+		
+		private function ACLS_SKYPE(){
+			$sock=new sockets();
+			$AllowSquidSSLSkype=intval($sock->GET_INFO("AllowSquidSSLSkype"));
+			$AllowSquidSkype=intval($sock->GET_INFO("AllowSquidSkype"));
+			if($AllowSquidSkype==1){$AllowSquidSSLSkype=1;}
+			if($AllowSquidSSLSkype==1){$AllowSquidSkype=1;}
+			if($AllowSquidSkype==0){return;}
+			$ips=new products_ip_ranges();
+			$ips->skype_networks();
+			$f[]="# --------- AllowSquidSSLSkype = $AllowSquidSSLSkype AllowSquidSSLSkype = $AllowSquidSSLSkype [".__LINE__."]";
+			$f[]="acl skype_www dstdomain  .live.com  .skypeassets.com";
+			$f[]="acl skype_ips dst \"/etc/squid3/acls/skype-nets.acl\"";
+			return @implode("\n", $f)."\n";
+		}
+
+		private function ACLS_OFFICE365(){
+			$sock=new sockets();
+			
+			$AllowSquidOffice365=intval($sock->GET_INFO("AllowSquidOffice365"));
+			if($AllowSquidOffice365==0){return;}
+			$ips=new products_ip_ranges();
+			
+			$ips->office365_networks(); 
+			$ips->office365_domains(); 
+			
+			
+			$f[]="# --------- Office365 [".__LINE__."]";
+			$f[]="acl office365_www dstdomain \"/etc/squid3/acls/office365-domains.acl\"";
+			$f[]="acl office365_ips dst \"/etc/squid3/acls/office365-nets.acl\"";
+			return @implode("\n", $f)."\n";
+		}	
+
+		private function ssl_office365(){
+			$sock=new sockets();
+			$AllowSquidOffice365=intval($sock->GET_INFO("AllowSquidOffice365"));
+			
+			if($AllowSquidOffice365==0){return "# --------- Office365 not trusted [".__LINE__."]\n";}
+			include_once(dirname(__FILE__)."/class.products-ip-ranges.inc");
+				
+			$f[]="# --------- no bumping SSL for Office365 [".__LINE__."]";
+			$f[]="ssl_bump none office365_ips";
+			$f[]="ssl_bump none office365_www";
+			return @implode("\n", $f)."\n";
+		}		
+		
+		
 		private function ssl_dropbox(){
 			$sock=new sockets();
 			$AllowSquidSSLDropBox=intval($sock->GET_INFO("AllowSquidSSLDropBox"));
+			$AllowSquidDropBox=intval($sock->GET_INFO("AllowSquidDropBox"));
+			if($AllowSquidDropBox==1){$AllowSquidSSLDropBox=1;}
 			if($AllowSquidSSLDropBox==0){return "# --------- DropBox not trusted [".__LINE__."]\n";}
 			include_once(dirname(__FILE__)."/class.products-ip-ranges.inc");
-			$ips=new products_ip_ranges();
 			
-			$ips->dropbox_networks();
 			$f[]="# --------- no bumping SSL for dropbox [".__LINE__."]";
-			$f[]="acl dropbox_ips dst \"/etc/squid3/acls/dropbox-nets.acl\"";
-			$f[]="acl dropbox_www dstdomain  .dropbox.com";
 			$f[]="ssl_bump none dropbox_ips";
 			$f[]="ssl_bump none dropbox_www";
 			return @implode("\n", $f)."\n";
@@ -7028,17 +7119,13 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 		private function ssl_skype(){
 			$sock=new sockets();
 			$AllowSquidSSLSkype=intval($sock->GET_INFO("AllowSquidSSLSkype"));
+			$AllowSquidSkype=intval($sock->GET_INFO("AllowSquidSkype"));
+			if($AllowSquidSkype==1){$AllowSquidSSLSkype=1;}
 			if($AllowSquidSSLSkype==0){return "# --------- Skype not trusted [".__LINE__."]\n";}
-			include_once(dirname(__FILE__)."/class.products-ip-ranges.inc");
-			$ips=new products_ip_ranges();
-				
-			$ips->skype_networks();
 			$f[]="# --------- no bumping SSL for Skype [".__LINE__."]";
-			$f[]="acl skype_www dstdomain  .live.com  .skypeassets.com";
-			
-			
-			$f[]="acl skype_ips dst \"/etc/squid3/acls/skype-nets.acl\"";
+
 			$f[]="ssl_bump none skype_ips";
+			$f[]="ssl_bump none skype_www";
 			return @implode("\n", $f)."\n";
 		}		
 

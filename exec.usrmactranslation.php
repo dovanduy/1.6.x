@@ -111,11 +111,19 @@ function build(){
 	@file_put_contents("/usr/share/artica-postfix/ressources/databases/usersMacs.db",serialize($MACS));
 	shell_exec("$chmod 755 /etc/squid3/usersMacs.db");
 	shell_exec("$chmod 755 /usr/share/artica-postfix/ressources/databases/usersMacs.db");
+	
+	if($CountDeMac==0){
+		if($CountDeIP==0){
+			return;
+		}
+	}
+	
 	if($EnableWebProxyStatsAppliance==1){notify_remote_proxys_usersMacs();return;}
-	squid_admin_mysql(2, "translation members database updated $CountDeMac MACs, $CountDeIP Ips", null,__FILE__,__LINE__);
+	squid_admin_mysql(2, "Translation members database updated $CountDeMac MACs, $CountDeIP Ips", null,__FILE__,__LINE__);
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	squid_admin_mysql(1, "Ask to reload the proxy after update Translation members database", null,__FILE__,__LINE__);
 	$cmd="$nohup $php5 ". dirname(__FILE__)."/exec.squid.php --reconfigure-squid --force >/dev/null 2>&1 &";
 	shell_exec($cmd);
 	

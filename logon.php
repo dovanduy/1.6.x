@@ -637,6 +637,7 @@ function logon(){
 	include_once('ressources/class.user.inc');	
 	include_once('ressources/class.langages.inc');
 	$sock=new sockets();
+	$tpl=new templates();
 	$_POST["artica_password"]=url_decode_special($_POST["artica_password"]);
 	writelogs("Testing logon....{$_POST["artica_username"]}",__FUNCTION__,__FILE__,__LINE__);
 	writelogs("Testing logon.... password:{$_POST["artica_password"]}",__FUNCTION__,__FILE__,__LINE__);	
@@ -723,6 +724,7 @@ function logon(){
 	$u=new user($_POST["artica_username"]);
 	$userPassword=$u->password;
 	if(trim($u->uidNumber)==null){
+		
 		writelogs('Unable to get user infos abort',__FUNCTION__,__FILE__);
 		echo $tpl->javascript_parse_text("{wrong_password_or_username}");
 		return null;

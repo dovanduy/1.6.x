@@ -501,7 +501,7 @@ function build_line($ligne){
 			
 			if($GLOBALS["FetchMailToZarafa"]==1){
 				if($ligne["UseDefaultSMTP"]==1){
-					$smtp="\n\tmda \"{$GLOBALS["ZARAFA_D_AGENT_BIN"]} %T\"";
+					$smtp="\n\tmda \"{$GLOBALS["ZARAFA_D_AGENT_BIN"]} {$ligne["uid"]}\"";
 				}
 			}
 			

@@ -76,13 +76,14 @@ function popup(){
 		}
 		
 	function InstallVMWARECD(){
+		Loadjs('vmware.install.progress.php?&CD=1');
 		
-		YahooWin2('650','$page?vmware-install=yes&CD=1','$INSTALL_VMWARE_TOOLS');
 	}
 	
 	function InstallVMWARESource(){
 		var se=escape(document.getElementById('VMWareSourcePath').value);
-		YahooWin2('650','$page?vmware-install=yes&CD=0&path='+se,'$INSTALL_VMWARE_TOOLS');
+		Loadjs('vmware.install.progress.php?&CD=0&path='+se);
+		
 	}
 		
 		RefreshVMWareStatus();
@@ -129,7 +130,7 @@ function popup_install(){
 	
 	
 	<script>
-		LoadAjax('vm-$t','$page?vmware-install-perfom=yes&t=$t&CD={$_GET["CD"]}&path={$_GET["path"]}');
+		Loadjs('vm-$t','$page?vmware-install-perfom=yes&t=$t&CD={$_GET["CD"]}&path={$_GET["path"]}');
 	</script>
 	
 	";

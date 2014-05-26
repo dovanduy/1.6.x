@@ -635,7 +635,7 @@ function section_content_filtering(){
 	$quarantine=Paragraphe('folder-quarantine-0-64.png','{quarantine_and_backup_storage}','{quarantine_and_backup_storage_text}',"javascript:Loadjs('quarantine.php?script=quarantine')",null,210,100,0,true);
 	$apply=applysettings_postfix(true) ;
 	$assp=Buildicon64("DEF_ICO_ASSP");
-	$quarantine_admin=Paragraphe("biohazard-64.png","{all_quarantines}","{all_quarantines_text}","javascript:Loadjs('domains.quarantine.php?js=yes&Master=yes')",null,210,100,0,true);
+	
 	$quarantine_report=Paragraphe("biohazard-settings-64.png","{quarantine_reports}","{quarantine_reports_text}","javascript:Loadjs('domains.quarantine.php?js=yes&MailSettings=yes')",null,210,100,0,true);
 	
 	$quarantine_policies=Paragraphe("script-64.png","{quarantine_policies}","{quarantine_policies_text}",

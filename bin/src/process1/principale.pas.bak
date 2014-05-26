@@ -716,7 +716,7 @@ begin
    SYS.set_INFO('syslog_path',SYS.LOCATE_SYSLOG_PATH());
 
    if not TryStrToInt(SYS.GET_INFO('EnableMysqlFeatures'),EnableMysqlFeatures) then EnableMysqlFeatures:=1;
-
+   if verbosed then writeln('web_settings:: 20%');
 
    LinuxDistributionCodeName:=SYS.GET_INFO('LinuxDistributionCodeName');
    if FileExists('/usr/share/artica-postfix/bin/setup-ubuntu') then begin
@@ -1272,7 +1272,7 @@ begin
         end;
 
         if FileExists(APACHE_MODULES_PATH+'/mod_vhost_ldap.so') then  list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=False;');
-        if FileExists(APACHE_MODULES_PATH+'/mod_bw.so') then  list.Add('$_GLOBAL["APACHE_MODE_BW"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_VHOSTS_LDAP"]=False;');
+        if FileExists(APACHE_MODULES_PATH+'/mod_bw.so') then  list.Add('$_GLOBAL["APACHE_MODE_BW"]=True;') else list.Add('$_GLOBAL["APACHE_MODE_BW"]=False;');
 
 
         if FileExists(APACHE_MODULES_PATH+'/mod_dav.so') then begin

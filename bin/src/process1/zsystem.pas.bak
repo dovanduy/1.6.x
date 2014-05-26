@@ -8783,6 +8783,7 @@ if RegExpr.Exec(data) then begin
 end;
 
 RegExpr.Expression:='x86_64';
+
 if RegExpr.Exec(data) then begin
    RegExpr.free;
    result:=64;

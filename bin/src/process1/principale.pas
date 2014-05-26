@@ -716,7 +716,7 @@ begin
    SYS.set_INFO('syslog_path',SYS.LOCATE_SYSLOG_PATH());
 
    if not TryStrToInt(SYS.GET_INFO('EnableMysqlFeatures'),EnableMysqlFeatures) then EnableMysqlFeatures:=1;
-
+   if verbosed then writeln('web_settings:: 16%');
 
    LinuxDistributionCodeName:=SYS.GET_INFO('LinuxDistributionCodeName');
    if FileExists('/usr/share/artica-postfix/bin/setup-ubuntu') then begin
@@ -725,17 +725,18 @@ begin
          LinuxDistributionCodeName:=SYS.GET_INFO('LinuxDistributionCodeName');
       end;
    end;
-
+   if verbosed then writeln('web_settings:: 17%');
    list.Add('$_GLOBAL["LinuxDistriCode"]="'+SYS.GET_INFO('LinuxDistributionCodeName')+'";');
    list.Add('$_GLOBAL["LinuxDistriFullName"]="'+SYS.GET_INFO('LinuxDistributionFullName')+'";');
    list.Add('$_GLOBAL["ArchStruct"]="'+IntToStr(SYS.ArchStruct())+'";');
    list.Add('$_GLOBAL["OPENSSH_VER"]="'+sshd.VERSION()+'";');
    list.Add('$_GLOBAL["PEAR_PACKAGES"]="'+SYS.PEAR_MODULES()+'";');
+   if verbosed then writeln('web_settings:: 18%');
 
 
-
-
+   if verbosed then writeln('web_settings:: 19%');
    openldap:=topenldap.Create;
+   if verbosed then writeln('web_settings:: 20%');
    list.Add('$_GLOBAL["SLAPD_CONF_PATH"]="'+openldap.SLAPD_CONF_PATH()+'";');
    if FileExists(openldap.FindModulepath('syncprov.so')) then begin
       list.Add('$_GLOBAL["LDAP_SYNCPROV"]=True;');

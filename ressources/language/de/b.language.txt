@@ -293,6 +293,12 @@ By default, the router is allowed to put mails on each instance during 10mn.[br]
 (Android,BlackBerry,PalmOS,SymbianOS,IE Mobile,iPhone,iPad,iPod)[br]to only bypass the NTLM authentication method.[br]
 </AllowSmartphonesRuleExplain>
 <AllowSmartphonesRuleText>Allow Smartphones to bypass authentication</AllowSmartphonesRuleText>
+<AllowSquidDropBox>Allow DropBox in all cases</AllowSquidDropBox>
+<AllowSquidDropBox_explain>If turned to green, DropBox websites will be whitelisted in all cases ( including authentication too)</AllowSquidDropBox_explain>
+<AllowSquidOffice365>Allow Lync Online and Office 365</AllowSquidOffice365>
+<AllowSquidOffice365_explain>If turned to green, Lync Online and Office 365 websites will be whitelisted in all cases ( including authentication too)</AllowSquidOffice365_explain>
+<AllowSquidSkype>Allow Skype in all cases</AllowSquidSkype>
+<AllowSquidSkype_explain>If turned to green, Skypes websites will be whitelisted in all cases ( including authentication too)</AllowSquidSkype_explain>
 <AllowUserMaillog>Can display real-time SMTP mail events</AllowUserMaillog>
 <allow_download_certificate_public>Allow downloading the certificate on logon page</allow_download_certificate_public>
 <allow_download_certificate_public_explain>If green, the certificate link will be displayed on Artica logon page, at the bottom of the login form.</allow_download_certificate_public_explain>
@@ -372,6 +378,12 @@ After clicking on the "build feature" the process will create your MySQL service
 <apache>Apache Web server</apache>
 <ApacheLogRotate>Enable Web servers log rotation</ApacheLogRotate>
 <ApacheLogRotate_explain>Rotate all Web servers log with specified parameters</ApacheLogRotate_explain>
+<apache_Bandwidth_enable>Enable Bandwidth Limiting Module</apache_Bandwidth_enable>
+<apache_Bandwidth_explain>
+This feature allows you to completely control a users Web utilization.[br]
+Limit bandwidth per second, number of concurrent connections, file sizes and more.[br]
+It enables the setting of server-wide or per connection bandwidth limits, based on the directory, size of files and remote IP/domain.[br]
+</apache_Bandwidth_explain>
 <apache_chain>Apache chain</apache_chain>
 <appliances>Appliances</appliances>
 <apply_changes>Apply changes</apply_changes>
@@ -747,6 +759,7 @@ Select your saved connections or use the wizard in order to create a new one.
 Apache Web server, nginx, MySQL service.
 </automatic_memory_cleaning_explain>
 <automation_script_explain>The Automation Script allows you to copy/paste predefined settings directly in this form in order to quickly deploy your Artica server</automation_script_explain>
+<available_versions>Available versions</available_versions>
 <awstats_postfix>Build eMail events</awstats_postfix>
 <awstats_postfix_explain>This task extract emails events from the system email logger and prepare MySQL events.[br]
 It save prepared files into a directory.</awstats_postfix_explain>
@@ -1445,6 +1458,7 @@ This feature will create a Debian repository - about 10Gb/architecture.
 <default_file_lifetime>Default file lifetime</default_file_lifetime>
 <default_gateway>default gateway</default_gateway>
 <default_ldap_group>Default LDAP group</default_ldap_group>
+<default_limit>Default limit</default_limit>
 <default_route>Default route</default_route>
 <default_rule2>Default rule</default_rule2>
 <default_rules>Default rules</default_rules>
@@ -1995,6 +2009,7 @@ It is able to display real-time flow analysis for connected hosts.
 <enable_phpfpm_service>Activate the PHP-FPM service</enable_phpfpm_service>
 <enable_phpfpm_service_explain>The FastCGI Process Manager (FPM) is designed to pre-load all PHP libraries and should be more faster than standard PHP framework design.
 </enable_phpfpm_service_explain>
+<ENABLE_PING_GATEWAY>Ping an address</ENABLE_PING_GATEWAY>
 <ENABLE_PING_GATEWAY_EXPLAIN>If enabled, the proxy will try to ping a remote IP address in order to see if it available</ENABLE_PING_GATEWAY_EXPLAIN>
 <enable_pop3_text>Enable the POP3 protocol for retreive messages from a mail client software trought POP3</enable_pop3_text>
 <enable_proxy_mode>Enable Proxy mode</enable_proxy_mode>
@@ -2030,6 +2045,8 @@ This port disable all proxy features such as caching content, ACLs, Web filterin
 <enable_test_port_table_explain>According the test port remove all restrictions, you must add here IP addresses allowed to surf trough Internet.[br]
 This to not let users using this port.</enable_test_port_table_explain>
 <enable_watchdog>Enable watchdog</enable_watchdog>
+<enable_watchdog_squid_explain>If turned to green, Artica will be able to monitor proxy service and react automatically on detected troubles according configuration.
+</enable_watchdog_squid_explain>
 <enable_webdav_per_user>Enable WebDAV per user</enable_webdav_per_user>
 <enable_webdav_per_user_explain>This feature will create a WebDAV access for your members.[br]If enabled, you will be able to enable/disable the possibility for each user
 to access to their Home Directory trough WebDav protocol</enable_webdav_per_user_explain>
@@ -2850,6 +2867,7 @@ In this section, you can see the memory used and the process number used by the 
 <LimitCnx_text>if more than 0, this option will limit the number of simultaneous connections for the assigned session or as a special case, from one address</LimitCnx_text>
 <LimitReqs>Max requests per second</LimitReqs>
 <LimitReqs_text>This feature (if up to 0 ) will limit the number of requests in one second.</LimitReqs_text>
+<limit_all_requests>Limit all requests</limit_all_requests>
 <limit_bandwidth>Limit the bandwidth</limit_bandwidth>
 <limit_connections_to_these_networks>Limit connections to these networks</limit_connections_to_these_networks>
 <limit_connections_to_these_networks_explain>If green, then Artica will build firewall rules that only allow connections from listed networks</limit_connections_to_these_networks_explain>
@@ -2938,6 +2956,7 @@ You will receive a new password shortly.[br]
 Use this new password to access the site.
 </lost_password_explain>
 <MAC>Mac Address</MAC>
+<macros>Macros</macros>
 <macro_remove_disk>Remove disk from the system</macro_remove_disk>
 <macro_remove_disk_explain>Umount the disk and unlink it from the filesystem</macro_remove_disk_explain>
 <MACtoMembers>MAC To members</MACtoMembers>
@@ -4515,6 +4534,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <SecServerSignatureOffExplain>To use this feature you need to enable "Activate security enforcement" feature and set the "Server Header response" feature to All informations unser the FreeWebs global parameters engine</SecServerSignatureOffExplain>
 <security_logging>Security logging</security_logging>
 <selector>Selector</selector>
+<select_all>Select all</select_all>
 <select_this_group>Select this group</select_this_group>
 <select_this_item>Select this item</select_this_item>
 <sended_messages>sended message(s)</sended_messages>
@@ -4650,6 +4670,7 @@ If you set it to automatic mode, the SMTP engine will use the MX according the R
 <smtp_authentication>SMTP authentication</smtp_authentication>
 <SMTP_BANNER>SMTP Banner</SMTP_BANNER>
 <SMTP_BANNER_TEXT>SMTP greeting banner text displayed when connecting to the SMTP port</SMTP_BANNER_TEXT>
+<smtp_enabled_watchdog_explain>If green then watchdog will send SMTP notifications when encounter issues</smtp_enabled_watchdog_explain>
 <smtp_events_database_explain>Counters and SMTP events are stored in a MySQL Table.[br]In this section you can backup the events log table to the local disk and/or reset the table in order to reset counters too.</smtp_events_database_explain>
 <smtp_events_table>SMTP events table</smtp_events_table>
 <smtp_from>SMTP From</smtp_from>
@@ -5200,6 +5221,7 @@ This task will parse this queue in order to build thumbnails for stattistics pur
 <times>times</times>
 <time_duration>Time duration</time_duration>
 <title2>Title</title2>
+<tls_enabled_explain>If green this the SMTP client will use TLS in order to be authenticated to the remote SMTP service</tls_enabled_explain>
 <token>token</token>
 <top_10>TOP 10</top_10>
 <top_cached_websites>TOP cached websites</top_cached_websites>
@@ -5692,6 +5714,7 @@ If this issue still occurs in several minutes, try to run the tool [b]artica-ins
 <watchdog_klms8_text>Ensure that Kaspersky Linux mail services are up and did not reach memory/CPU limits</watchdog_klms8_text>
 <watchdog_queue>Queue Watchdog</watchdog_queue>
 <watchdog_queue_text>Parameters if your mail queue exceed limits</watchdog_queue_text>
+<watchdog_squid_settings>Watchdog service parameters</watchdog_squid_settings>
 <wccp2_routers>WCCP routers</wccp2_routers>
 <wccp2_routers_explain>Separate IP addresses with a comma</wccp2_routers_explain>
 <webaccess>Web Access</webaccess>

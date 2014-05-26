@@ -59,7 +59,7 @@ function popup(){
 	$events=$tpl->_ENGINE_parse_body("{events}");
 	$empty=$tpl->_ENGINE_parse_body("{empty}");
 	$daemon=$tpl->_ENGINE_parse_body("{daemon}");
-	$settings=$tpl->javascript_parse_text("{settings}");
+	$settings=$tpl->javascript_parse_text("{watchdog_squid_settings}");
 	$empty_events_text_ask=$tpl->javascript_parse_text("{empty_events_text_ask}");
 	$TB_HEIGHT=450;
 	$TB_WIDTH=927;
@@ -138,7 +138,7 @@ function All$t(){
 	$('#events-table-$t').flexOptions({url: '$page?events-table=yes'}).flexReload(); 
 }
 function Params$t(){
-	Loadjs('squid.watchdog.php');
+	Loadjs('squid.proxy.watchdog.php');
 }
 
 function EmptyEvents(){

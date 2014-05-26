@@ -19,8 +19,9 @@ include_once(dirname(__FILE__)."/ressources/class.system.nics.inc");
 include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
+include_once(dirname(__FILE__)."/ressources/class.squid.inc");
 
-
+if($argv[1]=="--automation"){automation();exit;}
 if($argv[1]=="--articaweb"){create_articaweb($argv["2"]);die();}
 if($argv[1]=="--genuid"){
 		$unix=new unix();
@@ -58,12 +59,271 @@ function testnetworks(){
 }
 
 function writeprogress($perc,$text){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/web/wizard.progress";
 	$array["POURC"]=$perc;
 	$array["TEXT"]=$text;
+	echo "$text\n";
 	@mkdir("/usr/share/artica-postfix/ressources/logs/web",true,0755);
-	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/wizard.progress", serialize($array));
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/wizard.progress",0755);
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
 	
+}
+
+function automation(){
+	ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+	$sock=new sockets();
+	$users=new usersMenus();
+	$unix=new unix();
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/AutomationScript.conf")){
+		echo "AutomationScript.conf no such file...\n";
+		writeprogress(110,"AutomationScript.conf no such file...");
+		return;
+	}
+	
+	$ipClass=new IP();
+	$users=new usersMenus();
+	$array=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));	
+	$php=$unix->LOCATE_PHP5_BIN();
+	
+	$AutomationScript=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/AutomationScript.conf");
+	if(preg_match("#<SQUIDCONF>(.*?)</SQUIDCONF>#is", $AutomationScript,$rz)){
+		$squidconf=$rz[1];
+		if(strlen($squidconf)>10){
+			echo "Squid.conf = ".strlen($squidconf)." bytes\n";
+			$AutomationScript=str_replace("<SQUIDCONF>{$rz[1]}</SQUIDCONF>", "", $AutomationScript);
+			@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/SquidToImport.conf", $squidconf);
+			$squidconf=null;
+			writeprogress(5,"Importing old Squid.conf");
+			system("$php /usr/share/artica-postfix/exec.squid.import.conf.php --import \"/usr/share/artica-postfix/ressources/logs/web/SquidToImport.conf\" --verbose");
+			@unlink("/usr/share/artica-postfix/ressources/logs/web/SquidToImport.conf");
+		}
+	}
+	
+	
+	
+	
+	$data=explode("\n",$AutomationScript);
+	$WizardStatsAppliance=unserialize(base64_decode($sock->GET_INFO("WizardStatsAppliance")));
+	writeprogress(5,"Analyze configuration file...");
+	
+	while (list ($num, $ligne) = each ($data) ){
+		$ligne=trim($ligne);
+		if($ligne==null){continue;}
+	
+		if(preg_match("#^\##", trim($ligne))){continue;}
+		if(!preg_match("#(.+?)=(.+)#", $ligne,$re)){continue;}
+		$key=trim($re[1]);
+		$value=trim($re[2]);
+		echo "Parsing $key = \"$value\"\n";
+		
+		if($key=="WizardStatsApplianceDisconnected"){
+				$sock->SET_INFO("WizardStatsApplianceDisconnected", $value); 
+				$sock->SET_INFO("EnableMySQLSyslogWizard", 1); 
+				$sock->SET_INFO("WizardStatsApplianceSeen", 1); 
+				
+				continue; }
+		if($key=="WizardStatsAppliance_server"){$WizardStatsAppliance["SERVER"]=$value; continue; }
+		if($key=="WizardStatsAppliance_port"){$WizardStatsAppliance["PORT"]=$value; continue; }
+		if($key=="WizardStatsAppliance_username"){$WizardStatsAppliance["MANAGER"]=$value; continue; }
+		if($key=="WizardStatsAppliance_password"){$WizardStatsAppliance["MANAGER-PASSWORD"]=$value; continue; }		
+		if(preg_match("#BackupSquidLogs#", $key)){$sock->SET_INFO($key, $value);}
+		
+		
+		if($key=="caches"){ $WizardSavedSettings["CACHES"][]=$value; continue; }
+		$WizardSavedSettings[$key]=$value;
+		$KerbAuthInfos[$key]=$value;
+	}
+	writeprogress(6,"Analyze configuration file...");
+	$sock->SaveConfigFile(base64_encode(serialize($WizardStatsAppliance)), "WizardStatsAppliance");
+	$WizardSavedSettings["ARTICAVERSION"]=$users->ARTICA_VERSION;
+	
+	
+	$ProxyDNSCount=0;
+	if(isset($WizardSavedSettings["EnableKerbAuth"])){
+		$sock->SET_INFO("EnableKerbAuth", $WizardSavedSettings["EnableKerbAuth"]);
+		$sock->SET_INFO("UseADAsNameServer", $WizardSavedSettings["UseADAsNameServer"]);
+		$sock->SET_INFO("NtpdateAD", $WizardSavedSettings["NtpdateAD"]);
+		if($WizardSavedSettings["UseADAsNameServer"]==1){
+			if($ipClass->isValid($WizardSavedSettings["ADNETIPADDR"])){
+				$WizardSavedSettings["DNS1"]=$WizardSavedSettings["ADNETIPADDR"];
+				$q=new mysql_squid_builder();
+				$q->QUERY_SQL("INSERT INTO dns_servers (dnsserver,zOrder) VALUES ('{$WizardSavedSettings["ADNETIPADDR"]}','$ProxyDNSCount')");
+			}
+		}
+	
+	}	
+	writeprogress(7,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["ProxyDNS"])){
+		$ProxyDNS=explode(",",$WizardSavedSettings["ProxyDNS"]);
+		$c=1;
+		while (list ($num, $nameserver) = each ($ProxyDNS) ){
+			if(!$ipClass->isValid($nameserver)){continue;}
+			$ProxyDNSCount++;
+			$q=new mysql_squid_builder();
+			$q->QUERY_SQL("INSERT INTO dns_servers (dnsserver,zOrder) VALUES ('{$WizardSavedSettings["ADNETIPADDR"]}','$ProxyDNSCount')");
+		}
+	}	
+	
+	writeprogress(8,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["ENABLE_PING_GATEWAY"])){
+		$MonitConfig=unserialize(base64_decode($sock->GET_INFO("SquidWatchdogMonitConfig")));
+		$MonitConfig["ENABLE_PING_GATEWAY"]=$WizardSavedSettings["ENABLE_PING_GATEWAY"];
+		$MonitConfig["PING_GATEWAY"]=$WizardSavedSettings["PING_GATEWAY"];
+		$MonitConfig["MAX_PING_GATEWAY"]=$WizardSavedSettings["MAX_PING_GATEWAY"];
+		$MonitConfig["PING_FAILED_RELOAD_NET"]=$WizardSavedSettings["PING_FAILED_RELOAD_NET"];
+		$MonitConfig["PING_FAILED_REBOOT"]=$WizardSavedSettings["PING_FAILED_REBOOT"];
+		$MonitConfig["PING_FAILED_REPORT"]=$WizardSavedSettings["PING_FAILED_REPORT"];
+		$MonitConfig["PING_FAILED_FAILOVER"]=$WizardSavedSettings["PING_FAILED_FAILOVER"];
+		$sock->SaveConfigFile(base64_encode(serialize($MonitConfig)), "SquidWatchdogMonitConfig");
+	}	
+	writeprogress(9,"Analyze configuration file...");
+	$sock->SET_INFO("timezones",$WizardSavedSettings["timezones"]);
+	$nic=new system_nic();
+	$hostname=$WizardSavedSettings["netbiosname"].".".$WizardSavedSettings["domain"];
+	$nic->set_hostname($hostname);
+	$data=$sock->getFrameWork("system.php?zoneinfo-set=".urlencode(base64_encode($WizardSavedSettings["timezones"])));
+	$Encoded=base64_encode(serialize($WizardSavedSettings));
+	$sock->SaveConfigFile($Encoded,"WizardSavedSettings");
+	
+	writeprogress(10,"Analyze configuration file...");
+	$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
+	if(isset($WizardSavedSettings["MySQLSyslogUsername"])){$TuningParameters["username"]=$WizardSavedSettings["MySQLSyslogUsername"];}
+	if(isset($WizardSavedSettings["MySQLSyslogPassword"])){$TuningParameters["password"]=$WizardSavedSettings["MySQLSyslogPassword"];}
+	if(isset($WizardSavedSettings["MySQLSyslogServer"])){$TuningParameters["mysqlserver"]=$WizardSavedSettings["MySQLSyslogServer"];}
+	if(isset($WizardSavedSettings["MySQLSyslogServerPort"])){$TuningParameters["RemotePort"]=$WizardSavedSettings["MySQLSyslogServerPort"];}
+	if(isset($WizardSavedSettings["MySQLSyslogWorkDir"])){$TuningParameters["MySQLSyslogWorkDir"]=$WizardSavedSettings["MySQLSyslogWorkDir"];}
+	if(isset($WizardSavedSettings["MySQLSyslogType"])){$TuningParameters["MySQLSyslogType"]=$WizardSavedSettings["MySQLSyslogType"];}
+	$sock->SaveConfigFile(base64_encode(serialize($TuningParameters)), "MySQLSyslogParams");
+	$sock->SET_INFO("MySQLSyslogType", $WizardSavedSettings["MySQLSyslogType"]);
+	$sock->SET_INFO("MySQLSyslogWorkDir", $WizardSavedSettings["MySQLSyslogWorkDir"]);
+	$sock->SET_INFO("EnableSyslogDB", $WizardSavedSettings["EnableSyslogDB"]);
+	
+	if(isset($WizardSavedSettings["EnableCNTLM"])){
+		$sock->SET_INFO("EnableCNTLM", $WizardSavedSettings["EnableCNTLM"]);
+		$sock->SET_INFO("CnTLMPORT", $WizardSavedSettings["CnTLMPORT"]);
+	}
+	
+	if(isset($WizardSavedSettings["DisableSpecialCharacters"])){
+		$sock->SET_INFO("DisableSpecialCharacters", $WizardSavedSettings["DisableSpecialCharacters"]);
+	}
+	
+	if(isset($WizardSavedSettings["SambaBindInterface"])){
+		$sock->SET_INFO("SambaBindInterface", $WizardSavedSettings["SambaBindInterface"]);
+	}
+	
+	writeprogress(11,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["EnableSNMPD"])){
+		$sock->SET_INFO("EnableSNMPD", $WizardSavedSettings["EnableSNMPD"]);
+		$sock->SET_INFO("SNMPDCommunity", $WizardSavedSettings["SNMPDCommunity"]);
+		$sock->SET_INFO("SNMPDNetwork", $WizardSavedSettings["SNMPDNetwork"]);
+		$sock->getFrameWork("snmpd.php?restart=yes");
+	}
+	
+	
+	writeprogress(12,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["DisableArticaProxyStatistics"])){$sock->SET_INFO("DisableArticaProxyStatistics", $WizardSavedSettings["DisableArticaProxyStatistics"]);}
+	if(isset($WizardSavedSettings["EnableProxyLogHostnames"])){$sock->SET_INFO("EnableProxyLogHostnames", $WizardSavedSettings["EnableProxyLogHostnames"]);}
+	if(isset($WizardSavedSettings["EnableSargGenerator"])){$sock->SET_INFO("EnableSargGenerator", $WizardSavedSettings["EnableSargGenerator"]);}
+	
+	if(isset($WizardSavedSettings["CACHES"])){
+		if(count($WizardSavedSettings["CACHES"])>0){
+			$q=new mysql_squid_builder();
+			$order=1;
+			while (list ($index, $line) = each ($WizardSavedSettings["CACHES"]) ){
+				$order++;
+				$CONFCACHE=explode(",",$line);
+				$cachename=$CONFCACHE[0];
+				$CPU=$CONFCACHE[1];
+				$cache_directory=$CONFCACHE[2];
+				$cache_type=$CONFCACHE[3];
+				$size=$CONFCACHE[4];
+				$cache_dir_level1=$CONFCACHE[5];
+				$cache_dir_level2=$CONFCACHE[6];
+				if($cache_type=="tmpfs"){ $users=new usersMenus(); $memMB=$users->MEM_TOTAL_INSTALLEE/1024; $memMB=$memMB-1500; if($size>$memMB){ $size=$memMB-100; }}
+				$q->QUERY_SQL("INSERT IGNORE INTO squid_caches_center
+						(cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,zOrder)
+						VALUES('$cachename',$CPU,'$cache_directory','$cache_type','$size','$cache_dir_level1','$cache_dir_level2',1,0,0,$order)","artica_backup");
+			}
+		}
+	}
+	
+	writeprogress(13,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["Blacklists"])){
+		if($WizardSavedSettings["EnableWebFiltering"]==1){
+			$tp=explode(",",$WizardSavedSettings["Blacklists"]);
+			$q=new mysql_squid_builder();
+			while (list ($key, $category) = each ($tp) ){
+				if(trim($category)==null){continue;}
+				$sql="INSERT IGNORE INTO webfilter_blks (webfilter_id,category,modeblk) VALUES ('0','$category','0')";
+				$q->QUERY_SQL($sql);
+	
+			}
+		}
+	
+	}
+	
+	writeprogress(14,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["EnableTransparent"])){
+		$sock->SET_INFO("hasProxyTransparent",$WizardSavedSettings["EnableTransparent"]);
+		if( $WizardSavedSettings["EnableTransparent"] ==1){
+			$squid=new squidbee();
+			$squid->listen_port=$WizardSavedSettings["TransparentPort"];
+			$squid->second_listen_port=$WizardSavedSettings["proxy_listen_port"];
+			$WizardSavedSettings["proxy_listen_port"]=$WizardSavedSettings["TransparentPort"];
+			$squid->SaveToLdap(true);
+		}
+	
+	}
+	
+	writeprogress(15,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["cache_mem"])){
+		$squid=new squidbee();
+		$squid->global_conf_array["cache_mem"]=$WizardSavedSettings["cache_mem"];
+		$squid->global_conf_array["fqdncache_size"]=$WizardSavedSettings["fqdncache_size"];
+		$squid->global_conf_array["ipcache_size"]=$WizardSavedSettings["ipcache_size"];
+		$squid->global_conf_array["ipcache_low"]=$WizardSavedSettings["ipcache_low"];
+		$squid->global_conf_array["ipcache_high"]=$WizardSavedSettings["ipcache_high"];
+		$squid->SaveToLdap(true);
+	}
+	
+	
+	if(isset($WizardSavedSettings["swappiness"])){
+		$swappiness_saved=unserialize(base64_decode($sock->GET_INFO("kernel_values")));
+		$swappiness_saved["swappiness"]=$WizardSavedSettings["swappiness"];
+		$sock->SaveConfigFile( base64_encode(serialize($swappiness_saved)),"kernel_values");
+		$sock->getFrameWork("cmd.php?sysctl-setvalue={$WizardSavedSettings["swappiness"]}&key=".base64_encode("vm.swappiness"));
+	}
+	
+	writeprogress(16,"Analyze configuration file...");
+	if(isset($WizardSavedSettings["ManagerAccount"])){
+		$ldap=new clladp();
+		if($ldap->suffix==null){$suffix="dc=nodomain";}
+		$username=urlencode($WizardSavedSettings["ManagerAccount"]);
+		$password=urlencode(base64_encode($WizardSavedSettings["ManagerPassword"]));
+		$cmd="cmd.php?ChangeLDPSSET=yes&ldap_server=127.0.0.1&ldap_port=389&suffix=".urlencode($suffix);
+		$cmd=$cmd."&change_ldap_server_settings=no&username=$username&password=$password";
+		$datas=$sock->getFrameWork("$cmd");
+	}
+	
+	writeprogress(17,"Analyze configuration file...");
+	$sock->SET_INFO("EnableUfdbGuard", $WizardSavedSettings["EnableWebFiltering"]);
+	$sock->SET_INFO("EnableArpDaemon", $WizardSavedSettings["EnableArpDaemon"]);
+	$sock->SET_INFO("EnablePHPFPM",0);
+	$sock->SET_INFO("EnableFreeWeb",$WizardSavedSettings["EnableFreeWeb"]);
+	$sock->SET_INFO("SlapdThreads", $WizardSavedSettings["SlapdThreads"]);
+	$sock->SET_INFO("EnableVnStat", 0);
+	$sock->SET_INFO("WizardSavedSettingsSend", 1);	
+	
+	
+	$savedsettings["ARTICAVERSION"]=$users->ARTICA_VERSION;
+	$Encoded=base64_encode(serialize($WizardSavedSettings));
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", $Encoded);
+	
+	
+	writeprogress(18,"Analyze configuration file...{finish}");
+	WizardExecute();
+		
 }
 
 
@@ -76,9 +336,9 @@ function WizardExecute(){
 	$pid=$unix->PIDOF_PATTERN(basename(__FILE__));
 	if($pid<>getmypid()){return;}
 	$uuid=$unix->GetUniqueID();
-	writeprogress(5,"Server ID: $uuid");
+	writeprogress(20,"Server ID: $uuid");
 	sleep(2);
-	writeprogress(10,"Scanning hardware/software");
+	writeprogress(20,"Scanning hardware/software");
 	shell_exec("/etc/init.d/artica-process1 start");
 
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -87,7 +347,7 @@ function WizardExecute(){
 
 	$users=new usersMenus();
 	$q=new mysql();
-	writeprogress(20,"Creating databases");
+	writeprogress(25,"Creating databases");
 	$q->BuildTables();
 	$sock=new sockets();
 	$savedsettings=unserialize(base64_decode(file_get_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings")));
@@ -199,7 +459,7 @@ function WizardExecute(){
 	
 	if(!is_file("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED")){
 		if(!$GLOBALS["NOREBOOT"]){$reboot=true;}
-		$rebootWarn=" - System will be rebooted";
+		$rebootWarn=null;
 	}
 
 	if($users->SQUID_INSTALLED){
@@ -343,7 +603,8 @@ function WizardExecute(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if($EnableKerbAuth==1){
-		$unix->THREAD_COMMAND_SET("$php5 /usr/share/artica-postfix/exec.kerbauth.php --build");
+		writeprogress(82,"Launch Active Directory connection....{please_wait}");
+		system("$php5 /usr/share/artica-postfix/exec.kerbauth.php --build --force --verbose");
 	}
 	
 	

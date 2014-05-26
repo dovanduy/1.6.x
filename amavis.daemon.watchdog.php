@@ -36,26 +36,28 @@ function popup(){
 	if(!is_numeric($AmavisWatchdogKillProcesses)){$AmavisWatchdogKillProcesses=1;}
 	if(!is_numeric($EnableAmavisWatchdog)){$EnableAmavisWatchdog=1;}
 	
-	$html="<div class=explain id='AmavisWatchdogSaveParamsId'>{amavis_watchdog_explain}</div>
-	<table style='width:99%' class=form>
+	$html="<div class=explain id='AmavisWatchdogSaveParamsId' style='font-size:16px'>{amavis_watchdog_explain}</div>
+	<div style='width:98%' class=form>
+	<table style='width:99%'>
 	<tr>
-		<td valign='top' class=legend>{enable_amavis_watchdog}:</div>
+		<td valign='top' class=legend style='font-size:18px'>{enable_amavis_watchdog}:</div>
 		<td valign='top'>". Field_checkbox("EnableAmavisWatchdog",1,$EnableAmavisWatchdog,"EnableAmavisWatchdogCheck()")."</td>
 	</tR>
 	<tr>
-		<td valign='top' class=legend>{enable_kill_proc}:</div>
+		<td valign='top' class=legend style='font-size:18px'>{enable_kill_proc}:</div>
 		<td valign='top'>". Field_checkbox("AmavisWatchdogKillProcesses",1,$AmavisWatchdogKillProcesses)."</td>
 	</tR>		
 	<tr>
-		<td valign='top' class=legend>{MAX_CPU} %:</div>
-		<td valign='top' style='font-size:14px'>". Field_text("AmavisWatchdogMaxCPU",$AmavisWatchdogMaxCPU,"style:font-size:14px;padding:3px;width:60px")."% CPU</td>
+		<td valign='top' class=legend style='font-size:18px'>{MAX_CPU} %:</div>
+		<td valign='top' style='font-size:18px'>". Field_text("AmavisWatchdogMaxCPU",$AmavisWatchdogMaxCPU,"font-size:18px;padding:3px;width:90px")."% CPU</td>
 	</tR>			
 	<tr>
 		<td colspan=2 align='right'>
 			<hr>
-				". button("{apply}","AmavisWatchdogSaveParams2()","18px")."</td>
+				". button("{apply}","AmavisWatchdogSaveParams2()","22px")."</td>
 	</tr>
 	</table>
+	</div>
 	<script>
 	
 	var x_AmavisWatchdogSaveParams= function (obj) {

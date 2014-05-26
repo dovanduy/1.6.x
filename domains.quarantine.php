@@ -4,7 +4,7 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 
 
 
-
+if(isset($_GET["message-tab"])){message_tab();exit;}
 if(isset($_GET["delete-js"])){delete_js();exit;}
 if(isset($_GET["message-id"])){JS_MESSAGE_ID();exit;}
 if(isset($_GET["message_id"])){echo quarantine_show();exit;}
@@ -29,13 +29,16 @@ if(isset($_GET["js"])){echo quarantine_script();exit;}
 if(isset($_GET["popup"])){echo quarantine_index();exit;}
 if(isset($_GET["query"])){echo quarantine_query();exit;}
 
-
+if(isset($_GET["AdminQuarantine-js"])){AdminQuarantine_js();exit;}
 if(isset($_GET["SuperAdmin"])){SuperAdmin();exit;}
 if(isset($_GET["SuperAdminQuery"])){SuperAdminQuery();exit;}
 if(isset($_GET["quarantine-settings"])){quarantine_ou_settings();exit;}
 if(isset($_GET["OuSendQuarantineReports"])){quarantine_ou_settings_save();exit;}
-
+if(isset($_GET["SelectAll"])){SelectAll_js();exit;}
 if(isset($_GET["delete-message-id"])){delete_message();exit;}
+if(isset($_POST["FillLine"])){FillLine();exit;}
+if(isset($_GET["fill-checkboxes"])){Fill_checkboxes();exit;}
+if(isset($_POST["delete-liste"])){delete_list();exit;}
 
 function GetRights(){
 	$users=new usersMenus();
@@ -239,6 +242,65 @@ $suffix
 	return $html;
 	
 }
+
+function AdminQuarantine_js(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$message_id=$_GET["AdminQuarantine-js"];
+	$q=new mysql();
+	$sql="SELECT subject FROM  quarantine WHERE MessageID='$message_id'";
+	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	
+	$message_id=urlencode($message_id);
+	header("content-type: application/x-javascript");
+	$subject=$tpl->javascript_parse_text($ligne["subject"]);
+	echo "
+	function QReleaseMail(messageid){
+		YahooWin3(650,'$page?release-mail-send='+messageid,messageid);
+	}			
+	
+	
+	YahooWin2(1050,'$page?message-tab=yes&message_id=$message_id','$subject');";
+}
+
+function message_tab(){
+	
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$array["message"]='{message}';
+	$array["source"]='{view_source}';
+	$array["html"]='{view_html}';
+	$message_id=urlencode($_GET["message_id"]);
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+	
+		
+		
+		if($num=="message"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?message_id=$message_id\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}	
+		if($num=="source"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?message-id-source=$message_id\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+	
+		}
+	
+		if($num=="html"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?message-id-html=$message_id\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+	
+		}
+
+	
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+	}
+	
+	echo build_artica_tabs($html, "main_message_id_tab",1020);
+}
+
 
 function javascript_message(){
 	$page=CurrentPageName();
@@ -566,6 +628,19 @@ writelogs($sql,__FUNCTION__,__FILE__);
 	
 }
 
+function delete_list(){
+	$liste=unserialize(base64_decode($_POST["delete-liste"]));
+	$count=count($liste);
+	while (list ($message_id, $none) = each ($liste) ){
+		$sql="DELETE FROM quarantine WHERE MessageID='$message_id'";
+		$q=new mysql();
+		$q->QUERY_SQL($sql,"artica_backup");
+		if(!$q->ok){echo $q->mysql_error;}
+	}
+	
+}
+
+
 function delete_message(){
 	$message_id=$_GET["delete-message-id"];
 	$sql="DELETE FROM quarantine WHERE MessageID='$message_id'";
@@ -595,19 +670,16 @@ function quarantine_show(){
 	
 	$html="
 	
-	<table class=form>
+	<table>
 	<tr>
-		<td style='font-size:14px'>{message_size}:{$ligne["message_size"]}</td>
-		<td style='font-size:14px'>&nbsp;|&nbsp;</td>
-		<td style='font-size:14px'>{from}:{$ligne["mailfrom"]}</td>
-		<td style='font-size:14px'>&nbsp;|&nbsp;</td>
-		<td style='font-size:14px'>{to}:{$ligne["mailto"]}</td>
-		<td style='font-size:14px'>&nbsp;|&nbsp;</td>
-		<td style='font-size:14px'><a href='#' OnClick=\"javascript:ViewMessageSource()\">{view_source}</a></td>
-		<td style='font-size:14px'>&nbsp;|&nbsp;</td>
-		<td style='font-size:14px'><a href='#' OnClick=\"javascript:ViewMessageHTML()\">{view_html}</a></td>
+		<td style='font-size:18px'>{message_size}:{$ligne["message_size"]}</td>
+		<td style='font-size:18px'>&nbsp;|&nbsp;</td>
+		<td style='font-size:18px'>{from}:{$ligne["mailfrom"]}</td>
+		<td style='font-size:18px'>&nbsp;|&nbsp;</td>
+		<td style='font-size:18px'>{to}:{$ligne["mailto"]}</td>
 	</tr>
 	</table>
+	
 	<div style='width:100%;text-align:right'>". button("{release}","QReleaseMail('$message_id')")."</div>
 	<br>
 	<div style='width:99%;padding:5px;border:1px solid #CCCCCC;background-color:#FFFFFF' id='message-body-show' class=form>
@@ -618,16 +690,7 @@ function quarantine_show(){
 		</div>
 	
 	</div>
-	
-	<script>
-		function ViewMessageSource(msgid){
-			LoadAjax('QuarMessageBody','$page?message-id-source=$message_id');
-		}
-		
-		function ViewMessageHTML(msgid){
-			LoadAjax('QuarMessageBody','$page?message-id-html=$message_id');
-		}		
-	</script>
+
 	
 	
 	";
@@ -661,7 +724,203 @@ function release_path(){
 	
 }
 
+function Fill_checkboxes(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$title=$tpl->javascript_parse_text("{delete}");
+	$release=$tpl->javascript_parse_text("{release}");
+	$messages=$tpl->javascript_parse_text("{messages}");
+	
+	if(isset($_GET["Almess"])){
+		$p=explode(";",$_GET["Almess"]);
+		while (list ($index, $msgid) = each ($p) ){
+			if($msgid==null){continue;}
+			$FFF[$msgid]=true;
+		}
+		$_GET["liste"]=base64_encode(serialize($FFF));
+		
+	}
+	
+	
+	$liste=unserialize(base64_decode($_GET["liste"]));
+	$count=count($liste);
+	$f=array();
+	while (list ($msgid, $none) = each ($liste) ){
+		if($msgid==null){continue;}
+		$f[]=$msgid;
+		$checkbox_md=md5($msgid);
+		$tr[]="if(document.getElementById('$checkbox_md')){
+			document.getElementById('$checkbox_md').checked=true;
+		}";
+		
+		$tr[]="if(document.getElementById('row$checkbox_md-tr')){
+		document.getElementById('row$checkbox_md-tr').className = '';
+		document.getElementById('row$checkbox_md-tr').style.backgroundColor='#FD8851';
+		}";		
+		
+	}
+	
+	$count=count($f);
+	
+	$tr[]="if(document.getElementById('liberequeueC')){
+		document.getElementById('liberequeueC').value='$count';
+		}
+	";
+	
+	
+	if($count>0){
+	$tr[]="if(document.getElementById('deleted-ligne-id')){
+			document.getElementById('deleted-ligne-id').innerHTML='$title $count $messages';
+			document.getElementById('deleted-ligne-id').style.paddingLeft='2px';
+			}
+		if(document.getElementById('libere-ligne-id')){
+			document.getElementById('libere-ligne-id').innerHTML='$release $count $messages';
+			document.getElementById('libere-ligne-id').style.paddingLeft='2px';
+			}			
+			
+	";
+	}else{
+		$tr[]="document.getElementById('deleted-ligne-id').innerHTML=''";
+		$tr[]="document.getElementById('libere-ligne-id').innerHTML=''";
+	}
+			
+	
+	echo @implode("\n", $tr);
+}
+
+function FillLine(){
+	$liste=unserialize(base64_decode($_POST["liste"]));
+	$message_id=$_POST["FillLine"];
+	if(isset($liste[$message_id])){
+		unset($liste[$message_id]);
+		echo base64_encode(serialize($liste));
+		return;
+	}
+	$liste[$message_id]=true;
+	echo base64_encode(serialize($liste));
+}
+
 function SuperAdmin(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$date=$tpl->javascript_parse_text("{zDate}");
+	$from=$tpl->javascript_parse_text("{from}");
+	$recipient=$tpl->javascript_parse_text("{recipient}");
+	$subject=$tpl->javascript_parse_text("{subject}");
+	$are_you_sure_to_delete=$tpl->javascript_parse_text("{are_you_sure_to_delete}");
+	$t=time();
+	$all_quarantines=$tpl->javascript_parse_text("{all_quarantines}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$libere_text=$tpl->javascript_parse_text("{confirm} {release}");
+	$select_all=$tpl->javascript_parse_text("{select_all}");
+	//SELECT MessageID,zDate,mailfrom,subject,mailto FROM quarantine WHERE 1 
+	$t=time();
+	$html="
+<input type=hidden id=liberequeue value=''>
+<input type=hidden id=liberequeueC value=''>
+<div id='SelectAllTable$t'>
+<table class='flexRT$t' style='display: none' id='flexRT$t' style='width:100%'></table>
+</div>
+<script>
+	$(document).ready(function(){
+	$('#flexRT$t').flexigrid({
+	url: '$page?SuperAdminQuery=yes&t=$t',
+	dataType: 'json',
+	colModel : [
+	{display: '&nbsp;', name : 'LiberLigne', width :53, sortable : false, align: 'center'},
+	{display: '$date', name : 'zDate', width : 125, sortable : true, align: 'left'},
+	{display: '$from', name : 'mailfrom', width : 303, sortable : true, align: 'left'},
+	{display: '$recipient', name : 'mailto', width : 225, sortable : true, align: 'left'},
+	{display: '$subject', name : 'subject', width : 410, sortable : true, align: 'left'},
+	],
+	
+	searchitems : [
+		{display: '$date', name : 'zDate'},
+		{display: '$from', name : 'mailfrom'},
+		{display: '$recipient', name : 'mailto'},
+		{display: '$subject', name : 'subject'},
+	],	
+	
+	buttons : [
+		{name: '<span id=deleted-ligne-id style=\"background:none;padding-left: 2px;\" ></span>', bclass: 'Delz', onpress : DeleteMessagesQuarPerf},
+		{name: '<span id=libere-ligne-id style=\"background:none;padding-left: 2px;\" ></span>', bclass: 'Restore', onpress : LiberLigneAll},
+		{name: '$select_all', bclass: 'Restore', onpress : SelectAll$t},
+		],		
+	
+	sortname: 'zDate',
+	sortorder: 'desc',
+	usepager: true,
+	useRp: false,
+	title: '<span style=font-size:18px>$all_quarantines</span>',
+	rp: 20,
+	showTableToggleBtn: false,
+	width: '99%',
+	height: 520,
+	singleSelect: true,
+	rpOptions: [10, 20, 30, 50,100,200,300,500],
+	onSuccess: function(){afterData$t()}, 
+	
+	});
+	});
+	
+function xLiberLignePerform(obj){
+	var tempvalue=obj.responseText;
+	document.getElementById('liberequeue').value=tempvalue;
+	afterData$t();
+}	
+	
+function LiberLigne(messageid,trid){
+	var XHR = new XHRConnection();
+	document.getElementById('row'+trid).className = '';
+	document.getElementById('row'+trid).backgroundColor = '#F7F7F7';
+	XHR.appendData('FillLine',messageid);
+	XHR.appendData('liste',document.getElementById('liberequeue').value);
+	XHR.sendAndLoad('$page', 'POST',xLiberLignePerform);		
+
+}
+
+
+
+function afterData$t(){
+	Loadjs('$page?fill-checkboxes=yes&liste='+document.getElementById('liberequeue').value);
+}
+
+function SelectAll$t(){
+Loadjs('$page?SelectAll=yes&t=$t');
+}
+
+
+function xDeleteMessagesQuarPerf(obj){
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);}
+	document.getElementById('liberequeue').value='';
+	$('#flexRT$t').flexReload();
+}
+
+function LiberLigneAll(){
+	var count=document.getElementById('liberequeueC').value;
+	if(count==0){return;}
+	if(!confirm('$libere_text '+count+' messages ?')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('LiberLigneQueue',document.getElementById('liberequeue').value);
+	XHR.sendAndLoad('$page', 'POST',xDeleteMessagesQuarPerf);
+}
+
+function DeleteMessagesQuarPerf(){
+	var count=document.getElementById('liberequeueC').value;
+	if(count==0){return;}
+	if(!confirm('$are_you_sure_to_delete '+count+' messages ?')){return;}
+	var XHR = new XHRConnection();
+	XHR.appendData('delete-liste',document.getElementById('liberequeue').value);
+	XHR.sendAndLoad('$page', 'POST',xDeleteMessagesQuarPerf);	
+	
+}
+</script>
+	";	
+	
+echo $html;
+return;	
+	
 	
 	$tpl=new templates();
 	
@@ -699,6 +958,126 @@ echo $tpl->_ENGINE_parse_body($html);
 }
 
 function SuperAdminQuery(){
+
+	$tpl=new templates();
+	$MyPage=CurrentPageName();
+	$q=new mysql();
+	$t=$_GET["t"];
+	
+	$table="quarantine";
+	$database='artica_backup';
+	$page=1;
+	$FORCE_FILTER=null;
+
+
+	if(!$q->TABLE_EXISTS($table, $database)){json_error_show("$table, No such table...",0);}
+	if($q->COUNT_ROWS($table,$database)==0){json_error_show("No data...",0);}
+
+	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}
+	if(isset($_POST['page'])) {$page = $_POST['page'];}
+
+	$searchstring=string_to_flexquery();
+
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$total = $ligne["TCOUNT"];
+		if(!$q->ok){json_error_show($q->mysql_error,1);}
+
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $FORCE_FILTER";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		if(!$q->ok){json_error_show($q->mysql_error,1);}
+		$total = $ligne["TCOUNT"];
+	}
+
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+
+
+
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";
+
+	$results = $q->QUERY_SQL($sql,$database);
+	if(!$q->ok){json_error_show($q->mysql_error);}
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	if(mysql_num_rows($results)==0){ json_error_show("No item"); }
+	$sock=new sockets();
+	
+	//DeleteOrgMail($ligne["MessageID"]);
+	$today_text=$tpl->javascript_parse_text("{today}");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$year=date('Y');
+		$today=date('m-d');
+		$id=md5(serialize($ligne));
+		$js="<a href='#' OnClick=\"javascript:Loadjs('$MyPage?AdminQuarantine-js={$ligne["MessageID"]}')\" style='font-size:16px;text-decoration:underline'>";
+		
+		 
+		$ligne["zDate"]=str_replace("$year-",'',$ligne["zDate"]);
+		$ligne["zDate"]=str_replace("$today",$today_text,$ligne["zDate"]);
+		$checkbox_md=md5($ligne["MessageID"]);
+		$checkbox_md_value=0;
+
+		$data['rows'][] = array(
+				'id' => "$checkbox_md-tr",
+				'cell' => array("<input type='hidden' id='$checkbox_md-F' value='{$ligne["MessageID"]}'>".
+						Field_checkbox($checkbox_md,1,$checkbox_md_value,"LiberLigne('{$ligne["MessageID"]}','$checkbox_md-tr')"),
+						"$js{$ligne["zDate"]}</a>",
+						"$js{$ligne["mailfrom"]}</a>",
+						"$js{$ligne["mailto"]}</a>",
+						"$js{$ligne["subject"]}</a>",
+				)
+		);
+	}
+
+
+	echo json_encode($data);
+
+}
+
+
+function SelectAll_js(){
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	echo "
+var Messages$t='';			
+	
+$('#SelectAllTable$t').find(':input').each(function(){
+	var type=$(this).attr('type');
+	if(!$(this).attr('id')){return;}
+	id=$(this).attr('id');
+	if(type=='checkbox'){
+		var trid=id+'-tr';
+		document.getElementById('row'+trid).className = '';
+		if(!document.getElementById(id).checked){
+  			document.getElementById(id).checked=true;
+  			document.getElementById('row'+trid).backgroundColor = '#F7F7F7';
+  			var MessageID=document.getElementById(id+'-F').value;
+  			Messages$t=Messages$t+MessageID+';';
+  		}else{
+  			document.getElementById(id).checked=false;
+  			document.getElementById('row'+trid).backgroundColor = 'none';
+  		}
+  		
+  		
+	}
+	
+	
+  
+})
+
+Loadjs('$page?fill-checkboxes=yes&liste=&Almess='+Messages$t);
+";
+	
+	
+}
+
+function SuperAdminQuery2(){
 	$del=false;
 	$okdelete=false;
 	$page=CurrentPageName();

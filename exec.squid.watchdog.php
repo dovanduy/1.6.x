@@ -16,7 +16,6 @@ $GLOBALS["BY_RESET_CACHES"]=false;
 $GLOBALS["OUTPUT"]=false;
 
 
-
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;
 $GLOBALS["debug"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
@@ -2663,6 +2662,7 @@ function start_prepare(){
 	if($GLOBALS["CRASHED"]){return;}
 	buil_init_squid_cache_log();
 	initd_squid();
+	$reconfigure=false;
 	
 	$unix=new unix();
 	$sock=new sockets();

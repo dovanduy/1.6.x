@@ -60,6 +60,44 @@ function popup_js(){
 	
 }
 
+function status_versions(){
+	$tpl=new templates();
+	$f="/usr/share/artica-postfix/ressources/index.ini";
+	
+	$ini=new Bs_IniHandler();
+	$ini->loadFile($f);
+	$Lastest=trim(strtolower($ini->_params["NEXT"]["artica"]));
+	$nightly=trim(strtolower($ini->_params["NEXT"]["artica-nightly"]));
+	if($Lastest==null){return;}
+	
+	$html="
+	
+	<table style='width:100%'>
+		<tr>
+			<td colspan=3 style='font-size:22px'>{available_versions}:</td>
+		</tr>
+			<tr>
+				<td width=1% nowrap><img src=img/arrow-blue-left-32.png></td>
+				<td class=legend style='font-size:18px' nowrap>{release}:</td>
+				<td style='font-size:18px'><a href=\"http://www.artica.fr/releases.php\" target=_new>$Lastest</td>
+			</tr>
+			<tr>
+				<td width=1% nowrap><img src=img/arrow-blue-left-32.png ></td>
+				<td class=legend style='font-size:18px' nowrap>Nightly:</td>
+				<td style='font-size:18px' width=99%><a href=\"http://www.artica.fr/nightly.php\" target=_new>$nightly</td>
+			</tr>
+			<tr><td colspan=3 style='font-size:22px'>&nbsp;</td></tr>
+			
+			
+		</table>
+";
+
+	echo $tpl->_ENGINE_parse_body($html);
+			
+	
+	
+}
+
 
 function popup(){
 	$tpl=new templates();
@@ -169,11 +207,14 @@ $CURVER=@file_get_contents("VERSION");
 		<td style='width:70%'>
 	<div class=explain style='font-size:16px'>
 		<div style='margin-bottom:5px;text-align:right;padding-bottom:1px;border-bottom:1px solid #999999;width:97%'>
-			<strong style='font-size:22px'>Artica v.$CURVER</strong>
+			<strong style='font-size:22px'>{current} Artica v.$CURVER</strong>
 		</div>{autoupdate_text}
 	</div>
 	</td>
 	</tr>
+	</tr>
+				<td colspan=2 align='right'>". button("{refresh_index_file}", "Loadjs('setup.index.php?TestConnection-js=yes')")."</td>
+			</tr>
 	</table>
 	<script>LoadAjax('status-versions','$page?status-versions=yes');</script>
 	
@@ -643,6 +684,10 @@ function main_artica_update_tabs(){
 		
 	}
 	
+	if($users->VMWARE_TOOLS_INSTALLED){
+		$array["vmware"]='{APP_VMTOOLS}';
+	}
+	
 	$array["events"]='{events}';
 	$tpl=new templates();
 	
@@ -651,6 +696,12 @@ function main_artica_update_tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.admin.events.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");	
 			continue;
 		}
+		
+		if($num=="vmware"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"VMWareTools.php?popup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
+			continue;
+		}
+				
 		
 		if($num=="softwares"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"update.softwares.php\">

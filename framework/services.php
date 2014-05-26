@@ -8,7 +8,7 @@ if(isset($_GET["restart-winbind-tenir"])){restart_winbind_tenir();exit;}
 if(isset($_GET["apply-routes"])){restart_routes();exit;}
 if(isset($_GET["restart-network"])){restart_network();exit;}
 if(isset($_GET["netstart-log"])){netstart_log();exit;}
-
+if(isset($_GET["automation-script"])){automation_script();exit;}
 if(isset($_GET["CPU-NUMBER"])){CPU_NUMBER();exit;}
 if(isset($_GET["activedirectory-update"])){activedirectory_update();exit;}
 if(isset($_GET["realMemory"])){realMemory();exit;}
@@ -1315,18 +1315,34 @@ function reconfig_jabberd(){
 }
 
 function vmwaretoolscd(){
+	vmwaretoolsinit();
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim($nohup." ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.vmwaretools.php --cd >/dev/null 2>&1 &");	
+	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/vmware.install.progress.txt";
+	$cmd=trim($nohup." ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.vmwaretools.php --cd >$LOG_FILE 2>&1 &");	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);	
 	
 }
+
+function vmwaretoolsinit(){
+	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/vmware.install.progress";
+	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/vmware.install.progress.txt";
+	@unlink($PROGRESS_FILE);
+	@unlink($LOG_FILE);
+	@touch($PROGRESS_FILE);
+	@touch($LOG_FILE);
+	@chmod($LOG_FILE,0755);
+	@chmod($PROGRESS_FILE,0755);
+}
+
 function vmwaretoolspath(){
+	vmwaretoolsinit();
+	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/vmware.install.progress.txt";
 	$vmwaretoolspath=base64_decode($_GET["vmwaretoolspath"]);
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim($nohup." ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.vmwaretools.php --path \"$vmwaretoolspath\" >/dev/null 2>&1 &");	
+	$cmd=trim($nohup." ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.vmwaretools.php --path \"$vmwaretoolspath\" >$LOG_FILE 2>&1 &");	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);	
 }
@@ -2068,6 +2084,21 @@ function register_license_kaspersky(){
 function reload_sshd(){
 	exec("/etc/init.d/ssh restart 2>&1",$results);
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+}
+
+function automation_script(){
+	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/web/wizard.progress";
+	$LOGS="/usr/share/artica-postfix/ressources/logs/wizard.progress.txt";
+	@file_put_contents($PROGRESS_FILE, "\n");
+	@file_put_contents($LOGS, "\n");
+	@chmod($LOGS,0777);
+	@chmod($PROGRESS_FILE,0777);
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.wizard-install.php --automation >/usr/share/artica-postfix/ressources/logs/wizard.progress.txt 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 
 ?>

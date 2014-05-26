@@ -78,7 +78,7 @@ $('#flexRT$t').flexigrid({
 		{display: '$service', name : 'host', width : 58, sortable : true, align: 'left'},
 		{display: 'PID', name : 'host', width : 43, sortable : true, align: 'left'},
 		{display: '&nbsp;', name : 'none', width : 31, sortable : false, align: 'left'},
-		{display: '$events', name : 'events', width :$events_width, sortable : true, align: 'left'},
+		{display: '$events', name : 'events', width :688, sortable : true, align: 'left'},
 		],
 	$buttons
 	searchitems : [
@@ -91,7 +91,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $table_width,
+	width: '99%',
 	height: 365,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]

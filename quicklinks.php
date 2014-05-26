@@ -2019,6 +2019,15 @@ function quicklinks_postfix(){
 						"AnimateDiv('BodyContent');LoadAjax('BodyContent','cyrus.index.php?popup-index=yes');");
 			}
 		}
+		
+		
+		if($users->AsQuarantineAdministrator){
+			$tr[]=paragrapheWin("quarantine-64-white.png","{quarantine}",
+					"AnimateDiv('BodyContent');LoadAjax('BodyContent','domains.quarantine.php?SuperAdmin=yes');");
+			
+		}
+		
+		
 	}
 
 	
