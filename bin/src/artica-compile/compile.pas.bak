@@ -1794,6 +1794,7 @@ logs:=Tlogs.Create;
     writeln('path will be stored in ',dir) ;
     if DirectoryExists(dir) then fpsystem('/bin/rm -rf '+dir);
     forcedirectories(dir);
+    writeln('Create directory ',FULL_PATCH_PATH);
     forcedirectories(FULL_PATCH_PATH);
     for i:=0 to ll.Count-1 do begin
          RegExpr.Expression:='ressources\/language\/[a-z]+\/.+';
@@ -1843,9 +1844,9 @@ logs:=Tlogs.Create;
     if FileExists(dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz') then fpsystem('/bin/rm -f '+dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz');
     fpsystem('/bin/tar -czf '+dirorg+'/Bureau/artica-patchs/'+patchname+'.tar.gz *');
     SetCurrentDir(FULL_PATCH_PATH_ROOT);
-    if FileExists(FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz') then fpsystem('/bin/rm -f '+FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz');
-    writeln('compressing '+FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz FROM  '+FULL_PATCH_PATH_ROOT);
-    fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+patchname+'.tar.gz *');
+    if FileExists(FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz') then fpsystem('/bin/rm -f '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz');
+    writeln('compressing '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz FROM  '+FULL_PATCH_PATH_ROOT);
+    fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tar.gz *');
 
 end;
 

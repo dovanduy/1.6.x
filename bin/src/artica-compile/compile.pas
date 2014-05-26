@@ -1768,7 +1768,7 @@ end;
 dirorg:=dir;
 logs:=Tlogs.Create;
     version:=COMPILE_GEN_VERSION();
-    MAIN_RELEASE:=logs.ReadFromFile(BasePath + '/MAIN_RELEASE');
+    MAIN_RELEASE:=trim(logs.ReadFromFile(BasePath + '/MAIN_RELEASE'));
     l:=Tstringlist.Create;
     l.LoadFromFile(targetfile);
     RegExpr:=TRegExpr.Create;
@@ -1794,6 +1794,7 @@ logs:=Tlogs.Create;
     writeln('path will be stored in ',dir) ;
     if DirectoryExists(dir) then fpsystem('/bin/rm -rf '+dir);
     forcedirectories(dir);
+    writeln('Create directory ',FULL_PATCH_PATH);
     forcedirectories(FULL_PATCH_PATH);
     for i:=0 to ll.Count-1 do begin
          RegExpr.Expression:='ressources\/language\/[a-z]+\/.+';
