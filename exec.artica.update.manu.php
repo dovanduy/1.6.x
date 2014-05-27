@@ -26,10 +26,19 @@ function install($filename){
 	$DebianVer="debian{$LINUX_VERS[0]}";
 	$TMP_DIR=$unix->TEMP_DIR();
 	$ORGV=@file_get_contents("/usr/share/artica-postfix/VERSION");
-	
+	$PATCH_VER=null;
 	$tarballs_file="/usr/share/artica-postfix/ressources/conf/upload/$filename";
 	echo "Package $tarballs_file\n";
 	$size=filesize($tarballs_file);
+	
+	if (preg_match('#([0-9\.]+)_([0-9\.]+)-([0-9]+).tgz#i',$filename,$r)){
+		echo "Patch....................: {$r[3]}\n";
+		echo "From.....................: {$r[1]}\n";
+		echo "To.......................: {$r[2]}\n";
+		$PATCH_VER=$r[2]." :";
+		$ASPATCH=true;
+	}
+	
 	echo "Size....................: ".FormatBytes($size/1024)."\n";
 	echo "Current version.........: $ORGV\n";
 		
@@ -61,6 +70,7 @@ function install($filename){
 	build_progress("{extracting} $filename...",50);
 	
 	system("$tar xf $tarballs_file -C /usr/share/");
+	echo "Removing $tarballs_file...\n";
 	@unlink($tarballs_file);
 	shell_exec("$rm -rf /usr/share/artica-postfix/ressources/conf/upload/*");
 	build_progress("Apply permissions...",55);
@@ -68,10 +78,11 @@ function install($filename){
 	shell_exec("$chmod -R 0755 /usr/share/artica-postfix");
 	$ORGD=@file_get_contents("/usr/share/artica-postfix/VERSION");
 	echo "Old version.............: $ORGV\n";
-	echo "Current version.........: $ORGD\n";
+	if($ASPATCH){$patched=" (patched)";}
+	echo "Current version.........: $ORGD$patched\n";
 	sleep(2);
 	if($ORGV==$ORGD){
-		build_progress("{operation_failed} Same version $filename...",110);
+		build_progress("{operation_failed} Same version $PATCH_VER$filename...",110);
 		return;
 	}
 	

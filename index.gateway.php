@@ -400,44 +400,44 @@ function dhcp_form(){
 				<table style='width:98%'>
 				
 				<tr>
-					<td class=legend style='font-size:16px'>{EnableArticaAsDNSFirst}:</td>
+					<td class=legend style='font-size:18px'>{EnableArticaAsDNSFirst}:</td>
 					<td>$EnableArticaAsDNSFirst</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{EnableArticaAsDNSFirst_explain}')."</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{DHCPDEnableCacheDNS}:</td>
+					<td class=legend style='font-size:18px'>{DHCPDEnableCacheDNS}:</td>
 					<td>".Field_checkbox("DHCPDEnableCacheDNS",1,$DHCPDEnableCacheDNS)."</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{DHCPDEnableCacheDNS_explain}')."</td>
 				</tr>				
 				<tr>
-					<td class=legend style='font-size:16px'>{IncludeDHCPLdapDatabase}:</td>
+					<td class=legend style='font-size:18px'>{IncludeDHCPLdapDatabase}:</td>
 					<td>$IncludeDHCPLdapDatabase</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{IncludeDHCPLdapDatabase_explain}')."</td>
 				</tr>				
 				
 				<tr>
-					<td class=legend style='font-size:16px'>{EnableDHCPUseHostnameOnFixed}:</td>
+					<td class=legend style='font-size:18px'>{EnableDHCPUseHostnameOnFixed}:</td>
 					<td>$EnableDHCPUseHostnameOnFixed</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{EnableDHCPUseHostnameOnFixed_explain}')."</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{authoritative}:</td>
+					<td class=legend style='font-size:18px'>{authoritative}:</td>
 					<td>$authoritative</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{authoritativeDHCP_explain}')."</td>
 				</tr>								
 				<tr>
-					<td class=legend style='font-size:16px'>{DHCPPing_check}:</td>
+					<td class=legend style='font-size:18px'>{DHCPPing_check}:</td>
 					<td>$ping_check</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{DHCPPing_check_explain}')."</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{get_lease_hostnames}:</td>
+					<td class=legend style='font-size:18px'>{get_lease_hostnames}:</td>
 					<td>$get_lease_hostnames</td>
 					<td>&nbsp;</td>
 					<td>". help_icon('{get_lease_hostnames_text}')."</td>
@@ -445,99 +445,94 @@ function dhcp_form(){
 							
 				
 				<tr>
-					<td class=legend style='font-size:16px'>{nic}:</td>
-					<td>".Field_array_Hash($nics,'dhcp_listen_nic',$dhcp->listen_nic,null,null,null,";font-size:16px;padding:3px")."</td>
+					<td class=legend style='font-size:18px'>{nic}:</td>
+					<td>".Field_array_Hash($nics,'dhcp_listen_nic',$dhcp->listen_nic,null,null,null,";font-size:18px;padding:3px")."</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>	
 				<tr>
-					<td class=legend style='font-size:16px'>{ddns_domainname}:</td>
+					<td class=legend style='font-size:18px'>{ddns_domainname}:</td>
 					<td>$dom</td>
 					<td>&nbsp;</td>
 					<td width=1% nowrap>". imgtootltip("plus-16.png",null,"Loadjs('domains.edit.domains.php?js-all-localdomains=yes')")."</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{max_lease_time}:</td>
-					<td style='font-size:16px'>".Field_text('max_lease_time',$dhcp->max_lease_time,'width:60px;font-size:16px;padding:3px')."&nbsp;seconds</td>
+					<td class=legend style='font-size:18px'>{max_lease_time}:</td>
+					<td style='font-size:16px'>".Field_text('max_lease_time',$dhcp->max_lease_time,'width:60px;font-size:18px;padding:3px')."&nbsp;seconds</td>
 					<td>&nbsp;</td>
 					<td >".help_icon('{max_lease_time_text}')."</td>
 				</tr>	
 				
 				<tr>
-					<td class=legend style='font-size:16px'>{wpad_label}:</td>
-					<td>".Field_text('local-pac-server',$dhcp->local_pac_server,'width:300px;font-size:16px;padding:3px',false)."</td>
+					<td class=legend style='font-size:18px'>{wpad_label}:</td>
+					<td>".Field_text('local-pac-server',$dhcp->local_pac_server,'width:300px;font-size:18px;padding:3px',false)."</td>
 					<td>&nbsp;</td>
 					<td>".help_icon('{wpad_label_text}')."</td>
 				</tr>			
 				
 				<tr>
-					<td class=legend style='font-size:16px'>{subnet}:</td>
-					<td>".field_ipv4('subnet',$dhcp->subnet,"font-size:16px;padding:3px;font-weight:bold",false)."</td>
+					<td class=legend style='font-size:18px'>{subnet}:</td>
+					<td>".field_ipv4('subnet',$dhcp->subnet,"font-size:18px;padding:3px;font-weight:bold",false)."</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>			
 				<tr>
-					<td class=legend style='font-size:16px'>{netmask}:</td>
-					<td>".field_ipv4('netmask',$dhcp->netmask,'font-size:16px;padding:3px;font-weight:bold')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{netmask}:</td>
+					<td>".field_ipv4('netmask',$dhcp->netmask,'font-size:18px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{gateway}:</td>
-					<td>".field_ipv4('gateway',$dhcp->gateway,'font-size:16px;padding:3px;font-weight:bold')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{gateway}:</td>
+					<td>".field_ipv4('gateway',$dhcp->gateway,'font-size:18px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
-				<tr>
-					<td class=legend style='font-size:16px'>{only_use_this} ({gateway})</td>
-					<td>".Field_checkbox("OnlySetGateway", 1,$dhcp->OnlySetGateway,"OnlySetGatewayCheck()")."</td>
-					<td>&nbsp;</td>
-				</tr>			
 						
 				<tr>
-					<td class=legend style='font-size:16px'>{DNSServer} 1:</td>
-					<td>".field_ipv4('DNS_1',$dhcp->DNS_1,'font-size:16px;padding:3px;font-weight:bold')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{DNSServer} 1:</td>
+					<td>".field_ipv4('DNS_1',$dhcp->DNS_1,'font-size:18px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{DNSServer} 2:</td>
-					<td>".field_ipv4('DNS_2',$dhcp->DNS_2,'font-size:16px;padding:3px;font-weight:bold')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{DNSServer} 2:</td>
+					<td>".field_ipv4('DNS_2',$dhcp->DNS_2,'font-size:18px;padding:3px;font-weight:bold')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{wins_server}:</td>
-					<td>".field_ipv4('WINSDHCPSERV',$dhcp->WINS,'font-size:16px;padding:3px')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{wins_server}:</td>
+					<td>".field_ipv4('WINSDHCPSERV',$dhcp->WINS,'font-size:18px;padding:3px')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>					
 				<tr>
-					<td class=legend style='font-size:16px'>{ntp_server} <span style='font-size:10px'>({optional})</span>:</td>
-					<td>".Field_text('ntp_server',$dhcp->ntp_server,'width:228px;font-size:16px;padding:3px')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{ntp_server} <span style='font-size:10px'>({optional})</span>:</td>
+					<td>".Field_text('ntp_server',$dhcp->ntp_server,'width:228px;font-size:18px;padding:3px')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>	
 				<tr>
-					<td class=legend style='font-size:16px'>{range} {from}:</td>
-					<td>".field_ipv4('range1',$dhcp->range1,'font-size:16px;padding:3px')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{range} {from}:</td>
+					<td>".field_ipv4('range1',$dhcp->range1,'font-size:18px;padding:3px')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px'>{range} {to}:</td>
-					<td>".field_ipv4('range2',$dhcp->range2,'font-size:16px;padding:3px')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{range} {to}:</td>
+					<td>".field_ipv4('range2',$dhcp->range2,'font-size:18px;padding:3px')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>			
 				<tr>
-					<td class=legend style='font-size:16px'>{broadcast}:</td>
-					<td>".field_ipv4('broadcast_dhcp_main',$dhcp->broadcast,'font-size:16px;padding:3px')."&nbsp;</td>
+					<td class=legend style='font-size:18px'>{broadcast}:</td>
+					<td>".field_ipv4('broadcast_dhcp_main',$dhcp->broadcast,'font-size:18px;padding:3px')."&nbsp;</td>
 					<td>&nbsp;</td>
 					<td>&nbsp;</td>
 				</tr>					
 				<tr>
 					<td colspan=4 align='right'><hr>
-					". button("{apply}","SaveDHCPSettings()",16)."
+					". button("{apply}","SaveDHCPSettings()",28)."
 						
 					
 					</td>
@@ -546,44 +541,6 @@ function dhcp_form(){
 				</div>
 			</div>
 			<br>
-			<script>
-				function OnlySetGatewayCheck(){
-					var XHR = new XHRConnection();
-					if(document.getElementById('OnlySetGateway').checked){XHR.appendData('OnlySetGateway',1);	}else{XHR.appendData('OnlySetGateway',0);}
-					XHR.sendAndLoad('$page', 'POST');
-					OnlySetGatewayFCheck();					
-					
-					
-				}
-				
-				function OnlySetGatewayFCheck(){
-					var dnsmasq_installed=$dnsmasq_installed;
-					if(document.getElementById('OnlySetGateway').checked){
-						if(document.getElementById('EnableArticaAsDNSFirst')){document.getElementById('EnableArticaAsDNSFirst').disabled=true;}
-					}else{
-						if(document.getElementById('EnableArticaAsDNSFirst')){document.getElementById('EnableArticaAsDNSFirst').disabled=false;}
-					}
-					
-					if(!document.getElementById('IncludeDHCPLdapDatabase').checked){
-						document.getElementById('EnableDHCPUseHostnameOnFixed').disabled=true;}else{
-						document.getElementById('EnableDHCPUseHostnameOnFixed').disabled=false;
-						}
-						
-						
-					document.getElementById('DHCPDEnableCacheDNS').disabled=true;
-					if(dnsmasq_installed==1){
-						document.getElementById('DHCPDEnableCacheDNS').disabled=false;
-					}
-					
-				
-				}				
-				
-				
-				
-				
-			OnlySetGatewayFCheck();
-			</script>
-			
 		
 	";
 

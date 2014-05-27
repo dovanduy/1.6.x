@@ -284,7 +284,7 @@ class dhcpd{
 		if(!is_numeric($this->get_lease_hostnames)){$this->get_lease_hostnames=0;}
 		if(!is_numeric($this->ping_check)){$this->ping_check=1;}
 		
-		$this->OnlySetGateway=$sock->GET_INFO("DHCPOnlySetGateway");
+		$this->OnlySetGateway=0;
 		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server server DEBUG: loading OnlySetGateway = [DHCPOnlySetGateway]  $this->OnlySetGateway\n";}
 		$ip=new networking();
 		$ip->LoadIPs();
@@ -292,12 +292,6 @@ class dhcpd{
 		if($this->pxe_file==null){$this->pxe_file="/tftpboot/pxelinux.0";}
 		if($this->max_lease_time==null){$this->max_lease_time=3600;}
 		if($this->netmask==null){$this->netmask="255.255.255.0";}
-		//if($this->range1==null){$this->range1="192.168.1.55";}
-		//if($this->range2==null){$this->range2="192.168.1.240";}
-		if(!is_numeric($this->OnlySetGateway)){
-			if($GLOBALS["VERBOSE"]){"Starting......: ".date("H:i:s")." [INIT]: DHCP Server DEBUG OnlySetGateway is not numeric, set it to 0\n";}
-			$this->OnlySetGateway=0;
-		}
 		writelogs("LOADING ROUTES ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 		$this->LoadRoutes();
 		writelogs("LOADING RemoteVPN ",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
@@ -313,7 +307,7 @@ class dhcpd{
 		if(!is_numeric($this->authoritative)){$this->authoritative=0;}
 		if(!is_numeric($this->ping_check)){$this->ping_check=1;}
 		
-		if(!preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", $this->range1)){
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $this->range1)){
 			if($this->listen_nic<>null){
 				$tcp=new networking();
 				$tcp->ifconfig($this->listen_nic);
@@ -326,7 +320,7 @@ class dhcpd{
 			
 		}
 		
-		if(!preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", $this->gateway)){
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $this->gateway)){
 			if($this->listen_nic<>null){
 				$tcp=new networking();
 				$tcp->ifconfig($this->listen_nic);
@@ -334,7 +328,7 @@ class dhcpd{
 			}
 		}
 		
-		if(!preg_match("^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$", $this->DNS_1)){
+		if(!preg_match("#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#", $this->DNS_1)){
 			if($this->listen_nic<>null){
 				$tcp=new networking();
 				$tcp->ifconfig($this->listen_nic);
@@ -369,7 +363,7 @@ class dhcpd{
 		$sock->SaveConfigFile($ini,'ArticaDHCPSettings');
 		$sock->SaveConfigFile($this->BuildConf(),'DHCP3ConfigurationFile');
 		$sock->SET_INFO('DHCP3ListenNIC',$this->listen_nic);
-		if($this->OnlySetGateway==0){if($this->EnableArticaAsDNSFirst==1){$sock->getFrameWork('cmd.php?apply-bind=yes');}}
+		
 		if(!$norestart){
 			$sock->getFrameWork('cmd.php?restart-dhcpd=yes');
 		}
@@ -733,14 +727,14 @@ private function DomainNameServers(){
 				}
 		}else{
 			if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: DHCP Server OnlySetGateway = 1 adding only $this->gateway as gateway\n";}
-			$conf=$conf."\toption routers $this->gateway;\n";	
+			if(trim($this->gateway<>null)){
+				$conf=$conf."\toption routers $this->gateway;\n";
+			}	
 		}
 	
 		$arrayNameServersB=array();
 		$arrayNameServersA=$this->DomainNameServers();
 		if($this->DHCPDEnableCacheDNS==1){
-			$conf=$conf ."# DHCPDEnableCacheDNS = 1\n";
-			
 			$arrayNameServersB[]=$eth_IP;
 			while (list ($index, $m_gw) = each ($arrayNameServersA) ){ $arrayNameServersB[]=$m_gw; }
 			$sock=new sockets();
@@ -945,7 +939,7 @@ private function DomainNameServers(){
 				if(!$ipClass->isIPv4($ligne["domain-name-servers"])){$ligne["domain-name-servers"]=null;}
 				if(!$ipClass->isIPv4($ligne["domain-name-servers-2"])){$ligne["domain-name-servers-2"]=null;}
 				
-				if($ligne["routers"]<>null){
+				if(trim($ligne["routers"]<>null)){
 					$conf=$conf ."\t\toption routers {$ligne["routers"]};\n";
 				}
 				if($ligne["time-servers"]<>null){
