@@ -86,11 +86,11 @@ function process_all_tables(){
 	
 	
 	$tables=$GLOBALS["Q"]->LIST_TABLES_HOURS();
+	$c=0;
 	while (list ($tablename, $ligne) = each ($tables)){
 		_xprocess_table($tablename);
 		$xtime=$GLOBALS["Q"]->TIME_FROM_DAY_TABLE($tablename);
-		shell_exec("$nohup $php /usr/share/artica-postfix/exec.squid.stats.totals.php --xtime $xtime >/dev/null 2>&1 &");
-
+		shell_exec("$php /usr/share/artica-postfix/exec.squid.stats.totals.php --xtime $xtime >/dev/null 2>&1");
 		if(!$GLOBALS["VERBOSE"]){
 			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 		}

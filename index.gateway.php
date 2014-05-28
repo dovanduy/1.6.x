@@ -356,10 +356,10 @@ function dhcp_form(){
 	
 	
 	if(count($domains)==0){
-		$dom=Field_text('ddns_domainname',$dhcp->ddns_domainname,"font-size:16px;");
+		$dom=Field_text('ddns_domainname',$dhcp->ddns_domainname,"font-size:18px;");
 	}else{
 		$domains[null]="{select}";
-		$dom=Field_array_Hash($domains,'ddns_domainname',$dhcp->ddns_domainname,null,null,null,";font-size:16px;padding:3px");
+		$dom=Field_array_Hash($domains,'ddns_domainname',$dhcp->ddns_domainname,null,null,null,";font-size:18px;padding:3px");
 	}
 	
 	$nic=$dhcp->array_tcp;

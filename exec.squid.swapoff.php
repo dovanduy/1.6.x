@@ -75,6 +75,6 @@ function start(){
 	shell_exec("$swapoff -a && $swapon -a");
 	$usedTXT=FormatBytes($used);
 	$distance=$unix->distanceOfTimeInWords($t,time(),true);
-	squid_admin_mysql(1,"System swap exceed rule: {$perc}%","$usedTXT\nSystem cache was flushed took $distance\nThis means you did have enough memory for this computer.");
+	squid_admin_mysql(1,"System swap exceed rule: {$perc}%","Used $usedTXT\nSystem cache was flushed took $distance\nThis means you did have enough memory for this computer.");
 	squid_admin_notifs("Swap exceed rule: {$perc}% $usedTXT\nSystem cache was flushed.", __FUNCTION__, __FILE__, __LINE__, "proxy");
 }

@@ -1747,7 +1747,7 @@ L'op&eacute;ration d'affichage est annul&eacute;e.</error_no_datas>
 <extra infos>Information supp.</extra infos>
 <extracting>Extraction</extracting>
 <facsimileTelephoneNumber>Fax</facsimileTelephoneNumber>
-<failed>Echec</failed>
+<failed>&Eacute;chec</failed>
 <failed_artica_agent_backup_finish>Sauvegarde en &eacute;chec pendant son fonctionnement</failed_artica_agent_backup_finish>
 <failure_template>Template d'&eacute;chec</failure_template>
 <faked_spam>faux</faked_spam>
@@ -3317,7 +3317,7 @@ Sp&eacute;cifiez @domaine en tant que joker pour les domaines qui n'ont pas de l
 Techniquement, les tableaux r&eacute;pertori&eacute;s avec &laquo;b&eacute;n&eacute;ficiaires relais autoris&eacute;s&raquo; sont utilis&eacute;s comme des listes: Postfix a uniquement besoin de savoir que si une cha&icirc;ne de recherche est trouv&eacute; ou non, mais il n'utilise pas le r&eacute;sultat &agrave; partir de la table de recherche[br]
 Si ce param&egrave;tre est non-vide, alors le serveur SMTP de Postfix rejettera le courrier aux utilisateurs relais inconnu.[br]
 Cette fonctionnalit&eacute; est d&eacute;sactiv&eacute;e par d&eacute;faut.</relay_recipient_maps_text>
-<release>lib&eacute;rer</release>
+<release>Version</release>
 <release_mail>Renvoyer ce message</release_mail>
 <religion>Sites religieux ou s'en rapprochant</religion>
 <reload>recharger</reload>

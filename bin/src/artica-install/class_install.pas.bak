@@ -1533,7 +1533,7 @@ begin
               end;
 
             if ParamStr(2)='squid' then begin
-                 zsquid.SQUID_STOP();
+
                  zsquid.TAIL_SQUIDCLAMAV_STOP();
                  zdansguardian.C_ICAP_STOP();
                  zdansguardian.DANSGUARDIAN_STOP();
@@ -1565,7 +1565,7 @@ begin
 
 
             if ParamStr(2)='squid-cache' then begin
-                 zsquid.SQUID_STOP();
+
                  exit();
               end;
 
@@ -2755,7 +2755,7 @@ begin
 
                  zdansguardian.C_ICAP_START();
                  kav4proxy.KAV4PROXY_START();
-                 zsquid.SQUID_START();
+
                  zdansguardian.DANSGUARDIAN_START();
                  exit();
               end;
@@ -8440,7 +8440,7 @@ LOGS.INSTALL_MODULES('APP_POSTFIX','Set sasl......................:Writing smtpd
  
  zfile.SaveToFile('/etc/postfix/sasl/smtpd.conf');
 
- ccyrus.CYRUS_DAEMON_STOP();
+fpsystem('/etc/init.d/cyrus-imapd stop');
  ldap.LDAP_STOP();
  
 fpsystem('/etc/init.d/saslauthd restart');

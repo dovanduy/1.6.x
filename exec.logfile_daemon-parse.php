@@ -76,7 +76,13 @@ function parse_tables_primaires(){
 		$content=unserialize(@file_get_contents($filepath));
 		$contentSize=filesize($filepath)/1024;
 		$ArraySize=count($content);
+		
 		events("parse_tables_primaires():: squidhour_{$xtime} Inserting ".count($content)." element(s)");
+		if(count($content)==0){ 
+			ToSyslog("parse_tables_primaires():: squidhour_{$xtime}: $filepath no row has been written");
+			@unlink($filepath); 
+			continue; 
+		}
 		$sql="INSERT IGNORE INTO `squidhour_{$xtime}`  (`sitename`,`uri`,`TYPE`,`REASON`,`CLIENT`,`hostname`,`zDate`,`zMD5`,`uid`,`QuerySize`,`cached`,`MAC`) 
 		VALUES ".@implode(",", $content);
 		$q->QUERY_SQL($sql);
@@ -772,4 +778,11 @@ function ethToIp(){
 		}
 		if($GLOBALS["VERBOSE"]){events("ethToIp():: $line No match");}
 	}
+}
+function ToSyslog($text){
+
+	$LOG_SEV=LOG_INFO;
+	if(function_exists("openlog")){openlog("access-injector", LOG_PID , LOG_SYSLOG);}
+	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
+	if(function_exists("closelog")){closelog();}
 }

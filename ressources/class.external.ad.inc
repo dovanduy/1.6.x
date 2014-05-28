@@ -323,7 +323,9 @@ class external_ad_search{
 		if($AsGroup){
 			if(!$recursive){return null;}
 			$MembersCount=$hash[0]["member"]["count"];
+			if($GLOBALS["VERBOSE"]){echo "MemberInfoByDN MembersCount -> $MembersCount\n";}
 			for($i=0;$i<$MembersCount;$i++){
+				if($GLOBALS["VERBOSE"]){echo "MemberInfoByDN $i = {$hash[0]["member"][$i]}\n";}
 				$member=$this->MemberInfoByDN($hash[0]["member"][$i]);
 				if(is_array($member)){
 					while (list ($a, $b) = each ($member) ){

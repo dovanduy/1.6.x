@@ -2227,6 +2227,7 @@ while switchover requires human intervention</failover_explain>
 <failover_ExternalPageToCheck>Unable to download external Web Page</failover_ExternalPageToCheck>
 <failover_ExternalPageToCheck_explain>The watchdog try to download an external web page trough the proxy.[br]
 If it failed, then the watchdog will turn to backup mode</failover_ExternalPageToCheck_explain>
+<failover_if_failed>Switch to backup server</failover_if_failed>
 <failover_mgrinfo>Unable to get informations from the proxy</failover_mgrinfo>
 <failover_mgrinfo_explain>The watchdog collect technicals informations from the proxy service.[br]
 It switch to backup if the proxy service is unable to send these informations</failover_mgrinfo_explain>
@@ -3083,6 +3084,7 @@ parameter "map untrusted to domain" can be [b]checked[/b] to revert to the legac
 <max_execution_time>MAX execution time</max_execution_time>
 <max_extend_count_filez>MAX extend days</max_extend_count_filez>
 <max_failed>MAX fails</max_failed>
+<max_failed_before_action>MAX failed before processing action</max_failed_before_action>
 <max_file_lifetime>MAX file lifetime</max_file_lifetime>
 <max_heap_table_size>MAX Heap TABLE size</max_heap_table_size>
 <max_heap_table_size_text>This variable sets the maximum size to which user-created MEMORY tables are permitted to grow.[br]
@@ -3578,6 +3580,7 @@ We suggest to regulary analyze tables With the "Categorize Internet sites" optio
 Display this section and try to categorize yourself websites in order to add them into your local databases and filter them correctly.
 </not_categorized_explain_why>
 <not_connected_to_active_directory>Not connected to any Active Directory</not_connected_to_active_directory>
+<not_for_current_branch>Package is not compatible for the current branch</not_for_current_branch>
 <NOT_INSTALLED>Not installed</NOT_INSTALLED>
 <not_used>Not used</not_used>
 <not_used_no_license>Not used, no active license</not_used_no_license>
@@ -4202,6 +4205,7 @@ Do you want to carry out this operation ?
  the [b]If-Modified-Since headers[/b]. 
 The use of this option is useful only when the [b]Last-Modified[/b] header is present.
 </reload-into-ims>
+<reloading_proxy_service>Reloading Proxy service</reloading_proxy_service>
 <reloading_service>Reloading service</reloading_service>
 <reload_into_ims>Reload redirected to cache</reload_into_ims>
 <reload_into_ims_explain>
@@ -4343,6 +4347,7 @@ All datas according SMTP events will be removed</reset_smtp_logs_ask>
 <reset_table>Empty table</reset_table>
 <response_time>Response time</response_time>
 <restart>Restart</restart>
+<restarting_dns_service>Restarting DNS service</restarting_dns_service>
 <restarting_proxy_service>Restarting Proxy service</restarting_proxy_service>
 <restarting_service_failed>Restarting service failed</restarting_service_failed>
 <restarting_winbind>Restarting winbind service...</restarting_winbind>
@@ -4362,6 +4367,7 @@ if your server does not respond after a reboot
 <restart_each>Restart each</restart_each>
 <restart_each_explain>Restart the service if it running since x minutes.[br]A value under 5Mn disable this feature</restart_each_explain>
 <restart_firewall_service>Restart Firewall service</restart_firewall_service>
+<restart_if_failed>Restart if failed</restart_if_failed>
 <restart_kav4Proxy>Restart Kaspersky For proxy server</restart_kav4Proxy>
 <restart_kav4Proxy_explain>Stop and start the Kaspersky antivirus service designed for your proxy</restart_kav4Proxy_explain>
 <restart_mysql_server>Restart MySQL server</restart_mysql_server>
@@ -4564,6 +4570,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <server_load_today>Server load today</server_load_today>
 <servicename>Service name</servicename>
 <services_operations>Services operations</services_operations>
+<services_timeout>Services timeout</services_timeout>
 <servicew>Service</servicew>
 <service_options>Service options</service_options>
 <service_options_text>Main daemon Global parameters and advanced options</service_options_text>
@@ -5055,6 +5062,10 @@ Do you want to perform this operation ?
 </stats_repair_day_warn>
 <step>step</step>
 <stop>stop</stop>
+<StopMaxTTL>Stop service TTL</StopMaxTTL>
+<StopMaxTTL_explain>When Artica need stop proxy service it send a signal to the daemon to shutdown.[br]
+How many time Artica will wait in order to let the proxy service shutdown processes and tasks before really kill daemons.
+</StopMaxTTL_explain>
 <stopping_proxy_service>Stopping Proxy service</stopping_proxy_service>
 <stopping_service>Stopping service</stopping_service>
 <StopRefresh>Stop refresh</StopRefresh>
@@ -5714,6 +5725,7 @@ If this issue still occurs in several minutes, try to run the tool [b]artica-ins
 <watchdog_klms8_text>Ensure that Kaspersky Linux mail services are up and did not reach memory/CPU limits</watchdog_klms8_text>
 <watchdog_queue>Queue Watchdog</watchdog_queue>
 <watchdog_queue_text>Parameters if your mail queue exceed limits</watchdog_queue_text>
+<watchdog_settings>Watchdog settings</watchdog_settings>
 <watchdog_squid_settings>Watchdog service parameters</watchdog_squid_settings>
 <wccp2_routers>WCCP routers</wccp2_routers>
 <wccp2_routers_explain>Separate IP addresses with a comma</wccp2_routers_explain>
@@ -5852,6 +5864,10 @@ Click next to proceed.
 <what_to_do>What to do ?</what_to_do>
 <when_connecting_to_method>When connected with method</when_connecting_to_method>
 <when_connections_came_from>When connections came from</when_connections_came_from>
+<when_fetching_proxy_informations>When retreive informations from proxy</when_fetching_proxy_informations>
+<when_fetching_proxy_informations_explain>Artica ask periodically technical informations trough the proxy port.[br]
+Memory used, disks informations, NTLM processes...[br]
+If it cannot retreive these informations, it can automatically react</when_fetching_proxy_informations_explain>
 <where>where</where>
 <where_to_find_package>Where to find package</where_to_find_package>
 <whitelisted_senders>Whitelisted senders</whitelisted_senders>

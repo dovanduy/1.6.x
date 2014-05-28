@@ -6276,11 +6276,7 @@ begin
         logs.Debuglogs('############ postfix ##################');
         postfix.POSTFIX_START_LIMITED();
 
-        //cyrus
-        logs.Debuglogs('############ CCYRUS ##################');
-        CCYRUS:=TCYRUS.Create(SYS);
-        CCYRUS.CYRUS_DAEMON_START();
-        CCYRUS.Free;
+
 
         //clamav
         logs.Debuglogs('############ MILTER_START ##################');

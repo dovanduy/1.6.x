@@ -31,10 +31,17 @@ function install($filename){
 	echo "Package $tarballs_file\n";
 	$size=filesize($tarballs_file);
 	
-	if (preg_match('#([0-9\.]+)_([0-9\.]+)-([0-9]+).tgz#i',$filename,$r)){
+	if (preg_match('#([0-9\.]+)_([0-9\.]+)-([0-9]+).tgz$#i',$filename,$r)){
+		$CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 		echo "Patch....................: {$r[3]}\n";
 		echo "From.....................: {$r[1]}\n";
 		echo "To.......................: {$r[2]}\n";
+		echo "Current Branch..........: $CUR_BRANCH\n";
+		if($CUR_BRANCH<>$r[1]){
+			echo "$CUR_BRANCH != {$r[1]}\n";
+			build_progress("{not_for_current_branch}",110);
+			return;
+		}
 		$PATCH_VER=$r[2]." :";
 		$ASPATCH=true;
 	}

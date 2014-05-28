@@ -27,7 +27,7 @@
 <Reason_nothing_to_do>inactif</Reason_nothing_to_do>
 <Reason_no_ping>Ne r&eacute;pond pas au ping</Reason_no_ping>
 <Reason_restore_done>restauration effectu&eacute;e</Reason_restore_done>
-<Reason_restore_failed>Echec de restauration</Reason_restore_failed>
+<Reason_restore_failed>&Eacute;chec de de la restauration</Reason_restore_failed>
 <startTime>Heure de d&eacute;marrage</startTime>
 <Status_backup_in_progress>Sauvegarde en cours</Status_backup_in_progress>
 <Status_backup_starting>Sauvegarde d&eacute;marr&eacute;e</Status_backup_starting>

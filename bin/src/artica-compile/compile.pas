@@ -1858,6 +1858,10 @@ end;
     fpsystem('/bin/chown -R www-data:www-data '+FULL_PATCH_PATH_ROOT);
     fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz *');
     fpsystem('/bin/chown dtouzeau:dtouzeau '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz');
+    fpsystem('/bin/touch '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt');
+    if(FileExists('/home/dtouzeau/Bureau/latest.txt')) then begin
+           fpsystem('/bin/cp -f /home/dtouzeau/Bureau/latest.txt '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt');
+    end;
     fpsystem('/bin/chown dtouzeau '+FULL_PATCH_PATH_ROOT+'/*');
     fpsystem('/chmod -R 0755 /home/dtouzeau/Bureau/artica-P0');
 

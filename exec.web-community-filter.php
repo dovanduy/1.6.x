@@ -114,9 +114,6 @@ if($argv[1]=="--drop-categorize"){drop_categorize(true);die();}
 	import();
 	
 
-	$distanceOfTimeInWords=$unix->distanceOfTimeInWords($t,time());
-	squid_admin_mysql(2, "Web filtering maintenance databases tasks success",
-		 "Exporting websites, importing websites calculate categories took $distanceOfTimeInWords", null,__FILE__,__LINE__);
 	
 	
 function category_tickets($asPid=false){

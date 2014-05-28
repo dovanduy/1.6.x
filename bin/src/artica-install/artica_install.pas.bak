@@ -1516,7 +1516,7 @@ if ParamStr(1)='--cyrus-checkperms' then
 begin
 fpsystem('/etc/init.d/cyrus-imapd stop');
 ccyrus.CheckRightsAndConfig();
-ccyrus.CYRUS_DAEMON_START();
+fpsystem('/etc/init.d/cyrus-imapd start');
 halt(0);
 end;
 

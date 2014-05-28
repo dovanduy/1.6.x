@@ -1750,6 +1750,7 @@ class mysql_squid_builder{
 	
 	private function ToSyslog($text,$error=false){
 		$text=str_replace("\n", " ", $text);
+		$text=str_replace("\r", " ", $text);
 		
 		
 		if(function_exists("debug_backtrace")){

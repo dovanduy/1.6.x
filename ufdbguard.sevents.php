@@ -23,7 +23,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->_ENGINE_parse_body("{webfiltering_service_events}");
-	$html="LoadWinORG(817.6,'$page','$title')";
+	$html="LoadWinORG('1000','$page','$title')";
 	echo $html;
 }
 	
@@ -55,25 +55,26 @@ $('#flexRT$t').flexigrid({
 	colModel : [
 		{display: '$zDate', name : 'date', width : 134, sortable : true, align: 'center'},
 		{display: 'Pid', name : 'code', width : 36, sortable : true, align: 'left'},	
-		{display: '$event', name : 'url', width :574, sortable : false, align: 'left'},
+		{display: '$event', name : 'url', width :750, sortable : false, align: 'left'},
 		
 		
 		],
 	$buttons
 	searchitems : [
+		{display: '$event', name : 'event'},
 		{display: '$zDate', name : 'zDate'},
 		{display: 'Pid', name : 'Pid'},
-		{display: '$event', name : 'event'},
+		
 		],
 	sortname: 'ID',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$title',
+	title: '<span font-size:18px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 800,
-	height: 350,
+	width: '99%',
+	height: 500,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -129,7 +130,10 @@ function webevents_list(){
 	
 	if($search<>null){$search="&search=".base64_encode($search);}
 	
-	$tables=unserialize(base64_decode($sock->getFrameWork("squid.php?ufdbguard-events=yes&rp={$_POST["rp"]}$search")));
+	$sock->getFrameWork("squid.php?ufdbguard-events=yes&rp={$_POST["rp"]}$search");
+	$filedest="/usr/share/artica-postfix/ressources/logs/web/ufdbguardd.log";
+	$tables=explode("\n",@file_get_contents($filedest));
+	krsort($tables);
 	
 		
 	if(count($tables)==0){
@@ -164,14 +168,15 @@ function webevents_list(){
 	
 
 		//<td>". Paragraphe("bandwith-limit-64.png","{$ligne["rulename"]}","$text","javascript:SquidBandRightPanel('{$ligne["ID"]}')")."</td>
-	
+	$c=0;
 	while (list ($ID, $line) = each ($tables) ){
-		if(!preg_match('#(.+?)\s+\[(.+?)\]\s+(.+)#', $line,$re)){continue;}
+		if(!preg_match('#(.+?)\s+\[(.+?)\]\s+(.+)#', $line,$re)){
+			continue;}
 		$color="black";
 		$date=$re[1];
 		$pid=$re[2];
 		$event=$re[3];
-		
+		$c++;
 		if(preg_match("#(fatal|error|warn)#i", $event)){$color="#BA0000";}
 		
 		
@@ -189,7 +194,7 @@ function webevents_list(){
 		
 	}
 	
-	
+	$data['total'] = $c;	
 echo json_encode($data);		
 	
 }

@@ -513,20 +513,6 @@ class squidnodes{
 		$conf[]="positive_dns_ttl {$squid->global_conf_array["positive_dns_ttl"]}";
 		$conf[]="negative_dns_ttl {$squid->global_conf_array["negative_dns_ttl"]}";	
 		
-		
-		$EnableOpenDNSInProxy=$sock->GET_INFO("EnableOpenDNSInProxy");
-		if(!is_numeric($EnableOpenDNSInProxy)){$EnableOpenDNSInProxy=0;}
-		if($EnableOpenDNSInProxy==1){
-			$conf[]="\n# --------- OpenDNS DNS SERVERS \n";
-			$arrayOpenDNS=unserialize(base64_decode($sock->GET_INFO("OpenDNSConfig")));
-			if($arrayOpenDNS["OpenDNS1"]==null){$arrayOpenDNS["OpenDNS1"]="208.67.222.222";}
-			if($arrayOpenDNS["OpenDNS2"]==null){$arrayOpenDNS["OpenDNS2"]="208.67.220.220";}
-			writelogs("OpenDNS: {$arrayOpenDNS["OpenDNS2"]},{$arrayOpenDNS["OpenDNS2"]} ",__CLASS__.'/'.__FUNCTION__,__FILE__);
-			$conf[]="dns_nameservers " . $arrayOpenDNS["OpenDNS1"];
-			$conf[]="dns_nameservers " . $arrayOpenDNS["OpenDNS2"];
-			return @implode("\n", $conf);
-		}
-			
 		if(!is_array($squid->dns_array)){return null;}
 		if(count($squid->dns_array)==0){return null;}
 		reset($squid->dns_array);

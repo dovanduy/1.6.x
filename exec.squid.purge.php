@@ -182,6 +182,8 @@ function inject_stored_items($nopid=false){
 		if(!$q->ok){squid_admin_mysql(0,"MySQL error!",$q->mysql_error,__FILE__,__LINE__);return;}
 	}	
 	$took =$unix->distanceOfTimeInWords($t1,time());
-	squid_admin_mysql(2,"Sucess adding $c cached websites took:$took",null,__FILE__,__LINE__);
+	if($c>0){
+		squid_admin_mysql(2,"Sucess adding $c cached websites took:$took",null,__FILE__,__LINE__);
+	}
 	@unlink($file);
 }

@@ -513,7 +513,10 @@ class squid_acls{
 	}
 	
 	public function dstdomain_parse($website){
+		include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
 		$website=trim(strtolower($website));
+		$ip=new IP();
+		if($ip->isIPAddress($website)){return null;}
 		if(preg_match("#(.*?)\.http$#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^http:\/\/(.*)#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^https:\/\/(.*)#", $website,$re)){$website=$re[1];}
@@ -521,7 +524,9 @@ class squid_acls{
 		if(preg_match("#^ftps:\/\/(.*)#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^www\.(.*)#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^(.+?)\/#", $website,$re)){$website=$re[1];}
-		if(preg_match("#^(.+?):([0-9]+)#", $website,$re)){$website=$re[1];}	
+		if(preg_match("#^(.+?):([0-9]+)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^http.*?:(.+)#", $website,$re)){$website=$re[1];}
+		if(preg_match("#^\.(.+)#", $website,$re)){$website=$re[1];}	
 		$website=str_replace('.*.', '.', $website);
 		$website=str_replace('*', '.', $website);
 		$website=str_replace('$', '', $website);

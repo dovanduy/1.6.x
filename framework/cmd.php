@@ -655,7 +655,8 @@ if(isset($_GET["sarg-ini-status"])){SARG_INI_STATUS();exit;}
 
 if(isset($_GET["squid-restart"])){SQUID_RESTART();exit;}
 if(isset($_GET["squid-restart-now"])){SQUID_RESTART_NOW();exit;}
-if(isset($_GET["force-restart-squid"])){if($GLOBALS["VERBOSE"]){echo "SQUID_RESTART_ALL()\n";} SQUID_RESTART_ALL();exit;}
+if(isset($_GET["force-restart-squid"])){if($GLOBALS["VERBOSE"]){echo "SQUID_RESTART_ALL()\n";} 
+	SQUID_RESTART_ALL();exit;}
 if(isset($_GET["force-restart-squidonly"])){SQUID_RESTART_ONLY();exit;}
 if(isset($_GET["squid-build-caches"])){SQUID_CACHES();exit;}
 if(isset($_GET["squid-build-caches-output"])){SQUID_CACHESOUTPUT();exit;}
@@ -6611,11 +6612,11 @@ function SQUID_RESTART_ALL(){
 	if($GLOBALS["VERBOSE"]){echo "SQUID_REFRESH_PANEL_STATUS()\n";}
 	SQUID_REFRESH_PANEL_STATUS();
 	$unix=new unix();
-	$nohup=null;
+	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
 	
 	if($GLOBALS["VERBOSE"]){echo "php -> $php\n";}
-	
+	$f[]="#!/bin/sh";
 	if(isset($_GET["ApplyConfToo"])){
 		$nohup=$unix->find_program("nohup");
 		$cmd="$nohup $php /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force --reconfigure --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &";
@@ -6625,10 +6626,17 @@ function SQUID_RESTART_ALL(){
 		return;
 	}		
 	
-	writelogs_framework("/etc/init.d/squid restart",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec("$nohup /etc/init.d/squid restart >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
-	writelogs_framework("/etc/init.d/dnsmasq restart",__FUNCTION__,__FILE__,__LINE__);
-	shell_exec("/etc/init.d/dnsmasq restart --force --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
+	
+	
+	$f[]="/etc/init.d/squid restart --script=".basename(__FILE__)." >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1";
+	$f[]="/etc/init.d/dnsmasq restart --force --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1";
+	
+	@file_put_contents("/tmp/squid.restart.sh", @implode("\n", $f));
+	@chmod("/tmp/squid.restart.sh",0755);
+	writelogs_framework("$nohup /tmp/squid.restart.sh >/dev/null 2>&1 &",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec("$nohup /tmp/squid.restart.sh >/dev/null 2>&1 &");
+	
+	
 }
 
 function SQUID_REFRESH_PANEL_STATUS(){
@@ -6647,9 +6655,7 @@ function SQUID_RESTART_ONLY(){
 	$unix=new unix();
 	$nohup=null;
 	$php=$unix->LOCATE_PHP5_BIN();
-	if(isset($_GET["nohup"])){
-		$nohup=$unix->find_program("nohup")." ";
-	}
+	$nohup=$unix->find_program("nohup")." ";
 	$force=null;
 	
 	SQUID_REFRESH_PANEL_STATUS();
@@ -6667,16 +6673,20 @@ function SQUID_RESTART_ONLY(){
 			shell_exec($nohup.$cmd);
 		}
 		
-		
-		$cmd="$nohup $php /usr/share/artica-postfix/exec.squid.watchdog.php --restart --reconfigure --framework {$force} >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1";
+		$cmd="$nohup $php /usr/share/artica-postfix/exec.squid.watchdog.php --restart --reconfigure --framework  {$force} >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &";
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		@file_put_contents($GLOBALS["SQUID_REFRESH_PANEL_STATUS"], $cmd."\n");
 		shell_exec($cmd);
 		return;
 	}
 	
-	shell_exec("$nohup/etc/init.d/squid restart$force --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
-	shell_exec("$nohup/etc/init.d/dnsmasq restart$force --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
+	$f[]="#!/bin/sh";
+	$f[]="/etc/init.d/squid restart$force --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1";
+	$f[]="/etc/init.d/dnsmasq restart$force --framework >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1";
+	@file_put_contents("/tmp/squid.restart.sh", @implode("\n", $f));
+	@chmod("/tmp/squid.restart.sh",0755);
+	writelogs_framework("$nohup /tmp/squid.restart.sh >/dev/null 2>&1 &",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec("$nohup /tmp/squid.restart.sh >/dev/null 2>&1 &");
 }
 
 function LOAD_LANGUAGE_FILE(){

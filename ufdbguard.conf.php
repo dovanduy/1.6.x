@@ -31,7 +31,7 @@ function js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->javascript_parse_text("{config_status}");
-	echo "YahooWin3('700','$page?tabs=yes','$title',true)";
+	echo "YahooWin3('1000','$page?tabs=yes','$title',true)";
 	
 }
 function conf(){
@@ -41,15 +41,17 @@ function conf(){
 	$t=time();
 	$DenyUfdbWriteConf=$sock->GET_INFO("DenyUfdbWriteConf");
 	if(!is_numeric($DenyUfdbWriteConf)){$DenyUfdbWriteConf=0;}
-	$datas=unserialize(base64_decode($sock->getFrameWork("squid.php?ufdbguardconf=yes")));
+	$sock->getFrameWork("squid.php?ufdbguardconf=yes");
+	$datas=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/ufdbGuard.conf"));
 	$html="<div id='$t'></div>
 	<table>
 	<tr>
-	<td class=legend style='font-size:14px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>
+	<td class=legend style='font-size:16px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>
 	<td>". Field_checkbox("DenyUfdbWriteConf", 1,$DenyUfdbWriteConf,"DenySquidWriteConfSave$t()")."</td>
 	</tr>
 	</table><textarea 
-		style='width:95%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
+		style='width:98%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px !important;
+		font-weight:bold;padding:3px;font-family:Courier New'
 		id='SQUID_CONTENT-$t'>".@implode("\n", $datas)."</textarea>
 		
 	<center><hr>". $tpl->_ENGINE_parse_body(button("{apply}", "SaveUserConfFile$t()",22))."</center>
@@ -98,7 +100,7 @@ function tabs(){
 	$array["groups"]='{groups}';
 	$time=time();
 	
-	$fontsize=14;
+	$fontsize=18;
 	
 	while (list ($num, $ligne) = each ($array) ){
 			$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";

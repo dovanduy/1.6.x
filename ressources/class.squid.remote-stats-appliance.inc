@@ -221,10 +221,8 @@ class squid_stats_appliance{
 		$array["ufdbguardConfig"]=true;
 		$array["EnableMalwarePatrol"]=true;
 		$array["DDClientConfig"]=true;
-		$array["OpenDNSConfig"]=true;
 		$array["AllowAllNetworksInSquid"]=true;
 		$array["EnableDDClient"]=true;
-		$array["EnableOpenDNSInProxy"]=true;
 		$array["SquidAutoblock"]=true;	
 		$array["SquidDisableAllFilters"]=true;	
 		$array["UseDynamicGroupsAcls"]=true;

@@ -110,8 +110,8 @@
 	
 	
 	
-	if(isset($_GET["opendns"])){dns_popup_opendns();exit;}
-	if(isset($_GET["EnableOpenDNSInProxy"])){dns_popup_opendns_save();exit;}
+	
+	
 	
 	
 	
@@ -955,114 +955,9 @@ $t=time();
 }
 
 
-function dns_popup_opendns(){
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$sock=new sockets();
-	$EnableOpenDNSInProxy=$sock->GET_INFO("EnableOpenDNSInProxy");
-	$EnableDDClient=$sock->GET_INFO("EnableDDClient");
-	$array=unserialize(base64_decode($sock->GET_INFO("OpenDNSConfig")));
-	if($array["OpenDNS1"]==null){$array["OpenDNS1"]="208.67.222.222";}
-	if($array["OpenDNS2"]==null){$array["OpenDNS2"]="208.67.220.220";}
-	
-	$DDClientConfig=unserialize(base64_decode($sock->GET_INFO("DDClientConfig")));
-	$DDClientArray=$DDClientConfig["OPENDNS"];
 
-	$html="
-	<center id='opendnsdiv'><img src='img/opendns-logo.png'></center>
-	<div class=explain>{opendns_about}</div>
-	
-	<table style='width:100%'>
-	<tr>
-		<td  class=legend>{useOpenDNS}:</td>
-		<td>".Field_checkbox("EnableOpenDNSInProxy",1,$EnableOpenDNSInProxy,"EnableOpenDNSInProxyCheck()")."</td>
-	</tr>
-		<td  class=legend>{primary_dns}:</td>
-		<td>". Field_text("OpenDNS1",$array["OpenDNS1"],"font-size:16px;padding:3px;font-weight:bold")."</td>
-	</tr>
-	</tr>
-		<td  class=legend>{secondary_dns}:</td>
-		<td>". Field_text("OpenDNS2",$array["OpenDNS2"],"font-size:16px;padding:3px;font-weight:bold")."</td>
-	</tr>	
-	<tr>
-		<td  class=legend>{UseDynamicIpService}:</td>
-		<td>".Field_checkbox("EnableDDClient",1,$EnableDDClient,"EnableOpenDNSInProxyCheck()")."</td>
-	</tr>
-	</tr>
-		<td  class=legend>OpenDNS {username}:</td>
-		<td>". Field_text("dd_client_username",$DDClientArray["dd_client_username"],"font-size:16px;padding:3px;font-weight:bold")."</td>
-	</tr>			
-	</tr>
-		<td  class=legend>{password}:</td>
-		<td>". Field_password("dd_client_password",$DDClientArray["dd_client_password"],"font-size:16px;padding:3px;font-weight:bold")."</td>
-	</tr>
-	</tr>
-		<td  class=legend>{opendns_network_label}:</td>
-		<td>". Field_text("opendns_network_label",$DDClientArray["opendns_network_label"],"font-size:16px;padding:3px;font-weight:bold")."</td>
-	</tr>			
-	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveOpenDNSConfig()")."</td>
-	</tr>	
-	</table>
-	
-	<script>
-		function EnableOpenDNSInProxyCheck(){
-			document.getElementById('OpenDNS1').disabled=true;
-			document.getElementById('OpenDNS2').disabled=true;
-			document.getElementById('EnableDDClient').disabled=true;
-			document.getElementById('dd_client_username').disabled=true;
-			document.getElementById('dd_client_password').disabled=true;
-			document.getElementById('opendns_network_label').disabled=true;
-			if(document.getElementById('EnableOpenDNSInProxy').checked){
-				document.getElementById('OpenDNS1').disabled=false;
-				document.getElementById('OpenDNS2').disabled=false;
-				document.getElementById('EnableDDClient').disabled=false;
-					
-			}
-			if(document.getElementById('EnableDDClient').checked){
-				document.getElementById('dd_client_username').disabled=false;
-				document.getElementById('dd_client_password').disabled=false;	
-				document.getElementById('opendns_network_label').disabled=false;				
-			}			
-		
-		}
-		
-		var x_SaveOpenDNSConfig= function (obj) {
-			var results=trim(obj.responseText);
-			if(results.length>0){alert(results);}
-			RefreshTab('main_config_squiddns');
-		}
-		
-		function SaveOpenDNSConfig(){
-			var XHR = new XHRConnection();
-			if(document.getElementById('EnableOpenDNSInProxy').checked){XHR.appendData('EnableOpenDNSInProxy',1);}else{XHR.appendData('EnableOpenDNSInProxy',0);}
-			if(document.getElementById('EnableDDClient').checked){XHR.appendData('EnableDDClient',1);}else{XHR.appendData('EnableDDClient',0);}
-			XHR.appendData('dd_client_username',document.getElementById('dd_client_username').value);
-			XHR.appendData('dd_client_password',document.getElementById('dd_client_password').value);
-			XHR.appendData('OpenDNS1',document.getElementById('OpenDNS1').value);
-			XHR.appendData('OpenDNS2',document.getElementById('OpenDNS2').value);
-			XHR.appendData('opendns_network_label',document.getElementById('opendns_network_label').value);
-			document.getElementById('opendnsdiv').innerHTML='<center style=\"margin:20px;padding:20px\"><img src=\"img/wait_verybig.gif\"></center>';
-			XHR.sendAndLoad('$page', 'GET',x_SaveOpenDNSConfig);	
-		}		
-	
-	EnableOpenDNSInProxyCheck()
-	</script>";
-	echo $tpl->_ENGINE_parse_body($html);
-	
-}
 
-function dns_popup_opendns_save(){
-	$sock=new sockets();
-	$sock->SET_INFO("EnableOpenDNSInProxy",$_GET["EnableOpenDNSInProxy"]);
-	$sock->SET_INFO("EnableDDClient",$_GET["EnableDDClient"]);
-	$DDClientConfig=unserialize(base64_decode($sock->GET_INFO("DDClientConfig")));
-	$DDClientConfig["OPENDNS"]=$_GET;
-	$sock->SaveConfigFile(base64_encode(serialize($DDClientConfig)),"DDClientConfig");
-	$sock->SaveConfigFile(base64_encode(serialize($_GET)),"OpenDNSConfig");
-	$sock->getFrameWork("cmd.php?ddclient=yes");
-	$sock->getFrameWork("squid.php?build-smooth=yes");	
-}
+
 
 function dns_popup(){
 	$tpl=new templates();
@@ -1075,7 +970,7 @@ function dns_popup(){
 	$array["booster"]='{dns_cache}';
 	$array["dn_entries"]="{dns_items}";
 	$array["dns_query"]="{dns_query}";
-	//$array["opendns"]='OpenDNS';
+	
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="booster"){

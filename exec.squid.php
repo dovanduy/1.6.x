@@ -2698,7 +2698,7 @@ function restart_squid(){
 		
 	}
 
-	shell_exec("/etc/init.d/squid restart --force");
+	shell_exec("/etc/init.d/squid restart --force --script=".basename(__FILE__));
 	ufdbguard_admin_events("Task `restart squid` was executed`\n".@implode("\n", $results) , __FUNCTION__, __FILE__, __LINE__, "tasks");
 	
 }

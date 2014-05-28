@@ -20,6 +20,7 @@ include_once(dirname(__FILE__)."/class.haarp.inc");
 include_once(dirname(__FILE__)."/class.squid.caches.rules.inc");
 include_once(dirname(__FILE__)."/class.squid.caches.inc");
 include_once(dirname(__FILE__)."/class.products-ip-ranges.inc");
+include_once(dirname(__FILE__)."/class.tcpip.inc");
 class squid{
 	
 
@@ -160,7 +161,7 @@ class squidbee{
 	public $pconn_timeout=120;
 	public $dns_timeout=120;
 	public $dead_peer_timeout=10;
-	public $shutdown_lifetime=30;
+	public $shutdown_lifetime=10;
 	public $read_timeout=900;
 	public $incoming_rate=30;	
 	private $SQUID_REVERSE_APPLIANCE;
@@ -1094,7 +1095,7 @@ class squidbee{
 			
 			if(!isset($ini->_params["NETWORK"]["shutdown_lifetime"])){$ini->_params["NETWORK"]["shutdown_lifetime"]=30;}
 			$this->shutdown_lifetime=$ini->_params["NETWORK"]["shutdown_lifetime"];
-			if(!is_numeric($this->shutdown_lifetime)){$this->shutdown_lifetime=30;}			
+			if(!is_numeric($this->shutdown_lifetime)){$this->shutdown_lifetime=10;}			
 			
 			
 			if(!isset($ini->_params["NETWORK"]["read_timeout"])){$ini->_params["NETWORK"]["read_timeout"]=900;}
@@ -4843,11 +4844,10 @@ private function build_http_ports(){
 
 public function dns_nameservers($dnsmasq=false){
 	$sock=new sockets();
-	$EnableOpenDNSInProxy=$sock->GET_INFO("EnableOpenDNSInProxy");
 	$EnableLocalDNSMASQ=$sock->GET_INFO('EnableLocalDNSMASQ');
 	if(!is_numeric($EnableLocalDNSMASQ)){$EnableLocalDNSMASQ=0;}
 	writelogs("dns server: ".count($this->dns_array) . ' rows',__CLASS__.'/'.__FUNCTION__,__FILE__);
-	writelogs("OpenDNS: $EnableOpenDNSInProxy",__CLASS__.'/'.__FUNCTION__,__FILE__);
+	
 	$dns_nameservers=array();
 	if(!$dnsmasq){
 		if($EnableLocalDNSMASQ==1){
@@ -4857,14 +4857,7 @@ public function dns_nameservers($dnsmasq=false){
 	}
 	
 	
-	if($EnableOpenDNSInProxy==1){
-		$arrayOpenDNS=unserialize(base64_decode($sock->GET_INFO("OpenDNSConfig")));
-		if($arrayOpenDNS["OpenDNS1"]==null){$arrayOpenDNS["OpenDNS1"]="208.67.222.222";}
-		if($arrayOpenDNS["OpenDNS2"]==null){$arrayOpenDNS["OpenDNS2"]="208.67.220.220";}
-		writelogs("OpenDNS: {$arrayOpenDNS["OpenDNS2"]},{$arrayOpenDNS["OpenDNS2"]} ",__CLASS__.'/'.__FUNCTION__,__FILE__);
-		$dns_nameservers[]=trim($arrayOpenDNS["OpenDNS1"]);
-		$dns_nameservers[]=trim($arrayOpenDNS["OpenDNS2"]);
-	}
+
 		
 	if(count($this->dns_array)>0){
 		reset($this->dns_array);
@@ -5105,6 +5098,7 @@ function BuildSquidConf(){
 		$conf=$conf."acl DenyBlacksites dstdomain \"/etc/squid3/www-blacklists.db\"\n";
 		if(!is_file("/etc/squid3/www-blacklists.db")){@touch("/etc/squid3/www-blacklists.db");}
 		$conf=$conf .$this->ACL_ChildProxysIPs()."\n";
+		$conf=$conf .$this->ACL_MyLocalIpsDest();"\n";
 		
 		if($SquidAsMasterPeer==1){
 			$conf=$conf."acl ChildProxyPorts $token $SquidAsMasterPeerPort $SquidAsMasterPeerPortSSL\n";
@@ -6228,6 +6222,23 @@ function BuildSquidConf(){
 			
 		}
 		
+		private function ACL_MyLocalIpsDest(){
+			$NETWORK_ALL_INTERFACES=$this->NETWORK_ALL_INTERFACES();
+			unset($NETWORK_ALL_INTERFACES["0.0.0.0"]);
+			unset($NETWORK_ALL_INTERFACES["127.0.0.1"]);
+			$tcp=new IP();
+			while (list ($ipaddr, $line) = each ($NETWORK_ALL_INTERFACES) ){
+				if(!$tcp->isIPAddress($ipaddr)){continue;}
+				$f[]=$ipaddr;
+			}
+			
+			if(count($f)==0){
+				return "acl MyLocalIpsDest dst 127.0.0.1"; 
+			}
+			return "acl MyLocalIpsDest dst ".@implode(" ", $ipaddr);
+			
+		}
+		
 		
 		private function http_access_debugport(){
 			$sock=new sockets();
@@ -6269,7 +6280,12 @@ function BuildSquidConf(){
 			$conf[]="#--------- Dedicated rule that allow Access to Artica repositories";
 			$conf[]="#--------- in any cases for updates [".__LINE__."]";
 			$conf[]="http_access allow ToArticaWWW";
+			$conf[]="http_access allow MyLocalIpsDest";
+			$conf[]="url_rewrite_access deny MyLocalIpsDest";
 			$conf[]="http_access deny DenyBlacksites";
+			
+			
+			
 			$sock=new sockets();
 			$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 			$SquidAsMasterPeerPort=intval($sock->GET_INFO("SquidAsMasterPeerPort"));

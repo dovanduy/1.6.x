@@ -584,31 +584,41 @@ function squid_force_cache_status(){
 	shell_exec($cmd);
 	
 }
+function SQUID_REFRESH_PANEL_STATUS(){
+	$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]="/usr/share/artica-postfix/ressources/logs/web/restart.squid";
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/restart.squid");
+	@touch("/usr/share/artica-postfix/ressources/logs/web/restart.squid");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/restart.squid",0777);
+
+	@unlink("/usr/share/artica-postfix/ressources/logs/squid.restart.progress");
+	touch("/usr/share/artica-postfix/ressources/logs/squid.restart.progress");
+	@chmod("/usr/share/artica-postfix/ressources/logs/squid.restart.progress",0777);
+
+}
 
 
 function squid_k_reconfigure(){
-	$statusfile="/usr/share/artica-postfix/ressources/logs/web/restart.squid";
-	@unlink($statusfile);
-	@touch($statusfile);
-	@chmod($statusfile,0777);
+	
 	$unix=new unix();
 	$squid=$unix->LOCATE_SQUID_BIN();
 	$force=null;
 	if(isset($_GET["force"])){$force=" --force";}
 	squid_watchdog_events("Reconfiguring Proxy parameters...");
-	
+	SQUID_REFRESH_PANEL_STATUS();
+	$statusfile=$GLOBALS["SQUID_REFRESH_PANEL_STATUS"];
 	$unix->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
 	
 	if(isset($_GET["ApplyConfToo"])){
 		$php5=$unix->LOCATE_PHP5_BIN();
-		$cmd="$php5 /usr/share/artica-postfix/exec.squid.php --build{$force} >>$statusfile 2>&1 &";
+		$nohup=$unix->find_program("nohup");
+		$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squid.php --build{$force} >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &";
 		squid_admin_mysql(2, "Framework executed to reconfigure squid-cache", @file_get_contents($statusfile));
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
 		return;
 	}
 	
-	shell_exec("$php5 /usr/share/artica-postfix/exec.squid.php --kreconfigure >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.php --kreconfigure >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1");
 	squid_admin_mysql(2, "Framework executed to reconfigure squid-cache", @file_get_contents($statusfile));
 	sleep(2);
 	$tail=$unix->find_program("tail");
@@ -622,28 +632,24 @@ function squid_watchdog_events($text){
 }
 
 function squid_z_reconfigure(){
-	@unlink("/usr/share/artica-postfix/ressources/logs/web/restart.squid");
-	shell_exec("/bin/touch /usr/share/artica-postfix/ressources/logs/web/restart.squid");
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/restart.squid",0777);
+	SQUID_REFRESH_PANEL_STATUS();
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$force=null;
 	if(isset($_GET["force"])){$force=" --force";}
-	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.watchdog.php --squidz{$force} >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1 &");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.watchdog.php --squidz{$force} >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
 	
 }
 function firewall(){
-	@unlink("/usr/share/artica-postfix/ressources/logs/web/restart.squid");
-	shell_exec("/bin/touch /usr/share/artica-postfix/ressources/logs/web/restart.squid");
-	@chmod("/usr/share/artica-postfix/ressources/logs/web/restart.squid",0777);
+	SQUID_REFRESH_PANEL_STATUS();
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	if(!is_file("/etc/init.d/tproxy start")){
-		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.transparent.php >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1 &");
+		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.transparent.php >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
 	}else{
-		shell_exec("$nohup /etc/init.d/tproxy start >> /usr/share/artica-postfix/ressources/logs/web/restart.squid 2>&1 &");
+		shell_exec("$nohup /etc/init.d/tproxy start >> {$GLOBALS["SQUID_REFRESH_PANEL_STATUS"]} 2>&1 &");
 	}
 
 }
@@ -689,21 +695,24 @@ function ufdbguard_events(){
 	$unix=new unix();
 	$tail=$unix->find_program("tail");
 	$grep=$unix->find_program("grep");
+	$filedest="/usr/share/artica-postfix/ressources/logs/web/ufdbguardd.log";
+	
 	$max="500";
 	if(is_numeric($_GET["rp"])){$max=$_GET["rp"];}
 	if($_GET["search"]<>null){
 		$search=base64_decode($_GET["search"]);
 		writelogs_framework("SEARCH $search",__FUNCTION__,__FILE__,__LINE__);
 		
-		$cmd="$grep -i -E '$search' /var/log/squid/ufdbguardd.log|$tail -n $max 2>&1";
+		$cmd="$grep -i -E '$search' /var/log/squid/ufdbguardd.log|$tail -n $max >$filedest 2>&1";
 		
 		
 	}else{
-		$cmd="$tail -n $max /var/log/squid/ufdbguardd.log 2>&1";
+		$cmd="$tail -n $max /var/log/squid/ufdbguardd.log >$filedest 2>&1";
 	}
 	writelogs_framework("rp={$_GET["rp"]} `$cmd`",__FUNCTION__,__FILE__,__LINE__);
-	exec("$cmd",$results);
-	echo "<articadatascgi>".base64_encode(serialize($results))."</articadatascgi>";	
+	shell_exec("$cmd");
+	@chmod($filedest,0755);
+	
 	
 }
 
@@ -899,8 +908,9 @@ function isInjectrunning(){
 
 
 function ufdbguardconf(){
-	$tpl=explode("\n",@file_get_contents("/etc/ufdbguard/ufdbGuard.conf"));
-	echo "<articadatascgi>". base64_encode(serialize($tpl))."</articadatascgi>";
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/ufdbGuard.conf");
+	@copy("/etc/ufdbguard/ufdbGuard.conf","/usr/share/artica-postfix/ressources/logs/web/ufdbGuard.conf");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/ufdbGuard.conf", 0755);
 }
 
 

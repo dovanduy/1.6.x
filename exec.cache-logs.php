@@ -21,6 +21,7 @@ $GLOBALS["PHP5"]=$unix->LOCATE_PHP5_BIN();
 $GLOBALS["CHMOD"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN"]=$unix->find_program("chown");
 $GLOBALS["UMOUNT"]=$unix->find_program("umount");
+$GLOBALS["SCRIPT_SUFFIX"]="--script=".basename(__FILE__);
 
 $GLOBALS["RM"]=$unix->find_program("rm");
 $GLOBALS["DF"]=$unix->find_program("df");
@@ -112,11 +113,26 @@ function Parseline($buffer){
 	if(preg_match("#temporary disabling.*?digest from#", $buffer)){return;}
 	if(preg_match("#kid[0-9]+\| .*?\/[0-9]+ exists#", $buffer)){return;}
 	
+	
+	
+//*******************************************************************************************************************
+if(preg_match("#Squid Cache.*?:\s+Exiting normally#",$buffer,$re)){
+	squid_admin_mysql(2,"Proxy service was normally stopped","Proxy claim\n$buffer\n",__FILE__,__LINE__);
+	return;
+}
+//*******************************************************************************************************************	
+if(preg_match("#FATAL: Received Bus Error...dying#",$buffer,$re)){
+	if(TimeStampTTL(__LINE__,5)){
+		squid_admin_mysql(0,"Bus Error !","Proxy claim\n$buffer\nThis caused by an hardware issue or a proxy bug ( please contact our support team)\nArtica will try to start Proxy if it is not running",__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --start {$GLOBALS["SCRIPT_SUFFIX"]} >/dev/null 2>&1 &");
+	}
+	return;	
+}
 //*******************************************************************************************************************	
 if(preg_match("#FATAL: Unable to open HTTPS Socket#",$buffer,$re)){
 	if(TimeStampTTL(__LINE__,5)){
 		squid_admin_mysql(0,"Port conflict issue on HTTPS socket -> Restart proxy service","$buffer\n",__FILE__,__LINE__);
-		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force >/dev/null 2>&1 &");
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --restart --force {$GLOBALS["SCRIPT_SUFFIX"]} >/dev/null 2>&1 &");
 	}
 	return;	
 }
@@ -134,7 +150,7 @@ if(preg_match("#FATAL: The basicauthenticator helpers are crashing too rapidly, 
 if(preg_match("#ERROR: URL-rewrite produces invalid request:#",$buffer,$re)){
 	if(TimeStampTTL(__LINE__,5)){
 		squid_admin_mysql(0,"Redirector Web filter miss-configured, reconfigure Web filter","$buffer\n",__FILE__,__LINE__);
-		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squidguard.php --build --force --restart >/dev/null 2>&1 &");
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squidguard.php --build --force --restart {$GLOBALS["SCRIPT_SUFFIX"]} >/dev/null 2>&1 &");
 	}
 	return;	
 }	
@@ -262,8 +278,7 @@ if(preg_match("#squidaio_queue_request: WARNING - Queue congestion#i", $buffer))
 			events("127.0.0.1 issue",__LINE__);
 			squid_admin_mysql(0,"Loopback interface issue - {$re[1]}","$buffer\nArtica will reconfigure loopback");
 			shell_exec("{$GLOBALS["IFCONFIG"]} lo 127.0.0.1 netmask 255.255.255.0 up >/dev/null 2>&1");
-			shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
-			shell_exec("{$GLOBALS["SQUIDBIN"]} -k reconfigure >/dev/null 2>&1");
+			shell_exec("/etc/init.d/squid reload {$GLOBALS["SCRIPT_SUFFIX"]}");
 			return;
 		}			
 	}
@@ -537,7 +552,7 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 			squid_admin_mysql(1, "Permission denied: Reconfiguring squid-cache","Permission as been set to $dirname");
 			squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
 			$cmd="{$GLOBALS["NOHUP"]} {$GLOBALS["CHOWN"]} -R squid:squid $dirname >/dev/null 2>&1 &";
-			shell_exec("/etc/init.d/squid reload --script=".basename(__FILE__));
+			shell_exec("/etc/init.d/squid reload {$GLOBALS["SCRIPT_SUFFIX"]}");
 			events("$cmd".__LINE__);
 			shell_exec($cmd);			
 			@unlink($file);
@@ -549,7 +564,7 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 			if(!isset($GLOBALS["SQUIDBIN"])){$unix=new unix();$GLOBALS["SQUIDBIN"]=$unix->LOCATE_SQUID_BIN();}
 			squid_admin_mysql(1, "Permission denied: Reconfiguring squid-cache","Permission as been set to $dirname");
 			squid_admin_mysql(1, "Reconfiguring proxy service",null,__FILE__,__LINE__);
-			$cmd="/etc/init.d/squid reload --script=".basename(__FILE__)." >/dev/null 2>&1 &";
+			$cmd="/etc/init.d/squid reload {$GLOBALS["SCRIPT_SUFFIX"]} >/dev/null 2>&1 &";
 			events("$cmd".__LINE__);
 			shell_exec($cmd);			
 				
@@ -572,7 +587,7 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 			shell_exec($cmd);
 			events("$cmd".__LINE__);
 			squid_admin_mysql(1, "Permission denied: Reconfiguring squid-cache","Permission as been set to $dirname");
-			$cmd="{$GLOBALS["NOHUP"]} {$GLOBALS["CHOWN"]} -R squid:squid $dirname && /etc/init.d/squid reload --script=".basename(__FILE__)." >/dev/null 2>&1 &";
+			$cmd="{$GLOBALS["NOHUP"]} {$GLOBALS["CHOWN"]} -R squid:squid $dirname && /etc/init.d/squid reload {$GLOBALS["SCRIPT_SUFFIX"]} >/dev/null 2>&1 &";
 			events("$cmd".__LINE__);
 			shell_exec($cmd);
 			@unlink($file);

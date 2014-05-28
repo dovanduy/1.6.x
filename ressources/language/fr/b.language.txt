@@ -1913,6 +1913,7 @@ Cette fonctionnalit&eacute; assure que le service soit toujours disponible gr&ac
 Dans le cas du proxy, Les deux proxy communiquent afin de s'assurer mutuellement de leur &eacute;tat de sant&eacute;.</failover_explain>
 <failover_ExternalPageToCheck>Page externe introuvable</failover_ExternalPageToCheck>
 <failover_ExternalPageToCheck_explain>Le d&eacute;mon de surveillance r&eacute;cup&egrave;re r&eacute;guli&egrave;rement le contenu d'une page Web externe.[br]Si la r&eacute;cup&eacute;ration est un &eacute;chec alors le basculement s'effectuera.</failover_ExternalPageToCheck_explain>
+<failover_if_failed>Basculer sur le secours</failover_if_failed>
 <failover_mgrinfo>Informations incompl&egrave;tes du proxy</failover_mgrinfo>
 <failover_mgrinfo_explain>Le d&eacute;mon de surveillance collecte les informations techniques que lui fournit le service Proxy.[br]Si celui-ci n'est pas en mesure de lui fournir alors un basculement s'effectuera.</failover_mgrinfo_explain>
 <failover_ttl>Temps Mini sur le secours</failover_ttl>
@@ -2658,6 +2659,7 @@ param&egrave;tre peut &ecirc;tre [b] coch&eacute; [/b] pour renverser le comport
 <max_execution_time>Temps MAX d'ex&eacute;cution</max_execution_time>
 <max_extend_count_filez>Jour MAX d'extension</max_extend_count_filez>
 <max_failed>&Eacute;checs MAX.</max_failed>
+<max_failed_before_action>NB &eacute;checs avant d\'op&eacute;rer</max_failed_before_action>
 <max_file_lifetime>Temps MAX de vie d'un fichier</max_file_lifetime>
 <max_heap_table_size>Limiter la cr&eacute;ation des tables m&eacute;moires de plus de</max_heap_table_size>
 <max_heap_table_size_text>Ne pas autoriser la cr&eacute;ation de tables de type MEMORY (HEAP) plus grande que cette valeur. La valeur de la variable est utilis&eacute;e pour calculer la valeur maximale de MAX_ROWS pour la table MEMORY.[br] Modifier cette variable n'a pas d'effet sur les tables existantes, &agrave; moins que la table ne soit recr&eacute;e, avec une commande comme CREATE TABLE ou TRUNCATE TABLE, ou encore modifi&eacute;e avec ALTER TABLE.</max_heap_table_size_text>
@@ -3071,6 +3073,7 @@ Nous vous sugg&eacute;rons de r&eacute;guli&egrave;rement analyser les tables av
 Cela veut dire que Artica n'est pas en mesure de d&eacute;terminer la v&eacute;racit&eacute; du site Internet dans les statistiques et aussi au niveau du filtrage Internet.[br]
 Afficher la section et essayez de les classer vous-m&ecirc;me afin d'enrichir vos bases locales et de les filtrer correctement.</not_categorized_explain_why>
 <not_connected_to_active_directory>N'est pas connect&eacute; &agrave; un Active Directory</not_connected_to_active_directory>
+<not_for_current_branch>Le paquetage n\'est pas compatible pour la branche actuelle</not_for_current_branch>
 <NOT_INSTALLED>Non install&eacute;</NOT_INSTALLED>
 <not_used>Pas utilis&eacute;</not_used>
 <not_used_no_license>Inutilis&eacute;, pas de licence active</not_used_no_license>
@@ -3604,9 +3607,10 @@ Voulez-vous effectuer cette op&eacute;ration ?</reindex_caches_warn>
 <reinstall_software_ask>Cette op&eacute;ration va d&eacute;sinstaller et r&eacute;installer le logiciel.[br]
 Voulez-vous effectuer cette op&eacute;ration ?</reinstall_software_ask>
 <relay_server>Serveur relais de messagerie</relay_server>
-<released_on>Lib&eacute;r&eacute; le</released_on>
+<released_on>Disponible le</released_on>
 <reload-into-ims>Force le proxy &agrave; convertir l'ent&ecirc;te [b]no-cache[/b] vers l'ent&ecirc;te [b]If-Modified-Since[/b].[br]
 L'utilisation de cette option est utile  uniquement si lent&ecirc;te [b]Last-Modified[/b] est &eacute;mise par le site Web.</reload-into-ims>
+<reloading_proxy_service>Rechargement du service Proxy</reloading_proxy_service>
 <reloading_service>Rafra&icirc;chissement du service</reloading_service>
 <reload_into_ims>Rechargement redirig&eacute; sur le cache</reload_into_ims>
 <reload_into_ims_explain>Si vert, les ent&ecirc;tes \&quot;no-cache\&quot; ou \&quot;reload\&quot; n\'auront plsu d\'effets et seront modifi&eacute;es par \&quot;If-Modified-Since\&quot;.[br]
@@ -3737,6 +3741,7 @@ Cette op&eacute;ration d&eacute;truira toutes les donn&eacute;es.</reset_smtp_lo
 <reset_table>Vider la table</reset_table>
 <response_time>Temps de r&eacute;ponse</response_time>
 <restart>Red&eacute;marrer</restart>
+<restarting_dns_service>Red&eacute;marrage du Service DNS</restarting_dns_service>
 <restarting_proxy_service>Red&eacute;marrage du service proxy</restarting_proxy_service>
 <restarting_service_failed>&Eacute;chec du red&eacute;marrage du service</restarting_service_failed>
 <restarting_winbind>Red&eacute;marrage du service Winbind</restarting_winbind>
@@ -3752,6 +3757,7 @@ Contactez notre support ou regardez la console syst&egrave;me du serveur si votr
 <restart_each>Red&eacute;marrer &agrave; chaque</restart_each>
 <restart_each_explain>Red&eacute;marre le service si il tourne depuis x minutes.[br]Une valeur inf&eacute;rieure &agrave; 5Mn d&eacute;sactive la surveillance.</restart_each_explain>
 <restart_firewall_service>Red&eacute;marre le service pare-feu</restart_firewall_service>
+<restart_if_failed>Red&eacute;marrer si &eacute;chec</restart_if_failed>
 <restart_kav4Proxy>Red&eacute;marrer Kaspersky Pour Proxy</restart_kav4Proxy>
 <restart_kav4Proxy_explain>Arr&ecirc;te et d&eacute;marre le service Antivirus Kaspersky d&eacute;di&eacute; &agrave; votre proxy.</restart_kav4Proxy_explain>
 <restart_mysql_server>Red&eacute;marrer le serveur MySQL</restart_mysql_server>
@@ -3933,6 +3939,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <server_load_today>Charge du serveur aujourd'hui</server_load_today>
 <servicename>Nom du service</servicename>
 <services_operations>Op&eacute;rations - services</services_operations>
+<services_timeout>D&eacute;lais des servcies</services_timeout>
 <servicew>Service</servicew>
 <service_options>Options du service</service_options>
 <service_options_text>Param&egrave;tres globaux du service et options avanc&eacute;es.</service_options_text>
@@ -4328,6 +4335,9 @@ Cette op&eacute;ration risque de charger votre serveur.
 D&eacute;sirez-vous quand m&ecirc;me effectuer cette op&eacute;ration ?</stats_repair_day_warn>
 <step>&Eacute;tape</step>
 <stop>Stopper</stop>
+<StopMaxTTL>Temps d\'attente pour l\'arr&ecirc;t</StopMaxTTL>
+<StopMaxTTL_explain>Lorsque Artica  arr&ecirc;te le service Proxy, il evoi un signal d\'arr&ecirc;t au processus Proxy.[br]
+Combien de temps Artica va attendre le proxy afin de le laisser s%u2019&eacute;teindre correctement.[br]Au d&eacute;lai imparti, Artica va \&quot;tuer\&quot; les d&eacute;mons en m&eacute;moire de fa&ccedil;on brutale.</StopMaxTTL_explain>
 <stopping_proxy_service>Arr&ecirc;t du service proxy</stopping_proxy_service>
 <stopping_service>Arr&ecirc;t du service</stopping_service>
 <StopRefresh>Arr&ecirc;ter le rafra&icirc;chissement</StopRefresh>
@@ -4920,6 +4930,7 @@ Votre licence gratuite vous permet d'utiliser la base de donn&eacute;es de filtr
 <watchdog_klms8_text>S'assure que les services de Kaspersky For Linux Mail server fonctionnent et ne consomme pas les limites ressources syst&egrave;me.</watchdog_klms8_text>
 <watchdog_queue>Moniteur de file d'attente</watchdog_queue>
 <watchdog_queue_text>Param&egrave;tres si la file d'attente exc&egrave;de des limites</watchdog_queue_text>
+<watchdog_settings>Param&egrave;tres du d&eacute;mon de surveillance</watchdog_settings>
 <watchdog_squid_settings>Param&egrave;tres du d&eacute;mon de surveillance</watchdog_squid_settings>
 <wccp2_routers>Routeurs WCCP</wccp2_routers>
 <wccp2_routers_explain>S&eacute;parez les adresses IP par une virule (si plusieurs)</wccp2_routers_explain>
@@ -5035,6 +5046,10 @@ Il est n&eacute;cessaire d'indiquer une deuxi&egrave;me adresse r&eacute;seau af
 <what_to_do>Quelle op&eacute;ration mener ?</what_to_do>
 <when_connecting_to_method>Lors de la connexion avec la m&eacute;thode</when_connecting_to_method>
 <when_connections_came_from>Lorsque des connexions proviennent de</when_connections_came_from>
+<when_fetching_proxy_informations>Lors de la r&eacute;cup&eacute;ration des informations proxy</when_fetching_proxy_informations>
+<when_fetching_proxy_informations_explain>Artica interroge p&eacute;riodiquement le proxy afin de r&eacute;cup&eacute;rer des informations techniques.[br]
+La m&eacute;oire, les informations sur les caches, les processus NTLM.[br]
+Si il n\'est pas en mesure de r&eacute;cup&eacute;rer ces informations, il peut automatiquement r&eacute;agir</when_fetching_proxy_informations_explain>
 <where>o&ugrave;</where>
 <where_to_find_package>O&ugrave; trouver le paquetage</where_to_find_package>
 <whitelisted_senders>&Eacute;metteurs autoris&eacute;s</whitelisted_senders>

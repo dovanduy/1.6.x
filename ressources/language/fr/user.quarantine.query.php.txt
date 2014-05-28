@@ -10,7 +10,7 @@
 <last_quarantine_files>Derniers Emails sauvegard&eacute;s dans votre zone de quarantaine</last_quarantine_files>
 <mail_servers_ip>Serveur</mail_servers_ip>
 <messages_in_quarantine>Message(s) dans votre zone de quarantaine</messages_in_quarantine>
-<release_mail>Lib&eacute;rer l'email</release_mail>
+<release_mail>Lib&eacute;rer le message</release_mail>
 <release_mail_text>Envoyer cet Email &agrave; votre boite mail[br]Cet e-mail ne sera pass&eacute; par les filtres</release_mail_text>
 <search>Trouver</search>
 <search_text>Chercher des messages dans votre zone de quarantaine</search_text>

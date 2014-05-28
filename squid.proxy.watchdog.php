@@ -75,12 +75,27 @@ function defaults_values(){
 	if(!isset($MonitConfig["MaxLoadReboot"])){$MonitConfig["MaxLoadReboot"]=0;}
 	if(!isset($MonitConfig["MaxLoadFailOver"])){$MonitConfig["MaxLoadFailOver"]=0;}
 	if(!isset($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
+	if(!isset($MonitConfig["MgrInfosRestartFailed"])){$MonitConfig["MgrInfosRestartFailed"]=1;}
+	if(!is_numeric($MonitConfig["MgrInfosRestartFailed"])){$MonitConfig["MgrInfosRestartFailed"]=1;}
+	if(!isset($MonitConfig["MgrInfosFaileOverFailed"])){$MonitConfig["MgrInfosFaileOverFailed"]=1;}
+	if(!is_numeric($MonitConfig["MgrInfosFaileOverFailed"])){$MonitConfig["MgrInfosFaileOverFailed"]=1;}	
+	
+	if(!isset($MonitConfig["MgrInfosMaxFailed"])){$MonitConfig["MgrInfosMaxFailed"]=2;}
+	if(!is_numeric($MonitConfig["MgrInfosMaxFailed"])){$MonitConfig["MgrInfosMaxFailed"]=2;}
+	if($MonitConfig["MgrInfosMaxFailed"]==0){$MonitConfig["MgrInfosMaxFailed"]=1;}
 	
 	if(!isset($MonitConfig["MgrInfosMaxTimeOut"])){$MonitConfig["MgrInfosMaxTimeOut"]=120;}
 	if(!isset($MonitConfig["MIN_INTERVAL"])){$MonitConfig["MIN_INTERVAL"]=5;}
 	if(!isset($MonitConfig["MaxSwapPourc"])){$MonitConfig["MaxSwapPourc"]=10;}
 	if(!isset($MonitConfig["REBOOT_INTERVAL"])){$MonitConfig["REBOOT_INTERVAL"]=30;}
 	if(!isset($MonitConfig["MinTimeFailOverSwitch"])){$MonitConfig["MinTimeFailOverSwitch"]=15;}
+	
+	if(!isset($MonitConfig["StopMaxTTL"])){$MonitConfig["StopMaxTTL"]=90;}
+	if(!is_numeric($MonitConfig["StopMaxTTL"])){$MonitConfig["StopMaxTTL"]=90;}
+	if($MonitConfig["StopMaxTTL"]<5){$MonitConfig["StopMaxTTL"]=5;}
+	
+	
+	
 	
 	if(!isset($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
 	if(!isset($MonitConfig["watchdogCPU"])){$MonitConfig["watchdogCPU"]=95;}
@@ -96,6 +111,7 @@ function defaults_values(){
 	if(!isset($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
 	if(!is_numeric($MonitConfig["SWAP_MIN"])){$MonitConfig["SWAP_MIN"]=5;}
 	if(!is_numeric($MonitConfig["SWAP_MAX"])){$MonitConfig["SWAP_MAX"]=75;}
+	
 	
 	if(!is_numeric($MonitConfig["MinFreeMem"])){$MonitConfig["MinFreeMem"]=50;}
 	if(!is_numeric($MonitConfig["watchdog"])){$MonitConfig["watchdog"]=1;}
@@ -155,6 +171,19 @@ function defaults_values(){
 function SAVE(){
 	$MonitConfig=defaults_values();
 	$sock=new sockets();
+	
+	
+	if(isset($_POST["StopMaxTTL"])){
+		$squid=new squidbee();
+		$squid->shutdown_lifetime=$_POST["shutdown_lifetime"];
+		$squid->SaveToLdap(true);
+		if($_POST["StopMaxTTL"]<$_POST["shutdown_lifetime"]){
+			$_POST["StopMaxTTL"]=$_POST["shutdown_lifetime"]+1;
+		}
+		
+	}
+	
+	
 	if(isset($_POST["EnableFailover"])){$sock->SET_INFO("EnableFailover",$_POST["EnableFailover"]);}
 	if(isset($_POST["SquidCacheReloadTTL"])){$sock->SET_INFO("SquidCacheReloadTTL",$_POST["SquidCacheReloadTTL"]);}
 	
@@ -481,7 +510,7 @@ function PERFORMANCE_PAGE(){
 }
 
 function SETTINGS_PAGE(){
-
+	$squid=new squidbee();
 	$t=time();
 	$MonitConfig=defaults_values();
 	$t=time();
@@ -518,6 +547,21 @@ function SETTINGS_PAGE(){
 			"font-size:18px;width:190px")."&nbsp;{errors}</td>
 		<td width=1%></td>
 	</tr>
+<tr><td colspan=3 style='font-size:22px'>{services_timeout}</td></tr>
+					
+					
+	<tr>
+		<td class=legend style='font-size:18px'>{StopMaxTTL}:</td>
+		<td	style='font-size:18px'>". Field_text("StopMaxTTL",$MonitConfig["StopMaxTTL"],
+					"font-size:18px;width:90px")."&nbsp;{seconds}</td>
+		<td width=1%>". help_icon("{StopMaxTTL_explain}")."</td>
+	</tr>	
+		<tr>
+			<td align='right' class=legend style='font-size:18px'>{shutdown_lifetime}</strong>:</td>
+			<td align='left' style='font-size:18px'>" . Field_text("shutdown_lifetime-$t",$squid->shutdown_lifetime,'width:90px;font-size:18px')."&nbsp;{seconds}</td>
+			<td width=1%>" . help_icon('{shutdown_lifetime_text}',true)."</td>
+		</tr>
+				
 	<tr>
 		<td class=legend style='font-size:18px'>{minimum_reload_interval}:</td>
 		<td	style='font-size:18px'>". Field_text("SquidCacheReloadTTL",$SquidCacheReloadTTL,
@@ -536,12 +580,34 @@ function SETTINGS_PAGE(){
 					"font-size:18px;width:190px")."&nbsp;</td>
 		<td width=1%>". help_icon("{SQUID_MAX_RESTART_EXPLAIN}")."</td>
 	</tr>
+				
+				
+	<tr><td colspan=3 style='font-size:24px'>{when_fetching_proxy_informations}</td></tr>
+	<tr><td colspan=3 ><div class=explain style='font-size:16px'>{when_fetching_proxy_informations_explain}</div>		
 	<tr>
 		<td class=legend style='font-size:18px'>{tests_timeout}:</td>
 		<td	style='font-size:18px'>". Field_text("MgrInfosMaxTimeOut",$MonitConfig["MgrInfosMaxTimeOut"],
 					"font-size:18px;width:190px")."&nbsp;{seconds}</td>
 		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{max_failed_before_action}:</td>
+		<td	style='font-size:18px'>". Field_text("MgrInfosMaxFailed",$MonitConfig["MgrInfosMaxFailed"],
+					"font-size:18px;width:90px")."&nbsp;{times}</td>
+		<td width=1%></td>
+	</tr>							
+	<tr>
+		<td class=legend style='font-size:18px'>{restart_if_failed}:</td>
+		<td	style='font-size:18px'>". Field_checkbox("MgrInfosRestartFailed",1,$MonitConfig["MgrInfosRestartFailed"])."&nbsp;</td>
+		<td width=1%></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{failover_if_failed}:</td>
+		<td	style='font-size:18px'>". Field_checkbox("MgrInfosFaileOverFailed",1,$MonitConfig["MgrInfosFaileOverFailed"])."&nbsp;</td>
+		<td width=1%></td>
 	</tr>				
+				
+							
 	<tr>
 <td colspan=3 align='right'><hr>". button("{apply}","Save$t()",24)."</td>
 	</div>
@@ -564,6 +630,17 @@ function SETTINGS_PAGE(){
 	XHR.appendData('REBOOT_INTERVAL',document.getElementById('REBOOT_INTERVAL').value);
 	XHR.appendData('MAX_RESTART',document.getElementById('MAX_RESTART').value);
 	XHR.appendData('MgrInfosMaxTimeOut',document.getElementById('MgrInfosMaxTimeOut').value);
+	XHR.appendData('MgrInfosMaxFailed',document.getElementById('MgrInfosMaxFailed').value);
+	XHR.appendData('shutdown_lifetime',document.getElementById('shutdown_lifetime-$t').value);
+	XHR.appendData('StopMaxTTL',document.getElementById('StopMaxTTL').value);
+	
+	
+	if(document.getElementById('MgrInfosRestartFailed').checked){ XHR.appendData('MgrInfosRestartFailed',1); }else{ XHR.appendData('MgrInfosRestartFailed',0); }
+	if(document.getElementById('MgrInfosFaileOverFailed').checked){ XHR.appendData('MgrInfosFaileOverFailed',1); }else{ XHR.appendData('MgrInfosFaileOverFailed',0); }
+	
+	
+	
+	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 	}
 	</script>

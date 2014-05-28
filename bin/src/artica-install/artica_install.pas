@@ -3511,7 +3511,7 @@ halt(0);
 end;
 if ParamStr(1)='--squid-reload' then
 begin
-zsquid.SQUID_RELOAD();
+
 halt(0);
 end;
 

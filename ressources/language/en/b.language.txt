@@ -6283,3 +6283,19 @@ It enables the setting of server-wide or per connection bandwidth limits, based 
 <watchdog_squid_settings>Watchdog service parameters</watchdog_squid_settings>
 <ENABLE_PING_GATEWAY>Ping an address</ENABLE_PING_GATEWAY>
 <select_all>Select all</select_all>
+<restarting_dns_service>Restarting DNS service</restarting_dns_service>
+<not_for_current_branch>Package is not compatible for the current branch</not_for_current_branch>
+<reloading_proxy_service>Reloading Proxy service</reloading_proxy_service>
+<watchdog_settings>Watchdog settings</watchdog_settings>
+<when_fetching_proxy_informations>When retreive informations from proxy</when_fetching_proxy_informations>
+<when_fetching_proxy_informations_explain>Artica ask periodically technical informations trough the proxy port.[br]
+Memory used, disks informations, NTLM processes...[br]
+If it cannot retreive these informations, it can automatically react</when_fetching_proxy_informations_explain>
+<restart_if_failed>Restart if failed</restart_if_failed>
+<failover_if_failed>Switch to backup server</failover_if_failed>
+<max_failed_before_action>MAX failed before processing action</max_failed_before_action>
+<services_timeout>Services timeout</services_timeout>
+<StopMaxTTL>Stop service TTL</StopMaxTTL>
+<StopMaxTTL_explain>When Artica need stop proxy service it send a signal to the daemon to shutdown.[br]
+How many time Artica will wait in order to let the proxy service shutdown processes and tasks before really kill daemons.
+</StopMaxTTL_explain> 

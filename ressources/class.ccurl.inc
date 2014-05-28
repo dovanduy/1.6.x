@@ -860,12 +860,12 @@ class ccurl{
 			curl_setopt($this->ch,CURLOPT_MAX_RECV_SPEED_LARGE,$this->CurlBandwith*1024);
 		}
 		
-		$this->OutPutlogs("CURL_EXEC .\"$this->uri\"");
+		$this->OutPutlogs("CURL_EXEC: \"$this->uri\" [".__LINE__."]");
 		$result=curl_exec($this->ch); 
 		
 		
 		$this->CURLINFO_HTTP_CODE=curl_getinfo($this->ch,CURLINFO_HTTP_CODE);
-		$this->OutPutlogs("CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE");
+		$this->OutPutlogs("CURLINFO_HTTP_CODE: $this->CURLINFO_HTTP_CODE [".__LINE__."]");
 		
 		
 		$this->CURL_ALL_INFOS=curl_getinfo($this->ch);

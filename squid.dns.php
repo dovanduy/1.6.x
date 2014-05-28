@@ -63,7 +63,6 @@ function table(){
 	if(!is_numeric($t)){$t=time();}
 	$dns_nameservers=$tpl->javascript_parse_text("{dns_nameservers}");
 	$new_dns=$tpl->_ENGINE_parse_body("{new_dns_server}");
-	$EnableOpenDNSInProxy=$sock->GET_INFO("EnableOpenDNSInProxy");
 	$restart_service=$tpl->javascript_parse_text("{restart_service}");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
@@ -77,12 +76,7 @@ function table(){
 		{name: '$restart_service', bclass: 'ReConf', onpress : RestartService$t},
 	],";
 
-	if($EnableOpenDNSInProxy==1){
-		$js_add="DisableStandardProxyDns()";
-		$buttons=null;
-		$texttoadd=$tpl->_ENGINE_parse_body("<br><span style='font-size:16px;color:#9B2222'>{currently_user_opendns_service}</span>");
 	
-	}	
 
 $html="	$texttoadd<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>

@@ -209,14 +209,14 @@ if($unix->process_exists($pid)){
 		if(!$GLOBALS["FORCE"]){
 			echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading force is disabled\n";
 			if($LastTime<$ufdbguardReloadTTL){
-				ufdbguard_admin_events("Asking to reload ufdbguard but last config not reached ({$ufdbguardReloadTTL}mn) current {$LastTime}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+				
 				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn - Current {$LastTime}mn\n";
 				return;
 			}			
 			
 			
 			if($processTTL<$ufdbguardReloadTTL){
-				ufdbguard_admin_events("Asking to reload ufdbguard but TTL not reached ({$ufdbguardReloadTTL}mn) current {$processTTL}mn $called {$GLOBALS["CMDLINEXEC"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+				
 				echo "Starting......: ".date("H:i:s")." ufdbGuard Reloading service Aborting... minimal time was {$ufdbguardReloadTTL}mn\n";
 				return;
 			}

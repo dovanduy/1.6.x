@@ -715,8 +715,7 @@ $SQUID["ArticaEnableKav4ProxyInSquid"]=true;
 $SQUID["DansGuardianEnabled"]=true;
 $SQUID["SquidExternalAuth"]=true;
 $SQUID["SquidFTPParams"]=true;
-$SQUID["OpenDNSConfig"]=true;
-$SQUID["EnableOpenDNSInProxy"]=true;
+
 
 
 $SAMBA["SambaSMBConf"]=true;

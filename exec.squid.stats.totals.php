@@ -30,8 +30,6 @@ $sock->SQUID_DISABLE_STATS_DIE();
 $GLOBALS["Q"]=new mysql_squid_builder();
 if($argv[1]=="--interface"){donnees_interface();exit;}
 if($argv[1]=="--repair"){TOTALS_REPAIR();exit;}
-
-
 if($argv[1]=="--xtime"){start($argv[2]);exit;}
 
 start();
@@ -45,8 +43,6 @@ function start($xtime=0){
 	if(count($pids)>5){
 		die();
 	}
-	
-	
 	
 	if($xtime==0){
 		if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
@@ -73,6 +69,10 @@ function start($xtime=0){
 	if($xtime>0){
 		$dateRequested=date("Y-m-d",$xtime);
 		$dateRequested_sql=" WHERE zDate='$dateRequested'";
+		if(SquidStatisticsTasksOverTime()){ 
+			stats_admin_events(1,"Statistics overtime... Aborting ( requested for $dateRequested ) ",null,__FILE__,__LINE__); 
+			return; 
+		}
 	}
 	
 	$sql="SELECT

@@ -6,6 +6,7 @@ if(isset($_GET["verbose"])){echo __LINE__." verbose OK<br>\n";$GLOBALS["VERBOSE"
 	include_once('ressources/class.status.inc');
 	include_once('ressources/class.artica.graphs.inc');
 	include_once('ressources/class.calendar.inc');
+	include_once('ressources/class.tcpip.inc');
 	$users=new usersMenus();
 	if(!$users->AsSquidAdministrator){die();}	
 	if(isset($_GET["events"])){popup_list();exit;}
@@ -579,6 +580,7 @@ function unlock(){
 	$q=new mysql();
 	$q1=new mysql_squid_builder();
 	$acl=new squid_acls();
+	$IP=new IP();
 	if(strpos($_POST["unlock"], ",")>0){
 		$tr=explode(",",$_POST["unlock"]);
 	}else{

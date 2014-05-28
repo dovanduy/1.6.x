@@ -46,6 +46,11 @@ function manual_update(){
 		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
 		<td><a href=\"http://www.articatech.net/releases.php\" target=_new style='font-size:16px;text-decoration:underline'>Artica Releases</a></td>
 	</tr>
+	<tr>
+		<td width=1%><img src='img/arrow-blue-left-32.png'></td>
+		<td><a href=\"http://www.artica.fr/patch-p0.php\" target=_new style='font-size:16px;text-decoration:underline'>Artica Patchs</a></td>
+	</tr>	
+	
 	</table>
 	</center>
 	

@@ -66,10 +66,12 @@ function status_versions(){
 	
 	$ini=new Bs_IniHandler();
 	$ini->loadFile($f);
+	$Lastest_patch=trim(strtolower($ini->_params["NEXT"]["artica-patch"]));
 	$Lastest=trim(strtolower($ini->_params["NEXT"]["artica"]));
 	$nightly=trim(strtolower($ini->_params["NEXT"]["artica-nightly"]));
-	if($Lastest==null){return;}
-	
+	if($Lastest==null){$Lastest="-";}
+	if($Lastest_patch==null){$Lastest_patch="-";}
+	if($Lastest==null){$Lastest="-";}
 	$html="
 	
 	<table style='width:100%'>
@@ -86,6 +88,11 @@ function status_versions(){
 				<td class=legend style='font-size:18px' nowrap>Nightly:</td>
 				<td style='font-size:18px' width=99%><a href=\"http://www.artica.fr/nightly.php\" target=_new>$nightly</td>
 			</tr>
+			<tr>
+				<td width=1% nowrap><img src=img/arrow-blue-left-32.png ></td>
+				<td class=legend style='font-size:18px' nowrap>Patch:</td>
+				<td style='font-size:18px' width=99%><a href=\"http://www.artica.fr/patch-p0.php\" target=_new>$Lastest_patch</td>
+			</tr>			
 			<tr><td colspan=3 style='font-size:22px'>&nbsp;</td></tr>
 			
 			
@@ -173,6 +180,7 @@ if(trim($AUTOUPDATE["front_page_notify"])==null){$AUTOUPDATE["front_page_notify"
 if(trim($AUTOUPDATE["samba_notify"])==null){$AUTOUPDATE["samba_notify"]="no";}
 if(trim($AUTOUPDATE["auto_apt"])==null){$AUTOUPDATE["auto_apt"]="no";}
 $CURVER=@file_get_contents("VERSION");
+$CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
 	$html="
 	<input type='hidden' id='perform_update_text' value='{perform_update_text}'>
 	<table style='width:100%'>
@@ -207,7 +215,7 @@ $CURVER=@file_get_contents("VERSION");
 		<td style='width:70%'>
 	<div class=explain style='font-size:16px'>
 		<div style='margin-bottom:5px;text-align:right;padding-bottom:1px;border-bottom:1px solid #999999;width:97%'>
-			<strong style='font-size:22px'>{current} Artica v.$CURVER</strong>
+			<strong style='font-size:22px'>{current} Artica v.$CURVER Branch v.$CUR_BRANCH</strong>
 		</div>{autoupdate_text}
 	</div>
 	</td>

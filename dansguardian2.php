@@ -179,10 +179,10 @@ function tabs(){
 	}
 
 
-	$fontsize=14;
-	if(count($array)>7){$fontsize=12;}
+	$fontsize=16;
+	if(count($array)>7){$fontsize=16;}
 
-	if(count($array)>8){$fontsize=11.7;}
+	if(count($array)>8){$fontsize=14.7;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		

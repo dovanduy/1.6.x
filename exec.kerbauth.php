@@ -571,7 +571,7 @@ function build_progress(){
 		}
 		$results2=array();
 		progress_logs(69,"Restarting Squid-cache","...");
-		exec("/etc/init.d/squid restart --force 2>&1",$results2);
+		exec("/etc/init.d/squid restart --force --script=". basename(__FILE__)." 2>&1",$results2);
 		while (list ($index, $line) = each ($results2) ){
 			progress_logs(69,"Restarting Squid-cache",$line);
 		}
