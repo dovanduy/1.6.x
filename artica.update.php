@@ -399,7 +399,11 @@ var x_SaveArticaUpdateForm= function (obj) {
 			if(document.getElementById('EnablePatchUpdates').checked){XHR.appendData('EnablePatchUpdates','1');}else{XHR.appendData('EnablePatchUpdates','0');}
 		}
 		if(document.getElementById('EnableSystemUpdates')){
-			if(document.getElementById('EnableSystemUpdates').checked){XHR.appendData('EnableSystemUpdates','1');}else{XHR.appendData('EnableSystemUpdates','0');}
+			if(document.getElementById('EnableSystemUpdates').checked){
+			XHR.appendData('EnableSystemUpdates','1');
+				}else{
+			XHR.appendData('EnableSystemUpdates','0');
+			}
 		}		
 		
 		

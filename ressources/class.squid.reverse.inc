@@ -612,6 +612,12 @@ class squid_reverse{
 		if(!$q->FIELD_EXISTS("reverse_www", "EnableCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `EnableCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
 		
+		if(!$q->FIELD_EXISTS("reverse_www", "proxy_cache_valid")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
+		ADD `proxy_cache_valid` smallint(3) NOT NULL DEFAULT '4320'");if(!$q->ok){echo $q->mysql_error_html();}}		
+		
+		
+		
+		
 		if(!$q->FIELD_EXISTS("reverse_www", "EnableSSLOCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
 		ADD `EnableSSLOCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
 		

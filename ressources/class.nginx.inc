@@ -14,6 +14,7 @@ class nginx{
 	private $proxy_scheme=null;
 	private $HostPortLNK=null;
 	private $forceddomain=null;
+	private $proxy_cache_valid=4320;
 	private $NginxProxyStorePath=null;
 	private $RedirectQueries=null;
 	private $host_port=0;
@@ -141,6 +142,7 @@ class nginx{
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$this->servername'"));
 			$this->proxy_read_timeout=$ligne["proxy_read_timeout"];
 			$this->proxy_send_timeout=$ligne["proxy_send_timeout"];
+			$this->proxy_cache_valid=$ligne["proxy_cache_valid"];
 			$this->proxy_buffering=$ligne["proxy_buffering"];
 			$this->proxy_cache_min_uses=$ligne["proxy_cache_min_uses"];
 			$this->proxy_buffer_size=$ligne["proxy_buffer_size"];
@@ -157,7 +159,7 @@ class nginx{
 			$this->LimitReqs=$ligne["LimitReqs"];
 			if($this->ssl_protocols==null){$this->ssl_protocols="TLSv1 TLSv1.1 TLSv1.2";}
 			if($this->ssl_ciphers==null){$this->ssl_ciphers="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";}
-			
+			if(!is_numeric($this->proxy_cache_valid)){$this->proxy_cache_valid=4320;}
 			
 		$GLOBALS[__CLASS__][__FUNCTION__][$key]=true;
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." default_server = {$ligne["default_server"]}\n";}
@@ -2029,12 +2031,17 @@ class nginx{
 				}
 			}
 			
+			$f[]="\tproxy_cache_use_stale error timeout invalid_header updating;";
 			$f[]="\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
-			$f[]="\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
-			$f[]="\t\tproxy_set_header Host $this->forceddomain;";
+			
 			
 			
 		}
+		
+		$f[]="\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+		$f[]="\tproxy_set_header Host $this->forceddomain;";
+		$f[]="\tproxy_cache_valid {$this->proxy_cache_valid}m;";
+		$f[]="\texpires {$this->proxy_cache_valid}m;";
 		
 		$replace_rules=$this->replace_rules_single_domain();
 		

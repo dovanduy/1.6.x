@@ -1831,6 +1831,8 @@ logs:=Tlogs.Create;
          end;
 
          cmd:='/bin/cp /usr/share/artica-postfix/'+ll.strings[i]+' '+FULL_PATCH_PATH+'/'+ll.strings[i];
+         writeln(cmd);
+         fpsystem(cmd);
          cmd:='/bin/cp /usr/share/artica-postfix/'+ll.strings[i]+' '+dir+'/'+ll.strings[i];
          writeln(cmd);
          fpsystem(cmd);
@@ -1859,11 +1861,12 @@ end;
     fpsystem('/bin/tar -czf '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz *');
     fpsystem('/bin/chown dtouzeau:dtouzeau '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz');
     fpsystem('/bin/touch '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt');
+    if FileExists('/home/dtouzeau/Bureau/latest.txt '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt') then fpsystem('rm -f /home/dtouzeau/Bureau/latest.txt '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt');
     if(FileExists('/home/dtouzeau/Bureau/latest.txt')) then begin
            fpsystem('/bin/cp -f /home/dtouzeau/Bureau/latest.txt '+FULL_PATCH_PATH_ROOT+'/'+MAIN_RELEASE_NAME+'.tgz.txt');
     end;
     fpsystem('/bin/chown dtouzeau '+FULL_PATCH_PATH_ROOT+'/*');
-    fpsystem('/chmod -R 0755 /home/dtouzeau/Bureau/artica-P0');
+    fpsystem('/bin/chmod -R 0755 /home/dtouzeau/Bureau/artica-P0');
 
 end;
 

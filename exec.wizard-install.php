@@ -402,6 +402,8 @@ function WizardExecute(){
 	
 	writeprogress(60,"Building networks");
 	$nics=new system_nic("eth0");
+	$nics->CheckMySQLFields();
+	
 	$nics->eth="eth0";
 	$nics->IPADDR=$savedsettings["IPADDR"];
 	$nics->NETMASK=$savedsettings["NETMASK"];;
@@ -426,7 +428,9 @@ function WizardExecute(){
 	$resolv->save();
 
 	$netbiosname=$savedsettings["netbiosname"];
-	$domainname=$savedsettings["domain"];
+	if(isset($savedsettings["domain"])){
+		$domainname=$savedsettings["domain"];
+	}
 
 	
 	$sock=new sockets();
@@ -579,12 +583,14 @@ function WizardExecute(){
 				}else{
 					$sql="UPDATE radcheck SET `value`='{$savedsettings["statsadministratorpass"]}' WHERE username='{$savedsettings["statsadministrator"]}'";
 					$q->QUERY_SQL($sql,"artica_backup");
+					if(!$q->ok){echo $q->mysql_error;}
 				}
 					
 				$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT username FROM radcheck WHERE username='{$savedsettings["statsadministrator"]}' AND groupname='WebStatsAdm' LIMIT 0,1","artica_backup"));
 				if(trim($ligne["username"])==null){
 					$sql="insert into radusergroup (username, groupname, priority,gpid) VALUES ('{$savedsettings["statsadministrator"]}', 'WebStatsAdm', 1,$gpid);";
 					$q->QUERY_SQL($sql,"artica_backup");
+					if(!$q->ok){echo $q->mysql_error;}
 				}
 			}
 		}

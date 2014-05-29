@@ -45,6 +45,10 @@ function tabs(){
 	
 	$fontsize="font-size:18px;";
 	while (list ($interface, $ligne) = each ($interfaces) ){
+		if(preg_match("#^dummy#", $interface)){continue;}
+		if(preg_match("#^ip6t#", $interface)){continue;}
+		if(preg_match("#^sit[0-9]+#", $interface)){continue;}
+		if(preg_match("#^tunl#", $interface)){continue;}
 		$eth=new system_nic($interface);
 		$html[]="<li><a href=\"$page?iptables=yes&eth=$interface\" style='$fontsize' ><span>$interface $eth->NICNAME</span></a></li>\n";
 	}

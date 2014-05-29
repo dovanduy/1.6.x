@@ -22,6 +22,8 @@
 	if(isset($_POST["ZARAFA_LANG"])){ZARAFA_LANG();exit;}
 	if(isset($_POST["ZarafaStoreOutside"])){ZarafaStoreOutside_save();exit;}
 	if(isset($_POST["ZarafaServerSMTPIP"])){SaveZarafaNet();exit;}
+	if(isset($_POST["build-locales"])){BuildLocales();exit;}
+	if(isset($_GET["locales-gen-running"])){locales_gen_running();exit;}
 page();
 
 
@@ -138,20 +140,25 @@ for($i=0;$i<10;$i++){
 	$nets["0.0.0.0"]="{all}";
 	
 	$netsSMTP=$nets;
+	
 	unset($netsSMTP["0.0.0.0"]);
 	$SMTPfield=Field_array_Hash($netsSMTP,"ZarafaServerSMTPIP",$ZarafaServerSMTPIP,"font-size:18px;padding:3px");
 	
-	$ZarafaServerListenIP=Field_array_Hash($netsSMTP,"ZarafaServerListenIP",$ZarafaServerListenIP,"style:font-size:18px;padding:3px");
+	$ZarafaServerListenIP=Field_array_Hash($nets,"ZarafaServerListenIP",$ZarafaServerListenIP,"style:font-size:18px;padding:3px");
 	
 		
 	$langbox[null]="C";
 	
 	$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG",$ZARAFA_LANG,"style:font-size:18px;padding:3px");
+	$build_locales_explain=$tpl->javascript_parse_text("{build_locales_explain}");
+	
+	
 	$html="
 	<div id='$t'>
 	<div class=explain style='font-size:16px'>{zarafa_tune_explain}</div>
 	
 <div style='width:98%' class=form>	
+	<div id='locales-gen-running-$t'></div>
 	<table style='width:99%'>	
 	<tr>
 		<td class=legend style='font-size:18px'>{zarafaMbxLang}:</td>
@@ -159,7 +166,7 @@ for($i=0;$i<10;$i++){
 	</tr>
 	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveZarafLang()",26)."</td>
+		<td colspan=2 align='right'><hr>". button("{build_languages}","BuildLocales()",26)."&nbsp;|&nbsp;". button("{apply}","SaveZarafLang()",26)."</td>
 	</tr>	
 </table>
 </div>	
@@ -330,6 +337,13 @@ function CheckZarafaATTCH(){
 	}
 }
 
+function BuildLocales(){
+	var XHR = new XHRConnection();
+	if(!confirm('$build_locales_explain')){return;}
+	XHR.appendData('build-locales','yes');
+	XHR.sendAndLoad('$page', 'POST',X_SaveZarafTuning);	
+}
+
 function SaveZarafaAttch(){
 	var XHR = new XHRConnection();
 	if(document.getElementById('ZarafaStoreOutside').checked){XHR.appendData('ZarafaStoreOutside',1);}else{XHR.appendData('ZarafaStoreOutside',0);}
@@ -346,7 +360,7 @@ function SaveZarafaNet(){
 	var XHR = new XHRConnection();
 	XHR.appendData('ZarafaServerSMTPIP',document.getElementById('ZarafaServerSMTPIP').value);
 	XHR.appendData('ZarafaServerSMTPPORT',document.getElementById('ZarafaServerSMTPPORT').value);
-	XHR.appendData('ZarafaServerSMTPIP',document.getElementById('ZarafaServerSMTPIP').value);
+	XHR.appendData('ZarafaServerListenIP',document.getElementById('ZarafaServerListenIP').value);
 	XHR.appendData('ZarafaServerListenPort',document.getElementById('ZarafaServerListenPort').value);
 	XHR.appendData('ZarafaMAPISSLPort',document.getElementById('ZarafaMAPISSLPort').value);
 	if( document.getElementById('ZarafaMAPISSLEnabled').checked){
@@ -359,6 +373,12 @@ function SaveZarafaNet(){
 	XHR.sendAndLoad('$page', 'POST',X_SaveZarafTuning);	
 	
 }
+
+		function IsLocalgenRunninZarafa(){
+			if(!document.getElementById('locales-gen-running-$t')){return;}
+			LoadAjaxVerySilent('locales-gen-running','$page?locales-gen-running=yes');
+		
+		}
 
 function ZarafaMAPISSLEnabledCheck(){
 	document.getElementById('ZarafaMAPISSLPort').disabled=true;
@@ -388,9 +408,18 @@ function SaveZarafTuning(){
 }
 ZarafaMAPISSLEnabledCheck();
 CheckZarafaATTCH();
+IsLocalgenRunninZarafa();
 </script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);
+	
+}
+
+function BuildLocales(){
+	$sock=new sockets();
+	$sock->getFrameWork("services.php?locales-gen=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{task_has_been_scheduled_in_background_mode}");
 	
 }
 
@@ -496,6 +525,27 @@ function ZARAFA_LANG(){
 	$sock=new sockets();
 	$sock->SET_INFO("ZARAFA_LANG", $_POST["ZARAFA_LANG"]);
 	$sock->getFrameWork("zarafa.php?build-init=yes");
+	
+	
+}
+
+function locales_gen_running(){
+	$sock=new sockets();
+	$page=CurrentPageName();
+	$array=unserialize(base64_decode($sock->getFrameWork("services.php?locales-gen-running=yes")));
+	if(!is_array($array)){echo "<script>
+		setTimeout(\"IsLocalgenRunninZarafa()\",3000);
+	</script>";
+	return;}
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body("<p class=text-info style='font-size:18px'>{languages} {running} {since} :{$array["SINCE"]}mn PID {$array["PID"]}</p>
+	
+	<script>
+
+		
+		setTimeout(\"IsLocalgenRunninZarafa()\",5000);
+	</script>
+	");
 	
 	
 }

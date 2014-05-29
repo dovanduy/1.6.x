@@ -43,6 +43,7 @@ class mapizarafa{
 		$ZarafaServerListenPort=intval($sock->GET_INFO("ZarafaServerListenPort"));
 		if($ZarafaServerListenPort==0){$ZarafaServerListenPort=236;}
 		if($this->ZarafaServerListenIP==null){$this->ZarafaServerListenIP="127.0.0.1";}
+		if($this->ZarafaServerListenIP=="0.0.0.0"){$this->ZarafaServerListenIP="127.0.0.1";}
 		$this->zarafaServer = "http://$this->ZarafaServerListenIP:$ZarafaServerListenPort/zarafa";
 	}
 	

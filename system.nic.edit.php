@@ -11,6 +11,7 @@
 	
 	$usersmenus=new usersMenus();
 	if($usersmenus->AsSystemAdministrator==false){exit;}
+	if(isset($_POST["SourceBasedRouting"])){SourceBasedRoutingSave();exit;}
 	if(isset($_POST["UseSnort"])){UseSnort();exit;}
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["ipconfig-nic"])){ipconfig_nic();exit;}
@@ -21,6 +22,7 @@
 	if(isset($_GET["ifconfig-route-list"])){ipconfig_routes_list();exit;}
 	if(isset($_GET["ifconfig-route-add-js"])){ipconfig_routes_add_js();exit;}
 	if(isset($_GET["ifconfig-route-add-popup"])){ipconfig_routes_add_popup();exit;}
+	if(isset($_GET["ipconfig-routage"])){ipconfig_routage();exit;}
 	
 	if(isset($_POST["add-routes"])){ipconfig_routes_add();exit;}
 	if(isset($_GET["del-routes"])){ipconfig_routes_del();exit;}	
@@ -116,6 +118,7 @@ function tabs(){
 		$array["ipconfig-v6"]='ipV6';
 	}
 	//$array["ipconfig-routes"]='{routes}';
+	$array["ipconfig-routage"]='{routing}';
 	$array["ipconfig-tools"]='{tools}';
 	
 	//ip neigh flush dev eth0
@@ -130,6 +133,51 @@ function tabs(){
 
 	echo $tpl->_ENGINE_parse_body($html);
 }
+
+function ipconfig_routage(){
+	$nic=$_GET["nic"];
+	$nic=new system_nic($_GET["nic"]);
+	$t=time();
+	$tpl=new templates();
+	$page=CurrentPageName();
+
+	$p=Paragraphe_switch_img("{source_based_routing}", "{source_based_routing_explain}",
+			"SourceBasedRouting-$t",$nic->SourceBasedRouting,null,580);
+	
+	$html="<div style='width:98%' class=form>
+	$p
+	<div style='text-align:right'>
+	<hr>".button("{apply}","Save$t()",26)."</div>
+<script>
+var xSave$t= function (obj) {
+var results=obj.responseText;
+if(results.length>3){alert(results);}
+if(document.getElementById('main_config_{$_GET["nic"]}')){RefreshTab('main_config_{$_GET["nic"]}');}
+if(document.getElementById('wizard-nic-list')){WizardRefreshNics();}
+if(document.getElementById('tabs_listnics2')){RefreshTab('tabs_listnics2');}
+
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('eth','{$_GET["nic"]}');
+	XHR.appendData('SourceBasedRouting',document.getElementById('SourceBasedRouting-$t').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}				
+</script>			
+";
+	
+echo $tpl->_ENGINE_parse_body($html);	
+}
+
+function SourceBasedRoutingSave(){
+	$nic=new system_nic($_POST["eth"]);
+	$nic->CheckMySQLFields();
+	$nic->SourceBasedRouting=$_POST["SourceBasedRouting"];
+	$nic->SaveNic();
+	
+}
+
 
 function ipconfig_nic6(){
 	$eth=$_GET["nic"];

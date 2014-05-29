@@ -58,9 +58,15 @@ class resolv_conf{
 	private function buildDefault(){
 		if($GLOBALS["PROGRESS"]){echo "82%] Loading LoadNameServers()\n";}
 		$this->LoadNameServers();
-		$this->MainArray["DNS1"]=$this->arrayNameServers[0];
-		$this->MainArray["DNS2"]=$this->arrayNameServers[1];
-		$this->MainArray["DNS3"]=$this->arrayNameServers[2];
+		if(isset($this->arrayNameServers[0])){
+			$this->MainArray["DNS1"]=$this->arrayNameServers[0];
+		}
+		if(isset($this->arrayNameServers[1])){
+			$this->MainArray["DNS2"]=$this->arrayNameServers[1];
+		}
+		if(isset($this->arrayNameServers[2])){
+			$this->MainArray["DNS3"]=$this->arrayNameServers[2];
+		}
 		$ip=new IP();
 		if(!$ip->isValid($this->MainArray["DNS1"])){unset($this->MainArray["DNS1"]);}
 		if(!$ip->isValid($this->MainArray["DNS2"])){unset($this->MainArray["DNS2"]);}

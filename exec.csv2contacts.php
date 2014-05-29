@@ -25,6 +25,7 @@ $sock=new sockets();
 $ZarafaServerListenIP=$sock->GET_INFO('ZarafaServerListenIP');
 if(trim($ZarafaServerListenIP)==0){$ZarafaServerListenIP='localhost';}
 if($ZarafaServerListenIP=="127.0.0.1"){$ZarafaServerListenIP="localhost";}
+if($ZarafaServerListenIP=="0.0.0.0"){$ZarafaServerListenIP="localhost";}
 $ZarafaServerListenPort=intval($sock->GET_INFO("ZarafaServerListenPort"));
 if($ZarafaServerListenPort==0){$ZarafaServerListenPort=236;}
 // set username/password and the server location

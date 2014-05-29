@@ -225,10 +225,14 @@ function EditGroup_tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
 	$ID=$_GET["ID"];
-
+	$q=new mysql_squid_builder();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT GroupType FROM webfilters_sqgroups WHERE ID='$ID'"));
+	$GroupType=$ligne["GroupType"];
 	
-	$array["items"]='{items}';
-	$array["EditGroup-popup"]='{settings}';
+	if(!isset($q->acl_ARRAY_NO_ITEM[$GroupType])){
+		$array["items"]='{items}';
+	}
+	$array["EditGroup-popup"]='{settings}:';
 	
 
 	while (list ($num, $ligne) = each ($array) ){
@@ -675,7 +679,7 @@ function group_list(){
 		
 		$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}'"));
 		$CountDeMembers=$ligne2["tcount"];
-		if(isset($aclss->ARRAY_NO_ITEM[$ligne["GroupType"]])){$CountDeMembers="-";}
+		if(isset($q->acl_ARRAY_NO_ITEM[$ligne["GroupType"]])){$CountDeMembers="-";}
 		if($ligne["GroupType"]=="all"){$CountDeMembers="*";}
 		
 		

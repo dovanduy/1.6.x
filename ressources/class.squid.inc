@@ -5122,6 +5122,7 @@ function BuildSquidConf(){
 		$conf=$conf.$this->ACLS_DROPBOX()."\n";
 		$conf=$conf.$this->ACLS_SKYPE()."\n";
 		$conf=$conf.$this->ACLS_OFFICE365()."\n";
+		$conf=$conf.$this->ACLS_GOOGLE()."\n";
 		
 		$squid_sessions_builder=$this->squid_sessions_builder();
 	
@@ -6300,6 +6301,7 @@ function BuildSquidConf(){
 			$AllowSquidDropBox=intval($sock->GET_INFO("AllowSquidDropBox"));
 			$AllowSquidSkype=intval($sock->GET_INFO("AllowSquidSkype"));
 			$AllowSquidOffice365=intval($sock->GET_INFO("AllowSquidOffice365"));
+			$AllowSquidGoogle=intval($sock->GET_INFO("AllowSquidGoogle"));
 			$conf[]="#--------- AllowSquidDropBox:$AllowSquidDropBox, AllowSquidSkype:$AllowSquidSkype, AllowSquidOffice365:$AllowSquidOffice365 F:".__FUNCTION__." line:".__LINE__;
 			if($AllowSquidDropBox==1){
 				$conf[]="http_access allow dropbox_ips";
@@ -6319,6 +6321,12 @@ function BuildSquidConf(){
 				$conf[]="url_rewrite_access deny office365_ips";
 				$conf[]="url_rewrite_access deny office365_www";
 			}
+			if($AllowSquidGoogle==1){
+				$conf[]="http_access allow google_ips";
+				$conf[]="http_access allow google_www";
+				$conf[]="url_rewrite_access deny google_ips";
+				$conf[]="url_rewrite_access deny google_www";
+			}			
 			
 			
 			if($this->SquidUrgency==1){
@@ -7057,6 +7065,18 @@ public function SaveCertificate($commname=null,$cache_peer=false,$nginx=false,$c
 			return @implode("\n", $f);
 			
 		}
+		
+		private function ACLS_GOOGLE(){
+			$sock=new sockets();
+			$AllowSquidGoogle=intval($sock->GET_INFO("AllowSquidGoogle"));
+			if($AllowSquidGoogle==0){return;}
+			$ips=new products_ip_ranges();
+			$ips->google_networks();
+			$f[]="# --------- AllowSquidGoogle = $AllowSquidGoogle [".__LINE__."]";
+			$f[]="acl google_ips dst \"/etc/squid3/acls/google-nets.acl\"";
+			$f[]="acl google_www dstdomain  .google.com .google.fr .google.de .google.be .google.co.uk";
+			return @implode("\n", $f)."\n";
+		}		
 		
 		private function ACLS_DROPBOX(){
 			$sock=new sockets();

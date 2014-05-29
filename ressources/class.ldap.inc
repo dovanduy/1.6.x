@@ -3258,6 +3258,7 @@ function GroupForbiddenAttachment($attach_group,$gid,$add=false){
 			
 		$hashdoms=$this->hash_get_all_domains();
 		writelogs("hashdoms[$domain]={$hashdoms[$domain]}",__CLASS__."/".__FUNCTION__,__FILE__);
+		if(!isset($hashdoms[$domain])){$hashdoms[$domain]=null;}
 		if($hashdoms[$domain]<>null){
 			include_once(dirname(__FILE__).'/class.templates.inc');
 			$tpl=new templates();

@@ -29,6 +29,7 @@ function menu(){
 	
 	$ldap=new clladp();
 	
+	
 	echo "Please define the username: [default: $ldap->ldap_admin]:\n";
 	$ldap_admin=trim(strtolower(fgets(STDIN)));
 	if($ldap_admin==null){$ldap_admin=$ldap->ldap_admin;}

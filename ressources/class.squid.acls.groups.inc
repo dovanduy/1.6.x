@@ -41,14 +41,8 @@ class squid_acls_groups{
 		if($squid->LDAP_AUTH==1){$this->AUTH=1;}
 		if($squid->LDAP_EXTERNAL_AUTH==1){$this->AUTH=1;}
 		if($squid->EnableKerbAuth==1){$this->AUTH=1;$this->UseDynamicGroupsAcls=1;}
-		$this->ARRAY_NO_ITEM["proxy_auth_ads"]=true;
-		$this->ARRAY_NO_ITEM["NudityScan"]=true;
-		$this->ARRAY_NO_ITEM["all"]=true;
-		$this->ARRAY_NO_ITEM["dynamic_acls"]=true;
-		$this->ARRAY_NO_ITEM["radius_auth"]=true;
-		$this->ARRAY_NO_ITEM["ad_auth"]=true;
-		$this->ARRAY_NO_ITEM["ldap_auth"]=true;
-		$this->ARRAY_NO_ITEM["hotspot_auth"]=true;
+		$this->ARRAY_NO_ITEM=$q->acl_ARRAY_NO_ITEM;
+
 		
 	}
 	
@@ -651,7 +645,15 @@ class squid_acls_groups{
 				$this->debugOutput("$aclid: all -> {$neg}{$prefix}all", __FUNCTION__, __LINE__);
 				$acls_name[]="{$neg}{$prefix}all";
 				continue;
-			}			
+			}	
+
+			if(isset($q->acl_ARRAY_NO_ITEM[$GroupType])){
+				if($ligne["negation"]==1){$neg="!";}
+				$this->debugOutput("$aclid: acl_ARRAY_NO_ITEM -> {$neg}{$prefix}Group{$ligne["ID"]}", __FUNCTION__, __LINE__);
+				$acls_name[]="{$neg}{$prefix}Group{$ligne["ID"]}";
+				continue;
+				
+			}
 			
 			
 			
@@ -1068,15 +1070,10 @@ class squid_acls_groups{
 		if(!$users->CORP_LICENSE){ $text_license="<img src='img/warning-16.png' align=left style='margin:5px'>
 				<div style='color:red;padding:5px;margin:5px;font-style:italic;color:#EA0000'>{category_no_license_explain}</div>"; }
 		
-		$ARRAY_NO_ITEM["proxy_auth_ads"]=true;
-		$ARRAY_NO_ITEM["NudityScan"]=true;
-		$ARRAY_NO_ITEM["all"]=true;
-		$ARRAY_NO_ITEM["dynamic_acls"]=true;
-		$ARRAY_NO_ITEM["categories"]=true;
-		$ARRAY_NO_ITEM["radius_auth"]=true;
-		$ARRAY_NO_ITEM["ad_auth"]=true;
-		$ARRAY_NO_ITEM["ldap_auth"]=true;
-		$ARRAY_NO_ITEM["hotspot_auth"]=true;
+		
+		$q=new mysql_squid_builder();
+		
+
 		
 		
 		
@@ -1094,7 +1091,7 @@ class squid_acls_groups{
 		AND webfilters_sqacllinks.aclid=$aclid
 		ORDER BY webfilters_sqacllinks.zOrder
 		";
-		$q=new mysql_squid_builder();
+		
 		$results = $q->QUERY_SQL($sql);
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$PREFIX_TEXT=null;
@@ -1107,7 +1104,7 @@ class squid_acls_groups{
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT COUNT(ID) as tcount FROM webfilters_sqitems WHERE gpid='{$ligne['ID']}' AND enabled=1"));
 			$items=$ligne2["tcount"];
 			$items_text="$items {items}";
-			if(!isset($ARRAY_NO_ITEM[$ligne["GroupType"]])){
+			if(!isset($q->acl_ARRAY_NO_ITEM[$ligne["GroupType"]])){
 				if($items==0){
 					if($GLOBALS["VERBOSE"]){echo "ACL[$aclid]: Checking Group[{$ligne['ID']}] No item, aborting<br>\n";}
 					continue;
@@ -1128,7 +1125,7 @@ class squid_acls_groups{
 				
 			}
 			if($ligne["GroupType"]=="all"){$items_text="{all}";}
-			if(isset($ARRAY_NO_ITEM[$ligne["GroupType"]])){$items_text=null;}
+			if(isset($q->acl_ARRAY_NO_ITEM[$ligne["GroupType"]])){$items_text=null;}
 			
 			$template=$this->template_name($ligne['ID'],$linkcolor);
 			if($template<>null){$template=" - {template} $template";}else{$template=" - {template} {default}";}
@@ -1192,14 +1189,7 @@ class squid_acls_groups{
 	public function FlexArray($gpid,$enable=1,$fontsize=14){
 		$q=new mysql_squid_builder();
 		
-		$ARRAY_NO_ITEM["proxy_auth_ads"]=true;
-		$ARRAY_NO_ITEM["NudityScan"]=true;
-		$ARRAY_NO_ITEM["all"]=true;
-		$ARRAY_NO_ITEM["dynamic_acls"]=true;
-		$ARRAY_NO_ITEM["radius_auth"]=true;
-		$ARRAY_NO_ITEM["ad_auth"]=true;
-		$ARRAY_NO_ITEM["ldap_auth"]=true;
-		$ARRAY_NO_ITEM["hotspot_auth"]=true;		
+
 		
 		$t=$_GET["t"];
 		$color="black";
@@ -1219,7 +1209,7 @@ class squid_acls_groups{
 				
 
 		
-		if(isset($ARRAY_NO_ITEM[$GroupType])){$items='-';}
+		if(isset($q->acl_ARRAY_NO_ITEM[$GroupType])){$items='-';}
 		
 		
 		
@@ -1244,7 +1234,7 @@ class squid_acls_groups{
 		$hrefAdd[]="OnClick=\"javascript:Loadjs('squid.acls.groups.php?AddItem-js=yes&item-id=-1&ID=$gpid&table-t=$t&table-org={$_GET["table-org"]}',true);\" ";
 		$hrefAdd[]="style=\"font-size:{$fontsize2}px;color:$color;text-decoration:underline\">";
 		
-		if(isset($ARRAY_NO_ITEM[$GroupType])){unset($hrefAdd);}
+		if(isset($q->acl_ARRAY_NO_ITEM[$GroupType])){unset($hrefAdd);}
 		$hrefAdd[]="($GroupTypeName)";
 		$hrefAddT=@implode("", $hrefAdd);
 		

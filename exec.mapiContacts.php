@@ -33,6 +33,7 @@ function start(){
 	
 	$ZarafaServerListenIP=$sock->GET_INFO("ZarafaServerListenIP");
 	if($ZarafaServerListenIP==null){$ZarafaServerListenIP="127.0.0.1";}
+	if($ZarafaServerListenIP=="0.0.0.0"){$ZarafaServerListenIP="127.0.0.1";}
 	
 	$ldap=new clladp();
 	$ous=$ldap->hash_get_ou(true);

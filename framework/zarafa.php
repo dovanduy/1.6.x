@@ -237,9 +237,7 @@ function zarafa_user_create_store(){
 	$cmd="$nohup $zarafa_admin$socket --create-store {$_GET["zarafa-user-create-store"]}$langcmd >/dev/null 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
-	$cmd="$nohup $zarafa_admin$socket $langcmd--create-store {$_GET["zarafa-user-create-store"]} >/dev/null 2>&1 &";
-	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
-	shell_exec(trim($cmd));	
+	
 	
 }
 

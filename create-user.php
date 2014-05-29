@@ -1,6 +1,6 @@
 <?php
 	session_start();
-	
+	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 	if($_SESSION["uid"]==null){echo "window.location.href ='logoff.php';";die();}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -36,7 +36,7 @@ $html="
 var x_serid='';
 
 function OpenAddUser(){
-	YahooWin5('650','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
+	YahooWin5('755','$page?form=yes&t=$t&ByZarafa={$_GET["ByZarafa"]}','$title');
 }
 
 var x_ChangeFormValues= function (obj) {
@@ -115,8 +115,15 @@ function SaveAddUser(){
 	  if(document.getElementById('internet_domain-$t')){internet_domain=document.getElementById('internet_domain-$t').value;}
 	  var EnableVirtualDomainsInMailBoxes=document.getElementById('EnableVirtualDomainsInMailBoxes-$t').value;
 	  if(EnableVirtualDomainsInMailBoxes==1){x_serid=email+'@'+internet_domain;}
+	  var XHR = new XHRConnection();
+	  
+	  if(document.getElementById('ZARAFA_LANG-$t')){
+	   XHR.appendData('ZARAFA_LANG',document.getElementById('ZARAFA_LANG-$t').value);
+	  }
+	  
+	 
 
-  	 var XHR = new XHRConnection();
+  	 
      XHR.appendData('ou',ou);
      XHR.appendData('internet_domain',internet_domain);
 	 XHR.appendData('email',email);
@@ -178,6 +185,8 @@ function formulaire(){
 	$ldap=new clladp();
 	$tpl=new templates();
 	$page=CurrentPageName();	
+	
+	$lang=null;
 	$t=$_GET["t"];
 	if($users->AsAnAdministratorGeneric){
 		$hash=$ldap->hash_get_ou(false);
@@ -214,6 +223,23 @@ function formulaire(){
 	
 	$artica=new artica_general();
 	$EnableVirtualDomainsInMailBoxes=$artica->EnableVirtualDomainsInMailBoxes;	
+	
+	if($users->ZARAFA_INSTALLED){
+		$sock=new sockets();
+		$languages=unserialize(base64_decode($sock->getFrameWork("zarafa.php?locales=yes")));
+		while (list ($index, $data) = each ($languages) ){
+			if(preg_match("#cannot set#i", $data)){continue;}
+			$langbox[$data]=$data;
+		}
+			$ZARAFA_LANG=$sock->GET_INFO("ZARAFA_LANG");
+			$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG-$t",$ZARAFA_LANG,"style:font-size:22px;padding:3px");
+			$lang="<tr>
+				<td class=legend style='font-size:22px'>{language}:</td>
+				<td>$mailbox_language</td>
+			</tr>";
+	
+	}
+	
 	
 	
 	while (list ($num, $ligne) = each ($hash) ){
@@ -253,6 +279,7 @@ function formulaire(){
 			<td class=legend style='font-size:22px'>{uid}:</td>
 			<td>" . Field_text("login-$t",null,'width:320px;font-size:22px;padding:3px')."</td>
 		</tr>
+		$lang
 		<tr>
 			<td class=legend style='font-size:22px'>{password}:</td>
 			<td>" .Field_password("password-$t",null,"font-size:22px;padding:3px",null,null,null,false,"SaveAddUserCheck(event)")."</td>
@@ -289,9 +316,6 @@ function save(){
 	if($usersmenus->ZARAFA_INSTALLED){$_POST["ByZarafa"]="yes";}
 	$fulldata=urlencode(base64_encode(serialize($_POST)));
 	$sock=new sockets();
-	
-	
-	
 	echo base64_decode($sock->getFrameWork("system.php?create-user=$fulldata"));
 	
 	

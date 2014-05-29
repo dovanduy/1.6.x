@@ -246,6 +246,15 @@ class squid_acls{
 				continue;								
 			}
 			
+			if($ligne["GroupType"]=="teamviewer"){
+				$t=new products_ip_ranges(); 
+				$t->teamviewer_networks($ligne["ID"]);
+				$this->availableGroups[$ligne["ID"]]=true;
+				$this->acls_array[]="acl $acls_name dst \"/etc/squid3/acls/teamviewer-nets.acl\"";
+				
+			}
+			
+			
 			if($ligne["GroupType"]=="hotspot_auth"){
 					if($EnableSplashScreen==0){
 						echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - hotspot_auth is disabled !!! EnableSplashScreen =0 ???\n";

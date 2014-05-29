@@ -618,7 +618,11 @@ function downloadFile($url,$hostname)  {
    
    function MYSQL_INFO($key){
    	if(isset($GLOBALS["MYSQL_INFO"])){
-   		if($GLOBALS["MYSQL_INFO"][$key]<>null){return $GLOBALS["MYSQL_INFO"][$key];}
+   		if(isset($GLOBALS["MYSQL_INFO"][$key])){
+   			if($GLOBALS["MYSQL_INFO"][$key]<>null){
+   					return $GLOBALS["MYSQL_INFO"][$key];
+   			}
+   		}
    	}
    	$GLOBALS["MYSQL_INFO"][$key]=$this->GET_MYSQL_ROOT($key);
    	return $GLOBALS["MYSQL_INFO"][$key];

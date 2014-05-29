@@ -29,6 +29,10 @@ if(isset($_GET["syslog-test-nas"])){syslogdb_tests_nas();exit;}
 if(isset($_GET["squidlogs-oldlogs-test-nas"])){squidoldlogs_tests_nas();exit;}
 if(isset($_GET["squidlogs-oldlogs-logs-nas"])){squidoldlogs_logs_nas();exit;}
 if(isset($_GET["reload-sshd"])){reload_sshd();exit;}
+if(isset($_GET["locales-gen"])){locales_gen();exit;}
+if(isset($_GET["locales-gen-running"])){locales_gen_running();exit;}
+
+
 
 if(isset($_GET["squidstats-test-nas"])){squidstats_tests_nas();exit;}
 if(isset($_GET["execute-debian-mirror-rsync"])){debian_mirror_execute_rsync();exit;}
@@ -2100,5 +2104,25 @@ function automation_script(){
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
+function locales_gen(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.locale.gen.php >/dev/null 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+}
+function locales_gen_running(){
+	$unix=new unix();
+	$nohup=$unix->find_program("locale-gen");
+	$pid=$unix->PIDOF_PATTERN($nohup);
+	writelogs_framework("$nohup - > $pid",__FUNCTION__,__FILE__,__LINE__);
+	
+	if(!$unix->process_exists($pid)){return;}
+	$ARRAY["PID"]=$pid;
+	$ARRAY["SINCE"]=$unix->PROCCESS_TIME_MIN($pid);
+	echo "<articadatascgi>". base64_encode(serialize($ARRAY))."</articadatascgi>";
+}
+
 
 ?>

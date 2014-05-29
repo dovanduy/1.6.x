@@ -28,6 +28,7 @@ if($argv[1]=="--create"){create_user($argv[2]);die();}
 
 function create_user($filename){
 	$tpl=new templates();
+	$unix=new unix();
 	$path="/usr/share/artica-postfix/ressources/logs/web/create-users/$filename";
 	$MAIN=unserialize(base64_decode(@file_get_contents($path)));
 	
@@ -55,11 +56,20 @@ function create_user($filename){
     $users->group_id=$MAIN["gpid"];
 	      
 	if($MAIN["ByZarafa"]=="yes"){
+		$zarafa_admin=$unix->find_program("zarafa-admin");
+		$nohup=$unix->find_program("nohup");
+		
+		if(isset($MAIN["ZARAFA_LANG"])){
+			$users->SaveZarafaMbxLang($MAIN["ZARAFA_LANG"]);
+			$langcmd=" --lang {$MAIN["ZARAFA_LANG"]} ";
+		}
 		$ldap=new clladp();
 	    $dn="ou={$MAIN["ou"]},dc=organizations,$ldap->suffix";
 	    $upd["objectClass"]="zarafa-company";
      	$upd["cn"]=$MAIN["ou"];
-	    if(!$ldap->Ldap_add_mod("$dn",$upd)){echo $ldap->ldap_last_error;@unlink($path);return;}
+	    if(!$ldap->Ldap_add_mod("$dn",$upd)){echo $ldap->ldap_last_error; @unlink($path);return; }
+	    $cmd="$nohup $zarafa_admin $langcmd--create-store {$MAIN["login"]} >/dev/null 2>&1 &";
+	    shell_exec(trim($cmd));
 	}
 	      
 	      

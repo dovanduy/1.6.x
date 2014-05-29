@@ -454,6 +454,7 @@ function GroupInLine($ID=0){
 
 
 function GroupInArray($ID=0){
+	
 	if($ID==0){return array();}
 	$q=new mysql_squid_builder();
 	$sql="SELECT GroupType FROM webfilters_sqgroups WHERE ID=$ID";
@@ -461,6 +462,27 @@ function GroupInArray($ID=0){
 	if(!$q->ok){ echo "[".__LINE__."]: $q->mysql_error\n";}
 	$GroupType=$ligne["GroupType"];
 	if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: src_items:$ID -> $GroupType Get items.\n";}
+	
+	
+	if($GroupType=="teamviewer"){
+		include_once(dirname(__FILE__)."/ressources/class.products-ip-ranges.inc");
+		$products_ip_ranges=new products_ip_ranges();
+		$array=$products_ip_ranges->teamviewer_networks();
+		if($GLOBALS["VERBOSE"]){echo "teamviewer_networks ->".count($array)." items [".__LINE__."]\n";}
+		while (list ($a, $b) = each ($array) ){
+			if(preg_match("#([0-9]+)-([0-9]+)#", $b)){
+				$f["-m iprange --dst-range $b"]=true;
+				continue;
+			}
+			$f["--dst $b"]=true;
+			
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "[".__LINE__."]: teamviewer::$ID -> ".count($f)." item(s).\n";}
+		return $f;
+	}
+	
+	
 	$IpClass=new IP();
 	$sql="SELECT pattern FROM webfilters_sqitems WHERE gpid=$ID AND enabled=1";
 	
@@ -487,8 +509,8 @@ function GroupInArray($ID=0){
 		
 		
 		if($GroupType=="src"){
-			if(preg_match("#[0-9\.]+-[0-9\.]+", $pattern)){
-				$f["--src-range $pattern"]=true;
+			if(preg_match("#[0-9\.]+-[0-9\.]+#", $pattern)){
+				$f["-m iprange --src-range $pattern"]=true;
 				continue;
 			}
 			
@@ -498,7 +520,7 @@ function GroupInArray($ID=0){
 		
 		if($GroupType=="dst"){
 			if(preg_match("#[0-9\.]+-[0-9\.]+", $pattern)){
-				$f["--dst-range $pattern"]=true;
+				$f["-m iprange --dst-range $pattern"]=true;
 				continue;
 			}
 				

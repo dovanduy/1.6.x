@@ -295,6 +295,9 @@ By default, the router is allowed to put mails on each instance during 10mn.[br]
 <AllowSmartphonesRuleText>Allow Smartphones to bypass authentication</AllowSmartphonesRuleText>
 <AllowSquidDropBox>Allow DropBox in all cases</AllowSquidDropBox>
 <AllowSquidDropBox_explain>If turned to green, DropBox websites will be whitelisted in all cases ( including authentication too)</AllowSquidDropBox_explain>
+<AllowSquidGoogle>All Google in all cases</AllowSquidGoogle>
+<AllowSquidGoogle_explain>If turned to green, Google websites will be whitelisted in all 
+cases ( including authentication too)</AllowSquidGoogle_explain>
 <AllowSquidOffice365>Allow Lync Online and Office 365</AllowSquidOffice365>
 <AllowSquidOffice365_explain>If turned to green, Lync Online and Office 365 websites will be whitelisted in all cases ( including authentication too)</AllowSquidOffice365_explain>
 <AllowSquidSkype>Allow Skype in all cases</AllowSquidSkype>
@@ -923,6 +926,11 @@ It is designed to build websites statistics.</build_crypted_tables_catz_explain>
 <build_index_page_sarg>Ask Artica to reconstruct the main page of statistics</build_index_page_sarg>
 <build_install_status>Parse installations status</build_install_status>
 <build_install_status_explain>This task checks installations events and progress in order to build installations status in the setup control center</build_install_status_explain>
+<build_languages>Build languages</build_languages>
+<build_locales_explain>This operation will build about 420 languages on your system.
+It should take time and will consume performance.
+Do you want to carry ouyt this operation ?
+</build_locales_explain>
 <build_month_tables>Build month tables</build_month_tables>
 <build_month_tables_explain>This task calculate datas for the month table</build_month_tables_explain>
 <build_now>Build now</build_now>
@@ -1357,6 +1365,7 @@ Do you want to perform this operation ?
 <convertto_innodb_file_per_table_text>Change the MySQL behavior from innodb single file to a file for each table</convertto_innodb_file_per_table_text>
 <convert_background_warn>The conversion task has been ordered to be executed in background mode.
 during this time, some service will be not available...</convert_background_warn>
+<convert_language>Convert language</convert_language>
 <cookie>Cookie</cookie>
 <coova_CoovaUFDBEnabled_explain>If enabled, authenticated members will be filtered trough the Web filtering rules</coova_CoovaUFDBEnabled_explain>
 <COOVA_ERROR_NO_2_INTERFACES>Error, your server need at least 2 network interfaces in order to run the HotSpot service.[br]
@@ -1452,6 +1461,7 @@ This feature will create a Debian repository - about 10Gb/architecture.
 <debug_cache_processing>Debug cache processing</debug_cache_processing>
 <dedicated_website_error_page>Dedicated Web site for page error</dedicated_website_error_page>
 <defaultroute_interface_explain>The default route has been affected to %s</defaultroute_interface_explain>
+<default_based_routing>Default based routing</default_based_routing>
 <default_cache>Default cache</default_cache>
 <default_certificate>Default certificate</default_certificate>
 <default_domain>Default domain</default_domain>
@@ -2808,6 +2818,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <keyword>Keyword</keyword>
 <key_file>Key file</key_file>
 <KEY_OK>Key success</KEY_OK>
+<languages>Languages</languages>
 <last>last</last>
 <last_check>Last check</last_check>
 <last_status>Last status</last_status>
@@ -2957,6 +2968,7 @@ You will receive a new password shortly.[br]
 Use this new password to access the site.
 </lost_password_explain>
 <MAC>Mac Address</MAC>
+<macro>Macro</macro>
 <macros>Macros</macros>
 <macro_remove_disk>Remove disk from the system</macro_remove_disk>
 <macro_remove_disk_explain>Umount the disk and unlink it from the filesystem</macro_remove_disk_explain>
@@ -3976,6 +3988,8 @@ however, it is possible to set it to less.
 </proxy_buffer_size_text>
 <proxy_cache_min_uses>Minimal cached requests</proxy_cache_min_uses>
 <proxy_cache_min_uses_text>Number of queries, after which reply will be cached</proxy_cache_min_uses_text>
+<proxy_cache_valid>Cache time</proxy_cache_valid>
+<proxy_cache_valid_text>Define how long (in minutes) the request will be cached</proxy_cache_valid_text>
 <proxy_child>Child Proxy</proxy_child>
 <proxy_clients_was_notified>Proxy clients has been notified to restart services</proxy_clients_was_notified>
 <PROXY_EVENTS>Proxy events</PROXY_EVENTS>
@@ -4447,6 +4461,7 @@ for example replace bing.com to google.com or microsoft.com to ubuntu.com :=).
 Use a members that have Linux system privileges in order to login on the Web Management interface.
 </routes_goto_miniadm>
 <routes_tables>Routes tables</routes_tables>
+<routing>Routing</routing>
 <routing_lmtp_table_explain>This table list routing rules per final mailbox account to the final MDA (Mail Delivery Agent) it designed to define where to put messages in the final way.[br]
 Basically it designed to use LMTP protocol to communicate to a Cyrus-Imap or a Zarafa destination server.[br]
 </routing_lmtp_table_explain>
@@ -4716,6 +4731,16 @@ Soft deletes always remain in the database, until they are purged.
 <sorry>Sorry</sorry>
 <sorry_table_is_missing>Sorry, table is missing in MySQL database</sorry_table_is_missing>
 <sourcetype>Source type</sourcetype>
+<source_based_routing>Source based routing</source_based_routing>
+<source_based_routing_explain>If green, routes will be based on the interface source.[br]
+source routing allows a sender of a packet to partially or completely specify the route 
+the packet takes through the network.[br]
+In contrast, in non-source routing protocols, routers in the network determine the path 
+based on the packet's destination.[br]
+Source routing allows easier troubleshooting, improved traceroute, 
+and enables a node to discover all the possible routes to a host.[br]
+It does not allow a source to directly manage network performance by forcing packets to travel over one path to prevent congestion on another.
+</source_based_routing_explain>
 <source_file>Source file</source_file>
 <source_logs>Source logs</source_logs>
 <source_logs_squid_text>Display original log files in order to import them into the stattistics system or extract them</source_logs_squid_text>
@@ -6124,6 +6149,7 @@ Do you want to perform this operation ?
 </zarafa_database_recovery_warn>
 <ZARAFA_ISSUE>Zarafa server issue</ZARAFA_ISSUE>
 <ZARAFA_JUNK_EXPLAIN>Each member must display a "Non-spam" folder for non-spam analysis and a "Junk E-mail" folder on it's mailbox.</ZARAFA_JUNK_EXPLAIN>
+<ZARAFA_MAILBOX_CONVERT>This will convert the current mailbox language to </ZARAFA_MAILBOX_CONVERT>
 <zarafa_mysql_params_text>The Zarafa server use MySQL engine to store mailboxes.[br]
 You can define which database to use for the main Zarafa server instance.
 </zarafa_mysql_params_text>

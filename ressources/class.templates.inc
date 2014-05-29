@@ -605,9 +605,9 @@ function _detect_lang(){
 			return;}
 		
 		if(!$_SESSION["MINIADM"]){
-			$FixedLanguage=$sock->GET_INFO("FixedLanguage");
-			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>FixedLanguage $FixedLanguage</strong><br>\n";}
-			if(trim($FixedLanguage)<>null){return $FixedLanguage;}
+			if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage"); }
+			if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>FixedLanguage {$GLOBALS["FixedLanguage"]}</strong><br>\n";}
+			if(trim($GLOBALS["FixedLanguage"])<>null){return $GLOBALS["FixedLanguage"];}
 		}
 		if($GLOBALS["DEBUG_LANG"]){echo __FUNCTION__."::".__LINE__."::<strong>artica-language {$_COOKIE["artica-language"]}</strong><br>\n";}
 		if(isset($_COOKIE["artica-language"])){return $_COOKIE["artica-language"];}
@@ -4208,7 +4208,7 @@ function BuildSession($uid,$nominiadm=false){
 	$u=new user($uid);
 	$sock=new sockets();
 	if(!class_exists("articaLang")){include_once(dirname(__FILE__)."/class.langages.inc");}
-	$FixedLanguage=$sock->GET_INFO("FixedLanguage");
+	if(isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
 	$privileges_array=$privs->privs;
 	setcookie("mem-logon-user", $_POST["artica_username"], time()+172800);
 	$_SESSION["privileges_array"]=$privs->privs;
@@ -4239,8 +4239,8 @@ function BuildSession($uid,$nominiadm=false){
 	$_SESSION["UsersInterfaceDatas"]=trim($u->UsersInterfaceDatas);
 	$_SESSION["AsWebStatisticsAdministrator"]=$users->AsWebStatisticsAdministrator;
 	if($_SESSION["OU_LANG"]==null){
-		if($FixedLanguage<>null){
-			$_SESSION["OU_LANG"]=$FixedLanguage;
+		if($GLOBALS["FixedLanguage"]<>null){
+			$_SESSION["OU_LANG"]=$GLOBALS["FixedLanguage"];
 		}
 	}
 	

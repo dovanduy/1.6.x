@@ -75,7 +75,7 @@ if(isset($_GET["SaveUserInfos"])){SaveUserInfos ();exit ();}
 if(isset($_GET["Cyrus_mailbox_apply_settings"])){Cyrus_mailbox_apply_settings ();exit ();}
 
 //mailbox
-
+if(isset($_POST["ZARAFA_MAILBOX_CONVERT"])){ZARAFA_MAILBOX_CONVERT();exit;}
 if(isset($_GET["ZARAFA_MAILBOX_INFOS"])){ZARAFA_MAILBOX_INFOS_JS();exit;}
 if(isset($_GET["ZARAFA_MAILBOX_INFOS_POPUP"])){ZARAFA_MAILBOX_INFOS_TABS();exit;}
 if(isset($_GET["ZARAFA_MAILBOX_INFOS_POPUP_INSTANCE"])){ZARAFA_MAILBOX_INFOS_POPUP();exit;}
@@ -403,10 +403,10 @@ function AJAX_USER_TAB() {
 
 	
 	$itemsnum=count($arr);
-	if($itemsnum<7){$styleText="style='font-size:14px'";}
-	if($itemsnum==7){$styleText="style='font-size:14px'";}
-	if($itemsnum==8){$styleText="style='font-size:13.5px'";}
-	if($itemsnum>=9){$styleText="style='font-size:13px'";}
+	if($itemsnum<7){$styleText="style='font-size:18px'";}
+	if($itemsnum==7){$styleText="style='font-size:16px'";}
+	if($itemsnum==8){$styleText="style='font-size:14px'";}
+	if($itemsnum>=9){$styleText="style='font-size:14px'";}
 	while(list( $num, $ligne ) = each ($arr)){
 		if ($num == "computer") {
 			$toolbox [] = "<li><a href=\"domains.user.computer.php?userid=$userid&dn={$_GET["dn"]}\"><span $styleText>$ligne</span></a></li>";
@@ -423,17 +423,9 @@ function AJAX_USER_TAB() {
 	$html = "<div id=tablist style='margin-top:3px;margin-bottom:3px;'>$html</div>";
 	$tpl = new templates ( );
 	
-	$html = "
+	$html=build_artica_tabs($toolbox, "container-users-tabs");
 	
-	<div id='container-users-tabs' style='width:99%;margin:0px;background-color:white'>
-			<ul>
-				" . implode ( "\n\t", $toolbox ) . "
-			</ul>
-		</div>
-		<script>
-		 $(document).ready(function() {
-			$(\"#container-users-tabs\").tabs();});
-		</script>";
+	
 	
 	$html = $tpl->_ENGINE_parse_body ( $html );
 	SET_CACHED ( __FILE__, __FUNCTION__, $_GET["userid"], $html );
@@ -3461,11 +3453,17 @@ function SAVE_ZARAFA_MAILBOX(){
 	if(document.getElementById('zarafaAdmin').checked){XHR.appendData('zarafaAdmin','1');}else{XHR.appendData('zarafaAdmin','0');}
 	
 	XHR.appendData('uid','$uid');
-	document.getElementById('zfmbximg').src='img/wait_verybig.gif';
 	XHR.sendAndLoad('$page', 'GET',X_SAVE_ZARAFA_MAILBOX);	
 }	
 SAVE_ZARAFA_MAILBOX();	";
 	echo $html;
+}
+
+function ZARAFA_MAILBOX_CONVERT(){
+	$uid=$_POST["ZARAFA_MAILBOX_CONVERT"];
+	$sock=new sockets();
+	$sock->getFrameWork("zarafa.php?foldersnames=yes&uid=$uid&lang={$_POST["ZARAFA_MAILBOX_LANG"]}");
+	
 }
 
 function ZARAFA_MAILBOX_SAVE() {
@@ -3484,7 +3482,7 @@ function ZARAFA_MAILBOX_SAVE() {
 	if($EnableZarafaMulti==0){
 		$sock->getFrameWork("cmd.php?zarafa-admin=yes");
 		$sock->getFrameWork("zarafa.php?zarafa-user-create-store=$user->uid&lang={$_GET["zarafaMbxLang"]}");	
-		$sock->getFrameWork("zarafa.php?foldersnames=yes&uid=$user->uid&lang={$_GET["zarafaMbxLang"]}");		
+		//
 		
 	}else{
 		$q=new mysql();
@@ -3494,7 +3492,7 @@ function ZARAFA_MAILBOX_SAVE() {
 			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				$sock->getFrameWork("cmd.php?zarafa-admin=yes&instance-id={$ligne["ID"]}");
 				$sock->getFrameWork("zarafa.php?zarafa-user-create-store=$user->uid&instance-id={$ligne["ID"]}");}
-				$sock->getFrameWork("zarafa.php?foldersnames=yes&uid=$user->uid&lang={$_GET["zarafaMbxLang"]}&instance-id={$ligne["ID"]}");	
+				//$sock->getFrameWork("zarafa.php?foldersnames=yes&uid=$user->uid&lang={$_GET["zarafaMbxLang"]}&instance-id={$ligne["ID"]}");	
 			}	
 	}
 	
@@ -3520,7 +3518,7 @@ function ZARAFA_MAILBOX($uid) {
 	$major_version=$re[1];	
 	if(!is_numeric($major_version)){$major_version=6;}
 	
-	$mailbox_language=Field_array_Hash($langbox,"zarafaMbxLang",$u->zarafaMbxLang,"style:font-size:13px;padding:3px");
+	$mailbox_language=Field_array_Hash($langbox,"zarafaMbxLang",$u->zarafaMbxLang,"style:font-size:18px;padding:3px");
 	
 	$mailboxsize = $status ["Current store size"];
 	if (preg_match ( "#([0-9]+)\s+KB#", $mailboxsize, $re )) {$mailboxsize = FormatBytes ( $mailboxsize );}
@@ -3532,74 +3530,84 @@ function ZARAFA_MAILBOX($uid) {
 		$status ["Last logoff"] = date ( "D M", mktime ( 0, 0, 0, $re [1], $re [2], "20{$re[3]}" ) ) . " {$re[4]}";
 	}
 	
-	$mailboxinfos=Paragraphe32("mailbox_infos","mailbox_zarafa_infos_text","Loadjs('$page?ZARAFA_MAILBOX_INFOS=yes&uid=$uid&userid=$uid')","32-infos.png");
+	$mailboxinfos=button("{mailbox_infos}", "Loadjs('$page?ZARAFA_MAILBOX_INFOS=yes&uid=$uid&userid=$uid')");
+	$Convert=button("{convert_language}", "ConvertZarafaLanguage()");
+	
+	if($mailboxsize==null){$mailboxsize="-";}
+	if($status["Last logon"]==null){$status["Last logon"]="-";}
+	if($status["Last logoff"]==null){$status["Last logoff"]="-";}
 	$ZarafaFeatures=$u->AnalyzeZarafaFeatures();
+	$tpl = new templates ( );
+	$ZARAFA_MAILBOX_CONVERT=$tpl->javascript_parse_text("{ZARAFA_MAILBOX_CONVERT}");
 	
 	
-	$html = "<table style='width:100%'>
+	$html = "
+<div style='width:98%' class=form>	
+<table style='width:100%'>
 	<tr>
-		<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'><center><img src='img/mailbox-zarafa-128.png' id='zfmbximg'></center><p>&nbsp;</p>$mailboxinfos</td>
-		<td valign='top' style='vertical-align:top' style='vertical-align:top'><span style='font-size:20px;font-weight:bold'>{$u->DisplayName}&nbsp;&raquo;&nbsp;{mailbox}</span>
-				<div style='width:98%' class=form>
-				<table>
+		<td colspan=2 valign='top' style='vertical-align:top'>
+			<div style='font-size:26px;font-weight:bold'>{$u->DisplayName}&nbsp;&raquo;&nbsp;{mailbox}</div>
+			<div style='text-align:right;width:100%'>$Convert&nbsp;&nbsp;$mailboxinfos</td>
+		</td>
+		</tr>
 					<tr>
-						<td class=legend style='font-size:13px'>{mailbox_size}:</td>
+						<td class=legend style='font-size:18px'>{mailbox_size}:</td>
 						<td style='font-size:13px'><strong>$mailboxsize</strong></td>
 					</tr>
 					<tr>
-						<td class=legend style='font-size:13px'>{last_logon}:</td>
+						<td class=legend style='font-size:18px'>{last_logon}:</td>
 						<td style='font-size:13px'><strong>{$status["Last logon"]}</strong></td>
 					</tr>		
 					<tr>
-						<td class=legend style='font-size:13px'>{last_logoff}:</td>
+						<td class=legend style='font-size:18px'>{last_logoff}:</td>
 						<td style='font-size:13px'><strong>{$status["Last logoff"]}</strong></td>
 					</tr>
 					<tr>
-						<td class=legend style='font-size:13px'>{zarafaAdmin}:</td>
+						<td class=legend style='font-size:18px'>{zarafaAdmin}:</td>
 						<td style='font-size:13px'>" . Field_checkbox ( "zarafaAdmin", 1, $u->zarafaAdmin ) . "</td>
 					</tr>
 					<tr>
-						<td class=legend style='font-size:13px'>{zarafaSharedStoreOnly}:</td>
+						<td class=legend style='font-size:18px'>{zarafaSharedStoreOnly}:</td>
 						<td style='font-size:13px'>" . Field_checkbox ( "zarafaSharedStoreOnly", 1, $u->zarafaSharedStoreOnly,"zarafaSharedStoreOnlyCheck()" ) . "</td>
 					</tr>					
 					<tr>
-						<td class=legend style='font-size:13px'>{zarafaHidden}:</td>
+						<td class=legend style='font-size:18px'>{zarafaHidden}:</td>
 						<td style='font-size:13px'>" . Field_checkbox ( "zarafaHidden", 1, $u->zarafaHidden,"zarafaHiddenOnlyCheck()" ) . "</td>
 					</tr>					
 					
 					
 					<tr>
-						<td class=legend style='font-size:13px'>{enable_imap}:</td>
+						<td class=legend style='font-size:18px'>{enable_imap}:</td>
 						<td style='font-size:13px'>" . Field_checkbox ( "user_zarafa_enable_imap", 1, $ZarafaFeatures["imap"],"UserZarafaFeatures()" ) . "</td>
 					</tr>	
 					<tr>
-						<td class=legend style='font-size:13px'>{enable_pop3}:</td>
+						<td class=legend style='font-size:18px'>{enable_pop3}:</td>
 						<td style='font-size:13px'>" . Field_checkbox ( "user_zarafa_enable_pop3", 1, $ZarafaFeatures["pop3"],"UserZarafaFeatures()" ) . "</td>
 					</tr>																
 					<tr>
-						<td class=legend style='font-size:13px'>{zarafaMbxLang}:</td>
+						<td class=legend style='font-size:18px'>{zarafaMbxLang}:</td>
 						<td style='font-size:13px'>$mailbox_language</td>
 					</tr>						
 					
 					<tr>
-						<td colspan=2 style='padding-top:10px'><span style='font-size:18px'>{zarfa_quota_title}</span>
-						<div class='explain'>{zarfa_quota_title_explain}</div></td>
+						<td colspan=2 style='padding-top:10px'><span style='font-size:26px'>{zarfa_quota_title}</span>
+						<div class='explain' style='font-size:14px'>{zarfa_quota_title_explain}</div></td>
 					</tr>
 					<tr>
-						<td class=legend style='font-size:13px'>{zarafaQuotaWarn}:</td>
-						<td style='font-size:13px'>" . Field_text ( "zarafaQuotaWarn", $u->zarafaQuotaWarn, "font-size:13px;padding:3px;width:60px" ) . "&nbsp;MB</strong></td>
+						<td class=legend style='font-size:18px'>{zarafaQuotaWarn}:</td>
+						<td style='font-size:18px'>" . Field_text ( "zarafaQuotaWarn", $u->zarafaQuotaWarn, "font-size:18px;padding:3px;width:60px" ) . "&nbsp;MB</strong></td>
 					</tr>
 				<tr>
-						<td class=legend style='font-size:13px'>{zarafaQuotaSoft}:</td>
-						<td style='font-size:13px'>" . Field_text ( "zarafaQuotaSoft", $u->zarafaQuotaSoft, "font-size:13px;padding:3px;width:60px" ) . "&nbsp;MB</strong></td>
+						<td class=legend style='font-size:18px'>{zarafaQuotaSoft}:</td>
+						<td style='font-size:18px'>" . Field_text ( "zarafaQuotaSoft", $u->zarafaQuotaSoft, "font-size:18px;padding:3px;width:60px" ) . "&nbsp;MB</strong></td>
 					</tr>
 					<tr>
-						<td class=legend style='font-size:13px'>{zarafaQuotaHard}:</td>
-						<td style='font-size:13px'>" . Field_text ( "zarafaQuotaHard", $u->zarafaQuotaHard, "font-size:13px;padding:3px;width:60px" ) . "&nbsp;MB</strong></td>
+						<td class=legend style='font-size:18px'>{zarafaQuotaHard}:</td>
+						<td style='font-size:18px'>" . Field_text ( "zarafaQuotaHard", $u->zarafaQuotaHard, "font-size:18px;padding:3px;width:60px" ) . "&nbsp;MB</strong></td>
 					</tr>
 				<tr>
 						<td colspan=2 align='right'><hr>
-							" . button ( "{apply}", "Loadjs('$page?zarafa-mailbox-edit=" . base64_encode ( $uid ) . "')" ,"18px") . "</td>
+							" . button ( "{apply}", "Loadjs('$page?zarafa-mailbox-edit=" . base64_encode ( $uid ) . "')" ,"26px") . "</td>
 				</tR>														
 																		
 				</table></div>
@@ -3670,11 +3678,21 @@ function ZARAFA_MAILBOX($uid) {
 	
 	}
 	
+	function ConvertZarafaLanguage(){
+		var zarafaMbxLang=document.getElementById('zarafaMbxLang').value;
+		if(!confirm('$ZARAFA_MAILBOX_CONVERT '+zarafaMbxLang)){return;}
+		XHR.appendData('ZARAFA_MAILBOX_CONVERT','$uid');
+		XHR.appendData('ZARAFA_MAILBOX_LANG',zarafaMbxLang);
+		XHR.sendAndLoad('$page', 'POST',X_UserZarafaFeatures);	
+	}
+	
+	 
+	
 	
 	CheckFields();
 	</script>";
 	
-	$tpl = new templates ( );
+	
 	return $tpl->_ENGINE_parse_body ( $html );
 
 }

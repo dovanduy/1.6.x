@@ -871,6 +871,7 @@ function zlistnics_builder(){
 	
 
 function listnicinfos($nicname,$js=null){
+	$SourceBasedRouting=null;
 	$sock=new sockets();
 	if($GLOBALS["VERBOSE"]){echo "<strong>cmd.php?nicstatus=$nicname</strong><br>\n";}
 	$nicinfos=$sock->getFrameWork("cmd.php?nicstatus=$nicname");
@@ -942,6 +943,11 @@ function listnicinfos($nicname,$js=null){
 	
 	if($tbl[0]==null){$tbl[0]="<span style='color:#BA0000'>{waiting_network_reload}</span>";}
 	
+	if($nicz->SourceBasedRouting==1){
+		$SourceBasedRouting="<div style='font-size:11px;text-align:right;font-weight:bolder'>{source_based_routing}</div>";
+	}else{
+		$SourceBasedRouting="<div style='font-size:11px;text-align:right;font-weight:bolder'>{default_based_routing}</div>";
+	}
 	
 	$html="
 	<input type='hidden' id='infos_$nicname' value='$defaults_infos_array'>
@@ -959,7 +965,11 @@ function listnicinfos($nicname,$js=null){
 	</tr>	
 	<tr>
 		<td class=legend nowrap style='color:$textColor;vertical-align:top;font-size:16px'>{gateway}:</td>
-		<td style='font-weight:bold;font-size:16px;color:$textColor'>$href{$gateway}</a><br><div style='font-size:11px;text-align:right'>metric: $nicz->metric$defaultroute_text</div></td>
+		<td style='font-weight:bold;font-size:16px;color:$textColor'>$href{$gateway}</a>
+			<br>
+				<div style='font-size:11px;text-align:right'>metric: $nicz->metric$defaultroute_text</div>
+				
+		</td>
 	</tr>		
 	<tr>
 		<td class=legend nowrap style='color:$textColor;font-size:16px'>{mac_addr}:</td>

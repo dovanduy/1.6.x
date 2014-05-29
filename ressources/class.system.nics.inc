@@ -40,6 +40,7 @@ class system_nic{
 	var $DNS_1=null; 
 	var $DNS_2=null;
 	var $netzone=null;
+	var $SourceBasedRouting=0;
 	var $isFW=0;
 	var $isFWAcceptNet=1;
 	var $isFWLogBlocked=0;
@@ -105,7 +106,7 @@ class system_nic{
 		if(!$q->ok){echo $q->mysql_error;return;}
 	}
 	
-	private function CheckMySQLFields(){
+	public function CheckMySQLFields(){
 		$q=new mysql();
 		if(!$q->FIELD_EXISTS("nics","ipv6mask","artica_backup")){
 			$q->QUERY_SQL("ALTER TABLE `nics` ADD `ipv6mask` INT( 2 ) NOT NULL DEFAULT '0'",'artica_backup');
@@ -150,6 +151,11 @@ class system_nic{
 			$sql="ALTER TABLE `nics` ADD `netzone` VARCHAR( 10 ) ,ADD INDEX ( `netzone` )";
 			$q->QUERY_SQL($sql,'artica_backup');
 		}
+		if(!$q->FIELD_EXISTS("nics","SourceBasedRouting","artica_backup")){
+			$sql="ALTER TABLE `nics` ADD `SourceBasedRouting` smallint(1) ,ADD INDEX ( `SourceBasedRouting` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
+		
 
 		if(!$q->FIELD_EXISTS("nics","MTU","artica_backup")){
 			$sql="ALTER TABLE `nics` ADD `MTU` smallint( 3 ) ,ADD INDEX ( `MTU` )";
@@ -272,15 +278,16 @@ class system_nic{
 		$this->isFW=$ligne["isFW"];
 		$this->isFWAcceptNet=$ligne["isFWAcceptNet"];
 		$this->isFWLogBlocked=$ligne["isFWLogBlocked"];
+		$this->SourceBasedRouting=intval($ligne["SourceBasedRouting"]);
 		writelogs("$this->eth mtu= {$ligne["MTU"]}",__CLASS__,__FUNCTION__,__FILE__,__LINE__);
-		$this->mtu=intval($ligne["MTU"]);
+		if(isset($ligne["MTU"])){ $this->mtu=intval($ligne["MTU"]); }
 		if(!is_numeric($this->ucarp_enabled)){$this->ucarp_enabled=0;}
 		if(!is_numeric($this->ucarp_vid)){$this->ucarp_vid=0;}
 		if(!is_numeric($this->ucarp_advbase)){$this->ucarp_advbase=0;}
 		if(!is_numeric($this->mtu)){$this->mtu=1500;}
 		if($this->ucarp_vid==0){$this->ucarp_vid=3;}
 		if($this->ucarp_advbase==0){$this->ucarp_advbase=2;}
-		$this->ShoreWallServices=unserialize(base64_decode($ligne["ShoreWallServices"]));
+		if(isset($ligne["ShoreWallServices"])){ $this->ShoreWallServices=unserialize(base64_decode($ligne["ShoreWallServices"])); }
 		if(!is_numeric($this->isFWAcceptNet)){$this->isFWAcceptNet=1;}
 		if($this->metric==0){$this->metric=$this->lastmetric();}
 		if($this->mtu==0){$this->mtu=1500;}
@@ -569,6 +576,7 @@ class system_nic{
 		`isFWAcceptNet`='$this->isFWAcceptNet',
 		`isFWLogBlocked`='$this->isFWLogBlocked',
 		`MTU`='$this->mtu',
+		`SourceBasedRouting`='$this->SourceBasedRouting',
 		`ROUTES`='$routes'
 		 WHERE `Interface`='$this->eth'";
 

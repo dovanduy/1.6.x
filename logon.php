@@ -644,7 +644,7 @@ function logon(){
 	$_COOKIE["artica-language"]=$_POST["lang"];
 	$FileCookyKey=md5($_SERVER["REMOTE_ADDR"].$_SERVER["HTTP_USER_AGENT"]);
 	$sock->SET_INFO($FileCookyKey, $_POST["Changelang"]);
-	$FixedLanguage=$sock->GET_INFO("FixedLanguage");
+	if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
 	
 	if($_SESSION["uid"]<>null){echo "location:admin.index.php";return;}
 	
@@ -668,7 +668,7 @@ function logon(){
 	
 	$md5submitted=$_POST["artica_password"];
 	$md5Manager=md5(trim($_GLOBAL["ldap_password"]));
-	if(trim($FixedLanguage)<>null){$_POST["lang"]=$FixedLanguage;}
+	if(trim($GLOBALS["FixedLanguage"])<>null){$_POST["lang"]=$GLOBALS["FixedLanguage"];}
 
 	if(trim($_POST["artica_username"])==trim($_GLOBAL["ldap_admin"])){
 		if($md5Manager<>$md5submitted){
@@ -1047,7 +1047,7 @@ function buildPage(){
 	if($GLOBALS["VERBOSE"]){echo "<H1>DetectedLanguage = $DetectedLanguage line ".__LINE__."</H1>";}
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;	
 	$TEMPLATE_INDEX="logon.html";
-	
+	if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
 	
 	
 	$logo="logo.gif";
@@ -1055,7 +1055,7 @@ function buildPage(){
 	$bg_color="#005447";
 	$ProductName="Artica";
 	$template=null;
-	$FixedLanguage=$sock->GET_INFO("FixedLanguage");
+	
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$SSlBumpAllowLogon=intval($sock->GET_INFO("SSlBumpAllowLogon"));
@@ -1170,7 +1170,7 @@ function buildPage(){
 		
 		
 		$lang2Link="<a href=\"javascript:blur();\" OnClick=\"javascript:PopupLogonLang()\" style='color:white'>{language}</a>";
-		if(trim($FixedLanguage)<>null){$lang2Link=null;}
+		if(trim($GLOBALS["FixedLanguage"])<>null){$lang2Link=null;}
 		
 		
 		if($jquery<>null){$jquery="<script type=\"text/javascript\" src=\"/ressources/templates/$template/js/$jquery\"></script>";}
@@ -1286,7 +1286,7 @@ function buildPage(){
 		
 		if($GLOBALS["VERBOSE"]){echo "p->YahooBody() line:".__LINE__."<br>\n";}
 		$tpl=str_replace("{TEMPLATE_BODY_YAHOO}",$p->YahooBody(),$tpl);
-		if(trim($FixedLanguage)==null){
+		if(trim($GLOBALS["FixedLanguage"])==null){
 			$tpl=str_replace("{TEMPLATE_LANG_LINK}","<span id='llang-select'></span><script>LoadAjaxTiny('llang-select','$page?TEMPLATE_LANG_LINK=yes')</script>",$tpl);
 		}else{
 			$tpl=str_replace("{TEMPLATE_LANG_LINK}",null,$tpl);
@@ -1311,7 +1311,7 @@ function buildPage(){
 			
 		}
 
-		if(trim($FixedLanguage)==null){$tpl2->language=$DetectedLanguage;}
+		if(trim($GLOBALS["FixedLanguage"])==null){$tpl2->language=$DetectedLanguage;}
 		if($GLOBALS["VERBOSE"]){echo "Langage $tpl2->language line:".__LINE__."<br>\n";}
 		
 		$tpl=str_replace("User name",$tpl2->_ENGINE_parse_body("{username2}"),$tpl);

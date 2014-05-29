@@ -6270,12 +6270,17 @@ It enables the setting of server-wide or per connection bandwidth limits, based 
 <default_limit>Default limit</default_limit>
 <available_versions>Available versions</available_versions>
 <AllowSquidDropBox>Allow DropBox in all cases</AllowSquidDropBox>
+<AllowSquidGoogle>Allow Google in all cases</AllowSquidGoogle>
 <AllowSquidDropBox_explain>If turned to green, DropBox websites will be whitelisted in all cases ( including authentication too)</AllowSquidDropBox_explain>
 <AllowSquidSkype>Allow Skype in all cases</AllowSquidSkype>
 <AllowSquidSkype_explain>If turned to green, Skypes websites will be whitelisted in all cases ( including authentication too)</AllowSquidSkype_explain>
 <AllowSquidOffice365>Allow Lync Online and Office 365</AllowSquidOffice365>
 <AllowSquidOffice365_explain>If turned to green, Lync Online and Office 365 websites will be whitelisted in all cases ( including authentication too)</AllowSquidOffice365_explain>
+<AllowSquidGoogle_explain>If turned to green, Google websites will be whitelisted in all 
+cases ( including authentication too)</AllowSquidGoogle_explain>
 <macros>Macros</macros>
+<proxy_cache_valid>Cache time</proxy_cache_valid>
+<proxy_cache_valid_text>Define how long (in minutes) the request will be cached</proxy_cache_valid_text>
 <enable_watchdog_squid_explain>If turned to green, Artica will be able to monitor proxy service and react automatically on detected troubles according configuration.
 </enable_watchdog_squid_explain>
 <smtp_enabled_watchdog_explain>If green then watchdog will send SMTP notifications when encounter issues</smtp_enabled_watchdog_explain>
@@ -6296,6 +6301,27 @@ If it cannot retreive these informations, it can automatically react</when_fetch
 <max_failed_before_action>MAX failed before processing action</max_failed_before_action>
 <services_timeout>Services timeout</services_timeout>
 <StopMaxTTL>Stop service TTL</StopMaxTTL>
+<macro>Macro</macro>
+<default_based_routing>Default based routing</default_based_routing>
+<source_based_routing>Source based routing</source_based_routing>
+<source_based_routing_explain>If green, routes will be based on the interface source.[br]
+source routing allows a sender of a packet to partially or completely specify the route 
+the packet takes through the network.[br]
+In contrast, in non-source routing protocols, routers in the network determine the path 
+based on the packet's destination.[br]
+Source routing allows easier troubleshooting, improved traceroute, 
+and enables a node to discover all the possible routes to a host.[br]
+It does not allow a source to directly manage network performance by forcing packets to travel over one path to prevent congestion on another.
+</source_based_routing_explain>
 <StopMaxTTL_explain>When Artica need stop proxy service it send a signal to the daemon to shutdown.[br]
 How many time Artica will wait in order to let the proxy service shutdown processes and tasks before really kill daemons.
-</StopMaxTTL_explain> 
+</StopMaxTTL_explain>
+<routing>Routing</routing>
+<build_languages>Build languages</build_languages>
+<build_locales_explain>This operation will build about 420 languages on your system.
+It should take time and will consume performance.
+Do you want to carry ouyt this operation ?
+</build_locales_explain>
+<languages>Languages</languages>
+<convert_language>Convert language</convert_language>
+<ZARAFA_MAILBOX_CONVERT>This will convert the current mailbox language to </ZARAFA_MAILBOX_CONVERT>

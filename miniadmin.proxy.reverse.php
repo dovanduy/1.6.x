@@ -930,12 +930,17 @@ $boot->set_checkbox("proxy_buffering", "{proxy_buffering}", $ligne["proxy_buffer
 $boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses}", $ligne["proxy_cache_min_uses"],
 		array("TOOLTIP"=>"{proxy_cache_min_uses_text}"));
 
+$boot->set_field("proxy_cache_valid", "{proxy_cache_valid}", $ligne["proxy_cache_valid"],
+		array("TOOLTIP"=>"{proxy_cache_valid_text}"));
+
+
+
 $boot->set_field("proxy_buffers", "{proxy_buffers}", $ligne["proxy_buffers"],
 		array("TOOLTIP"=>"{proxy_buffers_text}"));
 
 $boot->set_field("proxy_buffer_size", "{proxy_buffer_size} (k)", $ligne["proxy_buffer_size"],
 		array("TOOLTIP"=>"{proxy_buffer_size_text}"));
-$boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses}", $ligne["proxy_cache_min_uses"],
+$boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses} {minutes}", $ligne["proxy_cache_min_uses"],
 		array("TOOLTIP"=>"{proxy_cache_min_uses_text}"));
 
 $boot->set_spacertitle("{browsers_security}");

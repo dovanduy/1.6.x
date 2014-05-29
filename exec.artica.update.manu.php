@@ -96,20 +96,20 @@ function install($filename){
 	build_progress("{restarting} Artica...",60);
 	$unix->THREAD_COMMAND_SET("$php /usr/share/artica-postfix/exec.web-community-filter.php --register");
 	build_progress("{restarting} Artica...",65);
-	build_progress("building init scripts...",70);
-	system("$php /usr/share/artica-postfix/exec.initslapd.php --force >/dev/null 2>&1");
-	build_progress("updating network...",75);
-	system("$php /usr/share/artica-postfix/exec.virtuals-ip.php >/dev/null 2>&1");
-	system("$php /usr/share/artica-postfix/exec.monit.php --build >/dev/null 2>&1");
+	build_progress("Building init scripts...",70);
+	system("$php /usr/share/artica-postfix/exec.initslapd.php");
+	build_progress("Updating network...",75);
+	system("$php /usr/share/artica-postfix/exec.virtuals-ip.php");
+	system("$php /usr/share/artica-postfix/exec.monit.php --build");
 	echo "Starting......: ".date("H:i:s")." Purge and clean....\n";
 	build_progress("{restarting} Artica...",80);
 	if(is_file("/etc/init.d/nginx")){shell_exec("$nohup /etc/init.d/nginx reload >/dev/null 2>&1 &");}
 	build_progress("{restarting} Artica...",81);
-	shell_exec("$nohup /etc/init.d/auth-tail restart >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/auth-tail restart");
 	build_progress("{restarting} Artica...",82);
-	shell_exec("$nohup /etc/init.d/artica-framework restart >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/artica-framework");
 	build_progress("{restarting} Artica...",83);
-	shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --force --verbose ".time()." >/dev/null 2>&1 &");
+	shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --force --verbose ".time()."");
 	build_progress("{restarting} Artica...",84);
 	shell_exec("$nohup /usr/share/artica-postfix/bin/artica-make --empty-cache >/dev/null 2>&1 &");
 	build_progress("{restarting} Artica...",85);

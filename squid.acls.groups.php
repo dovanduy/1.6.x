@@ -745,6 +745,8 @@ function EditGroup_tabs(){
 	
 	if($ligne["GroupType"]=="time"){unset($array["items"]);$array["items-date"]='{items}';}
 	
+	if(isset($q->acl_ARRAY_NO_ITEM[$ligne["GroupType"]])){unset($array["items"]);}
+	
 	if($ligne["GroupType"]=="dynamic_acls"){
 		$array["EditGroup-events"]='{events}';
 	}
@@ -761,17 +763,7 @@ function EditGroup_tabs(){
 	}
 
 	
-	echo "
-	<div id=main_content_rule_editsquidgroup style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_content_rule_editsquidgroup').tabs();
-			
-			
-			});
-		</script>";	
+	echo build_artica_tabs($html, "main_content_rule_editsquidgroup");	
 }
 
 function items_ad_auth(){

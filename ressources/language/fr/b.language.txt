@@ -252,6 +252,8 @@ Utilisez ce lien Youtube afin de visualiser la proc&eacute;dure de cr&eacute;ati
 <AllowSmartphonesRuleText>Autoriser les ordiphones &agrave; passer l'authentification</AllowSmartphonesRuleText>
 <AllowSquidDropBox>Autoriser DropBox dans tous les cas</AllowSquidDropBox>
 <AllowSquidDropBox_explain>Si vert, les sites de DropBox seront toujours autoris&eacute;s dans tous les cas ( incluant aussi le syst&egrave;me d\'authentification )</AllowSquidDropBox_explain>
+<AllowSquidGoogle>Autoriser Google dans tous les cas</AllowSquidGoogle>
+<AllowSquidGoogle_explain>Si vert, les sites Google seront mis ne liste blanche et autoris&eacute;s dans tous les cas ( incluant le syst&egrave;me d\'authentification aussi )</AllowSquidGoogle_explain>
 <AllowSquidOffice365>Autoriser Lync Online et Office 365</AllowSquidOffice365>
 <AllowSquidOffice365_explain>Si vert, les sites de Lync Online et Office 365  seront toujours autoris&eacute;s dans tous les cas ( incluant aussi le syst&egrave;me d\'authentification )</AllowSquidOffice365_explain>
 <AllowSquidSkype>Autoriser Skype dans tous les cas</AllowSquidSkype>
@@ -797,6 +799,10 @@ Elle permet de construire les tables n&eacute;cessaires &agrave; la construction
 <build_index_page_sarg>Demander &agrave; Artica de reconstruite la page de garde des statistiques SARG</build_index_page_sarg>
 <build_install_status>V&eacute;rifie l'&eacute;tat des installations</build_install_status>
 <build_install_status_explain>Cette t&acirc;che v&eacute;rifie les &eacute;v&egrave;nements des installation des logiciels qui ont &eacute;t&eacute;s ordonn&eacute;s par le Centre d'installation des logiciels afin d'inscrire ces &eacute;v&egrave;nements dans la base MySQL</build_install_status_explain>
+<build_languages>Construire les langues</build_languages>
+<build_locales_explain>Cette op&eacute;ration va construire &agrave; peu pr&egrave;s 420 langues dans la syst&egrave;me.[br]
+Cela va prendre du temps et consommer de la puissance.
+Voulez-vous effectuer cette op&eacute;ration ?</build_locales_explain>
 <build_month_tables>Construire les tables mensuelles</build_month_tables>
 <build_month_tables_explain>Cette t&acirc;che comprime et calcule les donn&eacute;es pour construire les tables mensuelles.</build_month_tables_explain>
 <build_now>Construire maintenant</build_now>
@@ -1166,6 +1172,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</convertto_innodb_file_per_tablea
 <convertto_innodb_file_per_table_text>Mofiier le comportement du moteur MySQL vers un fichier innodb par table.</convertto_innodb_file_per_table_text>
 <convert_background_warn>La t&acirc;che de conversion &agrave; &eacute;t&eacute; envoy&eacute;e au framework en t&acirc;che de fond.
 Pendant ce temps, des services seront indisponibles...</convert_background_warn>
+<convert_language>Convertir la langue</convert_language>
 <cookie>Cookie</cookie>
 <coova_CoovaUFDBEnabled_explain>Si Activ&eacute;, les utilisateurs du HotSpot subiront les r&egrave;gles de filtrage Web ajout&eacute;es dans le service Proxy.</coova_CoovaUFDBEnabled_explain>
 <COOVA_ERROR_NO_2_INTERFACES>Erreur, votre serveur doit h&eacute;berge au moins 2 cartes r&eacute;seaux afin de faire fonctionner le HotSpot.[br]Cette section en peut &ecirc;tre affich&eacute;e.</COOVA_ERROR_NO_2_INTERFACES>
@@ -1247,6 +1254,7 @@ Il peut &ecirc;tre utilis&eacute; afin de sauvegarder votre bande passant car to
 <debug_cache_processing>Mode verbeux du calcul de cache</debug_cache_processing>
 <dedicated_website_error_page>Site d&eacute;di&eacute; pour la page d'erreur</dedicated_website_error_page>
 <defaultroute_interface_explain>La route par d&eacute;faut &agrave; &eacute;t&eacute; affect&eacute;e &agrave; %s</defaultroute_interface_explain>
+<default_based_routing>Routage basique</default_based_routing>
 <default_cache>Cache par d&eacute;faut</default_cache>
 <default_certificate>Certificat par d&eacute;faut</default_certificate>
 <default_domain>Domaine par d&eacute;faut</default_domain>
@@ -2406,6 +2414,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <keyword>Mot clef</keyword>
 <key_file>Fichier de clef</key_file>
 <KEY_OK>Clef succ&egrave;s</KEY_OK>
+<languages>Langues</languages>
 <last>Dernier(s)</last>
 <last_check>Derni&egrave;re v&eacute;rification</last_check>
 <last_status>Dernier &eacute;tat</last_status>
@@ -2544,6 +2553,7 @@ Veuillez entrer votre adresse eMail et cliquez sur le bouton &quot;Envoyer le mo
 Vous recevrez un nouveau mot de passe rapidement.[br]
 Utilisez-le afin de vous connecter sur le site.</lost_password_explain>
 <MAC>Adresse MAC</MAC>
+<macro>Macro</macro>
 <macros>Macros</macros>
 <macro_remove_disk>Supprimer le disque du syst&egrave;me</macro_remove_disk>
 <macro_remove_disk_explain>D&eacute;connecte le disque et le d&eacute;-configure du syst&egrave;me</macro_remove_disk_explain>
@@ -3413,6 +3423,8 @@ Par d&eacute;faut, la taille d'un cache m&eacute;moire est &eacute;gale &agrave;
 par d&eacute;faut la taille du cache m&eacute;moire est &eacute;gale &agrave; la taille d'un cache m&eacute;moire de la directive &quot;Caches m&eacute;moire&quot; mais il est possible d'indiquer une taille inf&eacute;rieur.</proxy_buffer_size_text>
 <proxy_cache_min_uses>NB minimal de requ&ecirc;tes mises en cache</proxy_cache_min_uses>
 <proxy_cache_min_uses_text>Nombre de requ&ecirc;tes avant d'effectuer la mise en cache</proxy_cache_min_uses_text>
+<proxy_cache_valid>Temps de cache</proxy_cache_valid>
+<proxy_cache_valid_text>Indique combien de temps ( en minutes) la requ&ecirc;te va &ecirc;tre mise en cache</proxy_cache_valid_text>
 <proxy_child>Proxy enfant</proxy_child>
 <proxy_clients_was_notified>Les clients proxy ont &eacute;t&eacute;s notifi&eacute;s afin de red&eacute;marrer leurs services.</proxy_clients_was_notified>
 <PROXY_EVENTS>&Eacute;v&egrave;nements Proxy</PROXY_EVENTS>
@@ -3829,6 +3841,7 @@ Elles peuvent aussi interdire l'acc&egrave;s &agrave; certains sites Internet en
 <routes_center_explain>Cette section vous permet de cr&eacute;er des r&egrave;gles de routage IP sur votre serveur.</routes_center_explain>
 <routes_goto_miniadm>La gestion des routes TCP/IP s'effectue &agrave; travers l'interface EndUsers WebAccess.[br]Munissez-vous d'un compte qui dispose du droit Syst&egrave;me Linux.</routes_goto_miniadm>
 <routes_tables>Tables des routes</routes_tables>
+<routing>Routage</routing>
 <routing_lmtp_table_explain>Cette table permet d'effectuer le routage des comptes de bo&icirc;tes aux lettres (destination finale) vers les agents de d&eacute;livrance de courriers (MDA). Les r&egrave;gles d&eacute;finissent donc le service final de destination.[br]
 De fa&ccedil;on g&eacute;n&eacute;rale le protocole LMTP est utilis&eacute; afin de d&eacute;livrer le courrier vers un service de type Zarafa ou Cyrus-imap.</routing_lmtp_table_explain>
 <routing_recipient_table_explain>Cette table liste les r&egrave;gles d'acheminement en fonction des adresses de messagerie de destination.[br]La diff&eacute;rence avec la table associ&eacute;es aux organisations est que ces r&egrave;gles priment et permettent aussi l'utilisation des adresses e messagerie compl&egrave;tes des destinataires (user@dompain.tld).</routing_recipient_table_explain>
@@ -4064,6 +4077,12 @@ Il sont marqu&eacute;s pour suppression et l'utilisateur ne les visualise plus.[
 <sorry>D&eacute;sol&eacute;</sorry>
 <sorry_table_is_missing>D&eacute;sol&eacute;, mais la table est manquante dans la base MySQL</sorry_table_is_missing>
 <sourcetype>Type de source</sourcetype>
+<source_based_routing>Routage par source</source_based_routing>
+<source_based_routing_explain>Si vert, le routage sera bas&eacute;e sur l\'interface source.[br]
+Le routage par source autorise l\'&eacute;metteur du paquet r&eacute;seau de partiellement ou compl&egrave;tement sp&eacute;cifier la route que le paquet devra prendre dans le r&eacute;seau.[br]
+Le cas contraire, le routage par d&eacute;faut les routeurs sont amen&eacute;s &agrave; d&eacute;terminer le chemin des paquets bas&eacute;s par l\'adresse de destination.[br]
+Le routage par source facilite l\'analyse des paquets et am&eacute;liore le tra&ccedil;age des routes, il assure le n%u0153ud &agrave; trouver toutes les possibilit&eacute;s de routage vers un h&ocirc;te.[br]
+Il n\'autorise pas une source d\'administrer la performance r&eacute;seau en for&ccedil;ant un paquet &agrave; utiliser un autre chemin afin de pr&eacute;venir une congestion.</source_based_routing_explain>
 <source_file>Fichier source</source_file>
 <source_logs>Fichiers de logs</source_logs>
 <source_logs_squid_text>Affichez les fichiers d'&eacute;v&egrave;nements originaux afin de les r&eacute;-importer dans le syst&egrave;me de statistiques ou de les extraire.</source_logs_squid_text>
@@ -5266,6 +5285,7 @@ Cette op&eacute;ration doit &ecirc;tre effectu&eacute;e en mode &quot;derni&egra
 Voulez-vous effectuer cette op&eacute;ration ?</zarafa_database_recovery_warn>
 <ZARAFA_ISSUE>Probl&egrave;me sur le service Zarafa</ZARAFA_ISSUE>
 <ZARAFA_JUNK_EXPLAIN>Chaque membre doit avoir un dossier &quot;Non-spam&quot; et &quot;Junk E-mail&quot; afin d'autoriser le moteur &agrave; analyser les messages</ZARAFA_JUNK_EXPLAIN>
+<ZARAFA_MAILBOX_CONVERT>Cette op&eacute;ration va convertir la langue de la boite aux lettres vers</ZARAFA_MAILBOX_CONVERT>
 <zarafa_mysql_params_text>Le serveur  Zarafa utilise un moteur MySQL afin de stocker les banques d'informations.[br]
 Vous pouvez indiquer ici quel service de base de donn&eacute;es il doit utiliser.</zarafa_mysql_params_text>
 <zarafa_search_explain>Le service Zarafa Search, introduit en version 7.10, offre des capacit&eacute;s d'indexation.[br]

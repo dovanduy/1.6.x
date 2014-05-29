@@ -97,7 +97,7 @@ echo $html;
 function checklogonCreds($Aspost=false){
 	include_once(dirname(__FILE__)."/ressources/class.user.inc");
 	include("ressources/settings.inc");
-	$FixedLanguage=null;
+	
 
 	if(!isset($_GET["credentials"])){
 		header("location:".basename(__FILE__));
@@ -171,6 +171,8 @@ function checklogonCreds($Aspost=false){
 	}
 	
 	$ldap=new clladp();
+	$sock=new sockets();
+	if(!isset($GLOBALS["FixedLanguage"])){$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");}
 	$users=new usersMenus();
 	$_SESSION["CORP"]=$users->CORP_LICENSE;
 	$privs=new privileges($u->uid);
@@ -201,7 +203,7 @@ function checklogonCreds($Aspost=false){
 				$lang=new articaLang();
 				$_SESSION["detected_lang"]=$lang->get_languages();
 			}
-			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}	
+			if(trim($GLOBALS["FixedLanguage"])<>null){$_SESSION["detected_lang"]=$GLOBALS["FixedLanguage"];}	
 			
 			include_once(dirname(__FILE__)."/ressources/class.translate.rights.inc");
 			$cr=new TranslateRights(null, null);
@@ -230,7 +232,7 @@ function checklogon($Aspost=false){
 	
 	include_once(dirname(__FILE__)."/ressources/class.user.inc");
 	include("ressources/settings.inc");
-	$FixedLanguage=null;
+	
 	$username=$_POST["username"];
 	$_POST["password"]=url_decode_special_tool($_POST["password"]);
 	$password=trim($_POST["password"]);
@@ -451,7 +453,13 @@ function checklogon($Aspost=false){
 				$lang=new articaLang();
 				$_SESSION["detected_lang"]=$lang->get_languages();
 			}
-			if(trim($FixedLanguage)<>null){$_SESSION["detected_lang"]=$FixedLanguage;}
+			
+			if(isset($GLOBALS["FixedLanguage"])){
+				$sock=new sockets();
+				$GLOBALS["FixedLanguage"]=$sock->GET_INFO("FixedLanguage");
+			}
+			
+			if(trim($GLOBALS["FixedLanguage"])<>null){$_SESSION["detected_lang"]=$GLOBALS["FixedLanguage"];}
 			
 			if($Aspost){
 				header("location:miniadm.index.php");

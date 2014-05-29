@@ -54,6 +54,7 @@ class mysql_squid_builder{
 	public $acl_GroupType_Firewall_in=array();
 	public $acl_GroupType_Firewall_out=array();
 	public $acl_GroupType_Firewall_port=array();
+	public $acl_ARRAY_NO_ITEM=array();
 	public $SquidActHasReverse=0;
 	public $AVAILABLE_METHOD=array();
 	public $acl_GroupTypeDynamic=array();
@@ -110,6 +111,18 @@ class mysql_squid_builder{
 		$this->acl_GroupType["hotspot_auth"]="{hotspot_auth}";
 		$this->acl_GroupType["port"]="{destination_port}";
 		$this->acl_GroupType["categories"]="{artica_categories}";
+		$this->acl_GroupType["teamviewer"]="{macro}: TeamViewer";
+		
+		$this->acl_ARRAY_NO_ITEM["proxy_auth_ads"]=true;
+		$this->acl_ARRAY_NO_ITEM["NudityScan"]=true;
+		$this->acl_ARRAY_NO_ITEM["all"]=true;
+		$this->acl_ARRAY_NO_ITEM["dynamic_acls"]=true;
+		$this->acl_ARRAY_NO_ITEM["categories"]=true;
+		$this->acl_ARRAY_NO_ITEM["radius_auth"]=true;
+		$this->acl_ARRAY_NO_ITEM["ad_auth"]=true;
+		$this->acl_ARRAY_NO_ITEM["ldap_auth"]=true;
+		$this->acl_ARRAY_NO_ITEM["hotspot_auth"]=true;
+		$this->acl_ARRAY_NO_ITEM["teamviewer"]=true;
 		
 		
 		
@@ -130,6 +143,7 @@ class mysql_squid_builder{
 		$this->acl_GroupType_Firewall_in["arp"]="{ComputerMacAddress}";
 		
 		$this->acl_GroupType_Firewall_out["dst"]="{dst}";
+		$this->acl_GroupType_Firewall_out["teamviewer"]="teamviewer - {macro}";
 		
 		$this->acl_GroupType_Firewall_port["port"]="{destination_port}";
 		
