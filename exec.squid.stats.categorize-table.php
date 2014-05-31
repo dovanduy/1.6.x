@@ -381,7 +381,7 @@ function last_days(){
 	@file_put_contents($pidfile,$mypid);
 	@file_put_contents($timefile, time());
 	
-	
+	$q->QUERY_SQL("DELETE FROM catztemp WHERE `category`=''");
 	
 	$current_table=date("Ymd")."_hour";
 	$t=time();

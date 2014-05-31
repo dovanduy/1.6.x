@@ -1978,6 +1978,10 @@ Cochez la case Configuration automatique du proxy et indiquez l'url suivante;</f
 <folders_status>&Eacute;tat des dossiers</folders_status>
 <FollowExtensions>Suivre les extensions</FollowExtensions>
 <FollowSymLinks>Suivre les liens symboliques</FollowSymLinks>
+<follow_x_forwarded_for>Suivre les adresses sources</follow_x_forwarded_for>
+<follow_x_forwarded_for_explain>Lorsqu\'un proxy enfant &eacute;met une requ&ecirc;tes Internet, il envoi bien souvent l\'adresse source originelle.[br]
+Si vert, alors ce proxy p&egrave;re sera autoriser &agrave; interpr&eacute;ter cette information et y tenir compte pour ses r&egrave;gles de filtrage.[br]
+Si vert, seuls les adresses des proxy enfants seront interpr&eacute;t&eacute;es.</follow_x_forwarded_for_explain>
 <force>Forcer</force>
 <forceddomain>Forcer le domaine</forceddomain>
 <forceMX>Forcer le MX</forceMX>
@@ -2530,7 +2534,10 @@ Cette section vous permet de visualiser le nombre de d&eacute;mons utilis&eacute
 <logged_as>Connect&eacute; en tant que</logged_as>
 <logged_in_as>Connect&eacute; en tant que</logged_in_as>
 <logging_childs_connections>&Eacute;crit les transactions</logging_childs_connections>
+<logging_childs_connections2>Enregistrer les &eacute;v&egrave;nements dans autre fichier</logging_childs_connections2>
 <logging_childs_connections_explain>Si vert, les transactions provenant des proxys enfants seront alors ajout&eacute;es des le fichier d'&eacute;v&egrave;nements en temps r&eacute;el et dans les statistiques Artica.</logging_childs_connections_explain>
+<logging_childs_connections_explain2>Si vert, le service Proxy maitre va enregistrer les requ&ecirc;tes en temps r&eacute;el vers un fichier sp&eacute;cifique.[br]
+Ce fichier d\'&eacute;v&egrave;nements ne sera pas traiter par les statistiques mais sera tr&egrave;s utile pour suivre les requ&ecirc;tes des proxy enfants en temps r&eacute;el.</logging_childs_connections_explain2>
 <logintime>D&eacute;but se session</logintime>
 <login_domain>Domaine de connexion</login_domain>
 <logoff_text>Se d&eacute;connecter de l'interface Web et retourner &agrave; la page d'authentification.</logoff_text>
@@ -3952,7 +3959,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <server_load_today>Charge du serveur aujourd'hui</server_load_today>
 <servicename>Nom du service</servicename>
 <services_operations>Op&eacute;rations - services</services_operations>
-<services_timeout>D&eacute;lais des servcies</services_timeout>
+<services_timeout>D&eacute;lais des services</services_timeout>
 <servicew>Service</servicew>
 <service_options>Options du service</service_options>
 <service_options_text>Param&egrave;tres globaux du service et options avanc&eacute;es.</service_options_text>
@@ -4108,6 +4115,7 @@ Il n\'autorise pas une source d\'administrer la performance r&eacute;seau en for
 SPNEGO est utilis&eacute; lorsqu'une application cliente d&eacute;sire s'authentifier sur un serveur distant mais ne sait pas quel m&eacute;thode d'authentification est support&eacute;e.[br]
 Le pseudo m&eacute;canisme utilise un protocole afin de d&eacute;terminer quel est le m&eacute;canisme GSSAPI commun est disponible afin de le s&eacute;lection et de proc&eacute;der &agrave; toutes les s&eacute;curit&eacute;s n&eacute;cessaires.[br]
 Ceci peut aider les organisations &agrave; d&eacute;ployer de nouveaux m&eacute;canismes de s&eacute;curit&eacute; en une seule m&eacute;thode.</SPNEGO_explain>
+<SquidAsMasterFollowxForward_error>Le suivi des adresses sources est activ&eacute;, les fonctions interdire le cache des proxy enfants et enregistrer les &eacute;v&egrave;nements des proxy enfants risquent de ne pas &ecirc;tre disponibles.</SquidAsMasterFollowxForward_error>
 <squidcach32_applyexplain>Cette op&eacute;ration va appliquer les modifications apport&eacute;es aux caches sur le disque.
 Les nouveaux caches seront li&eacute;s au Proxy et celui-ci va red&eacute;marrer.
 Voulez-vous effectuer cette op&eacute;ration ?</squidcach32_applyexplain>

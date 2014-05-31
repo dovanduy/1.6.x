@@ -246,8 +246,15 @@ function donnees_interface(){
 	$q=new mysql_squid_builder();
 	
 	$sql="SELECT uid FROM members_uid GROUP BY uid";
+	
+	
+	
 	$results=$q->QUERY_SQL($sql);
 	$CountDeMembers=mysql_num_rows($results);
+	
+	events("donnees_interface:: members_uid = $CountDeMembers");
+	
+	
 	$ARRAY["CountDeMembers"]=$CountDeMembers;
 	
 	
@@ -278,6 +285,22 @@ function donnees_interface(){
 	@chmod($timefile,0777);
 	
 }
+
+function events($text){
+	
+	$common="/var/log/artica-squid-statistics.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] ". basename(__FILE__)." $text\n";
+	if($GLOBALS["VERBOSE"]){echo $line;}
+	@fwrite($h,$line);
+	@fclose($h);
+}
+
 
 function TOTALS_REPAIR(){
 	

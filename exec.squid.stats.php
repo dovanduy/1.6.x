@@ -500,9 +500,9 @@ function flow_month_query($month,$year){
 function _flow_month_query_perfom($SourceTable,$destinationTable,$day){
 	
 	$output_rows=false;
-	$sql="SELECT sitename, familysite, client, remote_ip, country, SUM( size ) as QuerySize, SUM( hits ) as hits, 
+	$sql="SELECT familysite, client, remote_ip, country, SUM( size ) as QuerySize, SUM( hits ) as hits, 
 	uid, category, cached,MAC,account
-	FROM $SourceTable GROUP BY sitename, familysite, client, remote_ip, country, uid, category, cached,MAC,account";
+	FROM $SourceTable GROUP BY familysite, client, remote_ip, country, uid, category, cached,MAC,account";
 	
 	
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
@@ -513,28 +513,32 @@ function _flow_month_query_perfom($SourceTable,$destinationTable,$day){
 	
 	events_tail("Processing $SourceTable -> $destinationTable for day $day $num_rows  rows in line ".__LINE__);
 	
-	$prefix="INSERT IGNORE INTO $destinationTable (zMD5,sitename,client,`day`,remote_ip,country,size,hits,uid,category,cached,familysite,MAC,account) VALUES ";
-	
+	$prefix="INSERT IGNORE INTO $destinationTable (zMD5,client,`day`,remote_ip,country,size,hits,uid,category,cached,familysite,MAC,account) VALUES ";
+	$de=0;
 	$f=array();
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$de++;
 		$client=addslashes(trim(strtolower($ligne["client"])));
 		$uid=addslashes(trim(strtolower($ligne["uid"])));
-		$sitename=addslashes(trim(strtolower($ligne["sitename"])));
 		$remote_ip=addslashes(trim(strtolower($ligne["remote_ip"])));
 		$country=addslashes(trim(strtolower($ligne["country"])));
 		$category=addslashes(trim(strtolower($ligne["category"])));
 		$familysite=addslashes(trim(strtolower($ligne["familysite"])));
 		
 	
-		$md5=md5("{$ligne["client"]}$day{$ligne["uid"]}{$ligne["QuerySize"]}$remote_ip$country{$ligne["hits"]}$sitename");
-		$sql_line="('$md5','$sitename','$client','$day','$remote_ip','$country','{$ligne["QuerySize"]}','{$ligne["hits"]}','$uid','$category','{$ligne["cached"]}','$familysite','{$ligne["MAC"]}','{$ligne["account"]}')";
+		$md5=md5("{$ligne["client"]}$day{$ligne["uid"]}{$ligne["QuerySize"]}$remote_ip$country{$ligne["hits"]}$familysite");
+		$sql_line="('$md5','$client','$day','$remote_ip','$country','{$ligne["QuerySize"]}','{$ligne["hits"]}','$uid','$category','{$ligne["cached"]}','$familysite','{$ligne["MAC"]}','{$ligne["account"]}')";
 		$f[]=$sql_line;
 		
 		if($output_rows){if($GLOBALS["VERBOSE"]){echo "$sql_line\n";}}	
 		
+		
+		
 		if(count($f)>500){
+			$perc=round(($de/$num_rows)*100,2);
 			$GLOBALS["Q"]->QUERY_SQL("$prefix" .@implode(",", $f));
-			if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $next_table {$GLOBALS["Q"]->mysql_error}");return;}
+			events_tail("_flow_month_query_perfom($SourceTable,$destinationTable) : {$perc}% ");
+			if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $destinationTable {$GLOBALS["Q"]->mysql_error}");return;}
 			$f=array();
 		}
 		
@@ -543,7 +547,7 @@ function _flow_month_query_perfom($SourceTable,$destinationTable,$day){
 	if(count($f)>0){
 		$GLOBALS["Q"]->QUERY_SQL("$prefix" .@implode(",", $f));
 		events_tail("Processing ". count($f)." rows");
-		if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $next_table {$GLOBALS["Q"]->mysql_error}");return;}
+		if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $destinationTable {$GLOBALS["Q"]->mysql_error}");return;}
 	}
 	
 	return true;	
@@ -713,14 +717,18 @@ function _members_hours_perfom($tabledata,$nexttable){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
 	$phpfile=dirname(__FILE__)."/exec.squid.stats.members.hours.php";
-	exec("$php $phpfile $tabledata $nexttable schedule-id={$GLOBALS["SCHEDULE_ID"]} 2>&1",$results);
+	
+	$cmdline="$php $phpfile $tabledata $nexttable schedule-id={$GLOBALS["SCHEDULE_ID"]} 2>&1";
+	events_tail("_members_hours_perfom():: $cmdline");
+	exec($cmdline,$results);
 	while (list ($index, $ligne) = each ($results)){
 		if(preg_match("#SUCCESS#", $ligne)){
+			events_tail("_members_hours_perfom():: $tabledata $nexttable SUCCESS...");
 			return true;
 		}
 		
 	}
-	
+	events_tail("_members_hours_perfom():: $tabledata $nexttable FAILED...");
 	return false;
 }
 
@@ -735,49 +743,24 @@ function _members_hours_perfom($tabledata,$nexttable){
 
 
 
-function events_tail($text){
-		events($text);
-		$pid=@getmypid();
-		$date=@date("H:i:s");
-		$logFile="/var/log/artica-postfix/auth-tail.debug";
-		$size=@filesize($logFile);
-		if($size>1000000){@unlink($logFile);}
-		$f = @fopen($logFile, 'a');
-		$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)." $date $text");
-		if($GLOBALS["VERBOSE"]){echo "$date $text\n";}
-		@fwrite($f, "$pid ".basename(__FILE__)." $date $text\n");
-		@fclose($f);	
-		}
-
+function events_tail($text){events($text);}
+function events_repair($text){events($text);}
 
 function events($text){
 		if($GLOBALS["VERBOSE"]){echo $text."\n";}
-		$common="/var/log/artica-postfix/squid.stats.log";
+		$common="/var/log/artica-squid-statistics.log";
 		$size=@filesize($common);
 		if($size>100000){@unlink($common);}
 		$pid=getmypid();
 		$date=date("Y-m-d H:i:s");
-		$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
 		$h = @fopen($common, 'a');
 		$sline="[$pid] $text";
 		$line="$date [$pid] $text\n";
 		@fwrite($h,$line);
 		@fclose($h);
 }
-function events_repair($text){
-	if($GLOBALS["VERBOSE"]){echo $text."\n";}
-	$common="/var/log/artica-postfix/squid.stats.repair.log";
-	$size=@filesize($common);
-	if($size>100000){@unlink($common);}
-	$pid=getmypid();
-	$date=date("Y-m-d H:i:s");
-	$GLOBALS["CLASS_UNIX"]->events(basename(__FILE__)."$date $text");
-	$h = @fopen($common, 'a');
-	$sline="[$pid] $text";
-	$line="$date [$pid] $text\n";
-	@fwrite($h,$line);
-	@fclose($h);
-}
+
+
 
 function squid_cache_perfs(){
 	
@@ -870,6 +853,7 @@ function UpdateGeoip(){
 
 function GeoIP($servername){
 	
+	if(strpos($servername, ".")==0){return array();}
 	
 	if(!is_file("/usr/share/GeoIP/GeoIPCity.dat")){
 		UpdateGeoip();
@@ -1307,6 +1291,9 @@ function visited_sites_whois(){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$D++;
 		$domain=$ligne["familysite"];
+		if(strpos($domain, ".")==0){continue;}
+		
+		
 		if(!isset($already[$domain])){
 			$whois = new Whois();	
 			$result = $whois->Lookup($domain);
@@ -1386,7 +1373,7 @@ function visited_sites(){
 	$sql="SELECT sitename,country,category FROM visited_sites";
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 	$num_rows = mysql_num_rows($results);
-	
+	events("visited_sites(): $num_rows items");
 	stats_admin_events(2,"visited_sites $num_rows items" ,null,__FILE__,__LINE__);
 	
 	if($num_rows==0){
@@ -1425,7 +1412,7 @@ function visited_sites(){
 				$GLOBALS["Q"]->QUERY_SQL($ROWS_visited_sites_prefix.@implode(",", $ROWS_visited_sites_catz));
 				$ROWS_visited_sites_catz=array();
 			}
-			
+			events("visited_sites()::$perc% $z/$num_rows rows");
 			stats_admin_events(2,"$perc% $z/$num_rows rows" ,null,__FILE__,__LINE__);
 			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 			@unlink($MinutesFile);
@@ -2783,13 +2770,18 @@ function UserSizeD(){
 	
 	$TABLES=$q->LIST_TABLES_HOURS();
 	$Current=date("Ymd")."_hour";
+	$COUNTOF=count($TABLES);
+	$pe=0;
 	while (list($table_hour,$val)=each($TABLES)){
+		$pe++;
 		if($table_hour==$Current){continue;}
 		$CountDeSource=$q->COUNT_ROWS($table_hour);
 		if($CountDeSource==0){continue;}
 		$xtime=$q->TIME_FROM_HOUR_TABLE($table_hour);
 		$DestTable="UserSizeD_".date("Ymd",$xtime);
 		$zDate=date("Y-m-d",$xtime);
+		
+		events_tail("$zDate: $DestTable $pe/$COUNTOF");
 		if(!$q->TABLE_EXISTS($DestTable)){
 			UserSizeD_REPAIR($zDate);
 			continue;
@@ -2922,10 +2914,13 @@ function summarize_days(){
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){writelogs_squid("Fatal: $q->mysql_error on `tables_day`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 	
-	
+	$TOTAL=mysql_num_rows($results);
+	$c=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){	
 		$dpref=$ligne["dpref"];
-		if($GLOBALS["VERBOSE"]){echo "Scanning: {$ligne["tablename"]}\n";}
+		$c++;
+		$prc=round(($c/$TOTAL)*100,2);
+		events("Scanning: {$ligne["tablename"]} {$prc}% {$ligne["zDate"]}");
 		_summarize_days($dpref,$ligne["tablename"],$ligne["zDate"]);
 	}
 	writelogs_squid("Success Summarize ".mysql_num_rows($results)." day tables",__FUNCTION__,__FILE__,__LINE__,"stats");	
@@ -3044,21 +3039,29 @@ function UserSizeD_REPAIR($day){
 		if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> $q->mysql_error\n";}
 		return;
 	}	
-	if(mysql_num_rows($results)==0){
-		if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> No row for $sourcetable\n";}
+	
+	$total=mysql_num_rows($results);
+	
+	if($total==0){
+		events_tail("UserSizeD_REPAIR($day) Fatal!:No row for $sourcetable\n");
+		return;
 	}
 	
+	$de=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		
+		$de++;
 		$zMD5=md5(serialize($ligne));
 		$uid=addslashes($ligne["uid"]);
 		$hostname=addslashes($ligne["hostname"]);
 		$f[]="('$zMD5','$uid','$day','{$ligne["client"]}','$hostname','{$ligne["account"]}','{$ligne["MAC"]}','','{$ligne["size"]}','{$ligne["hits"]}','{$ligne["hour"]}')";
 		if(count($f)>500){
-			if($GLOBALS["VERBOSE"]){echo "<strong>Injecting 500 lines</strong>\n";}
+			$dep=round(($de/$total)*100,2);
+			events_tail("UserSizeD_REPAIR($day) $de/$total ($dep)");
+			
+			
 			$q->QUERY_SQL($prefix.@implode(",", $f));
 			if(!$q->ok){
-				if($GLOBALS["VERBOSE"]){echo "<strong>Fatal!:</strong> $q->mysql_error\n";}
+				events_tail("UserSizeD_REPAIR($day) Fatal! $q->mysql_error");
 				return;
 			}
 			$f=array();

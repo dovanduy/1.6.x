@@ -1479,13 +1479,16 @@ class squidbee{
 		
 		$tr=$this->backends_list();
 		if(count($tr)==0){return;}
-		
-
+		$sock=new sockets();
+		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
 		
 		
 		$f[]="acl artica_backend_proxys src ".@implode(" ", $tr);
-		$f[]="follow_x_forwarded_for allow artica_backend_proxys";
-		$f[]="follow_x_forwarded_for allow ChildProxysIPs";
+		
+		if($SquidAsMasterFollowxForward==1){
+			$f[]="follow_x_forwarded_for allow artica_backend_proxys";
+			$f[]="follow_x_forwarded_for allow ChildProxysIPs";
+		}
 		if($this->ICP_PORT>0){
 			$f[]="icp_access allow artica_backend_proxys";
 			$f[]="icp_access allow ChildProxysIPs";
@@ -4247,6 +4250,9 @@ function SaveToLdap($norestart=false){
 		$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
 		$ini->loadString($sock->GET_INFO('ArticaSquidParameters'));
 		$EnableParentProxy=intval($ini->_params["NETWORK"]["EnableParentProxy"]);
+		$EnableParentProxy2=intval($sock->GET_INFO("EnableParentProxy"));
+		if($EnableParentProxy2==1){$EnableParentProxy=1;}
+		
 		
 		$f[]="#";
 		$f[]="# --------- SQUID PARENTS --------- [".__LINE__."]";
@@ -4520,7 +4526,7 @@ private function access_logs(){
 	$isRemoteStatsAppliance=$this->isRemoteStatsAppliance();
 	$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 	$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
-	
+	$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
 	
 	$ChildProxysIPs=null;
 	
@@ -4529,7 +4535,11 @@ private function access_logs(){
 	
 	if($SquidAsMasterPeer==1){
 		if($SquidAsMasterLogChilds==0){
-			$ChildProxysIPs="!ChildProxysIPs ";
+			if($SquidAsMasterFollowxForward==0){
+				$ChildProxysIPs="!ChildProxysIPs ";
+			}else{
+				$ChildProxysIPs="!ChildProxyPorts";
+			}
 		}
 	}
 	
@@ -4588,6 +4598,11 @@ private function access_logs(){
 	if($log_access_acls_csv<>null){
 		$conf[]=$log_access_acls_csv;
 	}
+	
+	$log_childs=$this->access_log_childs();
+	if($log_childs<>null){
+		$conf[]=$log_childs;
+	}	
 	
 	
 	if(($this->IS_31) && (!$this->IS_32)){
@@ -4844,6 +4859,7 @@ private function build_http_ports(){
 
 public function dns_nameservers($dnsmasq=false){
 	$sock=new sockets();
+	$noresol=false;
 	$EnableLocalDNSMASQ=$sock->GET_INFO('EnableLocalDNSMASQ');
 	if(!is_numeric($EnableLocalDNSMASQ)){$EnableLocalDNSMASQ=0;}
 	writelogs("dns server: ".count($this->dns_array) . ' rows',__CLASS__.'/'.__FUNCTION__,__FILE__);
@@ -4856,6 +4872,13 @@ public function dns_nameservers($dnsmasq=false){
 		}
 	}
 	
+	if(count($this->dns_array)==0){
+		$dns_nameservers_from_resolv=$this->dns_nameservers_from_resolv(true);
+		while (list ($num, $val) = each ($dns_nameservers_from_resolv) ){
+			$dns_nameservers[]=$val;
+		}
+		$noresol=true;
+	}
 	
 
 		
@@ -4864,10 +4887,12 @@ public function dns_nameservers($dnsmasq=false){
 		if($GLOBALS["VERBOSE"]){echo " ***** DNS: start loop ".count($this->dns_array) ." items\n";}
 		while (list ($num, $val) = each ($this->dns_array) ){
 			if(preg_match("#resolv#", $val)){
-				$dns_nameservers_from_resolv=$this->dns_nameservers_from_resolv();
-				if($dns_nameservers_from_resolv<>null){
-						$dns_nameservers[]=trim($dns_nameservers_from_resolv);
+				if(!$noresol){
+					$dns_nameservers_from_resolv=$this->dns_nameservers_from_resolv(true);
+					while (list ($num, $val) = each ($dns_nameservers_from_resolv) ){
+						$dns_nameservers[]=$val;
 					}
+				}
 				continue;
 			}
 			if($GLOBALS["VERBOSE"]){echo " ***** DNS: $val\n";}
@@ -4877,11 +4902,21 @@ public function dns_nameservers($dnsmasq=false){
 		if($GLOBALS["VERBOSE"]){echo " ***** DNS: dns_array 0 items\n";}
 	}
 	
+	while (list ($num, $val) = each ($dns_nameservers) ){
+		$CLEAN[$val]=true;
+	}
+	
+	$dns_nameservers=array();
+	while (list ($num, $val) = each ($CLEAN) ){
+		$dns_nameservers[]=$num;
+	}
+	
 	if($dnsmasq){
-		
 		if(count($dns_nameservers)==0){return array();}
 		return $dns_nameservers;
 	}
+	
+	
 	
 	
 	if(count($dns_nameservers)>0){
@@ -4934,6 +4969,7 @@ function BuildSquidConf(){
 		$SquidAsMasterPeerPort=intval($sock->GET_INFO("SquidAsMasterPeerPort"));
 		$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 		if(!is_numeric($SquidAsMasterCacheChilds)){$SquidAsMasterCacheChilds=1;}
+		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
 
 		
 		$this->listen_port=intval(trim($this->listen_port));
@@ -5648,12 +5684,18 @@ function BuildSquidConf(){
 		$conf=$conf ."# --------- DisableAnyCache 	=  $this->DisableAnyCache [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterPeer =  $SquidAsMasterPeer [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterCacheChilds =  $SquidAsMasterCacheChilds [". __LINE__."]\n";
+		$conf=$conf ."# --------- SquidAsMasterFollowxForward =  $SquidAsMasterFollowxForward [". __LINE__."]\n";
 		
 		if($this->DisableAnyCache==0){
 			if($SquidAsMasterPeer==1){
 				if($SquidAsMasterCacheChilds==0){
-					$conf=$conf ."# --------- Do not cache requests from Proxy children  [". __LINE__."]\n";
-					$conf=$conf ."cache deny ChildProxysIPs\n";
+					if($SquidAsMasterFollowxForward==0){
+						$conf=$conf ."# --------- Do not cache requests from Proxy children  [". __LINE__."]\n";
+						$conf=$conf ."cache deny ChildProxysIPs\n";
+					}else{
+						$conf=$conf ."# --------- Do not cache requests from Proxy Master Port  [". __LINE__."]\n";
+						$conf=$conf ."cache deny ChildProxyPorts\n";
+					}
 				}
 			}
 			
@@ -5702,6 +5744,11 @@ function BuildSquidConf(){
 		if($this->MEMORY_INSTALLEE<624288){$this->global_conf_array["cache_mem"]="8 MB";}
 		
 		if($this->SquidUrgency==0){
+			if(!preg_match("#([0-9]+)\s+([A-Za-z]+)#", $this->global_conf_array["cache_mem"])){
+				$this->global_conf_array["cache_mem"]="{$this->global_conf_array["cache_mem"]} MB";
+			}
+			
+			
 			$conf=$conf . "cache_mem {$this->global_conf_array["cache_mem"]}\n";
 			$conf=$conf . "read_ahead_gap {$this->global_conf_array["read_ahead_gap"]}\n";
 			$conf=$conf . "cache_swap_high {$this->global_conf_array["cache_swap_high"]}\n";
@@ -5965,6 +6012,40 @@ function BuildSquidConf(){
 		
 	}
 	
+	private function access_log_childs(){
+		$sock=new sockets();
+		$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
+		if($SquidAsMasterPeer==0){return null;}
+		$SquidAsMasterLogExtern=intval($sock->GET_INFO("SquidAsMasterLogExtern"));
+		if($SquidAsMasterLogExtern==0){return null;}
+		$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
+		if($SquidAsMasterLogChilds==1){return null;}
+		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
+		
+		if($SquidAsMasterFollowxForward==1){
+			$acls="ChildProxyPorts";
+		}else{
+			$acls="ChildProxyPorts ChildProxysIPs";
+		}
+		
+		$conf[]="logformat childs %ts.%03tu %6tr %>a %Ss/%03>Hs %<st %rm %ru %[un %Sh/%<a %mt %{X-Forwarded-For}>h";
+		if($this->IS_31){
+			$access_log="access_log /var/log/squid/childs-access.log childs $acls";
+		}
+		
+		if($this->IS_32){
+			$access_log="access_log stdio:/var/log/squid/childs-access.log childs $acls";
+		}
+		
+		if($this->IS_34){
+			$access_log="access_log stdio:/var/log/squid/childs-access.log on-error=drop logformat=childs buffer-size=64KB $acls";
+		}		
+		
+		$conf[]=$access_log;
+		return @implode("\n", $conf);
+	}
+	
+	
 	private function access_log_csv(){
 		if($this->EnableSquidCSV==0){return;}
 		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." Squid create logs in csv enabed\n";}
@@ -5972,6 +6053,7 @@ function BuildSquidConf(){
 		$SquidCsvParams=unserialize(base64_decode($sock->GET_INFO("SquidCsvParams")));
 		$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
 		$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
+		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
 		
 		$CSV["a1"]="\"%>a\"";
 		$CSV["a2"]="\"%>A\"";
@@ -6020,7 +6102,11 @@ function BuildSquidConf(){
 		
 		if($SquidAsMasterPeer==1){
 			if($SquidAsMasterLogChilds==0){
-				$ChildProxysIPs="!ChildProxysIPs ";
+				if($SquidAsMasterFollowxForward==0){
+					$ChildProxysIPs="!ChildProxysIPs ";
+				}else{
+					$ChildProxysIPs="!ChildProxyPorts ";
+				}
 			}
 		}
 		
@@ -6157,7 +6243,7 @@ function BuildSquidConf(){
 		}
 	
 		
-		public function dns_nameservers_from_resolv(){
+		public function dns_nameservers_from_resolv($asArray=false){
 			if($this->SquidUrgency==1){return null;}
 			if(!$this->ASROOT){return;}
 			$s=array();
@@ -6168,6 +6254,8 @@ function BuildSquidConf(){
 				}
 			}
 			
+			if(count($s)==0){return array();}
+			if($asArray){return $s;}
 			if(count($s)>0){return @implode(" ", $s);}
 			
 		}
@@ -6234,9 +6322,11 @@ function BuildSquidConf(){
 			}
 			
 			if(count($f)==0){
-				return "acl MyLocalIpsDest dst 127.0.0.1"; 
+				return "acl MyLocalIpsDest dst 127.0.0.1\n"; 
 			}
-			return "acl MyLocalIpsDest dst ".@implode(" ", $ipaddr);
+			
+			
+			return "acl MyLocalIpsDest dst ".@implode(" ", $f)."\n";
 			
 		}
 		
@@ -6278,6 +6368,7 @@ function BuildSquidConf(){
 		private function http_access(){
 			
 			if(isset($GLOBALS[__FUNCTION__])){return $GLOBALS[__FUNCTION__];}
+			$conf[]="# # # # # # # # # # MAIN RULES # # # # # # # # # # [".__LINE__."]";
 			$conf[]="#--------- Dedicated rule that allow Access to Artica repositories";
 			$conf[]="#--------- in any cases for updates [".__LINE__."]";
 			$conf[]="http_access allow ToArticaWWW";
@@ -6292,10 +6383,15 @@ function BuildSquidConf(){
 			$SquidAsMasterPeerPort=intval($sock->GET_INFO("SquidAsMasterPeerPort"));
 			$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 			$SquidDebugPort=intval($sock->GET_INFO("SquidDebugPort"));
+			$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
+			
+			
 			if($SquidAsMasterPeer==1){
 				$conf[]="#--------- Dedicated rule that allow childs proxys to pass trough the Parent";
-				$conf[]="http_access allow ChildProxyPorts ChildProxysIPs";
-				$conf[]="http_access deny ChildProxyPorts all";
+				if($SquidAsMasterFollowxForward==0){
+					$conf[]="http_access allow ChildProxyPorts ChildProxysIPs";
+					$conf[]="http_access deny ChildProxyPorts all";
+				}
 			}
 			
 			$AllowSquidDropBox=intval($sock->GET_INFO("AllowSquidDropBox"));

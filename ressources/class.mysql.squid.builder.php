@@ -1346,7 +1346,8 @@ class mysql_squid_builder{
 	
 	public function DATABASE_INFOS(){
 		$sql="show TABLE STATUS";
-		$results=$this->QUERY_SQL($sql,$database);
+		$results=$this->QUERY_SQL($sql,$this->database);
+		$dbsize=0;$count=0;
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 			$dbsize += $ligne['Data_length'] + $ligne['Index_length'];
 			$count=$count+1;}
@@ -1369,6 +1370,7 @@ class mysql_squid_builder{
 	
 	
 	public function FIELD_EXISTS($table,$field,$database=null){
+		if($database==null){$database=$this->database;}
 		$field=trim($field);
 		if(isset($GLOBALS["__FIELD_EXISTS"])){
 			if(isset($GLOBALS["__FIELD_EXISTS"][$database][$table])){
@@ -6501,6 +6503,24 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 		$t1=time();
 		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_HEURISTICS ( $sitename ) *********\n";}
 		if($GLOBALS["OUTPUT"]){echo date("H:i:s")." $sitename -> GET_CATEGORIES_HEURISTICS($sitename)\n";}
+		
+		if(!isset($GLOBALS["SquidAppendDomain"])){
+			$sock=new sockets();
+			$SquidAppendDomain=trim($sock->GET_INFO("SquidAppendDomain"));
+			$GLOBALS["SquidAppendDomain"]=trim($sock->GET_INFO("SquidAppendDomain"));
+			if($GLOBALS["SquidAppendDomain"]==null){
+				$MainArray=unserialize(base64_decode($sock->GET_INFO("resolvConf")));
+				$GLOBALS["SquidAppendDomain"]=trim($MainArray["DOMAINS1"]);
+				if($GLOBALS["SquidAppendDomain"]==null){$GLOBALS["SquidAppendDomain"]="localhost.local";}
+			}
+		}
+		
+		
+		if($GLOBALS["SquidAppendDomain"]<>null){
+			$domain=str_replace(".", "\.", $GLOBALS["SquidAppendDomain"]);
+			if(preg_match("#\.$domain$#", $GLOBALS["SquidAppendDomain"])){return "internal";}
+		}
+		
 		$cat=$this->GET_CATEGORIES_HEURISTICS($sitename);
 		if($cat<>null){
 			$this->categorize_temp($sitename,$cat); 

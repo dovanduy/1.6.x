@@ -62,6 +62,10 @@ function status(){
 	$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 	$SquidAsMasterPeerIPAddr=$sock->GET_INFO("SquidAsMasterPeerIPAddr");
 	$SquidAsMasterCacheChilds=$sock->GET_INFO("SquidAsMasterCacheChilds");
+	$SquidAsMasterLogExtern=intval($sock->GET_INFO("SquidAsMasterLogExtern"));
+	$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
+	
+	
 	if($SquidAsMasterPeerIPAddr==null){$SquidAsMasterPeerIPAddr="0.0.0.0";}
 	
 	if($SquidAsMasterPeerPort==0){$SquidAsMasterPeerPort=8050;}
@@ -75,20 +79,33 @@ function status(){
 	$p2=Paragraphe_switch_img("{logging_childs_connections}", "{logging_childs_connections_explain}",
 			"SquidAsMasterLogChilds-$t",$SquidAsMasterLogChilds,null,850);
 	
+	$p21=Paragraphe_switch_img("{logging_childs_connections2}", "{logging_childs_connections_explain2}",
+			"SquidAsMasterLogExtern-$t",$SquidAsMasterLogExtern,null,850);
+	
 	
 	$p3=Paragraphe_switch_img("{cache_childs_requests}", "{cache_childs_requests_explain}",
 			"SquidAsMasterCacheChilds-$t",$SquidAsMasterCacheChilds,null,850);
 	
+	$p4=Paragraphe_switch_img("{follow_x_forwarded_for}", "{follow_x_forwarded_for_explain}",
+			"SquidAsMasterFollowxForward-$t",$SquidAsMasterFollowxForward,null,850);
+	
+	
 	$ips=$ip->ALL_IPS_GET_ARRAY();
 	$ips["0.0.0.0"]="{all}";
 	
+	if($SquidAsMasterFollowxForward==1){
+		$error="<p class=text-info style='font-size:16px'>{SquidAsMasterFollowxForward_error}</p>";
+		
+	}
 	
 	$html="
 	<div style='width:98%' class=form>
 		<table style='width:100%'>
 			<tr> <td colspan=2>$p1</td> </tr>
 			<tr> <td colspan=2>$p2</td> </tr>
+			<tr> <td colspan=2>$p21</td> </tr>
 			<tr> <td colspan=2>$p3</td> </tr>
+			<tr> <td colspan=2>$p4</td> </tr>
 			<tr>
 				<td class=legend style='font-size:24px'>{listen_address}:</td>
 				<td style='font-size:24px'>". Field_array_Hash($ips,"SquidAsMasterPeerIPAddr-$t",$SquidAsMasterPeerIPAddr,"style:font-size:24px")."<td>
@@ -126,6 +143,12 @@ function Save$t(){
 	XHR.appendData('SquidAsMasterPeerPortSSL',document.getElementById('SquidAsMasterPeerPortSSL-$t').value);
 	XHR.appendData('SquidAsMasterPeerIPAddr',document.getElementById('SquidAsMasterPeerIPAddr-$t').value);
 	XHR.appendData('SquidAsMasterCacheChilds',document.getElementById('SquidAsMasterCacheChilds-$t').value);
+	XHR.appendData('SquidAsMasterLogExtern',document.getElementById('SquidAsMasterLogExtern-$t').value);
+	XHR.appendData('SquidAsMasterFollowxForward',document.getElementById('SquidAsMasterFollowxForward-$t').value);
+	
+	
+	
+	
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }
 </script>												
@@ -143,6 +166,8 @@ function SquidAsMasterPeer(){
 	$sock->SET_INFO("SquidAsMasterPeerPortSSL", $_POST["SquidAsMasterPeerPortSSL"]);
 	$sock->SET_INFO("SquidAsMasterPeerIPAddr", $_POST["SquidAsMasterPeerIPAddr"]);
 	$sock->SET_INFO("SquidAsMasterCacheChilds", $_POST["SquidAsMasterCacheChilds"]);
+	$sock->SET_INFO("SquidAsMasterLogExtern", $_POST["SquidAsMasterLogExtern"]);
+	$sock->SET_INFO("SquidAsMasterFollowxForward", $_POST["SquidAsMasterFollowxForward"]);
 }
 
 function childs(){

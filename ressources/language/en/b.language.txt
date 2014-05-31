@@ -5780,8 +5780,8 @@ A compressed file will be generated in order to helps our support team to unders
 <mysql_repair_task_explain>This task is able to scan main MySQL databases and try to repair corrupted tables</mysql_repair_task_explain>
 <enable_as_master_proxy>Activate this proxy as master</enable_as_master_proxy>
 <enable_as_master_proxy_explain>If turn to green, this proxy is able to accept connections from child proxys and set specific features according this architecture</enable_as_master_proxy_explain>
-<logging_childs_connections>Log childs connections</logging_childs_connections>
-<logging_childs_connections_explain>If turn to green, connections from Proxy childs will be logged and added to the local statistics</logging_childs_connections_explain>
+<logging_childs_connections>Log backend proxys connections</logging_childs_connections>
+<logging_childs_connections_explain>If turn to green, connections from backends Proxys will be logged and added to the local statistics</logging_childs_connections_explain>
 <proxy_parents>Proxy Parents</proxy_parents>
 <BACKUPARTICA_TYPE_NAS_EXPLAIN>Artica is able to backup it's configuration file to a remote NAS file system.[br]
 This task will export to a compressed file the whole server configuration in order to restore it or duplicate it.
@@ -6201,8 +6201,8 @@ If green, Artica will add rules in order to enforce proxy to cache Microsoft Win
 <ProxyDedicateMicrosoftRules_explain>If green, Artica will add rules that allows any computer/user to be connected to Microsoft updates Websites.[br]
 This prevents any non-NTLM/authenticated computer to be banned by the proxy.
 </ProxyDedicateMicrosoftRules_explain>
-<cache_childs_requests>Cache Proxy children requests</cache_childs_requests>
-<cache_childs_requests_explain>If turn to green, requests from children will be cached.[br]
+<cache_childs_requests>Cache Proxy backend requests</cache_childs_requests>
+<cache_childs_requests_explain>If turn to green, requests from backends will be cached.[br]
 If red, requests from proxy children will be deny from cache</cache_childs_requests_explain>
 <update_schedule>Update schedule</update_schedule>
 <articadb_update_only_by_schedule>If turn to green both categories databases and webfiltering databases will be downloaded only with defined schedules.[br]
@@ -6325,3 +6325,13 @@ Do you want to carry ouyt this operation ?
 <languages>Languages</languages>
 <convert_language>Convert language</convert_language>
 <ZARAFA_MAILBOX_CONVERT>This will convert the current mailbox language to </ZARAFA_MAILBOX_CONVERT>
+<logging_childs_connections2>Log connections to a different log file</logging_childs_connections2>
+<logging_childs_connections_explain2>If green the proxy service will write requests to a dedicated events file.[br]
+This dedicated events file will be not added to Artica statistics but allows you to monitor connections from backend proxys</logging_childs_connections_explain2>
+<follow_x_forwarded_for>Follow sources clients addresses</follow_x_forwarded_for>
+<follow_x_forwarded_for_explain>When a proxy backend sends a request, it add the information of the original client IP address.[br]
+If turned to green, originals clients addresses will be used by this master proxy in order to apply your proxy rules.
+If turned to red, only remote proxy backends will be used as sources addresses.
+</follow_x_forwarded_for_explain>
+<SquidAsMasterFollowxForward_error>The follow sources clients addresses is enabled, 
+in this case the deny cache from backends proxy and Log backend proxys connections will be not enabled.</SquidAsMasterFollowxForward_error>

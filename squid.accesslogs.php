@@ -34,13 +34,29 @@ if(isset($_GET["change-date-popup"])){change_date_popup();exit;}
 page();
 
 function tabs_all(){
-
+	$sock=new sockets();
+	$AsMaster=true;
+	$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
+	if($SquidAsMasterPeer==0){$AsMaster=false;}
+	$SquidAsMasterLogExtern=intval($sock->GET_INFO("SquidAsMasterLogExtern"));
+	if($SquidAsMasterLogExtern==0){$AsMaster=false;}
+	$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
+	if($SquidAsMasterLogChilds==1){$AsMaster=false;}
 
 	$fontsize=16;
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$array["events-squidaccess"]='{realtime_requests}';
+	
+	
+	
 	$array["today-squidaccess"]='{today}';
+	
+	if($AsMaster){
+		$array["events-masteraccess"]='{backends}';
+	
+	}
+	
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
 	$array["parameters"]='{log_retention}';
@@ -48,6 +64,12 @@ function tabs_all(){
 
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="events-masteraccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-access.log.php?popup=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}
 
 		if($num=="events-squidaccess"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?popup=yes&url-row=555\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");

@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{TEMPLATE_TITLE_HEAD}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap-responsive.css">
+	<script type="text/javascript" language="javascript" src="/mouse.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/md5.js"></script>
+	<script type="text/javascript" language="javascript" src="/XHRConnection.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/float-barr.js"></script>
+	<script type="text/javascript" language="javascript" src="/TimersLogs.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/artica_confapply.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/edit.user.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/cookies.js"></script>
+	<script type="text/javascript" language="javascript" src="/default.js"></script>    
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-1.8.0.min.js"></script>
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js"></script>
+  	<script type="text/javascript" language="javascript" src="/js/jquery.uilock.min.js"></script>    
+  	<script type="text/javascript" language="javascript" src="/js/jquery.blockUI.js"></script>
+   <style type="text/css">
+     body {
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+      }
+
+      .form-signin {
+        max-width: 300px;
+        padding: 19px 29px 29px;
+        margin: 0 auto 20px;
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        -webkit-border-radius: 5px;
+           -moz-border-radius: 5px;
+                border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+                box-shadow: 0 1px 2px rgba(0,0,0,.05);
+      }
+      .form-signin .form-signin-heading,
+      .form-signin .checkbox {
+        margin-bottom: 10px;
+      }
+      .form-signin input[type="text"],
+      .form-signin input[type="password"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+    </style>    
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/ie-only.css" />
+</head>
+<body>
+<input type='hidden' id='LoadAjaxPicture' name="LoadAjaxPicture" value="/ressources/templates/endusers/ajax-loader-eu.gif">
+<div id="SetupControl" style='width:0;height:0'></div>
+<div id="dialogS" style='width:0;height:0'></div> 
+<div id="dialogT" style='width:0;height:0'></div> 
+<div id="dialog0" style='width:0;height:0'></div> 
+<div id="dialog1" style='width:0;height:0'></div>
+<div id="dialog2" style='width:0;height:0'></div> 
+<div id="dialog3" style='width:0;height:0'></div>
+<div id="dialog4" style='width:0;height:0'></div>
+<div id="dialog5" style='width:0;height:0'></div>
+<div id="dialog6" style='width:0;height:0'></div>
+<div id="YahooUser" style='width:0;height:0'></div>
+<div id="logsWatcher" style='width:0;height:0'></div>
+<div id="WinORG" style='width:0;height:0'></div>
+<div id="WinORG2" style='width:0;height:0'></div>
+<div id="RTMMail" style='width:0;height:0'></div>
+<div id="Browse" style='width:0;height:0'></div>
+<div id="SearchUser" style='width:0;height:0'></div>
+<div id="UnityDiv" style='width:0;height:0'></div>
+<div id='PopUpInfos' style='position:absolute'></div>
+<div id='find' style='position:absolute'></div>
+<div class="info message" id='AcaNotifyMessInfo'></div>
+<div class="error message" id='AcaNotifyMessError'></div>
+<div class="warning message" id='AcaNotifyMessWarn'></div>
+<div class="success message" id='AcaNotifyMessSuccess'></div>
+
+    <div class="container">
+	
+      <form class="form-signin" method="post">
+      	<input type="hidden" name="IE_POST" value="1">
+        <h2 class="form-signin-heading">{please_sign_in}</h2>
+        <!-- ERROR -->
+        <input type="text" class="input-block-level" name="artica_username" placeholder="{username}" id="artica_username">
+        <input type="password" class="input-block-level" name="artica_password" placeholder="{password}" id="artica_password">
+        <button class="btn btn-large btn-primary" type="submit" id="signin">Sign in</button>
+      </form>
+
+    </div> 
+</body>
+</html>

@@ -29,14 +29,30 @@ function tabs_all(){
 	$fontsize=16;
 	$tpl=new templates();
 	$page=CurrentPageName();
+	
+	$sock=new sockets();
+	$AsMaster=true;
+	$SquidAsMasterPeer=intval($sock->GET_INFO("SquidAsMasterPeer"));
+	if($SquidAsMasterPeer==0){$AsMaster=false;}
+	$SquidAsMasterLogExtern=intval($sock->GET_INFO("SquidAsMasterLogExtern"));
+	if($SquidAsMasterLogExtern==0){$AsMaster=false;}
+	$SquidAsMasterLogChilds=intval($sock->GET_INFO("SquidAsMasterLogChilds"));
+	if($SquidAsMasterLogChilds==1){$AsMaster=false;}
+	
 	$array["events-squidaccess"]='{realtime_requests}';
+	
+	if($AsMaster){
+		$array["events-masteraccess"]='{realtime_requests} {master}';
+	
+	}
+	
 	$array["today-squidaccess"]='{today}';
 	$array["watchdog"]="{squid_watchdog_mini}";
 	$array["events-squidcache"]='{proxy_service_events}';
 	$array["events-ziproxy"]='{compressor_requests}';
+
 	
-	
-	
+
 	
 	while (list ($num, $ligne) = each ($array) ){
 	
@@ -45,6 +61,12 @@ function tabs_all(){
 			continue;
 				
 		}
+		
+		if($num=="events-masteraccess"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.master-access.log.php?popup=yes\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		
+		}		
 		
 		
 		if($num=="today-squidaccess"){

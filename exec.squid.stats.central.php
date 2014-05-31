@@ -27,8 +27,17 @@ if($argv[1]=="--export"){start_export();exit;}
 if($argv[1]=="--import"){start_import();exit;}
 if($argv[1]=="--push"){export_push();exit;}
 if($argv[1]=="--clients-hours"){clients_hours();exit;}
+if($argv[1]=="--clients-hours-perform"){_shell_clients_hours_perfom($argv[2],$argv[3]);exit;}
+if($argv[1]=="--step2"){Step2();exit;}
+if($argv[1]=="--table-days"){table_days();exit;}
+if($argv[1]=="--week-days-nums"){WeekDaysNums();exit;}
+if($argv[1]=="--nodes"){nodes_scan();exit;}
 
 
+
+
+
+//_clients_hours_perfom($tabledata,$nexttable
 
 
 
@@ -120,11 +129,7 @@ stats_admin_events(2,"1%) Purge days took:" .$unix->distanceOfTimeInWords($t,tim
 
 percentage("Compile personal tables...",2);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.compile_category_perso.php"));
-percentage("Fix tables",2);
-$q->FixTables();
-$squid_stats_tools=new squid_stats_tools();
-$squid_stats_tools->check_to_hour_tables();
-$squid_stats_tools->not_categorized_day_scan();
+Step2();
 
 $t=time();
 percentage("Running Quota day",2);
@@ -140,7 +145,9 @@ if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime...
 
 shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --thumbs-parse >/dev/null 2>&1 &");
 
+percentage("table_days()",2);
 table_days();
+percentage("WeekDaysNums()",2);
 WeekDaysNums();
 stats_admin_events(2,"2%) Fix tables executed took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 
@@ -153,7 +160,7 @@ stats_admin_events(2,"3%) Scanning nodes executed took:" .$unix->distanceOfTimeI
 
 $t=time();
 percentage("Scanning Active Directory",4);
-shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.clientad.php"));
+shell_exec(trim("$nohup $EXEC_NICE $php5 $Prefix/exec.clientad.php >/dev/null 2>&1 &"));
 stats_admin_events(2,"4%) Scanning Active Directory executed took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 
 
@@ -207,24 +214,27 @@ if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime...
 
 
 $t=time();
-percentage("Summarize days",11);
-shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --summarize-days --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
-stats_admin_events(2,"11%) Summarize days took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+percentage("quotaday (quotamonth)...",11);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.quotaday.php --quotamonth --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"33%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 
-
-
 $t=time();
-percentage("Running Youtube statistics",12);
+percentage("Running Youtube statistics",11);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.youtube.days.php --youtube-dayz --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"12%) Running Search Words hourly took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 
 $t=time();
-percentage("Running Blocked threats day",13);
+percentage("Summarize days",12);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --summarize-days --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"11%) Summarize days took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
+$t=time();
+percentage("Running Blocked threats day",13);
 stats_admin_events(2,"13%) Blocked threats day:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
@@ -249,14 +259,6 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --week --schedule
 stats_admin_events(2,"29%)  Week tables... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
-
-$t=time();
-percentage("Visited Websites",22);
-shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --visited-sites2 --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
-stats_admin_events(2,"25%)  Visited Websites took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
-if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
-
-
 $t=time();
 percentage("Repair tables",26);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.totals.php --repair --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
@@ -273,13 +275,6 @@ if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime...
 $t=time();
 percentage("Interface elements",28);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.totals.php --interface --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
-stats_admin_events(2,"28%)  Interface elements took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
-if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
-
-
-$t=time();
-percentage("Dangerous elements",28);
-shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.dangerous.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"28%)  Interface elements took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
@@ -314,11 +309,6 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.month.php --schedule-
 stats_admin_events(2,"32%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
-$t=time();
-percentage("Months tables (3)...",33);
-shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.quotaday.php --quotamonth --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
-stats_admin_events(2,"33%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
-if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
 percentage("Months tables by users (4)...",35);
@@ -337,6 +327,24 @@ percentage("Categorize last days",45);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.categorize-table.php --last-days --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"45%)  Categorize last days.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
+$t=time();
+percentage("Visited Websites",46);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --visited-sites2 --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"25%)  Visited Websites took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
+
+
+$t=time();
+percentage("Dangerous elements",46);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.dangerous.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"28%)  Interface elements took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
 
 $t=time();
 percentage("Categorize all tables",46);
@@ -439,11 +447,24 @@ function percentage($text,$purc){
 	
 	$array["TITLE"]=$text;
 	$array["POURC"]=$purc;
-	
 	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
 	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [$purc] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";} 
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
 	
-	
+}
+function events_tail($text,$line=0){
+	error_log($text);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] $text Line: $line";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
 }
 
 function clients_hours($nopid=false){
@@ -470,6 +491,9 @@ function clients_hours($nopid=false){
 	
 	echo "L.[".__LINE__."]:_clients_hours_perfom($currenttable,$next_table)\n";
 	
+	
+	
+	
 	_clients_hours_perfom($currenttable,$next_table);
 
 
@@ -489,12 +513,26 @@ function clients_hours($nopid=false){
 		$next_table=$ligne["suffix"]."_hour";
 		if(!$q->CreateHourTable($next_table)){events_tail("Failed to create $next_table");return;}
 		if(!_clients_hours_perfom($ligne["tablename"],$next_table)){events_tail("Failed to process {$ligne["tablename"]} to $next_table");return;}
+		$q->QUERY_SQL("UPDATE tables_day SET `Hour`=1 WHERE tablename='{$ligne["tablename"]}'");
 	}
 
 	
 }
 
 function _clients_hours_perfom($tabledata,$nexttable){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nice=$unix->EXEC_NICE();
+	@unlink("/etc/artica-postfix/shell_clients_hours_perfom");
+	percentage("$nice $php ".__FILE__." --clients-hours-perform $tabledata $nexttable",10);
+	shell_exec("$nice $php ".__FILE__." --clients-hours-perform $tabledata $nexttable");
+	$result=intval(@file_get_contents("/etc/artica-postfix/shell_clients_hours_perfom"));
+	if($result==1){return true;}
+}
+
+
+
+function _shell_clients_hours_perfom($tabledata,$nexttable){
 	$filter_hour=null;
 	$filter_hour_1=null;
 	$filter_hour_2=null;
@@ -523,10 +561,14 @@ function _clients_hours_perfom($tabledata,$nexttable){
 	}
 
 	echo "L.[".__LINE__."]: Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_1' in line \n";
+	
+	percentage("Processing $tabledata -> $nexttable",10);
+	
 	events_tail("Processing $tabledata -> $nexttable  (today is $todaytable) filter:'$filter_hour_1' in line ".__LINE__);
 	if(!$GLOBALS["Q"]->TABLE_EXISTS($tabledata)){
 		events_tail("Create $tabledata in line ".__LINE__);
 		$GLOBALS["Q"]->CheckTables($tabledata);
+		@file_put_contents("/etc/artica-postfix/shell_clients_hours_perfom", 1);
 		return true;
 	}
 
@@ -551,6 +593,7 @@ function _clients_hours_perfom($tabledata,$nexttable){
 			$sql="UPDATE tables_day SET Hour=1 WHERE tablename='$tabledata'";
 			$GLOBALS["Q"]->QUERY_SQL($sql);
 		}
+		@file_put_contents("/etc/artica-postfix/shell_clients_hours_perfom", 1);
 		return true;
 	}
 
@@ -570,14 +613,14 @@ function _clients_hours_perfom($tabledata,$nexttable){
 		$SQLSITESVS[]="('$sitename','$category','{$ligne["Country"]}','$familysite')";
 		$yyy++;
 		$zzz++;
-		if($zzz>100){
+		if($zzz>500){
+			$mem=round((memory_get_usage(true)/1024)/1000);
+			$xprec=($yyy/$num_rows)*100;
+			$xprec=round($xprec,2);
+			percentage("[{$tabledata}]: Processing [{$xprec}%]$yyy/$num_rows ({$mem}MB)",10);
 			if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
-			if($GLOBALS["VERBOSE"]){
-				$mem=round((memory_get_usage(true)/1024)/1000);
-				echo "Processing $yyy/$num_rows ({$mem}MB) in line ".__LINE__."\n";
-			}
 			$zzz=0;
-	}
+		}
 
 
 				$md5=md5("{$ligne["sitename"]}{$ligne["CLIENT"]}{$ligne["HOUR"]}{$ligne["MAC"]}{$ligne["Country"]}{$ligne["uid"]}{$ligne["QuerySize"]}{$ligne["hits"]}{$ligne["cached"]}{$ligne["account"]}$Country");
@@ -611,53 +654,52 @@ function _clients_hours_perfom($tabledata,$nexttable){
 		if(!$GLOBALS["Q"]->ok){events_tail("Failed to process query to $nexttable {$GLOBALS["Q"]->mysql_error} in line " .	__LINE__);}
 }
 }
-
+	@file_put_contents("/etc/artica-postfix/shell_clients_hours_perfom", 1);
 	return true;
 }
 
 function table_days(){
 	$unix=new unix();
-
+	$GLOBALS["Q"]=new mysql_squid_builder();
 
 	if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
-	writelogs_squid("Executed table_days",__FUNCTION__,__FILE__,__LINE__);
+	percentage("Executed table_days",2);
 	$tables=$GLOBALS["Q"]->LIST_TABLES_QUERIES();
-	if(count($tables)==0){events_tail("No working tables ? in line ".__LINE__);return;}
+	if(count($tables)==0){
+		percentage("No working tables ?",2);
+		events_tail("No working tables ? in line ".__LINE__);return;}
 	$today=date('Y-m-d');
-	events_tail(count($tables)." tables to scan in line ".__LINE__);
+	percentage(count($tables)." tables to scan",2);
 
 	while (list ($tablename, $date) = each ($tables) ){
-		if($today==$date){
-			events_tail("Skipping Today table $tablename in line ".__LINE__);
-			continue;
-		}
-		if(!$GLOBALS["Q"]->TABLE_EXISTS($tablename)){
-			events_tail("Skipping Today table $tablename in line (did not exists)".__LINE__);
-			continue;
-		}
+		if($today==$date){ events_tail("Skipping Today table $tablename in line ".__LINE__); continue; }
+		if(!$GLOBALS["Q"]->TABLE_EXISTS($tablename)){events_tail("Skipping Today table $tablename in line (did not exists)".__LINE__); continue; }
 
 
 		$sql="SELECT zDate FROM tables_day WHERE tablename='$tablename'";
 		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL($sql));
-		if($ligne["zDate"]==null){
-			$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(QuerySize) as tsize FROM $tablename WHERE cached=0"));
-			$notcached=$ligne["tsize"];
-			$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(QuerySize) as tsize FROM $tablename WHERE cached=1"));
-			$cached=$ligne["tsize"];
-			if(!is_numeric($notcached)){$notcached=0;}
-			if(!is_numeric($cached)){$cached=0;}
-			$totalsize=$notcached+$cached;
-			$cache_perfs=round(($cached/$totalsize)*100);
-			$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(hits) as thist FROM $tablename"));
-			$requests=$ligne["thist"];
-			if($GLOBALS["VERBOSE"]){echo "$date cached = $cached , not cached =$notcached total=$totalsize perf=$cache_perfs% requests=$requests\n";}
-			$GLOBALS["Q"]->QUERY_SQL("INSERT INTO tables_day (tablename,zDate,size,size_cached,totalsize,cache_perfs,requests)
-					VALUES('$tablename','$date','$notcached','$cached','$totalsize','$cache_perfs','$requests');");
-			if(!$GLOBALS["Q"]->ok){
-				events_tail("{$GLOBALS["Q"]->mysql_error} in line ".__LINE__);
-			}
+		if($ligne["zDate"]<>null){ 
+			events_tail("Skipping Today table $tablename -->{$ligne["zDate"]} ",__LINE__);
+			continue;
 		}
+		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(QuerySize) as tsize FROM $tablename WHERE cached=0"));
+		$notcached=$ligne["tsize"];
+		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(QuerySize) as tsize FROM $tablename WHERE cached=1"));
+		$cached=$ligne["tsize"];
+		if(!is_numeric($notcached)){$notcached=0;}
+		if(!is_numeric($cached)){$cached=0;}
+		$totalsize=$notcached+$cached;
+		$cache_perfs=round(($cached/$totalsize)*100);
+		$ligne=mysql_fetch_array($GLOBALS["Q"]->QUERY_SQL("SELECT SUM(hits) as thist FROM $tablename"));
+		$requests=$ligne["thist"];
+		events_tail("table_days():: $date cached = $cached , not cached =$notcached total=$totalsize perf=$cache_perfs% requests=$requests",__LINE__);
+		$GLOBALS["Q"]->QUERY_SQL("INSERT INTO tables_day (tablename,zDate,size,size_cached,totalsize,cache_perfs,requests)
+				VALUES('$tablename','$date','$notcached','$cached','$totalsize','$cache_perfs','$requests');");
+		if(!$GLOBALS["Q"]->ok){
+			events_tail("{$GLOBALS["Q"]->mysql_error}",__LINE__);
+		}
+		
 	}
 
 }
@@ -666,11 +708,28 @@ function WeekDaysNums(){
 	if(isset($GLOBALS["ALREADYWeekDaysNums"])){return;}
 	$GLOBALS["ALREADYWeekDaysNums"]=true;
 	$q=new mysql_squid_builder();
-	$sql="SELECT tablename,DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) as WeekNumber FROM tables_day WHERE WeekNum=0";
+	$sql="SELECT tablename,zDate,DAYOFWEEK(zDate) as DayNumber,WEEK( zDate ) as WeekNumber FROM tables_day WHERE WeekNum=0";
 	$results=$q->QUERY_SQL($sql);
+	
+	
+	events_tail("WeekDaysNums(): WeekNum=0 -> ".mysql_num_rows($results),__LINE__);
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-		$q->QUERY_SQL("UPDATE tables_day SET WeekDay={$ligne["DayNumber"]},WeekNum={$ligne["WeekNumber"]}
+		$zDate=$ligne["zDate"];
+		$WeekNumber=intval($ligne["WeekNumber"]);
+		
+		if($WeekNumber==0){
+			$sql="SELECT WEEK('$zDate 00:00:00') as WeekNumber";
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			$WeekNumber=$ligne2["WeekNumber"];
+			events_tail("WeekDaysNums(): $zDate: ERROR, REPAIR $zDate 00:00:00 -> $WeekNumber",__LINE__);
+		}
+		
+		events_tail("WeekDaysNums(): $zDate: {$ligne["tablename"]} -> WeekDay={$ligne["DayNumber"]}, WeekNum=$WeekNumber",__LINE__);
+		$q->QUERY_SQL("UPDATE tables_day SET WeekDay={$ligne["DayNumber"]},WeekNum=$WeekNumber
 		WHERE tablename='{$ligne["tablename"]}'");
+		
+		if(!$q->ok){events_tail("WeekDaysNums(): $q->mysql_error",__LINE__);}
 
 	}
 
@@ -679,6 +738,7 @@ function WeekDaysNums(){
 
 function nodes_scan(){
 	$f=array();
+	$GLOBALS["Q"]=new mysql_squid_builder();
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("webfilters_nodes")){$GLOBALS["Q"]->CheckTables();}
 	if(!$GLOBALS["Q"]->TABLE_EXISTS("webfilters_nodes")){writelogs("Fatal, webfilters_nodes, nos such table",__FILE__,__FUNCTION__,__LINE__);return;}
 	$sql="SELECT MAC FROM UserAutDB GROUP BY MAC";
@@ -694,9 +754,7 @@ function nodes_scan(){
 	if(count($f)>0){$GLOBALS["Q"]->QUERY_SQL($prefix.@implode(",", $f));}
 }
 
-function events_tail($text){
-	error_log($text);
-}
+
 
 
 function start_export(){
@@ -1002,6 +1060,18 @@ function start_import($aspid=false){
 		
 	}
 		
+	
+}
+
+function Step2(){
+	$q=new mysql_squid_builder();
+	percentage("Fix tables",2);
+	$q->FixTables();
+	percentage("check_to_hour_tables",2);
+	$squid_stats_tools=new squid_stats_tools();
+	$squid_stats_tools->check_to_hour_tables(true);
+	percentage("not_categorized_day_scan",2);
+	$squid_stats_tools->not_categorized_day_scan();	
 	
 }
 

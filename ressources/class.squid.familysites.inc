@@ -187,6 +187,7 @@ class squid_familysite{
 				'hr'=> array('co' => true),
 				'il' => array('co' => true),
 				'in' => array('co' => true,"ind"=>true),
+				'id' => array('com' => true,"net"=>true),
 				'io' => true,
 				'is' => true,
 				'pl' =>array('com'=>true),

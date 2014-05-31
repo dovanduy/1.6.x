@@ -6729,7 +6729,7 @@ public function LOCATE_SQUID_PID(){
 
 
 function Mysql_TestDump($array,$container){
-	while (list ($a, $b) = each ($resultsZ)){
+	while (list ($a, $b) = each ($array)){
 		if(preg_match("#Got error:#i", $b)){
 			if(function_exists("events_repair")){events_repair("Dump failed $b,...");}
 			if($GLOBALS["VERBOSE"]){echo "Dump failed $b,...\n";}

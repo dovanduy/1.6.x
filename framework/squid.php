@@ -2984,9 +2984,16 @@ function access_real(){
 	$unix=new unix();
 	$tail=$unix->find_program("tail");
 	$targetfile="/usr/share/artica-postfix/ressources/logs/access.log.tmp";
+	$sourceLog="/var/log/squid/access.log";
+	if(isset($_GET["ViaMaster"])){
+		$sourceLog="/var/log/squid/childs-access.log";
+		$targetfile="/usr/share/artica-postfix/ressources/logs/ViaMaster.log.tmp";
+	}
+	
+	
 	$rp=$_GET["rp"];
 	$query=$_GET["query"];
-	$cmd="$tail -n $rp /var/log/squid/access.log  >$targetfile 2>&1";
+	$cmd="$tail -n $rp $sourceLog  >$targetfile 2>&1";
 	
 	if($query<>null){
 		if(preg_match("#regex:(.*)#", $query,$re)){$pattern=$re[1];}else{
@@ -2997,7 +3004,7 @@ function access_real(){
 	}
 	if($pattern<>null){
 		$grep=$unix->find_program("grep");
-		$cmd="$grep -E \"$pattern\" /var/log/squid/access.log | $tail -n $rp  >$targetfile 2>&1";
+		$cmd="$grep -E \"$pattern\" $sourceLog | $tail -n $rp  >$targetfile 2>&1";
 	}
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);

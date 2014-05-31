@@ -2513,7 +2513,7 @@ Do you want to perform this operation ?</WWW_RESCAN_VISITED_ASK>
 <give_the_remote_listen_port>Give the target remote listen port</give_the_remote_listen_port>
 <refresh_daemon_MB>Refresh daemon when memory exceed</refresh_daemon_MB>
 <transfert_messages_if_av_failed>Forward messages if antivirus did not respond</transfert_messages_if_av_failed>
-<backends>backends</backends>
+<backends>Backends</backends>
 <check>Check</check>
 <backend>Backend</backend>
 <web_servers_type>HTTP/Web applications servers</web_servers_type>

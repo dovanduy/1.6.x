@@ -13,6 +13,16 @@ class squid_stats_tools{
 		
 	}
 	
+	private function writelogs($text){
+		$pid=getmypid();
+		$lineToSave=date('H:i:s')." [$pid] [squid_stats_tools] $text";
+		if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+		$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+		@fwrite($f, "$lineToSave\n");
+		@fclose($f);
+	
+	}
+	
 // ***************************************************************************************************************	
 	// Parse toutes les tables et les ajoute dans la table principale.
 	
@@ -28,7 +38,8 @@ class squid_stats_tools{
 // ***************************************************************************************************************	
 // Analyse la table principale et effectue une transformation en cas de nécéssité.
 	
-	function check_to_hour_tables(){
+	function check_to_hour_tables($Notcategorize=false){
+		$this->NoCategorize=$Notcategorize;
 		$this->check_table_days();
 		$q=new mysql_squid_builder();
 		$TABLES_dansguardian_events=$GLOBALS["Q"]->LIST_TABLES_dansguardian_events();
@@ -73,7 +84,7 @@ class squid_stats_tools{
 			}
 			if($GLOBALS["VERBOSE"]){echo "Analyze $xtime\n";}
 			$this->dansguardian_events_to_table_hour($xtime);
-			$this->categorize_table($next_table);
+			if(!$Notcategorize){ $this->categorize_table($next_table); }
 		}
 		$this->not_categorized_day_scan();
 		
@@ -243,7 +254,10 @@ class squid_stats_tools{
 // Analyse les tables heures, et les catégorises.
 	
 	public function not_categorized_day_scan(){
-		if($this->NoCategorize){return;}
+		if($this->NoCategorize){
+			$this->categorize_table_resync();
+			return;
+		}
 		$TABLES_HOURS=$GLOBALS["Q"]->LIST_TABLES_HOURS();
 		while (list ($tablename,$none) = each ($TABLES_HOURS) ){
 			$this->categorize_table($tablename);
@@ -288,13 +302,16 @@ class squid_stats_tools{
 	}
 	
 	private function categorize_table_resync(){
-		$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `tprefix`, DATE_FORMAT(zDate,'%Y%u') AS `tprefixW`, `tablename`  FROM tables_day WHERE `not_categorized`>0 ORDER BY zDate DESC";
+		$sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `tprefix`, DATE_FORMAT(zDate,'%Y%u') 
+				AS `tprefixW`, `tablename`  FROM tables_day WHERE `not_categorized`>0 ORDER BY zDate DESC";
 		if($GLOBALS["VERBOSE"]){echo "not_categorized_day_resync\n";}
 		$results=$GLOBALS["Q"]->QUERY_SQL($sql);
 		if(!$GLOBALS["Q"]->ok){if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["Q"]->mysql_error}\n";}return;}
 		$num_rows = mysql_num_rows($results);
 		
-		if($num_rows==0){if($GLOBALS["VERBOSE"]){echo "No item\n";}return;}
+		if($num_rows==0){
+			$this->writelogs("categorize_table_resync(): No item");
+			return;}
 		
 			while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 				$tablename=$ligne["tablename"];
@@ -315,7 +332,7 @@ class squid_stats_tools{
 		
 				if(!$GLOBALS["Q"]->ok){if($GLOBALS["VERBOSE"]){echo "{$GLOBALS["Q"]->mysql_error}\n";}ufdbguard_admin_events("Fatal {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 				$NotCategorized=mysql_num_rows($results2);
-				if($GLOBALS["VERBOSE"]){echo "$table_day $NotCategorized Websites...\n";}
+				$this->writelogs("categorize_table_resync(): $table_day $NotCategorized Websites...");
 				$GLOBALS["Q"]->QUERY_SQL("UPDATE tables_day SET not_categorized=$NotCategorized WHERE tablename='$tablename'");
 			}		
 		

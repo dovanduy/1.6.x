@@ -393,10 +393,12 @@ function status(){
 	$squid=new squidbee();
 	$page=CurrentPageName();
 	$tpl=new templates();	
+	$sock=new sockets();
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	
-	$p=Paragraphe_switch_img("{enable_squid_parent}", "{EnableParentProxy_explain}","EnableParentProxy",$squid->EnableParentProxy,null,600);
+	$EnableParentProxy=intval($sock->GET_INFO("EnableParentProxy"));
+	$p=Paragraphe_switch_img("{enable_squid_parent}", "{EnableParentProxy_explain}","EnableParentProxy",$EnableParentProxy,null,600);
 	$p1=Paragraphe_switch_img("{prefer_direct}", "{squid_prefer_direct}","prefer_direct",$squid->prefer_direct,null,600);
 	$p2=Paragraphe_switch_img("{nonhierarchical_direct}", "{squid_nonhierarchical_direct}","nonhierarchical_direct",$squid->nonhierarchical_direct,null,600);
 	
@@ -1197,6 +1199,11 @@ function EnableParentProxy(){
 	$ini=new Bs_IniHandler();
 	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
 	$ini->loadString($ArticaSquidParameters);
+	
+	if($GLOBALS["VERBOSE"]){
+		echo "<span style='color:blue;font-weight:bold'>EnableParentProxy()::". __LINE__."EnableParentProxy:{$_GET["EnableParentProxy"]}</span><br>";
+	}
+	
 	$ini->_params["NETWORK"]["EnableParentProxy"]=$_GET["EnableParentProxy"];
 	$ini->_params["NETWORK"]["prefer_direct"]=$_GET["prefer_direct"];
 	$ini->_params["NETWORK"]["nonhierarchical_direct"]=$_GET["nonhierarchical_direct"];

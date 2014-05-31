@@ -66,6 +66,9 @@ function start($xtime=0){
 	$Today=date("Y-m-d H");
 	$currenttable="youtubehours_$timekey";
 	$LIST_TABLES_YOUTUBE_HOURS=$q->LIST_TABLES_YOUTUBE_HOURS();
+	
+	youtube_events("LIST_TABLES_YOUTUBE_HOURS = ".count($LIST_TABLES_YOUTUBE_HOURS));
+	
 	while (list ($tablesource, $value) = each ($LIST_TABLES_YOUTUBE_HOURS) ){
 		if($tablesource==$currenttable){continue;}
 		$tablesourcetime=$q->TIME_FROM_YOUTUBE_HOUR_TABLE($tablesource);
@@ -85,7 +88,9 @@ function start($xtime=0){
 	}
 	
 	if(!$GLOBALS["ONLYHOURS"]){
+		youtube_events("youtube_count()");
 		youtube_count();
+		youtube_events("youtube_dayz()");
 		youtube_dayz();
 	}
 	
@@ -156,6 +161,18 @@ function youtube_events($text,$line){
 	$line="$date [$pid/".basename(__FILE__)."] $text [Line:$line]\n";
 	@fwrite($h,$line);
 	@fclose($h);
+	
+	
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [".basename(__FILE__)."] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+	
+	
+	
+	
 
 }
 
@@ -212,6 +229,9 @@ function youtube_dayz($aspid=false){
 	$sql="SELECT tablename,DATE_FORMAT(zDate,'%Y%m%d') AS suffix
 	FROM tables_day WHERE youtube_dayz=0 AND zDate<DATE_SUB(NOW(),INTERVAL 1 DAY) ORDER BY zDate";
 	$results=$q->QUERY_SQL($sql);
+	
+	
+	
 	if(!$q->ok){
 		if(preg_match("#Unknown column#i", $q->mysql_error)){
 			$q->CheckTables();
@@ -223,6 +243,9 @@ function youtube_dayz($aspid=false){
 			return;
 		}
 	}
+	
+	youtube_events("youtube_dayz(): ".mysql_num_rows($results)." rows");
+	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$tablename=$ligne["tablename"];
 		$suffix=$ligne["suffix"];
@@ -241,7 +264,7 @@ function _youtube_dayz($sourcetable){
 
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){writelogs_squid("Fatal: $q->mysql_error on `$sourcetable`",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
-
+	youtube_events("_youtube_dayz(): $sourcetable ".mysql_num_rows($results)." rows");
 	$f=array();
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$f[]="('{$ligne["zDate"]}','{$ligne["hits"]}','{$ligne["ipaddr"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["MAC"]}','{$ligne["youtubeid"]}')";

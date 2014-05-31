@@ -66,34 +66,48 @@ $sql="SELECT DATE_FORMAT(zDate,'%Y%m%d') AS `suffix`, DATE_FORMAT(zDate,'%Y-%m-%
 
 $q=new mysql_squid_builder();
 $q->CheckTables();
-if($GLOBALS["VERBOSE"]){echo "$sql\n";}
+
 $results=$q->QUERY_SQL($sql);
 if(!$q->ok){
 	ufdbguard_admin_events("Fatal {$q->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");
 	die();
 }
 
-
-if($GLOBALS["VERBOSE"]){echo "checking ".mysql_num_rows($results)." items\n";}
+$COUNT=mysql_num_rows($results);
+events("checking $COUNT items");
+$c=0;
 while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+	$c++;
 	$table_source="{$ligne["suffix"]}_hour";
+	$prc=round(( $c/$COUNT )*100,2 );
+	events("$table_source {$ligne["zDay"]} {$prc}%");
 	if(perform($table_source,$ligne["zDay"])){
 		$q->QUERY_SQL("UPDATE tables_day SET wwwvisited=1 WHERE `tablename`='{$ligne["tablename"]}'");
-		
+		continue;
 	}
 	
 	
-	if(system_is_overloaded(__FILE__)){
-		ufdbguard_admin_events("Fatal overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting task",__FUNCTION__,__FILE__,__LINE__,"stats");
-		break;
-	}
+	
 	
 	
 }
 
 familysites();
 
-
+function events($text){
+	
+	$common="/var/log/artica-squid-statistics.log";
+	$size=@filesize($common);
+	if($size>100000){@unlink($common);}
+	$pid=getmypid();
+	$date=date("Y-m-d H:i:s");
+	$h = @fopen($common, 'a');
+	$sline="[$pid] $text";
+	$line="$date [$pid] [".basename(__FILE__)."] $text\n";
+	if($GLOBALS["VERBOSE"]){echo $line;}
+	@fwrite($h,$line);
+	@fclose($h);
+}
 
 function perform($tablesource,$zday){
 	$q=new mysql_squid_builder();
@@ -107,15 +121,22 @@ function perform($tablesource,$zday){
 	
 	$prefix="INSERT IGNORE INTO `visited_sites_days` (`zmd5`,zDate,familysite,`size` ,`hits`) VALUES ";
 
+	$COUNT=mysql_num_rows($results);
+	event("perform($tablesource,$zday) -> $COUNT rows");
+	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$md5=md5($zday.$ligne["familysite"]);
 		$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
 		$f[]="('$md5','$zday','{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')";
-		if($GLOBALS["VERBOSE"]){echo "('$md5','$zday','{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')\n";}
+		
 		
 	}
+	
+	
+	
 	if(count($f)>0){
+		
 		$q->QUERY_SQL($prefix.@implode(",", $f));
 		if(!$q->ok){
 			if($GLOBALS["VERBOSE"]){echo $q->mysql_error."\n";}
@@ -143,7 +164,7 @@ function familysites($nopid=false){
 			)  ENGINE = MYISAM;";
 	$q->QUERY_SQL($sql);
 	
-	if($GLOBALS["VERBOSE"]){echo "TRUNCATE...\n";}
+	
 	
 	$sql="SELECT familysite,SUM(size) as size,SUM(hits) as hits FROM visited_sites_days GROUP BY familysite HAVING hits>2";
 	$prefix="INSERT IGNORE INTO `visited_sites_tot` (familysite,`size` ,`hits`) VALUES ";
@@ -154,21 +175,20 @@ function familysites($nopid=false){
 		ufdbguard_admin_events("Fatal {$q->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");
 		return;
 	}
-		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
-			$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
-			$f[]="('{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')";
-			
-		}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$ligne["familysite"]=mysql_escape_string2($ligne["familysite"]);
+		$f[]="('{$ligne["familysite"]}','{$ligne["size"]}','{$ligne["hits"]}')";
+	}
 		
-		if(count($f)>0){
-			if($GLOBALS["VERBOSE"]){echo count($f)." rows...\n";}
-			$q->QUERY_SQL($prefix.@implode(",", $f));
-			if(!$q->ok){
-				if($GLOBALS["VERBOSE"]){echo count($f)."  Fatal {$q->mysql_error}\n";}
-				ufdbguard_admin_events("Fatal {$q->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");
-				return;
-			}
+	if(count($f)>0){
+		if($GLOBALS["VERBOSE"]){echo count($f)." rows...\n";}
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if(!$q->ok){
+			if($GLOBALS["VERBOSE"]){echo count($f)."  Fatal {$q->mysql_error}\n";}
+			ufdbguard_admin_events("Fatal {$q->mysql_error}", __FUNCTION__, __FILE__, __LINE__, "stats");
+			return;
 		}
+	}
 		
 		return true;
 }

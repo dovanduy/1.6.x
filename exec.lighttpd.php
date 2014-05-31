@@ -961,6 +961,8 @@ function apache_config(){
 	$squid=$unix->LOCATE_SQUID_BIN();
 	if(is_file($squid)){
 		$f[]="Alias /proxy /usr/share/artica-postfix/squid.access.log.php";
+		$f[]="Alias /parent /usr/share/artica-postfix/squid.access.log.php";
+		
 	}
 	
 	$f[]="<Directory \"/usr/share/artica-postfix\">";

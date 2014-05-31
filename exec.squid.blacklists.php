@@ -1213,18 +1213,16 @@ if(!$GLOBALS["BYCRON"]){
 	if($unix->process_exists($pid,__FILE__)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($time<10200){
-			artica_update_event(1, "Error: already running pid $pid since {$time}Mn", null,__FILE__,__LINE__);
 			updatev2_progress(100,"Error: already running pid $pid since {$time}Mn");
 			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] Warning: Already running pid $pid since {$time}Mn\n";}
-			if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Already running pid $pid since {$time}Mn",__FUNCTION__,__FILE__,__LINE__,"catz");}
 			return;
 		}
 		else{
 			$kill=$unix->find_program("kill");
 			shell_exec("$kill -9 $pid");
 			if($GLOBALS["SCHEDULE_ID"]>0){
-				artica_update_event(1, "Warning: Old task pid $pid since {$time}Mn wille be killed, (reach 7200mn)", null,__FILE__,__LINE__);
-				ufdbguard_admin_events("Warning: Old task pid $pid since {$time}Mn wille be killed, (reach 7200mn)",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");}			
+				artica_update_event(1, "Warning: Old task pid $pid since {$time}Mn has been killed, (reach 7200mn)", null,__FILE__,__LINE__);
+				ufdbguard_admin_events("Warning: Old task pid $pid since {$time}Mn has been killed, (reach 7200mn)",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");}			
 		}
 	}
 	

@@ -2296,6 +2296,11 @@ This value limit the proxy to not open file more than the specified value.</file
 <folders_status>Folders status</folders_status>
 <FollowExtensions>Follow extensions</FollowExtensions>
 <FollowSymLinks>Follow symbolic links</FollowSymLinks>
+<follow_x_forwarded_for>Follow sources clients addresses</follow_x_forwarded_for>
+<follow_x_forwarded_for_explain>When a proxy backend sends a request, it add the information of the original client IP address.[br]
+If turned to green, originals clients addresses will be used by this master proxy in order to apply your proxy rules.
+If turned to red, only remote proxy backends will be used as sources addresses.
+</follow_x_forwarded_for_explain>
 <force>Force</force>
 <forceddomain>Force domain</forceddomain>
 <forceMX>Force MX</forceMX>
@@ -2941,7 +2946,10 @@ of times he connected to the video files.</limit_rate_after_text>
 <logged_as>Logged as</logged_as>
 <logged_in_as>Logged in as</logged_in_as>
 <logging_childs_connections>Log childs connections</logging_childs_connections>
+<logging_childs_connections2>Log connections to a different log file</logging_childs_connections2>
 <logging_childs_connections_explain>If turn to green, connections from Proxy childs will be logged and added to the local statistics</logging_childs_connections_explain>
+<logging_childs_connections_explain2>If green the proxy service will write requests to a dedicated events file.[br]
+This dedicated events file will be not added to Artica statistics but allows you to monitor connections from backend proxys</logging_childs_connections_explain2>
 <logintime>Logon time</logintime>
 <login_domain>LOGIN domain</login_domain>
 <logoff_text>Disconnect from the Web interface and return back to the login screen</logoff_text>
@@ -4771,6 +4779,8 @@ The pseudo-mechanism uses a protocol to determine what common GSSAPI mechanisms 
 selects one and then dispatches all further security operations to it.[br]
 This can help organizations deploy new security mechanisms in a phased manner.
 </SPNEGO_explain>
+<SquidAsMasterFollowxForward_error>The follow sources clients addresses is enabled, 
+in this case the deny cache from backends proxy and Log backend proxys connections will be not enabled.</SquidAsMasterFollowxForward_error>
 <squidcach32_applyexplain>This operation will perform caches operations on disks.
 New caches will be not linked to the proxy.
 If you want to link all caches to your proxy service, you need to restart the proxy service...

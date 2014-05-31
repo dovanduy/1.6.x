@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=9; IE=8">
+  <meta content="text/html; charset=utf-8" http-equiv="Content-type" />
+  <link  rel="stylesheet" type="text/css" href="/ressources/templates/endusers/css/s.css" charset="utf-8"  />
+  <link  rel="stylesheet" type="text/css" href="/ressources/templates/endusers/css/jquery.css" charset="utf-8"  />
+  <link rel="stylesheet" type="text/css" href="/css/jquery.jgrowl.css" />
+  <link rel="stylesheet" type="text/css" href="/css/jquery.cluetip.css" />
+  <link rel="stylesheet" type="text/css" href="/css/jquery.treeview.css" />
+  <link rel="stylesheet" type="text/css" href="/css/thickbox.css" media="screen"/>
+  <link rel="stylesheet" type="text/css" href="/css/jquery.qtip.css" />
+  <link rel="stylesheet" type="text/css" href="/fonts.css.php" />
+  
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-1.8.0.min.js"></script>
+  	<script type="text/javascript" language="javascript" src="/ressources/templates/endusers/js/jquery-ui-1.8.23.custom.min.js"></script>
+	<script type="text/javascript" language="javascript" src="/mouse.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/md5.js"></script>
+	<script type="text/javascript" language="javascript" src="/XHRConnection.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/float-barr.js"></script>
+	<script type="text/javascript" language="javascript" src="/TimersLogs.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/artica_confapply.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/edit.user.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/cookies.js"></script>
+	<script type="text/javascript" language="javascript" src="/default.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jqueryFileTree.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.easing.1.3.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/thickbox-compressed.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.simplemodal-1.3.3.min.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.jgrowl_minimized.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.cluetip.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.blockUI.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.treeview.min.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.treeview.async.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.tools.min.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.qtip.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.kwicks-1.5.1.pack.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/flexigrid.pack.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery-ui-timepicker-addon.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/ui.selectmenu.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/jquery.cookie.js"></script>
+	<script type="text/javascript" language="javascript" src="/js/fileuploader.js"></script>  
+
+  <title>{TEMPLATE_TITLE_HEAD}</title>
+
+</head>
+
+<body>
+  <div id="sum">
+    <div id="header"></div>
+    <div id="content">
+<form action="#">
+		<div class="f">
+			<div class="field">
+				<label for="flogin">{username}:</label> <input type="text" name="artica_username" id="artica_username" onfocus="this.setAttribute('class','active')" onblur="this.removeAttribute('class');" OnKeyPress="javascript:SendLogon(event)">
+		
+			</div>
+			<div class="field">
+				<label for="fpassword">{password}:</label> <input type="password" name="artica_password" id="artica_password" onfocus="this.setAttribute('class','active')" onblur="this.removeAttribute('class');" OnKeyPress="javascript:SendLogon(event)">
+			</div>
+			<div class="field button">
+						{LOGON_BUTTON}
+			</div>
+		</div>
+		
+	</form>			
+    </div><!-- /#content -->
+
+    <div class="footer">
+    	<center style='font-size:13px;font-weight:bold;color:white'></center>
+    </div><!-- /#footer -->
+  </div>
+<script>
+function SendLogon(e){
+	if(!checkEnter(e)){return;}
+	Loadjs('miniadm.logon.php?js=yes');
+}
+</script>
+</body>
+</html>
