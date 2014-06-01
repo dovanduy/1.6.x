@@ -1077,22 +1077,25 @@ id_value=document.getElementById(id).value;
 
 
 
-function SwitchBigNumeric(id){
+function SwitchBigNumeric(id,callback){
 	id_value=document.getElementById(id).value;
 
 	if(!id_value){
 		document.getElementById(id).value='1';
 		document.getElementById('img_' + id).src='img/64-green.png';
+		execute_function(callback);
 		return;
 	}
 	
 	if(id_value=='1'){
 		document.getElementById(id).value='0';
 		document.getElementById('img_' + id).src='img/64-red.png';
+		execute_function(callback);
 		return;
 	}else{
 		document.getElementById(id).value='1';
 		document.getElementById('img_' + id).src='img/64-green.png';
+		execute_function(callback);
 		return;
 	}        
         

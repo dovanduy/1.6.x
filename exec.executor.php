@@ -773,7 +773,7 @@ function group120(){
 	
 	
 	
-	$array[]="exec.cleanfiles.php";
+	
 	
 	if($GLOBALS["POSTFIX_INSTALLED"]){
 		$array[]="exec.smtp.export.users.php --sync";

@@ -218,7 +218,7 @@ function admin_system(){
 	$phpmyadmin=Paragraphe('phpmyadmin-64.png','{APP_PHPMYADMIN}','{APP_PHPMYADMIN_TEXT}',"javascript:s_PopUpFull('mysql/index.php',1024,800);","{APP_PHPMYADMIN_TEXT}");
 	
 	
-	$artica_settings=Paragraphe('folder-interface-64.png',"{advanced_options}","{advanced_artica_options_text}","javascript:Loadjs('artica.settings.php?js=yes&ByPopup=yes');","{advanced_artica_options_text}");
+	//$artica_settings=Paragraphe('folder-interface-64.png',"{advanced_options}","{advanced_artica_options_text}","javascript:Loadjs('artica.settings.php?js=yes&ByPopup=yes');","{advanced_artica_options_text}");
 	
 	$ActiveDirectoryConnection=Paragraphe('wink3_bg.png',
 	'{APP_AD_CONNECT}',
@@ -256,28 +256,54 @@ function admin_system(){
 		
 	}
 	
-	
+	$tpl=new templates();
 	
 	$massmailing=Paragraphe('mass-mailing-64.png','{email_campaigns}','{APP_MASSMAILING_ENABLE_TEXT}',"javascript:Loadjs('system.enable.massmailing.php');","{APP_MASSMAILING_ENABLE_TEXT}");
 	
-	$tr[]=$artica_settings;
+	$mysql_settings=$tpl->_ENGINE_parse_body("{mysql_settings}");
+	$web_interface_settings=Paragraphe("folder-performances-64.png","{web_interface_settings}","{web_interface_settings_text}",
+			"javascript:Loadjs('artica.settings.php?js=yes&func-webinterface=yes');");
+	$SMTP_NOTIFICATIONS_PAGE=Paragraphe("notifications-64.png","{smtp_notifications}","{smtp_notifications_text}",
+			"javascript:Loadjs('artica.settings.php?js=yes&func-NotificationsInterface=yes');");
+	$proxy=Paragraphe("proxy-64.png","{http_proxy}","{http_proxy_text}",
+			"javascript:Loadjs('artica.settings.php?js=yes&func-ProxyInterface=yes');");
+	
+
+	$logs=Paragraphe("scan-64.png","{logs_cleaning}","{logs_cleaning_text}",
+			"javascript:Loadjs('artica.settings.php?js=yes&func-LogsInterface=yes');");
+	//$mysql=Paragraphe("folder-64-backup.png","{mysql_settings}","{mysql_settings_text}","javascript:MysqlInterface();","$mysql_settings");
+	$perfs=Paragraphe("perfs-64.png","{artica_performances}","{artica_performances_text}","javascript:Loadjs('artica.performances.php');");
+	
+	
+	$ldap=Paragraphe("database-setup-64.png","{openldap_parameters}","{openldap_parameters_text}","javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');");
+	
+	
+	
+	
+	$tr[]=$web_interface_settings;
+	$tr[]=$SMTP_NOTIFICATIONS_PAGE;
+	
 	$tr[]=$FROMISO;
 	$tr[]=$memdump;
+	$tr[]=$perfs;
 	$tr[]=$artica_events;
+	$tr[]=$logs;
 	
 	$tr[]=$disks;
 	$tr[]=$browse;
 	$tr[]=$backup;
+	$tr[]=$ldap;
 	$tr[]=$reactivate_squid;
 	$tr[]=$phpldapadmin;
 	$tr[]=$phpmyadmin;
-	$tr[]=$massmailing;
+	$tr[]=$proxy;
+	//$tr[]=$massmailing;
 
 	$html=CompileTr4($tr);
 	
 
 	
-	$tpl=new templates();
+	
 	$results=$tpl->_ENGINE_parse_body($html);
 	writelogs("SET CACHED ".strlen($results)." bytes",__FILE__,__FUNCTION__,__LINE__);
 	

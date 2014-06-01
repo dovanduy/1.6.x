@@ -142,7 +142,7 @@ $html="
 	}		
 		
 	function WebInterFace(){
-		YahooWin2(780,'$page?js-web-interface=yes','$title');
+		YahooWin2(1125,'$page?js-web-interface=yes','$title');
 	}
 	
 	function LDAPInterFace(){

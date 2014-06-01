@@ -170,6 +170,7 @@ Browsers that do not have the proxy defined in their settings will be not bumped
 <activate_web_engine>Activate the Web engine</activate_web_engine>
 <ActiveDirectory>Active Directory</ActiveDirectory>
 <activedirectoryldap_members>Active Directory/LDAP member</activedirectoryldap_members>
+<activedirectory_connection>Active Directory connection</activedirectory_connection>
 <activew>Active</activew>
 <active_connections>Active connections</active_connections>
 <active_directory>Active Directory</active_directory>
@@ -1930,6 +1931,7 @@ You should disable this service in order to safe performances.
 <EnableWatchdog>Enable Watchdog service</EnableWatchdog>
 <EnableWatchMemoryUsage>Enable watchdog on Memory</EnableWatchMemoryUsage>
 <EnableWebPageDebugging>Debug all administration pages</EnableWebPageDebugging>
+<EnableWindowsAuthentication_text>If green then you allow this server to be a client of your Windows Active Directory server in order to enable the NTLM protocol that able to silent authenticate your users according their Windows sessions</EnableWindowsAuthentication_text>
 <EnableYoutubeForSchools>Activate Youtube For schools restriction</EnableYoutubeForSchools>
 <EnableYoutubeForSchoolsExplain>YouTube for Schools lets schools access free educational YouTube videos while limiting access to other YouTube content.[br]
 Students can learn from more than 400,000 educational videos, from well-known organizations like Stanford, PBS and TED, and from up-and-coming 
@@ -3571,6 +3573,8 @@ If you enable this option and you set 80 as port, then this web server will list
 <nginx_website_dir_explain>If set then when clients will request this path, the reverse proxy will display content of the remote server</nginx_website_dir_explain>
 <nic_from>Source network card</nic_from>
 <nic_to>Destination network card</nic_to>
+<NoCache>No cache</NoCache>
+<NoCache_text>If enabled, then the reverse proxy will not caching requests from this path</NoCache_text>
 <NoCheckSquid>Do not use local proxy</NoCheckSquid>
 <nodes>nodes</nodes>
 <NoMalwareUris>No Malware URIs database</NoMalwareUris>
@@ -4050,6 +4054,7 @@ connections are not stopped.[br]This will just empty DNS memory caches.
 </purgedns_squid_explain>
 <purged_events>Purged events</purged_events>
 <purge_cache>Purge cache</purge_cache>
+<purge_caches>Purge caches</purge_caches>
 <purge_catagories_table_explain>This operation will empty the category table by deleting it and rebuild a new one with empty data.[br]
 Do you want to perform this operation ?
 </purge_catagories_table_explain>
@@ -5699,6 +5704,9 @@ Please return back and set a correct eMail address.</warn_email_invalid_wizard>
 Note: After the certificate generation, you need to restart all linked services.
 </warn_gen_x509>
 <warn_nginx_disabled>Warning, the reverse proxy service is currently disabled.[br]If you need to use the reverse proxy feature, you have to enable the Reverse proxy service</warn_nginx_disabled>
+<warn_no_license_activedirectory_30days>Warning, corporate license missing !.[br]
+The Active Directory connection will be linked for 30 days max.
+</warn_no_license_activedirectory_30days>
 <warn_no_performance_minimal><b>Server performance issue</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>This operation will restart the proxy service and will stop all current connections.
 Do you want to perform this operation ?</WARN_OPE_RESTART_SQUID_ASK>

@@ -1858,6 +1858,16 @@ $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyConte
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.webauth.php?tabs=yes')");
 	
 	
+		if($users->SAMBA_INSTALLED){
+			if($users->AsSystemAdministrator){
+				$tr[]=paragrapheWin("windows-white-64.png","Active Directory",
+						"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.adker.php?tabs=yes');");
+			}
+	
+		}
+
+	
+	
 	$tr[]=paragrapheWin("proxy-parent-white-64.png","{squid_parent_proxy}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.parent.proxy.php')");
 	
@@ -2149,15 +2159,12 @@ function quicklinks_members(){
 	$tr[]=paragrapheWin("postmasters-white-64.png","{administrators}",
 	"AnimateDiv('BodyContent');LoadAjax('BodyContent','freeradius.users.php?t=0&tab=yes');");
 	
-	if($users->AsSystemAdministrator){
-		$tr[]=paragrapheWin("windows-white-64.png","Active Directory","Loadjs('squid.adker.php')");
-		
-	}
-	
-	
 	if($users->SQUID_INSTALLED){
 		if($users->SAMBA_INSTALLED){
-			$tr[]=paragrapheWin("windows-white-64.png","Active Directory","Loadjs('squid.adker.php')");
+			if($users->AsSystemAdministrator){
+				$tr[]=paragrapheWin("windows-white-64.png","Active Directory",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.adker.php?tabs=yes');");
+			}
 	
 		}
 	}

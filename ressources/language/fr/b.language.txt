@@ -145,6 +145,7 @@ Si rouge, les navigateurs qui utilisent le proxy transparent seront intercept&ea
 <activate_web_engine>Activer le service Web</activate_web_engine>
 <ActiveDirectory>Active Directory</ActiveDirectory>
 <activedirectoryldap_members>Membres Active Directory/LDAP</activedirectoryldap_members>
+<activedirectory_connection>Connexion Active Directory</activedirectory_connection>
 <activew>Actif</activew>
 <active_connections>Connexions actives</active_connections>
 <active_directory>Active Directory</active_directory>
@@ -1662,6 +1663,7 @@ Le fait de d&eacute;sactiver ce service n'entraine pas une perte de production.<
 <EnableWatchdog>Activer le service de surveillance</EnableWatchdog>
 <EnableWatchMemoryUsage>Activer la surveillance de la m&eacute;moire</EnableWatchMemoryUsage>
 <EnableWebPageDebugging>Pages d'administration en mode verbeux</EnableWebPageDebugging>
+<EnableWindowsAuthentication_text>Si vert, alors vous autoriser ce serveur &agrave; rejoindre un domaine Active Directory.[br]Ceci afin d\'offrir le protocole NTLM qui assure une authentification silencieux de vos utilisateurs gr&acirc;ce &agrave; leur session Windows dans le domaine.</EnableWindowsAuthentication_text>
 <EnableYoutubeForSchools>Activer la restriction Youtube For schools</EnableYoutubeForSchools>
 <EnableYoutubeForSchoolsExplain>Youtube For Schools permet aux &eacute;coles de l'imiter l'acc&egrave;s uniquement aux vid&eacute;os Youtube &agrave; caract&egrave;re scolaire.[br]
 Les &eacute;coliers/&Eacute;tudiants peuvent visualiser plus de 400.000 vid&eacute;os d&eacute;di&eacute;es au contexte scolaire.[br]
@@ -3063,6 +3065,8 @@ Si vous activez cette option et que vous indiquez le port 80 comme port d'&eacut
 <nginx_website_dir_explain>Si indiqu&eacute;, lorsque les clients vont effectuer la requ&ecirc;tes sur ce chemin, le proxy invers&eacute; va afficher le contenu du serveur distant.</nginx_website_dir_explain>
 <nic_from>Carte r&eacute;seau source</nic_from>
 <nic_to>Carte r&eacute;seau de destination</nic_to>
+<NoCache>Pas de cache</NoCache>
+<NoCache_text>Si Activ&eacute;, alors le proxy n\'utilisera pas le cache pour les requ&ecirc;tes &agrave; destination de ce chemin</NoCache_text>
 <NoCheckSquid>Ne pas utiliser le proxy local</NoCheckSquid>
 <nodes>N%u0153uds</nodes>
 <NoMalwareUris>Pas de base URLs Malware</NoMalwareUris>
@@ -3478,6 +3482,7 @@ Vous pouvez copier et coller ici une clef publique provenant d'une autorit&eacut
 <purgedns_squid_explain>Cette op&eacute;ration va demander au service de Proxy de vider son cache DNS.[br]Les connexions actives ne seront pas stopp&eacute;es.[br]Ceci vide simplement les pointeurs DNS de la m&eacute;moire du proxy.</purgedns_squid_explain>
 <purged_events>&Eacute;v&egrave;nements purg&eacute;s</purged_events>
 <purge_cache>Purger le cache</purge_cache>
+<purge_caches>Purger les caches</purge_caches>
 <purge_catagories_table_explain>Cette op&eacute;ration va vider la table de cette cat&eacute;gorie en supprimant la table et en la reconstruisant avec aucune donn&eacute;e.[br]
 Voulez-vous effectuer cette op&eacute;ration ?</purge_catagories_table_explain>
 <purge_mysql_logrotate>Purge les logs sauvegard&eacute;s dans la base</purge_mysql_logrotate>
@@ -4909,6 +4914,8 @@ Voulez-vous effectuer cette op&eacute;ration.</warn_disable_squid_cany_cache>
 Voulez-vous effectuer cette op&eacute;ration ?
 Notez qu'apr&egrave;s cette op&eacute;ration, vous devrez red&eacute;marrer les services li&eacute;s &agrave; ce certificat.</warn_gen_x509>
 <warn_nginx_disabled>Attention, le service de proxy inverse est actuellement d&eacute;sactiv&eacute;, vous devez l'activer afin de b&eacute;n&eacute;ficier de cette fonctionnalit&eacute;</warn_nginx_disabled>
+<warn_no_license_activedirectory_30days>Attention, Licence Entreprise manquante !.[br]
+La connection Active Directory sera uniquement pendant ces 30 jours prochains jours.</warn_no_license_activedirectory_30days>
 <warn_no_performance_minimal>[b]Probl&egrave;me de performance serveur[/b][br]
 La performance de votre serveur est en dessous des recommandations.[br]Il n&eacute;cessaire de disposer au moins d'un serveur disposant de 2 CPUs et de 2GB de m&eacute;moire vive..</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>Cette op&eacute;ration va faire red&eacute;marrer le service proxy et stopper toutes les connexions actuelles.

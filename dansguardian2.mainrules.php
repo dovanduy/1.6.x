@@ -1066,7 +1066,7 @@ function rules_table(){
 			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td nowrap>		
 				<a href=\"javascript:blur();\" 
-					OnClick=\"javascript:YahooSearchUser('650','squid.adker.php?ldap-params=yes','$ldap_parameters');\" 
+					OnClick=\"javascript:YahooSearchUser('800','squid.adker.php?ldap-params=yes','$ldap_parameters');\" 
 					style='font-size:14px;text-decoration:underline;font-weight:bold'>$ldap_parameters</a>
 				</td>
 		</tr>

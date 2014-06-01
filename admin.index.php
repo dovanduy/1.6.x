@@ -453,7 +453,7 @@ function main_admin_tabs(){
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	if($SQUIDEnable==0){$users->SQUID_INSTALLED=false;}
 	
-	if($ldap->IsKerbAuth()){$array["t:orgs"]="{active_directory}";}else{$array["t:orgs"]="{organizations}";}
+	if(!$ldap->IsKerbAuth()){$array["t:orgs"]="{organizations}";}
 	
 	$array["t:BANDWITH-STATS"]="{bandwith}";
 	

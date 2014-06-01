@@ -28,6 +28,7 @@ class squid_reverse{
 	private $miss_access_allow=array();
 	private $cache_peer_defs=array();
 	private $http_access_allow=array();
+	private $database="squidlogs";
 	public $errors_page=array(400,401,403,404,500,501,502,503,504,505,507,509,510);
 	
 	public function squid_reverse($hostname=null){
@@ -52,7 +53,7 @@ class squid_reverse{
 	
 	private function loadparams(){
 		$q=new mysql_squid_builder();
-		
+		$this->database=$q->database;
 		$sql="SELECT * FROM reverse_www WHERE `servername`='$this->hostname`";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$this->ipaddr=$ligne["ipaddr"];
@@ -63,6 +64,7 @@ class squid_reverse{
 	private function patchtables(){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__.":: patching tables...\n";}
 		$q=new mysql_squid_builder();
+		$this->database=$q->database;
 		if(!$q->TABLE_EXISTS("reverse_www")){
 			$sql="CREATE TABLE IF NOT EXISTS `reverse_www` (
 			  `servername` CHAR(255)  NOT NULL,
@@ -109,6 +111,8 @@ class squid_reverse{
 			  `cacheid` INT(10)  NOT NULL DEFAULT '0',
 			  `enabled` smallint(1)  NOT NULL DEFAULT '1',
 			  `ForceRedirect` smallint(1)  NOT NULL DEFAULT '1',
+			  `NoCache` smallint(1)  NOT NULL DEFAULT '0',
+			  `proxy_cache_min_uses`  smallint(3)  NOT NULL DEFAULT '1',
 			  PRIMARY KEY (`folderid`),
 			  KEY `webpageid` (`webpageid`),
 			  KEY `servername` (`servername`),
@@ -117,6 +121,7 @@ class squid_reverse{
 			  KEY `cache_peer_id` (`cache_peer_id`),
 			  KEY `cacheid` (`cacheid`),
 			  KEY `replaceid` (`replaceid`),
+			  KEY `NoCache` (`NoCache`),
 			  KEY `enabled` (`enabled`)
 			)  ENGINE = MYISAM;";
 			$q->QUERY_SQL($sql,$this->database);
@@ -155,8 +160,29 @@ class squid_reverse{
 			
 		if(!$q->FIELD_EXISTS("reverse_dirs", "limit_rate")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
 		ADD `limit_rate` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
-			
+
+		
+		if(!$q->FIELD_EXISTS("reverse_dirs", "NoCache")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `NoCache` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
+				
 						
+		if(!$q->FIELD_EXISTS("reverse_dirs", "proxy_cache_min_uses")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `proxy_cache_min_uses` smallint(3) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_dirs", "proxy_buffering")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `proxy_buffering` smallint(1) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
+				
+
+		if(!$q->FIELD_EXISTS("reverse_dirs", "proxy_cache_valid")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `proxy_cache_valid` smallint(3) NOT NULL DEFAULT '4320'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_dirs", "proxy_buffers")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `proxy_buffers` VARCHAR(20) NOT NULL DEFAULT '8 8k'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		if(!$q->FIELD_EXISTS("reverse_dirs", "proxy_buffer_size")){$q->QUERY_SQL("ALTER TABLE `reverse_dirs`
+		ADD `proxy_buffer_size` smallint(10) NOT NULL DEFAULT '8'");if(!$q->ok){echo $q->mysql_error_html();}}
+		
+		
 			
 		if(!$q->FIELD_EXISTS("reverse_dirs", "webpageid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `webpageid` INT UNSIGNED, ADD INDEX ( `webpageid`)");

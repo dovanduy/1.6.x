@@ -2973,7 +2973,7 @@ function Paragraphe_switch_img_32($title,$text,$field_name=null,$value=null,$tip
 	
 }
 	
-function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=null,$width="220"){
+function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=null,$width="220",$callback=null){
 	$MINIADM=false;
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
@@ -2996,7 +2996,7 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	
 	
 	
-	$img="<div OnClick=\"javascript:SwitchBigNumeric('$field_name');\" OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >
+	$img="<div OnClick=\"javascript:SwitchBigNumeric('$field_name','$callback');\" OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" >
 			<img src='$img' id='img_$field_name'  $tooltip>
 		</div>";
 	$margin=0;

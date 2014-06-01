@@ -16,6 +16,7 @@ if(preg_match("#--reconfigure#",implode(" ",$argv),$re)){$GLOBALS["RECONFIGURE"]
 
 
 
+
 $GLOBALS["AS_ROOT"]=true;
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
 include_once(dirname(__FILE__).'/ressources/class.nginx.inc');
@@ -47,6 +48,8 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--reconfigure-all"){$GLOBALS["OUTPUT"]=true;build_localhosts();exit;}
 	if($argv[1]=="--authenticator"){$GLOBALS["OUTPUT"]=true;authenticator(true);exit;}
 	if($argv[1]=="--purge-cache"){$GLOBALS["OUTPUT"]=true;purge_cache($argv[2]);exit;}
+	if($argv[1]=="--purge-all-caches"){$GLOBALS["OUTPUT"]=true;purge_all_caches();exit;}
+	
 	
 	
 	
@@ -128,6 +131,7 @@ function build($OnlySingle=false){
 	
 	if(is_file("/etc/nginx/sites-enabled/default")){@unlink("/etc/nginx/sites-enabled/default");}
 	if(is_link("/etc/nginx/sites-enabled/default")){@unlink("/etc/nginx/sites-enabled/default");}
+	if(is_link("/etc/nginx/conf.d/example_ssl.conf")){@unlink("/etc/nginx/conf.d/example_ssl.conf");}
 	
 	
 	
@@ -302,9 +306,9 @@ function build($OnlySingle=false){
 	$f[]="\tproxy_hide_header X-Server;";
 	$f[]="\tproxy_intercept_errors off;";
 	$f[]="\tproxy_ignore_client_abort on;";
-	$f[]="\tproxy_connect_timeout 60;";
-	$f[]="\tproxy_send_timeout 60;";
-	$f[]="\tproxy_read_timeout 150;";
+	$f[]="\tproxy_connect_timeout 60s;";
+	$f[]="\tproxy_send_timeout 60s;";
+	$f[]="\tproxy_read_timeout 150s;";
 	$f[]="\tproxy_buffer_size 128k;";
 	$f[]="\tproxy_buffers 16384 128k;";
 	$f[]="\tproxy_busy_buffers_size 256k;";
@@ -346,8 +350,81 @@ function build($OnlySingle=false){
 	
 }
 
+function configure_single_freeweb($servername){
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$servername'","artica_backup"));
+	$free=new freeweb($servername);
+	$NginxFrontEnd=$free->NginxFrontEnd;	
+	$groupware=$free->groupware;
+	$NOPROXY["SARG"]=true;
+	$NOPROXY["ARTICA_MINIADM"]=true;
+	
+	$q2=new mysql_squid_builder();
+	$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT cacheid FROM reverse_www WHERE servername='{$ligne["servername"]}'"));
+	
+	
+	$host=new nginx($servername);
+
+	
+	if(isset($NOPROXY[$groupware])){
+		$free->CheckWorkingDirectory();
+		$host->set_proxy_disabled();
+		$host->set_DocumentRoot($free->WORKING_DIRECTORY);
+		if($groupware=="SARG"){$host->SargDir();}
+	}else{
+		$host->set_freeweb();
+		$host->set_storeid($ligne2["cacheid"]);
+		$host->set_proxy_destination("127.0.0.1");
+	}
+	if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername FreeWeb SSL:{$ligne["useSSL"]}\n";}
+	if($ligne["useSSL"]==0){
+		if(!isset($NOPROXY[$groupware])){
+			$host->set_proxy_port(82);
+		}
+	}
+
+	
+	
+	if($ligne["useSSL"]==1){
+		$host->set_ssl();
+		$host->set_ssl_certificate($ligne["sslcertificate"]);
+		
+		if(!isset($NOPROXY[$groupware])){
+			$host->set_proxy_port(447);
+			
+		}
+	}
+	
+
+	$host->set_servers_aliases($free->Params["ServerAlias"]);
+	
+	if($groupware=="ZARAFA"){
+		if($free->NginxFrontEnd==1){
+			$host->groupware_zarafa_Frontend();
+			configure_single_website_rebuild();
+			configure_single_website_reload();
+			return;
+		}
+	}
+	
+	$host->build_proxy();
+	configure_single_website_rebuild();
+	configure_single_website_reload();
+	
+}
+
+
+function configure_single_website_rebuild(){
+	LoadConfigs();
+	build(true);
+}
+
+
 function configure_single_website($servername){
 	$unix=new unix();
+	$sock=new sockets();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$oldpid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($oldpid,basename(__FILE__))){
@@ -356,14 +433,36 @@ function configure_single_website($servername){
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
+	
+	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
+	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}	
+	if($EnableFreeWeb==1){
+		$q=new mysql();
+		$sql="SELECT servername from freeweb WHERE servername='$servername'";
+		$q=new mysql();
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+		if($ligne["servername"]<>null){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername is a freeweb\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, *** NOTICE *** $servername is a freeweb\n";}
+			configure_single_freeweb($servername);
+			return;
+		}
+	}
+	
+	
 	$q=new mysql_squid_builder();
 
 	$sql="SELECT * FROM `reverse_www` WHERE `enabled`=1 AND servername='$servername'";
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 	if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] $servername $q->mysql_error\n";}return;}
-	LoadConfigs();
-	build(true);
+	configure_single_website_rebuild();
 	BuildReverse($ligne,true);
+	configure_single_website_reload();
+	
+	
+}
+function configure_single_website_reload(){
+	$unix=new unix();
 	$pid=PID_NUM();
 	if(is_numeric($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, reload pid $pid\n";}
@@ -372,12 +471,12 @@ function configure_single_website($servername){
 		if($unix->process_exists($pid)){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Success service reloaded pid:$pid...\n";}
 		}
-		
-		
+	
+	
 	}else{
 		start(true);
 	}
-	
+
 }
 
 
@@ -1894,6 +1993,39 @@ function test_sources(){
 		
 	}
 }
+
+function purge_all_caches(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$oldpid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($oldpid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [PURGE]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		return;
+	}
+	
+	
+	
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL("SELECT directory FROM nginx_caches");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$f[]=$ligne["directory"];
+	}
+	$f[]="/home/nginx/tmp";
+	$rm=$unix->find_program("rm");
+	while (list ($index, $value) = each ($f) ){
+		if(!is_dir($value)){continue;}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing $value\n";}
+		shell_exec("$rm -rf /home/nginx/tmp/*");
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing $value OK\n";}
+	}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Reloading service\n";}
+	reload(true);
+	
+}
+
+
+
 
 function purge_cache($ID){
 	if(!is_numeric($ID)){return;}

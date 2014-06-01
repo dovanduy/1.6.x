@@ -2806,6 +2806,15 @@ function nginx(){
 	$f[]="    $php /usr/share/artica-postfix/$php5script --force-restart \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";	
+	
+	$f[]=" purge)";
+	$f[]="    ulimit -n 65536";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --purge-all-caches \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";	
+	
+	
+	
 	$f[]=" reconfigure)";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --build \$2 \$3";
 	$f[]="    ;;";

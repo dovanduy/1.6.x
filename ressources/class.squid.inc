@@ -1318,7 +1318,7 @@ class squidbee{
 		$this->UtDNSEnable=intval($sock->GET_INFO("UtDNSEnable"));
 		
 		$q=new mysql_squid_builder();
-		if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [DNS]: Web filter SaaS: $this->UtDNSEnable\n";}
+		
 		if($this->UtDNSEnable==1){
 			if($this->ASROOT){echo "Starting......: ".date("H:i:s")." [DNS]: Web filter SaaS enabled\n";}
 			$sock=new sockets();

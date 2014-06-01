@@ -268,8 +268,22 @@ function license(){
 	if($users->SQUID_INSTALLED){$ASWEB=true;}
 	if($users->WEBSTATS_APPLIANCE){$ASWEB=true;}
 	
+	
 		
 	$sock=new sockets();
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
+	
+	if($EnableKerbAuth==1){
+		
+		$html="<div style='margin-top:15px'>".
+				Paragraphe("warning-panneau-64.png", "Active Directory","{warn_no_license_activedirectory_30days}",
+						"javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+		echo $tpl->_ENGINE_parse_body($html)."</div>";
+		
+	}
+	
+	
 	$LicenseInfos=unserialize(base64_decode($sock->GET_INFO("LicenseInfos")));
 	if($LicenseInfos["license_status"]==null){
 		$text="{explain_license_free}";

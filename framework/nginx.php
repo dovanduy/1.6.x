@@ -42,25 +42,30 @@ function conf_save(){
 	$nginxconfPath="/usr/share/artica-postfix/ressources/logs/web/$servername";
 	
 	writelogs_framework("servername=$servername",__FUNCTION__,__FILE__,__LINE__);
-	writelogs_framework("nginxconf=$nginxconf",__FUNCTION__,__FILE__,__LINE__);
+	writelogs_framework("nginxconf=$nginxconfPath",__FUNCTION__,__FILE__,__LINE__);
 	writelogs_framework("filename=$filename",__FUNCTION__,__FILE__,__LINE__);
 	
 	if(!is_file($nginxconfPath)){
 		writelogs_framework("nginxconfPath=$nginxconfPath failed",__FUNCTION__,__FILE__,__LINE__);
-		echo "<articadatascgi>".base64_encode("$servername no such file\n")."</articadatascgi>";
+		echo "<articadatascgi>".base64_encode("$nginxconfPath no such file\n")."</articadatascgi>";
 		return;
 	}
 	
-	if(!is_file($filename)){
-		echo "<articadatascgi>".base64_encode("$filename no such file\n")."</articadatascgi>";
+	$destinationPath="/etc/nginx/sites-enabled/$filename";
+	
+	if(!is_file($destinationPath)){
+		echo "<articadatascgi>".base64_encode("$destinationPath no such file\n")."</articadatascgi>";
 		return;
 	}
 	$OK=false;
 	
 	$tmp=$unix->TEMP_DIR();
 	$tempfile="$tmp/".basename($filename);
-	@copy($filename, $tempfile);
-	@copy($nginxconfPath, $filename);
+	@copy($destinationPath, $tempfile);
+	@copy($nginxconfPath, $destinationPath);
+	
+	$results[]=$destinationPath;
+	
 	writelogs_framework("$nginx -c /etc/nginx/nginx.conf -t 2>&1",__FUNCTION__,__FILE__,__LINE__);
 	exec("$nginx -c /etc/nginx/nginx.conf -t 2>&1",$results);
 	while (list ($num, $line) = each ($results)){
@@ -69,7 +74,7 @@ function conf_save(){
 	}
 	
 	if(!$OK){
-		@copy($tempfile, $filename);
+		@copy($tempfile, $destinationPath);
 		@unlink($tempfile);
 		@unlink($nginxconfPath);
 		writelogs_framework("FAILED",__FUNCTION__,__FILE__,__LINE__);
@@ -79,7 +84,7 @@ function conf_save(){
 	@unlink($tempfile);
 	@unlink($nginxconfPath);
 	writelogs_framework("SUCCESS",__FUNCTION__,__FILE__,__LINE__);
-	echo "<articadatascgi>".base64_encode("SUCCCESS\n******************\n".@implode("\n", $results))."</articadatascgi>";
+	echo "<articadatascgi>".base64_encode("SUCCESS\n******************\n".@implode("\n", $results))."</articadatascgi>";
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --force-restart >/dev/null 2>&1 &");

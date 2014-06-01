@@ -2255,7 +2255,10 @@ function TemplatesInMysql($aspid=false){
 	@file_put_contents("/etc/artica-postfix/SQUID_TEMPLATE_DONE", time());
 	
 	
-	if($q->COUNT_ROWS("squidtpls")==0){DefaultTemplatesInMysql();}
+	if($q->COUNT_ROWS("squidtpls")==0){
+		
+		echo "IMPORTING FROM MYSQL !!\n";
+		DefaultTemplatesInMysql();}
 	
 	$sql="SELECT * FROM squidtpls";
 	$results = $q->QUERY_SQL($sql);	
@@ -2280,6 +2283,12 @@ function TemplatesInMysql($aspid=false){
 		if(!preg_match("#^ERR_.+#", $ligne["template_name"])){
 				$ligne["template_name"]="ERR_".$ligne["template_name"];
 		}
+		
+		
+		$ligne["template_body"]=utf8_encode($ligne["template_body"]);
+		$ligne["template_title"]=utf8_encode($ligne["template_title"]);
+		
+		
 		$filename="$base/{$ligne["lang"]}/{$ligne["template_name"]}";
 		$newheader=str_replace("{TITLE}", $ligne["template_title"], $header);
 		$templateDatas="$newheader{$ligne["template_body"]}</body></html>";
@@ -2383,11 +2392,15 @@ function DefaultTemplatesInMysql(){
 	while (list ($language, $arrayTPL) = each ($array)){
 		while (list ($templateName, $templateData) = each ($arrayTPL)){
 			$title=$templateData["TITLE"];
-			echo "Importing $title\n";
+			echo "DefaultTemplatesInMysql[".__LINE__." Importing \"$title\"\n";
 			$body=base64_decode($templateData["BODY"]);
 			$md5=md5($language.$templateName);
-			$body=addslashes($body);
-			$title=addslashes($title);
+			$body=utf8_decode($body);
+			$title=utf8_decode($title);
+			$body=mysql_escape_string2($body);
+			$title=mysql_escape_string2($title);
+
+			
 			$ss="('$md5','$language','$templateName','$body','$title',0)";
 			$q->QUERY_SQL($prefix.$ss);
 			$f=array();

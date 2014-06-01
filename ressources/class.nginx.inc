@@ -495,7 +495,23 @@ class nginx{
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, copy $filenameBase to /root\n";}
 				@unlink("/root/$filenameBase");
 				@copy($filename,"/root/$filenameBase");
+				continue;
 			}
+			
+			
+			if(preg_match("#invalid number of arguments in \"(.+?)\" directive in (.+?):([0-9]+)#", $line,$re)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $line\n";}
+				$arguments=$re[1];
+				$filename=$re[2];
+				$filenameBase=basename($filename);
+				$lineError=$re[3];
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: !!!! ERROR $arguments LINE $lineError !!!!\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, copy $filenameBase to /root\n";}
+				@unlink("/root/$filenameBase");
+				@copy($filename,"/root/$filenameBase");
+				continue;
+			}			
+			
 			
 			if(preg_match("#a duplicate default server for (.+?)\s+in\s+(.+?):#", $line,$re)){
 				$filename=$re[2];
@@ -513,7 +529,7 @@ class nginx{
 				return $this->TestTheWholeConfig();
 			}
 			
-			
+
 		
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $line\n";}
 			if(preg_match("#configuration file.*?test is successful#", $line)){
@@ -542,10 +558,11 @@ class nginx{
 	private function proxy_parameters($cache_peer_id=0){
 		$rev=new nginx_sources($cache_peer_id);
 		$logprefix="Starting......: ".date("H:i:s")." [INIT]: proxy_pass: $this->servername:$this->host_port: ";
-		$f[]="\t\tproxy_read_timeout    $rev->proxy_read_timeout;";
-		$f[]="\t\tproxy_send_timeout	$rev->proxy_send_timeout;";
-		$f[]="\t\tproxy_ignore_headers  Expires Cache-Control;";
-
+		$f[]="\t\tproxy_read_timeout    {$rev->proxy_read_timeout}s;";
+		$f[]="\t\tproxy_send_timeout	{$rev->proxy_send_timeout}s;";
+		
+		
+		
 		if($this->proxy_buffering==1){
 			$f[]="\t\tproxy_buffering       on;";
 			$f[]="\t\tproxy_cache_min_uses $this->proxy_cache_min_uses;";
@@ -564,6 +581,7 @@ class nginx{
 				$f[]="#\t\tproxy_buffers bad value";
 				$f[]="\t\tproxy_busy_buffers_size 64k;";
 				$f[]="\t\tproxy_temp_file_write_size 64k;";
+				
 			}
 			
 			
@@ -572,6 +590,9 @@ class nginx{
 		}else{
 			$f[]="#\t\tproxy_buffering  == 0";
 		}
+		
+		
+		
 		return @implode("\n", $f)."\n";
 	}
 	
@@ -582,6 +603,22 @@ class nginx{
 		return $directory;
 		
 	}
+	
+	private function proxy_pass_pattern($pattern){
+		
+		if(!preg_match("#^http(.*?):",$pattern)){
+			$pattern="http://$pattern";
+		}
+		
+		$urlP=parse_url($pattern);
+		return "{$urlP["scheme"]}://{$urlP["host"]}";
+		
+		
+		
+		
+	}
+	
+	
 	
 	private function proxy_pass($cache_peer_id=null,$asregex=false,$folderid=0,$directory=null){
 		$q=new mysql_squid_builder();
@@ -594,22 +631,29 @@ class nginx{
 		if($start_directory<>null){$start_directory="$start_directory/";}
 		if($GLOBALS["OUTPUT"]){echo "$logprefix start_directory `$start_directory`\n";}
 		
+		$f[]="# proxy_pass() Line:".__LINE__." cache_peer_id=$cache_peer_id; folderid=$folderid";
+		
+		
 		if($folderid>0){
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_dirs WHERE folderid='$folderid'"));
 			$hostweb=$ligne["hostweb"];
+			$f[]="# proxy_pass() Line:".__LINE__." folderid=$folderid hostweb=`$hostweb`,Local={$ligne["local"]}";
+			
 			if($hostweb<>null){
 				if($GLOBALS["OUTPUT"]){echo "hostweb = `$hostweb`\n";}
 				if($ligne["local"]==0){
 					if(substr($hostweb, 0,1)=="/"){$suffix=$hostweb;}
-					if(strpos(" $hostweb", "http")>0){
-						$f[]="\t\tproxy_pass $hostweb;";	
-						if($ligne["ForceRedirect"]==1){$f[]="\t\tproxy_redirect  $hostweb/   /;";}
-					}
+					$hostweb=$this->proxy_pass_pattern($hostweb);
+					$f[]="\t\tproxy_pass $hostweb;";	
+					if($ligne["ForceRedirect"]==1){$f[]="\t\tproxy_redirect  $hostweb/   /;";}
+					
 				}
 				
 				return @implode("\n", $f);
 			}
 		}
+		
+		$f[]="# proxy_pass() Line:".__LINE__." cache_peer_id=$cache_peer_id; folderid=0";
 		
 		if(!is_numeric($cache_peer_id)){
 			if($GLOBALS["OUTPUT"]){echo "$logprefix cache_peer_id is not numeric, aborting\n";}
@@ -1011,7 +1055,7 @@ class nginx{
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT limit_rate,limit_rate_after FROM reverse_www WHERE servername='$this->servername'"));
 		if($ligne["ArticaErrors"]==0){return null;}
 		
-		$f[]="# Bandwitdth Limitation: {$ligne["limit_rate"]}Mb/s after {$ligne["limit_rate_after"]}MB ".__CLASS__."/".__LINE__;
+		
 		if($ligne["limit_rate"]==0){return;}
 		$f[]="\t\tlimit_rate_after {$ligne["limit_rate_after"]}mb;";
 		$limit_rate=$ligne["limit_rate"]*1024;
@@ -1204,6 +1248,50 @@ class nginx{
 		
 	}
 	
+private function http_location_cache_params($ligne){
+
+	
+	if(!is_numeric($ligne["NoCache"])){$ligne["NoCache"]=0;}
+	if(!is_numeric($ligne["proxy_cache_min_uses"])){$ligne["proxy_cache_min_uses"]=1;}
+	if(!is_numeric($ligne["proxy_cache_valid"])){$ligne["proxy_cache_valid"]=4320;}
+	if(!preg_match("#([0-9]+)\s+([0-9]+)([a-z]+)#", $ligne["proxy_buffers"])){$ligne["proxy_buffers"]="8 8k";}
+	if(!is_numeric($ligne["proxy_buffering"])){$ligne["proxy_buffering"]=1;}
+	if(!is_numeric($ligne["proxy_buffer_size"])){$ligne["proxy_buffer_size"]=8;}
+	if(!is_numeric($rev->proxy_read_timeout)){$rev->proxy_read_timeout=300;}
+	if(!is_numeric($rev->proxy_send_timeout)){$rev->proxy_send_timeout=300;}
+	
+	$f[]="\t\tproxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;";
+	
+	
+	$f[]="\t\tproxy_read_timeout    {$rev->proxy_read_timeout}s;";
+	$f[]="\t\tproxy_send_timeout	{$rev->proxy_send_timeout}s;";
+	
+	if($ligne["NoCache"]==1){
+		$f[]="\t\tproxy_cache_bypass 1;";
+		return @implode("\n", $f);
+	}
+	
+	
+	if($ligne["proxy_buffering"]==1){
+		$f[]="\t\tproxy_buffering on;";
+	}else{
+		$f[]="\t\tproxy_buffering off;";
+	}
+	if($ligne["proxy_buffering"]==1){
+		if($ligne["proxy_buffer_size"]>0){
+			$f[]="\t\tproxy_buffers {$ligne["proxy_buffers"]};";
+			$f[]="\t\tproxy_buffer_size {$ligne["proxy_buffer_size"]}k;";
+			$f[]="\t\tproxy_temp_file_write_size {$ligne["proxy_buffers"]}k;";
+		}
+	}
+	if($ligne["proxy_cache_valid"]>0){
+		$f[]="\t\tproxy_cache_valid {$ligne["proxy_cache_valid"]}m;";
+		$f[]="\t\texpires {$ligne["proxy_cache_valid"]}m;";
+	}
+	//$f[]="\t\tproxy_cache_revalidate  on;";
+	return @implode("\n", $f);
+}
+	
 	
 	private function http_locations_proxy($ligne){
 		$directoryZ=$this->translate_destdir($ligne["directory"]);
@@ -1251,6 +1339,7 @@ class nginx{
 		
 		
 		
+		
 		//$f[]="\t\tproxy_redirect off;";
 		if(!$asregex){
 		if(!$AsFile){
@@ -1282,10 +1371,10 @@ class nginx{
 		$f[]="\t\tauth_request_set \$username \$upstream_http_x_username;";
 		}
 		
-		//$f[]="\t\tproxy_pass http://$HostHeader/;";
+		$f[]=$this->http_location_cache_params($ligne);
 		$f[]="\t\tproxy_pass_header Date;";
 		$f[]="\t\tproxy_pass_header Server;";
-		$f[]=$this->proxy_parameters($ligne["cache_peer_id"]);
+		
 		if($proxy_cache<>null){$f[]=$proxy_cache;}
 		if($proxy_pass<>null){$f[]=$proxy_pass;}
 		if($AUTHENTICATOR_DIRECTORY<>null){
@@ -1407,7 +1496,7 @@ class nginx{
 		
 		
 		$HostHeader="\$host";
-		if($this->forceddomain<>null){$HostHeader="$this->forceddomain";}
+		if(trim($this->forceddomain<>null)){$HostHeader="$this->forceddomain";}
 		if($this->host_port==0){$this->host_port=80;}
 		$HostIPADDR=$this->MyHostnameListen();
 		
@@ -1889,8 +1978,19 @@ class nginx{
 		
 	}
 	
+	private function proxy_cache_bypass(){
+		$f[]="\t\tproxy_no_cache \$cookie_nocache \$arg_nocache \$arg_comment;";
+		$f[]="\t\tproxy_no_cache \$http_pragma \$http_authorization;";
+		$f[]="\t\tproxy_cache_bypass \$cookie_nocache \$arg_nocache \$arg_comment;";
+		$f[]="\t\tproxy_cache_bypass \$http_pragma \$http_authorization;";
+		return @implode("\n",$f);
+	}
+	
+	
+	
 	private function ROOT_PROXY(){
 		$HostHeader="\$host";
+		$this->forceddomain=trim($this->forceddomain);
 		$PortTXT=null;
 		if($this->forceddomain<>null){$HostHeader="$this->forceddomain";}
 		if($this->default_server==1){
@@ -1953,7 +2053,7 @@ class nginx{
 		if($this->OWA){	$f[]="\tadd_header \"Vary\" \"Accept-Encoding\";";}
 		if($this->OWA){	$f[]="\tproxy_redirect off;";}
 		if($this->OWA){	$f[]="\tproxy_buffering off;";}
-		if($this->OWA){	$f[]="\tproxy_read_timeout 3600;";}
+		if($this->OWA){	$f[]="\tproxy_read_timeout 3600s;";}
 		if($this->OWA){	$f[]="\tproxy_pass_header Date;";}
 		if($this->OWA){	$f[]="\tproxy_pass_header Server;";}
 		if($this->OWA){	$f[]="\tproxy_set_header Connection \"\";";}
@@ -1966,6 +2066,8 @@ class nginx{
 		$f[]="\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
 		$f[]="\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
 		if(!$this->OWA){
+			$f[]=$this->proxy_cache_bypass();
+			
 			if($this->ssl==1){$f[]="\tproxy_set_header X-Forwarded-Ssl on;";}
 		}	
 		if($proxy_ssl_session_reuse<>null){
@@ -2031,17 +2133,24 @@ class nginx{
 				}
 			}
 			
-			$f[]="\tproxy_cache_use_stale error timeout invalid_header updating;";
-			$f[]="\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
+
+
 			
 			
-			
+		}else{
+			$this->forceddomain="\$host";
 		}
 		
-		$f[]="\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
-		$f[]="\tproxy_set_header Host $this->forceddomain;";
-		$f[]="\tproxy_cache_valid {$this->proxy_cache_valid}m;";
-		$f[]="\texpires {$this->proxy_cache_valid}m;";
+		
+		
+		$f[]=$this->proxy_cache_bypass();
+		$f[]="\t\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+		$f[]="\t\tproxy_set_header Host $this->forceddomain;";
+		$f[]="\t\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
+		//$f[]="\t\tproxy_cache_revalidate  on; 1.5.7";
+		$f[]="\t\tproxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;";
+		$f[]="\t\tproxy_cache_valid {$this->proxy_cache_valid}m;";
+		$f[]="\t\texpires {$this->proxy_cache_valid}m;";
 		
 		$replace_rules=$this->replace_rules_single_domain();
 		

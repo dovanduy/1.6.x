@@ -198,7 +198,7 @@ function status_kerb(){
 	
 	<tr>
 		<td width=1% valign='top'><img src='$img'></td>
-		<td nowrap style='font-size:13px' valign='top'>$hostname<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.adker.php',true);\" style='color:$textcolor;font-weight:bold;text-decoration:underline'>Active Directory $text</strong></td>
+		<td nowrap style='font-size:18px' valign='top'>$hostname<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.adker.php',true);\" style='color:$textcolor;font-weight:bold;text-decoration:underline'>Active Directory $text</strong></td>
 		<td width=1%>".imgtootltip("refresh-24.png","{refresh}","LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');")."</td>
 	</tr>
 	</tbody>
@@ -241,35 +241,35 @@ function test_popup(){
 	<div id='main-$t'>
 	<table style='width:99%' class=form>
 	<tr>
-		<td valign='top' style='font-size:13px' nowrap class=legend>{is_connected}?:</td>
-		<td width=99%><div id='$t-nettestjoin'></div></td>
+		<td valign='top' style='font-size:26px' nowrap class=legend>{is_connected}?:</td>
+		<td width=99%><div id='$t-nettestjoin' style='margin-top:20px'></div></td>
 	</tr>
 	<tr>
-		<td valign='top' style='font-size:13px' nowrap class=legend>Active Directory Infos:</td>
-		<td width=99%><div id='$t-netadsinfo'></div></td>
+		<td valign='top' style='font-size:26px;pading-top:15px' nowrap class=legend>Active Directory Infos:</td>
+		<td width=99%><div id='$t-netadsinfo' style='margin-top:20px'></div></td>
 	</tr>
 	<tr>
-		<td valign='top' style='font-size:13px' nowrap class=legend>RPC Infos:</td>
-		<td width=99%><div id='$t-netrpcinfo'></div></td>
+		<td valign='top' style='font-size:26px;pading-top:15px' nowrap class=legend>RPC Infos:</td>
+		<td width=99%><div id='$t-netrpcinfo' style='margin-top:20px'></div></td>
 	</tr>
 	<tr>
-		<td valign='top' style='font-size:13px' nowrap class=legend>Domains:</td>
-		<td width=99%><div id='$t-wbinfoalldom'></div></td>
+		<td valign='top' style='font-size:26px;pading-top:15px' nowrap class=legend>Domains:</td>
+		<td width=99%><div id='$t-wbinfoalldom' style='margin-top:20px'></div></td>
 	</tr>	
 	<tr>
-		<td valign='top' style='font-size:13px' nowrap class=legend>Check shared secret:</td>
-		<td width=99%><div id='$t-wbinfomoinst'></div></td>
+		<td valign='top' style='font-size:26px;pading-top:15px' nowrap class=legend>Check shared secret:</td>
+		<td width=99%><div id='$t-wbinfomoinst' style='margin-top:20px'></div></td>
 	</tr>	
 	<tr>
-		<td valign='top' style='font-size:13px' nowrap class=legend>NTLM Auth:</td>
-		<td width=99%><div id='$t-wbinfomoinsa'></div></td>
+		<td valign='top' style='font-size:26px;pading-top:15px' nowrap class=legend>NTLM Auth:</td>
+		<td width=99%><div id='$t-wbinfomoinsa' style='margin-top:20px'></div></td>
 	</tr>		
 	<tr>
-		<td colspan=2 align='right'>". imgtootltip("refresh-24.png","{refresh}","StartAgain()")."</td>
+		<td colspan=2 align='right' style='padding-top:50px;text-align:right'>". imgtootltip("64-refresh.png","{refresh}","StartAgain()")."</td>
 	</tr>		
 	</tbody>
 	</table>
-	<center>". button("{restart_connection}","$reconnectJS",16)."</center>
+	<center style='margin-top:20px'>". button("{restart_connection}","$reconnectJS",32)."</center>
 	</div>
 	<script>
 		function StartAgain(){
@@ -313,9 +313,9 @@ function test_netadsinfo(){
 	$sock=new sockets();
 	if(isset($_GET["via-samba"])){$viaSmamba="&via-samba=yes";}
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?netadsinfo=yes")));
-	$html="<hr>";
+	$html="<hr><div style='font-size:18px'>";
 	$html=$html.test_results($datas);
-	$html=$html."
+	$html=$html."</div>
 	<script>
 			LoadAjaxTiny('{$_GET["time"]}-netrpcinfo','$page?test-netrpcinfo=yes&time={$_GET["time"]}$viaSmamba');
 	</script>";
@@ -328,9 +328,9 @@ function test_testjoin(){
 	$sock=new sockets();
 	if(isset($_GET["via-samba"])){$viaSmamba="&via-samba=yes";}
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?netrpctestjoin=yes")));
-	$html="<hr>";
+	$html="<hr><div style='font-size:18px'>";
 	$html=$html.test_results($datas);
-	$html=$html."
+	$html=$html."</div>
 	<script>
 	LoadAjaxTiny('{$_GET["time"]}-netadsinfo','$page?test-netadsinfo=yes&time={$_GET["time"]}$viaSmamba');
 	</script>";
@@ -357,11 +357,11 @@ function test_netrpcinfo(){
 	}
 
 	$cmdline=base64_encode(serialize($AR));
-		$html="<hr>";
+		$html="<hr><div style='font-size:18px'>";
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?netrpcinfo=yes&auth=$cmdline")));
 	$html=$html.test_results($datas);
 	
-	$html=$html."
+	$html=$html."</div>
 	<script>
 			LoadAjaxTiny('{$_GET["time"]}-wbinfoalldom','$page?test-wbinfoalldom=yes&time={$_GET["time"]}$viaSmamba');
 	</script>";	
@@ -387,10 +387,10 @@ function test_wbinfoalldom(){
 	
 	
 	$cmdline=base64_encode(serialize($AR));
-		$html="<hr>";
+		$html="<hr><div style='font-size:18px'>";
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?wbinfoalldom=yes&auth=$cmdline")));
 	$html=$html.test_results($datas);	
-	$html=$html."
+	$html=$html."</div>
 	<script>
 			LoadAjaxTiny('{$_GET["time"]}-wbinfomoinst','$page?test-wbinfomoinst=yes&time={$_GET["time"]}$viaSmamba');
 	</script>";		
@@ -417,10 +417,10 @@ function test_wbinfomoinst(){
 	}	
 	
 	$cmdline=base64_encode(serialize($AR));
-		$html="<hr>";
+		$html="<hr><div style='font-size:18px'>";
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?wbinfomoinst=yes&auth=$cmdline")));
 	$html=$html.test_results($datas);
-	$html=$html."
+	$html=$html."</div>
 	<script>
 			LoadAjaxTiny('{$_GET["time"]}-wbinfomoinsa','$page?test-wbinfomoinsa=yes&time={$_GET["time"]}$viaSmamba');
 	</script>";		
@@ -450,9 +450,9 @@ function test_wbinfomoinsa(){
 	}	
 	
 	$cmdline=base64_encode(serialize($AR));
-		$html="<hr>";
+		$html="<hr><div style='font-size:18px'>";
 	$datas=unserialize(base64_decode($sock->getFrameWork("samba.php?wbinfomoinsa=yes&auth=$cmdline$viaSmamba")));
-	$html=$html.test_results($datas)."
+	$html=$html.test_results($datas)."</div>
 	<script>
 		LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');
 	</script>
@@ -486,9 +486,9 @@ function test_results($array){
 		if(preg_match("#_CANT_#i", $ligne)){$color="#D30F0F;font-weight:bold";}
 		if(preg_match("#succeeded#i", $ligne)){$color="#009809;font-weight:bold";}
 		if($color=="black"){
-			if(preg_match("#^(.+?):\s+(.+)#", $ligne,$re)){$ligne="<span style='color:#656060;font-weight:bold'>{$re[1]}:&nbsp;</span><span style='color:#009809;font-weight:bold'>{$re[2]}</span>";}
+			if(preg_match("#^(.+?):\s+(.+)#", $ligne,$re)){$ligne="<span style='color:#656060;font-weight:bold;font-size:18px'>{$re[1]}:&nbsp;</span><span style='color:#009809;font-weight:bold'>{$re[2]}</span>";}
 		}
-		$html=$html."<div style='font-size:11px;color:$color'>$ligne</div>";
+		$html=$html."<div style='font-size:18px;color:$color'>$ligne</div>";
 	}	
 	return $html;
 }
@@ -509,6 +509,10 @@ function js(){
 	
 	
 	$title=$tpl->_ENGINE_parse_body("{APP_SQUIDKERAUTH}");
+	
+	echo "AnimateDiv('BodyContent');LoadAjax('BodyContent','$page?tabs=yes');";
+	return;
+	
 	$html="YahooWin4(650,'$page?tabs=yes','$title');";
 	echo $html;
 	}
@@ -527,22 +531,43 @@ function test_popup_js(){
 function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	$array["popup"]='{service_parameters}';
-	$array["cntlm"]='{APP_CNTLM}';
+	$users=new usersMenus();
+	$sock=new sockets();
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	
+	if($EnableKerbAuth==1){
+		$array["active_directory_users"]="{active_directory_users}";
+	}
+	
+	
+	if($users->AsSystemAdministrator){
+		$array["popup"]='{activedirectory_connection}';
+		$array["ldap-params"]='{ldap_parameters2}';
+	}
 	$array["test-popup"]='{analyze}';
+
+	if($users->AsSquidAdministrator){
+		$array["cntlm"]='{APP_CNTLM}';
+	}
 	$array["test-auth"]='{test_auth}';
 	
 	
-	$fontsize=14;
-	if(count($array)>6){$fontsize=12.5;}
+	$fontsize=18;
+
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="active_directory_users"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"browse-ad-groups.php?popup=yes\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+			continue;
+		}	
+		
+	
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
 	}
 	
 	
 	
-	echo build_artica_tabs($html, "main_adker_tabs");
+	echo build_artica_tabs($html, "main_adker_tabs",1100);
 	
 }
 	
@@ -605,7 +630,7 @@ function intro(){
 	$tpl=new templates();
 	$intro="{APP_SQUIDKERAUTH_TEXT}<br>{APP_SQUIDKERAUTH_TEXT_REF}";
 	if($_GET["switch-template"]=="samba"){$intro="{APP_SAMBAKERAUTH_TEXT}<br>{APP_SAMBAKERAUTH_TEXT_REF}";}	
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>$intro</div>");
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:18px'>$intro</div>");
 }
 	
 function settings(){
@@ -613,8 +638,9 @@ function settings(){
 	$tpl=new templates();
 	$users=new usersMenus();	
 	$sock=new sockets();
-	$severtype["WIN_2003"]="Windows 2003";
-	$severtype["WIN_2008AES"]="Windows 2008 with AES";
+	$severtype["WIN_2003"]="Windows 2000/2003";
+	$severtype["WIN_2008AES"]="Windows 2008/2012";
+	
 	$samba_version=$sock->getFrameWork("samba.php?fullversion=yes");
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$about_this_section=$tpl->_ENGINE_parse_body("{about_this_section}");
@@ -703,6 +729,14 @@ function settings(){
 	if($LockKerberosAuthentication==1){$EnableKerberosAuthentication=0;}
 	$char_alert_error=$tpl->javascript_parse_text("{char_alert_error}");
 	
+	
+	if($EnableKerbAuth==1){
+		if(!$users->CORP_LICENSE){
+			$MAIN_ERROR="<p class=text-error style='font-size:18px'>
+					{warn_no_license_activedirectory_30days}</p>";
+		}
+	}
+	
 	if($EnableKerbAuth==1){
 		$disconnectTR="
 		<tr>
@@ -710,7 +744,7 @@ function settings(){
 			<td nowrap>		
 				<a href=\"javascript:blur();\" 
 					OnClick=\"javascript:Loadjs('$page?diconnect-js=yes')\" 
-					style='font-size:14px;text-decoration:underline'>$disconnect</a>
+					style='font-size:18px;text-decoration:underline'>$disconnect</a>
 				</td>
 		</tr>";
 	}
@@ -727,7 +761,7 @@ function settings(){
 	$error_dom3=$tpl->javascript_parse_text("{ask_change_hostname}");
 	$t_tmp=time();
 	
-	$html="
+	$html="$MAIN_ERROR
 	<table style='width:100%'>
 	<tr>
 	<td valign='top' width=50%><span id='kerbchkconf'></span>
@@ -738,28 +772,21 @@ function settings(){
 			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td nowrap><a href=\"javascript:blur();\" 
 			OnClick=\"javascript:YahooWinBrowse('550','$page?intro=yes&switch-template={$_GET["switch-template"]}','$about_this_section');\" 
-			style='font-size:14px;text-decoration:underline'>{about_this_section}</a></td>
+			style='font-size:18px;text-decoration:underline'>{about_this_section}</a></td>
 		</tr>
 		<tr>
 			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td nowrap><a href=\"javascript:blur();\" 
 			OnClick=\"javascript:s_PopUpFull('http://proxy-appliance.org/index.php?cID=170','1024','900');\" 
-			style='font-size:14px;text-decoration:underline'>{online_help}</a></td>
+			style='font-size:18px;text-decoration:underline'>{online_help}</a></td>
 		</tr>
-		<tr>
-			<td width=1%><img src='img/arrow-right-24.png'></td>
-			<td nowrap>		
-				<a href=\"javascript:blur();\" 
-					OnClick=\"javascript:YahooSearchUser('702','$page?ldap-params=yes','$ldap_parameters');\" 
-					style='font-size:14px;text-decoration:underline'>$ldap_parameters</a>
-				</td>
-		</tr>
+
 		<tr>
 			<td width=1%><img src='img/arrow-right-24.png'></td>
 			<td nowrap>		
 				<a href=\"javascript:blur();\" 
 					OnClick=\"javascript:YahooSearchUser('550','$page?schedule-params=yes','$schedule_parameters');\" 
-					style='font-size:14px;text-decoration:underline'>$schedule_parameters</a>
+					style='font-size:18px;text-decoration:underline'>$schedule_parameters</a>
 				</td>
 		</tr>	
 		$disconnectTR	
@@ -768,120 +795,120 @@ function settings(){
 	</table>
 	
 	<div style='width:98%' class=form>
-	<table>
+	
+	". Paragraphe_switch_img("{EnableWindowsAuthentication}", 
+			"{EnableWindowsAuthentication_text}","EnableKerbAuth",$EnableKerbAuth,null,950,"EnableKerbAuthCheck()")."
+	
+	<table style='width:100%'>
+	
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{EnableWindowsAuthentication}:</td>
-		<td>". Field_checkbox("EnableKerbAuth",1,"$EnableKerbAuth","EnableKerbAuthCheck()")."</td>
-		<td>&nbsp;</td>
-	</tr>
-	<tr>
-		<td class=legend style='font-size:14px' nowrap>{authentication_method}:</td>
-		<td>". Field_array_Hash($arrayAuth, "KerbAuthMethod",$KerbAuthMethod,null,null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:18px' nowrap>{authentication_method}:</td>
+		<td>". Field_array_Hash($arrayAuth, "KerbAuthMethod",$KerbAuthMethod,null,null,0,"font-size:18px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 
 	<tr>
-		<td class=legend style='font-size:14px'>{KerbAuthDisableNsswitch}:</td>
+		<td class=legend style='font-size:18px'>{KerbAuthDisableNsswitch}:</td>
 		<td>". Field_checkbox("KerbAuthDisableNsswitch",1,"$KerbAuthDisableNsswitch")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{KerbAuthTrusted}:</td>
+		<td class=legend style='font-size:18px'>{KerbAuthTrusted}:</td>
 		<td>". Field_checkbox("KerbAuthTrusted",1,"$KerbAuthTrusted")."</td>
 		<td>&nbsp;</td>
 	</tr>				
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{KerbAuthDisableGroupListing}:</td>
+		<td class=legend style='font-size:18px' nowrap>{KerbAuthDisableGroupListing}:</td>
 		<td>". Field_checkbox("KerbAuthDisableGroupListing",1,"$KerbAuthDisableGroupListing")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{KerbAuthDisableNormalizeName}:</td>
+		<td class=legend style='font-size:18px'>{KerbAuthDisableNormalizeName}:</td>
 		<td>". Field_checkbox("KerbAuthDisableNormalizeName",1,"$KerbAuthDisableNormalizeName")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{map_untrusted_to_domain}:</td>
+		<td class=legend style='font-size:18px' nowrap>{map_untrusted_to_domain}:</td>
 		<td>". Field_checkbox("KerbAuthMapUntrustedDomain",1,"$KerbAuthMapUntrustedDomain")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{interface}:</td>
-		<td>". Field_array_Hash($nics,"SambaBindInterface",$SambaBindInterface,"style:font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:18px' nowrap>{interface}:</td>
+		<td>". Field_array_Hash($nics,"SambaBindInterface",$SambaBindInterface,"style:font-size:18px;padding:3px")."</td>
 		<td>". imgtootltip("disk-save-24.png","{save}","SaveSambaBindInterface()")."</td>
 	</tr>				
 				
 				
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{keep_alive}:</td>
+		<td class=legend style='font-size:18px' nowrap>{keep_alive}:</td>
 		<td>". Field_checkbox("SquidNTLMKeepAlive",1,"SquidNTLMKeepAlive")."</td>
 		<td>". help_icon("{SquidNTLMKeepAlive_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{synchronize_time_with_ad}:</td>
+		<td class=legend style='font-size:18px' nowrap>{synchronize_time_with_ad}:</td>
 		<td>". Field_checkbox("NtpdateAD",1,"$NtpdateAD")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{UseADAsNameServer}:</td>
+		<td class=legend style='font-size:18px' nowrap>{UseADAsNameServer}:</td>
 		<td>". Field_checkbox("UseADAsNameServer",1,"$UseADAsNameServer")."</td>
 		<td>&nbsp;</td>
 	</tr>
 				
 	<tr>
-		<td class=legend style='font-size:14px'>{authenticate_from_kerberos}:</td>
+		<td class=legend style='font-size:18px'>{authenticate_from_kerberos}:</td>
 		<td>". Field_checkbox("EnableKerberosAuthentication",1,"$EnableKerberosAuthentication","EnableKerbAuthCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{WINDOWS_DNS_SUFFIX}:</td>
-		<td>". Field_text("WINDOWS_DNS_SUFFIX",$array["WINDOWS_DNS_SUFFIX"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{WINDOWS_DNS_SUFFIX}:</td>
+		<td>". Field_text("WINDOWS_DNS_SUFFIX",$array["WINDOWS_DNS_SUFFIX"],"font-size:18px;padding:3px;width:390px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{WINDOWS_SERVER_NETBIOSNAME}:</td>
-		<td>". Field_text("WINDOWS_SERVER_NETBIOSNAME",$array["WINDOWS_SERVER_NETBIOSNAME"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{WINDOWS_SERVER_NETBIOSNAME}:</td>
+		<td>". Field_text("WINDOWS_SERVER_NETBIOSNAME",$array["WINDOWS_SERVER_NETBIOSNAME"],"font-size:18px;padding:3px;width:390px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{ADNETBIOSDOMAIN}:</td>
-		<td>". Field_text("ADNETBIOSDOMAIN",$array["ADNETBIOSDOMAIN"],"font-size:14px;padding:3px;width:165px")."</td>
+		<td class=legend style='font-size:18px'>{ADNETBIOSDOMAIN}:</td>
+		<td>". Field_text("ADNETBIOSDOMAIN",$array["ADNETBIOSDOMAIN"],"font-size:18px;padding:3px;width:390px")."</td>
 		<td>". help_icon("{howto_ADNETBIOSDOMAIN}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{ADNETIPADDR}:</td>
-		<td>". field_ipv4("ADNETIPADDR",$array["ADNETIPADDR"],"font-size:14px")."</td>
+		<td class=legend style='font-size:18px'>{ADNETIPADDR}:</td>
+		<td>". field_ipv4("ADNETIPADDR",$array["ADNETIPADDR"],"font-size:18px")."</td>
 		<td>". help_icon("{howto_ADNETIPADDR}")."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:14px'>{WINDOWS_SERVER_TYPE}:</td>
-		<td>". Field_array_Hash($severtype,"WINDOWS_SERVER_TYPE",$array["WINDOWS_SERVER_TYPE"],"style:font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:18px'>{WINDOWS_SERVER_TYPE}:</td>
+		<td>". Field_array_Hash($severtype,"WINDOWS_SERVER_TYPE",$array["WINDOWS_SERVER_TYPE"],"style:font-size:18px;padding:3px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{COMPUTERS_BRANCH}:</td>
-		<td>". Field_text("COMPUTER_BRANCH",$array["COMPUTER_BRANCH"],"font-size:14px;padding:3px;width:165px")."</td>
+		<td class=legend style='font-size:18px'>{COMPUTERS_BRANCH}:</td>
+		<td>". Field_text("COMPUTER_BRANCH",$array["COMPUTER_BRANCH"],"font-size:18px;padding:3px;width:390px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	
 	
 	
 	<tr>
-		<td class=legend style='font-size:14px'>{database_backend}:</td>
-			<td>". Field_array_Hash($arrayBCK,"SAMBA_BACKEND",$array["SAMBA_BACKEND"],"style:font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:18px'>{database_backend}:</td>
+			<td>". Field_array_Hash($arrayBCK,"SAMBA_BACKEND",$array["SAMBA_BACKEND"],"style:font-size:18px;padding:3px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{administrator}:</td>
-		<td>". Field_text("WINDOWS_SERVER_ADMIN",$array["WINDOWS_SERVER_ADMIN"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{administrator}:</td>
+		<td>". Field_text("WINDOWS_SERVER_ADMIN",$array["WINDOWS_SERVER_ADMIN"],"font-size:18px;padding:3px;width:390px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{password}:</td>
-		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{password}:</td>
+		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:18px;padding:3px;width:390px")."</td>
 		<td>&nbsp;</td>
 	</tr>
-	<td colspan=2 align='right'><hr>". button("{apply}","SaveKERBProxy()",16)."</td>
+	<td colspan=2 align='right'><hr>". button("{apply}","SaveKERBProxy()",26)."</td>
 	</tr>
 	</table>
 	</div>
@@ -936,7 +963,8 @@ function settings(){
 			
 			
 			document.getElementById('KerbAuthTrusted').disabled=true;
-			if(document.getElementById('EnableKerbAuth').checked){EnableKerbAuth=1;}
+			EnableKerbAuth=0;
+			EnableKerbAuth=document.getElementById('EnableKerbAuth').value;
 			
 			
 			if(LockKerberosAuthentication==0){
@@ -1079,7 +1107,7 @@ function settings(){
 			
 			var pp=encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value);
 			var XHR = new XHRConnection();
-			if(document.getElementById('EnableKerbAuth').checked){XHR.appendData('EnableKerbAuth',1);}else{XHR.appendData('EnableKerbAuth',0);}
+			
 			if(document.getElementById('EnableKerberosAuthentication').checked){XHR.appendData('EnableKerberosAuthentication',1);}else{XHR.appendData('EnableKerberosAuthentication',0);}
 			if(document.getElementById('KerbAuthDisableNsswitch').checked){XHR.appendData('KerbAuthDisableNsswitch',1);}else{XHR.appendData('KerbAuthDisableNsswitch',0);}
 			if(document.getElementById('KerbAuthDisableGroupListing').checked){XHR.appendData('KerbAuthDisableGroupListing',1);}else{XHR.appendData('KerbAuthDisableGroupListing',0);}
@@ -1092,7 +1120,7 @@ function settings(){
 			
 			
 			
-			
+			XHR.appendData('EnableKerbAuth',document.getElementById('EnableKerbAuth').value);
 			XHR.appendData('KerbAuthMethod',document.getElementById('KerbAuthMethod').value);
 			
 			
@@ -1150,47 +1178,47 @@ function ldap_params(){
 	if(!is_numeric($array["LDAP_RECURSIVE"])){$array["LDAP_RECURSIVE"]=0;}
 	$html="
 	<div id='serverkerb-$t'></div>
-	<div class=explain style='font-size:14px' nowrap>{ldap_ntlm_parameters_explain}</div>
+	<div class=explain style='font-size:18px' nowrap>{ldap_ntlm_parameters_explain}</div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{use_dynamic_groups_acls}:</td>
+		<td class=legend style='font-size:18px' nowrap>{use_dynamic_groups_acls}:</td>
 		<td>". Field_checkbox("UseDynamicGroupsAcls",1,$UseDynamicGroupsAcls,"UseDynamicGroupsAclsCheck()")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{TTL_CACHE}:</td>
-		<td style='font-size:14px'>". Field_text("DynamicGroupsAclsTTL",$DynamicGroupsAclsTTL,"font-size:14px;padding:3px;width:90px")."&nbsp;{seconds}</td>
+		<td class=legend style='font-size:18px' nowrap>{TTL_CACHE}:</td>
+		<td style='font-size:18px'>". Field_text("DynamicGroupsAclsTTL",$DynamicGroupsAclsTTL,"font-size:18px;padding:3px;width:90px")."&nbsp;{seconds}</td>
 	</tr>
 				
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{non_ntlm_domain}:</td>
-		<td>". Field_text("LDAP_NONTLM_DOMAIN",$array["LDAP_NONTLM_DOMAIN"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px' nowrap>{non_ntlm_domain}:</td>
+		<td>". Field_text("LDAP_NONTLM_DOMAIN",$array["LDAP_NONTLM_DOMAIN"],"font-size:18px;padding:3px;width:190px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{hostname}:</td>
-		<td>". Field_text("LDAP_SERVER",$array["LDAP_SERVER"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{hostname}:</td>
+		<td>". Field_text("LDAP_SERVER",$array["LDAP_SERVER"],"font-size:18px;padding:3px;width:190px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{ldap_port}:</td>
-		<td>". Field_text("LDAP_PORT",$array["LDAP_PORT"],"font-size:14px;padding:3px;width:90px")."</td>
+		<td class=legend style='font-size:18px'>{ldap_port}:</td>
+		<td>". Field_text("LDAP_PORT",$array["LDAP_PORT"],"font-size:18px;padding:3px;width:90px")."</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:14px'>{suffix}:</td>
-		<td>". Field_text("LDAP_SUFFIX",$array["LDAP_SUFFIX"],"font-size:14px;padding:3px;width:310px")."</td>
+		<td class=legend style='font-size:18px'>{suffix}:</td>
+		<td>". Field_text("LDAP_SUFFIX",$array["LDAP_SUFFIX"],"font-size:18px;padding:3px;width:310px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{bind_dn}:</td>
+		<td class=legend style='font-size:18px'>{bind_dn}:</td>
 		<td>". Field_text("LDAP_DN",$array["LDAP_DN"],"font-size:12px;padding:3px;width:310px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px'>{password}:</td>
-		<td>". Field_password("LDAP_PASSWORD-$t",$array["LDAP_PASSWORD"],"font-size:14px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:18px'>{password}:</td>
+		<td>". Field_password("LDAP_PASSWORD-$t",$array["LDAP_PASSWORD"],"font-size:18px;padding:3px;width:190px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:14px'>{recursive}:</td>
+		<td class=legend style='font-size:18px'>{recursive}:</td>
 		<td>". Field_checkbox("LDAP_RECURSIVE-$t",1,$array["LDAP_RECURSIVE"])."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}","SaveLDAPADker()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}","SaveLDAPADker()",26)."</td>
 	</tr>
 	</table>
 <script>
@@ -1481,22 +1509,23 @@ function test_auth(){
 	$html="
 	<div id='test-$t'></div>
 	<div style='width:98%' class=form>
-	<table >
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px'>{proxy}:</td>
-		<td style='font-size:16px'>$SquidBinIpaddr:$port</td>
+		<td class=legend style='font-size:24px'>{proxy}:</td>
+		<td style='font-size:24px'>$SquidBinIpaddr:$port</td>
 	</tr>
 	<tr>
 	<tr>
-		<td class=legend  style='font-size:16px'>{username}:</td>
-		<td>". Field_text("TESTAUTHUSER",$array["WINDOWS_SERVER_ADMIN"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend  style='font-size:24px'>{username}:</td>
+		<td>". Field_text("TESTAUTHUSER",$array["WINDOWS_SERVER_ADMIN"],"font-size:24px;padding:3px;width:490px")."</td>
 	</tr>		
 	<tr>
-		<td class=legend  style='font-size:16px'>{password}:</td>
-		<td>". Field_password("TESTAUTHPASS",$array["WINDOWS_SERVER_PASS"],"font-size:16px;padding:3px;width:190px")."</td>
-	</tr>		
+		<td class=legend  style='font-size:24px'>{password}:</td>
+		<td>". Field_password("TESTAUTHPASS",$array["WINDOWS_SERVER_PASS"],"font-size:24px;padding:3px;width:490px")."</td>
+	</tr>	
+					
 	<tr>
-		<td colspan=2 align='right'>". button("{submit}","TestAuthPerform()",18)."</td>
+		<td colspan=2 align='right' style='padding-top:70px'>". button("{submit}","TestAuthPerform()",32)."</td>
 	</tr>
 	</table>
 	</div>
@@ -1587,9 +1616,9 @@ function kerbchkconf(){
 	$users=new usersMenus();
 	if($users->SAMBA_INSTALLED){
 		$samba_version=$sock->getFrameWork("samba.php?fullversion=yes");
-		echo $tpl->_ENGINE_parse_body("<center><div style='font-size:14px'>{APP_SAMBA}:$samba_version</div></center>");
+		echo $tpl->_ENGINE_parse_body("<center><div style='font-size:18px'>{APP_SAMBA}:$samba_version</div></center>");
 	}else{
-		echo $tpl->_ENGINE_parse_body("<center><div style='font-size:14px'>{APP_SAMBA}: {NOT_INSTALLED}</div></center>");
+		echo $tpl->_ENGINE_parse_body("<center><div style='font-size:18px'>{APP_SAMBA}: {NOT_INSTALLED}</div></center>");
 	}
 	
 	
@@ -1609,13 +1638,13 @@ function kerbchkconf(){
 	
 	$hostname=strtolower(trim($array["WINDOWS_SERVER_NETBIOSNAME"])).".".strtolower(trim($array["WINDOWS_DNS_SUFFIX"]));
 	$ip=gethostbyname($hostname);
-	if($ip==$hostname){echo $tpl->_ENGINE_parse_body(Paragraphe32("WINDOWS_NAME_SERVICE_NOT_KNOWN", "noacco:<strong style='font-size:12px'>$hostname</strong>", null, "error-24.png"));return;}
+	if($ip==$hostname){echo $tpl->_ENGINE_parse_body(Paragraphe32("WINDOWS_NAME_SERVICE_NOT_KNOWN", "noacco:<strong style='font-size:18px'>$hostname</strong>", null, "error-24.png"));return;}
 	
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if($EnableKerbAuth==1){
 		$page=CurrentPageName();
 		echo $tpl->_ENGINE_parse_body("<center style='margin:5px'>".button("{restart_connection}",
-		 "Loadjs('squid.ad.progress.php')","14px")."</center>");
+		 "Loadjs('squid.ad.progress.php')","22px")."</center>");
 	}
 	
 	
@@ -1633,22 +1662,22 @@ function schedule_params(){
 	if(!is_numeric($AdSchBuildProxy)){$AdSchBuildProxy=0;}
 	if(!is_numeric($AdSchBuildUfdb)){$AdSchBuildUfdb=0;}
 	if(!is_numeric($AdSchRestartSquid)){$AdSchRestartSquid=0;}
-	$html="<div class='explain' style='font-size:14px'>
+	$html="<div class='explain' style='font-size:18px'>
 	{ad_kerb_schedule_explain}
 	</div>
 	<div id='test-$t'></div>
 	<div style='width:98%' class=form>
 	<table>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{build_proxy_parameters}:</td>
+		<td valign='top' class=legend style='font-size:18px'>{build_proxy_parameters}:</td>
 		<td>". Field_checkbox("AdSchBuildProxy", 1,$AdSchBuildProxy)."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{build_web_filtering_rules}:</td>
+		<td valign='top' class=legend style='font-size:18px'>{build_web_filtering_rules}:</td>
 		<td>". Field_checkbox("AdSchBuildUfdb", 1,$AdSchBuildUfdb)."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{restart_the_web_proxy_service}:</td>
+		<td valign='top' class=legend style='font-size:18px'>{restart_the_web_proxy_service}:</td>
 		<td>". Field_checkbox("AdSchRestartSquid", 1,$AdSchRestartSquid)."</td>
 	</tr>	
 	<tr>
@@ -1707,25 +1736,22 @@ function cntlm(){
 	if(!is_numeric($EnableCNTLM)){$EnableCNTLM=0;}
 	if(!is_numeric($CNTLMPort)){$CNTLMPort=3155;}
 	
-	$html="<div class='explain' style='font-size:14px'>
-	{APP_CNTLM_EXPLAIN}
-	</div>
+	$html="
 	<div id='test-$t'></div>
 	<div style='width:98%' class=form>
+	
+	". Paragraphe_switch_img("{activate_CNTLM_service}", "{APP_CNTLM_EXPLAIN}",
+			"EnableCNTLM",$EnableCNTLM,null,910)."	
 	<table>
+
 	<tr>
-	<td valign='top' class=legend style='font-size:14px'>{activate_CNTLM_service}:</td>
-	<td>". Field_checkbox("EnableCNTLM", 1,$EnableCNTLM)."</td>
-	<td width=1%>&nbsp;</td>
-	</tr>
-	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{listen_port}:</td>
-		<td>". Field_text("CnTLMPORT", $CNTLMPort,"font-size:14px;width:90px")."</td>
+		<td valign='top' class=legend style='font-size:20px'>{listen_port}:</td>
+		<td>". Field_text("CnTLMPORT", $CNTLMPort,"font-size:20px;width:90px")."</td>
 		<td width=1%>". help_icon("{CnTLMPORT_explain2}")."</td>
 	</tr>
 	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{apply}", "CNTLMSave$t()","16px")."</td>
+		<td colspan=2 align='right'><hr>". button("{apply}", "CNTLMSave$t()","28px")."</td>
 	</tr>
 	</table>
 	</div>
@@ -1738,9 +1764,8 @@ function cntlm(){
 	}
 	function CNTLMSave$t(){
 		var XHR = new XHRConnection();
-		EnableCNTLM=0;
-		if(document.getElementById('EnableCNTLM').checked){EnableCNTLM=1;}
-		XHR.appendData('EnableCNTLM',EnableCNTLM);
+		
+		XHR.appendData('EnableCNTLM',document.getElementById('EnableCNTLM').value);
 		XHR.appendData('CnTLMPORT',document.getElementById('CnTLMPORT').value);
 		AnimateDiv('test-$t');
 		XHR.sendAndLoad('$page', 'POST',xCNTLMSave$t);

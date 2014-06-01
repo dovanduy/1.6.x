@@ -42,11 +42,15 @@ function popup(){
 	$ad=new external_ad_search();
 	$ous=$ad->SearchOuSimple(null);
 	$root=$ad->KerbAuthInfos["ADNETBIOSDOMAIN"];
-	
+	$users=new usersMenus();
+	if(!$users->CORP_LICENSE){
+		$MAIN_ERROR="<p class=text-error style='font-size:18px'>
+					{warn_no_license_activedirectory_30days}</p>";
+	}
 	
 
 	$style=" style='font-size:13px' OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\"";
-	$f[]="<table style='width:100%'>";
+	$f[]="$MAIN_ERROR<table style='width:100%'>";
 	$f[]="<tr>";
 	$f[]="<td width=30% style='vertical-align:top'>";
 	$f[]="<div style='width:400px;' class=form>";

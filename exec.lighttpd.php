@@ -1232,7 +1232,8 @@ function buildConfig(){
 	$results=array();
 	
 	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} creating PHP configuration..\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Creating PHP configuration..\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Executing artica-install --php-ini..\n";}
 	exec("/usr/share/artica-postfix/bin/artica-install --php-ini 2>&1",$results);
 	while (list ($pid, $line) = each ($results) ){
 				$line=trim($line);

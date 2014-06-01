@@ -71,7 +71,9 @@ function ZOOM_JS(){
 	header("content-type: application/x-javascript");
 	$zmd5=$_GET["Zoom-js"];
 	$page=CurrentPageName();
-	$title=base64_decode($_GET["subject"]);
+	$title=utf8_encode(base64_decode($_GET["subject"]));
+
+	
 	$title=str_replace("'","`", $title);
 	$html="
 	
@@ -84,7 +86,7 @@ function HEADER_JS(){
 	$zmd5=$_GET["zmd5"];
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$title=base64_decode($_GET["subject"]);
+	$title=utf8_encode(base64_decode($_GET["subject"]));
 	$title=str_replace("'","`", $title);
 	$headers_text=$tpl->_ENGINE_parse_body("{headers}");
 	$html="YahooWinBrowse(820,'$page?Headers-popup=yes&zmd5=$zmd5','$title:$headers_text')";
@@ -128,7 +130,15 @@ $c=0;
 			$md5=md5($language.$templateName);
 			$body=addslashes($body);
 			$title=addslashes($title);
+			
+			
+			
+			
+			$q->QUERY_SQL("DELETE FROM squidtpls WHERE `zmd5`='$md5'");
+			$body=utf8_decode($body);
+			$title=utf8_decode($title);
 			$ss="('$md5','$language','$templateName','$body','$title')";
+			
 			$q->QUERY_SQL($prefix.$ss);
 			$f=array();
 			if(!$q->ok){echo "$templateName ($language) FAILED ($q->mysql_error)\n";continue;}
@@ -344,10 +354,15 @@ function ZOOM_POPUP(){
 	$tpl=new templates();	
 	$headers_text=$tpl->_ENGINE_parse_body("{headers}");
 	$parameters=$tpl->_ENGINE_parse_body("{parameters}");
-	$ligne["template_body"]=trim($ligne["template_body"]);	
+	$ligne["template_body"]=trim(utf8_encode($ligne["template_body"]));	
 	if($ligne["template_body"]==null){
 		$ligne["template_body"]="<table class=\"w100 h100\"><tr><td class=\"c m\"><table style=\"margin:0 auto;border:solid 1px #560000\"><tr><td class=\"l\" style=\"padding:1px\"><div style=\"width:346px;background:#E33630\"><div style=\"padding:3px\"><div style=\"background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF\"><div style=\"background:#BF0A0A;padding:8px;border:solid 1px #FFF;color:#FFF\"><h1>ERROR: The requested URL could not be retrieved</h1></div><div class=\"c\" style=\"font:bold 13px arial;text-transform:uppercase;color:#FFF;padding:8px 0\">Proxy Error</div><div style=\"background:#F7F7F7;padding:20px 28px 36px\"> <div id=\"titles\"> <h1>ERROR</h1> <h2>The requested URL could not be retrieved</h2> </div> <hr>  <div id=\"content\"> <p>The following error was encountered while trying to retrieve the URL: <a href=\"%U\">%U</a></p>  <blockquote id=\"error\"> <p><b>Access Denied.</b></p> </blockquote>  <p>Access control configuration prevents your request from being allowed at this time. Please contact your service provider if you feel this is incorrect.</p>  <p>Your cache administrator is <a href=\"mailto:%w%W\">%w</a>.</p> <br> </div>  <hr> <div id=\"footer\"> <p>Generated %T by %h (%s)</p> <!-- %c --> </div> </div></div></div></td></tr></table></td></tr></table>";
 	}
+	
+	
+	$ligne["template_title"]=stripslashes($ligne["template_title"]);
+	$ligne["template_body"]=stripslashes($ligne["template_body"]);
+	
 	$html="
 	<table style='width:99%' class=form>
 	
@@ -368,7 +383,7 @@ function ZOOM_POPUP(){
 	</tr>
 	</table>
 			
-	<center>".Field_text("template_title-$t",$ligne["template_title"],"font-size:18px;border:4px solid #CCCCCC;width:95%")."</center>
+	<center>".Field_text("template_title-$t",utf8_encode($ligne["template_title"]),"font-size:18px;border:4px solid #CCCCCC;width:95%")."</center>
 	<div style='width:98%' class=form id='{$_GET["zmd5"]}'>
 
 	<textarea style='width:95%;height:450px;font-family:monospace;
@@ -413,12 +428,12 @@ function ZOOM_SAVE(){
 	$tplbdy=trim(str_replace("\n", "", $tplbdy));
 	$tplbdy=trim(str_replace("\r", "", $tplbdy));
 	$tplbdy=trim(str_replace("  ", "", $tplbdy));
-	$tplbdy=addslashes($tplbdy);
-	$tplbdy=utf8_encode(trim($tplbdy));
+	$tplbdy=mysql_escape_string2($tplbdy);
+	$tplbdy=trim($tplbdy);
 	
 	$tpltitle=$_POST["template_title"];
-	$tpltitle=utf8_encode(trim($tpltitle));
-	$tpltitle=addslashes($tpltitle);
+	$tpltitle=trim($tpltitle);
+	$tpltitle=mysql_escape_string2($tpltitle);
 	
 	$sql="UPDATE squidtpls 
 	SET template_body='$tplbdy',
@@ -1116,6 +1131,8 @@ function view_table(){
 			$linkZoom="<a href=\"javascript:blur()\" OnClick=\"javascript:Loadjs('$Mypage?template-settings-js=yes&zmd5={$ligne["zmd5"]}&t={$_GET["t"]}');\" style='font-size:{$fontsize}px;text-decoration:underline'>";
 		}
 		
+		$ligne['template_name']=utf8_encode($ligne['template_name']);
+		$ligne['template_title']=utf8_encode($ligne['template_title']);
 		
 		$delete=imgsimple($delete_icon,null,"TemplateDelete('{$ligne['zmd5']}')");
 		$cell[]="$span$linkZoom{$ligne['lang']}</a></span>";

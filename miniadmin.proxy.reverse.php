@@ -215,7 +215,11 @@ $html="
 var xDeleteFreeWeb$t=function (obj) {
 	var results=obj.responseText;
 	if(results.length>10){alert(results);return;}	
-	$('#'+FreeWebIDMEM{$md}).remove();
+	if(document.getElementById('FreeWebIDMEM{$md}')){
+		$('#'+FreeWebIDMEM{$md}).remove();
+		return;
+	}
+	ExecuteByClassName('SearchFunction');
 }	
 
 function DeleteFreeWeb$t(){
@@ -224,6 +228,7 @@ function DeleteFreeWeb$t(){
 		XHR.appendData('delete-servername','$servername');
     	XHR.sendAndLoad('freeweb.php', 'GET',xDeleteFreeWeb$t);
 	}
+	
 }		
 DeleteFreeWeb$t();		
 ";
@@ -401,6 +406,13 @@ function websites_directories_popup(){
 	
 	$t=time();
 	if(!is_numeric($ligne["webpageid"])){$ligne["webpageid"]=0;}
+	if(!is_numeric($ligne["proxy_cache_min_uses"])){$ligne["proxy_cache_min_uses"]=1;}
+	if(!is_numeric($ligne["proxy_cache_valid"])){$ligne["proxy_cache_valid"]=4320;}
+	if(!preg_match("#([0-9]+)\s+([0-9]+)([a-z]+)#", $ligne["proxy_buffers"])){$ligne["proxy_buffers"]="8 8k";}
+	if(!is_numeric($ligne["proxy_buffering"])){$ligne["proxy_buffering"]=1;}
+	if(!is_numeric($ligne["proxy_buffer_size"])){$ligne["proxy_buffer_size"]=8;}
+	
+	
 	if($ligne["servername"]<>null){$_GET["servername"]=$ligne["servername"];}
 	$directory=trim(stripslashes($ligne["directory"]));
 	$boot->set_formtitle($title." - $folderid -<div id='$t' style='font-size:14px'>http(s)://{$_GET["servername"]}/$directory</span></div>");
@@ -423,8 +435,38 @@ function websites_directories_popup(){
 	$boot->set_field("hostweb", "{website}", $ligne["hostweb"],array("TOOLTIP"=>"{nginx_website_dir_explain}"));
 	$boot->set_list("authenticator", "authenticator", $authrules,$ligne["authenticator"]);
 	$boot->set_list("replaceid", "{replace_rule}", $nginx_replaces,$ligne["replaceid"]);
-	$boot->set_list("cacheid", "{cache}", $nginx_caches,$ligne["cacheid"]);
 	$boot->set_list("cache_peer_id", "{source}", $array,$ligne["cache_peer_id"]);
+	
+	$boot->set_spacertitle("{cache}");
+	
+	$Link_disabled="proxy_buffers,proxy_buffer_size,proxy_cache_min_uses";
+	
+	$boot->set_list("cacheid", "{cache_directory}", $nginx_caches,$ligne["cacheid"]);
+	
+	
+	$boot->set_checkbox("NoCache", "{NoCache}", $ligne["NoCache"],
+			array("TOOLTIP"=>"{NoCache_text}"));
+	
+	
+	
+	$boot->set_checkbox("proxy_buffering", "{proxy_buffering}", $ligne["proxy_buffering"],
+			array("TOOLTIP"=>"{proxy_buffering_text}",
+					));
+	
+	$boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses}", $ligne["proxy_cache_min_uses"],
+			array("TOOLTIP"=>"{proxy_cache_min_uses_text}"));
+	
+	$boot->set_field("proxy_cache_valid", "{proxy_cache_valid} ({minutes})", $ligne["proxy_cache_valid"],
+			array("TOOLTIP"=>"{proxy_cache_valid_text}"));
+		
+	$boot->set_field("proxy_buffers", "{proxy_buffers}", $ligne["proxy_buffers"],
+			array("TOOLTIP"=>"{proxy_buffers_text}"));
+	
+	$boot->set_field("proxy_buffer_size", "{proxy_buffer_size} (k)", $ligne["proxy_buffer_size"],
+			array("TOOLTIP"=>"{proxy_buffer_size_text}"));
+	
+	
+	$boot->set_spacertitle("{bandwidth}");
 	
 	$boot->set_field("limit_rate_after", "{limit_rate_after}  MB", $ligne["limit_rate_after"],
 			array("TOOLTIP"=>"{limit_rate_after_text}"));
@@ -656,6 +698,7 @@ function websites_popup(){
 	$nginx_caches=caches_list();
 	$nginx_pools=pool_list();
 	$nginx_replaces=replace_list();
+	$AsFReeWeb=false;
 	
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	
@@ -694,6 +737,8 @@ function websites_popup(){
 			$q2=new mysql();
 			$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT `useSSL`,`sslcertificate` FROM `freeweb` WHERE `servername`='$servername'","artica_backup"));
 			$ligne["certificate"]=$ligne2["sslcertificate"];
+			$AsFReeWeb=true;
+			$title=$tpl->_ENGINE_parse_body("FreeWeb &laquo;$servername&raquo;");
 		}else{
 			$ligne["cache_peer_id"]=-1;
 		}
@@ -701,7 +746,7 @@ function websites_popup(){
 	
 	
 	$boot->set_formtitle($title);
-	$boot->set_field("port", "{inbound_port}", $ligne["port"]);
+	if(!$AsFReeWeb){$boot->set_field("port", "{inbound_port}", $ligne["port"]);}
 	$boot->set_checkbox("enabled", "{enabled}", $ligne["enabled"],array("DISABLEALL"=>true));
 	$boot->set_checkbox("default_server", "{default_server}", $ligne["default_server"],array("TOOLTIP"=>"{NGINX_DEFAULT_SERVER}"));
 	$boot->set_checkbox("owa", "{protect_owa}", $ligne["owa"]);
@@ -710,7 +755,9 @@ function websites_popup(){
 	$boot->set_list("replaceid", "{replace_rule}", $nginx_replaces,$ligne["replaceid"]);
 	
 	if($servername<>null){
-		$boot->set_formdescription("{certificate}: {$ligne["certificate"]}");
+		if($ligne["certificate"]<>null){
+			$boot->set_formdescription("{certificate}: {$ligne["certificate"]}");
+		}
 	}
 	
 	if($ligne["cache_peer_id"]==0){
@@ -921,18 +968,20 @@ $boot->set_field("proxy_send_timeout", "{proxy_send_timeout} {seconds}", $ligne[
 		array("TOOLTIP"=>"{proxy_send_timeout_text}"));
 
 
-
+$linkd="proxy_cache_valid,proxy_buffers,proxy_buffer_size,proxy_cache_min_uses";
 
 $boot->set_spacertitle("{cache}");
 $boot->set_checkbox("proxy_buffering", "{proxy_buffering}", $ligne["proxy_buffering"],
-		array("TOOLTIP"=>"{proxy_buffering_text}","LINK"=>"proxy_buffers,proxy_buffer_size,proxy_cache_min_uses"));
+		array("TOOLTIP"=>"{proxy_buffering_text}",));
 
 $boot->set_field("proxy_cache_min_uses", "{proxy_cache_min_uses}", $ligne["proxy_cache_min_uses"],
 		array("TOOLTIP"=>"{proxy_cache_min_uses_text}"));
 
-$boot->set_field("proxy_cache_valid", "{proxy_cache_valid}", $ligne["proxy_cache_valid"],
+$boot->set_field("proxy_cache_valid", "{proxy_cache_valid} ({minutes})", $ligne["proxy_cache_valid"],
 		array("TOOLTIP"=>"{proxy_cache_valid_text}"));
 
+if(!preg_match("#([0-9]+)\s+([0-9]+)([a-z]+)#", $ligne["proxy_buffers"])){$ligne["proxy_buffers"]="8 8k";}
+if(!is_numeric($ligne["proxy_buffer_size"])){$ligne["proxy_buffer_size"]=8;}
 
 
 $boot->set_field("proxy_buffers", "{proxy_buffers}", $ligne["proxy_buffers"],
@@ -1169,6 +1218,7 @@ function websites_directories_save(){
 	$revers=new squid_reverse();
 	$_POST["local"]=url_decode_special_tool($_POST["local"]);
 	$q=new mysql_squid_builder();
+	$s=new squid_reverse();
 	if(!$q->FIELD_EXISTS("reverse_dirs","authenticator")){
 		$q->QUERY_SQL("ALTER TABLE `reverse_dirs` ADD `authenticator` INT(10) NOT NULL, ADD INDEX ( `authenticator`)");
 	}
@@ -1286,7 +1336,7 @@ function tabs(){
 	$AdminPrivs=AdminPrivs();
 	$tpl=new templates();
 	
-	$button=$tpl->_ENGINE_parse_body(button("{apply_parameters}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=restart&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
+	
 	if(isset($_GET["subtitle"])){
 		$subtitle=$tpl->_ENGINE_parse_body("<p class=explain>{reverse_proxy_settings_text}</p>");
 	}
@@ -1446,6 +1496,8 @@ function websites_section(){
 	}
 	
 	if(AdminPrivs()){
+		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply_parameters}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=restart&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
+		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{purge_caches}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=purge&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_server}", "Loadjs('$page?website-js=yes&servername=')"));
 	}
 	
@@ -1572,7 +1624,7 @@ function websites_search(){
 	$STATUS=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/nginx.status.acl"));
 	
 	$searchstring=string_to_flexquery("websites-search");
-	
+
 	$sql="SELECT * FROM reverse_www WHERE 1 $searchstring ORDER BY servername LIMIT 0,250";
 	
 	if(!AdminPrivs()){
@@ -1672,9 +1724,12 @@ function websites_search(){
 					if($ligne["cache_peer_id"]==0){$ligne["cache_peer_id"]=-1;}
 				}
 				
+				
+				
 				if(($ligne["ipaddr"]=="127.0.0.1") OR ($ligne["cache_peer_id"]==0)){
 					$jsedit=$boot->trswitch("Loadjs('freeweb.edit.php?hostname=$servername&t=$t')");
 					$certificate_text=null;
+					$explain_text=EXPLAIN_REVERSE($ligne["servername"]);
 					$delete=imgsimple("delete-48.png",null,$DeleteFreeWeb);
 					$jseditS=null;
 					$freewebicon="domain-64.png";
@@ -1682,9 +1737,9 @@ function websites_search(){
 					<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname=$servername&t=$t')\">
 					127.0.0.1:82 (FreeWeb)</a>";
 				}else{
-					
-					if($ligne["port"]>0){$portText=":{$ligne["port"]}";}	
 					$explain_text=EXPLAIN_REVERSE($ligne["servername"]);
+					if($ligne["port"]>0){$portText=":{$ligne["port"]}";}	
+					
 					$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port,OnlyTCP FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
 					
 					$OnlyTCP=$ligne2["OnlyTCP"];
@@ -2846,31 +2901,24 @@ FUNCTION  EXPLAIN_REVERSE($servername){
 	
 	$page=CurrentPageName();
 	$cache_peer_id=$ligne["cache_peer_id"];
-	if($cache_peer_id==0){return;}
-	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port,ForceRedirect,OnlyTCP FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
-	if(!$q->ok){echo "<p class=text-error>$q->mysql_error in ".basename(__FILE__)." line ".__LINE__."</p>";}
-	$ForceRedirect="<br>{ForceRedirectyes_explain_table}";
+	if($cache_peer_id>0){
+		$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT servername,ipaddr,port,ForceRedirect,OnlyTCP FROM reverse_sources WHERE ID='{$ligne["cache_peer_id"]}'"));
+		if(!$q->ok){echo "<p class=text-error>$q->mysql_error in ".basename(__FILE__)." line ".__LINE__."</p>";}
+		$ForceRedirect="<br>{ForceRedirectyes_explain_table}";
+		if($ligne["ForceRedirect"]==0){ $ForceRedirect="<br>{ForceRedirectno_explain_table}"; }
+		if($ligne["ssl"]==1){ $ssl="{proto} (HTTP<b>S</b>) "; }
+		if($ligne["OnlyTCP"]==1){ $ssl="{proto} TCP";$ForceRedirect=null; }
+		$js="Loadjs('$page?js-source=yes&source-id={$ligne["cache_peer_id"]}')";
 	
-	if($ligne["ForceRedirect"]==0){
-		$ForceRedirect="<br>{ForceRedirectno_explain_table}";
+	
+	
+		$exp[]="<div><i style='font-size:12px'>$ssl";
+		if($cache_peer_id>0){
+			$exp[]="{redirect_communications_to}";
+			$exp[]="{$ligne["servername"]} {address} {$ligne["ipaddr"]} {on_port} {$ligne["port"]} id:$cache_peer_id";
+			$exp[]=$ForceRedirect;
+		}
 	}
-	
-	if($ligne["ssl"]==1){
-		$ssl="{proto} (HTTP<b>S</b>) ";
-	}
-
-	
-	if($ligne["OnlyTCP"]==1){
-		$ssl="{proto} TCP";$ForceRedirect=null;
-		
-	}
-	$js="Loadjs('$page?js-source=yes&source-id={$ligne["cache_peer_id"]}')";
-	$exp[]="<div><i style='font-size:12px'>$ssl";
-	$exp[]="{redirect_communications_to}";
-	//$exp[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\">";
-	$exp[]="{$ligne["servername"]} {address} {$ligne["ipaddr"]} {on_port} {$ligne["port"]} id:$cache_peer_id";
-	$exp[]=$ForceRedirect;
-	
 	
 	$sql="SELECT * FROM nginx_exploits WHERE servername='$servername' LIMIT 0,5";
 	$results=$q->QUERY_SQL($sql);
