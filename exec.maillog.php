@@ -18,6 +18,7 @@ events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes cl
 include_once(dirname(__FILE__).'/ressources/class.postfix.maillog.inc');
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.postfix.maillog.inc line: ".__LINE__);
 include_once(dirname(__FILE__).'/ressources/class.amavis.maillog.inc');
+
 events("Memory: ".round(((memory_get_usage()/1024)/1000),2) ." after includes class.amavis.maillog.inc line: ".__LINE__);
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.postfix.builder.inc');
@@ -459,6 +460,12 @@ if(preg_match("#zarafa-dagent.+?Failed to resolve recipient#",$buffer)){return n
 
 if(strpos($buffer, "MGREYSTATS")>0){$md5=md5($buffer);@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/MGREYSTATS/$md5", $buffer);return;}
 
+if(stripos($buffer,"opendkim")>0){
+	include_once(dirname(__FILE__).'/ressources/class.opendkim.maillog.inc');
+	if(parse_opendkim($buffer)){return;}
+}
+
+
 
 
 
@@ -475,16 +482,12 @@ if(preg_match("#warning: SASL authentication problem: unable to open Berkeley db
 		@file_put_contents("/etc/artica-postfix/settings/Daemons/smtpd_sasl_path", "smtpd");
 		shell_exec("{$GLOBALS["postconf_bin_path"]} -e \"smtpd_sasl_path=smtpd\"");
 		shell_exec("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/postfix reload >/dev/null 2>&1 &");
+		@unlink($file);
+		@file_put_contents($file, time());
 		return;
 	}
 }
-// ---------------------------------------------------------------------------------------------------------------
-if(preg_match("#opendkim\[.*?can't load key from\s+(.+?):\s+Permission denied#", $buffer,$re)){
-	$dir=dirname($re[1]);
-	shell_exec("{$GLOBALS["CHOWN"]} -R postfix:postfix $dir >/dev/null 2>&1");
-	shell_exec("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.opendkim.php --perms >/dev/null 2>&1 &");
-	return;
-}
+
 
 // ---------------------------------------------------------------------------------------------------------------
 if(preg_match("#fatal: scan_dir_push: open directory .*?: Permission denied#", $buffer,$re)){
@@ -1177,11 +1180,7 @@ if(preg_match("#postqueue\[.+?fatal: bad string length 0.+?:\s+(.+?)\s+#",$buffe
 	return;
 }
 
-if(preg_match("#opendkim\[([0-9]+)\]:\s+OpenDKIM\s+Filter\s+v(.+?)\s+starting#",$buffer,$re)){
-	events("opendkim start");
-	email_events("Postfix: Plugin OpenDKIM version {$re[2]} successfuly started","OpenDKIM inform\n$buffer\n","postfix");
-	return;	
-}
+
 
 
 if(preg_match("#zarafa-server\[.+?Server shutdown complete.#",$buffer,$re)){
@@ -1372,31 +1371,10 @@ if(preg_match("#smtpd\[.+?NOQUEUE: reject: RCPT from.+?\[(.+?)\]:.+?Recipient ad
 }
 
 
-if(preg_match("#postfix-(.+?)\/smtpd\[.+?warning: connect to Milter service unix:.+?opendkim\.sock: No such file or directory#",$buffer,$re)){
-	events("{$re[1]}::OpenDKIM Failed");
-	$file="/etc/artica-postfix/croned.1/postfix.{$re[1]}.opendkim.error";
-	if(file_time_min($file)>10){
-		email_events("Postfix:{$re[1]}: OpenDKIM socket failed","Postfix claim\n$buffer\nArtica try to restart OpenDKIM and reconfigure {$re[1]} instance.","postfix");
-		shell_exec_maillog("/etc/init.d/artica-postfix restart dkfilter &");
-		shell_exec_maillog("{$GLOBALS["NOHUP_PATH"]} {$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.postfix-multi.php --instance-reconfigure {$re[1]} >/dev/null 2>&1");
-		@unlink($file);
-		file_put_contents($file,"#");		
-	}
-	return;		
-}
 
 
-if(strpos($buffer,"warning: connect to Milter service unix:/var/run/opendkim/opendkim.sock: No such file or directory")>0){
-	events("OpenDKIM Failed");
-	$file="/etc/artica-postfix/croned.1/postfix.opendkim.error";
-	if(file_time_min($file)>10){
-		email_events("Postfix: OpenDKIM socket failed","Postfix claim\n$buffer\nArtica try to restart OpenDKIM.","postfix");
-		shell_exec_maillog("/etc/init.d/artica-postfix restart dkfilter &");
-		@unlink($file);
-		file_put_contents($file,"#");		
-	}
-	return;	
-}
+
+
 
 if(preg_match("#postfix\/smtp.+?connect to\s+(.+?)\[(.+?)\]:([0-9]+):\s+Connection refused#",$buffer,$re)){
 	$md5=md5($re[1]);

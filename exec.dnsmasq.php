@@ -27,6 +27,7 @@ if($GLOBALS['VERBOSE']){echo "Parsing....{$argv[1]}\n";}
 if($argv[1]=="--testresolv"){testsRESOLV();exit;}
 
 
+
 if($argv[1]=="--varrun"){
 	if($GLOBALS['VERBOSE']){echo "Running....{$argv[1]}\n";}
 	varrun();
@@ -88,14 +89,15 @@ function cache_dns_hosts(){
 	@file_put_contents("/etc/dnsmasq.hash.domains",serialize($build_hosts_array));
 }
 
-function cachednshosts_records(){
-	@unlink("/etc/dnsmasq.hosts.cmdline");
+function cachednshosts_records($g){
+	if(!is_array($g)){$g=array();}
 	$build_hosts_array=unserialize(@file_get_contents("/etc/dnsmasq.hash.domains"));
-	$g=array();
+	
 	$q=new mysql_squid_builder();
 	$sql="SELECT * FROM dnsmasq_records";
 	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){return;}
+	if(!$q->ok){return $g;}
+	@unlink("/etc/dnsmasq.hosts.cmdline");
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$ipaddr=trim($ligne["ipaddr"]);
 		$tr=explode(".", $ipaddr);
@@ -120,6 +122,7 @@ function cachednshosts_records(){
 	}
 	if(count($g)>0){@file_put_contents("/etc/dnsmasq.hosts.cmdline",@implode(" ", $g));}
 	@file_put_contents("/etc/dnsmasq.hash.domains",serialize($build_hosts_array));
+	return $g;
 }
 
 function GetGoogleWebsitesList(){
@@ -327,6 +330,7 @@ function start($aspid=false){
 		cache_dns_hosts();
 		$DNsServers=GetDNSSservers();
 		$getdomains=getdomains();
+		
 		$G[]="$Masterbin";
 		$G[]="--local-ttl=3600";
 		$G[]="--conf-file=/etc/dnsmasq.conf";
@@ -379,11 +383,10 @@ function start($aspid=false){
 		}
 		$G[]="--cache-size=10240";
 		$G[]="--log-facility=DAEMON";
-		//$G[]="--log-queries";
 		$domain=getdomains();
 		if($domain<>null){$G[]="$domain";}
 		
-		$cmdline=@implode(" ", $G);
+		
 		
 	}
 	
@@ -430,11 +433,13 @@ function start($aspid=false){
 		$domain=getdomains();
 		if($domain<>null){$G[]="$domain";}
 		
-		$cmdline=@implode(" ", $G);
 		
-		$hosts_records=@file_get_contents("/etc/dnsmasq.hosts.cmdline");
-		if($hosts_records<>null){$cmdline=$cmdline ." ".$hosts_records;}
+		
+		
 	}
+	$G=cachednshosts_records($G);
+	$cmdline=@implode(" ", $G);
+	
 	
 	echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} ".count($G)." token(s)\n";
 	while (list ($num, $val) = each ($G) ){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} token: $val\n";}

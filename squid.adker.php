@@ -198,7 +198,7 @@ function status_kerb(){
 	
 	<tr>
 		<td width=1% valign='top'><img src='$img'></td>
-		<td nowrap style='font-size:18px' valign='top'>$hostname<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.adker.php',true);\" style='color:$textcolor;font-weight:bold;text-decoration:underline'>Active Directory $text</strong></td>
+		<td nowrap style='font-size:18px' valign='top'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.adker.php',true);\" style='color:$textcolor;font-weight:bold;text-decoration:underline'>Active Directory $text</strong></td>
 		<td width=1%>".imgtootltip("refresh-24.png","{refresh}","LoadAjaxTiny('squid-adker-status','squid.adker.php?status=yes&t=squid-adker-status');")."</td>
 	</tr>
 	</tbody>
@@ -478,6 +478,7 @@ function test_results($array){
 		}
 		
 		if(preg_match("#UNSUCCESSFUL#i", $ligne)){$color="#009809;font-weight:bold";}
+		if(preg_match("#invalid credential#i", $ligne)){$color="#009809;font-weight:bold";}
 		if(preg_match("#is OK#", $ligne)){$color="#009809;font-weight:bold";}
 		if(preg_match("#online#", $ligne)){$color="#009809";}
 		if(preg_match("#Could not authenticate user\s+.+?\%(.+?)\s+with plaintext#i",$ligne,$re)){$ligne=str_replace($re[1], "*****", $ligne);}
@@ -1369,6 +1370,12 @@ function settingsSave(){
 	
 	$adhost="{$_POST["WINDOWS_SERVER_NETBIOSNAME"]}.{$_POST["WINDOWS_DNS_SUFFIX"]}";
 	
+	
+	if(strolower($adhost)==strtolower($Myhostname)){
+		echo "Active Directory: $adhost as the same name of this server:$Myhostname\n";return;
+		
+	}
+	
 	if($_POST["ADNETIPADDR"]<>null){
 		$ipaddrZ=explode(".",$_POST["ADNETIPADDR"]);
 		while (list ($num, $a) = each ($ipaddrZ) ){
@@ -1384,6 +1391,12 @@ function settingsSave(){
 			if($ipClass->isValid($resolved)){$_POST["UseADAsNameServer"]=1;}
 		}
 	}
+	
+
+	
+	
+	
+	
 	
 	$sock->SET_INFO("SambaBindInterface", $_POST["SambaBindInterface"]);
 	$sock->SET_INFO("KerbAuthDisableNormalizeName", $_POST["KerbAuthDisableNormalizeName"]);
@@ -1401,6 +1414,10 @@ function settingsSave(){
 	$ArrayKerbAuthInfos=unserialize(base64_decode($sock->GET_INFO("KerbAuthInfos")));
 	while (list ($num, $ligne) = each ($_POST) ){$ArrayKerbAuthInfos[$num]=$ligne;}
 	$sock->SaveConfigFile(base64_encode(serialize($ArrayKerbAuthInfos)), "KerbAuthInfos");
+	
+	
+	
+	
 	
 		
 	if($_POST["UseADAsNameServer"]==1){
@@ -1426,6 +1443,12 @@ function settingsSave(){
 			echo $tpl->javascript_parse_text("{error}: {unable_to_resolve} Active Directory: $adhost",1);
 			return;
 		}
+		
+		if($resolved=="127.0.0.1"){
+			echo $tpl->javascript_parse_text("{error}: $adhost lookup to 127.0.0.1 !\n";
+			return;
+		}
+		
 		
 	}
 	

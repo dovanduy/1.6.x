@@ -36,7 +36,7 @@ mais il c'est assez proche de la s&eacute;mantique de Windows pour la plupart de
 <acl_group_control_text>Seulement le propri&eacute;taire ou le super-utilisateur  peuvent modifier les permissions ACL d'un fichier ou d'un r&eacute;pertoire.[br]Ce param&egrave;tre &eacute;crase cette r&egrave;gle et peut autoriser le groupe [b]primaire[/b] &agrave; modifier les ACls.Cela permet la d&eacute;l&eacute;gation sur un objet et dans la hi&eacute;rarchie des r&eacute;pertoires contenus dans le m&ecirc;me comportement que sur Windows</acl_group_control_text>
 <acl_samba_not>Votre serveur Samba ne supporte pas les ACLs, vous pouvez les utiliser mais ils ne seront pas traduits par les partages Windows.</acl_samba_not>
 <action>action</action>
-<actions>actions</actions>
+<actions>Actions</actions>
 <ActionsGroup>Actions sur le groupe</ActionsGroup>
 <ActionsGroupDESC>Actions effectu&eacute;es lors de l'arriv&eacute;e des messages</ActionsGroupDESC>
 <action_auditd_suspend>Suspendre l'&eacute;criture des logs</action_auditd_suspend>

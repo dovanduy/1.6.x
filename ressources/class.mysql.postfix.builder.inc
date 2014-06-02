@@ -38,7 +38,10 @@ class mysql_postfix_builder{
 	
 	
 	public function DUMP_TABLE($tablename){
-		$directory="/home/backup/postfix/$this->database";
+		$sock=new sockets();
+		$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+		if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
+		$directory="$BackupMaxDaysDir/$this->database";
 		$target_file="$directory/$tablename.sql";
 		@mkdir($directory,0755,true);
 		$unix=new unix();

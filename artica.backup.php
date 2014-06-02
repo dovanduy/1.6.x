@@ -37,6 +37,7 @@ function tabs(){
 	$array["backup"]="{backup}";
 	$array["schedule"]="{schedule}";
 	$array["restore"]="{restore}";
+	$array["InstantLDAPBackup"]="Instant LDAP Restore";
 	$array["help"]="{help}";
 
 	$t=time();
@@ -59,6 +60,11 @@ function tabs(){
 				continue;
 
 				}
+				
+		if($num=="InstantLDAPBackup"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"artica.instantLdapRestore.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
+			continue;
+		}				
 
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 	}

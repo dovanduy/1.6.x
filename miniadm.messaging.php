@@ -62,6 +62,7 @@ function content(){
 
 
 function messaging_left(){
+	if(!isset($_SESSION["POSTFIX_SERVERS"])){$_SESSION["POSTFIX_SERVERS"]=array();}
 	$sock=new sockets();
 	$users=new usersMenus();
 	$tpl=new templates();

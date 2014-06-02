@@ -49,7 +49,7 @@ function find($pattern){
 	$unix=new unix();
 	$sock=new sockets();
 	$BackupMailLogPath=$sock->GET_INFO("BackupMailLogPath");
-	if($BackupMailLogPath==null){$BackupMailLogPath="/home/maillog-backup";}
+	if($BackupMailLogPath==null){$BackupMailLogPath="/home/logrotate_backup";}
 	if($GLOBALS["VERBOSE"]){echo "BackupMailLogPath=$BackupMailLogPath\n";}
 	$filecache="$BackupMailLogPath/$md5Pattern.search";
 	
@@ -134,15 +134,15 @@ function logrotate(){
 	$BackupMailLogMaxTimeCompressed=$sock->GET_INFO("BackupMailLogMaxTimeCompressed");
 	
 	if(!is_numeric($BackupMailLogMaxTimeCompressed)){$BackupMailLogMaxTimeCompressed=10080;}
-	if($BackupMailLogPath==null){$BackupMailLogPath="/home/maillog-backup";}
+	if($BackupMailLogPath==null){$BackupMailLogPath="/home/logrotate_backup";}
 	$du=$unix->find_program("du");
 	$gzip=$unix->find_program("gzip");
 	
 
 	
-	@mkdir("$BackupMailLogPath/compressed",true,660);
-	if(!is_dir("$BackupMailLogPath/compressed")){
-		$unix->send_email_events("PostFinder:Error while creating $BackupMailLogPath/compressed");
+	@mkdir("$BackupMailLogPath",true,660);
+	if(!is_dir("$BackupMailLogPath")){
+		$unix->send_email_events("PostFinder:Error while creating $BackupMailLogPath");
 		return;
 	}
 	
@@ -154,7 +154,7 @@ function logrotate(){
 		$basename=basename($filename);
 		if($GLOBALS["VERBOSE"]){echo "$basename: $timefile minutes (need $BackupMailLogMaxTimeCompressed minutes)\n";}
 		if($timefile>$BackupMailLogMaxTimeCompressed){
-			$targetgzip="$BackupMailLogPath/compressed/$basename.gz";
+			$targetgzip="$BackupMailLogPath/$basename.gz";
 			$cmd=trim("$nice$gzip -c $filename >$targetgzip");
 			if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
 			$time=time();

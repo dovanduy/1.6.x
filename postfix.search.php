@@ -615,7 +615,7 @@ function parameters(){
 	$BackupMailLogPath=$sock->GET_INFO("BackupMailLogPath");
 	$BackupMailLogMaxTimeCompressed=$sock->GET_INFO("BackupMailLogMaxTimeCompressed");
 	if(!is_numeric($BackupMailLogMaxTimeCompressed)){$BackupMailLogMaxTimeCompressed=10080;}
-	if($BackupMailLogPath==null){$BackupMailLogPath="/home/maillog-backup";}	
+	if($BackupMailLogPath==null){$BackupMailLogPath="/home/logrotate_backup";}	
 	
 	$times[10080]="7 {days}";
 	$times[14400]="10 {days}";

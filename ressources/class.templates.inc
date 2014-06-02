@@ -2733,7 +2733,7 @@ return "
   <b class=\"RLightGrey5\" id ='$id" . "_5'></b></b>
 
   <div class=\"RLightGreyfg\" style='padding:8px;'  id ='$id" . "_11'>
-   			$left$text
+   			$text
   </div>
 
   <b class=\"RLightGrey\" id ='$id" . "_0'>
@@ -3645,6 +3645,8 @@ function paragraph_youtube($title,$uri){
 	
 function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="210",$height=null,$nowrap=0,$float=false,$nojs=false){
 	$MINIADM=false;
+	if(!isset($GLOBALS["ICON_FAMILY"])){$GLOBALS["ICON_FAMILY"]=null;}
+	$lang=null;
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if($_COOKIE["MINIADM"]=="YES"){$MINIADM=true;}	
 	$styleFloat='';
@@ -3668,7 +3670,7 @@ function Paragraphe($img,$title,$text,$link=null,$tips="go_to_section",$width="2
 	if($uid==-100){$uid="RootMaster";}
 	if(!isset($_COOKIE["DisableToolTips"])){$_COOKIE["DisableToolTips"]=0;}
 	if($nowrap==0){$text=str_replace("'", "`", $text);}
-	
+	$next_image=null;
 	
 	if(!$nowrap==0){
 		if(!$GLOBALS["EXECUTED_AS_ROOT"]){
@@ -6252,6 +6254,7 @@ function CompileTr4($array,$noform=false,$title=null,$center=false){
 function CompileTr3($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}
 	if(count($array)==0){return null;}
+	$classform=null;
 	if(!$noform){$classform="class=form";}
 	$tdcenter=null;
 	if($center){$tdcenter=" align='center' ";}

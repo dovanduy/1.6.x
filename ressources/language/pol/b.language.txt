@@ -4232,6 +4232,7 @@ Do you want to carry out this operation ?
  the [b]If-Modified-Since headers[/b]. 
 The use of this option is useful only when the [b]Last-Modified[/b] header is present.
 </reload-into-ims>
+<reloading>Reloading</reloading>
 <reloading_proxy_service>Reloading Proxy service</reloading_proxy_service>
 <reloading_service>Reloading service</reloading_service>
 <reload_into_ims>Reload redirected to cache</reload_into_ims>

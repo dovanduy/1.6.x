@@ -366,7 +366,7 @@ stats_admin_events(2,"48%) Recategorize.... took:" .$unix->distanceOfTimeInWords
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Sync categories",49);
+percentage("Sync categories ".date("H:i:s"),49);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --sync-categories --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"49%) Recategorize.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }

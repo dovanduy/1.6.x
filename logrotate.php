@@ -551,6 +551,10 @@ function settings_popup(){
 	$SystemLogsPath=$sock->GET_INFO("SystemLogsPath");
 	$BackupMaxDays=$sock->GET_INFO("BackupMaxDays");
 	$BackupMaxDaysDir=$sock->GET_INFO("BackupMaxDaysDir");
+	$BackupMaxDaysAccess=$sock->GET_INFO("BackupMaxDaysAccess");
+	
+	
+	
 	$LogsRotateDeleteSize=$sock->GET_INFO("LogsRotateDeleteSize");
 	$LogsRotateRemoveApacheMaxSize=$sock->GET_INFO("LogsRotateRemoveApacheMaxSize");
 	if(!is_numeric($LogsRotateRemoveApacheMaxSize)){$LogsRotateRemoveApacheMaxSize=50;}
@@ -571,7 +575,7 @@ function settings_popup(){
 	if($LogRotatePath==null){$LogRotatePath="/home/logrotate";}
 	if($BackupMaxDaysDir==null){$BackupMaxDaysDir="/home/logrotate_backup";}
 	if(!is_numeric($LogsRotateDeleteSize)){$LogsRotateDeleteSize=5000;}
-	
+	if(!is_numeric($BackupMaxDaysAccess)){$BackupMaxDaysAccess=365;}
 
 	
 	
@@ -622,7 +626,14 @@ function settings_popup(){
 		<td class=legend style='font-size:14px'>{backup_folder}:</td>
 		<td style='font-size:14px;'>". Field_text("BackupMaxDaysDir",$BackupMaxDaysDir,"font-size:14px;width:220px")."</td>
 		<td>". button("{browse}..","Loadjs('SambaBrowse.php?no-shares=yes&field=BackupMaxDaysDir')",12)."</td>
-	</tr>				
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:14px'>{max_storage_days_accesses}:</td>
+		<td style='font-size:14px;'>". Field_text("BackupMaxDaysAccess",$BackupMaxDaysAccess,"font-size:14px;width:120px")."&nbsp;{days}</td>
+		<td>&nbsp;</td>
+	</tr>
+				
+				
 				
 	<tr>
 		<td colspan=3 align=right><hr>". button("{apply}", "SaveRotateOptions()",16)."</td>
@@ -663,6 +674,7 @@ function settings_popup(){
 	  	
 	  	
 	  	
+	  	XHR.appendData('BackupMaxDaysAccess',document.getElementById('BackupMaxDaysAccess').value);
 	  	XHR.appendData('LogsRotateDefaultSizeRotation',document.getElementById('LogsRotateDefaultSizeRotation').value);
 	  	XHR.appendData('SystemLogsPath',document.getElementById('SystemLogsPath').value);
 	  	XHR.appendData('BackupMaxDays',document.getElementById('BackupMaxDays').value);
@@ -1590,6 +1602,9 @@ var xNext$tt= function (obj) {
 	
 function remote_nas_save(){
 	$sock=new sockets();
+	
+	
+	
 	
 	if(isset($_POST["SystemLogsPath"])){$_POST["SystemLogsPath"]=url_decode_special_tool($_POST["SystemLogsPath"]);}
 	if(isset($_POST["BackupMaxDaysDir"])){$_POST["BackupMaxDaysDir"]=url_decode_special_tool($_POST["BackupMaxDaysDir"]);}

@@ -106,6 +106,7 @@ function tabs(){
 	$tpl=new templates();
 	$array["byday"]='{byday}';
 	$array["byMonth"]='{byMonth}';
+	$fontsize=18;
 	while (list ($num, $ligne) = each ($array) ){
 			
 		$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
@@ -142,6 +143,7 @@ function table_bydays(){
 	$users=new usersMenus();
 	$TB_HEIGHT=500;
 	$TB_WIDTH=710;
+	$byMonth=null;
 	$from=$tpl->_ENGINE_parse_body("{sender}");
 	$subject=$tpl->_ENGINE_parse_body("{subject}");
 	$date=$tpl->_ENGINE_parse_body("{date}");
@@ -222,7 +224,7 @@ function Chooseday$t(){
 function MessageID_resend_popup(){
 	$tpl=new templates();
 	$q=new mysql_mailarchive_builder();
-	$sql="SELECT mailto,mailfrom,message_size,original_messageid,zDate FROM `{$_GET["table"]}` WHERE MessageID='{$_GET["MessageID-resend-popup"]}'";
+	$sql="SELECT mailto,subject,mailfrom,message_size,original_messageid,zDate FROM `{$_GET["table"]}` WHERE MessageID='{$_GET["MessageID-resend-popup"]}'";
 	$ligne=@mysql_fetch_array($q->QUERY_SQL($sql));
 	$subkect=mime_decode($ligne["subject"]);
 	$page=CurrentPageName();
@@ -352,7 +354,7 @@ function table_bydays_items(){
 			while (list ($num, $tablez) = each ($tm) ){$rz[]="(SELECT COUNT(*) as TCOUNT FROM $tablez WHERE 1 $FORCE_FILTER)";}
 			$sql="SELECT SUM(TCOUNT) as TCOUNT as FROM (".@implode(" UNION ", $rz).") as t";
 		}	
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		if(!$q->ok){json_error_show($q->mysql_error);}	
 		$total = $ligne["TCOUNT"];
 	}
@@ -374,7 +376,7 @@ function table_bydays_items(){
 		}	
 	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
-	$results = $q->QUERY_SQL($sql,$database);
+	$results = $q->QUERY_SQL($sql);
 	
 	if(!$q->ok){json_error_show($q->mysql_error);}	
 	$data = array();
@@ -387,6 +389,7 @@ function table_bydays_items(){
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$color=null;
 		$MessageID=$ligne["MessageID"] ;
 		$time=strtotime($ligne["zDate"]);
 		$zDate=date("H:i:s",$time);

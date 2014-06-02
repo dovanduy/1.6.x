@@ -142,7 +142,7 @@ function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?build-whitelist=yes");
+	$sock->getFrameWork("squid.php?build-whitelist=yes");
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$text=$tpl->_ENGINE_parse_body("{please_wait_preparing_settings}...");

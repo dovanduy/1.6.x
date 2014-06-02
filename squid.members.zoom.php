@@ -563,9 +563,21 @@ function where_popup(){
 	$tpl=new templates();		
 	$field=$_GET["field"];
 	$value=$_GET["value"];	
-	$q=new mysql_squid_builder();
 	$month_table="quotamonth_".date("Ym");
 	$month_text=date("{F}");
+	$q=new mysql_squid_builder();
+	if(isset($_GET["table"])){
+		
+		$xtime=$q->TIME_FROM_DAY_TABLE($_GET["table"]);
+		$month_table="quotamonth_".date("Ym",$xtime);
+		$month_text=date("{F}",$xtime);
+		
+	}
+
+	
+	
+	
+	
 	if($q->COUNT_ROWS($month_table)==0){
 		$month_text=date("{F}",strtotime('first day of previous month'));
 		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
@@ -654,12 +666,17 @@ function where_search(){
 	$q=new mysql_squid_builder();
 	$month_table="quotamonth_".date("Ym");
 	$month_text=date("{F}");
-	if($q->COUNT_ROWS($month_table)==0){
-		$month_text=date("{F}",strtotime('first day of previous month'));
-		$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
+	
+	if(isset($_GET["table"])){
+		$month_table=$_GET["table"];
+	}else{
+	
+		if($q->COUNT_ROWS($month_table)==0){
+			$month_text=date("{F}",strtotime('first day of previous month'));
+			$month_table="quotamonth_".date("Ym",strtotime('first day of previous month'));
+		}
+		
 	}
-	
-	
 	
 	$table="(SELECT familysite,{$_GET["field"]},SUM(size) as size FROM $month_table
 	GROUP BY familysite,{$_GET["field"]} HAVING {$_GET["field"]}='{$_GET["value"]}') as t";

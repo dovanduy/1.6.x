@@ -1233,24 +1233,43 @@ function FreeWebLeftMenuSave(){
 }
 
 function delete(){
+	include_once(dirname(__FILE__)."/ressources/class.squid.reverse.inc");
 	$tpl=new templates();
 	$servername=$_GET["delete-servername"];
 	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DELETE FROM reverse_www WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$q->QUERY_SQL("DELETE FROM reverse_privs WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$q->QUERY_SQL("DELETE FROM nginx_replace_www WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
 	
-	$q->QUERY_SQL("DELETE FROM nginx_exploits_fw WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if(!$q->TABLE_EXISTS("reverse_www")){
+		$nginx=new squid_reverse();
+	}
 	
-	$q->QUERY_SQL("DELETE FROM nginx_exploits WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
+	if($q->TABLE_EXISTS("reverse_www")){
+		$q->QUERY_SQL("DELETE FROM reverse_www WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
 	
+	if($q->TABLE_EXISTS("reverse_privs")){
+		$q->QUERY_SQL("DELETE FROM reverse_privs WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	if($q->TABLE_EXISTS("nginx_replace_www")){
+		$q->QUERY_SQL("DELETE FROM nginx_replace_www WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	if($q->TABLE_EXISTS("nginx_aliases")){
+		$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	
+	if($q->TABLE_EXISTS("nginx_exploits_fw")){
+		$q->QUERY_SQL("DELETE FROM nginx_exploits_fw WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
+	if($q->TABLE_EXISTS("nginx_exploits")){	
+		$q->QUERY_SQL("DELETE FROM nginx_exploits WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+	}
 
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	

@@ -338,7 +338,9 @@ function start($aspid=false){
 	$f[]="-x /etc/opendkim.conf";
 	$f[]="-u postfix";
 	$f[]="-P {$GLOBALS["PID_FILE"]}";
-
+	
+	@unlink("/var/run/opendkim/opendkim.sock");
+	@mkdir("/var/run/opendkim",0755,true);
 	$unix->chown_func("postfix", "postfix","/var/run/opendkim");
 	
 

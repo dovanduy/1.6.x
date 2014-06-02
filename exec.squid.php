@@ -914,7 +914,7 @@ function urlrewriteaccessdeny(){
 			$website=trim(strtolower($website));
 			if($website==null){continue;}
 			$website=$acl->dstdomain_parse($website);
-			$url_rewrite_program[]=$website;
+			$url_rewrite_program[]=".$website";
 		}
 	
 	}

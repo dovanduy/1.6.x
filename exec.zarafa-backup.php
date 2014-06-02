@@ -45,6 +45,7 @@ function start(){
 	
 	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
 	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	if(!isset($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
 	if(!is_numeric($ZarafaBackupParams["DELETE_OLD_BACKUPS"])){$ZarafaBackupParams["DELETE_OLD_BACKUPS"]=1;}
 	if(!is_numeric($ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"])){$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"]=10;}
 		
@@ -187,7 +188,7 @@ $f[]="# Mysql Credentials";
 if($ZarafaDedicateMySQLServer==0){
 $f[]="MyUSER=\"$q->mysql_admin\"";
 $f[]="MyPASS=\"$q->mysql_password\"";
-$f[]="MyHOST=\"$q->mysql_server\"";
+$f[]="MyHOST=\"-h $q->mysql_server\"";
 }else{
 	$f[]="MyUSER=\"root\"";
 }
@@ -300,10 +301,10 @@ $f[]="	# do all inone job in pipe,";
 $f[]="	# connect to mysql using mysqldump for select mysql database";
 $f[]="	# and pipe it out to gz file in backup dir :)";
 $f[]="		if [ \$NO_PASS -eq 1 ]; then";
-$f[]="        \$MYSQLDUMP \$DUMP_OPTS -u \$MyUSER -h \$MyHOST \$db | \$GZIP -9 > \"\$FILE.gz\"";
+$f[]="        \$MYSQLDUMP \$DUMP_OPTS -u \$MyUSER \$MyHOST \$db | \$GZIP -9 > \"\$FILE.gz\"";
 $f[]="      fi";
 $f[]="		if [ \$NO_PASS -eq 0 ]; then";
-$f[]="        \$MYSQLDUMP \$DUMP_OPTS -u \$MyUSER -h \$MyHOST -p\$MyPASS \$db | \$GZIP -9 > \"\$FILE.gz\"";
+$f[]="        \$MYSQLDUMP \$DUMP_OPTS -u \$MyUSER \$MyHOST -p\$MyPASS \$db | \$GZIP -9 > \"\$FILE.gz\"";
 $f[]="      fi";
 $f[]="        ERR=\$?";
 $f[]="        if [ \$ERR != 0 ]; then";

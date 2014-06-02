@@ -1781,16 +1781,7 @@ function routes_main(){
 			}
 			
 			if($SourceBasedRouting==1){
-				$table=alphaToNum($eth);
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip route flush table $table";
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule del table $table";
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule add from {$ligne["IPADDR"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-				if($CDIR<>null){
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route del $CDIR  dev ".$NetBuilder->NicToOther($eth);
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add throw $CDIR table $table";
-				}
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
+				routes_source_add($NetBuilder->NicToOther($eth),$ligne["IPADDR"],$ligne["GATEWAY"],$CDIR,__LINE__);
 			}
 			
 		}
@@ -1821,16 +1812,7 @@ function routes_main(){
 			}
 			
 			if($SourceBasedRouting==1){
-				$table=alphaToNum($eth);
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip route flush table $table";
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule del table $table";
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule add from $nic->IPADDR dev ".$NetBuilder->NicToOther($eth)." table $table";
-				if($CDIR<>null){
-						$GLOBALS["SCRIPTS_ROUTES"][]="$ip route del $CDIR  dev ".$NetBuilder->NicToOther($eth);
-						$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add throw $CDIR table $table";
-				}
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-				$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
+				routes_source_add($NetBuilder->NicToOther($eth),$nic->IPADDR,$nic->GATEWAY,$CDIR,__LINE__);
 			}
 				
 		}
@@ -1897,17 +1879,7 @@ function routes_main(){
 				}
 				
 				if($SourceBasedRouting==1){
-					$table=alphaToNum($eth);
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route flush table $table";
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule del table $table";
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule add from $IPADDR dev ".$NetBuilder->NicToOther($eth)." table $table";
-					if($CDIR<>null){
-						$GLOBALS["SCRIPTS_ROUTES"][]="$ip route del $CDIR  dev ".$NetBuilder->NicToOther($eth);
-						$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add throw $CDIR table $table";
-					}
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-					
+					routes_source_add($NetBuilder->NicToOther($eth),$IPADDR,$ligne["GATEWAY"],$CDIR,__LINE__);
 				}	
 				$GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]]=true;
 				
@@ -1951,18 +1923,9 @@ function routes_main(){
 				}
 				
 				if($SourceBasedRouting==1){
-					$table=alphaToNum($eth);
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route flush table $table";
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule del table $table";
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule add from $IPADDR dev ".$NetBuilder->NicToOther($eth)." table $table";
-					if($CDIR<>null){
-						$GLOBALS["SCRIPTS_ROUTES"][]="$ip route del $CDIR  dev ".$NetBuilder->NicToOther($eth);
-						$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add throw $CDIR table $table";
-					}
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-					$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add default via {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth)." table $table";
-							
-				}				
+					
+					routes_source_add($NetBuilder->NicToOther($eth),$IPADDR,$ligne["GATEWAY"],$CDIR,__LINE__);
+				}			
 				
 				
 			}
@@ -2036,6 +1999,50 @@ function routes_main(){
 	
 }
 
+function routes_source_add($eth,$ipsrc,$gateway,$network,$calledByLine){
+	$unix=new unix();
+		if(!isset($GLOBALS["moprobebin"])){$GLOBALS["moprobebin"]=$unix->find_program("modprobe");}
+		if(!isset($GLOBALS["vconfigbin"])){$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");}
+		if(!isset($GLOBALS["ifconfig"])){$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");}
+		if(!isset($GLOBALS["ipbin"])){$GLOBALS["ipbin"]=$unix->find_program("ip");}
+		if(!isset($GLOBALS["echobin"])){$GLOBALS["echobin"]=$unix->find_program("echo");}
+		if(!isset($GLOBALS["sysctl"])){$GLOBALS["sysctl"]=$unix->find_program("sysctl");}
+
+	
+	if($gateway=="0.0.0.0"){$gateway=null;}
+	
+	$ip=$GLOBALS["ipbin"];
+	$echo =$GLOBALS["echobin"];
+	$table=alphaToNum($eth);
+	$sysctl=$GLOBALS["sysctl"];
+	if(!isset($GLOBALS["net.ipv4.conf.all.arp_filter"])){
+		$GLOBALS["SCRIPTS_ROUTES"][]="$sysctl -w net.ipv4.conf.all.arp_filter=1";
+		$GLOBALS["net.ipv4.conf.all.arp_filter"]=true;
+	}
+	
+	
+	
+	$GLOBALS["SCRIPTS_ROUTES"][]="$echo \"*** TABLE $table $eth/$ipsrc/$network go to $gateway ****\"";
+	$GLOBALS["SCRIPTS_ROUTES"][]="# Called by line $calledByLine routes_source_add() line ".__LINE__;
+	$GLOBALS["SCRIPTS_ROUTES"][]="$ip route flush table $table";
+	$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule del dev $eth";
+	$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule del from $ipsrc";
+	$GLOBALS["SCRIPTS_ROUTES"][]="$ip rule add from $ipsrc table $table";
+	if($network<>null){
+		$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add $network dev $eth src $ipsrc table $table";
+	}
+	
+	if($gateway<>null){
+		$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add default via $gateway table $table";
+	}
+	
+	if($network<>null){
+		$GLOBALS["SCRIPTS_ROUTES"][]="$ip ip route add $network dev $eth src $ipsrc";
+	}
+	
+}
+
+
 function routes_main_network($ligne){
 	$NetBuilder=new system_nic();
 	$NetBuilder->LoadTools();
@@ -2058,7 +2065,7 @@ function routes_main_network($ligne){
 	
 	if($ligne["SourceBasedRouting"]==1){
 		$table=alphaToNum($ligne["nic"]);
-		$f[]="{$GLOBALS["ipbin"]} add throw $pattern";
+		$f[]="{$GLOBALS["ipbin"]} add $pattern";
 		if($gateway<>null){ $f[]="via $gateway"; }
 		$f[]="table $table";
 		if($metric>0){ $f[]="metric $metric"; }
@@ -2115,7 +2122,7 @@ function routes_main_host($ligne){
 	
 	if($ligne["SourceBasedRouting"]==1){
 		$table=alphaToNum($ligne["nic"]);
-		$f[]="{$GLOBALS["ipbin"]} add throw $pattern";
+		$f[]="{$GLOBALS["ipbin"]} add $pattern";
 		if($gateway<>null){ $f[]="via $gateway"; }
 		$f[]="table $table";
 		if($metric>0){ $f[]="metric $metric"; }

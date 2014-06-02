@@ -488,7 +488,7 @@ function run_msktutils(){
 	
 }
 
-function progress_logs($percent,$title,$log,$line=0){
+function progress_logs($percent,$title,$log=null,$line=0){
 	
 	$date=date("H:i:s");
 	if(!isset($GLOBALS["LAST_PROGRESS"])){$GLOBALS["LAST_PROGRESS"]=0;}

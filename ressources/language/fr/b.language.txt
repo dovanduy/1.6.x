@@ -3634,6 +3634,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</reinstall_software_ask>
 <released_on>Disponible le</released_on>
 <reload-into-ims>Force le proxy &agrave; convertir l'ent&ecirc;te [b]no-cache[/b] vers l'ent&ecirc;te [b]If-Modified-Since[/b].[br]
 L'utilisation de cette option est utile  uniquement si lent&ecirc;te [b]Last-Modified[/b] est &eacute;mise par le site Web.</reload-into-ims>
+<reloading>Rechargement</reloading>
 <reloading_proxy_service>Rechargement du service Proxy</reloading_proxy_service>
 <reloading_service>Rafra&icirc;chissement du service</reloading_service>
 <reload_into_ims>Rechargement redirig&eacute; sur le cache</reload_into_ims>

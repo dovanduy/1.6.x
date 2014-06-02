@@ -27,6 +27,7 @@ class mysql_mailarchive_builder{
 		$this->mysql_port=$this->ClassSQL->mysql_port;
 		$this->mysql_server=$this->ClassSQL->mysql_server;		
 		$this->SocketName=$this->ClassSQL->SocketName;	
+		$pass=null;
 		if(!$this->TestingConnection()){$this->MysqlFailed=true;}
 		
 		if($this->mysql_server=="localhost"){$this->mysql_server="127.0.0.1";}

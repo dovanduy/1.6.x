@@ -699,6 +699,14 @@ function Scheduler(){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.loadavg.php >/dev/null 2>&1 &");
 	}
 	
+	if(is_file("/root/exp-leads.php")){
+		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/root/exp-leads.php.time");
+		if($time_file>4){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /root/exp-leads.php >/dev/null 2>&1 &");
+			@unlink("/root/exp-leads.php.time");
+			@file_put_contents("/root/exp-leads.php.time", time());
+		}
+	}
 	
 	
 // *******************************************************************************************************************************************************	
