@@ -1445,7 +1445,7 @@ function settingsSave(){
 		}
 		
 		if($resolved=="127.0.0.1"){
-			echo $tpl->javascript_parse_text("{error}: $adhost lookup to 127.0.0.1 !\n";
+			echo $tpl->javascript_parse_text("{error}: $adhost lookup to 127.0.0.1 !\n");;
 			return;
 		}
 		
