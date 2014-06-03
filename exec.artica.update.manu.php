@@ -33,6 +33,7 @@ function install($filename){
 	
 	if (preg_match('#([0-9\.]+)_([0-9\.]+)-([0-9]+).tgz$#i',$filename,$r)){
 		$CUR_BRANCH=@file_get_contents("/usr/share/artica-postfix/MAIN_RELEASE");
+		$CUR_BRANCH=trim($CUR_BRANCH);
 		echo "Patch....................: {$r[3]}\n";
 		echo "From.....................: {$r[1]}\n";
 		echo "To.......................: {$r[2]}\n";
