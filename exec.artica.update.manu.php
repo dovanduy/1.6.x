@@ -41,7 +41,7 @@ function install($filename){
 		echo "Current Branch..........: $CUR_BRANCH\n";
 		if($CUR_BRANCH<>$r[1]){
 			echo "$CUR_BRANCH != {$r[1]}\n";
-			build_progress("{not_for_current_branch}",110);
+			build_progress("{not_for_current_branch} {requested} {$r[1]}",110);
 			return;
 		}
 		$PATCH_VER=$r[2]." :";
