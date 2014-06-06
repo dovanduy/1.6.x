@@ -1142,6 +1142,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</confirm_import_rules_text>
 <connections_settings_text>Param&egrave;tres de connexion tels que l'adresse d'&eacute;coute, le port d'&eacute;coute...</connections_settings_text>
 <connections_tracking>Surveillance des connexions</connections_tracking>
 <connection_method>M&eacute;thode de connexion</connection_method>
+<connection_timeout>D&eacute;lai MAX de connexion</connection_timeout>
 <connection_type>Type de connexion</connection_type>
 <connect_klms_to_mta>Connecter Kaspersky Mail Security au MTA</connect_klms_to_mta>
 <connect_klms_to_mta_text>Si mis en vert, tous les messages seront transmis par le service MTA en temps r&eacute;el &agrave; Kaspersky Mail Security Suite.[br]Dans ce cas, Kaspersky Mail Security Suite sera en mesure de blocker les messages ind&eacute;sirables et infect&eacute;s.</connect_klms_to_mta_text>
@@ -5029,6 +5030,10 @@ Le cas &eacute;ch&eacute;ant, exemple erreur 500, elle essaiera de red&eacute;ma
 <websites_network_pollution_explain>Ces sites sont consid&eacute;r&eacute;s comme inutiles.[br]Comme les publicit&eacute;s ou les scripts de tracking.</websites_network_pollution_explain>
 <websites_noprod>Sites improductifs</websites_noprod>
 <websites_noprod_explain>Ces sites Web sont consid&eacute;r&eacute;s comme non productifs comme les sites sociaux, de rencontre ou jeux vid&eacute;os...</websites_noprod_explain>
+<website_analysis>Analyse de site</website_analysis>
+<website_tool_explain>Cette section vous permet de v&eacute;rifier si une requ&ecirc;te est correctement r&eacute;cup&eacute;r&eacute;e sans utiliser le service proxy ( en mode direct )</website_tool_explain>
+<website_tool_explain_proxy>Si le serveur Artica doit utiliser un proxy parent pour se connecter sur Internet, donnez les coordonn&eacute;es du proxy sous cette forme:[br]
+172.16.32.1:3128</website_tool_explain_proxy>
 <WebstatisticsByMember>Afficher les statistiques pour chaque membre</WebstatisticsByMember>
 <WebstatisticsByMember_explain>Si activ&eacute;, chaque utilisateur qui se connecte sur cette interface d'administration sera en mesure de visualiser ses propres statistiques d'acc&egrave;s &agrave; Internet.</WebstatisticsByMember_explain>
 <WebStats Tablet>WebStats Tablet</WebStats Tablet>

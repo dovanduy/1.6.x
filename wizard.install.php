@@ -1385,7 +1385,7 @@ function setup_3(){
 	</tr>	
 	</tr>
 		<td class=legend style='font-size:18px'>{organization}:</td>
-		<td>". Field_text("organization",$organization,"font-size:16px;width:220px")."</td>
+		<td>". Field_text("organization",$organization,"font-size:18px;width:220px")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:18px'>{smtp_domain}:</td>

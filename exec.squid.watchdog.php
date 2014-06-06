@@ -1117,7 +1117,6 @@ function reload_squid($aspid=false){
 	if(!$GLOBALS["FORCE"]){
 		if($TimeMin<$SquidCacheReloadTTL){
 			build_progress_reload("Aborted need at least {$SquidCacheReloadTTL}mn",100);
-			squid_admin_mysql(2, "Reload squid PID $pid aborted", "need at least {$SquidCacheReloadTTL}mn current {$TimeMin}mn");
 			echo "Reloading.......: ".date("H:i:s")." Squid-cache, Reload squid PID $pid aborted, need at least {$SquidCacheReloadTTL}mn current {$TimeMin}mn\n";
 			return;
 		}

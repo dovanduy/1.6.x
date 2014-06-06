@@ -2639,10 +2639,9 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 	$t=time();
 	
 	
-	ufdbguard_admin_events("start $category category compilation",__FUNCTION__,__FILE__,__LINE__,"compile");
+	
 	$ufdb=new compile_ufdbguard();
 	$ufdb->compile_category($category);
-	ufdbguard_admin_events("Compile task $category done",__FUNCTION__,__FILE__,__LINE__,"compile");
 	$sock=new sockets();
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
@@ -2664,10 +2663,7 @@ function UFDBGUARD_COMPILE_ALL_CATEGORIES(){
 	if($EnableRemoteStatisticsAppliance==1){return;}
 	if($UseRemoteUfdbguardService==1){return;}		
 	
-	if($EnableRemoteStatisticsAppliance==1){
-		ufdbguard_admin_events("Compilation task aborted this server is a Web statistics client.",__FUNCTION__,__FILE__,__LINE__,"global-compile");
-		return;
-	}	
+	if($EnableRemoteStatisticsAppliance==1){ return; }	
 	
 	
 	$unix=new unix();
@@ -2683,23 +2679,22 @@ function UFDBGUARD_COMPILE_ALL_CATEGORIES(){
 	
 	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
 	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}		
-	ufdbguard_admin_events("start all categories compilation",__FUNCTION__,__FILE__,__LINE__,"global-compile");
 	$q=new mysql_squid_builder();
 	$t=time();
 	$cats=$q->LIST_TABLES_CATEGORIES();
 	$ufdb=new compile_ufdbguard();
 	while (list ($table, $line) = each ($cats) ){
 		$category=$q->tablename_tocat($table);
-		if($category==null){ufdbguard_admin_events("Compilation failed for table $table, unable to determine category",__FUNCTION__,__FILE__,__LINE__,"global-compile");continue;}
+		if($category==null){squid_admin_mysql(1,"Compilation failed for table $table, unable to determine category",__FILE__,__LINE__);continue;}
 		$ufdb->compile_category($category);
 		
 	}
 	
 	$ttook=$unix->distanceOfTimeInWords($t,time(),true);
-	ufdbguard_admin_events("Compilation all categories done ($ttook)",__FUNCTION__,__FILE__,__LINE__,"global-compile");
+	squid_admin_mysql(2,"All personal categories are compiled ($ttook)",@implode("\n", $cats),__FUNCTION__,__FILE__,__LINE__,"global-compile");
 	if($EnableWebProxyStatsAppliance==1){CompressCategories();return;}
-	ufdbguard_admin_events("Service will be reloaded",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-	build_ufdbguard_HUP();	
+	
+	
 }
 
 function CompressCategories(){

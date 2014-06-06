@@ -33,7 +33,7 @@ function build(){
 	@file_put_contents($pidfile, getmypid());
 	progress("{get_system_informations}",30);
 	support_step1();
-	progress("{APP_UFDBGUARD}",35);
+	progress("{APP_UFDBGUARD}",40);
 	$EnableUfdbGuard=intval($sock->EnableUfdbGuard());
 	
 	if($EnableUfdbGuard==1){
@@ -43,7 +43,7 @@ function build(){
 		}
 	}
 	
-	progress("{get_all_logs}",40);
+	progress("{get_all_logs}",50);
 	support_step2();
 	progress("{get_all_logs}",70);
 	export_tables();
@@ -62,6 +62,7 @@ function support_step1(){
 	$unix=new unix();
 	$ps=$unix->find_program("ps");
 	$df=$unix->find_program("df");
+	$du=$unix->find_program("du");
 	$files[]="/etc/hostname";
 	$files[]="/etc/resolv.conf";
 	$files[]="/usr/share/artica-postfix/ressources/settings.inc";
@@ -86,6 +87,10 @@ function support_step1(){
 	shell_exec("$ps aux >/usr/share/artica-postfix/ressources/support/ps.txt 2>&1");
 	shell_exec("$df -h >/usr/share/artica-postfix/ressources/support/dfh.txt 2>&1");
 
+	progress("{scanning} /var/log {partition}",35);
+	shell_exec("$du -h --max-dep=1 >/usr/share/artica-postfix/ressources/support/var-log-sizes.txt 2>&1");
+	
+	
 	$report=$unix->NETWORK_REPORT();
 	@file_put_contents("/usr/share/artica-postfix/ressources/support/NETWORK_REPORT.txt", $report);
 }

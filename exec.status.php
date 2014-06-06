@@ -99,6 +99,8 @@ if($argv[1]=="--amavisdb"){echo"\n". amavisdb();exit;}
 if($argv[1]=="--xmail"){XMail();exim4();exit;}
 if($argv[1]=="--bwm-ng"){echo bwm_ng();exit;}
 if($argv[1]=="--ntopng"){echo ntopng()."\n".redis_server();exit;}
+if($argv[1]=="--load-stats"){$GLOBALS["VERBOSE"]=true;load_stats();exit;}
+
 
 if($argv[1]=="--boa"){echo"\n". boa();exit;}
 if($argv[1]=="--lighttpd"){echo"\n". lighttpd();exit;}
@@ -10413,6 +10415,7 @@ function shell_exec_time($cmdlineNophp5,$mintime=5){
 }
 
 function shell_exec2($cmdline){
+	if(!isset($GLOBALS["shell_exec2"])){$GLOBALS["shell_exec2"]=0;}
 	$md5=md5($cmdline);
 	$time=date("YmdHi");
 	if(isset($GLOBALS["shell_exec2"][$time][$md5])){

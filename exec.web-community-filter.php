@@ -300,6 +300,7 @@ function CheckLic($array1=array(),$array2=array()){
 	$unix=new unix();
 	$URIBASE=$unix->MAIN_URI();
 	$sock=new sockets();	
+	build_progress("{license_active}: Verify validation...",90);
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($array1));
 	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($array2));
@@ -307,6 +308,7 @@ function CheckLic($array1=array(),$array2=array()){
 
 	if(preg_match("#REGISTRATION_DELETE_NOW#s", $curl->data,$re)){
 		@unlink($WORKPATH);
+		build_progress("{license_invalid}: Verify validation failed...",110);
 		$array1["license_status"]="{license_invalid}";
 		$array1["license_number"]=null;
 		$array1["UNLOCKLIC"]=null;
@@ -544,6 +546,15 @@ function register_lic_kaspersky(){
 	
 }
 
+function build_progress($text,$pourc){
+	$cachefile="/usr/share/artica-postfix/ressources/logs/artica.license.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
 
 function register_lic(){
 	$sock=new sockets();
@@ -556,7 +567,14 @@ function register_lic(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pid=@file_get_contents($pidfile);
-	if($unix->process_exists($pid)){echo "License information: Already executed PID:$pid, die()\n";die();}
+	if($unix->process_exists($pid)){
+		build_progress("License information: Already executed PID:$pid, die()",100);
+		die();
+	}
+	
+	build_progress("Building informations...",10);
+	
+	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
 	$cmdADD=null;
@@ -570,18 +588,27 @@ function register_lic(){
 	
 	$LicenseInfos["COMPANY"]=str_replace("%uFFFD", "é", $LicenseInfos["COMPANY"]);
 	
+	build_progress("Check information {$LicenseInfos["COMPANY"]}",20);
 	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."\n";}
 	$uuid=$unix->GetUniqueID();
 	
-	if($GLOBALS["VERBOSE"]){echo " *************** \n\n UUID : $uuid \n\n ***************\n";}
+	build_progress("Check information $uuid",30);
+	
+	echo " *************** \n\n UUID : $uuid \n\n ***************\n";
 	if($uuid==null){
-		if($GLOBALS["VERBOSE"]){echo "No system ID !\n";}
+		build_progress("No system ID !",110);
 		return;
 	}
 	
-	if(!is_numeric($LicenseInfos["REGISTER"])){echo "License information: server is not registered\n";}
-	if($LicenseInfos["REGISTER"]<>1){echo "License information: server is not registered\n";die();}	
+	if(!is_numeric($LicenseInfos["REGISTER"])){
+		echo "License information: server is not registered\n";
+	}
+	if($LicenseInfos["REGISTER"]<>1){
+		echo "License information: server is not registered\n";
+		build_progress("License information: server is not registered",110);
+		die();
+	}	
 	$LicenseInfos["UUID"]=$uuid;
 
 	
@@ -593,6 +620,9 @@ function register_lic(){
 	if($LicenseInfos["license_number"]=="--"){$LicenseInfos["license_number"]=null;}
 	
 	if(strpos($LicenseInfos["license_number"], "(")>0){$LicenseInfos["license_number"]=null;}
+	
+	echo "License number:{$LicenseInfos["license_number"]}\n";
+	
 	@mkdir($WORKDIR,640,true);
 	
 	
@@ -607,6 +637,7 @@ function register_lic(){
 						$LicenseInfos["TIME"]=time();
 						$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 						if($cmdADD<>null){shell_exec($cmdADD);}
+						build_progress("{license_active}",80);
 						CheckLic($LicenseInfos,$WizardSavedSettings);
 						return;
 					}
@@ -618,17 +649,28 @@ function register_lic(){
 	$unix=new unix();
 	$URIBASE=$unix->MAIN_URI();
 	$verbosed=null;
-	
+	build_progress("Checking license on the cloud server...",40);
+	echo "Contacting $URIBASE\n";
 	$curl=new ccurl("$URIBASE/shalla-orders.php$verbosed",false,null,true);
 	$curl->NoLocalProxy();
 	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=yes;}
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
 	$curl->parms["REGISTER-OLD"]=base64_encode(serialize($WizardSavedSettings));
-	$curl->get();
+	if(!$curl->get()){
+		build_progress("Failed to contact cloud server",110);
+		echo "Error: ".$curl->error."\n";
+		$LicenseInfos["TIME"]=time();
+		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
+		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		return;
+		
+	}
 	
+	build_progress("Cheking license on the cloud server done.",50);
 	if($GLOBALS["VERBOSE"]){echo "***** $curl->data ****\n";}
 	
 	if(preg_match("#REGISTRATION_OK:\[(.+?)\]#s", $curl->data,$re)){
+			build_progress("{waiting_approval} {success}",100);
 			$LicenseInfos["license_status"]="{waiting_approval}";
 			$LicenseInfos["license_number"]=$re[1];
 			$LicenseInfos["TIME"]=time();
@@ -639,8 +681,9 @@ function register_lic(){
 			return;
 	}
 	if(preg_match("#LICENSE_OK:\[(.+?)\]#s", $curl->data,$re)){
-			if($GLOBALS["VERBOSE"]){echo "***** LICENSE_OK ****\n";}
+			echo "***** LICENSE_OK ****\n";
 			@file_put_contents($WORKPATH, "TRUE");
+			build_progress("{license_active} {success}",100);
 			$LicenseInfos["license_status"]="{license_active}";
 			$LicenseInfos["TIME"]=time();
 			$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
@@ -649,34 +692,44 @@ function register_lic(){
 	}
 	if(preg_match("#REGISTRATION_INVALID#s", $curl->data,$re)){
 		@unlink($WORKPATH);
-		if($GLOBALS["VERBOSE"]){echo "***** REGISTRATION_INVALID ****\n";}
-		$LicenseInfos["license_status"]="{license_invalid}";
+		echo "***** REGISTRATION_INVALID ****\n";
+		$LicenseInfos["license_status"]="{community_license}";
 		$LicenseInfos["license_number"]=null;
 		$LicenseInfos["UNLOCKLIC"]=null;
 		$LicenseInfos["TIME"]=time();
+		build_progress("Community Edition - limited...",100);
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 		if($cmdADD<>null){shell_exec($cmdADD);}
+		$unix->Process1(true);
 		return;
 	}	
 
 	if(preg_match("#REGISTRATION_DELETE_NOW#s", $curl->data,$re)){
-		if($GLOBALS["VERBOSE"]){echo "***** REGISTRATION_DELETE_NOW ****\n";}
+		echo "***** REGISTRATION_DELETE_NOW ****\n";
 		@unlink($WORKPATH);
-		$LicenseInfos["license_status"]="{license_invalid}";
+		$LicenseInfos["license_status"]="Community Edition - limited";
 		$LicenseInfos["license_number"]=null;
 		$LicenseInfos["UNLOCKLIC"]=null;
 		$LicenseInfos["TIME"]=time();
+		$unix->Process1(true);
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
+		build_progress("Community Edition - limited",110);
 		return;
 	}	
 		
 	if($curl->error<>null){
 		system_admin_events("License registration failed with error $curl->error", "GetLicense", "license", 0, "license");
 	}
+	
+	
 	if(!is_file($WORKPATH)){
-		if($GLOBALS["VERBOSE"]){echo "***** registration_failed ****\n";}
-		$LicenseInfos["TIME"];
-		$LicenseInfos["license_status"]="{registration_failed} $curl->error";
+		build_progress("{registration_failed} {failed}",110);
+		echo "***** Registration_failed ****\n";
+		$LicenseInfos["TIME"]=time();
+		if($LicenseInfos["license_number"]==null){
+			$LicenseInfos["license_status"]="{registration_failed} $curl->error";
+		}
+		
 		$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
 	}
 	if($cmdADD<>null){shell_exec($cmdADD);}

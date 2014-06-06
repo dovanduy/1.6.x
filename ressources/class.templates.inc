@@ -916,8 +916,10 @@ return "
 
 
 function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=null){
-	
-	$value=trim($value);
+	$jsPressKey=null;
+	$OnClick=null;
+	$OnFocus=null;
+	$OnChange=null;
 	$OnMouseOver=null;
 	$OnMouseOut=null;
 	$size=null;
@@ -955,7 +957,7 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	}	
 	
 	$FocusCss="onfocus=\"this.setAttribute('class','active')\" 
-	onblur=\"this.removeAttribute('class');\" style='$style' $class";
+	onblur=\"this.removeAttribute('class');\" style='$style'";
 	if($_SESSION["MINIADM"]==true){
 		$FocusCss=null;
 	}
@@ -967,7 +969,7 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 		$jsCheck="OnKeyPress=\"$jsCheck\"";
 	}
 	
-	return "$help
+	return "
 	<input type='text' id='$field_name' name='$field_name' $jsAddInside$jsCheck value=\"$defaultvalue\" 
 	style=\"$style;min-width:145px;width:{$width}px\" $OnFocus $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>
 <script>
@@ -6411,7 +6413,7 @@ function json_error_show($error,$indexColumn=0,$full=false){
 	}
 	
 	$cellerrornodata=array('id' => 1,'cell' => $finalArray);		
-	$data['page'] = $page;$data['total'] = 1;$data['rows'][] = $cellerrornodata;echo json_encode($data);
+	$data['page'] = 1;$data['total'] = 1;$data['rows'][] = $cellerrornodata;echo json_encode($data);
 	die();
 	
 	

@@ -12,14 +12,15 @@ if(isset($_GET["support-package-js"])){support_tool_js();exit;}
 if(isset($_GET["support-package-1"])){support_tool_step1();exit;}
 if(isset($_GET["support-package-progress"])){support_tool_progress();exit;}
 if(isset($_GET["support-tool-status"])){support_tool_status();exit;}
+if(isset($_GET["website-tool"])){website_tool();exit;}
 
 if(isset($_GET["request-tool"])){request_tool();exit;}
 if(isset($_GET["request-package-js"])){request_tool_js();exit;}
 if(isset($_GET["request-package-1"])){request_tool_step1();exit;}
 if(isset($_GET["request-package-progress"])){request_tool_progress();exit;}
 if(isset($_GET["request-tool-status"])){request_tool_status();exit;}
-
-
+if(isset($_POST["website-analysis"])){website_tool_post();exit;}
+if(isset($_GET["website-analysis-report"])){website_tool_report();exit;}
 
 tabs();
 
@@ -206,6 +207,7 @@ function tabs(){
 	$users=new usersMenus();
 	$array["support-tool"]='{support_package}';
 	$array["request-tool"]='{request_package}';
+	$array["website-tool"]='{website_analysis}';
 	$array["port-tool"]='{proxy_test_port}';
 	$sock=new sockets();
 	
@@ -328,5 +330,89 @@ echo $tpl->_ENGINE_parse_body($html);
 	
 }
 
+function website_tool(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{build_request_package}");
+	$t=time();
+	$sock=new sockets();
+	$ip=new networking();
+	
+	$ips=$ip->ALL_IPS_GET_ARRAY();
+	$ips[null]="{select}";
+	
+	$array=unserialize(base64_decode($sock->GET_INFO("WebSiteAnalysis")));
+	
+	if(!isset($array["website-analysis"])){$array["website-analysis"]="http://www.articatech.com";}
+	
+	$html="
+	<div style='font-size:32px;margin-bottom:20px' id='title-$t'>{website_analysis}</div>
+	<div class=explain style='font-size:18px'>{website_tool_explain}</div>	
+	<div id='report-$t' style='margin:30px'></div>
+<div style='width:98%' class=form>
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='width:30%;vertical-align:middle;font-size:22px'>{request}:</td>
+			<td style='width:70%;vertical-align:middle;'>
+				". Field_text("requestfield-$t","http://www.artica.fr","font-size:22px;width:80%;margin:10px")."
+			</td>
+		</tr>
+		<tr>
+			<td class=legend style='width:30%;vertical-align:middle;font-size:22px'>{connection_timeout}:</td>
+			<td style='width:70%;vertical-align:top;'>
+				". Field_text("timeout-$t","2","font-size:22px;width:95px;margin:10px")."
+			</td>
+		</tr>
+	<tr>
+		<td class=legend style='font-size:22px'>{forward_address}:</td>
+		<td style='font-size:22px;vertical-align:middle;'>". Field_array_Hash($ips,"address-$t",$array["website-analysis-address"],"style:font-size:22px")."<td>
+	</tr>													
+		<tr>
+			<td class=legend style='width:30%;vertical-align:middle;font-size:22px'>{proxy_address}:</td>
+			<td style='width:70%;vertical-align:top;'>
+				". Field_text("proxy-$t","","font-size:22px;width:80%;margin:10px")."
+			</td>
+		</tr>	
+		<tr><td colspan=2><p style='font-size:14px;text-align:right' class=text-info>{website_tool_explain_proxy}</p></td></tr>				
+	</table>
+	<center style='margin:40px'>". button("{submit}","Submit$t()",32)."</center>
+	</div>	
+<script>
+	var xSubmit$t= function (obj) {
+		var results=obj.responseText;
+		LoadAjax('report-$t','$page?website-analysis-report=yes&t=$t');
+		
+	}
 
 
+	function Submit$t(){
+		var XHR = new XHRConnection();	
+		document.getElementById('report-$t').innerHTML='';
+		XHR.appendData('website-analysis',document.getElementById('requestfield-$t').value);
+		XHR.appendData('website-analysis-proxy',document.getElementById('proxy-$t').value);
+		XHR.appendData('website-analysis-timeout',document.getElementById('timeout-$t').value);
+		XHR.appendData('website-analysis-address',document.getElementById('address-$t').value);
+		XHR.sendAndLoad('$page', 'POST',xSubmit$t);	
+	}
+</script>";
+	
+echo $tpl->_ENGINE_parse_body($html);	
+	
+}
+
+function website_tool_post(){
+	
+	$sock=new sockets();
+	$datas=base64_encode(serialize($_POST));
+	$sock->SaveConfigFile($datas, "WebSiteAnalysis");
+	$sock->getFrameWork("squid.php?WebSiteAnalysis=yes");
+	
+}
+
+function website_tool_report(){
+	
+	echo "<textarea style='width:100%;height:450px;font-family:monospace;
+	overflow:auto;font-size:13px;border:4px solid #CCCCCC;background-color:transparent' 
+	id='c-icap-error-page'>".@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/curl.trace")."</textarea>";
+	
+}

@@ -503,7 +503,7 @@ function quicklinks_main_menu(){
 	if($LicenseInfos["COMPANY"]==null){$LicenseInfos["COMPANY"]=$WizardSavedSettings["company_name"];}
 	
 	
-	$tr[]=paragrapheWin("license-white-64.png","{artica_license}","Loadjs('artica.license.php')");
+	$tr[]=paragrapheWin("license-white-64.png","{artica_license}","Loadjs('artica.license.php?tabs-js=yes')");
 	$tr[]=paragrapheWin("update-64.png", "{update2}", 
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','artica.update.php?main_artica_update=yes')");
 	

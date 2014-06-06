@@ -2520,6 +2520,7 @@ function MasterCFBuilder($restart_service=false){
 		$amavis[]=" -o smtpd_hard_error_limit=1000";
 		$amavis[]=" -o receive_override_options=no_header_body_checks";	
 		$amavis[]="	-o smtpd_sasl_auth_enable=no"; 
+		$amavis[]=" -o smtpd_milters=";
 		if($ver210){
 		$amavis[]="	-o smtpd_upstream_proxy_protocol=";
 		}
@@ -2677,11 +2678,38 @@ if(count($MASTER_CF_DEFINED)==0){
 	$conf[]="uucp\tunix\t-\tn\tn\t-\t-\tpipe flags=Fqhu user=uucp argv=uux -r -n -z -a\$sender - \$nexthop!rmail (\$recipient)";
 	$conf[]="ifmail\tunix\t-\tn\tn\t-\t-\tpipe flags=F user=ftn argv=/usr/lib/ifmail/ifmail -r \$nexthop (\$recipient)";
 	$conf[]="bsmtp\tunix\t-\tn\tn\t-\t-\tpipe flags=Fq. user=bsmtp argv=/usr/lib/bsmtp/bsmtp -t\$nexthop -f\$sender \$recipient";
+}else{
+	if(!isset($MASTER_CF_DEFINED["pickup"])){ $conf[]="pickup\tfifo\tn\t-\tn\t60\t1\tpickup$re_cleanup_infos"; }
+	if(!isset($MASTER_CF_DEFINED["cleanup"])){ $conf[]="cleanup\tunix\tn\t-\tn\t-\t0\tcleanup"; }
+	if(!isset($MASTER_CF_DEFINED["pre-cleanup"])){ $conf[]="pre-cleanup\tunix\tn\t-\tn\t-\t0\tcleanup$pre_cleanup_addons"; }
+	if(!isset($MASTER_CF_DEFINED["qmgr"])){ $conf[]="qmgr\tfifo\tn\t-\tn\t300\t1\tqmgr"; }
+	if(!isset($MASTER_CF_DEFINED["rewrite"])){ $conf[]="rewrite\tunix\t-\t-\tn\t-\t-\ttrivial-rewrite"; }
+	if(!isset($MASTER_CF_DEFINED["bounce"])){ $conf[]="bounce\tunix\t-\t-\tn\t-\t0\tbounce"; }
+	if(!isset($MASTER_CF_DEFINED["defer"])){ $conf[]="defer\tunix\t-\t-\tn\t-\t0\tbounce"; }
+	if(!isset($MASTER_CF_DEFINED["trace"])){ $conf[]="trace\tunix\t-\t-\tn\t-\t0\tbounce"; }
+	if(!isset($MASTER_CF_DEFINED["verify"])){ $conf[]="verify\tunix\t-\t-\tn\t-\t1\tverify";}
+	if(!isset($MASTER_CF_DEFINED["flush"])){ $conf[]="flush\tunix\tn\t-\tn\t1000?\t0\tflush"; } 
+	if(!isset($MASTER_CF_DEFINED["proxymap"])){ $conf[]="proxymap\tunix\t-\t-\tn\t-\t-\tproxymap"; }
+	if(!isset($MASTER_CF_DEFINED["proxywrite"])){ $conf[]="proxywrite\tunix\t-\t-\tn\t-\t1\tproxymap";}
+	if(!isset($MASTER_CF_DEFINED["smtp"])){ $conf[]="smtp\tunix\t-\t-\tn\t-\t-\tsmtp"; }
+	
+	if(!isset($MASTER_CF_DEFINED["relay"])){$conf[]="relay\tunix\t-\t-\tn\t-\t-\tsmtp -o fallback_relay=";;}
+	if(!isset($MASTER_CF_DEFINED["showq"])){$conf[]="showq\tunix\tn\t-\tn\t-\t-\tshowq";;}
+	if(!isset($MASTER_CF_DEFINED["error"])){$conf[]="error\tunix\t-\t-\tn\t-\t-\terror";;}
+	if(!isset($MASTER_CF_DEFINED["discard"])){$conf[]="discard\tunix\t-\t-\tn\t-\t-\tdiscard";;}
+	if(!isset($MASTER_CF_DEFINED["local"])){$conf[]="local\tunix\t-\tn\tn\t-\t-\tlocal";;}
+	if(!isset($MASTER_CF_DEFINED["virtual"])){$conf[]="virtual\tunix\t-\tn\tn\t-\t-\tvirtual";;}
+	if(!isset($MASTER_CF_DEFINED["lmtp"])){$conf[]="lmtp\tunix\t-\t-\tn\t-\t-\tlmtp";;}
+	if(!isset($MASTER_CF_DEFINED["anvil"])){$conf[]="anvil\tunix\t-\t-\tn\t-\t1\tanvil";;}
+	if(!isset($MASTER_CF_DEFINED["scache"])){$conf[]="scache\tunix\t-\t-\tn\t-\t1\tscache";;}
+	if(!isset($MASTER_CF_DEFINED["scan"])){$conf[]="scan\tunix\t-\t-\tn\t\t-\t10\tsm -v";;}
+	if(!isset($MASTER_CF_DEFINED["maildrop"])){$conf[]="maildrop\tunix\t-\tn\tn\t-\t-\tpipe ";;}
+	if(!isset($MASTER_CF_DEFINED["retry"])){$conf[]="retry\tunix\t-\t-\tn\t-\t-\terror ";;}
+	if(!isset($MASTER_CF_DEFINED["uucp"])){$conf[]="uucp\tunix\t-\tn\tn\t-\t-\tpipe flags=Fqhu user=uucp argv=uux -r -n -z -a\$sender - \$nexthop!rmail (\$recipient)";;}
+	if(!isset($MASTER_CF_DEFINED["ifmail"])){$conf[]="ifmail\tunix\t-\tn\tn\t-\t-\tpipe flags=F user=ftn argv=/usr/lib/ifmail/ifmail -r \$nexthop (\$recipient)";;}
+	if(!isset($MASTER_CF_DEFINED["bsmtp"])){$conf[]="bsmtp\tunix\t-\tn\tn\t-\t-\tpipe flags=Fq. user=bsmtp argv=/usr/lib/bsmtp/bsmtp -t\$nexthop -f\$sender \$recipient";;}
 }
 
-if(!isset($MASTER_CF_DEFINED["pre-cleanup"])){
-	$conf[]="pre-cleanup\tunix\tn\t-\tn\t-\t0\tcleanup$pre_cleanup_addons";
-}
 
 while (list ($service, $MFARRY) = each ($MASTER_CF_DEFINED) ){
 	$MFARRY["MAXPROC"]=intval($MFARRY["MAXPROC"]);
@@ -2698,6 +2726,17 @@ $conf[]="artica-reportquar\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/u
 $conf[]="artica-spam\tunix\t-\tn\tn\t-\t-\tpipe flags=F  user=mail argv=/usr/share/artica-postfix/bin/artica-whitelist -a \${nexthop} -s \${sender} --spam";
 $conf[]="zarafa\tunix\t-\tn\tn\t-\t-\tpipe	user=mail argv=/usr/bin/zarafa-dagent \${user}";
 $conf[]="artica-filter\tunix\t-\tn\tn\t-\t$ArticaFilterMaxProc\tpipe flags=FOh  user=www-data argv=/usr/share/artica-postfix/exec.artica-filter.php -f \${sender} --  -s \${sender} -r \${recipient} -c \${client_address}";
+
+$unix=new unix();
+$cyrdeliver=$unix->find_program("cyrdeliver");
+if(is_file($cyrdeliver)){
+	echo "Starting......: ".date("H:i:s")." master.cf adding cyrus\n";
+	$conf[]="cyrus\tunix\t-\tn\tn\t-\t-\tpipe\tflags=R user=cyrus argv=/usr/sbin/cyrdeliver -e -m \${extension} \${user}";	
+}else{
+	$conf[]="# cyrdeliver no such binary."; 
+}
+
+$conf[]="";
 $conf[]="";
 $conf[]=$master_amavis;
 $conf[]="";

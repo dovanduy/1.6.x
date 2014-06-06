@@ -278,6 +278,8 @@ class system_nic{
 		$this->isFW=$ligne["isFW"];
 		$this->isFWAcceptNet=$ligne["isFWAcceptNet"];
 		$this->isFWLogBlocked=$ligne["isFWLogBlocked"];
+		if(!isset($ligne["SourceBasedRouting"])){$ligne["SourceBasedRouting"]=0;}
+		
 		$this->SourceBasedRouting=intval($ligne["SourceBasedRouting"]);
 		writelogs("$this->eth mtu= {$ligne["MTU"]}",__CLASS__,__FUNCTION__,__FILE__,__LINE__);
 		if(isset($ligne["MTU"])){ $this->mtu=intval($ligne["MTU"]); }

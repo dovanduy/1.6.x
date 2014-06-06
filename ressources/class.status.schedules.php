@@ -7,7 +7,7 @@ function load_stats(){
 	$time=time();
 
 	$hash_mem=array();
-	$datas=shell_exec(dirname(__FILE__)."/ressources/mem.pl");
+	$datas=shell_exec(dirname(__FILE__)."/mem.pl");
 	if(preg_match('#T=([0-9]+) U=([0-9]+)#',$datas,$re)){$ram_used=$re[2];}
 
 	@mkdir("/var/log/artica-postfix/sys_loadavg",0755,true);
@@ -15,6 +15,9 @@ function load_stats(){
 	@mkdir("/var/log/artica-postfix/sys_alerts",0755,true);
 	@mkdir("/etc/artica-postfix/croned.1",0755,true);
 	@mkdir("/etc/artica-postfix/pids",0755,true);
+	
+	events("Internal Load: $internal_load Ram used: $ram_used",__FUNCTION__,__LINE__);
+	
 	@file_put_contents("/var/log/artica-postfix/sys_loadavg/$time", $internal_load);
 	@file_put_contents("/var/log/artica-postfix/sys_mem/$time", $ram_used);
 

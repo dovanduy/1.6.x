@@ -1329,6 +1329,7 @@ Do you want to carry out this operation ?
 <connections_settings_text>Connections parameters, listen address, listen ports...</connections_settings_text>
 <connections_tracking>Connections tracking</connections_tracking>
 <connection_method>Connection method</connection_method>
+<connection_timeout>Connection timeout</connection_timeout>
 <connection_type>Connection type</connection_type>
 <connect_klms_to_mta>Connect Kaspersky Mail security with MTA</connect_klms_to_mta>
 <connect_klms_to_mta_text>If turn to green, all messages will be forwarded to the Kaspersky Mail Security service in real-time by the main SMTP service.[br]
@@ -5839,6 +5840,10 @@ These accesses should be only done outside the company</websites_human_suspects_
 <websites_network_pollution_explain>These sites are considered useless.[br]Like advertising websites or tracking scripts</websites_network_pollution_explain>
 <websites_noprod>Non-productive websites</websites_noprod>
 <websites_noprod_explain>These websites are considered as non-productive websites such as socials websites, dating,games...</websites_noprod_explain>
+<website_analysis>Website analysis</website_analysis>
+<website_tool_explain>This section allows you to check if the requested website is correctly fetched without the proxy service.</website_tool_explain>
+<website_tool_explain_proxy>If the Artica server must use a proxy parent to be connected trough Internet.[br]
+Give the proxy and port is this way: 172.16.32.1:3128</website_tool_explain_proxy>
 <WebstatisticsByMember>Display statistics for each Member</WebstatisticsByMember>
 <WebstatisticsByMember_explain>If enabled, when a member open a session on this Web console, it can display it's own web statistics.</WebstatisticsByMember_explain>
 <WebStats Tablet>WebStats Tablet</WebStats Tablet>

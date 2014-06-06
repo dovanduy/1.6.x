@@ -466,15 +466,14 @@ function test_wbinfomoinsa(){
 
 function test_results($array){
 	$tpl=new templates();
+	$html=null;
 	while (list ($num, $ligne) = each ($array) ){
 		$ligne=trim($ligne);
 		if($ligne==null){continue;}
 		$color="black";
 		
 		if(preg_match("#No logon#", $ligne)){$color="#D30F0F;font-weight:bold";
-		$ligne=$ligne.$tpl->_ENGINE_parse_body("<br> {should_change_ad_dns}");
-		
-		
+			$ligne=$ligne.$tpl->_ENGINE_parse_body("<br> {should_change_ad_dns}");
 		}
 		
 		if(preg_match("#UNSUCCESSFUL#i", $ligne)){$color="#009809;font-weight:bold";}
@@ -641,7 +640,7 @@ function settings(){
 	$sock=new sockets();
 	$severtype["WIN_2003"]="Windows 2000/2003";
 	$severtype["WIN_2008AES"]="Windows 2008/2012";
-	
+	if(isset($_GET["switch-template"])){$_GET["switch-template"]=null;}
 	$samba_version=$sock->getFrameWork("samba.php?fullversion=yes");
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$about_this_section=$tpl->_ENGINE_parse_body("{about_this_section}");
@@ -1099,13 +1098,6 @@ function settings(){
 			var DisableSpecialCharacters=$DisableSpecialCharacters;
 			var EnableRemoteStatisticsAppliance=$EnableRemoteStatisticsAppliance;
 			if(EnableRemoteStatisticsAppliance==1){Loadjs('squid.newbee.php?error-remote-appliance=yes');return;}
-			
-			if(DisableSpecialCharacters==0){
-				if(!DetectSpecialChars(document.getElementById('WINDOWS_SERVER_PASS').value,'$char_alert_error')){
-					return;
-				}
-			}
-			
 			var pp=encodeURIComponent(document.getElementById('WINDOWS_SERVER_PASS').value);
 			var XHR = new XHRConnection();
 			
@@ -1135,7 +1127,6 @@ function settings(){
 			XHR.appendData('WINDOWS_SERVER_PASS',pp);
 			XHR.appendData('ADNETBIOSDOMAIN',document.getElementById('ADNETBIOSDOMAIN').value);
 			XHR.appendData('ADNETIPADDR',document.getElementById('ADNETIPADDR').value);
-			AnimateDiv('serverkerb-animated');
 			XHR.sendAndLoad('$page', 'POST',x_SaveKERBProxy);
 		
 		}
@@ -1341,7 +1332,7 @@ function settingsSave(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$tpl=new templates();
-	include_once(dirname(__FILE__)."/class.html.tools.inc");
+	include_once(dirname(__FILE__)."/ressources/class.html.tools.inc");
 	$_POST["WINDOWS_SERVER_PASS"]=url_decode_special_tool($_POST["WINDOWS_SERVER_PASS"]);
 	unset($_SESSION["EnableKerbAuth"]);
 	
@@ -1371,7 +1362,7 @@ function settingsSave(){
 	$adhost="{$_POST["WINDOWS_SERVER_NETBIOSNAME"]}.{$_POST["WINDOWS_DNS_SUFFIX"]}";
 	
 	
-	if(strolower($adhost)==strtolower($Myhostname)){
+	if(strtolower($adhost)==strtolower($Myhostname)){
 		echo "Active Directory: $adhost as the same name of this server:$Myhostname\n";return;
 		
 	}

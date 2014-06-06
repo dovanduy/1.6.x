@@ -13,9 +13,49 @@ $usersmenus=new usersMenus();
 
 
 if($usersmenus->AsArticaAdministrator==false){header('location:users.index.php');exit;}
+
+if(isset($_GET["tabs-js"])){tab_js();exit;}
+if(isset($_GET["tabs"])){tabs();exit;}
+
 if(isset($_GET["popup"])){popup();exit;}
 if(isset($_POST["REGISTER"])){REGISTER();exit;}
-js();
+tab_js();
+
+
+function tab_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$title=$tpl->_ENGINE_parse_body("{artica_license}");
+	$html="AnimateDiv('BodyContent');LoadAjax('BodyContent','$page?tabs=yes')";
+	echo $html;	
+	
+}
+
+function tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$users=new usersMenus();
+	$q=new mysql();
+	
+	$array["popup"]='{artica_license}';
+	
+	$fontsize=18;
+	while (list ($num, $ligne) = each ($array) ){
+
+		$tab[]="<li><a href=\"$page?$num=yes\"><span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n";
+			
+	}
+	
+	
+	
+	$t=time();
+	//
+	
+	echo build_artica_tabs($tab, "main_artica_license",1100)."<script>LeftDesign('key-256-opac20');</script>";
+	
+}
 
 
 function js(){
@@ -120,8 +160,6 @@ function popup(){
 	
 	if($LicenseInfos["license_status"]==null){
 		$step=1;
-		$step_text="{ask_a_quote}";
-		
 		$LicenseInfos["license_status"]="{waiting_registration}";
 		$star="{explain_license_free}";
 		$button_text="{request_a_quote}/{refresh}";
@@ -164,15 +202,16 @@ function popup(){
 	
 	$CORP_LICENSE=0;
 	$textcolor="black";
-	$bt="<hr>".button($button_text,"RegisterSave$t()",18);
+	$bt="<hr>".button($button_text,"RegisterSave$t()",26);
 	if($users->CORP_LICENSE){
-		$CORP_LICENSE=1;$bt=null;
+		$CORP_LICENSE=1;
 		$textcolor="#23A83E";
 		$paypal=null;
+		$explain=null;
 	}
 
 	if($explain<>null){
-		$explain="<div style='font-size:14px' class=explain>$titleprice<br>$explain$quotation</div>";
+		$explain="<div style='font-size:16px' class=explain>$titleprice<br>$explain$quotation</div>";
 	}	
 	
 	
@@ -183,40 +222,40 @@ function popup(){
 	
 	<div id='$t' ></div>
 	<div  style='width:98%' class=form>
-	<table >
+	<table style='width:100%'>
 <tr>
-	<td class=legend style='font-size:16px'>{step}:</td>
-	<td style='font-size:22px;font-weight:bold'>$step: $step_text<br></td>
+	<td class=legend style='font-size:18px'>{step}:</td>
+	<td style='font-size:28px;font-weight:bold'>$step: $step_text<br></td>
 </tr>	
 	$last_access
 	
 	<tr>
-		<td class=legend style='font-size:16px'>{uuid}:</td>
+		<td class=legend style='font-size:18px'>{uuid}:</td>
 		<td style='font-size:16px'>$uuid</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:16px'>{company}:</td>
+	<td class=legend style='font-size:18px'>{company}:</td>
 	<td>". Field_text("COMPANY-$t",$LicenseInfos["COMPANY"],"font-size:16px;width:240px")."</td>
 </tr>	
 <tr>
-	<td class=legend style='font-size:16px'>{your_email_address}:</td>
+	<td class=legend style='font-size:18px'>{your_email_address}:</td>
 	<td>". Field_text("EMAIL-$t",$LicenseInfos["EMAIL"],"font-size:16px;width:240px")."</td>
 </tr>	
 </tr>
-	<td class=legend style='font-size:16px'>{nb_employees}:</td>
+	<td class=legend style='font-size:18px'>{nb_employees}:</td>
 	<td>". Field_text("EMPLOYEES-$t",$LicenseInfos["EMPLOYEES"],"font-size:16px;width:80px")."</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:16px'>{license_number}:</td>
+	<td class=legend style='font-size:18px'>{license_number}:</td>
 	<td style='font-size:16px'>{$LicenseInfos["license_number"]}</td>
 </tr>
 </tr>
-	<td class=legend style='font-size:16px'>{unlock_license}:</td>
+	<td class=legend style='font-size:18px'>{unlock_license}:</td>
 	$unlocklick
 </tr>	
 <tr>
-	<td class=legend style='font-size:16px'>{license_status}:</td>
-	<td style='font-size:16px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
+	<td class=legend style='font-size:18px'>{license_status}:</td>
+	<td style='font-size:28px;color:$textcolor'>{$LicenseInfos["license_status"]}</td>
 </tr>			
 <tr>
 	<td colspan=2 align='right'>$bt</td>
@@ -227,10 +266,8 @@ function popup(){
 	var x_RegisterSave$t= function (obj) {
 		var tempvalue=obj.responseText;
 		document.getElementById('$t').innerHTML='';
-		YahooWin3Hide();
-		Loadjs('$page');
 		if(tempvalue.length>3){alert(tempvalue);return;}
-		CacheOff();
+		Loadjs('artica.license.progress.php');
 		}	
 	
 		function RegisterSave$t(){
@@ -240,7 +277,6 @@ function popup(){
 			XHR.appendData('EMPLOYEES',document.getElementById('EMPLOYEES-$t').value);
 			XHR.appendData('UNLOCKLIC',document.getElementById('UNLOCKLIC-$t').value);
 			XHR.appendData('REGISTER','1');
-			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_RegisterSave$t);
 		}
 		
@@ -272,6 +308,6 @@ function REGISTER(){
 	
 	$sock->SaveConfigFile(base64_encode(serialize($WizardSavedSettings)), "WizardSavedSettings");
 	$sock->SaveConfigFile(base64_encode(serialize($LicenseInfos)), "LicenseInfos");
-	$datas=unserialize(base64_decode($sock->getFrameWork("services.php?license-register=yes")));
+	//
 	
 }

@@ -1619,14 +1619,21 @@ function register_license(){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
-	$cmd=trim("$php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic 2>&1");
+	
+	$CACHEFILE="/usr/share/artica-postfix/ressources/logs/artica.license.progress";
+	$LOGSFILES="/usr/share/artica-postfix/ressources/logs/web/artica_license.txt";
+	
+	@unlink($CACHEFILE);
+	@unlink($LOGSFILES);
+	@touch($LOGSFILES);
+	@touch($CACHEFILE);
+	@chmod($CACHEFILE,0755);
+	@chmod($LOGSFILES,0755);
+	
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.web-community-filter.php --register-lic >$LOGSFILES 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
-	exec($cmd,$results);
-	$unix->Process1(true);
-	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);
-	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
-}
+	}
 
 function kav4proxy_service_cmds(){
 	$unix=new unix();

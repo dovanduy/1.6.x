@@ -21,7 +21,7 @@ if(isset($_GET["videocache-reinstall"])){videocache_reinstall();exit;}
 if(isset($_GET["loggers-status"])){loggers_status();exit;}
 if(isset($_GET["access-real"])){access_real();exit;}
 if(isset($_GET["dynamic-cache-apply"])){dynamic_caches_apply();exit;}
-
+if(isset($_GET["WebSiteAnalysis"])){website_analysis();exit;}
 
 if(isset($_GET["ziproxy-isinstalled"])){ziproxy_installed();exit;}
 if(isset($_GET["zipproxy-status"])){ziproxy_status();exit;}
@@ -3071,13 +3071,22 @@ function ziproxy_restart(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	if(!is_file("/etc/init.d/zipproxy")){
-		$cmd="$php5 /usr/share/artica-postfix/exec.initslapd.php --zipproxy >/dev/null 2>&1";
+		$cmd="$php5 /usr/share/artica-postfix/exec.initslapd.php --zipproxy >/dev/null 2>&1 &";
 		writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);	
 	}
 	$cmd="$nohup /etc/init.d/zipproxy restart >/dev/null 2>&1";
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
+}
+function website_analysis(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$php5 /usr/share/artica-postfix/exec.squid.website.analysis.php";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
 }
 
 ?>

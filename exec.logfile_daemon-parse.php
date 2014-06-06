@@ -100,7 +100,8 @@ function parse_tables_primaires(){
 		}
 		
 		if(!$q->ok){
-			if($GLOBALS["VERBOSE"]){echo "\n\n ******* FAILED *******\n";}
+			events("parse_tables_primaires(): Fatal: MySQL error:");
+			events("$sql");
 			continue;
 		}
 		

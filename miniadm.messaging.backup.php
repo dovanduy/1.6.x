@@ -305,7 +305,7 @@ function table_bydays_items(){
 			$sql="SELECT DATE_FORMAT(xday,'%Y%m%d') as tdate FROM indextables 
 			WHERE MONTH(xday)=MONTH(NOW()) AND YEAR(xday)=YEAR(NOW())
 			ORDER BY xday";
-			$results = $q->QUERY_SQL($sql,$database);
+			$results = $q->QUERY_SQL($sql);
 			while ($ligne = mysql_fetch_assoc($results)) {
 				$tm[]="`{$ligne["tdate"]}`";
 				

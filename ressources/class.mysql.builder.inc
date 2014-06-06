@@ -2073,9 +2073,7 @@ public function check_storage_table($force=false){
 		$this->QUERY_SQL($sql,"artica_backup");
 	}	
 	
-	
-			
-			$sql="CREATE TABLE IF NOT EXISTS `activedirectory_groupsNames` (
+		$sql="CREATE TABLE IF NOT EXISTS `activedirectory_groupsNames` (
 				  `dn` varchar(255) NOT NULL,
 				  `groupname` varchar(128) NOT NULL,
 				  `oudn` varchar(255) NOT NULL,

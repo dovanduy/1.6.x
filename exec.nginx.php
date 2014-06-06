@@ -2016,7 +2016,7 @@ function purge_all_caches(){
 	while (list ($index, $value) = each ($f) ){
 		if(!is_dir($value)){continue;}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing $value\n";}
-		shell_exec("$rm -rf /home/nginx/tmp/*");
+		shell_exec("$rm -rf $value/*");
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Removing $value OK\n";}
 	}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Reloading service\n";}

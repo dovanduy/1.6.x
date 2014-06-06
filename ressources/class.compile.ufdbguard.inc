@@ -2046,7 +2046,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 
 
 		
-		if($this->EnableRemoteStatisticsAppliance==1){ufdbguard_admin_events("Category $category must be compiled by the statistics appliance (aborting)",__FUNCTION__,__FILE__,__LINE__,"compile");return;}
+		if($this->EnableRemoteStatisticsAppliance==1){return;}
 		$q=new mysql_squid_builder();
 		$categorySource=$category;
 		$category=str_replace("/", "_", $category);
@@ -2061,7 +2061,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		ufdbguard_admin_events("$categorySource table `$tablename`",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
 		
 		
-		if(!$q->TABLE_EXISTS($tablename_uris)){ufdbguard_admin_events("table `$tablename_uris` no such table\n");}
+		
 		if($q->TABLE_EXISTS($tablename_uris)){
 			$sql="SELECT pattern FROM $tablename_uris WHERE enabled=1 ORDER BY pattern";
 			$results = $q->QUERY_SQL($sql);
@@ -2079,9 +2079,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		
 		if(!$q->TABLE_EXISTS($tablename)){
-			ufdbguard_admin_events("table `$tablename` no such table, create a fake",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard $categorySource no such table \"$tablename\"\n";}
-			ufdbguard_admin_events("Failed to compile $categorySource no such table \"$tablename\" create fake one",__FUNCTION__,__FILE__,__LINE__,"compile");
 			$fake[]=md5(time()+1).".biz";
 			$fake[]=md5(time()+2).".biz";
 			$fake[]=md5(time()+3).".biz";
@@ -2133,9 +2131,9 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		$writetodisk_took=$unix->distanceOfTimeInWords($t1,time(),true);
 		if(!$q->ok){
 			if(preg_match("#writing file '(.*?)'#",$q->mysql_error,$re)){$df=$unix->find_program("df");exec("$df -h ".dirname($re[1]),$dfh);}
-			ufdbguard_admin_events("MySQL error `$q->mysql_error` aborting\n".@implode("\n",$dfh),__FUNCTION__,__FILE__,__LINE__,"$categorySource");
+			squid_admin_mysql(1,"Compilation category, MySQL error",
+			"`$q->mysql_error` aborting\n".@implode("\n",$dfh),__FILE__,__LINE__,"$categorySource");
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." ufdbGuard Failed to compile $categorySource $q->mysql_error\n";}
-			ufdbguard_admin_events("Failed to compile $categorySource $q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"compile");
 			echo $q->mysql_error."\n";
 			@unlink("$tmpdir/$tablename/domains");
 			return ;
@@ -2151,8 +2149,8 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 		
 		$this->UfdbGenTable($main_path,$category);
 		$compiledbs_took=$unix->distanceOfTimeInWords($t1,time(),true);
-		ufdbguard_admin_events("Compilation done SQL took:$mysqlquerry_took\nWrite to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FUNCTION__,__FILE__,__LINE__,"$categorySource");
-		ufdbguard_admin_events("$category compilation done\nSQL took:$mysqlquerry_took\nWrite to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FUNCTION__,__FILE__,__LINE__,"compile");
+		
+		squid_admin_mysql(2,"Compilation done SQL took:$mysqlquerry_took","Write to disk took:$writetodisk_took\nUFDB Compilation took:$compiledbs_took",__FILE__,__LINE__,"global-compile");
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$php5 /usr/share/artica-postfix/exec.squidguard.php --disks");
 				

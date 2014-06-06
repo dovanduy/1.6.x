@@ -665,11 +665,9 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 	
 // *******************************************************************************************************************	
 	if(preg_match("#\|\s+(.+?):\s+\(2\)\s+No such file or directory#", $buffer,$re)){
-		if(preg_match("#\/usr\/share\/squid3\/errors#i")){return;}
+		if(preg_match("#\/usr\/share\/squid3#i")){return;}
 		if(TimeStampTTL(__LINE__,2)){
-			squid_admin_mysql(0,"{$re[1]} No such file or directory, run squid -z","$buffer",__FILE__,__LINE__);
-			shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.smp.php --squid-z-fly >/dev/null 2>&1 &");
-			events("\"{$re[1]}\" exec.squid.smp.php --squid-z-fly... Line:".__LINE__);
+			squid_admin_mysql(1,"{$re[1]} No such file or directory","$buffer",__FILE__,__LINE__);
 		}
 		return;
 	}

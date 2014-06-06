@@ -773,7 +773,7 @@ class external_ad_search{
 		
 		$q->QUERY_SQL("TRUNCATE TABLE activedirectory_ou","artica_backup");
 		$q->QUERY_SQL("DROP TABLE activedirectory_groupsNames","artica_backup");
-		$q->BuildTables();
+		$q->check_storage_table(true);
 		while (list ($dn, $name) = each ($hash) ){
 			if(trim($dn)==null){continue;}
 			
