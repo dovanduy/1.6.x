@@ -337,7 +337,7 @@ if ParamStr(1)='--cyrus-db_config' then begin
 end;
 
 if ParamStr(1)='--cyrus-conf' then begin
-   ccyrus.WRITE_CYRUS_CONF();
+   fpsystem('/etc/init.d/cyrus-imapd build');
    halt(0);
 end;
 if ParamStr(1)='--cyrus-rights' then begin
@@ -1506,8 +1506,8 @@ if ParamStr(1)='--reconfigure-cyrus' then begin
       end;
    end;
 fpsystem('/etc/init.d/cyrus-imapd stop');
-   ccyrus.WRITE_CYRUS_CONF();
-   ccyrus.CheckRightsAndConfig();
+fpsystem('/etc/init.d/cyrus-imapd build');
+  ccyrus.CheckRightsAndConfig();
    fpsystem('/etc/init.d/cyrus-imapd start');
    halt(0);
 end;

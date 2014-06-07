@@ -2461,6 +2461,8 @@ function LayersTabsAllAfter(){
 	if(document.getElementById('main_artica_license')){RefreshTab('main_artica_license');}
 	if(document.getElementById('CACHE_CENTER_TABLEAU')){ $('#'+document.getElementById('CACHE_CENTER_TABLEAU').value).flexReload();}
 	if( document.getElementById('main-config-sslbump-id') ){ RefreshTab(document.getElementById('main-config-sslbump-id').value); }
+	if( document.getElementById('container-users-tabs') ){ RefreshTab(document.getElementById('container-users-tabs').value); }
+
 	if(document.getElementById('squid-services')){ LoadAjax('squid-services','squid.main.quicklinks.php?squid-services=yes',false); }
 	if(document.getElementById('logger-status')){ LoadAjax('logger-status','squid.loggers.status.php?logger-status=yes',false); }
 	

@@ -19,7 +19,7 @@ Notez que ceci est uniquement disponible si l'authentification est activ&eacute;
 <activate_sync_port_mgreylist_text>Si vous activer ce port, les serveurs vont discuter ensemble sur le port 5252 afin de se synchroniser.[br]Pensez &agrave; cr&eacute;er des r&egrave;gles bi-lat&eacute;rales (dans les deux directions) en TCP avec un port source al&eacute;atoire non privil&eacute;gi&eacute;.[br]Seul les serveurs list&eacute;s pourront communiquer.</activate_sync_port_mgreylist_text>
 <ActiveDirectory_branches>Branches Active Directory</ActiveDirectory_branches>
 <activedirectory_ipaddr>Adresse IP de l'AD (optionnel)</activedirectory_ipaddr>
-<active_directory_group>groupe Active Directory</active_directory_group>
+<active_directory_group>Groupe Active Directory</active_directory_group>
 <activity>Activit&eacute;</activity>
 <AddDefaultCharset_explain>Cette option sp&eacute;cifie le jeux de caract&egrave;res par d&eacute;faut &agrave; appliquer en &eacute;crasant la r&eacute;ponse du serveur via un &eacute;l&eacute;ment META.
 [br]la valeur Off d&eacute;sactive et On passe en iso-8859-1 pour utiliser d'autres valeurs, consultez le site de IANA &agrave; cette adresse http://www.iana.org/assignments/character-sets</AddDefaultCharset_explain>
@@ -1343,7 +1343,7 @@ Par d&eacute;faut, tous les serveurs virtuels disposent de la valeur 1024</lxc_p
 <macro_build_bigpart_explain>Cr&eacute;er une partition compl&egrave;te et unique sur ce disque.[br]Ceci va &eacute;craser vos donn&eacute;es.</macro_build_bigpart_explain>
 <macro_build_lvm_explain>Cr&eacute;er un partition compl&egrave;te de type LVM afin de cr&eacute;er des disques virtuels LVM.</macro_build_lvm_explain>
 <mailbox_infos>Informations BAL</mailbox_infos>
-<mailbox_zarafa_infos_text>Affiche les informations techniques &agrave; propos de cette bo&icirc;te aux lettres Zarafa</mailbox_zarafa_infos_text>
+<mailbox_zarafa_infos_text>Affiche les informations techniques &agrave; propos de la bo&icirc;te aux lettres Zarafa</mailbox_zarafa_infos_text>
 <mailerror_recipient>Destinataire des messages d'erreur</mailerror_recipient>
 <mails>Messages</mails>
 <mailss>message(s)</mailss>
@@ -2734,8 +2734,8 @@ Les utilisateurs peuvent naviguer uniquement sur les sites web dans les cat&eacu
 <your_users_has_downloadedXD-XS-XP>vous utilisateurs ont t&eacute;l&eacute;charg&eacute;s XD depuis Internet et votre proxy a mis en cache XS ( XP de performances de cache).</your_users_has_downloadedXD-XS-XP>
 <you_need_to_create_virtual_ip_first>Vous devez au moins cr&eacute;er un carte r&eacute;seau virtuelle dans la section r&eacute;seau de ce serveur.</you_need_to_create_virtual_ip_first>
 <ZarafaAllowToReinstall>Autorise le d&eacute;mon &agrave; r&eacute;installer en cas de n&eacute;c&eacute;ssit&eacute;</ZarafaAllowToReinstall>
-<ZarafaCopyToPublic>Cette t&acirc;che va copier cette bo&icirc;te aux lettre orpheline dans le dossier publique.[br]
-Vous serrez alors en mesure d'acc&egrave;der aux donn&eacute;es de cette bo&icirc;te dans l'acc&egrave;s publique &quot;Admin/deleted stores&quot;</ZarafaCopyToPublic>
+<ZarafaCopyToPublic>Cette t&acirc;che va copier la bo&icirc;te aux lettre orpheline dans le dossier publique.[br]
+Vous serrez alors en mesure d\'acc&eacute;der aux donn&eacute;es de cette bo&icirc;te dans l\'acc&egrave;s publique \&quot;Admin/deleted stores\&quot;</ZarafaCopyToPublic>
 <ZarafaEnablePlugins>Activer le chargement des plugins</ZarafaEnablePlugins>
 <ZarafaHashRebuild>Cette t&acirc;che va supprimer le cache et reconstruire la liste des bo&icirc;tes aux lettres dans le cache.
 Voulez-vous effectuer cette op&eacute;ration ?</ZarafaHashRebuild>

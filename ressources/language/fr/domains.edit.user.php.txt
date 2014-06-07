@@ -46,12 +46,13 @@ s'il vous pla&icirc;t v&eacute;rifiez si tous les &eacute;l&eacute;ments sont co
 <ComputerUpTime>Uptime</ComputerUpTime>
 <computer_ip>Adresse IP de l'ordinateur</computer_ip>
 <computer_name>Nom de l'ordinateur</computer_name>
-<confirm_repair>R&eacute;parer cette bo&icirc;te aux lettres? L'op&eacute;ration sera ex&eacute;cut&eacute;e en arri&egrave;re-plan ...</confirm_repair>
+<confirm_repair>R&eacute;parer cette bo&icirc;te aux lettres?
+L\'op&eacute;ration sera ex&eacute;cut&eacute;e en arri&egrave;re-plan ...</confirm_repair>
 <delete_messages>Supprimer les messages qui n'existe pas</delete_messages>
 <delete_messages_text>Si un message existe sur une bo&icirc;te aux lettres, mais pas sur l'autre, et s'il y a un &quot;vieux&quot; message (il a &eacute;t&eacute; enregistr&eacute; en &quot;msinfo&quot; &agrave; la derni&egrave;re synchronisation), il est pr&eacute;sum&eacute; que le message a &eacute;t&eacute; d&eacute;lib&eacute;r&eacute;ment supprim&eacute; d'un stock, et il est &eacute;galement retir&eacute; de l'autre.
 [br] Si vous avez d&eacute;fini au vert, ce comportement sera activ&eacute; [br]</delete_messages_text>
 <delete_this_computer>Supprimer cet ordinateur</delete_this_computer>
-<delete_this_mailbox>Supprimez cette boite aux lettres</delete_this_mailbox>
+<delete_this_mailbox>Supprimer la boite aux lettres</delete_this_mailbox>
 <delete_this_mailbox_text>Supprimer d&eacute;finitivement toutes les donn&eacute;es de bo&icirc;tes aux lettres sur le serveur, cette op&eacute;ration ne sera pas r&eacute;versible</delete_this_mailbox_text>
 <delete_this_user_text>Ceci va supprimer cet utilisateur de la base de donn&eacute;es. Tous les messages stock&eacute;s SERONT conserv&eacute;s.</delete_this_user_text>
 <dhcpfixed>Adresse DHCP fix&eacute;e</dhcpfixed>
@@ -143,10 +144,10 @@ Apr&egrave;s avoir analyser les messages, ils seront automatiquement supprim&eac
 <remote_imap_password>Mot de passe source imap</remote_imap_password>
 <remote_imap_server>Serveur imap source</remote_imap_server>
 <remote_imap_username>Nom d'utilisateur imap source</remote_imap_username>
-<repair_mailbox>r&eacute;parer cette boite aux lettres</repair_mailbox>
-<repair_mailbox_infos>Cette fonctionnalit&eacute; vous permet de r&eacute;parer cette bo&icirc;te aux lettres par la reconstruction de la structure des dossiers, supprimer le fichier d'index seen...[br] 
+<repair_mailbox>R&eacute;parer la boite aux lettres</repair_mailbox>
+<repair_mailbox_infos>Cette fonctionnalit&eacute; vous permet de r&eacute;parer la bo&icirc;te aux lettres par la reconstruction de la structure des dossiers, supprimer le fichier d\'index seen...[br] 
 Apr&egrave;s la transformation de bo&icirc;tes aux lettres le moteur du serveur imap sera red&eacute;marr&eacute; ...</repair_mailbox_infos>
-<repair_mailbox_text>Certains probl&egrave;mes d'acc&egrave;s ou d'ex&eacute;cution de cette bo&icirc;te aux lettres sont pr&eacute;sent, tenter de r&eacute;parer cette bo&icirc;te aux lettres</repair_mailbox_text>
+<repair_mailbox_text>Certains probl&egrave;mes d\'acc&egrave;s ou d\'ex&eacute;cution de la bo&icirc;te aux lettres sont pr&eacute;sent, tenter de r&eacute;parer la  aux lettres</repair_mailbox_text>
 <SambaAdminServerDefined>Nom du serveur ou IP pour les chemins</SambaAdminServerDefined>
 <sambaHomeDrive>Lettre du lecteur r&eacute;seau du r&eacute;pertoire home</sambaHomeDrive>
 <sambaHomePath>R&eacute;pertoire home</sambaHomePath>
@@ -190,14 +191,14 @@ Elle permettra la connexion de cet utilisateur sur le domaine</SAMBA_GROUP_PRIVI
 <UserSystemInfos_text>D&eacute;finissez les informations utilisateur comme l'identifiant num&eacute;rique, le shell de connexion...</UserSystemInfos_text>
 <USER_DOES_NOT_EXISTS>Cet utilisateur est absent de la base de donn&eacute;es</USER_DOES_NOT_EXISTS>
 <USER_DOES_NOT_EXISTS_EXPLAIN>L'identifiant de cet utilisateur n'est pas correctement enregistr&eacute; dans la base de donn&eacute;es.[br]Certainement que celui-ci &agrave; &eacute;t&eacute; supprim&eacute; et qu'il reste des traces dans la base de donn&eacute;es.</USER_DOES_NOT_EXISTS_EXPLAIN>
-<user_has_no_quota>Cet utilisateur n'a pas de quota. Cette boite aux lettres est illimit&eacute;e...</user_has_no_quota>
+<user_has_no_quota>Cet utilisateur n\'a pas de quota. la boite aux lettres est illimit&eacute;e...</user_has_no_quota>
 <user_is_an_obm_user>Acc&egrave;s activ&eacute; vers le calendrier OBM</user_is_an_obm_user>
 <USER_MAILBOX_WIZARD_STEP1>Cet assistant va vous aider &agrave; cr&eacute;er une nouvelle bo&icirc;te aux lettres pour cet utilisateur.[br]
 La premi&egrave;re chose est de d&eacute;finir la taille maximale de la bo&icirc;te aux lettres.[br]
 Indiquez dans le champs ci-dessous sa taille en Mo.[br]
 [b]Si vous voulez cr&eacute;er une bo&icirc;te aux lettres illimit&eacute;e en taille, indiquez le chiffre 0[/b].</USER_MAILBOX_WIZARD_STEP1>
 <user_no_mailbox>Cet utilisateur a actuellement aucun dossier de bo&icirc;tes aux lettres cr&eacute;&eacute;es sur le serveur de messagerie</user_no_mailbox>
-<user_quota>Cette bo&icirc;te aux lettres est limit&eacute;e.[br] Si vous souhaitez supprimer le quota et le transformer en illimit&eacute;, d&eacute;finissez &quot;0&quot; dans le champ</user_quota>
+<user_quota>La bo&icirc;te aux lettres est limit&eacute;e.[br] Si vous souhaitez supprimer le quota et le transformer en illimit&eacute;, d&eacute;finissez \&quot;0\&quot; dans le champ</user_quota>
 <user_transport>Serveur SMTP d'&eacute;mission</user_transport>
 <user_transport_text>D&eacute;finir un serveur de routage mail pour cet utilisateur</user_transport_text>
 <use_ssl>utiliser le ssl</use_ssl>

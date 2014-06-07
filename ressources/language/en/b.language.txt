@@ -6349,3 +6349,8 @@ The Active Directory connection will be active during next 30 days.[br]After the
 <website_tool_explain_proxy>If the Artica server must use a proxy parent to be connected trough Internet.[br]
 Give the proxy and port is this way: 172.16.32.1:3128</website_tool_explain_proxy>
 <connection_timeout>Connection timeout</connection_timeout>
+<create_mailbox2>Create a mailbox</create_mailbox2>
+<howto_service_lmtp>The LMTP service ( Local Mail Transfer Protocol ) is used by MTA to send email directly to the mailbox service.[br]
+If enabled, then the local Postfix system will use this port in order to forward messages.[br]
+If no interface specified, then the 127.0.0.1 will be used.
+</howto_service_lmtp>

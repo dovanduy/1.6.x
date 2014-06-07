@@ -518,14 +518,27 @@ class user{
 		$ldap->Ldap_del_mod($this->dn,$upd);
 	}
 	
+	private function writelogs($text=null,$function=null,$file_source=null,$line=null){
+	
+		if($GLOBALS["AS_ROOT"]){echo date("H:i:s").": $text (in $function line:$line)\n"; return;}
+		if(function_exists("writelogs")){
+			writelogs($text,$function,$file_source,$line);
+		}
+	}
+	
 	function SaveCyrusMailboxesParameters(){
 		$upd=array();
 		$ldap=new clladp();
 		$upd["MailBoxMaxSize"][0]=$this->MailBoxMaxSize;
 		$upd["MailboxActive"][0]=$this->MailboxActive;
 		$upd["MailboxSecurityParameters"][0]=$this->MailboxSecurityParameters;
-		writelogs("Saving cyrus Mailboxes parameters for dn $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-		if(!$ldap->Ldap_modify($this->dn,$upd)){echo $ldap->ldap_last_error;return false;}
+		$this->writelogs("Saving cyrus Mailboxes parameters for dn $this->dn",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		if(!$ldap->Ldap_modify($this->dn,$upd)){
+				echo $ldap->ldap_last_error;
+				return false;
+		}
+		
+		return true;
 		
 	}	
 	

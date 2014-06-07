@@ -185,7 +185,7 @@ function items(){
 
 			}
 			 
-	 
+	if($c==0){json_error_show("No mailbox");}
 	$data['total'] = $c;
 	echo json_encode($data);
 }

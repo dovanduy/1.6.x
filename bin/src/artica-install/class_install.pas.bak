@@ -2766,7 +2766,7 @@ begin
               end;
 
               if ParamStr(2)='squid-cache' then begin
-                 zsquid.START_SIMPLE();
+
                  exit();
               end;
 

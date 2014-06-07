@@ -2787,23 +2787,30 @@ function HashMembersFromOU($ou){
 		function CyrusPassword($uid="cyrus"){
 			$sr =@ldap_search($this->ldap_connection,"dc=organizations,$this->suffix","(cn=$uid)");
 			if(!$sr){
-				writelogs("Unable to find : Cyrus admin",__CLASS__.'/'.__FUNCTION__,__FILE__);
+				$this->writelogs("Unable to find : Cyrus admin",__CLASS__.'/'.__FUNCTION__,__FILE__);
 				return null;
 			}
 
 		$entry_id = ldap_first_entry($this->ldap_connection,$sr);
 		if(!$entry_id){
-			writelogs( 'INFOS: bad value $entry_id: (' . $entry_id . ')  find: (cn=cyrus) -> aborting function search engine doesn`t found the pattern',__CLASS__.'/'.__FUNCTION__,__FILE__);
+			$this->writelogs( 'INFOS: bad value $entry_id: (' . $entry_id . ')  find: (cn=cyrus) -> aborting function search engine doesn`t found the pattern',__CLASS__.'/'.__FUNCTION__,__FILE__);
 			if($this->CyrusAdminCreate()){return $this->ldap_password;}
 		}
 		$attrs = ldap_get_attributes($this->ldap_connection, $entry_id);
-		writelogs("find a password ".strlen($attrs["userPassword"][0]),__CLASS__.'/'.__FUNCTION__,__FILE__);
+		if($GLOBALS["VERBOSE"]){$this->writelogs("find a password ".strlen($attrs["userPassword"][0]),__CLASS__.'/'.__FUNCTION__,__FILE__);}
 		return $attrs["userPassword"][0];
 			
 		}
 		
 		
-		
+		private function writelogs($text=null,$function=null,$file_source=null,$line=null){
+			$text=trim($text);
+			$text=str_replace("\r\n"," ",$text);
+			if($GLOBALS["AS_ROOT"]){echo date("H:i:s").": $text (in $function line:$line)\n"; return;}
+			if(function_exists("writelogs")){
+				writelogs($text,$function,$file_source,$line);
+			}
+		}		
 		
 		
 		function UserDatas($userid){

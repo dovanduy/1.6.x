@@ -35,7 +35,7 @@ mais il c'est assez proche de la s&eacute;mantique de Windows pour la plupart de
 <acl_group_control>Contr&ocirc;le des ACLs pour les groupes</acl_group_control>
 <acl_group_control_text>Seulement le propri&eacute;taire ou le super-utilisateur  peuvent modifier les permissions ACL d'un fichier ou d'un r&eacute;pertoire.[br]Ce param&egrave;tre &eacute;crase cette r&egrave;gle et peut autoriser le groupe [b]primaire[/b] &agrave; modifier les ACls.Cela permet la d&eacute;l&eacute;gation sur un objet et dans la hi&eacute;rarchie des r&eacute;pertoires contenus dans le m&ecirc;me comportement que sur Windows</acl_group_control_text>
 <acl_samba_not>Votre serveur Samba ne supporte pas les ACLs, vous pouvez les utiliser mais ils ne seront pas traduits par les partages Windows.</acl_samba_not>
-<action>action</action>
+<action>Action</action>
 <actions>Actions</actions>
 <ActionsGroup>Actions sur le groupe</ActionsGroup>
 <ActionsGroupDESC>Actions effectu&eacute;es lors de l'arriv&eacute;e des messages</ActionsGroupDESC>
@@ -58,7 +58,7 @@ Cette op&eacute;ration va activer le service et la sauvegarde &agrave; distance 
 <ACTIVATE_HD_ORG_DEFAULT_EXPLAIN>Le stockage choisi sera aussi le chemin par d&eacute;faut des r&eacute;pertoires utilisateurs (home).</ACTIVATE_HD_ORG_DEFAULT_EXPLAIN>
 <ACTIVATE_MLDONKEY>Activer le service MLDonkey</ACTIVATE_MLDONKEY>
 <ACTIVATE_MLDONKEY_TEXT>SI vous activez cette options, les administrateurs des organisations seront autoris&eacute;s &agrave; active l'acc&egrave;s des utilisateurs des services Peer to Peer.[br]Dans ce cas, les utilisateurs pourront programmer la r&eacute;cup&eacute;ration de fichier &agrave; travers l'interface utilisateur d'Artica</ACTIVATE_MLDONKEY_TEXT>
-<activate_rule>activation de la r&egrave;gle</activate_rule>
+<activate_rule>Activation de la r&egrave;gle</activate_rule>
 <ACTIVATE_SPF>Activation de la v&eacute;rification SPF</ACTIVATE_SPF>
 <ACTIVATE_SPF_TEXT>Si cette fonctionnalit&eacute; est activ&eacute;e, les scores de l'anti-spam seront modifi&eacute;s avec la validation des h&ocirc;tes &eacute;metteurs.</ACTIVATE_SPF_TEXT>
 <activate_ssl_bump>Activer l'interception SSL</activate_ssl_bump>
@@ -263,7 +263,7 @@ Cette valeur doit &ecirc;tre inf&eacute;rieure &agrave; la premi&egrave;re valeu
 <allow>Permettre</allow>
 <allow to add users>Autoris&eacute; &agrave; ajouter des utilisateurs</allow to add users>
 <AllowAddGroup>Ajouter/Supprimer/Modifier les groupes</AllowAddGroup>
-<AllowAddUsers>Ajoutez, Supprimez et Modifiez des utilisateurs dans les groupes</AllowAddUsers>
+<AllowAddUsers>Ajouter, Supprimer et Modifier des utilisateurs dans les groupes</AllowAddUsers>
 <AllowChangeAntiSpamSettings>D&eacute;finissez des parametres anti-spam</AllowChangeAntiSpamSettings>
 <AllowChangeDomains>Ajouter/Supprimer des domaines Internet</AllowChangeDomains>
 <AllowChangeKas>Changer les param&egrave;tres Anti-Spam</AllowChangeKas>
@@ -536,7 +536,7 @@ Vous pouvez modifier les param&egrave;tres afin de d&eacute;finir &agrave; quel 
 <APP_P3SCAN>Proxy d'email P3scan</APP_P3SCAN>
 <APP_PDNS>Syst&egrave;me PowerDNS</APP_PDNS>
 <APP_PDNS_RECURSOR>PowerDNS recursor</APP_PDNS_RECURSOR>
-<APP_PDNS_TEXT>G&eacute;rez, ajoutez, supprimez des &eacute;l&eacute;ments dans votre table DNS</APP_PDNS_TEXT>
+<APP_PDNS_TEXT>G&eacute;rer, ajouter, supprimer,des &eacute;l&eacute;ments dans la table DNS</APP_PDNS_TEXT>
 <APP_PFLOGSUMM>Synt&egrave;se des ev&egrave;nements Postfix</APP_PFLOGSUMM>
 <APP_PFLOGSUMM_TEXT>pflogsumm (Postfix Log Entry Summarizer) &agrave; &eacute;t&eacute; con&ccedil;u afin de fournir une synth&egrave;se de l'activit&eacute; du routeur Postfix permettant &agrave; un administrateur de v&eacute;rifier la coh&eacute;rence de la messagerie</APP_PFLOGSUMM_TEXT>
 <APP_PHILESIGHT>Espace utilis&eacute; sur le disque</APP_PHILESIGHT>
@@ -888,7 +888,7 @@ Si le parent n'est pas titulaire d'un objet de requ&ecirc;te, il transmet la req
 <bt_add_inet>Ajouter une interface r&eacute;seau</bt_add_inet>
 <bt_add_mailbox>Ajouter une boite aux lettres locale</bt_add_mailbox>
 <bt_delete_alias>supprimer un alias</bt_delete_alias>
-<bt_delete_transport>supprimez</bt_delete_transport>
+<bt_delete_transport>Supprimer</bt_delete_transport>
 <bt_edit_antivirus_protection>soumettre</bt_edit_antivirus_protection>
 <bt_edit_mailbox>Modifier la bo&icirc;te aux lettres</bt_edit_mailbox>
 <bt_edit_notify>soumettre</bt_edit_notify>
@@ -1251,9 +1251,9 @@ Les spammeurs on donc modifi&eacute; leur comportement en utilisant des services
 <delay_pool_param_user_max>Lorsqu'un t&eacute;l&eacute;chargement exc&egrave;de</delay_pool_param_user_max>
 <delay_template>masque de retardement</delay_template>
 <delete>supprimer</delete>
-<delete aliase>Supprimez cet alias</delete aliase>
-<delete group explain>Supprimez ce groupe de l'arborescence</delete group explain>
-<delete mail>Supprimez cette adresse email</delete mail>
+<delete aliase>Supprimer cet alias</delete aliase>
+<delete group explain>Supprimer ce groupe de l\'arborescence</delete group explain>
+<delete mail>Supprimer cette adresse</delete mail>
 <deleted>supprim&eacute;</deleted>
 <delete_all>tout supprimer</delete_all>
 <delete_all_items>Supprimer tous les &eacute;l&eacute;ments</delete_all_items>
@@ -1266,8 +1266,8 @@ Les spammeurs on donc modifi&eacute; leur comportement en utilisant des services
 <delete_message_text>Supprimer d&eacute;finitivement ce message</delete_message_text>
 <delete_not_forget_to_compile>L'&eacute;l&eacute;ment &agrave; &eacute;t&eacute; correctement supprim&eacute;, n'oubliez pas de compiler vos r&egrave;gles afin d'appliquer ces changements.</delete_not_forget_to_compile>
 <delete_organisation_text>Supprimer cette organisation?</delete_organisation_text>
-<delete_ou>Supprimez cette organisation</delete_ou>
-<delete_ou_text>Supprimez tous les &eacute;l&eacute;ments &agrave; propos de cette organisation (incluant les utilisateurs)</delete_ou_text>
+<delete_ou>Supprimer l\'organisation</delete_ou>
+<delete_ou_text>Supprimer tous les &eacute;l&eacute;ments &agrave; propos de cette organisation (incluant les utilisateurs)</delete_ou_text>
 <delete_package_source>Supprimer les sources du paquet aussi</delete_package_source>
 <delete_postfix_instance>Supprimer ce service SMTP</delete_postfix_instance>
 <delete_postfix_instance_sure>Confirmez la suppression de ce service SMTP</delete_postfix_instance_sure>
@@ -1338,10 +1338,10 @@ message de fa&ccedil;on silencieuse.[br] Enregistrer le texte optionnel s'il est
 <Disposition-Notification-To>Accus&eacute; r&eacute;ception</Disposition-Notification-To>
 <Disposition-Notification-To_text>Si vous mettez une adresse eMail ici, celle-ci activera une notification (accus&eacute; r&eacute;ception) lorsque le destinataire aura lu le message.[br]Si pas d'adresse indiqu&eacute;e, alors l'accus&eacute; r&eacute;ception sera inactif</Disposition-Notification-To_text>
 <dkimproxy_method>m&eacute;thode de canonisation de la signature</dkimproxy_method>
-<dkimproxy_selector_text>Mettez les donn&eacute;es de la clef publique dans les DNS de vos domaines en utilisant le s&eacute;lecteur sauvegard&eacute; ([b]--selector--[/b]).[br]
-Prenez le contenu du fichier de clef public.key, supprimez l'ent&ecirc;te PEM et le pied de page puis concat&eacute;nez les lignes en une seule ligne principale.[br]
+<dkimproxy_selector_text>Mettre les donn&eacute;es de la clef publique dans les DNS des domaines en utilisant le s&eacute;lecteur sauvegard&eacute; ([b]--selector--[/b]).[br]
+Prendre le contenu du fichier de clef public.key, supprimer l\'ent&ecirc;te PEM et le pied de page puis concat&eacute;nez les lignes en une seule ligne principale.[br]
 Ceci afin de cr&eacute;er une entr&eacute;e TXT comme ceci : br]
---selector--._domainkey IN TXT &quot;k=rsa; t=s; p=MHwwDQYJK ... OprwIDAQAB&quot;</dkimproxy_selector_text>
+--selector--._domainkey IN TXT \&quot;k=rsa; t=s; p=MHwwDQYJK ... OprwIDAQAB\&quot;</dkimproxy_selector_text>
 <dkim_about2>Cette technologie combine des messages sign&eacute;s et les serveurs DNS.[br]Tous les messages sign&eacute;s seront v&eacute;rifi&eacute;s avec les DNS externes (le champs TXT).Pour les messages entrants les messages sign&eacute;s vont influencer n&eacute;gativement le score de l'anti-spam.[br] A l'inverse l'anti-spam sera plus g&eacute;n&eacute;reux si les messages sont sign&eacute;s.[br]Vos messages sortants devront &ecirc;tre sign&eacute;s afin d'aider les serveurs destinataires de vos messages &agrave; v&eacute;rifier vos domaines de messagerie.</dkim_about2>
 <dkim_showkeys_text>Vous avez besoin de param&eacute;trer vos enregistrements dans les DNS pour chaque domaine list&eacute; ci-dessous.[br]Chaque enregistrement DNS devra disposer d'un  champ TXT avec les informations ci-dessous</dkim_showkeys_text>
 <DKIM_SPAMASS_WBL_HOWTO>Les serveurs ou domaines, emails, de cette section vont influencer positivement les scores de l'anti-spam malgr&eacute; un &eacute;chec de v&eacute;rification DKIM</DKIM_SPAMASS_WBL_HOWTO>
@@ -1444,7 +1444,7 @@ prend en charge l'extension DSN.[/b]</EHLOsupportDSN_text>
 <email>Addresse email</email>
 <emailAddress>addresse email</emailAddress>
 <emailings>Envois en masse</emailings>
-<emailing_campain_linker_delete>Supprimez l'envoi de masse et les donn&eacute;es associ&eacute;es</emailing_campain_linker_delete>
+<emailing_campain_linker_delete>Supprimer l\'envoi de masse et les donn&eacute;es associ&eacute;es</emailing_campain_linker_delete>
 <emailing_campain_linker_delete_confirm>&ecirc;tes-vous sur de vouloir supprimer cet &eacute;l&eacute;ment ?</emailing_campain_linker_delete_confirm>
 <emailing_queue_not_ready>La file d'attente n'est pas pr&ecirc;te</emailing_queue_not_ready>
 <emailing_queue_not_ready_text>Vous pouvez envoyer l'&eacute;mission en masse que si la file d'attente &agrave; &eacute;t&eacute; correctement construite</emailing_queue_not_ready_text>
@@ -1469,8 +1469,8 @@ prend en charge l'extension DSN.[/b]</EHLOsupportDSN_text>
 <empty_quarantine_text_mesgbox>Vider votre zone de quarantaine? Tous les mails seront supprim&eacute;s</empty_quarantine_text_mesgbox>
 <empty_swap>vider le fichier de pagination et la m&eacute;moire</empty_swap>
 <empty_table_confirm>Cette op&eacute;ration va supprimer toutes les entr&eacute;es SQL? Effectuer cette op&eacute;ration ?</empty_table_confirm>
-<empty_this_mailbox>Vider cette bo&icirc;te aux lettres</empty_this_mailbox>
-<empty_this_mailbox_explain>Supprime des messages dans cette bo&icirc;te aux lettres lorsque qu'il sont plus vieux ou leur taille exc&egrave;de une valeur.[br]Cette fonctionnalit&eacute; supprime les messages des tous les sous-dossiers aussi, un mauvais param&egrave;tre pourrait supprimer tous les messages.</empty_this_mailbox_explain>
+<empty_this_mailbox>Vider la bo&icirc;te aux lettres</empty_this_mailbox>
+<empty_this_mailbox_explain>Supprime des messages dans cette bo&icirc;te aux lettres lorsque qu\'il sont plus vieux ou leur taille exc&egrave;de une valeur.[br]Cette fonctionnalit&eacute; supprime les messages des tous les sous-dossiers aussi, un mauvais param&egrave;tre pourrait supprimer tous les messages.</empty_this_mailbox_explain>
 <empty_this_mailbox_text>Supprimer des messages en fonction de leur age, taille...</empty_this_mailbox_text>
 <empty_your_mailbox>Vider votre bo&icirc;te aux lettres</empty_your_mailbox>
 <eMuleIDServers>Note affect&eacute;e (ID)</eMuleIDServers>
@@ -2468,7 +2468,7 @@ Artica pour construire des serveurs &quot;virtuels&quot; multiples sur la m&ecir
 <manage_mailman_lists_text>Cr&eacute;er et affectez les listes de distributions de vos organisations</manage_mailman_lists_text>
 <manage_organisation>G&eacute;rer votre organisation</manage_organisation>
 <manage_organisations>G&eacute;rer les organisations</manage_organisations>
-<manage_organisations_text>Cr&eacute;ez, ajoutez,supprimez des utilisateurs et des groupes dans votre organisation</manage_organisations_text>
+<manage_organisations_text>Cr&eacute;er, ajouter,supprimer des utilisateurs et des groupes dans l\'organisation</manage_organisations_text>
 <manage_procmail_rules>G&eacute;rer les r&egrave;gles procmail</manage_procmail_rules>
 <manage_procmail_rules_text>Ajouter et &eacute;diter les r&egrave;gles pour le service procmail</manage_procmail_rules_text>
 <manage_services>G&eacute;rer les services</manage_services>
@@ -2830,7 +2830,7 @@ Vous devrez alors reconstruire le certificat SSL principal et demander &agrave; 
 <organizationName>nom d'organisation</organizationName>
 <organizations>Organisations</organizations>
 <ORG_HD_TITLE>Editeur de partitions</ORG_HD_TITLE>
-<ORG_HD_TITLE_TEXT>Cr&eacute;ez, r&eacute;organisez et supprimez les partitions disques</ORG_HD_TITLE_TEXT>
+<ORG_HD_TITLE_TEXT>Cr&eacute;er, r&eacute;organiser et supprimer les partitions disques</ORG_HD_TITLE_TEXT>
 <original>originale</original>
 <or_add_db>Ou ajouter une nouvelle base</or_add_db>
 <or_select>Ou s&eacute;lectionnez une valeur</or_select>
@@ -3407,7 +3407,7 @@ Placer une limite sur les ent&ecirc;tes HTTP peut r&eacute;soudre certains probl
 <ROUNDCUBE_NEWVERSION_TEXT>Mettez &agrave; jour votre webmail et disposez de nouvelles fonctionnalit&eacute;s</ROUNDCUBE_NEWVERSION_TEXT>
 <roundcube_parameters>Param&egrave;tres RoundCube</roundcube_parameters>
 <roundcube_parameters_text>Modifiez le comportement globale de RoundCube</roundcube_parameters_text>
-<roundcube_plugins_text>Ajoutez/Supprimez des addins &agrave; RoudCube afin de fournir plus de fonctionnalit&eacute;s &agrave; vos utilisateurs.</roundcube_plugins_text>
+<roundcube_plugins_text>Ajouter/Supprimer des extensions &agrave; RoudCube afin de fournir plus de fonctionnalit&eacute;s aux utilisateurs.</roundcube_plugins_text>
 <routing_relay_recipient>Routage par destinataires</routing_relay_recipient>
 <routing_relay_recipient2>Routage par destinataire</routing_relay_recipient2>
 <routing_rule>R&egrave;gle de routage</routing_rule>

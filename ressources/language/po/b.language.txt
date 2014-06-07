@@ -2510,6 +2510,10 @@ If you define an IP adress in this field, the settings will be forced to use it 
 <howto_dotclear_text>Your DotClear web site has been installed.
 You can finish the setup or access to the Web Administration interface by clicking on this link:
 </howto_dotclear_text>
+<howto_service_lmtp>The LMTP service ( Local Mail Transfer Protocol ) is used by MTA to send email directly to the mailbox service.[br]
+If enabled, then the local Postfix system will use this port in order to forward messages.[br]
+If no interface specified, then the 127.0.0.1 will be used.
+</howto_service_lmtp>
 <howto_www_white>It turned to green, this website will be allowed to pass to any filter on your proxy.[br]
 It will be not filtered by the antivirus and the Webfiltering engine.
 </howto_www_white>

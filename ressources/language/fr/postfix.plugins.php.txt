@@ -1,5 +1,5 @@
 <about>Cette section va vous permettre d'activer/d&eacute;sactiver les services qui se greffent &agrave; Postfix. Vous verrez toutes les options des services que chaque module offre si vous l'activez.</about>
-<activated>activ&eacute;</activated>
+<activated>Actif</activated>
 <addons_bundle>Modules Open Source</addons_bundle>
 <amavis_bundle>Paquet Amavisd-new</amavis_bundle>
 <AMAVIS_DEF>Amavisd-new est un &eacute;l&eacute;ment Opensource concernant la s&eacute;curit&eacute;.[br]

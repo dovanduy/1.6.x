@@ -250,7 +250,7 @@ manpages.[br] Les expressions r&eacute;guli&egrave;res sont aussi d&eacute;crite
 [br][blk]-i ^http://www.google.co.in/index.html[/blk][br]
 Rejeter contient la totalit&eacute; de l'URL http://www.google.co.in/index.html</acl_url_regex_text>
 <acl_url_regex_title>Appariement en utilisant une expression r&eacute;guli&egrave;re sur l'URL compl&egrave;te</acl_url_regex_title>
-<activate_plugins>Activation des plugins Proxy</activate_plugins>
+<activate_plugins>Activation des extension Proxy</activate_plugins>
 <activate_plugins_text>Activer/d&eacute;sactiver les services qui vous permettent de filtrer vos utilisateurs similaires (filtrage URL et antivirus)</activate_plugins_text>
 <additional_caches>Autres caches</additional_caches>
 <add_acl>Ajouter une ACL &agrave; cette r&eacute;gle</add_acl>
@@ -379,7 +379,7 @@ Dans les environnements o&ugrave; les requ&ecirc;tes DNS sont lentes, augmenter 
 <give_value>D&eacute;finissez la valeur</give_value>
 <group_service_menus>Services de groupe</group_service_menus>
 <http_access>Restrictions de Proxy</http_access>
-<http_ports>ports HTTP</http_ports>
+<http_ports>Ports HTTP</http_ports>
 <http_reply_access>Restrictions de r&eacute;ponse de Proxy</http_reply_access>
 <http_reply_access_text>Ceci est compl&eacute;mentaire aux &quot;restrictions Proxy&quot; qui autorisent ou rejettent les r&eacute;ponses des clients[br]
 Cela est utilis&eacute; pour le filtrage bas&eacute; sur les couplages ACL mais en r&eacute;ponse &agrave; la requ&ecirc;te du client.[br]

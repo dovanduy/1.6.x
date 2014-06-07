@@ -2164,6 +2164,9 @@ Vous indiquerez le temps maximal d'acc&egrave;s &agrave; Internet pour permettre
 <howto_ADNETIPADDR>Il est n&eacute;cessaire de r&eacute;soudre correctement l'adresse r&eacute;seau du serveur Active Directory.[br]
 Si vous indiquez une adresse IP dans ce champs, l'adresse IP pure sera alors forc&eacute;e en lieu et place du nom FQDN du serveur Active Directory.</howto_ADNETIPADDR>
 <howto_dotclear_text>Votre site web DotClear est install&eacute;.[br]Vous pouvez finir son installation ou bien acc&eacute;der &agrave; la page d'administration &agrave; travers ce lien</howto_dotclear_text>
+<howto_service_lmtp>Le service LMTP  ( Local Mail Transfer Protocol )  est utilis&eacute; par le MTA afin de d&eacute;livrer les messages dans la bo&icirc;te aux lettres.[br]
+Si activ&eacute;, le syst&egrave;me Postfix local va d&eacute;livrer les messages en utilisant le port indiqu&eacute;.[br]
+Si aucune interface r&eacute;seau n\'est sp&eacute;cifi&eacute;e alors l\'interface 127.0.0.1 sera s&eacute;lectionn&eacute; comme valeur par d&eacute;faut.</howto_service_lmtp>
 <howto_www_white>Si mis en vert, ce site web sera autoris&eacute; &agrave; &ecirc;tre visualis&eacute; contre tout filtrage (filtrage Web et antivirus) activ&eacute; sur dans proxy.[br]</howto_www_white>
 <how_to_configure_browser_isp>Cette section vous permet de vous aider &agrave; configurer votre navigateur afin d'utiliser ce service de proxy.</how_to_configure_browser_isp>
 <how_to_configure_browser_isp2>Les param&egrave;tres ci-dessous vous expliquent comment utilise le syst&egrave;me de fichier d'auto-configuration (PAC).[br]

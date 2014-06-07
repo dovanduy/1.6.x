@@ -2533,6 +2533,9 @@ function cyrus_imapd(){
 	$f[]=" reload)";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --reload \$2 \$3";
 	$f[]="    ;;";	
+	$f[]=" build)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --build \$2 \$3";
+	$f[]="    ;;";	
 	$f[]="";
 	$f[]="  *)";
 	$f[]="    echo \"Usage: \$0 {start|stop|restart|reload} --verbose for more infos\"";

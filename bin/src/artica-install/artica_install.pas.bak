@@ -337,7 +337,7 @@ if ParamStr(1)='--cyrus-db_config' then begin
 end;
 
 if ParamStr(1)='--cyrus-conf' then begin
-   ccyrus.WRITE_CYRUS_CONF();
+   fpsystem('/etc/init.d/cyrus-imapd build');
    halt(0);
 end;
 if ParamStr(1)='--cyrus-rights' then begin
@@ -3511,7 +3511,7 @@ halt(0);
 end;
 if ParamStr(1)='--squid-reload' then
 begin
-zsquid.SQUID_RELOAD();
+
 halt(0);
 end;
 

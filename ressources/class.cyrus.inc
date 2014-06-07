@@ -135,7 +135,7 @@ class cyrus{
 		$ldap=new clladp();
 		
 		if(preg_match("#(.+?)@(.+)#",$cn,$re)){
-			writelogs("Mailbox in multidomain $cn",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->writelogs("Mailbox in multidomain $cn",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$uid=$re[1];
 			
 			$ldap->CyrusAdminOtherCreate("cyrus@{$re[2]}",$this->PasswordOfCyrus);	
@@ -148,19 +148,20 @@ class cyrus{
     			);	
 			}
 			
-			
+		if($GLOBALS["VERBOSE"]){echo " **************** CONNECTING ****************\n";}
 		$cyradm=new CyrusAdmin($this->cyr_params);
 		if(!$cyradm->_connect()){
 			$this->cyrus_infos=$this->cyrus_infos."\n{unable_to_connect_imap}\n.$cyradm->error";
 			return false;	
 		}
     
-        $mbx=$cyradm->listmbox("user/$uid");
+		if($GLOBALS["VERBOSE"]){echo " **************** listmbox user/$uid ****************\n";}
+        $mbx=$cyradm->listmbox("user/$uid/*");
         if(is_array($mbx)){
         	writelogs("Mailbox:".@implode(",",$mbx),__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
         }
         
-        
+        if($GLOBALS["VERBOSE"]){print_r($mbx);}
         if(preg_match("#$uid#",$mbx[0])){
         	$cyradm->_disconnect();
         	return true;
@@ -232,6 +233,26 @@ class cyrus{
 	}
 	
 	
+	private function writelogs($text=null,$function=null,$file_source=null,$line=null){
+		
+		if($GLOBALS["AS_ROOT"]){echo date("H:i:s").": $text (in $function line:$line)\n"; return;}
+		if(function_exists("writelogs")){
+			writelogs($text,$function,$file_source,$line);
+		}
+	}
+	
+	private function build_progress($text,$pourc){
+		if(!$GLOBALS["AS_ROOT"]){return;}
+		echo "******************** {$pourc}% $text ********************\n";
+		$cachefile="/usr/share/artica-postfix/ressources/logs/cyrus.mbx.progress";
+		$array["POURC"]=$pourc;
+		$array["TEXT"]=$text;
+		@file_put_contents($cachefile, serialize($array));
+		@chmod($cachefile,0755);
+	
+	}	
+	
+	
 	public function CreateMailbox($cn,$notContinue=0){
 		include_once(dirname(__FILE__)."/class.user.inc");
 		$uid=$cn;
@@ -247,45 +268,70 @@ class cyrus{
 		}
 		
 		if($acls_user==null){
-			writelogs("No acls defined using lrswipkxtecda as default",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->writelogs("No acls defined using lrswipkxtecda as default",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$acls_user="lrswipkxtecda";
 		}
 		
-		writelogs("$uid: Create acls $acls_user",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
+		$this->build_progress("$uid: Create acls", 55);
+		$this->writelogs("$uid: Create acls $acls_user",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);	
 		
 		if(preg_match("#(.+?)@#",$uid,$re)){$REAL_UID=$re[1];}else{$REAL_UID=$uid;}
 		
+		$this->build_progress("$uid: Connecting to IMAP server", 56);
+		$this->writelogs("$uid: Connecting to IMAP server",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		$cyradm=new CyrusAdmin($this->cyr_params);
+		
 		if(!$cyradm->_connect()){
+			$this->writelogs("$uid: {unable_to_connect_imap}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->cyrus_infos="{unable_to_connect_imap}";
 			return false;	
 		}
 		
+		$this->build_progress("$uid: Creating Mailbox user/$REAL_UID", 59);
+		$this->writelogs("$uid: Creating Mailbox user/$REAL_UID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if(!$cyradm->createmailbox("user/$REAL_UID")){
+			$this->build_progress("$uid: Creating Mailbox - Failed --", 60);
+			$this->writelogs("$uid: {unable_to_create_mailbox}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->cyrus_infos="{unable_to_create_mailbox}";
 			return false;
 		}
 		
+		$this->build_progress("$uid: Define quotas...", 60);
+		
 		if($user->MailBoxMaxSize>0){
+			$this->writelogs("Set quota for {$user->MailBoxMaxSize}MB",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->cyrus_infos=$this->cyrus_infos."$REAL_UID: QUOTA => $user->MailBoxMaxSize\n";
 			$cyradm->setquota("user/$REAL_UID",($user->MailBoxMaxSize*1000));
 		}
+		
+		$this->build_progress("$uid: Reconnect to imap server", 65);
+		$cyradm=new CyrusAdmin($this->cyr_params);
+		
+		if(!$cyradm->_connect()){
+			$this->writelogs("$uid: {unable_to_connect_imap}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->cyrus_infos="{unable_to_connect_imap}";
+			return false;
+		}
 
+		$this->build_progress("$uid: setup ACLS for user/$REAL_UID", 70);
+		$this->writelogs("Creating ACLS for user/$REAL_UID",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if(!$cyradm->setacl("user/$REAL_UID",$REAL_UID,$acls_user)){
+			$this->writelogs("Unable to define ACLs",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			$this->cyrus_infos=$this->cyrus_infos."$REAL_UID: {unable_to_create_acls} user/$REAL_UID (level 1)\n";
+			$cyradm->_disconnect();
 			return false;
 		}		
 		
 		
 		
 		$cyradm->_disconnect();
+		
+		$this->writelogs("Creating all necessaries mailboxes",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		
 		if(!$this->CreateSubBox($uid,$acls_user)){
 			return false;
 		}
-		if(!$cyradm->setacl("user/$REAL_UID",$REAL_UID,$acls_user)){
-			$this->cyrus_infos=$this->cyrus_infos."$REAL_UID: {unable_to_create_acls} user/$REAL_UID (level 2)\n";
-			return false;
-		}	
+			
 		
 		return true;
 		

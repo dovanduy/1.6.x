@@ -490,9 +490,6 @@ class squid_stats_tools{
 		}
 
 		if(count($f)>500){
-			if(system_is_overloaded()){
-				squid_admin_mysql(2, "Warning, overloaded system after $c items", "",__FILE__,__LINE__);
-			}
 			$GLOBALS["Q"]->QUERY_SQL("$prefix" .@implode(",", $f));
 			if(!$GLOBALS["Q"]->ok){$this->writelogs_repair($xtime,90,"Failed to process query to $nexttable {$GLOBALS["Q"]->mysql_error}");return;}
 			$f=array();

@@ -116,17 +116,29 @@ class CyrusAdmin
      * Makes a connection to the cyrus imap server
      *
      * @returns boolean    True on success, false on failure
+     * 
      */
+    
+    private function writelogs($text=null,$function=null,$file_source=null,$line=null){
+    	$text=trim($text);
+    	$text=str_replace("\r\n"," ",$text);
+    	if($GLOBALS["AS_ROOT"]){echo date("H:i:s").": $text (in $function line:$line)\n"; return;}
+    	if(function_exists("writelogs")){
+    		writelogs($text,$function,$file_source,$line);
+    	}
+    }    
+    
+    
     function _connect()
     {
 		if ($this->connected) return true;
 		if($this->params['password']==null){
-			writelogs("No password set",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->writelogs("No password set",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return false;
 		}
 		$this->imap = fsockopen($this->params["hostspec"],$this->params["port"]);
 		if ($this->imap===false) {
-			writelogs("fsockopen failed {$this->params["hostspec"]}:{$this->params["port"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			$this->writelogs("fsockopen failed {$this->params["hostspec"]}:{$this->params["port"]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return false;
 		}
 	    $this->connected = true;
@@ -211,13 +223,13 @@ class CyrusAdmin
 			if (!empty($command)) {
 				// Send command
 				fputs($this->imap,"01 ");
-				writelogs("\"$command\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->writelogs("\"$command\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				fputs($this->imap,$command."\r\n");
 			}
 			// read response
 			$return = array();
 			while ($line = fgets($this->imap)) {
-				writelogs("Recieve \"$line\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->writelogs("RECEIVE \"$line\"",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				if(preg_match("#BAD Unexpected#",$line)){
 					$this->error="BAD Unexpected";
 					return false;
@@ -232,12 +244,12 @@ class CyrusAdmin
 				}	
 				
 				if(preg_match("#NO Permission denied#",$line)){
+					$this->writelogs("!!!! Permission denied !!!!!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 					$this->error="Permission denied";
 					return false;
 				}
 				
 				if(preg_match("#NO Mailbox already exists#",$line)){
-					
 					return true;
 				}
 				
@@ -253,7 +265,7 @@ class CyrusAdmin
 				
 				
 				
-
+				//$this->writelogs("UNDERSTAND [$line]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 				if (preg_match("/^(\*|01) (.*)\r\n$/",$line,$arg)) {
 					if (empty($command) && $arg[1]=="*") {
 						$return[] = $arg[2];
@@ -271,10 +283,15 @@ class CyrusAdmin
 						}
 					}
 					$return[] = $arg[2];
+					continue;
 				}
+				
+				
+				$this->writelogs("UNABLE TO UNDERSTAND [$line]",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+				
 			}
 		}
-		return false;
+		return $return;
 	}
 
     /**
@@ -282,12 +299,12 @@ class CyrusAdmin
      *
      * @returns boolean  True on success, false on failure
      */
-    function _disconnect()
-    {
+    function _disconnect(){
+    	$ret=array();
 		if ($this->connected) {
 			$this->sendCommand("LOGOUT",$ret);
 			fclose($this->imap);
-			$his->connected=false;
+			$this->connected=false;
 		}
 		return true;
     }
@@ -297,15 +314,29 @@ class CyrusAdmin
      *
      * @returns mixed	array of mailboxe name, or false on error
      */
-    function listmbox($filter="*")
-	{
+    function listmbox($filter="*"){
 		$mboxes = array();
+		$zMboxes=array();
 		if ($this->sendCommand('LIST "" "'.$filter.'"',$mboxes)) {
-		    for ($i=0;$i<count($mboxes);$i++) {
-				preg_match("/\"([^\"]*)\"$/",$mboxes[$i],$arg);
-				$mboxes[$i] = $arg[1];
-		    }
-		    return $mboxes;
+			
+			while (list ($num, $boxes) = each ($mboxes) ){
+				$boxes=trim($boxes);
+				if($boxes==null){continue;}
+				if(preg_match("#LIST \(.*?\)\s+\"\/\"\s+(.+?)$#", $boxes,$re)){
+					$zMboxes[$num] = $re[1];
+					continue;
+				}
+				
+			}
+			
+			if(count($mboxes)==0){
+				
+			    for ($i=0;$i<count($mboxes);$i++) {
+					preg_match("/\"([^\"]*)\"$/",$mboxes[$i],$arg);
+					$zMboxes[$i] = $arg[1];
+			    }
+			}
+		    return $zMboxes;
 		}
 		return false;
     }
@@ -319,8 +350,8 @@ class CyrusAdmin
 	 *
 	 * @returns mixed    array of acls, or false on error
      */
-    function getacl($mailbox)
-    {
+    function getacl($mailbox){
+    	$ret=array();
 		if (!$this->GetCapability("ACL"))
 			return false;
 		if ($this->sendCommand("GETACL \"$mailbox\"",$ret)) {
@@ -382,12 +413,33 @@ class CyrusAdmin
 	 *
 	 * @returns bool		true on success, or false on error
      */
-    function setacl($mailbox,$user,$rights)
-    {
-		if (!$this->GetCapability("ACL"))
+    function setacl($mailbox,$user,$rights){
+    	if(isset($GLOBALS["SETACL"][$mdkey])){return true;}
+    	$ret=array();
+    	$mdkey=md5("$mailbox$user$rights");
+    	
+    	if (!$this->connected) {
+    		$this->writelogs("setacl() *** *** FAILED NOT CONNECTED *** ***",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+    		return false;
+    	}
+    	
+		if (!$this->GetCapability("ACL")){
+			$this->writelogs("GetCapability ACLS return false",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
 			return false;
+		}
 		$rights = $this->aclmap($rights);
-		return $this->sendCommand("SETACL \"$mailbox\" $user $rights",$ret);
+		$RETURN=$this->sendCommand("SETACL \"$mailbox\" $user $rights",$ret);
+		while (list ($num, $ligne) = each ($ret)){
+			$this->writelogs("$num: $ligne",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		}
+		
+		if(!$RETURN){
+			$this->writelogs("setacl() *** *** FAILED $this->error *** ***",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);
+		}else{
+			$GLOBALS["SETACL"][$mdkey]=true;
+		}
+		
+		return $RETURN;
     }
 
     /**

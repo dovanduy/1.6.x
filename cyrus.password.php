@@ -44,7 +44,6 @@ function js(){
 			var XHR = new XHRConnection();
 			var pp=encodeURIComponent(document.getElementById('cyruspassword').value);
 			XHR.appendData('SaveCyrusPassword',pp);
-			AnimateDiv('change_cyrus_password');
 			XHR.sendAndLoad('$page', 'POST',x_SaveCyrusPassword);
 		}
 		

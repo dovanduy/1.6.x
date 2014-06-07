@@ -89,7 +89,7 @@ Si le serveur IMAP distant utilise SSL indiquez comme suffix &quot;ssl:&quot;[br
 <no_acl_arp_text>Squid n'est pas compil&eacute; avec la directive arp, les listes blanches et noires ne supporteront pas le filtrage par adresse MAC</no_acl_arp_text>
 <only>seulement</only>
 <only_days>seulement les jours</only_days>
-<ports>ports</ports>
+<ports>Ports</ports>
 <PPTPD_EXPLAIN>PPTP (Point-to-point tunneling protocol) est un protocole d'encapsulation PPP sur IP con&ccedil;u par Microsoft, permettant la mise en place de r&eacute;seaux priv&eacute;s virtuels (VPN) au-dessus d'un r&eacute;seau public.[br]Layer 2 Tunneling Protocol (L2TP) et IPsec sont des protocoles inspir&eacute;s de PPTP et charg&eacute;s de le remplacer.[br]Cependant, le protocole PPTP continue d'&ecirc;tre utilis&eacute; car il est impl&eacute;ment&eacute; nativement sur les machines Windows depuis Windows 2000.[br]Toute machine Microsoft est donc capable de mettre en place un tunnel PPTP avec une machine distante sans ajout de m&eacute;canisme suppl&eacute;mentaire.</PPTPD_EXPLAIN>
 <PPTP_EXPLAIN_TEXT>Ce tunnel VPN utilise le port 1723 TCP (pas UDP) et le protocole GRE (general routing encapsulation - IP Protocol ID of 47 (0x2F) - GRE passthrough,
 basiquement l'option VPN passthrough, PPTP/IPSEC ).[br]

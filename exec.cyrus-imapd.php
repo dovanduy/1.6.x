@@ -20,7 +20,7 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 include_once(dirname(__FILE__).'/framework/class.settings.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
-
+include_once(dirname(__FILE__).'/ressources/class.cyrus.inc');
 
 
 $GLOBALS["ARGVS"]=implode(" ",$argv);
@@ -28,7 +28,7 @@ if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
-
+if($argv[1]=="--build"){BuildConfig();exit;}
 
 
 
@@ -435,7 +435,7 @@ if($EnableCyrusMasterCluster==1){
 	$f[]="sync_machineid: $CyrusClusterID";
 }
 
-
+$cur_email[]="cyrus";
 $cur_email[]="cyrus@$DOMAIN";
 if($CyrusAdmPlus<>null){
 	$cur_email[]=$CyrusAdmPlus;
@@ -497,7 +497,7 @@ $f[]="tls_sieve_require_cert: false";
 
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/imapd.conf DONE\n";}
 @file_put_contents("/etc/imapd.conf", @implode("\n", $f));
-shell_exec("/usr/share/artica-postfix/bin/artica-install --cyrus-conf >/dev/null 2>&1");	
+WRITE_CYRUS_CONF();	
 	
 }
 
@@ -679,6 +679,393 @@ function PID_NUM(){
 	
 }
 
+function LOCATE_CYRUS_SQUATTER(){
+if(is_file('/usr/sbin/squatter')){ return '/usr/sbin/squatter';}
+if(is_file('/usr/lib/cyrus/bin/squatter')){ return '/usr/lib/cyrus/bin/squatter';}
+if(is_file('/usr/lib/cyrus-imapd/squatter')){ return '/usr/lib/cyrus-imapd/squatter';}
+$unix=new unix();
+return $unix->find_program("squatter");
+}
+
+function ctl_cyrusdb_path(){
+if(is_file('/usr/lib/cyrus-imapd/ctl_cyrusdb')){return '/usr/lib/cyrus-imapd/ctl_cyrusdb';}
+if(is_file('/usr/sbin/ctl_cyrusdb')){return '/usr/sbin/ctl_cyrusdb';}
+if(is_file('/usr/lib/cyrus/bin/ctl_cyrusdb')){return '/usr/lib/cyrus/bin/ctl_cyrusdb';}
+if(is_file('/usr/lib/cyrus/ctl_cyrusdb')){return '/usr/lib/cyrus/ctl_cyrusdb';}
+$unix=new unix();
+return $unix->find_program("ctl_cyrusdb");
+}
+//#############################################################################
+function cyr_expire_path(){
+if(is_file('/usr/sbin/cyr_expire')){return '/usr/sbin/cyr_expire';}
+if(is_file('/usr/lib/cyrus-imapd/cyr_expire')){return '/usr/lib/cyrus-imapd/cyr_expire';}
+if(is_file('/usr/lib/cyrus/bin/cyr_expire')){return '/usr/lib/cyrus/bin/cyr_expire';}
+$unix=new unix();
+return $unix->find_program("cyr_expire");
+}
+//##############################################################################
+function tls_prune_path(){
+if(is_file('/usr/sbin/tls_prune')){return '/usr/sbin/tls_prune';}
+if(is_file('/usr/lib/cyrus-imapd/tls_prune')){return '/usr/lib/cyrus-imapd/tls_prune';}
+if(is_file('/usr/lib/cyrus/bin/tls_prune')){return '/usr/lib/cyrus/bin/tls_prune';}
+$unix=new unix();
+return $unix->find_program("tls_prune");
+}
+//##############################################################################
+function CYRUS_POP3D_BIN_PATH(){
+if(is_file('/usr/lib/cyrus/bin/pop3d')){return '/usr/lib/cyrus/bin/pop3d';}
+if(is_file('/usr/sbin/pop3d')){return '/usr/sbin/pop3d';}
+if(is_file('/opt/artica/cyrus/bin/pop3d')){return '/opt/artica/cyrus/bin/pop3d';}
+if(is_file('/usr/lib/cyrus-imapd/pop3d')){return '/usr/lib/cyrus-imapd/pop3d';}
+$unix=new unix();
+return $unix->find_program("pop3d");
+}
+//#############################################################################
+function LOCATE_ctl_mboxlist(){
+if(is_file('/usr/sbin/ctl_mboxlist')){return '/usr/sbin/ctl_mboxlist';}
+if(is_file('/usr/lib/cyrus/bin/ctl_mboxlist')){return '/usr/lib/cyrus/bin/ctl_mboxlist';}
+if(is_file('/usr/lib/cyrus-imapd/ctl_mboxlist')){return '/usr/lib/cyrus-imapd/ctl_mboxlist';}
+$unix=new unix();
+return $unix->find_program("ctl_mboxlist");
+}
+function CYRUS_SYNC_CLIENT_BIN_PATH(){
+if(is_file('/usr/lib/cyrus-imapd/sync_client')){return '/usr/lib/cyrus-imapd/sync_client';}
+if(is_file('/usr/lib/cyrus/bin/sync_client')){return '/usr/lib/cyrus/bin/sync_client';}
+if(is_file('/usr/sbin/sync_client')){return '/usr/sbin/sync_client';}
+$unix=new unix();
+return $unix->find_program("sync_client");
+}
+//#############################################################################
+function sieved_path(){
+	if(is_file('/usr/lib/cyrus-imapd/sieved')){return '/usr/lib/cyrus-imapd/ctl_cyrusdb';}
+	if(is_file('/usr/sbin/sieved')){return '/usr/sbin/sieved';}
+	if(is_file('/usr/lib/cyrus/bin/timsieved')){return '/usr/lib/cyrus/bin/timsieved';}
+	if(is_file('/usr/lib/cyrus/bin/sieved')){return '/usr/lib/cyrus/bin/sieved';}
+	if(is_file('/usr/lib/cyrus/timsieved')){return '/usr/lib/cyrus/timsieved';}
+	$unix=new unix();
+	return $unix->find_program("timsieved");
+}
+//#############################################################################
+function notify_path(){
+if(is_file('/usr/lib/cyrus-imapd/notifyd')){return '/usr/lib/cyrus-imapd/notifyd';}
+if(is_file('/usr/lib/cyrus/bin/notifyd')){return '/usr/lib/cyrus/bin/notifyd';}
+if(is_file('/usr/sbin/notifyd')){return '/usr/sbin/notifyd';}
+if(is_file('/usr/lib/cyrus/notifyd')){return '/usr/lib/cyrus/notifyd';}
+$unix=new unix();
+return $unix->find_program("notifyd");
+}
+//#############################################################################
+function CYRUS_SYNC_SERVER_BIN_PATH(){
+if(is_file('/usr/lib/cyrus-imapd/sync_server')){return '/usr/lib/cyrus-imapd/sync_server';}
+if(is_file('/usr/lib/cyrus/bin/sync_server')){return '/usr/lib/cyrus/bin/sync_server';}
+if(is_file('/usr/sbin/sync_server')){return '/usr/sbin/sync_server';}
+$unix=new unix();
+return $unix->find_program("sync_server");
+}
+//#############################################################################
+function LOCATE_CYRUS_IPURGE(){
+
+if(is_file('/usr/sbin/ipurge')){return '/usr/sbin/ipurge';}
+if(is_file('/usr/lib/cyrus/bin/ipurge')){return '/usr/lib/cyrus/bin/ipurge';}
+if(is_file('/usr/lib/cyrus-imapd/ipurge')){return '/usr/lib/cyrus-imapd/ipurge';}
+$unix=new unix();
+return $unix->find_program("ipurge");
+}
+//#########################################################################################
+
+
+
+function WRITE_CYRUS_CONF(){
+$sock=new sockets();
+$unix=new unix();
+$cyrus=new cyrus_conf();
+$users=new usersMenus();
+$provide_uuid=null;
+$CyrusEnableSquatter=intval($sock->GET_INFO("CyrusEnableSquatter"));
+$CyrusSquatterRindex=intval($sock->GET_INFO("CyrusSquatterRindex"));
+$CyrusSquatterRindexEveryDay=intval($sock->GET_INFO("CyrusSquatterRindexEveryDay"));
+
+$nice_path=$unix->EXEC_NICE();
+$EnableVirtualDomainsInMailBoxes=intval($sock->GET_INFO('EnableVirtualDomainsInMailBoxes'));
+$CyrusEnableBackendMurder=intval($sock->GET_INFO('CyrusEnableBackendMurder'));
+$CyrusEnableImapMurderedFrontEnd=intval($sock->GET_INFO('CyrusEnableImapMurderedFrontEnd'));
+$CyrusClusterID=intval($sock->GET_INFO('CyrusClusterID'));
+$EnableCyrusReplicaCluster=intval($sock->GET_INFO('EnableCyrusReplicaCluster'));
+$CyrusEnableiPurge=intval($sock->GET_INFO('CyrusEnableiPurge'));
+$ListenAddress=$cyrus->main_array["CYRUS"]['ListenAddress'];
+$DisableIMAPVerif=intval($sock->GET_INFO("DisableIMAPVerif"));
+$EnableCyrusMasterCluster=intval($sock->GET_INFO("EnableCyrusMasterCluster"));
+$CyrusiPurgeSent=$sock->GET_INFO("CyrusEnableSquatter");
+$CyrusiPurgeJunk=$sock->GET_INFO("CyrusiPurgeJunk");
+$CyrusiPurgeTrash=$sock->GET_INFO("CyrusiPurgeTrash");
+$SieveListenIp=trim($sock->GET_INFO('SieveListenIp'));
+$CyrusLMTPListen=$sock->GET_INFO('CyrusLMTPListen');
+
+if(!is_file('/etc/artica-postfix/settings/Daemons/CyrusClusterReplicaInfos') ){ $EnableCyrusMasterCluster=0;}
+
+if($CyrusEnableImapMurderedFrontEnd==1){ 
+	if($EnableCyrusReplicaCluster==1){ $EnableCyrusReplicaCluster=0; } 
+	if(!is_file('/etc/artica-postfix/settings/Daemons/CyrusMurderBackendServer') ){$CyrusEnableImapMurderedFrontEnd=0; }
+}
+
+
+$CyrusEnableLMTPUnix=$sock->GET_INFO('CyrusEnableLMTPUnix');
+if(!is_numeric($CyrusEnableLMTPUnix)){$CyrusEnableLMTPUnix=1;}
+
+if(!is_numeric($cyrus->main_array["CYRUS"]["service_lmtp_listen"])){$cyrus->main_array["CYRUS"]["service_lmtp_listen"]=2005;}
+if(!is_numeric($cyrus->main_array["CYRUS"]["service_lmtp_enabed"])){$cyrus->main_array["CYRUS"]["service_lmtp_enabed"]=1;}
+
+
+if($cyrus->main_array["CYRUS"]["service_lmtp_enabed"]==1){
+	if($ListenAddress<>null){$CyrusLMTPListen="$CyrusLMTPListen:{$cyrus->main_array["CYRUS"]["service_lmtp_listen"]}";}else{
+		$CyrusLMTPListen="127.0.0.1:{$cyrus->main_array["CYRUS"]["service_lmtp_listen"]}";
+	}
+}
+
+
+
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} LMTP Unix.....................: $CyrusEnableLMTPUnix / $CyrusLMTPListen\n";}
+
+if($CyrusSquatterRindex==0){$CyrusSquatterRindex=120;}
+if(!is_numeric($CyrusiPurgeSent)){$CyrusiPurgeSent=1;}
+if(!is_numeric($CyrusiPurgeJunk)){$CyrusiPurgeJunk=1;}
+if(!is_numeric($CyrusiPurgeTrash)){$CyrusiPurgeTrash=1;}
+
+
+$Zarafa_installed=$users->ZARAFA_INSTALLED;
+$CyrusLMTPListenPattern=null;
+
+if(!is_file(LOCATE_CYRUS_SQUATTER() ) ){ $CyrusEnableSquatter=0;}
+
+
+if(preg_match("#(.+?):([0-9]+)#", $CyrusLMTPListen)){
+	$CyrusLMTPListenPattern=$CyrusLMTPListen;
+	
+}else{
+	$CyrusLMTPListenPattern="127.0.0.1:2005";
+}
+
+
+
+if(!is_file('/etc/artica-postfix/settings/Daemons/ArticaImapIniConf')){
+	$fcf[]='[CYRUS]';
+	$fcf[]='service_imap_enabed=1';
+	$fcf[]='service_imap_listen=imap';
+	$fcf[]='service_imapssl_enabed=0';
+	$fcf[]='service_imapssl_listen=imaps';
+	$fcf[]='service_pop3_enabed=1';
+	$fcf[]='service_pop3_listen=pop3';
+	$fcf[]='service_pop3ssl_enabed=0';
+	$fcf[]='service_pop3ssl_listen=pop3s';
+	$fcf[]='service_nntpd_enabed=0';
+	$fcf[]='service_nntpd_listen=nntp';
+	$fcf[]='service_nntpds_enabed=0';
+	$fcf[]='service_nntpds_listen=nntps';
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/ArticaImapIniConf", @implode("\n", $fcf));
+	$cyrus=new cyrus_conf();
+}
+
+
+$service_imap_maxchild=intval($cyrus->main_array["CYRUS"]['service_imap_maxchild']);
+$service_imapssl_enabed=intval($cyrus->main_array["CYRUS"]['service_imapssl_enabed']);
+$service_pop3_enabed=intval($cyrus->main_array["CYRUS"]['service_pop3_enabed']);
+$service_nntpd_enabed=intval($cyrus->main_array["CYRUS"]['service_nntpd_enabed']);
+$service_pop3ssl_enabed=intval($cyrus->main_array["CYRUS"]['service_pop3ssl_enabed']);
+$service_nntpds_enabed=intval($cyrus->main_array["CYRUS"]['service_nntpds_enabed']);
+
+$service_imapssl_listen=$cyrus->main_array["CYRUS"]['service_imapssl_listen'];
+$service_imapssl_maxchild=intval($cyrus->main_array["CYRUS"]['service_imapssl_maxchild']);
+
+
+$service_pop3_listen=$cyrus->main_array['CYRUS']['service_pop3_listen'];
+$service_pop3_maxchild=intval($cyrus->main_array["CYRUS"]['service_pop3_maxchild']);
+
+$service_pop3ssl_listen=$cyrus->main_array['CYRUS']['service_pop3ssl_listen'];
+$service_pop3ssl_maxchild=intval($cyrus->main_array["CYRUS"]['service_pop3ssl_maxchild']);
+
+$service_nntpd_listen=$cyrus->main_array['CYRUS']['service_nntpd_listen'];
+$service_nntpds_listen=$cyrus->main_array['CYRUS']['service_nntpds_listen'];
+
+
+if($service_imap_maxchild==0){$service_imap_maxchild=500;}
+if($service_imapssl_maxchild==0){$service_imapssl_maxchild=500;}
+if($service_pop3_maxchild==0){$service_pop3_maxchild=150;}
+if($service_pop3ssl_maxchild==0){$service_pop3ssl_maxchild=150;}
+
+if($service_imapssl_listen==null){$service_imapssl_listen="imaps";}
+if($service_pop3_listen==null){$service_pop3_listen="pop3";}
+if($service_pop3ssl_listen==null){$service_pop3ssl_listen="pop3s";}
+
+if($service_nntpd_listen==null){$service_nntpd_listen="nntp";}
+if($service_nntpds_listen==null){$service_nntpds_listen="nntps";}
+
+if($SieveListenIp<>null){
+	if($SieveListenIp<>'127.0.0.1'){
+			$SieveListenIp="$SieveListenIp:sieve";
+	}else{$SieveListenIp='';}
+}
+
+
+
+@mkdir('/var/lib/cyrus/srvtab',0755,true);
+@mkdir('/var/lib/cyrus/db',0755,true);
+@mkdir('/var/spool/cyrus/mail',0755,true);
+@mkdir('/var/spool/cyrus/news',0755,true);
+@mkdir('/var/run/cyrus/socket',0755,true);
+@mkdir('/var/lib/cyrus/socket',0755,true);
+@mkdir('/var/lib/cyrus/proc',0755,true);
+@mkdir('/var/run/cyrus/socket',0755,true);
+
+
+shell_exec('/bin/chmod 750 /var/run/cyrus');
+shell_exec('/bin/chmod -R 755 /var/lib/cyrus');
+shell_exec('/bin/chown -R cyrus:mail /var/lib/cyrus >/dev/null 2>&1');
+shell_exec('/bin/chown -R cyrus:mail /var/run/cyrus >/dev/null 2>&1');
+
+
+$ctl_cyrusdb=ctl_cyrusdb_path();
+$cyr_expire=cyr_expire_path();
+$tls_prune=tls_prune_path();
+$basepath=dirname(CYRUS_POP3D_BIN_PATH());
+
+$imapd='imapd';
+$pop3d='pop3d';
+$nntpd='nntpd';
+$lmtpd='lmtpd';
+
+if(strlen($ListenAddress)>2) {$ListenAddress=$ListenAddress.':';}
+
+if($CyrusEnableImapMurderedFrontEnd==1){
+	$imapd='proxyd';
+	$pop3d='pop3proxyd';
+	$lmtpd='lmtpproxyd';
+}
+
+if($CyrusClusterID>0){
+	$provide_uuid=" provide_uuid=$CyrusClusterID";
+}
+
+
+
+$MAIN[]='';
+$MAIN[]='START {';
+$MAIN[]="	recover		cmd=\"$ctl_cyrusdb -r\"";
+$MAIN[]="	delprune	cmd=\"$cyr_expire -E 3\"";
+$MAIN[]="	tlsprune	cmd=\"$tls_prune\"";
+if($CyrusEnableBackendMurder==1){
+	$MAIN[]='	mupdatepush     cmd="'.LOCATE_ctl_mboxlist().' -m"';
+}
+
+if($EnableCyrusMasterCluster==1){
+	if(is_file(CYRUS_SYNC_CLIENT_BIN_PATH() ) ){
+	$MAIN[]='syncclient       cmd="'+CYRUS_SYNC_CLIENT_BIN_PATH()+' -r"';
+	}
+}
+
+
+if($DisableIMAPVerif==1){ $Zarafa_installed=false; }
+$MAIN[]='}';
+$MAIN[]='';
+$MAIN[]='SERVICES {';
+
+$listen='imap';
+if($Zarafa_installed){$listen='1143';}
+$MAIN[]="\timap		cmd=\"$basepath/imapd -U 30\" listen=\"$ListenAddress$listen\" prefork=0 maxchild=$service_imap_maxchild";
+
+if($service_imapssl_enabed==1){
+	if($Zarafa_installed){$service_imapssl_listen='1993';}
+	$MAIN[]="\timaps		cmd=\"$basepath/imapd -s -U 30\" listen=\"$ListenAddress$service_imapssl_listen\" prefork=0 maxchild=$service_imapssl_maxchild $provide_uuid";
+}
+
+if($service_pop3_enabed==1){
+	if($Zarafa_installed){$service_pop3_listen='1110';}
+	$MAIN[]="\tpop3		cmd=\"$basepath/pop3d -U 30\" listen=\"$ListenAddress$service_pop3_listen\" prefork=0 maxchild=$service_pop3_maxchild";
+}
+
+if($service_pop3ssl_enabed==1){
+	if($Zarafa_installed){$service_pop3ssl_listen='1995';}
+	$MAIN[]="\tpop3s		cmd=\"$basepath/pop3d -s -U 30\" listen=\"$ListenAddress$service_pop3ssl_listen\" prefork=0 maxchild=$service_pop3ssl_maxchild";
+}
+if($service_nntpd_enabed==1){
+	$MAIN[]="\tnntp		cmd=\"$basepath/nntpd+' -U 30\" listen=\"$ListenAddress$service_nntpd_listen\" prefork=0 maxchild=100 $provide_uuid";
+}
+
+if($service_nntpds_enabed==1){
+	$MAIN[]="\tnntps		cmd=\"$basepath/nntpd -s -U 30\" listen=\"$ListenAddress$service_nntpds_listen\" prefork=0 maxchild=100 $provide_uuid";
+}
+
+if($CyrusEnableLMTPUnix==1){
+$MAIN[]="\tlmtpunix	cmd=\"$basepath/lmtpd\" listen=\"/var/spool/postfix/var/run/cyrus/socket/lmtp\" prefork=0 maxchild=20 $provide_uuid";
+}
+if($CyrusLMTPListenPattern<>null){
+	$MAIN[]="\tlmtp	cmd=\"$basepath/lmtpd\" listen=\"$CyrusLMTPListenPattern\" prefork=0 maxchild=20 $provide_uuid";
+}
+
+
+if(is_file( sieved_path() ) ){
+	$MAIN[]='  \tsieve		cmd="'.sieved_path().'" listen="localhost:sieve" prefork=0 maxchild=100';
+	if(strlen($SieveListenIp)>0){$MAIN[]='  	sieveremote		cmd="'.sieved_path().'" listen="'.$SieveListenIp.'" prefork=0 maxchild=100'; }
+}
+
+if(is_file( notify_path() ) ){
+	$MAIN[]='\tnotify		cmd="'.notify_path().'" listen="/var/run/cyrus/socket/notify" proto="udp" prefork=1';
+}
+
+if($CyrusEnableBackendMurder==1){
+	$MAIN[]="     mupdate         cmd=\"$basepath/mupdate -m -C /etc/imap-murder.conf\" listen=3905 prefork=1";
+}
+
+if(CyrusEnableImapMurderedFrontEnd==1){
+	$MAIN[]='     mupdate         cmd="mupdate" listen=3905 prefork=1';
+}
+
+if(EnableCyrusReplicaCluster==1){
+	$MAIN[]='     syncserver       cmd="'.CYRUS_SYNC_SERVER_BIN_PATH().'" listen="csync"';
+}
+$MAIN[]='}';
+$MAIN[]='';
+$MAIN[]='EVENTS {';
+$MAIN[]='	checkpoint	cmd="' . $ctl_cyrusdb . ' -c" period=30';
+$MAIN[]='	delprune	cmd="' . $cyr_expire  . ' -E 3" at=0401';
+$MAIN[]='	tlsprune	cmd="' . $tls_prune   . '" at=0401';
+
+$LOCATE_CYRUS_SQUATTER=LOCATE_CYRUS_SQUATTER();
+
+
+if($CyrusEnableSquatter==1){
+	if($CyrusSquatterRindexEveryDay==0){
+			$MAIN[]="	squatter      cmd=\"$nice_path $LOCATE_CYRUS_SQUATTER -s -r user\" period=$CyrusSquatterRindex";
+	}
+	
+	if($CyrusSquatterRindexEveryDay==1){
+		$CyrusSquatterRindexUseScheduleTime=$sock->GET_INFO("CyrusSquatterRindexUseScheduleTime");
+		if(preg_match("#([0-9]+):([0-9]+)#", $CyrusSquatterRindexUseScheduleTime)){
+			$MAIN[]="\tsquatter      cmd=\"$nice_path $LOCATE_CYRUS_SQUATTER -s -r user\" at=$CyrusSquatterRindexUseScheduleTime";
+		}
+	}
+
+}
+
+
+if($CyrusEnableiPurge==1){
+	$LOCATE_CYRUS_IPURGE=LOCATE_CYRUS_IPURGE();
+	$CyrusiPurgeDays=intval($sock->GET_INFO("CyrusiPurgeDays"));
+	$CyrusiPurgeTime=$sock->GET_INFO("CyrusiPurgeTime");
+	if($CyrusiPurgeTrash=1){$MAIN[]="	purgetrash        cmd=\"$LOCATE_CYRUS_IPURGE-f -d $CyrusiPurgeDays */Trash\" at=$CyrusiPurgeTime";}
+	if($CyrusiPurgeJunk==1){$MAIN[]="	purgejunk         cmd=\"$LOCATE_CYRUS_IPURGE -f -d $CyrusiPurgeDays */Junk\" at=$CyrusiPurgeTime";}
+	if($CyrusiPurgeSent==1){$MAIN[]="	purgesent         cmd=\"$LOCATE_CYRUS_IPURGE -f -d $CyrusiPurgeDays */Sent\" at=$CyrusiPurgeTime";}
+}
+
+
+
+$MAIN[]='';
+$MAIN[]='}';
+$MAIN[]='';
+
+@file_put_contents("/etc/cyrus.conf", @implode("\n", $MAIN));
+
+}
+//##############################################################################
 
 //#############################################################################
 ?>

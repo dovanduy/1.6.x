@@ -35,13 +35,20 @@ js();
 
 //error_creating_mailbox
 function js(){
+	header("content-type: application/x-javascript");
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$uid=$_GET["uid"];
+	$uidenc=urlencode($uid);
+	
+	echo "Loadjs('domains.edit.user.create.mbx.progress.php?uid=$uidenc&MailBoxMaxSize={$_GET["MailBoxMaxSize"]}');";
+	return;
+	
 	$title=$tpl->_ENGINE_parse_body('{mailbox_main_settings}');
 	$html="
 	
 	function LoadMBXInterface(){
+		Loadjs('domains.edit.user.create.mbx.progress.php?uid=$uidenc');
 		RTMMail('550','$page?popup=yes','$title');
 		setTimeout('MBXCheckrights()',1000);
 	}
@@ -321,7 +328,7 @@ function MBXSetACL(){
 function MBXSubscribe(){
 	$tpl=new templates();
 	$uid=$_GET["MBXSubscribe"];
-
+	
 }
 	
 		

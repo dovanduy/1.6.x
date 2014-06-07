@@ -3355,15 +3355,17 @@ function USER_MAILBOX_WIZARD_JS() {
 	$page = CurrentPageName ();
 	$tpl = new templates ( );
 	$title = $tpl->_ENGINE_parse_body ( "{create_mailbox}" );
-	
+	$_GET["uid"]=urlencode($_GET["uid"]);
 	$html = "
 		function CreateMailBoxWizardStart(){
-			YahooWin('650','$page?create-mailbox-step1=yes&uid={$_GET["uid"]}','$title');
+			var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+			YahooWin('650','$page?create-mailbox-step1=yes&uid={$_GET["uid"]}&MailBoxMaxSize='+MailBoxMaxSize,'$title');
 		
 		}
 		
 		function CreateMailBoxWizardStep2(){
-			Loadjs('domains.edit.user.create.mbx.php?uid={$_GET["uid"]}');
+			var MailBoxMaxSize=document.getElementById('MailBoxMaxSize').value;
+			Loadjs('domains.edit.user.create.mbx.php?uid={$_GET["uid"]}&MailBoxMaxSize='+MailBoxMaxSize);
 		}
 	
 	CreateMailBoxWizardStart();";
@@ -3412,22 +3414,7 @@ function USER_MAILBOX_WIZARD_STEP1() {
 
 }
 
-function USER_MAILBOX_NONEXISTENT($uid,$error) {
-	$page = CurrentPageName ();
-	
-	$html = "<center style='width:100%;'>
-	
-	" . Paragraphe ( "inbox-error-64.png", "{no_mailbox}", "{user_no_mailbox}",
-	 "javascript:Loadjs('$page?create-mailbox-wizard=yes&uid=$uid')", "{create_mailbox}" ) . "
-	 <div style='margin:10px'>
-		 <span style='font-size:16px;color:#940404'>$error</span>
-	 </div>
-	</center>";
-	
-	$tpl = new templates ( );
-	return $tpl->_ENGINE_parse_body ( $html );
 
-}
 
 function ZARAFA_MAILBOX_EDIT_JS() {
 	
@@ -3698,243 +3685,25 @@ function ZARAFA_MAILBOX($uid) {
 }
 
 function USER_MAILBOX($uid) {
+	
 	$users = new usersMenus ( );
 	if ($users->ZARAFA_INSTALLED) {
 		return ZARAFA_MAILBOX ( $uid );
 	}
-	$page = CurrentPageName ();
-	$RealMailBox = false;
 	
-	$page = CurrentPageName ();
-	$user = new user ( $uid );
+	$t=time();
+	$uidenc=urlencode($uid);
+	$html="<div id='$t'></div>
+	<script>LoadAjax('$t','domain.edit.user.cyrus-mailbox.php?uid=$uidenc');</script>
 	
-	$cyr = new cyrus ( );
-	$RealMailBox=$cyr->IfMailBoxExists($uid);
 	
-	if (! $RealMailBox) {
+	";
+	return $html;
 		
-		return USER_MAILBOX_NONEXISTENT ( $uid,nl2br($cyr->cyrus_infos));
-		$no_mailbox = "<p class=caption style='color:red'>{user_no_mailbox} !!</p>";
-	}
 	
-	if ($user->MailboxActive == 'TRUE') {
-		$cyrus = new cyrus ( );
-		$res = $cyrus->get_quota_array ( $uid );
-		$size = $cyrus->MailboxInfosSize ( $uid );
-		$orgfree = $cyrus->USER_STORAGE_LIMIT - $cyrus->USER_STORAGE_USAGE;
-		$free = FormatBytes ( $orgfree );
-		
-		if ($cyrus->MailBoxExists ( $uid )) {
-			$graph1 = InsertChart ( 'js/charts.swf', "js/charts_library", "listener.graphs.php?USER_STORAGE_USAGE=$cyrus->USER_STORAGE_USAGE&STORAGE_LIMIT=$cyrus->USER_STORAGE_LIMIT&FREE=$orgfree", 200, 167, "", true, $users->ChartLicence );
-		} else {
-			$graph1 = "<H3>{no_mailbox_user}</H3>";
-		}
-		$mailboxInfos = "<div>
-			<i>" . FormatBytes ( $cyrus->USER_STORAGE_USAGE ) . "/" . FormatBytes ( $cyrus->USER_STORAGE_LIMIT ) . "<br>
-			 ($free {free})</i><br><strong>" . FormatBytes ( $size ) . " used</strong>
-			 </div>";
 	
-	}
-	
-	$tpl = new templates ( );
-	$export_mailbox = $tpl->_ENGINE_parse_body ( '{export_mailbox}' );
-	$import_mailbox = $tpl->_ENGINE_parse_body ( '{import_mailbox}' );
-	if (strlen ( $import_mailbox ) > strlen ( $export_mailbox )) {
-		$import_mailbox = substr ( $import_mailbox, 0, strlen ( $export_mailbox ) - 3 ) . "...";
-	}
-	
-	//sudo -u cyrusimap /usr/bin/cyrus/bin/reconstruct -r -f user/shortname  	
-	$repair = 
 
-	"<br>
-	<div style='width:98%' class=form>
-    <table>
-    <tr>
-    	<td coslpan=2><H3 style='color:#005447'>{tools}</H3></td>
-    </tr>
-    	<tr " . CellRollOver () . ">
-    			<td width=99% class=legend nowrap>" . texttooltip ( '{repair_mailbox}', '{repair_mailbox_text}', "javascript:Loadjs('$page?script=repair_mailbox&uid=$uid');" ) . "</td>
-				<td width=1%>" . imgtootltip ( "icon_roles.gif", '{repair_mailbox_text}', "Loadjs('$page?script=repair_mailbox&uid=$uid');" ) . "</td>    			
-    	</tr>
-    	<tr " . CellRollOver () . ">
-    			<td width=99% class=legend nowrap>" . texttooltip ( $export_mailbox, '{export_mailbox_text}', "javascript:Loadjs('$page?script=export_script&uid=$uid');" ) . "</td>
-				<td width=1%>" . imgtootltip ( "icon_roles.gif", '{export_mailbox_text}', "Loadjs('$page?script=export_script&uid=$uid');" ) . "</td>    			
-    	</tr> 
-    	
-		<tr " . CellRollOver () . ">
-    			<td width=99% class=legend nowrap>" . texttooltip ( $import_mailbox, '{import_mailbox_text}', "javascript:Loadjs('mailsync.php?uid=$uid');" ) . "</td>
-				<td width=1%>" . imgtootltip ( "icon_sync.gif", '{export_mailbox_text}', "Loadjs('mailsync.php?uid=$uid');" ) . "</td>    			
-    	</tr>  
-    	
-    	<tr " . CellRollOver () . ">
-    			<td width=99% class=legend nowrap>" . texttooltip ( '{empty_this_mailbox}', '{empty_this_mailbox_text}',
-	 			"javascript:Loadjs('domains.edit.user.empty.mailbox.php?&userid=$uid');" ) . "</td>
-				<td width=1%>" . imgtootltip ( "ed_delete.gif", '{delete_this_mailbox}', "Loadjs('domains.edit.user.empty.mailbox.php?&userid=$uid');" ) . "</td>    			
-    	</tr>     	     	   	
-    	
-    	   	
-    	<tr " . CellRollOver () . ">
-    			<td width=99% class=legend nowrap>" . texttooltip ( '{delete_this_mailbox}', '{delete_this_mailbox_text}', "javascript:Loadjs('$page?script=delete_mailbox&uid=$uid');" ) . "</td>
-				<td width=1%>" . imgtootltip ( "ed_delete.gif", '{delete_this_mailbox}', "Loadjs('$page?script=delete_mailbox&uid=$uid');" ) . "</td>    			
-    	</tr> 	
-    </table></div>";
 	
-	$img_left_mbx = imgtootltip ( 'folder-mailbox-96.png', "{debug}", "Loadjs('$page?debug-mailbox-js=$uid')" );
-	
-	if (! $RealMailBox) {$repair = null;}
-	
-	$priv = new usersMenus();
-	$ini = new Bs_IniHandler();
-	$ini->loadString ($user->MailboxSecurityParameters);
-	
-	$button = "    
-      	<tr>
-      		<td colspan=2 align='right'>
-      		<hr>
-      		" . button ( "{change}", "Loadjs('domains.edit.user.create.mbx.php?uid=$uid')" ) . "
-      		</td>
-      	</tr>
-      	";
-	if ($priv->AllowAddUsers == false) {
-		$button = null;
-		$img_left_mbx = "<img src='img/folder-mailbox-96.png'>";
-	}
-	$subtitle = "{user_quota}";
-	$main_graph = "<div style='border:1px solid #005447;padding:5px;margin:3px'><span id='mailbox_graph'>$graph1</span></div>";
-	
-	if ($user->MailBoxMaxSize == 0) {
-		$subtitle = "<i>{user_has_no_quota}</i>";
-		$graph1 = null;
-		$mailboxInfos = "<strong>" . FormatBytes ( $size ) . " used</strong>";
-		$mailboxInfos = null;
-		$main_graph = null;
-	}
-	
-	if ($ldap->ldap_last_error != null) {
-		return nl2br ( $ldap->ldap_last_error );
-	}
-	
-	
-	$ADDisable=0;
-	if($priv->EnableManageUsersTroughActiveDirectory){
-		$ADDisable=1;
-		$button=null;
-	}
-	
-	$html = "
-	<div id='usermailboxformdiv'>
-      	<table style='width:100%'>
-      	<tr>
-      		<td width=1% valign='top' style='vertical-align:top' style='vertical-align:top'>$img_left_mbx</td>
-      	<td>
-		 
-		    <form name='FFUserMailBox'>
-		     <input type='hidden' name='UserMailBoxEdit' value='$uid'>
-		     <table style='width:100%'>
-		      	<tr>
-		      		<td colspan=2>
-		      			<H3 style='font-size:18px;color:#005447'>{settings}</h3>
-		      			<hr style='border-color:#005447'>
-		      		</td>
-		      	</tr>
-		      		<td valign='top' style='vertical-align:top' style='vertical-align:top'>
-		      		$no_mailbox
-		      			<table style='width:100%'>
-		      		      	<tr>
-		      					<td  align='right' width=1%>" . Field_TRUEFALSE_checkbox_img ( 'MailboxActive', $user->MailboxActive ) . "</td>
-			      				<td class=legend style='text-align:left' class=legend>{MailboxActive}</td>			      	
-		      				</tr>
-		      				<tr>
-			      				<td class=legend>{mailbox account}:</td>
-			      				<td><strong style='font-size:13px;font-weight:normal'>$uid</strong></td>
-		      				</tr>      	
-		      				<tr>
-			      				<td  align='right' nowrap class=legend valign='top' style='vertical-align:top' style='vertical-align:top'>{mailbox quota}:</td>
-			      				<td>
-			      					<table style='width:100%'>
-			      						<tr>
-			      							<td width=1% nowrap>" . Field_text ( 'MailBoxMaxSize', $user->MailBoxMaxSize, 'width:45px' ) . "&nbsp;MB</td>
-			      							<td align='left'>" . help_icon ( $mailboxInfos, true ) . "</td>
-			      						</tr>
-			      						<tr>
-			      							<td colspan=2><strong>$subtitle</strong></td>
-			      						</tr>
-			      					</table>
-			      				</td>
-		      				</tr>
-		      				<tr>
-		      					<td colspan=2><br><H3 style='font-size:18px;color:#005447'>{mailbox_priv}</h3><hr style='border-color:#005447'></td>
-		      				</tr>
-		      				<tr>
-		      					<td colspan=2 align='left'>
-		      						<div style='width:98%' class=form>
-		      						<table style='width:60%'>
-			      						<tr>
-					      					<td class=legend>{mplt}:</td> 
-					      					<td>" . Field_checkbox ( 'mp_l', 1, $ini->_params["mailbox"] ["l"], null, '{mpl}' ) . "</td>
-				      					</tr>  
-							      			<tr>
-								      			<td class=legend nowrap>{mprt}:</td>
-								      			<td>" . Field_checkbox ( 'mp_r', 1, $ini->_params["mailbox"] ["r"], null, '{mpr}' ) . "</td>
-							      			</tr> 
-							      			<tr>
-								      			<td class=legend nowrap>{mpst}:</td>
-								      			<td>" . Field_checkbox ( 'mp_s', 1, $ini->_params["mailbox"] ["s"], null, '{mps}' ) . "</td>
-							      			</tr> 
-							      			<tr>
-								      			<td class=legend nowrap>{mpwt}:</td>
-								      			<td>" . Field_checkbox ( 'mp_w', 1, $ini->_params["mailbox"] ["w"], null, '{mpw}' ) . "</td>
-							      			</tr> 	
-							      			<tr>
-								      			<td class=legend nowrap>{mpit}:</td>
-								      			<td>" . Field_checkbox ( 'mp_i', 1, $ini->_params["mailbox"] ["i"], null, '{mpi}' ) . "</td>
-							      			</tr> 	
-							      			<tr>
-								      			<td class=legend nowrap>{mppt}:</td>
-								      			<td>" . Field_checkbox ( 'mp_p', 1, $ini->_params["mailbox"] ["p"], null, '{mpp}' ) . "</td>
-							      			</tr>
-							      			<tr>
-								      			<td class=legend nowrap>{mpct}:</td>
-								      			<td>" . Field_checkbox ( 'mp_c', 1, $ini->_params["mailbox"] ["c"], null, '{mpc}' ) . "</td>
-							      			</tr>	
-							      			<tr>
-								      			<td class=legend nowrap>{mpdt}:</td>
-								      			<td>" . Field_checkbox ( 'mp_d', 1, $ini->_params["mailbox"] ["d"], null, '{mpd}' ) . "</td>
-							      			</tr>	
-							      			<tr>
-								      			<td class=legend nowrap><strong>{mpat}</strong>:</td>
-								      			<td>" . Field_checkbox ( 'mp_a', 1, $ini->_params["mailbox"] ["a"], null, '{mpa}' ) . "</td>
-							      			</tr>		      				      					      					      				      				      					      					      			
-			      					</table></div>
-		      					</td>
-		      			</tr>
-		      	
-		      	
-		 			$button
-		      	</table>
-		      	</td>
-		      	<td valign='top' style='vertical-align:top' style='vertical-align:top' style='padding:5px'>
-						$main_graph
-      					$mailboxInfos
-      					$repair
-      			</td>
-		      	</table>
-		      	</form>
-		      </td>
-		  </tr>
-		 </table>
-		 </div>
-		 <script>
-		 	function MyAdDisable(){
-		 		var disable=$ADDisable;
-		 		if(disable==1){DisableFieldsFromId('usermailboxformdiv');}
-		 	}
-		 
-		 MyAdDisable();
-		 </script>
-		 ";
-	
-	return $tpl->_ENGINE_parse_body ( $html );
 
 }
 
@@ -4131,11 +3900,12 @@ function SaveLdapUser() {
 	$users = new usersMenus ( );
 	
 	$user = new user ($_GET["uid"]);
+	$uid=$user->uid;
 	if ($uid == null) {
 		$uid = $user->_GetuidFromDn ( $dn );
 	
 	}
-	$user = new user ($_GET["uid"]);
+	$user = new user ($uid);
 	writelogs ( "UID=$uid,DN=$dn", __FUNCTION__, __FILE__, __LINE__ );
 	
 	if(isset($_GET["SimpleGroupWareActive"])){

@@ -732,8 +732,7 @@ function settings(){
 	
 	if($EnableKerbAuth==1){
 		if(!$users->CORP_LICENSE){
-			$MAIN_ERROR="<p class=text-error style='font-size:18px'>
-					{warn_no_license_activedirectory_30days}</p>";
+			$MAIN_ERROR=$tpl->_ENGINE_parse_body("<p class=text-error style='font-size:18px'>{warn_no_license_activedirectory_30days}</p>");
 		}
 	}
 	
