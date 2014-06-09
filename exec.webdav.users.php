@@ -24,7 +24,7 @@ $GLOBALS["CLASS_UNIX"]=new unix();
 if(is_array($argv)){if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}}
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){die();}
 @file_put_contents($pidfile, getmypid());
 $GLOBALS["a2enmod"]=$GLOBALS["CLASS_UNIX"]->find_program("a2enmod");

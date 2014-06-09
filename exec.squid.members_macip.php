@@ -39,12 +39,12 @@ function members_macip(){
 	if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 			return;
 		}
 	

@@ -17,13 +17,13 @@ if($argv[1]=="--import"){include_tpl_file($argv[2],$argv[3]);die();}
 if($argv[1]=="--sites-infos"){ParseSitesInfos();die();}
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 $unix=new unix();
 $GLOBALS["CLASS_UNIX"]=$unix;
-if($unix->process_exists($oldpid)){
-	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	events(basename(__FILE__).": Already executed $oldpid (since {$time}Mn).. aborting the process (line: ".__LINE__.")");
-	events_tail("Already executed $oldpid (since {$time}Mn). aborting the process (line: ".__LINE__.")");
+if($unix->process_exists($pid)){
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	events(basename(__FILE__).": Already executed $pid (since {$time}Mn).. aborting the process (line: ".__LINE__.")");
+	events_tail("Already executed $pid (since {$time}Mn). aborting the process (line: ".__LINE__.")");
 	die();
 	
 }

@@ -67,14 +67,14 @@ function refresh_ticket($nopid=false){
 	
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
-		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeExec=intval($unix->PROCCESS_TIME_MIN($pid));
+		writelogs("Process $pid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 		if($timeExec>5){
 			$kill=$unix->find_program("kill");
-			system_admin_events("killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
-			shell_exec("$kill -9 $oldpid >/dev/null");
+			system_admin_events("killing old pid $pid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
+			unix_system_kill_force($pid);
 		}else{
 			return;
 		}
@@ -121,14 +121,14 @@ function build_kerberos($progress=0){
 	if(is_file("/etc/monit/conf.d/winbindd.monitrc")){@unlink("/etc/monit/conf.d/winbindd.monitrc");}
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
-		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeExec=intval($unix->PROCCESS_TIME_MIN($pid));
+		writelogs("Process $pid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 		if($timeExec>5){
 			$kill=$unix->find_program("kill");
-			progress_logs($progress,"{kerberaus_authentication}","killing old pid $oldpid (already exists since {$timeExec}Mn)");
-			shell_exec("$kill -9 $oldpid >/dev/null");
+			progress_logs($progress,"{kerberaus_authentication}","killing old pid $pid (already exists since {$timeExec}Mn)");
+			unix_system_kill_force($pid);
 		}else{
 			return;
 		}
@@ -158,14 +158,14 @@ function sync_time($aspid=false){
 	$function=__FUNCTION__;
 	if($aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
-			writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timeExec=intval($unix->PROCCESS_TIME_MIN($pid));
+			writelogs("Process $pid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 			if($timeExec>5){
 				$kill=$unix->find_program("kill");
-				system_admin_events("killing old pid $oldpid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
-				shell_exec("$kill -9 $oldpid >/dev/null");
+				system_admin_events("killing old pid $pid (already exists since {$timeExec}Mn)",__FUNCTION__,__FILE__,__LINE__);
+				unix_system_kill_force($pid);
 			}else{
 				return;
 			}
@@ -542,15 +542,15 @@ function progress_logs($percent,$title,$log=null,$line=0){
 function build_progress(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
-		if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","Process $oldpid already exists since {$timeExec}Mn");}
-		writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeExec=intval($unix->PROCCESS_TIME_MIN($pid));
+		if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","Process $pid already exists since {$timeExec}Mn");}
+		writelogs("Process $pid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 		if($timeExec<5){return;}
 		$kill=$unix->find_program("kill");
-		progress_logs(20,"{join_activedirectory_domain}","build_progress, killing old pid $oldpid (already exists since {$timeExec}Mn)");
-		shell_exec("$kill -9 $oldpid >/dev/null");
+		progress_logs(20,"{join_activedirectory_domain}","build_progress, killing old pid $pid (already exists since {$timeExec}Mn)");
+		unix_system_kill_force($pid);
 	}
 		
 	progress_logs(1);
@@ -614,15 +614,15 @@ function build($nopid=false){
 	if(!$nopid){
 		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timeExec=intval($unix->PROCCESS_TIME_MIN($oldpid));
-			if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","Process $oldpid already exists since {$timeExec}Mn");}
-			writelogs("Process $oldpid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timeExec=intval($unix->PROCCESS_TIME_MIN($pid));
+			if($GLOBALS["OUTPUT"]){progress_logs(20,"{join_activedirectory_domain}","Process $pid already exists since {$timeExec}Mn");}
+			writelogs("Process $pid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
 			if($timeExec>5){
 				$kill=$unix->find_program("kill");
-				progress_logs(20,"{join_activedirectory_domain}","killing old pid $oldpid (already exists since {$timeExec}Mn)");
-				shell_exec("$kill -9 $oldpid >/dev/null");
+				progress_logs(20,"{join_activedirectory_domain}","killing old pid $pid (already exists since {$timeExec}Mn)");
+				unix_system_kill_force($pid);
 			}else{
 				return;
 			}
@@ -1293,10 +1293,10 @@ function ping_kdc(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric("$EnableKerbAuth")){$EnableKerbAuth=0;}
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$ttime=$unix->PROCCESS_TIME_MIN($oldpid);
-		progress_logs(20,"{join_activedirectory_domain}","[PING]: Already executed pid $oldpid since {$ttime}Mn");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$ttime=$unix->PROCCESS_TIME_MIN($pid);
+		progress_logs(20,"{join_activedirectory_domain}","[PING]: Already executed pid $pid since {$ttime}Mn");
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -1537,10 +1537,10 @@ function winbind_priv_perform($withpid=false,$progress=0){
 	
 	if($withpid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			xsyslog("(". __FUNCTION__.") Already executed PID:$oldpid");
-			progress_logs($progress,"{kerberaus_authentication}","Already executed PID:$oldpid");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			xsyslog("(". __FUNCTION__.") Already executed PID:$pid");
+			progress_logs($progress,"{kerberaus_authentication}","Already executed PID:$pid");
 		}
 		
 	}

@@ -17,10 +17,10 @@ if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);in
 	$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 	$pidtime="/etc/artica-postfix/".basename(__FILE__).".time";
 	if($unix->file_time_min($pidtime)<3){die();}
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
-		writelogs("Process $oldpid  already in memory since $ProcessTime minutes","MAIN",__FILE__,__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$ProcessTime=$unix->PROCCESS_TIME_MIN($pid);
+		writelogs("Process $pid  already in memory since $ProcessTime minutes","MAIN",__FILE__,__LINE__);
 		die();
 	}
 	

@@ -40,7 +40,7 @@ main_table();
 function UsersSizeByHour(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(systemMaxOverloaded()){
 		events("UsersSizeByHour:: systemMaxOverloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} !!! -> DIE",__LINE__);
 		return;
@@ -50,11 +50,11 @@ function UsersSizeByHour(){
 	$unix=new unix();
 	$mypid=getmypid();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		if($oldpid<>$mypid){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			events("Already executed pid $oldpid since {$time}mn-> DIE");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($pid<>$mypid){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			events("Already executed pid $pid since {$time}mn-> DIE");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 			die();
 		}
 	}
@@ -114,16 +114,16 @@ function ParseQueue(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".ParseQueue.pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".ParseQueue.time";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
 	$unix=new unix();
 	$mypid=getmypid();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		if($oldpid<>$mypid){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			events("Already executed pid $oldpid since {$time}mn-> DIE");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($pid<>$mypid){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			events("Already executed pid $pid since {$time}mn-> DIE");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 			die();
 		}
 	}

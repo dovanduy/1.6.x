@@ -70,10 +70,10 @@ function kill_process(){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -92,7 +92,7 @@ function kill_process(){
 	
 	WriteToSyslog("rsync, killing pid $pid TTL = {$processtime}mn, exceed {$MirrorDebianMaxExecTime}mn");
 	$kill=$unix->find_program("kill");
-	shell_exec("$kill -9 $pid");
+	unix_system_kill_force($pid);
 	
 	
 }
@@ -104,10 +104,10 @@ function stop(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -132,7 +132,7 @@ function stop(){
 		$pid=RSYNC_PID();
 		if($unix->process_exists($pid)){
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME kill pid $pid..\n";}
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}else{
 			break;
 		}
@@ -162,11 +162,11 @@ function rsync_mirror_execute($scheduled=false){
 	$pidtime="/etc/artica-postfix/pids/DEBIAN_MIRROR_EXECUTION.TIME";
 	
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		writelogs("$SERV_NAME Already task running PID $oldpid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		writelogs("$SERV_NAME Already task running PID $pid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME Already task running PID $pid since {$time}mn\n";}
 		return;
 	}	
 	
@@ -174,8 +174,8 @@ function rsync_mirror_execute($scheduled=false){
 	$RSYNC_PID=RSYNC_PID();
 	if($unix->process_exists($RSYNC_PID)){
 		$time=$unix->PROCCESS_TIME_MIN($RSYNC_PID);
-		writelogs("rsync task running PID $oldpid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME rsync task running PID $oldpid since {$time}mn\n";}
+		writelogs("rsync task running PID $pid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]:$SERV_NAME rsync task running PID $pid since {$time}mn\n";}
 		return;
 	}	
 	$MirrorEnableDebianSchedule=$sock->GET_INFO("MirrorEnableDebianSchedule");
@@ -476,10 +476,10 @@ function debian_size(){
 	
 
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		writelogs("Already process exists pid $oldpid running since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		writelogs("Already process exists pid $pid running since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	

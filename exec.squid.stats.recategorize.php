@@ -47,12 +47,12 @@ function re_categorize($nopid=false){
 	
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($oldpid<100){$oldpid=null;}
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			ufdbguard_admin_events("Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"stats");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			ufdbguard_admin_events("Already executed pid $pid",__FUNCTION__,__FILE__,__LINE__,"stats");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 			return;
 		}
 	

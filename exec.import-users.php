@@ -12,8 +12,8 @@ include_once(dirname(__FILE__).'/ressources/class.groups.inc');
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-$oldpid=@file_get_contents($pidfile);
-if($unix->process_exists($oldpid)){$ptime=$unix->PROCESS_TTL($oldpid);die();}
+$pid=@file_get_contents($pidfile);
+if($unix->process_exists($pid)){$ptime=$unix->PROCESS_TTL($pid);die();}
 
 
 if($argv[1]=='--org'){import($argv[2],$argv[3]);}

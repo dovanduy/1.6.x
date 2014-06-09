@@ -43,10 +43,10 @@ function restart(){
 	$shorewall=$unix->find_program("shorewall");
 	if(!is_file($shorewall)){return;}	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	stop(true);
@@ -78,10 +78,10 @@ function stop($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -124,10 +124,10 @@ function start($aspid=false){
 
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());

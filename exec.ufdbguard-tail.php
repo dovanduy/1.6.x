@@ -9,10 +9,10 @@ $GLOBALS["CLASS_SOCKET"]=new sockets();
 
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 $pid=getmypid();
-$oldpid=@file_get_contents($pidfile);
-events("Found old PID $oldpid");
-if($oldpid<>$pid){
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){events("Already executed PID: $oldpid.. aborting the process");die();}
+$pid=@file_get_contents($pidfile);
+events("Found old PID $pid");
+if($pid<>$pid){
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){events("Already executed PID: $pid.. aborting the process");die();}
 }
 if(is_file("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-tail.debug")){@unlink("{$GLOBALS["ARTICALOGDIR"]}/ufdbguard-tail.debug");}
 file_put_contents($pidfile,$pid);

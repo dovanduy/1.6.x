@@ -342,7 +342,7 @@ function build($OnlySingle=false){
 		if(is_numeric($pid)){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, reload pid $pid\n";}
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -HUP $pid");
+			unix_system_HUP($pid);
 		}else{
 			start(true);
 		}
@@ -426,10 +426,10 @@ function configure_single_website($servername){
 	$unix=new unix();
 	$sock=new sockets();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -502,10 +502,10 @@ function authenticator($alone=false){
 	if($alone){
 		$unix=new unix();
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}	
@@ -1022,10 +1022,10 @@ function build_default($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1183,7 +1183,7 @@ function GHOSTS_PID(){
 	$kill=$unix->find_program("kill");
 	while (list ($num, $pid) = each ($f)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Nginx kill PID:$pid\n";}
-		shell_exec("$kill -9 $pid >/dev/null 2>&1");
+		unix_system_kill_force($pid);
 		
 	}
 	
@@ -1224,10 +1224,10 @@ function reload($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());	
@@ -1243,7 +1243,7 @@ function reload($aspid=false){
 		$kill=$unix->find_program("kill");
 		shell_exec("$nginx -c /etc/nginx/nginx.conf -s reload");
 		$pid=PID_NUM();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
+		if($unix->process_exists($pid,basename(__FILE__))){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Success reloading PID $pid\n";}
 		}
 		
@@ -1266,10 +1266,10 @@ function reload($aspid=false){
 function force_restart(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -1282,10 +1282,10 @@ function force_restart(){
 function restart(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -1307,10 +1307,10 @@ function start($aspid=false){
 
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1359,7 +1359,7 @@ function start($aspid=false){
 			$pid=trim($pid);
 			if(!is_numeric($pid)){continue;}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: killing $pid PID that listens 80\n";}
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}
 		
 	}
@@ -1375,7 +1375,7 @@ function start($aspid=false){
 			$pid=trim($pid);
 			if(!is_numeric($pid)){continue;}
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: killing $pid PID that listens 443\n";}
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}
 	
 	}	
@@ -1525,10 +1525,10 @@ function stop($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1569,7 +1569,7 @@ function stop($aspid=false){
 	}
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Nginx service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
@@ -1591,10 +1591,10 @@ function install_nginx($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [install_nginx]: nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [install_nginx]: nginx Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1649,9 +1649,9 @@ function status(){
 		if($unix->file_time_min($pidTime)<5){return;}
 	}
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		return;
 	}
 	
@@ -1768,9 +1768,9 @@ function awstats(){
 	
 	if($unix->file_time_min($pidTime)<60){return;}
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		return;
 	}
 	
@@ -1889,10 +1889,10 @@ function framework(){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -1939,10 +1939,10 @@ function test_sources(){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 		if($GLOBALS["VERBOSE"]){echo "pidTime: $pidTime\n";} 
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		
@@ -1997,10 +1997,10 @@ function test_sources(){
 function purge_all_caches(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [PURGE]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [PURGE]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
@@ -2032,10 +2032,10 @@ function purge_cache($ID){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [PURGE]: Nginx Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [PURGE]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());

@@ -40,16 +40,16 @@ function parse_tables_primaires(){
 	$unix->chown_func("squid","squid","/var/log/squid/mysql-rttime");
 	$TimePID="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$TimeExec="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=@file_get_contents($TimePID);
+	$pid=@file_get_contents($TimePID);
 	
 	
-	if($unix->process_exists($oldpid)){
-		$timePid=$unix->PROCCESS_TIME_MIN($oldpid);
+	if($unix->process_exists($pid)){
+		$timePid=$unix->PROCCESS_TIME_MIN($pid);
 		if($timePid>5){
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -9 $oldpid 2>&1");
+			unix_system_kill_force($pid);
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Already running PID $oldpid since {$timePid}mn";}
+			if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
 			die();
 		}
 	
@@ -526,16 +526,16 @@ function parse_realtime_events(){
 	
 	$TimePID="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$TimeExec="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=@file_get_contents($TimePID);
-	if($unix->process_exists($oldpid)){
-		$timePid=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("parse_realtime_events():: Already process exists $oldpid since {$timePid}Mn");
+	$pid=@file_get_contents($TimePID);
+	if($unix->process_exists($pid)){
+		$timePid=$unix->PROCCESS_TIME_MIN($pid);
+		events("parse_realtime_events():: Already process exists $pid since {$timePid}Mn");
 		if($timePid>10){
 			$kill=$unix->find_program("kill");
-			events("parse_realtime_events():: Killing $oldpid running since {$timePid}Mn");
-			shell_exec("$kill -9 $oldpid 2>&1");
+			events("parse_realtime_events():: Killing $pid running since {$timePid}Mn");
+			unix_system_kill_force($pid);
 		}else{
-			if($GLOBALS["VERBOSE"]){echo "Already running PID $oldpid since {$timePid}mn";}
+			if($GLOBALS["VERBOSE"]){echo "Already running PID $pid since {$timePid}mn";}
 			die();
 		}
 		

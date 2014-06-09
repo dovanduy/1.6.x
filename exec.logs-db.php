@@ -52,7 +52,7 @@ function start(){
 
 	
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	$sock=new sockets();
 	$EnableSyslogDB=$sock->GET_INFO("EnableSyslogDB");
 	if(!is_numeric($EnableSyslogDB)){$EnableSyslogDB=0;}
@@ -61,9 +61,9 @@ function start(){
 	$MySQLSyslogWorkDir=$sock->GET_INFO("MySQLSyslogWorkDir");
 	if($MySQLSyslogWorkDir==null){$MySQLSyslogWorkDir="/home/syslogsdb";}	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
 		return;
 	}
 		
@@ -177,10 +177,10 @@ function stop(){
 	$MYSQL_SOCKET=$GLOBALS["MYSQL_SOCKET"];
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 
@@ -211,7 +211,7 @@ function stop(){
 		$pid=DBPID();
 		if($unix->process_exists($pid)){
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) kill pid $pid..\n";}
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}else{
 			break;
 		}
@@ -255,10 +255,10 @@ function changemysqldir($dir){
 	
 	$unix=new unix();
 	$pidfile=$GLOBALS["MYPID"];
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
@@ -361,10 +361,10 @@ function databasesize($force=false){
 	
 	if(!$force){
 		$pidfile="/etc/artica-postfix/pids/{$GLOBALS["SERV_NAME"]}-databasesize.pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["VERBOSE"]){echo "$oldpid already exists since {$time}Mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["VERBOSE"]){echo "$pid already exists since {$time}Mn\n";}
 			return;
 		}
 	

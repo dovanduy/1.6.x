@@ -38,11 +38,11 @@ function start(){
 	$q=new mysql();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		system_admin_events("Already process $oldpid exists",__FUNCTION__,__FILE__,__LINE__,"backup");
+	if($unix->process_exists($pid,basename(__FILE__))){
+		system_admin_events("Already process $pid exists",__FUNCTION__,__FILE__,__LINE__,"backup");
 		die();
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -89,12 +89,12 @@ function perform_db_restore($InstanceID,$database,$sourcefile){
 	$q=new mysql();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	$prefix=null;
 	$suffix=" < \"$sourcefile\"";
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		system_admin_events("$database: Already process $oldpid exists",__FUNCTION__,__FILE__,__LINE__,"mysql-restore");
+	if($unix->process_exists($pid,basename(__FILE__))){
+		system_admin_events("$database: Already process $pid exists",__FUNCTION__,__FILE__,__LINE__,"mysql-restore");
 		die();
 	}
 	@file_put_contents($pidfile, getmypid());

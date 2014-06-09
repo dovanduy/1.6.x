@@ -32,11 +32,11 @@ function scan(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$SendMailCache="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".mail";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($time>10){
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 		}else{
 			return;
 		}

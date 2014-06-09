@@ -114,7 +114,7 @@ if($unix->process_exists($pid,basename(__FILE__))){
 		die();
 	}else{
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $pid >/dev/null 2>&1");
+		unix_system_kill_force($pid);
 	}
 }
 @file_put_contents($pidfile, getmypid());
@@ -229,7 +229,7 @@ if($unix->process_exists($pid)){
 		squid_admin_mysql(2, "Reloading Web Filtering service PID: $pid TTL {$processTTL}Mn","$forceTXT\n$called\n{$GLOBALS["CMDLINEXEC"]}");
 		WriteToSyslogMail("Asking to reload ufdbguard PID:$pid",basename(__FILE__));
 		ufdbguard_admin_events("Asking to reload ufdbguard$forceTXT - $called - cmdline:{$GLOBALS["EXECUTEDCMDLINE"]}",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
-		shell_exec("$kill -HUP $pid");
+		unix_system_HUP($pid);
 		return;
 }
 	
@@ -754,9 +754,9 @@ function UFDBGUARD_COMPILE_SINGLE_DB($path){
 	$unix=new unix();
 	$path=str_replace(".ufdb","",$path);
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.md5($path).".pid";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){
-		events_ufdb_tail("Check \"$path\"... Already process PID \"$oldpid\" running task has been aborted");
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){
+		events_ufdb_tail("Check \"$path\"... Already process PID \"$pid\" running task has been aborted");
 		return;
 	}
 	
@@ -2629,10 +2629,10 @@ function UFDBGUARD_COMPILE_CATEGORY($category){
 	}
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		ufdbguard_admin_events("Compile $category category aborting,task pid $oldpid running since {$time}Mn",__FUNCTION__,__FILE__,__LINE__,"compile");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		ufdbguard_admin_events("Compile $category category aborting,task pid $pid running since {$time}Mn",__FUNCTION__,__FILE__,__LINE__,"compile");
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -2668,8 +2668,8 @@ function UFDBGUARD_COMPILE_ALL_CATEGORIES(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile, getmypid());
 	$sock=new sockets();
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
@@ -3234,10 +3234,10 @@ function stop_ufdbguard($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -3259,7 +3259,7 @@ function stop_ufdbguard($aspid=false){
 	
 	
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		$pid=ufdbguard_pid();
 		if(!$unix->process_exists($pid)){break;}
@@ -3274,7 +3274,7 @@ function stop_ufdbguard($aspid=false){
 	}
 	
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
 		$pid=ufdbguard_pid();
 		if(!$unix->process_exists($pid)){break;}

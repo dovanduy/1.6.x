@@ -14,15 +14,15 @@ function stop(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$kill=$unix->find_program("kill");
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Stopping Zarafa LMTP dagent: This script is already executed PID: $oldpid since {$time}Mn\n";
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		echo "Stopping Zarafa LMTP dagent: This script is already executed PID: $pid since {$time}Mn\n";
 		if($time<5){if(!$GLOBALS["FORCE"]){return;}}
-		shell_exec("$kill -9 $oldpid");
+		unix_system_kill_force($pid);
 	}	
 	@file_put_contents($pidfile, getmypid());
 	echo "\n";
@@ -34,7 +34,7 @@ function stop(){
 	
 	if($unix->process_exists($pid)){
 		echo "Stopping Zarafa LMTP dagent: Pid $pid\n";
-		shell_exec("$kill $pid >/dev/null 2>&1");
+		unix_system_kill($pid);
 		for($i=0;$i<8;$i++){
 			sleep(1);
 			if($unix->process_exists($pid)){
@@ -48,7 +48,7 @@ function stop(){
 	
 	if($unix->process_exists($pid)){
 		echo "Stopping Zarafa LMTP dagent: Force kill Pid $pid\n";
-		shell_exec("$kill -9 $pid >/dev/null 2>&1");
+		unix_system_kill_force($pid);
 		for($i=0;$i<5;$i++){
 		sleep(1);
 			if($unix->process_exists($pid)){
@@ -71,7 +71,8 @@ function stop(){
 	while (list ($num, $int) = each ($tr)){
 		if(!is_numeric($int)){continue;}
 		echo "Stopping Zarafa LMTP dagent: Force kill Ghost daemon pid $int\n";
-		shell_exec("$kill -9 $int >/dev/null 2>&1");
+		unix_system_kill_force($int);
+		
 	}
 	
 	echo "Stopping Zarafa LMTP dagent: Done...\n";

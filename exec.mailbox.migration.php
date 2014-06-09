@@ -147,8 +147,8 @@ function import_single_file($filepath,$ID,$ou,$localdomain){
 	
 	$users=new usersMenus();
 	if(!$users->offlineimap_installed){
-		system_admin_events("$ID:: Installing Offline Imap tool...",__FUNCTION__,__FILE__,__LINE__,"mbximport");
-		shell_exec("/usr/share/artica-postfix/bin/artica-make APP_OFFLINEIMAP");
+		system_admin_events("$ID:: Offline Imap tool is not installed",__FUNCTION__,__FILE__,__LINE__,"mbximport");
+		die();
 	}
 	
 	sys_THREAD_COMMAND_SET(LOCATE_PHP5_BIN2()." ".__FILE__." --accounts");

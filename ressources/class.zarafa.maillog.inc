@@ -37,6 +37,28 @@ class zarafa_maillog_buffer{
 			return true;
 		}
 		
+	if(preg_match("#Starting zarafa-(.*?)\s+version\s+(.+?)\s+#", $buffer,$re)){
+		system_admin_events("Zarafa process - {$re[1]} version {$re[2]} was started",__FUNCTION__,__FILE__,__LINE__,"maiboxes");
+		return;
+		
+	}
+	
+	if(preg_match("#zarafa-server.*?Startup succeeded on pid ([0-9]+)#", $buffer,$re)){
+		system_admin_events("Zarafa Server successfully started PID - {$re[1]}",__FUNCTION__,__FILE__,__LINE__,"mailboxes");
+		return;
+	}
+	
+	if(preg_match("#zarafa-server.*?SQL \[([0-9]+)\] info: Try to reconnect#", $buffer,$re)){
+		$errorNum=$re[1];
+		$file="/etc/artica-postfix/croned.1/zarafa-server.error.$errorNum";
+		$timefile=$this->file_time_min($file);
+		if($timefile>5){
+			system_admin_events("Zarafa Server MySQL Error ID $errorNum",__FUNCTION__,__FILE__,__LINE__);
+		}
+		return;
+		
+	}
+		
 	if(preg_match("#zarafa-server\[.+?Unable to start server on port\s+([0-9]+): Address already in use#",$buffer,$re)){
 		$file="/etc/artica-postfix/croned.1/zarafa-server.Unable.to.start.server.on.port.{$re[1]}";
 		$timefile=$this->file_time_min($file);
@@ -347,7 +369,7 @@ class zarafa_maillog_buffer{
 	
 	private function events($text,$line){
 		$filename=basename(__FILE__);
-		$logFile="/var/log/artica-postfix/postfix-logger.debug";
+		$logFile="/var/log/artica-postfix/zarafa-logger.debug";
 		if(!isset($GLOBALS["CLASS_UNIX"])){return;}
 		$GLOBALS["CLASS_UNIX"]->events("$filename $text (line $line)",$logFile);		
 	}

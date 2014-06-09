@@ -272,9 +272,9 @@ function reconfigure_all_zpush(){
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Already instance executed pid $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Already instance executed pid $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -298,9 +298,9 @@ function reconfigure_all_updateutility(){
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Already instance executed pid $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Already instance executed pid $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -324,9 +324,9 @@ function reconfigure_all_wpad(){
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Already instance executed pid $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Already instance executed pid $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -365,9 +365,9 @@ function reconfigure_all_webapp(){
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Already instance executed pid $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Already instance executed pid $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -393,9 +393,9 @@ function reconfigure_all_webaccess(){
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Already instance executed pid $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Already instance executed pid $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -628,10 +628,10 @@ function TTL_Apache(){
 function RestartApacheMaintenance($aspid=false){
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-		if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){
-			$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+		if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){
+			$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -671,10 +671,10 @@ function startApache($withoutkill=false,$aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -778,7 +778,7 @@ function startApache($withoutkill=false,$aspid=false){
 		if(preg_match("#httpd.+?pid\s+([0-9]+)\) already running#",$ligne,$re)){
 			if(!$withoutkill){
 				echo "Starting......: ".date("H:i:s")." [INIT]: Apache killing PID {$re[1]}\n";
-				shell_exec("$kill -9 {$re[1]}");
+				unix_system_kill_force($re[1]);
 				KillApacheProcesses();
 				startApache(true,true);
 				return;
@@ -907,9 +907,9 @@ function build(){
 	}
 	$mef=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,$mef)){
-		echo "Starting......: ".date("H:i:s")." [INIT]: Apache building : Process Already exist pid $oldpid line:".__LINE__."\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,$mef)){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache building : Process Already exist pid $pid line:".__LINE__."\n";
 		return;
 	}	
 	@file_put_contents($pidfile, getmypid());		
@@ -2797,9 +2797,9 @@ function FDpermissions($servername=null){
 		$pidfile="/usr/share/artica-postfix/pids/" .basename(__FILE__).".".__FUNCTION__.".pid";
 	}
 	$unix=new unix();
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		echo "Already exists $oldpid\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		echo "Already exists $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile,getmypid());
@@ -3392,11 +3392,11 @@ function drupal_cron(){
 	if(!$users->DRUPAL7_INSTALLED){die();}
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
 	$drush7=$unix->find_program("drush7");
 	if(!is_file($drush7)){die();}
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	if($unix->file_time_min($pidtime)<60){die();}
 	@file_put_contents($pidfile, getmypid());
 	@unlink($pidtime);
@@ -3418,11 +3418,11 @@ function drupal_install_modules($servername){
 	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$servername\" drupal_install_modules()\n";}
 	if($servername==null){return;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$servername.pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
 	$drush7=$unix->find_program("drush7");
 	if(!is_file($drush7)){die();}
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}	
+	if($unix->process_exists($pid,basename(__FILE__))){die();}	
 	@file_put_contents($pidfile, getmypid());
 	
 	$f=new drupal_vhosts($servername);
@@ -3719,8 +3719,8 @@ function mod_status_all(){
 		$pidfile="/etc/artica-postfix/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pidtime="/etc/artica-postfix/".basename(__FILE__).".".__FUNCTION__.".time";
 		if($unix->file_time_min($pidtime)<15){die();}
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){return;}
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){return;}
 		@unlink($pidtime);
 		@file_put_contents($pidtime, time());
 		@file_put_contents($pidfile, getmypid());
@@ -3965,8 +3965,8 @@ function watchdog($direction){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".".$direction.".pid";
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		writelogs("Already executed $pid",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}

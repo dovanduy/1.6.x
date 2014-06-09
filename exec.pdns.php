@@ -954,9 +954,9 @@ function replic_artica_servers(){
 	$me=basename(__FILE__);
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/$me.pid";
-	$oldpid=$unix->get_pid_from_file($pidpath);
-	if($unix->process_exists($oldpid,$me)){
-		system_admin_events("Task $oldpid already executed...", __FUNCTION__, __FILE__, __LINE__, "pdns");
+	$pid=$unix->get_pid_from_file($pidpath);
+	if($unix->process_exists($pid,$me)){
+		system_admin_events("Task $pid already executed...", __FUNCTION__, __FILE__, __LINE__, "pdns");
 		die();
 	}
 	
@@ -1131,13 +1131,13 @@ function stop_recursor(){
 	
 	$pidtime=$unix->PROCCESS_TIME_MIN($pid);
 	echo "Stopping......: ".date("H:i:s")."PowerDNS Recursor pid $pid running since {$pidtime}mn\n";
-	shell_exec("$kill $pid");
+	unix_system_kill($pid);
 	sleep(1);
 	$pid=pdns_recursor_pid();
 	if($unix->process_exists($pid)){
 		for($i=0;$i<5;$i++){
 			echo "Stopping......: ".date("H:i:s")."PowerDNS Recursor waiting pid $pid top stop ".($i+1)."/5\n";
-			shell_exec("$kill $pid");
+			unix_system_kill($pid);
 			$pid=pdns_recursor_pid();
 			if(!$unix->process_exists($pid)){break;}
 		}
@@ -1146,11 +1146,11 @@ function stop_recursor(){
 	$pid=pdns_recursor_pid();
 	if($unix->process_exists($pid)){
 		echo "Stopping......: ".date("H:i:s")."PowerDNS Recursor force killing pid $pid\n";
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 		if($unix->process_exists($pid)){
 			for($i=0;$i<5;$i++){
 				echo "Stopping......: ".date("H:i:s")."PowerDNS Recursor waiting pid $pid top stop ".($i+1)."/5\n";
-				shell_exec("$kill -9 $pid");
+				unix_system_kill_force($pid);
 				$pid=pdns_recursor_pid();
 				if(!$unix->process_exists($pid)){break;}
 				}

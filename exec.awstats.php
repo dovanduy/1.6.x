@@ -206,12 +206,12 @@ function awstats_mail(){
 	
 	if($EnableArticaSMTPStatistics==0){return;}
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	
 	if(!$GLOBALS["VERBOSE"]){
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$oldpidTime=$unix->PROCCESS_TIME_MIN($oldpid);
-			events("Already process PID: $oldpid running since $oldpidTime minutes", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$pidTime=$unix->PROCCESS_TIME_MIN($pid);
+			events("Already process PID: $pid running since $pidTime minutes", __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 			return;
 		
 		}

@@ -49,7 +49,7 @@ var x_ChangeComputerName= function (obj) {
 	if(document.getElementById('main_dansguardiangroups_tabs')){RefreshTab('main_dansguardiangroups_tabs');}
 	RTMMailHide();
 	YahooUserHide();
-	YahooUser(961,'domains.edit.user.php?userid='+x_$t+'&ajaxmode=yes',x_$t);	
+	YahooUser(986,'domains.edit.user.php?userid='+x_$t+'&ajaxmode=yes',x_$t);	
 	
 	}		
 	

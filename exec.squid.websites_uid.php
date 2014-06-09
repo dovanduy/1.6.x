@@ -51,12 +51,12 @@ function websites_uid(){
 	if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 			return;
 		}
 	
@@ -231,10 +231,10 @@ function websites_uid_not_categorised($uid=null,$tablename=null,$aspid=false){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$uid.pid";
 	if($aspid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("Task already running PID: $pid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
 	}

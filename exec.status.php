@@ -62,6 +62,7 @@ if(strlen($argv[1])>0){
 	$GLOBALS["CLASS_USERS"]=new settings_inc();
 	include_once('/usr/share/artica-postfix/ressources/class.status.videocache.inc');
 	include_once('/usr/share/artica-postfix/ressources/class.status.squid.inc');
+	include_once('/usr/share/artica-postfix/ressources/class.status.postfix.inc');
 	CheckCallable();
 }
 
@@ -238,6 +239,9 @@ if($argv[1]=="--sarg"){echo sarg();die();}
 if($argv[1]=="--snmpd"){echo snmpd();die();}
 if($argv[1]=="--squid-nat"){echo squid_nat();die();}
 if($argv[1]=="--ziproxy"){echo ziproxy();die();}
+if($argv[1]=="--iredmail"){echo iredmail();die();}
+
+
 if($argv[1]=="--videocache"){
 	
 	$conf[]=videocache();
@@ -1162,8 +1166,8 @@ function launch_all_status_cmdline(){
 	$pids="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$CacheFileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pids);
-	if($unix->process_exists($oldpid)){return;}
+	$pid=$unix->get_pid_from_file($pids);
+	if($unix->process_exists($pid)){return;}
 	@file_put_contents($pids, getmypid());
 	$time=$unix->file_time_min($CacheFileTime);
 	if(!$GLOBALS["VERBOSE"]){
@@ -1281,6 +1285,12 @@ function launch_all_status($force=false){
 		$functions=squid_increment_func($functions);
 		$functions=videocache_increment_func($functions);
 	}
+	$postconf=$GLOBALS["CLASS_UNIX"]->find_program("postconf");
+	if(is_file($postconf)){
+		include_once('/usr/share/artica-postfix/ressources/class.status.postfix.inc');
+		$functions=postfix_increment_func($functions);
+	}
+	
 	
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
@@ -2096,73 +2106,6 @@ function mailarchive_pid(){
 
 }
 
-function mailarchiver(){
-	$MailArchiverEnabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('MailArchiverEnabled');
-	$MailArchiverUsePerl=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MailArchiverUsePerl");
-	if(!is_numeric($MailArchiverEnabled)){$MailArchiverEnabled=0;}
-	if(!is_numeric($MailArchiverUsePerl)){$MailArchiverUsePerl=0;}
-	if($GLOBALS["VERBOSE"]){echo "DEBUG: MailArchiverEnabled..: $MailArchiverEnabled\n";}
-	if($MailArchiverUsePerl==0){
-		$pid_path="/var/run/maildump/maildump.pid";
-		if($GLOBALS["VERBOSE"]){echo "DEBUG: pid path....: $pid_path\n";}
-		$master_pid=trim(@file_get_contents($pid_path));
-		if($GLOBALS["VERBOSE"]){echo "DEBUG: master pid..: $master_pid\n";}	
-	}else{
-		$master_pid=mailarchive_pid();
-	}
-	
-	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
-	if($DisableMessaging==1){$MailArchiverEnabled=0;}
-	
-	$l[]="[APP_MAILARCHIVER]";
-	$l[]="service_name=APP_MAILARCHIVER";
-	$l[]="master_version=1.0.20090200";
-	$l[]="service_cmd=mailarchiver";
-	$l[]="service_disabled=$MailArchiverEnabled";
-	$l[]="pid_path=$pid_path";
-	$l[]="watchdog_features=1";
-	$l[]="family=postfix";
-	if($MailArchiverEnabled==0){return implode("\n",$l);return;}
-	 
-	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		WATCHDOG("APP_MAILARCHIVER","mailarchiver");
-		$l[]="running=0";
-		$l[]="installed=1\n";
-		return implode("\n",$l);
-		return;
-	}
-	$l[]="running=1";
-	$l[]=GetMemoriesOf($master_pid);
-	$l[]="";
-	
-	
-	$unix=new unix();
-	$pid=$unix->get_pid_from_file("/etc/artica-postfix/exec.mailarchiver.php.pid");
-	if(!$GLOBALS["CLASS_UNIX"]->process_exists($pid)){
-		$CountDefiles=$unix->DIR_COUNT_OF_FILES("/var/spool/mail-rtt-backup");
-		if($CountDefiles>0){
-			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.mailarchiver.php >/dev/null 2>&1 &");
-		}
-	}
-	
-	
-	
-	
-	@mkdir("/etc/artica-postfix/pids",0755,true);
-	
-	$PurgeTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".purge.time";
-	$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($PurgeTime);
-	if($time>480){
-		@unlink($PurgeTime);
-		@file_put_contents($PurgeTime, time());
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.mailarchiver.php --purge >/dev/null 2>&1 &");
-	}
-	
-	return implode("\n",$l);return;	
-	
-}
-
-//========================================================================================================================================================
 function mimedefang(){
 	$users=new settings_inc();
 
@@ -2481,7 +2424,8 @@ function philesight(){
 		$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($pid);
 		if($time>120){
 			$GLOBALS["CLASS_UNIX"]->send_email_events("Warning killing philesight process $pid running since {$time}mn", "Suspicious overloaded process", "system");
-			shell_exec2("$kill -9 $pid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
+			
 		}
 	}
 }
@@ -6464,55 +6408,7 @@ function postfix(){
 	return implode("\n",$l);return;
 
 }
-//========================================================================================================================================================
-function postfix_logger(){
-	if(!is_file("/etc/artica-postfix/DO_NOT_DETECT_POSTFIX")){return;}
-	$ActAsSMTPGatewayStatistics=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("ActAsSMTPGatewayStatistics");
-	if(!is_numeric($ActAsSMTPGatewayStatistics)){$ActAsSMTPGatewayStatistics=0;}
-	if($ActAsSMTPGatewayStatistics==0){
-		$bin_path=$GLOBALS["CLASS_UNIX"]->find_program("postconf");
-		if($bin_path==null){return null;}
-	}
-	$pid_path="/etc/artica-postfix/exec.maillog.php.pid";
-	$master_pid=trim(@file_get_contents($pid_path));
 
-
-	$l[]="[ARTICA_MYSQMAIL]";
-	$l[]="service_name=APP_ARTICA_MYSQMAIL";
-	$l[]="master_version=".GetVersionOf("artica");
-	$l[]="service_cmd=/etc/init.d/postfix-logger";
-	$l[]="service_disabled=1";
-	$l[]="pid_path=$pid_path";
-	$l[]="watchdog_features=1";
-	$l[]="family=postfix";
-	$l[]="installed=1";
-
-	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
-
-
-	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		shell_exec("{$GLOBALS["nohup"]} /etc/init.d/postfix-logger start >/dev/null 2>&1 &");
-		$l[]="running=0\ninstalled=1";$l[]="";
-		return implode("\n",$l);
-		return;
-	}
-
-	$l[]=GetMemoriesOf($master_pid);
-	$l[]="";
-
-
-	if(!$GLOBALS["DISABLE_WATCHDOG"]){
-		$time=file_time_min("/var/log/artica-postfix/postfix-logger.debug");
-
-		if($time>5){
-			writelogs("LOG TIME: $time -> restart postfix-logger",__FUNCTION__,__FILE__,__LINE__);
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/postfix-logger restart");
-		}
-	}
-
-	return implode("\n",$l);return;
-
-}
 function artica_policy(){
 	return;
 	if(!is_file("/usr/share/artica-postfix/exec.artica-filter-daemon.php")){return;}
@@ -7380,12 +7276,12 @@ function openssh(){
 
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		system_admin_events("OpenSSH server is not running, start it",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec("/etc/init.d/ssh start >/dev/null 2>&1 &");
 		$l[]="running=0\ninstalled=1";$l[]="";
 		return implode("\n",$l);
 		
 	}
-	
 	
 	$ttl=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($master_pid);
 	
@@ -9287,7 +9183,7 @@ function snort(){
 			while ($pid>50) {
 				$cz++;
 				system_admin_events("Snort pid $pid was killed, it is not enabled", __FUNCTION__, __FILE__, __LINE__, "watchdog");
-				shell_exec2("$kill -9 $pid >/dev/null 2>&1");
+				unix_system_kill_force($pid);
 				$pid=$GLOBALS["CLASS_UNIX"]->PIDOF($binpath,true);
 				if($cz>10){system_admin_events("Break loop after 10 attempts...", __FUNCTION__, __FILE__, __LINE__, "watchdog");break;}
 				sleep(1);
@@ -10415,7 +10311,8 @@ function shell_exec_time($cmdlineNophp5,$mintime=5){
 }
 
 function shell_exec2($cmdline){
-	if(!isset($GLOBALS["shell_exec2"])){$GLOBALS["shell_exec2"]=0;}
+	if(!isset($GLOBALS["shell_exec2"])){$GLOBALS["shell_exec2"]=array();}
+	if(!is_array($GLOBALS["shell_exec2"])){$GLOBALS["shell_exec2"]=array();}
 	$md5=md5($cmdline);
 	$time=date("YmdHi");
 	if(isset($GLOBALS["shell_exec2"][$time][$md5])){
@@ -10424,6 +10321,8 @@ function shell_exec2($cmdline){
 	}
 	if(count($GLOBALS["shell_exec2"])>5){$GLOBALS["shell_exec2"]=array();}
 	$GLOBALS["shell_exec2"][$time][$md5]=true;
+	
+	
 	if(!preg_match("#\/nohup\s+#",$cmdline)){
 		$cmdline="{$GLOBALS["nohup"]} $cmdline";
 	}

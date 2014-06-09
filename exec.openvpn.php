@@ -156,7 +156,8 @@ function StopServer(){
 		if(preg_match("#^([0-9]+)\s+#", $ligne,$re)){
 			if($unix->process_exists($re[1])){
 				echo "Stopping OpenVPN......................: {$re[1]} PID\n"; 
-				shell_exec("$kill -9 {$re[1]} >/dev/null 2>&1");
+				unix_system_kill_force($re[1]);
+				
 			}
 		}
 		
@@ -1408,8 +1409,8 @@ function wakeup_server_mode(){
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){writelogs("OpenVPN Already instance executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){writelogs("OpenVPN Already instance executed pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
 	@file_put_contents($pidpath, posix_getpid());
 	$time=$unix->file_time_min($pidtime);
 	
@@ -1465,9 +1466,9 @@ function wakeup_client_mode(){
 	$main_path="/etc/artica-postfix/openvpn/clients";
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){
-		writelogs("OpenVPN Already instance executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__);
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){
+		writelogs("OpenVPN Already instance executed pid $pid",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	

@@ -41,11 +41,11 @@ function squidrrd(){
 	if(!$GLOBALS["FORCE"]){if($timeExc<5){return;}}
 	@unlink($timefile1);
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	
 	if(!$GLOBALS["FORCE"]){
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-				writelogs("Already executed PID $oldpid",__FUNCTION__,__FILE__,__LINE__);
+		if($unix->process_exists($pid,basename(__FILE__))){
+				writelogs("Already executed PID $pid",__FUNCTION__,__FILE__,__LINE__);
 				return;
 		}
 		@file_put_contents($pidfile, getmypid());

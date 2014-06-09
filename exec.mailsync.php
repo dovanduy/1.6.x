@@ -39,10 +39,10 @@ $sql="SELECT * FROM imapsync WHERE ID='$id'";
 	exec($unix->find_program("pgrep")." -f \"imapsync.+?--host1 {$ligne["imap_server"]}.+?--user1 {$ligne["username"]}\"",$pids);
 
 	while (list ($index, $pid) = each ($pids) ){
-		if($pid>5){shell_exec("/bin/kill -9 $pid");}
+		if($pid>5){unix_system_kill_force($pid);}
 	}
 	
-	shell_exec("/bin/kill -9 $pid_org");
+	unix_system_kill_force($pid_org);
 }
 
 function sync($id,$nopid=false){
@@ -363,10 +363,10 @@ function cronAll(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		$timefile=$unix->file_time_min($pidfile);
-		system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process",__FUNCTION__,__FILE__,__LINE__);
+		system_admin_events(basename(__FILE__).": Already executed pid $pid since $timefile minutes.. aborting the process",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	@unlink($pidfile);

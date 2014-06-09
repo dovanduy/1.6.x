@@ -151,7 +151,7 @@ function SingleInstance_reload(){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} reloading executed $pid since {$timepid}Mn...\n";}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -HUP $pid");
+		unix_system_HUP($pid);
 		return;
 	}
 	
@@ -262,10 +262,10 @@ function SingleInstance_stop($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -287,7 +287,7 @@ function SingleInstance_stop($aspid=false){
 
 
 	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service Shutdown pid $pid...\n";}
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		$pid=SingleInstance_pid();
 		if(!$unix->process_exists($pid)){
@@ -304,7 +304,7 @@ function SingleInstance_stop($aspid=false){
 	}
 
 	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_sstop"]} service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	unix_system_kill_force($pid);
 
 
 
@@ -452,13 +452,13 @@ function MultiplesInstancesFound($pid=false,$onlystart=false){
 			if($unix->file_time_min($pidtime)<2){
 				if($GLOBALS["VERBOSE"]){echo "Minimal 2mn\n";}
 				return;}
-			$oldpid=$unix->get_pid_from_file($pidfile);
-			if($unix->process_exists($oldpid,basename(__FILE__))){
-				$processtime=$unix->PROCCESS_TIME_MIN($oldpid);
-				if($GLOBALS["VERBOSE"]){echo "Already running pid $oldpid\n";}
+			$pid=$unix->get_pid_from_file($pidfile);
+			if($unix->process_exists($pid,basename(__FILE__))){
+				$processtime=$unix->PROCCESS_TIME_MIN($pid);
+				if($GLOBALS["VERBOSE"]){echo "Already running pid $pid\n";}
 				if($processtime<5){return;}
 				$kill=$unix->find_program("kill");
-				shell_exec("$kill -9 $oldpid >/dev/null");
+				unix_system_kill_force($pid);
 			}
 		}
 	}
@@ -581,7 +581,7 @@ function MultiplesInstances_stop($hostname){
 	}
 	
 	echo "{$GLOBALS["deflog_sstop"]} $hostname stopping pid $pid\n";
-	system("/bin/kill $pid");
+	unix_system_kill($pid);
 
 	for($i=0;$i<20;$i++){
 		$pid=MultiplesInstancesPID($hostname);
@@ -589,17 +589,16 @@ function MultiplesInstances_stop($hostname){
 			echo "{$GLOBALS["deflog_sstop"]} $hostname stopped\n";
 			break;
 		}
+		
 		echo "{$GLOBALS["deflog_sstop"]} $hostname waiting pid $pid\n";
-		if($unix->process_exists($pid)){
-			exec("/bin/kill $pid 2>&1",$results);
-			if(preg_match("#No such process#",@implode(" ",$results))){
-				echo "{$GLOBALS["deflog_sstop"]} $hostname stopped\n";
-				break;
+			if($unix->process_exists($pid)){
+				unix_system_kill_force($pid);
+				sleep(1);
+				continue;
 			}
-			}
-		sleep(1);	
-	}
-	
+			break;
+		}
+
 }
 function MultiplesInstancesPID($hostname){$unix=new unix();return $unix->get_pid_from_file("/var/spool/postfix/var/run/milter-greylist/$hostname/greylist.pid");}
 

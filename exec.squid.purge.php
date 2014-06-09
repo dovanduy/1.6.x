@@ -31,10 +31,10 @@ function scan_stored_items($nopid=true){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if($nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"proxy");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("Task already running PID: $pid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"proxy");
 			return;
 		}
 	}
@@ -89,7 +89,7 @@ function ScanPurgeexc(){
 	if($count>1){
 		unset($pp[0]);
 		while (list ($index, $pid) = each ($pp)){
-			shell_exec("$kill -9 $pid >/dev/null");
+			unix_system_kill_force($pid);
 		}
 	}
 	
@@ -147,10 +147,10 @@ function inject_stored_items($nopid=false){
 	
 	
 	if(!$nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"proxy");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("Task already running PID: $pid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"proxy");
 			return;
 		}
 	}

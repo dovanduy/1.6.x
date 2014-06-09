@@ -70,11 +70,11 @@ function start($nopid=false){
 	$SERV_NAME=$GLOBALS["SRV_NAME"];
 	$pidfile=$GLOBALS["MYPID_PATH"];
 	if(!$nopid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
+		$pid=$unix->get_pid_from_file($pidfile);
 		$sock=new sockets();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -148,10 +148,10 @@ function stop(){
 	$unix=new unix();
 	$SERV_NAME=$GLOBALS["SERV_NAME"];
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: $SERV_NAME Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 
@@ -182,7 +182,7 @@ function stop(){
 		$pid=SERVICEDB_PID();
 		if($unix->process_exists($pid)){
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon kill pid $pid..\n";}
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}else{
 			break;
 		}
@@ -277,9 +277,9 @@ function databasesize($force=false){
 	if(!$force){
 		$pidfile=$GLOBALS["DATABASE_STATS_PID"];
 		
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			return;
 		}
 	

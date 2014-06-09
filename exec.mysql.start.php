@@ -68,12 +68,12 @@ function restart_reco(){
 	$unix=new unix();
 	$kill=$unix->find_program("kill");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "Starting......: ".date("H:i:s")." MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+			echo "Starting......: ".date("H:i:s")." MySQL this script is already executed PID: $pid since {$time}Mn\n";
 			if($time<10){if(!$GLOBALS["FORCE"]){return;}}
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 		}
 		@file_put_contents($pidfile, getmypid());	
 	
@@ -125,17 +125,17 @@ function WATCHDOG_MYSQL(){
 	$mysqladmin=$unix->find_program("mysqladmin");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);	
+	$pid=@file_get_contents($pidfile);	
 	$kill=$unix->find_program("kill");
 	
 	if(!$GLOBALS["FORCE"]){
 		$LastExec=$unix->file_time_min($pidTime);
 		if($LastExec<5){return;}
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($time<5){return;}
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 		}
 	}
 	
@@ -249,15 +249,15 @@ function SERVICE_STOP($aspid=false){
 	$pgrep=$unix->find_program("pgrep");
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$kill=$unix->find_program("kill");
 	
 	if(!$aspid){
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "Stopping MySQL...............: This script is already executed PID: $oldpid since {$time}Mn\n";
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			echo "Stopping MySQL...............: This script is already executed PID: $pid since {$time}Mn\n";
 			if($time<5){if(!$GLOBALS["FORCE"]){return;}}
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 		}
 		
 		
@@ -310,7 +310,7 @@ function SERVICE_STOP($aspid=false){
 	}
 		
 	echo "Stopping MySQL...............: killing smoothly PID $pid\n";
-	shell_exec("$kill $pid");
+	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		sleep(1);
 		$pid=PID_NUM();  
@@ -324,7 +324,7 @@ function SERVICE_STOP($aspid=false){
 	}
 	
 	echo "Stopping MySQL...............: Force killing PID $pid\n";
-	shell_exec("$kill -9 $pid");
+	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
 		sleep(1);
 		$pid=PID_NUM();  
@@ -351,12 +351,12 @@ function SERVICE_START($nochecks=false,$nopid=false){
 	
 	if(!$nopid){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "Starting......: ".date("H:i:s")." MySQL this script is already executed PID: $oldpid since {$time}Mn\n";
+	$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			echo "Starting......: ".date("H:i:s")." MySQL this script is already executed PID: $pid since {$time}Mn\n";
 			if($time<5){if(!$GLOBALS["FORCE"]){return;}}
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
@@ -592,10 +592,10 @@ function status_all_mysql_engines(){
 	
 	$cachefile="/usr/share/artica-postfix/ressources/logs/web/MYSQLDB_STATUS";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());

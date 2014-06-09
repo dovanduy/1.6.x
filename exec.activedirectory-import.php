@@ -25,14 +25,14 @@ function ActiveDirectoryToMysql(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	$sock=new sockets();
 	$ActiveDirectoryMysqlSinc=$sock->GET_INFO($ActiveDirectoryMysqlSinc);
 	if(!is_numeric($ActiveDirectoryMysqlSinc)){$ActiveDirectoryMysqlSinc=5;}
 	if($ActiveDirectoryMysqlSinc==0){$ActiveDirectoryMysqlSinc=1;}
 	$ActiveDirectoryMysqlSinc=$ActiveDirectoryMysqlSinc*60;
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		writelogs("Process $oldpid already exists",__FUNCTION__,__FILE__,__LINE__);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		writelogs("Process $pid already exists",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	

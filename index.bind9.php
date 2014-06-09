@@ -220,7 +220,7 @@ $html="
 
 ";
 
-$addcomp=Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooWin3(670,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid&zone-name=$zone\",\"windows: New {add_computer}\");");
+$addcomp=Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooWin3(986,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid&zone-name=$zone\",\"windows: New {add_computer}\");");
 
 while (list ($num, $ligne) = each ($bind->array_zone_computers) ){
 	$html=$html."<tr " . CellRollOver()." " . MEMBER_JS($num.'$',0,0).">
@@ -723,7 +723,7 @@ function main_zone_hosts(){
 			<tr>
 				<td>
 				".RoundedLightGrey(Paragraphe("computers-64.png","{search_computer}","{search_computer_text}","javascript:SearchDnsConputer();"))."<br>
-				".RoundedLightGrey(Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooWin2(670,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid&zone-name=$zone\",\"windows: New {add_computer}\");"))."
+				".RoundedLightGrey(Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooWin2(986,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid&zone-name=$zone\",\"windows: New {add_computer}\");"))."
 				
 				</td>
 			</tr>
@@ -781,7 +781,7 @@ function zone_hosts_lits($zone){
 		$type=$hash[$i]["dnstype"][0];
 		$html=$html . "
 		
-		<div style='float:left;width:120px;margin:2px;padding:2px;border:1px solid white' ".CellRollOver("YahooWin2(670,'domains.edit.user.php?userid=$uid$&ajaxmode=yes')").">
+		<div style='float:left;width:120px;margin:2px;padding:2px;border:1px solid white' ".CellRollOver("YahooWin2(986,'domains.edit.user.php?userid=$uid$&ajaxmode=yes')").">
 		<table style='width:100%'>
 		<tr>
 		<td valign='top' width=1%><img src='img/workstation-linux-32.png'></td>

@@ -926,9 +926,9 @@ function Clean_tmp_path($aspid=false){
 	
 	if($aspid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidpath);
-		if($unix->process_exists($oldpid)){
-			$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $oldpid running.. Aborting");
+		$pid=@file_get_contents($pidpath);
+		if($unix->process_exists($pid)){
+			$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running.. Aborting");
 			return;
 		}
 		
@@ -1249,10 +1249,10 @@ function clean_squid_users_size($nopid=false){
 	
 	if(!$nopid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidpath);
-		if($unix->process_exists($oldpid)){
-			if($GLOBALS["VERBOSE"]){echo "Already process $oldpid running.. aborting";}
-			system_admin_events("Already process $oldpid running.. aborting",__FUNCTION__,__FILE__,__LINE__,"clean-logs");
+		$pid=@file_get_contents($pidpath);
+		if($unix->process_exists($pid)){
+			if($GLOBALS["VERBOSE"]){echo "Already process $pid running.. aborting";}
+			system_admin_events("Already process $pid running.. aborting",__FUNCTION__,__FILE__,__LINE__,"clean-logs");
 			return;
 		}
 	
@@ -1360,10 +1360,10 @@ function CleanLogsDatabases($nopid=false){
 	$unix=new unix();
 	if($nopid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidpath);
-		if($unix->process_exists($oldpid)){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events(basename(__FILE__).":: ".__FUNCTION__." Already process $oldpid running since $pidtime Mn.. Aborting",__FUNCTION__,__FILE__,__LINE__);
+		$pid=@file_get_contents($pidpath);
+		if($unix->process_exists($pid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running since $pidtime Mn.. Aborting",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}	
 	 @file_put_contents($pidpath, getmypid());
@@ -1542,10 +1542,10 @@ function UrgencyChecks(){
 	$sock=new sockets();
 	
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){
-		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-		$unix->events("UrgencyChecks():: ".__FUNCTION__." Already process $oldpid running since $pidtime Mn.. Aborting");
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+		$unix->events("UrgencyChecks():: ".__FUNCTION__." Already process $pid running since $pidtime Mn.. Aborting");
 		return;
 	}
 	@file_put_contents($pidpath, getmypid());
@@ -1600,10 +1600,10 @@ function logrotatelogs($nopid=false){
 	
 	if($nopid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidpath);
-		if($unix->process_exists($oldpid)){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events(basename(__FILE__).":: ".__FUNCTION__." Already process $oldpid running since $pidtime Mn.. Aborting",__FUNCTION__,__FILE__,__LINE__);
+		$pid=@file_get_contents($pidpath);
+		if($unix->process_exists($pid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running since $pidtime Mn.. Aborting",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 		@file_put_contents($pidpath, getmypid());
@@ -1717,9 +1717,9 @@ function CleanLogs(){
 	$maxtime=480;
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){
-		$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $oldpid running.. Aborting");
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){
+		$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running.. Aborting");
 		return;
 	}
 	

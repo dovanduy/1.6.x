@@ -27,13 +27,13 @@ function Get_owncloud(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
 	$unix=new unix();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 		die();
 	}	
 	

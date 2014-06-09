@@ -17,9 +17,9 @@ $sock=new sockets();
 
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 $unix=new unix();
-if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Process $oldpid already exists","MAIN",__FILE__,__LINE__);return;}
+if($unix->process_exists($pid,basename(__FILE__))){writelogs("Process $pid already exists","MAIN",__FILE__,__LINE__);return;}
 @file_put_contents($pidfile, getmypid());
 
 

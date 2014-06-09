@@ -30,11 +30,11 @@ if($GLOBALS["AS_ROOT"]){
 	include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($time>5){
-			shell_exec($unix->find_program("kill")." -9 $oldpid >/dev/null 2>&1");
+			shell_exec($unix->find_program("kill")." -9 $pid >/dev/null 2>&1");
 		}else{
 			die();
 		}

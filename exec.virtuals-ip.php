@@ -234,9 +234,9 @@ function ucarp_stop(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -509,7 +509,7 @@ function ucarp_stop_single($pid){
 		
 	echo "Starting......: ".date("H:i:s")." UCARP: [$pid]: Shutting down $pid...\n";
 	for($i=0;$i<10;$i++){
-		shell_exec("$kill $pid >/dev/null 2>&1");
+		unix_system_kill($pid);
 		sleep(1);
 		if(!$unix->process_exists($pid)){break;}
 	}
@@ -526,9 +526,9 @@ function ucarp_build($nopid=false){
 
 	
 	if(!$nopid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $oldpid\n";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $pid\n";
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -685,9 +685,9 @@ function ucarp_start(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	$sock=new sockets();
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $oldpid\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Starting......: ".date("H:i:s")." UCARP Start task already running PID: $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -892,7 +892,7 @@ function build(){
 	$oom_kill_allocating_task=$sock->GET_INFO("oom_kill_allocating_task");
 	if(!is_numeric($oom_kill_allocating_task)){$oom_kill_allocating_task=1;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$sysctl=$unix->find_program("sysctl");
 	$ifconfig=$unix->find_program("ifconfig");
 	$GLOBALS["ipbin"]=$unix->find_program("ip");
@@ -900,9 +900,9 @@ function build(){
 	
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		event("Building networks already executed PID: $oldpid",__FUNCTION__,__LINE__);
-		echo "Starting......: ".date("H:i:s")." Building networks already executed PID: $oldpid\n";
+	if($unix->process_exists($pid,basename(__FILE__))){
+		event("Building networks already executed PID: $pid",__FUNCTION__,__LINE__);
+		echo "Starting......: ".date("H:i:s")." Building networks already executed PID: $pid\n";
 		die();
 	}	
 	$fqdn=@file_get_contents("/etc/artica-postfix/FULL_HOSTNAME");
@@ -1865,22 +1865,13 @@ function routes_main(){
 		
 		$CDIR=trim($NetBuilder->GetCDIRNetwork($ligne["IPADDR"],$ligne["NETMASK"]));
 		$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] CDIR:$CDIR GATEWAY = {$ligne["GATEWAY"]} add in table (default route {$ligne["defaultroute"]})";
-		//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
-		//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
 		
 		if($ligne["defaultroute"]==0){
 			
 			if(!isset($GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]])){
 				
-				if($SourceBasedRouting==0){
-					$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." Gateway: {$ligne["GATEWAY"]} Standard routing";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev $eth";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) .$metric_text;
-				}
-				
-				if($SourceBasedRouting==1){
-					routes_source_add($NetBuilder->NicToOther($eth),$IPADDR,$ligne["GATEWAY"],$CDIR,__LINE__);
-				}	
+				if($SourceBasedRouting==0){ routes_default_add($NetBuilder->NicToOther($eth),$IPADDR,$ligne["GATEWAY"],$CDIR,$metric_text,__LINE__); }
+				if($SourceBasedRouting==1){ routes_source_add($NetBuilder->NicToOther($eth),$IPADDR,$ligne["GATEWAY"],$CDIR,__LINE__); }	
 				$GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]]=true;
 				
 			}
@@ -1916,10 +1907,7 @@ function routes_main(){
 			if(!isset($GLOBALS["GATEWAYADDED"][$eth][$ligne["GATEWAY"]])){
 				$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $CDIR Gateway:{$ligne["GATEWAY"]} SourceBasedRouting:$SourceBasedRouting";
 				if($SourceBasedRouting==0){
-					$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." gw {$ligne["GATEWAY"]}";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $CDIR gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev $eth";
-					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+					routes_default_add($NetBuilder->NicToOther($eth),$IPADDR,$ligne["GATEWAY"],$CDIR,$metric_text,__LINE__);
 				}
 				
 				if($SourceBasedRouting==1){
@@ -1997,6 +1985,35 @@ function routes_main(){
 		while (list ($index, $line) = each ($endcmdsline) ){ $GLOBALS["SCRIPTS_ROUTES"][]=$line; }
 	}
 	
+}
+
+function routes_default_add($eth,$ipsrc,$gateway,$network,$metric_text,$calledByLine){
+	$unix=new unix();
+	if(!isset($GLOBALS["moprobebin"])){$GLOBALS["moprobebin"]=$unix->find_program("modprobe");}
+	if(!isset($GLOBALS["vconfigbin"])){$GLOBALS["vconfigbin"]=$unix->find_program("vconfig");}
+	if(!isset($GLOBALS["ifconfig"])){$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");}
+	if(!isset($GLOBALS["ipbin"])){$GLOBALS["ipbin"]=$unix->find_program("ip");}
+	if(!isset($GLOBALS["echobin"])){$GLOBALS["echobin"]=$unix->find_program("echo");}
+	if(!isset($GLOBALS["sysctl"])){$GLOBALS["sysctl"]=$unix->find_program("sysctl");}
+	if(!isset($GLOBALS["routebin"])){$GLOBALS["routebin"]=$unix->find_program("route");}
+
+
+	if($gateway=="0.0.0.0"){$gateway=null;}
+	
+	$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." Gateway: $gateway Standard routing - called by $calledByLine";
+	
+	if($network<>null){
+		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $network gw $gateway dev $eth $metric_text";
+	}
+	
+	if($gateway==null){return;}
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host $gateway dev $eth $metric_text";
+	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw $gateway dev $eth $metric_text";
+	
+	
+	
+	
+
 }
 
 function routes_source_add($eth,$ipsrc,$gateway,$network,$calledByLine){

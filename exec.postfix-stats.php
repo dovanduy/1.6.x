@@ -29,10 +29,10 @@ function STATS_BuildDayTables(){
 	$unix=new unix();
 	$GLOBALS["DAYSTATS"]=0;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("Already PID $oldpid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("Already PID $pid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 		return;
 	}
 	$GLOBALS["Q"]=new mysql_postfix_builder();
@@ -52,10 +52,10 @@ function STATS_BuildMonthTables(){
 	$unix=new unix();
 	$GLOBALS["DAYSTATS"]=0;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("Already PID $oldpid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("Already PID $pid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 		return;
 	}
 	$GLOBALS["Q"]=new mysql_postfix_builder();

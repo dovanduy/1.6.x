@@ -21,8 +21,8 @@ function start(){
 	
 	
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){ return;}
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){ return;}
 	@file_put_contents($pidFile, getmypid());
 	
 	

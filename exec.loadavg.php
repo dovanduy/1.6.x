@@ -34,15 +34,15 @@ function start(){
 		}
 	}
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["VERBOSE"]){echo "$oldpid already executed since {$timepid}Mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["VERBOSE"]){echo "$pid already executed since {$timepid}Mn\n";}
 		if($timepid<15){return;}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $oldpid");
+		unix_system_kill_force($pid);
 	}
 	@file_put_contents($pidfile, getmypid());
 	if(system_is_overloaded()){

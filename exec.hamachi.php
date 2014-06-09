@@ -23,14 +23,14 @@ if($argv[1]=="--initd"){buildinit();die();}
 
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: ".date("H:i:s")." hamachi already executed PID: $oldpid since {$time}Mn\n";
-		writelogs("hamachi already executed PID: $oldpid","MAIN",__FUNCTION__,__FILE__,__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		echo "Starting......: ".date("H:i:s")." hamachi already executed PID: $pid since {$time}Mn\n";
+		writelogs("hamachi already executed PID: $pid","MAIN",__FUNCTION__,__FILE__,__LINE__);
 		if(!$GLOBALS["FORCE"]){die();}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $oldpid");
+		unix_system_kill_force($pid);
 	}
 	@file_put_contents($pidfile, getmypid());
 	main();

@@ -151,12 +151,12 @@ function freeradius_pid(){
 	
 	$pidfile="/var/run/freeradius/freeradius.pid";
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if(!$unix->process_exists($oldpid)){
+	$pid=$unix->get_pid_from_file($pidfile);
+	if(!$unix->process_exists($pid)){
 		$freeradius=$unix->find_program("freeradius");
-		$oldpid=$unix->PIDOF_PATTERN($freeradius);
+		$pid=$unix->PIDOF_PATTERN($freeradius);
 	}
-	return $oldpid;
+	return $pid;
 }
 
 
@@ -1389,7 +1389,7 @@ function stop(){
 	
 	$pidtime=$unix->PROCCESS_TIME_MIN($pid);
 	echo "Stopping FreeRadius.............: PID $pid since {$pidtime}mn\n";
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	unix_system_kill($pid);
 	
 	for($i=1;$i<11;$i++){
 		echo "Stopping FreeRadius.............: waiting PID: $pid $i/10\n";

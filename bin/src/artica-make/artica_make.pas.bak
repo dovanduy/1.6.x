@@ -1815,7 +1815,7 @@ begin
          kavsamba:=tsetup_kavsamba.Create;
          kavsamba.xinstall();
 
-         Flt(0);
+         halt(0);
    end;
 
   if ParamStr(1)='APP_C_ICAP' then begin

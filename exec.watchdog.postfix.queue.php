@@ -21,10 +21,10 @@ if($DisableMessaging==1){die();}
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 
 if(!$users->POSTFIX_INSTALLED){die();}
-if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::Already executed PID: $oldpid.. aborting the process\n";}die();}
+if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::Already executed PID: $pid.. aborting the process\n";}die();}
 if(system_is_overloaded()){die();}
 $EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
 watchdog();

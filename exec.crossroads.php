@@ -193,7 +193,8 @@ function multiples_stop(){
 		
 		if($GLOBALS["CLASS_UNIX"]->process_exists($re[1])){
 			echo "Stopping Crossroads Daemon...: multiple instance PID {$re[1]}\n";
-			shell_exec("$kill {$re[1]} >/dev/null 2>&1");
+			unix_system_kill($re[1]);
+			
 			for($i=0;$i<5;$i++){
 				sleep(1);
 				if(!$GLOBALS["CLASS_UNIX"]->process_exists($re[1])){

@@ -312,7 +312,7 @@ buttons : [
 });
 
 function NewComputer$t(){
-	YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&t=$t','New computer');
+	YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&t=$t','New computer');
 }
 
 </script>
@@ -569,7 +569,7 @@ function index(){
 
 	
 	
-	$add_computer_js="javascript:YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 
 	
 	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");
@@ -1002,7 +1002,7 @@ function menus_right(){
 	$users=new usersMenus();
 	$findcomputer=Paragraphe("64-samba-find.png","{scan_your_network}",'{scan_your_network_text}',"javascript:Loadjs('computer-browse.php?scan-nets-js=yes')","scan_your_network",210);
 	$networs=Paragraphe("64-win-nic-loupe.png","{edit_networks}",'{edit_networks_text}',"javascript:ViewNetwork()","edit_networks",210);
-	$add_computer_js="javascript:YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
+	$add_computer_js="javascript:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');";
 	$add_computer=Paragraphe("64-add-computer.png","{ADD_COMPUTER}","{ADD_COMPUTER_TEXT}",$add_computer_js);
 	
 	$EnableScanComputersNet=$sock->GET_INFO("EnableScanComputersNet");

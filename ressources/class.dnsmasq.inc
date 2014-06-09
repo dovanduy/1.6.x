@@ -331,7 +331,7 @@ function Parsemxhost(){
 				if(is_numeric($pid)){
 					echo "Starting......: ".date("H:i:s")." dnsmasq reloading PID:`$pid`\n";
 					$kill=$unix->find_program("kill");
-					shell_exec("$kill -HUP $pid");
+					unix_system_HUP($pid);
 				}
 			}
 			

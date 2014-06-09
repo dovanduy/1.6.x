@@ -612,8 +612,8 @@ function section_content_filtering(){
 	$sa_rules_disabled=Paragraphe("script-64-grey.png","{SPAMASSASSIN_RULES}","{SPAMASSASSIN_RULES_TEXT}","",null,210,null,0,true);
 	
 	
-	$spamassassin=Paragraphe('folder-64-spamassassin.png','{APP_SPAMASSASSIN}','{SPAMASSASSIN_TEXT}',"javascript:Loadjs('spamassassin.index.php')",null,210,null,0,true);
-	$spamassassin_disabled=Paragraphe('folder-64-spamassassin-64.png','{APP_SPAMASSASSIN}','{SPAMASSASSIN_TEXT}',"javascript:blur()",null,210,null,0,true);
+	$spamassassin=Paragraphe('64-spam.png','{APP_SPAMASSASSIN}','{SPAMASSASSIN_TEXT}',"javascript:Loadjs('spamassassin.index.php')",null,210,null,0,true);
+	$spamassassin_disabled=Paragraphe('64-spam-grey.png','{APP_SPAMASSASSIN}','{SPAMASSASSIN_TEXT}',"javascript:blur()",null,210,null,0,true);
 	
 	
 	$kas3=Paragraphe('folder-caterpillar.png','{APP_KAS3}','{KAS3_TEXT}','javascript:Loadjs("kas.group.rules.php?ajax=yes")',null,210,null,0,true);

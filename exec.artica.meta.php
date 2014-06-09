@@ -297,14 +297,14 @@ function SendStatus(){
 	}
 	$unix=new unix();
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$ptime=$unix->PROCESS_TTL($oldpid);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$ptime=$unix->PROCESS_TTL($pid);
 		if($ptime>$GLOBALS["MAXTTL"]){
-			events("killing process $oldpid ttl:$ptime minutes",__FUNCTION__,__FILE__,__LINE__);
-			shell_exec("/bin/kill -9 $oldpid");
+			events("killing process $pid ttl:$ptime minutes",__FUNCTION__,__FILE__,__LINE__);
+			unix_system_kill_force($pid);
 		}else{
-			events("Already executed, process $oldpid",__FUNCTION__,__FILE__,__LINE__);
+			events("Already executed, process $pid",__FUNCTION__,__FILE__,__LINE__);
 			die();
 		}
 	}

@@ -86,7 +86,7 @@ function communicate(){
 			WriteMyLogs("Warning: Already running pid $pid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}else{
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}
 	}	
 	$GLOBALS["MYPID"]=getmypid();

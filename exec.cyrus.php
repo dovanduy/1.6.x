@@ -317,9 +317,9 @@ function DirectorySize(){
 	$unix=new unix();
 	$pid_path="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__;
 	$timePath="/etc/artica-postfix/croned.1/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pid_path);
+	$pid=@file_get_contents($pid_path);
 	if(!$GLOBALS["FORCE"]){
-		if($unix->process_exists($oldpid)){die();}
+		if($unix->process_exists($pid)){die();}
 		$childpid=posix_getpid();
 		@file_put_contents($pid_path,$childpid);
 	

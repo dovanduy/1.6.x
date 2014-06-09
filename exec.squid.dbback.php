@@ -23,9 +23,9 @@ function start(){
 	if($GLOBALS["VERBOSE"]){echo "Starting....\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		ufdbguard_admin_events("already $oldpid pid exists in memory, aborting", __FUNCTION__, __FILE__, __LINE__, "backup");
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		ufdbguard_admin_events("already $pid pid exists in memory, aborting", __FUNCTION__, __FILE__, __LINE__, "backup");
 		return;
 	}
 	

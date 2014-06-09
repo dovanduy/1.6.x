@@ -1935,6 +1935,7 @@ function quicklinks_postfix_secu(){
 				"AnimateDiv('BodyContent');LoadAjax('BodyContent','postfix.index.php?popup-auth=yes&hostname=master&ou=master')");
 				
 		
+		
 		$tr[]=paragrapheWin("filtering-64-white.png","{global_smtp_rules}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','postfix.headers-body-checks.php?tabs=yes&ou=master&hostname=master')");
 	

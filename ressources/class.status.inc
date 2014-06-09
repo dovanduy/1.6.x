@@ -1764,7 +1764,19 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 		";
 	}
 	
-	if($asZarafa=true){
+
+	
+		
+
+	
+		
+	
+	
+	
+	$asZarafa=$usersmenus->ZARAFA_INSTALLED;
+	
+	
+	if($asZarafa){
 		$multis=array();
 		$ini=new Bs_IniHandler();
 		if(!$GLOBALS["AS_ROOT"]){
@@ -1780,6 +1792,12 @@ function Postfix_satus($asZarafa=false,$nochache=false){
 		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_GATEWAY",$ini,null,1,"220px",true,1,"$('#BodyContent').load('zarafa.index.php?popup=yes&font-size=16&tabwith=920');");
 		$multis[]=DAEMON_STATUS_LINE("APP_ZARAFA_WEB",$ini,null,1,"220px",true,1,"$('#BodyContent').load('zarafa.index.php?popup=yes&font-size=16&tabwith=920');");
 	}
+	
+	// iredmail
+	$ini=new Bs_IniHandler();
+	$ini->loadString(base64_decode($sock->getFrameWork("postfix.php?iredmail-status=yes")));
+	$multis[]=DAEMON_STATUS_LINE("APP_IREDMAIL",null,1,"220px",true,1,
+			"blur()");
 	
 	if($MailArchiverEnabled==1){
 		$ini=new Bs_IniHandler();

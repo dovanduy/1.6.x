@@ -17,6 +17,7 @@ if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents
 if($GLOBALS["VERBOSE"]){echo "TimeFile: $pidTime\n";}
 if($argv[1]=="--admin-events"){clean_admin_events();exit;}
 if($argv[1]=="--nmap"){clean_nmap_processes();exit;}
+if($argv[1]=="--mysql"){CleanMySQL();exit;}
 
 
 
@@ -39,8 +40,44 @@ if($time<120){die();}
 	CleanArticaUpdateLogs();
 	ParseMysqlEventsQueue();
 	clean_nmap_processes();
+	CleanMySQL();
 	die();
 	
+	
+function CleanMySQL(){
+	$sock=new sockets();
+	$unix=new unix();
+	$dirs=$unix->dirdir("/var/lib/mysql");
+	while (list ($directory, $ligne) = each ($dirs) ){
+		CleanMySQLBAK($directory);
+		
+	}
+	
+	
+	$WORKDIR=$sock->GET_INFO("SquidStatsDatabasePath");
+	if($WORKDIR==null){$WORKDIR="/opt/squidsql";}	
+	if(is_dir($WORKDIR)){
+		$dirs=$unix->dirdir("$WORKDIR/data");
+		while (list ($directory, $ligne) = each ($dirs) ){
+			CleanMySQLBAK($directory);
+	
+		}
+	}
+	
+	
+}
+
+function CleanMySQLBAK($directory){
+
+	$unix=new unix();
+	foreach (glob("$directory/*.BAK") as $filename) {
+		$time=$unix->file_time_min($filename);
+		if($time<380){continue;}
+		@unlink($filename);
+	}
+
+
+}
 	
 	
 function CleanTempDirs(){
@@ -63,6 +100,8 @@ function CleanTempDirs(){
 		$targetFile="/$filename";
 		if(is_numeric($filename)){@unlink($targetFile);}
 	}
+	
+	if(is_file("/usr/share/artica-postfix/ressources/exec.syslog-engine.php")){ @unlink("/usr/share/artica-postfix/ressources/exec.syslog-engine.php"); }
 	
 	CleanTimedFiles($unix->TEMP_DIR(),380);
 	CleanTimedFiles("/tmp",680);
@@ -89,6 +128,7 @@ function CleanTimedFiles($directory,$maxtime){
 function clean_nmap_processes(){
 	$unix=new unix();
 	$nmap=$unix->find_program("nmap");
+	if(!is_file($nmap)){return;}
 	$pids=$unix->PIDOF_PATTERN_ALL($nmap);
 	
 	while (list ($pid, $ar) = each ($pids) ){

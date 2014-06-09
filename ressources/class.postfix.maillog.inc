@@ -79,9 +79,10 @@ class postfix_maillog_buffer{
 	if(preg_match("#connect to Milter service unix:.*?maildump\/maildump\.socket: No such file or directory#",$buffer,$re )){
 			$timefile="/etc/artica-postfix/croned.1/NoSuchFile-".md5("maildump.socket");
 			$TimeMin=$this->file_time_min($timefile);
-			$this->events("maildump.socket such file",__LINE__);
+			$this->events("maildump.socket such file -> START IT",__LINE__);
 			if($TimeMin>5){
-				$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix restart mailarchiver >/dev/null 2>&1 &";
+				shell_exec("{$GLOBALS["PHP5_BIN"]} /usr/share/artica-postfix/exec.initslapd.php --mailarchive-perl");
+				$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d//etc/init.d/mailarchive-perl restart >/dev/null 2>&1 &";
 				shell_exec($cmd);
 				@unlink($timefile);
 				@file_put_contents($timefile,time());

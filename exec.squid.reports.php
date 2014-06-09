@@ -30,12 +30,12 @@ function build_allreports(){
 	$t=time();
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 		
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		ufdbguard_admin_events("Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"reports");
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		ufdbguard_admin_events("Already executed pid $pid",__FUNCTION__,__FILE__,__LINE__,"reports");
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 		return;
 	}
 	$t=time();
@@ -99,12 +99,12 @@ function build_report($ID,$nopid=false){
 	
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($oldpid<100){$oldpid=null;}
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			ufdbguard_admin_events("Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"reports");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			ufdbguard_admin_events("Already executed pid $pid",__FUNCTION__,__FILE__,__LINE__,"reports");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 			return;
 		}
 		

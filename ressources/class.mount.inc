@@ -27,6 +27,37 @@ class mount{
 		//$this->events("ismounted() failed found \"$mount_point\"");	
 	}
 	
+	public function ftp_mount($mountpoint,$server,$username,$password,$path=null){
+		if($this->ismounted($mountpoint)){
+			$this->events("ftp_mount() already mounted");
+			return true;
+		}
+		
+		$unix=new unix();
+		$curlftpfs=$unix->find_program("curlftpfs");
+		if(!is_file("$curlftpfs")){$this->events("ftp_mount() curlftpfs no such binary");return false;}
+		$password=$unix->shellEscapeChars($password);
+		if($path<>null){
+			$server="$server/$path";
+			$server=str_replace("//", "/", $server);
+		}
+		exec("$curlftpfs $username:$password@$server $mountpoint 2>&1",$results);
+		while (list ($index, $line) = each ($results) ){
+			if(function_exists("writelogs")){writelogs("$line",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
+			$this->events("LOG:\"$line\"");
+		}
+		
+		if($this->ismounted($mountpoint)){
+			$this->events("ftp_mount() mounted");
+			return true;
+		}
+		
+		return false;
+		
+		
+	}
+	
+	
 	public function ssh_mount($mountpoint,$server,$username,$password,$path){
 		if($this->ismounted($mountpoint)){
 			$this->events("ssh_mount() already mounted");

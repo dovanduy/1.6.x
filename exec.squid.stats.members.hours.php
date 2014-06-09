@@ -41,10 +41,10 @@ function members_hours_perfom_bytime($xtime){
 	
 
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5("$tabledata$nexttable").".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		events_tail("Processing $tabledata $nexttable failed, already pid $oldpid since {$timepid}mn exists...");
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		events_tail("Processing $tabledata $nexttable failed, already pid $pid since {$timepid}mn exists...");
 		die();
 	}
 	
@@ -83,11 +83,11 @@ function members_hours_perfom($tabledata,$nexttable,$nopid=false,$truncate=false
 	$GLOBALS["CLASS_UNIX"]=new unix();
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5("$tabledata$nexttable").".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid)){
-			$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid)){
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
 			
-				events_tail(__LINE__.":Processing $tabledata $nexttable failed, already pid $oldpid since {$timepid}mn exists...");
+				events_tail(__LINE__.":Processing $tabledata $nexttable failed, already pid $pid since {$timepid}mn exists...");
 				die();
 			
 		}

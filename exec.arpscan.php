@@ -37,12 +37,12 @@ if($EnableArpDaemon==0){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." EnableArpDae
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $unix=new unix();
 $me=basename(__FILE__);
-$oldpid=$unix->get_pid_from_file($pidfile);
+$pid=$unix->get_pid_from_file($pidfile);
 
-if($unix->process_exists($oldpid,$me)){
-	if($GLOBALS["VERBOSE"]){echo " $oldpid --> Already executed.. aborting the process\n";}
-	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	system_admin_events("Already executed pid $oldpid since {$time}Mn.. aborting the process",__FUNCTION__,__FILE__,__LINE__,"system");
+if($unix->process_exists($pid,$me)){
+	if($GLOBALS["VERBOSE"]){echo " $pid --> Already executed.. aborting the process\n";}
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	system_admin_events("Already executed pid $pid since {$time}Mn.. aborting the process",__FUNCTION__,__FILE__,__LINE__,"system");
 	die();
 }
 @file_put_contents($pidfile, getmypid());
@@ -152,10 +152,10 @@ function scanarp_mysql(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$unix=new unix();
 	$me=basename(__FILE__);
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,$me)){
-		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $oldpid aborting the process\n";}
-		system_admin_events("--> Already executed.. $oldpid aborting the process", __FUNCTION__, __FILE__, __LINE__, "network");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,$me)){
+		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $pid aborting the process\n";}
+		system_admin_events("--> Already executed.. $pid aborting the process", __FUNCTION__, __FILE__, __LINE__, "network");
 		die();
 	}
 	
@@ -165,9 +165,9 @@ function scanarp_mysql(){
 	if(!is_numeric($EnableArpDaemon)){$EnableArpDaemon=1;}
 	
 	$articastatus_pidfile="/etc/artica-postfix/exec.status.php.pid";
-	$oldpid=$unix->get_pid_from_file($articastatus_pidfile);
-	if(!$unix->process_exists($oldpid)){
-		syslog_status("artica status doesn't run, start it, old pid was: $oldpid");
+	$pid=$unix->get_pid_from_file($articastatus_pidfile);
+	if(!$unix->process_exists($pid)){
+		syslog_status("artica status doesn't run, start it, old pid was: $pid");
 		shell_exec("/etc/init.d/artica-status start");
 	}
 	

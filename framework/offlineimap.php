@@ -39,11 +39,11 @@ function run_backup_exec(){
 		writelogs_framework("$pidfile -> no such file",__FUNCTION__,__FILE__,__LINE__);	
 		return;
 	}
-	$oldpid=@file_get_contents($pidfile);	
-	writelogs_framework("$pidfile -> $oldpid",__FUNCTION__,__FILE__,__LINE__);	
+	$pid=@file_get_contents($pidfile);	
+	writelogs_framework("$pidfile -> $pid",__FUNCTION__,__FILE__,__LINE__);	
 	
-	if($unix->process_exists($oldpid)){
-		$timemin=$unix->PROCCESS_TIME_MIN($oldpid);
+	if($unix->process_exists($pid)){
+		$timemin=$unix->PROCCESS_TIME_MIN($pid);
 		echo "<articadatascgi>$timemin</articadatascgi>";
 		return;
 	}	

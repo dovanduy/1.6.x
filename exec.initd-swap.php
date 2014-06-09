@@ -72,8 +72,8 @@ function start(){
 	$unix=new unix();
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		echo "SWAP: [INFO] Already running...\n";
 		die();
 	}

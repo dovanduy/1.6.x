@@ -26,7 +26,8 @@ if($unix->process_exists($pid,basename(__FILE__))){
 		$status[]=@file_get_contents("/proc/$pid/cmdline");
 		$unix->send_email_events("cron.notif has been killed (ghost process)", "$pid: running since $time minutes\n". @implode("\n", $status), "system");
 		$kill=$unix->find_program("kill");
-		shell_exec("/bin/kill -9 $pid");
+		unix_system_kill_force($pid);
+		
 	}else{
 		writelogs("Already instance executed $pid since $time minutes","MAIN",__FILE__,__LINE__);
 		die();

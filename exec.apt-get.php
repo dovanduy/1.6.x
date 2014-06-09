@@ -40,11 +40,11 @@ if(!is_file($_GET["APT-GET"])){
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5($argv[1]).".pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid,basename(__FILE__))){
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid,basename(__FILE__))){
 	$timefile=$unix->file_time_min($pidfile);
 	//$text,$function,$file,$line,$category,$taskid=0
-	system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__,"update");
+	system_admin_events(basename(__FILE__).": Already executed pid $pid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__,"update");
 	die();
 }
 @unlink($pidfile);
@@ -247,11 +247,11 @@ function UPGRADE_FROM_INTERFACE(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		$timefile=$unix->file_time_min($pidfile);
 		//$text,$function,$file,$line,$category,$taskid=0
-		system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process",__FUNCTION__,__FILE__,__LINE__,"update");
+		system_admin_events(basename(__FILE__).": Already executed pid $pid since $timefile minutes.. aborting the process",__FUNCTION__,__FILE__,__LINE__,"update");
 		die();
 	}
 	
@@ -899,11 +899,11 @@ function php_fpm($aspid=false){
 		if($timexec<240){return;}
 		@unlink($pidTime);
 		@file_put_contents($pidTime, time());
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($time<30){return;}
-			shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
@@ -967,11 +967,11 @@ function nginx($aspid=false){
 		if($timexec<240){return;}
 		@unlink($pidTime);
 		@file_put_contents($pidTime, time());
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($time<30){return;}
-			shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 		}
 		@file_put_contents($pidfile, getmypid());
 	}

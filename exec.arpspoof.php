@@ -29,10 +29,10 @@ function restart(){
 
 	$me=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,$me)){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "ArpSpoofing.........: [RESTART]: Ettercap, Already start instance executed PID $oldpid since {$time}Mn...\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,$me)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		echo "ArpSpoofing.........: [RESTART]: Ettercap, Already start instance executed PID $pid since {$time}Mn...\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -100,10 +100,10 @@ function stop($nopid=false){
 	if(!$nopid){
 		$me=basename(__FILE__);
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,$me)){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "ArpSpoofing.........: [START]: Ettercap, Already start instance executed PID $oldpid since {$time}Mn...\n";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,$me)){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			echo "ArpSpoofing.........: [START]: Ettercap, Already start instance executed PID $pid since {$time}Mn...\n";
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -120,8 +120,8 @@ function stop($nopid=false){
 	
 	while (list ($pid, $ruleid) = each ($pids) ){
 		echo "ArpSpoofing.........: [STOP]: stopping smoothly pid $pid for rule $ruleid\n";
-		shell_exec("$kill -HUP $pid >/dev/null");
-		shell_exec("$kill $pid >/dev/null");
+		unix_system_HUP($pid);
+		unix_system_kill($pid);
 		
 	}
 	
@@ -145,7 +145,7 @@ function stop($nopid=false){
 		reset($pids);
 		while (list ($pid, $ruleid) = each ($pids) ){
 			echo "ArpSpoofing.........: [STOP]: pid $pid for rule $ruleid force stopping...\n";
-			shell_exec("$kill -9 $pid >/dev/null");
+			unix_system_kill_force($pid);
 		}
 		
 	}
@@ -200,10 +200,10 @@ function start($nopid=false){
 	if(!$nopid){
 		$me=basename(__FILE__);
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,$me)){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "ArpSpoofing.........: [START]: Ettercap, Already start instance executed PID $oldpid since {$time}Mn...\n";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,$me)){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			echo "ArpSpoofing.........: [START]: Ettercap, Already start instance executed PID $pid since {$time}Mn...\n";
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());

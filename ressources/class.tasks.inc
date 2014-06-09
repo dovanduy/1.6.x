@@ -160,6 +160,7 @@ class system_tasks{
 			$this->tasks_array[73]="{dashboard_stats}";
 			$this->tasks_array[74]="{mysql_repair}";
 			$this->tasks_array[75]="{backup_artica_settings}";
+			$this->tasks_array[76]="{blackwhite_automation}";
 			
 			
 			
@@ -240,6 +241,7 @@ class system_tasks{
 			$this->tasks_explain_array[73]="{dashboard_stats_explain}";
 			$this->tasks_explain_array[74]="{mysql_repair_task_explain}";
 			$this->tasks_explain_array[75]="{backup_artica_settings_explain}";
+			$this->tasks_explain_array[76]="{postfix_automation_about}";
 			
 			
 
@@ -322,6 +324,7 @@ class system_tasks{
 			$this->tasks_processes[73]="exec.loadavg.php --dns";
 			$this->tasks_processes[74]="exec.mysql.optimize.php --repair";
 			$this->tasks_processes[75]="exec.backup.artica.php";
+			$this->tasks_processes[76]="exec.imap.blacklists.php";
 			
 			
 			$this->DisableTasks();

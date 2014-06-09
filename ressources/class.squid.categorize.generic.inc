@@ -2234,7 +2234,7 @@ private function socialnet($www){
 		if($this->ParseArray($array, $www)){return "filehosting";}
 		
 		
-		$array=array("adsl.proxad.net","netcampus.ca","tvalmansa.es","sdtnet.de","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
+		$array=array("adsl.proxad.net","netcampus.ca","tvalmansa.es","sdtnet.de","dtdns.net","negeriau.net","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
 		"barrel-of-knowledge.info","barrell-of-knowledge.info","better-than.tv","blogdns.com","izhnt.ru","qala.com.sg","online.dn.ua","infra.lync.com","sodetel.net.lb","internet-x.hu","keysurf.net","1scom.net","ondsl.gr","navoi.net.gs.uz","dsl*fidnet.com",
 		"blogdns.net","blogdns.org","blogsite.org","boldlygoingnowhere.org","broke-it.net","optonline.net","qwerty.ru","nationalcablenetworks.ru","chitaonline.ru",
 		"buyshouses.net","cechire.com","dnsalias.com","dnsalias.net","dnsalias.org","dnsdojo.com","kthopen.kth.se","mc.videotron.ca","flynet.by","unitymediagroup.de",
@@ -2601,6 +2601,10 @@ private function socialnet($www){
 		if(preg_match("#^hotel#", $www)){return "recreation/travel";}
 		if(preg_match("#^vacations#", $www)){return "recreation/travel";}
 		if(preg_match("#^auberge-#", $www)){return "recreation/travel";}
+		
+		
+		if(preg_match("#(eau|park|pool|tour).*?thermal#", $www)){return "recreation/travel";}
+		if(preg_match("#thermal.*?(eau|park|pool|tour)#", $www)){return "recreation/travel";}
 		
 		$second="(paris|lisbon|prague|plaza|galapagos|rochelle|dusseldorf|booking|croisiere|madrid|london|londres|dublin|pluma|cacun|castle|excelsior|napoli|roma|rome|miami)";
 		if(preg_match("#hotel.*?$second#", $www)){return "recreation/travel";}
@@ -3107,6 +3111,7 @@ private function socialnet($www){
 		if(preg_match("#europol.*?\.fuckingcunt\.net$#", $www)){return "phishing";}
 		if(preg_match("#outlookmsgp.com#", $www)){return "phishing";}
 
+		if(preg_match("#solar.*thermal#", $www)){return "housing/accessories";}
 		if(preg_match("#(^|\.)kranok\.com$#", $www)){return "housing/accessories";}
 		if(preg_match("#(^|\.)wall-art\.com$#", $www)){return "housing/accessories";}
 		if(preg_match("#(^|\.)home24\.com$#", $www)){return "housing/accessories";}

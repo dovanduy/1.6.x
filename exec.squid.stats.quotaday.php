@@ -34,11 +34,11 @@ function start($xtime=0){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if($GLOBALS["VERBOSE"]){echo "Timefile = $timefile\n";}
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<60){return;}
 		$mypid=getmypid();
@@ -76,8 +76,8 @@ function quotatemp($aspid=false){
 	}
 	
 	if(!$aspid){
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<59){return;}
 		$mypid=getmypid();
@@ -230,11 +230,11 @@ function quota_month(){
 		echo "timefile: $timefile\n";
 	}
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<1440){return;}
 		$mypid=getmypid();

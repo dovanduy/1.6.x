@@ -55,15 +55,15 @@ function macscan(){
 	
 	
 	if($GLOBALS["VERBOSE"]){echo "Time File: $timefile\n";}
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if($GLOBALS["FORCE"]){ToSyslog("macscan(): Executed in --force mode");}
 	
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
-			ToSyslog("macscan(): already executed pid $oldpid");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+			ToSyslog("macscan(): already executed pid $pid");
 			return;
 		}
 		$timeexec=$unix->file_time_min($timefile);
@@ -126,11 +126,11 @@ function repair_hours(){
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<60){return;}
 		$mypid=getmypid();
@@ -222,11 +222,11 @@ function tables_hours(){
 	
 	if($GLOBALS["VERBOSE"]){echo "timefile=$timefile\n";}
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<60){
 			if($GLOBALS["VERBOSE"]){echo "Only each 60mn - current {$timeexec}mn, use --force to bypass\n";}

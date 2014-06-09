@@ -10,7 +10,7 @@ if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $pid=getmypid();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 @mkdir("/etc/artica-postfix/pids",0755,true);
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 $unix=new unix();
 $GLOBALS["WEBFISSUE"]=0;
 $GLOBALS["WEBPROCISSUE"]=0;
@@ -29,7 +29,7 @@ $GLOBALS["IFCONFIG"]=$unix->find_program("ifconfig");
 $GLOBALS["SQUIDBIN"]=$unix->LOCATE_SQUID_BIN();
 $GLOBALS["CLASS_UNIX"]=$unix;
 $GLOBALS["CLASS_SOCKETS"]=new sockets();
-if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already running $oldpid, aborting","MAIN",__FILE__,__LINE__);events("Already running $oldpid, aborting ");die();}
+if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already running $pid, aborting","MAIN",__FILE__,__LINE__);events("Already running $pid, aborting ");die();}
 $GLOBALS["HAARP_PORT"]=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("HaarpPort");
 $GLOBALS["HAARP_ENABLE"]=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableHaarp");
 $GLOBALS["sslcrtd_program"] = $unix->squid_locate_generic_bin("ssl_crtd");
@@ -117,7 +117,9 @@ function Parseline($buffer){
 	
 //*******************************************************************************************************************
 if(preg_match("#Squid Cache.*?:\s+Exiting normally#",$buffer,$re)){
-	squid_admin_mysql(2,"Proxy service was normally stopped","Proxy claim\n$buffer\n",__FILE__,__LINE__);
+	if(TimeStampTTL(__LINE__,1)){
+		squid_admin_mysql(2,"Proxy service was normally stopped","Proxy claim\n$buffer\n",__FILE__,__LINE__);
+	}
 	return;
 }
 //*******************************************************************************************************************	

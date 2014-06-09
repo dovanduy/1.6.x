@@ -30,13 +30,14 @@ function start(){
 	$sock=new sockets();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timePid=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: ".date("H:i:s")." cache manager, ". __FUNCTION__."() already running PID:$oldpid since {$timePid}Mn\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		$timePid=$unix->PROCCESS_TIME_MIN($pid);
+		echo "Starting......: ".date("H:i:s")." cache manager, ". __FUNCTION__."() already running PID:$pid since {$timePid}Mn\n";
 		if($timePid<10){RETURN;}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $timePid");
+		unix_system_kill_force($timePid);
+		
 	}
 	@file_put_contents($pidfile,getmypid());
 
@@ -109,9 +110,9 @@ function squidlogs_status($nopid=false){
 	$q=new mysql_squid_builder();
 	
 	if(!$nopid){
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid)){
-			echo "Starting......: ".date("H:i:s")." cache manager, ". __FUNCTION__."() already running PID:$oldpid\n";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){
+			echo "Starting......: ".date("H:i:s")." cache manager, ". __FUNCTION__."() already running PID:$pid\n";
 			return;
 		}
 		@file_put_contents($pidfile,getmypid());

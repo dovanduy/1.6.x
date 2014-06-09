@@ -48,9 +48,9 @@ function Checks($nopid=false){
 	if(!$nopid){
 		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		if($GLOBALS["VERBOSE"]){echo "Time file: $timefile\n";}
-		if($unix->process_exists($oldpid)){echo "Starting......: ".date("H:i:s")." Already process exists pid $oldpid\n";return;}
+		if($unix->process_exists($pid)){echo "Starting......: ".date("H:i:s")." Already process exists pid $pid\n";return;}
 		$time=$unix->file_time_min($timefile);
 		if($time<15){return;}
 		@unlink($timefile);
@@ -155,9 +155,9 @@ function Checks($nopid=false){
 
 function build(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){echo "Starting......: ".date("H:i:s")." Already process exists pid $oldpid\n";return;}
+	if($unix->process_exists($pid)){echo "Starting......: ".date("H:i:s")." Already process exists pid $pid\n";return;}
 	
 	@file_put_contents($pidfile,getmypid());
 	$php=$unix->LOCATE_PHP5_BIN();

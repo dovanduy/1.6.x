@@ -99,19 +99,19 @@ function start($nopid=false,$forceInnoDbRecover=false){
 	
 	if(!$nopid){
 		$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
-		$oldpid=$unix->get_pid_from_file($PidRestore);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($PidRestore);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 		
 		
-		$oldpid=$unix->get_pid_from_file($pidfile);
+		$pid=$unix->get_pid_from_file($pidfile);
 		$sock=new sockets();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -275,18 +275,18 @@ function stop($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$nopid){
 		$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
-		$oldpid=$unix->get_pid_from_file($PidRestore);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($PidRestore);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	
 		
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	
@@ -330,10 +330,11 @@ function stop($nopid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon [STOP] wait PID: $pid $i/10\n";}
 		if($unix->is_socket("/var/run/mysqld/zarafa-db.sock")){
 			$cmd="$mysqladmin --socket=/var/run/mysqld/zarafa-db.sock --protocol=socket --user=root shutdown >/dev/null 2>&1";
+			shell_exec($cmd);
 		}else{
-			$cmd="$kill $pid >/dev/null 2>&1";
+			unix_system_kill($pid);
 		}
-		shell_exec($cmd);
+		
 		sleep(1);
 	}	
 	
@@ -383,10 +384,10 @@ function changemysqldir($dir){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/zarafadbstart.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
@@ -521,9 +522,9 @@ function databasesize($force=false){
 	
 	if(!$force){
 		$pidfile="/etc/artica-postfix/pids/zarafa-databasesize.pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			return;
 		}
 	
@@ -597,11 +598,11 @@ function remove_database($allprocedure=false){
 
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if($allprocedure){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			build_progress_status(100,"Already task running PID $oldpid");
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			build_progress_status(100,"Already task running PID $pid");
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -664,7 +665,7 @@ function remove_database($allprocedure=false){
 	$pid=XZARAFA_SERVER_PID();
 	if($unix->process_exists($pid)){
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 	}
 	build_progress_status(45,"Restarting Zarafa Server service");
 	WriteToSyslogMail("Action: Restarting Zarafa server...",__FILE__);
@@ -684,18 +685,18 @@ function RestoreFromBackup($backuppath){
 	$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
 	$rm=$unix->find_program("rm");
 	
-	$oldpid=$unix->get_pid_from_file($PidRestore);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($PidRestore);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
-	$oldpid=$unix->PIDOF_PATTERN("exec.zarafa-db.php --restorefrom");
-		if($oldpid<>getmypid()){
-		if($unix->process_exists($oldpid)){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->PIDOF_PATTERN("exec.zarafa-db.php --restorefrom");
+		if($pid<>getmypid()){
+		if($unix->process_exists($pid)){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Restore Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -764,7 +765,7 @@ function RestoreFromBackup($backuppath){
 	$pid=XZARAFA_SERVER_PID();
 	if($unix->process_exists($pid)){
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 	}
 	
 	RestoreFromBackup_progress("Restarting MySQL service (normal)",45);
@@ -1042,10 +1043,10 @@ function zarafa_server2_stop(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/zarafa-server2-stop.pid";
 		
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Task Already running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Task Already running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -1066,7 +1067,7 @@ function zarafa_server2_stop(){
 	$time=$unix->PROCCESS_TIME_MIN($pid);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server (2) instance running since {$time}mn\n";}
 	$kill=$unix->find_program("kill");
-	shell_exec("$kill $pid");
+	unix_system_kill($pid);
 	for($i=1;$i<61;$i++){
 		sleep(1);
 		$pid=ZARAFA_SERVER2_PID();
@@ -1094,10 +1095,10 @@ function zarafa_server2_start(){
 	$ZarafaDBEnable2Instance=$sock->GET_INFO("ZarafaDBEnable2Instance");
 	if(!is_numeric($ZarafaDBEnable2Instance)){$ZarafaDBEnable2Instance=0;}	
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
 		return;
 	}
 

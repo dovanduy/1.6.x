@@ -85,12 +85,12 @@ function start(){
 	
 	$sock->SQUID_DISABLE_STATS_DIE();
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
 	}
@@ -480,8 +480,8 @@ function clients_hours($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	if(!$nopid){
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
 	}
@@ -1016,9 +1016,9 @@ function start_import($aspid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	if(!$aspid){
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 		$mypid=getmypid();

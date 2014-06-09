@@ -37,8 +37,8 @@ if($argv[1]=='--amavis-port'){postfix_is_amavis_port($argv[2]);die();}
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
-if($unix->process_exists($oldpid)){writelogs("Already running pid $oldpid, Aborting");die();}
+$pid=@file_get_contents($pidfile);
+if($unix->process_exists($pid)){writelogs("Already running pid $pid, Aborting");die();}
 $pid=getmypid();
 events("running $pid ");
 file_put_contents($pidfile,$pid);

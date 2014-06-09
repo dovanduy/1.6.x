@@ -80,7 +80,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
@@ -110,7 +110,7 @@ function help$t(){
 
 function NewItem$t(){
 	title='$new_entry';
-	YahooWin5(580,'$page?USER_ALIASES_FORM_ADD={$_GET["userid"]}&t=$t','$title');
+	YahooWin5(750,'$page?USER_ALIASES_FORM_ADD={$_GET["userid"]}&t=$t','$title');
 }
 	
 </script>";
@@ -142,34 +142,34 @@ function items(){
 	
 	$data = array();
 	$data['page'] = $page;
-	$data['total'] = $total;
+	$data['total'] = 0;
 	$data['rows'] = array();
 
 	$user=new user($_GET["userid"]);
 	$aliases = $user->aliases;
-	
+	$c=0;
 	while ( list ( $num, $ligne ) = each ( $aliases ) ) {
 		if($_POST["query"]<>null){if(!preg_match("#{$_POST["query"]}#i", $ligne)){continue;}}
 		$c++;
 		$logs=null;
 		$id=md5($ligne);
 		//Loadjs('$page?delete-aliases=yes&mail=$ligne&uid=$userid')
-		$delete = imgsimple( 'delete-24.png', '{delete aliase}', "ItemDelete$tSource('$ligne','$id')" );
+		$delete = imgsimple( 'delete-32.png', '{delete aliase}', "ItemDelete$tSource('$ligne','$id')" );
 		
-		$test=imgtootltip ( 'test-mail-22.png', null, "Loadjs('postfix.sendtest.mail.php?rcpt=$ligne')" );
+		$test=imgsimple ( 'test-message-32.png', null, "Loadjs('postfix.sendtest.mail.php?rcpt=$ligne')" );
 		if (! $privilege) {$delete = null;}
 		
 	$data['rows'][] = array(
 		'id' => "$id",
 		'cell' => array(	
-			"<code style='font-size:18px;font-weight:bold'>$ligne</code>",
+			"<code style='font-size:22px;font-weight:bold'>$ligne</code>",
 			$test,
 			$delete,
 			)
 		);
 		$data['total'] = $c;
 	}
-	
+	if($c==0){json_error_show("no alias");}
 	
 echo json_encode($data);		
 	
@@ -181,22 +181,23 @@ function USER_ALIASES_FORM_ADD() {
 	$ldap = new clladp ( );
 	$user = new user ( $userid );
 	$domains = $ldap->hash_get_domains_ou ( $user->ou );
-	$user_domains = Field_array_Hash ( $domains, 'user_domain',null,null,null,0,'font-size:14px;padding:3px' );
+	$user_domains = Field_array_Hash ( $domains, 'user_domain',null,null,null,0,'font-size:18px;padding:3px' );
 	
 	$form_catech_all = 
 
 	$form_add = "
 				<div id='$t-div'></div>
-    			<table style='width:99%;' class=form>
+				<div style='width:98%' class=form>
+    			<table style='width:99%;'>
     				<tr>
-    					<td nowrap colspan=2><strong style='font-size:12.5px;'>{add_new_alias}:&laquo;{in_the_same_organization}&raquo;</strong></td>
+    					<td nowrap colspan=2><strong style='font-size:18px;'>{add_new_alias}:&laquo;{in_the_same_organization}&raquo;</strong></td>
     				</tr>
     				<tr>
     					<td valign='top'>
 	    					<table>
 	    						<tr>
-	    							<td>" . Field_text ( 'aliases', null, 'width:150px;font-size:14px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter$t(event)" ) . "</td>
-	    							<td width=1%><strong style='font-size:14px;'>@</strong></td>
+	    							<td>" . Field_text ( 'aliases', null, 'width:150px;font-size:18px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter$t(event)" ) . "</td>
+	    							<td width=1%><strong style='font-size:18px;'>@</strong></td>
 	    							<td width=99% align='left'>$user_domains</td>
 	    						</tr>
 	    					</table>
@@ -206,20 +207,21 @@ function USER_ALIASES_FORM_ADD() {
    						<td nowrap colspan=2>&nbsp;</td>
    				</tr>
    				<tr>
-    				<td nowrap colspan=2><strong style='font-size:12.5px;'>{add_new_alias}:&laquo;{out_of_organization}&raquo;</strong></td>
+    				<td nowrap colspan=2><strong style='font-size:18px;'>
+    					{add_new_alias}:&laquo;{out_of_organization}&raquo;</strong></td>
     			</tr>
     			<tr>
     				<td valign='top'>
 	    					<table>
 	    						<tr>
-	    							<td>" . Field_text ( 'fullaliase', null, 'width:250px;font-size:16px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter$t(event)"  ) . "</td>
+	    							<td>" . Field_text ( 'fullaliase', null, 'width:350px;font-size:22px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter$t(event)"  ) . "</td>
 	    						</tr>
 	    					</table>
     				</td>
     			</tr>    				
     				<tr>
     					<td colspan=2 align='right'><hr>
-    					" . button ( "{add}", "AddNewAliases$t('$userid');" ,"18px") . "
+    					" . button ( "{add}", "AddNewAliases$t('$userid');" ,"26px") . "
     						
     						
     					</td>
@@ -228,7 +230,7 @@ function USER_ALIASES_FORM_ADD() {
     			</table>";
 	
 	$html = "
-<div class=explain>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
+<div class=explain style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
 $form_add
 
 

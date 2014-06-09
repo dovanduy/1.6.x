@@ -43,10 +43,10 @@ function perform(){
 function ExportMailBoxes($ou,$imapserver,$imapport,$zarafa=0){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ou.".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){events("Already executed pid $oldpid",null,__FUNCTION__,__LINE__);return;}
+	if($unix->process_exists($pid,basename(__FILE__))){events("Already executed pid $pid",null,__FUNCTION__,__LINE__);return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	

@@ -21,8 +21,8 @@ include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
 	$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid.time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){system_admin_events("Already process $oldpid exists",__FUNCTION__,__FILE__,__LINE__,"clean");die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already process $pid exists",__FUNCTION__,__FILE__,__LINE__,"clean");die();}
 	if(system_is_overloaded()){system_admin_events("Overloaded system, aborting task",__FUNCTION__,__FILE__,__LINE__,"clean");}
 	
 	
@@ -342,8 +342,8 @@ function repair_corrupted(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5(__FUNCTION__).".pid";
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		return;
 	}
 	

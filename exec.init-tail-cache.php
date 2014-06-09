@@ -43,10 +43,10 @@ function GETPID(){
 function restart(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -82,10 +82,10 @@ function start($aspid=false){
 
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -107,11 +107,11 @@ function start($aspid=false){
 	if($unix->process_exists($pid)){
 		for($i=0;$i<20;$i++){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: killing old process pid $pid\n";}
-			shell_exec("$kill -9 $pid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 			usleep(800);
 			$pid=$unix->PIDOF_PATTERN("$tail -f -n 0 {$GLOBALS["log_path"]}");
 			if(!$unix->process_exists($pid)){break;}
-			shell_exec("$kill -9 $pid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 		}
 		
 	}
@@ -140,10 +140,10 @@ function stop($aspid=false){
 	$kill=$unix->find_program("kill");
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -158,12 +158,12 @@ function stop($aspid=false){
 	
 	
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, stopping pid: $pid\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	unix_system_kill_force($pid);
 	for($i=0;$i<6;$i++){
 		$pid=GETPID();
 		if(!$unix->process_exists($pid)){break;}
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: cache-tail, waiting pid: $pid $i/5\n";}
-		shell_exec("$kill -9 $pid >/dev/null 2>&1");
+		unix_system_kill_force($pid);
 		sleep(1);
 	}	
 	
@@ -172,11 +172,11 @@ function stop($aspid=false){
 	if($unix->process_exists($pid)){
 		for($i=0;$i<20;$i++){
 			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: killing old process pid $pid\n";}
-			shell_exec("$kill -9 $pid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 			usleep(800);
 			$pid=$unix->PIDOF_PATTERN("$tail -f -n 0 {$GLOBALS["log_path"]}");
 			if(!$unix->process_exists($pid)){break;}
-			shell_exec("$kill -9 $pid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 		}
 	
 	}	

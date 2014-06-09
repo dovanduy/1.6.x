@@ -10,9 +10,9 @@ include_once(dirname(__FILE__).'/ressources/class.groups.inc');
 include_once(dirname(__FILE__).'/ressources/class.http.pear.inc');
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-$oldpid=@file_get_contents($pidfile);
-if($unix->process_exists($oldpid)){		
-	$ptime=$unix->PROCESS_TTL($oldpid);
+$pid=@file_get_contents($pidfile);
+if($unix->process_exists($pid)){		
+	$ptime=$unix->PROCESS_TTL($pid);
 	die();
 }
 

@@ -93,8 +93,8 @@ function repair_table_hour($xtime){
 	}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/repair_table_hour_$xtime.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile, getmypid());
 	$squid_stats_tools=new squid_stats_tools();
 	$squid_stats_tools->dansguardian_events_to_table_hour($xtime);

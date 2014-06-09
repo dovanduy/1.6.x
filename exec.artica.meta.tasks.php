@@ -235,24 +235,24 @@ while (list ($taskid, $TasksParams) = each ($array) ){
 function TestCron($pidfile){
 	
 	$unix=new unix();
-	$oldpid=trim(@file_get_contents($pidfile));
-	if($unix->process_exists($oldpid)){
+	$pid=trim(@file_get_contents($pidfile));
+	if($unix->process_exists($pid)){
 		$time=file_time_min($pidfile);
 		if($time>30){
-			events("Already executed pid $oldpid since {$time}Mn (timeout), kill this task",__FUNCTION__,__FILE__,__LINE__);
+			events("Already executed pid $pid since {$time}Mn (timeout), kill this task",__FUNCTION__,__FILE__,__LINE__);
 			$kill=$unix->find_program("kill");
-			$cmd="$kill -9 $oldpid";
+			$cmd="$kill -9 $pid";
 			events("$cmd",__FUNCTION__,__FILE__,__LINE__);
-			exec("$kill -9 $oldpid",$results);
+			exec("$kill -9 $pid",$results);
 			sleep(2);
-			if($unix->process_exists($oldpid)){
-				events("kill $oldpid failed",__FUNCTION__,__FILE__,__LINE__);
+			if($unix->process_exists($pid)){
+				events("kill $pid failed",__FUNCTION__,__FILE__,__LINE__);
 				return false;
 			}else{
 				return true;
 			}
 		}		
-		events("Already executed pid $oldpid since {$time}Mn (pid file:$pidfile), aborting",__FUNCTION__,__FILE__,__LINE__);
+		events("Already executed pid $pid since {$time}Mn (pid file:$pidfile), aborting",__FUNCTION__,__FILE__,__LINE__);
 		return false;
 	}	
 	return true;
@@ -271,8 +271,8 @@ function TASK_UPDATE($task_value){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/". basename(__FILE__).".TASK_UPDATE.$task_value.pid";
-	$oldpid=trim(@file_get_contents($pidfile));
-	if($unix->process_exists($oldpid)){return false;}
+	$pid=trim(@file_get_contents($pidfile));
+	if($unix->process_exists($pid)){return false;}
 	@file_put_contents($pidfile,getmypid());	
 	events("$task_value:: running pid:".getmypid(),__FUNCTION__,__FILE__,__LINE__);
 	$nice=EXEC_NICE();

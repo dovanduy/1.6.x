@@ -15,9 +15,9 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 
 	if(!is_dir("/etc/artica-postfix/pids")){@mkdir("/etc/artica-postfix/pids",666,true);}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){events("Already process exists $oldpid aborting");die();}
+	if($unix->process_exists($pid)){events("Already process exists $pid aborting");die();}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	

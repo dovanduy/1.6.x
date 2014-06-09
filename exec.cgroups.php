@@ -645,7 +645,7 @@ function cgred_stop($nomypidcheck=false){
 		return;
 	}
 
-	shell_exec("$kill $pid");
+	unix_system_kill($pid);
 	for($i=0;$i<6;$i++){
 		$pid=$unix->PIDOF($cgrulesengd);
 		if(!$unix->process_exists($pid)){

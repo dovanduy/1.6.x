@@ -25,8 +25,8 @@ function CheckVersions(){
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
-$oldpid=@file_get_contents($pidfile);
-if($unix->process_exists($oldpid)){writelogs("Already running pid $oldpid","MAIN",__FILE__,__LINE__);die();}
+$pid=@file_get_contents($pidfile);
+if($unix->process_exists($pid)){writelogs("Already running pid $pid","MAIN",__FILE__,__LINE__);die();}
 
 
 
@@ -1366,9 +1366,9 @@ function BuildJgrowl(){
 	@unlink($pidTime);
 	@file_put_contents($pidTime, time());
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		events("Already running pid $oldpid",__FUNCTION__,__FILE__,__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		events("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
 	$size=$unix->file_size("/etc/artica-postfix/smtpnotif.conf");

@@ -127,8 +127,8 @@ function virtual_delete(){
 	
 	$pid=$unix->get_pid_from_file($pidfile);
 	$kill=$unix->find_program("kill");
-	if($unix->process_exists($pid)){shell_exec("$kill $pid");sleep(1);}
-	if($unix->process_exists($pid)){shell_exec("$kill -9 $pid");sleep(1);}
+	if($unix->process_exists($pid)){unix_system_kill($pid);sleep(1);}
+	if($unix->process_exists($pid)){unix_system_kill_force($pid);sleep(1);}
 	
 	$cmd="$ipbin route flush table $virtname";
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);

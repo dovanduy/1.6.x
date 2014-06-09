@@ -82,26 +82,29 @@ function popup(){
 function SaveCyrusPassword(){
 	$ldap=new clladp();
 	$_POST["SaveCyrusPassword"]=url_decode_special_tool(trim($_POST["SaveCyrusPassword"]));
-	if($_POST["SaveCyrusPassword"]==null){return null;}
+	if($_POST["SaveCyrusPassword"]==null){
+		echo "Error: No password defined\n";
+		return;
+	}
 	
 	if(strpos($_POST["SaveCyrusPassword"],'@')>0){
-		echo "@: denied character\n";
+		echo "@,: denied character\n";
 		return;
 	}
 	if(strpos($_POST["SaveCyrusPassword"],':')>0){
-		echo "@: denied character\n";
+		echo "@,: denied character\n";
 		return;
 	}	
 	
 	$attrs["userPassword"][0]=$_POST["SaveCyrusPassword"];
 	$dn="cn=cyrus,dc=organizations,$ldap->suffix";
 	if($ldap->ExistsDN($dn)){
-		if(!$ldap->Ldap_modify($dn,$attrs)){echo $ldap->ldap_last_error;exit;}
+		if(!$ldap->Ldap_modify($dn,$attrs)){echo $ldap->ldap_last_error;return;}
 	}
 	
 	$dn="cn=cyrus,$ldap->suffix";
 	if($ldap->ExistsDN($dn)){
-		if(!$ldap->Ldap_modify($dn,$attrs)){echo $ldap->ldap_last_error;exit;}
+		if(!$ldap->Ldap_modify($dn,$attrs)){echo $ldap->ldap_last_error;return;}
 	}	
 	
 	$sock=new sockets();

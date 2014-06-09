@@ -18,8 +18,8 @@ function start(){
 	$storage_path="/var/spool/MIMEDefang_replaced";
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){system_admin_events("Already process $oldpid running.. Aborting",__FUNCTION__,__FILE__,__LINE__,"postfix");return;}
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){system_admin_events("Already process $pid running.. Aborting",__FUNCTION__,__FILE__,__LINE__,"postfix");return;}
 	$q=new mysql_mimedefang_builder();
 	if(!$q->TABLE_EXISTS("storage")){$q->CheckTables();}
 	if(!$q->TABLE_EXISTS("storage")){system_admin_events("Fatal, `storage` table does not exists",__FUNCTION__,__FILE__,__LINE__,"postfix");return;}

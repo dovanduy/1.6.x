@@ -53,9 +53,9 @@ function week_uris_blocked($asPid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$myfile=basename(__FILE__);
-	if($unix->process_exists($oldpid,$myfile)){ return; }
+	if($unix->process_exists($pid,$myfile)){ return; }
 
 	$tStart=time();
 	

@@ -49,9 +49,9 @@ function categorize($day=null){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$day.". __FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 		return;
 	}
 	

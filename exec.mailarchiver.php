@@ -62,10 +62,10 @@ function work(){
 	$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 	$pidTime="/etc/artica-postfix/".basename(__FILE__).".time";
 	if($GLOBALS["VERBOSE"]){echo "PidFile = $pidfile\n";}
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("Other pid $oldpid running since {$timepid}mn", __FUNCTION__, __FILE__, __LINE__, "archive");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("Other pid $pid running since {$timepid}mn", __FUNCTION__, __FILE__, __LINE__, "archive");
 		die();
 	}
 
@@ -712,10 +712,10 @@ function stop($aspid=false){
 	$GLOBALS["CLASS_UNIX"]=$unix;
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -727,10 +727,10 @@ function stop($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver already stopped...\n";}
 		return;
 	}
-	$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$time=$unix->PROCCESS_TIME_MIN($pid);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Mail Archiver pid $pid (run since {$time}Mn)...\n";}
 	$kill=$unix->find_program("kill");
-	shell_exec("$kill $pid");
+	unix_system_kill($pid);
 	
 	for($i=0;$i<5;$i++){
 		
@@ -797,10 +797,10 @@ function start($aspid=false){
 	$GLOBALS["CLASS_UNIX"]=$unix;
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -912,9 +912,9 @@ function purge(){
 	$unix=new unix();
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	

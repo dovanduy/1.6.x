@@ -136,9 +136,9 @@ function caches_generate(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$pidffile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidffile);
-	if($unix->process_exists($oldpid)){
-		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidffile);
+	if($unix->process_exists($pid)){
+		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] Aready running pid $pid",__FUNCTION__,__LINE__);
 		return;
 	}
 	$squidbin=$unix->LOCATE_SQUID_BIN();
@@ -292,9 +292,9 @@ function caches_squid_z(){
 	}
 	$pidffile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=$unix->get_pid_from_file($pidffile);
-	if($unix->process_exists($oldpid)){
-		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] Aready running pid $oldpid",__FUNCTION__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidffile);
+	if($unix->process_exists($pid)){
+		events_squid_caches( "Starting......: ".date("H:i:s")." [SMP] Aready running pid $pid",__FUNCTION__,__LINE__);
 		return;
 	}
 	@file_put_contents($pidffile, getmypid());

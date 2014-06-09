@@ -6331,8 +6331,7 @@ begin
         //miltergreylist
         miltergreylist.MILTER_GREYLIST_START();
 
-        //amavis
-        SYS.THREAD_COMMAND_SET('/etc/init.d/artica-postfix start amavis');
+
 
 
         //jCheckmail

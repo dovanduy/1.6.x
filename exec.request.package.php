@@ -24,8 +24,8 @@ build($argv[1]);
 function build($uri){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	@file_put_contents($pidfile, getmypid());
 	$echo=$unix->find_program("echo");
 	$curl=$unix->find_program("curl");

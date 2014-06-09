@@ -21,10 +21,10 @@ function start($database,$table){
 	if($database==null){WriteIsamLogs("Requested myismamchk database:$database, table: $table -> database is null");return;}
 	if($table==null){WriteIsamLogs("Requested myismamchk database:$database, table: $table -> table is null");return;}	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5("$database$table").".pid";
-	$oldpid=@file_get_contents("$database$table");
-	if($unix->process_exists($oldpid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		WriteIsamLogs("Already PID $oldpid running since {$timepid}mn, aborting");
+	$pid=@file_get_contents("$database$table");
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		WriteIsamLogs("Already PID $pid running since {$timepid}mn, aborting");
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());

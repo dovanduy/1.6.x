@@ -410,7 +410,7 @@ if($GLOBALS["VERBOSE"]){echo __LINE__." Saving $cachePage\n";}
 	if($users->AsAnAdministratorGeneric){
 		if(!$OnlySMTP){$f[]=left_menus_format("explorer","explorer-32.png","only:Loadjs('tree.php');",'SHARE_FOLDER_TEXT');}
 		
-		if(!$OnlySMTP){$f[]=left_menus_format("ADD_COMPUTER","computer-32-add.png","only:YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');","ADD_COMPUTER_TEXT");}
+		if(!$OnlySMTP){$f[]=left_menus_format("ADD_COMPUTER","computer-32-add.png","only:YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');","ADD_COMPUTER_TEXT");}
 		if($users->POWER_DNS_INSTALLED){
 
 			$DisablePowerDnsManagement=$sock->GET_INFO("DisablePowerDnsManagement");

@@ -27,8 +27,8 @@ function build(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,__FILE__)){echo "Already PID running $oldpid (".basename(__FILE__).")\n";die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,__FILE__)){echo "Already PID running $pid (".basename(__FILE__).")\n";die();}
 	
 	$time=$unix->file_time_min($timefile);
 	if(!$GLOBALS["FORCE"]){if($time<5){

@@ -169,7 +169,8 @@ function MemoryInstances(){
 					if($time>$arrayK[$filename]){
 					$this->ToSyslog("MemoryInstances(): killing $filename it freeze {$time}Mn/{$arrayK[$filename]}Mn");
 					$this->ToSyslog("killing $filename it freeze...",__FUNCTION__,__LINE__);
-					shell_exec("/bin/kill -9 {$re[1]}");
+					unix_system_kill_force($re[1]);
+					
 					continue;						
 					}
 				}
@@ -197,7 +198,7 @@ function MemoryInstances(){
 					$time=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($re[1]);
 					if($time>10){
 						$this->events("killing yorel-upd it {$re[1]} freeze {$time}Mn...",__FUNCTION__,__LINE__);
-						shell_exec("/bin/kill -9 {$re[1]}");
+						unix_system_kill_force($re[1]);
 					}
 				}
 			}
@@ -330,6 +331,12 @@ function MemoryInstances(){
 			
 			$count++;
 			$this->ToSyslog("L:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]} M:{$GLOBALS["SYSTEM_INTERNAL_MEMM"]}MB $nohup $nice$cmd$devnull &");
+			
+			if(preg_match("#--schedule-id=([0-9]+)#", $cmd,$re)){
+				system_admin_events("Running Task {$re[1]} `$cmd`" , 
+				__FUNCTION__, __FILE__, __LINE__, "tasks",$re[1]);
+			}
+			
 			shell_exec(trim("$nohup $nice$cmd$devnull &"));
 			unset($orders[$num]);
 			if($count>=$count_max){break;}

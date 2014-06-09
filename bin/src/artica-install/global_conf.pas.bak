@@ -6381,7 +6381,7 @@ end;
           squidguard.START();
           squidguard.free;
 
-          squid.SQUID_START();
+
           kav4proxy.KAV4PROXY_START();
           dansguardian.C_ICAP_START();
           dansguardian.DANSGUARDIAN_START();

@@ -33,14 +33,14 @@ function BuildWeeks(){
 	if($GLOBALS["VERBOSE"]){echo "BuildWeeks(): OK\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
 	$unix=new unix();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Already executed pid $oldpid since {$time}mn-> DIE");
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		events("Already executed pid $pid since {$time}mn-> DIE");
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 		die();
 	}
 	$mypid=getmypid();
@@ -359,10 +359,10 @@ function searchwords_hour($aspid=false){
 	
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$myfile=basename(__FILE__);
-	if($unix->process_exists($oldpid,$myfile)){
-		ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+	if($unix->process_exists($pid,$myfile)){
+		ufdbguard_admin_events("$pid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 		return;
 	}
 		

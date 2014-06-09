@@ -9,11 +9,11 @@ $GLOBALS["VERBOSE"]=false;
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $pid=getmypid();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 $unix=new unix();
 $php5=$unix->LOCATE_PHP5_BIN();
 $nohup=$unix->find_program("nohup");
-if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already running $oldpid, aborting","MAIN",__FILE__,__LINE__);events("Already running $oldpid, aborting ");die();}
+if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already running $pid, aborting","MAIN",__FILE__,__LINE__);events("Already running $pid, aborting ");die();}
 events("running $pid update $pidfile....");
 file_put_contents($pidfile,$pid);
 $sock=new sockets();
@@ -56,9 +56,9 @@ if(preg_match("#^([0-9]+)\.([0-9]+)\.([0-9]+)#", $squidver,$re)){$SQUID_MAJOR=$r
 if($SQUID_MAJOR>2){if($SQUID_MINOR>1){$GLOBALS["SQUID32"]=true;}}
 
 $unix=new unix();
-$oldpid=$unix->get_pid_from_file("/var/run/artica-auth-tail.pid");
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	echo "Already process exists PID $oldpid\n";
+$pid=$unix->get_pid_from_file("/var/run/artica-auth-tail.pid");
+if($unix->process_exists($pid,basename(__FILE__))){
+	echo "Already process exists PID $pid\n";
 	die();
 }
 

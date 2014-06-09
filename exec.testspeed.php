@@ -40,15 +40,15 @@ function runProc($norestart=false){
 	}
 	
 	if(!$GLOBALS["FORCE"]){
-		$oldpid=$unix->get_pid_from_file($timePID);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timexec=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($timePID);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timexec=$unix->PROCCESS_TIME_MIN($pid);
 			if($timexec<30){
 				system_admin_events("Already instance executed pid $pid since {$timexec}Mn", __FUNCTION__, __FILE__, __LINE__, "testspeed");
 				return;
 			}else{
 				$kill=$unix->find_program("kill");
-				shell_exec("$kill -9 $oldpid");
+				unix_system_kill_force($pid);
 				system_admin_events("Instance pid $pid since {$timexec}Mn was killed", __FUNCTION__, __FILE__, __LINE__, "testspeed");
 			}
 		}
@@ -205,7 +205,7 @@ function GetInstances(){
 		$cmdline=trim($re[2]);
 		if(preg_match("#^sh\s+#", $cmdline)){continue;}
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($time>15){shell_exec("$kill -9 $pid >/dev/null 2>&1");continue;}
+		if($time>15){unix_system_kill_force($pid);continue;}
 		$pidsARR[$pid]=true;
 	}
 	if($GLOBALS["VERBOSE"]){echo "-> ".count($pidsARR)." instances..\n";}

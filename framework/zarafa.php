@@ -496,8 +496,8 @@ function zarafadb_restore(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$dir=$unix->shellEscapeChars($dir);
 	
-	$oldpid=$unix->PIDOF_PATTERN("exec.zarafa-db.php --restorefrom");
-	if($unix->process_exists($oldpid)){
+	$pid=$unix->PIDOF_PATTERN("exec.zarafa-db.php --restorefrom");
+	if($unix->process_exists($pid)){
 		return;
 	}
 	

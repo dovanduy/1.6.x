@@ -70,9 +70,9 @@ $unix=new unix();
 	echo "Starting......: ".date("H:i:s")." Enable Postfix multi-instances\n";
 	
 	$pidfile="/etc/artica-postfix/".basename(__FILE__)." ". md5(implode("",$argv)).".pid";
-	$oldPid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldPid,basename(__FILE__))){
-		echo "Starting......: ".date("H:i:s")." multi-instances configurator already executed PID $oldPid\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Starting......: ".date("H:i:s")." multi-instances configurator already executed PID $pid\n";
 		die();
 	}
 

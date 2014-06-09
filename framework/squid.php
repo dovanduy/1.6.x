@@ -2204,9 +2204,9 @@ function rrd_perform(){
 function squidhour_repair_executed(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/exec.squid.stats.hours.php.repair_hours.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$pidtime=$unix->PROCCESS_TIME_MIN($pid);
 		echo "<articadatascgi>$pidtime</articadatascgi>";
 	}
 		

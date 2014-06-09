@@ -6354,3 +6354,21 @@ Give the proxy and port is this way: 172.16.32.1:3128</website_tool_explain_prox
 If enabled, then the local Postfix system will use this port in order to forward messages.[br]
 If no interface specified, then the 127.0.0.1 will be used.
 </howto_service_lmtp>
+<blackandwhite_list>Black and Whitelist</blackandwhite_list>
+<postfix_automation_about>Artica White and Blacklist Automation is a process that able to parse 
+your mailboxes automatically ( according defined schedules ).[br]
+It is designed to read the Junk E-Mail mailbox and add all senders to the user's blacklist database and purge the mailbox.[br]
+It parse the Sent Items too in order to put all recipients to the user's whitelist database.[br]
+[b]Whith this process, you just have to explain to users to put non-wanted emails to the Junk mailbox.[/b][br]
+</postfix_automation_about>
+<blackwhite_automation>Blacklist and Whitelist Automation</blackwhite_automation>
+<APP_IREDMAIL>iRedMail Daemon</APP_IREDMAIL>
+<wbl_howto>Add the full address eg: user@domain.tld or the domain "@domain.tld" for the entire domain</wbl_howto>
+<blackandwhite_list_members>Manage your black and white list items</blackandwhite_list_members>
+<enable_FTP_backup>Store backup via FTP</enable_FTP_backup>
+<FTP_backup_zarafa_explain>If green then after backup completed, the server will backup containers trough a remote FTP service</FTP_backup_zarafa_explain>
+<ftp_server>FTP server</ftp_server>
+<ftp_username>FTP username</ftp_username>
+<ftp_password>FTP password</ftp_password>
+<ovh_specific_config_explain>If checked, then broadcast address will be the IP address of the network interface.[br]
+Please check if your require this parameters before apply network. Some ISPs did not support this behavior</ovh_specific_config_explain>

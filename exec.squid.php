@@ -167,10 +167,10 @@ if($argv[1]=="--reconfigure"){
 		$EXEC_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".reconfigure.pid";
 		$unix=new unix();
 		$sock=new sockets();
-		$oldpid=@file_get_contents($EXEC_PID_FILE);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
+		$pid=@file_get_contents($EXEC_PID_FILE);
+		if($unix->process_exists($pid,basename(__FILE__))){
 			$timefile=$unix->file_time_min($EXEC_PID_FILE);
-			if($timefile<15){print "Starting......: ".date("H:i:s")." Checking (L.".__LINE__.") squid Already executed pid $oldpid {$timefile}Mn...\n";die();}
+			if($timefile<15){print "Starting......: ".date("H:i:s")." Checking (L.".__LINE__.") squid Already executed pid $pid {$timefile}Mn...\n";die();}
 			
 		}		
 	squid_reconfigure_build_tool();	
@@ -254,14 +254,14 @@ if($argv[1]=="--build"){
 		$EXEC_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".build.pid";
 		
 		$kill=$unix->find_program("kill");
-		$oldpid=@file_get_contents($EXEC_PID_FILE);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$TimePid=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=@file_get_contents($EXEC_PID_FILE);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$TimePid=$unix->PROCCESS_TIME_MIN($pid);
 			if($TimePid>30){
-				posix_kill(intval($oldpid),9);
+				posix_kill(intval($pid),9);
 			}else{
 				if(!$GLOBALS["FORCE"]){
-					print "Starting......: ".date("H:i:s")." Checking (L.".__LINE__.") Squid Already executed pid $oldpid since {$TimePid}mn ...\n";
+					print "Starting......: ".date("H:i:s")." Checking (L.".__LINE__.") Squid Already executed pid $pid since {$TimePid}mn ...\n";
 					die();
 				}
 			}
@@ -658,9 +658,9 @@ function remove_cache($cacheenc){
 	$PidFile="/etc/artica-postfix/pids/".md5("remove-$cacheenc").".pid";
 	
 	
-	$oldpid=$unix->get_pid_from_file($PidFile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		WriteToSyslogMail("remove_cache():: Another artica script running pid $oldpid, aborting ...", basename(__FILE__));
+	$pid=$unix->get_pid_from_file($PidFile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		WriteToSyslogMail("remove_cache():: Another artica script running pid $pid, aborting ...", basename(__FILE__));
 		return;
 	}
 
@@ -699,11 +699,11 @@ function dyn_caches($aspid=false){
 	$PidFile="/etc/artica-postfix/pids/squid_build_dyn_caches.pid";
 	
 	if($aspid){
-		$oldpid=$unix->get_pid_from_file($PidFile);
-		if($oldpid<>getmypid()){
-			if($unix->process_exists($oldpid,basename(__FILE__))){
-				echo "Starting......: ".date("H:i:s")." Dynamic caches: Another artica script running pid $oldpid, aborting ...\n";
-				WriteToSyslogMail("dyn_caches():: Another artica script running pid $oldpid, aborting ...", basename(__FILE__));
+		$pid=$unix->get_pid_from_file($PidFile);
+		if($pid<>getmypid()){
+			if($unix->process_exists($pid,basename(__FILE__))){
+				echo "Starting......: ".date("H:i:s")." Dynamic caches: Another artica script running pid $pid, aborting ...\n";
+				WriteToSyslogMail("dyn_caches():: Another artica script running pid $pid, aborting ...", basename(__FILE__));
 				return;
 			}
 		}
@@ -792,11 +792,11 @@ function build_blacklists($aspid=false){
 	$PidFile="/etc/artica-postfix/pids/squid_build_blacklists.pid";
 	
 	if($aspid){
-		$oldpid=$unix->get_pid_from_file($PidFile);
-		if($oldpid<>getmypid()){
-			if($unix->process_exists($oldpid,basename(__FILE__))){
-				echo "Starting......: ".date("H:i:s")." Blacklists: Another artica script running pid $oldpid, aborting ...\n";
-				WriteToSyslogMail("build_blacklists():: Another artica script running pid $oldpid, aborting ...", basename(__FILE__));
+		$pid=$unix->get_pid_from_file($PidFile);
+		if($pid<>getmypid()){
+			if($unix->process_exists($pid,basename(__FILE__))){
+				echo "Starting......: ".date("H:i:s")." Blacklists: Another artica script running pid $pid, aborting ...\n";
+				WriteToSyslogMail("build_blacklists():: Another artica script running pid $pid, aborting ...", basename(__FILE__));
 				return;
 			}
 		}
@@ -992,7 +992,7 @@ function Reload_only_squid(){
 			echo "Starting......: ".date("H:i:s")." [RELOAD]: exec.logfile_daemon.php $pid running since {$processtime}Mn\n";
 			continue;}
 		echo "Starting......: ".date("H:i:s")." [RELOAD]: Kill exec.logfile_daemon.php $pid running since {$processtime}Mn\n";
-		shell_exec("$kill -9 $pid >/dev/null 2>&1");
+		unix_system_kill_force($pid);
 		
 	}
 	
@@ -2042,8 +2042,8 @@ function compilation_params(){
 	
 	$unix=new unix();
 	$kill=$unix->find_program("kill");
-	$oldpid=@file_get_contents($EXEC_PID_FILE);
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	$pid=@file_get_contents($EXEC_PID_FILE);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	$cachefile="/usr/share/artica-postfix/ressources/logs/squid.compilation.params";
 	
 	$timefile=$unix->file_time_min($EXEC_PID_TIME);
@@ -2197,8 +2197,8 @@ function TemplatesInMysql($aspid=false){
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidpath);
-		if($unix->process_exists($oldpid)){return;}
+		$pid=$unix->get_pid_from_file($pidpath);
+		if($unix->process_exists($pid)){return;}
 			
 	}
 	
@@ -2419,14 +2419,14 @@ function notify_remote_proxys($COMMANDS=null){
 	include_once(dirname(__FILE__)."/ressources/class.blackboxes.inc");
 	$EXEC_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$EXEC_PID_TIME="/etc/artica-postfix/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($EXEC_PID_FILE);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=@file_get_contents($EXEC_PID_FILE);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		$timefile=$unix->file_time_min($EXEC_PID_FILE);
 		if($timefile<15){
-			$unix->events("Skipping, Already executed pid $oldpid {$timefile}Mn","/var/log/stats-appliance.log");
-			ufdbguard_admin_events("Skipping, Already executed pid $oldpid {$timefile}Mn...", __FUNCTION__, __FILE__, __LINE__, "communicate");return ;}
+			$unix->events("Skipping, Already executed pid $pid {$timefile}Mn","/var/log/stats-appliance.log");
+			ufdbguard_admin_events("Skipping, Already executed pid $pid {$timefile}Mn...", __FUNCTION__, __FILE__, __LINE__, "communicate");return ;}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $oldpid");
+		unix_system_kill_force($pid);
 	}	
 	
 
@@ -2580,13 +2580,13 @@ function caches_infos($aspid=false){
 		}
 		
 		if($aspid){
-			$oldpid=@file_get_contents($cachePID);
-			if($unix->process_exists($oldpid)){
-				$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
+			$pid=@file_get_contents($cachePID);
+			if($unix->process_exists($pid)){
+				$timepid=$unix->PROCCESS_TIME_MIN($pid);
 				if($timepid<15){
-					ToSyslog("caches_infos(): Already task PID: $oldpid running since {$timepid}Mn");
+					ToSyslog("caches_infos(): Already task PID: $pid running since {$timepid}Mn");
 				}
-				$kill=$unix->find_program("$kill");shell_exec("$kill -9 $oldpid >/dev/null 2>&1");}
+				$kill=$unix->find_program("$kill");unix_system_kill_force($pid);}
 		}
 	}
 	
@@ -2805,10 +2805,10 @@ function rotate_logs(){
 		if(!$GLOBALS["BY_SCHEDULE"]){return;}
 	}
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){ 
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";} 
-		ufdbguard_admin_events("Already executed pid $oldpid",__FILE__,__FUNCTION__,__LINE__,"logs"); 
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){ 
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";} 
+		ufdbguard_admin_events("Already executed pid $pid",__FILE__,__FUNCTION__,__LINE__,"logs"); 
 		return; 
 	}
 	
@@ -2933,11 +2933,11 @@ function build_schedules($notfcron=false){
 	@mkdir("/var/log/artica-postfix/youtube",0755,true);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		writelogs("Already executed pid $oldpid",__FILE__,__FUNCTION__,__LINE__);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		writelogs("Already executed pid $pid",__FILE__,__FUNCTION__,__LINE__);
 		return;
 	}
 	
@@ -3076,7 +3076,7 @@ function build_schedules($notfcron=false){
 	if(!is_numeric($cron_pid) OR $cron_pid<5){$cron_pid=$unix->PIDOF("$cron_path");}
 	if($cron_pid>5){
 		if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." artica-postfix reloading $cron_path [$cron_pid]...\n";}
-		shell_exec("$kill -HUP $cron_pid");
+		unix_system_HUP("$cron_pid");
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." artica-postfix reloading fcron...\n";}
@@ -3547,9 +3547,9 @@ function quick_bann(){
 	$EXEC_PID_FILE="/etc/artica-postfix/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$unix=new unix();
 	
-	$oldpid=$unix->get_pid_from_file($EXEC_PID_FILE);
+	$pid=$unix->get_pid_from_file($EXEC_PID_FILE);
 	if(!$GLOBALS["VERBOSE"]){
-		if($unix->process_exists($oldpid,basename(__FILE__))){ return; }
+		if($unix->process_exists($pid,basename(__FILE__))){ return; }
 	}
 	@file_put_contents($EXEC_PID_FILE, getmypid());
 	

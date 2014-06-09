@@ -246,7 +246,7 @@ function vpn_client_hup(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");		
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.openvpn.php --client-configure-start {$_GET["ID"]} 2>&1 &");
-	if($unix->process_exists($pid)){shell_exec("$kill -9 $pid");}
+	if($unix->process_exists($pid)){unix_system_kill_force($pid);}
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec("$cmd");	
 	

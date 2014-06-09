@@ -47,9 +47,9 @@ function build_schedules(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		writelogs("Already executed pid $oldpid",__FILE__,__FUNCTION__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		writelogs("Already executed pid $pid",__FILE__,__FUNCTION__,__LINE__);
 		return;
 	}
 	
@@ -144,7 +144,7 @@ function build_schedules(){
 		
 		
 		$f=array();
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." scheduling $script\n";} 
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." scheduling $script /etc/cron.d/syssch-{$ligne["ID"]}\n";} 
 		$cmdline=trim("$nice $php5 $me --run {$ligne["ID"]}");
 		$f[]="MAILTO=\"\"";
 		$f[]="{$ligne["TimeText"]}  root $cmdline >/dev/null 2>&1";
@@ -268,11 +268,11 @@ function execute_task($ID){
 	$pgrep=$unix->find_program("pgrep");
 	$GLOBALS["SCHEDULE_ID"]=$ID;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$ID.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeProcess=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("$pid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
 	}
 	
@@ -360,10 +360,10 @@ function execute_task_squid($ID){
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];		
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
-		ufdbguard_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeProcess=$unix->PROCCESS_TIME_MIN($pid);
+		ufdbguard_admin_events("$pid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "tasks",$ID);
 		return;
 	}
 	
@@ -444,7 +444,7 @@ function OverloadedCheckBadProcesses(){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($time>90){
 				$unix->send_email_events("kav4proxy-keepup2date pid: $pid killed", "It was running since {$time}Mn, and reach the maximal 90mn TTL", "proxy");
-				shell_exec("$kill -9 $pid");
+				unix_system_kill_force($pid);
 			}
 		}
 		

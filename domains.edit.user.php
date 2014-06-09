@@ -1596,7 +1596,7 @@ function USER_ALIASES_FORM_ADD_JS() {
 	$html = "
 		
 			function LoadAddAliasForm(){
-				YahooWin5(500,'$page?USER_ALIASES_FORM_ADD=$userid','$title');
+				YahooWin5(700,'$page?USER_ALIASES_FORM_ADD=$userid','$title');
 			
 			}
 			
@@ -1618,9 +1618,6 @@ function USER_ALIASES_FORM_ADD_JS() {
 				var XHR = new XHRConnection();
 				XHR.appendData('AddAliases',uid);
 				XHR.appendData('aliase',aliase);
-				if(document.getElementById('ali')){
-					document.getElementById('ali').innerHTML='<center><img src=\"img/wait_verybig.gif\"></center>';
-				}
 				XHR.sendAndLoad('domains.edit.user.php', 'GET',x_AddNewAliasesUser);
 				
 			}
@@ -1641,21 +1638,21 @@ function USER_ALIASES_FORM_ADD() {
 	$ldap = new clladp ( );
 	$user = new user ( $userid );
 	$domains = $ldap->hash_get_domains_ou ( $user->ou );
-	$user_domains = Field_array_Hash ( $domains, 'user_domain',null,null,null,0,'font-size:14px;padding:3px' );
+	$user_domains = Field_array_Hash ( $domains, 'user_domain',null,null,null,0,'font-size:18px;padding:3px' );
 	
 	$form_catech_all = 
 
 	$form_add = "
-    			<table style='width:100%;border:0px solid #005447'>
+    			<table style='width:100%;'>
     				<tr>
-    					<td nowrap colspan=2><strong style='font-size:12.5px;'>{add_new_alias}:&laquo;{in_the_same_organization}&raquo;</strong></td>
+    					<td nowrap colspan=2><strong style='font-size:18px;'>{add_new_alias}:&laquo;{in_the_same_organization}&raquo;</strong></td>
     				</tr>
     				<tr>
     					<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	    					<table>
 	    						<tr>
-	    							<td>" . Field_text ( 'aliases', null, 'width:150px;font-size:14px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter(event)" ) . "</td>
-	    							<td width=1%><strong style='font-size:14px;'>@</strong></td>
+	    							<td>" . Field_text ( 'aliases', null, 'width:150px;font-size:18px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter(event)" ) . "</td>
+	    							<td width=1%><strong style='font-size:18px;'>@</strong></td>
 	    							<td width=99% align='left'>$user_domains</td>
 	    						</tr>
 	    					</table>
@@ -1665,20 +1662,20 @@ function USER_ALIASES_FORM_ADD() {
    						<td nowrap colspan=2>&nbsp;</td>
    				</tr>
    				<tr>
-    				<td nowrap colspan=2><strong style='font-size:12.5px;'>{add_new_alias}:&laquo;{out_of_organization}&raquo;</strong></td>
+    				<td nowrap colspan=2><strong style='font-size:18px;'>{add_new_alias}:&laquo;{out_of_organization}&raquo;</strong></td>
     			</tr>
     			<tr>
     				<td valign='top' style='vertical-align:top' style='vertical-align:top'>
 	    					<table>
 	    						<tr>
-	    							<td>" . Field_text ( 'fullaliase', null, 'width:250px;font-size:14px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter(event)"  ) . "</td>
+	    							<td>" . Field_text ( 'fullaliase', null, 'width:350px;font-size:18px;padding:3px',null,null,null,false,"AddNewAliasesCheckEnter(event)"  ) . "</td>
 	    						</tr>
 	    					</table>
     				</td>
     			</tr>    				
     				<tr>
     					<td colspan=2 align='right'><hr>
-    					" . button ( "{submit}", "AddNewAliases('$userid');" ) . "
+    					" . button ( "{submit}", "AddNewAliases('$userid');" ,26) . "
     						
     						
     					</td>
@@ -1687,7 +1684,7 @@ function USER_ALIASES_FORM_ADD() {
     			</table>";
 	
 	$html = "
-<div class=explain>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
+<div class=explain style='font-size:16px'>{aliases_text}:&nbsp;&laquo;<b>{$user->mail}&raquo;</b></div>
 $form_add
 
 
@@ -1710,7 +1707,7 @@ function USER_ALIASES($userid) {
 	if ($user->DoesNotExists) {return USER_NOTEXISTS ( $userid );}
 	$tpl = new templates ( );
 	$t=time();
-	$html="<div class=explain>{aliases_text}</div>
+	$html="
 	<div id='$t'></div>
 	<script>
 		LoadAjax('$t','domains.edit.user.aliases.php?userid=$userid');
@@ -2836,6 +2833,7 @@ function USER_MESSAGING($userid) {
 		return false;
 	}
 	$us = new user ( $userid );
+	$us->uid=urlencode($us->uid);
 	if ($us->DoesNotExists) {
 		return USER_NOTEXISTS ( $userid,'USER_MESSAGING' );
 	}
@@ -2929,6 +2927,8 @@ function USER_MESSAGING($userid) {
 	$tr [] = $changeemail;
 	$tr [] = $button_recipient_features;
 	$tr [] = $sender_settings;
+	$tr [] = Paragraphe ( "64-spam.png", "{blackandwhite_list}", "{blackandwhite_list_members}", 
+			"javascript:Loadjs('whitelists.members.php?uid=$us->uid')" );
 	$tr [] = $fetchmail;
 	$tr [] = $imapsync;
 	$tr [] = $restore_mailbox;
@@ -2938,29 +2938,8 @@ function USER_MESSAGING($userid) {
 	$tr [] = $antispam_leraning;
 	$tr [] = $AmavisSettings;
 	
-	$tables [] = "<center><div style='width:98%' class=form><table><tr>";
-	$t = 0;
-	while ( list ( $key, $line ) = each ( $tr ) ) {
-		$line = trim ( $line );
-		if ($line == null) {
-			continue;
-		}
-		$t = $t + 1;
-		$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>$line</td>";
-		if ($t == 3) {
-			$t = 0;
-			$tables [] = "</tr><tr>";
-		}
 	
-	}
-	if ($t < 3) {
-		for($i = 0; $i <= $t; $i ++) {
-			$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>&nbsp;</td>";
-		}
-	}
-	
-	$tables [] = "</table></div></center>";
-	return $tpl->_ENGINE_parse_body ( implode ( "\n", $tables ) );
+	return CompileTr4($tr,true);
 
 }
 
@@ -3262,30 +3241,8 @@ function USER_ACCOUNT_POPUP($userid) {
 	$tr[] = $simple_groupware_activation_admin;
 	$tr[] = $button_backup;
 	$tr[] = $emule;
-	
-	$tables [] = "<table style='width:100%'><tr>";
-	$t = 0;
-	while ( list ( $key, $line ) = each ( $tr ) ) {
-		$line = trim ( $line );
-		if (strlen ( $line ) < 10) {
-			continue;
-		}
-		$t = $t + 1;
-		$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>$line</td>";
-		if ($t == 3) {
-			$t = 0;
-			$tables [] = "</tr><tr>";
-		}
-	
-	}
-	if ($t < 3) {
-		for($i = 0; $i <= $t; $i ++) {
-			$tables [] = "<td valign='top' style='vertical-align:top' style='vertical-align:top'>&nbsp;</td>";
-		}
-	}
-	
-	$tables [] = "</table>";
-	$tables_formatted = $tpl->_ENGINE_parse_body ( implode ( "\n", $tables ) );
+
+	$tables_formatted = $tpl->_ENGINE_parse_body ( CompileTr4($tr,true) );
 	
 	$DisplayName = $us->DisplayName;
 	if (strlen ( $DisplayName ) > 27) {
@@ -3320,9 +3277,8 @@ function USER_ACCOUNT_POPUP($userid) {
 			</tr>
 		</table>
 		<center>
-		<div style='width:98%' class=form>
+		
 			$tables_formatted
-		</div>
 		</center>";
 	
 	$html = "
@@ -4101,7 +4057,7 @@ function AddAliases() {
 	writelogs ( "\"{$_GET["aliase"]}\"=\"$uid\"", __FUNCTION__, __FILE__, __LINE__ );
 	if (trim ( $uid ) != null) {
 		writelogs ( "Error, this email already exists", __FUNCTION__, __FILE__, __LINE__ );
-		echo $tpl->_ENGINE_parse_body ( '{error_alias_exists}' );
+		echo $tpl->javascript_parse_text( "{error_alias_exists}\n{owner}:$uid",1);
 		exit ();
 	}
 	writelogs ( "OK, this email did not exists", __FUNCTION__, __FILE__, __LINE__ );

@@ -316,10 +316,10 @@ function FW_NGINX_RULES($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["VERBOSE"]){echo "Already pid $oldpid running since {$time}Mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["VERBOSE"]){echo "Already pid $pid running since {$time}Mn\n";}
 			return;
 		}
 	}	
@@ -396,10 +396,10 @@ function FW_SPAMHAUS_RULES($aspid=false){
 
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["VERBOSE"]){echo "Already pid $oldpid running since {$time}Mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["VERBOSE"]){echo "Already pid $pid running since {$time}Mn\n";}
 			return;
 		}
 	}
@@ -983,10 +983,10 @@ function ExportDrop(){
 		if($GLOBALS["VERBOSE"]){echo "EnablePostfixAutoBlock={$GLOBALS["EnablePostfixAutoBlock"]}, aborting..\n";}
 		return;}
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidpath);
+	$pid=@file_get_contents($pidpath);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){
-		if($GLOBALS["VERBOSE"]){echo "Already executed $oldpid\n";}
+	if($unix->process_exists($pid)){
+		if($GLOBALS["VERBOSE"]){echo "Already executed $pid\n";}
 		return;
 	}
 	@file_put_contents($pidpath,getmypid());

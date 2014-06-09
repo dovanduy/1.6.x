@@ -31,17 +31,17 @@ function ParseMainDir(){
 	$pidtime_hour="/etc/artica-postfix/pids/".basename(__FILE__).".hours.time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		if($time>60){
-			shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+			unix_system_kill_force($pid);
 		}else{
-			events("Already executed pid $oldpid since {$time}mn-> DIE");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+			events("Already executed pid $pid since {$time}mn-> DIE");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 			die();
 		}
 	}

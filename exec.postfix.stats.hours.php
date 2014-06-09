@@ -23,10 +23,10 @@ function postfix_hours(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		system_admin_events("Already PID $oldpid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("Already PID $pid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
 		return;
 	}	
 	
@@ -40,6 +40,7 @@ function postfix_hours(){
 	
 	$GLOBALS["Q"]=new mysql_postfix_builder();
 	$LIST_HOUR_TABLES=$GLOBALS["Q"]->LIST_HOUR_TABLES();
+	if(count($LIST_HOUR_TABLES)==0){return;}
 	$currentHourTable=date("YmdH")."_hour";
 	$MyTime=time();
 	while (list ($tablesource, $time) = each ($LIST_HOUR_TABLES) ){

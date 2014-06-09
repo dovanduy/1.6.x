@@ -83,7 +83,10 @@ function install($filename){
 	@unlink($tarballs_file);
 	shell_exec("$rm -rf /usr/share/artica-postfix/ressources/conf/upload/*");
 	build_progress("Apply permissions...",55);
+	
+	echo "$APACHEUSER -> /usr/share/artica-postfix\n";
 	shell_exec("$chown -R $APACHEUSER /usr/share/artica-postfix");
+	echo "0755 -> /usr/share/artica-postfix\n";
 	shell_exec("$chmod -R 0755 /usr/share/artica-postfix");
 	$ORGD=@file_get_contents("/usr/share/artica-postfix/VERSION");
 	echo "Old version.............: $ORGV\n";

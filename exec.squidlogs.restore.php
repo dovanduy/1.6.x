@@ -23,13 +23,13 @@ function restore_all(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		ufdbguard_admin_events("Already executed pid $oldpid since {$timepid}",__FUNCTION__,__FILE__,__LINE__,"reports");
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		ufdbguard_admin_events("Already executed pid $pid since {$timepid}",__FUNCTION__,__FILE__,__LINE__,"reports");
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -60,16 +60,16 @@ function restore($sourcefile,$nopid=false){
 	$unix=new unix();
 	$md5=md5($sourcefile);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$md5.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$workdir="/home/".time();
 	$pass=null;
 	
 	if(!$nopid){
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-			ufdbguard_admin_events("Already executed pid $oldpid since {$timepid}",__FUNCTION__,__FILE__,__LINE__,"reports");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
+			ufdbguard_admin_events("Already executed pid $pid since {$timepid}",__FUNCTION__,__FILE__,__LINE__,"reports");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 			return;
 		}
 	
@@ -241,12 +241,12 @@ function migrate_local(){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Already executed pid $oldpid\n";
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		echo "Already executed pid $pid\n";
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());	

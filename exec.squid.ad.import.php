@@ -37,9 +37,9 @@ function importActivedirectoryusers(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 
-	if($unix->process_exists($oldpid,basename(__FILE__))){WriteMyLogs("Process $oldpid already exists",__FUNCTION__,__FILE__,__LINE__);return;}
+	if($unix->process_exists($pid,basename(__FILE__))){WriteMyLogs("Process $pid already exists",__FUNCTION__,__FILE__,__LINE__);return;}
 	if(system_is_overloaded(basename(__FILE__))){WriteMyLogs("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__);return;}	
 
 	@file_put_contents($pidfile, getmypid());

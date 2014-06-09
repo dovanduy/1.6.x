@@ -271,7 +271,7 @@ function events_list(){
 		
 	}
 	
-	
+	if($c==0){json_error_show("no event");}
 	$data['total'] = $c;
 	echo json_encode($data);
 	

@@ -20,10 +20,10 @@ function Zexec(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	if(!$GLOBALS["FORCE"]){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid)){
-			$timeTTL=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events("Already running PID $oldpid since {$timeTTL}Mn", __FUNCTION__, __FILE__, __LINE__, "antivirus");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid)){
+			$timeTTL=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events("Already running PID $pid since {$timeTTL}Mn", __FUNCTION__, __FILE__, __LINE__, "antivirus");
 			return;
 		}
 		$rm=$unix->find_program("rm");

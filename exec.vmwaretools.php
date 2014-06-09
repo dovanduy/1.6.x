@@ -18,10 +18,10 @@ if(preg_match("#--verbose#",implode(" ",$argv))){
 
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){events("PID: $oldpid Already exists....");die();}
+	if($unix->process_exists($pid,basename(__FILE__))){events("PID: $pid Already exists....");die();}
 
 
 if($argv[1]=="--cd"){installbycd();die();}

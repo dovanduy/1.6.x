@@ -127,10 +127,6 @@ begin
       halt(0);
    end;
 
-
-  zlogs:=Tlogs.Create;
-  zlogs.NOTIFICATION('artica-make as been ordered with option '+ParamStr(1),'','softwares');
-
   writeln('Checking...');
   zinstall.INSTALL_PROGRESS(ParamStr(1),'{checking}');
   zinstall.INSTALL_STATUS(ParamStr(1),5);

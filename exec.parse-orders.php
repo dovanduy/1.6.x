@@ -8,16 +8,16 @@ include_once(dirname(__FILE__)."/framework/class.settings.inc");
 $GLOBALS["EXEC_PID_FILE"]="/etc/artica-postfix/".basename(__FILE__).".damon.pid";
 
 
-$oldpid=@file_get_contents($GLOBALS["EXEC_PID_FILE"]);
+$pid=@file_get_contents($GLOBALS["EXEC_PID_FILE"]);
 $unix=new unix();
 
 $GLOBALS["EXEC_NICE"]=$unix->EXEC_NICE();
 $GLOBALS["NOHUP"]=$unix->find_program("nohup");
 
-if($unix->process_exists($oldpid)){
-	$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
-	events("artica-background already executed pid $oldpid since $ProcessTime Minutes",__FUNCTION__,__LINE__);
-	echo("Starting......: ".date("H:i:s")." artica-background Already executed pid $oldpid\n");
+if($unix->process_exists($pid)){
+	$ProcessTime=$unix->PROCCESS_TIME_MIN($pid);
+	events("artica-background already executed pid $pid since $ProcessTime Minutes",__FUNCTION__,__LINE__);
+	echo("Starting......: ".date("H:i:s")." artica-background Already executed pid $pid\n");
 	die();
 }
 
@@ -33,8 +33,8 @@ $GLOBALS["TOTAL_MEMORY_MB"]=$unix->TOTAL_MEMORY_MB();
 
 
 if($GLOBALS["TOTAL_MEMORY_MB"]<400){
-	$oldpid=@file_get_contents($GLOBALS["EXEC_PID_FILE"]);
-	if($unix->process_exists($oldpid,basename(__FILE__))){events("Process Already exist pid $oldpid");die();}	
+	$pid=@file_get_contents($GLOBALS["EXEC_PID_FILE"]);
+	if($unix->process_exists($pid,basename(__FILE__))){events("Process Already exist pid $pid");die();}	
 	$childpid=posix_getpid();
 	echo("Starting......: ".date("H:i:s")." artica-background lower config, remove fork\n");
 	@file_put_contents($GLOBALS["EXEC_PID_FILE"],$childpid);

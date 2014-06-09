@@ -145,9 +145,9 @@ function StartUpdate(){
 	shell_exec("$chmod 777 {$GLOBALS["RUN_DIR"]}");
 	
 	$pidFile="{$GLOBALS["RUN_DIR"]}/keepup2date.pid";
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		ufdbguard_admin_events("Other instance $oldpid running, aborting task", __FUNCTION__, __FILE__, __LINE__, "update");
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){
+		ufdbguard_admin_events("Other instance $pid running, aborting task", __FUNCTION__, __FILE__, __LINE__, "update");
 		return;
 	}
 	
@@ -321,11 +321,11 @@ function UpdateUtility(){
 		}
 	
 	}
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["VERBOSE"]){echo "Line: ".__LINE__.":: Process $oldpid  already in memory since $ProcessTime minutes - ".__FUNCTION__."\n";}
-		system_admin_events("Process $oldpid  already in memory since $ProcessTime minutes","MAIN",__FILE__,__LINE__,"updateutility");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$ProcessTime=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["VERBOSE"]){echo "Line: ".__LINE__.":: Process $pid  already in memory since $ProcessTime minutes - ".__FUNCTION__."\n";}
+		system_admin_events("Process $pid  already in memory since $ProcessTime minutes","MAIN",__FILE__,__LINE__,"updateutility");
 		die();
 	}
 	
@@ -496,10 +496,10 @@ function ScanUpdateUtilityLogs($force=false){
 	
 	if(!$force){
 	
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["VERBOSE"]){echo "Already process exists $oldpid\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["VERBOSE"]){echo "Already process exists $pid\n";}
 			return;
 		}
 	
@@ -595,9 +595,9 @@ function UpdateUtilitySize($force=false){
 
 	if(!$force){
 		
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			return;
 		}
 

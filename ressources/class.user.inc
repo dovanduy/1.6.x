@@ -644,10 +644,11 @@ class user{
 		
 		$group=new groups(null);
 		
-		
-		for($i=0;$i<$attrs["gidNumber"]["count"];$i++){
-			$this->gidNumber_array[$i]=$attrs["gidNumber"][$i];
-		}		
+		if(isset($attrs["gidNumber"])){
+			for($i=0;$i<$attrs["gidNumber"]["count"];$i++){
+				$this->gidNumber_array[$i]=$attrs["gidNumber"][$i];
+			}	
+		}	
 		
 		while (list ($num, $ligne) = each ($attrs)){
 			if(!is_numeric($num)){
@@ -674,70 +675,61 @@ class user{
 		if(!isset($attrs["FTPUploadBandwidth"])){$attrs["FTPUploadBandwidth"][0]=null;}
 		if(!isset($attrs["FTPUploadRatio"])){$attrs["FTPUploadRatio"][0]=null;}
 		
-		$this->MailboxSecurityParameters=$attrs["MailboxSecurityParameters"][0];
-		$this->homeDirectory=$attrs["homeDirectory"][0];
-		$this->mailDir=$attrs["mailDir"][0];
-		$this->DisplayName=$attrs["displayName"][0];
-		if(isset($attrs["userPassword"][0])){
-			$this->password=$attrs["userPassword"][0];
-		}
-		$this->MailboxActive=$attrs["MailboxActive"][0];
+		if(isset($attrs["MailboxSecurityParameters"])){$this->MailboxSecurityParameters=$attrs["MailboxSecurityParameters"][0];}
+		if(isset($attrs["homeDirectory"])){$this->homeDirectory=$attrs["homeDirectory"][0];}
+		if(isset($attrs["mailDir"])){$this->mailDir=$attrs["mailDir"][0];}
+		if(isset($attrs["displayName"])){$this->DisplayName=$attrs["displayName"][0];}
+		if(isset($attrs["userPassword"][0])){$this->password=$attrs["userPassword"][0]; }
+		if(isset($attrs["MailboxActive"][0])){$this->MailboxActive=$attrs["MailboxActive"][0]; }
 		if(isset($attrs["ArticaUserFilterRule"][0])){$this->ArticaUserFilterRule=$attrs["ArticaUserFilterRule"][0];}
-		if(!isset($attrs["FTPStatus"])){$attrs["FTPStatus"][0]=null;}
+		if(!isset($attrs["FTPStatus"])){$attrs["FTPStatus"][0]=null;} 
 		$this->FTPStatus=$attrs["FTPStatus"][0];
-		$this->accountActive=$attrs["accountActive"][0];
-		$this->mail=$attrs["mail"][0];
-		$this->HASH_ALL_MAILS[]=$this->mail;
-		$this->uidNumber=$attrs["uidNumber"][0];
-		$this->givenName=$attrs["givenName"][0];
-		$this->cn=$attrs["cn"][0];
+		
+		
+		if(isset($attrs["accountActive"][0])){$this->accountActive=$attrs["accountActive"][0];}
+		if(isset($attrs["mail"][0])){$this->mail=$attrs["mail"][0];$this->HASH_ALL_MAILS[]=$this->mail;}
+		if(isset($attrs["uidNumber"][0])){$this->uidNumber=$attrs["uidNumber"][0];}
+		if(isset($attrs["givenName"][0])){$this->givenName=$attrs["givenName"][0];}
+		if(isset($attrs["cn"][0])){$this->cn=$attrs["cn"][0];}
 		if(isset($attrs["ThumbnailPath"][0])){$this->ThumbnailPath=$attrs["ThumbnailPath"][0];}
 		if(isset($attrs["CryptedHome"][0])){$this->CryptedHome=$attrs["CryptedHome"][0];}
-		$this->accountGroup=$attrs["accountGroup"][0];
+		if(isset($attrs["accountGroup"][0])){$this->accountGroup=$attrs["accountGroup"][0];}
 		if(isset($attrs["sambaPrimaryGroupSID"][0])){$this->sambaPrimaryGroupSID=$attrs["sambaPrimaryGroupSID"][0];}
 		if(isset($attrs["sambaLogonTime"][0])){$this->sambaLogonTime=$attrs["sambaLogonTime"][0];}
 		if(isset($attrs["sambaLogoffTime"][0])){$this->sambaLogoffTime=$attrs["sambaLogoffTime"][0];}
 		if(isset($attrs["sambaKickoffTime"][0])){$this->sambaKickoffTime=$attrs["sambaKickoffTime"][0];}
 		if(isset($attrs["sambaPwdCanChange"][0])){$this->sambaPwdCanChange=$attrs["sambaPwdCanChange"][0];}
 		if(isset($attrs["sambaSID"][0])){$this->sambaSID=$attrs["sambaSID"][0];}
-		
-		
-		
 		if(isset($attrs["sambaLMPassword"][0])){$this->sambaLMPassword=$attrs["sambaLMPassword"][0];}
 		if(isset($attrs["sambaNTPassword"][0])){$this->sambaNTPassword=$attrs["sambaNTPassword"][0];}
 		if(isset($attrs["sambaHomePath"][0])){$this->sambaHomePath=$attrs["sambaHomePath"][0];}
 		if(isset($attrs["sambaHomeDrive"][0])){$this->sambaHomeDrive=$attrs["sambaHomeDrive"][0];}		
 		if(isset($attrs["sambaProfilePath"][0])){$this->sambaProfilePath=$attrs["sambaProfilePath"][0];}
 		if(isset($attrs["sambaAcctFlags"][0])){$this->sambaAcctFlags=$attrs["sambaAcctFlags"][0];}
+	
 		
-		if(preg_match("#\\\(.+?)\\\#",$this->sambaProfilePath,$re)){
-			$re[1]=str_replace('\\','',$re[1]);
-			$this->SambaAdminServerDefined=$re[1];
-		}
+		if(preg_match("#\\\(.+?)\\\#",$this->sambaProfilePath,$re)){ $re[1]=str_replace('\\','',$re[1]); $this->SambaAdminServerDefined=$re[1]; }
 		
-		$this->gecos=$attrs["gecos"][0];
-		
-		$this->loginShell=$attrs["loginShell"][0];	
-		$this->sn=$attrs["sn"][0];
-		$this->ArticaInterfaceLogon=$attrs["ArticaInterfaceLogon"][0];
+		if(isset($attrs["gecos"][0])){$this->gecos=$attrs["gecos"][0];}
+		if(isset($attrs["loginShell"][0])){$this->loginShell=$attrs["loginShell"][0];}
+		if(isset($attrs["sn"][0])){$this->sn=$attrs["sn"][0];}
+		if(isset($attrs["ArticaInterfaceLogon"][0])){$this->ArticaInterfaceLogon=$attrs["ArticaInterfaceLogon"][0];}
 		if(isset($attrs["jpegPhoto"][0])){$this->jpegPhoto=$attrs["jpegPhoto"][0];}
-		$this->telephoneNumber=$attrs["telephoneNumber"][0];
-		$this->mobile=$attrs["mobile"][0];
+		if(isset($attrs["telephoneNumber"][0])){$this->telephoneNumber=$attrs["telephoneNumber"][0];}
+		if(isset($attrs["mobile"][0])){$this->mobile=$attrs["mobile"][0];}
 		if(isset($attrs["title"][0])){$this->title=$attrs["title"][0];}
-		$this->postalCode=$attrs["postalCode"][0];
-		$this->postalAddress=$attrs["postalAddress"][0];
-		$this->street=$attrs["street"][0];
-		$this->town=$attrs["l"][0];
+		if(isset($attrs["postalCode"][0])){$this->postalCode=$attrs["postalCode"][0];}
+		if(isset($attrs["postalAddress"][0])){$this->postalAddress=$attrs["postalAddress"][0];}
+		if(isset($attrs["street"][0])){$this->street=$attrs["street"][0];}
+		if(isset($attrs["l"][0])){$this->town=$attrs["l"][0];}
 		if(isset($attrs["postOfficeBox"][0])){$this->postOfficeBox=$attrs["postOfficeBox"][0];}
-		$this->MailBoxMaxSize=$attrs["MailBoxMaxSize"][0];
+		if(isset($attrs["MailBoxMaxSize"][0])){$this->MailBoxMaxSize=$attrs["MailBoxMaxSize"][0];}
 		if(isset($attrs["AllowedSMTPTroughtInternet"][0])){$this->AllowedSMTPTroughtInternet=$attrs["AllowedSMTPTroughtInternet"][0];}
 		if(isset($attrs["AlternateSmtpRelay"][0])){$this->AlternateSmtpRelay=$attrs["AlternateSmtpRelay"][0];}
-		$this->FinalDateToLive=$attrs["FinalDateToLive"][0];
-		$this->DotClearUserEnabled=$attrs["DotClearUserEnabled"][0];
-		$this->PostFixUserTransport=$attrs["PostFixUserTransport"][0];
-		$this->EnableUserSpamLearning=$attrs["EnableUserSpamLearning"][0];
-		
-		
+		if(isset($attrs["FinalDateToLive"][0])){$this->FinalDateToLive=$attrs["FinalDateToLive"][0];}
+		if(isset($attrs["DotClearUserEnabled"][0])){$this->DotClearUserEnabled=$attrs["DotClearUserEnabled"][0];}
+		if(isset($attrs["PostFixUserTransport"][0])){$this->PostFixUserTransport=$attrs["PostFixUserTransport"][0];}
+		if(isset($attrs["EnableUserSpamLearning"][0])){$this->EnableUserSpamLearning=$attrs["EnableUserSpamLearning"][0];}
 		if(isset($attrs["vacationActive"][0])){$this->vacationActive=$attrs["vacationActive"][0];}
 		if(isset($attrs["vacationStart"][0])){$this->vacationStart=$attrs["vacationStart"][0];}
 		if(isset($attrs["vacationEnd"][0])){$this->vacationEnd=$attrs["vacationEnd"][0];}
@@ -803,7 +795,7 @@ class user{
 		
 		
 
-		if($this->FinalDateToLive==null){$this->FinalDateToLive=0;}
+		if(!is_numeric($this->FinalDateToLive)){$this->FinalDateToLive=0;}
 		
 		if($GLOBALS["VERBOSE"]){echo "$this->uid = uidNumber:$this->uidNumber<br>\n";}
 		if($daemon_uid>0){writelogs("($this->uid):: $this->uid = uidNumber:$this->uidNumber ;CryptedHome=\"$this->CryptedHome\",Vacation Enable=\"$this->vacationEnabled\"; vacationActive=\"$this->vacationActive\" EnableUserSpamLearning={$attrs["EnableUserSpamLearning"][0]}",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -1858,15 +1850,13 @@ class user{
 		if($mail=="*@*"){return false;}
 		if($mail=="*@*.*"){return false;}
 		$array["amavisWhitelistSender"]=$mail;
-		writelogs("adding $mail",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+		
 		
 		if(!$ldap->Ldap_add_mod($this->dn,$array)){
 			$this->ldap_error=$ldap->ldap_last_error;
 		}else{
 			$this->del_blacklist($mail);
-			$users=new usersMenus();
-			$sock=new sockets();
-			if($users->ARTICA_META_ENABLED){$sock->getFrameWork("cmd.php?artica-meta-user=$this->uid");}			
+			writelogs("adding $mail",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 			return true;
 		}
 	}
@@ -1915,13 +1905,10 @@ class user{
 		writelogs("adding $mail",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 		if(!$ldap->Ldap_add_mod($this->dn,$array)){
 			$this->ldap_error=$ldap->ldap_last_error;
-		}else{
-			$this->del_whitelist($mail);
-			$users=new usersMenus();
-			$sock=new sockets();
-			if($users->ARTICA_META_ENABLED){$sock->getFrameWork("cmd.php?artica-meta-user=$this->uid");}			
-			return true;
+			return false;
 		}
+		
+		return true;
 		
 		
 	}

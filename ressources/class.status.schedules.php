@@ -5,7 +5,7 @@ function load_stats(){
 	$array_load=sys_getloadavg();
 	$internal_load=$array_load[0];
 	$time=time();
-
+	$BASEDIR="/usr/share/artica-postfix";
 	$hash_mem=array();
 	$datas=shell_exec(dirname(__FILE__)."/mem.pl");
 	if(preg_match('#T=([0-9]+) U=([0-9]+)#',$datas,$re)){$ram_used=$re[2];}
@@ -37,28 +37,28 @@ function load_stats(){
 	}
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.syslog-engine.php.load_stats.time");
 	if($time_file>5){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.syslog-engine.php --load-stats >/dev/null 2>&1 &");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.syslog-engine.php --load-stats >/dev/null 2>&1 &");
 	}
 
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.mpstat.php.time");
 	if($time_file>1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.mpstat.php >/dev/null 2>&1 &");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.mpstat.php >/dev/null 2>&1 &");
 	}
 
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.jgrowl.php.BuildJgrowl.time");
 	if($time_file>1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.jgrowl.php --build >/dev/null 2>&1 &");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.jgrowl.php --build >/dev/null 2>&1 &");
 	}
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/croned.1/cron.notifs.php.time");
 	if($time_file>1){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/cron.notifs.php >/dev/null 2>&1 &");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/cron.notifs.php >/dev/null 2>&1 &");
 	}
 
 
 
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.cleanfiles.php.time");
 	if($time_file>120){
-		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.cleanfiles.php >/dev/null 2>&1 &");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.cleanfiles.php >/dev/null 2>&1 &");
 	}
 
 
@@ -67,7 +67,7 @@ function load_stats(){
 	events("CHECK_DNS_SYSTEMS: {$time_file}mn",__FUNCTION__,__LINE__);
 
 	if($time_file>4){
-		$cmd="{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid.watchdog.php --dns >/dev/null 2>&1 &";
+		$cmd="{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.squid.watchdog.php --dns >/dev/null 2>&1 &";
 		events($cmd,__FUNCTION__,__LINE__);
 		shell_exec2("$cmd");
 	}
@@ -85,7 +85,7 @@ function load_stats(){
 		events("$line -> {$TTL}Mn");
 		if($TTL<420){continue;}
 		ToSyslog("Killing exec.schedules.php PID $pid");
-		shell_exec("$kill -9 $pid 2>&1");
+		unix_system_kill_force($pid);
 	}
 
 

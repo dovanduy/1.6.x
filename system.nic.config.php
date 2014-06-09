@@ -676,7 +676,7 @@ if($t<2){
 	<table style='width:99%' class=form>
 	<tr>
 	<td width=99%>&nbsp;</td>
-	<td widh=1% nowrap class=legend>$ovh_specific_config:</td>
+	<td widh=1% nowrap class=legend style='font-size:14px'>$ovh_specific_config:<br><i>{ovh_specific_config_explain}</i></td>
 	<td>". Field_checkbox("OVHNetConfig", 1,$OVHNetConfig,"OVHNetConfigSave()")."</td>
 	</tr>
 	</table>

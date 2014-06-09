@@ -13,8 +13,8 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid,basename(__FILE__))){die();}
 
 
 @file_put_contents($pidfile, getmypid());

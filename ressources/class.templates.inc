@@ -2980,6 +2980,7 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
 	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
+	if($callback==null){$callback="blur()";}
 	$hrf="<a href='javascript:blur();' class='nostylea'>";
 
 	if(trim($tips)==null){$tips='{click_enable_disable}';}
@@ -4263,9 +4264,10 @@ function BuildSession($uid,$nominiadm=false){
 function CheckSessions(){
 	if($GLOBALS["EXECUTED_AS_ROOT"]){return true;}
 	if(!isset($_SESSION["uid"])){$_SESSION["uid"]=null;}
+	if(!isset($_SESSION["MINIADM"])){$_SESSION["MINIADM"]=false;}
+	if(!isset($_COOKIE["MINIADM"])){$_COOKIE["MINIADM"]="NO";}
+	
 
-	
-	
 		
 		$page=CurrentPageName();
 		
@@ -4972,7 +4974,7 @@ return $tpl->_ENGINE_parse_body(Paragraphe('folder-64-fetchmail.png',
 
 function URL_COMPUTER($uid,$win){
 	$uid=urlencode($uid);
-	return "YahooWin$win(870,'domains.edit.user.php?userid=$uid$&ajaxmode=yes&Yahoowin=$win','$uid')";
+	return "YahooWin$win(986,'domains.edit.user.php?userid=$uid$&ajaxmode=yes&Yahoowin=$win','$uid')";
 }
 function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){
 	$uid_text=str_replace("$","",$uid);
@@ -4983,7 +4985,7 @@ function MEMBER_JS($uid,$noclik=0,$nojavascript=0,$dn=null,$t=null){
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}YahooUser(962,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text',true);";
+	$js="{$java}YahooUser(986,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn&t=$t','$uid_text',true);";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}
@@ -4995,7 +4997,7 @@ function COMPUTER_JS($uid,$noclik=0,$nojavascript=0,$dn=null){
 	if($dn<>null){$dn=urlencode(base64_encode($dn));}
 	$java="javascript:";
 	if($nojavascript==1){$java=null;}
-	$js="{$java}YahooUser(961,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn','$uid_text');";
+	$js="{$java}YahooUser(986,'domains.edit.user.php?userid=$uid&ajaxmode=yes&dn=$dn','$uid_text');";
 	if($noclik==0){
 		return "OnClick=\"$js\"";
 	}

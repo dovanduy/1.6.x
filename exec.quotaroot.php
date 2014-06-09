@@ -32,7 +32,7 @@ function quota_users(){
 			writelogs("Warning: Already running pid $pid since {$time}mn",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}else{
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}
 	}		
 	@file_put_contents($pidfile, getmypid());	
@@ -96,8 +96,8 @@ function quotas_mysql($nochek=false){
 	if(!$nochek){
 		$filetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){return;}
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){return;}
 		@file_put_contents($pidfile, getmypid());
 	}
 
@@ -161,8 +161,8 @@ function quotaCheck(){
 	
 	$filetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile, getmypid());
 	
 	if($unix->file_time_min($filetime)<300){die();}

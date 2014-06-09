@@ -35,8 +35,8 @@ WizardExecute();
 function testnetworks(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}	
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}	
 	@file_get_contents($pidfile,getmypid());
 	
 	shell_exec("/etc/init.d/mysql restart");
@@ -331,8 +331,8 @@ function WizardExecute(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	$pid=$unix->PIDOF_PATTERN(basename(__FILE__));
 	if($pid<>getmypid()){return;}
 	$uuid=$unix->GetUniqueID();

@@ -187,7 +187,7 @@ public function check_storage_table($force=false){
 	
 	
 	
-	
+		if(!$this->DATABASE_EXISTS("vmail")){$this->CREATE_DATABASE("vmail");}
 		if(!$this->DATABASE_EXISTS("artica_backup")){$this->CREATE_DATABASE("artica_backup");}
 		if(!$this->DATABASE_EXISTS("eyeOS")){$this->CREATE_DATABASE("eyeOS");}	
 		$this->check_mysql_dbtables();

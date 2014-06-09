@@ -780,7 +780,9 @@ class system_nic{
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."] *******************************";
 			$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth down";
-			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]} mtu: $MTU";
+			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]} mtu: $MTU BROADCAST: {$ligne["BROADCAST"]}";
+			
+			
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} down";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["sleepbin"]} 1";
 			$GLOBALS["SCRIPTS"][]="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} mtu $MTU up";			
@@ -1219,6 +1221,7 @@ class system_nic{
 	public function root_build_debian_config(){
 		$sock=new sockets();
 		$unix=new unix();
+		$ipClass=new IP();
 		$servicebin=$unix->find_program("update-rc.d");
 		$NetWorkBroadCastAsIpAddr=$sock->GET_INFO("NetWorkBroadCastAsIpAddr");
 		$EnableChilli=$sock->GET_INFO("EnableChilli");
@@ -1284,6 +1287,7 @@ class system_nic{
 			$eth=str_replace("\r", "", $eth);		
 			$MTU=intval($ligne["MTU"]);
 			if($MTU==0){$MTU=1500;}	
+			$brodcast_cmd=null;
 			if(trim($eth)==null){echo "Starting......: ".date("H:i:s")." no nic name !! \"{$ligne["IPADDR"]}\"\n";continue;}
 			if(isset($eth_SKIP[$eth])){
 				$GLOBALS["SCRIPTS"][]="# [".__LINE__."]";
@@ -1373,14 +1377,26 @@ class system_nic{
 				}
 			}
 			
+// BROADCAST Calculation ------------------------------------------------------------------------------------------			
+			$brodcast_cmd=null;
+			if($ligne["BROADCAST"]=="0.0.0.0"){$ligne["BROADCAST"]=null;}
+			if($NetWorkBroadCastAsIpAddr==1){$ligne["BROADCAST"]=$ligne["IPADDR"];}
+			
+			
 			if($REMOVE_GATEWAY==true){$ligne["GATEWAY"]="0.0.0.0";}
-			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]} mtu:$MTU";
-			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]} mtu $MTU up";
+			$GLOBALS["SCRIPTS"][]="# {$ligne["IPADDR"]}/{$ligne["NETMASK"]} Gateway: {$ligne["GATEWAY"]} mtu:$MTU Broadcast:{$ligne["BROADCAST"]} ".__CLASS__."/".__FUNCTION__ ." in line ".__LINE__;
+			
+			if($ligne["BROADCAST"]<>null){
+				if($ipClass->isValid($ligne["BROADCAST"])){
+					$brodcast_cmd=" broadcast {$ligne["BROADCAST"]}";
+				}
+			}
+			$ifconfig="{$GLOBALS["ifconfig"]} $eth {$ligne["IPADDR"]} netmask {$ligne["NETMASK"]}$brodcast_cmd mtu $MTU up";
 			$GLOBALS["SCRIPTS"][]="$ifconfig";
 			
 			$f[]="\taddress {$ligne["IPADDR"]}";
 			$f[]="\tnetmask {$ligne["NETMASK"]}";
-			if($NetWorkBroadCastAsIpAddr==1){$ligne["BROADCAST"]=$ligne["IPADDR"];}
+			
 			if($ligne["NETWORK"]<>null){$f[]="\tnetwork {$ligne["NETWORK"]}";}
 			if(trim($ligne["GATEWAY"])==null){$ligne["GATEWAY"]="0.0.0.0";}
 			

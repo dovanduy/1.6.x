@@ -32,9 +32,9 @@ function GetDisks(){
 function launch_tests(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		system_admin_events("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__,"system");
+		system_admin_events("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__,"system");
 		return;
 	}
 	

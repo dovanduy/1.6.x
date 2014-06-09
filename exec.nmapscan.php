@@ -32,8 +32,8 @@ $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
 
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already $oldpid running, aborting...\n";}return;}
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){echo "Already $pid running, aborting...\n";}return;}
 
 @file_put_contents($pidfile, getmypid());
 @file_put_contents($pidtime, time());
@@ -186,9 +186,9 @@ function scannetworks(){
 		}
 		
 		
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid)){
-			if($GLOBALS["VERBOSE"]){echo "Already $oldpid running, aborting...\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid)){
+			if($GLOBALS["VERBOSE"]){echo "Already $pid running, aborting...\n";}
 			return;
 		}
 		
@@ -435,8 +435,8 @@ function nmap_scan_period(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	
 	@unlink($pidfile);
 	@file_put_contents($pidfile, getmypid());
@@ -660,9 +660,9 @@ function nmap_scan_squid(){
 	$TimeF=$unix->file_time_min($pidTime);
 	if($TimeF<10){return;}
 	
-	$oldpid=$unix->get_pid_from_file($pidpath);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		writelogs(basename(__FILE__).":Already executed.. PID: $oldpid aborting the process",__FUNCTION__,__FILE__,__LINE__);
+	$pid=$unix->get_pid_from_file($pidpath);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		writelogs(basename(__FILE__).":Already executed.. PID: $pid aborting the process",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	

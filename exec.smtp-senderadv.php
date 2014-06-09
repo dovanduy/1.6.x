@@ -144,12 +144,12 @@ function Scan_Pools(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$CacheFile="/etc/artica-postfix/smtp-senderadv.router.cache";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		$nohup=$unix->find_program("nohup");
 		$php5=$unix->LOCATE_PHP5_BIN();
 		$cmd=$nohup ." ".$php5." ".__FILE__." >/dev/null 2>&1 &";
-		smtp::events("Mode router $oldpid already exists, stop function > $cmd...",__FUNCTION__,__FILE__,__LINE__);
+		smtp::events("Mode router $pid already exists, stop function > $cmd...",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
 		$unix->THREAD_COMMAND_SET($php5." ".__FILE__);
 	}
@@ -426,11 +426,11 @@ function InstanceSend($domainname,$instance,$instanceid){
 	$directory="{$GLOBALS["QUEUE_DIRECTORY"]}/$instance/$domainname/$instanceid";
 	
 	$pidfile="/etc/artica-postfix/pids/".md5($directory).".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		if($GLOBALS["VERBOSE"]){echo "$oldpid PID already exists... Aborting...\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "$pid PID already exists... Aborting...\n";}
 		die();
 	}
 	

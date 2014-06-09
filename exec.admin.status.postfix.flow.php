@@ -505,9 +505,9 @@ function status_right(){
 		}
 	}
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){
+	if($unix->process_exists($pid)){
 		events("Stopping status, Process Already running",__FUNCTION__,__FILE__,__LINE__);
 		return;	
 		

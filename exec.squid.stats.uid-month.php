@@ -74,13 +74,13 @@ function tables_months(){
 	
 	if($GLOBALS["VERBOSE"]){echo "timefile=$timefile\n";}
 	
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
 	
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<1240){if($GLOBALS["VERBOSE"]){echo "Only each 1240mn - current {$timeexec}mn, use --force to bypass\n";}return;}
 		$mypid=getmypid();

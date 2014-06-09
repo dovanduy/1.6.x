@@ -16,8 +16,8 @@ if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 
 $unix=new unix();
 $PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
-$oldpid=$unix->get_pid_from_file($PidRestore);
-if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+$pid=$unix->get_pid_from_file($PidRestore);
+if($unix->process_exists($pid,basename(__FILE__))){die();}
 
 
 
@@ -104,7 +104,7 @@ if(count($pids)>0){
 		$time=$unix->PROCESS_TTL($pid);
 		if($time>15){
 			$unix->_syslog("killing zarafa-admin --list-orphans pid $pid ({$time}mn)", basename(__FILE__));
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}
 		
 	}
@@ -246,17 +246,17 @@ function orphans(){
 				return;
 			}
 			
-			$oldpid=$unix->get_pid_from_file($pidfile);
-			if($unix->process_exists($oldpid,basename(__FILE__))){
-				$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
-				system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			$pid=$unix->get_pid_from_file($pidfile);
+			if($unix->process_exists($pid,basename(__FILE__))){
+				$timeProcess=$unix->PROCCESS_TIME_MIN($pid);
+				system_admin_events("$pid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
 				if($timeProcess<15){
 					return;
 				}
 				
 				$kill=$unix->find_program("kill");
-				shell_exec("$kill -9 $oldpid >/dev/null");
-				system_admin_events("$oldpid, killed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+				unix_system_kill_force($pid);
+				system_admin_events("$pid, killed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
 			}		
 			
 		}
@@ -270,7 +270,7 @@ if(count($pids)>0){
 		$time=$unix->PROCESS_TTL($pid);
 		if($time>15){
 			$unix->_syslog("killing zarafa-admin --list-orphans pid $pid ({$time}mn)", basename(__FILE__));
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}
 
 	}
@@ -799,7 +799,7 @@ function relinkto($from,$to){
 			$time=$unix->PROCESS_TTL($pid);
 			if($time>15){
 				$unix->_syslog("killing zarafa-admin --list-orphans pid $pid ({$time}mn)", basename(__FILE__));
-				shell_exec("$kill -9 $pid");
+				unix_system_kill_force($pid);
 			}
 	
 		}
@@ -870,17 +870,17 @@ function user_status_table(){
 		if($mns<180){return;}
 		
 		
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timeProcess=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events("$oldpid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timeProcess=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events("$pid, task is already executed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
 			if($timeProcess<15){
 				return;
 			}
 			
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -9 $oldpid >/dev/null");
-			system_admin_events("$oldpid, killed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
+			unix_system_kill_force($pid);
+			system_admin_events("$pid, killed (since {$timeProcess}Mn}), aborting" , __FUNCTION__, __FILE__, __LINE__, "zarafa");
 		}		
 		
 	}
@@ -931,7 +931,7 @@ function user_status_table(){
 			$time=$unix->PROCESS_TTL($pid);
 			if($time>15){
 				$unix->_syslog("killing zarafa-admin -l pid $pid ({$time}mn)", basename(__FILE__));
-				shell_exec("$kill -9 $pid");
+				unix_system_kill_force($pid);
 			}
 	
 		}

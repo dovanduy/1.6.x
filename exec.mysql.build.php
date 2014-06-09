@@ -59,9 +59,9 @@ if($argv[1]=='--myisamchk'){myisamchk();die();}
 
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
 	$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid.time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 		
-	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already process $oldpid exists",__FUNCTION__,__FILE__,__LINE__);die();}
+	if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already process $pid exists",__FUNCTION__,__FILE__,__LINE__);die();}
 	
 if($argv[1]=='--tables'){checks();die();}
 if($argv[1]=='--imapsync'){rebuild_imapsync();die();}
@@ -445,10 +445,10 @@ function databases_list_fill(){
 	if(!$GLOBALS["FORCE"]){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$pidfileTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-		$oldpid=$unix->get_pid_from_file($pidfile);
+		$pid=$unix->get_pid_from_file($pidfile);
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			writelogs("Already process $oldpid exists",__FUNCTION__,__FILE__,__LINE__);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			writelogs("Already process $pid exists",__FUNCTION__,__FILE__,__LINE__);
 			return;
 		}
 		
@@ -929,10 +929,10 @@ function mysql_display($table,$database){
 function mysqlcheck($db,$table,$instance_id){
 	if($GLOBALS["VERBOSE"]){echo "START:: ".__FUNCTION__."\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){
-		echo "Process already exists pid $oldpid\n";
+	if($unix->process_exists($pid)){
+		echo "Process already exists pid $pid\n";
 		return;
 	}
 	

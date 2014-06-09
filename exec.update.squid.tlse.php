@@ -47,7 +47,7 @@ function Execute(){
 	$pid=@file_get_contents($pidfile);
 	if($unix->process_exists($pid,__FILE__)){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($time>240){shell_exec("$kill -9 $pid");}
+		if($time>240){unix_system_kill_force($pid);}
 	}
 	if($unix->process_exists($pid,__FILE__)){return;}
 	@file_put_contents($pidfile, getmypid());
@@ -87,7 +87,7 @@ function Execute(){
 
 				die();
 			}else{
-				shell_exec("$kill -9 $pid 2>&1");
+				unix_system_kill_force($pid);
 			}
 		}
 		

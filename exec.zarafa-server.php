@@ -48,10 +48,10 @@ function restart($nopid=false){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$nopid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -73,18 +73,18 @@ function start($aspid=false){
 	$PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
 	$PidLock="/etc/artica-postfix/LOCK_ZARAFA";
 	
-	$oldpid=$unix->get_pid_from_file($PidRestore);
-	if($unix->process_exists($oldpid)){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Artica Restore running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($PidRestore);
+	if($unix->process_exists($pid)){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Artica Restore running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Artica Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -104,15 +104,15 @@ function start($aspid=false){
 	
 	
 	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
-	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-	if(!$unix->process_exists($oldpid)){
+	$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine OpenLDAP server is not running start it...\n";}
 		shell_exec("/etc/init.d/slapd start");
 		return;
 	}
 
 		
-	if(!$unix->process_exists($oldpid)){
+	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine Failed, OpenLDAP server is not running...\n";}		
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-server Engine OpenLDAP server is running...\n";}
@@ -199,10 +199,10 @@ function start($aspid=false){
 function reload(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
@@ -218,7 +218,7 @@ function reload(){
 	system("/usr/share/artica-postfix/bin/artica-install --zarafa-reconfigure");	
 	if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: zarafa-server reloading PID $pid...\n";}
 	$kill=$unix->find_program("kill");
-	shell_exec("$kill -HUP $pid");
+	unix_system_HUP($pid);
 	
 }
 
@@ -227,10 +227,10 @@ function stop($aspid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -242,6 +242,8 @@ function stop($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server already stopped...\n";}
 		return;
 	}
+	
+	system_admin_events("Warning, Ordered to stop Zarafa service",__FUNCTION__,__FILE__,__LINE__,"mailboxes");
 	
 	if($GLOBALS["KILL"]){
 		$killopt=" -9";

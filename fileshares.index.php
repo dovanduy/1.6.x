@@ -413,7 +413,7 @@ cookies_main();
 	
 	$samba=Paragraphe('64-samba-grey.png','{APP_SAMBA}','{feature_not_installed}','',null,210,null,0,false);
 	$share=Paragraphe('64-share-grey.png','{SHARE_FOLDER}','{feature_not_installed}','',null,210,null,0,false);
-	$audit=Paragraphe('folder-64-spamassassin-grey.png','{samba_audit}','{feature_not_installed}',"",null,210,null,0,false);
+	$audit=Paragraphe('64-spam-grey.png','{samba_audit}','{feature_not_installed}',"",null,210,null,0,false);
 	$usb=Paragraphe('usb-share-64.png','{usb_share}','{feature_not_installed}',"",null,210,null,0,false);
 	$usb=Paragraphe('usb-share-64.png','{usb_share}','{feature_not_installed}',"",null,210,null,0,false);
 	$dropbox=Paragraphe('dropbox-64-grey.png','{APP_DROPBOX}','{APP_DROPBOX_TEXT}',"",null,210,null,0,false);
@@ -428,7 +428,7 @@ cookies_main();
 		$greyhole=Paragraphe('folder-64-artica-backup-grey.png',"{APP_GREYHOLE}",'{feature_not_installed}');
 		$samba=Paragraphe('64-samba.png','{APP_SAMBA}','{APP_SAMBA_TEXT}',"javascript:Loadjs('samba.index.php?script=smbpop')",null,210,null,0,false);
 		$share=Paragraphe('64-share.png','{SHARE_FOLDER}','{SHARE_FOLDER_TEXT}',"javascript:Loadjs('SambaBrowse.php');",null,210,null,0,false);
-		$audit=Paragraphe('folder-64-spamassassin.png','{samba_audit}','{samba_audit_text}',"new:smb-audit/index.php",null,210,null,0,false);
+		$audit=Paragraphe('64-spam.png','{samba_audit}','{samba_audit_text}',"new:smb-audit/index.php",null,210,null,0,false);
 		$usb=Paragraphe('usb-share-64.png','{usb_share}','{usb_share_text}',"javascript:Loadjs('usb.browse.php')",null,210,null,0,false);
 		$NTconfig=Buildicon64("DEF_ICO_NTPOL");
 		$sync=Buildicon64('DEF_ICO_SAMBA_SYNCHRO');
@@ -510,13 +510,13 @@ cookies_main();
 	
 	$users->LoadModulesEnabled();
 	$pure=Paragraphe('64-pureftpd-grey.png','{APP_PUREFTPD}','{feature_not_installed}','');
-	$events=Paragraphe('folder-64-spamassassin-grey.png','{events}','{feature_not_installed}','');
+	$events=Paragraphe('64-spam-grey.png','{events}','{feature_not_installed}','');
 	$apply=Paragraphe('system-64-grey.png','{apply}','{feature_not_installed}','');
 	$purewho=Paragraphe('folder-rules2-64-info-grey.png','{current_connections}','{feature_not_installed}','');
 	
 	if($users->PUREFTP_INSTALLED){
 		$pure=Paragraphe('64-pureftpd.png','{APP_PUREFTPD}','{APP_PUREFTPD_TEXT}',"javascript:Loadjs('pureftp.index.php?js=yes')");
-		$events=Paragraphe('folder-64-spamassassin.png','{events}','{events_text}',"javascript:Loadjs('pureftp.events.php')");
+		$events=Paragraphe('64-spam.png','{events}','{events_text}',"javascript:Loadjs('pureftp.events.php')");
 		$apply=Paragraphe('system-64.png','{apply}','{apply_config_pureftpd}',"javascript:ApplyConfig('pure-ftpd');");
 		$purewho=Paragraphe('folder-rules2-64-info.png','{current_connections}','{current_connections_text}',"javascript:Loadjs('pureftp.events.php?who=yes')");
 		

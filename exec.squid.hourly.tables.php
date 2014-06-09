@@ -27,8 +27,8 @@ if($GLOBALS["VERBOSE"]){echo "TimeFile:$pidTime\n";}
 $unix=new unix();
 if(!$GLOBALS["FORCE"]){
 	if($unix->file_time_min($pidTime)<15){die();}
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){die();}
 }
 
 @unlink($pidTime);

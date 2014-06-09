@@ -26,10 +26,10 @@ function backup_md5($md5){
 	$backend_root="/root/.offlineimap";
 	
 	$pidfile="/var/run/offlineimap-$md5.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timemin=$unix->PROCCESS_TIME_MIN($oldpid);
-		$timefile=buildlogs("PID $oldpid running since {$timemin}mn , aborting",__FUNCTION__,__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		$timemin=$unix->PROCCESS_TIME_MIN($pid);
+		$timefile=buildlogs("PID $pid running since {$timemin}mn , aborting",__FUNCTION__,__LINE__);
 		LogsToMysqlMD5($md5);
 		return;
 	}

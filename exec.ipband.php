@@ -33,10 +33,10 @@ function status(){
 	if($ipBandEnabled==0){return;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$me=basename(__FILE__);
-	$oldpid=@file_get_contents($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,$me)){
-		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $oldpid aborting the process\n";}
-		system_admin_events("Already executed.. $oldpid aborting the process",__FUNCTION__,__FILE__,__LINE__,"ipband");
+	$pid=@file_get_contents($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,$me)){
+		if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $pid aborting the process\n";}
+		system_admin_events("Already executed.. $pid aborting the process",__FUNCTION__,__FILE__,__LINE__,"ipband");
 		return;
 	}	
 	@file_put_contents($pidfile, getmypid());
@@ -264,8 +264,8 @@ function ParseResolvConf(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$me=basename(__FILE__);
-	$oldpid=@file_get_contents($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,$me)){if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $oldpid aborting the process\n";}system_admin_events("Already executed.. $oldpid aborting the process",__FUNCTION__,__FILE__,__LINE__,"ipband");return;}	
+	$pid=@file_get_contents($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,$me)){if($GLOBALS["VERBOSE"]){echo " --> Already executed.. $pid aborting the process\n";}system_admin_events("Already executed.. $pid aborting the process",__FUNCTION__,__FILE__,__LINE__,"ipband");return;}	
 	@file_put_contents($pidfile, getmypid());	
 	$t=time();
 	$c=0;

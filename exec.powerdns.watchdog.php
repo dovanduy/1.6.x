@@ -31,7 +31,7 @@ function watchdog($maxProcesses=50){
 		echo "Watchdog GO -> kill $pdns_server !\n";
 		while (list ($num, $int) = each ($PIDS)){
 			echo "Killing $pdns_server pid $num\n";
-			shell_exec("$kill -9 $num >/dev/null 2>&1");		
+			unix_system_kill_force($num);		
 		}
 		
 	
@@ -44,7 +44,7 @@ function watchdog($maxProcesses=50){
 		echo count($PIDS)." processes <> $maxProcesses for $pdns_recursor\n";
 		while (list ($num, $int) = each ($PIDS)){
 			echo "Killing $pdns_recursor pid $num \n";
-			shell_exec("$kill -9 $num >/dev/null 2>&1");		
+			unix_system_kill_force($num);		
 		}		
 		
 	}

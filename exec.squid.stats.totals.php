@@ -48,11 +48,11 @@ function start($xtime=0){
 		if($GLOBALS["VERBOSE"]){"echo Loading done...\n";}
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		if(!$GLOBALS["FORCE"]){
-			if($oldpid<100){$oldpid=null;}
+			if($pid<100){$pid=null;}
 			$unix=new unix();
-			if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+			if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 			$timeexec=$unix->file_time_min($timefile);
 			if($timeexec<720){return;}
 			$mypid=getmypid();
@@ -230,11 +230,11 @@ function donnees_interface(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile=dirname(__FILE__)."/ressources/logs/web/SQUID_STATS_GLOBALS_VALUES";
 	@mkdir(dirname($timefile),0755,true);
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<30){return;}
 		$mypid=getmypid();
@@ -307,11 +307,11 @@ function TOTALS_REPAIR(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if($GLOBALS["VERBOSE"]){echo "time: $timefile\n";}
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 		$timeexec=$unix->file_time_min($timefile);
 		if($timeexec<1440){return;}
 		$mypid=getmypid();

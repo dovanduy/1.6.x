@@ -110,6 +110,7 @@ if($argv[1]=='--debug-peer-list'){debug_peer_list();ReloadPostfix(true);die();}
 if($argv[1]=='--badnettr'){badnettr($argv[2],$argv[3],$argv[4]);ReloadPostfix(true);die();}
 if($argv[1]=='--milters'){smtpd_milters();RestartPostix();die();}
 if($argv[1]=='--cleanup'){CleanUpMainCf();die();}
+if($argv[1]=='--restrictions'){smtpd_recipient_restrictions();ReloadPostfix(true);die();}
 
 
 
@@ -134,18 +135,18 @@ if($argv[1]=='--reconfigure'){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/postfix.reconfigure2.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: reconfigure2: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: reconfigure2: Postfix Already Artica task running PID $pid since {$time}mn\n";}
 		die();
 	}
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".reconfigure.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $pid since {$time}mn\n";}
 		die();
 	}
 	@file_put_contents($pidfile, getmypid());	
@@ -681,50 +682,7 @@ function BuildDefaultBranchs(){
 
 
 function imap_sockets(){
-	if(!is_file("/etc/imapd.conf")){
-		echo "Starting......: ".date("H:i:s")." cyrus transport no available\n";
-		return;
-	}
-	
-	shell_exec("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus");
-	
-	
-	echo "Starting......: ".date("H:i:s")." cyrus analyze /etc/imapd.conf\n";
-	$f=explode("\n",@file_get_contents("/etc/imapd.conf"));
-	while (list ($num, $ligne) = each ($f) ){
-		if(preg_match("#lmtpsocket:(.+)#",$ligne,$re)){
-			$socket=trim($re[1]);
-		}
-	}
-	
-	$f=explode("\n",@file_get_contents("/etc/cyrus.conf"));
-	while (list ($num, $ligne) = each ($f) ){
-		if(substr($ligne,0,1)=="#"){continue;}
-		if(preg_match("#lmtpunix\s+(.+)#",$ligne,$re)){
-			echo "Starting......: ".date("H:i:s")." cyrus lmtpunix: $ligne\n";
-			$f[$num]="  lmtpunix	cmd=\"lmtpd\" listen=\"$socket\" prefork=1";
-			$write=true;
-		}
-	}	
-	
-	if($write){
-		@file_put_contents("/etc/cyrus.conf",implode("\n",$f));
-		shell_exec("/etc/init.d/cyrus-imapd restart");
-	}
-	if(!is_file($socket)){
-		if(is_file("$socket=")){$socket="$socket=";}
-	}
-	
-	echo "Starting......: ".date("H:i:s")." cyrus transport: unix:$socket\n";
-	if($socket<>null){
-		echo "Starting......: ".date("H:i:s")." mailbox_transport=lmtp:unix:$socket\n";
-		postconf("mailbox_transport","lmtp:unix:$socket");
-		shell_exec("postfix stop");
-		shell_exec("postfix start");
-		shell_exec("postqueue -f");
-	}
-	
-	
+	return;
 	
 }
 
@@ -1041,6 +999,7 @@ function smtpd_recipient_restrictions(){
 	unset($newHash["check_client_access pcre:/etc/postfix/fqrdns.pcre"]);
 	unset($newHash["check_policy_service inet:127.0.0.1:54423"]);
 	unset($newHash["check_policy_service inet:127.0.0.1:13331"]);
+	unset($newHash["check_policy_service inet:127.0.0.1:7777"]);
 	
 	
 	if(is_array($newHash)){	
@@ -1061,12 +1020,16 @@ function smtpd_recipient_restrictions(){
 	if($users->CLUEBRINGER_INSTALLED){
 		if($EnableCluebringer==1){$smtpd_recipient_restrictions[]="check_policy_service inet:127.0.0.1:13331";}
 	}
+	
+
 					
 	postconf("smtpd_restriction_classes","artica_restrict_relay_domains");
 	postconf("artica_restrict_relay_domains","reject_unverified_recipient");
 	$MynetworksInISPMode=$sock->GET_INFO("MynetworksInISPMode");
 	if(!is_numeric($MynetworksInISPMode)){$MynetworksInISPMode=0;}		
 	if($TrustMyNetwork==0 && $MynetworksInISPMode==1){$TrustMyNetwork=1;}
+	
+
 	
 	if($TrustMyNetwork==1){$smtpd_recipient_restrictions[]="permit_mynetworks";}else{
 		echo "Starting......: ".date("H:i:s")." **** TrustMyNetwork is disabled, outgoing messages should be not allowed... **** \n";
@@ -1133,6 +1096,10 @@ function smtpd_recipient_restrictions(){
 	}
 	else{__REMOVE_smtpd_restriction_classes("auth_relay");}	
 	
+	
+	if(is_file("/opt/iRedAPD/iredapd.py")){
+		array_unshift($smtpd_recipient_restrictions,"check_policy_service inet:127.0.0.1:7777");
+	}
 	
 	
 	//CLEAN engine ---------------------------------------------------------------------------------------
@@ -1828,35 +1795,36 @@ function MailBoxTransport(){
 	postconf("zarafa_destination_recipient_limit",1);
 	echo "Starting......: ".date("H:i:s")." Postfix mailbox_transport=`$default`\n";
 	postconf("mailbox_transport",$default);
+	postconf("virtual_transport","\$mailbox_transport");
+	postconf("local_transport","local");
+	postconf("lmtp_sasl_auth_enable","no");
+	postconf("lmtp_sasl_password_maps","");
+	postconf("lmtp_sasl_mechanism_filter","plain, login");
+	postconf("lmtp_sasl_security_options",null);
 	
+	if(!$users->ZARAFA_INSTALLED){
+		if(!$users->cyrus_imapd_installed){
+			echo "Starting......: ".date("H:i:s")." Postfix None of Zarafa or cyrus imap installed on this server\n";
+			return null;
+		}
+	}
 
 	
-	if(preg_match("#lmtp:(.+?):[0-9]+#",$default)){
-		if(!$users->ZARAFA_INSTALLED){
-			if(!$users->cyrus_imapd_installed){
-				echo "Starting......: ".date("H:i:s")." Postfix None of Zarafa or cyrus imap installed on this server\n";
-				disable_lmtp_sasl();
-				return null;
-			}
-			echo "Starting......: ".date("H:i:s")." Postfix \"LMTP\" is enabled ($default)\n";
-			$ldap=new clladp();
-			$CyrusLMTPListen=trim($sock->GET_INFO("CyrusLMTPListen"));
-			$cyruspass=$ldap->CyrusPassword();
-			if($CyrusLMTPListen<>null){
-				@file_put_contents("/etc/postfix/lmtpauth","$CyrusLMTPListen\tcyrus:$cyruspass");
-				shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/lmtpauth");
-				postconf("lmtp_sasl_auth_enable","yes");
-				postconf("lmtp_sasl_password_maps","hash:/etc/postfix/lmtpauth");
-				postconf("lmtp_sasl_mechanism_filter","plain, login");
-				postconf("lmtp_sasl_security_options",null);	
-			}		
+	if(preg_match("#lmtp:(.+?):([0-9]+)#",$default,$re)){
+		echo "Starting......: ".date("H:i:s")." Postfix \"LMTP\" is enabled ($default)\n";
+		$ldap=new clladp();
+		$CyrusLMTPListen=$re[1].":".$re[2];
+		$cyruspass=$ldap->CyrusPassword();
+		@file_put_contents("/etc/postfix/lmtpauth","$CyrusLMTPListen\tcyrus:$cyruspass");
+		shell_exec("{$GLOBALS["postmap"]} hash:/etc/postfix/lmtpauth");
+		postconf("lmtp_sasl_auth_enable","yes");
+		postconf("lmtp_sasl_password_maps","hash:/etc/postfix/lmtpauth");
+		postconf("lmtp_sasl_mechanism_filter","plain, login");
+		postconf("lmtp_sasl_security_options","noanonymous");
 		}
-	}else{
-		disable_lmtp_sasl();
 	}
 	
 	
-	}
 	
 function disable_lmtp_sasl(){
 	echo "Starting......: ".date("H:i:s")." Postfix LMTP is disabled\n";
@@ -2463,6 +2431,8 @@ function MasterCFBuilder($restart_service=false){
 	
 	
 	shell_exec("{$GLOBALS["postconf"]} -e \"artica-filter_destination_recipient_limit = 1\" >/dev/null 2>&1");
+	shell_exec("{$GLOBALS["postconf"]} -e \"content_filter =\" >/dev/null 2>&1");
+	
 	if($EnableArticaSMTPFilter==0){shell_exec("{$GLOBALS["postconf"]} -e \"content_filter =\" >/dev/null 2>&1");}
 		
 
@@ -2880,9 +2850,9 @@ function repair_locks(){
 	$timeFile="/etc/artica-postfix/pids/$Myfile.".__FUNCTION__.".time";
 	$pidFile="/etc/artica-postfix/pids/$Myfile.".__FUNCTION__.".pid";
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidFile);
+	$pid=$unix->get_pid_from_file($pidFile);
 	
-	if($unix->process_exists($oldpid,$Myfile)){writelogs("Die, already process $oldpid running ",__FUNCTION__,__FILE__,__LINE__);return;}
+	if($unix->process_exists($pid,$Myfile)){writelogs("Die, already process $pid running ",__FUNCTION__,__FILE__,__LINE__);return;}
 	
 	$time=$unix->file_time_min($timeFile);
 	if($time<5){writelogs("Die, No more than 5mn ",__FUNCTION__,__FILE__,__LINE__);return;}

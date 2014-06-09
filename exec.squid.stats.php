@@ -125,10 +125,10 @@ ufdbguard_admin_events("ERROR: UNABLE TO UNDERSTAND: '{$argv[1]}'","MAIN",__FILE
 
 function sync_categories(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	
@@ -200,8 +200,8 @@ function recategorize_week($tablename,$nopid=false,$nochilds=false){
 	if(!$nopid){
 		
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 	}	
 	
 	$q=new mysql_squid_builder();
@@ -262,16 +262,16 @@ function scan_hours($nopid=false){
 	if($GLOBALS["FORCE"]){$nopid=false;}
 	
 	if(!$nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		
-		if($unix->process_exists($oldpid)){
-			$ttl=$unix->PROCCESS_TIME_MIN($oldpid);
+		if($unix->process_exists($pid)){
+			$ttl=$unix->PROCCESS_TIME_MIN($pid);
 			if($ttl>120){
-				writelogs_squid("Fatal, Executed $oldpid more than 120mn {$ttl}mn, killing task",__FUNCTION__,__FILE__,__LINE__);
+				writelogs_squid("Fatal, Executed $pid more than 120mn {$ttl}mn, killing task",__FUNCTION__,__FILE__,__LINE__);
 				$kill=$unix->find_program("kill");
-				shell_exec("$kill -9 $oldpid >/dev/null");
+				unix_system_kill_force($pid);
 			}else{
-				writelogs_squid("Fatal, Executed $oldpid since {$ttl}mn, aborting task",__FUNCTION__,__FILE__,__LINE__);
+				writelogs_squid("Fatal, Executed $pid since {$ttl}mn, aborting task",__FUNCTION__,__FILE__,__LINE__);
 				return;
 			}
 		}
@@ -307,9 +307,9 @@ function scan_hours($nopid=false){
 
 function scan_months(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	
@@ -325,10 +325,10 @@ function scan_months(){
 function flow_month($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if($nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,$myfile)){return;}
+		if($unix->process_exists($pid,$myfile)){return;}
 	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
@@ -370,10 +370,10 @@ function visited_websites_by_day($nopid=false){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("Task already running PID: $oldpid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("Task already running PID: $pid, aborting current task",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
 	}
@@ -561,9 +561,9 @@ function _flow_month_query_perfom($SourceTable,$destinationTable,$day){
 function members_month($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if($nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+		if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);		
 	}
@@ -597,9 +597,9 @@ function members_month($nopid=false){
 
 function members_month_query($month,$year){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+	if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	$q=new mysql_squid_builder();
@@ -684,9 +684,9 @@ function _members_month_perfom($sourcetable,$destinationtable,$day){
 function members_hours($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+		if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);return;}
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
 	}
@@ -1076,11 +1076,11 @@ function members_central($aspid=false){
 	}
 	if(!$aspid){	
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("$pid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
 		
@@ -1345,10 +1345,10 @@ function visited_sites(){
 	if($GLOBALS["VERBOSE"]){$GLOBALS["FORCE"]=true;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	if(!$GLOBALS["FORCE"]){
@@ -1556,10 +1556,10 @@ function youtube_uid(){
 function block_days($nopid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if($nopid){
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);return;}
+		if($unix->process_exists($pid,basename(__FILE__))){writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);return;}
 	}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
@@ -1639,8 +1639,8 @@ function macuid(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
 	$unix=new unix();
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
 	
@@ -1800,11 +1800,11 @@ function week_uris($asPid=false){
 	
 	if($asPid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
 		$unix=new unix();
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("$pid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
 		
@@ -1921,10 +1921,10 @@ function youtube_week($asPid=false){
 	
 	if($asPid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$myfile=basename(__FILE__);
-		if($unix->process_exists($oldpid,$myfile)){
-			ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+		if($unix->process_exists($pid,$myfile)){
+			ufdbguard_admin_events("$pid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}
 	}
@@ -2045,10 +2045,10 @@ function defragment_category_tables(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timeF="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}return;}
+	if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	
@@ -2196,12 +2196,12 @@ function optimize_tables(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timeF="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){
-		ufdbguard_admin_events("Fatal Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"maintenance");
-		echo "Already executed pid $oldpid\n";}
+	if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){
+		ufdbguard_admin_events("Fatal Already executed pid $pid",__FUNCTION__,__FILE__,__LINE__,"maintenance");
+		echo "Already executed pid $pid\n";}
 		return;
 	}
 	
@@ -2286,10 +2286,10 @@ function webcacheperfs(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timeF="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){if($GLOBALS["VERBOSE"]){ufdbguard_admin_events("Fatal Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"stats");echo "Already executed pid $oldpid\n";}return;}	
+	if($unix->process_exists($pid)){if($GLOBALS["VERBOSE"]){ufdbguard_admin_events("Fatal Already executed pid $pid",__FUNCTION__,__FILE__,__LINE__,"stats");echo "Already executed pid $pid\n";}return;}	
 	$prefix=date("Ymd");
 	$currenttable="{$prefix}_hour";
 	
@@ -2375,12 +2375,12 @@ function RepairCategoriesBases(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timeF="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){
-		ufdbguard_admin_events("Fatal Already executed pid $oldpid",__FUNCTION__,__FILE__,__LINE__,"stats");
-		echo "Already executed pid $oldpid\n";
+	if($unix->process_exists($pid)){
+		ufdbguard_admin_events("Fatal Already executed pid $pid",__FUNCTION__,__FILE__,__LINE__,"stats");
+		echo "Already executed pid $pid\n";
 		return;
 	}	
 	if($unix->file_time_min($timeF)<10){
@@ -2422,11 +2422,11 @@ function thumbnail_parse(){
 		return;
 	}
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		writelogs("Already executed pid:$oldpid",__FUNCTION__,__FILE__,__LINE__);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		writelogs("Already executed pid:$pid",__FUNCTION__,__FILE__,__LINE__);
 		return;
 	}
 	

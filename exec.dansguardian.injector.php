@@ -23,17 +23,17 @@ if($argv[1]=="--errors"){ufdbguard_blocks_errors();die();}
 
 $pid=getmypid();
 $pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 $unix=new unix();
 $GLOBALS["CLASS_UNIX"]=$unix;
-if($unix->process_exists($oldpid)){
-	if($pid<>$oldpid){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		events(basename(__FILE__).": Already executed $oldpid (since {$time}Mn).. aborting the process (line:  Line: ".__LINE__.")");
-		events_tail("Already executed $oldpid (since {$time}Mn). aborting the process (line:  Line: ".__LINE__.")");
+if($unix->process_exists($pid)){
+	if($pid<>$pid){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		events(basename(__FILE__).": Already executed $pid (since {$time}Mn).. aborting the process (line:  Line: ".__LINE__.")");
+		events_tail("Already executed $pid (since {$time}Mn). aborting the process (line:  Line: ".__LINE__.")");
 		if($time>120){
-			events(basename(__FILE__).": killing $oldpid  (line:  Line: ".__LINE__.")");
-			shell_exec("/bin/kill -9 $oldpid");
+			events(basename(__FILE__).": killing $pid  (line:  Line: ".__LINE__.")");
+			unix_system_kill_force($pid);
 		}else{	
 			die();
 		}

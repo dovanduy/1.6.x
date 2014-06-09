@@ -22,9 +22,9 @@ function start(){
 	
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidpath);
-	if($unix->process_exists($oldpid)){
-		$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $oldpid running.. Aborting");
+	$pid=@file_get_contents($pidpath);
+	if($unix->process_exists($pid)){
+		$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running.. Aborting");
 		return;
 	}	
 	

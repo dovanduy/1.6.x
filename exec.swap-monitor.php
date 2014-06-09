@@ -69,9 +69,9 @@ function FreeMem($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 			return;
 		}
 	}
@@ -107,9 +107,9 @@ function FreeMem($aspid=false){
 function FreeSync(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 		return;
 	}
 	
@@ -127,9 +127,9 @@ function Watch(){
 	
 	if($GLOBALS["VERBOSE"]){echo "Time: $pidTime\n";}
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
 		return;
 	}	
 	$sock=new sockets();

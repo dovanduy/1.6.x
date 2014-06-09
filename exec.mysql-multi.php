@@ -46,7 +46,7 @@ function ChangeRoot($instance_id){
 		$pid=multi_get_pid($instance_id);
 		if($pid>0){
 			echo "Stopping mysqld safe pid:$pid\n";
-			shell_exec("$killbin -9 $pid");
+			unix_system_kill_force($pid);
 			sleep(1);
 		}else{break;}
 	}	
@@ -59,7 +59,7 @@ function ChangeRoot($instance_id){
 		$pid=multi_get_pidNormal($instance_id);
 		if($pid>0){
 			echo "Stopping mysqld pid:$pid\n";
-			shell_exec("$killbin -9 $pid");
+			unix_system_kill_force($pid);
 			sleep(1);
 		}else{break;}
 	}	
@@ -120,7 +120,7 @@ function ChangeRoot($instance_id){
 		$pid=multi_get_pid($instance_id);
 		if($pid>0){
 			echo "Stopping mysqld safe pid:$pid\n";
-			shell_exec("$killbin -9 $pid");
+			unix_system_kill_force($pid);
 			sleep(1);
 		}else{break;}
 	}

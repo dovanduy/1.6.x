@@ -33,9 +33,9 @@ function empty_db($database){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-			ouputz("already running PID:$oldpid",__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+			ouputz("already running PID:$pid",__LINE__);
 			return;
 		}
 		$t=time();

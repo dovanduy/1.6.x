@@ -22,9 +22,9 @@ function uninstall(){
 	$unix=new unix();
 	$INSTALL_DIR="/usr/share/phpldapadmin";
 	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		if($unix->PROCCESS_TIME_MIN($oldpid,10)<2){return;}
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){
+		if($unix->PROCCESS_TIME_MIN($pid,10)<2){return;}
 	}
 	
 	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/phpldapadmin.status";
@@ -51,9 +51,9 @@ function install(){
 	$unix=new unix();
 	
 	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		if($unix->PROCCESS_TIME_MIN($oldpid,10)<2){return;}
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){
+		if($unix->PROCCESS_TIME_MIN($pid,10)<2){return;}
 	}
 	
 	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/phpldapadmin.status";

@@ -421,6 +421,7 @@ Ce service est particuli&egrave;rement utile lorsqu'il faut r&eacute;partir la c
 Il supporte des millier de connexions sur des serveurs de derni&egrave;re g&eacute;n&eacute;ration.[br]
 Son mode d'impl&eacute;mentation est tr&egrave;s simple et lui permet de s'int&eacute;grer dans des architectures existantes sans risque.[br]</APP_HAPROXY_ABOUT>
 <APP_HOTSPOT>Service HotSpot</APP_HOTSPOT>
+<APP_IREDMAIL>D&eacute;mon iRedMail</APP_IREDMAIL>
 <APP_KAV4PROXY_TEMPLATES>Modifier les pages d'erreurs g&eacute;n&eacute;r&eacute;es par le moteur Antivirus.</APP_KAV4PROXY_TEMPLATES>
 <APP_KAVUTILITY2>Update Utility v2</APP_KAVUTILITY2>
 <APP_KLMS>Kaspersky Linux Mail Security</APP_KLMS>
@@ -736,9 +737,12 @@ Toutes les adresses ajout&eacute;es ici seront alors rendues invisibles dans les
 <behavior>Comportement</behavior>
 <behavior_listen_ports>Comportement et ports d'&eacute;coute</behavior_listen_ports>
 <bind_address>Crocheter l'adresse</bind_address>
+<blackandwhite_list>Listes blanches et noires</blackandwhite_list>
+<blackandwhite_list_members>Administrer vos listes blanches et noires.</blackandwhite_list_members>
 <blacklist_categories>Cat&eacute;gories interdites</blacklist_categories>
 <blacklist_this_website>Interdire ce site</blacklist_this_website>
 <blacklist_website>Interdire un site</blacklist_website>
+<blackwhite_automation>Automatisme des listes blanches et noires</blackwhite_automation>
 <blank_page>Page blanche</blank_page>
 <blatant_spam>Pourriels &quot;s&ucirc;rs&quot;</blatant_spam>
 <blocked_events>&Eacute;v&egrave;nements bloqu&eacute;s</blocked_events>
@@ -1705,6 +1709,7 @@ Vous pouvez d&eacute;sactiver le Switch virtuel en mettant en rouge le bouton.</
 <enable_dns_service>Activer/d&eacute;sactiver le service DNS</enable_dns_service>
 <enable_filter_redirection>Activer la redirection dans le moteur de filtrage</enable_filter_redirection>
 <enable_from_randomize>Activer le Mail From al&eacute;atoire</enable_from_randomize>
+<enable_FTP_backup>Enregistre la sauvegarde via FTP</enable_FTP_backup>
 <enable_ftp_proxy_service>Activer le service Proxy FTP</enable_ftp_proxy_service>
 <enable_ftp_proxy_service_text>Si vert, Artica va d&eacute;marrer le service de proxy FTP et autoriser vos utilisateurs &agrave; se connecter &agrave; Internet avec un client natif FTP.[br]
 Les param&egrave;tres sp&eacute;cifiques au proxy FTP sont disponibles dans l'interface Web Utilisateur finaux .[br]Apr&egrave;s avoir activ&eacute; le service, utilisez cette interface afin de personnaliser les param&egrave;tres du Proxy FTP</enable_ftp_proxy_service_text>
@@ -2047,7 +2052,11 @@ Par d&eacute;faut le mode client est activ&eacute; o&ugrave; le mode utilise ser
 <FTPUseMagicChar_explain>Indique le caract&egrave;re de s&eacute;paration entre l'utilisateur et le serveur FTP host[:port] lorsque l'utilisateur magique est autoris&eacute;.[br]
 Par d&eacute;faut le caract&egrave;re @ est ajout&eacute; ce qui permet d'utiliser une adresse email comme authentification sur les sites FTP.[br]
 exemple: me@mydomain%ftp.server:21 si le caract&egrave;re est &quot;%&quot;).</FTPUseMagicChar_explain>
+<FTP_backup_zarafa_explain>Si vert, lorsque que la sauvegarde locale sera termin&eacute;e, le serveur va dupliquer les sauvegardes sur un serveur distant via FTP.</FTP_backup_zarafa_explain>
+<ftp_password>Mot de passe FTP</ftp_password>
 <FTP_PROXY_EXPLAIN>Cette fonctionnalit&eacute; vous permet de cr&eacute;er un service de proxy FTP qui assure les logiciels FTP natifs &agrave; se connecter sur Internet.[br]Logiciels tels que FileZilla ou proftp ou tout autre client FTP natif.</FTP_PROXY_EXPLAIN>
+<ftp_server>Serveur FTP</ftp_server>
+<ftp_username>Utilisateur FTP</ftp_username>
 <fulluri>URL compl&egrave;te</fulluri>
 <full_features>Toutes fonctionnalit&eacute;s</full_features>
 <FW_ACCEPT>Accepte la connexion</FW_ACCEPT>
@@ -3219,6 +3228,8 @@ Typiquement, elle est utilis&eacute;e pour cr&eacute;er une r&egrave;gle pour un
 qui est l'acteur principal pour d&eacute;terminer la date d'expiration d'une r&eacute;ponse mise en cache.[br]
 Comme  l'ent&ecirc;te Expires est ignor&eacute;, les valeurs des param&egrave;tres minimal, maximal, et le pourcentage joueront un r&ocirc;le essentiel dans la d&eacute;termination du stockage des objets.</override-expire>
 <override-lastmod>Force le proxy &agrave; ignorer l'ent&ecirc;te [b]Last-Modified[/b], qui finira par imposer l'utilisation d'une valeur minime pour d&eacute;terminer le niveau de stockage d'un objet.[br] Cette option n'est d'aucune utilit&eacute;, si vous avez r&eacute;gl&eacute; la valeur minimum &agrave; z&eacute;ro.</override-lastmod>
+<ovh_specific_config_explain>Si activ&eacute;, alors l\'adresse broadcaste sera l\'adresse IP de l\'interface r&eacute;seau.[br]
+Veuillez v&eacute;rifier que vous avez besoin de ce type de comportement avant d\'appliquer les r&eacute;seaux. Certains fournisseurs d\'acc&egrave;s ne supportent pas cette fonction.</ovh_specific_config_explain>
 <packets_from>Les paquets provenant de</packets_from>
 <pagename>Nom de la page</pagename>
 <pagepeeker_icon_text>PagePeeker vous autorise &agrave; cr&eacute;er des miniatures des sites Internet qui vont &ecirc;tre affich&eacute;s dans les statistiques d'Artica.</pagepeeker_icon_text>
@@ -3350,6 +3361,10 @@ Si le ping est un succ&egrave;s apr&egrave;s la reconfiguration du r&eacute;seau
 Cette t&acirc;che &quot;ramasse-miettes&quot; analyse ces fichiers afin d'ins&eacute;rer les &eacute;v&egrave;nements dans le serveur MySQL</postfixlogger_scanner_explain>
 <PostfixMultiTrustAllInstances>Les instances se font confiance entre-elles</PostfixMultiTrustAllInstances>
 <PostfixMultiTrustAllInstances_text>Si tourn&eacute; en vert alors toutes les adresses des instances seront rajout&eacute;es dans les r&eacute;seaux de confiance.[br]Elles seront alors capables de discuter entre-elles et d'&eacute;mettre des messages ves Internet sans subir un &quot;relaying access denied&quot;</PostfixMultiTrustAllInstances_text>
+<postfix_automation_about>L\'automatisme Artica sur les listes blanches et noires est une t&acirc;che (programm&eacute;e) qui permet de parcourir les &eacute;l&eacute;ments envoy&eacute;s et le dossier Courriers ind&eacute;sirable afin d\'auto enregistrer les adresses email en tant que banni ou autoriser.[br]
+Lors du parcours du dossier ind&eacute;sirable il permet de purger les messages stock&eacute;s.[br]
+Tous les destinataires des &eacute;l&eacute;ments envoy&eacute;s seront plac&eacute;s en liste blanche.[br]
+Il vous suffit simplement d\'activer l\'ordonnancement et d\'indiquer &agrave; vos utilisateurs d\'utiliser le dossier Courriers ind&eacute;sirables.</postfix_automation_about>
 <postfix_compile_ask>Cette op&eacute;ration va construire tous vos param&egrave;tres et les placer en mode production.
 Voulez-vous effectuer cette op&eacute;ration ?</postfix_compile_ask>
 <POSTFIX_EVENTS>&Eacute;v&egrave;nements SMTP</POSTFIX_EVENTS>
@@ -4971,6 +4986,7 @@ Votre licence gratuite vous permet d'utiliser la base de donn&eacute;es de filtr
 <watchdog_queue_text>Param&egrave;tres si la file d'attente exc&egrave;de des limites</watchdog_queue_text>
 <watchdog_settings>Param&egrave;tres du d&eacute;mon de surveillance</watchdog_settings>
 <watchdog_squid_settings>Param&egrave;tres du d&eacute;mon de surveillance</watchdog_squid_settings>
+<wbl_howto>Ajoutez une adresse compl&egrave;te tel que : user@domain.tld ou bien \&quot;@domain.tld\&quot; pour le domaine en entier.</wbl_howto>
 <wccp2_routers>Routeurs WCCP</wccp2_routers>
 <wccp2_routers_explain>S&eacute;parez les adresses IP par une virule (si plusieurs)</wccp2_routers_explain>
 <webaccess>Acc&egrave;s Internet</webaccess>

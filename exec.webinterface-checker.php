@@ -17,9 +17,9 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	system_admin_events("Already PID $oldpid executed, aborting", __FUNCTION__, __FILE__, __LINE__, "watchdog");
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid,basename(__FILE__))){
+	system_admin_events("Already PID $pid executed, aborting", __FUNCTION__, __FILE__, __LINE__, "watchdog");
 }
 
 $sock=new sockets();

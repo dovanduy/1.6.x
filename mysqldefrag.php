@@ -27,9 +27,9 @@ function defragMylsql($innodb_file_pertable=0){
 	$sock->SET_INFO("DisableMySqlTemp", 0);
 	$unix=new unix();
 	$MyPidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($MyPidFile);
+	$pid=$unix->get_pid_from_file($MyPidFile);
 	if($unix->process_exists($pid,basename(__FILE__))){
-		system_admin_events("Error, PID $oldpid already exists in memory, aborting", __FUNCTION__, __FILE__, __LINE__, "mysql");
+		system_admin_events("Error, PID $pid already exists in memory, aborting", __FUNCTION__, __FILE__, __LINE__, "mysql");
 		die();
 	}
 	

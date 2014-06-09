@@ -31,15 +31,15 @@ function check_crashed_squid(){
 	$unix=new unix();
 
 
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	$sock=new sockets();
 
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$oldpidTime=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Already process PID: $oldpid running since $oldpidTime minutes", __FUNCTION__, __FILE__, __LINE__, "mysql");
-		if($oldpidTime>120){
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$pidTime=$unix->PROCCESS_TIME_MIN($pid);
+		events("Already process PID: $pid running since $pidTime minutes", __FUNCTION__, __FILE__, __LINE__, "mysql");
+		if($pidTime>120){
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 			die();
 		}
 		return;
@@ -133,15 +133,15 @@ function check_crashed(){
 	$unix=new unix();
 	
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	$sock=new sockets();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$oldpidTime=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Already process PID: $oldpid running since $oldpidTime minutes", __FUNCTION__, __FILE__, __LINE__, "mysql");
-		if($oldpidTime>120){
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$pidTime=$unix->PROCCESS_TIME_MIN($pid);
+		events("Already process PID: $pid running since $pidTime minutes", __FUNCTION__, __FILE__, __LINE__, "mysql");
+		if($pidTime>120){
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -9 $oldpid");
+			unix_system_kill_force($pid);
 			die();
 		}
 		return;

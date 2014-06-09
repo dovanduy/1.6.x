@@ -195,7 +195,7 @@ function cicap_artica($aspid=false){
 			}
 			else{
 				$kill=$unix->find_program("kill");
-				shell_exec("$kill -9 $pid");
+				unix_system_kill_force($pid);
 				if($GLOBALS["SCHEDULE_ID"]>0){ufdbguard_admin_events("Warning: Old task pid $pid since {$time}Mn wille be killed, (reach 7200mn)",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");}
 			}
 		}
@@ -209,7 +209,8 @@ function cicap_artica($aspid=false){
 	
 	$pids=$unix->PIDOF_PATTERN_ALL(basename(__FILE__).".*?--cicap-dbs");
 	if(count($pids)>1){
-		if(count($pids)>2){ $kill=$unix->find_program("kill"); shell_exec("$kill -9 ".implode(" ", $pids)); }
+		if(count($pids)>2){ $kill=$unix->find_program("kill"); 
+		shell_exec("$kill -9 ".implode(" ", $pids)); }
 		echo "Processes ".implode(" ", $pids)." already exists...\n";
 		artica_update_event(1, "Processes ".implode(" ", $pids)." already exists...", null,__FILE__,__LINE__);
 		return;
@@ -1219,7 +1220,7 @@ if(!$GLOBALS["BYCRON"]){
 		}
 		else{
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 			if($GLOBALS["SCHEDULE_ID"]>0){
 				artica_update_event(1, "Warning: Old task pid $pid since {$time}Mn has been killed, (reach 7200mn)", null,__FILE__,__LINE__);
 				ufdbguard_admin_events("Warning: Old task pid $pid since {$time}Mn has been killed, (reach 7200mn)",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");}			

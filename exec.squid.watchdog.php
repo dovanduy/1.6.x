@@ -256,11 +256,11 @@ function ALL_STATUS($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $oldpid since {$time}mn\n";}
-			system_admin_events("stop_squid::Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $pid since {$time}mn\n";}
+			system_admin_events("stop_squid::Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -333,10 +333,10 @@ function start_watchdog(){
 	$pidtimeNTP="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".ntp.time";
 	
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		$pptime=$unix->PROCCESS_TIME_MIN($oldpid,10);
-		if($GLOBALS["VERBOSE"]){echo "Process already running PID $oldpid since {$pptime}Mn\n";}
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){
+		$pptime=$unix->PROCCESS_TIME_MIN($pid,10);
+		if($GLOBALS["VERBOSE"]){echo "Process already running PID $pid since {$pptime}Mn\n";}
 		return;}
 	
 	@file_put_contents($pidFile, getmypid());
@@ -584,9 +584,9 @@ function CheckUFDBGuardLocalThreads($ForcePid=false){
 	$sock=new sockets();
 	
 	if($ForcePid){
-		$oldpid=$unix->get_pid_from_file($pidFile);
-		if($unix->process_exists($oldpid)){
-			if($unix->PROCCESS_TIME_MIN($oldpid,10)<2){return;}
+		$pid=$unix->get_pid_from_file($pidFile);
+		if($unix->process_exists($pid)){
+			if($unix->PROCCESS_TIME_MIN($pid,10)<2){return;}
 		}
 	}
 
@@ -628,9 +628,9 @@ function CheckUFDBGuardConfig($ForcePid=false){
 	$sock=new sockets();
 	
 	if($ForcePid){
-		$oldpid=$unix->get_pid_from_file($pidFile);
-		if($unix->process_exists($oldpid)){
-			if($unix->PROCCESS_TIME_MIN($oldpid,10)<2){return;}
+		$pid=$unix->get_pid_from_file($pidFile);
+		if($unix->process_exists($pid)){
+			if($unix->PROCCESS_TIME_MIN($pid,10)<2){return;}
 		}
 	}
 	
@@ -865,9 +865,9 @@ function CHECK_DNS_SYSTEMS(){
 	
 	
 	
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		if($unix->PROCCESS_TIME_MIN($oldpid,10)<2){return;}
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){
+		if($unix->PROCCESS_TIME_MIN($pid,10)<2){return;}
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo "pidtime =$pidtime\n";}
@@ -1091,11 +1091,11 @@ function reload_squid($aspid=false){
 	
 	if(!$aspid){
 		
-		$oldpid=$unix->get_pid_from_file($PidFile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$TimeMin=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events("Reload::Already task running PID $oldpid since {$TimeMin}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
-			build_progress_reload("Already task running PID $oldpid since {$TimeMin}mn",100);
+		$pid=$unix->get_pid_from_file($PidFile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$TimeMin=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events("Reload::Already task running PID $pid since {$TimeMin}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+			build_progress_reload("Already task running PID $pid since {$TimeMin}mn",100);
 			return;
 		}
 		
@@ -1284,9 +1284,9 @@ function reload_squid($aspid=false){
 function external_acl_children_more(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		return;
 	}
 
@@ -1319,9 +1319,9 @@ shell_exec("$php /usr/share/artica-postfix/exec.squid.php --build --force");
 function redirectors_more(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
 		return;
 	}
 	$sock=new sockets();
@@ -1579,10 +1579,10 @@ function squidz($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events("restart_squid::Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events("restart_squid::Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -1866,11 +1866,11 @@ function restart_squid($aspid=false){
 	build_progress_restart("{please_wait}", 10);
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			system_admin_events("restart_squid::Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
-			build_progress_restart("{failed}: Already task running PID $oldpid since {$time}mn", 110);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			system_admin_events("restart_squid::Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+			build_progress_restart("{failed}: Already task running PID $pid since {$time}mn", 110);
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -2093,15 +2093,15 @@ function Checks_mgrinfos($MonitConfig,$aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($time>5){
 				$kill=$unix->find_program("kill");
-				Events("kill old $oldpid process {$time}mn");
-				shell_exec("$kill -9 $oldpid");
+				Events("kill old $pid process {$time}mn");
+				unix_system_kill_force($pid);
 			}else{
-				system_admin_events("Start_squid:: Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+				system_admin_events("Start_squid:: Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
 				return;
 			}
 		}
@@ -2907,18 +2907,18 @@ function start_squid($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
 			
 			if($time<5){
-				Events("Task Already running PID $oldpid since {$time}mn");
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Already task running PID $oldpid since {$time}mn, Aborting operation (".__LINE__.")\n";}
+				Events("Task Already running PID $pid since {$time}mn");
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." Already task running PID $pid since {$time}mn, Aborting operation (".__LINE__.")\n";}
 				return;
 			}
-			squid_admin_mysql(0,"Too long time for artica task PID $oldpid running since {$time}mn", "Process will be killed");
-			Tosyslog("Too long time for artica task PID $oldpid running since {$time}mn -> kill");
-			shell_exec("$kill -9 $oldpid 2>&1");
+			squid_admin_mysql(0,"Too long time for artica task PID $pid running since {$time}mn", "Process will be killed");
+			Tosyslog("Too long time for artica task PID $pid running since {$time}mn -> kill");
+			unix_system_kill_force($pid);
 		}
 		@file_put_contents($pidfile, getmypid());
 	}
@@ -3154,11 +3154,11 @@ function stop_squid($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $oldpid since {$time}mn\n";}
-			system_admin_events("stop_squid::Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $pid since {$time}mn\n";}
+			system_admin_events("stop_squid::Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -3314,7 +3314,7 @@ function stop_squid($aspid=false){
 		$cmdline=trim(@file_get_contents("/proc/$pid/cmdline"));
 		if(preg_match("#\((.+?)\)-#", $cmdline,$re)){$task=$re[1];}	
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service Killing ghost task pid $pid `$task`\n";}
-		shell_exec("$kill $pid");
+		unix_system_kill($pid);
 		if($unix->process_exists($pid)){
 			for($i=0;$i<4;$i++){
 				if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service waiting $i seconds (max 3) for $pid PID Task:$task....\n";}
@@ -3322,7 +3322,7 @@ function stop_squid($aspid=false){
 				sleep(1);
 			}
 		}
-		if($unix->process_exists($pid)){shell_exec("$kill -9 $pid");}
+		if($unix->process_exists($pid)){unix_system_kill_force($pid);}
 		
 		
 	}
@@ -3333,7 +3333,7 @@ function stop_squid($aspid=false){
 		if(preg_match("#pgrep#", $ligne)){continue;}
 		if(!preg_match("#^([0-9]+)\s+\(ntlm_auth#", $ligne,$re)){SendLogs("Skipping $ligne");continue;}
 		$pid=$re[1];
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service ntlm_auth process PID $pid\n";}
 	
 	}	
@@ -3344,7 +3344,7 @@ function stop_squid($aspid=false){
 		if(preg_match("#pgrep#", $ligne)){continue;}
 		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
 		$pid=$re[1];
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 		SendLogs("Stopping external_acl_squid process PID $pid");
 	
 	}	
@@ -3358,7 +3358,7 @@ function stop_squid($aspid=false){
 		if(preg_match("#squid27#", $ligne)){continue;}
 		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
 		$pid=$re[1];
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 		SendLogs("Stopping squid process PID $pid");
 	
 	}	
@@ -3368,7 +3368,7 @@ function stop_squid($aspid=false){
 		if(preg_match("#pgrep#", $ligne)){continue;}
 		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
 		$pid=$re[1];
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service squid process PID $pid\n";}
 	
 	}	
@@ -3442,10 +3442,10 @@ function counters($aspid=false){
 	if(!$GLOBALS["VERBOSE"]){
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $pid since {$time}mn\n";}
 			
 			return;
 		}
@@ -3787,10 +3787,10 @@ function peer_status($aspid=false){
 			$unix=new unix();
 			if(!$aspid){
 				$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-				$oldpid=$unix->get_pid_from_file($pidfile);
-				if($unix->process_exists($oldpid,basename(__FILE__))){
-					$time=$unix->PROCCESS_TIME_MIN($oldpid);
-					if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $oldpid since {$time}mn\n";}
+				$pid=$unix->get_pid_from_file($pidfile);
+				if($unix->process_exists($pid,basename(__FILE__))){
+					$time=$unix->PROCCESS_TIME_MIN($pid);
+					if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $pid since {$time}mn\n";}
 						
 					return;
 				}
@@ -4364,11 +4364,11 @@ function cache_center_status($aspid=false){
 	if($GLOBALS["VERBOSE"]){echo "Running cache_center_status()\n";$aspid=true;}
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $oldpid since {$time}mn\n";}
-			system_admin_events("stop_squid::Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $pid since {$time}mn\n";}
+			system_admin_events("stop_squid::Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -4428,11 +4428,11 @@ function caches_center($aspid=false){
 	$umount=$unix->find_program("umount");
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $oldpid since {$time}mn\n";}
-			system_admin_events("stop_squid::Already task running PID $oldpid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")."Already `task` running PID $pid since {$time}mn\n";}
+			system_admin_events("stop_squid::Already task running PID $pid since {$time}mn", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -4859,9 +4859,9 @@ function C_ICAP_CLIENTS($aspid=false){
 	$PidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($PidFile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$TimeMin=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($PidFile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$TimeMin=$unix->PROCCESS_TIME_MIN($pid);
 			return;
 		}
 	

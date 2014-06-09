@@ -21,8 +21,8 @@ if($argv[1]=="--stop"){emailing_emailrelay_stop_all();exit;}
 $pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.time";
 $pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
 $unix=new unix();
-$oldpid=$unix->get_pid_from_file($pidFile);
-if($unix->process_exists($oldpid)){return;}
+$pid=$unix->get_pid_from_file($pidFile);
+if($unix->process_exists($pid)){return;}
 
 if(system_is_overloaded()){die();}
 

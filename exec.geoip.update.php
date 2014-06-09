@@ -29,9 +29,9 @@ if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);i
 	$ln=$unix->find_program("ln");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		system_admin_events("Aborting tasks, already executed pid $oldpid", __FUNCTION__, __FILE__, __LINE__, "geoip");
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		system_admin_events("Aborting tasks, already executed pid $pid", __FUNCTION__, __FILE__, __LINE__, "geoip");
 		die();
 	}
 	

@@ -14,13 +14,13 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
 check();
 function check(){
 	$unix=new unix();
-	$oldpid="/etc/artica-postfix/pids/". basename(__FILE__).".pid";
-	if($unix->process_exists(@file_get_contents($oldpid))){
-		writelogs("Process ".@file_get_contents($oldpid)." already exists",__FUNCTION__,__FILE__);
+	$pid="/etc/artica-postfix/pids/". basename(__FILE__).".pid";
+	if($unix->process_exists(@file_get_contents($pid))){
+		writelogs("Process ".@file_get_contents($pid)." already exists",__FUNCTION__,__FILE__);
 		die();
 	}
 	
-	@file_put_contents($oldpid,getmypid());
+	@file_put_contents($pid,getmypid());
 	
 	$sock=new sockets();
 	$EnableEmergingThreats=$sock->GET_INFO("EnableEmergingThreats");

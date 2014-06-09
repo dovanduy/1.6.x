@@ -4881,8 +4881,8 @@ function cyrus_activedirectory_events(){
 function cyrus_imap_change_password(){
 	$password=base64_decode($_GET["cyrus-change-password"]);
 	NOHUP_EXEC("/etc/init.d/artica-process1 start");
-	NOHUP_EXEC("/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig");
 	NOHUP_EXEC("/etc/init.d/cyrus-imapd restart");
+	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix.maincf.php --mailbox-transport");
 }
 
 

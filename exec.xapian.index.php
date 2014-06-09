@@ -37,8 +37,8 @@ function ScanQueue(){
 $unix=new unix();
 $GLOBALS["omindex"]=$unix->find_program("omindex");
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid)){
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid)){
 	writelogs("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__);
 	die();
 }
@@ -160,8 +160,8 @@ function shared(){
 	$sock=new sockets();
 	$GLOBALS["omindex"]=$unix->find_program("omindex");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
 	@file_put_contents($pidfile, getmypid());			
 	$EnableSambaXapian=$sock->GET_INFO("EnableSambaXapian");
 	if(!is_numeric($EnableSambaXapian)){$EnableSambaXapian=0;}
@@ -245,8 +245,8 @@ function Scan_mysql_dirs(){
 	$unix=new unix();
 	$GLOBALS["omindex"]=$unix->find_program("omindex");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
 	@file_put_contents($pidfile, getmypid());		
 	$q=new mysql();
 	$q->check_storage_table(true);
@@ -384,8 +384,8 @@ function homes(){
 	$unix=new unix();
 	$GLOBALS["omindex"]=$unix->find_program("omindex");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"xapian");die();}
 	@file_put_contents($pidfile, getmypid());		
 	$nice=EXEC_NICE();
 	$t1=time();

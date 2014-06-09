@@ -26,13 +26,13 @@ include_once(dirname(__FILE__).'/ressources/class.mysql.services.inc');
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
+$pid=$unix->get_pid_from_file($pidfile);
 $rm=$unix->find_program("rm");
 $nohup=$unix->find_program("nohup");
 $php=$unix->LOCATE_PHP5_BIN();
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $oldpid since {$time}mn\n";}
+if($unix->process_exists($pid,basename(__FILE__))){
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
 	return;
 }
 

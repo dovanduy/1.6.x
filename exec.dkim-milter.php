@@ -155,7 +155,7 @@ if($GLOBALS["RELOAD"]){
 	if($unix->process_exists($pid)){
 		$kill=$unix->find_program("kill");
 		echo "Starting......: ".date("H:i:s")." milter-dkim reloading PID $pid\n";
-		shell_exec("$kill -HUP $pid");
+		unix_system_HUP($pid);
 		}
 	}
 

@@ -50,15 +50,15 @@ function scan_stats(){
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	
 	if($GLOBALS["VERBOSE"]){echo "Time File: $timefile\n";}
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if($GLOBALS["FORCE"]){ToSyslog("StatsDaysTables(): Executed in --force mode");}
 	
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
-			ToSyslog("StatsDaysTables(): already executed pid $oldpid");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+			ToSyslog("StatsDaysTables(): already executed pid $pid");
 			return;
 		}
 		$timeexec=$unix->file_time_min($timefile);
@@ -195,15 +195,15 @@ function StatsDaysTables(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if($GLOBALS["VERBOSE"]){echo "Time File: $timefile\n";}
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if($GLOBALS["FORCE"]){ToSyslog("StatsDaysTables(): Executed in --force mode");}
 	
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
-			ToSyslog("StatsDaysTables(): already executed pid $oldpid");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+			ToSyslog("StatsDaysTables(): already executed pid $pid");
 			return;
 		}
 		$timeexec=$unix->file_time_min($timefile);
@@ -235,15 +235,15 @@ function gencaches_start(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	if($GLOBALS["VERBOSE"]){echo "Time File: $timefile\n";}
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if($GLOBALS["FORCE"]){ToSyslog("gencaches_start(): Executed in --force mode");}
 	
 	if(!$GLOBALS["FORCE"]){
-		if($oldpid<100){$oldpid=null;}
+		if($pid<100){$pid=null;}
 		$unix=new unix();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}
-			ToSyslog("gencaches_start(): already executed pid $oldpid");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+			ToSyslog("gencaches_start(): already executed pid $pid");
 			return;
 		}
 		$timeexec=$unix->file_time_min($timefile);

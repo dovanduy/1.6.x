@@ -213,14 +213,14 @@ function export_computer_perform($filename){
 function export_user_queue(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){		
-		$ptime=$unix->PROCESS_TTL($oldpid);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){		
+		$ptime=$unix->PROCESS_TTL($pid);
 		if($ptime>$GLOBALS["MAXTTL"]){
-			events("export_user_queue():: killing process $oldpid ttl:$ptime minutes");
-			shell_exec("/bin/kill -9 $oldpid");
+			events("export_user_queue():: killing process $pid ttl:$ptime minutes");
+			unix_system_kill_force($pid);
 		}else{
-			events("export_user_queue():: already executed, process $oldpid");
+			events("export_user_queue():: already executed, process $pid");
 			die();
 		}
 	}
@@ -235,14 +235,14 @@ function export_user_queue(){
 function export_computer_queue(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){		
-		$ptime=$unix->PROCESS_TTL($oldpid);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){		
+		$ptime=$unix->PROCESS_TTL($pid);
 		if($ptime>$GLOBALS["MAXTTL"]){
-			events("export_computer_queue():: killing process $oldpid ttl:$ptime minutes");
-			shell_exec("/bin/kill -9 $oldpid");
+			events("export_computer_queue():: killing process $pid ttl:$ptime minutes");
+			unix_system_kill_force($pid);
 		}else{
-			events("export_computer_queue():: already executed, process $oldpid");
+			events("export_computer_queue():: already executed, process $pid");
 			die();
 		}
 	}
@@ -260,10 +260,10 @@ function export_computer_queue(){
 function export_all_users(){
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-$oldpid=@file_get_contents($pidfile);
-if($unix->process_exists($oldpid)){		
-	$ptime=$unix->PROCESS_TTL($oldpid);
-	if($ptime>$GLOBALS["MAXTTL"]){events("SendStatus():: killing process $oldpid ttl:$ptime minutes");shell_exec("/bin/kill -9 $oldpid");}else{events("SendStatus():: already executed, process $oldpid");die();}
+$pid=@file_get_contents($pidfile);
+if($unix->process_exists($pid)){		
+	$ptime=$unix->PROCESS_TTL($pid);
+	if($ptime>$GLOBALS["MAXTTL"]){events("SendStatus():: killing process $pid ttl:$ptime minutes");unix_system_kill_force($pid);}else{events("SendStatus():: already executed, process $pid");die();}
 }
 @file_put_contents($pidfile,getmypid());
 
@@ -342,8 +342,8 @@ function user_groups_list($uid){
 function export_all_domains(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){die();}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){die();}
 	@file_put_contents($pidfile,getmypid());	
 	$ldap=new clladp();
 	$array_final=array();
@@ -386,9 +386,9 @@ function export_all_domains(){
 function export_all_ou(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		events("$oldpid already running",__FUNCTION__,__FILE__,__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		events("$pid already running",__FUNCTION__,__FILE__,__LINE__);
 		die();}
 	@file_put_contents($pidfile,getmypid());	
 	$ldap=new clladp();
@@ -416,9 +416,9 @@ function export_all_ou(){
 function export_all_groups(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		events("$oldpid already running",__FUNCTION__,__FILE__,__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		events("$pid already running",__FUNCTION__,__FILE__,__LINE__);
 		die();
 	}
 	@file_put_contents($pidfile,getmypid());	
@@ -453,10 +453,10 @@ function export_all_settings(){
 	$unix=new unix();
 	$gzip=$unix->find_program("gzip");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		events("$oldpid already running",__FUNCTION__,__FILE__,__LINE__);
-		if($GLOBALS["VERBOSE"]){"$oldpid already running";}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		events("$pid already running",__FUNCTION__,__FILE__,__LINE__);
+		if($GLOBALS["VERBOSE"]){"$pid already running";}
 		die();
 	}
 	@file_put_contents($pidfile,getmypid());
@@ -607,14 +607,14 @@ function export_dns(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){		
-		$ptime=$unix->PROCESS_TTL($oldpid);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){		
+		$ptime=$unix->PROCESS_TTL($pid);
 		if($ptime>$GLOBALS["MAXTTL"]){
-			events("export_dns():: killing process $oldpid ttl:$ptime minutes");
-			shell_exec("/bin/kill -9 $oldpid");
+			events("export_dns():: killing process $pid ttl:$ptime minutes");
+			unix_system_kill_force($pid);
 		}else{
-			events("export_dns():: already executed, process $oldpid");
+			events("export_dns():: already executed, process $pid");
 			die();
 		}
 	}	

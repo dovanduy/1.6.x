@@ -52,10 +52,10 @@ function reload($aspid=false){
 	$unix=new unix();
 	$ln=$unix->find_program("ln");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$aspid){
-		if($unix->process_exists($oldpid)){
-			echo "Reloading.....: ".date("H:i:s")." [INIT]: c-icap service ". __FUNCTION__."() already running PID:$oldpid\n";
+		if($unix->process_exists($pid)){
+			echo "Reloading.....: ".date("H:i:s")." [INIT]: c-icap service ". __FUNCTION__."() already running PID:$pid\n";
 			return;
 		}
 		@file_put_contents($pidfile,getmypid());
@@ -116,10 +116,10 @@ function build($aspid=false){
 	$unix=new unix();
 	$ln=$unix->find_program("ln");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	if(!$aspid){
-		if($unix->process_exists($oldpid)){
-			echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service ". __FUNCTION__."() already running PID:$oldpid\n";
+		if($unix->process_exists($pid)){
+			echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service ". __FUNCTION__."() already running PID:$pid\n";
 			return;
 		}
 		@file_put_contents($pidfile,getmypid());
@@ -312,9 +312,9 @@ function dbMaintenanceSchedule(){
 	return;
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service ". __FUNCTION__."() already running PID:$oldpid\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service ". __FUNCTION__."() already running PID:$pid\n";
 		return;
 	}
 	@file_put_contents($pidfile,getmypid());	
@@ -469,10 +469,10 @@ function PID_PATH(){
 function restart(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -484,13 +484,14 @@ function restart(){
 function start($aspid=false){
 	$unix=new unix();
 	$sock=new sockets();
+	$GLOBALS["CLASS_SOCKETS"]=$sock;
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -628,10 +629,10 @@ function purge($aspid=false){
 	}
 	
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		
@@ -776,10 +777,10 @@ function stop($aspid=false){
 	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: c-icap service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -810,7 +811,7 @@ function stop($aspid=false){
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: c-icap service Shutdown pid $pid...\n";}
 	
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
@@ -819,7 +820,7 @@ function stop($aspid=false){
 	}	
 	
 	
-	shell_exec("$kill $pid >/dev/null 2>&1");
+	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}
@@ -834,7 +835,7 @@ function stop($aspid=false){
 	}
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: c-icap service shutdown - force - pid $pid...\n";}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	unix_system_kill_force($pid);
 	for($i=0;$i<5;$i++){
 		$pid=PID_NUM();
 		if(!$unix->process_exists($pid)){break;}

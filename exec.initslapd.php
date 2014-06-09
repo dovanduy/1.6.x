@@ -74,7 +74,7 @@ if($argv[1]=="--ntopng"){ntopng();redis_server();exit;}
 if($argv[1]=="--squid-stream"){squidstream();squidstream_scheduler();exit;}
 if($argv[1]=="--zipproxy"){zipproxy();exit;}
 if($argv[1]=="--squid-db"){$GLOBALS["OUTPUT"]=true;squid_db();exit;}
-
+if($argv[1]=="--iredmail"){$GLOBALS["OUTPUT"]=true;iredmail();exit;}
 
 
 	if($GLOBALS["VERBOSE"]){echo "Open unix class\n";}
@@ -92,17 +92,22 @@ if($argv[1]=="--squid-db"){$GLOBALS["OUTPUT"]=true;squid_db();exit;}
 	
 	@unlink($PID_TIME);
 	@file_put_contents($PID_TIME, time());
-	$oldpid=$unix->get_pid_from_file($PID_FILE);
-	if($unix->process_exists($oldpid)){echo "slapd: [INFO] Already executed pid $oldpid\n";die();}
-	@file_put_contents($PID_FILE, getmypid());
+	$pid=$unix->get_pid_from_file($PID_FILE);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid,120);
+		echo "slapd: [INFO] Already executed pid $pid since {$timepid}mn\n";
+		die();
+	}
+
+@file_put_contents($PID_FILE, getmypid());
 $GLOBALS["OUTPUT"]=true;
-$functions=array("artica_syslog","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
+$functions=array("artica_syslog","irqbalance","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
 		"haproxy","specialreboot","buildscript","artica_status","mysqlInit","remove_nested_services",
 "conntrackd","process1","monit","dnsmasq_init_debian","nscd_init_debian","wsgate_init_debian",
 		"buildscriptSpamass_milter","buildscriptLoopDisk","buildscriptFreeRadius","pdns_recursor",
 "ifup","ftpproxy","failover","framework","webservices","ufdbguard","ufdbguard_client","phppfm",
 		"apache","artica_webconsole","memcached","nginx","dhcpd","cicap","vnstat","arpd","haarp","saslauthd","rsyslogd_init","CleanUbuntu","UpstartJob","squidguard_http","debian_mirror","artica_categories","cntlm","postfix","ufdb_tail","auth_tail","roundcube_http","spawnfcgi","fetchmail","squidnat","squidstream","squidstream_scheduler","pdns","snmpd","stunnel","iscsitarget","vde_switch","rdpproxy","winbind",
-"clamav_daemon","shorewall_db","squid_db","zipproxy","clamav_freshclam","ntopng","redis_server","cyrus_imapd");	
+"clamav_daemon","shorewall_db","squid_db","zipproxy","clamav_freshclam","ntopng","redis_server","cyrus_imapd","iredmail");	
 
 $countDeFunc=count($functions);
 $c=0;
@@ -161,9 +166,9 @@ if($restore){
 function restart_ldap(){
 	$unix=new unix();
 	$MYPID_FILE="/etc/artica-postfix/pids/restart_ldap.pid";
-	$oldpid=$unix->get_pid_from_file($MYPID_FILE);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "slapd: [INFO] Artica task already running pid $oldpid\n";
+	$pid=$unix->get_pid_from_file($MYPID_FILE);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "slapd: [INFO] Artica task already running pid $pid\n";
 		die();
 	}
 	
@@ -187,11 +192,11 @@ function start_ldap($aspid=false){
 	$kill=$unix->find_program("kill");
 	
 	if(!$GLOBALS["FORCE"]){
-		$oldpid=$unix->get_pid_from_file('/etc/artica-postfix/pids/exec.backup.artica.php.restore.pid');
-		if($unix->process_exists($oldpid)){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file('/etc/artica-postfix/pids/exec.backup.artica.php.restore.pid');
+		if($unix->process_exists($pid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
 			if($pidtime<15){
-				echo "slapd: [INFO] Artica restore task already running pid $oldpid since {$pidtime}mn\n";
+				echo "slapd: [INFO] Artica restore task already running pid $pid since {$pidtime}mn\n";
 				return;
 			}
 		}
@@ -200,17 +205,18 @@ function start_ldap($aspid=false){
 	
 	$MYPID_FILE="/etc/artica-postfix/pids/start_ldap.pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($MYPID_FILE);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "slapd: [INFO] Artica task already running pid $oldpid since {$pidtime}mn\n";
+		$pid=$unix->get_pid_from_file($MYPID_FILE);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+			echo "slapd: [INFO] Artica task already running pid $pid since {$pidtime}mn\n";
 			if($pidtime>10){
 				echo "slapd: [INFO] Killing this Artica task...\n";
-				shell_exec("$kill -9 $oldpid 2>&1");
+				unix_system_kill_force($pid);
 			}else{
 				die();
 			}
 		}
+		
 		
 		$MYPID_FILE_TIME=$unix->file_time_min($MYPID_FILE);
 		if(!$GLOBALS["FORCE"]){
@@ -228,20 +234,20 @@ function start_ldap($aspid=false){
 	$slapd=$unix->find_program("slapd");
 	$SLAPD_PID_FILE=$unix->SLAPD_PID_PATH();
 	
-	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-	if($unix->process_exists($oldpid)){
-		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "slapd: [INFO] slapd already running pid $oldpid since {$pidtime}mn\n";
-		@file_put_contents($SLAPD_PID_FILE, $oldpid);
+	$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($pid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+		echo "slapd: [INFO] slapd already running pid $pid since {$pidtime}mn\n";
+		@file_put_contents($SLAPD_PID_FILE, $pid);
 		return;
 	}
 	
-	$oldpid=$unix->PIDOF_PATTERN($slapd);
-	echo "slapd: [INFO] detecting presence of `$slapd`:$oldpid...\n";
-	if($unix->process_exists($oldpid)){
-		$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "slapd: [INFO] slapd already running pid $oldpid since {$pidtime}mn\n";
-		@file_put_contents($SLAPD_PID_FILE, $oldpid);
+	$pid=$unix->PIDOF_PATTERN($slapd);
+	echo "slapd: [INFO] detecting presence of `$slapd`:$pid...\n";
+	if($unix->process_exists($pid)){
+		$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+		echo "slapd: [INFO] slapd already running pid $pid since {$pidtime}mn\n";
+		@file_put_contents($SLAPD_PID_FILE, $pid);
 		return;
 	}	
 	
@@ -392,18 +398,18 @@ function start_ldap($aspid=false){
 	sleep(1);
 	
 	for($i=0;$i<5;$i++){
-		$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-		if($unix->process_exists($oldpid)){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "slapd: [INFO] slapd success Running pid $oldpid\n";
+		$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+		if($unix->process_exists($pid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+			echo "slapd: [INFO] slapd success Running pid $pid\n";
 			if($users->ZARAFA_INSTALLED){start_zarafa();}
 			return;
 		}
 			
-		$oldpid=$unix->PIDOF($slapd);
-		if($unix->process_exists($oldpid)){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "slapd: [INFO] slapd success Running pid $oldpid\n";
+		$pid=$unix->PIDOF($slapd);
+		if($unix->process_exists($pid)){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+			echo "slapd: [INFO] slapd success Running pid $pid\n";
 			if($users->ZARAFA_INSTALLED){start_zarafa();}
 			return;
 		}
@@ -442,13 +448,13 @@ function stop_ldap($aspid=false){
 	if($users->ZARAFA_INSTALLED){stop_zarafa();}
 	
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($MYPID_FILE);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-				$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-				echo "slapd: [INFO] Artica task already running pid $oldpid since {$pidtime}mn\n";
+		$pid=$unix->get_pid_from_file($MYPID_FILE);
+		if($unix->process_exists($pid,basename(__FILE__))){
+				$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+				echo "slapd: [INFO] Artica task already running pid $pid since {$pidtime}mn\n";
 				if($pidtime>10){
 				echo "slapd: [INFO] Killing this Artica task...\n";
-				shell_exec("$kill -9 $oldpid 2>&1");
+				unix_system_kill_force($pid);
 			}else{die();}
 		}
 	
@@ -458,43 +464,43 @@ function stop_ldap($aspid=false){
 	
 
 	
-	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-	if($unix->process_exists($oldpid)){
-		echo "slapd: [INFO] slapd shutdown ldap server PID:$oldpid...\n";
-		shell_exec("$kill $oldpid >/dev/null 2>&1");
+	$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($pid)){
+		echo "slapd: [INFO] slapd shutdown ldap server PID:$pid...\n";
+		unix_system_kill($pid);
 	}else{
-		$oldpid=$unix->PIDOF($slapd);
-		if($unix->process_exists($oldpid)){
-			echo "slapd: [INFO] slapd shutdown ldap server PID:$oldpid...\n";
-			shell_exec("$kill $oldpid >/dev/null 2>&1");
+		$pid=$unix->PIDOF($slapd);
+		if($unix->process_exists($pid)){
+			echo "slapd: [INFO] slapd shutdown ldap server PID:$pid...\n";
+			unix_system_kill($pid);
 		}
 	}
 	
 	
 	
 	for($i=0;$i<10;$i++){
-		$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-		if($unix->process_exists($oldpid)){echo "slapd: [INFO] slapd waiting the server to stop PID:$oldpid...\n";sleep(1);continue;}
-		$oldpid=$unix->PIDOF($slapd);
-		if($unix->process_exists($oldpid)){echo "slapd: [INFO] slapd waiting the server to stop PID:$oldpid...\n";sleep(1);continue;}		
+		$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+		if($unix->process_exists($pid)){echo "slapd: [INFO] slapd waiting the server to stop PID:$pid...\n";sleep(1);continue;}
+		$pid=$unix->PIDOF($slapd);
+		if($unix->process_exists($pid)){echo "slapd: [INFO] slapd waiting the server to stop PID:$pid...\n";sleep(1);continue;}		
 		
 	}
 	
-	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-	if($unix->process_exists($oldpid)){
-		echo "slapd: [INFO] slapd PID:$oldpid still exists, kill it...\n";
-		shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+	$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($pid)){
+		echo "slapd: [INFO] slapd PID:$pid still exists, kill it...\n";
+		unix_system_kill_force($pid);
 	}
 	
-	$oldpid=$unix->get_pid_from_file($SLAPD_PID_FILE);
-	if($unix->process_exists($oldpid)){
-		echo "slapd: [INFO] slapd PID:$oldpid still exists, start the force kill procedure...\n";
+	$pid=$unix->get_pid_from_file($SLAPD_PID_FILE);
+	if($unix->process_exists($pid)){
+		echo "slapd: [INFO] slapd PID:$pid still exists, start the force kill procedure...\n";
 	}	
 	
-	$oldpid=$unix->PIDOF($slapd);
-	if($unix->process_exists($oldpid)){
-		echo "slapd: [INFO] slapd PID:$oldpid still exists, kill it...\n";
-		shell_exec("$kill -9 $oldpid >/dev/null 2>&1");
+	$pid=$unix->PIDOF($slapd);
+	if($unix->process_exists($pid)){
+		echo "slapd: [INFO] slapd PID:$pid still exists, kill it...\n";
+		unix_system_kill_force($pid);
 		return;
 	}
 
@@ -503,7 +509,8 @@ function stop_ldap($aspid=false){
 		if(preg_match("#pgrep#", $line)){continue;}
 		if(preg_match("^([0-9]+)\s+", $line,$re)){
 			echo "slapd: [INFO] slapd PID:{$re[1]} still exists, kill it\n";
-			shell_exec("$kill -9 {$re[1]} >/dev/null 2>&1");
+			unix_system_kill_force($re[1]);
+			
 		}
 		
 	}
@@ -656,13 +663,13 @@ function ldap_conf($aspid=false){
 	$kill=$unix->find_program("kill");
 	$MYPID_FILE="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($MYPID_FILE);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$pidtime=$unix->PROCCESS_TIME_MIN($oldpid);
-			echo "slapd: [INFO] Artica task already running pid $oldpid since {$pidtime}mn\n";
+		$pid=$unix->get_pid_from_file($MYPID_FILE);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
+			echo "slapd: [INFO] Artica task already running pid $pid since {$pidtime}mn\n";
 			if($pidtime>10){
 			echo "slapd: [INFO] Killing this Artica task...\n";
-			shell_exec("$kill -9 $oldpid 2>&1");
+			unix_system_kill_force($pid);
 			}
 			else{
 				die();
@@ -2435,8 +2442,8 @@ function failover(){
 function phppfm_fix(){
 	$unix=new unix();
 	$pidF="/etc/artica-postfix/pids/".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidF);
-	if($unix->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=$unix->get_pid_from_file($pidF);
+	if($unix->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidF, getmypid());
 	phppfm();
 	shell_exec("/etc/init.d/php5-fpm start");
@@ -4186,6 +4193,76 @@ function haproxy(){
 
 }
 
+
+function irqbalance(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$INITD_PATH="/etc/init.d/irqbalance";
+	$php5script="exec.irqbalance.php";
+	$daemonbinLog="daemon to balance interrupts for SMP systems";
+	
+	
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:         irqbalance";
+	$f[]="# Required-Start:    \$local_fs \$syslog";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: $daemonbinLog";
+	$f[]="# chkconfig: - 80 75";
+	$f[]="# description: $daemonbinLog";
+	$f[]="### END INIT INFO";
+	
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reconfigure)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";	
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reconfigure} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+	
+	
+	echo "$daemonbinLog: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+	
+	if(is_file('/usr/sbin/update-rc.d')){
+	shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+	
+	if(is_file('/sbin/chkconfig')){
+			shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+	
+	
+	
+}
+
 function arpd(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -4879,7 +4956,65 @@ function opendkim(){
 }
 
 }
+function iredmail(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$postconf=$unix->find_program("postconf");
+	if(!is_file($postconf)){return;}
+	$f[]="#! /bin/sh";
+	$f[]="#";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:		iredmail";
+	$f[]="# Required-Start:	\$syslog \$time \$local_fs \$remote_fs \$named \$network";
+	$f[]="# Required-Stop:	\$syslog \$time \$local_fs \$remote_fs";
+	$f[]="# Default-Start:	2 3 4 5";
+	$f[]="# Default-Stop:		0 1 6";
+	$f[]="# Short-Description:	Start the iredmail service";
+	$f[]="# Description:		Enable iredmail";
+	$f[]="### END INIT INFO";
 
+	$f[]="PATH=/sbin:/bin:/usr/sbin:/usr/bin";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php /usr/share/artica-postfix/exec.iredmail.php --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php /usr/share/artica-postfix/exec.iredmail.php --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    $php /usr/share/artica-postfix/exec.iredmail.php --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";	
+	$f[]=" reload)";
+	$f[]="    $php /usr/share/artica-postfix/exec.iredmail.php --reload \$2 \$3";
+	$f[]="    ;;";	
+	
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	$INITD_PATH="/etc/init.d/iredmail";
+	echo "OpenDKIM: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);@file_put_contents($INITD_PATH, @implode("\n", $f));
+
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+}
 
 
 

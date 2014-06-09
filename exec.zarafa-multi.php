@@ -42,8 +42,8 @@ function multi_status(){
 	
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile, getmypid());
 	
 	$sql="SELECT ID  FROM `zarafamulti` WHERE enabled=1 ORDER BY ID DESC";
@@ -71,8 +71,8 @@ function multi_status(){
 
 function multi_start_all(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){return;}	
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){return;}	
 	@file_put_contents($pidfile,getmypid());
 	
 	
@@ -156,16 +156,15 @@ function multi_stop_server($ID){
 	$kill=$unix->find_program("kill");
 	
 	
-	shell_exec("$kill $PID");
+	unix_system_kill($pid);
 	sleep(1);
 	
 	for($i=0;$i<10;$i++){
 		$PID=multi_get_pid($ID);
 		if(!$unix->process_exists($PID)){break;}
 		if(is_numeric($PID)){
-			$cmd="$kill -9 $PID";
 			echo "Stopping......: ".date("H:i:s")."zarafa-server instance id:$ID killing PID: $PID\n";
-			shell_exec($cmd);
+			unix_system_kill_force($PID);
 			sleep(1);
 		}
 	}
@@ -182,13 +181,17 @@ function multi_stop_daemons($binary,$ID){
 	$kill=$unix->find_program("kill");
 	
 	
-	shell_exec("$kill $PID");
+	unix_system_kill($pid);
 	sleep(1);
 	
 	for($i=0;$i<10;$i++){
 		$PID=DAEMONS_PID($binary,$ID);
 		if(!$unix->process_exists($PID)){break;}
-		if(is_numeric($PID)){$cmd="$kill -9 $PID";echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID killing PID: $PID\n";shell_exec($cmd);sleep(1);}
+		if(is_numeric($PID)){
+			echo "Stopping......: ".date("H:i:s")."zarafa-$binary instance id:$ID killing PID: $PID\n";
+			unix_system_kill_force($PID);
+			sleep(1);
+		}
 	}
 	
 	$PID=DAEMONS_PID($binary,$ID);
@@ -199,8 +202,8 @@ function multi_stop_daemons($binary,$ID){
 function multi_start($ID){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
-	$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){return;}	
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){return;}	
 	@file_put_contents($pidfile,getmypid());
 	
 	$sf=new zarafamulti($ID);
@@ -218,8 +221,8 @@ function multi_start($ID){
 }
 function multi_stop($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
-	$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile,getmypid());
 	
 	@file_put_contents($pidfile, getmypid());	
@@ -233,8 +236,8 @@ function multi_stop($ID){
 
 function multi_restart($ID){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile,getmypid());
 	
 	multi_stop($ID);
@@ -287,8 +290,8 @@ function multi_delete($ID){
 function multi_start_server($ID){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$ID.pid";
-	$oldpid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,basename(__FILE__))){return;}
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,basename(__FILE__))){return;}
 	@file_put_contents($pidfile, getmypid());
 		
 	

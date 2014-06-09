@@ -38,9 +38,9 @@ function downgrade($file){
 	$pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
 	$unix=new unix();
-	$oldpid=$unix->get_pid_from_file($pidFile);
-	if($unix->process_exists($oldpid)){
-		Events("??%: A process already exists PID $oldpid");
+	$pid=$unix->get_pid_from_file($pidFile);
+	if($unix->process_exists($pid)){
+		Events("??%: A process already exists PID $pid");
 		return;
 	}
 	

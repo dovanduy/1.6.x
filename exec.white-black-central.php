@@ -12,9 +12,9 @@ include_once(dirname(__FILE__).'/framework/frame.class.inc');
 $unix=new unix();
 $pidFile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 @mkdir(dirname($pidFile),0755);
-$oldpid=$unix->get_pid_from_file($pidFile);
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	writelogs("PID $oldpid already exists, aborting...",__FUNCTION__,__FILE__,__LINE__);
+$pid=$unix->get_pid_from_file($pidFile);
+if($unix->process_exists($pid,basename(__FILE__))){
+	writelogs("PID $pid already exists, aborting...",__FUNCTION__,__FILE__,__LINE__);
 	die();
 }
 

@@ -25,11 +25,11 @@ build();
 
 function build(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$unix=new unix();
-	if($unix->process_exists($oldpid)){
-		writelogs("Already process exists pid $oldpid",__FUNCTION__,__FILE__,__LINE__);
-		echo "Already process exists pid $oldpid\n";
+	if($unix->process_exists($pid)){
+		writelogs("Already process exists pid $pid",__FUNCTION__,__FILE__,__LINE__);
+		echo "Already process exists pid $pid\n";
 		return;
 	}
 	

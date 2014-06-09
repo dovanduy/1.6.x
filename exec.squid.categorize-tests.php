@@ -34,8 +34,8 @@
 	$unix=new unix();
 	$mef=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,$mef)){echo "Starting......: ".date("H:i:s")." Process Already exist pid $oldpid line:".__LINE__."\n";die();}	
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,$mef)){echo "Starting......: ".date("H:i:s")." Process Already exist pid $pid line:".__LINE__."\n";die();}	
 	@file_put_contents($pidfile, getmypid());	
 	
 	

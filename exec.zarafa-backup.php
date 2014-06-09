@@ -19,6 +19,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if($argv[1]=="--exec"){start();die();}
 if($argv[1]=="--dirs"){ScanDirs();die();}
 if($argv[1]=="--remove-dirs"){RemoveDirs();die();}
+if($argv[1]=="--ftp"){ftp_backup();die();}
 
 
 
@@ -65,8 +66,70 @@ function start(){
 	@file_put_contents($datestamp, date("Y-m-d H:i:s"));
 	ScanDirs();
 	RemoveDirs();
+	ftp_backup();
 
 }
+
+function ftp_backup(){
+	$sock=new sockets();
+	$mount=new mount();
+	$unix=new unix();
+	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));
+	$FTP_ENABLE=intval($ZarafaBackupParams["FTP_ENABLE"]);
+	if($FTP_ENABLE==0){ echo "FTP disbabled\n"; return;}
+	@mkdir("/home/artica/mnt-zarafa-ftp");
+	
+	$FTP_SERVER=$ZarafaBackupParams["FTP_ENABLE"];
+	$FTP_USER=$ZarafaBackupParams["FTP_USER"];
+	$FTP_PASS=$ZarafaBackupParams["FTP_PASS"];
+	$FTP_SERVER=$ZarafaBackupParams["FTP_SERVER"];
+	$mntDir="/home/artica/mnt-zarafa-ftp";
+	if($ZarafaBackupParams["DEST"]==null){$ZarafaBackupParams["DEST"]="/home/zarafa-backup";}
+	
+	if(!$mount->ftp_mount($mntDir, $FTP_SERVER, $FTP_USER, $FTP_PASS)){
+		system_admin_events("Unable to mount FTP $FTP_USER@$FTP_SERVER",__FUNCTION__,__FILE__,__LINE__,"mailboxes");
+		return;
+	}
+	
+	$FTPDir="$mntDir/".$unix->hostname_g()."/zarafa-backup";
+	@mkdir($FTPDir,0755,true);
+	if(!is_dir($FTPDir)){
+		system_admin_events("Fatal FTP $FTP_USER@$FTP_SERVER $FTPDir permission denied",__FUNCTION__,__FILE__,__LINE__,"mailboxes");
+		$mount->umount($mntDir);
+		@rmdir($mntDir);
+		return;
+	}
+	
+	echo "Starting copy... in $FTPDir\n";	
+	
+	
+	$directories=$unix->dirdir($ZarafaBackupParams["DEST"]);
+	$cp=$unix->find_program("cp");
+	
+	while (list ($directory, $ext) = each ($directories) ){
+		if(!is_file("$directory/zarafa.gz")){continue;}
+		$dirRoot=basename($directory);
+		$TargetDirectory="$FTPDir/$dirRoot";
+		if(is_file("$TargetDirectory/zarafa.gz")){continue;}
+		@mkdir($TargetDirectory,0755,true);
+		if(!is_dir($TargetDirectory)){
+			system_admin_events("Fatal FTP $FTP_USER@$FTP_SERVER $TargetDirectory permission denied",__FUNCTION__,__FILE__,__LINE__,"mailboxes");
+			continue;
+		}
+		$results=array();
+		$t=time();
+		exec("$cp -rfv $directory/* $TargetDirectory/ 2>&1",$results);
+		$took=$unix->distanceOfTimeInWords($t,time());
+		system_admin_events("Success backup $dirRoot to FTP $FTP_SERVER took: $took\nTarget:$TargetDirectory\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__,"mailboxes");
+		
+	}
+		
+	$mount->umount($mntDir);
+	@rmdir($mntDir);
+	return;		
+}
+
+
 function ScanDirs(){
 	$sock=new sockets();
 	$ZarafaBackupParams=unserialize(base64_decode($sock->GET_INFO("ZarafaBackupParams")));

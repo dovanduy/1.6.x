@@ -30,8 +30,8 @@ function CheckCMDLine(){
 	
 	$unix=new unix();
 	$PID_FILE="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=$unix->get_pid_from_file($PID_FILE);
-	if($unix->process_exists($oldpid)){return;}
+	$pid=$unix->get_pid_from_file($PID_FILE);
+	if($unix->process_exists($pid)){return;}
 	@file_put_contents($PID_FILE, getmypid());
 	
 	if(system_is_overloaded()){die();}

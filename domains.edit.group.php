@@ -2800,7 +2800,7 @@ function COMPUTERS_LIST(){
 	<tr>
 		<td valign='top' width=60% style='padding:5px'>$computer_list</td>
 		<td valign='top'>". RoundedLightGrey(Paragraphe("computer-search-add-64.png","{find_computer}","{addfind_computer_text}","javascript:addComputer($gpid)")).
-	"<br>".RoundedLightGrey(Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooUser(962,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid\",\"windows: New {add_computer}\");"))."</td>
+	"<br>".RoundedLightGrey(Paragraphe("computer-64-add.png","{add_computer}","{add_computer_text}","javascript:YahooUser(986,\"domains.edit.user.php?userid=newcomputer$&ajaxmode=yes&gpid=$gpid\",\"windows: New {add_computer}\");"))."</td>
 	</tr>	
 	</table>
 	";

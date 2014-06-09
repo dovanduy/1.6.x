@@ -30,8 +30,8 @@ if(!$GLOBALS["FORCE"]){
 	$unix->file_time_set("exec.checkfolder-permissions.php");
 	if(system_is_overloaded(basename(__FILE__))){die();}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".MAIN.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){die();}
 }
 
 

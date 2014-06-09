@@ -52,15 +52,15 @@ if($argv[1]=="--clean-squid-queues"){CleanSquidQueues();die();}
 	$CachePerfsFile="/etc/artica-postfix/pids/".basename(__FILE__).".CachePerfs.time";
 	
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Already executed pid $oldpid since {$time}mn-> DIE");
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		events("Already executed pid $pid since {$time}mn-> DIE");
 		
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 		die();
 	}
 	
@@ -454,13 +454,13 @@ function ParseUserAuth($checkpid=false){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	
 	if($checkpid){
-		$oldpid=@file_get_contents($pidfile);
-		if($oldpid<100){$oldpid=null;}
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			writelogs_squid("Already executed pid $oldpid since {$time}mn-> DIE");
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			writelogs_squid("Already executed pid $pid since {$time}mn-> DIE");
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 			die();
 		}
 		
@@ -694,14 +694,14 @@ function ParseSquidLogBrut($nopid=false){
 	$lockfile="/etc/artica-postfix/pids/".basename(__FILE__).".0.".__FUNCTION__.".lck";
 	if($nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".0.".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($oldpid<100){$oldpid=null;}
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
 	
 	
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			events_brut("ParseSquidLogBrut:: Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
-			if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			events_brut("ParseSquidLogBrut:: Already executed pid $pid since {$time}mn-> DIE",__LINE__);
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 			die();
 		}
 		$mypid=getmypid();
@@ -816,13 +816,13 @@ function ParseSquidLogBrut($nopid=false){
 		$basename=basename($dir);
 		
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".$basename.".ParseSquidLogBrutProcess.pid";
-		$oldpid=@file_get_contents($pidfile);
-		events_brut("[$val]: Directory:$basename [$pidfile] PID:$oldpid");
+		$pid=@file_get_contents($pidfile);
+		events_brut("[$val]: Directory:$basename [$pidfile] PID:$pid");
 		
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
-			events_brut("[$val]: $basename: Already process running pid: $oldpid since {$MNS}mn");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$MNS=$unix->PROCCESS_TIME_MIN($pid);
+			events_brut("[$val]: $basename: Already process running pid: $pid since {$MNS}mn");
 			$Forked++;
 			continue;
 		}
@@ -833,7 +833,7 @@ function ParseSquidLogBrut($nopid=false){
 		
 		events_brut("[$val]: $Procs processe(s) Running");
 		if($Procs>0){
-			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			$MNS=$unix->PROCCESS_TIME_MIN($pid);
 			events_brut("[$val]: $Procs processe(s) Already process running");
 			$Forked++;
 			continue;			
@@ -855,11 +855,11 @@ function ParseSquidLogBrut($nopid=false){
 	
 	$filesCount=$unix->COUNT_FILES("/var/log/artica-postfix/squid-brut");
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".ParseSquidLogBrutProcess.pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
-		events_brut("ParseSquidLogBrut:: NULL: $filesCount files Already process running pid: $oldpid since {$MNS}mn");
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$MNS=$unix->PROCCESS_TIME_MIN($pid);
+		events_brut("ParseSquidLogBrut:: NULL: $filesCount files Already process running pid: $pid since {$MNS}mn");
 		
 	}else{	
 	
@@ -918,14 +918,14 @@ function ParseSquidLogMain(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("ParseSquidLogBrutProcess:: Already executed pid $oldpid since {$time}mn-> DIE",__LINE__);
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		events("ParseSquidLogBrutProcess:: Already executed pid $pid since {$time}mn-> DIE",__LINE__);
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 		die();
 	}	
 	
@@ -939,19 +939,19 @@ function ParseSquidLogMain(){
 		$basename=basename($dir);
 		if($basename=="--verbose"){continue;}
 		$pidfile="/etc/artica-postfix/pids/squidMysqllogs.$basename.lock.pid";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$filesCount=$unix->COUNT_FILES($dir);
-		events_brut("ParseSquidLogMain:: $filesCount files, $basename: $pidfile PID:$oldpid ");
+		events_brut("ParseSquidLogMain:: $filesCount files, $basename: $pidfile PID:$pid ");
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
-			events_brut("ParseSquidLogMain:: $basename: $filesCount files, Already process running pid: $oldpid since {$MNS}mn");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$MNS=$unix->PROCCESS_TIME_MIN($pid);
+			events_brut("ParseSquidLogMain:: $basename: $filesCount files, Already process running pid: $pid since {$MNS}mn");
 			continue;
 		}		
 		
 		$Procs=ParseSquidLogMainProcessCount("squid-sql-proc",$basename);
 		if($Procs>0){
-			$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
+			$MNS=$unix->PROCCESS_TIME_MIN($pid);
 			events_brut("ParseSquidLogMain:: $Procs processe(s) already in memory");
 			continue;			
 		}
@@ -965,11 +965,11 @@ function ParseSquidLogMain(){
 	
 	$filesCount=$unix->COUNT_FILES($WORKDIR);
 	$pidfile="/etc/artica-postfix/pids/squidMysqllogs.lock.pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$MNS=$unix->PROCCESS_TIME_MIN($oldpid);
-		events_brut("ParseSquidLogMain:: NULL: $filesCount files Already process running pid: $oldpid since {$MNS}mn");
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$MNS=$unix->PROCCESS_TIME_MIN($pid);
+		events_brut("ParseSquidLogMain:: NULL: $filesCount files Already process running pid: $pid since {$MNS}mn");
 		
 	}else{
 		$cmd="$nohup $php5 ".__FILE__." --squid-sql-proc >/dev/null 2>&1 &";
@@ -1199,14 +1199,14 @@ function youtube($Aspid=false){
 	$unix=new unix();
 	if($Aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".youtube.pid";
-		$oldpid=@file_get_contents($pidfile);
+		$pid=@file_get_contents($pidfile);
 		$mypid=getmypid();
 		
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			if($oldpid<>$mypid){
-				$time=$unix->PROCCESS_TIME_MIN($oldpid);
-				events("Already executed pid $oldpid since {$time}mn-> DIE");
-				if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($pid<>$mypid){
+				$time=$unix->PROCCESS_TIME_MIN($pid);
+				events("Already executed pid $pid since {$time}mn-> DIE");
+				if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 				return;
 			}
 		}

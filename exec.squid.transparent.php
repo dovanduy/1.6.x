@@ -17,10 +17,10 @@ include_once(dirname(__FILE__).'/ressources/class.system.nics.inc');
 
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." Squid Transparent mode: $oldpid -> DIE\n";die();}
+	if($unix->process_exists($pid,basename(__FILE__))){echo "Starting......: ".date("H:i:s")." Squid Transparent mode: $pid -> DIE\n";die();}
 	if($argv[1]=="--iptables"){iptables_rules();exit;}
 	if($argv[1]=="--iptables-delete"){iptables_delete_all();exit;}
 

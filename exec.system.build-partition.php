@@ -106,9 +106,9 @@ function disk_build_unique_partition($dev,$label,$fs_type=null){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".md5($dev.$label);
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		events("Already PID $oldpid exists, aborting...");
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		events("Already PID $pid exists, aborting...");
 		return;
 	}
 	

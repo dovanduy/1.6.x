@@ -26,8 +26,8 @@ function detectCards(){
 	if($unix->file_time_get(basename(__FILE__))<5){return;}
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		echo "detectCards: [INFO] Already running...\n";
 		die();
 	}
@@ -90,8 +90,8 @@ function iwlist(){
 	
 	@mkdir("/etc/artica-postfix/pids",0755,true);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
 		echo "iwlist: [INFO] Already running...\n";
 		die();
 	}

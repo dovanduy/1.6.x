@@ -33,10 +33,10 @@ if(!ifMustBeExecuted()){die();}
 if(isset($argv[1])){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". md5($argv[1]).".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		writelogs(basename(__FILE__).":Already executed PID: $oldpid since {$timepid}Mn {$argv[1]}.. aborting the process",basename(__FILE__),__FILE__,__LINE__);die();}
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		writelogs(basename(__FILE__).":Already executed PID: $pid since {$timepid}Mn {$argv[1]}.. aborting the process",basename(__FILE__),__FILE__,__LINE__);die();}
 	@file_put_contents($pidfile, getmypid());
 }
 
@@ -107,9 +107,9 @@ function ifMustBeExecuted(){
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-$oldpid=@file_get_contents($pidfile);
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	writelogs(basename(__FILE__).":Already executed PID: $oldpid.. aborting the process",basename(__FILE__),__FILE__,__LINE__);
+$pid=@file_get_contents($pidfile);
+if($unix->process_exists($pid,basename(__FILE__))){
+	writelogs(basename(__FILE__).":Already executed PID: $pid.. aborting the process",basename(__FILE__),__FILE__,__LINE__);
 	die();
 }
 
@@ -402,10 +402,10 @@ function build(){
 	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-		writelogs(basename(__FILE__).":Already executed PID: $oldpid since {$timepid}Mn {$argv[1]}.. aborting the process",
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		writelogs(basename(__FILE__).":Already executed PID: $pid since {$timepid}Mn {$argv[1]}.. aborting the process",
 		basename(__FILE__),__FILE__,__LINE__);
 		die();
 	}
@@ -519,7 +519,7 @@ function reload(){
 		if(!is_numeric($pid)){continue;}
 		if($pid<10){continue;}
 		echo "Starting......: ".date("H:i:s")." samba reloading smbd pid: $pid\n";
-		shell_exec("/bin/kill -HUP $pid 2>&1 >/dev/null");
+		unix_system_HUP($pid);
 	}
 	$results=array();
 	exec("$pidof winbindd 2>&1",$results);
@@ -530,7 +530,7 @@ function reload(){
 		if(!is_numeric($pid)){continue;}
 		if($pid<10){continue;}
 		echo "Starting......: ".date("H:i:s")." samba reloading winbindd pid: $pid\n";
-		shell_exec("/bin/kill -HUP $pid 2>&1 >/dev/null");
+		unix_system_HUP($pid);
 	}	
 	
 }

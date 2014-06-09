@@ -163,10 +163,10 @@ if($argv[1]=="--smtp-generic-maps"){
 
 $unix=new unix();
 $pidfile="/etc/artica-postfix/pids/postfix.reconfigure2.pid";
-$oldpid=$unix->get_pid_from_file($pidfile);
-if($unix->process_exists($oldpid,basename(__FILE__))){
-	$time=$unix->PROCCESS_TIME_MIN($oldpid);
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $oldpid since {$time}mn\n";}
+$pid=$unix->get_pid_from_file($pidfile);
+if($unix->process_exists($pid,basename(__FILE__))){
+	$time=$unix->PROCCESS_TIME_MIN($pid);
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Postfix Already Artica task running PID $pid since {$time}mn\n";}
 	die();
 }
 @file_put_contents($pidfile, getmypid());
@@ -244,10 +244,10 @@ function internal_pid($argv){
 	
 	$mef=basename(__FILE__);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$md5.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid,$mef)){
-		echo "Starting......: ".date("H:i:s")." Postfix : Process Already exist pid $oldpid line:".__LINE__."\n";
-		system_admin_events("`$cmsline` task cannot be performed, a Process Already exist pid $oldpid", __FUNCTION__, __FILE__, __LINE__, "postfix");
+	$pid=@file_get_contents($pidfile);
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid,$mef)){
+		echo "Starting......: ".date("H:i:s")." Postfix : Process Already exist pid $pid line:".__LINE__."\n";
+		system_admin_events("`$cmsline` task cannot be performed, a Process Already exist pid $pid", __FUNCTION__, __FILE__, __LINE__, "postfix");
 		die();
 	}	
 	

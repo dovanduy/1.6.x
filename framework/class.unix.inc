@@ -4070,7 +4070,7 @@ public function alt_stat($file) {
 			if($killOnTTL>0){
 				if($return>$killOnTTL){
 					$kill=$this->find_program("kill");
-					shell_exec("$kill -9 $pid >/dev/null 2>&1");
+					if($pid>5){ unix_system_kill_force($pid); }
 					return 0;
 				}
 			}
@@ -5909,17 +5909,22 @@ return $this->LOCATE_STUNNEL();
 	
 	public function DEBIAN_INSTALL_PACKAGE($package){
 		$aptget=$this->find_program("apt-get");
-		if(!is_file($aptget)){return;}
+		if(!is_file($aptget)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." apt-get: $package apt-get -> No such binary\n";}
+			return;
+		}
 		$apttime="/etc/artica-postfix/APT_GET_UPDATE_TIME";
 		$time=$this->file_time_min($apttime);
+		
 		if($time>1880){
 			$php=$this->LOCATE_PHP5_BIN();
 			shell_exec("$php /usr/share/artica-postfix/exec.apt-get.php --sources-list");
-			shell_exec("$aptget update -y -q");
+			shell_exec("$aptget update -y");
 			@unlink("/etc/artica-postfix/APT_GET_UPDATE_TIME");
 			@file_put_contents("/etc/artica-postfix/APT_GET_UPDATE_TIME", time());
 		}
 		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." apt-get: $package installing package\n";}
 		exec("DEBIAN_FRONTEND=noninteractive $aptget -o Dpkg::Options::=\"--force-confnew\" --force-yes -fuy install $package 2>&1",$results);
 		while (list ($num, $ligne) = each ($results) ){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." apt-get: $ligne\n";}
@@ -7403,7 +7408,9 @@ function cpulimit($forced=0){
 
 function GET_INFO_DAEMON($key){
    	if(function_exists("apc_store")){$value=apc_fetch($key);if($value<>null){return trim($value);}}	
-	if($GLOBALS["GET_INFO_DAEMON"][$key]<>null){return $GLOBALS["GET_INFO_DAEMON"][$key];}
+	if(isset($GLOBALS["GET_INFO_DAEMON"][$key])){
+   		if($GLOBALS["GET_INFO_DAEMON"][$key]<>null){return $GLOBALS["GET_INFO_DAEMON"][$key];}
+	}
 	$result=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/$key"));
 	$GLOBALS["GET_INFO_DAEMON"][$key]=$result;
 	if(function_exists("apc_store")){apc_store($key, $result);}	
@@ -7825,6 +7832,64 @@ function rdpproxy_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 	$md5=md5($serialize);
 	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/rdpproxy_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/rdpproxy_admin_mysql",0755,true);}
 	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/rdpproxy_admin_mysql/$md5.log", $serialize);
+	
+
+
+
+}
+
+
+
+function blackwhite_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	if(!is_numeric($line)){$line=0;}
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+
+
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $subject ." [$line]");
+		closelog();
+	}
+
+	
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+
+
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text;
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/blackwhite_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/blackwhite_admin_mysql",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/blackwhite_admin_mysql/$md5.log", $serialize);
 	
 
 
@@ -8279,7 +8344,100 @@ function update_events($text,$function,$file,$line,$category=null){
 	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/update_admin_events/$md5.log", $serialize);
 }
 
+function unix_system_kill_force($pid){
+	if(function_exists("debug_backtrace")){ $trace=debug_backtrace(); if(isset($trace[1])){ $file=basename($trace[1]["file"]); $function=$trace[1]["function"]; $line=$trace[1]["line"]; }}
+	if(!is_numeric($pid)){
+		_unix_system_kill_debug("[9]: PID $pid is not a numeric! from  $file ($function) in line $line");
+		return;
+	}
+	if($pid<5){
+		_unix_system_kill_debug("[9]: PID $pid is under 5!! from  $file ($function) in line $line");
+		return;
+	}
+	if(!is_dir("/proc/$pid")){return;}
+	$unix=new unix();
+	$kill=$unix->find_program("kill");
+	$cmdline=trim(@file_get_contents("/proc/$pid/cmdline"));
+	
+	if($cmdline==null){
+		$ps=$unix->find_program("ps");
+		$grep=$unix->find_program("grep");
+		$cmdline=exec("$ps aux|$grep -E \".*?\s+$pid\s+\" 2>&1");
+	}
+	
+	shell_exec("$kill -9 $pid >/dev/null 2>&1");
+	_unix_system_kill_debug("[9]: PID $pid killed \"$cmdline\" from  $file ($function) in line $line");
 
 
+}
 
+function _unix_system_kill_debug($line){
+	
+	if (is_file("/var/log/killed-proc.log")) {
+		$size=filesize("/var/log/killed-proc.log");
+		if($size>1000000){@unlink("/var/log/killed-proc.log");}
+	}
+	
+	$f = @fopen("/var/log/killed-proc.log", 'a');
+	$lineToSave=date("Y-m-d H:i:s")." " .$line;
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+}
+
+function unix_system_kill($pid){
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){ $trace=debug_backtrace(); if(isset($trace[1])){ $file=basename($trace[1]["file"]); $function=$trace[1]["function"]; $line=$trace[1]["line"]; }}
+	
+	
+	if(!is_numeric($pid)){
+		_unix_system_kill_debug("[?]: PID $pid is not a numeric! from  $file ($function) in line $line");
+		return;
+	}
+	if($pid<5){
+		_unix_system_kill_debug("[?]: PID $pid is under 5!! from  $file ($function) in line $line");
+		return;
+	}
+	$kill=$unix->find_program("kill");
+	$cmdline=trim(@file_get_contents("/proc/$pid/cmdline"));
+	
+	if($cmdline==null){
+		$ps=$unix->find_program("ps");
+		$grep=$unix->find_program("grep");
+		$cmdline=exec("$ps aux|$grep -E \".*?\s+$pid\s+\" 2>&1");
+	}
+	
+	shell_exec("$kill $pid >/dev/null 2>&1");
+	_unix_system_kill_debug("[?]: PID $pid smoothly killed \"$cmdline\" from  $file ($function) in line $line");
+
+
+}
+function unix_system_HUP($pid){
+	$unix=new unix();
+	if(function_exists("debug_backtrace")){ $trace=debug_backtrace(); if(isset($trace[1])){ $file=basename($trace[1]["file"]); $function=$trace[1]["function"]; $line=$trace[1]["line"]; }}
+
+
+	if(!is_numeric($pid)){
+		_unix_system_kill_debug("[?]: PID $pid is not a numeric! from  $file ($function) in line $line");
+		return;
+	}
+	if($pid<5){
+		_unix_system_kill_debug("[?]: PID $pid is under 5!! from  $file ($function) in line $line");
+		return;
+	}
+	
+	
+	$kill=$unix->find_program("kill");
+	$cmdline=trim(@file_get_contents("/proc/$pid/cmdline"));
+	
+	if($cmdline==null){
+		$ps=$unix->find_program("ps");
+		$grep=$unix->find_program("grep");
+		$cmdline=exec("$ps aux|$grep -E \".*?\s+$pid\s+\" 2>&1");
+	}
+	
+	shell_exec("$kill -HUP $pid >/dev/null 2>&1");
+	_unix_system_kill_debug("[?]: PID $pid smoothly HUP \"$cmdline\" from  $file ($function) in line $line");
+
+
+}
 ?>

@@ -123,12 +123,12 @@ function scan($aspid=false){
 	$q=new mysql_squid_builder();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=@file_get_contents($pidfile);
-		if($oldpid<100){$oldpid=null;}
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
 	
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-			events("Already executed pid $oldpid since {$timepid}Mn");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
+			events("Already executed pid $pid since {$timepid}Mn");
 			return;
 		}	
 	
@@ -375,12 +375,12 @@ function analyze_all($aspid=false){
 	
 	
 	if(!$aspid){
-		$oldpid=@file_get_contents($pidfile);
-		if($oldpid<100){$oldpid=null;}
+		$pid=@file_get_contents($pidfile);
+		if($pid<100){$pid=null;}
 	
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
-			events("Already executed pid $oldpid since {$timepid}Mn");
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
+			events("Already executed pid $pid since {$timepid}Mn");
 			return;
 		}
 	

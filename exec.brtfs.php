@@ -21,10 +21,10 @@ function convert($dev){
 	
 	$mddev=md5($dev);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$mddev.pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
 		$TimeF=$unix->file_time_min($pidfile);
-		$unix->send_email_events("Failed Report btrfs conversion on $dev", "A process PID:$oldpid already running since {$TimeF}Mn", "filesystem");
+		$unix->send_email_events("Failed Report btrfs conversion on $dev", "A process PID:$pid already running since {$TimeF}Mn", "filesystem");
 		return;
 	}
 	

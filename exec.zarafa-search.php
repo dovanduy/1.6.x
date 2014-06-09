@@ -45,10 +45,10 @@ function restart($nopid=false){
 	$php=$unix->LOCATE_PHP5_BIN();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$nopid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -63,10 +63,10 @@ function clean($aspid=false){
 	
 	$pidfile="/etc/artica-postfix/pids/zarafa-search-starter.pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Engine Artica Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -88,10 +88,10 @@ function start($aspid=false){
 	
 	$pidfile="/etc/artica-postfix/pids/zarafa-search-starter.pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Engine Artica Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -104,10 +104,10 @@ function start($aspid=false){
 		return;
 	}
 	
-	$oldpid=XZARAFA_SERVER_PID();
+	$pid=XZARAFA_SERVER_PID();
 
 		
-	if(!$unix->process_exists($oldpid)){
+	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Engine Failed, zarafa-server is not running...\n";}
 		return;		
 	}else{
@@ -170,10 +170,10 @@ function start($aspid=false){
 function reload(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
@@ -187,7 +187,7 @@ function reload(){
 	}	
 	if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: {$GLOBALS["SERVICE_NAME"]} reloading PID $pid...\n";}
 	$kill=$unix->find_program("kill");
-	shell_exec("$kill -HUP $pid");
+	unix_system_HUP($pid);
 	
 }
 
@@ -196,10 +196,10 @@ function stop($aspid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -223,7 +223,7 @@ function stop($aspid=false){
 	$kill=$unix->find_program("kill");
 
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} killing smoothly PID $pid...\n";}
-	shell_exec("$kill $pid");
+	unix_system_kill($pid);
 	sleep(1);
 
 	for($i=1;$i<5;$i++){
@@ -238,7 +238,7 @@ function stop($aspid=false){
 	
 	$pid=ZARAFA_SEARCH_PID();
 	if($unix->process_exists($pid)){
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 		sleep(1);
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} force killing $pid...\n";}
 		for($i=1;$i<5;$i++){
@@ -247,7 +247,7 @@ function stop($aspid=false){
 				if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} pid $pid successfully stopped ...\n";}
 				break;
 			}
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 			sleep(1);
 		}
 	}

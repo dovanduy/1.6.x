@@ -28,13 +28,13 @@ rebuildcaches();
 function cache_central_rebuild($ID){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	
 	
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		echo "Already executed pid $oldpid\n";
+	if($unix->process_exists($pid,basename(__FILE__))){
+		echo "Already executed pid $pid\n";
 		die();
 	}
 	
@@ -139,10 +139,10 @@ function cache_central_rebuild_progress($text,$prc){
 function reindex_caches(){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}die();}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);		
 	
@@ -211,11 +211,11 @@ function reindex_caches(){
 	
 function rebuild_default_cache(){
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
 	$sock=new sockets();
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}die();}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);		
 	$t=time();
@@ -283,12 +283,12 @@ function rebuild_default_cache(){
 function rebuildcaches(){
 	$logFile="/usr/share/artica-postfix/ressources/logs/web/rebuild-cache.txt";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
 	$sock=new sockets();
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		ouputz("Already process exists $oldpid, aborting", __LINE__);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		ouputz("Already process exists $pid, aborting", __LINE__);
 		die();}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);
@@ -475,15 +475,15 @@ function clean_old_caches(){
 		echo "PidTime = $PidTime\n";
 	}
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$unix=new unix();
 	$sock=new sockets();
 	
 	
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid\n";}die();}
+	if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}die();}
 	$mypid=getmypid();
 	@file_put_contents($pidfile,$mypid);	
 	

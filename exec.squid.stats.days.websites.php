@@ -41,11 +41,11 @@ if($argv[1]=="--fams"){
 
 $pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 $pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-$oldpid=@file_get_contents($pidfile);
+$pid=@file_get_contents($pidfile);
 $myfile=basename(__FILE__);
 $unix=new unix();
-if($unix->process_exists($oldpid,$myfile)){
-	ufdbguard_admin_events("$oldpid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
+if($unix->process_exists($pid,$myfile)){
+	ufdbguard_admin_events("$pid already running, aborting",__FUNCTION__,__FILE__,__LINE__,"stats");
 	return;
 }
 

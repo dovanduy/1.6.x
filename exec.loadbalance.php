@@ -189,7 +189,7 @@ function stop(){
 	while (list ($num, $line) = each ($results) ){
 		if(preg_match("#([0-9]+)#", $line,$re)){
 			echo "Stopping Crossroads Daemon...: Ghost instance PID {$re[1]}\n";
-			shell_exec("$kill -9 {$re[1]}");
+			unix_system_kill_force($re[1]);
 		}
 		
 	}
@@ -235,7 +235,7 @@ function stop_instance($ID){
 		return;
 	}
 	echo "Stopping Crossroads Daemon...: instance ID:$ID PID $pid\n";
-	if(is_numeric($pid)){shell_exec("$kill $pid");}
+	if(is_numeric($pid)){unix_system_kill($pid);}
 	for($i=0;$i<5;$i++){
 		sleep(1);
 		if(!$unix->process_exists($pid)){
@@ -245,12 +245,12 @@ function stop_instance($ID){
 		}
 		
 		$pid=cross_pid($ID);
-		if(is_numeric($pid)){shell_exec("$kill $pid");}
+		if(is_numeric($pid)){unix_system_kill($pid);}
 	}
 	$pid=cross_pid($ID);
 	if($unix->process_exists($pid)){
 		echo "Stopping Crossroads Daemon...: instance ID:$ID Force to kill it !\n";
-		if(is_numeric($pid)){shell_exec("$kill -9 $pid");}
+		if(is_numeric($pid)){unix_system_kill_force($pid);}
 	}
 	$pid=cross_pid($ID);
 	if($unix->process_exists($pid)){

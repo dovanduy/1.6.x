@@ -148,8 +148,8 @@ function start($nopid=false){
 	
 	if(!$nopid){
 		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidpath);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
+		$pid=$unix->get_pid_from_file($pidpath);
+		if($unix->process_exists($pid,basename(__FILE__))){
 			echo "Starting......: ".date("H:i:s")." WINBIND Already running start process exists\n";
 			Winbindd_events("Already running start process exists",__FUNCTION__,__LINE__);
 			return;
@@ -300,7 +300,8 @@ function stop(){
 			while (list ($a, $b) = each ($tb) ){
 				if(!is_numeric($b)){continue;}
 				echo "Stopping WINBIND.............: killing $b pid\n";
-				shell_exec("$kill -9 $b >/dev/null 2>&1");
+				unix_system_kill_force($b);
+				
 			}
 		}
 	}

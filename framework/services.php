@@ -1307,7 +1307,7 @@ function kill_pid(){
 	$pid=$_GET["kill-pid"];
 	if(!is_numeric($pid)){return;}
 	if($pid<10){return;}
-	shell_exec("$kill -9 $pid >/dev/null 2>&1");	
+	unix_system_kill_force($pid);	
 	
 }
 function reconfig_jabberd(){

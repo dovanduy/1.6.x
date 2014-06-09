@@ -39,10 +39,10 @@ function restart($nopid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$nopid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -60,11 +60,11 @@ function start($aspid=false){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
+		$pid=$unix->get_pid_from_file($pidfile);
 		$sock=new sockets();
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-web Engine Artica Task Already running PID $oldpid since {$time}mn\n";}
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-web Engine Artica Task Already running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -134,10 +134,10 @@ function start($aspid=false){
 function reload(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: Already task running PID $oldpid since {$time}mn\n";}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Reloading.....: [INIT]: Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
@@ -162,10 +162,10 @@ function stop($aspid=false){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$aspid){
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Already task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Already task running PID $pid since {$time}mn\n";}
 			return;
 		}
 	}
@@ -190,7 +190,7 @@ function stop($aspid=false){
 		while (list ($index, $dir) = each ($results) ){
 			if(preg_match("#[0-9]+.*?not running#",$dir)){
 				if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} killing \"forced\" PID $pid...\n";}
-				shell_exec("$kill $pid");
+				unix_system_kill($pid);
 				break;
 			}
 		}
@@ -211,7 +211,7 @@ function stop($aspid=false){
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} killing \"forced\" PID $pid...\n";}
-		shell_exec("$kill $pid");
+		unix_system_kill($pid);
 		sleep(1);
 		for($i=1;$i<10;$i++){
 			$pid=PID_NUM();

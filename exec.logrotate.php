@@ -68,7 +68,7 @@ if($unix->process_exists($pid,basename(__FILE__))){
 	if($timeMin>240){
 		system_admin_events("Too many TTL, $pid will be killed",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $pid");
+		unix_system_kill_force($pid);
 	}else{
 		die();
 	}
@@ -1006,7 +1006,7 @@ function check_all_squid(){
 		if($timeMin>240){
 			system_admin_events("Too many TTL, $pid will be killed",__FUNCTION__,__FILE__,__LINE__,"logrotate");
 			$kill=$unix->find_program("kill");
-			shell_exec("$kill -9 $pid");
+			unix_system_kill_force($pid);
 		}else{
 			die();
 		}

@@ -14,8 +14,8 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 $unix=new unix();
 $PidRestore="/etc/artica-postfix/pids/zarafaRestore.pid";
-$oldpid=$unix->get_pid_from_file($PidRestore);
-if($unix->process_exists($oldpid,basename(__FILE__))){die();}
+$pid=$unix->get_pid_from_file($PidRestore);
+if($unix->process_exists($pid,basename(__FILE__))){die();}
 
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;}
 if($GLOBALS["VERBOSE"]){ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}

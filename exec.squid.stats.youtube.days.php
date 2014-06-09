@@ -46,9 +46,9 @@ function start($xtime=0){
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".$xtime.pid";
 	$pidTime="/etc/artica-postfix/pids/YoutubeByHour.time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){
-		$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
 		die();
 	}
 	
@@ -211,9 +211,9 @@ function youtube_dayz($aspid=false){
 		
 		
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".youtube_dayz.pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid)){
-			$timepid=$unix->PROCCESS_TIME_MIN($oldpid);
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid)){
+			$timepid=$unix->PROCCESS_TIME_MIN($pid);
 			die();
 		}
 	}

@@ -27,8 +27,8 @@ function execute_mysql($OnlyID=0){
 	$httrack=$unix->find_program("httrack");
 	if(!is_file($httrack)){system_admin_events("httrack no such binary",__FUNCTION__,__FILE__,__LINE__,"webcopy");return;}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"webcopy");return;}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Already instance executed pid:$olpid",__FUNCTION__,__FILE__,__LINE__,"webcopy");return;}
 	
 	$getmypid=getmypid();
 	@file_put_contents($pidfile, $getmypid);		

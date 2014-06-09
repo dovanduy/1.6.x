@@ -547,7 +547,7 @@ function main_settings($noecho=0){
 	$filterbhavior=Paragraphe("64-milter-behavior.png",'{filter_behavior}','{filter_behavior_text}',"javascript:Loadjs('$page?script=filterbehavior')",null,210,100);
 	$notification=Paragraphe("mail4-64.png",'{smtp_notification}','{notification_text}',"javascript:Loadjs('$page?script=notification')",null,210,100);
 
-	$whitelist=Paragraphe("folder-64-spamassassin-grey.png",'{spamassassin}','{feature_not_installed}',null,null,210,100);
+	$whitelist=Paragraphe("64-spam-grey.png",'{spamassassin}','{feature_not_installed}',null,null,210,100);
 	
 	$pieces_jointes=Paragraphe("pieces-jointes.png",
 	'{filter_extension}','{filter_extension_text}',"javascript:Loadjs('amavis.exts.php')",null,210,100);

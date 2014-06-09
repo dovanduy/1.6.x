@@ -67,12 +67,12 @@ function execBackup(){
 	$unix=new unix();
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){
-		$TTL=$unix->PROCESS_TTL($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
+		$TTL=$unix->PROCESS_TTL($pid);
 		if($TTL<240){return;}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $oldpid 2>&1");
+		unix_system_kill_force($pid);
 	}
 	
 	@file_put_contents($pidfile, getmypid());
@@ -339,12 +339,12 @@ function restore(){
 		echo "PID: $pidfile\n";
 	}
 	
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid)){
-		$TTL=$unix->PROCESS_TTL($oldpid);
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
+		$TTL=$unix->PROCESS_TTL($pid);
 		if($TTL<240){return;}
 		$kill=$unix->find_program("kill");
-		shell_exec("$kill -9 $oldpid 2>&1");
+		unix_system_kill_force($pid);
 	}
 	
 	@file_put_contents($pidfile, getmypid());

@@ -505,7 +505,7 @@ function samba(){
 	
 		$cups=Paragraphe('64-printer-grey.png',"{APP_CUPS}",'{feature_not_installed}');
 
-//$audit=Paragraphe('folder-64-spamassassin.png','{samba_audit}','{samba_audit_text}',"new:smb-audit/index.php",null,210,null,0,false);
+//$audit=Paragraphe('64-spam.png','{samba_audit}','{samba_audit_text}',"new:smb-audit/index.php",null,210,null,0,false);
 	
 		
 		if($users->CUPS_INSTALLED){
@@ -1127,7 +1127,7 @@ function network(){
 	
 $array["DEF_ICO_ADDCOMP"]=array(
 			"IMG"=>"64-add-computer.png",
-			 "JS"=>"YahooUser(962,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
+			 "JS"=>"YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
 			 "TITLE"=>"ADD_COMPUTER",
 			 "TEXT"=>"ADD_COMPUTER_TEXT",
 			 "CLASS"=>"NETWORK"
@@ -1197,7 +1197,7 @@ $array=$array+array(
 
 		"DEF_ICO_COMPUTER_ADD"=>array(
 			"IMG"=>"64-add-computer.png",
-			 "JS"=>"YahooUser(670,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
+			 "JS"=>"YahooUser(986,'domains.edit.user.php?userid=newcomputer$&ajaxmode=yes','New computer');",
 			 "TITLE"=>"ADD_COMPUTER",
 			 "TEXT"=>"ADD_COMPUTER_TEXT",
 			 "CLASS"=>"NETWORK"

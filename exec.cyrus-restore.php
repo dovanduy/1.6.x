@@ -302,9 +302,9 @@ function ActiveDirectorySync(){
 		return;
 	}
 	
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid)){
-		echo "Sync client:: Already $oldpid process executed\n";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		echo "Sync client:: Already $pid process executed\n";
 		return;
 	}
 	

@@ -72,11 +72,33 @@ function popup(){
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:18px'>{retention}:</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{retention}:</td>
 				<td style='font-size:18px'>". Field_text("DELETE_BACKUPS_OLDER_THAN_DAYS-$t",
 						$ZarafaBackupParams["DELETE_BACKUPS_OLDER_THAN_DAYS"],"font-size:18px;padding:3px;width:90px")."&nbsp;{days}</td>
 				<td>&nbsp;</td>
+			</tr>
+			<tr><td colspan=3><hr><span style='font-size:26px;vertical-align:middle'>FTP: {backup}</td></tr>
+			<tr><td colspan=3>". Paragraphe_switch_img("{enable_FTP_backup}", 
+					"{FTP_backup_zarafa_explain}","FTP_ENABLE-$t",intval($ZarafaBackupParams["FTP_ENABLE"]))."</td>					
+			</tr>
+			<tr>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{ftp_server}:</td>
+				<td style='font-size:18px'>". Field_text("FTP_SERVER-$t",
+						$ZarafaBackupParams["FTP_SERVER"],"font-size:18px;padding:3px;width:210px")."&nbsp;</td>
+				<td>&nbsp;</td>
 			</tr>			
+			<tr>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{ftp_username}:</td>
+				<td style='font-size:18px'>". Field_text("FTP_USER-$t",
+						$ZarafaBackupParams["FTP_USER"],"font-size:18px;padding:3px;width:190px")."&nbsp;</td>
+				<td>&nbsp;</td>
+			</tr>
+			<tr>
+				<td class=legend style='font-size:18px'>{ftp_password}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_password("FTP_PASS-$t",
+						$ZarafaBackupParams["FTP_PASS"],"font-size:18px;padding:3px;width:190px")."&nbsp;</td>
+				<td>&nbsp;</td>
+			</tr>												
 			<tr>
 				<td colspan=3 align='right'><hr>". button("{apply}","SaveZarafaBackupParams$t()","26px")."</td>
 			</tr>		
@@ -96,6 +118,12 @@ function popup(){
 		if(document.getElementById('DELETE_OLD_BACKUPS-$t').checked){XHR.appendData('DELETE_OLD_BACKUPS',1);}else{XHR.appendData('DELETE_OLD_BACKUPS',0);}	
 		XHR.appendData('DEST',document.getElementById('DEST-$t').value);
 		XHR.appendData('DELETE_BACKUPS_OLDER_THAN_DAYS',document.getElementById('DELETE_BACKUPS_OLDER_THAN_DAYS-$t').value);
+		
+		XHR.appendData('FTP_ENABLE',document.getElementById('FTP_ENABLE-$t').value);
+		XHR.appendData('FTP_USER',document.getElementById('FTP_USER-$t').value);
+		XHR.appendData('FTP_PASS',encodeURIComponent(document.getElementById('FTP_PASS-$t').value));
+		XHR.appendData('FTP_SERVER',document.getElementById('FTP_SERVER-$t').value);
+		
 		AnimateDiv('div-$t');
 		XHR.sendAndLoad('$page', 'POST',x_SaveZarafaBackupParams$t);
 		}
@@ -123,6 +151,8 @@ function popup(){
 
 function ZarafaSave(){
 	$sock=new sockets();
+	$_POST["FTP_PASS"]=url_decode_special_tool($_POST["FTP_PASS"]);
+	
 	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "ZarafaBackupParams");
 
 	

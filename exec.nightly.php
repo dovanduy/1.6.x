@@ -371,17 +371,17 @@ function nightly(){
 	$autoinstall=true;
 	$timefile="/etc/artica-postfix/croned.1/nightly";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
-	$oldpid=@file_get_contents($pidfile);
+	$pid=@file_get_contents($pidfile);
 	$kill=$unix->find_program("kill");
 	$tmpdir=$unix->TEMP_DIR();
 	
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		echo "Starting......: ".date("H:i:s")." nightly build already executed PID: $oldpid since {$time}Mn\n";
-		system_admin_events("nightly build already executed PID: $oldpid since {$time}Mn", __FUNCTION__, __FILE__, __LINE__, "artica-update");
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		echo "Starting......: ".date("H:i:s")." nightly build already executed PID: $pid since {$time}Mn\n";
+		system_admin_events("nightly build already executed PID: $pid since {$time}Mn", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 		if($time<120){if(!$GLOBALS["FORCE"]){die();}}
-		shell_exec("$kill -9 $oldpid");
+		unix_system_kill_force($pid);
 	}
 	
 	$mypid=getmypid();
@@ -580,13 +580,14 @@ function install_package($filename,$expected=null){
 		@file_put_contents("/usr/share/artica-postfix/download_progress", 100);
 		_artica_update_event(1,"install_package() Reboot the server in 10s...",null,__FILE__,__LINE__);
 		events("Reboot the server in 10s...");
-		system_admin_events("Reboot the server in 10s...", __FUNCTION__, __FILE__, __LINE__, "artica-update");
+		system_admin_events("Warning: Reboot the server in 10s...", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 		$shutdown=$unix->find_program("shutdown");
 		shell_exec("shutdown -r -t 10");
 		return true;
 	}	
 	
 	_artica_update_event(2,"install_package(): restart dedicated services...",null,__FILE__,__LINE__);
+	system_admin_events("Warning: Restart Artica dedicated services after an upgrade...", __FUNCTION__, __FILE__, __LINE__, "artica-update");
 	RestartDedicatedServices();
 	_artica_update_event(2,"install_package(): finish",null,__FILE__,__LINE__);
 	return true;

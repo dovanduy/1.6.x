@@ -250,7 +250,7 @@ function section_services(){
 	$dropbox=Paragraphe('dropbox-64-grey.png','{APP_DROPBOX}','{APP_DROPBOX_TEXT}',"",null,210,null,0,false);
 		//$samba=Paragraphe('64-samba.png','{APP_SAMBA}','{APP_SAMBA_TEXT}',"javascript:Loadjs('samba.index.php?script=smbpop')",null,210,null,0,false);
 		//$share=Paragraphe('64-share.png','{SHARE_FOLDER}','{SHARE_FOLDER_TEXT}',"javascript:Loadjs('SambaBrowse.php');",null,210,null,0,false);
-		//$audit=Paragraphe('folder-64-spamassassin.png','{samba_audit}','{samba_audit_text}',"new:smb-audit/index.php",null,210,null,0,false);
+		//$audit=Paragraphe('64-spam.png','{samba_audit}','{samba_audit_text}',"new:smb-audit/index.php",null,210,null,0,false);
 		//$usb=Paragraphe('usb-share-64.png','{usb_share}','{usb_share_text}',"javascript:Loadjs('usb.browse.php')",null,210,null,0,false);
 		
 

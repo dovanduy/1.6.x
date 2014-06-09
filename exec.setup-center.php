@@ -23,10 +23,10 @@ function install_apps(){
 	if(system_is_overloaded(basename(__FILE__))){writelogs("Overloaded system, aborting...",__FUNCTION__,__FILE__,__LINE__);die();}
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5(__FUNCTION__).".pid";
-	$oldpid=$unix->get_pid_from_file($pidfile);
+	$pid=$unix->get_pid_from_file($pidfile);
 	$timefile=$unix->file_time_min($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		writelogs(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		writelogs(basename(__FILE__).": Already executed pid $pid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__);
 		die();
 	}
 
@@ -149,10 +149,10 @@ function ParseProducts(){
 	if(!$GLOBALS["FORCE"]){
 		$TimePid="/etc/artica-postfix/pids/".basename(__FILE__).".".md5(__FUNCTION__).".time";
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".md5(__FUNCTION__).".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
 			$timefile=$unix->file_time_min($pidfile);
-			system_admin_events(basename(__FILE__).": Already executed pid $oldpid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__,"setup");
+			system_admin_events(basename(__FILE__).": Already executed pid $pid since $timefile minutes.. aborting the process","MAIN",__FILE__,__LINE__,"setup");
 			die();
 		}
 		

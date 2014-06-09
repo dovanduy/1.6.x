@@ -34,9 +34,9 @@ function samba_domains_info(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		system_admin_events("Process $oldpid already exists",__FUNCTION__,__FILE__,__LINE__,"samba");
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		system_admin_events("Process $pid already exists",__FUNCTION__,__FILE__,__LINE__,"samba");
 		return;
 	}	
 	@file_put_contents($pidfile, getmypid());
@@ -87,8 +87,8 @@ function getent(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".time";
-	$oldpid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){system_admin_events("Process $oldpid already exists",__FUNCTION__,__FILE__,__LINE__,"samba");return;}
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){system_admin_events("Process $pid already exists",__FUNCTION__,__FILE__,__LINE__,"samba");return;}
 	if(system_is_overloaded(basename(__FILE__))){system_admin_events("Overloaded system, aborting",__FUNCTION__,__FILE__,__LINE__,"samba");return;}
 	@file_put_contents($pidfile, getmypid());	
 	if(!$GLOBALS["FORCE"]){if($unix->file_time_min($pidTime)<120){return;}}

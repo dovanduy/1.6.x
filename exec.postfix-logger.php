@@ -1306,8 +1306,8 @@ function postqueue(){
 		$unix=new unix();
 		if(!$GLOBALS["FORCE"]){
 			$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-			$oldpid=@file_get_contents($pidfile);
-			if($unix->process_exists($oldpid)){echo __FUNCTION__." already executed pid $oldpid\n";return;}
+			$pid=@file_get_contents($pidfile);
+			if($unix->process_exists($pid)){echo __FUNCTION__." already executed pid $pid\n";return;}
 			@file_put_contents($pidfile,getmypid());
 		}
 
@@ -1527,9 +1527,9 @@ function CleanQueues(){
 		
 		if(!$GLOBALS["FORCE"]){
 			$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-			$oldpid=@file_get_contents($pidfile);
-			if($GLOBALS["CLASS_UNIX"]->process_exists($oldpid)){
-				echo "CleanQueues() already executed pid $oldpid\n";
+			$pid=@file_get_contents($pidfile);
+			if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){
+				echo "CleanQueues() already executed pid $pid\n";
 				return;
 			}
 		

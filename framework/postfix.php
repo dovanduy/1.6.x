@@ -30,6 +30,7 @@ if(isset($_GET["mailbox-transport-maps"])){mailbox_transport_maps();exit;}
 if(isset($_GET["milters"])){build_milters();exit;}
 if(isset($_GET["restart-mailarchiver"])){restart_mailarchiver();exit;}
 if(isset($_GET["mailarchiver-status"])){mailarchiver_status();exit;}
+if(isset($_GET["iredmail-status"])){iredmail_status();exit;}
 if(isset($_GET["varspool"])){checks_varspool();exit;}
 if(isset($_GET["changeSpool"])){changeSpool();exit;}
 if(isset($_GET["stats-var-spool"])){stats_var_spool();exit;}
@@ -136,6 +137,14 @@ function mailarchiver_status(){
 	$cmd="$php5 /usr/share/artica-postfix/exec.status.php --mailarchiver --nowachdog";
 	exec($cmd,$results);
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
+}
+function iredmail_status(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php5 /usr/share/artica-postfix/exec.status.php --iredmail --nowachdog";
+	exec($cmd,$results);
+	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";	
+	
 }
 
 function happroxy(){

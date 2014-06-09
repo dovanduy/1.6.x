@@ -15,8 +15,8 @@
 	
 	$unix=new unix();
 	$pidpath="/etc/artica-postfix/pids/$me.pid";
-	$oldpid=$unix->get_pid_from_file($pidpath);
-	if($unix->process_exists($oldpid,$me)){
+	$pid=$unix->get_pid_from_file($pidpath);
+	if($unix->process_exists($pid,$me)){
 		echo "Starting......: ".date("H:i:s")." amavisd-new already executed pid $pid\n";
 		die();
 	}
@@ -117,10 +117,10 @@ function buildWhitelist($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Building......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -138,10 +138,10 @@ function reload($aspid=false){
 	
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-		$oldpid=$unix->get_pid_from_file($pidfile);
-		if($unix->process_exists($oldpid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($oldpid);
-			if($GLOBALS["OUTPUT"]){echo "Reloading.....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $oldpid since {$time}mn\n";}
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Reloading.....: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());
@@ -169,13 +169,122 @@ if(is_file('/var/run/amavis/amavisd.pid')){return '/var/run/amavis/amavisd.pid';
 //#############################################################################
 
 function PID_NUM(){
-
 	$unix=new unix();
 	$AMAVISD_PID_PATH=AMAVISD_PID_PATH();
 	$pid=$unix->get_pid_from_file($AMAVISD_PID_PATH);
 	if($unix->process_exists($pid)){return $pid;}
-	$Masterbin=$unix->find_program("haproxy");
 	return $unix->PIDOF_PATTERN("amavisd \(master");
+
+}
+
+function AMAVISD_BIN_PATH(){
+	if(is_file('/usr/local/sbin/amavisd')){return '/usr/local/sbin/amavisd';}
+	if(is_file('/usr/sbin/amavisd-new')){return '/usr/sbin/amavisd-new';}
+
+}
+//#############################################################################
+
+function start($aspid=false){
+	$unix=new unix();
+	$sock=new sockets();
+	$Masterbin=AMAVISD_BIN_PATH();
+
+	if(!is_file($Masterbin)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, arpd not installed\n";}
+		return;
+	}
+
+	if(!$aspid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
+	}
+	
+	$pid=PID_NUM();
+	
+	if($unix->MEM_TOTAL_INSTALLEE()<624288){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} not enough memory\n";}
+		if($unix->process_exists($pid)){stop();}
+		return;
+	}
+
+	
+
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Service already started $pid since {$timepid}Mn...\n";}
+		return;
+	}
+
+	$EnableAmavisDaemon=intval($sock->GET_INFO("EnableAmavisDaemon"));
+	$EnableAmavisInMasterCF=intval($sock->GET_INFO("EnableAmavisInMasterCF"));
+	$AmavisMemoryInRAM=intval($sock->GET_INFO("AmavisMemoryInRAM"));
+	$EnablePostfixMultiInstance=intval($sock->GET_INFO("EnablePostfixMultiInstance"));
+	$EnableStopPostfix=intval($sock->GET_INFO("EnableStopPostfix"));
+
+	
+	
+
+	if($EnableAmavisDaemon==0){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service disabled (see EnableArpDaemon)\n";}
+		return;
+	}
+
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$sysctl=$unix->find_program("sysctl");
+	$echo=$unix->find_program("echo");
+	$nohup=$unix->find_program("nohup");
+	
+	if ($ArpdKernelLevel>0){$ArpdKernelLevel_string=" -a $ArpdKernelLevel";}
+	$Interfaces=$unix->NETWORK_ALL_INTERFACES();
+	$nic=new system_nic();
+	while (list ($Interface, $ligne) = each ($Interfaces) ){
+		if($Interface=="lo"){continue;}
+		if($ligne["IPADDR"]=="0.0.0.0"){continue;}
+		$Interface=$nic->NicToOther($Interface);
+		$TRA[$Interface]=$Interface;
+	}
+	
+	while (list ($Interface, $ligne) = each ($TRA) ){$TR[]=$Interface; }
+	@mkdir('/var/lib/arpd',0755,true);
+	
+	$f[]="$Masterbin -b /var/lib/arpd/arpd.db";
+	$f[]=$ArpdKernelLevel;
+	
+	if(count($TR)>0){
+		$f[]="-k ".@implode($TR," ");
+	}
+	
+	
+	$cmd=@implode(" ", $f) ." >/dev/null 2>&1 &";
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service\n";}
+	
+	shell_exec($cmd);
+	
+	
+	
+
+	for($i=1;$i<5;$i++){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} waiting $i/5\n";}
+		sleep(1);
+		$pid=PID_NUM();
+		if($unix->process_exists($pid)){break;}
+	}
+
+	$pid=PID_NUM();
+	if($unix->process_exists($pid)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
+		
+	}else{
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
+	}
+
 
 }
 

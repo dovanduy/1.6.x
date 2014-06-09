@@ -19,6 +19,8 @@ if(isset($_GET["whitelist"])){SaveWhiteList();exit;}
 if(isset($_GET["del_whitelist"])){del_whitelist();exit;}
 if(isset($_GET["whitelist-form-add"])){form_whitelist();exit;}
 if(isset($_GET["blacklist-form-add"])){form_blacklist();exit;}
+if(isset($_GET["MembersSearch"])){MembersSearch();exit;}
+
 
 if(isset($_GET["js"])){js_popup();exit;}
 if(isset($_GET["popup"])){popup();exit;}
@@ -35,6 +37,9 @@ if(isset($_GET["white-hosts"])){hosts_WhiteList();exit;}
 if(isset($_GET["white-hosts-find"])){hosts_WhiteList_list();exit;}
 if(isset($_GET["white-list-host"])){hosts_WhiteList_add();exit;}
 if(isset($_GET["white-list-host-del"])){hosts_WhiteList_del();exit;}
+
+
+
 
 if(isset($_GET["popup-global-black"])){blacklist_global_popup();exit;}
 if(isset($_GET["popup-global-black-add"])){blacklist_global_add();exit;}
@@ -570,7 +575,8 @@ function hosts_WhiteList_list(){
 
 function popup(){
 	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
-	$array["popup-domain-white"]="{white list}";
+	$array["automation"]="Automation";
+	$array["popup-domain-white"]="{members}";
 	$array["popup-global-white"]="{white list}:{global}";
 	$array["popup-hosts"]="{hosts}:{white list}";
 	$array["popup-domain-black"]="{domains}:{black list}";
@@ -578,10 +584,15 @@ function popup(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="automation"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.automation.php?tab=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	
-	echo build_artica_tabs($html, "main_config_wbladmin",1100);
+	echo build_artica_tabs($html, "main_config_wbladmin",1150);
 		
 	
 }
@@ -593,11 +604,11 @@ function popup_domains(){
 	$domain=$ldap->hash_get_all_domains();
 	$domain[null]='{all}';
 	$t=time();
-	$search=$tpl->_ENGINE_parse_body("{search}");
-	$from=$tpl->_ENGINE_parse_body("{sender}");
-	$recipients=$tpl->_ENGINE_parse_body("{recipients}");
-	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
-	
+	$new_item=$tpl->javascript_parse_text("{new_item}");
+	$from=$tpl->javascript_parse_text("{sender}");
+	$blacklist=$tpl->javascript_parse_text("{blacklist}");
+	$whitelist=$tpl->javascript_parse_text("{whitelist}");
+	$members=$tpl->javascript_parse_text("{members}");
 	$array["white"]='{white list}';
 	$array["black"]='{black list}';	
 	$array[null]='{all}';
@@ -627,13 +638,13 @@ var mem_$t='';
 var selected_id=0;
 $(document).ready(function(){
 $('#table-$t').flexigrid({
-	url: '$page?SelectedDomain=$domainSE&type=$selected_type&time=$time',
+	url: '$page?MembersSearch=yes',
 	dataType: 'json',
 	colModel : [
-		{display: '$search:$domainSE', name : 'type', width : 102, sortable : false, align: 'left'},
-		{display: '$from', name : 'from', width : 437, sortable : true, align: 'left'},
-		{display: '$recipients', recipients : 'category2', width : 417, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'none2', width : 42, sortable : false, align: 'center'},
+		{display: '$members', name : 'type', width : 718, sortable : false, align: 'left'},
+		{display: '$blacklist', name : 'from', width : 132, sortable : true, align: 'center'},
+		{display: '$whitelist', recipients : 'category2', width : 132, sortable : false, align: 'center'},
+		
 		
 	],
 buttons : [
@@ -641,7 +652,7 @@ buttons : [
 	{name: '$about2', bclass: 'help', onpress : About2$t},
 		],	
 	searchitems : [
-		{display: '$from', name : 'from'},
+		{display: '$members', name : 'from'},
 		],
 	sortname: 'category',
 	sortorder: 'asc',
@@ -708,19 +719,69 @@ echo $html;
 }
 
 
-function main_tabs(){
-	$page=CurrentPageName();
-	$array["white"]='{white list}';
-	$array["black"]='{black list}';
-	if($_GET["section"]==null){$_GET["section"]="white";}
+
+function MembersSearch(){
+	
+	$ldap=new clladp();
+	$tofind=$_POST["query"];
+	if($tofind==null){$tofind='*';}else{$tofind="*$tofind*";}
+	$filter="(&(objectClass=userAccount)(|(cn=$tofind)(mail=$tofind)(displayName=$tofind)(uid=$tofind) (givenname=$tofind)))";
+	$attrs=array("displayName","uid","mail","givenname","telephoneNumber","title","sn","mozillaSecondEmail","employeeNumber","sAMAccountName");
+	$hash=$ldap->Ldap_search($ldap->suffix,$filter,$attrs,$_POST["rp"]);
+	
+	$users=new user();
+	$number=$hash["count"];
+	
+	if($number==0){json_error_show("no member");}
+	
+	$data = array();
+	$data['page'] = 1;
+	$data['total'] = $number;
+	$data['rows'] = array();
+	$color="black";
+	for($i=0;$i<$number;$i++){
+		$userARR=$hash[$i];
+		$uid=$userARR["uid"][0];
+		$uidenc=urlencode($uid);
+		if($uid=="squidinternalauth"){continue;}
+		$js=MEMBER_JS($uid,1,1);
 		
-	while (list ($num, $ligne) = each ($array) ){
-		if($_GET["section"]==$num){$class="id=tab_current";}else{$class=null;}
-		$html=$html . "<li><a href=\"javascript:LoadAjax('list','$page?main=$num&section=$num&hostname={$_GET["hostname"]}')\" $class>$ligne</a></li>\n";
-			
+		$jsbl="javascript:Loadjs('whitelists.members.php?uid=$uidenc');";
+	
+		if(($userARR["sn"][0]==null) && ($userARR["givenname"][0]==null)){$userARR["sn"][0]=$uid;}
+		$sn=texttooltip($userARR["sn"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$givenname=texttooltip($userARR["givenname"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$title=texttooltip($userARR["title"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$mail=texttooltip($userARR["mail"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		$telephonenumber=texttooltip($userARR["telephonenumber"][0],"{display}:$uid",$js,null,0,"font-size:13px");
+		if($userARR["telephonenumber"][0]==null){$userARR["telephonenumber"][0]="&nbsp;";}
+		if($userARR["mail"][0]==null){$userARR["mail"][0]="&nbsp;";}
+	
+	
+		$ct=new user($uid);
+		$CountDeBlack=count($ct->amavisBlacklistSender);
+		$countDeWhite=count($ct->amavisWhitelistSender);
+		$id=md5("$uid");
+		
+		$data['rows'][] = array(
+				'id' => $id,
+				'cell' => array(
+						"<span style='font-size:22px;color:$color'><a href=\"javascript:blur();\" OnClick=\"$jsbl\" style='text-decoration:underline'>{$userARR["givenname"][0]} {$userARR["sn"][0]}</a>
+						<br><i style='font-size:14px'><a href=\"javascript:blur();\" OnClick=\"$js\" style='text-decoration:underline'>$uid {$userARR["mail"][0]}</a></i></span>",
+						"<span style='font-size:22px;color:$color'>$CountDeBlack</span>",
+						"<span style='font-size:22px;color:$color'>$countDeWhite</span>",
+						)
+		);
 		}
-	return "<br><div id=tablist>$html</div><br>";		
-}	
+		
+
+		
+		echo json_encode($data);
+	
+}
+
+
+	
 
 
 

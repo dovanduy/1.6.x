@@ -48,13 +48,13 @@ function visited_sites(){
 
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/squid.visited_sites_rescan.pid";
-	$oldpid=@file_get_contents($pidfile);
-	if($oldpid<100){$oldpid=null;}
+	$pid=@file_get_contents($pidfile);
+	if($pid<100){$pid=null;}
 	$t=time();
 	
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($oldpid);
-		if($GLOBALS["VERBOSE"]){echo "Already executed pid $oldpid since {$time}mn\n";}
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid since {$time}mn\n";}
 		die();
 	}
 	$mypid=getmypid();

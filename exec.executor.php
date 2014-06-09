@@ -47,10 +47,10 @@ if($argv[1]=='--all'){
 	$pidfile="/etc/artica-postfix/".basename(__FILE__).".pid";
 	$pidtime="/etc/artica-postfix/".basename(__FILE__).".time";
 	if($unix->file_time_min($pidtime)<3){die();}
-	$oldpid=@file_get_contents($pidfile);
-	if($unix->process_exists($oldpid,basename(__FILE__))){
-		$ProcessTime=$unix->PROCCESS_TIME_MIN($oldpid);
-		events("Process $oldpid  already in memory since $ProcessTime minutes","MAIN",__LINE__);
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$ProcessTime=$unix->PROCCESS_TIME_MIN($pid);
+		events("Process $pid  already in memory since $ProcessTime minutes","MAIN",__LINE__);
 		die();
 	}
 	@unlink($pidtime);
