@@ -469,15 +469,21 @@ function ufdbguardd(){
 
 }
 //========================================================================================================================================================
+function ufdbguardd_tail_pid(){
+	$pid=trim(@file_get_contents("/etc/artica-postfix/exec.ufdbguard-tail.php.pid"));
+	if($GLOBALS["VERBOSE"]){echo "/etc/artica-postfix/exec.ufdbguard-tail.php.pid = $pid\n";}
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){return $pid;}
+	return $GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN("exec.ufdbguard-tail.php");
 
+}
 function ufdbguardd_tail(){
 	if(!is_file("{$GLOBALS["BASE_ROOT"]}/exec.ufdbguard-tail.php")){return;}
 
 	if(!$GLOBALS["CLASS_USERS"]->APP_UFDBGUARD_INSTALLED){return;}
 
 
-	$pid_path="/etc/artica-postfix/exec.ufdbguard-tail.php.pid";
-	$master_pid=trim(@file_get_contents($pid_path));
+	
+	$master_pid=ufdbguardd_tail_pid();
 	$EnableUfdbGuard=$GLOBALS["CLASS_SOCKETS"]->EnableUfdbGuard();
 	$EnableWebProxyStatsAppliance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableWebProxyStatsAppliance");
 	$UseRemoteUfdbguardService=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('UseRemoteUfdbguardService');
@@ -505,22 +511,21 @@ function ufdbguardd_tail(){
 	$l[]="service_cmd=/etc/init.d/ufdb-tail";
 	$l[]="service_disabled=$EnableUfdbGuard";
 	$l[]="watchdog_features=1";
-	$l[]="pid_path=$pid_path";
-
+	
 
 	if($EnableUfdbGuard==1){
 		$filetime=file_time_min("/var/log/artica-postfix/ufdbguard-tail.debug");
 		events("ufdbguard-tail.debug {$filetime}Mn ",__FUNCTION__,__LINE__);
 		if($filetime>5){
 			@unlink("/var/log/artica-postfix/ufdbguard-tail.debug");
-			ufdbguard_admin_events("Restarting /var/log/artica-postfix/ufdbguard-tail.debug = $filetime {mn}",__FUNCTION__,__FILE__,__LINE__,"system");
+			ToSyslog("Ufdbguard:: ufdb-tail, /var/log/artica-postfix/ufdbguard-tail.debug = {$filetime}mn -> restart");
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/ufdb-tail restart >/dev/null 2>&1 &");
 		}
 	}
 
 	if($EnableUfdbGuard==0){
 		if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-			ufdbguard_admin_events("UfdGuard watchdog service is running but disabled -> stop it...",__FUNCTION__,__FILE__,__LINE__,"status");
+			ToSyslog("Ufdbguard:: ufdb-tail, Watchdog service is running but disabled -> stop it");
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/ufdb-tail stop >/dev/null 2>&1 &");
 		}
 		return implode("\n",$l);
@@ -528,7 +533,7 @@ function ufdbguardd_tail(){
 	}
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		ufdbguard_admin_events("UfdGuard watchdog service is not running -> start it...",__FUNCTION__,__FILE__,__LINE__,"status");
+		ToSyslog("Ufdbguard:: ufdb-tail, Watchdog service is not running -> start it");
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/ufdb-tail start >/dev/null 2>&1 &");
 		}

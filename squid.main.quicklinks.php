@@ -897,7 +897,7 @@ function status_squid_left($asroot=false){
 	
 	$tableblock=date('Ymd')."_blocked";
 	$ligneW=$q->COUNT_ROWS($tableblock);
-	$blocked_today=numberFormat($ligneW["tcount"],0,""," ")." {blocked_websites} {this_day}";
+	$blocked_today=numberFormat($ligneW,0,""," ")." {blocked_websites} {this_day}";
 	
 	$q=new mysql_squid_builder();
 	$websitesnums=$q->COUNT_ROWS("dansguardian_sitesinfos","artica_backup");

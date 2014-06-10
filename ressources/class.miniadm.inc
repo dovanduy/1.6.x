@@ -274,6 +274,8 @@ class miniadm{
 		if($MailArchiverUsePerl==0){$MAIL_ARCHIVE=false;}
 		$SquidActHasReverse=0;
 		
+		if($SQUIDEnable==0){$users->SQUID_INSTALLED=false;}
+		
 		if($EnableAmavisDaemon==0){$AMAVIS_USERS=false;$AMAVIS_ALL=false;}
 		if($AmavisPerUser==0){$AMAVIS_USERS=false;}
 		$Privileges_members_admins=Privileges_members_admins();
@@ -374,6 +376,7 @@ class miniadm{
 		}
 		
 		
+	/*	
 		if($users->FREERADIUS_INSTALLED){
 			if($Privileges_members_admins){
 				if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php</strong><br>\n";}
@@ -381,7 +384,7 @@ class miniadm{
 			}
 		}
 		
-
+	*/
 		
 		
 		if($users->AsMessagingOrg){
@@ -411,14 +414,16 @@ class miniadm{
 		}
 		
 		
-		if( ($users->AsSquidAdministrator) OR ($users->AsWebMaster) ){
+		/*if( ($users->AsSquidAdministrator) OR ($users->AsWebMaster) ){
 			
 			if($users->NGINX_INSTALLED){
 				if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
 				$adm["{manage_system}"]="miniadm.system.php";
 			}
 		}
-			
+	*/
+
+		
 		if($_SESSION["NGNIX_PRIVS"]>0){
 			$prxy["{APP_PROXY}"]="miniadmin.proxy.index.php";
 		}
@@ -427,13 +432,13 @@ class miniadm{
 		if($AS_PROXY_SECTION){
 				if($Privileges_members_admins){
 					if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
-					$adm["{manage_system}"]="miniadm.system.php";
+					//$adm["{manage_system}"]="miniadm.system.php";
 					$prxy["{APP_PROXY}"]="miniadmin.proxy.index.php";
 				}
 			
 			
 				if($users->AsDansGuardianAdministrator){
-					$adm["{manage_system}"]="miniadm.system.php";
+					//$adm["{manage_system}"]="miniadm.system.php";
 					$prxy["{WEB_FILTERING}"]="miniadmin.webfiltering.php";
 				}			
 			
@@ -459,7 +464,7 @@ class miniadm{
 		}			
 			
 		if($Privileges_members_admins){
-			$adm["{manage_system}"]="miniadm.system.php";
+			//$adm["{manage_system}"]="miniadm.system.php";
 					
 		}			
 			
@@ -473,18 +478,18 @@ class miniadm{
 
 		if(isNetSessions() ) {
 			if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
-			$adm["{manage_system}"]="miniadm.system.php";
+			//$adm["{manage_system}"]="miniadm.system.php";
 		}
 		
 		if($users->AsSystemWebMaster){
 			if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
-			$adm["{manage_system}"]="miniadm.system.php";
+			//$adm["{manage_system}"]="miniadm.system.php";
 			$adm["FreeWebs"]="miniadm.freewebs.php";
 		}		
 		
 		if($users->AsSystemAdministrator){
 			if($GLOBALS["VERBOSE"]){echo " <strong>Add: manage_system -> miniadm.system.php Line:".__LINE__."</strong><br>\n";}
-			$adm["{manage_system}"]="miniadm.system.php";
+			//$adm["{manage_system}"]="miniadm.system.php";
 			$adm["{events}"]="miniadm.system.events.php";
 		}
 		

@@ -4071,7 +4071,7 @@ Vous allez &ecirc;tre redirig&eacute; vers la nouvelle adresse IP dans 15 second
 <syncinternaldate_text>modifie les dates internes sur le serveur de destination par rapport au serveur source.[br]La date interne est la date d'arriv&eacute;e du message sur le serveur source.</syncinternaldate_text>
 <synthesis>synth&egrave;se</synthesis>
 <syslog>&Eacute;v&egrave;nements syst&egrave;me</syslog>
-<system>syst&egrave;me</system>
+<system>Syst&egrave;me</system>
 <system error>Il y a un soucis syst&egrave;me, peut &ecirc;tre une erreur  preg_match ou la socket ne peut &ecirc;tre ouverte</system error>
 <system statistics>statistiques syst&egrave;me</system statistics>
 <systemForkProcessesNumber>Nombre de processus en parall&egrave;le</systemForkProcessesNumber>

@@ -231,7 +231,9 @@ function stop($aspid=false){
 function PID_NUM(){
 	$pid=trim(@file_get_contents("/etc/artica-postfix/exec.ufdbguard-tail.php.pid"));
 	$unix=new unix();
+	if($GLOBALS["VERBOSE"]){echo "/etc/artica-postfix/exec.ufdbguard-tail.php.pid = $pid\n";}
 	if($unix->process_exists($pid)){return $pid;}
+	return $unix->PIDOF_PATTERN("exec.ufdbguard-tail.php");
 	
 }
 ?>

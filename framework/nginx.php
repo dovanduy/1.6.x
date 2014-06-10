@@ -93,9 +93,9 @@ function conf_save(){
 
 function conf_view(){
 	$sitename=$_GET["conf-view"];
-	
-	foreach (glob("/etc/nginx/sites-enabled/*$sitename*") as $filename) {
-		
+	writelogs_framework("conf_view $sitename",__FUNCTION__,__FILE__,__LINE__);
+	foreach (glob("/etc/nginx/sites-enabled/freewebs-$sitename*") as $filename) {
+		writelogs_framework("Copy $filename",__FUNCTION__,__FILE__,__LINE__);
 		@copy($filename, "/usr/share/artica-postfix/ressources/logs/".basename($filename));
 		$array["FILENAME"]=basename($filename);
 		echo "<articadatascgi>".base64_encode(serialize($array))."</articadatascgi>";

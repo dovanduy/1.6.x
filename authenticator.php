@@ -870,9 +870,11 @@ function cas_auth($groupid,$ruleid){
 	
 	$uri_renvoi="$uri$cas_context/login?service=$mycontext://$MyServer";
 	
+	Debuglogs("uri_renvoi = $uri_renvoi",__FUNCTION__,__LINE__);
+	
 	
 	if(!preg_match("#\?ticket=(.+)#",$_GET["uri"],$re)){
-		Debuglogs("No ticket found ->",__FUNCTION__,__LINE__);
+		Debuglogs("No ticket found -> Redirect to \"$uri_renvoi\"",__FUNCTION__,__LINE__);
 		$_SESSION["AUTHENTICATOR_REDIRECT"]=$uri_renvoi;
 		return false;
 	}

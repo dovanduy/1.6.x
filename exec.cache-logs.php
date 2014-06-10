@@ -667,7 +667,7 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 	
 // *******************************************************************************************************************	
 	if(preg_match("#\|\s+(.+?):\s+\(2\)\s+No such file or directory#", $buffer,$re)){
-		if(preg_match("#\/usr\/share\/squid3#i")){return;}
+		if(preg_match("#\/usr\/share\/squid3#i",$buffer)){return;}
 		if(TimeStampTTL(__LINE__,2)){
 			squid_admin_mysql(1,"{$re[1]} No such file or directory","$buffer",__FILE__,__LINE__);
 		}

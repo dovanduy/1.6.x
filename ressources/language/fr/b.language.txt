@@ -922,7 +922,7 @@ Cela est obtenu en interceptant tous les paquets quelles que soient leurs destin
 <cas_certificate_path_explain>O&ugrave; placer les donn&eacute;es du certificat sur le disque dur du serveur ?[br]
 Ce chemin est utilis&eacute; afin de stocker le fichier de certificat afin de communiquer avec le serveur CAS</cas_certificate_path_explain>
 <CAS_CONTEXT>Contexte du serveur CAS</CAS_CONTEXT>
-<cas_HotSpot_text>Si mit en vert, le syst&egrave;me de HotSpot va utiliser un serveur C.A.S afin de d'authentifier le membre.</cas_HotSpot_text>
+<cas_HotSpot_text>Si vert, le syst&egrave;me de HotSpot va utiliser un serveur C.A.S afin de d\'authentifier le membre.</cas_HotSpot_text>
 <categories_acls_explain>Cette ACL utilise les bases de cat&eacute;gories Artica  ( environ 33.000.000 de sites Internet cat&eacute;goris&eacute;s).</categories_acls_explain>
 <categories_filtering>Filtrage Web par cat&eacute;gorie</categories_filtering>
 <categories_groups>Groupes de cat&eacute;gories</categories_groups>

@@ -1051,7 +1051,7 @@ if($CyrusEnableiPurge==1){
 	$LOCATE_CYRUS_IPURGE=LOCATE_CYRUS_IPURGE();
 	$CyrusiPurgeDays=intval($sock->GET_INFO("CyrusiPurgeDays"));
 	$CyrusiPurgeTime=$sock->GET_INFO("CyrusiPurgeTime");
-	if($CyrusiPurgeTrash=1){$MAIN[]="	purgetrash        cmd=\"$LOCATE_CYRUS_IPURGE-f -d $CyrusiPurgeDays */Trash\" at=$CyrusiPurgeTime";}
+	if($CyrusiPurgeTrash==1){$MAIN[]="	purgetrash        cmd=\"$LOCATE_CYRUS_IPURGE -f -d $CyrusiPurgeDays */Trash\" at=$CyrusiPurgeTime";}
 	if($CyrusiPurgeJunk==1){$MAIN[]="	purgejunk         cmd=\"$LOCATE_CYRUS_IPURGE -f -d $CyrusiPurgeDays */Junk\" at=$CyrusiPurgeTime";}
 	if($CyrusiPurgeSent==1){$MAIN[]="	purgesent         cmd=\"$LOCATE_CYRUS_IPURGE -f -d $CyrusiPurgeDays */Sent\" at=$CyrusiPurgeTime";}
 }

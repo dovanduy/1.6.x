@@ -2540,20 +2540,37 @@ function websites_popup_webserver_replace_search(){
 	$boot=new boostrap_form();
 	$page=CurrentPageName();
 	$t=time();
-	
+	$search_text=$tpl->_ENGINE_parse_body("{search}");
+	$replaceby_text=$tpl->_ENGINE_parse_body("{replace}");
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$icon="www-web-search-64.png";
 		$md=md5(serialize($ligne));
-	
+		
 	
 		$delete=imgsimple("delete-48.png",null,"Delete$t({$ligne["ID"]},'$md')");
 		$jsEdit=$boot->trswitch("Loadjs('$page?popup-webserver-replace-js=yes&servername=$servername&replaceid={$ligne["ID"]}')");
-		$stringtosearch=substr($ligne["stringtosearch"], 0,200)."...";
+		
+		$stringtosearch=str_replace("\r\n", "../..", $ligne["stringtosearch"]);
+		$stringtosearch=str_replace("\n", "../..", $stringtosearch);
+		$points=null;
+		if($stringtosearch>199){
+			$stringtosearch=substr($stringtosearch, 0,200)."...";
+		}
+		
+		$replaceby=str_replace("\r\n", "../..", $ligne["replaceby"]);
+		$replaceby=str_replace("\n", "../..", $replaceby);
+		if($replaceby>199){
+			$replaceby=substr($replaceby, 0,200)."...";
+		}
+		
+		
+		
 		$tr[]="
 		<tr id='$md'>
 			<td width=1% nowrap $jsEdit><img src='img/$icon'></td>
-			<td width=80% $jsEdit><span style='font-size:16px;font-weight:bold'>{$ligne["rulename"]}</span><div style='margin-top:10px'><code style='font-size:13px !important'>$stringtosearch</code></div></td>
+			<td width=80% $jsEdit><span style='font-size:16px;font-weight:bold'>{$ligne["rulename"]}</span>
+			<div style='margin-top:10px'><code style='font-size:13px !important'>$search_text &laquo;$stringtosearch&raquo; $replaceby_text &laquo;$replaceby&raquo;</code></div></td>
 			<td width=1% nowrap style='vertical-align:middle'>$delete</td>
 		</tr>
 		";
@@ -2968,6 +2985,9 @@ function websites_script(){
 	<div id='$t'></div>
 		<div style='width:98%' class=form>
 		<table>
+			<tr>
+				<td colspan=2 style='font-size:26px;padding-bottom:10px'>$servername</td>
+			</tr>		
 			<tr>
 				<td class=legend style='font-size:14px'>". $tpl->_ENGINE_parse_body("{deny_artica_to_write_config}")."</td>
 				<td>". Field_checkbox("DenyConf$t", 1,$ligne["DenyConf"],"DenyConfSave$t()")."</td>

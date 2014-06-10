@@ -1342,7 +1342,7 @@ function blackwhite_admin_mysql_check($nopid=false){
 	$users=new usersMenus();
 	$hostname=$unix->hostname_g();
 	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/blackwhite_admin_mysql";
-	
+	if(!is_dir($BaseWorkDir)){return; }
 	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
 	
 	

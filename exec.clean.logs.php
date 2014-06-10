@@ -101,7 +101,7 @@ function CleanLOGSF(){
 	Clean_tmp_path(true);
 	varlog();
 	squidLogs();
-	CleanLogs();
+	CleanLogs(true);
 	logrotatelogs(true);
 	die();	
 	
@@ -1702,36 +1702,48 @@ function cleanRoot(){
 		if($filename=="."){continue;}
 		if($filename==".."){continue;}
 		$targetFile="$BaseWorkDir/$filename";
-		if(is_numeric($filename)){@unlink($targetFile);}
+		if(is_dir($targetFile)){continue;}
+		if(!is_file($targetFile)){continue;}
+		if(!is_numeric($filename)){continue;}
+		@unlink($targetFile);
 	}	
 	
 }
 
 
-function CleanLogs(){
+function CleanLogs($aspid=false){
+
+	if(!$aspid){
+		$maxtime=480;
+		$unix=new unix();
+		$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidpath);
+		if($unix->process_exists($pid)){
+			$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running.. Aborting");
+			return;
+		}
+		
+		@file_put_contents($pidpath,getmypid());
+		
+		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+		$timeOfFile=$unix->file_time_min($timefile);
+		$unix->events("CleanLogs():: Time $timeOfFile/$maxtime");
+		if($timeOfFile<$maxtime){
+			$unix->events("CleanLogs():: Aborting");
+			return;
+		}
+	
+	}
+	
+	cleanRoot();
 	maillog();
 	MakeSpace();
 	cleanRoot();
 	CleanSquidStoreLogs();
 	home_squid_access_logs();
-	$maxtime=480;
-	$unix=new unix();
-	$pidpath="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$pid=@file_get_contents($pidpath);
-	if($unix->process_exists($pid)){
-		$unix->events(basename(__FILE__).":: ".__FUNCTION__." Already process $pid running.. Aborting");
-		return;
-	}
 	
-	@file_put_contents($pidpath,getmypid());
 	
-	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
-	$timeOfFile=$unix->file_time_min($timefile);
-	$unix->events("CleanLogs():: Time $timeOfFile/$maxtime");
-	if($timeOfFile<$maxtime){
-		$unix->events("CleanLogs():: Aborting");
-		return;
-	}
+	
 	
 	$phplog=$unix->file_size("/var/log/php.log");
 	$sizePHP=round(unix_file_size("/var/log/php.log")/1024);
