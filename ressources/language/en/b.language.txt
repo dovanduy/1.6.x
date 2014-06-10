@@ -6372,3 +6372,13 @@ It parse the Sent Items too in order to put all recipients to the user's whiteli
 <ftp_password>FTP password</ftp_password>
 <ovh_specific_config_explain>If checked, then broadcast address will be the IP address of the network interface.[br]
 Please check if your require this parameters before apply network. Some ISPs did not support this behavior</ovh_specific_config_explain>
+<nginx_import_explain>This feature allows you to import a list of websites to add inside the revers proxy configuration.[br]
+Copy and paste here settings lines separated by a comma:[br]
+source server,sitename,ssl mode (0/1 default=0),force domain.[br]
+Example:[br]
+172.16.32.2,www.domain-front.tld,0,www.domain-back.tld[br]
+172.16.32.3:9090,www.domain1.tld,0,www.domain1.tld[br]
+www.domain3.tld,www.domaindest.tld,0,www.domaindest.tld[br]
+First line is for requests www.domain-front.tld to the reverse proxy then redirect to 172.16.32.2:80 and add header www.domain-front.tld to the redirect.
+[br]
+</nginx_import_explain>

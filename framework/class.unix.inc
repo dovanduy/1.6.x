@@ -2127,6 +2127,7 @@ public function shellEscapeChars($path){
 	public function APACHE_SRC_ACCOUNT(){
 		if(isset($GLOBALS["APACHE_SRC_ACCOUNT"])){return $GLOBALS["APACHE_SRC_ACCOUNT"];}
 		$GLOBALS["APACHE_SRC_ACCOUNT"]=$this->_APACHE_SRC_ACCOUNT();
+		if($GLOBALS["APACHE_SRC_ACCOUNT"]=='${APACHE_RUN_USER}'){$GLOBALS["APACHE_SRC_ACCOUNT"]="www-data";}
 		return $GLOBALS["APACHE_SRC_ACCOUNT"];
 	}
 	

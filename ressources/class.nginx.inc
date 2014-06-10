@@ -1,6 +1,7 @@
 <?php
 	include_once(dirname(__FILE__).'/class.squid.inc');
 	include_once(dirname(__FILE__).'/class.nginx-sources.inc');
+	include_once(dirname(__FILE__).'/class.tcpip.inc');
 class nginx{
 	private $servername=null;
 	private $ssl=0;
@@ -1989,6 +1990,7 @@ private function http_location_cache_params($ligne){
 	
 	
 	private function ROOT_PROXY(){
+		$IpClass=new IP();
 		$HostHeader="\$host";
 		$this->forceddomain=trim($this->forceddomain);
 		$PortTXT=null;
@@ -2021,6 +2023,18 @@ private function http_location_cache_params($ligne){
 			}
 			
 		}
+		
+		if(!$IpClass->isValid($proxy_to_host)){
+			$tcp=gethostbyname($proxy_to_host);
+			if(!$IpClass->isValid($tcp)){
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $proxy_to_host -> 127.0.0.1\n";}
+				$proxy_to_host="127.0.0.1";
+				if($this->proxy_to_port==80){$this->proxy_to_port=82;}
+				if($this->proxy_to_port==443){$this->proxy_to_port=447;}
+			}
+		}
+		
+		
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port Proxy to: '$proxy_to_host', suffix '$this->proxy_suffix'\n";} 
 		

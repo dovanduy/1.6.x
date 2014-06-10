@@ -49,7 +49,7 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--authenticator"){$GLOBALS["OUTPUT"]=true;authenticator(true);exit;}
 	if($argv[1]=="--purge-cache"){$GLOBALS["OUTPUT"]=true;purge_cache($argv[2]);exit;}
 	if($argv[1]=="--purge-all-caches"){$GLOBALS["OUTPUT"]=true;purge_all_caches();exit;}
-	
+	if($argv[1]=="--import-file"){$GLOBALS["OUTPUT"]=true;import_file();exit;}
 	
 	
 	
@@ -2053,5 +2053,108 @@ function purge_cache($ID){
 	
 }
 
+function import_file(){
+	$q=new mysql_squid_builder();
+	$filename="/usr/share/artica-postfix/ressources/logs/web/nginx.import";
+	if(!is_file($filename)){echo "$filename no such file\n";return;}
+	
+	$f=explode("\n",@file_get_contents($filename));
+	
+	$IpClass=new IP();
+	while (list ($index, $line) = each ($f)){
+		if(trim($line)==null){continue;}
+		if(strpos($line, ",")==0){continue;}
+		$tr=explode(",",$line);
+		if(count($tr)<2){continue;}
+		$sourceserver=trim($tr[0]);
+		$sitename=trim($tr[1]);
+		if(!isset($tr[2])){$tr[2]=0;}
+		if(!isset($tr[3])){$tr[3]=null;}
+		$ssl=$tr[2];
+		$forceddomain=$tr[3];
+		if(!preg_match("#(.+?):([0-9]+)#", $sourceserver,$re)){
+			if($ssl==1){$sourceserver_port=443;}
+			if($ssl==0){$sourceserver_port=80;}
+		}else{
+			$sourceserver=trim($re[1]);
+			$sourceserver_port=$re[2];
+		}
+		
+		
+		if(!preg_match("#(.+?):([0-9]+)#", $sitename,$re)){
+			if($ssl==1){$sitename_port=443;}
+			if($ssl==0){$sitename_port=80;}
+		}else{
+			$sitename=trim($re[1]);
+			$sitename_port=$re[2];
+		}	
+		
+		if($forceddomain<>null){$title_source=$forceddomain;}else{$title_source=$sourceserver;}
+		echo "Importing $sitename ($sitename_port) -> $sourceserver ($sourceserver_port)\n";
+		// On cherche la source:
+		
+		if($sitename==null){
+			 echo "Local sitename is null\n";
+			 continue;
+		}
+		
+		if($sourceserver==null){
+			echo "Source is null\n";
+			continue;
+		}	
 
+		if(!$IpClass->isValid($sourceserver)){
+			$tcp=gethostbyname($sourceserver);
+			if(!$IpClass->isValid($tcp)){
+				echo "Source $sourceserver cannot be resolved\n";
+				continue;
+			}	
+		}
+		
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM reverse_sources WHERE ipaddr='$sourceserver' AND `port`='$sourceserver_port'"));
+		$IDS=intval($ligne["ID"]);
+		
+		if($IDS==0){
+			$sql="INSERT IGNORE INTO `reverse_sources` (`servername`,`ipaddr`,`port`,`ssl`,`enabled`,`forceddomain`)
+			VALUES ('$title_source','$sourceserver','$sourceserver_port','$ssl',1,'$forceddomain')";
+			$q->QUERY_SQL($sql);
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM reverse_sources WHERE ipaddr='$sourceserver' AND `port`='$sourceserver_port'"));
+			$IDS=intval($ligne["ID"]);
+			
+		}
+		
+		if($IDS==0){
+			echo "Failed to add $sourceserver/$sourceserver_port/$forceddomain\n";
+			continue;
+		}
+
+		
+		// On attaque  le site web:
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT servername,cache_peer_id FROM reverse_www WHERE servername='$sitename'"));
+		if(trim($ligne["servername"]<>null)){
+			echo "$sitename already exists on cache ID : {$ligne["cache_peer_id"]}/$IDS\n";
+			if($ligne["cache_peer_id"]<>$IDS){
+				$q->QUERY_SQL("UPDATE reverse_www SET `cache_peer_id`=$IDS WHERE  servername='$sitename'");
+			}
+			continue;
+		}
+		
+		$sql="INSERT IGNORE INTO `reverse_www` (`servername`,`cache_peer_id`,`port`,`ssl`) VALUES
+		('$sitename','$IDS','$sitename_port','$ssl')";
+	
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;continue;}
+		
+		
+	}
+	
+	
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$nohup $php5 ".__FILE__." --restart >/dev/null 2>&1 &");
+	
+	
+	
+}
 ?>

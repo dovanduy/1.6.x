@@ -3052,6 +3052,15 @@ ou une url: http://www.mydomain.com</nginx_destination>
 <nginx_ForceRedirect>Si le serveur distant effectue des renvois alors tous les renvois seront forc&eacute;s &agrave; passer &agrave; travers le proxy invers&eacute;.</nginx_ForceRedirect>
 <NGINX_FW_EXPLAIN>Cette fonctionnalit&eacute; vous permet de loger et/ou de bloquer les adresses sources &agrave; partir du pare-feu local lorsque le reverse proxy &eacute;met une erreur de type 403.[br]
 403 veut dire &quot;Acc&egrave;s interdit&quot;.</NGINX_FW_EXPLAIN>
+<nginx_import_explain>Cette fonction vous permet d\'importer une liste pr&eacute;-d&eacute;finie de sites web &agrave; placer dans le proxy invers&eacute;.[br]
+Copiez/collez la liste des configurations (s&eacute;par&eacute;s par une virgule).[br]
+serveur source,site web ,ssl mode (0/1 d&eacute;faut=0),domaine forc&eacute;.[br]
+Exemple:[br]
+172.16.32.2,www.domain-front.tld,0,www.domain-back.tld[br]
+172.16.32.3:9090,www.domain1.tld,0,www.domain1.tld[br]
+www.domain3.tld,www.domaindest.tld,0,www.domaindest.tld[br]
+[br]
+La premi&egrave;re ligne indique:[br] pour une connexion sur le proxy invers&eacute; &agrave; l\'adresse ,www.domain-front.tld, rediriger vers le site web 172.16.32.2:80 en forcant la requ&ecirc;te pour aller sur ,www.domain-front.tld.</nginx_import_explain>
 <nginx_inactive_explain>[b]Validation du cache[/b][br]Dur&eacute;e maximale une requ&ecirc;te mise en cache est maintenue.</nginx_inactive_explain>
 <nginx_manual_update_text>Chargez ici le paquetage pr&eacute;-compil&eacute; NGInx afin de mettre &agrave; jour votre version actuelle.[br] le paquetage doit &ecirc;tre sous la forme tar.gz.</nginx_manual_update_text>
 <NGINX_MAXACCESS_FW_EXPLAIN>Si la valeur est sup&eacute;rieure &agrave; 0, alors vous enclenchez le pare-feu pour un nombre d'acc&egrave;s indiqu&eacute; ici.[br]Ce nombre d'acc&egrave;s est calcul&eacute; par [b]heure.[/b]</NGINX_MAXACCESS_FW_EXPLAIN>

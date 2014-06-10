@@ -1249,6 +1249,7 @@ function CheckHttpdConf(){
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();	
 	
 	if(is_file("/etc/apache2/sites-available/default-ssl")){@unlink("/etc/apache2/sites-available/default-ssl");}
+	if(is_link("/etc/apache2/sites-enabled/000-default")){@unlink("/etc/apache2/sites-enabled/000-default");}
 	echo "Starting......: ".date("H:i:s")." [INIT]: Apache daemon path: \"$DAEMON_PATH\" run has \"$APACHE_SRC_ACCOUNT:$APACHE_SRC_GROUP\"\n";
 	if($APACHE_SRC_ACCOUNT==null){echo "Starting......: ".date("H:i:s")." [INIT]: Apache daemon unable to determine user that will run apache\n";die();}
 	if(!is_dir("/var/log/apache2")){@mkdir("/var/log/apache2",0755,true);}
@@ -1668,8 +1669,9 @@ function CheckHttpdConf(){
 	$mod_php5[]="        </Directory>";
 	$mod_php5[]="    </IfModule>";
 	$mod_php5[]="</IfModule>";
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache saving: $DAEMON_PATH/mods-enabled/mod_php5.conf\n";
 	@file_put_contents("$DAEMON_PATH/mods-enabled/mod_php5.conf", @implode("\n", $mod_php5));
-	$httpd[]="Include $DAEMON_PATH/mod_php5.conf";
+	$httpd[]="Include $DAEMON_PATH/mods-enabled/mod_php5.conf";
 	$mod_php5=array();
 	
 	if(basename($httpdconf)<>"httpd.conf"){$httpd[]="Include $DAEMON_PATH/httpd.conf";}
@@ -2247,15 +2249,25 @@ function CheckLibraries(){
 
 function TestingApacheConfigurationFile(){
 	CheckLibraries();
-
+	$unix=new unix();
 	$prefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache Check";
 	$httpdconf=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();
 	$apache2ctl=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CTL();
+	$unix->chmod_func(0755, "/etc/apache2/sites-enabled/*");
+	
+	
 	if(!is_file($apache2ctl)){return true;}
 	exec("$apache2ctl -f $httpdconf -S 2>&1",$results);
 	echo "$prefixOutput [".__LINE__."] verify configuration...\n";
 	
 	while (list ($index, $line) = each ($results) ){
+		echo "$prefixOutput [".__LINE__."] `$line`\n";
+		
+		if(preg_match("#Syntax error on line ([0-9]+) of (.+?):#",$line,$re)){
+			@copy($re[2], "/root/".basename($re[2]));
+			echo "$prefixOutput [".__LINE__."] `".basename($re[2])."` as been copied in /root...\n";
+		}
+		
 		if(preg_match("#Syntax OK#i", $line)){
 			echo "$prefixOutput [".__LINE__."] Syntax OK...\n";
 			return true;}
@@ -2699,6 +2711,10 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 	$freeweb->phpmyadmin();
 	if(!is_dir("$freeweb->WORKING_DIRECTORY")){
 		@mkdir("$freeweb->WORKING_DIRECTORY",0755,true);
+	}
+	
+	if(is_file("/etc/apache2/sites-enabled/000-default")){
+		@touch("/etc/apache2/sites-enabled/000-default");
 	}
 	
 	build_progress("Building $hostname Testing configuration", 33);

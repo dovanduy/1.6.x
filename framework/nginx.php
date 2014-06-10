@@ -3,7 +3,7 @@
 include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
-
+if(isset($_GET["import"])){import();exit;}
 if(isset($_GET["status-infos"])){status_info();exit;}
 if(isset($_GET["delete-cache"])){delete_cache();exit;}
 if(isset($_GET["sync-freewebs"])){sync_freewebs();exit;}
@@ -230,5 +230,12 @@ function purge_cache(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --purge-cache $ID >/dev/null 2>&1 &");
+}
+
+function import(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$php5 /usr/share/artica-postfix/exec.nginx.php --import-file >/usr/share/artica-postfix/ressources/logs/web/nginx.import.results 2>&1");	
 }
 

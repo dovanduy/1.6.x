@@ -3554,6 +3554,15 @@ Or an uri: http://www.mydomain.com
 <NGINX_FW_EXPLAIN>This feature allows you to log and/or block IP addresses sources from the FireWall when the reverse proxy sends a 403 error.[br]
 A 403 error means "Access denied".
 </NGINX_FW_EXPLAIN>
+<nginx_import_explain>This feature allows you to import a list of websites to add inside the revers proxy configuration.[br]
+Copy and paste here settings lines separated by a comma:[br]
+source server,sitename,ssl mode (0/1 default=0),force domain.[br]
+Example:[br]
+172.16.32.2,www.domain-front.tld,0,www.domain-back.tld[br]
+172.16.32.3:9090,www.domain1.tld,0,www.domain1.tld[br]
+www.domain3.tld,www.domaindest.tld,0,www.domaindest.tld[br]
+[br]
+</nginx_import_explain>
 <nginx_inactive_explain>[b]Cache Invalidation[/b]provides the amount of time a cached request should remain 'valid'</nginx_inactive_explain>
 <nginx_manual_update_text>Upload the NgInx pre-compiled package here in order to update your reverse-proxy version.[br]
 Package must be a tar.gz file format.
