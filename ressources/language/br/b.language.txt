@@ -3977,6 +3977,7 @@ Public and private keys are paired for secure communication.
 <processing>Processing</processing>
 <ProcessJS>Process javascripts</ProcessJS>
 <profiles>Profiles</profiles>
+<protected_websites>Protected Websites</protected_websites>
 <protect_owa>Protect Outlook WebAccess</protect_owa>
 <protect_phpmyadmin>Protect the phpMyadmin application</protect_phpmyadmin>
 <protect_phpmyadmin_item_text>The engine will allow item that you define in pattern field.[br]

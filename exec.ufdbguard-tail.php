@@ -47,8 +47,7 @@ while(!feof($pipe)){
 }
 
 fclose($pipe);
-$GLOBALS["CLASS_UNIX"]->send_email_events(basename(__FILE__).":UfdbGuard Watchdog die PID:$pid",  null, "ufdbguard-service");
-ufdbguard_admin_events("Watchdog die PID:$pid","MAIN",__FILE__,__LINE__,"ufdbguard-service");
+
 events_ufdb_exec("Artica ufdb-tail shutdown");
 events("Shutdown...");
 die();

@@ -3424,6 +3424,7 @@ En particulier soyez sur de pouvoir la restaurer si elle est &eacute;gar&eacute;
 <processing>En traitement</processing>
 <ProcessJS>Inclut le contenu javascript</ProcessJS>
 <profiles>Profiles</profiles>
+<protected_websites>Sites prot&eacute;g&eacute;s</protected_websites>
 <protect_owa>Prot&eacute;ger Outlook WebAccess</protect_owa>
 <protect_phpmyadmin>S&eacute;curiser PhpMyAdmin</protect_phpmyadmin>
 <protect_phpmyadmin_item_text>Le moteur vous autorise &agrave; indiquer des &eacute;l&eacute;ments comme suit.[br]

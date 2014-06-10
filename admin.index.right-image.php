@@ -107,6 +107,7 @@ function status_right_image2(){
 	if(!is_numeric($SambaEnabled)){$SambaEnabled=1;}
 	if($SambaEnabled==0){$users->SAMBA_INSTALLED=false;}
 	$DisableMessaging=intval($sock->GET_INFO("DisableMessaging"));
+	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
 	
 	if($GLOBALS["VERBOSE"]){echo " DisableMessaging = $DisableMessaging\n";}
 	
@@ -153,19 +154,17 @@ function status_right_image2(){
 
 	
 	if($users->SQUID_INSTALLED){
-		$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
-		if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
-		if($SQUIDEnable==0){
-			if($users->KASPERSKY_WEB_APPLIANCE){
+		
+		if($users->KASPERSKY_WEB_APPLIANCE){
 				if($GLOBALS["VERBOSE"]){echo " -> KASPERSKY_WEB_APPLIANCE()\n";}
 				return status_kav4proxy($NOCACHE);
 			}
-		}
+		
 
-		if($users->KASPERSKY_WEB_APPLIANCE){
-			return status_squid_kav($NOCACHE);
-		}
-		if($GLOBALS["VERBOSE"]){echo " -> status_squid()\n";}
+			if($users->KASPERSKY_WEB_APPLIANCE){
+				return status_squid_kav($NOCACHE);
+			}
+			if($GLOBALS["VERBOSE"]){echo " -> status_squid()\n";}
 		return status_squid($NOCACHE);
 			
 			
@@ -174,7 +173,19 @@ function status_right_image2(){
 			if($GLOBALS["VERBOSE"]){echo " -> status_kav4proxy()\n";}
 			return status_kav4proxy($NOCACHE);
 		}
+		if($users->KASPERSKY_WEB_APPLIANCE){
+			return status_squid_kav($NOCACHE);
+		}
 	}
+	
+	if($users->NGINX_INSTALLED){
+		if($GLOBALS["VERBOSE"]){echo " -> StatusNginx()\n";}
+		if($EnableNginx==1){
+			return StatusNginx();
+		}
+		
+	}
+	
 
 	if($users->SAMBA_INSTALLED){
 		if($GLOBALS["VERBOSE"]){echo " -> StatusSamba()\n";}
@@ -188,6 +199,17 @@ function status_right_image2(){
 		return StatusApache();
 		
 	}
+}
+
+function StatusSamba(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
+	$status=new status();
+	if($GLOBALS["VERBOSE"]){echo "$page LINE:".__LINE__."\n";}
+	$html=$status->Samba_status();
+	return $tpl->_ENGINE_parse_body($html);
+
 }
 
 function status_postfix(){
@@ -208,6 +230,15 @@ function StatusApache(){
 	return $tpl->_ENGINE_parse_body($html);		
 	
 }
+
+function StatusNginx(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$status=new status();
+	$html=$status->Nginx_status();
+	return $tpl->_ENGINE_parse_body($html);	
+}
+
 function status_kav4proxy(){
 	$page=CurrentPageName();
 	$tpl=new templates();

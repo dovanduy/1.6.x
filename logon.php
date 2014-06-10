@@ -1061,6 +1061,12 @@ function buildPage(){
 	$SSlBumpAllowLogon=intval($sock->GET_INFO("SSlBumpAllowLogon"));
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
+	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
+	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){if($EnableNginx==1){$SquidActHasReverse=1;} }
+	$hostname=$sock->GET_INFO("myhostname");
+	if($hostname==null){$hostname=$users->hostname;}
 	
 	
 	if($users->KASPERSKY_WEB_APPLIANCE){
@@ -1216,7 +1222,14 @@ function buildPage(){
 		if($UnlockCompanyName<>null){$company_name=$UnlockCompanyName;}
 		
 		
-		if($company_name<>null){$company_name="<center style='margin:5px;font-size:14px;padding:5px;border-top:1px solid white;border-bottom:1px solid white'>-&nbsp;$company_name&nbsp;-</center>";}
+		if($company_name<>null){
+				$company_name="<center style='margin:5px;font-size:16px;padding:5px;
+				border-top:1px solid white;border-bottom:1px solid white'>-&nbsp;$company_name&nbsp;-</center>";
+		}
+		
+		$company_name="<center style='margin:5px;font-size:12px;padding:5px;'>-&nbsp;$hostname&nbsp;-</center>$company_name";
+		
+		
 		$WEBSEVERV=null;
 		
 		if(isset($_SERVER["SERVER_SOFTWARE"])){
@@ -1231,24 +1244,26 @@ function buildPage(){
 		}
 		
 		if($users->SQUID_INSTALLED){
-			if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID INSTALLED</div>\n";}
-			$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href='squid.access-sql.php' style='color:white'>Proxy requests</a>&nbsp;";
-			$EnableSquidUrgencyPublic=$sock->GET_INFO("EnableSquidUrgencyPublic");
-			if(!is_numeric($EnableSquidUrgencyPublic)){$EnableSquidUrgencyPublic=0;}
-			if($EnableSquidUrgencyPublic==1){
-				$urgency_mode=$tpl2->_ENGINE_parse_body("{urgency_mode}");
-				$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php',true);\" style='color:white'>$urgency_mode</a>&nbsp;$userslogs";
-			}
-
-			if($SSlBumpAllowLogon==1){
-				if(is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){
-					$certificate=$tpl2->_ENGINE_parse_body("{certificate}");
-					$sslcert="<span style='color:white'>&nbsp;|&nbsp;</span>
-							<a href='ressources/squid/certificate.der' style='color:white'>
-					$certificate</a>&nbsp;
-							";
+			if($SQUIDEnable==1){
+				if($GLOBALS["VERBOSE"]){echo "<div style='background-color:white;color:black'>".__LINE__.": SQUID INSTALLED</div>\n";}
+				$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href='squid.access-sql.php' style='color:white'>Proxy requests</a>&nbsp;";
+				$EnableSquidUrgencyPublic=$sock->GET_INFO("EnableSquidUrgencyPublic");
+				if(!is_numeric($EnableSquidUrgencyPublic)){$EnableSquidUrgencyPublic=0;}
+				if($EnableSquidUrgencyPublic==1){
+					$urgency_mode=$tpl2->_ENGINE_parse_body("{urgency_mode}");
+					$userslogs="<span style='color:white'>&nbsp;|&nbsp;</span><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squid.urgency.php',true);\" style='color:white'>$urgency_mode</a>&nbsp;$userslogs";
 				}
-				
+	
+				if($SSlBumpAllowLogon==1){
+					if(is_file("/usr/share/artica-postfix/ressources/squid/certificate.der")){
+						$certificate=$tpl2->_ENGINE_parse_body("{certificate}");
+						$sslcert="<span style='color:white'>&nbsp;|&nbsp;</span>
+								<a href='ressources/squid/certificate.der' style='color:white'>
+						$certificate</a>&nbsp;
+								";
+					}
+					
+				}
 			}
 			
 		}else{
@@ -1267,7 +1282,13 @@ function buildPage(){
 		$tpl=str_replace("{copy-right}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.net\" style='color:white'>Artica Tech</a>",$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
 		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
-		$tpl=str_replace("{SQUID_VERSION}",$users->SQUID_VERSION,$tpl);
+		
+		
+		if($SQUIDEnable==1){
+			$tpl=str_replace("{SQUID_VERSION}",$users->SQUID_VERSION,$tpl);
+		}else{
+			$tpl=str_replace("{SQUID_VERSION}",null,$tpl);
+		}
 		$tpl=str_replace("{POSTFIX_VERSION}",$users->POSTFIX_VERSION,$tpl);
 		$tpl=str_replace("{SAMBA_VERSION}",$users->SAMBA_VERSION,$tpl);
 		$tpl=str_replace("{CROSSROADS_VERSION}",$users->CROSSROADS_VERSION,$tpl);

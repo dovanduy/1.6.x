@@ -556,6 +556,36 @@ class nginx{
 		}
 	}
 	
+	private function proxy_buffers_check($buffers){
+		
+		$logprefix="Starting......: ".date("H:i:s")." [INIT]: Buffers   : $this->servername:$this->host_port: ";
+		if(!preg_match("#([0-9\.]+)\s+([0-9\.]+)#", $buffers,$re)){
+			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_buffers.............: 128 16k\n";}
+			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size...: 64k\n";}
+			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_temp_file_write_size: 64k\n";}
+			$f[]="\t\tproxy_buffers      128 16k;";
+			$f[]="\t\tproxy_busy_buffers_size 64k;";
+			$f[]="\t\tproxy_temp_file_write_size 64k;";
+			return @implode("\n", $f);
+		}
+		$f[]="\t\tproxy_buffers      {$re[1]} {$re[2]}k;";
+		$buffers=($re[1]-1)*$re[2];
+		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size {$buffers}k;\n";}
+		$f[]="\t\tproxy_busy_buffers_size {$buffers}k;";
+		$f[]="\t\tproxy_temp_file_write_size {$buffers}k;";
+		
+		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_buffers.............: {$re[1]} {$re[2]}\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size...: {$buffers}k\n";}
+		if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_temp_file_write_size: {$buffers}k\n";}
+		
+		/*Directive proxy_temp_file_write_size basically tells nginx how 
+many data it can flush to disk at once when writing temporary 
+file. It may be used to prevent nginx worker process from blocking 
+for too long in io path.
+*/
+		
+	}
+	
 	private function proxy_parameters($cache_peer_id=0){
 		$rev=new nginx_sources($cache_peer_id);
 		$logprefix="Starting......: ".date("H:i:s")." [INIT]: proxy_pass: $this->servername:$this->host_port: ";
@@ -572,22 +602,8 @@ class nginx{
 			}else{
 				$f[]="#\t\tproxy_buffer_size == 0";
 			}
-			if(preg_match("#([0-9\.]+)\s+([0-9\.]+)#", $this->proxy_buffers,$re)){
-				$f[]="\t\tproxy_buffers      {$re[1]} {$re[2]}k;";
-				$buffers=($re[1]-1)*$re[2];
-				if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_busy_buffers_size {$buffers}k;\n";}
-				$f[]="\t\tproxy_busy_buffers_size {$buffers}k;";
-				$f[]="\t\tproxy_temp_file_write_size {$buffers}k;";
-			}else{
-				$f[]="#\t\tproxy_buffers bad value";
-				$f[]="\t\tproxy_busy_buffers_size 64k;";
-				$f[]="\t\tproxy_temp_file_write_size 64k;";
-				
-			}
 			
-			
-			
-			
+			$f[]=$this->proxy_buffers_check($this->proxy_buffers);
 		}else{
 			$f[]="#\t\tproxy_buffering  == 0";
 		}
@@ -1251,7 +1267,7 @@ class nginx{
 	
 private function http_location_cache_params($ligne){
 
-	
+	$logprefix="Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port LOCATION CACHE:";
 	if(!is_numeric($ligne["NoCache"])){$ligne["NoCache"]=0;}
 	if(!is_numeric($ligne["proxy_cache_min_uses"])){$ligne["proxy_cache_min_uses"]=1;}
 	if(!is_numeric($ligne["proxy_cache_valid"])){$ligne["proxy_cache_valid"]=4320;}
@@ -1280,9 +1296,8 @@ private function http_location_cache_params($ligne){
 	}
 	if($ligne["proxy_buffering"]==1){
 		if($ligne["proxy_buffer_size"]>0){
-			$f[]="\t\tproxy_buffers {$ligne["proxy_buffers"]};";
-			$f[]="\t\tproxy_buffer_size {$ligne["proxy_buffer_size"]}k;";
-			$f[]="\t\tproxy_temp_file_write_size {$ligne["proxy_buffers"]}k;";
+			if($GLOBALS["OUTPUT"]){echo "$logprefix proxy_buffers.............: [{$ligne["proxy_buffers"]}]\n";}
+			$f[]=$this->proxy_buffers_check($ligne["proxy_buffers"]);
 		}
 	}
 	if($ligne["proxy_cache_valid"]>0){

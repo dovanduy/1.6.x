@@ -6382,3 +6382,4 @@ www.domain3.tld,www.domaindest.tld,0,www.domaindest.tld[br]
 First line is for requests www.domain-front.tld to the reverse proxy then redirect to 172.16.32.2:80 and add header www.domain-front.tld to the redirect.
 [br]
 </nginx_import_explain>
+<protected_websites>Protected Websites</protected_websites>

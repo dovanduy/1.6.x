@@ -553,6 +553,91 @@ function BuildLittleTemplate($title,$status=false,$onfailed=null){
 	
 	}
 	
+function Nginx_status(){
+	if(!function_exists("mysql_connect")){return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";}
+	$ini=new Bs_IniHandler();
+	$sock=new sockets();
+	$q=new mysql_squid_builder();
+	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?apachesrc-ini-status=yes")));
+	$master_version=$ini->_params["APP_NGINX"]["master_version"];
+	$master_pid=$ini->_params["APP_NGINX"]["master_pid"];
+	$uptime=$ini->_params["APP_NGINX"]["uptime"];
+	if(preg_match("#2\.0.*#",$master_version)){$img='status_postfix_bg_ok20.png';}
+	if(preg_match("#2\.1.*#",$master_version)){$img='status_postfix_bg_ok21.png';}
+	if(preg_match("#2\.2.*#",$master_version)){$img='status_postfix_bg_ok22.png';}
+	if(preg_match("#2\.3.*#",$master_version)){$img='status_postfix_bg_ok23.png';}
+	if(preg_match("#2\.4.*#",$master_version)){$img='status_postfix_bg_ok24.png';}
+	if(preg_match("#2\.5.*#",$master_version)){$img='status_postfix_bg_ok25.png';}
+	if(preg_match("#2\.7.*#",$master_version)){$img='status_postfix_bg_ok27.png';}
+	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}
+	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
+	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
+	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
+	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
+	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
+	if(preg_match("#3\.3.*#",$master_version)){$img='status_postfix_bg_ok33.png';}
+	if(preg_match("#3\.4.*#",$master_version)){$img='status_postfix_bg_ok34.png';}
+	if(preg_match("#3\.5.*#",$master_version)){$img='status_postfix_bg_ok35.png';}
+	if(preg_match("#3\.6.*#",$master_version)){$img='status_postfix_bg_ok36.png';}
+	if(preg_match("#3\.7.*#",$master_version)){$img='status_postfix_bg_ok37.png';}
+	$text="{service_running} {since} $uptime<br>{using_version} $master_version {pid} $master_pid";
+	if($img==null){$img="status_postfix_bg_ok.png";}
+	
+	$services[]="APP_APACHE_SRC";
+	$services[]="PUREFTPD";
+	$services[]="APP_TOMCAT";	
+	
+	$allServicesOK=true;
+	$ServiceNotOK=array();
+	$error="<table style='width:100%'><tbody>";
+	while (list ($index, $serviceToCheck) = each ($services) ){
+		if(!DAEMON_STATUS_IS_OK($serviceToCheck, $ini)){
+			$ServiceNotOK[]=$serviceToCheck;
+			$allServicesOK=false;
+		}else{
+			if($ini->_params[$serviceToCheck]["service_name"]<>null){
+				$allServicesOKPID=$ini->_params[$serviceToCheck]["master_pid"];
+				$error=$error."<tr>
+				<td width=1%><img src='img/ok16.png'></td>
+				<td colspan=2><strong style='font-size:10px'>{{$ini->_params[$serviceToCheck]["service_name"]}}</strong></td>
+				</tr>";
+			}
+			}
+		}
+	
+		if(!$allServicesOK){
+		$img="status_postfix_bg_failed.png";
+	
+		while (list ($index, $ServiceNotOKName) = each ($ServiceNotOK) ){
+			$error=$error."<tr>
+			<td width=1%><img src='img/error-16.png'></td>
+			<td><strong style='font-size:10px'>{{$ini->_params[$ServiceNotOKName]["service_name"]}}</strong></td><td width=1%><strong style='font-size:10px'>{failed}</td>
+			</tr>";
+	
+		}
+	
+		}
+		$error=$error."</tbody></table>";
+	
+	$Instances=$q->COUNT_ROWS("reverse_sources");
+	
+	
+				$design="
+	<div style='background-image:url(img/$img);background-repeat:no-repeat;width:350px;height:270px'>
+		<div style='padding-left:155px;min-height:250px'>
+		<h3 style='font-size:16px;font-weight:bold;'>{APP_NGINX}</h3>
+		<div style='font-size:11px;font-weight:bold'>$text</div>
+		$error
+		
+		<div style='font-size:11px;margin-top:4px;border-top:1px solid #CCCCCC;text-align:right;width:220px'><strong style='font-size:14px'>$Instances {protected_websites}</strong></div>
+		</div>
+		</div>
+	
+		";
+		return $design;	
+	
+}
+	
 function Apache_status(){
 	if(!function_exists("mysql_connect")){return "<H2>Unable to stat  function mysql_connect, check php Mysql module or reboot the server</H2>";}
 	$ini=new Bs_IniHandler();
@@ -560,6 +645,8 @@ function Apache_status(){
 	$q=new mysql();
 	$ini->loadString(base64_decode($sock->getFrameWork("cmd.php?apachesrc-ini-status=yes")));
 	$master_version=$ini->_params["APP_APACHE_SRC"]["master_version"];
+	$master_pid=$ini->_params["APP_APACHE_SRC"]["master_pid"];
+	$uptime=$ini->_params["APP_APACHE_SRC"]["uptime"];
 	if(preg_match("#2\.0.*#",$master_version)){$img='status_postfix_bg_ok20.png';}
 	if(preg_match("#2\.1.*#",$master_version)){$img='status_postfix_bg_ok21.png';}
 	if(preg_match("#2\.2.*#",$master_version)){$img='status_postfix_bg_ok22.png';}
@@ -570,7 +657,6 @@ function Apache_status(){
 	if(preg_match("#2\.6.*#",$master_version)){$img='status_postfix_bg_ok26.png';}			
 	if(preg_match("#2\.8.*#",$master_version)){$img='status_postfix_bg_ok28.png';}
 	if(preg_match("#2\.9.*#",$master_version)){$img='status_postfix_bg_ok29.png';}
-	if(preg_match("#2\.10.*#",$stat[1])){$img='status_postfix_bg_ok210.png';}
 	if(preg_match("#3\.0.*#",$master_version)){$img='status_postfix_bg_ok30.png';}
 	if(preg_match("#3\.1.*#",$master_version)){$img='status_postfix_bg_ok31.png';}
 	if(preg_match("#3\.2.*#",$master_version)){$img='status_postfix_bg_ok32.png';}
@@ -579,10 +665,12 @@ function Apache_status(){
 	if(preg_match("#3\.5.*#",$master_version)){$img='status_postfix_bg_ok35.png';}
 	if(preg_match("#3\.6.*#",$master_version)){$img='status_postfix_bg_ok36.png';}
 	if(preg_match("#3\.7.*#",$master_version)){$img='status_postfix_bg_ok37.png';}
-	$text="{service_running}<br>{using_version} $master_version {pid} $master_pid";
+	$text="{service_running} {since} $uptime<br>{using_version} $master_version {pid} $master_pid";
 	if($img==null){$img="status_postfix_bg_ok.png";}	
 	
 	$services[]="APP_APACHE_SRC";
+	$services[]="APP_NGINX";
+	
 	$services[]="PUREFTPD";
 	$services[]="APP_TOMCAT";	
 
