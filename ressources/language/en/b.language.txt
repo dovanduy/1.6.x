@@ -6404,6 +6404,6 @@ If your Proxy is connected to your Active Directory server these services/applic
 credentials and/or may receive some authentication errors.[br]
 The solution is to whitelist these known user agents that are non-NTLM aware.[br]
 </browsers_ntlm_explain>
-
+<AllowOnlyGroups>Allow only specified groups</AllowOnlyGroups>
 
  

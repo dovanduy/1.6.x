@@ -1,7 +1,16 @@
 <?php
 if(!isset($GLOBALS["BASE_ROOT"])){$GLOBALS["BASE_ROOT"]="/usr/share/artica-postfix";}
 
+
+
+
 function postfix_increment_func($array){
+	if(!isset($GLOBALS["CLASS_SOCKETS"])){ if(function_exists("LoadIncludes")){LoadIncludes();}else{return $array;} }
+	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
+	$EnableStopPostfix=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableStopPostfix"));
+	if($DisableMessaging==1){$EnableStopPostfix=1;$EnablePostfixMultiInstance=0;}
+	if($DisableMessaging==1){return $array;}
+	if($EnableStopPostfix==1){return $array;}
 	
 	$array[]="iredmail";
 	$array[]="mailarchiver";
@@ -34,7 +43,7 @@ function iredmail(){
 	$l[]="watchdog_features=1";
 	if($EnableiredMail==0){return implode("\n",$l);return;}	
 	$master_pid=iredmail_pid();
-	
+	ToSyslog("Scanning Postfix iRedMail watchdog PID: $master_pid");
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
 			if(!is_file("/etc/init.d/iredmail")){
@@ -68,7 +77,7 @@ function mailarchiver(){
 
 	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
 	if($DisableMessaging==1){$MailArchiverEnabled=0;}
-
+	ToSyslog("Scanning Postfix MailArchiver watchdog PID: $master_pid");
 	$l[]="[APP_MAILARCHIVER]";
 	$l[]="service_name=APP_MAILARCHIVER";
 	$l[]="master_version=1.0.20090200";
@@ -124,7 +133,7 @@ function postfix_logger(){
 	}
 	$pid_path="/etc/artica-postfix/exec.maillog.php.pid";
 	$master_pid=trim(@file_get_contents($pid_path));
-
+	ToSyslog("Scanning Postfix mail.log watchdog PID: $master_pid");
 
 	$l[]="[ARTICA_MYSQMAIL]";
 	$l[]="service_name=APP_ARTICA_MYSQMAIL";

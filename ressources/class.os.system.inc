@@ -304,7 +304,7 @@ function system_is_overloaded($file=null){
 		$d->events("Load: OVERLOADED $called","/var/log/artica-postfix/syslog.log");
 		if($GLOBALS["VERBOSE"]){echo "$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called\n";}
 		if(!$notlog[$file]){
-			os_system_ToSyslog("OVERLOADED [$internal_load] $called ");
+			os_system_ToSyslog("OVERLOADED [$internal_load] ( Max: $cpunum) $called ");
 			$d->events("$file system_is_overloaded():: Load: $internal_load max=$cpunum SYSTEM OVERLOADED $called","/var/log/artica-postfix/artica-status.debug");
 		}
 		return true;

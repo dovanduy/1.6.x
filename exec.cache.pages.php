@@ -72,32 +72,37 @@ function start(){
 	$AsSquid=false;
 	if($users->SQUID_INSTALLED){$AsSquid=true;}
 	if($users->WEBSTATS_APPLIANCE){$AsSquid=true;}	
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	
-	if($GLOBALS["VERBOSE"]){echo "GET_INFO('EnableRemoteStatisticsAppliance')\n";}
 	
-	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
-	if($GLOBALS["VERBOSE"]){echo "EnableRemoteStatisticsAppliance= $EnableRemoteStatisticsAppliance\n";}
-	if($GLOBALS["VERBOSE"]){echo "GET_INFO('EnableWebProxyStatsAppliance')\n";}
-	$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
-	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-	if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
-	if($GLOBALS["VERBOSE"]){echo "EnableWebProxyStatsAppliance= $EnableWebProxyStatsAppliance\n";}
-	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
-	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
-	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
-	if($EnableRemoteStatisticsAppliance==1){$AsSquid=false;}
-	if($EnableWebProxyStatsAppliance==1){$AsSquid=true;}
-	
-	if($GLOBALS["VERBOSE"]){echo __LINE__." squidlogs_status()\n";}
-	squidlogs_status(true);
-	if($GLOBALS["VERBOSE"]){echo __LINE__." squidlogs_status() -> DONE\n";}
-	if($AsSquid){
-		$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
-		if($GLOBALS["VERBOSE"]){echo __LINE__." $php5 /usr/share/artica-postfix/squid.traffic.statistics.php squid-status-stats >$cachefile\n";}
-		shell_exec("$EXEC_NICE $php5 /usr/share/artica-postfix/squid.traffic.statistics.php squid-status-stats >$cachefile 2>&1");
-		$unix->chmod_func(0777, $cachefile);
-		shell_exec("$EXEC_NICE $php5 /usr/share/artica-postfix/squid.main.quicklinks.php --squid-status >/dev/null 2>&1");
-		shell_exec("$EXEC_NICE $php5 /usr/share/artica-postfix/dansguardian2.php --dansguardian-status >/dev/null 2>&1");
+	if($SQUIDEnable==1){	
+		if($GLOBALS["VERBOSE"]){echo "GET_INFO('EnableRemoteStatisticsAppliance')\n";}
+		$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
+		if($GLOBALS["VERBOSE"]){echo "EnableRemoteStatisticsAppliance= $EnableRemoteStatisticsAppliance\n";}
+		if($GLOBALS["VERBOSE"]){echo "GET_INFO('EnableWebProxyStatsAppliance')\n";}
+		$EnableWebProxyStatsAppliance=$sock->GET_INFO("EnableWebProxyStatsAppliance");
+		if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
+		if(!is_numeric($EnableWebProxyStatsAppliance)){$EnableWebProxyStatsAppliance=0;}
+		if($GLOBALS["VERBOSE"]){echo "EnableWebProxyStatsAppliance= $EnableWebProxyStatsAppliance\n";}
+		$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
+		if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
+		if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+		if($EnableRemoteStatisticsAppliance==1){$AsSquid=false;}
+		if($EnableWebProxyStatsAppliance==1){$AsSquid=true;}
+		if($GLOBALS["VERBOSE"]){echo __LINE__." squidlogs_status()\n";}
+		squidlogs_status(true);
+		if($GLOBALS["VERBOSE"]){echo __LINE__." squidlogs_status() -> DONE\n";}
+		if($AsSquid){
+			$cachefile="/usr/share/artica-postfix/ressources/logs/web/traffic.statistics.html";
+			if($GLOBALS["VERBOSE"]){echo __LINE__." $php5 /usr/share/artica-postfix/squid.traffic.statistics.php squid-status-stats >$cachefile\n";}
+			shell_exec("$EXEC_NICE $php5 /usr/share/artica-postfix/squid.traffic.statistics.php squid-status-stats >$cachefile 2>&1");
+			$unix->chmod_func(0777, $cachefile);
+			shell_exec("$EXEC_NICE $php5 /usr/share/artica-postfix/squid.main.quicklinks.php --squid-status >/dev/null 2>&1");
+			shell_exec("$EXEC_NICE $php5 /usr/share/artica-postfix/dansguardian2.php --dansguardian-status >/dev/null 2>&1");
+		}
+		
+		
 	}
 	if($GLOBALS["VERBOSE"]){echo __LINE__." ".__FUNCTION__." finish OK\n";}
 }

@@ -691,8 +691,8 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 		if($timefile>5){	
 			$timefile=file_time_min($fileMail);
 			if($timefile>10){
-				squid_admin_mysql(1,"Suspicious removed cache $dirname","Suspicious removed cache $dirname\r\nsquid-cache claim\r\n$buffer\r\nIt seems that this cache directory was removed after the started service\r\nChecks that your have created your caches \"outside\" /var/cache/squid*\r\n");
-				squid_admin_notifs("Suspicious removed cache $dirname\r\nsquid-cache claim\r\n$buffer\r\nIt seems that this cache directory was removed after the started service\r\nChecks that your have created your caches \"outside\" /var/cache/squid*\r\n", __FUNCTION__, __FILE__, __LINE__, "proxy");
+				squid_admin_mysql(1,"Suspicious removed object $dirname","Suspicious removed object $dirname\r\nsquid-cache claim\r\n$buffer\r\nIt seems that this cache directory was removed after the started service\r\nChecks that your have created your caches \"outside\" /var/cache/squid*\r\n");
+				squid_admin_notifs("Suspicious removed object $dirname\r\nsquid-cache claim\r\n$buffer\r\nIt seems that this cache directory was removed after the started service\r\nChecks that your have created your caches \"outside\" /var/cache/squid*\r\n", __FUNCTION__, __FILE__, __LINE__, "proxy");
 				@unlink($fileMail);
 				@file_put_contents($file, time());
 			}
@@ -708,24 +708,11 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 		$timefile=file_time_min($file);
 		$fileMail="/etc/artica-postfix/pids/squid.miss_dir";
 		events("DiskThreadsDiskFile:: \"$buffer\" [do nothing]");
-		return;
-		
-		if($timefile>5){
-			events("DiskThreadsDiskFile Missing data in caches => SQUID Z!! Line:".__LINE__);
-			$timefile=file_time_min($fileMail);
-			if($timefile>10){
-				squid_admin_mysql(0,"Missing Caches !!","squid-cache claim\r\n$buffer\r\nIt seems that caches directory was removed after the started service\r\nArtica start the procedure to verify caches..\r\n");
-				squid_admin_notifs("Missing Caches !!\r\nsquid-cache claim\r\n$buffer\r\nIt seems that caches directory was removed after the started service\r\nArtica start the procedure to verify caches..\r\n", __FUNCTION__, __FILE__, __LINE__, "proxy");
-				@unlink($file);
-				@file_put_contents($file, time());
-			}
-			
-			@unlink($file);
-			@file_put_contents($file, time());
-			shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.smp.php --squid-z-fly >/dev/null 2>&1 &");
-		}else{
-			events("Fatal: DiskThreadsDiskFile -> SQUID -Z !!!... TIMEOUT Line:".__LINE__);
-		}
+		if($timefile<15){return;}
+		squid_admin_mysql(1,"Cache object issue on disk","squid-cache claim\r\n$buffer\r\nIt seems that some caches objects was removed after the started service\r\nJust an information, nothing will be done.");
+		$timefile=file_time_min($fileMail);
+		@unlink($file);
+		@file_put_contents($file, time());
 		return;
 	}
 // *******************************************************************************************************************	
@@ -753,11 +740,10 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 	$file="/etc/artica-postfix/pids/".md5("MemBoosterFailed");
 	$timefile=file_time_min($file);
 	if($timefile<15){return;}
-	squid_admin_mysql(0,"Issue detected on MemBoosters","squid-cache claim\r\n$buffer\r\nIt seems that caches directory was removed after the started service\r\nArtica start the procedure to verify caches..\r\n");
-	squid_admin_notifs("Issue detected on MemBoosters !!\r\nsquid-cache claim\r\n$buffer\r\nIt seems that caches directory was removed after the started service\r\nArtica start the procedure to verify caches..\r\nr", __FUNCTION__, __FILE__, __LINE__, "proxy");
+	squid_admin_mysql(1,"Cache object issue MemBoosters","squid-cache claim\r\n$buffer\r\nIt seems that some caches objects was removed after the started service\r\nJust an information, nothing will be done.");
 	@unlink($file);
 	@file_put_contents($file, time());
-	shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --CleanMemBoosters >/dev/null 2>&1");
+	//shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --CleanMemBoosters >/dev/null 2>&1");
 	}
 // *******************************************************************************************************************	
 	if(strpos($buffer,"Old swap file detected")>0){
@@ -788,8 +774,6 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 		$timefile=file_time_min($file);
 		if($timefile>1){
 			events("Reconfiguring Squid Cache Line:".__LINE__);
-			//squid_admin_mysql(2,"Reconfiguring Squid Cache done","squid-cache was reseted with new configurations\r\n$buffer\r\n");
-			//squid_admin_notifs("Reconfiguring Squid Cache done.\r\nsquid-cache was reseted with new configurations\r\n$buffer\r\n", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			@unlink($file);
 			@file_put_contents($file, time());	
 			
@@ -848,18 +832,7 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 			squid_admin_notifs("Received Segment Violation\r\nsquid-cache claim\r\n$buffer\r\nThis just a notification, Artica will checks your settings and determine what is the issue...", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			return;
 		}
-		
-		if($timefile>2){
-			squid_admin_mysql(0,"Received Segment Violation - Starting Proxy service","Proxy service was crashed!\r\nsquid-cache claim\r\n$buffer\r\nThe service will be started");
-			events("Restarting squid-cache service with `exec.squid.watchdog.php --start --force` Line:".__LINE__);
-			squid_admin_notifs("Proxy service was crashed!\r\nsquid-cache claim\r\n$buffer\r\nThe service will be started", __FUNCTION__, __FILE__, __LINE__, "proxy");
-			@unlink($file);
-			@file_put_contents($file, time());
-			shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --start --force --exec-status=".__LINE__." >/dev/null 2>&1 &");
-			return;
-		}
-		events("Fatal: Received Segment Violation -> timeout {$timefile}mn, require up to 2mn Line:".__LINE__);
-		return;
+
 	}
 	
 	if(preg_match("#optional ICAP service is down after an options fetch failure:\s+icap:.*?1344\/av\/reqmod#",$buffer)){
@@ -1100,6 +1073,11 @@ function dustbin($buffer){
 	if(strpos(" $buffer", "internalStart: unknown request")>1){return true;}
 	if(strpos(" $buffer", "Waiting for requests")>1){return true;}
 	if(strpos(" $buffer", "if needed, or if running Squid for the ")>1){return true;}
+	if(strpos(" $buffer", "Store logging disabled")>1){return true;}
+	if(strpos(" $buffer", "X-Real-IP")>1){return true;}
+	if(strpos(" $buffer", "Via: 1.1")>1){return true;}
+	if(strpos(" $buffer", "GET /")>1){return true;}
+	if(strpos(" $buffer", "Cache-Control:")>1){return true;}
 }
 function events($text){
 	if(function_exists("debug_backtrace")){

@@ -12,7 +12,7 @@ class periodics_status{
 			$pidtimeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__CLASS__.".".__FUNCTION__.".time";
 			if($GLOBALS["CLASS_UNIX"]->file_time_min($pidtimeFile)<15){return;}
 		}
-		
+		$array=array();
 		@unlink($pidtimeFile);
 		@file_put_contents($pidtimeFile, time());
 		$dir_handle = @opendir("/proc");
@@ -37,15 +37,17 @@ class periodics_status{
 	  		$array[$re[1]]=$mem;
 		}
 		
-		while (list ($process, $mem) = each ($array) ){
-			$array2=array();
-			$array2["mem"]=$mem;
-			$array2["process"]=$process;
-			$array2["time"]=$date;
-			$kb=$mem/1024;
-			if($GLOBALS["VERBOSE"]){include_once(dirname(__FILE__)."/class.templates.inc");echo "$process Mem: $mem (".FormatBytes($kb).")\n";}
-			$serial=serialize($array2);
-			@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ps-mem/".md5($serial), $serial);		
+		if(count($array)>0){
+			while (list ($process, $mem) = each ($array) ){
+				$array2=array();
+				$array2["mem"]=$mem;
+				$array2["process"]=$process;
+				$array2["time"]=$date;
+				$kb=$mem/1024;
+				if($GLOBALS["VERBOSE"]){include_once(dirname(__FILE__)."/class.templates.inc");echo "$process Mem: $mem (".FormatBytes($kb).")\n";}
+				$serial=serialize($array2);
+				@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/ps-mem/".md5($serial), $serial);		
+			}
 		}
 		
 		

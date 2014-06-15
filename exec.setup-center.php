@@ -11,7 +11,7 @@ if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBA
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
-if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
+if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded Load: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} Memory free: {$GLOBALS["SYSTEM_INTERNAL_MEMM"]}MB, system,die()","MAIN",__FILE__,__LINE__);die();}
 if($argv[1]=="--install"){install_apps();exit;}
 if($argv[1]=="--install-status"){install_status();exit;}
 

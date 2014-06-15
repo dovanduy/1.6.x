@@ -247,6 +247,7 @@ Utilisez ce lien Youtube afin de visualiser la proc&eacute;dure de cr&eacute;ati
 <allowed_network>R&eacute;seau autoris&eacute;</allowed_network>
 <allowed_networks>R&eacute;seaux autoris&eacute;s</allowed_networks>
 <AllowNoPassword>Autoriser sans mot de passe</AllowNoPassword>
+<AllowOnlyGroups>Autoriser seulement les groupes</AllowOnlyGroups>
 <AllowPublicDownload>Autoriser le t&eacute;l&eacute;chargement publique</AllowPublicDownload>
 <AllowSenderCanonical>Can modify sent email address</AllowSenderCanonical>
 <AllowSmartphonesRuleExplain>Cette r&egrave;gles autorise tous les ordiphones.[br]Android,BlackBerry,PalmOS,SymbianOS,IE Mobile,iPhone,iPad,iPod)[br]A seulement passer &agrave; travers le syst&egrave;me d'authentification principal.</AllowSmartphonesRuleExplain>

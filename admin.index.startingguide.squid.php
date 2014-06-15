@@ -35,6 +35,10 @@ function page(){
 	$tr[]=paragraph_youtube("Block FaceBook during productive time","//www.youtube.com/embed/tuuM_jC0cBs?list=UUYbS4gGDNP62LsEuDWOMN1Q");
 	$tr[]=paragraph_youtube("Artica Webfiltering databases in acls rules","//www.youtube.com/embed/1JZUHrQzdNc?list=UUYbS4gGDNP62LsEuDWOMN1Q");
 	$tr[]=paragraph_youtube("Allow only domains gob.mx, .gob","//www.youtube.com/embed/sPaMjM6g9fA?list=UUYbS4gGDNP62LsEuDWOMN1Q");
+	$tr[]=paragraph_youtube("Browsers & Applications Web filter rules","//www.youtube.com/embed/Nt_zW4JNHkI?list=UUYbS4gGDNP62LsEuDWOMN1Q");
+	
+	
+	
 	$acls=CompileTr3($tr);
 
 	$tr=array();

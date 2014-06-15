@@ -1802,10 +1802,12 @@ function all_status($asroot=false){
 		$ini=new Bs_IniHandler();
 		$ini->loadString(base64_decode($sock->getFrameWork('squid.php?smp-status=yes')));
 		
-		while (list ($index, $line) = each ($ini->_params) ){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
-			$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
-			
+		if(is_array($ini->_params)){
+			while (list ($index, $line) = each ($ini->_params) ){
+				if($GLOBALS["VERBOSE"]){echo __FUNCTION__."::".__LINE__."::$index -> DAEMON_STATUS_ROUND<br>\n";}
+				$tr[]=DAEMON_STATUS_ROUND($index,$ini,null,1);
+				
+			}
 		}
 		
 	

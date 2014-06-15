@@ -42,7 +42,7 @@ class openssh{
 		if($this->main_array["PermitTunnel"]==null){$this->main_array["PermitTunnel"]="no";}
 		if($this->main_array["Port"]==null){$this->main_array["Port"]="22";}
 		if($this->main_array["UsePAM"]==null){$this->main_array["UsePAM"]="no";}
-		if($this->main_array["UseDNS"]==null){$this->main_array["UseDNS"]="yes";}
+		if($this->main_array["UseDNS"]==null){$this->main_array["UseDNS"]="no";}
 		if($this->main_array["PermitEmptyPasswords"]==null){$this->main_array["PermitEmptyPasswords"]="no";}
 		if($this->main_array["MaxSessions"]==null){$this->main_array["MaxSessions"]="10";}
 		if($this->main_array["MaxAuthTries"]==null){$this->main_array["MaxAuthTries"]="6";}
@@ -69,7 +69,9 @@ class openssh{
 		if($this->main_array["Subsystem"]==null){$this->main_array["Subsystem"]="sftp /usr/lib/openssh/sftp-server";}											
 		if($this->main_array["AuthorizedKeysFile"]==null){$this->main_array["AuthorizedKeysFile"]="%h/.ssh/authorized_keys";}
 		if($this->main_array["PasswordAuthentication"]==null){$this->main_array["PasswordAuthentication"]="yes";}
+		if($this->main_array["AllowGroups"]==null){$this->main_array["AllowGroups"]="root";}
 			
+		
 		
 		
 		if(count($this->ListenAddress)==0){$this->ListenAddress[]="0.0.0.0";}

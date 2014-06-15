@@ -412,7 +412,7 @@ function events_list(){
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
-	$span="<span style='font-size:14px;font-weight:bold'>";
+	$span="<span style='font-size:18px;font-weight:bold'>";
 	while ($ligne = mysql_fetch_assoc($results)) {
 
 	if($ligne["success"]==1){$img='fleche-20-right.png';}else{$img='fleche-20-red-right.png';}
@@ -494,48 +494,57 @@ function parameters(){
 	
 	$html="
 	<div id='sshdconfigid'>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{listen_port}:</td>
-		<td style='font-size:14px'>". Field_text("Port",$sshd->main_array["Port"],"font-size:14px;padding:3x;width:60px")."</td>
+		<td valign='top' class=legend style='font-size:18px'>{listen_port}:</td>
+		<td style='font-size:18px'>". Field_text("Port",$sshd->main_array["Port"],"font-size:18px;padding:3x;width:60px")."</td>
 		<td width=1%>&nbsp;</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{StrictModes}:</td>
-		<td style='font-size:14px'>". Field_checkbox("StrictModes","yes",$sshd->main_array["StrictModes"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{StrictModes}:</td>
+		<td style='font-size:18px'>". Field_checkbox("StrictModes","yes",$sshd->main_array["StrictModes"])."</td>
 		<td width=1%>". help_icon("{StrictModes_text}")."</td>
 	</tr>		
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{PermitRootLogin}:</td>
-		<td style='font-size:14px'>". Field_checkbox("PermitRootLogin","yes",$sshd->main_array["PermitRootLogin"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{PermitRootLogin}:</td>
+		<td style='font-size:18px'>". Field_checkbox("PermitRootLogin","yes",$sshd->main_array["PermitRootLogin"])."</td>
 		<td width=1%>". help_icon("{PermitRootLogin_text}")."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{UseBanner}:</td>
-		<td style='font-size:14px'>". Field_checkbox("Banner",1,$sshd->main_array["Banner"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{AllowOnlyGroups}:</td>
+		<td style='font-size:18px' colspan=2>". Field_text("AllowGroups",$sshd->main_array["AllowGroups"],
+				"font-size:18px;padding:3x;width:360px")."</td>
+		
+	</tr>				
+				
+				
+	<tr>
+		<td valign='top' class=legend style='font-size:18px'>{UseBanner}:</td>
+		<td style='font-size:18px'>". Field_checkbox("Banner",1,$sshd->main_array["Banner"])."</td>
 		<td width=1%><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$page?banner-js=yes');\" 
-		style='font-size:14px;text-decoration:underline'>{banner}</a></td>
+		style='font-size:18px;text-decoration:underline'>{banner}</a></td>
 	</tr>	
 	
 	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{UsePAM}:</td>
-		<td style='font-size:14px'>". Field_checkbox("UsePAM","yes",$sshd->main_array["UsePAM"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{UsePAM}:</td>
+		<td style='font-size:18px'>". Field_checkbox("UsePAM","yes",$sshd->main_array["UsePAM"])."</td>
 		<td width=1%>". help_icon("{UsePAM_TEXT}")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{ChallengeResponseAuthentication}:</td>
-		<td style='font-size:14px'>". Field_checkbox("ChallengeResponseAuthentication","yes",$sshd->main_array["ChallengeResponseAuthentication"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{ChallengeResponseAuthentication}:</td>
+		<td style='font-size:18px'>". Field_checkbox("ChallengeResponseAuthentication","yes",$sshd->main_array["ChallengeResponseAuthentication"])."</td>
 		<td width=1%>". help_icon("{ChallengeResponseAuthentication_text}")."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{PasswordAuthentication}:</td>
-		<td style='font-size:14px'>". Field_checkbox("PasswordAuthentication","yes",$sshd->main_array["PasswordAuthentication"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{PasswordAuthentication}:</td>
+		<td style='font-size:18px'>". Field_checkbox("PasswordAuthentication","yes",$sshd->main_array["PasswordAuthentication"])."</td>
 		<td width=1%>". help_icon("{PasswordAuthentication_text}")."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{PubkeyAuthentication}:</td>
-		<td style='font-size:14px'>". Field_checkbox("PubkeyAuthentication","yes",$sshd->main_array["PubkeyAuthentication"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{PubkeyAuthentication}:</td>
+		<td style='font-size:18px'>". Field_checkbox("PubkeyAuthentication","yes",$sshd->main_array["PubkeyAuthentication"])."</td>
 		<td width=1%>". help_icon("{PubkeyAuthentication_text}")."</td>
 	</tr>
 			
@@ -543,13 +552,13 @@ function parameters(){
 	
 	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{PermitTunnel}:</td>
-		<td style='font-size:14px'>". Field_checkbox("PermitTunnel","yes",$sshd->main_array["PermitTunnel"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{PermitTunnel}:</td>
+		<td style='font-size:18px'>". Field_checkbox("PermitTunnel","yes",$sshd->main_array["PermitTunnel"])."</td>
 		<td width=1%>". help_icon("{PermitTunnel_text}")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{UseDNS}:</td>
-		<td style='font-size:14px'>". Field_checkbox("UseDNS","yes",$sshd->main_array["UseDNS"])."</td>
+		<td valign='top' class=legend style='font-size:18px'>{UseDNS}:</td>
+		<td style='font-size:18px'>". Field_checkbox("UseDNS","yes",$sshd->main_array["UseDNS"])."</td>
 		<td width=1%>". help_icon("{UseDNS_sshd_text}")."</td>
 	</tr>		
 	
@@ -559,35 +568,36 @@ function parameters(){
 	
 	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{LoginGraceTime}:</td>
-		<td style='font-size:14px'>". Field_text("LoginGraceTime",$sshd->main_array["LoginGraceTime"],"font-size:14px;padding:3x;;width:60px")."&nbsp;{seconds}</td>
+		<td valign='top' class=legend style='font-size:18px'>{LoginGraceTime}:</td>
+		<td style='font-size:18px'>". Field_text("LoginGraceTime",$sshd->main_array["LoginGraceTime"],"font-size:18px;padding:3x;;width:60px")."&nbsp;{seconds}</td>
 		<td width=1%>". help_icon("{LoginGraceTime_text}")."</td>
 	</tr>
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{MaxSessions}:</td>
-		<td style='font-size:14px'>". Field_text("MaxSessions",$sshd->main_array["MaxSessions"],"font-size:14px;padding:3x;width:60px")."&nbsp;{sessions}</td>
+		<td valign='top' class=legend style='font-size:18px'>{MaxSessions}:</td>
+		<td style='font-size:18px'>". Field_text("MaxSessions",$sshd->main_array["MaxSessions"],"font-size:18px;padding:3x;width:60px")."&nbsp;{sessions}</td>
 		<td width=1%>". help_icon("{MaxSessions_text}")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{MaxAuthTries}:</td>
-		<td style='font-size:14px'>". Field_text("MaxAuthTries",$sshd->main_array["MaxAuthTries"],"font-size:14px;padding:3x;width:60px")."&nbsp;</td>
+		<td valign='top' class=legend style='font-size:18px'>{MaxAuthTries}:</td>
+		<td style='font-size:18px'>". Field_text("MaxAuthTries",$sshd->main_array["MaxAuthTries"],"font-size:18px;padding:3x;width:60px")."&nbsp;</td>
 		<td width=1%>". help_icon("{MaxAuthTries_text}")."</td>
 	</tr>	
 	<tr>
-		<td valign='top' class=legend style='font-size:14px'>{HostKey}:</td>
-		<td style='font-size:14px'>$hostkey</td>
+		<td valign='top' class=legend style='font-size:18px'>{HostKey}:</td>
+		<td style='font-size:18px'>$hostkey</td>
 		<td width=1%>". help_icon("{HostKey_text}")."</td>
 	</tr>	
-		<td valign='top' class=legend style='font-size:14px'>{AuthorizedKeysFile}:</td>
-		<td style='font-size:14px'>{$sshd->main_array["AuthorizedKeysFile"]}</td>
+		<td valign='top' class=legend style='font-size:18px'>{AuthorizedKeysFile}:</td>
+		<td style='font-size:18px'>{$sshd->main_array["AuthorizedKeysFile"]}</td>
 		<td width=1%>". help_icon("{AuthorizedKeysFile_text}")."</td>
 	</tr>	
 	
 	
 	<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","SaveSSHDConfig()",16)."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","SaveSSHDConfig()",26)."</td>
 	</tr>
 	</table>
+	</div>
 	<div style='width:100%;heigth:250px;overflow:auto' id='sshd_nets'></div>
 	</div>
 	
@@ -608,6 +618,10 @@ function parameters(){
 			XHR.appendData('LoginGraceTime',document.getElementById('LoginGraceTime').value);
 			XHR.appendData('MaxSessions',document.getElementById('MaxSessions').value);
 			XHR.appendData('MaxAuthTries',document.getElementById('MaxAuthTries').value);
+			XHR.appendData('AllowGroups',document.getElementById('AllowGroups').value);
+			
+			
+			
 			if(document.getElementById('PermitRootLogin').checked){XHR.appendData('PermitRootLogin','yes');}else{XHR.appendData('PermitRootLogin','no');}
 			if(document.getElementById('PermitTunnel').checked){XHR.appendData('PermitTunnel','yes');}else{XHR.appendData('PermitTunnel','no');}
 			if(document.getElementById('UseDNS').checked){XHR.appendData('UseDNS','yes');}else{XHR.appendData('UseDNS','no');}
@@ -685,7 +699,7 @@ function listen_address_list(){
 		$html=$html."
 		<tr class=$classtr>
 			<td width=1%><img src='img/fw_bold.gif'></td>
-			<td><strong style='font-size:14px'>$line</strong></td>
+			<td><strong style='font-size:18px'>$line</strong></td>
 			<td width=1%>". imgtootltip("ed_delete.gif","{delete}","ListenAddressSSHDDelete($num)")."</td>
 		</tr>
 		";
@@ -853,17 +867,17 @@ function popup_keys(){
 	$users[null]="{select}";
 	ksort($users);
 	
-	$userF=Field_array_Hash($users,"user_key","root","GetSSHDFingerprint()",null,0,"font-size:14px;padding:3px");
+	$userF=Field_array_Hash($users,"user_key","root","GetSSHDFingerprint()",null,0,"font-size:18px;padding:3px");
 	
 	
 	$html="
-	<div class=explain id='idtofill' style='font-size:14px'>{SSH_KEYS_WHY}</div>
+	<div class=explain id='idtofill' style='font-size:18px'>{SSH_KEYS_WHY}</div>
 	
 	<div style='font-size:18px'>{SSH_KEYS_CLIENT}</div>
-	<div class=explain style='font-size:14px'>{SSH_KEYS_CLIENT_EXPLAIN}</div>
+	<div class=explain style='font-size:18px'>{SSH_KEYS_CLIENT_EXPLAIN}</div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap style'=font-size:14px'>{ArticaProxyServerUsername}:</td>
+		<td class=legend style='font-size:18px' nowrap style'=font-size:18px'>{ArticaProxyServerUsername}:</td>
 		<td>$userF</td>
 		<td width=1% nowrap>". button("{fingerprint}","GetSSHDFingerprint()",14)."</td>
 		<td width=1% nowrap>". button("{generate_key}","GenerateSSHDKeyPair()",14)."</td>
@@ -877,7 +891,7 @@ function popup_keys(){
 	
 	<hr>
 	<div style='font-size:18px'>{SSHD_KEYS_SERVER}</div>
-	<div class=explain style='font-size:14px'>{SSHD_KEYS_SERVER_TEXT}</div>
+	<div class=explain style='font-size:18px'>{SSHD_KEYS_SERVER_TEXT}</div>
 	
 	<iframe style='width:100%;height:250px;border:0px' src='$page?SSHD_KEYS_SERVER=yes'></iframe>
 	
@@ -1041,7 +1055,7 @@ function SSHD_KEYS_SERVER_FORM($error=null){
 	ksort($users);	
 		$userF=Field_array_Hash($users,"uid",$_POST["uid"],null,null,0,"font-size:16px;padding:3px");
 	$html="
-	<div style='color:red;font-size:14px;font-weight:bold'>$error</div>
+	<div style='color:red;font-size:18px;font-weight:bold'>$error</div>
 	<form method=\"post\" enctype=\"multipart/form-data\" action=\"$page\">
 	<table style='width:98%' class=form>
 	<tr>

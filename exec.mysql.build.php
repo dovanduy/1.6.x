@@ -212,7 +212,7 @@ function multi_status(){
 	
 	
 if(!is_file("/etc/mysql-multi.cnf")){die();}
-if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system,die()","MAIN",__FILE__,__LINE__);die();}
+if(system_is_overloaded(basename(__FILE__))){writelogs("Fatal: Overloaded system Load:{$GLOBALS["SYSTEM_INTERNAL_LOAD"]} Memory: {$GLOBALS["SYSTEM_INTERNAL_MEMM"]}MB ,die()","MAIN",__FILE__,__LINE__);die();}
 
 
 	$ini=new iniFrameWork("/etc/mysql-multi.cnf");

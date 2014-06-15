@@ -1291,7 +1291,7 @@ function launch_all_status($force=false){
 	$postconf=$GLOBALS["CLASS_UNIX"]->find_program("postconf");
 	ToSyslog("launch_all_status(): postconf: $postconf");
 	if(is_file($postconf)){
-		include('/usr/share/artica-postfix/ressources/class.status.postfix.inc');
+		include_once('/usr/share/artica-postfix/ressources/class.status.postfix.inc');
 		$postfix_functions=postfix_increment_func(array());;
 	}
 	

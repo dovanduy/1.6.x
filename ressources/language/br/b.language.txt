@@ -288,6 +288,7 @@ By default, the router is allowed to put mails on each instance during 10mn.[br]
 <allowed_network>Allowed network</allowed_network>
 <allowed_networks>Redes Liberadas</allowed_networks>
 <AllowNoPassword>Allow no password</AllowNoPassword>
+<AllowOnlyGroups>Allow only specified groups</AllowOnlyGroups>
 <AllowPublicDownload>Allow public download</AllowPublicDownload>
 <AllowSenderCanonical>Can modify sent email address</AllowSenderCanonical>
 <AllowSmartphonesRuleExplain>This rule allow any Smartphones[br]
