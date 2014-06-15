@@ -185,7 +185,7 @@ function rule(){
 		<tr>
 			<td class=legend style='font-size:18px'>{pattern}:</td>
 			<td>
-			<div class=explain style='font-size:16px'>{deny_browser_explain}</div>
+			<div class=explain style='font-size:16px'>{browser_pattern_explain}</div>
 			<textarea style='margin-top:5px;font-family:Courier New; font-weight:bold;
 			width:99%;height:90px;border:5px solid #8E8E8E; overflow:auto;font-size:16px !important' id='pattern-$t'>{$ligne["pattern"]}</textarea></td>
 		</tr>
@@ -300,14 +300,14 @@ function rule_save(){
 		
 	}else{
 		$sql="INSERT IGNORE INTO `UsersAgentsDB` 
-		(`pattern`,`explain`,`editor`,`category`,`bypass`,`deny`,`bypassWebF`,`bypassWebC`,`enabled\)
+		(`pattern`,`explain`,`editor`,`category`,`bypass`,`deny`,`bypassWebF`,`bypassWebC`,`enabled`)
 		VALUES ('{$_POST["pattern"]}','{$_POST["explain"]}','{$_POST["editor"]}','{$_POST["category"]}','{$_POST["bypass"]}',
 		'{$_POST["deny"]}','{$_POST["bypassWebF"]}','{$_POST["bypassWebC"]}','{$_POST["enabled"]}')";
 	}
 	
 	$q=new mysql_squid_builder();
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;}
+	if(!$q->ok){echo $q->mysql_error."\n\n$sql";}
 	
 	
 }
