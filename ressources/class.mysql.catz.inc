@@ -443,6 +443,8 @@ function TransArray(){
 			$trans["category_industry"]="industry";
 			$trans["category_internal"]="internal";
 			$trans["category_isp"]="isp";
+			$trans["category_smalladds"]="smalladds";
+			$trans["category_stockexchnage"]="stockexchange";
 			$trans["category_jobsearch"]="jobsearch";
 			$trans["category_jobtraining"]="jobtraining";
 			$trans["category_justice"]="justice";

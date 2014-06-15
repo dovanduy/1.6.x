@@ -3009,6 +3009,11 @@ function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=n
 	if($width>550){$fontsize=16;$fontsize_title=18;$margin="margin-bottom:15px;";}
 	$class="BodyContent";
 	if($MINIADM){$class="MiniAdmParagrapheSwitchIm";}
+	
+	$tpl=new templates();
+	$text=$tpl->_ENGINE_parse_body("$text");
+	$text=stripslashes($text);
+	
 	$html="
 	<div style='width:{$width}px;$margin' class=$class>
 		<table style='width:100%;'>
@@ -6227,7 +6232,32 @@ function CompileTr5_win($array){
 			</table>";
 	return implode("\n",$tables);
 }
+function CompileTr6_win($array){
+	if(!is_array($array)){return null;}
+	if(count($array)==0){return null;}
 
+
+	$tables[]="<table style='width:765px' cellspacing='15px' cellpadding='15px'><tr>";
+
+	$t=0;
+	while (list ($key, $line) = each ($array) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		$t=$t+1;
+		$tables[]="<td width=25% valign='top'>$line</td>";
+		if($t==6){$t=0;$tables[]="</tr><tr>";}
+
+	}
+	if($t<6){
+		for($i=0;$i<=$t;$i++){
+			$tables[]="<td width=25% valign='top'>&nbsp;</td>";
+		}
+	}
+
+	$tables[]="</tr>
+			</table>";
+	return implode("\n",$tables);
+}
 
 function CompileTr4($array,$noform=false,$title=null,$center=false){
 	if(!is_array($array)){return null;}

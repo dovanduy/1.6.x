@@ -147,7 +147,7 @@ function imapopen_White($uid){
 	if(count($Added)>0){
 		$unix=new unix();
 		$took=$unix->distanceOfTimeInWords($t,time(),true);
-		blackwhite_admin_mysql(0,"$uid: ". count($Added)." whitelist emails from outbox took $took",@implode("\n", $Added),__FILE__,__LINE__);
+		blackwhite_admin_mysql(2,"$uid: ". count($Added)." whitelist emails from outbox took $took",@implode("\n", $Added),__FILE__,__LINE__);
 	}
 }
 

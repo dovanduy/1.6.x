@@ -1866,7 +1866,13 @@ $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyConte
 	
 		}
 
-	
+		
+		$tr[]=paragrapheWin("group-64-white.png","{browsers_users}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.BrowsersView.php')");
+
+		
+		
+		
 	
 	$tr[]=paragrapheWin("proxy-parent-white-64.png","{squid_parent_proxy}",
 			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.parent.proxy.php')");
@@ -1913,7 +1919,7 @@ $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyConte
 	
 
 	
-	$html= $tpl->_ENGINE_parse_body(CompileTr5_win($tr,true));
+	$html= $tpl->_ENGINE_parse_body(CompileTr6_win($tr,true));
 	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
 	echo $html;	
 }

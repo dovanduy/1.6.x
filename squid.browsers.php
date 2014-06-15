@@ -41,7 +41,9 @@ function popup(){
 	$browsers=$tpl->_ENGINE_parse_body("{browsers}");
 	
 	$items=$tpl->_ENGINE_parse_body("{items}");
+	$add=$tpl->_ENGINE_parse_body("{add}");
 	$delete_group_ask=$tpl->javascript_parse_text("{inputbox delete group}");
+	$title=$tpl->javascript_parse_text("{browsers}");
 	$t=time();		
 	$table_width=630;
 	$table_height=450;
@@ -59,7 +61,8 @@ $('#table-$t').flexigrid({
 	url: '$page?list=yes',
 	dataType: 'json',
 	colModel : [
-		{display: '$browsers', name : 'pattern', width : 593, sortable : true, align: 'left'},
+		{display: '$browsers', name : 'pattern', width : 904, sortable : true, align: 'left'},
+		{display: '$add', name : 'pattern', width : 81, sortable : false, align: 'center'},
 		
 		
 	],
@@ -70,11 +73,11 @@ $('#table-$t').flexigrid({
 	sortname: 'pattern',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:18px>$title</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: false,
-	width: $table_width,
+	width: '99%',
 	height: $table_height,
 	singleSelect: true
 	
@@ -105,18 +108,17 @@ function items(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
+	$searchstring=string_to_flexquery();
+	
+	
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		if(!$q->ok){json_error_show("$q->mysql_error");}
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table`";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		if(!$q->ok){json_error_show("$q->mysql_error");}
@@ -128,8 +130,8 @@ function items(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
+	
+	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error");}
@@ -143,11 +145,14 @@ function items(){
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$pattern_enc=urlencode($ligne["pattern"]);
+		
 		
 	$data['rows'][] = array(
 		'id' => md5($ligne["pattern"]),
 		'cell' => array(
-		"<span style='font-size:16px;'>{$ligne["pattern"]}</span>",
+		"<span style='font-size:14px;'>{$ligne["pattern"]}</span>",
+		imgtootltip("plus-24.png",null,"Loadjs('squid.browsers-rules.php?ruleid-js=0&pattern=$pattern_enc');")."</span>",
 		)
 		);
 	}

@@ -30,6 +30,10 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
 
+if($argv[1]=="--months"){not_categorized_months();exit;}
+
+
+
 $GLOBALS["Q"]=new mysql_squid_builder();
 
 if($GLOBALS["VERBOSE"]){"echo Parsing arguments...\n";}
@@ -202,6 +206,50 @@ function process_all_tables(){
 		}	
 	}
 
+}
+
+
+function not_categorized_months(){
+	
+	$current_month_table=date("Ym")."_month";
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("TRUNCATE TABLE `catztemp`");
+	if($q->TABLE_EXISTS($current_month_table)){
+		_not_categorized_months($current_month_table);
+	}
+	
+	$LIST_TABLES_MONTH=$q->LIST_TABLES_MONTH();
+	while (list ($tablename, $infos) = each ($LIST_TABLES_MONTH)){
+		if($tablename==$current_month_table){continue;}
+		echo "Scanning $tablename\n";
+		_not_categorized_months($tablename);
+		
+	}
+	
+	
+}
+
+function _not_categorized_months($table){
+	$t=time();
+	$unix=new unix();
+	$sql="SELECT familysite FROM $table WHERE category='' GROUP BY familysite";
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL($sql);
+	if(mysql_num_rows($results)==0){return true;}
+	$c=0;
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$category=$q->GET_CATEGORIES($ligne["familysite"]);
+		echo "$table {$ligne["familysite"]} -> `$category`\n";
+		if($category==null){continue;}
+		$q->QUERY_SQL("UPDATE $table SET category='$category' WHERE familysite='{$ligne["familysite"]}'");
+		$c++;
+	}
+	
+	if($c>0){
+		stats_admin_events(2,"$table $c websites categorized took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+	}
+	
+	
 }
 
 

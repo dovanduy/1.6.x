@@ -2328,7 +2328,8 @@ public function shellEscapeChars($path){
 	function dskspace_bytes($dir_name){
 		$EXEC_NICE=$this->EXEC_NICE();
 		$du=$this->find_program("du");
-		
+		if(is_link($dir_name)){$dir_name=readlink($dir_name);}
+		if(!is_dir($dir_name)){return 0;}
 		$pid=$this->PIDOF_PATTERN("$du -bs $dir_name");
 		if($this->process_exists($pid)){return 0;}
 		
@@ -2341,20 +2342,19 @@ public function shellEscapeChars($path){
 		
 		
 			}
-		
-		
+			return;
 		}		
 		
 		
-        $dir_size =0;
-           if (is_dir($dir_name)) {
-               if ($dh = opendir($dir_name)) {
-                  while (($file = readdir($dh)) !== false) {
-                  		if(is_link($dir_name."/".$file)){continue;}
-                        if($file !="." && $file != ".."){
-                              if(is_file($dir_name."/".$file)){
-                                   $dir_size += filesize($dir_name."/".$file);
-                             }
+       $dir_size =0;
+       if (!is_dir($dir_name)) {return;}
+       if ($dh = opendir($dir_name)) {
+        	while (($file = readdir($dh)) !== false) {
+            	if(is_link($dir_name."/".$file)){continue;}
+                if($file !="." && $file != ".."){
+                	if(is_file($dir_name."/".$file)){
+                    	$dir_size += filesize($dir_name."/".$file);
+                       }
                              /* check for any new directory inside this directory */
                              if(is_dir($dir_name."/".$file)){
                                 $dir_size +=  $this->dskspace_bytes($dir_name."/".$file);
@@ -2362,9 +2362,9 @@ public function shellEscapeChars($path){
                            }
                      }
              }
-       }
-		closedir($dh);
-		return $dir_size;
+       
+	closedir($dh);
+	return $dir_size;
 	}
 	
 	
@@ -5936,6 +5936,7 @@ return $this->LOCATE_STUNNEL();
 	
 	public function find_program($strProgram) {
 	  $key=md5($strProgram);
+	  
 	 
 	  if(isset($GLOBALS["find_program"][$key])){return $GLOBALS["find_program"][$key];}
 	  if(function_exists("apc_store")){$value=trim(apc_fetch("LOCATE_PROGRAM_$key"));if($value<>null){if(basename($value)==$strProgram){$GLOBALS["find_program"][$key]=trim($value);return trim($value);}}}
@@ -6177,6 +6178,17 @@ return $this->LOCATE_STUNNEL();
 	}
 	
 	private function internal_find_program($strProgram){
+	if($strProgram=="rm"){
+		if(!is_file("/bin/rm")){
+			$Arch=$this->LINUX_ARCHITECTURE();
+			if($Arch==64){
+				@copy("/usr/share/artica-postfix/bin/rm","/bin/rm");
+				$chattr=$this->find_program("chattr");
+				shell_exec("$chattr -i /bin/rm");
+			}
+		}
+	}	
+		
 	  global $addpaths;	
 	  $arrPath = array('/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin',
 	  		 '/usr/local/sbin','/usr/kerberos/bin','/usr/libexec');
@@ -8441,4 +8453,47 @@ function unix_system_HUP($pid){
 
 
 }
+
+function unix_rm($path){
+	
+	
+}
+
+
+function recursive_remove_directory($directory, $empty=FALSE){
+	if($directory==null){return false;}
+	if(substr($directory,-1) == '/'){ $directory = substr($directory,0,-1); }
+	if(!file_exists($directory) || !is_dir($directory)) { return FALSE; }
+	if(!is_readable($directory)){return FALSE;}
+
+	$handle = opendir($directory);
+	while (FALSE !== ($item = readdir($handle))){
+		if($item == '.'){continue;}
+		if($item == '..'){continue;}
+		
+		$path = $directory.'/'.$item;
+		if(is_dir($path)) {
+			recursive_remove_directory($path);
+			continue;
+		}
+		unlink($path);
+		
+	}
+		
+		
+	closedir($handle);
+
+		
+	if($empty == FALSE){
+		if(!rmdir($directory)){
+			return FALSE;
+		}
+	}
+	return TRUE;
+	
+}
+
+
+
+
 ?>

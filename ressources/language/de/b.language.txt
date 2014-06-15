@@ -893,11 +893,24 @@ Basically the "Source network card" is your local network interface and the "Des
 </bridges_iptables_explain>
 <browser>browser</browser>
 <browsers>Browsers</browsers>
+<browsers_ntlm_explain>
+There is a number of services/applications that use user agents that cannot negotiate NTLM 
+properly because these services/applications are non-NTLM aware (java, iOS, Android...).[br]
+If your Proxy is connected to your Active Directory server these services/applications will be prompted for authentication 
+credentials and/or may receive some authentication errors.[br]
+The solution is to whitelist these known user agents that are non-NTLM aware.[br]
+</browsers_ntlm_explain>
+<browsers_rules>Browsers rules</browsers_rules>
 <browsers_security>Browsers security</browsers_security>
 <browsers_setup>Browsers setup</browsers_setup>
+<browsers_users>Browsers & Users</browsers_users>
+<browser_allow_explain>If green, then this Browser application will be allowed before asking authentification.[br]
+You should use this option when user agent cannot negotiate NTLM properly because it is non-NTLM aware.
+</browser_allow_explain>
 <browser_not_supported>Your browser is not supported here</browser_not_supported>
 <browser_not_supported1>You are currently using an unsupported browser</browser_not_supported1>
 <browser_not_supported2>Please install one of the many optional browsers below to proceed</browser_not_supported2>
+<browser_pattern_explain>Set here the pattern that will match the user Agent.[br]You can define a string or a regular expression by adding "regex:" at the begining of the pattern.</browser_pattern_explain>
 <browse_active_directory_members>Browse Active Directory members</browse_active_directory_members>
 <browse_database>Browse Database</browse_database>
 <browse_database_mysql_text>Display tables and datas of the selected database</browse_database_mysql_text>
@@ -967,6 +980,7 @@ Basically it helps our support team to resolve an issue.
 <bypass_iffailed>Bypass service if failed</bypass_iffailed>
 <bypass_spam_checks>Disable anti-spam engine</bypass_spam_checks>
 <bypass_virus_checks>Disable antivirus engine</bypass_virus_checks>
+<bypass_webfilter>Bypass Webfilter</bypass_webfilter>
 <by_proxy_groups>By proxy group</by_proxy_groups>
 <cache-ttl>Cache TTL</cache-ttl>
 <cached_data>Cached data</cached_data>
@@ -1325,6 +1339,7 @@ Do you want to carry out this operation ?
 </confirm_import_rules_text>
 <confirm_message>Confirm message</confirm_message>
 <confirm_scan_size>Scan each folder and calculate disk usage</confirm_scan_size>
+<connected_members>Connected members</connected_members>
 <connected_to>Connected to</connected_to>
 <connecting_to>Connecting to</connecting_to>
 <connections_number>Connections number</connections_number>
@@ -1552,6 +1567,7 @@ Perform this operation</delete_nic_bridge>
 <deny_access>Deny access</deny_access>
 <deny_access_except>Deny for all except</deny_access_except>
 <deny_artica_to_write_config>Deny Artica to write the configuration file automatically</deny_artica_to_write_config>
+<deny_browser_explain>If green, requests from this item will be denied to download something trough Internet</deny_browser_explain>
 <deny_from_cache>Deny from cache</deny_from_cache>
 <deny_logging>do not write in events accesses</deny_logging>
 <deny_ports_expect>Deny Ports except</deny_ports_expect>
@@ -3631,11 +3647,13 @@ Display this section and try to categorize yourself websites in order to add the
 <NOT_INSTALLED>Not installed</NOT_INSTALLED>
 <not_used>Not used</not_used>
 <not_used_no_license>Not used, no active license</not_used_no_license>
+<no_cache>No cache</no_cache>
 <no_cache_as_been_detected>No cache as been detected.[br]This error is caused:[br]
 Artica did not query the Proxy service status.[br]
 You did not have any cache set on your Proxy configuration.[br]
 The Proxy refuse to talk to Artica.
 </no_cache_as_been_detected>
+<no_cache_explain>if green, the proxy will not store into cache objects downloaded by this item</no_cache_explain>
 <no_defined_parent>No defined parent</no_defined_parent>
 <no_enough_free_space_on_target>Not enough free space on target</no_enough_free_space_on_target>
 <NO_ENOUGH_MEMORY_FOR_THIS_SECTION>Your server did not handle enough memory to activate features listed in this section</NO_ENOUGH_MEMORY_FOR_THIS_SECTION>
@@ -3667,6 +3685,8 @@ The Proxy refuse to talk to Artica.
 <no_surffor>No surf for</no_surffor>
 <no_task>No task</no_task>
 <no_value_cannot_generate_graph>The specified query return no return value, the chart cannot be generated</no_value_cannot_generate_graph>
+<no_webfilter>No Webfiltering</no_webfilter>
+<no_webfilter_explain>If green, then the proxy will not query Web filtering service for this item</no_webfilter_explain>
 <no_website>No website</no_website>
 <ntlm_processes>NTLM Processes</ntlm_processes>
 <ntp-servers>NTP servers</ntp-servers>

@@ -104,7 +104,7 @@ function execute(){
 }
 
 function perform($table_source,$zDate){
-	
+	$f=array();
 	$q=new mysql_squid_builder();
 	$sql="SELECT SUM( hits ) AS hits, SUM( size ) AS size, category FROM $table_source GROUP BY category";
 	$results=$q->QUERY_SQL($sql);

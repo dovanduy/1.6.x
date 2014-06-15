@@ -2726,9 +2726,11 @@ class mysql_squid_builder{
 		if(trim($sitename)==null){return;}
 		if(trim($category)==null){return;}
 		$array=$this->LIST_TABLES_HOURS();
-		while (list ($num, $tablename) = each ($array) ){$this->QUERY_SQL("UPDATE $tablename SET category='$category' WHERE sitename='$sitename'");}
-		$array=$this->LIST_TABLES_DAYS();
-		while (list ($num, $tablename) = each ($array) ){$this->QUERY_SQL("UPDATE $tablename SET category='$category' WHERE sitename='$sitename'");}		
+		while (list ($num, $tablename) = each ($array) ){
+			$this->QUERY_SQL("UPDATE $tablename SET category='$category' WHERE sitename='$sitename'");
+		}
+		
+			
 	}
 	
 	public function UPDATE_WEBSITES_TABLES($sitename,$newsitename){
@@ -3956,6 +3958,20 @@ public function CheckTables($table=null,$force=false){
 				 KEY `ipaddr` (`ipaddr`),
 				 KEY `ipaddrton` (`ipaddrton`),
 				 KEY `hostname` (`hostname`)
+				 )  ENGINE = MYISAM;
+			";
+		$this->QUERY_SQL($sql,$this->database);	
+
+		
+		
+		$sql="CREATE TABLE IF NOT EXISTS `UsersAgentsDB` (
+				`explain` VARCHAR(255),
+				`editor` VARCHAR( 90 ) NOT NULL,
+				`pattern` VARCHAR(60) PRIMARY KEY,
+				`bypass` smallint(1) NOT NULL DEFAULT 1,
+				`deny` smallint(1) NOT NULL DEFAULT 0,
+				 KEY `bypass` (`bypass`),
+				 KEY `editor` (`editor`)
 				 )  ENGINE = MYISAM;
 			";
 		$this->QUERY_SQL($sql,$this->database);		
@@ -8123,7 +8139,14 @@ private function CategoriesFamily($www){
 		$CHour=substr($intval,8,2);
 		return strtotime("$Cyear-$CMonth-$CDay $CHour:00:00");
 	}	
-	
+	public function TIME_FROM_QUOTAMONTH_TABLE($tablename){
+		preg_match("#^quotamonth_([0-9]+)$#", $tablename,$re);
+		$intval=$re[1];
+		$Cyear=substr($intval, 0,4);
+		$CMonth=substr($intval,4,2);
+		$CMonth=str_replace("_", "", $CMonth);
+		return strtotime("$Cyear-$CMonth-01 00:00:00");
+	}	
 
 	
 	public function TIME_FROM_HOUR_TEMP_TABLE($tablename){

@@ -198,7 +198,7 @@ function RemoveDirs(){
 			$c++;
 			echo "Removing $filepath ({$ligne["zDate"]})\n";
 			$tt[]=$filepath;
-			shell_exec("$rm -rf $filepath");
+			recursive_remove_directory($filepath);
 			$q->QUERY_SQL("DELETE FROM zarafa_backup WHERE `filepath`='$filepath'","artica_backup");
 		}
 		

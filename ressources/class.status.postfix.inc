@@ -6,6 +6,7 @@ function postfix_increment_func($array){
 	$array[]="iredmail";
 	$array[]="mailarchiver";
 	$array[]="postfix_logger";
+	$array[]="opendkim";
 	return $array;
 }
 
@@ -139,6 +140,7 @@ function postfix_logger(){
 
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		ToSyslog("Fatal, Postfix-logger did not running, start it...");
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
 			shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.service.postfix-logger.php --start >/dev/null 2>&1 &");
 			$l[]="running=0\ninstalled=1";$l[]="";
@@ -154,11 +156,83 @@ function postfix_logger(){
 		$time=file_time_min("/var/log/artica-postfix/postfix-logger.debug");
 
 		if($time>45){
-			writelogs("LOG TIME: $time -> restart postfix-logger",__FUNCTION__,__FILE__,__LINE__);
+			ToSyslog("Postfix-logger -> restart it");
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/postfix-logger restart");
+			return implode("\n",$l);return;
 		}
 	}
+	ToSyslog("Postfix-logger -> check done");
+	return implode("\n",$l);return;
 
+}
+//========================================================================================================================================================
+function opendkim(){
+	$debugFunc=false;
+	if($debugFunc){ToSyslog("opendkim() -> EXECUTED");}
+	if(!$GLOBALS["CLASS_USERS"]->OPENDKIM_INSTALLED){
+		if($debugFunc){ToSyslog("opendkim() -> Not installed...`OPENDKIM_INSTALLED`");}
+		
+		return;}
+	$EnableDKFilter=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableDKFilter");
+	if(!is_numeric($EnableDKFilter)){$EnableDKFilter=0;}
+	$DisconnectDKFilter=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisconnectDKFilter");
+	if(!is_numeric($DisconnectDKFilter)){$DisconnectDKFilter=0;}
+
+
+	$pid_path="/var/run/opendkim/opendkim.pid";
+	$master_pid=trim(@file_get_contents($pid_path));
+
+	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
+	if($DisableMessaging==1){$EnableDKFilter=0;}
+
+	$l[]="[APP_OPENDKIM]";
+	$l[]="service_name=APP_OPENDKIM";
+	$l[]="master_version=".opendkim_version();
+	$l[]="service_cmd=/etc/init.d/opendkim";
+	$l[]="service_disabled=$EnableDKFilter";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+	$l[]="family=postfix";
+	
+	if($debugFunc){ToSyslog("opendkim() -> EnableDKFilter..... = $EnableDKFilter");}
+	if($debugFunc){ToSyslog("opendkim() -> DisconnectDKFilter  = $DisconnectDKFilter");}
+
+	if($EnableDKFilter==0){$l[]="";
+	if($debugFunc){ToSyslog("opendkim() -> EnableDKFilter  = $EnableDKFilter -> ABORT");}
+		return implode("\n",$l);
+		
+	}
+
+	if($debugFunc){ToSyslog("opendkim() -> master_pid  = $master_pid -> ?");}
+	if($debugFunc){ToSyslog("opendkim() -> master_pid  = $master_pid -> Not running");}
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if($DisconnectDKFilter==0){
+			if(!$GLOBALS["DISABLE_WATCHDOG"]){
+				$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
+				if(!is_file("/etc/init.d/opendkim")){
+					shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --opendkim >/dev/null 2>&1 &");
+				}
+				ToSyslog("opendkim() -> master_pid  = $master_pid -> Not running -> /etc/init.d/opendkim start");
+				shell_exec2("$nohup {$GLOBALS["NICE"]} /etc/init.d/opendkim start >/dev/null 2>&1 &");
+					
+			}
+		}
+		$l[]="";
+		return implode("\n",$l);
+		
+	}
+	if($debugFunc){ToSyslog("opendkim() -> master_pid  = $master_pid -> running OK");}
+	
+	if(!$GLOBALS["CLASS_UNIX"]->is_socket("/var/run/opendkim/opendkim.sock")){
+		ToSyslog("Fatal, opendkim: /var/run/opendkim/opendkim.sock not available -> restart");
+		shell_exec2("$nohup {$GLOBALS["NICE"]} /etc/init.d/opendkim restart >/dev/null 2>&1 &");
+	}else{
+		if($debugFunc){ToSyslog("opendkim() -> /var/run/opendkim/opendkim.sock OK");}
+	}
+	
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	ToSyslog("opendkim() -> check done");
 	return implode("\n",$l);return;
 
 }

@@ -82,7 +82,7 @@ function installbyPath($SourceFile){
 	
 	build_progress(15, "Extracting ".basename($SourceFile));
 	events("Extract ". basename($SourceFile)." Source package...");
-	if(is_dir("/root/VMwareArticaInstall")){shell_exec("$rm -rf /root/VMwareArticaInstall");}
+	if(is_dir("/root/VMwareArticaInstall")){recursive_remove_directory("/root/VMwareArticaInstall");}
 	@mkdir("/root/VMwareArticaInstall",0640,true);
 	shell_exec("$tar -xf $SourceFile -C /root/VMwareArticaInstall/");
 	events("Extract ". basename($SourceFile)." Source package done");
@@ -91,7 +91,7 @@ function installbyPath($SourceFile){
 	if(!is_file("/root/VMwareArticaInstall/vmware-tools-distrib/vmware-install.pl")){
 		build_progress(110, "vmware-install.pl no such file");
 		events("Failed /root/VMwareArticaInstall/vmware-tools-distrib/vmware-install.pl no such file");
-		shell_exec("$rm -rf /root/VMwareArticaInstall");
+		recursive_remove_directory("/root/VMwareArticaInstall");
 		return;
 	}
 	
@@ -109,7 +109,7 @@ function installbyPath($SourceFile){
 	exec("./vmware-install.pl --default 2>&1",$results);
 	while (list ($i, $line) = each ($results)){events("$line");}
 	build_progress(50, "Removing package");
-	shell_exec("$rm -rf /root/VMwareArticaInstall");
+	recursive_remove_directory("/root/VMwareArticaInstall");
 	
 	if(file_exists("/etc/init.d/vmware-tools")){
 		build_progress(55, "Starting VMWare Tools service");
@@ -131,7 +131,7 @@ function installbyPath($SourceFile){
 		
 	}
 
-	if(is_dir("/root/VMwareArticaInstall")){shell_exec("$rm -rf /root/VMwareArticaInstall");}
+	if(is_dir("/root/VMwareArticaInstall")){recursive_remove_directory("/root/VMwareArticaInstall");}
 	build_progress(80, "Indexing softwares database");
 	events("Indexing softwares database");
 	shell_exec("/usr/share/artica-postfix/bin/process1 --force --verbose ".time());

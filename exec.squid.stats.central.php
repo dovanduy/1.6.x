@@ -212,12 +212,21 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --UserSizeD --sch
 stats_admin_events(2,"11%) Repair UserSizeD took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
+$t=time();
+percentage("UserAuthDaysGrouped",11);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --members-central-grouped --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"11%) Repair UserAuthDaysGrouped took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
 
 $t=time();
 percentage("quotaday (quotamonth)...",11);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.quotaday.php --quotamonth --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"33%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
 
 
 $t=time();
@@ -303,11 +312,24 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --scan-months --s
 stats_admin_events(2,"31%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
+
+
+
 $t=time();
 percentage("Months tables (2) ...",32);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.month.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"32%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
+
+$t=time();
+percentage("Categorize Month tables (3) ...",32);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.not-categorized.php --months --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"31%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
 
 
 $t=time();

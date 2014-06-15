@@ -266,7 +266,8 @@ function global_parameters(){
 	$level=Paragraphe_switch_img('{DisableAnyCache}',"{DisableAnyCache_explain2}","DisableAnyCache-$t",
 			$DisableAnyCache,null,850);
 	
-	if(!$users->CORP_LICENSE){$license_error="<strong style='color:red'>".$tpl->_ENGINE_parse_body("{license_error}")."</strong>";}
+	if(!$users->CORP_LICENSE){
+		$license_error="<p class=text-error style='font-size:18px'>".$tpl->_ENGINE_parse_body("{license_error}")."</p>";}
 
 	
 	$reload_into_ims_p=Paragraphe_switch_img("{reload_into_ims}", "{reload_into_ims_explain}",
@@ -364,16 +365,11 @@ function global_parameters(){
 
 		function Save$t(){
 			var SquidDebugCacheProc=0;
-			var ForceWindowsUpdateCaching=0;
-			var ProxyDedicateMicrosoftRules=0;
 			var XHR = new XHRConnection();
 			XHR.appendData('DisableAnyCache',document.getElementById('DisableAnyCache-$t').value);
 			XHR.appendData('ForceWindowsUpdateCaching',document.getElementById('ForceWindowsUpdateCaching-$t').value);
 			XHR.appendData('ProxyDedicateMicrosoftRules',document.getElementById('ProxyDedicateMicrosoftRules-$t').value);
 			XHR.appendData('SquidReloadIntoIMS',document.getElementById('SquidReloadIntoIMS-$t').value);
-			
-			
-			
 			if(document.getElementById('SquidDebugCacheProc-$t').checked){SquidDebugCacheProc=1;}
 
 			
@@ -389,8 +385,6 @@ function global_parameters(){
 			XHR.appendData('maximum_object_size',document.getElementById('maximum_object_size-$t').value);
 			
 			XHR.appendData('SquidDebugCacheProc',SquidDebugCacheProc);
-			XHR.appendData('ProxyDedicateMicrosoftRules',ProxyDedicateMicrosoftRules);
-			XHR.appendData('ForceWindowsUpdateCaching',ForceWindowsUpdateCaching);
 			XHR.sendAndLoad('$page', 'POST',x_Save$t);
 		}
 		
@@ -427,7 +421,7 @@ function global_parameters_save(){
 	$sock->SET_INFO("CacheReplacementPolicy", $_POST["CacheReplacementPolicy"]);
 	$sock->SET_INFO("SquidDebugCacheProc", $_POST["SquidDebugCacheProc"]);
 	$sock->SET_INFO("DisableAnyCache", $_POST["DisableAnyCache"]);
-	$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);
+	if(isset($_POST["ForceWindowsUpdateCaching"])){$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);}
 	$sock->SET_INFO("ProxyDedicateMicrosoftRules", $_POST["ProxyDedicateMicrosoftRules"]);
 	$sock->SET_INFO("SquidReloadIntoIMS", $_POST["SquidReloadIntoIMS"]);
 	

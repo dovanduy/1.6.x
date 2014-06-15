@@ -870,7 +870,7 @@ function LoadHelp(textz,currpage,notitle){
         
 function add_fetchmail_rules(){
 	YahooWinHide();
-	YahooWin2('891','artica.wizard.fetchmail.php?AddNewFetchMailRule=yes','Fetchmail rules');
+	YahooWin2('1050','artica.wizard.fetchmail.php?AddNewFetchMailRule=yes','Fetchmail rules');
 }
 
 
@@ -1485,11 +1485,11 @@ function ChangeFetchMailUser(){
 function UserFetchMailRule(num,userid){
 if(document.getElementById('dialog3_c')){
         if(document.getElementById('dialog3_c').style.visibility=='visible'){
-            YahooWin4('923','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid,'Fetchmail rule');
+            YahooWin4('1050','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid,'Fetchmail rule');
             return true;
         }
 }
-       	YahooWin2('923','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid,'Fetchmail rule');
+       	YahooWin2('1050','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid,'Fetchmail rule');
         }
         
 function UserDeleteFetchMailRule(num){

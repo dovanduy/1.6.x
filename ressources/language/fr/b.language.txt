@@ -767,11 +767,23 @@ Toutes les adresses ajout&eacute;es ici seront alors rendues invisibles dans les
 Classiquement, la Carte r&eacute;seau source communique vers votre r&eacute;seau local tandis que la Carte r&eacute;seau de destination communique vers votre ligne Internet.</bridges_iptables_explain>
 <browser>navigateur</browser>
 <browsers>Navigateurs</browsers>
+<browsers_ntlm_explain>
+There is a number of services/applications that use user agents that cannot negotiate NTLM 
+properly because these services/applications are non-NTLM aware (java, iOS, Android...).[br]
+If your Proxy is connected to your Active Directory server these services/applications will be prompted for authentication 
+credentials and/or may receive some authentication errors.[br]
+The solution is to whitelist these known user agents that are non-NTLM aware.[br]
+</browsers_ntlm_explain>
+<browsers_rules>R&egrave;gles de navigateurs</browsers_rules>
 <browsers_security>S&eacute;curit&eacute; des navigateurs</browsers_security>
 <browsers_setup>Param&egrave;tres des navigateurs</browsers_setup>
+<browsers_users>Navigateurs et utilisateurs</browsers_users>
+<browser_allow_explain>Si vert, cette application sera autoris&eacute;e avant la demande d\'authentification.[br]
+Cette option est pratique afin de r&eacute;pondre au probl&egrave;me d\'authentification li&eacute;e &agrave; l\'Active Directory lorsque le logiciel n\'est pas compatible NTLM</browser_allow_explain>
 <browser_not_supported>Votre navigateur n'est pas support&eacute; ici.</browser_not_supported>
 <browser_not_supported1>Vous utilisez actuellement un navigateur non support&eacute; par l'application</browser_not_supported1>
 <browser_not_supported2>Nous vous sugg&eacute;rons d'utiliser l'un de ceux list&eacute;s ci-dessous afin de continuer.</browser_not_supported2>
+<browser_pattern_explain>Set here the pattern that will match the user Agent.[br]You can define a string or a regular expression by adding "regex:" at the begining of the pattern.</browser_pattern_explain>
 <browse_active_directory_members>Parcourir les membres Active Directory</browse_active_directory_members>
 <browse_database>Parcourir la base</browse_database>
 <browse_database_mysql_text>Afficher les tables et donn&eacute;es de cette base de donn&eacute;es.</browse_database_mysql_text>
@@ -838,6 +850,7 @@ Classiquement, il va aider notre &eacute;quipe de support &agrave; r&eacute;soud
 <bypass_iffailed>Passer outre en cas d'&eacute;chec</bypass_iffailed>
 <bypass_spam_checks>D&eacute;sactive le moteur anti-spam</bypass_spam_checks>
 <bypass_virus_checks>D&eacute;sactive le moteur antivirus</bypass_virus_checks>
+<bypass_webfilter>Passe le filtrage</bypass_webfilter>
 <by_proxy_groups>Par groupe de Proxy</by_proxy_groups>
 <cache-ttl>Temps de cache</cache-ttl>
 <cached_data>Donn&eacute;es mises en cache</cached_data>
@@ -1138,6 +1151,7 @@ Effectuer cette op&eacute;ration ?</confirm_disable_haarp>
 Voulez-vous effectuer cette op&eacute;ration ?</confirm_import_rules_text>
 <confirm_message>Message de confirmation</confirm_message>
 <confirm_scan_size>Analyser chaque dossier et calculer l'espace disque</confirm_scan_size>
+<connected_members>Utilisateurs connect&eacute;s</connected_members>
 <connected_to>Connect&eacute; &agrave;</connected_to>
 <connecting_to>Connexion &agrave;</connecting_to>
 <connections_number>Nombre de connexions</connections_number>
@@ -1340,6 +1354,7 @@ Effectuer cette op&eacute;ration</delete_nic_bridge>
 <deny_access>Interdire l'acc&egrave;s</deny_access>
 <deny_access_except>Interdire &agrave; tous sauf</deny_access_except>
 <deny_artica_to_write_config>Interdire Artica d'&eacute;crire automatiquement le fichier de configuration</deny_artica_to_write_config>
+<deny_browser_explain>Si vert, les requ&ecirc;tes provenant de cet &eacute;l&eacute;ment seront interdites &agrave; r&eacute;cup&eacute;rer quelque chose depuis Internet</deny_browser_explain>
 <deny_from_cache>Interdire &agrave; cacher</deny_from_cache>
 <deny_logging>Ne pas &eacute;crire les &eacute;v&egrave;nements d'acc&egrave;s</deny_logging>
 <deny_ports_expect>Interdire les ports except&eacute; pour</deny_ports_expect>
@@ -3120,10 +3135,12 @@ Afficher la section et essayez de les classer vous-m&ecirc;me afin d'enrichir vo
 <NOT_INSTALLED>Non install&eacute;</NOT_INSTALLED>
 <not_used>Pas utilis&eacute;</not_used>
 <not_used_no_license>Inutilis&eacute;, pas de licence active</not_used_no_license>
+<no_cache>Pas de mis en cache</no_cache>
 <no_cache_as_been_detected>Aucun cache n'a &eacute;t&eacute; d&eacute;couvert/[br]Cette erreur provient du fait que:[br]
 Artica n'a pas encore consult&eacute; le service proxy.[br]
 Vous n'avez pas param&eacute;tr&eacute; de syst&egrave;me de cache.[br]
 Le service proxy refuse de discuter avec Artica.</no_cache_as_been_detected>
+<no_cache_explain>Si vert, le proxy ne mettra pas en cache les objets r&eacute;cup&eacute;r&eacute;s depuis cet &eacute;l&eacute;ment</no_cache_explain>
 <no_defined_parent>Aucun p&egrave;re &agrave; &eacute;t&eacute; d&eacute;fini</no_defined_parent>
 <no_enough_free_space_on_target>Pas assez d'espace libre dans la cible</no_enough_free_space_on_target>
 <NO_ENOUGH_MEMORY_FOR_THIS_SECTION>Votre serveur ne dispose pas assez de m&eacute;moire pour faire tourner les fonctionnalit&eacute;s list&eacute;es dans cette section.</NO_ENOUGH_MEMORY_FOR_THIS_SECTION>
@@ -3156,6 +3173,8 @@ Vous devriez cr&eacute;er un service FreeWebs afin de pourvoir visualiser le con
 <no_surffor>Pas de surf pour</no_surffor>
 <no_task>Pas de t&acirc;che</no_task>
 <no_value_cannot_generate_graph>La requ&ecirc;te sp&eacute;cifi&eacute;e retourne aucune valeur, le graphique ne peut &ecirc;tre construit...</no_value_cannot_generate_graph>
+<no_webfilter>Pas de filtrage Web</no_webfilter>
+<no_webfilter_explain>Si vert, le proxy ne transf&eacute;rera pas les requ&ecirc;tes vers le moteur de filtrage Web pour cet &eacute;l&eacute;ment</no_webfilter_explain>
 <no_website>Pas de site Web</no_website>
 <ntlm_processes>Processus NTLM</ntlm_processes>
 <ntp-servers>Serveurs NTP</ntp-servers>

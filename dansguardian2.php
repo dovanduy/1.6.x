@@ -141,7 +141,7 @@ function tabs(){
 	
 	$array["quotas"]='{quotas}';
 	
-	
+	$array["browser-rules"]="{browsers_rules}";
 	
 
 	if($EnableRemoteStatisticsAppliance==0){
@@ -185,6 +185,11 @@ function tabs(){
 	if(count($array)>8){$fontsize=14.7;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="browser-rules"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.browsers-rules.php?popup=yes\" $fontsize><span>$ligne</span></a></li>\n");
+			continue;
+		}
 		
 		if($num=="unveiltech"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"unveiltech.saas.php\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");

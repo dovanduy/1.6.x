@@ -3,6 +3,20 @@
 
 function parse_opendkim($buffer){
 	
+
+	
+	if(preg_match("#warning: connect to Milter service unix:.*?opendkim.sock: No such file or directory#i", $buffer,$re)){
+		$file="/etc/artica-postfix/pids/OpenDKIM.restart.time";
+		$timefile=file_time_min($file);
+		if($timefile>3){
+			shell_exec("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/opendkim restart >/dev/null 2>&1 &");
+			@unlink($file);
+			@file_put_contents($file, time());
+		}
+		return true;
+	}
+	
+	
 	// ---------------------------------------------------------------------------------------------------------------
 	if(preg_match("#OpenDKIM Filter: Unable to bind to port.*?opendkim\.sock: Address already in use#i", $buffer,$re)){
 		$file="/etc/artica-postfix/pids/OpenDKIM.restart.time";

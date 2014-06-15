@@ -257,9 +257,9 @@ function multi_delete($ID){
 	
 	$zarafa=new zarafamulti($ID);
 	echo "Deleting......: zarafa-server removing directory $zarafa->attachment_path\n";
-	if(is_dir($zarafa->attachment_path)){shell_exec("$rm -rf $zarafa->attachment_path");}
+	if(is_dir($zarafa->attachment_path)){recursive_remove_directory($zarafa->attachment_path);}
 	echo "Deleting......: zarafa-server removing directory /etc/zarafa-$ID\n";
-	if(is_dir("/etc/zarafa-$ID")){shell_exec("$rm -rf /etc/zarafa-$ID");}
+	if(is_dir("/etc/zarafa-$ID")){recursive_remove_directory("/etc/zarafa-$ID");}
 	
 	
 	$database="zarafa$ID";

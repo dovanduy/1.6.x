@@ -77,7 +77,7 @@ function clean($aspid=false){
 	$rm=$unix->find_program("rm");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} directory $ZarafaIndexPath\n";}
 	stop(true);
-	shell_exec("$rm -rf $ZarafaIndexPath/*");
+	recursive_remove_directory($ZarafaIndexPath,true);
 	start(true);
 	
 }

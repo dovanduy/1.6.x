@@ -143,9 +143,9 @@ WhitelistHosts();
 MyNetworks();
 echo "Starting......: ".date("H:i:s")." milter-dkim Apply permissions...\n";
 shell_exec("/bin/chmod 755 /etc/mail/dkim >/dev/null 2>&1");
-shell_exec("/bin/chmod 755 /etc/mail/dkim/keys >/dev/null 2>&1");
-shell_exec("/bin/chmod 750 /etc/mail/dkim/keys/* >/dev/null 2>&1");
-shell_exec("/bin/chmod 640 /etc/mail/dkim/keys/*/* >/dev/null 2>&1");
+shell_exec("/bin/chmod 0770 /etc/mail/dkim/keys >/dev/null 2>&1");
+shell_exec("/bin/chmod 0770 /etc/mail/dkim/keys/* >/dev/null 2>&1");
+shell_exec("/bin/chmod 0770 /etc/mail/dkim/keys/*/* >/dev/null 2>&1");
 shell_exec("/bin/chown -R postfix:postfix /etc/mail/dkim >/dev/null 2>&1");
 echo "Starting......: ".date("H:i:s")." milter-dkim Apply permissions done...\n";
 if($GLOBALS["RELOAD"]){

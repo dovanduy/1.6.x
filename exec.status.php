@@ -1,4 +1,5 @@
 <?php
+
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 $GLOBALS["SCHEDULE_ID"]=0;
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["DEBUG"]=true;$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
@@ -1259,7 +1260,7 @@ function launch_all_status($force=false){
 	
 	$GLOBALS["CLASS_UNIX"]->chmod_func(0755, "/etc/artica-postfix/settings/Daemons/*");
 
-	$functions=array("load_stats","philesight","CleanLogs","monit","kav4Proxy_status","dansguardian_master_status","wpa_supplicant","fetchmail","milter_greylist",
+	$functions=array("load_stats","philesight","cron","CleanLogs","monit","kav4Proxy_status","dansguardian_master_status","wpa_supplicant","fetchmail","milter_greylist",
 	"framework","pdns_server","pdns_recursor","cyrus_imap","mysql_server","mysql_mgmt","mysql_replica","openldap","saslauthd","syslogger","amavis",
 	"amavis_milter","boa","lighttpd","clamd","clamscan","clammilter","freshclam","retranslator_httpd","spamassassin_milter","spamassassin",
 	"postfix","postfix_logger","mailman","kas3_milter","kas3_ap","smbd","nmbd","winbindd","scanned_only","roundcube","cups","apache-groupware","apache_groupware",
@@ -1278,20 +1279,23 @@ function launch_all_status($force=false){
 			);
 	
 	
-	
+	ToSyslog("launch_all_status(): ".count($functions));
 	if($GLOBALS["SQUID_INSTALLED"]){
-		include_once('/usr/share/artica-postfix/ressources/class.status.videocache.inc');
-		include_once('/usr/share/artica-postfix/ressources/class.status.squid.inc');
+		include('/usr/share/artica-postfix/ressources/class.status.videocache.inc');
+		include('/usr/share/artica-postfix/ressources/class.status.squid.inc');
 		$functions=squid_increment_func($functions);
 		$functions=videocache_increment_func($functions);
 	}
+	
+	$postfix_functions=array();
 	$postconf=$GLOBALS["CLASS_UNIX"]->find_program("postconf");
+	ToSyslog("launch_all_status(): postconf: $postconf");
 	if(is_file($postconf)){
-		include_once('/usr/share/artica-postfix/ressources/class.status.postfix.inc');
-		$functions=postfix_increment_func($functions);
+		include('/usr/share/artica-postfix/ressources/class.status.postfix.inc');
+		$postfix_functions=postfix_increment_func(array());;
 	}
 	
-	
+	ToSyslog("launch_all_status(): ".count($functions));
 	$data1=$GLOBALS["TIME_CLASS"];
 	$data2 = time();
 	$difference = ($data2 - $data1);
@@ -1322,45 +1326,65 @@ function launch_all_status($force=false){
 		
 		events("Running $c/$max $func() function",__FUNCTION__,__LINE__);
 		
-		if(function_exists($func)){
-			$mem=round(((memory_get_usage()/1024)/1000),2);
-			if(is_file("/etc/artica-postfix/ARTICA_STATUS_RELOAD")){ToSyslog("Reloading settings and libraries...");Reload();}	
+		if(!function_exists($func)){
+			ToSyslog("Fatal $func, no such function...");
+			continue;
 			
-			if(!$force){
-				if(system_is_overloaded(basename(__FILE__))){
-					events("running function \"$func\" {$mem}MB in memory",__FUNCTION__,__LINE__);
-					events("System is overloaded: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, pause 10 seconds",__FUNCTION__,__LINE__);
-					load_stats();
-					AmavisWatchdog();
-					greyhole_watchdog();
-					
-					sleep(10);
-					return;
-				}else{
-					if(systemMaxOverloaded()){
-						events("running function \"$func\" {$mem}MB in memory",__FUNCTION__,__LINE__);
-						events("System is very overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, stop",__FUNCTION__,__LINE__);
-						load_stats();
-						AmavisWatchdog();
-						greyhole_watchdog();
-						return;
-					}
-				}
+		}
+		
+		
+		$mem=round(((memory_get_usage()/1024)/1000),2);
+		if(is_file("/etc/artica-postfix/ARTICA_STATUS_RELOAD")){ToSyslog("Reloading settings and libraries...");Reload();}	
+			
+		if(!$force){
+			if(system_is_overloaded(basename(__FILE__))){
+				events("running function \"$func\" {$mem}MB in memory",__FUNCTION__,__LINE__);
+				ToSyslog("System is overloaded: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, pause 10 seconds");
+				load_stats();
+				AmavisWatchdog();
+				greyhole_watchdog();
+				sleep(10);
+				return;
 			}
-				
-			try {
-				
-				if($GLOBALS["VERBOSE"]){echo "***** $c/$max $func *****\n";}
-				
-				$results=call_user_func($func);
+		}
+		if(systemMaxOverloaded()){
+			events("running function \"$func\" {$mem}MB in memory",__FUNCTION__,__LINE__);
+			ToSyslog("System is very overloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, stop");
+			load_stats();
+			AmavisWatchdog();
+			greyhole_watchdog();
+			return;
+			}
+			
+		try {
+			if($GLOBALS["VERBOSE"]){echo "***** $c/$max $func *****\n";}
+			$results=call_user_func($func);
 			} catch (Exception $e) {
-				writelogs("Fatal while running function $func ($e)",__FUNCTION__,__FILE__,__LINE__);
+				ToSyslog("Fatal while running function $func ($e)");
 			}
 				
 			if(trim($results)<>null){$conf[]=$results;usleep(5000);}
-		}
+		
 	}
 	events("running ". count($functions)." functions  DONE {$mem}MB in memory",__FUNCTION__,__LINE__);
+	
+	if(count($postfix_functions)>0){
+		while (list ($num, $func) = each ($postfix_functions) ){
+			$c++;
+			try {
+				ToSyslog("Running Postfix function $func");
+				$results=call_user_func($func);
+			} catch (Exception $e) {
+				ToSyslog("Fatal while running function $func ($e)");
+			}
+			
+			if(trim($results)<>null){$conf[]=$results;usleep(5000);}
+			
+		}
+	}
+	
+	
+	
 	@unlink("/usr/share/artica-postfix/ressources/logs/global.status.ini");
 	file_put_contents("/usr/share/artica-postfix/ressources/logs/global.status.ini",@implode("\n",$conf));
 	@chmod(770,"/usr/share/artica-postfix/ressources/logs/global.status.ini");
@@ -4205,52 +4229,6 @@ function opendkim_version(){
 
 }
 
-function opendkim(){
-	if(!$GLOBALS["CLASS_USERS"]->OPENDKIM_INSTALLED){return;}
-	$EnableDKFilter=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableDKFilter");
-	if(!is_numeric($EnableDKFilter)){$EnableDKFilter=0;}
-	$DisconnectDKFilter=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisconnectDKFilter");
-	if(!is_numeric($DisconnectDKFilter)){$DisconnectDKFilter=0;}
-	
-
-	$pid_path="/var/run/opendkim/opendkim.pid";
-	$master_pid=trim(@file_get_contents($pid_path));
-
-	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
-	if($DisableMessaging==1){$EnableDKFilter=0;}
-
-	$l[]="[APP_OPENDKIM]";
-	$l[]="service_name=APP_OPENDKIM";
-	$l[]="master_version=".opendkim_version();
-	$l[]="service_cmd=/etc/init.d/opendkim";
-	$l[]="service_disabled=$EnableDKFilter";
-	$l[]="pid_path=$pid_path";
-	$l[]="watchdog_features=1";
-	$l[]="family=postfix";
-	 
-	if($EnableDKFilter==0){$l[]="";return implode("\n",$l);return;}
-	 
-	 
-	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		if($DisconnectDKFilter==0){
-			if(!$GLOBALS["DISABLE_WATCHDOG"]){
-				$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
-				shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --opendkim >/dev/null 2>&1 &");
-				shell_exec2("$nohup {$GLOBALS["NICE"]} /etc/init.d/opendkim start >/dev/null 2>&1 &");
-					
-			}
-		}
-		$l[]="";
-		return implode("\n",$l);
-		return;
-	}
-	$l[]=GetMemoriesOf($master_pid);
-	$l[]="";
-
-	return implode("\n",$l);return;
-
-}
-//========================================================================================================================================================
 
 function watchdog_yorel(){
 	$pgrep=$GLOBALS["CLASS_UNIX"]->find_program("pgrep");
@@ -5228,6 +5206,50 @@ function crossroads(){
 
 }
 //========================================================================================================================================================
+
+function cron_pid(){
+	$pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file("/var/run/crond.pid");
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){return $pid;}
+		
+	$cron=$GLOBALS["CLASS_UNIX"]->find_program("cron");
+	return $GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN($cron);
+}
+
+function cron(){
+	
+	$master_pid=cron_pid();
+
+
+	$l[]="[APP_CRON]";
+	$l[]="service_name=APP_CRON";
+	$l[]="master_version=1.0";
+	$l[]="service_cmd=/etc/init.d/cron";
+	$l[]="service_disabled=1";
+	
+	$l[]="watchdog_features=1";
+	$l[]="family=system";
+
+	
+
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			ToSyslog("Cron is not started -> run it");
+			shell_exec("/etc/init.d/cron start");
+		}
+		$l[]="";
+		return implode("\n",$l);
+	}
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+
+	return implode("\n",$l);return;
+
+}
+//========================================================================================================================================================
+
+
+
 function pptpd(){
 	if(!$GLOBALS["CLASS_USERS"]->PPTPD_INSTALLED){return;}
 	$EnablePPTPDVPN=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePPTPDVPN");

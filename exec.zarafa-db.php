@@ -410,7 +410,7 @@ function changemysqldir($dir){
 		echo "Copy error $Size2 is less than original size ($Size)\n";
 	}
 	echo "Removing old data\n";
-	shell_exec("$rm -rf /home/zarafa-db");
+	recursive_remove_directory("/home/zarafa-db");
 	echo "Create a new symbolic link...\n";
 	shell_exec("$ln -s $dirCMD /home/zarafa-db");
 	echo "Starting MySQL database engine...\n";
@@ -624,7 +624,7 @@ function remove_database($allprocedure=false){
 	while (list ($num, $ligne) = each ($results) ){echo WriteToSyslogMail("MySQL: (Delete Database) $ligne",__FILE__);}
 	
 	build_progress_status(10,"Removing Zarafa Database MySQL");
-	if(is_dir("$WORKDIR")){shell_exec("$rm -rf $WORKDIR"); }
+	if(is_dir("$WORKDIR")){recursive_remove_directory("$WORKDIR"); }
 
 	
 	WriteToSyslogMail("Action: Restarting MySQL service...",__FILE__);
@@ -739,7 +739,7 @@ function RestoreFromBackup($backuppath){
 	
 	RestoreFromBackup_progress("Removing all content",32);
 	if(is_dir("$WORKDIR/data/zarafa")){
-		shell_exec("$rm -rf $WORKDIR");
+		recursive_remove_directory("$WORKDIR");
 	}
 	
 	
@@ -810,7 +810,7 @@ function RestoreFromBackup($backuppath){
 	if($ZarafaIndexPath==null){$ZarafaIndexPath="/var/lib/zarafa/index";}
 	RestoreFromBackup_progress("Cleaning/Stopping Zarafa search DBs",50);
 	if(is_dir($ZarafaIndexPath)){
-		shell_exec("$rm -rf $ZarafaIndexPath");
+		recursive_remove_directory("$ZarafaIndexPath");
 		shell_exec("/etc/init.d/zarafa-search stop");
 	}
 	

@@ -209,7 +209,7 @@ Specify an empty value (address_verify_sender =) or <> if you want to use the nu
 <antivirus_settings_text>Define here settings when scanning emails content</antivirus_settings_text>
 <application_setup>Applications setup center</application_setup>
 <application_setup_txt>Install new softwares supported by Artica</application_setup_txt>
-<apply>apply</apply>
+<apply>Apply</apply>
 <apply config>Save & apply your policies</apply config>
 <apply config text>This operation will compile all your settings on the server and make them in production mode.</apply config text>
 <apply_pureftpd>Apply FTP</apply_pureftpd>
@@ -3159,7 +3159,7 @@ The rules for transferring (routing) are set in this section.[br]</transport_tab
 <vacation>vacation</vacation>
 <vacation_default>Hello,I am gone for a while and will read your message upon my return.</vacation_default>
 <value>value</value>
-<vendor>vendor name</vendor>
+<vendor>Vendor name</vendor>
 <verify_template>verify template</verify_template>
 <version>version</version>
 <vfs_modules_disabled_text>If you disable some plusgins, you need to re-check shared folder properties in order to disable the plugin on each folder</vfs_modules_disabled_text>

@@ -6335,7 +6335,7 @@ $rm=$unix->find_program("rm");
 $ln=$unix->find_program("ln");
 
 	if(!is_file("/var/opt/kaspersky/kav4proxy/bases/base001.avc")){
-		shell_exec("$rm -rf /var/opt/kaspersky/kav4proxy/bases");
+		recursive_remove_directory("/var/opt/kaspersky/kav4proxy/bases");
 		shell_exec("$ln -s /var/db/kav/databases /var/opt/kaspersky/kav4proxy/bases");
 	}
 

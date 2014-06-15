@@ -230,7 +230,7 @@ if($argv[1]=="--build"){
 		if($GLOBALS["FORCE"]){$forceCMD=" --force";}
 		$squidbin=$unix->LOCATE_SQUID_BIN();
 		if(!is_file($squidbin)){
-			build_progress("Unable to stat squid binary",100);
+			build_progress("Unable to stat squid binary",110);
 			echo "Starting......: ".date("H:i:s")." [SERV]: Unable to stat squid binary, aborting..\n";
 			die();
 		}
@@ -240,7 +240,7 @@ if($argv[1]=="--build"){
 		if(!$GLOBALS["FORCE"]){
 			$time=$unix->file_time_min($EXEC_TIME_FILE);
 			if($time==0){
-				build_progress("Failed! Only one config per minute !!!",100);
+				build_progress("Failed! Only one config per minute !!!",110);
 				echo "Starting......: ".date("H:i:s")." [SERV]: Only one config per minute...\n";
 				die();
 			}
@@ -341,6 +341,7 @@ if($argv[1]=="--build"){
 		$squid->ASROOT=true;	
 		build_progress("{reconfigure}",75);
 		if(!ApplyConfig()){
+			build_progress("Apply configuration failed",110);
 			echo "Starting......: ".date("H:i:s")." Apply configuration failed....\n";
 			return;
 		}
@@ -951,6 +952,7 @@ function build_whitelist(){
 
 function Reload_only_squid(){
 	$unix=new unix();
+	$force=null;
 	if(!is_file($GLOBALS["SQUIDBIN"])){
 		$GLOBALS["SQUIDBIN"]=$unix->find_program("squid");
 		if(!is_file($GLOBALS["SQUIDBIN"])){$GLOBALS["SQUIDBIN"]=$unix->find_program("squid3");}
@@ -967,10 +969,10 @@ function Reload_only_squid(){
 			
 	}
 	
-	
+	if($GLOBALS["FORCE"]){$force=" --force";}
 	squid_watchdog_events("Reconfiguring Proxy parameters...");
 	
-	$cmd="/etc/init.d/squid reload --script=".basename(__FILE__)." >/dev/null 2>&1 &";
+	$cmd="/etc/init.d/squid reload$force --script=".basename(__FILE__)." >/dev/null 2>&1 &";
 	shell_exec($cmd);
 	
 	
@@ -1006,7 +1008,10 @@ function squid_watchdog_events($text){
 
 function Reload_Squid(){
 	if($GLOBALS["NORELOAD"]){return;}
-	system("/etc/init.d/squid reload --script=".basename(__FILE__));	
+	$force=null;
+	if($GLOBALS["FORCE"]){$force=" --force";}
+	
+	system("/etc/init.d/squid reload$force --script=".basename(__FILE__));	
 }
 
 function KillSquid(){

@@ -211,7 +211,7 @@ function parse_realtime_hash(){
 	$GLOBALS["KEYUSERS"]=unserialize(@file_get_contents("/etc/squid3/KEYUSERS.db"));
 	$GLOBALS["CACHEARP"]=unserialize(@file_get_contents("/etc/squid3/CACHEARP.db"));
 	if($GLOBALS["MacResolvInterface"]<>null){$GLOBALS["MacResolvFrfomIP"]=ethToIp();}
-	
+	$GLOBALS["UserAgents"]=array();
 	$q=new mysql_squid_builder();
 	$logfileD=new logfile_daemon();
 	$IpClass=new IP();
@@ -313,11 +313,18 @@ function parse_realtime_hash(){
 
 			//events("$familysite - Squid code=$SquidCode cached=$cached  Client = $uid/$mac/$hostname [$ipaddr] , Size=$SIZE bytes");
 			$KeyUser=md5($uid.$hostname.$ipaddr.$mac.$UserAgent);
+			$UserAgent=x_mysql_escape_string2($UserAgent);
+			
 			if(!isset($GLOBALS["KEYUSERS"][$KeyUser])){
-				$UserAgent=x_mysql_escape_string2($UserAgent);
+				
 				$GLOBALS["UserAutDB"][]="('$KeyUser','$mac','$ipaddr','$uid','$hostname','$UserAgent')";
 				//$sql="INSERT IGNORE INTO UserAutDB (zmd5,MAC,ipaddr,uid,hostname,UserAgent) VALUES ('$KeyUser','$mac','$ipaddr','$uid','$hostname','$UserAgent')";
 			}	
+			
+			if($UserAgent<>null){
+				$GLOBALS["UserAgents"][]="('$UserAgent')";
+			}
+			
 
 			$TablePrimaireHour="squidhour_".$SUFFIX_DATE;
 			$TableSizeHours="sizehour_".$SUFFIX_DATE;
@@ -373,6 +380,13 @@ function parse_realtime_hash(){
 
 }
 events("$WORKDIR -> $AA elements scanned");
+
+
+if(count($GLOBALS["UserAgents"])>0){
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("INSERT IGNORE INTO `UserAgents` (`pattern`) VALUES ".@implode(",", $GLOBALS["UserAgents"]));
+	$GLOBALS["UserAgents"]=array();
+}
 
 
 if($CountDeFiles>0){
@@ -449,6 +463,8 @@ function PurgeMemory(){
 		@file_put_contents("$Dir/macscan.".microtime(true).".$rand.sql", serialize($GLOBALS["macscan"]));
 		$GLOBALS["macscan"]=array();
 	}
+	
+
 
 
 

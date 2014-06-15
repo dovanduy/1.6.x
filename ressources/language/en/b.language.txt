@@ -6383,3 +6383,27 @@ First line is for requests www.domain-front.tld to the reverse proxy then redire
 [br]
 </nginx_import_explain>
 <protected_websites>Protected Websites</protected_websites>
+<browsers_users>Browsers & Users</browsers_users>
+<browsers_rules>Browsers rules</browsers_rules>
+<connected_members>Connected members</connected_members>
+<no_webfilter>No Webfiltering</no_webfilter>
+<browser_allow_explain>If green, then this Browser application will be allowed before asking authentification.[br]
+You should use this option when user agent cannot negotiate NTLM properly because it is non-NTLM aware.
+</browser_allow_explain>
+<no_webfilter_explain>If green, then the proxy will not query Web filtering service for this item</no_webfilter_explain>
+<no_webfilter>Exclude from web filtering</no_webfilter>
+<no_cache_explain>if green, the proxy will not store into cache objects downloaded by this item</no_cache_explain>
+<deny_browser_explain>If green, requests from this item will be denied to download something trough Internet</deny_browser_explain>
+<browser_pattern_explain>Set here the pattern that will match the user Agent.[br]You can define a string or a regular expression by adding "regex:" at the begining of the pattern.</deny_browser_explain>
+<no_cache>No cache</no_cache>
+<bypass_webfilter>Bypass Webfilter</bypass_webfilter>
+<browsers_ntlm_explain>
+There is a number of services/applications that use user agents that cannot negotiate NTLM 
+properly because these services/applications are non-NTLM aware (java, iOS, Android...).[br]
+If your Proxy is connected to your Active Directory server these services/applications will be prompted for authentication 
+credentials and/or may receive some authentication errors.[br]
+The solution is to whitelist these known user agents that are non-NTLM aware.[br]
+</browsers_ntlm_explain>
+
+
+ 

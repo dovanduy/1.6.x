@@ -167,6 +167,9 @@ function MemoryInstances(){
 
 				if(isset($arrayK[$filename])){
 					if($time>$arrayK[$filename]){
+					if($filename=="exec.squid.stats.central.php"){
+						stats_admin_events(1,"Statistics overtime {$time}Mn/{$arrayK[$filename]}Mn, killing process",null,__FILE__,__LINE__);
+					}
 					$this->ToSyslog("MemoryInstances(): killing $filename it freeze {$time}Mn/{$arrayK[$filename]}Mn");
 					$this->ToSyslog("killing $filename it freeze...",__FUNCTION__,__LINE__);
 					unix_system_kill_force($re[1]);

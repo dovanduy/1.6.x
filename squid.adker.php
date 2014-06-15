@@ -1198,7 +1198,7 @@ function ldap_params(){
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:18px'>{bind_dn}:</td>
-		<td>". Field_text("LDAP_DN",$array["LDAP_DN"],"font-size:12px;padding:3px;width:310px")."</td>
+		<td>". Field_text("LDAP_DN",$array["LDAP_DN"],"font-size:18px;padding:3px;width:310px")."</td>
 	</tr>
 	<tr>
 		<td class=legend style='font-size:18px'>{password}:</td>

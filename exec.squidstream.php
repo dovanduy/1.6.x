@@ -829,14 +829,14 @@ function install_module($modulename){
 		}
 	
 		if($workingdir==null){
-			shell_exec("$rm -rf $TMPDIR");
+			recursive_remove_directory("$TMPDIR");
 			return false;
 		}
 		chdir($workingdir);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} installing - $python - \n";}
 		system("$python setup.py install");
 		$pythonInstallDir=pythonInstallDir();
-		shell_exec("$rm -rf $TMPDIR");
+		recursive_remove_directory("$TMPDIR");
 		if(python_verify_modules($modulename)){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} $modulename installed\n";}
 			return true;
@@ -888,7 +888,7 @@ function install_video_cache_python(){
 		}
 	
 		if($workingdir==null){
-			shell_exec("$rm -rf $TMPDIR");
+			recursive_remove_directory("$TMPDIR");
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Failed workdir = NULL\n";}
 			return false;
 		}
@@ -897,7 +897,7 @@ function install_video_cache_python(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} installing - $python - \n";}
 		system("$python setup.py -e a@b.me -u squid --cache-host 10.1.1.1 --this-proxy 127.0.0.1:3128 --squid-access-log /var/log/squid3/access.log --apache-conf-dir /etc/httpd/conf.d --db-hostname /var/run/mysqld/squid-db.sock --db-username root --db-database videocache install");	
 		system("$python setup.py -e a@b.me -u squid --cache-host 10.1.1.1 --this-proxy 127.0.0.1:3128 --squid-access-log /var/log/squid3/access.log --apache-conf-dir /etc/httpd/conf.d --db-hostname /var/run/mysqld/squid-db.sock --db-username root --db-database videocache install");
-		shell_exec("$rm -rf $TMPDIR");
+		recursive_remove_directory("$TMPDIR");
 		chdir("/root");
 		if(!is_file("/usr/share/videocache/videocache.py")){return false;}
 		return true;
@@ -1770,7 +1770,7 @@ function check_dirs(){
 		if(is_link($src)){$src=readlink($src);}
 		@mkdir($StreamCacheCache,0755,true);
 		shell_exec("$cp -rfd $src/* $StreamCacheCache/");
-		shell_exec("$rm -rf $src");
+		recursive_remove_directory("$src");
 		shell_exec("ln -sf $StreamCacheCache /home/squid/videocache");
 		shell_exec("$chown -R squid:squid $StreamCacheCache");
 	}
@@ -1780,7 +1780,7 @@ function check_dirs(){
 		if(is_link($src)){$src=readlink($src);}
 		@mkdir($StreamCacheMainCache,0755,true);
 		shell_exec("$cp -rfd $src/* $StreamCacheMainCache/");
-		shell_exec("$rm -rf $src");
+		recursive_remove_directory("$src");
 		shell_exec("ln -sf $StreamCacheMainCache /home/squid/streamcache");
 		shell_exec("$chown -R squid:squid $StreamCacheMainCache");
 	}

@@ -156,11 +156,11 @@ function ExportTable$t(){
 function UserFetchMailRule$t(num,userid){
 	if(document.getElementById('dialog3_c')){
         if(document.getElementById('dialog3_c').style.visibility=='visible'){
-	            YahooWin4('923','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
+	            YahooWin4('1050','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
 	            return true;
 	        }
 		}
-       	YahooWin2('923','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
+       	YahooWin2('1050','artica.wizard.fetchmail.php?LdapRules='+ num + '&uid='+ userid+'&t=$t',userid+'&raquo;&raquo;'+num);
         }
         
 var x_DeleteFetchmailRule= function (obj) {
@@ -215,7 +215,7 @@ var x_DeleteFetchmailRule= function (obj) {
 
 function add_fetchmail_rules$t(){
 	YahooWinHide();
-	YahooWin2('891','artica.wizard.fetchmail.php?AddNewFetchMailRule=yes&t=$t','$new_rule');
+	YahooWin2('1050','artica.wizard.fetchmail.php?AddNewFetchMailRule=yes&t=$t','$new_rule');
 }
 
 </script>";

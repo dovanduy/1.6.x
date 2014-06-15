@@ -898,7 +898,7 @@ function memboost(){
 	shell_exec("$umount -l $workdir");
 	$uid=$re[1];
 	$gid=$re[2];	
-	shell_exec("$rm -rf $workdir");
+	recursive_remove_directory("$workdir");
 	@mkdir($workdir,0755);	
 	echo "Starting......: ".date("H:i:s")."c-icap MemBoost clamav ($uid/$gid)\n";	
 	shell_exec("$mount -t tmpfs -o size={$CiCAPMemBoost}M,noauto,user,exec,uid=$uid,gid=$gid tmpfs $workdir");

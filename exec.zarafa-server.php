@@ -131,7 +131,7 @@ function start($aspid=false){
 		$cp=$unix->find_program("cp");
 		$rm=$unix->find_program("rm");
 		shell_exec("$cp -rf /usr/share/zarafa-webapp/webapp-1.4.svn42633/ /usr/share/zarafa-webapp/");
-		shell_exec("$rm -rf /usr/share/zarafa-webapp/webapp-1.4.svn42633");
+		recursive_remove_directory("/usr/share/zarafa-webapp/webapp-1.4.svn42633");
 		
 	}
 	

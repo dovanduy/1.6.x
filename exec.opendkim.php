@@ -102,9 +102,9 @@ function SetPermissions(){
 	shell_exec("$chown -R postfix:postfix /etc/mail/dkim/keys >/dev/null 2>&1");
 	shell_exec("$chown -R postfix:postfix /var/run/opendkim >/dev/null 2>&1");
 	shell_exec("$chmod 755 /etc/mail/dkim >/dev/null 2>&1");
-	shell_exec("$chmod 0700 /etc/mail/dkim/keys >/dev/null 2>&1");
-	shell_exec("$chmod 0700 /etc/mail/dkim/keys/* >/dev/null 2>&1");
-	shell_exec("$chmod 0700 /etc/mail/dkim/keys/*/* >/dev/null 2>&1");
+	shell_exec("$chmod 0770 /etc/mail/dkim/keys >/dev/null 2>&1");
+	shell_exec("$chmod 0770 /etc/mail/dkim/keys/* >/dev/null 2>&1");
+	shell_exec("$chmod 0770 /etc/mail/dkim/keys/*/* >/dev/null 2>&1");
 	shell_exec("$chown -R postfix:postfix /etc/mail/dkim >/dev/null 2>&1");
 	shell_exec("$chown -R postfix:postfix /etc/mail/dkim/keys >/dev/null 2>&1");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, opendkim Apply permissions done...\n";}
@@ -240,7 +240,7 @@ if(is_array($domainsH)){
 	while (list ($num, $DOMAIN) = each ($domainsH) ){
 		unset($results);
 		
-		shell_exec("$chmod -R 0600 /etc/mail/dkim/keys/$DOMAIN");
+		shell_exec("$chmod -R 0770 /etc/mail/dkim/keys/$DOMAIN");
 		$results[]="\n\n$dig TXT +short default._domainkey.$DOMAIN :\n-------------------------------\n";
 		exec("$dig TXT +short default._domainkey.$DOMAIN 2>&1",$results);
 		$results[]="\n\n";
@@ -330,9 +330,7 @@ function start($aspid=false){
 	$kill=$unix->find_program("kill");
 	$chown=$unix->find_program("chown");
 	
-
-
-
+	@unlink("/var/run/opendkim/opendkim.pid");
 	$f[]=$Masterbin;
 	$f[]="-p /var/run/opendkim/opendkim.sock";
 	$f[]="-x /etc/opendkim.conf";

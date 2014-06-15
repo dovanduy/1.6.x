@@ -146,7 +146,7 @@ function move(){
 		echo "$cmd\n";
 		system($cmd);
 		echo "Remove $directory\n";
-		system("$rm -rf $directory");
+		recursive_remove_directory($directory);
 		echo "Link $nextdirectory -> $directory\n";
 		$cmd="$ln -sf $nextdirectory $directory";
 		echo "$cmd\n";
@@ -189,7 +189,7 @@ function move_cp($sourcedir,$nextdir){
 	echo "Copy $sourcedir/* -> $nextdir/\n";
 	shell_exec("$cp -rfb $sourcedir/* $nextdir/");
 	echo "Remove $sourcedir\n";
-	shell_exec("$rm -rf $sourcedir");
+	recursive_remove_directory($sourcedir);
 	echo "Linking $nextdir -> $sourcedir\n";
 	$cmd="$ln -sf $nextdir $sourcedir";
 	echo "$cmd\n";

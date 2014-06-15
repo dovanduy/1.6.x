@@ -253,7 +253,7 @@ function LdapRules(){
 
 function FormRules($array,$editmode=0,$rulenumber=0){
 	$page=CurrentPageName();
-	$title="<div style='font-size:18px;text-align:right;font-weight:bolder'>{$array["poll"]}</div>";
+	$title="<div style='font-size:28px;text-align:right;font-weight:bolder;margin-bottom:20px'>{$array["poll"]}</div>";
 	$sock=new sockets();
 	$FetchMailGLobalDropDelivered=$sock->GET_INFO("FetchMailGLobalDropDelivered");
 	if(!is_numeric($FetchMailGLobalDropDelivered)){$FetchMailGLobalDropDelivered=0;}
@@ -277,7 +277,7 @@ function FormRules($array,$editmode=0,$rulenumber=0){
 	}
 	
 	
-	$proto=Field_array_Hash($proto,'_proto',$array["proto"],"FetchMailParseConfig()",null,0,"font-size:14px");
+	$proto=Field_array_Hash($proto,'_proto',$array["proto"],"FetchMailParseConfig()",null,0,"font-size:16px");
 	
 	$tracepolls=Field_checkbox('_tracepolls',1,$array["tracepolls"]);
 	$ssl=Field_checkbox('_ssl',1,$array["ssl"]);
@@ -315,90 +315,90 @@ if($array["is"]==null){
 	
 	$form="
 	$flexgrid
-	<div style='font-size:18px'>{server_options}:</div>
+	<div style='font-size:26px;margin-bottom:20px'>{server_options}:</div>
 	<div style='width:98%' class=form>
 	<table style='width:99%'>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{enable}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{enable}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_numeric_checkbox_img('_enabled',$array["enabled"],'{enable_disable}')."</td>
 	</tr>	
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{server}</strong>:&nbsp;</td>
-		<td align='left'>" . Field_text('MailBoxServer',$array["poll"],'width:228px;font-size:14px')."</td>
+		<td align='right' class=legend style='font-size:16px'>{server}</strong>:&nbsp;</td>
+		<td align='left'>" . Field_text('MailBoxServer',$array["poll"],'width:330px;font-size:16px')."</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{UseDefaultSMTP}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{UseDefaultSMTP}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_checkbox("UseDefaultSMTP", 1,$array["UseDefaultSMTP"],"UseDefaultSMTPCheck()")."</td>
 	</tr>				
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{server} (SMTP)</strong>:&nbsp;</td>
-		<td align='left'>" . Field_text('_smtp_host',$array["smtp_host"],'width:228px;font-size:14px')."</td>
+		<td align='right' class=legend style='font-size:16px'>{server} (SMTP)</strong>:&nbsp;</td>
+		<td align='left'>" . Field_text('_smtp_host',$array["smtp_host"],'width:330px;font-size:14px')."</td>
 	</tr>	
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{port} (SMTP)</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{port} (SMTP)</strong>:&nbsp;</td>
 		<td align='left'>" . Field_text('_smtp_port',$array["smtp_port"],'width:90px;font-size:14px')."</td>
 	</tr>	
 	
 	<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{aka}</strong>:&nbsp;</td>
+		<td align='right' class=legend nowrap style='font-size:16px'>{aka}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_text('_aka',$array["aka"],'width:90%;font-size:14px')."</td>
 	</tr>	
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{protocol}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{protocol}</strong>:&nbsp;</td>
 		<td align='left'>$proto</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{port}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{port}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_text('_port',$array["port"],'width:20%;font-size:14px')."</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{max_size}</strong>:&nbsp;</td>
-		<td align='left' style='font-size:14px'>" . Field_text('_limit',$array["limit"],'width:20%;font-size:14px')."&nbsp;K$textlimit</td>
+		<td align='right' class=legend style='font-size:16px'>{max_size}</strong>:&nbsp;</td>
+		<td align='left' style='font-size:14px'>" . Field_text('_limit',$array["limit"],'width:120px;font-size:16px')."&nbsp;K$textlimit</td>
 	</tr>		
 	
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{dropdelivered}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{dropdelivered}</strong>:&nbsp;</td>
 		<td align='left'>$dropdelivered</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{timeout_cnx}</strong>:&nbsp;</td>
-		<td align='left' style='font-size:14px'>" . Field_text('_timeout',$array["timeout"],'width:20%;font-size:14px')."&nbsp;{seconds}</td>
+		<td align='right' class=legend style='font-size:16px'>{timeout_cnx}</strong>:&nbsp;</td>
+		<td align='left' style='font-size:14px'>" . Field_text('_timeout',$array["timeout"],'width:120px;font-size:16px')."&nbsp;{seconds}</td>
 	</tr>			
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{interval}</strong>:&nbsp;</td>
-		<td align='left'>" . Field_text('_interval',$array["interval"],'width:20%;font-size:14px',null,null)."</td>
+		<td align='right' class=legend style='font-size:16px'>{interval}</strong>:&nbsp;</td>
+		<td align='left'>" . Field_text('_interval',$array["interval"],'width:120px;font-size:16px',null,null)."</td>
 	</tr>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{ssl_fingerprint}</strong>:&nbsp;</td>
-		<td align='left'>" . Field_text('_fingerprint',$array["sslfingerprint"],'width:220px;font-size:14px',null,null)."</td>
+		<td align='right' class=legend style='font-size:16px'>{ssl_fingerprint}</strong>:&nbsp;</td>
+		<td align='left'>" . Field_text('_fingerprint',$array["sslfingerprint"],'width:220px;font-size:16px',null,null)."</td>
 	</tr>
 	
 	
 	<td colspan=2>
 	<table>
 		<tr>
-		<td align='right' class=legend style='font-size:14px'>{tracepolls}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{tracepolls}</strong>:&nbsp;</td>
 		<td align='left'>$tracepolls&nbsp;</td>	
 		<td width=1%>&nbsp;</td>
 		</tr>
 		<tr>	
-		<td align='right' class=legend style='font-size:14px'>{ssl}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{ssl}</strong>:&nbsp;</td>
 		<td align='left'>$ssl&nbsp;</td>
 		<td width=1%>&nbsp;</td>
 		</tr>
 		<tr>	
-		<td align='right' class=legend style='font-size:14px'>{sslcertck}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{sslcertck}</strong>:&nbsp;</td>
 		<td align='left'>$sslcertck&nbsp;</td>
 		<td width=1%>". help_icon("{sslcertck_text}")."</td>
 		</tr>		
 		
 		<tr>
-		<td align='right' class=legend style='font-size:14px'>{fetchall}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{fetchall}</strong>:&nbsp;</td>
 		<td align='left'>$fetchall&nbsp;</td>
 		<td width=1%>&nbsp;</td>
 		</tr>
 		<tr>
-			<td align='right' class=legend style='font-size:14px'>{keepmess}</strong>:&nbsp;</td>
+			<td align='right' class=legend style='font-size:16px'>{keepmess}</strong>:&nbsp;</td>
 			<td align='left'>$keep&nbsp;</td>
 			<td width=1%>&nbsp;</td>	
 		</tr>		
@@ -425,8 +425,8 @@ $EnableFetchmailScheduler=$sock->GET_INFO("EnableFetchmailScheduler");
 if($EnableFetchmailScheduler==1){
 	
 	$schedule="	<tr>
-		<td align='right' class=legend style='font-size:14px'>{schedule}</strong>:&nbsp;</td>
-		<td align='left' style='font-size:14px'>
+		<td align='right' class=legend style='font-size:16px'>{schedule}</strong>:&nbsp;</td>
+		<td align='left' style='font-size:16px'>
 			<input type='hidden' name='_schedule' value='{$array["schedule"]}' id='_schedule'>
 			<strong id='schedule-id'>{$array["schedule"]}</strong>
 			</td>
@@ -435,28 +435,29 @@ if($EnableFetchmailScheduler==1){
 }
 
 $form2="
-	<div style='font-size:18px'>{user_option}:</div>
+	<div style='font-size:26px;margin-bottom:20px'>{user_option}:</div>
 	<span id='hotmailexplain'></span>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{remoteuser}</strong>:&nbsp;</td>
-		<td align='left'>" . Field_text('_user',$array["user"],'width:70%;font-size:14px')."</td>
+		<td align='right' class=legend style='font-size:16px'>{remoteuser}</strong>:&nbsp;</td>
+		<td align='left'>" . Field_text('_user',$array["user"],'width:70%;font-size:16px')."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{password}</strong>:&nbsp;</td>
-		<td align='left'>" . Field_password('_pass',$array["pass"],'width:70%;font-size:14px')."</td>
+		<td align='right' class=legend style='font-size:16px'>{password}</strong>:&nbsp;</td>
+		<td align='left'>" . Field_password('_pass',$array["pass"],'width:70%;font-size:16px')."</td>
 		<td>&nbsp;</td>
 	</tr>
 	
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{localuser}</strong>:&nbsp;</td>
-		<td align='left' style='font-size:14px'>$is<input type='hidden' name='_is' value='{$array["is"]}' id='_is'></td>
+		<td align='right' class=legend style='font-size:16px'>{localuser}</strong>:&nbsp;</td>
+		<td align='left' style='font-size:16px'>$is<input type='hidden' name='_is' value='{$array["is"]}' id='_is'></td>
 		<td>&nbsp;</td>
 	</tr>
 	$schedule
 	<tr>
-		<td align='right' class=legend style='font-size:14px'>{multidrop}</strong>:&nbsp;</td>
+		<td align='right' class=legend style='font-size:16px'>{multidrop}</strong>:&nbsp;</td>
 		<td align='left'>" . Field_checkbox('_multidrop',1,$array["multidrop"],'{enable_disable}')."</td></td>
 		<td>&nbsp;</td>
 	</tr>	
@@ -471,20 +472,20 @@ $form2="
 
 	
 	if($editmode==1){
-		$button=button("{apply}","FetchMailPostForm($editmode)",16);
-		$button_delete=button("{delete}","UserDeleteFetchMailRule($rulenumber)",16);
+		$button=button("{apply}","FetchMailPostForm($editmode)",28);
+		$button_delete=button("{delete}","UserDeleteFetchMailRule($rulenumber)",28);
 		if($_SESSION["uid"]<>-100){$button_delete=null;}
 		
 	}else{
-		$button=button("{add}","FetchMailPostForm($editmode)",16);
+		$button=button("{add}","FetchMailPostForm($editmode)",28);
 		
 	}
 	
-	
-	$option1=Paragraphe("64-idisk-server.png",'{server_options}','{server_options}',"javascript:SwitchFetchMailUserForm('server_options');",null,180,20);
-	$option2=Paragraphe("64-folder-user.png",'{user_option}','{user_option}',"javascript:SwitchFetchMailUserForm('users_options');",null,180,20);
+	$option4=null;
 	$option3=Paragraphe("folder-dedup-64.png",'{folders}','{fetch_folders_explain}',"javascript:Loadjs('fetchmail.rule.folder.php?ruldeid=$rulenumber&uid={$_GET["uid"]}')",null,180,20);
-	$option4=Paragraphe("web-ssl-64.png",'{import_fingerprint}','{import_fingerprint}',"javascript:Loadjs('$page?ssl-fingerprint=yes&LdapRules=$rulenumber&uid={$_GET["uid"]}')",null,180,20);
+	if($rulenumber>0){
+		$option4=Paragraphe("web-ssl-64.png",'{import_fingerprint}','{import_fingerprint}',"javascript:Loadjs('$page?ssl-fingerprint=yes&LdapRules=$rulenumber&uid={$_GET["uid"]}')",null,180,20);
+	}
 	
 	
 	$html="
@@ -500,17 +501,17 @@ $form2="
 	<div style='margin-top:-5px'>
 	<table style='width:100%'>
 	<tr>
-		<td valign='top'>$option1 $option2 $option3
+		<td valign='top'>$option3 $option4
 		</td>
 	<td valign='top' width=80%>
 		<div id='server_options' style='display:block'>
 			$form
 		</div>
-		<div id='users_options' style='display:none'>
+		<div id='users_options' style='display:block'>
 			$form2
 		</div>
-			<div style='text-align:right;width:100%'>
-			$button_delete$button
+			<div style='text-align:right;width:100%;margin-top:20px'>
+			$button_delete&nbsp;&nbsp;$button
 			</div>	
 	</td>
 	</tr>
