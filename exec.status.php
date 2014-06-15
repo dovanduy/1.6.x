@@ -1263,9 +1263,9 @@ function launch_all_status($force=false){
 	$functions=array("load_stats","philesight","cron","CleanLogs","monit","kav4Proxy_status","dansguardian_master_status","wpa_supplicant","fetchmail","milter_greylist",
 	"framework","pdns_server","pdns_recursor","cyrus_imap","mysql_server","mysql_mgmt","mysql_replica","openldap","saslauthd","syslogger","amavis",
 	"amavis_milter","boa","lighttpd","clamd","clamscan","clammilter","freshclam","retranslator_httpd","spamassassin_milter","spamassassin",
-	"postfix","postfix_logger","mailman","kas3_milter","kas3_ap","smbd","nmbd","winbindd","scanned_only","roundcube","cups","apache-groupware","apache_groupware",
-	"gdm","console-kit","xfce","vmtools","hamachi","artica_notifier","dhcpd_server","pure_ftpd","mldonkey","policyd_weight","backuppc","kav4fs","kav4fsavs",
-	"apache_ocsweb","web_download","ocs_agent","openssh","gluster","auditd","opendkim","milter_dkim","dropbox",
+	"postfix","postfix_logger","mailman","kas3_milter","kas3_ap","smbd","nmbd","winbindd","scanned_only","roundcube","cups","apache_groupware",
+	"gdm","xfce","vmtools","hamachi","artica_notifier","dhcpd_server","pure_ftpd","mldonkey","policyd_weight","backuppc","kav4fs","kav4fsavs",
+	"apache_ocsweb","ocs_agent","openssh","gluster","auditd","milter_dkim","dropbox",
 	"artica_policy","virtualbox_webserv","tftpd","dhcpd_server","crossroads","artica_status","artica_executor","bandwith",
 	 "pptpd","pptp_clients","apt_mirror","ddclient","cluebringer","apachesrc","zarafa_web","zarafa_ical","zarafa_dagent","zarafa_indexer",
 	"zarafa_monitor","zarafa_gateway","zarafa_spooler","zarafa_server","zarafa_server2","assp","openvpn","vboxguest","sabnzbdplus","MemoryWatchdog","SwapWatchdog","artica_meta_scheduler",
@@ -1273,7 +1273,7 @@ function launch_all_status($force=false){
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort","mailarchiver","articadb","amavisdb","nginx","nginx_db","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
+	"zarafa_search","snort","articadb","amavisdb","nginx","nginx_db","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
 	"php_fpm","php_fcgi","CleanCloudCatz","syslog_db","roundcube_db","Scheduler","exim4","snmpd","ntopng","redis_server","bwm_ng","XMail","conntrackd","iptables",
 	"rdpproxy_authhook","rdpproxy","vde_all","iptables_tasks",
 			);
@@ -1281,8 +1281,8 @@ function launch_all_status($force=false){
 	
 	ToSyslog("launch_all_status(): ".count($functions));
 	if($GLOBALS["SQUID_INSTALLED"]){
-		include('/usr/share/artica-postfix/ressources/class.status.videocache.inc');
-		include('/usr/share/artica-postfix/ressources/class.status.squid.inc');
+		if(!function_exists("videocache_increment_func")){ include_once('/usr/share/artica-postfix/ressources/class.status.videocache.inc'); }
+		include_once('/usr/share/artica-postfix/ressources/class.status.squid.inc');
 		$functions=squid_increment_func($functions);
 		$functions=videocache_increment_func($functions);
 	}

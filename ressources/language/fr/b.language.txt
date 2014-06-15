@@ -1289,7 +1289,7 @@ Il peut &ecirc;tre utilis&eacute; afin de sauvegarder votre bande passant car to
 <default_size_for_rotation>Taille par d&eacute;faut pour la rotation</default_size_for_rotation>
 <default_value_is_used>La valeur par d&eacute;faut est utilis&eacute;e.</default_value_is_used>
 <default_webrule>R&egrave;gle par d&eacute;faut de filtrage</default_webrule>
-<delayed_items>&eacute;l&eacute;ments retard&eacute;s</delayed_items>
+<delayed_items>&Eacute;l&eacute;ments retard&eacute;s</delayed_items>
 <delay_class_1>Tout est limit&eacute; dans un groupe unique</delay_class_1>
 <delay_class_2>Tout est limit&eacute; par un groupe global unique mais par &quot;individu&quot; choisi parmi les bits 25 &agrave; 32 de l'adresse IPv4.</delay_class_2>
 <delay_class_3>Tout est limit&eacute; par un groupe global unique mais par groupe &laquo;r&eacute;seau&raquo;  s&eacute;lectionn&eacute; &agrave; partir des bits 17 &agrave; 24 de l'adresse IP et par groupe d' &quot;individu&quot;  choisi parmi les bits 17 &agrave; 32 de l'adresse IPv4.</delay_class_3>
@@ -2379,7 +2379,7 @@ Si vous avez plusieurs adresses, s&eacute;parez-les avec un retour &agrave; la l
 <is_not>n'est pas</is_not>
 <is_valid>Est valide</is_valid>
 <item>&Eacute;l&eacute;ment</item>
-<items_has_been_added_in_webfiltering_database>&eacute;l&eacute;ments ont &eacute;t&eacute;s ajout&eacute;s dans les bases de filtrage Web.</items_has_been_added_in_webfiltering_database>
+<items_has_been_added_in_webfiltering_database>&Eacute;l&eacute;ments ont &eacute;t&eacute;s ajout&eacute;s dans les bases de filtrage Web.</items_has_been_added_in_webfiltering_database>
 <item_added>&Eacute;l&eacute;ment ajout&eacute;</item_added>
 <IT_charter>Charte informatique</IT_charter>
 <it_charters>Chartes informatiques</it_charters>

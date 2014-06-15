@@ -83,7 +83,7 @@ events("command-lines=".implode(" ;",$argv),__FUNCTION__,__FILE__,__LINE__);
 		events("$targetFile -> save",__FUNCTION__,__FILE__,__LINE__);
 		@file_put_contents($targetFile,$serialize);
 		if(!is_file("/var/log/artica-postfix/pagepeeker/".md5($www))){@file_put_contents("/var/log/artica-postfix/pagepeeker/".md5($www), $www);}
-		if(!is_file($targetFile)){events("FATAL ERROR  $targetFile permission denied",__FUNCTION__,__FILE__,__LINE__);}
+		if(!is_file($targetFile)){events("Fatal ERROR  $targetFile permission denied",__FUNCTION__,__FILE__,__LINE__);}
 }else{
 		events("$InfectedPath -> no match",__FUNCTION__,__FILE__,__LINE__);
 }

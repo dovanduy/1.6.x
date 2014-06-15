@@ -216,7 +216,7 @@ echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, sarg.cs
 	$php5=$unix->LOCATE_PHP5_BIN();
 	if(!is_file($squidbin)){$squidbin=$unix->find_program("squid3");}
 	if(!is_file($sarg_bin)){
-		sarg_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("Fatal, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		return;
 	}
 	unset($f);
@@ -616,7 +616,7 @@ function file_extension($filename){
 
 function sargToFile($filePath){
 	if(!is_file($filePath)){
-		progress("FATAL $filePath no such file",10);
+		progress("Fatal $filePath no such file",10);
 		return;
 	}
 	$unix=new unix();
@@ -673,7 +673,7 @@ function rotate($filename){
 	}
 	
 	if(!is_file($sarg_bin)){
-		sarg_admin_events("FATAL, ($filePath) unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("Fatal, ($filePath) unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		$q->ROTATE_TOMYSQL($filePath);
 		return;
 	}	
@@ -702,7 +702,7 @@ function restore_id($storeid){
 	$SargOutputDir=$sock->GET_INFO("SargOutputDir");if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
 	$sarg_bin=$unix->find_program("sarg");
 	if(!is_file($sarg_bin)){
-		sarg_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("Fatal, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		return;
 	}	
 	
@@ -776,7 +776,7 @@ function execute(){
 	$today=date("d/m/Y");
 	$sarg_bin=$unix->find_program("sarg");
 	if(!is_file($sarg_bin)){
-		sarg_admin_events("FATAL, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
+		sarg_admin_events("Fatal, unable to locate sarg binary, aborting...", __FUNCTION__, __FILE__, __LINE__, "sarg");
 		return;
 	}
 	events("Building settings..");
@@ -922,8 +922,8 @@ function backup(){
 	
 	@mkdir("$BackupDir",0755);
 	if(!is_dir($BackupDir)){
-		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupDir permission denied\n";}
-		sarg_admin_events("FATAL $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
+		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupDir permission denied\n";}
+		sarg_admin_events("Fatal $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
 		$mount->umount($mountPoint);
 		return false;
 	}	
@@ -931,7 +931,7 @@ function backup(){
 	$t=time();
 	@file_put_contents("$BackupDir/$t", time());
 	if(!is_file("$BackupDir/$t")){
-		sarg_admin_events("FATAL $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
+		sarg_admin_events("Fatal $BackupDir permission denied",__FUNCTION__,__FILE__,__LINE__,"sarg");
 		$mount->umount($mountPoint);
 		return false;
 	}

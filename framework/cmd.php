@@ -3044,7 +3044,7 @@ if(is_dir($path)){
 
 
 	if(!mkdir(utf8_encode($path),0666,true)){
-		writelogs_framework("FATAL ERROR while creating folder $path (".base64_decode($_GET["perms"]).")",__FUNCTION__,__FILE__,__LINE__);
+		writelogs_framework("Fatal ERROR while creating folder $path (".base64_decode($_GET["perms"]).")",__FUNCTION__,__FILE__,__LINE__);
 		echo "<articadatascgi>". base64_encode($path." -> {failed}")."</articadatascgi>";
 		exit;
 	}

@@ -11,7 +11,7 @@ class images{
 	function images($path){
 		$this->path=$path;
 		if(!function_exists('imagecreatefrompng')){
-			writelogs("FATAL ERROR imagecreatefrompng does not exists",__CLASS__.'/'.__FUNCTION__,__FILE__);
+			writelogs("Fatal ERROR imagecreatefrompng does not exists",__CLASS__.'/'.__FUNCTION__,__FILE__);
 			$this->missing_module='imagecreatefrompng';
 			$this->mustInstall=True;
 			}
@@ -34,7 +34,7 @@ class images{
   		
   		if(!is_array($img_infos)){
   			
-  			writelogs("FATAL ERROR This is not an image file....",__FUNCTION__.'/'.__CLASS__,__FILE__);
+  			writelogs("Fatal ERROR This is not an image file....",__FUNCTION__.'/'.__CLASS__,__FILE__);
   			writelogs("The file uploaded is \"$file\" in directory \"$dir\"",__FUNCTION__.'/'.__CLASS__,__FILE__);
   			writelogs("Tried to create thumbnail image_max_width=$img_max_height, img_max_height=$img_max_height target_path=$target_path",
   			__FUNCTION__.'/'.__CLASS__,__FILE__);

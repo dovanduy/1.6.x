@@ -894,7 +894,7 @@ class external_ldap_search{
 		if(count($f)>0){
 			if($GLOBALS["VERBOSE"]){echo count($f)." organization(s) found...\n";}
 			$q->QUERY_SQL("INSERT IGNORE activedirectory_ou (`dn`,`name`,`CountDeUsers`,`CountDeGroups`) VALUES ".@implode(",", $f),"artica_backup");
-			if($GLOBALS["VERBOSE"]){if(!$q->ok){echo "FATAL !!! $q->mysql_error\n";}}
+			if($GLOBALS["VERBOSE"]){if(!$q->ok){echo "Fatal !!! $q->mysql_error\n";}}
 		}
 		
 	}

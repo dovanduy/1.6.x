@@ -336,7 +336,7 @@ function popup(){
 	$new_rule=$tpl->javascript_parse_text("{new_rule}");
 	$enabled=$tpl->javascript_parse_text("{enabled}");
 	$about=$tpl->javascript_parse_text("{about2}");
-	$browsers_ntlm_explain=$tpl->javascript_parse_text("{browsers_ntlm_explain}",1);
+	$browsers_ntlm_explain=$tpl->javascript_parse_text("{browsers_ntlm_explain}",0);
 	$t=time();		
 	
 

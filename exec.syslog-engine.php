@@ -2786,6 +2786,10 @@ function authlogs(){
 			if(!isset($GLOBALS["HOSTNAME"][$ip])){$GLOBALS["HOSTNAME"][$ip]=gethostbyaddr($ip);}
 			$hostname=$GLOBALS["HOSTNAME"][$ip];
 			
+			if(!is_file("/usr/share/GeoIP/GeoIPCity.dat")){
+				_UpdateGeoip();
+			}
+			
 			if(function_exists("geoip_record_by_name")){
 					$record = geoip_record_by_name($ip);
 					if (!$record) {ssh_events("Unable to detect country for $ip",__FUNCTION__,__FILE__,__LINE__);}else{
@@ -2805,6 +2809,52 @@ function authlogs(){
 		snort_logs();
 		loadavg_logs();
 		clamd_mem();
+}
+
+function _UpdateGeoip(){
+	if(isset($GLOBALS["UpdateGeoip_executed"])){return;}
+	$GLOBALS["UpdateGeoip_executed"]=true;
+	$unix=new unix();
+	$ln=$unix->find_program("ln");
+	$database="/usr/share/GeoIP/GeoIP.dat";
+	if(!is_file($database)){_installgeoip();return null;}
+	if(!is_file("/usr/local/share/GeoIP/GeoIPCity.dat")){
+		if(is_file("/usr/local/share/GeoIP/GeoLiteCity.dat")){
+			shell_exec("$ln -s /usr/local/share/GeoIP/GeoLiteCity.dat /usr/local/share/GeoIP/GeoIPCity.dat >/dev/null 2>&1");
+		}
+	}
+
+
+	if(!is_file("/usr/share/GeoIP/GeoIPCity.dat")){
+		if(is_file("/usr/share/GeoIP/GeoLiteCity.dat")){
+			system("$ln -s /usr/share/GeoIP/GeoLiteCity.dat /usr/share/GeoIP/GeoIPCity.dat >/dev/null 2>&1");
+		}
+	}
+
+	if(!function_exists("geoip_record_by_name")){installgeoip();return null;}
+
+}
+
+function _installgeoip(){
+	if(isset($GLOBALS["installgeoip_executed"])){return;}
+	$GLOBALS["installgeoip_executed"]=true;
+
+	$unix=new unix();
+	if(is_file("/etc/artica-postfix/FROM_ISO")){$time=$unix->file_time_min("/etc/artica-postfix/FROM_ISO");if($time<60){return;}}
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$pecl=$unix->find_program("pecl");
+
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.geoip.update.php >/dev/null 2>&1 &");
+
+	if(is_file($pecl)){
+		if(!is_file("/etc/artica-postfix/php-geoip-checked")){
+			shell_exec("$pecl install geoip");
+			shell_exec("/etc/init.d/artica-postfix restart apache");
+			@file_put_contents("/etc/artica-postfix/php-geoip-checked",time());
+		}
+	}
+
 }
 
 function clamd_mem(){

@@ -221,7 +221,7 @@ $functions=array(
 
 function SEND_PROGRESS($POURC,$text,$error=null){
 	$cache="/usr/share/artica-postfix/ressources/logs/web/POSTFIX_COMPILES";
-	if($error<>null){echo "FATAL !!!! $error\n";}
+	if($error<>null){echo "Fatal !!!! $error\n";}
 	echo "{$POURC}% $text\n";
 
 	$array=unserialize(@file_get_contents($cache));

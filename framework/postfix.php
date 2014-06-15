@@ -128,7 +128,13 @@ function build_milters(){
 	shell_exec($cmd);	
 	$cmd=trim("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
-	shell_exec($cmd);		
+	shell_exec($cmd);
+	$MilterGreyListEnabled=intval(trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/MilterGreyListEnabled")));
+	if($MilterGreyListEnabled==1){
+		$cmd=trim("$nohup /etc/init.d/milter-greylist restart >/dev/null 2>&1 &");
+		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+		shell_exec($cmd);
+	}
 		
 }
 function mailarchiver_status(){

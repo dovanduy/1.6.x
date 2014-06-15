@@ -2230,7 +2230,7 @@ class mysql_squid_builder{
 		$uuid=$GLOBALS["uuid"];
 		$table=$this->cat_totablename($category);
 		$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT * FROM $table WHERE zmd5='$orginal_md5'"));
-		if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+		if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 		$www=$ligne["pattern"];
 		if($www==null){
 			echo "!!!!!!!!!!! Error, no website in table $table $orginal_md5 !!!!!!!!!!!!!! \n";
@@ -2238,7 +2238,7 @@ class mysql_squid_builder{
 		}
 		$sql="INSERT IGNORE INTO categorize_delete (sitename,category,zmd5) VALUES ('{$ligne["pattern"]}','$category','$orginal_md5')";
 		$this->QUERY_SQL($sql);
-		if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+		if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 		
 		$newmd5=md5($nextCategory.$www);
 		$next_table=$this->cat_totablename($nextCategory);
@@ -2246,15 +2246,15 @@ class mysql_squid_builder{
 		
 		
 		$this->QUERY_SQL("DELETE FROM $table WHERE zmd5='$orginal_md5'");
-		if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+		if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 		
 		
 		
 		
 		$this->QUERY_SQL("INSERT IGNORE INTO categorize (zmd5,zDate,category,pattern,uuid) VALUES('$newmd5',NOW(),'$nextCategory','$www','$uuid')");
-		if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+		if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 		$this->QUERY_SQL("INSERT IGNORE INTO $next_table (zmd5,zDate,category,pattern,uuid,enabled) VALUES('$newmd5',NOW(),'$nextCategory','$www','$uuid',1)");
-		if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+		if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 		if($GLOBALS["VERBOSE"]){echo "[OK]:: Move $www From $table to $next_table \n";}
 		
 	}
@@ -2263,7 +2263,7 @@ class mysql_squid_builder{
 			if(!isset($GLOBALS["uuid"])){$sock=new sockets();$GLOBALS["uuid"]=base64_decode($sock->getFrameWork("cmd.php?system-unique-id=yes"));}
 			$table=$this->cat_totablename($category);
 			$ligne=mysql_fetch_array($this->QUERY_SQL("SELECT * FROM $table WHERE zmd5='$orginal_md5'"));
-			if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+			if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 			$www=$ligne["pattern"];
 			if($www==null){
 				echo "!!!!!!!!!!! Error, no website!!!!!!!!!!!!!! \n";
@@ -2271,12 +2271,12 @@ class mysql_squid_builder{
 			}
 			$sql="INSERT IGNORE INTO categorize_delete (sitename,category,zmd5) VALUES ('{$ligne["pattern"]}','$category','$orginal_md5')";
 			$this->QUERY_SQL($sql);
-			if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+			if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 			$this->QUERY_SQL("DELETE FROM $table WHERE zmd5='$orginal_md5'");
 			$ipaddr=gethostbyname($www);
 			$family=$this->GetFamilySites($www);
 			$this->QUERY_SQL("INSERT IGNORE INTO webtests (sitename,ipaddr,family) VALUES ('$www','$ipaddr','$family')");
-			if(!$this->ok){echo "FATAL: $this->mysql_error Line:".__LINE__."\n";return;}
+			if(!$this->ok){echo "Fatal: $this->mysql_error Line:".__LINE__."\n";return;}
 			if($GLOBALS["VERBOSE"]){echo "[OK]:: Move $www From $table to webtests \n";}
 	}
 	
@@ -4746,7 +4746,7 @@ public function CheckTables($table=null,$force=false){
 			
 			
 			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 
 			
 		if(!$this->TABLE_EXISTS('youtube_objects',$this->database)){	
@@ -4891,7 +4891,7 @@ public function CheckTables($table=null,$force=false){
 			) ENGINE=MYISAM;";	
 
 			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 		}		
 
 			
@@ -4954,7 +4954,7 @@ public function CheckTables($table=null,$force=false){
 			) ENGINE = MYISAM;";
 			
 			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 			
 			if(!$this->FIELD_EXISTS("webfilters_sqaclsports", "interface")){
 				$this->QUERY_SQL("ALTER TABLE `webfilters_sqaclsports` ADD `interface` VARCHAR(128),ADD INDEX(`interface`)");
@@ -4981,7 +4981,7 @@ public function CheckTables($table=null,$force=false){
 			)  ENGINE = MYISAM;";	
 
 		$this->QUERY_SQL($sql,$this->database);
-		if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+		if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 		
 		if(!$this->FIELD_EXISTS("webfilters_sqacls", "aclport")){
 			$this->QUERY_SQL("ALTER TABLE `webfilters_sqacls` ADD `aclport` smallint(5) NOT NULL,ADD INDEX(`aclport`)");
@@ -5013,7 +5013,7 @@ public function CheckTables($table=null,$force=false){
 			)  ENGINE = MYISAM;";	
 
 			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 		}
 		
 		
@@ -5030,7 +5030,7 @@ public function CheckTables($table=null,$force=false){
 			)  ENGINE = MYISAM;";	
 
 			$this->QUERY_SQL($sql,$this->database);
-			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "FATAL !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
+			if(!$this->ok){if($GLOBALS["AS_ROOT"]){echo "Fatal !!! $this->mysql_error\n-----\n$sql\n-----\n";}}
 		}
 		
 		if(!$this->FIELD_EXISTS("webfilters_sqacllinks", "negation")){$this->QUERY_SQL("ALTER TABLE `webfilters_sqacllinks` ADD `negation` smallint(1) NOT NULL");}

@@ -163,7 +163,7 @@ if($smtp_final_sender==null){$smtp_final_sender="127.0.0.1";}
 $smtp_sock=new SMTP_SOCKETS();
 $smtp_sock->myhostname=$unix->hostname_g();
 if(!$smtp_sock->SendSMTPMailFromPath($smtp_final_sender,"33559",$GLOBALS["sender"],$GLOBALS["original_recipient"],$tmpfname)){
-		WriteToSyslogMail("FATAL smtp_sock from $smtp_final_sender ERROR".@implode(" ",$smtp_sock->error),"artica-filter");
+		WriteToSyslogMail("Fatal smtp_sock from $smtp_final_sender ERROR".@implode(" ",$smtp_sock->error),"artica-filter");
 		@unlink($tmpfname);
 		exit(EX_TEMPFAIL);
 	}

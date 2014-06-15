@@ -721,7 +721,7 @@ function inject_array($array){
 		if(!$q->ok){
 			if($GLOBALS["FORCE"]){echo "\n\n**************\n\n".$sql."\n**************\n";}
 			if($GLOBALS["VERBOSE"]){echo "\n\n**************\n\n".$sql."\n**************\n";}
-			events("FATAL !!! inject_array::Injecting -> ERROR: $q->mysql_error : in line:".__LINE__);
+			events("Fatal !!! inject_array::Injecting -> ERROR: $q->mysql_error : in line:".__LINE__);
 			inject_failed($array);
 			return;
 		}
@@ -732,7 +732,7 @@ function inject_array($array){
 function inject_failed($array){
 	if(!is_dir("/var/log/artica-postfix/dansguardian-stats2-errors")){@mkdir("/var/log/artica-postfix/dansguardian-stats2-errors",0755,true);}
 	$serialized=serialize($array);
-	events("FATAL !!! save into /var/log/artica-postfix/dansguardian-stats2-errors in line:".__LINE__);
+	events("Fatal !!! save into /var/log/artica-postfix/dansguardian-stats2-errors in line:".__LINE__);
 	@file_put_contents("/var/log/artica-postfix/dansguardian-stats2-errors/".md5($serialized),$serialized);
 
 }

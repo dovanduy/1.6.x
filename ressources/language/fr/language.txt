@@ -721,7 +721,7 @@ Squid optimise donc de fa&ccedil;on cons&eacute;quente le flux de donn&eacute;es
 <AsSquidAdministrator>Peut g&eacute;rer les param&egrave;tres Proxy et r&egrave;gles</AsSquidAdministrator>
 <AsSystemAdministrator>Syst&egrave;me d'exploitation Linux</AsSystemAdministrator>
 <attached_files>Pi&egrave;ces jointes</attached_files>
-<attachments filters>Filtres d'Attachements</attachments filters>
+<attachments filters>Filtres des pi&egrave;ces jointes</attachments filters>
 <attachment_blocking>Pi&egrave;ces jointes interdites</attachment_blocking>
 <attachment_blocking_text>Mettez des interdictions sur les fichiers .exe .bat .vbs et bloquez certains types de pi&egrave;ces jointes</attachment_blocking_text>
 <attach_report>Joindre rapport</attach_report>
@@ -2230,7 +2230,7 @@ Avec la valeur limite par d&eacute;faut de 100 processus serveur SMTP, &quot;un 
 <isPlainhost_text>D&eacute;tecte si le nom d'h&ocirc;te dans l'URL demand&eacute;e est un nom d'h&ocirc;te complet ou d'un nom de domaine pleinement qualifi&eacute;</isPlainhost_text>
 <ISP_MODE>Mode fournisseur d'acc&egrave;s</ISP_MODE>
 <IS_BLACKLISTED_FROM>est enregistr&eacute; en liste noire sur</IS_BLACKLISTED_FROM>
-<items>&eacute;l&eacute;ments</items>
+<items>&Eacute;l&eacute;ments</items>
 <january>Janvier</january>
 <jGrowlMaxEvents>Afficher les X derniers &eacute;v&egrave;nements sur la page de garde</jGrowlMaxEvents>
 <jgrowl_no_clamav_update>Ne pas afficher les mises &agrave; jour ClamAV</jgrowl_no_clamav_update>
@@ -3526,7 +3526,7 @@ tout en distribuant le courrier &agrave; domain2.com comme d'habitude.[br]
 <send_emailing>Lib&eacute;rer la file d'attente</send_emailing>
 <send_emailing_text>Lib&eacute;rer la file d'attente et lancer votre envoi en masse</send_emailing_text>
 <sent>envoy&eacute;(s)</sent>
-<server>serveur</server>
+<server>Serveur</server>
 <servername>Nom de serveur</servername>
 <servername_already_used>Le nom de serveur est d&eacute;j&agrave; utilis&eacute;</servername_already_used>
 <servers>serveurs</servers>

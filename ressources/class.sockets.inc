@@ -702,7 +702,7 @@ private function stream_framework($uri,$called=null){
 	
 	$fp = stream_socket_client("unix:///usr/share/artica-postfix/ressources/web/framework.sock", $errno, $errstr, 10);
 	if (!$fp){
-		$this->ToSyslog("FATAL ERROR: unable to open remote file ressources/web/framework.sock $errstr ($errno)");
+		$this->ToSyslog("Fatal ERROR: unable to open remote file ressources/web/framework.sock $errstr ($errno)");
 		if(function_exists("writelogs")){writelogs("ERROR: unable to open remote file http://127.0.0.1:47980/$uri",
 		__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
 		$this->error=true;
@@ -765,8 +765,8 @@ switch ($code) {
 	case 307: // Moved temporarily
 		break;
 	default:
-		$this->ToSyslog("FATAL ERROR $code $uri $status_message");
-		if(function_exists("writelogs")){writelogs("FATAL ERROR $code $uri $status_message",__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
+		$this->ToSyslog("Fatal ERROR $code $uri $status_message");
+		if(function_exists("writelogs")){writelogs("Fatal ERROR $code $uri $status_message",__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
 		$this->error=true;
 		return false;
 }

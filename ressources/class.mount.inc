@@ -153,7 +153,7 @@ class mount{
 		$mount_smbfs=$unix->find_program("mount.smbfs");
 		$path=str_replace("\\", "/", $path);
 		$server=str_replace("\\\\", "", $server);
-		if($path<>null){if(preg_match("^\/(.+)#", $path,$re)){$path=$re[1];} }
+		if($path<>null){if(preg_match("#^\/(.+)#", $path,$re)){$path=$re[1];} }
 		
 		if(!$this->test_smb_protocols()){
 			$apt=$unix->find_program("apt-get");

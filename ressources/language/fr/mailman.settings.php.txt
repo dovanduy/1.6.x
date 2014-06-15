@@ -46,7 +46,7 @@ requests as well.</admin_immed_notify_text>
 <archiving_options>Options d'archivage</archiving_options>
 <archiving_options_text>Lister les politiques d'archivage du trafic.</archiving_options_text>
 <as_needed>est n&eacute;cessaire</as_needed>
-<attachments>Attachements</attachments>
+<attachments>Pi&egrave;ces jointes</attachments>
 <autoresponder>Auto-r&eacute;pondeur</autoresponder>
 <autoresponder_text>Caract&eacute;ristiques de liste &agrave; r&eacute;ponse pr&eacute;enregistr&eacute;e.</autoresponder_text>
 <autorespond_admin>Activer l'auto-r&eacute;ponse admin</autorespond_admin>

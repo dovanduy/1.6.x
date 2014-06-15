@@ -145,7 +145,7 @@ echo "Processing $shellpath\n";
    
    sleep(1);
    system("$shellpath");
-   if(!is_file($imagepath)){echo "FATAL ERROR on $imagepath\n";}
+   if(!is_file($imagepath)){echo "Fatal ERROR on $imagepath\n";}
    if(is_file($imagepath)){system("/bin/chmod 755 $imagepath");}
 
 	
@@ -190,7 +190,7 @@ echo "Processing $shellpath\n";
    
    sleep(1);
    system("$shellpath");
-   if(!is_file($imagepath)){echo "FATAL ERROR on $imagepath\n";}
+   if(!is_file($imagepath)){echo "Fatal ERROR on $imagepath\n";}
    if(is_file($imagepath)){system("/bin/chmod 755 $imagepath");}
 
 	

@@ -451,7 +451,7 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 	}
 // *******************************************************************************************************************	
 	if(preg_match("#FATAL: Write failure.*?check your disk space#", $buffer)){
-		events("FATAL: Write failure: Disk space over limit (cannot determine which path) Line:".__LINE__);
+		events("Fatal: Write failure: Disk space over limit (cannot determine which path) Line:".__LINE__);
 		if(TimeStampTTL(__LINE__,10)){
 			exec("{$GLOBALS["DF"]} -h 2>&1",$defres);
 			squid_admin_mysql(0,"Write failure - disk space issue","check your disk space for Proxy cache service.\nHere the status of your storage system:".@implode("\n", $defres));
@@ -797,7 +797,7 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 		return;
 	}
 // *******************************************************************************************************************	
-	if(strpos($buffer,"FATAL: Bungled squid.conf line")){
+	if(strpos($buffer,"Fatal: Bungled squid.conf line")){
 		events("Bad configuration file!".__LINE__);
 		squid_admin_mysql(0,"Bad configuration file","squid-cache claim\r\n$buffer\r\nTry to run the configuration compilation on Artica or contact our support team...");
 		squid_admin_notifs("Bad configuration file!\r\nsquid-cache claim\r\n$buffer\r\nTry to run the configuration compilation on Artica or contact our support team...", __FUNCTION__, __FILE__, __LINE__, "proxy");	
@@ -805,10 +805,10 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 	}
 // *******************************************************************************************************************	
 	if(preg_match("#FATAL ERROR: cannot connect to ufdbguardd daemon socket: Connection timed out#",$buffer)){
-		$file="/etc/artica-postfix/pids/".md5("FATAL:ufdbguardd daemon socket: Connection timed out");
+		$file="/etc/artica-postfix/pids/".md5("Fatal:ufdbguardd daemon socket: Connection timed out");
 		$timefile=file_time_min($file);
 		if($timefile>5){
-			events("FATAL: ufdbguardd daemon socket:timed out ".__LINE__);
+			events("Fatal: ufdbguardd daemon socket:timed out ".__LINE__);
 			squid_admin_mysql(0,"Issue on Webfiltering Daemon!","squid-cache claim\r\n$buffer\r\nThe Webfiltering Dameon will disconnected from proxy service will be reloaded");
 			squid_admin_notifs("Issue on Webfiltering Daemon!\r\nsquid-cache claim\r\n$buffer\r\nThe Webfiltering Dameon will disconnected from proxy service will be reloaded", __FUNCTION__, __FILE__, __LINE__, "proxy");
 			@file_put_contents("/etc/artica-postfix/settings/Daemons/EnableUfdbGuard",0);
@@ -818,7 +818,7 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 			@file_put_contents($file, time());	
 			return;
 		}	
-		events("FATAL: ufdbguardd daemon socket:timed out ".__LINE__);
+		events("Fatal: ufdbguardd daemon socket:timed out ".__LINE__);
 		return;
 		
 	}
@@ -839,9 +839,9 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 	
 	
 	if(preg_match("#FATAL: Received Segment Violation\.\.\.dying#",$buffer)){
-		$file="/etc/artica-postfix/pids/".md5("FATAL: Received Segment Violation");
+		$file="/etc/artica-postfix/pids/".md5("Fatal: Received Segment Violation");
 		$timefile=file_time_min($file);
-		events("FATAL: Received Segment Violation ".__LINE__);
+		events("Fatal: Received Segment Violation ".__LINE__);
 		
 		if($GLOBALS["MonitConfig"]["RestartWhenCrashes"]==0){
 			squid_admin_mysql(1,"Received Segment Violation","squid-cache claim\r\n$buffer");
@@ -858,7 +858,7 @@ if(preg_match("#kid[0-9]+\|\s+\/home\/squid\/cache\/MemBooster[0-9]+\/#", $buffe
 			shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --start --force --exec-status=".__LINE__." >/dev/null 2>&1 &");
 			return;
 		}
-		events("FATAL: Received Segment Violation -> timeout {$timefile}mn, require up to 2mn Line:".__LINE__);
+		events("Fatal: Received Segment Violation -> timeout {$timefile}mn, require up to 2mn Line:".__LINE__);
 		return;
 	}
 	
@@ -1006,7 +1006,7 @@ function dustbin($buffer){
 	if(strpos($buffer, "Total in use")>1){return true;}
 	if(strpos($buffer, "Total free")>1){return true;}
 	if(strpos($buffer, "icmp_sock: (1) Operation not permitted")>1){return true;}
-	if(strpos($buffer, "FATAL: pinger: Unable to open any ICMP sockets")>1){return true;}
+	if(strpos($buffer, "Fatal: pinger: Unable to open any ICMP sockets")>1){return true;}
 	if(strpos($buffer, "helperOpenServers")>1){return true;}
 	if(strpos($buffer, "Stop accepting HTCP on")>1){return true;}
 	if(strpos($buffer, "| Adding")>1){return true;}

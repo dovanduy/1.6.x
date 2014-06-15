@@ -207,7 +207,7 @@ switch ($code) {
 	case 307: // Moved temporarily
 		break;
 	default:
-		if(function_exists("writelogs")){writelogs("FATAL ERROR $code $uri $status_message",__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
+		if(function_exists("writelogs")){writelogs("Fatal ERROR $code $uri $status_message",__CLASS__ . "=>" . __FUNCTION__,__FILE__);}
 		return false;
 }
 

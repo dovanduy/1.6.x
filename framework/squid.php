@@ -2129,7 +2129,7 @@ function saveSquidContent(){
 	writelogs_framework(strlen($datas)/1024 ." Ko",__FUNCTION__,__FILE__,__LINE__);
 	if($datas==null){
 		
-		echo "<articadatascgi>". base64_encode("FATAL NO CONTENT!!")."</articadatascgi>";
+		echo "<articadatascgi>". base64_encode("Fatal NO CONTENT!!")."</articadatascgi>";
 		return;
 	}
 	@unlink("/usr/share/artica-postfix/ressources/logs/web/squid.conf");

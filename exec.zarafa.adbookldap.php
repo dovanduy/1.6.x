@@ -63,7 +63,8 @@ function ParseContacts($uid){
 	$f=new zarafa_contacts();
 	$f->connect(null, $ct->uid, $ct->password);
 	$contacts=$f->ParseContacts();
-
+	if(!is_array($contacts)){return;}
+	if(count($contacts)==0){return;}
 	while (list ($num, $contact) = each ($contacts) ){
 		
 		if($contact["email1"]==null){continue;}

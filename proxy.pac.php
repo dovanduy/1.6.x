@@ -458,7 +458,7 @@ function build_whitelist($ID){
 	
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){
-		pack_debug("FATAL !! $ID $q->mysql_error",__FILE__,__LINE__);
+		pack_debug("Fatal !! $ID $q->mysql_error",__FILE__,__LINE__);
 		return null;
 	}
 	

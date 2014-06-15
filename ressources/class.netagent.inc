@@ -55,7 +55,7 @@ class netagent{
 			if($GLOBALS["OUTPUT"]){echo "Unable to register with Fatal error: $curl->error\n";}
 			$this->events("[$this->nodeid]: Fatal $curl->error",__FUNCTION__,__FILE__,__LINE__);return;}
 		if(preg_match("#<ERROR>(.+?)</ERROR>#is", $curl->data,$re)){
-			echo "FATAL ERROR ".$re[1]."\n";
+			echo "Fatal ERROR ".$re[1]."\n";
 			return;
 		}
 		if(preg_match("#<SUCCESS>([0-9]+)</SUCCESS>#is", $curl->data,$re)){

@@ -41,14 +41,15 @@ function page(){
 	$delete=$tpl->javascript_parse_text("{delete}");
 	$items=$tpl->_ENGINE_parse_body("{items}");
 
-	$build_parameters=$tpl->_ENGINE_parse_body("{build_parameters}");
-	$new_item=$tpl->_ENGINE_parse_body("{new_item}");
-	$import=$tpl->_ENGINE_parse_body("{import}");
-	$title=$tpl->_ENGINE_parse_body("{last_transaction_messages} {total}:&nbsp;").  $q->COUNT_ROWS("smtp_logs", "artica_events");
-	$country=$tpl->_ENGINE_parse_body("{country}");
-	$sender=$tpl->_ENGINE_parse_body("{sender}");
-	$recipient=$tpl->_ENGINE_parse_body("{recipient}");
-	
+	$build_parameters=$tpl->javascript_parse_text("{build_parameters}");
+	$new_item=$tpl->javascript_parse_text("{new_item}");
+	$import=$tpl->javascript_parse_text("{import}");
+	$title=$tpl->javascript_parse_text("{this_hour},{last_transaction_messages} {total}:&nbsp;").  $q->COUNT_ROWS("smtp_logs", "artica_events");
+	$country=$tpl->javascript_parse_text("{country}");
+	$sender=$tpl->javascript_parse_text("{sender}");
+	$recipient=$tpl->javascript_parse_text("{recipient}");
+	$status=$tpl->javascript_parse_text("{status}");
+	$date=$tpl->javascript_parse_text("{zDate}");
 	$buttons="
 	buttons : [
 	{name: '$new_item', bclass: 'add', onpress : NewDiffListItem$t},
@@ -70,10 +71,10 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$country', name : 'Country', width : 31, sortable : true, align: 'center'},
-		{display: '$date', name : 'time_connect', width : 60, sortable : true, align: 'left'},
-		{display: '$sender', name : 'sender_user', width :147, sortable : true, align: 'left'},
-		{display: '$recipient', name : 'delivery_user', width : 147, sortable : false, align: 'left'},
-		{display: '$status', name : 'bounce_error', width : 230, sortable : false, align: 'left'},
+		{display: '$date', name : 'time_connect', width : 116, sortable : true, align: 'left'},
+		{display: '$sender', name : 'sender_user', width :381, sortable : true, align: 'left'},
+		{display: '$recipient', name : 'delivery_user', width : 381, sortable : false, align: 'left'},
+		{display: '$status', name : 'bounce_error', width : 200, sortable : false, align: 'left'},
 		],
 	$buttons
 	searchitems : [
@@ -84,12 +85,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'time_connect',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:18px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 694,
-	height: 400,
+	width: '99%',
+	height: 500,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
@@ -126,21 +127,16 @@ function list_table(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
 		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
 		if(!$q->ok){json_error_show("$q->mysql_error");}
 		$total = $ligne["TCOUNT"];
-		if($total==0){json_error_show("No rows for $search");}
+		if($total==0){json_error_show("No rows for $searchstring");}
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE $FORCE_FILTER";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,$database));
-		$total = $ligne["TCOUNT"];
+		$total = $q->COUNT_ROWS($table, $database);
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -149,7 +145,7 @@ function list_table(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	
 	$sql="SELECT *  FROM $table WHERE $FORCE_FILTER $searchstring $ORDER $limitSql";	
 	
@@ -198,10 +194,10 @@ function list_table(){
 			$md=md5(serialize($ligne));
 			$cells=array();
 			$cells[]="<img src='img/$country_img'>";
-			$cells[]="<span style='font-size:11px;'>$time</span>";
-			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:11px;text-decoration:underline'>$mailfrom</a>";
-			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:11px;text-decoration:underline'>$rcpt</a>";
-			$cells[]="<span style='font-size:11px;'><div style='$bg_color;text-transform:capitalize;'>$bounce_error</div></span>";
+			$cells[]="<span style='font-size:14px;'>$time</span>";
+			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>$mailfrom</a>";
+			$cells[]="<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" style='font-size:14px;text-decoration:underline'>$rcpt</a>";
+			$cells[]="<span style='font-size:11px;'><div style='$bg_color;text-transform:capitalize;font-size:14px;'>$bounce_error</div></span>";
 			
 			
 			

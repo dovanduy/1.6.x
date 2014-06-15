@@ -22,7 +22,7 @@
 		}
 	}
 	
-	
+	if(isset($_POST["MilterGreyListEnabled"])){MilterGreyListEnabled();exit;}
 	if(isset($_GET["greylist-config"])){popup_settings_tab_params();exit;}
 	if(isset($_GET["main"])){main_switch();exit;}
 	if(isset($_GET["index"])){popup();exit;}
@@ -76,6 +76,15 @@ function popup_remote_save(){
 	$sock->SET_INFO("RemoteMilterService", $_POST["RemoteMilterService"]);
 	$sock->getFrameWork("postfix.php?milters=yes");
 	
+}
+
+function MilterGreyListEnabled(){
+
+	$sock=new sockets();
+	$MilterGreyListEnabled=$sock->GET_INFO("MilterGreyListEnabled");
+	$sock->SET_INFO("RemoteMilterService", $_POST["RemoteMilterService"]);
+	$sock->SET_INFO('MilterGreyListEnabled',$_POST["MilterGreyListEnabled"]);
+	$sock->getFrameWork("postfix.php?milters=yes");
 }
 
 function popup_remote_js(){
@@ -280,53 +289,56 @@ function main_tabs(){
 	
 	$page=CurrentPageName();
 	$tpl=new templates();
-	$array["index"]='{index}';
+	$array["index"]='{status}';
+	$array["popup-settings"]="{main_settings}";
+	
 	$array["popup-groups"]='{objects}';
 	$array["popup-acl"]='{acls}';
-	$array["popup-dumpdb"]='{MILTERGREYLIST_STATUSDUMP}';
+	$array["popup-dumpdb"]='{items}';
+	$array["events"]='{events}';
+	
+	
 	
 	if(isset($_GET["expand"])){$expdand="&expand=yes";}
-	
+	$_GET["ou"]=urlencode($_GET["ou"]);
 	
 	while (list ($num, $ligne) = each ($array) ){
 		
-		if($num=="popup-dumpdb"){
-			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"milter.greylist.dumpdb.php?hostname={$_GET["hostname"]}&ou={$_GET["ou"]}$expdand\"><span>$ligne</span></a></li>\n");
+		if($num=="popup-settings"){
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:18px'>
+			<a href=\"$page?popup-settings=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}$expdand\"><span>$ligne</span>
+			</a></li>
+			\n");
 			continue;			
 		}
 		
-	if($num=="popup-groups"){
-			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"milter.greylist.objects.php?hostname={$_GET["hostname"]}&ou={$_GET["ou"]}$expdand\"><span>$ligne</span></a></li>\n");
+		if($num=="popup-groups"){
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"milter.greylist.objects.php?hostname={$_GET["hostname"]}&ou={$_GET["ou"]}$expdand\"><span>$ligne</span></a></li>\n");
 			continue;			
-		}		
-		
-		$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}$expdand\"><span>$ligne</span></a></li>\n");
+		}	
+		if($num=="events"){
+			$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"syslog.php?popup=yes&prepend=milter-greylist\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		$html[]=$tpl->_ENGINE_parse_body("<li style='font-size:18px'><a href=\"$page?$num=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}$expdand\"><span>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_mgreylist style='width:100%;'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_config_mgreylist').tabs();
-			});
-		</script>";		
+	echo build_artica_tabs($html, "main_config_mgreylist",1170);
 	
 }
 
 
 
 function popup(){
-	$img="<img src='img/bg_sqlgrey-240.jpg'>";
-	$page=CurrentPageName();
-	$mg=Paragraphe('folder-mailbox-64.png','{main_settings}','{main_settings_text}',"javascript:main_settings_greylist()",null,210,100,0,true);
-	//$mg1=Paragraphe('folder-rules2-64.png','{acl}','{acl_text}',"javascript:main_accesslist_greylist()",null,210,100,0,true);
-	$mg2=Paragraphe('folder-logs-643.png','{events}','{events_text}',"javascript:main_events_greylist()",null,210,100,0,true);
-	//$mg3=Buildicon64("DEF_ICO_EVENTS_MGREYLITS_DUMP");
 	
-	$m3=Paragraphe('add-64-on-right.png','{remote_server}','{use_milter_remote_service}',"javascript:Loadjs('$page?remote-js=yes')",null,210,100,0,true);
+	$page=CurrentPageName();
+	$t=time();
+	$sock=new sockets();
+	$MilterGreyListEnabled=intval($sock->GET_INFO('MilterGreyListEnabled'));
+	$RemoteMilterService=$sock->GET_INFO("RemoteMilterService");
+	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
+	if($_GET["ou"]==null){$_GET["ou"]="master";}
 	
 	if(is_file("ressources/logs/greylist-count-master.tot")){
 	$datas=unserialize(@file_get_contents("ressources/logs/greylist-count-master.tot"));
@@ -338,8 +350,8 @@ function popup(){
 		$gp->ydata[]="greylisted";	
 		$gp->xdata[]=$datas["WHITELISTED"];
 		$gp->ydata[]="whitelisted";				
-		$gp->width=350;
-		$gp->height=350;
+		$gp->width=750;
+		$gp->height=750;
 		$gp->ViewValues=false;
 		$gp->x_title="{status}";
 		$gp->pie();			
@@ -348,16 +360,31 @@ function popup(){
 	}
 	}
 	
+
+	
+	$P1=Paragraphe_switch_img("{enable_milter}", "{enable_milter_text}","MilterGreyListEnabled-$t",
+			$MilterGreyListEnabled,null,650);
 	
 	$content="
-	<table style='width:99%' class=form>
-	<tr>
-		<td style='vertical-align:top'>$mg</td>
-		<td style='vertical-align:top'>$mg2</td>
-	</tr>
-		<td style='vertical-align:top'>$m3</td>
-		<td style='vertical-align:top'></td>
+			
+	<div id='animate-$t' style='font-size:26px;margin-bottom:15px'>{server}:{$_GET["hostname"]}</div>
+	$P1
+	<div id='animate-$t' style='font-size:26px;margin-bottom:15px;margin-top:15px'>{use_milter_remote_service}
+	<div class=explain style='font-size:16px'>{use_milter_remote_service_explain}</div>
+		<div class=form style='width:95%'>
+		<table style='width:100%'>
+	
+		<tr>
+		<td align='right' nowrap  class=legend style='font-size:18px;vertical-align:middle'>{value}:</strong></td>
+		<td >" . Field_text('RemoteMilterService',$RemoteMilterService,'width:350px;font-size:22px;padding:10px',null,null)."
+		</td>
+		</tr>
 	</table>
+	</div>
+	
+	
+	<div style='width:100%;text-align:right'><hr>". button("{apply}","Save$t();",26)."</div>
+	
 	";
 	
 	
@@ -365,8 +392,6 @@ function popup(){
 	<table style='width:100%'>
 	<tr>
 		<td style='vertical-align:top'>
-			$img
-			<br>
 			<div id='mgreylist-status'></div>
 		</td>
 		<td style='vertical-align:top'>
@@ -376,14 +401,27 @@ function popup(){
 	
 	</table>
 	
-	<script>
-		miltergreylist_status();
-	</script>
+<script>
+var x_Save$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	RefreshTab('main_config_mgreylist');
+}	
 	
-	";
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('MilterGreyListEnabled',document.getElementById('MilterGreyListEnabled-$t').value);
+	XHR.appendData('RemoteMilterService',document.getElementById('RemoteMilterService').value);
+	XHR.appendData('hostname','{$_GET["hostname"]}');
+	XHR.appendData('ou','{$_GET["ou"]}');
+	XHR.sendAndLoad('$page', 'POST',x_Save$t);	
+}
+miltergreylist_status();
+</script>
+";
 	
-	$tpl=new templates();
-	echo $tpl->_ENGINE_parse_body($html);
+$tpl=new templates();
+echo $tpl->_ENGINE_parse_body($html);
 	
 	
 }
@@ -447,7 +485,7 @@ function greylist_config_tab(){
 	$users=new usersMenus();
 	$array["greylist-config"]='{parameters}';
 	$array["multiples-mx"]='{multiples_mx}';
-	$font="style='font-size:14px'";
+	$font="style='font-size:18px'";
 	
 	$master=urlencode(base64_encode("master"));
 	$suffix="&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}";
@@ -477,6 +515,8 @@ function greylist_config($noecho=0){
 	$hostname=$_GET["hostname"];
 	$pure=new milter_greylist();
 	$page=CurrentPageName();
+	$sock=new sockets();
+	$MilterGreyListEnabled=intval($sock->GET_INFO("MilterGreyListEnabled"));
 	$t=time();
 	$arraytime=array(
 		"m"=>"{minutes}","h"=>"{hour}","d"=>"{day}"
@@ -486,68 +526,70 @@ function greylist_config($noecho=0){
 	if($hostname=="master"){
 		$portF="
 				<tr>
-					<td $style align='right' nowrap  class=legend style='font-size:16px'>{useTCPPort}:</strong></td>
+					<td $style align='right' nowrap  class=legend style='font-size:18px'>{useTCPPort}:</strong></td>
 					<td $style >" . Field_checkbox('MilterGreyListUseTCPPort',1,$pure->MilterGreyListUseTCPPort,"CheckTCPPOrt$t()")."</td>
 					<td $style ></td>
 				</tr>
 				<tr>
-					<td $style align='right' nowrap  class=legend style='font-size:16px'>{listen_port}:</strong></td>
-					<td $style >" . Field_text('MilterGeryListTCPPort',$pure->MilterGeryListTCPPort,'width:90px;font-size:14px')."</td>
+					<td $style align='right' nowrap  class=legend style='font-size:18px'>{listen_port}:</strong></td>
+					<td $style >" . Field_text('MilterGeryListTCPPort',$pure->MilterGeryListTCPPort,'width:120px;font-size:18px')."</td>
 					<td $style ></td>
 				</tr>";
 		
 	}
 
 	$html="
-	<div id='animate-$t' style='font-size:18px;margin:15px'>{server}:$hostname</div>
+	<div id='animate-$t' style='font-size:26px;margin:15px'>{server}:$hostname</div>
 	<div id='MilterGreyListConfigGeneSaveID0'>
 	
 	<input type='hidden' name='hostname' value='$hostname'>
 	<input type='hidden' name='SaveGeneralSettings' value='yes'>
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	
-<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:16px'>{enable_milter}:</strong></td>
-	<td $style >" . Field_checkbox('MilterGreyListEnabled',1,$pure->MilterGreyListEnabled,"CheckAll$t()")."</td>
-	<td $style >". help_icon("{enable_milter_text}")."</td>
-</tr>$portF
-<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:16px'>{add_default_nets}:</strong></td>
-	<td $style >" . Field_checkbox('MiltergreyListAddDefaultNets',1,$pure->MiltergreyListAddDefaultNets)."</td>
-	<td $style >". help_icon("{milter_greylist_add_default_net_explain}")."</td>
-</tr>		
-<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:16px'>{remove_tuple}:</strong></td>
-	<td $style >" . Field_checkbox('lazyaw',1,$pure->main_array["lazyaw"])."</td>
-	<td $style >". help_icon("{remove_tuple_text}")."</td>
-</tr>	
-	<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:16px'>{timeout}:</strong></td>
-	<td $style  colspan=2>" . Field_text('timeout',$pure->main_array["timeout"],'width:90px;font-size:16px',null,null,'{mgreylisttimeout_text}')."&nbsp;".
-		Field_array_Hash($arraytime,'timeout_TIME',$pure->main_array["timeout_TIME"],"style:font-size:14px")."</td>
-	</tr>
 
+
+	$portF
+<tr>
+	<td $style align='right' nowrap  class=legend style='font-size:18px'>{add_default_nets}:</strong></td>
+	<td $style >" . Field_checkbox('MiltergreyListAddDefaultNets',1,$pure->MiltergreyListAddDefaultNets)."</td>
+	<td $style ></td>
+</tr>		
+<tr><td colspan=3><p class=text-info style='font-size:14px'>{milter_greylist_add_default_net_explain}</p></td></tr>
+<tr>
+	<td $style align='right' nowrap  class=legend style='font-size:18px'>{remove_tuple}:</strong></td>
+	<td $style >" . Field_checkbox('lazyaw',1,$pure->main_array["lazyaw"])."</td>
+	<td $style ></td>
+</tr>	
+<tr><td colspan=3><p class=text-info style='font-size:14px'>{remove_tuple_text}</p></td></tr>
 	<tr>
-	<td $style align='right' nowrap  class=legend style='font-size:16px'>{greylist}:</strong></td>
+	<td $style align='right' nowrap  class=legend style='font-size:18px'>{timeout}:</strong></td>
+	<td $style  colspan=2>" . Field_text('timeout',$pure->main_array["timeout"],'width:90px;font-size:18px',null,null)."&nbsp;".
+		Field_array_Hash($arraytime,'timeout_TIME',$pure->main_array["timeout_TIME"],"style:font-size:18px")."</td>
+	</tr>
+<tr><td colspan=3><p class=text-info style='font-size:14px'>{mgreylisttimeout_text}</p></td></tr>	
+	<tr>
+	<td $style align='right' nowrap  class=legend style='font-size:18px'>{greylist}:</strong></td>
 	<td $style  colspan=2>
 	
-	" . Field_text('greylist',$pure->main_array["greylist"],'width:90px;font-size:16px',null,null,'{greylist_text}')."&nbsp;".
-		Field_array_Hash($arraytime,'greylist_TIME',$pure->main_array["greylist_TIME"],"style:font-size:16px")."
+	" . Field_text('greylist',$pure->main_array["greylist"],'width:120px;font-size:18px',null,null)."&nbsp;".
+		Field_array_Hash($arraytime,'greylist_TIME',$pure->main_array["greylist_TIME"],"style:font-size:18px")."
 	
 	</td>
 	</tr>
-	
+	<tr><td colspan=3><p class=text-info style='font-size:14px'>{greylist_text}</p></td></tr>		
 	<tr>
 	<td $style align='right' nowrap  class=legend style='font-size:16px'>{autowhite}:</strong></td>
-	<td $style  colspan=2>" . Field_text('autowhite',$pure->main_array["autowhite"],'width:90px;font-size:16px',null,null,'{autowhite_text}')."&nbsp;".
-		Field_array_Hash($arraytime,'autowhite_TIME',$pure->main_array["autowhite_TIME"],"style:font-size:16px")."</td>
+	<td $style colspan=2>" . Field_text('autowhite',$pure->main_array["autowhite"],'width:110px;font-size:18px',null,null)."&nbsp;".
+		Field_array_Hash($arraytime,'autowhite_TIME',$pure->main_array["autowhite_TIME"],"style:font-size:18px")."</td>
 	</tr>
-			
+	
+	<tr><td colspan=3><p class=text-info style='font-size:14px'>{autowhite_text}</p></td></tr>		
 
 	<tr>
 	<td $style colspan=3 align='right' >
 	<hr>
-	". button("{apply}","MilterGreyListPrincipalSave$t()",16)."
+	". button("{apply}","MilterGreyListPrincipalSave$t()",26)."
 	
 	</tr>
 	</table></div>
@@ -563,7 +605,6 @@ function greylist_config($noecho=0){
 	function MilterGreyListPrincipalSave$t(){
 		 var XHR = new XHRConnection();
 		 XHR.appendData('SaveGeneralSettings','yes');
-		 if(document.getElementById('MilterGreyListEnabled').checked){XHR.appendData('MilterGreyListEnabled',1);}else{XHR.appendData('MilterGreyListEnabled',0);}
 		 if(document.getElementById('MiltergreyListAddDefaultNets').checked){XHR.appendData('MiltergreyListAddDefaultNets',1);}else{XHR.appendData('MiltergreyListAddDefaultNets',0);}
 		 if(document.getElementById('lazyaw').checked){XHR.appendData('lazyaw',1);}else{XHR.appendData('lazyaw',0);}		
 		 XHR.appendData('timeout',document.getElementById('timeout').value);
@@ -598,7 +639,8 @@ function greylist_config($noecho=0){
 	}
 	
 	function CheckAll$t(){
-		if(document.getElementById('MilterGreyListEnabled').checked){
+		var MilterGreyListEnabled=$MilterGreyListEnabled;
+		if(MilterGreyListEnabled==1){
 			document.getElementById('MiltergreyListAddDefaultNets').disabled=false;
 			document.getElementById('lazyaw').disabled=false;
 			document.getElementById('timeout').disabled=false;
@@ -639,8 +681,7 @@ function greylist_config($noecho=0){
 function SaveConf(){
 	$mil=new milter_greylist();
 	$sock=new sockets();
-	$sock->SET_INFO("MilterGreyListEnabled",$_POST["MilterGreyListEnabled"]);
-	unset($_GET["MilterGreyListEnabled"]);
+	
 	$mil->MiltergreyListAddDefaultNets=$_POST["MiltergreyListAddDefaultNets"];
 	unset($_GET["MiltergreyListAddDefaultNets"]);
 	
@@ -780,9 +821,8 @@ function main_acl($noecho=0){
 	$pure=new milter_greylist();
 	$page=CurrentPageName();
 	if(isset($_GET["expand"])){$expand="&expand=yes";}
-	$html="<div class=explain style='margin-bottom:10px'>{acl_text}</div>
-	
-	<div id='acllist' style='margin-left:-10px'></div>
+	$html="
+	<div id='acllist'></div>
 
 	
 	<script>
@@ -807,6 +847,7 @@ $description=$tpl->_ENGINE_parse_body("{description}");
 $hostname=$_GET["hostname"];
 $add=$tpl->_ENGINE_parse_body("{add}");
 $rule=$tpl->_ENGINE_parse_body("{rule}");
+$about=$tpl->javascript_parse_text("{about2}");
 $t=time();
 if(trim($hostname)==null){$hostname="master";$_GET["hostname"]="master";}
 $TB_WIDTH=750;
@@ -821,7 +862,8 @@ $TB_TYPE=96;
 		$TB_HEIGHT=600;
 		$TB_TYPE=125;
 	}
-
+$about_text=$tpl->javascript_parse_text("{acl_text}");
+$POSTFIX_MULTI_INSTANCE_INFOS=$tpl->javascript_parse_text("{acls}");
 
 $html="
 	<table class='miltergrey-instances-list' style='display: none' id='miltergrey-instances-list' style='width:99%'></table>
@@ -841,7 +883,8 @@ $('#miltergrey-instances-list').flexigrid({
 	],
 buttons : [
 		{name: '$add', bclass: 'add', onpress : addcallistrule$t},
-		{separator: true}
+		{separator: true},
+		{name: '$about', bclass: 'help', onpress : about$t},
 		],	
 	searchitems : [
 		{display: '$pattern', name : 'pattern'},
@@ -854,16 +897,20 @@ buttons : [
 	sortname: 'pattern',
 	sortorder: 'asc',
 	usepager: true,
-	title: '$POSTFIX_MULTI_INSTANCE_INFOS',
+	title: '<span style=font-size:18px>$POSTFIX_MULTI_INSTANCE_INFOS</span>',
 	useRp: true,
 	rp: 15,
 	showTableToggleBtn: true,
-	width: $TB_WIDTH,
+	width: '99%',
 	height: $TB_HEIGHT,
 	singleSelect: true
 	
 	});   
 });
+
+function  about$t(){
+	alert('$about_text');
+}
 
 	function addcallistrule$t(){
 		LoadMilterGreyListAcl$t(-1)
@@ -1458,120 +1505,175 @@ function dumpfile_popup(){
 	
 }
 
+
 function popup_db(){
+
 	$page=CurrentPageName();
-	$tpl=new templates();	
+	$tpl=new templates();
+	$q=new mysql_squid_builder();
+	$q->CheckTables();
+	$time=$tpl->javascript_parse_text("{time}");
+	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+	$from=$tpl->javascript_parse_text("{from}");
+	$pattern=$tpl->javascript_parse_text("{pattern}");
+	$to=$tpl->_ENGINE_parse_body("{to}");
+	$delete_group_ask=$tpl->javascript_parse_text("{inputbox delete group}");
+	$explain=$tpl->javascript_parse_text("{explain}");
+	$title=$tpl->javascript_parse_text("{browsers_rules}");
+	$whitelist=$tpl->javascript_parse_text("{whitelist}");
+	$nowebfilter=$tpl->javascript_parse_text("{bypass_webfilter}");
+	$nowcache=$tpl->javascript_parse_text("{no_cache}");
+	$deny=$tpl->javascript_parse_text("{deny}");
+	$delete=$tpl->javascript_parse_text("{delete}");
+	$apply_params=$tpl->javascript_parse_text("{apply}");
+	$new_rule=$tpl->javascript_parse_text("{new_rule}");
+	$enabled=$tpl->javascript_parse_text("{enabled}");
+	$about=$tpl->javascript_parse_text("{about2}");
+	$browsers_ntlm_explain=$tpl->javascript_parse_text("{MILTERGREYLIST_STATUSDUMP}\n---------------------\n{MILTERGREYLIST_STATUSDUMP_TEXT}",0);
+	$t=time();
+	
 	if(is_file("ressources/logs/greylist-count-master.tot")){
-	$datas=unserialize(@file_get_contents("ressources/logs/greylist-count-master.tot"));
-	if(is_array($datas)){
-		$table="
-		<div class=explain>
-		<p>{MILTERGREYLIST_STATUSDUMP_TEXT}</p>
-		<table>
-		<tr>
-			<td style='font-size:16px'>{records}:</td>
-			<td style='font-size:16px'>{$datas["RECORDS"]}</td>
-			<td style='font-size:16px'>{greylisted}:</td>
-			<td style='font-size:16px'>{$datas["GREYLISTED"]}</td>
-			<td style='font-size:16px'>{whitelisted}:</td>
-			<td style='font-size:16px'>{$datas["WHITELISTED"]}</td>	
-		</tr>
-		</table>	
-		</div>				
-		";
-		
+		$datas=unserialize(@file_get_contents("ressources/logs/greylist-count-master.tot"));
+		// 
+		if(is_array($datas)){
+			$title=$tpl->javascript_parse_text("{records}: {$datas["RECORDS"]}&nbsp;-&nbsp;{greylisted}: {$datas["GREYLISTED"]}&nbsp;-&nbsp;{whitelisted}: {$datas["WHITELISTED"]}");
+		}
 	}
-	}
+
 	
-	$html="$table
-	<center>
-			<table style='width:99%' class=form>
-			<tr>
-				<td class=legend>{pattern}:</td>
-				<td>". Field_text("browse-mgreydb-search",null,"font-size:14px;padding:3px",null,null,null,false,"BrowseMiltergreySearchCheck(event)")."</td>
-				<td>". button("{search}","BrowseMgreySearch()")."</td>
-			</tr>
-			</table>
-	</center>		
-	<div id='browse-mgrey-list' style='width:100%;height:430px;overflow:auto;text-align:center'></div>
+	$buttons="buttons : [
+	{name: '$about', bclass: 'help', onpress : About$t},
 	
+	],	";
+
+
+	$html="
+<table class='table-$t' style='display: none' id='table-$t' style='width:99%'></table>
 <script>
-		function BrowseMiltergreySearchCheck(e){
-			if(checkEnter(e)){BrowseMgreySearch();}
-		}
-		
-		function BrowseMgreySearch(){
-			var se=escape(document.getElementById('browse-mgreydb-search').value);
-			LoadAjax('browse-mgrey-list','$page?browse-mgrey-list=yes&search='+se+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}');
-		}
-		
-		
-	BrowseMgreySearch();
-</script>	
-	
-	";
-	
-	
-echo $tpl->_ENGINE_parse_body($html);
-	
-	
-	
-	
-	
+	$(document).ready(function(){
+			$('#table-$t').flexigrid({
+			url: '$page?browse-mgrey-list=yes&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}',
+			dataType: 'json',
+			colModel : [
+			{display: '$time', name : 'stime', width : 151, sortable : true, align: 'left'},
+			{display: '$ipaddr', name : 'ip_addr', width : 134, sortable : true, align: 'left'},
+			{display: '$from', name : 'mailfrom', width : 392, sortable : true, align: 'left'},
+			{display: '$to', name : 'mailto', width : 324, sortable : true, align: 'left'},
+
+
+
+			],
+			$buttons
+			searchitems : [
+			{display: '$time', name : 'stime'},
+			{display: '$ipaddr', name : 'ip_addr'},
+			{display: '$from', name : 'mailfrom'},
+			{display: '$to', name : 'mailto'},
+			],
+			sortname: 'stime',
+			sortorder: 'desc',
+			usepager: true,
+			title: '<span style=font-size:18px>$title</span>',
+			useRp: true,
+			rp: 15,
+			showTableToggleBtn: false,
+			width: '99%',
+			height: 450,
+			singleSelect: true
+
+});
+});
+
+function About$t(){
+	alert('$browsers_ntlm_explain');
 }
+
+</script>
+	";
+	echo $html;
+
+}
+
+
 
 function popup_db_list(){
 	$page=CurrentPageName();
 	$tpl=new templates();	
-	if($_GET["search"]<>null){
-		$_GET["search"]=str_replace("*", "%", $_GET["search"]);
-		$filter="AND ((mailfrom LIKE '{$_GET["search"]}') OR (mailto LIKE '{$_GET["search"]}') OR (ip_addr LIKE '{$_GET["search"]}'))";
+	$table="greylist_turples";
+	$MyPage=CurrentPageName();
+	$q=new mysql();
+	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
+	
+	$search='%';
+	$table="(SELECT * FROM greylist_turples WHERE hostname='{$_GET["hostname"]}') as t ";
+	$page=1;
+	
+	if($q->COUNT_ROWS("greylist_turples","artica_events")==0){json_error_show("No data");}
+	
+	if(isset($_POST["sortname"])){
+		if($_POST["sortname"]<>null){
+			$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";
+		}
 	}
 	
-	$html="<center>
-<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
-<thead class='thead'>
-	<tr>
-		<th width=1%>{time}</th>
-		<th width=25%>{ipaddr}</th>
-		<th width=25%>{from}</th>
-		<th width=25%>{to}</th>
-	</tr>
-</thead>
-<tbody class='tbody'>";	
+	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-	$maxlen=30;
-		$sql="SELECT * FROM greylist_turples WHERE hostname='master' $filter LIMIT 0,150";
-		$q=new mysql();
-		writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);
-		$results=$q->QUERY_SQL($sql,"artica_events");
-		
-		if(!$q->ok){echo "<H2>$q->mysql_error</H2>";}
-		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
-		if(trim($ligne["ip_addr"])=="#"){continue;}	
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table WHERE 1 $searchstring";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+		$total = $ligne["TCOUNT"];
+		if(!$q->ok){json_error_show("$q->mysql_error");}
+	
+	}else{
+		$sql="SELECT COUNT(*) as TCOUNT FROM $table";
+		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+		$total = $ligne["TCOUNT"];
+		if(!$q->ok){json_error_show("$q->mysql_error");}
+	}
+	
+	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}
+	
+	
+	
+	$pageStart = ($page-1)*$rp;
+	$limitSql = "LIMIT $pageStart, $rp";
+	
+	$sql="SELECT *  FROM $table WHERE 1 $searchstring $ORDER $limitSql";
+	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
+	$results = $q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){json_error_show("$q->mysql_error");}
+	
+	
+	$data = array();
+	$data['page'] = $page;
+	$data['total'] = $total;
+	$data['rows'] = array();
+	if(mysql_num_rows($results)==0){json_error_show("no rule");}
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$color="black";
+		if(trim($ligne["ip_addr"])=="#"){continue;}
 		if($ligne["mailfrom"]=="Summary:"){continue;}
 		$time=date("Y-m-d H:i:s",$ligne["stime"]);
-		if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-		$len=strlen($ligne["mailfrom"]);
-		if($len>$maxlen){$ligne["mailfrom"]=substr($ligne["mailfrom"],0,$maxlen-3)."...";}
-			
-		$len=strlen($ligne["mailto"]);
-		if($len>$maxlen){$ligne["mailto"]=substr($ligne["mailto"],0,$maxlen-3)."...";}		
+		if($ligne["whitelisted"]==0){$color="#AA1A07";}
 		
-		
-	$color="black";
-		$html=$html."
-		<tr class=$classtr>
-			<td style='font-size:12px;font-weight:bold;color:$color' nowrap>$time</td>
-			<td style='font-size:12px;font-weight:bold;color:$color' width=1% nowrap>{$ligne["ip_addr"]}</a></td>
-			<td style='font-size:12px;font-weight:bold;color:$color' width=50%>{$ligne["mailfrom"]}</a></td>
-			<td style='font-size:12px;font-weight:bold;color:$color' width=50>{$ligne["mailto"]}</a></td>
-		</tr>
-		";
+		$data['rows'][] = array(
+		'id' => md5(serialize($ligne)),
+		'cell' => array(
+			"<span style='font-size:14px;;color:$color'>$time</span>",
+			"<span style='font-size:14px;color:$color'>{$ligne["ip_addr"]}</a></span>",
+			"<span style='font-size:14px;color:$color'>{$ligne["mailfrom"]}</a></span>",
+			"<span style='font-size:14px;color:$color'>{$ligne["mailto"]}</a></span>",
+
+			)
+			);
 	}
 	
-	$html=$html."</table></center>";
-	echo $tpl->_ENGINE_parse_body($html);
+	
+	
+	echo json_encode($data);
+
 }
 	
 ?>

@@ -192,13 +192,15 @@ function UpdateDB($uri,$filenameExtracted,$rootpath){
 	$curl->NoHTTP_POST=true;
 	$h=parse_url($uri);
 	$targetFileName=basename($h["path"]);
+	@unlink("/tmp/$targetFileName");
 	if(!$curl->GetFile("/tmp/$targetFileName")){
 		system_admin_events("Geoip Failed to retreive $targetFileName with error $curl->error", __FUNCTION__, __FILE__, __LINE__, "geoip");
+		@unlink("/tmp/$targetFileName");
 		return false;
 	}
 
 	if(!$unix->uncompress("/tmp/$targetFileName", "$rootpath/$filenameExtracted")){
-		system_admin_events("Geoip Failed to extract /tmp/$targetFileName", __FUNCTION__, __FILE__, __LINE__, "geoip");
+		system_admin_events("Geoip Failed to extract /tmp/$targetFileName to $rootpath/$filenameExtracted", __FUNCTION__, __FILE__, __LINE__, "geoip");
 		@unlink("/tmp/$targetFileName");
 		return false;
 	}

@@ -327,7 +327,7 @@ function database_dump($database,$instanceid){
 function compress($source,$dest){
 		if(!function_exists("gzopen")){
 			$called=null;if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
-			writelogs("FATAL!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
+			writelogs("Fatal!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
 			return false;
 		}
 	    $mode='wb9';

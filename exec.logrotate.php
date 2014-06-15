@@ -442,8 +442,8 @@ function ExtractFromMySQL($storeid){
 	@mkdir("$BackupMaxDaysDir",0755,true);
 	
 	if(!is_dir($BackupMaxDaysDir)){
-		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
-		events("FATAL $BackupMaxDaysDir permission denied");
+		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
+		events("Fatal $BackupMaxDaysDir permission denied");
 		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		$mount->umount($mountPoint);
@@ -454,8 +454,8 @@ function ExtractFromMySQL($storeid){
 	$t=time();
 	@file_put_contents("$BackupMaxDaysDir/$t", time());
 	if(!is_file("$BackupMaxDaysDir/$t")){
-		events("FATAL $BackupMaxDaysDir permission denied");
-		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		events("Fatal $BackupMaxDaysDir permission denied");
+		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
 		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		$mount->umount($mountPoint);
@@ -599,8 +599,8 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	@mkdir("$BackupMaxDaysDir",0755,true);
 	
 	if(!is_dir($BackupMaxDaysDir)){
-		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
-		events("FATAL $BackupMaxDaysDir permission denied");
+		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
+		events("Fatal $BackupMaxDaysDir permission denied");
 		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
@@ -611,8 +611,8 @@ function CleanMysqlDatabase($PURGE_ALL=false){
 	$t=time();
 	@file_put_contents("$BackupMaxDaysDir/$t", time());
 	if(!is_file("$BackupMaxDaysDir/$t")){
-		events("FATAL $BackupMaxDaysDir permission denied");
-		if($GLOBALS["VERBOSE"]){echo "FATAL $BackupMaxDaysDir permission denied\n";}
+		events("Fatal $BackupMaxDaysDir permission denied");
+		if($GLOBALS["VERBOSE"]){echo "Fatal $BackupMaxDaysDir permission denied\n";}
 		squid_admin_notifs("SYSLOG: FATAL $BackupMaxDaysDir permission denied",__FUNCTION__,__FILE__,__LINE__);
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		if($BackupSquidLogsUseNas==1){$mount->umount($mountPoint);}
@@ -732,13 +732,13 @@ function ExtractFileFromDatabase($filename,$nextDir){
 	
 	$q->QUERY_SQL("SELECT filedata INTO DUMPFILE '$TempDir/$filebase' FROM store WHERE filename = '$filename'");
 	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){echo "FATAL ($q->mysql_error)\n";}
+		if($GLOBALS["VERBOSE"]){echo "Fatal ($q->mysql_error)\n";}
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		return false;
 	}
 	
 	if(!@copy("$TempDir/$filebase", "$nextDir/$filebase")){
-		if($GLOBALS["VERBOSE"]){echo "FATAL $nextDir/$filebase permission denied\n";}
+		if($GLOBALS["VERBOSE"]){echo "Fatal $nextDir/$filebase permission denied\n";}
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		return false;		
 	}
@@ -747,7 +747,7 @@ function ExtractFileFromDatabase($filename,$nextDir){
 	
 	$q->QUERY_SQL("DELETE FROM store WHERE filename = '$filename'");
 	if(!$q->ok){
-		if($GLOBALS["VERBOSE"]){echo "FATAL ($q->mysql_error)\n";}
+		if($GLOBALS["VERBOSE"]){echo "Fatal ($q->mysql_error)\n";}
 		system_admin_events($q->mysql_error,__FUNCTION__,__FILE__,__LINE__,"logrotate");
 		return false;
 	}

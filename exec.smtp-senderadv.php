@@ -28,7 +28,7 @@ if(!is_numeric($GLOBALS["MultipleAdvUseMemory"])){$GLOBALS["MultipleAdvUseMemory
 if(!is_numeric($GLOBALS["MultipleAdvLoad"])){$GLOBALS["MultipleAdvLoad"]=1;}
 if(!is_numeric($GLOBALS["MultipleAdvMaxRunningProcs"])){$GLOBALS["MultipleAdvMaxRunningProcs"]=20;}
 if(count($argv)>1){	if($argv[1]=="--instance-send"){$domainname=$argv[2];$instance=$argv[3];$instanceid=$argv[4];$prefix="[$domainname/$instanceid][$instance]";}}else{$prefix="ROUTER";}
-if(count($argv)==1){smtp::events("Mode router executed","MAIN",__FILE__,__LINE__);ScanSpoolEvents("Executed");}
+if(count($argv)==1){smtp::events("Mode router executed","MAIN",__FILE__,__LINE__);ScanSpoolEvents("Executed",__LINE__);}
 $ProcessesRunned=checkMaxProcessNumber();
 
 	if($ProcessesRunned>0){
@@ -683,7 +683,7 @@ function CheckConnectionError($error_number,$error_text,$TargetHostname,$config)
 	if(!is_dir($mainDir)){
 		smtp::events("Error: Creating \"$mainDir\" Directory",__FUNCTION__,__FILE__,__LINE__);
 		@mkdir($mainDir,0755,true);
-		if(!is_dir($mainDir)){smtp::events("FATAL ERROR: Failed to create \"$mainDir\" Directory",__FUNCTION__,__FILE__,__LINE__);}
+		if(!is_dir($mainDir)){smtp::events("Fatal ERROR: Failed to create \"$mainDir\" Directory",__FUNCTION__,__FILE__,__LINE__);}
 	}	
 	
 	if($error_number==450){$error_number=421;}
@@ -1086,7 +1086,7 @@ $body[]="";
 	
 	if(!$smtp->send(array("from"=>$config["bounce_from"],"recipients"=>$config["bounce_to"],"body"=>$finalbody,"headers"=>$finalheader))){
 			Checkerror($smtp->error_number,$smtp->error_text, $fullpath,$config);
-			smtp::events("FATAL ERROR WHILE SENDING Bounce closing connection",__FUNCTION__,__FILE__,__LINE__);
+			smtp::events("Fatal ERROR WHILE SENDING Bounce closing connection",__FUNCTION__,__FILE__,__LINE__);
 			$smtp->quit();
 			if($config["debug_parameters"]==1){smtp::events("Deleting the message $fullpath",__FUNCTION__,__FILE__,__LINE__);}
 			@unlink($fullpath);	

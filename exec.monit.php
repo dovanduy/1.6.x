@@ -609,17 +609,6 @@ function build(){
 		}		
 		
 		
-		if($ZarafaApacheEnable==1){
-			$f=array();
-			$f[]="check process APP_ZARAFA_WEB with pidfile /var/run/zarafa-web/httpd.pid";
-			$f[]="\tstart program = \"/etc/init.d/zarafa-web start --monit\"";
-			$f[]="\tstop program = \"/etc/init.d/zarafa-web stop --monit\"";
-			$f[]="\tif failed host 127.0.0.1 port $ZarafaApachePort then restart";
-			$f[]="\tif 5 restarts within 5 cycles then timeout";
-			$f[]="";
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} monitoring Zarafa WebMail...\n";}
-			@file_put_contents("/etc/monit/conf.d/APP_ZARAFAWEB.monitrc", @implode("\n", $f));			
-		}
 		
 		$f=array();
 		$f[]="check process APP_ZARAFA_SERVER with pidfile /var/run/zarafa-server.pid";

@@ -159,7 +159,7 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	
 	
 	if(preg_match("#\] Changing daemon status to.*?error#",$buffer,$re)){
-		squid_admin_mysql(0, "FATAL! Webfilter daemon is turned to error", $buffer,__FILE__,__LINE__);
+		squid_admin_mysql(0, "Fatal! Webfilter daemon is turned to error", $buffer,__FILE__,__LINE__);
 		return;
 		
 	}
@@ -230,8 +230,8 @@ if(preg_match("#FATAL ERROR: cannot open configuration file \/etc\/ufdbguard\/uf
 	
 	if(preg_match("#FATAL ERROR: cannot bind daemon socket: Address already in use#", $buffer)){
 		events_ufdb_exec("ERROR DETECTED : $buffer `cannot bind daemon socket`");
-		squid_admin_mysql(0, "FATAL ERROR: cannot bind daemon socket: Address already in use", $buffer,__FILE__,__LINE__);
-		ufdbguard_admin_events("FATAL ERROR: cannot bind daemon socket: Address already in use",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
+		squid_admin_mysql(0, "Fatal ERROR: cannot bind daemon socket: Address already in use", $buffer,__FILE__,__LINE__);
+		ufdbguard_admin_events("Fatal ERROR: cannot bind daemon socket: Address already in use",__FUNCTION__,__FILE__,__LINE__,"ufdbguard-service");
 		$GLOBALS["CLASS_UNIX"]->send_email_events("ufdbguard: service Error; Address already in use","Ufdbguard 
 		: $buffer\n","ufdbguard-service");
 		xsyslog("Restarting ufdb service...");

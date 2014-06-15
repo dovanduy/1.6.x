@@ -3690,7 +3690,7 @@ public function file_extension($filename){
 public function compress($source,$dest){
 		if(!function_exists("gzopen")){
 			$called=null;if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
-			$this->_syslog("FATAL!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
+			$this->_syslog("Fatal!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
 			return false;
 		}
 	    $mode='wb9';
@@ -3731,13 +3731,19 @@ public function compress($source,$dest){
 
 	
 public function uncompress($srcName, $dstName) {
+	
+	if(!is_file($srcName)){
+		$this->_syslog("Fatal!! $srcName -> No such file");
+		return false;
+	}
+	
 	$srcNameText=basename($srcName);
 	$GLOBALS["UNCOMPRESS"]=array();
 		if(!function_exists("gzopen")){
 			$called=null;if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";}}
 			if($GLOBALS["VERBOSE"]){echo "uncompress:: FATAL!! gzopen no such function ! $called in\n";}
 			$GLOBALS["UNCOMPRESS"][]="$srcNameText FATAL!! gzopen no such function";
-			$this->_syslog("FATAL!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
+			$this->_syslog("Fatal!! gzopen no such function ! $called in ".__FUNCTION__." line ".__LINE__, basename(__FILE__));
 			return false;
 		}
 		$dir=dirname($dstName);
@@ -3762,10 +3768,11 @@ public function uncompress($srcName, $dstName) {
 	    while ($string = gzread($sfp, 4096)) {fwrite($fp, $string, strlen($string));}
 	    gzclose($sfp);
 	    fclose($fp);
-	    $size=$this->file_size($dstNameTMP);
+	    $size=@filesize($dstNameTMP);
 	    if($size==0){
+	    	$this->_syslog("Fatal!! $srcName -> $dstNameTMP $size = 0 bytes !!");
 	    	$GLOBALS["UNCOMPRESS"][]="$dstNameTMP size = 0";
-	    	if($GLOBALS["VERBOSE"]){echo "$dstNameTMP $size = 0 !!\n";}
+	    	if($GLOBALS["VERBOSE"]){echo "$srcName -> $dstNameTMP $size = 0 bytes !!\n";}
 	    	@unlink($dstNameTMP);
 	    	return false;
 	    }

@@ -482,7 +482,7 @@ function ufdbtables($nopid=false){
 	
 	$curl=new ccurl("$URIBASE/index.txt");
 	if(!$curl->GetHeads()){
-		if($GLOBALS["VERBOSE"]){echo "FATAL ! $URIBASE/index.txt ERROR NUMBER $curl->CURLINFO_HTTP_CODE\n";}
+		if($GLOBALS["VERBOSE"]){echo "Fatal ! $URIBASE/index.txt ERROR NUMBER $curl->CURLINFO_HTTP_CODE\n";}
 		if( ($curl->CURLINFO_HTTP_CODE==404 ) OR ($curl->CURLINFO_HTTP_CODE==300 )){
 			if(!preg_match("#\/ufdb#", $URIBASE)){$URIBASE="$URIBASE/ufdb";}
 			$curl=new ccurl("$URIBASE/index.txt");

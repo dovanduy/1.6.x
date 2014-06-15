@@ -1179,7 +1179,7 @@ function ParseLDAPSubUsersGroups($LDAPID,$dn){
 					$order="COMPILEDB:$category";$md5=md5($order);
 					$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");
 					if(!$q->ok){if(strpos($q->mysql_error, "doesn't exist")>0){$q->CheckTables();$q->QUERY_SQL("INSERT IGNORE INTO framework_orders (`zmd5`,`ORDER`) VALUES('$md5','$order')");}}
-					ufdbguard_admin_events("FATAL category $categoryname $main_path/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"config");
+					ufdbguard_admin_events("Fatal category $categoryname $main_path/$categoryname/domains no such file",__FUNCTION__,__FILE__,__LINE__,"config");
 				}		
 
 		

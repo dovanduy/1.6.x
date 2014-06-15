@@ -18,7 +18,7 @@
 <AsQuarantineAdministrator>Autoriser la requ&ecirc;te de zone de quarantaine</AsQuarantineAdministrator>
 <AsSambaAdministrator>Peut g&eacute;rer Samba et les fichiers partag&eacute;s</AsSambaAdministrator>
 <as_plugin>Module Anti-Spam</as_plugin>
-<attachments_deny_text>Cette section vous permet d'ajouter un groupe d'attachements interdit dans ce groupe. [Br] Chaque courrier &eacute;lectronique achemin&eacute; &agrave; ce groupe d'utilisateurs sera pass&eacute; par l'analyse syntaxique pour &ecirc;tre filtr&eacute; pour les attachements indiqu&eacute;s.</attachments_deny_text>
+<attachments_deny_text>Cette section vous permet d\'ajouter un groupe de pi&egrave;ces jointes interdites dans ce groupe. [Br] Chaque courrier &eacute;lectronique achemin&eacute; &agrave; ce groupe d\'utilisateurs sera pass&eacute; par l\'analyse syntaxique pour &ecirc;tre filtr&eacute; pour les pi&egrave;ces jointes indiqu&eacute;es.</attachments_deny_text>
 <change_password_now>Changez les mot de passe maintenant</change_password_now>
 <computers>Ordinateurs</computers>
 <computers_text>Cherchez et ajoutez des ordinateurs dans ce groupe</computers_text>

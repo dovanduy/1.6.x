@@ -620,6 +620,10 @@ function purge($aspid=false){
 	$sock=new sockets();
 	
 	$workdir="/var/lib/c_icap/temporary";
+	if(is_link($workdir)){$workdir=readlink($workdir);}
+	if(!is_dir($workdir)){return;}
+	
+	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$rm=$unix->find_program("rm");

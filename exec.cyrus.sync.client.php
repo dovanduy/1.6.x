@@ -29,7 +29,7 @@ system("su - cyrus -c \"$users->ctl_mboxlist -d\" >$tempdir/ctl_mboxlist");
 $datas=file_get_contents("$tempdir/ctl_mboxlist");
 $tbl=explode("\n",$datas);
 if(!is_array($tbl)){
-	events("FATAL ERROR");
+	events("Fatal ERROR");
 	die();
 }
 
