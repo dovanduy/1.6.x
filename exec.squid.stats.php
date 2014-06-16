@@ -148,7 +148,7 @@ function sync_categories(){
 	}	
 	
 	
-	$sql="SELECT * FROM visited_sites WHERE LENGTH(category)=0";
+	$sql="SELECT sitename FROM visited_sites WHERE LENGTH(category)=0 ORDER BY Querysize DESC LIMIT 0,500";
 	if($GLOBALS["VERBOSE"]){echo "$sql\n";}
 	
 	$results=$GLOBALS["Q"]->QUERY_SQL($sql);
@@ -156,9 +156,13 @@ function sync_categories(){
 	$num_rows = mysql_num_rows($results);
 	$t=time();
 	if($num_rows==0){if($GLOBALS["VERBOSE"]){echo "No datas ". __FUNCTION__." ".__LINE__."\n";}return;}
-	ufdbguard_admin_events("Starting analyzing $num_rows not categorized websites",__FUNCTION__,__FILE__,__LINE__,"stats");
+	
+	
+	stats_admin_events(1,"Starting analyzing $num_rows not categorized websites",null,__FILE__,__LINE__);
+	
 	$c=0;$d=0;
 	$CATZP=0;
+	$TTIME=0;
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$website=trim($ligne["sitename"]);
 		$category=null;
@@ -166,7 +170,11 @@ function sync_categories(){
 		$t2=time();
 		$c++;
 		$d++;
+		$TTIME++;
 		if($d>1000){if($GLOBALS["VERBOSE"]){echo "Analyzed $c websites\n";$d=0;}}
+		percentage("$c/$num_rows {$ligne["sitename"]}",49);
+		
+		
 		$category=$GLOBALS["Q"]->GET_CATEGORIES($website,true);
 		if(trim($category)<>null){
 			$CATZP++;
@@ -178,19 +186,41 @@ function sync_categories(){
 			if(!$GLOBALS["Q"]->ok){ufdbguard_admin_events("Fatal error while update visited_sites {$GLOBALS["Q"]->mysql_error}",__FUNCTION__,__FILE__,__LINE__,"stats");return;}
 		}
 		
-		if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
-		
+		if($TTIME>10){
+			if(SquidStatisticsTasksOverTime()){ 
+					stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); 
+					return; 
+			}
+		}
 	
 		
 	}
-	$took=$unix->distanceOfTimeInWords($t,time());
-	ufdbguard_admin_events("$CATZP new categorized website task:finish ($took)",__FUNCTION__,__FILE__,__LINE__,"stats");
+	
+	if($CATZP>0){
+		$took=$unix->distanceOfTimeInWords($t,time());
+		stats_admin_events(1,"$CATZP new categorized website task:finish ($took)",null,__FILE__,__LINE__);
+		
+	}
 	
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup ".$unix->LOCATE_PHP5_BIN() . __FILE__." --defrag --schedule-id={$GLOBALS["SCHEDULE_ID"]} >/dev/null 2>&1 &");
 }
+function percentage($text,$purc){
 
+
+	$array["TITLE"]=$text.": ".date("H:i:s");
+	$array["POURC"]=$purc;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [$purc] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
+}
 
 
 

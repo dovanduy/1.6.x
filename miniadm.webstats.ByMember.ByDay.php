@@ -419,17 +419,18 @@ function graph2(){
 		$size=$ligne["size"];
 		$size=$size/1024;
 		$size=round($size/1024,2);
-		$date=strtotime($ligne["zDate"]."00:00:00");
-		$xdata[]=date("m-d",$date);
+		$xdata[]=$ligne["hour"];
 		$ydata[]=$size;
 	
 	}
 	$highcharts=new highcharts();
 	$highcharts->container=$_GET["container"];
 	$highcharts->xAxis=$xdata;
-	$highcharts->Title="{size}";
+	$highcharts->Title="{size} / {hour}";
 	$highcharts->yAxisTtitle="{size} MB";
+	$highcharts->LegendPrefix="{hour} ";
 	$highcharts->xAxisTtitle="{hours}";
+	$highcharts->LegendSuffix=" MB";
 	$highcharts->datas=array("{size}"=>$ydata);
 	echo $highcharts->BuildChart();	
 }
@@ -443,17 +444,18 @@ function graph1(){
 	$results=$q->QUERY_SQL($sql);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$size=$ligne["hits"];
-		$date=strtotime($ligne["zDate"]."00:00:00");
-		$xdata[]=date("m-d",$date);
+		$xdata[]=$ligne["hour"];
 		$ydata[]=$size;
 
 	}
 	$highcharts=new highcharts();
 	$highcharts->container=$_GET["container"];
 	$highcharts->xAxis=$xdata;
-	$highcharts->Title="{requests}";
+	$highcharts->Title="{requests} / {hour}";
 	$highcharts->yAxisTtitle="{hits}";
 	$highcharts->xAxisTtitle="{hours}";
+	$highcharts->LegendPrefix="{hour} ";
+	$highcharts->LegendSuffix=" {requests}";
 	$highcharts->datas=array("{requests}"=>$ydata);
 	echo $highcharts->BuildChart();
 }

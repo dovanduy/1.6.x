@@ -41,6 +41,21 @@ function websites_uid_reset(){
 	$q->QUERY_SQL("UPDATE tables_day SET websites_uid=0");
 	websites_uid();
 }
+function percentage($text,$purc){
+
+
+	$array["TITLE"]=$text.": ".date("H:i:s");
+	$array["POURC"]=$purc;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [$purc] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
+}
 
 
 function websites_uid(){
@@ -81,10 +96,12 @@ function websites_uid(){
 	}
 
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "############# ERROR #########\n$q->mysql_error\Line:".__LINE__."\n#############\n";}return;}
-
+	$c=0;
 	if(mysql_num_rows($results)==0){return;}
+	$TOT=mysql_num_rows($results);
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$date=$ligne["zDate"];
+		$c++;
 		$time=strtotime($date." 00:00:00");
 		$tablename=$ligne["tablename"];
 		$but=null;
@@ -96,6 +113,8 @@ function websites_uid(){
 		}
 		
 		events("websites_uid_from_hourtable($hourtable,$time)");
+		percentage("Statistics by Users/Websites: $date $c/$TOT",71);
+		
 		
 		if(websites_uid_from_hourtable($hourtable,$time)){
 			$q->QUERY_SQL("UPDATE tables_day SET websites_uid=1 WHERE tablename='$tablename'");

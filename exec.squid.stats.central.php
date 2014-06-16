@@ -388,7 +388,7 @@ stats_admin_events(2,"48%) Recategorize.... took:" .$unix->distanceOfTimeInWords
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Sync categories ".date("H:i:s"),49);
+percentage("Sync categories",49);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --sync-categories --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"49%) Recategorize.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
@@ -413,38 +413,38 @@ stats_admin_events(2,"60%) Reports.... took:" .$unix->distanceOfTimeInWords($t,t
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Statistics by user",70);
+percentage("Statistics by User",70);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.members_uid.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"70%) Statistics by user took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 
 $t=time();
-percentage("Statistics by user/Websites",71);
+percentage("Statistics by Users/Websites",71);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.websites_uid.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"71%) Statistics by user/Websites took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Statistics by user/mac",73);
+percentage("Statistics by Users/MAC",73);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.members_mac.php  --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"73%) Statistics by user/mac took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Statistics by user/mac/ip",73);
+percentage("Statistics by Users/MAC/IP",73);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.members_macip.php  --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"73%) Statistics by user/mac/ip took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Statistics by user/blocked",74);
+percentage("Statistics by Users/Blocked",74);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.blocked_uid.php  --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"74%) Statistics by user/blocked:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
-percentage("Statistics by user/youtube",75);
+percentage("Statistics by User/Youtube",75);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.youtube_uid.php  --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"74%) Statistics by user/youtube:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
@@ -467,7 +467,7 @@ percentage("{finish}:" .date("Y-m-d H:i:s"),100);
 function percentage($text,$purc){
 	
 	
-	$array["TITLE"]=$text;
+	$array["TITLE"]=$text." ".date("d H:i:s");
 	$array["POURC"]=$purc;
 	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
 	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
