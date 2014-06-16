@@ -1565,6 +1565,10 @@ Perform this operation</delete_nic_bridge>
 <delete_user>Remove this member</delete_user>
 <delivery_agent>Delivery agent</delivery_agent>
 <delivery_agent_parameters_text>Messages delivery agent parameters, listen IP...</delivery_agent_parameters_text>
+<DenyHaproxyConf>Deny Artica to build config</DenyHaproxyConf>
+<DenyHaproxyConf_text>If green, then Artica will not able to build the config for the Load-balancing service.[br]
+Artica can reload/start/stop service but will not change settings.
+</DenyHaproxyConf_text>
 <deny_access>Deny access</deny_access>
 <deny_access_except>Deny for all except</deny_access_except>
 <deny_artica_to_write_config>Deny Artica to write the configuration file automatically</deny_artica_to_write_config>
@@ -1882,6 +1886,8 @@ If you disable it, you will be not allowed to create Web services such as Webmai
 </EnableFreeWeb_disable_explain>
 <EnableGlusterConfigText>Enable this feature in order to run the cluster service in order to create Gluster Trusted Storage Pool and volumes</EnableGlusterConfigText>
 <EnableGoogleSafeSearch>Force Google SafeSearch</EnableGoogleSafeSearch>
+<EnableHaProxy>Enable Load-balancing service</EnableHaProxy>
+<EnableHaProxy_text>If green (by default), the Load-balancing service will monitored by Artica and will running in order to provide a load-balancing service</EnableHaProxy_text>
 <EnableHSTS>Enable HTTP Strict Transport Security</EnableHSTS>
 <EnableHSTS_text>
 Enable/Disable HSTS (HTTP Strict Transport Security).[br]

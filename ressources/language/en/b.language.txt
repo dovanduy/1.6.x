@@ -6405,5 +6405,11 @@ credentials and/or may receive some authentication errors.[br]
 The solution is to whitelist these known user agents that are non-NTLM aware.[br]
 </browsers_ntlm_explain>
 <AllowOnlyGroups>Allow only specified groups</AllowOnlyGroups>
+<DenyHaproxyConf>Deny Artica to build config</DenyHaproxyConf>
+<DenyHaproxyConf_text>If green, then Artica will not able to build the config for the Load-balancing service.[br]
+Artica can reload/start/stop service but will not change settings.
+</DenyHaproxyConf_text>
+<EnableHaProxy>Enable Load-balancing service</EnableHaProxy>
+<EnableHaProxy_text>If green (by default), the Load-balancing service will monitored by Artica and will running in order to provide a load-balancing service</EnableHaProxy_text>
 
  

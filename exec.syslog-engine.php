@@ -2147,9 +2147,10 @@ function clean_mysql_events(){
 	$array["system_failover_events"]=true;
 	$array["system_admin_events"]=true;
 	$array["system_rotate_events"]=true;
-	$array["update_events"];
-	$array["squid_admin_mysql"];
-	$array["blackwhite_admin_mysql"];
+	$array["update_events"]=true;
+	$array["squid_admin_mysql"]=true;
+	$array["blackwhite_admin_mysql"]=true;
+	$array["auth_events"]=true;
 	
 	
 	while (list ($table, $lib) = each ($array) ){
@@ -3224,7 +3225,7 @@ function haproxy_events(){
 			if(preg_match("#(.+?)\s+(.*?)#", $ARRAY["SERVICE"],$ri)){$ARRAY["SERVICE"]=$ri[1];}
 			if(preg_match("#(.+?)\s+(.*?)#", $ARRAY["BACKEND"],$ri)){$ARRAY["BACKEND"]=$ri[1];}
 			$uri=$ARRAY["URI"];
-			$md5=md5(serialize($array));
+			$md5=md5(serialize($ARRAY));
 			if(preg_match("#^(?:[^/]+://)?([^/:]+)#",$uri,$re)){
 				$sitename=$re[1];
 				if(preg_match("#^www\.(.+)#",$sitename,$ri)){$sitename=$ri[1];}

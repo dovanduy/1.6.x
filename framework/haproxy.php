@@ -17,6 +17,9 @@ if(isset($_GET["version"])){version();exit;}
 if(isset($_GET["service-cmds"])){service_cmds();exit;}
 if(isset($_GET["stop-socket"])){backend_stop();exit;}
 if(isset($_GET["start-socket"])){backend_start();exit;}
+if(isset($_GET["copy-conf"])){copy_conf();exit;}
+if(isset($_GET["apply-conf"])){apply_conf();exit;}
+
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
@@ -36,7 +39,7 @@ function service_cmds(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$command=$_GET["service-cmds"];
-	$cmd="$nohup /etc/init.d/artica-postfix $command haproxy >/usr/share/artica-postfix/ressources/logs/web/haproxy.cmds 2>&1 &";
+	$cmd="$nohup /etc/init.d/haproxy $command >/usr/share/artica-postfix/ressources/logs/web/haproxy.cmds 2>&1 &";
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 }
@@ -167,6 +170,26 @@ function reload_all_instances(){
 	$nohup=$unix->find_program("nohup");
 	$php=$unix->LOCATE_PHP5_BIN();
 	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.loadbalance.php --reload >/dev/null 2>&1 &");
+	
+}
+
+function apply_conf(){
+	$unix=new unix();
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/haproxy2.cfg")){return;}
+	@unlink("/etc/haproxy/haproxy.cfg");
+	@copy("/usr/share/artica-postfix/ressources/logs/web/haproxy2.cfg","/etc/haproxy/haproxy.cfg");
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/haproxy2.cfg");	
+	$nohup=$unix->find_program("nohup");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.haproxy.php --reload --noconf >/dev/null 2>&1 &");
+}
+
+
+function copy_conf(){
+	
+	@unlink("/usr/share/artica-postfix/ressources/logs/web/haproxy.cfg");
+	@copy("/etc/haproxy/haproxy.cfg","/usr/share/artica-postfix/ressources/logs/web/haproxy.cfg");
+	@chmod("/usr/share/artica-postfix/ressources/logs/web/haproxy.cfg", 0755);
 	
 }
 

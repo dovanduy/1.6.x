@@ -3,6 +3,7 @@ $GLOBALS["AS_ROOT"]=true;
 $GLOBALS["TITLENAME"]="Load-Balancer Daemon";
 $GLOBALS["OUTPUT"]=false;
 $GLOBALS["COMMANDLINE"]=implode(" ",$argv);
+$GLOBALS["NOCONF"]=false;
 if(strpos($GLOBALS["COMMANDLINE"],"--verbose")>0){$GLOBALS["VERBOSE"]=true;$GLOBALS["debug"]=true;$GLOBALS["DEBUG"]=true;ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
 include_once(dirname(__FILE__).'/ressources/class.ldap.inc');
@@ -13,6 +14,7 @@ include_once(dirname(__FILE__)."/framework/class.settings.inc");
 include_once(dirname(__FILE__)."/ressources/class.haproxy.inc");
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
+if(preg_match("#--noconf#",implode(" ",$argv))){$GLOBALS["NOCONF"]=true;}
 
 
 if($argv[1]=="--build"){build();die();}
@@ -51,7 +53,9 @@ start(true);
 
 
 function reload(){
-	build();
+	if(!$GLOBALS["NOCONF"]){
+		build();
+	}
 	if(!isRunning()){start(true);return;}
 	$unix=new unix();
 	$HAPROXY=$unix->find_program("haproxy");
@@ -94,6 +98,14 @@ function pidsarr(){
 
 
 function build(){
+	$sock=new sockets();
+	$DenyHaproxyConf=intval($sock->GET_INFO("DenyHaproxyConf"));
+	if($DenyHaproxyConf==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]}, Configuration is blocked..\n";}
+		return;
+	}
+	
+	
 	$hap=new haproxy();
 	$conf=$hap->buildconf();
 	@unlink("/etc/haproxy/haproxy.cfg");

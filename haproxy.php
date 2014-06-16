@@ -35,7 +35,12 @@
 	
 	if(isset($_GET["millisec"])){milliseconds_text();exit;}
 	if(isset($_GET["events"])){events();exit;}
+	
+	//conf
 	if(isset($_GET["popup-view-script"])){popup_script();exit;}
+	if(isset($_POST["HAPROXY_CONTENT"])){popup_script_save();exit;}
+	
+	
 	if(isset($_GET["tabs"])){tabs();exit;}
 	if(isset($_GET["balancers"])){balancers();exit;}
 	if(isset($_GET["balancers-list"])){balancers_list();exit;}
@@ -366,38 +371,48 @@ function haproxy_status_popup_content(){
 	$sock=new sockets();
 	$tpl=new templates();
 	$ini=new Bs_IniHandler();
+	$tr=array();
+	$fontsize=null;
 	$page=CurrentPageName();	
 	$datas=base64_decode($sock->getFrameWork("haproxy.php?main-status=yes"));
 	$ini->loadString($datas);	
 	$status=DAEMON_STATUS_ROUND("APP_HAPROXY",$ini,null,0);
-	
-	$tbl=unserialize(base64_decode($sock->getFrameWork("haproxy.php?global-status=yes")));
-	while (list ($num, $ligne) = each ($tbl) ){
-		if(!preg_match("#^(.*?):(.*)#", $ligne,$re)){continue;}
-		$tr[]="
-		<tr>
-			<td class=legend nowrap>".trim($re[1])."</td>
-			<td nowrap><strong>".trim($re[2])."</strong></td>
-		</tr>
-		";
+	if(isset($_GET["bigsize"])){
 		
+		$fontsize="style='font-size:14px'";
+		$refresh="<div style='text-align:right'>
+				".imgtootltip("refresh-32.png",
+						"{refresh}",
+						"LoadAjax('haproxy-status','haproxy.php?haproxy-status-popup-content=yes&bigsize=yes');")."</div>";
+	
 	}
 	
+	$tbl=unserialize(base64_decode($sock->getFrameWork("haproxy.php?global-status=yes")));
+	if(count($tbl)>2){
+		while (list ($num, $ligne) = each ($tbl) ){
+			if(!preg_match("#^(.*?):(.*)#", $ligne,$re)){continue;}
+			$tr[]="
+			<tr>
+				<td class=legend nowrap $fontsize>".trim($re[1])."</td>
+				<td nowrap><strong $fontsize>".trim($re[2])."</strong></td>
+			</tr>
+			";
+			
+		}
+	}
+	
+	if(count($tr)>1){
+		$TRTAB="	<div style='width:98%' class=form>
+			<table style='width:100%' >". @implode("\n", $tr)."
+			</table>
+	</div>";
+	}
 	
 	$table="
 	<center style=''>
 	$status
-	
-	<table style='width:99%' class=form>
-	<tbody>
-	<tr>
-		<td width=1% align='center'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-		<td width=1% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-		<td width=1% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-	</tr>
-	</tbody>
-	</table>
-	<table style='width:99%' class=form>". @implode("\n", $tr)."</table>
+	$refresh
+	$TRTAB
 	</center>
 	";	
 	echo $tpl->_ENGINE_parse_body($table);
@@ -464,7 +479,7 @@ function HaProxyAdd() {
 	
 }	
 function HaBackConf(){
-		YahooWin2('770','$page?popup-view-script=yes','$view_script');
+		YahooWin2('900','$page?popup-view-script=yes','$view_script');
 }
 
 function ZoomHapProxStatus(){
@@ -1215,16 +1230,23 @@ function backends_tabs(){
 function tabs(){
 	$users=new usersMenus();
 	$page=CurrentPageName();
+	$array["status"]='{status}';
 	$array["balancers"]='{balancers}';
 	$array["backend-status"]='{backends_status}';
 	$array["events"]='{events}';
 	$tpl=new templates();
 	
-	$fontsize="style='font-size:16px'";$width="100%";
+	$fontsize="style='font-size:18px'";$width="100%";
 	
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
+			if($num=="status"){
+				$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"haproxy.status.php?$num=yes\"><span $fontsize>$ligne</span></a></li>\n");
+				continue;
+			}
+		
+		
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span $fontsize>$ligne</span></a></li>\n");
 	}
 	
@@ -1394,7 +1416,7 @@ function backends_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $FORCE_FILTER $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,$database);
@@ -1438,11 +1460,47 @@ function backends_list(){
 	
 	echo json_encode($data);	
 }
+function popup_script_save(){
+	$data=url_decode_special_tool($_POST["HAPROXY_CONTENT"]);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/haproxy2.cfg", $data);
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/haproxy2.cfg")){echo "Permission denied\n";return;}
+	$sock=new sockets();
+	$page=CurrentPageName();
+	echo base64_decode($sock->getFrameWork("haproxy.php?apply-conf=yes"));
+}
+
 function popup_script(){
 	$sock=new sockets();
-	$hap=new haproxy();
-	$conf=$hap->buildconf();
-	$html="<textarea style='height:450px;overflow:auto;width:100%;font-size:16px'>$conf</textarea>";
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sock->getFrameWork("haproxy.php?copy-conf=yes");
+	$t=time();
+	$conf=@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/haproxy.cfg");
+	
+	$html="<textarea 
+		style='width:99%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px !important;
+		font-weight:bold;padding:3px;font-family:Courier New;'
+		id='HAPROXY_CONTENT-$t'>$conf</textarea>
+		<center style='margin-top:15px'>". $tpl->_ENGINE_parse_body(button("{apply}","Save$t()",26))."</center>
+	
+	<script>
+	var xSave$t= function (obj) {
+		var results=obj.responseText;
+		if(results.length>3){alert(results);}
+		UnlockPage();
+	
+	}
+	function Save$t(){
+		LockPage();
+		var XHR = new XHRConnection();
+		XHR.appendData('HAPROXY_CONTENT',encodeURIComponent(document.getElementById('HAPROXY_CONTENT-$t').value));
+		XHR.sendAndLoad('$page', 'POST',xSave$t);
+		}		
+		
+	</script>	
+	
+	
+	";
 	echo $html;
 	
 	

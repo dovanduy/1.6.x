@@ -317,12 +317,12 @@ $('#table-$t').flexigrid({
 	url: '$page?sshd-events=yes',
 	dataType: 'json',
 	colModel : [
-		{display: '&nbsp;', name : 'success', width : 31, sortable : true, align: 'center'},
-		{display: '$country', name : 'Country', width :31, sortable : true, align: 'center'},
-		{display: '$date', name : 'zDate', width :138, sortable : true, align: 'left'},
-		{display: '$member', name : 'uid', width : 115, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'success', width : 46, sortable : true, align: 'center'},
+		{display: '$country', name : 'Country', width :74, sortable : true, align: 'center'},
+		{display: '$date', name : 'zDate', width :200, sortable : true, align: 'left'},
+		{display: '$member', name : 'uid', width : 116, sortable : true, align: 'left'},
 		{display: '$hostname', name : 'hostname', width : 367, sortable : true, align: 'left'},
-		{display: '$ipaddr', name : 'ipaddr', width : 103, sortable : true, align: 'left'},
+		{display: '$ipaddr', name : 'ipaddr', width : 189, sortable : true, align: 'left'},
 	],
 	$buttons
 
@@ -341,8 +341,8 @@ $('#table-$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 879,
-	height: 350,
+	width: '99%',
+	height: 550,
 	singleSelect: true
 	
 	});   
@@ -366,22 +366,15 @@ function events_list(){
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1";
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
-		$total = $ligne["TCOUNT"];
+		$total = $q->COUNT_ROWS($table, "artica_events");
 	}
 	
 	if (isset($_POST['rp'])) {$rp = $_POST['rp'];}	
@@ -390,7 +383,7 @@ function events_list(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	if($OnlyEnabled){$limitSql=null;}
+	
 	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_events");
@@ -405,14 +398,14 @@ function events_list(){
 	$data['rows'] = array();
 	
 	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
+		json_error_show($q->mysql_error);
 	}	
 	
 	//if(mysql_num_rows($results)==0){$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));}
-	$span="<span style='font-size:18px;font-weight:bold'>";
+	$span="<span style='font-size:18px;font-weight:normal'>";
+	
+	if(mysql_num_rows($results)==0){json_error_show("no data");}
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 
 	if($ligne["success"]==1){$img='fleche-20-right.png';}else{$img='fleche-20-red-right.png';}

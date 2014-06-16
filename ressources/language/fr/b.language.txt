@@ -1352,6 +1352,9 @@ Effectuer cette op&eacute;ration</delete_nic_bridge>
 <delete_user>Supprimer ce membre</delete_user>
 <delivery_agent>Agent de d&eacute;livrance</delivery_agent>
 <delivery_agent_parameters_text>Param&egrave;tres de l'agent de d&eacute;livrance des courriers, adresses IP d'&eacute;coute...</delivery_agent_parameters_text>
+<DenyHaproxyConf>Interdire &agrave; Artica d\'&eacute;crire la configuration</DenyHaproxyConf>
+<DenyHaproxyConf_text>Si vert, Artica ne sera pas autoris&eacute; &agrave; &eacute;crire les param&egrave;tres pour le service de balancier.[br]
+Il sera toutefois en mesure d\'arr&ecirc;ter le service, le recharger ou le red&eacute;marrer</DenyHaproxyConf_text>
 <deny_access>Interdire l'acc&egrave;s</deny_access>
 <deny_access_except>Interdire &agrave; tous sauf</deny_access_except>
 <deny_artica_to_write_config>Interdire Artica d'&eacute;crire automatiquement le fichier de configuration</deny_artica_to_write_config>
@@ -1629,6 +1632,8 @@ Apache consomme quand m&ecirc;me des ressources serveur m&ecirc;me si aucun serv
 Si vous le d&eacute;sactiver, vous ne serez plus en mesure de cr&eacute;er des services Web tels que des WebMail, CRM ou des consoles d'administration d&eacute;di&eacute;es.</EnableFreeWeb_disable_explain>
 <EnableGlusterConfigText>Activer la fonctionnalit&eacute; de mise en cluster afin de pouvoir cr&eacute;er des fermes de serveurs et des volumes de r&eacute;plication.</EnableGlusterConfigText>
 <EnableGoogleSafeSearch>Forcer Google SafeSearch</EnableGoogleSafeSearch>
+<EnableHaProxy>Activer le service de balancier</EnableHaProxy>
+<EnableHaProxy_text>Si vert, (par d&eacute;faut), le service de balancier sera surveill&eacute; par Artica et d&eacute;marr&eacute; afin de fournir un service de load-balancing r&eacute;seau.</EnableHaProxy_text>
 <EnableHSTS>Activer le HTTP Strict Transport Security</EnableHSTS>
 <EnableHSTS_text>Activer/d&eacute;sactiver le HSTS (HTTP Strict Transport Security).[br]
 HSTS est une fonctionnalit&eacute; qui permet au serveur Web de dire au navigateur que les communications sont uniquement chiffr&eacute;es en SSL et non en HTTP.[br]
