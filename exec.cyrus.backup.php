@@ -18,10 +18,11 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__).'/ressources/class.mount.inc');
 include_once(dirname(__FILE__).'/ressources/class.os.system.inc');
 $GLOBALS["LOGFILE"]="/var/log/cyrus-backup.debug";
-$GLOBALS["MOUNT_POINT"]="/mnt/cyrus-mount-backup";
+$GLOBALS["MOUNT_POINT"]="/home/artica/mounts/cyrus-mount-backup";
 $GLOBALS["SYSTEM_INTERNAL_LOAD"]=0;
 $GLOBALS["MOUNTED_PATH_FINAL"]=null;
 $_GET["LOGFILE"]=$GLOBALS["LOGFILE"];
+$GLOBALS["DATE_START"]=time();
 $unix=new unix();
 $sock=new sockets();
 $GLOBALS["CLASS_UNIX"]=$unix;
@@ -32,7 +33,7 @@ if($x>0){die("This process is already executed $x times\n\n");}
 
 if($argv[1]=="--testnas"){tests_nas().killNas();die();}
 if($argv[1]=="--test-nas"){tests_nas().killNas();die();}
-backup();
+exec_resources();
 
 die();
 
@@ -90,12 +91,100 @@ function killNas(){
 
 }
 
-function backup(){
+function LoadConfig(){
+	if(isset($GLOBALS["CyrusBackupNas"])){return;}
+	$sock=new sockets();
+	$GLOBALS["CyrusBackupNas"]=unserialize(base64_decode($sock->GET_INFO("CyrusBackupNas")));
+	if(!is_numeric($GLOBALS["CyrusBackupNas"]["NAS_ENABLE"])){$GLOBALS["CyrusBackupNas"]["NAS_ENABLE"]=0;}
+	if(!is_numeric($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"])){$GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]=1;}
+	
+	
+}
+
+
+
+function exec_webdav(){
+	$mount=new mount();
 	$unix=new unix();
-	if(!tests_nas()){
-		system_admin_events("Unable to backup cyrus-mailboxes",__FUNCTION__,__FILE__,__LINE__);
+	
+	$mount_point=$GLOBALS["MOUNT_POINT"];
+	@mkdir($mount_point,0755,true);
+	$server=$GLOBALS["CyrusBackupNas"]["WEBDAV_SERVER"];
+	$username=$GLOBALS["CyrusBackupNas"]["WEBDAV_USER"];
+	$password=$GLOBALS["CyrusBackupNas"]["WEBDAV_PASSWORD"];
+	$path=$GLOBALS["CyrusBackupNas"]["WEBDAV_DIR"];
+	if($mount->ismounted($mount_point)){$mount->umount($mount_point);}
+	
+	if($GLOBALS["VERBOSE"]){echo "davfs:WEBDAV_DIR...: $path\n";}
+	if($GLOBALS["VERBOSE"]){echo "davfs:WEBDAV_SERVER: $server\n";}
+	
+	
+	if(!$mount->davfs_mount($mount_point,$server,$username,$password,$path)){
+		if($GLOBALS["VERBOSE"]){echo $mount->events_compile()."\n";}
+		cyrus_admin_mysql(0, "Unable to connect to $server", $mount->events_compile(),__FILE__,__LINE__);
 		return;
 	}
+	
+	$path=$mount->davfs_path($mount_point,$server,$username,$password,$path);
+	if($GLOBALS["VERBOSE"]){echo "davfs_path: $path\n";}
+	
+	
+	$hostname=$unix->hostname_g();
+	$GLOBALS["DIRBYTES"]=date("YmdH");
+	$GLOBALS["MOUNTED_PATH__BACKUPDIR"]="{$GLOBALS["MOUNT_POINT"]}/$path/$hostname";
+	$GLOBALS["MOUNTED_PATH_FINAL"]="{$GLOBALS["MOUNT_POINT"]}/$path/$hostname/{$GLOBALS["DIRBYTES"]}";
+	$GLOBALS["MOUNTED_PATH_FINAL"]=str_replace("//", "/", $GLOBALS["MOUNTED_PATH_FINAL"]);
+	if($GLOBALS["VERBOSE"]){echo "MOUNTED_PATH_FINAL: {$GLOBALS["MOUNTED_PATH_FINAL"]}\n";}
+	
+	if(!is_dir($GLOBALS["MOUNTED_PATH_FINAL"])){
+		if($GLOBALS["VERBOSE"]){echo "Create -> {$GLOBALS["MOUNTED_PATH_FINAL"]}\n";}
+		@mkdir($GLOBALS["MOUNTED_PATH_FINAL"],0755,true);
+		if(!is_dir($GLOBALS["MOUNTED_PATH_FINAL"])){
+			cyrus_admin_mysql(0,"Unable to backup: Permission denied on WebDAV resource $server","For creating directory {$GLOBALS["MOUNTED_PATH_FINAL"]}",__FILE__,__LINE__);
+			killNas();
+			return;
+		}
+	}
+	
+	$t=time();
+	@touch("{$GLOBALS["MOUNTED_PATH_FINAL"]}/$t");
+	if(!is_file("{$GLOBALS["MOUNTED_PATH_FINAL"]}/$t")){
+		cyrus_admin_mysql(0,"Unable to backup: Permission denied on WebDAV",
+		"resource {{$GLOBALS["MOUNTED_PATH_FINAL"]}/$t}",__FILE__,__LINE__);
+		killNas();
+		return;
+	}
+	
+	@unlink("{$GLOBALS["MOUNTED_PATH_FINAL"]}/$t");
+	
+	if($GLOBALS["VERBOSE"]){echo "backup_ldap():\n";}
+	backup_ldap();
+	if($GLOBALS["VERBOSE"]){echo "backup_cyrus():\n";}
+	backup_cyrus();
+	remove_containers();	
+	killNas();
+	
+	
+}
+
+
+function exec_resources(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid)){
+		$TIMEF=$unix->PROCCESS_TIME_MIN($pid);
+		cyrus_admin_mysql(1,"An Artica task already running PID $pid since {$TIMEF}Mn","Aborted",__FILE__,__LINE__);
+		return;
+	}
+	@file_put_contents($pidfile, getmypid());
+	
+	LoadConfig();
+	if($GLOBALS["CyrusBackupNas"]["WEBDAV_ENABLE"]==1){exec_webdav();}
+	if($GLOBALS["CyrusBackupNas"]["NAS_ENABLE"]==0){return;}
+	
+	
+	if(!tests_nas()){ cyrus_admin_mysql(0,"Unable to backup cyrus-mailboxes",null,__FILE__,__LINE__); return; }
 	$hostname=$unix->hostname_g();
 	$GLOBALS["DIRBYTES"]=date("YmdH");
 	$GLOBALS["MOUNTED_PATH__BACKUPDIR"]="{$GLOBALS["MOUNT_POINT"]}/$hostname";
@@ -103,8 +192,7 @@ function backup(){
 	if(!is_dir($GLOBALS["MOUNTED_PATH_FINAL"])){
 		@mkdir($GLOBALS["MOUNTED_PATH_FINAL"],0755,true);
 		if(!is_dir($GLOBALS["MOUNTED_PATH_FINAL"])){
-			sendEmail("Unable to backup: Permission denied on NAS", "Unable to create {$GLOBALS["MOUNTED_PATH_FINAL"]} on your NAS system");
-			system_admin_events("Unable to backup: Permission denied on NAS",__FUNCTION__,__FILE__,__LINE__);
+			cyrus_admin_mysql(0,"Unable to backup: Permission denied on NAS",null,__FILE__,__LINE__);
 			return;
 		}
 	}
@@ -133,7 +221,7 @@ function remove_containers(){
 			continue;
 		}
 		shell_exec("$rm -rf {$GLOBALS["MOUNTED_PATH__BACKUPDIR"]}/$directory");
-		system_admin_events("Deleted container $directory",__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Deleted container $directory",__FILE__,__LINE__);
 		$q->QUERY_SQL("DELETE FROM cyrus_backup WHERE directory='$directory' AND hostname='$hostname'","artica_events");
 	}	
 }
@@ -141,20 +229,13 @@ function remove_containers(){
 function backup_cyrus(){
 	$unix=new unix();
 	$tempdir=$unix->TEMP_DIR();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$pid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($pid)){
-		$TIMEF=$unix->PROCCESS_TIME_MIN($pid);
-		system_admin_events("Aready task is currently running PID $pid since {$TIMEF}Mn",__FUNCTION__,__FILE__,__LINE__);
-		return;
-	}
-	@file_put_contents($pidfile, getmypid());
-	$date_start=time();
+
+	
 	$q=new mysql();
 	
 	$users=new usersMenus();
 	if(!$users->cyrus_imapd_installed){
-		system_admin_events("Unable to backup: cyrus-impad NOT Installed",__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: cyrus-impad NOT Installed",null,__FILE__,__LINE__);
 		return true;
 	}
 
@@ -162,13 +243,13 @@ function backup_cyrus(){
 	$config_directory=$users->cyr_config_directory;
 	$tar=$unix->find_program("tar");
 	$su=$unix->find_program("su");
-	
+	$rsync=$unix->find_program("rsync");
 
 	@mkdir("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap",0755,true);
 	
 	if(!is_dir("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap")){
 		
-		system_admin_events(__LINE__."]: Unable to backup: Permission denied on NAS {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap no such directory",__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,__LINE__."]: Unable to backup: Permission denied","On NAS {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap no such directory",__FILE__,__LINE__);
 		return;
 	}
 	
@@ -176,7 +257,7 @@ function backup_cyrus(){
 		
 
 	if(!is_file("$users->ctl_mboxlist")){
-		system_admin_events("Unable to backup: ctl_mboxlist no such binary",__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: ctl_mboxlist no such binary",__FILE__,__LINE__);
 		return;	
 	}
 	$L=explode("\n",@file_get_contents("/etc/security/limits.conf"));
@@ -197,52 +278,100 @@ function backup_cyrus(){
 	$L=array();
 	$T=array();
 	
-	
+	@chmod("$tempdir",0777);
 	
 	$cmd="$su - cyrus -c \"$users->ctl_mboxlist -d >$tempdir/mailboxlist.txt\"";
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	exec($cmd,$results);
 	
 	if(!is_file("$tempdir/mailboxlist.txt")){
-		sendEmail("Unable to backup: Permission denied on NAS", "Unable to create $tempdir/mailboxlist.txt on your NAS system\n$cmd".@implode("\n", $results));
-		system_admin_events("Unable to backup: unable to export mailbox list\nfile $tempdir/mailboxlist.txt not exists\n****\n$cmd\n****\n\n".implode("\n",$results),__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: unable to export mailbox list",
+		"file $tempdir/mailboxlist.txt not exists\n****\n$cmd\n****\n\n".implode("\n",$results),__FILE__,__LINE__);
 	}else{
-		
-		if(!@copy("$tempdir/mailboxlist.txt", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mailboxlist.txt")){
-			sendEmail("Unable to backup: Permission denied on NAS", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap permission denied" );
-			system_admin_events("Unable to backup: Permission denied on NAS\n{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap permission denied");
+		if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==0){
+			if(!@copy("$tempdir/mailboxlist.txt", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mailboxlist.txt")){
+				cyrus_admin_mysql(0,"Unable to backup: Permission denied on resource",
+				"{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap permission denied");
+				@unlink("$tempdir/mailboxlist.txt");
+				return;
+			}
+			$size=@filesize("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mailboxlist.txt");
+			$size=FormatBytes($size/1024);
+			cyrus_admin_mysql(2,"mailboxlist.txt - $size - success",null,__FILE__,__LINE__);
 		}
 		
-		@unlink("$tempdir/mailboxlist.txt");
+		if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==1){
+			if(!$unix->compress("$tempdir/mailboxlist.txt", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mailboxlist.txt.gz")){
+				cyrus_admin_mysql(0,"Unable to backup: Permission denied on resource",
+				"{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap permission denied");
+				@unlink("$tempdir/mailboxlist.txt");
+				return;
+			}
+			$size=@filesize("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mailboxlist.txt.gz");
+			$size=FormatBytes($size/1024);
+			cyrus_admin_mysql(2,"mailboxlist.txt.gz - $size - success",null,__FILE__,__LINE__);
+		}
+		
+		
 	}
 	
 	
 	
 	$results=array();
+	if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==0){
+		if(!is_file($rsync)){
+			cyrus_admin_mysql(0,"Rsync is not present, backup operation will be stopped...",null,__FILE__,__LINE__);
+			return false;
+		}
+		
+		$cmd="$rsync -vaR --delete --delete-after $partition_default $config_directory {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap";
+		$t=time();
+		exec($cmd,$results);
+		cyrus_admin_mysql(2,"Backup: took ".$unix->distanceOfTimeInWords($t,time()),@implode("\n", $results),__FILE__,__LINE__);
+		InsertToMysql();
+		return;
+		
+		
+		
+	}
+	
 	@chdir($partition_default);
-	$cmd="$tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2 * 2>&1";
+	if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==1){
+		$cmd="$tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2 * 2>&1";
+	}
+	
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	exec($cmd,$results);
 	if(!is_file("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2")){
-		sendEmail("Unable to backup: Permission denied on NAS", "Unable to create {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2 on your NAS system\n$cmd\n".@implode("\n", $results));
-		system_admin_events("Unable to backup: mail-data-backup.tar.bz2 Permission denied or compression failed\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: mail-data-backup.tar.bz2 Permission denied or compression failed",@implode("\n", $results),__FILE__,__LINE__);
 		return;
 	}	
 	
+	$size=@filesize("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2");
+	$size=FormatBytes($size/1024);
+	cyrus_admin_mysql(2,"cyrus-imap/mail-data-backup.tar.bz2 - $size - success");
+		
 	$results=array();
 	@chdir($config_directory);
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	$cmd="$tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2 * 2>&1";
 	exec($cmd,$results);
 	if(!is_file("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2")){
-		sendEmail("Unable to backup: Permission denied on NAS", "Unable to create {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2 on your NAS system\n$cmd\n".@implode("\n", $results));
-		system_admin_events("Unable to backup: configdirectory.tar.bz2 Permission denied or compression failed\n".@implode("\n", $results),__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: configdirectory.tar.bz2 Permission denied or compression failed",@implode("\n", $results),__FILE__,__LINE__);
 		return;
 	}
-		
+	$size=@filesize("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2");
+	$size=FormatBytes($size/1024);
+	cyrus_admin_mysql(2,"cyrus-imap/mail-data-backup.tar.bz2 - $size - success");
+	InsertToMysql();
+}
+
+function InsertToMysql(){
+	$unix=new unix();
+	$date_start=$GLOBALS["DATE_START"];
 	$size=$unix->DIRSIZE_BYTES("{$GLOBALS["MOUNTED_PATH_FINAL"]}");
 	$date_end=time();
-	$calculate=$unix->distanceOfTimeInWords($date_start,$date_end);
+	$calculate=$unix->distanceOfTimeInWords($date_start,time());
 	$zDate=date("Y-m-d H:i:s");
 	$hostname=$unix->hostname_g();
 	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`cyrus_backup` (
@@ -257,13 +386,12 @@ function backup_cyrus(){
 	$q->QUERY_SQL($sql,'artica_events');
 	$q->QUERY_SQL("INSERT IGNORE INTO `cyrus_backup` (`zDate`,`hostname`,`duration`,`directory`,`size`) VALUES('$zDate','$hostname','$calculate','{$GLOBALS["DIRBYTES"]}','$size')","artica_events");
 	
-	if(!$q->ok){system_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
+	if(!$q->ok){cyrus_admin_mysql(0,"$q->mysql_error",__FILE__,__LINE__);}
 	
 	$size=$size/1024;
 	$size=$size/1024;
+	cyrus_admin_mysql(2,"Cyrus backup: Success $calculate in {$GLOBALS["MOUNTED_PATH_FINAL"]}",null,__FILE__,__LINE__);
 	
-	system_admin_events("Cyrus backup: Success $calculate in {$GLOBALS["MOUNTED_PATH_FINAL"]}",__FUNCTION__,__FILE__,__LINE__);
-	sendEmail("Cyrus backup: Success $calculate - {$size}MB", "Backup created in {$GLOBALS["MOUNTED_PATH_FINAL"]}/on your NAS system\n".@implode("\n", $results));
 }
 
 
@@ -271,7 +399,7 @@ function backup_ldap(){
 	$unix=new unix();
 	$slapcat=$unix->find_program("slapcat");
 	if($slapcat==null){
-		system_admin_events("Unable to find slapcat binary",__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to find slapcat binary",null,__FILE__,__LINE__);
 		return false;
 	}
 	$tempdir=$unix->TEMP_DIR();
@@ -279,34 +407,36 @@ function backup_ldap(){
 
 	@mkdir("{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup",0755,true);
 	if(!is_dir("{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup")){
-		system_admin_events("Unable to backup: Permission denied on NAS",__FUNCTION__,__FILE__,__LINE__);
-		sendEmail("Unable to backup: Permission denied on NAS", "Unable to create {$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup on your NAS system");
+		cyrus_admin_mysql(0,"Unable to backup: Permission denied on ressource",null,__FILE__,__LINE__);
 		@unlink("$tempdir/ldap.ldif");
 		return false;
 	}
+	
+	if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==0){
 
-	if(!@copy("$tempdir/ldap.ldif", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup/ldap.ldif")){
-		system_admin_events("Unable to backup: Permission denied on NAS",__FUNCTION__,__FILE__,__LINE__);
-		sendEmail("Unable to backup: Permission denied on NAS", "Unable to create {$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup/ldap.ldif on your NAS system");
-		@unlink("$tempdir/ldap.ldif");
-		return false;
+		if(!@copy("$tempdir/ldap.ldif", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup/ldap.ldif")){
+			cyrus_admin_mysql(0,"Unable to backup: Permission denied on ressource",null,__FILE__,__LINE__);
+			@unlink("$tempdir/ldap.ldif");
+			return false;
+		}
+	
+	}
+	
+	if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==1){
+		if(!$unix->compress("$tempdir/ldap.ldif", "{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup/ldap.ldif.gz")){
+			cyrus_admin_mysql(0,"Unable to backup: Permission denied on ressource",null,__FILE__,__LINE__);
+			@unlink("$tempdir/ldap.ldif");
+			return false;
+		}
+		
 	}
 	
 	
 	$ldap=new clladp();
 	if(!@file_put_contents("{$GLOBALS["MOUNTED_PATH_FINAL"]}/ldap_backup/suffix",$ldap->suffix)){
-		system_admin_events("Unable to backup: Permission denied on NAS",__FUNCTION__,__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: Permission denied on ressource",null,__FILE__,__LINE__);
 	}
 	@unlink("$tempdir/ldap.ldif");
 }
 
-function SendeMail($subject,$content){
-	if(!isset($GLOBALS["CyrusBackupNas"])){
-		$sock=new sockets();
-		$GLOBALS["CyrusBackupNas"]=unserialize(base64_decode($sock->GET_INFO("CyrusBackupNas")));
-	}
-	
-	if(!is_numeric($GLOBALS["CyrusBackupNas"]["notifs"])){return;}
-	$unix=new unix();
-	$unix->SendEmailConfigured($GLOBALS["CyrusBackupNas"],$subject,$content);
-}
+

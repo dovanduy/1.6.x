@@ -1079,8 +1079,8 @@ function rules_table(){
 	}	
 	
 $TBSIZE=157;
-$TBWIDTH=636;
-if($tpl->language=="fr"){$TBSIZE=175;$TBWIDTH=636;}
+$TBWIDTH=831;
+if($tpl->language=="fr"){$TBSIZE=175;$TBWIDTH=831;}
 	//{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'}, 
 	
 $html="

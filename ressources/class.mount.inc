@@ -282,6 +282,119 @@ class mount{
 			
 	}
 	
+	private function davfs_secrets($server,$username,$password){
+		$secretArray=array();
+		$secrets=@file_get_contents("/etc/davfs2/secrets");
+		$secretArray=explode("\n",$secrets);
+		$FOUND=false;
+		while (list ($index, $line) = each ($secretArray) ){
+			if(strpos(" $line", $server)>0){
+				$this->events("davfs_mount() /etc/davfs2/secrets: Modify line $index");
+				$FOUND=true;
+				$secretArray[$index]="\"$server\"	\"$username\"	\"$password\" \n";
+				break;
+			}
+			
+		}
+		
+		if(!$FOUND){
+			$this->events("davfs_mount() /etc/davfs2/secrets: add new line");
+			$secretArray[]="\"$server\"		\"$username\"	\"$password\" \n";
+		}
+		$this->events("davfs_mount() ".count($secretArray)." line(s) saved...");
+		@file_put_contents("/etc/davfs2/secrets",@implode("\n", $secretArray));
+		
+	}
+	
+	public function davfs_path($mountpoint,$server,$username,$password,$Targetpath=null){
+		if(substr($Targetpath, 0,1)=="/"){$Targetpath=substr($Targetpath, 1,strlen($Targetpath));}
+		$Array=parse_url($server);
+		if( (!isset($Array["scheme"]))  OR ($Array["scheme"]==null) ){$Array["scheme"]="http";}
+		if( (!isset($Array["host"]))  OR ($Array["host"]==null) ){$Array["host"]=$server;}
+		if(preg_match("#^(.+?):([0-9]+)#", $Array["host"],$re)){$Array["host"]=$re[1]; $Array["port"]=$re[2]; }
+		if( (!isset($Array["port"]))  OR (!is_numeric($Array["port"])) ){
+			if($Array["scheme"]=="http"){$Array["port"]=80;}
+			if($Array["scheme"]=="https"){$Array["port"]=443;}
+		}
+		if(!isset($Array["path"])){return $Targetpath;}
+		$path="{$Array["path"]}";
+		if($GLOBALS["VERBOSE"]){echo "davfs_path: ARRAY -> $path\n";}
+		
+		if(strpos(" $path", "/")>0){
+			if($GLOBALS["VERBOSE"]){echo "davfs_path: $path -> explode\n";}
+			$DIRS=explode("/",$path);
+			while (list ($index, $line) = each ($DIRS) ){
+				if(trim($line)==null){continue;}
+				$NEXTDIRS[]=$line;
+			}
+			unset($NEXTDIRS[0]);
+			$path=@implode("/", $NEXTDIRS);
+			if($GLOBALS["VERBOSE"]){echo "davfs_path: ARRAY -> $path\n";}
+			
+		}
+		if($Targetpath<>null){$Targetpath="$path/$Targetpath";}
+		$Targetpath=str_replace("//", "/", $Targetpath);
+		if(substr($Targetpath, strlen($Targetpath),1)=="/"){$Targetpath=substr($Targetpath, 0,strlen($Targetpath)-1);}
+		if($GLOBALS["VERBOSE"]){echo "davfs_path: return -> $Targetpath\n";}
+		return $Targetpath;
+		
+	}
+	
+	
+	public function davfs_mount($mountpoint,$server,$username,$password){
+		
+		if($this->ismounted($mountpoint)){return true;}
+		
+		$Array=parse_url($server);
+		if( (!isset($Array["scheme"]))  OR ($Array["scheme"]==null) ){$Array["scheme"]="http";}
+		if( (!isset($Array["host"]))  OR ($Array["host"]==null) ){$Array["host"]=$server;}
+		
+		if(preg_match("#^(.+?):([0-9]+)#", $Array["host"],$re)){$Array["host"]=$re[1]; $Array["port"]=$re[2]; }
+		if( (!isset($Array["port"]))  OR (!is_numeric($Array["port"])) ){
+			if($Array["scheme"]=="http"){$Array["port"]=80;}
+			if($Array["scheme"]=="https"){$Array["port"]=443;}
+		}
+		
+		
+		$server=$Array["host"];
+		$port=$Array["port"];
+		$path="{$Array["path"]}";
+
+		if(substr($path, 0,1)=="/"){$path=substr($path, 1,strlen($path));}
+			if(strpos(" $path", "/")>0){
+			if($GLOBALS["VERBOSE"]){echo "davfs_path: $path -> explode\n";}
+			$DIRS=explode("/",$path);
+			while (list ($index, $line) = each ($DIRS) ){
+				if(trim($line)==null){continue;}
+				$NEXTDIRS[]=$line;
+			}
+			$path=$NEXTDIRS[0];
+		}
+		
+		$MainUri=strtolower("{$Array["scheme"]}://$server:$port");
+		if($path<>null){$MainUri="$MainUri/$path";}
+		$this->events("davfs_mount() mounting $MainUri -> $mountpoint");
+		$this->davfs_secrets($MainUri,$username,$password);
+		
+		$mount=$this->find_program("mount.davfs");
+		if(!is_file($mount)){
+			$this->events("davfs_mount() Unable to find mount.davfs");
+			return false;
+		}
+		$cmd="$mount $MainUri $mountpoint 2>&1";
+		exec($cmd,$results);
+		$this->events("davfs_mount(): $cmd\n".implode("\n", $results));
+		if($this->ismounted($mountpoint)){
+			if($GLOBALS["VERBOSE"]){echo "$mount $MainUri $mountpoint 2>&1 SUCCESS\n";}
+			return true;}
+		if($GLOBALS["VERBOSE"]){echo "$mount $MainUri $mountpoint 2>&1\n".$this->events_compile()."\n";}
+		return false;
+		
+		
+	}
+	
+	
+	
 	private function shellEscapeChars($path){
 		$path=str_replace(" ","\ ",$path);
 		$path=str_replace('$','\$',$path);
@@ -355,8 +468,11 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 
 	private function find_program($strProgram) {
 		$key=md5($strProgram);
-		if($_SESSION["find_program"]["$strProgram"]<>null){return $_SESSION["find_program"]["$strProgram"];}
-		if($GLOBALS["find_program"]["$strProgram"]<>null){return $GLOBALS["find_program"]["$strProgram"];}	
+		if(isset($GLOBALS["find_program"])){
+			if(isset($GLOBALS["find_program"]["$strProgram"])){
+				if($GLOBALS["find_program"]["$strProgram"]<>null){return $GLOBALS["find_program"]["$strProgram"];}
+			}
+		}	
 		$value=$this->internal_find_program($strProgram);
 		$_SESSION["find_program"]["$strProgram"]=$value;
 		$GLOBALS["find_program"]["$strProgram"]=$value;
@@ -364,12 +480,9 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 	}
 	
 	private function internal_find_program($strProgram){
-	  global $addpaths;	
+	  
 	  $arrPath = array('/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin', '/usr/local/sbin');
-	  if (addPaths !== false) {
-	    $addpaths = explode(',', addPaths);
-	    $arrPath = array_merge($arrPath, $addpaths);
-	  }
+	  
 	  if (function_exists("is_executable")) {
 	    foreach($arrPath as $strPath) {
 	      $strProgrammpath = $strPath . "/" . $strProgram;
@@ -391,6 +504,9 @@ private function events($text){
 	if($this->eventspath<>null){if(isset($GLOBALS["CLASS_UNIX"])){$GLOBALS["CLASS_UNIX"]->events($text,$this->eventspath,false,__CLASS__."/$sourcefunction",$sourceline,$sourcefile);}}
 	if(function_exists("writelogs")){writelogs("$text",__CLASS__."/$sourcefunction",$sourcefile,$sourceline);return;}
 }	
+public function events_compile(){
+	return @implode("\n", $GLOBALS["MOUNT_EVENTS"]);
+}
 	
 	
 }

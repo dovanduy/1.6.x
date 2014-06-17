@@ -89,6 +89,80 @@ function LoadMemDump(){
 	Loadjs('admin.index.php?mem-dump-js=yes',true);
 }
 
+function CheckBoxDesignHidden(){
+	var inputs = document.querySelectorAll("input[type='checkbox']");
+	
+	for(var i = 0; i < inputs.length; i++) {
+	    if (inputs[i].id){
+	     var myID=inputs[i].id;
+	     if( document.getElementById(myID).getAttribute('assoc') ){
+		var imgid=document.getElementById(myID).getAttribute('assoc');
+		if(document.getElementById(myID).disabled){
+		   	CheckBoxDesignSetHidden(myID,imgid);
+		 }else{
+		 	CheckBoxDesignSetActive(myID,imgid);
+ 		 }	
+	     	} 
+	   }
+ 	}
+		//document.getElementById('checkbox').getAttribute('assoc');
+	
+}
+
+function CheckBoxDesignSetHidden(fieldid,imgid){
+	document.getElementById(imgid).onmouseover=function(){
+		document.getElementById(imgid).style.cursor='not-allowed';
+		document.getElementById(imgid).style.boxShadow='';
+	}
+
+	document.getElementById(imgid).onmouseout=function(){
+		document.getElementById(imgid).style.cursor='default';
+		document.getElementById(imgid).style.boxShadow='';
+	}
+
+
+	if(document.getElementById(fieldid).checked){
+	  document.getElementById(imgid).src='img/checkbox-on-grey-24.png';
+	  return;
+	}
+	document.getElementById(imgid).src='img/checkbox-off-grey-24.png';
+}
+function CheckBoxDesignSetActive(fieldid,imgid){
+
+	document.getElementById(imgid).onmouseover=function(){
+		document.getElementById(imgid).style.cursor='pointer';
+		document.getElementById(imgid).style.boxShadow='0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(82, 168, 236, 0.6)';
+	}
+
+	document.getElementById(imgid).onmouseout=function(){
+		document.getElementById(imgid).style.cursor='default';
+		document.getElementById(imgid).style.boxShadow='';
+	}
+
+	if(document.getElementById(fieldid).checked){
+	  document.getElementById(imgid).src='img/checkbox-on-24.png';
+	  return;
+	}
+	document.getElementById(imgid).src='img/checkbox-off-24.png';
+}
+
+
+function CheckBoxDesign(imgid,fieldid){
+	if(!document.getElementById(fieldid)){return;}
+	if(document.getElementById(fieldid).disabled){return;}
+	
+
+
+	if(document.getElementById(fieldid).checked){
+		document.getElementById(imgid).src='img/checkbox-off-24.png';	
+		document.getElementById(fieldid).checked=false;
+		return;
+	}
+ document.getElementById(imgid).src='img/checkbox-on-24.png';	
+ document.getElementById(fieldid).checked=true;
+ CheckBoxDesignHidden();
+}
+
 	 
 function MessagesTophideAllMessages(){
 		 var messagesHeights = new Array();
@@ -1084,6 +1158,7 @@ function SwitchBigNumeric(id,callback){
 		document.getElementById(id).value='1';
 		document.getElementById('img_' + id).src='img/64-green.png';
 		execute_function(callback);
+		CheckBoxDesignHidden();
 		return;
 	}
 	
@@ -1091,11 +1166,13 @@ function SwitchBigNumeric(id,callback){
 		document.getElementById(id).value='0';
 		document.getElementById('img_' + id).src='img/64-red.png';
 		execute_function(callback);
+		CheckBoxDesignHidden();
 		return;
 	}else{
 		document.getElementById(id).value='1';
 		document.getElementById('img_' + id).src='img/64-green.png';
 		execute_function(callback);
+		CheckBoxDesignHidden();
 		return;
 	}        
         

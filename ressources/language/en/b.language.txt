@@ -6411,5 +6411,7 @@ Artica can reload/start/stop service but will not change settings.
 </DenyHaproxyConf_text>
 <EnableHaProxy>Enable Load-balancing service</EnableHaProxy>
 <EnableHaProxy_text>If green (by default), the Load-balancing service will monitored by Artica and will running in order to provide a load-balancing service</EnableHaProxy_text>
-
+<compress_containers>Compress containers</compress_containers>
+<webdav_directory>WEBDav remote directory</webdav_directory>
+<error_davfs_not_installed>This computer cannot use WebDav remote folder ( missing DavFS2 component )</error_davfs_not_installed>
  

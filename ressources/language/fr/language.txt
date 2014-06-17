@@ -1880,7 +1880,7 @@ Si vous avez des difficult&eacute;s &agrave; acc&eacute;der aux fichiers de code
 <gateway>Passerelle</gateway>
 <GDPHP_NOT_INSTALLED>Librairie GD !</GDPHP_NOT_INSTALLED>
 <gender>genre</gender>
-<general_settings>param&egrave;tres g&eacute;n&eacute;raux</general_settings>
+<general_settings>Param&egrave;tres g&eacute;n&eacute;raux</general_settings>
 <generate certificate>cr&eacute;er un certificat</generate certificate>
 <generate temporary error>g&eacute;n&eacute;rer des erreurs temporaires</generate temporary error>
 <generate_a_signing_key>G&eacute;n&eacute;rer une clef</generate_a_signing_key>

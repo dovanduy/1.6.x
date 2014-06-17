@@ -753,11 +753,12 @@ function Field_hidden($name,$value){return "<input type='hidden' name='$name' id
 	
 function Field_checkbox($name,$enabledatas,$value=null,$js=null,$help=null,$DISABLED=false){
 	$def=$value;
-if($value<>null){if($value==$enabledatas){$value="checked";}else{$value="";}}else{$value=null;}
-		if($js<>null){
-			if(strpos($js,"script:")==0){$js="javascript:$js";}
-			if(strpos($js,"lick=\"")==0){$js="OnClick=\"$js\"";}
-		}
+	$checked=false;
+	$CheckBoxDesignHidden=null; 
+	if($value<>null){if($value==$enabledatas){$value="checked";$checked=true;}else{$value="";}}else{$value=null;}
+	if($js<>null){
+		$js="$js;";
+	}
 		
 		
 		if($help<>null){
@@ -779,11 +780,36 @@ if($value<>null){if($value==$enabledatas){$value="checked";}else{$value="";}}els
 			$disabled_infos=" DISABLED";
 		}
 
+		$pic="checkbox-off-24.png";	
+		if($checked){$pic="checkbox-on-24.png";}
+		
 if(!isset($disabled_infos)){$disabled_infos=null ;}
+if(!isset($GLOBALS["CheckBoxDesignHidden"])){$CheckBoxDesignHidden="<script>setTimeout('CheckBoxDesignHidden()',900);</script>";$GLOBALS["CheckBoxDesignHidden"]=true;}
+
+$id_picture="pic-".md5($name);
+$pointers="OnMouseOver=\";this.style.cursor='pointer';this.style.boxShadow='0 1px 1px rgba(0, 0, 0, 0.075) inset, 0 0 8px rgba(82, 168, 236, 0.6)'\" 
+OnMouseOut=\";this.style.cursor='default';this.style.boxShadow='';\" ";
+
+
+$html="<img src='img/$pic' id='$id_picture'
+	OnClick=\"javascript:CheckBoxDesign('$id_picture','$name');{$js}\" $pointers
+	Onfocus=\"this.setAttribute('class','active')\" 
+	Onblur=\"this.removeAttribute('class');\">
+<input type=\"checkbox\" id='$name' assoc='$id_picture' name=\"$name\" value=\"$enabledatas\" $value 
+style='padding:0px;margin:0px;border:0px;visibility:hidden' $help $js $disabled_infos>
+$CheckBoxDesignHidden		
+";
+return $html;
+//
+
+
 $html="
 <!-- DISABLED:$DISABLED:$disabled_infos help ". strlen($help)." bytes -->
-<input type=\"checkbox\" id='$name' name=\"$name\" value=\"$enabledatas\" $value style='padding:0px;margin:0px;border:0px' $help $js $disabled_infos>";
-return $html;}
+<input type=\"checkbox\"  id='$name' name=\"$name\" value=\"$enabledatas\" $value 
+style='padding:0px;margin:0px;border:0px' $help $js $disabled_infos>";
+return $html;
+
+}
 
 function texthref($text,$js,$style=null){
 	if($style==null){$style="font-size:14px;text-decoration:underline;font-weight:bold'";}

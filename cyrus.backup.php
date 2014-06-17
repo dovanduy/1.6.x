@@ -18,7 +18,8 @@
 	}
 	
 	if(isset($_GET["popup"])){popup();exit;}
-	if(isset($_GET["cyrus-ressource"])){add_ressource();exit;}
+	if(isset($_GET["tabs"])){tabs();exit;}
+	if(isset($_POST["COMPRESS_ENABLE"])){Save();exit;}
 	if(isset($_GET["res-list"])){echo list_ressource();exit;}
 	if(isset($_GET["backup-config"])){echo backup_config();exit;}
 	if(isset($_GET["backup-save-config"])){backup_save_config();exit;}
@@ -27,6 +28,49 @@
 	
 
 js();
+
+function tabs(){
+	if(GET_CACHED(__FILE__, __FUNCTION__)){return;}
+	$squid=new squidbee();
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	$sock=new sockets();
+
+	$array["popup"]='{parameters}';
+	$array["schedules"]='{schedules}';
+	$array["events"]='{events}';
+	
+
+	
+
+	$fontsize=18;
+	
+	$t=time();
+	while (list ($num, $ligne) = each ($array) ){
+
+		if($num=="schedules"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"schedules.php?ForceTaskType=69\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="events"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"cyrus.watchdog-events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$t\" style='font-size:$fontsize'><span>$ligne</span></a></li>\n");
+	}
+
+
+
+	$html= build_artica_tabs($html,'main_cyrus_backup');
+	SET_CACHED(__FILE__, __FUNCTION__, null, $html);
+	echo $html;
+
+}
+
+
+
 function js(){
 $page=CurrentPageName();
 	$prefix=str_replace('.','_',$page);
@@ -130,6 +174,18 @@ var x_AddCyrusBackupResource=function (obj) {
 	echo $html;
 	}
 	
+function Save(){
+	$sock=new sockets();
+	$CyrusBackupSettings=unserialize(base64_decode($sock->GET_INFO("CyrusBackupNas")));
+	while (list ($key, $value) = each ($_POST) ){
+		$value=url_decode_special_tool($value);
+		$CyrusBackupSettings[$key]=$value;
+	}
+	
+	$sock->SaveConfigFile(base64_encode(serialize($CyrusBackupSettings)), "CyrusBackupNas");
+	
+}
+	
 function backup_save_config(){
 
 	$HD=$_GET["backup-save-config"];
@@ -143,10 +199,259 @@ function backup_save_config(){
 	
 	
 function popup(){
+	$tpl=new templates();
+	$users=new usersMenus();
+	$page=CurrentPageName();
+	
+	$sock=new sockets();
+	$CyrusBackupSettings=unserialize(base64_decode($sock->GET_INFO("CyrusBackupNas")));
+	if(!is_numeric($CyrusBackupSettings["COMPRESS_ENABLE"])){$CyrusBackupSettings["COMPRESS_ENABLE"]=1;}
+	$t=time();
+	$DAVFS_INSTALLED=1;
+	if(!$users->DAVFS_INSTALLED){
+		$DAVFS_INSTALLED=0;
+		$error_DAVFS_INSTALLED="<p class=text-error style='font-size:16px'>{error_davfs_not_installed}</p>";
+	}
+	
+	
+	
+	
+	$html="
+	<div style='font-size:26px;margin-bottom:20px'>{APP_CYRUS_BACKUP}</div>
+	<div class=explain style='font-size:18px'>{backup_cyrus_mailboxes}</div>
+	
+			
+	<div style='width:98%' class=form>
+		<div style='font-size:22px;margin-bottom:20px'>{general_settings}:</div>			
+		<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:18px'>{compress_containers}:</td>
+			<td>". Field_checkbox("COMPRESS_ENABLE-$t",1,$CyrusBackupSettings["COMPRESS_ENABLE"])."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{max_containers}:</td>
+			<td>".Field_text("maxcontainer-$t",$CyrusBackupSettings["maxcontainer"],"font-size:18px;width:110px")."</td>
+		</tr>						
+		</table>
+	</div>
+					
 
+						
+	<div style='width:98%' class=form>			
+	<div style='font-size:22px;margin-bottom:20px'>{TAB_WEBDAV} (WebDAV):</div>
+	$error_DAVFS_INSTALLED
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>{enable}:</td>
+		<td>". Field_checkbox("WEBDAV_ENABLE-$t",1,$CyrusBackupSettings["WEBDAV_ENABLE"],"SwitChDAVS$t()")."</td>
+	</tr>				
+	<tr>
+		<td class=legend style='font-size:18px'>{url}:</td>
+		<td>". Field_text("WEBDAV_SERVER-$t",$CyrusBackupSettings["WEBDAV_SERVER"],"font-size:18px;padding:3px;width:99%")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{web_user}:</td>
+		<td>". Field_text("WEBDAV_USER-$t",$CyrusBackupSettings["WEBDAV_USER"],"font-size:18px;padding:3px;width:70%")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{password}:</td>
+		<td>". Field_password("WEBDAV_PASSWORD-$t",$CyrusBackupSettings["WEBDAV_PASSWORD"],"font-size:18px;padding:3px;width:70%")."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{webdav_directory}:</td>
+		<td>". Field_text("WEBDAV_DIR-$t",$CyrusBackupSettings["WEBDAV_DIR"],"font-size:18px;padding:3px;width:90%",
+				null,null,null,false,"SaveCK$t(event)")."</td>
+	</tr>			
+	</table>	
+	</div>
+<div style='width:98%' class=form>			
+	<div style='font-size:22px;margin-bottom:20px'>{NAS_storage}:</div>		
+<table style='width:100%'>						
+	<tr>
+		<td class=legend style='font-size:18px'>{enable}:</td>
+		<td>". Field_checkbox("NAS_ENABLE-$t",1,$CyrusBackupSettings["NAS_ENABLE"],"SwitChNAS$t()")."</td>
+	</tr>															
+	<tr>
+		<td class=legend style='font-size:18px'>{hostname}:</td>
+		<td>".Field_text("hostname-$t",$CyrusBackupSettings["hostname"],"font-size:18px;width:99%")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{shared_folder}:</td>
+		<td>".Field_text("folder-$t",$CyrusBackupSettings["folder"],"font-size:18px;width:300px")."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{username}:</td>
+		<td>".Field_text("username-$t",$CyrusBackupSettings["username"],"font-size:18px;width:200px")."</td>
+	</tr>
+	
+	<tr>
+		<td class=legend style='font-size:18px'>{password}:</td>
+		<td>".Field_password("password-$t",$CyrusBackupSettings["password"],"font-size:18px;width:200px")."</td>
+	</tr>
+	</table>					
+</div>
+										
+<div style='width:98%' class=form>			
+	<div style='font-size:22px;margin-bottom:20px'>{smtp_notifications}:</div>		
+<table style='width:100%'>							
+	<tr>
+		<td class=legend style='font-size:18px'>{enable_smtp_notifications}:</td>
+		<td>". Field_checkbox("$t-notifs", 1,$CyrusBackupSettings["notifs"],"notifsCheck{$t}()")."</td>
+	</tr>				
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_server_name}:</strong></td>
+		<td>" . Field_text("smtp_server_name-$t",trim($CyrusBackupSettings["smtp_server_name"]),'font-size:18px;padding:3px;width:250px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_server_port}:</strong></td>
+		<td>" . Field_text("smtp_server_port-$t",trim($CyrusBackupSettings["smtp_server_port"]),'font-size:18px;padding:3px;width:40px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_sender}:</strong></td>
+		<td>" . Field_text("smtp_sender-$t",trim($CyrusBackupSettings["smtp_sender"]),'font-size:18px;padding:3px;width:290px')."</td>
+			</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_dest}:</strong></td>
+		<td>" . Field_text("smtp_dest-$t",trim($CyrusBackupSettings["smtp_dest"]),'font-size:18px;padding:3px;width:290px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_auth_user}:</strong></td>
+		<td>" . Field_text("smtp_auth_user-$t",trim($CyrusBackupSettings["smtp_auth_user"]),'font-size:18px;padding:3px;width:200px')."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{smtp_auth_passwd}:</strong></td>
+		<td>" . Field_password("smtp_auth_passwd-$t",trim($CyrusBackupSettings["smtp_auth_passwd"]),'font-size:18px;padding:3px;width:200px')."</td>
+			</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{tls_enabled}:</strong></td>
+		<td>" . Field_checkbox("tls_enabled-$t",1,$CyrusBackupSettings["tls_enabled"])."</td>
+	</tr>
+	<tr>
+		<td nowrap class=legend style='font-size:18px'>{UseSSL}:</strong></td>
+		<td>" . Field_checkbox("ssl_enabled-$t",1,$CyrusBackupSettings["ssl_enabled"])."</td>
+	</tr>	
+</table>
+	</div>
+	
+		<div style='text-align:right;width:100%'>
+		<hr>". button("{apply}"," Save$t()","26")."</div>	
+	
+<script>
+var xSave$t= function (obj) {
+	var results=obj.responseText;
+	if(results.length>3){alert(results);}
+	RefreshTab('main_cyrus_backup');
+}
+
+function SaveCK$t(e){
+	if(!checkEnter(e)){return;}
+	Save$t();
+}
+
+function SwitChDAVS$t(){
+	var DAVFS_INSTALLED=$DAVFS_INSTALLED;
+	document.getElementById('WEBDAV_SERVER-$t').disabled=true;
+	document.getElementById('WEBDAV_USER-$t').disabled=true;
+	document.getElementById('WEBDAV_PASSWORD-$t').disabled=true;
+	document.getElementById('WEBDAV_DIR-$t').disabled=true;
+	document.getElementById('WEBDAV_ENABLE-$t').disabled=true;
+	if(DAVFS_INSTALLED==0){CheckBoxDesignHidden();return;}
+	document.getElementById('WEBDAV_ENABLE-$t').disabled=false;
+	if(!document.getElementById('WEBDAV_ENABLE-$t').checked){CheckBoxDesignHidden();return;}
+	document.getElementById('WEBDAV_SERVER-$t').disabled=false;
+	document.getElementById('WEBDAV_USER-$t').disabled=false;
+	document.getElementById('WEBDAV_PASSWORD-$t').disabled=false;
+	document.getElementById('WEBDAV_DIR-$t').disabled=false;
+	document.getElementById('WEBDAV_ENABLE-$t').disabled=false;	
+	CheckBoxDesignHidden();
+}
+
+function SwitChNAS$t(){
+	document.getElementById('hostname-$t').disabled=true;
+	document.getElementById('folder-$t').disabled=true;
+	document.getElementById('username-$t').disabled=true;
+	document.getElementById('password-$t').disabled=true;
+	if(!document.getElementById('NAS_ENABLE-$t').checked){CheckBoxDesignHidden();return;}
+	document.getElementById('hostname-$t').disabled=false;
+	document.getElementById('folder-$t').disabled=false;
+	document.getElementById('username-$t').disabled=false;
+	document.getElementById('password-$t').disabled=false;
+	CheckBoxDesignHidden();
+	
+}
+function notifsCheck{$t}(){
+	document.getElementById('smtp_auth_passwd-$t').disabled=true;
+	document.getElementById('smtp_auth_user-$t').disabled=true;
+	document.getElementById('smtp_dest-$t').disabled=true;
+	document.getElementById('smtp_sender-$t').disabled=true;
+	document.getElementById('smtp_server_port-$t').disabled=true;
+	document.getElementById('smtp_server_name-$t').disabled=true;
+	document.getElementById('tls_enabled-$t').disabled=true;
+	document.getElementById('ssl_enabled-$t').disabled=true;
+
+	if( document.getElementById('$t-notifs').checked){
+		document.getElementById('smtp_auth_passwd-$t').disabled=false;
+		document.getElementById('smtp_auth_user-$t').disabled=false;
+		document.getElementById('smtp_dest-$t').disabled=false;
+		document.getElementById('smtp_sender-$t').disabled=false;
+		document.getElementById('smtp_server_port-$t').disabled=false;
+		document.getElementById('smtp_server_name-$t').disabled=false;
+		document.getElementById('tls_enabled-$t').disabled=false;
+		document.getElementById('ssl_enabled-$t').disabled=false;
+	}	
+	
+	CheckBoxDesignHidden();
+	
+}
+
+
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	if(document.getElementById('WEBDAV_ENABLE-$t').checked){ XHR.appendData('WEBDAV_ENABLE',1); }else{ XHR.appendData('WEBDAV_ENABLE',0);}
+	if(document.getElementById('NAS_ENABLE-$t').checked){ XHR.appendData('NAS_ENABLE',1); }else{ XHR.appendData('NAS_ENABLE',0);}
+	if(document.getElementById('COMPRESS_ENABLE-$t').checked){ XHR.appendData('COMPRESS_ENABLE',1); }else{ XHR.appendData('COMPRESS_ENABLE',0);}
+	XHR.appendData('WEBDAV_SERVER',encodeURIComponent(document.getElementById('WEBDAV_SERVER-$t').value));
+	XHR.appendData('WEBDAV_USER',encodeURIComponent(document.getElementById('WEBDAV_USER-$t').value));
+	XHR.appendData('WEBDAV_PASSWORD',encodeURIComponent(document.getElementById('WEBDAV_PASSWORD-$t').value));
+	XHR.appendData('WEBDAV_DIR',encodeURIComponent(document.getElementById('WEBDAV_DIR-$t').value));
+	
+	XHR.appendData('hostname',encodeURIComponent(document.getElementById('hostname-$t').value));
+	XHR.appendData('folder',encodeURIComponent(document.getElementById('folder-$t').value));
+	XHR.appendData('username',encodeURIComponent(document.getElementById('username-$t').value));
+	XHR.appendData('password',encodeURIComponent(document.getElementById('password-$t').value));
+	
+	var tls_enabled=0;
+	var ssl_enabled=0;
+	var notifs=0;
+	
+	if(document.getElementById('tls_enabled-$t').checked){tls_enabled=1;}
+	if(document.getElementById('ssl_enabled-$t').checked){ssl_enabled=1;}
+	if(document.getElementById('$t-notifs').checked){notifs=1;}
+	XHR.appendData('smtp_server_name',encodeURIComponent(document.getElementById('smtp_server_name-$t').value));
+	XHR.appendData('smtp_server_port',encodeURIComponent(document.getElementById('smtp_server_port-$t').value));
+	XHR.appendData('smtp_sender',encodeURIComponent(document.getElementById('smtp_sender-$t').value));
+	XHR.appendData('smtp_auth_user',encodeURIComponent(document.getElementById('smtp_auth_user-$t').value));
+	XHR.appendData('smtp_auth_passwd',encodeURIComponent(document.getElementById('smtp_auth_passwd-$t').value));
+	
+	XHR.appendData('tls_enabled',tls_enabled);
+	XHR.appendData('ssl_enabled',ssl_enabled);
+	XHR.appendData('notifs',notifs);	
+	
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+	
+}
+SwitChDAVS$t();				
+SwitChNAS$t();		
+notifsCheck{$t}();		
+</script>			
+";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+	return;
 	$add=Paragraphe('disk-backup-64-add.png','{CYRUS_ADD_RESOURCES}','{CYRUS_ADD_RESOURCES_TEXT}',"javascript:Loadjs('automount.php?field=cyrus-ressource');");
 	$resources=list_ressource();
-	$html="<H1>{GENERIC_BACKUP}</H1>
+	$html="<H1></H1>
 	<p class=caption>{GENERIC_BACKUP_TEXT}</p>
 		<table style='width:100%'>
 		<tr>
@@ -167,67 +472,10 @@ function popup(){
 	</tr>
 	</table>";
 		
-	$tpl=new templates();
+	
 	echo $tpl->_ENGINE_parse_body($html);
 	}
-	
-function add_ressource(){
-	$cyr=new cyrusbackup();
-	if(trim($_GET["cyrus-ressource"])==null){return null;}
-	$cyr->list[$_GET["cyrus-ressource"]]["enabled"]='yes';
-	$cyr->list[$_GET["cyrus-ressource"]]["schedule"]=$_GET["cyrus-schedule"];
-	
-	
-	$cyr->save();
-}
 
-function list_ressource(){
-	$tpl=new templates();
-	$cyr=new cyrusbackup();
-	if(!is_array($cyr->list)){return  $tpl->_ENGINE_parse_body("<strong style='font-size:13px'>{error_no_datas}</strong>");}
-	
-	$html="<table style='width:99%'>
-	<tr>
-	<th>&nbsp;</th>
-	<th>{mount}</th>
-	<th>{schedule}</th>
-	<th>&nbsp;</th>
-	<th>&nbsp;</th>
-	<th>&nbsp;</th>
-	<th>&nbsp;</th>
-	</tr>";
-	reset($cyr->list);
-	
-	//javascript:Loadjs('cron.php?function=SaveSchedule&field=schedule')
-	
-	while (list ($mount, $array) = each ($cyr->list) ){
-		if(trim($mount)==null){continue;}
-		$html=$html . "<tr ". CellRollOver().">
-		<td valign='middle' width=1%'><img src='img/fw_bold.gif'></td>
-		<td valign='middle'>
-			<strong style='font-size:12px'><code>$mount</code></strong>
-		</td>
-		<td valign='middle'>
-			<strong style='font-size:10px'>". Field_text("{$mount}_SCHEDULE",$array["schedule"])."</strong>
-		</td>	
-			<td valign='top' width=1%'>". imgtootltip('time-30.png',"{schedule}","Loadjs('cron.php?field={$mount}_SCHEDULE')")."</td>
-			<td valign='top' width=1%'>". imgtootltip('rouage2.png',"{settings}","CyrusBackupOptions('$mount')")."</td>
-			<td valign='middle' width=1%'><input type='button' OnClick=\"javascript:SetCyrusBackupSchedule('$mount')\" value='{apply}'></td>
-			<td valign='middle' width=1%'>". imgtootltip('30-cancel.png','{delete}',"CyrusBackupDelete('$mount')")."</td>			
-		</tr>
-		<tr>
-			<td colspan=7><hr></td>
-		</tr>";	
-		
-	}
-	
-	$html=$html."</table>";
-	
-	
-	return $tpl->_ENGINE_parse_body($html);	
-	
-	
-}
 
 function backup_config(){
 	

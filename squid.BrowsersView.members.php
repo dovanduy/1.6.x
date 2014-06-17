@@ -149,6 +149,7 @@ function items(){
 
 	//ipaddr          | hostname      | uid               | MAC               | account | QuerySize    | hits
 
+	$IpClass=new IP();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";
 		$md=md5(serialize($ligne));
@@ -158,13 +159,19 @@ function items(){
 		$uiduri="<a href=\"javascript:Loadjs('squid.members.zoom.php?field=uid&value=".urlencode($ligne["uid"])."')\"
 				style='font-size:{$fontsize}px;color:$color;text-decoration:underline'>";
 		
+		$macencode=urlencode($ligne["MAC"]);
+		$MACUri="<a href=\"javascript:Loadjs('squid.nodes.php?node-infos-js=yes&MAC=$macencode',true);\"
+				style='font-size:{$fontsize}px;color:$color;text-decoration:underline'>";
+		
+		if(!$IpClass->IsvalidMAC($ligne["MAC"])){$MACUri=null;}
+		
 		$data['rows'][] = array(
 				'id' => $ligne['ID'],
 				'cell' => array(
 				"<span style='font-size:{$fontsize}px;color:$color'>{$ligne["ipaddr"]}</span>",
 				"<span style='font-size:{$fontsize}px;color:$color'>{$ligne["hostname"]}</span>",
 				"<span style='font-size:{$fontsize}px;color:$color'>$uiduri{$ligne["uid"]}</a></span>",
-				"<span style='font-size:{$fontsize}px;color:$color'>{$ligne["MAC"]}</span>",
+				"<span style='font-size:{$fontsize}px;color:$color'>$MACUri{$ligne["MAC"]}</a></span>",
 				"<span style='font-size:{$fontsize}px;color:$color'>{$ligne["QuerySize"]}</span>",
 				"<span style='font-size:{$fontsize}px;color:$color'>{$ligne["hits"]}</span>",
 				)

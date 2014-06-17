@@ -2029,7 +2029,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)hyundai\.[a-z]+$#", $www)){return "automobile/cars";}
 		if(preg_match("#(^|\.)kia\.[a-z]+$#", $www)){return "automobile/cars";}
 		if(preg_match("#permis.*?points#", $www)){return "automobile/cars";}
-		if(preg_match("#(vehicule|motorsport|automobil|piecedoccasion|volkswagen|automoto|piecesauto|autoplus\.|autoretro|automobili|autosnews|moncontroletechnique|autocar|autodirect|elephantbleu|automovil|euromaster|pointspermis|carrosserie|automotive|chevrolet|cabriolet|voiture|eurotyre|automobile|gonka|mazda|automotivo|pneumatic)#", $www)){return "automobile/cars";}
+		if(preg_match("#(vehicule|motorsport|automobil|piecedoccasion|4x4|volkswagen|automoto|piecesauto|autoplus\.|autoretro|automobili|autosnews|moncontroletechnique|autocar|autodirect|elephantbleu|automovil|euromaster|pointspermis|carrosserie|automotive|chevrolet|cabriolet|voiture|eurotyre|automobile|gonka|mazda|automotivo|pneumatic)#", $www)){return "automobile/cars";}
 		if(preg_match("#(^|\.)chevroletconnect\.[a-z]+$#", $www)){return "automobile/cars";}
 		if(preg_match("#(^|\.)img.*?-otomoto\.*$#", $www)){return "automobile/cars";}
 		if(preg_match("#(^|\.)auto-noproblem\.com$#", $www)){return "automobile/cars";}

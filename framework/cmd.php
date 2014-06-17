@@ -6868,7 +6868,16 @@ function SSHD_RESTART(){
 			shell_exec("/bin/cp $newfile $orginial");
 		}
 	}
-NOHUP_EXEC("/etc/init.d/artica-postfix restart openssh");
+	
+	if(is_file("/etc/init.d/ssh")){
+		NOHUP_EXEC("/etc/init.d/ssh restart");
+		return;
+	}
+	if(is_file("/etc/init.d/sshd")){
+		NOHUP_EXEC("/etc/init.d/sshd restart");
+		return;
+	}
+
 }
 
 function GLUSTER_REMOUNT(){

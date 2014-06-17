@@ -1055,6 +1055,7 @@ function scan_queue($nopid=false){
 	system_rotate_events_checks();
 	haproxy_events();
 	sys_load();
+	cyrus_admin_mysql_check();
 	squid_admin_mysql_check();
 	system_admin_events_checks();
 	artica_update_task();
@@ -1397,6 +1398,89 @@ function blackwhite_admin_mysql_check($nopid=false){
 		$severity=$array["severity"];
 	
 		$q->QUERY_SQL("INSERT IGNORE INTO `blackwhite_admin_mysql`
+				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
+				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
+	
+		if(!$q->ok){return;}
+	
+		@unlink($targetFile);
+	
+	}	
+	
+}
+
+function cyrus_admin_mysql_check($nopid=false){
+	$f=array();
+	$unix=new unix();
+	if($nopid){
+	
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=@file_get_contents($pidfile);
+		if($unix->process_exists($pid)){writelogs("Already running pid $pid",__FUNCTION__,__FILE__,__LINE__);return;}
+		$t=0;
+	
+	}
+	
+	$sock=new sockets();
+	$users=new usersMenus();
+	$hostname=$unix->hostname_g();
+	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/cyrus_admin_mysql";
+	
+	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
+	
+	
+	$hostname=$unix->hostname_g();
+	$q=new mysql();
+	if(!$q->test_mysql_connection()){return;}
+	
+	
+	$sql="CREATE TABLE IF NOT EXISTS `artica_events`.`cyrus_admin_mysql` (
+		`ID` int(11) NOT NULL AUTO_INCREMENT,
+		`zDate` TIMESTAMP NOT NULL ,
+		`content` MEDIUMTEXT NOT NULL ,
+		`hostname` VARCHAR( 255 ),
+		`subject` VARCHAR( 255 ) NOT NULL ,
+		`function` VARCHAR( 60 ) NOT NULL ,
+		`filename` VARCHAR( 50 ) NOT NULL ,
+		`line` INT( 10 ) NOT NULL ,
+		`severity` smallint( 1 ) NOT NULL ,
+		`TASKID` BIGINT UNSIGNED ,
+		PRIMARY KEY (`ID`),
+		  KEY `zDate` (`zDate`),
+		  KEY `subject` (`subject`),
+		  KEY `hostname` (`hostname`),
+		  KEY `function` (`function`),
+		  KEY `filename` (`filename`),
+		  KEY `severity` (`severity`)
+		) ENGINE=MYISAM;";
+	$q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){echo $q->mysql_error."\n";return;}
+	
+	if(!$q->FIELD_EXISTS("cyrus_admin_mysql", "hostname", "artica_events")){
+		$q->QUERY_SQL("ALTER TABLE `squid_admin_mysql` ADD `hostname` VARCHAR( 255 ),ADD INDEX ( `hostname` )","artica_events");
+	}
+	
+	
+	while (false !== ($filename = readdir($handle))) {
+		if($filename=="."){continue;}
+		if($filename==".."){continue;}
+		$targetFile="$BaseWorkDir/$filename";
+		if($unix->file_time_min($targetFile)>240){@unlink($targetFile);continue;}
+		$array=unserialize(@file_get_contents($targetFile));
+		if(!is_array($array)){@unlink($targetFile);continue;}
+	
+		if(!is_numeric($array["TASKID"])){$array["TASKID"]=0;}
+		$content=mysql_escape_string2($array["text"]);
+		$subject=mysql_escape_string2($array["subject"]);
+	
+		$zdate=$array["zdate"];
+		$function=$array["function"];
+		$file=$array["file"];
+		$line=$array["line"];
+		$TASKID=$array["TASKID"];
+		$severity=$array["severity"];
+	
+		$q->QUERY_SQL("INSERT IGNORE INTO `cyrus_admin_mysql`
 				(`zDate`,`content`,`subject`,`function`,`filename`,`line`,`severity`,`hostname`) VALUES
 				('$zdate','$content','$subject','$function','$file','$line','$severity','$hostname')","artica_events");
 	
@@ -2149,6 +2233,7 @@ function clean_mysql_events(){
 	$array["system_rotate_events"]=true;
 	$array["update_events"]=true;
 	$array["squid_admin_mysql"]=true;
+	$array["cyrus_admin_mysql"]=true;
 	$array["blackwhite_admin_mysql"]=true;
 	$array["auth_events"]=true;
 	

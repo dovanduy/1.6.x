@@ -1191,11 +1191,11 @@ $('#table-$t').flexigrid({
 	colModel : [
 		{display: '$rule', name : 'aclname', width : 249, sortable : true, align: 'left'},
 		{display: '$description', name : 'items', width : 457, sortable : false, align: 'left'},
-		{display: '', name : 'up', width : 13, sortable : false, align: 'center'},
-		{display: '', name : 'xORDER', width : 13, sortable : true, align: 'center'},
-		{display: '', name : 'none2', width : 15, sortable : true, align: 'left'},
-		{display: '', name : 'none3', width : 25, sortable : false, align: 'left'},
-		{display: '', name : 'none4', width : 25, sortable : false, align: 'left'},
+		{display: '', name : 'up', width : 40, sortable : false, align: 'center'},
+		{display: '', name : 'xORDER', width : 40, sortable : true, align: 'center'},
+		{display: '', name : 'none2', width : 40, sortable : true, align: 'center'},
+		{display: '', name : 'none3', width : 40, sortable : false, align: 'center'},
+		{display: '', name : 'none4', width : 40, sortable : false, align: 'center'},
 		
 	],
 buttons : [

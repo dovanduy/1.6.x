@@ -113,8 +113,15 @@ function Parseline($buffer){
 	if(preg_match("#temporary disabling.*?digest from#", $buffer)){return;}
 	if(preg_match("#kid[0-9]+\| .*?\/[0-9]+ exists#", $buffer)){return;}
 	
-	
-	
+//*******************************************************************************************************************	
+if(preg_match("#commBind: Cannot bind socket FD [0-9]+ to ([0-9\.]+):.*?Cannot assign requested address#",$buffer,$re)){
+	if(TimeStampTTL(__LINE__,5)){
+		squid_admin_mysql(0,"Proxy service Unable to hook {$re[1]} network address [action: Reconfigure]",
+		"Proxy claim\n$buffer\nArtica will reconfigure the service\nPlease follow this issue, newt check will be in 5mn",__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.php --build --force >/dev/null 2>&1 &");
+	}
+	return;
+}
 //*******************************************************************************************************************
 if(preg_match("#Squid Cache.*?:\s+Exiting normally#",$buffer,$re)){
 	if(TimeStampTTL(__LINE__,1)){

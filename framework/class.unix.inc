@@ -7916,6 +7916,73 @@ function blackwhite_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 
 }
 
+function cyrus_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	if(!is_numeric($line)){$line=0;}
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+	
+	
+
+
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $subject ." [$line]");
+		closelog();
+	}
+
+	$unix=new unix();
+	$unix->events($subject,"/var/log/squid/artica.watchdog.log",false,$function,$line,$file);
+
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+	$content="$text\In $file line $line\nServer Load $internal_load, Memory free: $MemFree";
+
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+	
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text;
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/cyrus_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/cyrus_admin_mysql",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/cyrus_admin_mysql/$md5.log", $serialize);
+	
+	if($severity==0){
+		if(!isset($GLOBALS["CyrusBackupNas"])){
+			$sock=new sockets();
+			$GLOBALS["CyrusBackupNas"]=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/settings/Daemons/CyrusBackupNas")));
+		}
+		
+		if(!is_numeric($GLOBALS["CyrusBackupNas"]["notifs"])){return;}
+		if($GLOBALS["CyrusBackupNas"]["notifs"]==1){$unix=new unix(); $unix->SendEmailConfigured($GLOBALS["CyrusBackupNas"],$subject,$content); }
+	}
+	
+}
+
 
 function squid_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 	if(!is_numeric($line)){$line=0;}

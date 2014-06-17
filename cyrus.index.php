@@ -668,7 +668,7 @@ if($users->imapsync_installed){
 $rebuild_mailboxes=Paragraphe("64-folder-tools.png",'{rebuild_mailboxes}',"{rebuild_mailboxes_text}","javascript:Loadjs('$page?main=js_rebuild');");
 $repair_database=Paragraphe("64-folder-tools.png",'{repair_database}',"{repair_database_text}","javascript:Loadjs('$page?cyrrepair=yes')");
 
-$mailbox_backup=Paragraphe("64-backup.png",'{APP_CYRUS_BACKUP}',"{backup_cyrus_mailboxes}","javascript:Loadjs('cyrus.backup-nas.php')");
+
 
 $tr[]=$mailbox_backup;
 $tr[]=$bulkExport;

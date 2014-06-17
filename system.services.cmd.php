@@ -294,6 +294,10 @@ function ifStopped(){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;
 			}
+			if(preg_match("#only restart each#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
 		
 		}
 		

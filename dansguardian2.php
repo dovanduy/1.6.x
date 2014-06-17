@@ -187,7 +187,7 @@ function tabs(){
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="browser-rules"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.browsers-rules.php?popup=yes\" $fontsize><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.browsers-rules.php?popup=yes\" style='font-size:$fontsize;font-weight:normal'><span>$ligne</span></a></li>\n");
 			continue;
 		}
 		
@@ -240,7 +240,7 @@ function tabs(){
 
 
 
-	$html=build_artica_tabs($html,'main_dansguardian_tabs',975)."<script>LeftDesign('webfiltering-white-256-opac20.png');</script>";
+	$html=build_artica_tabs($html,'main_dansguardian_tabs',1150)."<script>LeftDesign('webfiltering-white-256-opac20.png');</script>";
 	
 	echo $html;
 

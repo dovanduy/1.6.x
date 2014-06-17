@@ -214,6 +214,7 @@ class squid_familysite{
 				'ec' => array('com' => true,"gov"=>true,"tv"=>true,"org"=>true),
 				'eg' => array('gov' => true,'com'=>true,"gov"=>true,"org"=>true),
 				'fi'=>array('com' => true,"net"=>true,"org"=>true),
+				'sa'=>array('com' => true,"net"=>true,"org"=>true),
 				'se'=>array('com' => true,"net"=>true,"org"=>true),
 				'fm'=>array('com' => true,"net"=>true,"org"=>true),
 				'pm'=>array('com' => true,"net"=>true,"org"=>true),

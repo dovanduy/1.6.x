@@ -20,6 +20,20 @@ function reload(){
 	$sshd=$unix->find_program("sshd");
 	if(!is_file($sshd)){return;}
 	
+	if(is_file("/etc/init.d/ssh")){
+		system("/etc/init.d/ssh restart");
+		return;
+	}
+	
+	if(is_file("/etc/init.d/ssh")){
+		system("/etc/init.d/ssh restart");
+		return;
+	}
+	if(is_file("/etc/init.d/sshd")){
+		system("/etc/init.d/sshd restart");
+		return;
+	}
+	
 	$pid=$unix->PIDOF($sshd);
 	$kill=$unix->find_program("kill");
 	if($unix->process_exists($pid)){
@@ -52,6 +66,21 @@ function restart() {
 
 
 	@file_put_contents($pidfile, getmypid());
+	if(is_file("/etc/init.d/ssh")){
+		system("/etc/init.d/ssh restart");
+		return;
+	}
+	
+	if(is_file("/etc/init.d/ssh")){
+		system("/etc/init.d/ssh restart");
+		return;
+	}
+	if(is_file("/etc/init.d/sshd")){
+		system("/etc/init.d/sshd restart");
+		return;
+	}
+	
+	
 	stop(true);
 	sleep(1);
 	start(true);
@@ -68,7 +97,6 @@ function start($aspid=false){
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Already Artica task running PID $pid since {$time}mn\n";}
-			@file_put_contents("/var/run/sshd.pid", $pid);
 			return;
 		}
 		@file_put_contents($pidfile, getmypid());

@@ -367,8 +367,13 @@ include_once(dirname(__FILE__).'/class.dates.inc');
 /**
 		* affiche le calendrier du mois en cours
 */
-		public function makeCalendrier($a_annee,$a_mois)
-		{
+		public function makeCalendrier($a_annee,$a_mois){
+			$this->lng="EN";
+			if(class_exists("templates")){
+				$tpl=new templates();
+				if($tpl->language=="fr"){$this->lng="FR";}
+			}
+			
 			
 			// intialisation des code pour les divs des evenements
 			$codeEvent="";

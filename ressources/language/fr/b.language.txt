@@ -1136,6 +1136,7 @@ Elle permet de compiler les cat&eacute;gories en mode [b].ufdb[/b] et de les sau
 <compressor_requests>Requ&ecirc;tes TR du compresseur</compressor_requests>
 <compressor_requests2>Requ&ecirc;tes en temps r&eacute;el du compresseur</compressor_requests2>
 <compress_container>Compresser le conteneur</compress_container>
+<compress_containers>Compresser les sauvegardes</compress_containers>
 <compress_files>Compresser les fichiers</compress_files>
 <COMPUTERS_BRANCH>Branche des ordinateurs</COMPUTERS_BRANCH>
 <configure_your_browser>Param&egrave;tres de votre navigateur</configure_your_browser>
@@ -1825,6 +1826,7 @@ Si vous activez cette option, Artica va renseigner le fichier d'h&ocirc;tes avec
 <error_category_nomore5>Erreur, le nom de la cat&eacute;gorie ne peut &ecirc;tre en dessous &agrave; 5 caract&egrave;res.</error_category_nomore5>
 <error_code>Code d'erreur</error_code>
 <error_corp_30day>Votre serveur est activ&eacute; avec licence communautaire.[br]Ce mode de licence vous permet de tester cette fonctionnalit&eacute; avec toutes les options pendant une dur&eacute;e maximale de 30 jours.</error_corp_30day>
+<error_davfs_not_installed>Cet ordinateur ne peut utiliser des partages WebDAV, le composant davfs2 est manquant.</error_davfs_not_installed>
 <error_http_auth_ldap_module>Erreur le module d'authentification LDAP n'est pas compil&eacute;</error_http_auth_ldap_module>
 <error_http_auth_request_module>Erreur, le module d'authentification par requ&ecirc;te n'est pas compil&eacute;</error_http_auth_request_module>
 <ERROR_HTTRACK_NOT_INSTALLED>Le logiciel HTTrack n'est pas install&eacute; on non d&eacute;tect&eacute; sur le syst&egrave;me.[br]
@@ -5036,6 +5038,7 @@ Tous les sites d&eacute;finis seront alors copi&eacute;s dans les r&eacute;perto
 <WEBDAVFREE_TEXT>Construit un service WebDav afin de partager plusieurs dossiers via le Web/HTTP/HTTPS avec authentification Active Directory/LDAP.[br]
 Peut &ecirc;tre utilis&eacute; par exemple afin de partager les jeux de sauvegardes entre plusieurs serveurs Artica ou bien afin d'offrir un service de stockage Web &agrave; travers Internet.</WEBDAVFREE_TEXT>
 <webdav_ContainerMAXSize_explain>Si d&eacute;finit, les membres ne pourront cr&eacute;er un conteneur sup&eacute;rieure &agrave; la taill&eacute; sp&eacute;cifi&eacute;e en MB</webdav_ContainerMAXSize_explain>
+<webdav_directory>R&eacute;pertoire WebDAV distant</webdav_directory>
 <webdav_folders>Dossiers Web partag&eacute;s</webdav_folders>
 <webdav_public_explain>Si activ&eacute;, vos membres seront en mesure de cr&eacute;er leur propre zone de stockage WebDav &agrave; travers la console Web End-Users</webdav_public_explain>
 <webdav_suffix_domain_explain>Indiquez ici le suffixe de domaine.[br]Comprenez que ce domaine doit &ecirc;tre r&eacute;solu par vos serveurs DNS avec un joker.[br]

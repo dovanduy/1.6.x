@@ -2034,6 +2034,10 @@ function quicklinks_postfix(){
 			if($users->AsMailBoxAdministrator){
 				$tr[]=paragrapheWin("bg-cyrus-white-64.png","{mailboxes}",
 						"AnimateDiv('BodyContent');LoadAjax('BodyContent','cyrus.index.php?popup-index=yes');");
+				$tr[]=paragrapheWin("database-check-64-white.png","{backup}",
+						"AnimateDiv('BodyContent');LoadAjax('BodyContent','cyrus.backup.php?tabs=yes');");
+				
+				
 			}
 		}
 		

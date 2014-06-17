@@ -1320,6 +1320,7 @@ You should take care about enabling this task because there is no tests made bef
 <compressor_requests>Compressor RT requests</compressor_requests>
 <compressor_requests2>Compressor realtime requests</compressor_requests2>
 <compress_container>Compress container</compress_container>
+<compress_containers>Compress containers</compress_containers>
 <compress_files>Compress files</compress_files>
 <COMPUTERS_BRANCH>Computers branch</COMPUTERS_BRANCH>
 <configure_your_browser>Configure your browser</configure_your_browser>
@@ -2130,6 +2131,7 @@ You can click on the link in order to see added items.
 <error_corp_30day>Your server is installed in community mode.[br]
 In community mode, this feature is activated for a 30 days trial period.[br]
 In this case you are free to test it with all features...</error_corp_30day>
+<error_davfs_not_installed>This computer cannot use WebDav remote folder ( missing DavFS2 component )</error_davfs_not_installed>
 <error_http_auth_ldap_module>Error, the LDAP authentication module is not compiled</error_http_auth_ldap_module>
 <error_http_auth_request_module>Error the Authenticated request module is not compiled</error_http_auth_request_module>
 <ERROR_HTTRACK_NOT_INSTALLED>The HTTrack software is not installed or detected on this system.[br]This section cannot be displayed</ERROR_HTTRACK_NOT_INSTALLED>
@@ -5844,6 +5846,7 @@ If this issue still occurs in several minutes, try to run the tool [b]artica-ins
 <WEBDAVFREE_TEXT>Create a WebDav service in order to share multiple local directories in order to share them trough HTTP with Active Directory or LDAP authentication.[br]
 Can be used to share backup container between multiples Artica servers or to provide storage system trought Internet.</WEBDAVFREE_TEXT>
 <webdav_ContainerMAXSize_explain>If set then members will be not allowed to create a container more than this value in MB</webdav_ContainerMAXSize_explain>
+<webdav_directory>WEBDav remote directory</webdav_directory>
 <webdav_folders>Web sharing folders</webdav_folders>
 <webdav_public_explain>If enabled, your members will be able to create their own WebDav repository inside the End-Users WebAccess Web console.</webdav_public_explain>
 <webdav_suffix_domain_explain>Give here the domain suffix, means this domain must be resolved by your DNS in glob feature.[br]
