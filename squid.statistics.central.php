@@ -244,7 +244,7 @@ function tabs(){
 	$users=new usersMenus();
 	$tpl=new templates();	
 	$array["panel"]='{panel}';
-	$array["parameters"]='{parameters}';
+	$array["mysql_statistics_engine"]='{mysql_statistics_engine}';
 	$array["status-1"]='{status}';
 	$array["schedule-1"]='{schedule}';
 	$array["stats_admin_events"]='{events}';
@@ -257,7 +257,7 @@ function tabs(){
 		//$array["events-squidaccess"]='{realtime_requests}';
 		$array["events-mysar"]='{summary}';
 	
-		$font="style='font-size:14px'";
+		$font="style='font-size:16px'";
 		if(!$sock->SQUID_LOCAL_STATS_DISABLED()){$array["not_categorized"]='{not_categorized}';}
 	}
 	
@@ -279,6 +279,11 @@ while (list ($num, $ligne) = each ($array) ){
 		}	
 		if($num=="schedule-1"){
 			$html[]= "<li $font><a href=\"squid.databases.schedules.php?TaskType=53\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		if($num=="mysql_statistics_engine"){
+			$html[]= "<li $font><a href=\"squid.articadb.php?tabs=yes\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		
@@ -340,7 +345,7 @@ while (list ($num, $ligne) = each ($array) ){
 	}
 	
 	
-	echo build_artica_tabs($html, "squid_stats_central",990)."
+	echo build_artica_tabs($html, "squid_stats_central",1100)."
 			<script>LeftDesign('statistics-white-256-opac20.png');</script>";
 	
 }
@@ -509,11 +514,7 @@ function central_information(){
 		
 		$tr[]=Paragraphe32('remote_statistics_server','remote_statistics_server_text',"javascript:Loadjs('squid.stats-appliance.php',true)",'syslog-32-client.png');
 		
-		if($APP_SQUIDDB_INSTALLED=="TRUE"){
-			$squiddb=Paragraphe32('mysql_statistics_engine','mysql_statistics_engine_params',"Loadjs('squid.articadb.php',true)","database-connect-settings-32.png");
-				
-		}
-		
+
 		if($DisableArticaProxyStatistics==0){
 			$tr[]=Paragraphe32('import_squid_logs','import_squid_logs_explain',"Loadjs('squid.logs.import.php',true)",'32-import.png');
 		}
@@ -525,7 +526,6 @@ function central_information(){
 	if($DisableArticaProxyStatistics==0){
 			
 		$tr[]=table_heures_enretard();
-		$tr[]=$squiddb;
 		$tr[]=Paragraphe32('remote_mysql_server','remote_mysqlsquidserver_text',"Loadjs('squid.remote-mysql.php',true)","artica-meta-32.png");
 		$tr[]=Paragraphe32('restore_purged_statistics','restore_purged_statistics_explain',"Loadjs('squid.artica.statistics.restore.php',true)","32-import.png");		
 		

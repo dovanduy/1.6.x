@@ -6417,4 +6417,12 @@ Artica can reload/start/stop service but will not change settings.
 <database_disabled>Database disabled</database_disabled>
 <categories_databases>Categories databases</categories_databases>
 <webfiltering_database>Webfiltering database</webfiltering_database>
- 
+<warn_change_mysql_dir>This operation will change to MySQL storage database path.
+According the Database size, it will take time
+Do you want to carry out this operation ?
+</warn_change_mysql_dir>
+<change_database_path>Change database path</change_database_path>
+<warn_backup_database>This operation will backup your Database inside %s directory.
+According database size it will take time.
+Do you want to carry out this operation ?
+</warn_backup_database>

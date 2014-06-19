@@ -962,6 +962,7 @@ Ne peut &ecirc;tre ex&eacute;cut&eacute;e que toutes les 12 heures</categorize_t
 <certificate_path>Chemin du certificat</certificate_path>
 <certificate_to_deploy_explain>T&eacute;l&eacute;chargez et installez le certificat dans chaque navigateur afin de pr&eacute;venir les erreurs de certificat de confiance.</certificate_to_deploy_explain>
 <change_background_image>Modifier le fond d'&eacute;cran</change_background_image>
+<change_database_path>Modifier le chemin de la base</change_database_path>
 <change_day>Changer de Jour</change_day>
 <change_directory>Changer de r&eacute;pertoire</change_directory>
 <change_initd>Modifier le script de d&eacute;marrage</change_initd>
@@ -4962,7 +4963,13 @@ Voulez-vous effectuer cette op&eacute;ration ?</WARNING_LOOSE_DATA>
 Si votre serveur ne dispose pas de la puissance n&eacute;cessaire, les pages risquent de s'afficher tr&egrave;s lentement.[br]
 Si apr&egrave;s l'activation de cette option, vos utilisateurs se plaignent de la lenteur, d&eacute;sactiver cette option.</warning_malware_patrol_consumme_performance>
 <warn_already_global_scheduled>Acc&egrave;s interdit, une t&acirc;che syst&egrave;me globale &agrave; d&eacute;j&agrave; &eacute;t&eacute; programm&eacute;e.</warn_already_global_scheduled>
+<warn_backup_database>Cette op&eacute;ration va sauvegarder votre base de donn&eacute;es dans %s.
+En fonction de la taille de la base de donn&eacute;es, ceci peut prendre du temps.
+Voulez-vous effectuer cette op&eacute;ration ?</warn_backup_database>
 <warn_calculate_nothdsize>Attention, la valeur maximale utilis&eacute;e ne tient pas compte de l'espace libre de vos disques durs. N'indiquez pas une taille de cache sup&eacute;rieure &agrave; la capacit&eacute; de votre disque dur.</warn_calculate_nothdsize>
+<warn_change_mysql_dir>Cette op&eacute;ration va modifier le r&eacute;pertoire de stockage de la base de donn&eacute;es MySQL
+En fonction de la taille de la base, ceci peut prendre du temps.
+Voulez-vous effectuer cette op&eacute;ration ?</warn_change_mysql_dir>
 <warn_disable_dns_lookups>Attention: Si vous d&eacute;sactivez la recherche DNS, le service Postfix va r&eacute;soudre uniquement le domaine sans en rechercher les MX...
 Nous vous sugg&eacute;rons de laisser ces options d&eacute;coch&eacute;es si vous d&eacute;sirez utiliser ce serveur de fa&ccedil;on traditionnelle.</warn_disable_dns_lookups>
 <warn_disable_squid_cany_cache>Cette option va retirer tous les caches syst&egrave;mes pour le proxy.

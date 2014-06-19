@@ -32,6 +32,7 @@
 	if(isset($_POST["total_memory"])){total_memory();exit;}
 	if(isset($_GET["squid-db-status"])){status_service();exit;}
 	if(isset($_GET["squid-db-mysql"])){status_mysql();exit;}
+	if(isset($_POST["SquidStatsDatabasePath"])){SquidStatsDatabasePath();exit;}
 js();
 
 function js(){
@@ -51,40 +52,38 @@ function tabs(){
 
 	$array["status"]='{status}';
 	$array["popup"]='{parameters}';
+	$array["backup"]='{backup}';
 	$array["members"]='{members}';
-	$array["purge"]='{purge}';
+	$array["purge"]='{manual_purge}';
 	
 	
-	
+	$font="style='font-size:18px'";
 	//$array["restored"]='{restored}';
 
 	while (list ($num, $ligne) = each ($array) ){
 		
+		if($num=="backup"){
+			$html[]= "<li $font><a href=\"squid.statistics.parameters.php\"><span>$ligne</span></a></li>\n";
+			continue;
+		}
+		
+		
 		if($num=="purge"){
-			$html[]= "<li><a href=\"squid.artica.statistics.purge.php?tabs=yes\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.artica.statistics.purge.php?purge-bydate=yes\"><span>$ligne</span></a></li>\n";
 			continue;
 		}		
 		
 		if($num=="members"){
-			$html[]= "<li><a href=\"squid.articadb.mysql.php?members=yes\"><span>$ligne</span></a></li>\n";
+			$html[]= "<li $font><a href=\"squid.articadb.mysql.php?members=yes\"><span>$ligne</span></a></li>\n";
 			continue;
 		}
 		
-		$html[]= "<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
+		$html[]= "<li $font><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n";
 	}
 
 	$t=time();
-	echo $tpl->_ENGINE_parse_body( "
-			<div id=squidarticadb style='width:100%;font-size:14px'>
-			<ul>". implode("\n",$html)."</ul>
-			</div>
-			<script>
-			$(document).ready(function(){
-			$('#squidarticadb').tabs();
+	echo build_artica_tabs($html, "squidarticadb");
 
-
-});
-			</script>");
 }
 
 function status_service(){
@@ -150,7 +149,9 @@ function status(){
 	$users=new usersMenus();
 	$sock=new sockets();
 	$t=time();
-
+	$WORKDIR=base64_decode($sock->getFrameWork("squid.php?artica-db-path=yes"));
+	
+	
 	
 		
 	$html="
@@ -163,12 +164,49 @@ function status(){
 	</td>
 	</tr>
 	</table>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>{database_path}:</td>
+		<td>". Field_text("SquidStatsDatabasePath",$WORKDIR,"font-size:18px")."</td>
+		<td>". button_browse("SquidStatsDatabasePath")."</td>
+	</tr>
+	<tr>
+		<td colspan=3 align='right' style='padding-top:20px'><hr>
+				". button("{backup_database}","Loadjs('squid.articadb.progress.php?backup=yes')",26)."&nbsp;&nbsp;&nbsp;".button("{change_database_path}","SaveWorkdir$t()",26)."</td>
+	</tr>
+	</table>
+	</div>
+	
+	
+	
+	
+	
 	<script>
 		function RefreshTableTitle$t(){
 			LoadAjaxTiny('title-$t','squid.artica.statistics.purge.php?title=yes&t=$t');
 			LoadAjaxTiny('squid-db-status','$page?squid-db-status=yes&t=$t');
 		}
-		RefreshTableTitle$t();
+	var xSaveWorkdir$t= function (obj) {
+		var tempvalue=obj.responseText;
+		if(tempvalue.length>3){alert(tempvalue)};
+		Loadjs('squid.articadb.progress.php');
+		UnlockPage();
+	}		
+		
+	function SaveWorkdir$t(){
+		var XHR = new XHRConnection();	
+		XHR.appendData('SquidStatsDatabasePath',document.getElementById('SquidStatsDatabasePath').value);
+		XHR.sendAndLoad('$page', 'POST',xSaveWorkdir$t);				
+	}
+	
+	function SaveWorkdir$t(){
+		var XHR = new XHRConnection();	
+		XHR.appendData('SquidStatsDatabasePath',document.getElementById('SquidStatsDatabasePath').value);
+		XHR.sendAndLoad('$page', 'POST',xSaveWorkdir$t);				
+	}	
+		
+	RefreshTableTitle$t();
 	</script>
 	";
 	echo $tpl->_ENGINE_parse_body($html);	
@@ -424,6 +462,11 @@ function SaveParams(){
 	$newdata=base64_encode(serialize($SquidDBTuningParameters));
 	$sock->SaveConfigFile($newdata, "SquidDBTuningParameters");
 	$sock->getFrameWork("squid.php?artica-db-restart=yes");
+	
+}
+function SquidStatsDatabasePath(){
+	$sock=new sockets();
+	$sock->SET_INFO("SquidStatsDatabasePath_change", $_POST["SquidStatsDatabasePath"]);
 	
 }
 

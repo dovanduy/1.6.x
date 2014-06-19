@@ -28,6 +28,7 @@ if($argv[1]=="--keys"){GetStartedValues();die();}
 if($argv[1]=="--checks"){checktables();die();}
 if($argv[1]=="--statistics"){statistics();die();}
 if($argv[1]=="--upgrade"){upgrade();die();}
+if($argv[1]=="--backup"){backup();die();}
 
 
 
@@ -228,11 +229,13 @@ function start($skipGrant=false){
 	$nohup=$unix->find_program("nohup");
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$lnbin=$unix->find_program("ln");
-	if(!$GLOBALS["NOPID"]){
-		if($unix->process_exists($pid,basename(__FILE__))){
-			$time=$unix->PROCCESS_TIME_MIN($pid);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
-			return;
+	if(!$GLOBALS["FORCE"]){
+		if(!$GLOBALS["NOPID"]){
+			if($unix->process_exists($pid,basename(__FILE__))){
+				$time=$unix->PROCCESS_TIME_MIN($pid);
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Starting Task Already running PID $pid since {$time}mn\n";}
+				return;
+			}
 		}
 	}
 	@file_put_contents($pidfile, getmypid());
@@ -481,14 +484,28 @@ function stop(){
 	
 	
 	$q=new mysql_squid_builder();
+	$nohup=$unix->find_program("nohup");
 	$q->MEMORY_TABLES_DUMP();
 	
 	$time=$unix->PROCCESS_TIME_MIN($pid);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping MySQL Daemon ($SERV_NAME) with a ttl of {$time}mn\n";}
 	$mysqladmin=$unix->find_program("mysqladmin");
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping MySQL Daemon ($SERV_NAME) smoothly...\n";}
-	$cmd="$mysqladmin --socket=/var/run/mysqld/squid-db.sock  --protocol=socket --user=root shutdown >/dev/null";
+	$cmd="$nohup $mysqladmin --socket=/var/run/mysqld/squid-db.sock  --protocol=socket --user=root shutdown >/dev/null 2>&1 &";
 	shell_exec($cmd);
+	
+	for($i=0;$i<5;$i++){
+		$pid=SQUIDDB_PID();
+		if($unix->process_exists($pid)){
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) waiting $pid..\n";}
+			
+		}else{
+			break;
+		}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL daemon ($SERV_NAME) wait $i/5\n";}
+		sleep(1);
+	}	
+	
 
 	$pid=SQUIDDB_PID();
 	
@@ -536,45 +553,100 @@ function SQUIDDB_PID(){
 }
 
 
-function changemysqldir($dir){
-	
-	
+function changemysqldir($dir=null){
+	if($dir=="--verbose"){$dir=null;}
+	$sock=new sockets();
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/squiddbstart.pid";
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
 		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already task running PID $pid since {$time}mn\n";}
+		build_progress_changedir("Moving......: [INIT]: Already task running PID $pid since {$time}mn",100);
+		if($GLOBALS["OUTPUT"]){echo "Moving......: [INIT]: Already task running PID $pid since {$time}mn\n";}
 		return;
 	}
 	
-	@file_put_contents($pidfile, getmypid());	
+	@file_put_contents($pidfile, getmypid());
 	
-	initd();
-	$dirCMD=$unix->shellEscapeChars($dir);
-	if($dir=="/opt/squidsql/data"){return;}
-	@mkdir($dir,0755,true);
-	
-	echo "Moving......: [INIT]: Calculate disk size\n";
-	$Size=$unix->DIRSIZE_BYTES("/opt/squidsql/data");
-	echo "Moving......: [INIT]: Stopping Squid-db Size: $Size\n";
-	system("/etc/init.d/squid-db stop");
-	echo "Moving......: [INIT]: Copy /opt/squidsql/data content to next dir size=$Size\n";
+	if($dir==null){$dir=$sock->GET_INFO("SquidStatsDatabasePath_change");}
 	$cp=$unix->find_program("cp");
 	$rm=$unix->find_program("rm");
 	$ln=$unix->find_program("ln");
-	shell_exec("$cp -rf /opt/squidsql/data/* $dirCMD/");
-	$Size2=$unix->DIRSIZE_BYTES($dir);
-	if($Size2<$Size){
-		echo "Moving......: [INIT]: Copy error $Size2 is less than original size ($Size)\n";
+	$php=$unix->find_program("php");
+	
+	
+	echo "Moving......: [INIT]: Change to directory `$dir`\n";
+	if($dir==null){build_progress_changedir("No directory specified",100);return;}
+	$SourceDataPath=$sock->GET_INFO("SquidStatsDatabasePath");
+	if($SourceDataPath==null){$SourceDataPath="/opt/squidsql";}
+	$LinkSourceDB=$SourceDataPath."/data";
+	
+	$SourceDataPath="$SourceDataPath/data";
+	if(is_link($SourceDataPath)){
+			$LinkedSource=@readlink($SourceDataPath);
+			if($GLOBALS["VERBOSE"]){echo "LINKED SourceDataPath = $LinkedSource\n";}
+			if(!is_dir("$LinkedSource")){
+				if($GLOBALS["VERBOSE"]){echo "$LinkedSource No such directory...\n";}
+				shell_exec("$rm -f $SourceDataPath");
+			}else{
+				$SourceDataPath=$LinkedSource;
+			}
 	}
+	
+	
+	
+	
+	build_progress_changedir("Moving to $dir",100);
+	initd();
+	$dirCMD=$unix->shellEscapeChars($dir);
+	if($dir=="$SourceDataPath/data"){
+		build_progress_changedir("Moving to $dir - Not permited",100);
+		return;}
+	if($dir==$SourceDataPath){
+		build_progress_changedir("Moving to $dir - Not permited",100);
+		return;
+	}
+	@mkdir($dir,0755,true);
+	build_progress_changedir("Calculate disk size",20);
+	echo "Moving......: [INIT]: Calculate disk size\n";
+	$Size=$unix->DIRSIZE_BYTES("$SourceDataPath");
+	build_progress_changedir("Squid-db Size: $Size",25);
+	echo "Moving......: [INIT]: Stopping Squid-db Size: $Size\n";
+	build_progress_changedir("Stopping service",30);
+	system("/etc/init.d/squid-db stop");
+	build_progress_changedir("Copy data service",50);
+	echo "Moving......: [INIT]: Copy $SourceDataPath content to next dir size=$Size\n";
+
+	if($GLOBALS["VERBOSE"]){echo "EXECUTE: $cp -rfv $SourceDataPath/* $dirCMD/\n";}
+	system("$cp -rfv $SourceDataPath/* $dirCMD/");
+	$Size2=$unix->DIRSIZE_BYTES($dir);
+	
+	build_progress_changedir("Next size: $Size2",55);
+	if($Size2<$Size){
+		build_progress_changedir("Copy error $Size2 is less than original size ($Size)",110);
+		echo "Moving......: [INIT]: Copy error $Size2 is less than original size ($Size)\n";
+		return;
+	}
+	
+	build_progress_changedir("Removing old data...",60);
 	echo "Moving......: [INIT]: Removing old data\n";
-	shell_exec("$rm -rf /opt/squidsql/data");
+	if($GLOBALS["VERBOSE"]){echo "EXECUTE:$rm -rf $SourceDataPath\n";}
+	system("$rm -rf $SourceDataPath");
+	if(is_link($LinkSourceDB)){
+		if($GLOBALS["VERBOSE"]){echo "EXECUTE:$rm -f $LinkSourceDB\n";}
+		system("$rm -f $LinkSourceDB");}
+	
+	
+	build_progress_changedir("Create a new symbolic link",70);
 	echo "Moving......: [INIT]: Create a new symbolic link...\n";
-	shell_exec("$ln -s $dirCMD /opt/squidsql/data");
+	if($GLOBALS["VERBOSE"]){echo "EXECUTE:$ln -s $dirCMD $LinkSourceDB\n";}
+	system("$ln -s $dirCMD $LinkSourceDB");
+	build_progress_changedir("Starting MySQL database engine",80);
 	echo "Moving......: [INIT]: Starting MySQL database engine...\n";
-	system("/etc/init.d/squid-db start");
-	$unix->THREAD_COMMAND_SET($unix->LOCATE_PHP5_BIN()." ".__FILE__." --databasesize");
+	system("/etc/init.d/squid-db start --force");
+	build_progress_changedir("Calculating size...",80);
+	$unix->THREAD_COMMAND_SET("$php ".__FILE__." --databasesize --force");
+	build_progress_changedir("{done}",100);
 }
 function restart(){
 	$unix=new unix();
@@ -745,6 +817,68 @@ function install_db($WORKDIR){
 			shell_exec($cmd);
 		}
 	}
+}
+
+function build_progress_changedir($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	
+	if(is_numeric($text)){
+		$array["POURC"]=$text;
+		$array["TEXT"]=$pourc;
+	}
+	if($GLOBALS["VERBOSE"]){echo "******************** {$pourc}% $text ********************\n";}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/squiddb.restart.progress";
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
+
+}
+
+function backup(){
+	$unix=new unix();
+	$sock=new sockets();
+	$TMP=$unix->FILE_TEMP();
+	
+	$ArticaProxyStatisticsBackupFolder=$sock->GET_INFO("ArticaProxyStatisticsBackupFolder");
+	if($ArticaProxyStatisticsBackupFolder==null){$ArticaProxyStatisticsBackupFolder="/home/artica/squid/backup-statistics"; }
+	@mkdir($ArticaProxyStatisticsBackupFolder,0755,true);
+		
+	$nice=$unix->EXEC_NICE();
+	$mysqldump=$unix->find_program("mysqldump");
+	$gzip=$unix->find_program("gzip");
+	$nohup=$unix->find_program("nohup");
+	$filename=date("Ymdhi")."-squidlogs.gz";
+	$echo=$unix->find_program("echo");
+	$sh[]="#!/bin/sh";
+	$sh[]="$echo \"$mysqldump -> $filename\"";
+	$sh[]="$nice $mysqldump --add-drop-table --single-transaction --force --insert-ignore -S /var/run/mysqld/squid-db.sock -u root squidlogs | $gzip > $ArticaProxyStatisticsBackupFolder/$filename";
+	$sh[]="$echo \"$mysqldump -> $filename DONE\"";
+	$sh[]="\n";
+	
+	@file_put_contents("$TMP.sh", @implode("\n", $sh));
+	@chmod("$TMP.sh",0755);
+	
+	
+	
+	build_progress_changedir(10,"Starting backup $filename - ". basename("$TMP.sh")." ");
+	system("$nohup $TMP.sh >$TMP.txt 2>&1 &");
+	sleep(1);
+	$PID=$unix->PIDOF_PATTERN("$TMP.sh");
+	echo "Running PID $PID\n";
+	while ($unix->process_exists($PID)) {
+		$size=@filesize("$ArticaProxyStatisticsBackupFolder/$filename");
+		build_progress_changedir(50,"Starting backup $filename (".FormatBytes($size/1024).")");
+		sleep(3);
+		$PID=$unix->PIDOF_PATTERN("$TMP.sh");
+		echo "Running PID $PID\n";
+	}
+	echo @file_get_contents("$TMP.txt")."\n";
+	@unlink("$TMP.sh");
+	@unlink("$TMP.txt");
+	$size=@filesize("$ArticaProxyStatisticsBackupFolder/$filename");
+	echo "$ArticaProxyStatisticsBackupFolder/$filename -> SIZE:$size\n";
+	build_progress_changedir(100,"{done} $filename (".FormatBytes($size/1024).")");
+	
 }
 	
 ?>

@@ -29,6 +29,10 @@ if(isset($_GET["ziproxy-restart"])){ziproxy_restart();exit;}
 if(isset($_GET["ziproxy-reload"])){zipproxy_reload();exit;}
 if(isset($_GET["zipproxy-real"])){zipproxy_real();exit;}
 
+if(isset($_GET["artica-db-path"])){artica_db_path();exit;}
+if(isset($_GET["squid-db-change-database"])){artica_db_path_change();exit;}
+if(isset($_GET["squid-db-backup-database"])){artica_db_path_backup();exit;}
+
 
 
 if(isset($_GET["rttlogs-parse"])){realtime_logs_parse();exit;}
@@ -3084,6 +3088,55 @@ function website_analysis(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	$cmd="$php5 /usr/share/artica-postfix/exec.squid.website.analysis.php";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
+	
+}
+
+function artica_db_path(){
+	$WORKDIR=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/SquidStatsDatabasePath"));
+	if($WORKDIR==null){$WORKDIR="/opt/squidsql";}
+	
+	if(is_link("$WORKDIR/data")){
+		$fullepath=@readlink("$WORKDIR/data");
+	}else{
+		$fullepath=$WORKDIR;
+	}
+	echo "<articadatascgi>". base64_encode($fullepath)."</articadatascgi>";
+}
+
+function artica_db_path_backup(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/squiddb.restart.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/restartdb.squid";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squid-db.php --backup >{$GLOBALS["LOGSFILES"]} 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+		
+	
+}
+
+function artica_db_path_change(){
+	$GLOBALS["CACHEFILE"]="/usr/share/artica-postfix/ressources/logs/squiddb.restart.progress";
+	$GLOBALS["LOGSFILES"]="/usr/share/artica-postfix/ressources/logs/web/restartdb.squid";
+	@unlink($GLOBALS["CACHEFILE"]);
+	@unlink($GLOBALS["LOGSFILES"]);
+	@touch($GLOBALS["CACHEFILE"]);
+	@touch($GLOBALS["LOGSFILES"]);
+	@chmod($GLOBALS["CACHEFILE"],0777);
+	@chmod($GLOBALS["LOGSFILES"],0777);
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");	
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squid-db.php --changemysqldir >{$GLOBALS["LOGSFILES"]} 2>&1 &";
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	

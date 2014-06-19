@@ -1119,6 +1119,7 @@ from the Authority issuing a given certificate up to the Root of the certificate
 <certificate_path>Certificate path</certificate_path>
 <certificate_to_deploy_explain>Download and install this certificate into each browser in order to prevent SSL trust error</certificate_to_deploy_explain>
 <change_background_image>Change background image</change_background_image>
+<change_database_path>Change database path</change_database_path>
 <change_day>Change day</change_day>
 <change_directory>Change directory</change_directory>
 <change_initd>Modify startup script</change_initd>
@@ -5754,7 +5755,15 @@ If you server did not have a strong performance this will increase times to rece
 If after enable it your users complain about a low bandwidth, disable this feature.
 </warning_malware_patrol_consumme_performance>
 <warn_already_global_scheduled>Access denied, A global system schedule has been already set</warn_already_global_scheduled>
+<warn_backup_database>This operation will backup your Database inside %s directory.
+According database size it will take time.
+Do you want to carry out this operation ?
+</warn_backup_database>
 <warn_calculate_nothdsize>Attention, the Max value size does not calculate your current hard drive free space. Do not set a size larger than your free hard disk space.</warn_calculate_nothdsize>
+<warn_change_mysql_dir>This operation will change to MySQL storage database path.
+According the Database size, it will take time
+Do you want to carry out this operation ?
+</warn_change_mysql_dir>
 <warn_disable_dns_lookups>Notice: You have disable DNS lookup.
 The Postfix mail system will try to resolve the domain without resolve MX...
 Suggest to keep this option Off if you use this server in standard mode...
