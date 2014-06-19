@@ -396,7 +396,7 @@ function CategoriesDatabasesByCron(){
 	XHR.sendAndLoad('$page', 'POST',xCategoriesDatabasesByCron);
 }
 	
-LoadAjax('database-progress-status','dansguardian2.databases.progress.php');
+
 </script>";
 	echo $tpl->_ENGINE_parse_body($html);
 	

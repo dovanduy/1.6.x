@@ -404,6 +404,14 @@ if(preg_match("#kernel:.*?squid\[.*?segfault at.*?error.*?in squid#",$buffer)){
 	shell_exec(trim("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.squid.watchdog.php --start --crashed --cache-logs >/dev/null 2>&1 &"));
 	return;
 }
+
+if(preg_match("#class\.sockets\.inc.*?Fatal ERROR 500#",$buffer)){
+	shell_exec(trim("{$GLOBALS["nohup"]} {$GLOBALS["LOCATE_PHP5_BIN"]} /usr/share/artica-postfix/exec.framework.php --restart >/dev/null 2>&1 &"));
+	return;
+}
+		
+
+
 	
 if(strpos($buffer,"rdpproxy:")>0){
 	if(!isset($GLOBALS["CLASS_RDPPROXY_MONITOR"])){ $GLOBALS["CLASS_RDPPROXY_MONITOR"]=new rdpproxy_monitor(); }

@@ -113,6 +113,25 @@ function Parseline($buffer){
 	if(preg_match("#temporary disabling.*?digest from#", $buffer)){return;}
 	if(preg_match("#kid[0-9]+\| .*?\/[0-9]+ exists#", $buffer)){return;}
 	
+
+	
+	
+//*******************************************************************************************************************	
+if(preg_match("#Detected DEAD Parent: Peer([0-9]+)#", $buffer,$re)){
+	if(TimeStampTTL(__LINE__,2)){
+		squid_admin_mysql(0,"Parent proxy number {$re[1]} is dead [action: None]",null,__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --peer-status --force >/dev/null 2>&1 &");
+	}
+	return;
+}	
+//*******************************************************************************************************************
+if(preg_match("#TCP connection to (.+?)\/([0-9]+)\s+failed#", $buffer,$re)){
+	if(TimeStampTTL(__LINE__,2)){
+		squid_admin_mysql(1,"Connecting to Peer {$re[1]}:{$re[2]} failed [action: None]",null,__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --peer-status --force >/dev/null 2>&1 &");
+	}
+	return;
+}
 //*******************************************************************************************************************	
 if(preg_match("#commBind: Cannot bind socket FD [0-9]+ to ([0-9\.]+):.*?Cannot assign requested address#",$buffer,$re)){
 	if(TimeStampTTL(__LINE__,5)){

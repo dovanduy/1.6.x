@@ -461,10 +461,11 @@ function ufdbtables($nopid=false){
 	$CategoriesDatabasesByCron=$sock->GET_INFO("CategoriesDatabaseByCron");
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
 	
-	if($CategoriesDatabasesByCron==1){
-		if(!$GLOBALS["BYCRON"]){return;}
+	if(!$GLOBALS["FORCE"]){
+		if($CategoriesDatabasesByCron==1){
+			if(!$GLOBALS["BYCRON"]){return;}
+		}
 	}
-	
 	
 	if(!$nopid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -522,7 +523,7 @@ function ufdbtables($nopid=false){
 		
 	
 	$curl=new ccurl("$URIBASE/index.txt");
-	if(!$curl->GetFile("$tmpdir/index.txt")){
+	if(!$curl->GetFile("/etc/artica-postfix/artica-webfilter-db-index.txt")){
 		$GLOBALS["EVENTS"][]="$URIBASE/index.txt";
 		$GLOBALS["EVENTS"][]="Failed with error $curl->error";
 		while (list ($a, $b) = each ($GLOBALS["CURLDEBUG"]) ){$GLOBALS["EVENTS"][]=$b;}
@@ -537,7 +538,7 @@ function ufdbtables($nopid=false){
 
 	
 	$LOCAL_CACHE=unserialize(base64_decode(@file_get_contents($CACHE_FILE)));
-	$REMOTE_CACHE=unserialize(base64_decode(@file_get_contents("$tmpdir/index.txt")));
+	$REMOTE_CACHE=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/artica-webfilter-db-index.txt")));
 	
 	
 	$MAx=count($REMOTE_CACHE);

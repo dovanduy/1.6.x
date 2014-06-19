@@ -32,7 +32,7 @@ if(isset($_GET["zipproxy-real"])){zipproxy_real();exit;}
 if(isset($_GET["artica-db-path"])){artica_db_path();exit;}
 if(isset($_GET["squid-db-change-database"])){artica_db_path_change();exit;}
 if(isset($_GET["squid-db-backup-database"])){artica_db_path_backup();exit;}
-
+if(isset($_GET["artica-webfilters-download"])){artica_db_webf_update();exit;}
 
 
 if(isset($_GET["rttlogs-parse"])){realtime_logs_parse();exit;}
@@ -3091,6 +3091,15 @@ function website_analysis(){
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	
+}
+
+function artica_db_webf_update(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squid.blacklists.php --v2 --force >/dev/null 2>&1 &";
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);	
 }
 
 function artica_db_path(){

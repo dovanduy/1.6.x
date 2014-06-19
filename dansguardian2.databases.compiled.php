@@ -59,6 +59,10 @@ if(isset($_POST["global-artica-status-update"])){global_status_artica_update();e
 if(isset($_POST["global-toulouse-status-update"])){global_status_tlse_update();exit;}
 if(isset($_POST["global-toulouse-enable-update"])){global_status_tlse_enable();exit;}
 if(isset($_POST["global-artica-enable-update"])){global_status_articadb_enable();exit;}
+if(isset($_POST["global-artica-filtersdb-update"])){global_status_articaWF_update();exit;}
+
+
+
 if(isset($_POST["ScanThumbnails"])){ScanThumbnails();exit;}
 
 if(isset($_GET["articaufdb"])){articaufdb_table();exit;}
@@ -2098,6 +2102,13 @@ function global_status_artica_update(){
 	$tpl=new templates();
 	echo $tpl->javascript_parse_text("{database_update_performed_inbackground}");
 	
+}
+
+function global_status_articaWF_update(){
+	$sock=new sockets();
+	$sock->getFrameWork("squid.php?artica-webfilters-download=yes");
+	$tpl=new templates();
+	echo $tpl->javascript_parse_text("{database_update_performed_inbackground}");	
 }
 
 function ScanThumbnails(){

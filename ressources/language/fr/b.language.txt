@@ -1256,6 +1256,7 @@ Ils peuvent compromettre la s&eacute;curit&eacute; du r&eacute;seau de l'entrepr
 <dashboard_stats_explain>Pr&eacute;pare les donn&eacute;es pour afficher les statistiques du tableau de bord</dashboard_stats_explain>
 <databases_compilation>Databases compilation</databases_compilation>
 <databases_compilation_explain>Cette t&acirc;che sauvegarde sur le disque les cat&eacute;gories s&eacute;lectionn&eacute;es et les rend disponibles pour le service de filtrage Web.</databases_compilation_explain>
+<databases_number>Nombre de bases</databases_number>
 <databases_sizes_on_disk>Bases compil&eacute;es sur le disque</databases_sizes_on_disk>
 <databases_ufdbupdate>Mise &agrave; jour des bases principales</databases_ufdbupdate>
 <databases_ufdbupdate_explain>V&eacute;rifie sur Internet si il existe un nouveau jeu de bases de filtrage Web et met &agrave; jour la base locale.[br]
@@ -1563,6 +1564,7 @@ L'&eacute;tat suivant vous indique le taux de r&eacute;ponse de chaque serveur D
 <downloaded_videos>Vid&eacute;os t&eacute;l&eacute;charg&eacute;es</downloaded_videos>
 <downloadz>T&eacute;l&eacute;charger</downloadz>
 <download_file>T&eacute;l&eacute;charger le fichier</download_file>
+<download_progress>Progression du t&eacute;l&eacute;chargement</download_progress>
 <download_timeout>Dur&eacute;e MAX de t&eacute;l&eacute;chargement</download_timeout>
 <do_not_cache>N'enregistre pas dans le cache</do_not_cache>
 <drop>Rejeter</drop>

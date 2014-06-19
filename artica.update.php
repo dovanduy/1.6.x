@@ -652,7 +652,7 @@ function webfiltering_tabs(){
 		
 		if($num=="databases"){
 			$html[]= $tpl->_ENGINE_parse_body("<li>
-					<a href=\"dansguardian2.databases.php?status=yes&maximize=yes\">
+					<a href=\"dansguardian2.databases.progress.php\">
 					<span style='font-size:{$fontsize}px'>$ligne</span></a></li>\n");
 			continue;
 		}

@@ -20,6 +20,7 @@ function squid_increment_func($array){
 	$array[]="squidguard_logger";
 	$array[]="dnsmasq_squid";
 	$array[]="ziproxy";
+	$array[]="articadb";
 	return $array;
 }
 
@@ -1243,5 +1244,181 @@ function ufdbguardd_version(){
 	while (list ($num, $line) = each ($results)){
 		if(preg_match("#ufdbguardd:\s+([0-9\.]+)#", $line,$re)){$GLOBALS[__FUNCTION__]=$re[1];return $re[1];}
 	}
+}
+
+function articadb(){
+	$DIR_COUNT_OF_FILES=$GLOBALS["CLASS_UNIX"]->DIR_COUNT_OF_FILES("/home/artica/categories_databases");
+	if($DIR_COUNT_OF_FILES<140){
+		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.blacklists.php.cicap_artica.time");
+		if($CacheSchedules>60){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid.blacklists.php --cicap-dbs --notime >/dev/null 2>&1 &");
+		}
+	}
+	
+	$PRC=0;
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/cache/CATZ_ARRAY")){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid.blacklists.php --get-version >/dev/null 2>&1 &");
+		return;
+		
+	}
+	
+	if(!is_file("/etc/artica-postfix/univtoulouse-global_usage")){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.update.squid.tlse.php --refresh-index >/dev/null 2>&1 &");
+		
+	}
+	
+	$array=unserialize(base64_decode(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/CATZ_ARRAY")));
+	unset($array["TIME"]);
+	$MAX=count($array);
+	
+	if($MAX==0){
+		echo "No item !\n";
+		return;}
+	$c=0;
+	while (list ($table, $items) = each ($array) ){
+		if(!is_file("/home/artica/categories_databases/$table.db")){
+			echo "/home/artica/categories_databases/$table.db no such file\n";
+			continue;}
+		$c++;
+		
+		$prc=intval($c)/intval($MAX);
+		$prc=round($prc*100);
+		$ARRAY["CAT_STATS_COUNT"]=$c;
+		if($GLOBALS["VERBOSE"]){echo "$c / $MAX = {$prc}%\n";}
+	}
+	
+	
+	
+	if($GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/ARTICA_STAT_DB_SIZE")>60){
+		$ARTICA_STAT_DB_SIZE=$GLOBALS["CLASS_UNIX"]->DIRSIZE_KO("/home/artica/categories_databases");
+		@unlink("/etc/artica-postfix/ARTICA_STAT_DB_SIZE");
+		@file_put_contents("/etc/artica-postfix/ARTICA_STAT_DB_SIZE", $ARTICA_STAT_DB_SIZE);
+	}
+	
+	$ARRAY["CAT_STATS_SIZE"]=trim(@file_get_contents("/etc/artica-postfix/ARTICA_STAT_DB_SIZE"));
+	$ARRAY["CAT_STATS_PERCENT"]=$prc;
+	$ARRAY=ArticaUfdb($ARRAY);
+	$ARRAY=ArticaWebFilter($ARRAY);
+	print_r($ARRAY);
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/ARTICA_DBS_STATUS.db", serialize($ARRAY));
+	@chmod("/usr/share/artica-postfix/ressources/logs/ARTICA_DBS_STATUS.db",0755);
+
+
+}
+function ArticaWebFilter($ARRAY){
+	if(trim(@file_get_contents("/usr/local/share/artica/.lic"))<>"TRUE"){
+		if($GLOBALS["VERBOSE"]){echo "NO LICENSE...\n";}
+		return $ARRAY;}
+	$REMOTE_CACHE=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/artica-webfilter-db-index.txt")));
+	$WORKDIR="/var/lib/ufdbartica";
+	$MAX=count($REMOTE_CACHE);
+	$c=0;
+	$prc=0;
+	$ARRAY["CAT_ARTICA_MAX"]=$MAX;
+	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){
+		
+		$destfile="$WORKDIR/$tablename/domains.ufdb";
+		$size=@filesize($destfile);
+		if($size<10){continue;}
+		$c++;
+		$prc=intval($c)/intval($MAX);
+		$prc=round($prc*100);
+		$ARRAY["CAT_ARTICA_COUNT"]=$c;
+		$ARRAY["CAT_ARTICA_PRC"]=$prc;
+		if($GLOBALS["VERBOSE"]){echo "ArticaWebFilter:: $destfile $c / $MAX = {$prc}% {$size}Bytes\n";}
+	}
+	
+	if($GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/CAT_ARTICA_DB_SIZE")>60){
+		$CAT_ARTICA_DB_SIZE=$GLOBALS["CLASS_UNIX"]->DIRSIZE_KO("/var/lib/ufdbartica");
+		@unlink("/etc/artica-postfix/CAT_ARTICA_DB_SIZE");
+		@file_put_contents("/etc/artica-postfix/CAT_ARTICA_DB_SIZE", $CAT_ARTICA_DB_SIZE);
+	}
+	
+	
+	$ARRAY["CAT_ARTICA_SIZE"]=trim(@file_get_contents("/etc/artica-postfix/CAT_ARTICA_DB_SIZE"));
+	return $ARRAY;
+	
+}
+
+
+
+function ArticaUfdb($ARRAY){
+	$DB=array();
+	$FILEDBS=array();
+	$prc=0;
+	$ARRAY["TLSE_PRC"]=0;
+	include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
+	if($GLOBALS["CLASS_SOCKETS"]->EnableUfdbGuard()==0){
+		$ARRAY["TLSE_ENABLED"]=0;
+		return $ARRAY;
+	}
+	
+	$ARRAY["TLSE_ENABLED"]=1;
+	if(is_file("/etc/artica-postfix/univtoulouse-global_usage")){
+		$contentF=explode("\n",@file_get_contents("/etc/artica-postfix/univtoulouse-global_usage"));
+		while (list ($index, $line) = each ($contentF) ){
+			if(preg_match("#NAME:\s+(.+)#", $line,$re)){
+				$DB[trim($re[1])]=trim($re[1]);
+			}
+		}
+	}
+	if(count($DB)>0){
+		$q=new mysql_squid_builder();
+		$TLSE_CONVERTION=$q->TLSE_CONVERTION();
+		while (list ($TLSE, $line) = each ($DB) ){
+			$catzname=$TLSE_CONVERTION[$TLSE];
+			if($catzname==null){
+				if($GLOBALS["VERBOSE"]){echo "Unable to understand $TLSE\n";}
+				continue;
+			}
+			$catzname=str_replace("/", "_", $catzname);
+			$FILEDBS[$catzname]="/var/lib/ftpunivtlse1fr/$catzname/domains.ufdb";
+			$FILEDBSC[]="/var/lib/ftpunivtlse1fr/$catzname/domains";
+			
+		}
+		
+	}
+	if(count($FILEDBS)>0){
+		$c=0;
+		
+		$MAX=count($FILEDBS);
+		
+		while (list ($table, $path) = each ($FILEDBS) ){
+			if(!is_file($path)){
+				echo "$path such file\n";continue;}
+				$size=@filesize($path);
+				if($size<10){continue;}
+				$c++;
+				$prc=intval($c)/intval($MAX);
+				$prc=round($prc*100);
+				$ARRAY["TLSE_COUNT"]=$c;
+				
+			}
+		
+	}
+	
+	if($GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/UNIVTLSE_STAT_DB_SIZE")>60){
+		$UNIVTLSE_STAT_DB_SIZE=$GLOBALS["CLASS_UNIX"]->DIRSIZE_KO("/var/lib/ftpunivtlse1fr");
+		@unlink("/etc/artica-postfix/UNIVTLSE_STAT_DB_SIZE");
+		@file_put_contents("/etc/artica-postfix/UNIVTLSE_STAT_DB_SIZE", $UNIVTLSE_STAT_DB_SIZE);
+	}
+	
+	$C=0;
+	if($GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/UNIVTLSE_STAT_DB_ITEMS")>60){
+		while (list ($table, $path) = each ($FILEDBSC) ){
+			$unix=new unix();
+			$C=$C+intval($unix->COUNT_LINES_OF_FILE($path));
+			
+		}
+		@unlink("/etc/artica-postfix/UNIVTLSE_STAT_DB_ITEMS");
+		@file_put_contents("/etc/artica-postfix/UNIVTLSE_STAT_DB_ITEMS", $C);
+	}
+	
+	
+	$ARRAY["TLSE_PRC"]=$prc;
+	$ARRAY["TLSE_STAT_SIZE"]=trim(@file_get_contents("/etc/artica-postfix/UNIVTLSE_STAT_DB_SIZE"));
+	$ARRAY["TLSE_STAT_ITEMS"]=trim(@file_get_contents("/etc/artica-postfix/UNIVTLSE_STAT_DB_ITEMS"));
+	return $ARRAY;
 }
 

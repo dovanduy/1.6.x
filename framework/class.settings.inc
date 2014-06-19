@@ -770,8 +770,10 @@ class settings_inc {
 			$this->SUGARCRM_INSTALLED=$_GLOBAL["SUGARCRM_INSTALLED"];
 			if(isset($_GLOBAL["GNUPLOT_PNG"])){$this->GNUPLOT_PNG=$_GLOBAL["GNUPLOT_PNG"];}
 			$this->IOSTAT_INSTALLED=$_GLOBAL["IOSTAT_INSTALLED"];
-			if(is_array($_GLOBAL["IOSTAT_ARRAY"])){
-				$this->IOSTAT_ARRAY=$_GLOBAL["IOSTAT_ARRAY"];
+			if(isset($_GLOBAL["IOSTAT_ARRAY"])){
+				if(is_array($_GLOBAL["IOSTAT_ARRAY"])){
+					$this->IOSTAT_ARRAY=$_GLOBAL["IOSTAT_ARRAY"];
+				}
 			}
 			if(isset($_GLOBAL["POSTFIX_QUEUE"])){$this->POSTFIX_QUEUE=$_GLOBAL["POSTFIX_QUEUE"];}
 			$this->PHP_BIN_PATH=$_GLOBAL["PHP_BIN_PATH"];

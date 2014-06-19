@@ -1461,6 +1461,7 @@ They can compromise company network security</dangerous_websites_fam_explain>
 <dashboard_stats_explain>Prepare statistics data in order to build graphs/charts in the front panel</dashboard_stats_explain>
 <databases_compilation>Databases compilation</databases_compilation>
 <databases_compilation_explain>This task will save to disk selected categories to make them available in the webfiltering engine process.</databases_compilation_explain>
+<databases_number>Databases number</databases_number>
 <databases_sizes_on_disk>Compiled databases sizes on disk</databases_sizes_on_disk>
 <databases_ufdbupdate>Update the main Webfilter databases</databases_ufdbupdate>
 <databases_ufdbupdate_explain>Check on Internet if there is new Webfilter databases and update the local container.[br]
@@ -1807,6 +1808,7 @@ The Samba server is made into a domain member server</domain_security_explain>
 <downloaded_videos>Downloaded videos</downloaded_videos>
 <downloadz>Download</downloadz>
 <download_file>Download file</download_file>
+<download_progress>Download progress</download_progress>
 <download_timeout>Download timeout</download_timeout>
 <do_not_cache>Do not cache</do_not_cache>
 <drop>Drop</drop>

@@ -29,6 +29,9 @@ function page(){
 	$t=time();
 	$tpl=new templates();
 	$page=CurrentPageName();
+	
+	$ARTICA_DBS_STATUS=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/ARTICA_DBS_STATUS.db"));
+	
 	$array=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.progress"));
 	$text=$array["TEXT"];
 	$purc=intval($array["POURC"]);
@@ -41,22 +44,178 @@ function page(){
 	$text2=$array["TEXT"];
 	$purc2=intval($array["POURC"]);	
 	
+	$CATZ_ARRAY=unserialize(@file_get_contents("/home/artica/categories_databases/CATZ_ARRAY"));
+	$date=$CATZ_ARRAY["TIME"];
+	$LOCAL_VERSION=$CATZ_ARRAY["TIME"];
+	$LOCAL_VERSION_TEXT=$tpl->time_to_date($date);
+	
+	
+	unset($CATZ_ARRAY["TIME"]);
+	$CountDecategories=0;
+	while (list ($table, $items) = each ($CATZ_ARRAY) ){
+		$items=intval($items);
+	
+		$CountDecategories=$CountDecategories+$items;
+		if($GLOBALS["VERBOSE"]){echo "<li>$table - $items = $CountDecategories</li>";}
+	}
+	
+	if(!is_numeric($CountDecategories)){$CountDecategories=0;}
+	$CountDecategories=numberFormat($CountDecategories,0,""," ");
+	
+	
+	
+	$CAT_STATS_PERCENT=intval($ARTICA_DBS_STATUS["CAT_STATS_PERCENT"]);
+	$CAT_STATS_SIZE=intval($ARTICA_DBS_STATUS["CAT_STATS_SIZE"]);
+	
+	$CAT_STATS_COUNT=intval($ARTICA_DBS_STATUS["CAT_STATS_COUNT"]);
+	
+	$TLSE_PRC=intval($ARTICA_DBS_STATUS["TLSE_PRC"]);
+	$TLSE_STAT_SIZE=intval($ARTICA_DBS_STATUS["TLSE_STAT_SIZE"]);
+	$TLSE_COUNT=intval($ARTICA_DBS_STATUS["TLSE_COUNT"]);
+	$TLSE_STAT_ITEMS=numberFormat(intval($ARTICA_DBS_STATUS["TLSE_STAT_ITEMS"]),0,""," ");
+	
+	$CAT_ARTICA_PRC=intval($ARTICA_DBS_STATUS["CAT_ARTICA_PRC"]);
+	$CAT_ARTICA_SIZE=intval($ARTICA_DBS_STATUS["CAT_ARTICA_SIZE"]);
+	$CAT_ARTICA_COUNT=intval($ARTICA_DBS_STATUS["CAT_ARTICA_COUNT"]);
 	$html="
-	<div style='margin-top:15px;font-size:26px'>{categories_databases} %</div>
-	<center id='title-$t' style='font-size:18px;margin-bottom:20px'>$text</center>
-	<div id='progress-$t' style='height:50px'></div>
-			
-	<div style='margin-top:15px;font-size:26px'>{webfiltering_database} (Toulouse University) %</div>
-	<center id='title1-$t' style='font-size:18px;margin-bottom:20px'>$text1</center>
-	<div id='progress1-$t' style='height:50px'></div>	
+	<div style='margin-top:15px;font-size:26px;margin-bottom:30px'>{categories_databases}</div>
+	
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>&nbsp;</td>
+		<td style='font-size:18px;width:70%'>$text</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px;width:30%' nowrap>{download_progress}:</td>
+		<td><div id='progress-$t' style='height:25px'></div></td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{database_status}:</td>
+		<td><div id='progressdb-$t' style='height:25px'></div></td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{directory_size}:</td>
+		<td style='font-size:18px'>". FormatBytes($CAT_STATS_SIZE)."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{databases_number}:</td>
+		<td style='font-size:18px'>$CAT_STATS_COUNT</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{websites}:</td>
+		<td style='font-size:18px'>$CountDecategories</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'>". button("{update_now}", "Loadjs('squid.blacklist.upd.php')",16)."</td>
+	</tr>			
+	</table>
+	
+	
+	
+	
+	<p>&nbsp;</p>	
+	<div style='margin-top:15px;font-size:26px'>{webfiltering_database} (Toulouse University)</div>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>&nbsp;</td>
+		<td style='font-size:18px;width:70%'>$text1</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px;width:30%' nowrap>{download_progress}:</td>
+		<td style='font-size:18px;width:70%'>
+			<div id='progress1-$t' style='height:25px'></div>
+		</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{database_status}:</td>
+		<td><div id='progressdb1-$t' style='height:25px'></div></td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{directory_size}:</td>
+		<td style='font-size:18px'>". FormatBytes($TLSE_STAT_SIZE)."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{databases_number}:</td>
+		<td style='font-size:18px'>$TLSE_COUNT</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{websites}:</td>
+		<td style='font-size:18px'>$TLSE_STAT_ITEMS</td>
+	</tr>
+	<tr>
+		<td colspan=2 align='right'>". button("{update_now}", "ToulouseDBUpdateNow();",16)."</td>
+	</tr>	
+	
+	</table>	
+	
 
-	<div style='margin-top:15px;font-size:26px'>{webfiltering_database} (Artica) %</div>
-	<center id='title2-$t' style='font-size:18px;margin-bottom:20px'>$text2</center>
+<p>&nbsp;</p>
+	<div style='margin-top:15px;font-size:26px'>{webfiltering_database} (Artica)</div>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>&nbsp;</td>
+		<td style='font-size:18px;width:70%'>$text2</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px;width:30%' nowrap>{download_progress}:</td>
+		<td style='font-size:18px;width:70%'>
+			<div id='progress2-$t' style='height:25px'></div>
+		</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{database_status}:</td>
+		<td><div id='progressdb2-$t' style='height:25px'></div></td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{directory_size}:</td>
+		<td style='font-size:18px'>". FormatBytes($CAT_ARTICA_SIZE)."</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{databases_number}:</td>
+		<td style='font-size:18px'>$CAT_ARTICA_COUNT</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{websites}:</td>
+		<td style='font-size:18px'>$CountDecategories</td>
+	</tr>	
+	<tr>
+		<td colspan=2 align='right'>". button("{update_now}", "ArticaDBDBUpdateNow()",16)."</td>
+	</tr>	
+	</table>	
+	
 	<div id='progress2-$t' style='height:50px'></div>		
 	<script>
 		$('#progress-$t').progressbar({ value: $purc });
+		$('#progressdb-$t').progressbar({ value: $CAT_STATS_PERCENT });
+		
 		$('#progress1-$t').progressbar({ value: $purc1 });
+		$('#progressdb1-$t').progressbar({ value: $TLSE_PRC });
+		
+		
+		
+		
 		$('#progress2-$t').progressbar({ value: $purc2 });
+		$('#progressdb2-$t').progressbar({ value: $CAT_ARTICA_PRC });
+		
+		
+	
+	var xToulouseDBUpdateNow= function (obj) {
+			var tempvalue=obj.responseText;
+			if(tempvalue.length>3){alert(tempvalue)};
+	    	
+		}	
+
+		function ToulouseDBUpdateNow(){
+			var XHR = new XHRConnection();
+			XHR.appendData('global-toulouse-status-update','yes');
+			XHR.sendAndLoad('dansguardian2.databases.compiled.php', 'POST',xToulouseDBUpdateNow);
+		}
+
+		function ArticaDBDBUpdateNow(){
+			var XHR = new XHRConnection();
+			XHR.appendData('global-artica-filtersdb-update','yes');
+			XHR.sendAndLoad('dansguardian2.databases.compiled.php', 'POST',xToulouseDBUpdateNow);
+		}			
 
 	</script>
 	";

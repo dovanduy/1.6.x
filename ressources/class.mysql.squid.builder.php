@@ -2421,6 +2421,8 @@ class mysql_squid_builder{
 			$f["mobile-phone"]="mobile-phone";
 			$f["press"]="press";
 			$f["radio"]="webradio";
+			$f["translation"]="translators";
+			$f["bitcoin"]="paytosurf";
 			
 			$f["redirector"]="proxy";
 			$f["sexual_education"]="sexual_education";

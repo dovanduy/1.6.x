@@ -29,6 +29,7 @@ if($argv[1]=="--mysqlcheck"){CoherenceBase();die();}
 if($argv[1]=="--localcheck"){CoherenceOffiels();die();}
 if($argv[1]=="--compile"){compile();die();}
 if($argv[1]=="--status"){BuildDatabaseStatus();die();}
+if($argv[1]=="--refresh-index"){GET_MD5S_REMOTE();die();}
 
 
 
@@ -278,6 +279,16 @@ function GET_MD5S_REMOTE(){
 		artica_update_event(0, "Web filtering databases, unable to download index file", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
 		die();
 	}
+	
+	$indexuri="$BASE_URI/global_usage";
+	$curl=new ccurl($indexuri);
+	if(!$curl->GetFile("/etc/artica-postfix/univtoulouse-global_usage")){
+		$errorDetails=@implode("\n", $GLOBALS["CURLDEBUG"]);
+		WriteMyLogs("Fatal error downloading $indexuri $curl->error\n$errorDetails",__FUNCTION__,__FILE__,__LINE__);
+		artica_update_event(0, "Web filtering databases, unable to download global_usage file", "Fatal error downloading $indexuri $curl->error\n$errorDetails",__FILE__,__LINE__);
+		
+	}
+	
 	$f=explode("\n",@file_get_contents($cache_temp));
 	while (list ($index, $line) = each ($f) ){
 		if(trim($line)==null){continue;}

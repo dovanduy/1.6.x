@@ -21,7 +21,7 @@ writelogs_framework("unable to understand query...",__FUNCTION__,__FILE__,__LINE
 function restart(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	WriteToSyslog("Artica Framework: Order framework to restart service","dnsmasq");
+	DNWriteToSyslog("Artica Framework: Order framework to restart service","dnsmasq");
 	
 	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.initslapd.php --dnsmasq");
 	$cmd=trim($nohup." /etc/init.d/dnsmasq restart >/dev/null 2>&1 &");
@@ -31,7 +31,7 @@ function restart(){
 function reload_hosts(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	WriteToSyslog("Artica Framework: Order framework to reload service","dnsmasq");
+	DNWriteToSyslog("Artica Framework: Order framework to reload service","dnsmasq");
 	shell_exec($nohup." ".LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.dnsmasq.php --build-hosts");
 	
 }
@@ -53,7 +53,7 @@ function remove_dhcp_role(){
 
 }
 
-function WriteToSyslog($text,$file,$error=false){
+function DNWriteToSyslog($text,$file,$error=false){
 	$file=basename($file);
 	if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
 	if(function_exists("openlog")){openlog($file, LOG_PID , LOG_SYSLOG);}

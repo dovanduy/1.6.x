@@ -621,6 +621,12 @@ function parents_search(){
 		$ID=$ligne["ID"];
 		$color="black";
 		$delete=imgtootltip("delete-24.png",null,"Delete$t('{$ligne["ID"]}')");
+		$STATUS_KEY=$ligne["servername"];
+		if(!isset($STATUS[$STATUS_KEY]["STATUS"])){
+			if(isset($STATUS["Peer{$ligne["ID"]}"])){
+				$STATUS_KEY="Peer{$ligne["ID"]}";
+			}
+		}
 		
 		if($ligne["icp_port"]>0){$ligne["server_port"]=$ligne["server_port"]."/".$ligne["icp_port"];}
 		
@@ -630,10 +636,10 @@ function parents_search(){
 	
 		$array=unserialize(base64_decode($ligne["options"]));
 		
-		if(!isset($STATUS[$ligne["servername"]]["STATUS"])){
+		if(!isset($STATUS[$STATUS_KEY]["STATUS"])){
 			$status_icon="42-green-grey.png";
 		}else{
-			if($STATUS[$ligne["servername"]]["STATUS"]=="Down"){$status_icon="42-red.png";}
+			if($STATUS[$STATUS_KEY]["STATUS"]=="Down"){$status_icon="42-red.png";}
 		}
 		
 		$search=string_to_flexregex("search-options");
@@ -649,8 +655,8 @@ function parents_search(){
 		$js=$boot->trswitch("Loadjs('$page?parent-js={$ligne["ID"]}')");
 		$jsdomains=$boot->trswitch("Loadjs('squid.cache_peer_domain.php?servername={$ligne["servername"]}&t=$t')");
 		
-		if(is_numeric($STATUS[$ligne["servername"]]["FETCHES"])){
-			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$ligne["servername"]]["FETCHES"]).")</span>";
+		if(is_numeric($STATUS[$STATUS_KEY]["FETCHES"])){
+			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$STATUS_KEY]["FETCHES"]).")</span>";
 		}
 		
 		if($ligne["enabled"]==0){

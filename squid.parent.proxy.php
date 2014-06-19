@@ -618,6 +618,8 @@ function popup_list(){
 	$ArticaSquidParameters=$sock->GET_INFO('ArticaSquidParameters');
 	$ini->loadString($sock->GET_INFO('ArticaSquidParameters'));
 	$EnableParentProxy=intval($ini->_params["NETWORK"]["EnableParentProxy"]);
+	$EnableParentProxy2=intval($sock->GET_INFO("EnableParentProxy"));
+	if($EnableParentProxy2==1){$EnableParentProxy=1;}
 	
 	
 	$data = array();
@@ -635,6 +637,9 @@ function popup_list(){
 	
 	$cacheFile="/usr/share/artica-postfix/ressources/logs/web/squid.peers.db";
 	$STATUS=unserialize(@file_get_contents($cacheFile));
+	
+	if($GLOBALS["VERBOSE"]){print_r($STATUS);}
+	
 	$fetchesWord=$tpl->_ENGINE_parse_body("{fetches}");
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -647,20 +652,33 @@ function popup_list(){
 		$img="48-server.png";
 		$Check="check-48.png";
 		
-		if(is_numeric($STATUS[$ligne["servername"]]["FETCHES"])){
-			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$ligne["servername"]]["FETCHES"]).")</span>";
+		$STATUS_KEY=$ligne["servername"];
+		if($GLOBALS["VERBOSE"]){echo "<H3>STATUS_KEY = $STATUS_KEY</H3>\n";}
+		
+		
+		if(!isset($STATUS[$STATUS_KEY]["STATUS"])){
+			if(isset($STATUS["Peer{$ligne["ID"]}"])){
+				$STATUS_KEY="Peer{$ligne["ID"]}";
+			}
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "<H3>STATUS_KEY = $STATUS_KEY</H3>\n";}
+		
+		if(is_numeric($STATUS[$STATUS_KEY]["FETCHES"])){
+			$fetches="<span style='font-size:12px'>($fetchesWord: ". FormatNumber($STATUS[$STATUS_KEY]["FETCHES"]).")</span>";
 		}
 		
 		if(!$ASBROWSER){
-			if(!isset($STATUS[$ligne["servername"]]["STATUS"])){
+			if(!isset($STATUS[$STATUS_KEY]["STATUS"])){
 				$img="42-server-grey.png";
-				$STATUS[$ligne["servername"]]["STATUS"]="{unknown}";
+				$STATUS[$STATUS_KEY]["STATUS"]="{unknown}";
 			}else{
-				if($STATUS[$ligne["servername"]]["STATUS"]=="Down"){
-					$STATUS[$ligne["servername"]]["STATUS"]="{stopped}";
+				if($STATUS[$STATUS_KEY]["STATUS"]=="Down"){
+					$STATUS[$STATUS_KEY]["STATUS"]="{stopped}";
 					$img="42-server-red.png";
 				}else{
-					$STATUS[$ligne["servername"]]["STATUS"]="{running}";
+					$STATUS[$STATUS_KEY]["STATUS"]="{running}";
+					$img="48-server.png";
 				}
 			}
 			
@@ -668,6 +686,7 @@ function popup_list(){
 			if($EnableParentProxy==0){
 				$color="#CACACA";
 				$img="42-server-grey.png";
+				$STATUS[$STATUS_KEY]["STATUS"]="{disabled}";
 			}
 		}
 
@@ -716,10 +735,10 @@ function popup_list(){
 			$enabled="<div style='margin-top:4px'>".imgsimple("arrow-blue-left-32.png",null,"{$_GET["callback"]}({$ligne["ID"]})")."</div>";
 		}
 		
-		$STATUS[$ligne["servername"]]["STATUS"]=$tpl->_ENGINE_parse_body($STATUS[$ligne["servername"]]["STATUS"]);
+		$STATUS[$STATUS_KEY]["STATUS"]=$tpl->_ENGINE_parse_body($STATUS[$STATUS_KEY]["STATUS"]);
 		
 		$CELLS=array();
-		$CELLS[]="<img src='img/$img'><br>{$STATUS[$ligne["servername"]]["STATUS"]}";
+		$CELLS[]="<img src='img/$img'><br>{$STATUS[$STATUS_KEY]["STATUS"]}";
 		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["servername"]}</a>$domainsInfos$options</div>";
 		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["server_port"]}</a></div>";
 		$CELLS[]="<div style='margin-top:8px'>$ahref{$ligne["server_type"]}</a></div>";

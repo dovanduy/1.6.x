@@ -1273,7 +1273,7 @@ function launch_all_status($force=false){
 	"dnsmasq","iscsi","watchdog_yorel","netatalk","postfwd2","vps_servers","smartd","crossroads_multiple","auth_tail","greyhole_watchdog","greensql","nscd","tomcat",
 	"openemm","openemm_sendmail","cgroups","ntpd_server","arpd","ps_mem","ipsec","yaffas","ifconfig_network","testingrrd","zarafa_multi","memcached","UpdateUtilityHTTP",
 	"udevd_daemon","dbus_daemon","ejabberd","pymsnt", "arkwsd", "arkeiad","haproxy","klms_status","klmsdb_status","klms_milter","CleanLogs","mimedefangmx","mimedefang",
-	"zarafa_search","snort","articadb","amavisdb","nginx","nginx_db","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
+	"zarafa_search","snort","amavisdb","nginx","nginx_db","checksyslog","freeradius","maillog_watchdog","arp_spoof","caches_pages",
 	"php_fpm","php_fcgi","CleanCloudCatz","syslog_db","roundcube_db","Scheduler","exim4","snmpd","ntopng","redis_server","bwm_ng","XMail","conntrackd","iptables",
 	"rdpproxy_authhook","rdpproxy","vde_all","iptables_tasks",
 			);
@@ -1608,49 +1608,6 @@ function amavisdb(){
 
 
 }
-//---------------------------------------------------------------------------------------------------
-function articadb_pid(){
-	$pid_path="/var/run/articadb.pid";
-	$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
-	if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){return $master_pid;}
-	$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF("/opt/articatech/bin/articadb");
-	if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){return $master_pid;}
-	$ArticaDBPath=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("ArticaDBPath");
-	if($ArticaDBPath==null){return $master_pid;}
-	$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF("$ArticaDBPath/bin/articadb");
-	return $master_pid;
-
-
-}
-//---------------------------------------------------------------------------------------------------
-function articadb(){
-	if(!$GLOBALS["CLASS_USERS"]->ARTICADB_INSTALLED){if($GLOBALS["VERBOSE"]){echo __FUNCTION__." articadb is not installed\n";}return null;}else{if($GLOBALS["VERBOSE"]){echo __FUNCTION__." articadb is installed\n";}}
-	 
-
-	$pid_path="/var/run/articadb.pid";
-	$master_pid=articadb_pid();
-
-
-
-	if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		if(is_file("/etc/init.d/categories-db")){
-			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.uninstall.catzdb.php >/dev/null 2>&1 &");
-		}
-	}
-	 
-	 
-	$unix=new unix();
-	$DIR_COUNT_OF_FILES=$unix->DIR_COUNT_OF_FILES("/home/artica/categories_databases");
-	if($DIR_COUNT_OF_FILES<140){
-		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.blacklists.php.cicap_artica.time");
-		if($CacheSchedules>60){
-			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid.blacklists.php --cicap-dbs --notime >/dev/null 2>&1 &");
-		}
-	}
-
-
-}
-
 //---------------------------------------------------------------------------------------------------
 function bwm_ng(){
 	$masterbin=$GLOBALS["CLASS_UNIX"]->find_program("bwm-ng");

@@ -6426,3 +6426,5 @@ Do you want to carry out this operation ?
 According database size it will take time.
 Do you want to carry out this operation ?
 </warn_backup_database>
+<download_progress>Download progress</download_progress>
+<databases_number>Databases number</databases_number>

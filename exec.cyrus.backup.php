@@ -182,7 +182,7 @@ function exec_resources(){
 	LoadConfig();
 	if($GLOBALS["CyrusBackupNas"]["WEBDAV_ENABLE"]==1){exec_webdav();}
 	if($GLOBALS["CyrusBackupNas"]["NAS_ENABLE"]==0){return;}
-	
+	$TimeStart=time();
 	
 	if(!tests_nas()){ cyrus_admin_mysql(0,"Unable to backup cyrus-mailboxes",null,__FILE__,__LINE__); return; }
 	$hostname=$unix->hostname_g();
@@ -198,6 +198,11 @@ function exec_resources(){
 	}
 	backup_ldap();
 	backup_cyrus();
+	
+	$report[]="Started at : ".date("Y-m-d H:i:s",$TimeStart);
+	$report[]="End at : ".date("Y-m-d H:i:s");
+	$report[]="Duration: ".$unix->distanceOfTimeInWords($TimeStart,time());
+	@file_put_contents("{$GLOBALS["MOUNTED_PATH_FINAL"]}/report.txt", @implode("\r\n", $report));
 	remove_containers();
 	killNas();
 }
@@ -229,7 +234,7 @@ function remove_containers(){
 function backup_cyrus(){
 	$unix=new unix();
 	$tempdir=$unix->TEMP_DIR();
-
+	
 	
 	$q=new mysql();
 	
@@ -339,13 +344,15 @@ function backup_cyrus(){
 	$nice=$unix->EXEC_NICE();
 	if($GLOBALS["CyrusBackupNas"]["COMPRESS_ENABLE"]==1){
 		cyrus_admin_mysql(2,"Starting Compressing $partition_default",null,__FILE__,__LINE__);
-		$cmd="$nice $tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2 * 2>&1";
+		$cmd="$nice $tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2 * >{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.report.txt";
 	}
 	
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
-	exec($cmd,$results);
+	shell_exec($cmd);
+	$data=@file_get_contents("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.report.txt");
 	if(!is_file("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2")){
-		cyrus_admin_mysql(0,"Unable to backup: mail-data-backup.tar.bz2 Permission denied or compression failed",@implode("\n", $results),__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: mail-data-backup.tar.bz2 Permission denied or compression failed",
+		$data,__FILE__,__LINE__);
 		return;
 	}
 
@@ -353,7 +360,7 @@ function backup_cyrus(){
 	
 	$size=@filesize("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/mail-data-backup.tar.bz2");
 	$size=FormatBytes($size/1024);
-	cyrus_admin_mysql(2,"cyrus-imap/mail-data-backup.tar.bz2 - $size - success",@implode("\n", $results,__FILE__,__LINE__));
+	cyrus_admin_mysql(2,"cyrus-imap/mail-data-backup.tar.bz2 - $size - success",$data,__FILE__,__LINE__);
 		
 	$results=array();
 	
@@ -362,15 +369,16 @@ function backup_cyrus(){
 	if($GLOBALS["VERBOSE"]){echo $cmd."\n";}
 	cyrus_admin_mysql(2,"Starting Compressing $config_directory",null,__FILE__,__LINE__);
 	
-	$cmd="$nice $tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2 * 2>&1";
-	exec($cmd,$results);
+	$cmd="$nice $tar -Pcjf {$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2 * >{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.report.txt";
+	shell_exec($cmd);
+	$data=@file_get_contents("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.report.txt");
 	if(!is_file("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2")){
-		cyrus_admin_mysql(0,"Unable to backup: configdirectory.tar.bz2 Permission denied or compression failed",@implode("\n", $results),__FILE__,__LINE__);
+		cyrus_admin_mysql(0,"Unable to backup: configdirectory.tar.bz2 Permission denied or compression failed",$data,__FILE__,__LINE__);
 		return;
 	}
 	$size=@filesize("{$GLOBALS["MOUNTED_PATH_FINAL"]}/cyrus-imap/configdirectory.tar.bz2");
 	$size=FormatBytes($size/1024);
-	cyrus_admin_mysql(2,"cyrus-imap/mail-data-backup.tar.bz2 - $size - success",@implode("\n", $results,__FILE__,__LINE__));
+	cyrus_admin_mysql(2,"cyrus-imap/mail-data-backup.tar.bz2 - $size - success",$data,__FILE__,__LINE__);
 	InsertToMysql();
 }
 
