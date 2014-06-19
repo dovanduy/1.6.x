@@ -1090,6 +1090,7 @@ This path is used to store the certificate file for communicate with the CAS ser
 <CAS_CONTEXT>Context of the CAS Server</CAS_CONTEXT>
 <cas_HotSpot_text>If turned to green then the hotspot system will use a remote C.A.S server in order to authenticate member</cas_HotSpot_text>
 <categories_acls_explain>This ACL use the Artica categories databases ( about 33.000.000 categorized websites).</categories_acls_explain>
+<categories_databases>Categories databases</categories_databases>
 <categories_filtering>Web categories filtering rules</categories_filtering>
 <categories_groups>Categories Groups</categories_groups>
 <CATEGORIES_PRIVS_EXPLAIN>This section allows you to delegate manage items of this category to Groups members.[br]
@@ -1466,6 +1467,7 @@ An update is about 150Mb size.
 </databases_ufdbupdate_explain>
 <databases_users>Users Databases</databases_users>
 <database_backend>Database backend</database_backend>
+<database_disabled>Database disabled</database_disabled>
 <database_maintenance>Database maintenance</database_maintenance>
 <database_maintenance_text>Tasks and system parameters in order to maintain your Database engine/datas</database_maintenance_text>
 <database_privileges>Databases privileges</database_privileges>
@@ -5865,6 +5867,7 @@ example:[br]
 cnn.com/video[br]
 edition.cnn.com/video[br]
 </webfiltering_add_uris_explain>
+<webfiltering_database>Webfiltering database</webfiltering_database>
 <webfiltering_databases>Web filter databases</webfiltering_databases>
 <webfiltering_parameters_was_saved>Web filtering parameters was applied to the server</webfiltering_parameters_was_saved>
 <webfiltering_service>Web Filtering service</webfiltering_service>

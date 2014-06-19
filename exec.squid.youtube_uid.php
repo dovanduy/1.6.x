@@ -209,6 +209,22 @@ function macToUid($tablename){
 	if($GLOBALS["VERBOSE"]){echo "macToUid($tablename) Done\n";}
 }
 
+function percentage($text,$purc){
+
+
+	$array["TITLE"]=$text." ".date("d H:i:s");
+	$array["POURC"]=$purc;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [$purc] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
+}
+
 function youtube_all(){
 	$q=new mysql_squid_builder();
 	
@@ -230,7 +246,9 @@ function youtube_all(){
 	)
 	ENGINE = MYISAM;";
 	
+	percentage("Youtube All: youtube_dayz -> macToUid..",26);
 	macToUid("youtube_dayz");
+	percentage("Youtube All: youtube_all -> macToUid..",26);
 	macToUid("youtube_all");
 	
 	$q=new mysql_squid_builder();
@@ -243,10 +261,15 @@ function youtube_all(){
 	$results=$q->QUERY_SQL($sql);
 	if(!$q->ok){if($GLOBALS["VERBOSE"]){echo "############# ERROR #########\n$q->mysql_error\Line:".__LINE__."\n#############\n";}return;}
 	
+	$TOTAL=mysql_num_rows($results);
+	percentage("Youtube All: $TOTAL tables..",26);
+	
 	if(mysql_num_rows($results)==0){
 		if($GLOBALS["VERBOSE"]){echo "No results...\n";}
 		return;
 	}
+	
+	
 	
 	if($GLOBALS["VERBOSE"]){echo mysql_num_rows($results)." results...\n";}
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
@@ -259,7 +282,7 @@ function youtube_all(){
 			if($GLOBALS["VERBOSE"]){echo "$hourtable no such table\n";}
 			continue;
 		}	
-		
+		percentage("Youtube All: Table: $hourtable..",26);
 		if(youtube_all_from_hourtable($hourtable)){
 			$q->QUERY_SQL("UPDATE tables_day SET youtube_all=1 WHERE tablename='$tablename'");
 			continue;			

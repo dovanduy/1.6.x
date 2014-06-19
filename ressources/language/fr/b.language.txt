@@ -938,6 +938,7 @@ Ce chemin est utilis&eacute; afin de stocker le fichier de certificat afin de co
 <CAS_CONTEXT>Contexte du serveur CAS</CAS_CONTEXT>
 <cas_HotSpot_text>Si vert, le syst&egrave;me de HotSpot va utiliser un serveur C.A.S afin de d\'authentifier le membre.</cas_HotSpot_text>
 <categories_acls_explain>Cette ACL utilise les bases de cat&eacute;gories Artica  ( environ 33.000.000 de sites Internet cat&eacute;goris&eacute;s).</categories_acls_explain>
+<categories_databases>Bases de cat&eacute;gories</categories_databases>
 <categories_filtering>Filtrage Web par cat&eacute;gorie</categories_filtering>
 <categories_groups>Groupes de cat&eacute;gories</categories_groups>
 <CATEGORIES_PRIVS_EXPLAIN>Cette section vous permet de d&eacute;l&eacute;guer l'administration des &eacute;l&eacute;ments de cette cat&eacute;gorie &agrave; des groupes de membres.[br]
@@ -1260,6 +1261,7 @@ Ils peuvent compromettre la s&eacute;curit&eacute; du r&eacute;seau de l'entrepr
 Une mise &agrave; jour prend environ 150Mb de bande passante.</databases_ufdbupdate_explain>
 <databases_users>Bases utilisateurs</databases_users>
 <database_backend>Type de base</database_backend>
+<database_disabled>Base de donn&eacute;es d&eacute;sactiv&eacute;e</database_disabled>
 <database_maintenance>Maintenance de la base</database_maintenance>
 <database_maintenance_text>T&acirc;ches et param&egrave;tres syst&egrave;mes afin de maintenir votre moteur de base de donn&eacute;es.</database_maintenance_text>
 <database_privileges>Privil&egrave;ges des Bases</database_privileges>
@@ -5055,6 +5057,7 @@ Ajoutez les liens appropri&eacute;s et supprimez toujours le d&eacute;but [b]www
 Ainsi:[br]
 cnn.com/video[br]
 edition.cnn.com/video[br]</webfiltering_add_uris_explain>
+<webfiltering_database>Base de filtrage web</webfiltering_database>
 <webfiltering_databases>Bases de filtrage Web</webfiltering_databases>
 <webfiltering_parameters_was_saved>Les param&egrave;tres du moteur de filtrage web ont &eacute;t&eacute;s appliqu&eacute;s sur le serveur.</webfiltering_parameters_was_saved>
 <webfiltering_service>Service de filtrage Internet</webfiltering_service>

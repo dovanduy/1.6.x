@@ -382,7 +382,7 @@ function statusDB(){
 	</tr>
 	</table>
 	$updaebutton
-	
+	<div id='database-progress-status'></div>
 <script>
 var xCategoriesDatabasesByCron= function (obj) {
 	var results=obj.responseText;
@@ -396,6 +396,7 @@ function CategoriesDatabasesByCron(){
 	XHR.sendAndLoad('$page', 'POST',xCategoriesDatabasesByCron);
 }
 	
+LoadAjax('database-progress-status','dansguardian2.databases.progress.php');
 </script>";
 	echo $tpl->_ENGINE_parse_body($html);
 	

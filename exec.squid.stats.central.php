@@ -274,6 +274,12 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.totals.php --repair -
 stats_admin_events(2,"26%)  Repair tables took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
+percentage("Youtube All",26);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.youtube_uid.php --all --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"26%)  Youtube All took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
 
 $t=time();
 percentage("Cache performances",27);

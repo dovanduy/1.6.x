@@ -6414,4 +6414,7 @@ Artica can reload/start/stop service but will not change settings.
 <compress_containers>Compress containers</compress_containers>
 <webdav_directory>WEBDav remote directory</webdav_directory>
 <error_davfs_not_installed>This computer cannot use WebDav remote folder ( missing DavFS2 component )</error_davfs_not_installed>
+<database_disabled>Database disabled</database_disabled>
+<categories_databases>Categories databases</categories_databases>
+<webfiltering_database>Webfiltering database</webfiltering_database>
  

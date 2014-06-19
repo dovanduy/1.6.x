@@ -451,6 +451,7 @@ function ufdbtables($nopid=false){
 	if(is_link($WORKDIR)){$WORKDIR=readlink($WORKDIR);}
 	
 	if(@file_get_contents("/usr/local/share/artica/.lic")<>"TRUE"){
+		updatev2_progress2(0,"{license_error}");
 		if(!$GLOBALS["NOLOGS"]){
 			ufdbguard_admin_events("UFDB::Warning: only corporate license is allowed to be updated...",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		}
@@ -529,6 +530,7 @@ function ufdbtables($nopid=false){
 		artica_update_event(0,"Unable to download Artica blacklist index file `$curl->error`",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
 		ufdbguard_admin_events("UFDB::Fatal: Unable to download blacklist index file $curl->error",__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 		echo "UFDB: Failed to retreive $URIBASE/index.txt ($curl->error)\n";
+		updatev2_progress2(100,"Unable to download blacklist index file");
 		updatev2_adblock();
 		return;
 	}
@@ -538,13 +540,15 @@ function ufdbtables($nopid=false){
 	$REMOTE_CACHE=unserialize(base64_decode(@file_get_contents("$tmpdir/index.txt")));
 	
 	
-	
+	$MAx=count($REMOTE_CACHE);
 	$BigSize=0;
 	$c=0;
 	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){	
 		if($size<>$LOCAL_CACHE[$tablename]){
 			$c++;
+			
 			$OriginalSize=$size;
+
 			echo "UFDB: downloading $tablename remote size:$size, local size:{$LOCAL_CACHE[$tablename]}\n";
 			$GLOBALS["EVENTS"][]="downloading $tablename remote size:$size, local size:{$LOCAL_CACHE[$tablename]}";
 			$curl=new ccurl("$URIBASE/$tablename.gz");
@@ -554,7 +558,8 @@ function ufdbtables($nopid=false){
 				ufdbguard_admin_events("UFDB::Fatal: unable to download blacklist $tablename.gz file $curl->error\n".@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 				continue;
 			}
-			
+			$prc=($c/$MAx)*100;
+			updatev2_progress2($prc,"$tablename ok");
 			$GLOBALS["UFDB_SIZE"]=$GLOBALS["UFDB_SIZE"]+@filesize("$tmpdir/$tablename.gz");
 			
 			@mkdir("$WORKDIR/$tablename",0755,true);
@@ -580,6 +585,7 @@ function ufdbtables($nopid=false){
 	}
 	
 	@file_put_contents($CACHE_FILE, base64_encode(serialize($LOCAL_CACHE)));
+	updatev2_progress2(100,"DONE ok");
 	$ufdbguard_admin_memory=@implode("\n", $GLOBALS["ufdbguard_admin_memory"]);	
 	if($c>0){
 		$BigSizeMB=round($BigSize/1024,2);
@@ -784,11 +790,16 @@ function updatev2_checkversion(){
 
 function updatev2_progress($num,$text){
 	$array["POURC"]=$num;
-	$array["TEXT"]=$text;
+	$array["TEXT"]=$text." ".date("Y-m-d H:i:s");
 	if($GLOBALS["VERBOSE"]){echo "{$num}% $text\n";}
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.progress", serialize($array));
 }
-
+function updatev2_progress2($num,$text){
+	$array["POURC"]=$num;
+	$array["TEXT"]=$text." ".date("Y-m-d H:i:s");
+	if($GLOBALS["VERBOSE"]){echo "{$num}% $text\n";}
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/cache/webfilter-artica.progress", serialize($array));
+}
 function tests_pub($pattern){
 	$main_artica_path="/var/lib/ufdbartica";
 	$pubfinal="$main_artica_path/category_publicite/expressions";

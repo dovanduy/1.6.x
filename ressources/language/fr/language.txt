@@ -3326,7 +3326,7 @@ Cette fonctionnalit&eacute; est d&eacute;sactiv&eacute;e par d&eacute;faut.</rel
 <remote username>Nom d'utilisateur distant</remote username>
 <remote-mail retrieval>r&eacute;cup&eacute;ration de mails distants</remote-mail retrieval>
 <REMOTE_ADMIN_TEXT>Indiquer un compte global qui sera utilis&eacute; pour les t&eacute;l&eacute;-d&eacute;ploiements</REMOTE_ADMIN_TEXT>
-<remote_database>base distante</remote_database>
+<remote_database>Base distante</remote_database>
 <remote_rsync_server>Serveur Rsync distant</remote_rsync_server>
 <remote_smb_server>R&eacute;pertoire partag&eacute;</remote_smb_server>
 <removed>supprim&eacute;</removed>

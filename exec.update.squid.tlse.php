@@ -101,6 +101,7 @@ function Execute(){
 	if(!is_numeric($SquidDatabasesUtlseEnable)){$SquidDatabasesUtlseEnable=1;}	
 	
 	if($SquidDatabasesUtlseEnable==0){
+		update_progress(100,"{database_disabled}");
 		echo "Toulouse university is disabled\n";
 		artica_update_event(2, "Toulouse university is disabled, aborting", null,__FILE__,__LINE__);
 	}
@@ -139,8 +140,13 @@ function Execute(){
 	}
 	
 	$ARRAYSUM_REMOTE=GET_MD5S_REMOTE();
-
+	$TOT=count($ARRAYSUM_REMOTE);
+	update_progress(100,"{database_disabled}");
+	$c=0;
 	while (list ($filename,$md5) = each ($ARRAYSUM_REMOTE) ){
+		$c++;
+		$prc=round(($c/$TOT)*100);
+		update_progress($c,$filename);
 		if(!isset($ARRAYSUM_LOCALE[$filename])){$ARRAYSUM_LOCALE[$filename]=null;}
 		if($ARRAYSUM_LOCALE[$filename]<>$md5){update_remote_file($BASE_URI,$filename,$md5);}
 	}
@@ -152,7 +158,7 @@ function Execute(){
 		unset($GLOBALS["squid_admin_mysql"]);
 	}
 	
-	
+	update_progress(100,"{done}");
 	CoherenceOffiels();
 	CoherenceRepertoiresUfdb();
 	BuildDatabaseStatus();
@@ -179,6 +185,13 @@ function Execute(){
 	
 	
 	
+}
+
+function update_progress($num,$text){
+	$array["POURC"]=$num;
+	$array["TEXT"]=$text." ".date("Y-m-d H:i:s");
+	if($GLOBALS["VERBOSE"]){echo "{$num}% $text\n";}
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/web/cache/toulouse.progress", serialize($array));
 }
 
 function BuildDatabaseStatus(){
