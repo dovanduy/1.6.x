@@ -1317,7 +1317,7 @@ if(preg_match("#amavis\[.+?:\s+\(.+?\)TROUBLE\s+in child_init_hook:#",$buffer,$r
 	$file="/etc/artica-postfix/croned.1/amavis.".md5("AMAVIS:TROUBLE in child_init_hook");
 	if(IfFileTime($file)){
 		email_events("Amavis child error","Amavis claim \"$buffer\" the amavis daemon will be restarted",'postfix');
-		shell_exec('/etc/init.d/artica-postfix restart amavis &');
+		shell_exec('/etc/init.d/amavis restart &');
 		WriteFileCache($file);
 	}
 	return true;
@@ -1328,7 +1328,7 @@ if(preg_match("#amavis\[.+?:\s+\(.+?\)_DIE:\s+Suicide in child_init_hook#",$buff
 	$file="/etc/artica-postfix/croned.1/amavis.".md5("AMAVIS:TROUBLE in child_init_hook");
 	if(IfFileTime($file)){
 		email_events("Amavis child error","Amavis claim \"$buffer\" the amavis daemon will be restarted",'postfix');
-		shell_exec('/etc/init.d/artica-postfix restart amavis &');
+		shell_exec('/etc/init.d/amavis restart &');
 		WriteFileCache($file);
 	}
 	return true;

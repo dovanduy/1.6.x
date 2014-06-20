@@ -1,4 +1,5 @@
 <?php
+if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
 	include_once('ressources/class.users.menus.inc');
@@ -14,7 +15,7 @@
 	
 	if(isset($_GET["max_servers"])){max_servers_save();exit;}
 	if(isset($_GET["processes-list"])){status_table_list();exit;}
-	if(isset($_POST["enable-amavis"])){enable_amavis();exit;}
+	if(isset($_POST["EnableAmavisDaemon"])){enable_amavis();exit;}
 	if(isset($_POST["disable-amavis"])){disable_amavis();exit;}
 	if(isset($_GET["processes-popup"])){processes_popup();exit;}
 	
@@ -153,12 +154,15 @@ $amavis=new amavis();
 	$max_servers=$amavis->main_array["BEHAVIORS"]["max_servers"];
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
-	if(!is_file("ressources/logs/amavis.infos.array")){
 	$sock=new sockets();
-	$sock->getFrameWork("cmd.php?amavis-watchdog=yes");
+	if(!is_file("/usr/share/artica-postfix/ressources/logs/amavis.infos.array")){
+		
+		$sock->getFrameWork("cmd.php?amavis-watchdog=yes");
 	}
-	$datas=unserialize(@file_get_contents("ressources/logs/amavis.infos.array"));	
+	$datas=unserialize(@file_get_contents("/usr/share/artica-postfix/ressources/logs/amavis.infos.array"));	
+	
+	if(!is_array($datas)){$sock->getFrameWork("cmd.php?amavis-watchdog=yes");}
+	
 	
 	$data = array();
 	$data['page'] = 1;
@@ -270,9 +274,9 @@ function status(){
 	$max_servers=$amavis->main_array["BEHAVIORS"]["max_servers"];
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
+	$sock=new sockets();
 	if(!is_file("ressources/logs/amavis.infos.array")){
-		$sock=new sockets();
+		
 		$sock->getFrameWork("cmd.php?amavis-watchdog=yes");
 	}
 	
@@ -289,7 +293,16 @@ function status(){
 	";
 	
 	$datas=unserialize(@file_get_contents("ressources/logs/amavis.infos.array"));
+	if(!is_array($datas)){
+		$sock->getFrameWork("cmd.php?amavis-watchdog=yes");
+		$datas=unserialize(@file_get_contents("ressources/logs/amavis.infos.array"));
+	}
 	
+	
+	if(count($datas)<2){
+		$sock->getFrameWork("cmd.php?amavis-watchdog=yes");
+		$datas=unserialize(@file_get_contents("ressources/logs/amavis.infos.array"));
+	}
 	
 	$childs=0;
 		while (list ($pid, $array) = each ($datas)){
@@ -387,7 +400,10 @@ function max_servers_save(){
 }
 function enable_amavis(){
 	$sock=new sockets();
-	$sock->SET_INFO("EnableAmavisDaemon", 1);
+	$sock->SET_INFO("EnableAmavisDaemon", $_POST["EnableAmavisDaemon"]);
+	if(isset($_POST["EnableAmavisInMasterCF"])){
+		$sock->SET_INFO("EnableAmavisInMasterCF", $_POST["EnableAmavisInMasterCF"]);
+	}
 	$sock->getFrameWork("cmd.php?amavis-restart=yes");
 	$sock->getFrameWork("cmd.php?RestartDaemon=yes");
 	$sock->getFrameWork("cmd.php?postfix-ssl=yes");

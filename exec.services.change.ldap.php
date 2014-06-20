@@ -23,7 +23,7 @@ if($users->POSTFIX_INSTALLED){
 	$main=new main_cf();
 	$main->save_conf();
 	$main->save_conf_to_server();
-	system('/etc/init.d/artica-postfix restart postfix');
+	system('/etc/init.d/postfix restart');
 	
 	if($users->cyrus_imapd_installed){
 		system('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');

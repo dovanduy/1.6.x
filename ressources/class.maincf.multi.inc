@@ -2467,7 +2467,7 @@ private function smtp_sasl_password_map(){
 			if($EnableSasl==1){	
 				$sock=new sockets();
 				$smtpd_sasl_path=$sock->GET_INFO("smtpd_sasl_path");
-				if($smtpd_sasl_path==null){$smtpd_sasl_path="/etc/postfix/sasl/smtpd.conf";}
+				if($smtpd_sasl_path==null){$smtpd_sasl_path="smtpd";}
 				$conf[]="smtpd_sasl_auth_enable = yes";
 				$conf[]=$this->smtp_sasl_security_options();
 				$conf[]="smtpd_sasl_authenticated_header = yes";

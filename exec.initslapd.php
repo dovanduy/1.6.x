@@ -103,7 +103,7 @@ if($argv[1]=="--iredmail"){$GLOBALS["OUTPUT"]=true;iredmail();exit;}
 $GLOBALS["OUTPUT"]=true;
 $functions=array("artica_syslog","irqbalance","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
 		"haproxy","specialreboot","buildscript","artica_status","mysqlInit","remove_nested_services",
-"conntrackd","process1","monit","dnsmasq_init_debian","nscd_init_debian","wsgate_init_debian",
+"conntrackd","process1","monit","dnsmasq_init_debian","nscd_init_debian","wsgate_init_debian","amavis",
 		"buildscriptSpamass_milter","buildscriptLoopDisk","buildscriptFreeRadius","pdns_recursor",
 "ifup","ftpproxy","failover","framework","webservices","ufdbguard","ufdbguard_client","phppfm",
 		"apache","artica_webconsole","memcached","nginx","dhcpd","cicap","vnstat","arpd","haarp","saslauthd","rsyslogd_init","CleanUbuntu","UpstartJob","squidguard_http","debian_mirror","artica_categories","cntlm","postfix","ufdb_tail","auth_tail","roundcube_http","spawnfcgi","fetchmail","squidnat","squidstream","squidstream_scheduler","pdns","snmpd","stunnel","iscsitarget","vde_switch","rdpproxy","winbind",
@@ -765,6 +765,73 @@ function start_zarafa(){
 function stop_zarafa(){
 	shell_exec("/etc/init.d/zarafa-server stop");
 }
+function amavis(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$daemonbin=$unix->find_program("postconf");
+
+	if(!is_file($daemonbin)){return;}
+	
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:          amavis";
+	$f[]="# Required-Start:    \$local_fs \$syslog";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: Postfix daemon";
+	$f[]="# chkconfig: 2345 11 89";
+	$f[]="# description: Extensible, configurable Postfix MTA";
+	$f[]="### END INIT INFO";
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.amavis.php --start \$2 \$3";
+
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.amavis.php --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+
+	$f[]="   $php ".dirname(__FILE__)."/exec.amavis.php --restart \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="   $php ".dirname(__FILE__)."/exec.amavis.php --reload \$2 \$3";
+	$f[]="	 exit 0";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+	$INITD_PATH="/etc/init.d/amavis";
+	echo "amavis: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+}
+
+
 function postfix(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
@@ -5291,8 +5358,8 @@ function rsyslogd_init(){
 	if(!is_file("/etc/init.d/syslog")){return;}
 	if(!is_file($servicebin)){return;}
 	$php=$unix->LOCATE_PHP5_BIN();
-	$stopmaillog="/etc/init.d/artica-postfix stop postfix-logger";
-	$startmaillog="/etc/init.d/artica-postfix start postfix-logger";
+	$stopmaillog="/etc/init.d/postfix stop-logger";
+	$startmaillog="/etc/init.d/postfix start-logger";
 	$restartmaillog="/etc/init.d/postfix-logger restart";
 	$reconfigure=$unix->LOCATE_PHP5_BIN()." ".__FILE__." --rsyslogd-init";
 	

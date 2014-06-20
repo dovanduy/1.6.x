@@ -275,7 +275,7 @@ function popup(){
 	$array["status"]='{status}';
 	$array["parameters"]='{parameters}';
 	$array["keys"]='{automatic_login}';
-	$array["antihack"]='anti-hack';
+	$array["antihack"]='Anti-hack';
 	$array["events"]='{events}';
 	$page=CurrentPageName();
 	if($_GET["tabsize"]==14){$_GET["tabsize"]=16;}

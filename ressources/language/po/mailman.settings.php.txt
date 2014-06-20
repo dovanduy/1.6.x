@@ -1,5 +1,5 @@
 <accept>Aceite</accept>
-<acceptable_aliases>Acceptable aliases</acceptable_aliases>
+<acceptable_aliases>aliases aceit&aacute;veis</acceptable_aliases>
 <acceptable_aliases_input>Give the pattern</acceptable_aliases_input>
 <acceptable_aliases_text>Alias names (regexps) which qualify as explicit to or cc destination names for this list.[br]
 Alternate addresses that are acceptable when `require_explicit_destination' is enabled. This option takes a list of regular expressions, one per line,

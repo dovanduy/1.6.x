@@ -3,12 +3,15 @@ $GLOBALS["BYPASS"]=true;
 $GLOBALS["REBUILD"]=false;
 $GLOBALS["OLD"]=false;
 $GLOBALS["FORCE"]=false;
+$GLOBALS["BY_SCHEDULE"]=false;
 if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
 if(is_array($argv)){
 	if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;}
 	if(preg_match("#--old#",implode(" ",$argv))){$GLOBALS["OLD"]=true;}
 	if(preg_match("#--force#",implode(" ",$argv))){$GLOBALS["FORCE"]=true;}
 	if(preg_match("#--rebuild#",implode(" ",$argv))){$GLOBALS["REBUILD"]=true;}
+	if(preg_match("#--byschedule#",implode(" ",$argv))){$GLOBALS["BY_SCHEDULE"]=true;}
+	
 }
 if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
@@ -37,13 +40,20 @@ function scan_stats(){
 	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=420;}
 	if(!is_numeric($ARRAY["MAX_TTL"])){$ARRAY["MAX_TTL"]=15;}
 	
+	
+	
 	$OnlyImages=intval($ARRAY["OnlyImages"]);
 	$OnlyeDoc=intval($ARRAY["OnlyeDoc"]);
 	$OnlyMultimedia=intval($ARRAY["OnlyMultimedia"]);
 	$OnlyFiles=intval($ARRAY["OnlyFiles"]);
 	
 
-	
+	if($ARRAY["INTERVAL"]==0){
+		if(!$GLOBALS["BY_SCHEDULE"]){
+			ToSyslog("scan_stats(): Only by schedule");
+			return;
+		}
+	}	
 	
 	
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -251,7 +261,7 @@ function gencaches_start(){
 		$mypid=getmypid();
 		@file_put_contents($pidfile,$mypid);
 	}
-	
+
 	@unlink($timefile);
 	@file_put_contents($timefile, time());	
 	

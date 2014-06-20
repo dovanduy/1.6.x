@@ -153,6 +153,7 @@ $sock=new sockets();
 	$maillog_path=$users->maillog_path;
 	$query=base64_encode($_GET["search-events"]);
 	$datas=unserialize(base64_decode($sock->getFrameWork("postfix.php?query-maillog=yes&filter=$query&maillog=$maillog_path&rp=700&prefix=amavis")));
+	$datas=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/query.mail.log"));
 	krsort($array);
 	$tpl=new templates();
 	while (list ($key, $line) = each ($datas) ){

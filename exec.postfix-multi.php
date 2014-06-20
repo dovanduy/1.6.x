@@ -672,7 +672,7 @@ function remove_old_instances(){
 	
 	}
 	
-	if($restart){shell_exec("/etc/init.d/artica-postfix stop postfix");}
+	if($restart){shell_exec("/etc/init.d/postfix stop");}
 	
 }
 
@@ -693,7 +693,7 @@ function reconfigure_instance_mime_checks($hostname){
 			@unlink("/etc/postfix-$hostname/mime_header_checks");
 			
 			shell_exec("{$GLOBALS["postconf"]} -c \"/etc/postfix-$hostname\" -e \"mime_header_checks = \"");
-			system("/usr/share/artica-postfix/bin/artica-install --amavis-reload");
+			system("/etc/init.d/amavis reload");
 			_start_instance($hostname);
 			return;
 		}

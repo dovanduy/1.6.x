@@ -199,6 +199,9 @@ function events_list(){
 	$maillog_path=$users->maillog_path;
 	$query=base64_encode($_POST["query"]);
 	$array=unserialize(base64_decode($sock->getFrameWork("postfix.php?query-maillog=yes&filter=$query&maillog=$maillog_path&rp={$_POST["rp"]}&prefix=amavis")));
+	$array=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/query.mail.log"));
+	
+	
 	if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 	
 	while (list ($index, $line) = each ($array) ){

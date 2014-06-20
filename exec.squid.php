@@ -2871,7 +2871,7 @@ function rotate_logs(){
 	$size=round($size/1024);
 	
 	if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Ask proxy to rotate logs....\n";}
-	squid_admin_mysql(2, "Ask proxy to rotate logs ({$size}MB) - last task was executed since {$LastRotate}Mn$defined_text", "",__FILE__,__LINE__);
+	squid_admin_mysql(1, "[LOG ROTATION]: Ask proxy to rotate logs ({$size}MB) - last task was executed since {$LastRotate}Mn$defined_text", "",__FILE__,__LINE__);
 	
 	shell_exec("{$GLOBALS["SQUIDBIN"]} -k rotate >/dev/null 2>&1");
 	shell_exec("/etc/init.d/auth-tail restart >/dev/null 2>&1");
@@ -2899,18 +2899,28 @@ function rotate_logs(){
 		if(preg_match("#ziproxy#", $filename)){
 			continue;
 		}
+		$size=@filesize($filename);
+		$size=$size/1024;
+		$size=round($size/1024);
 	
 		if(preg_match("#access\.log\.[0-9]+$#", $filename)){
 			@mkdir("/home/squid/access_logs");
 			if($GLOBALS["VERBOSE"]){echo date("H:i:s")."[$getmypid] Archiving $basename for statistics tasks...\n";}
 			$RUN_MYSAR=TRUE;
-			if(@copy($filename, "/home/squid/access_logs/".basename($filename).".$filetime")){@unlink($filename);}
+			
+			if(@copy($filename, "/home/squid/access_logs/$basename.$filetime")){
+				squid_admin_mysql(2, "[LOG ROTATION]: Moving $basename ({$size}M) to /home/squid/access_logs done",null,__FILE__,__LINE__);
+				@unlink($filename);
+			}
 			continue;
 		}
 		
 		if(preg_match("#sarg\.log\.[0-9]+$#", $filename)){
 			@mkdir("/home/squid/sarg_logs");
-			if(@copy($filename, "/home/squid/sarg_logs/".basename($filename).".$filetime")){@unlink($filename);}
+			
+			if(@copy($filename, "/home/squid/sarg_logs/$basename.$filetime")){
+				squid_admin_mysql(2, "[LOG ROTATION]: Moving $basename ({$size}M) to /home/squid/sarg_logs done",null,__FILE__,__LINE__);
+				@unlink($filename);}
 			continue;
 		}		
 		

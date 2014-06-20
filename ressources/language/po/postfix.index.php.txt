@@ -1,4 +1,4 @@
-<2bounce_notice_recipient>bounce notice recipient</2bounce_notice_recipient>
+<2bounce_notice_recipient>aviso de salto de destinat&aacute;rio</2bounce_notice_recipient>
 <2bounce_notice_recipient_text>Se o detinatario do mail n&atilde;o for encontrado, a mensagem de correio n&atilde;o pode ser devolvida ao rementente</2bounce_notice_recipient_text>
 <address_verify_sender>address verify sender</address_verify_sender>
 <address_verify_sender_text>The sender address to use in address verification probes</address_verify_sender_text>

@@ -3,28 +3,28 @@ if(isset($_GET["verbose"])){ini_set('display_errors', 1);	ini_set('html_errors',
 if($argv[1]=="--verbose"){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
 $GLOBALS["TITLENAME"]="Dynamic Proxy PAC";
-include_once(dirname(__FILE__)."/ressources/class.user.inc");
-include_once(dirname(__FILE__)."/ressources/class.groups.inc");
-include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
-include_once(dirname(__FILE__)."/ressources/class.system.network.inc");
-include_once(dirname(__FILE__)."/ressources/class.dansguardian.inc");
-include_once(dirname(__FILE__)."/ressources/class.squid.inc");
-include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
-include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
-include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");
+
 
 
 proxy_pac();
 
-//SERVER_PROTOCOL //SERVER_SOFTWARE //REMOTE_ADDR !
-// HTTP_USER_AGENT = Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:20.0) Gecko/20100101 Firefox/20.0
-// HTTP_ACCEPT_LANGUAGE = fr,fr-fr;q
-// HTTP_VIA = 1.1 squid32-64.localhost.localdomain
+function LoadIncludes(){
+	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include_once(dirname(__FILE__)."/ressources/class.groups.inc");
+	include_once(dirname(__FILE__)."/ressources/class.ldap.inc");
+	include_once(dirname(__FILE__)."/ressources/class.system.network.inc");
+	include_once(dirname(__FILE__)."/ressources/class.dansguardian.inc");
+	include_once(dirname(__FILE__)."/ressources/class.squid.inc");
+	include_once(dirname(__FILE__)."/ressources/class.mysql.inc");
+	include_once(dirname(__FILE__)."/ressources/class.os.system.inc");
+	include_once(dirname(__FILE__)."/ressources/class.tcpip.inc");	
+	
+}
+
 function proxy_pac(){
 	
-	$ClassiP=new IP();
-	$sock=new sockets();
-	$GLOBALS["PROXY_PAC_DEBUG"]=$sock->GET_INFO("ProxyPacDynamicDebug");
+	
+	
 	if(!is_numeric($GLOBALS["PROXY_PAC_DEBUG"])){$GLOBALS["PROXY_PAC_DEBUG"]=0;}
 	if(isset($_SERVER["REMOTE_ADDR"])){$IPADDR=$_SERVER["REMOTE_ADDR"];}
 	if(isset($_SERVER["HTTP_X_REAL_IP"])){$IPADDR=$_SERVER["HTTP_X_REAL_IP"];}
@@ -33,6 +33,20 @@ function proxy_pac(){
 	$HTTP_USER_AGENT=trim($_SERVER["HTTP_USER_AGENT"]);
 	if(strpos($IPADDR, ",")>0){$FR=explode(",",$IPADDR);$IPADDR=trim($FR[0]);}
 	
+	$KEYMd5=md5($HTTP_USER_AGENT.$IPADDR);
+	$CACHE_FILE=dirname(__FILE__)."/ressources/logs/proxy.pacs/$KEYMd5";
+	
+	
+	if(is_file($CACHE_FILE)){
+		$time=pac_file_time_min($CACHE_FILE);
+		if($time<10){echo @file_get_contents($CACHE_FILE);return;}
+		@unlink($CACHE_FILE);
+		
+	}
+	LoadIncludes();
+	$ClassiP=new IP();
+	$sock=new sockets();
+	$GLOBALS["PROXY_PAC_DEBUG"]=$sock->GET_INFO("ProxyPacDynamicDebug");
 	$q=new mysql_squid_builder();
 	
 	if(!$ClassiP->isIPAddress($IPADDR)){
@@ -90,11 +104,19 @@ function proxy_pac(){
 		$script=@implode("\r\n", $f);
 		pack_debug("SUCCESS $rulename sends script ". strlen($script)." bytes to client",__FUNCTION__,__LINE__);
 		echo $script;
+
+		mkdir(dirname($CACHE_FILE),0755,true);
+		file_put_contents($CACHE_FILE, $script);
+		if(!is_file($CACHE_FILE)){
+			pack_error("FAILED $CACHE_FILE, permission denied",__FUNCTION__,__LINE__);
+		}
 		$script=mysql_escape_string2(base64_encode($script));
 		$q->QUERY_SQL("INSERT IGNORE INTO `wpad_events` (`zmd5`,`zDate`,`ruleid`,`ipaddr`,`browser`,`script`,`hostname`) VALUES('$md5','$date','$ID','$IPADDR','$HTTP_USER_AGENT','$script','{$GLOBALS["HOSTNAME"]}')");
 		if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
 		$q->QUERY_SQL("DELETE FROM `wpad_events` WHERE zDate<DATE_SUB(NOW(),INTERVAL 7 DAY)");
 		if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
+
+		
 		
 		return;
 		
@@ -103,6 +125,20 @@ function proxy_pac(){
 	$q->QUERY_SQL("INSERT IGNORE INTO `wpad_events` (`zmd5`,`zDate`,`ruleid`,`ipaddr`,`browser`,`hostname`) VALUES('$md5','$date','0','$IPADDR','$HTTP_USER_AGENT','{$GLOBALS["HOSTNAME"]}')");
 	if(!$q->ok){writelogs("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__);}
 	
+}
+
+function pac_file_time_min($path){
+	$last_modified=0;
+
+	if(is_dir($path)){return 10000;}
+	if(!is_file($path)){return 100000;}
+		
+	$data1 = filemtime($path);
+	$data2 = time();
+	$difference = ($data2 - $data1);
+	$results=intval(round($difference/60));
+	if($results<0){$results=1;}
+	return $results;
 }
 
 function build_subrules($ID){
@@ -759,6 +795,20 @@ function pack_debug($text,$function,$line){
 	$LineToSyslog="[$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
 	if (is_file($logFile)) { $size=@filesize($logFile); if($size>900000){@unlink($logFile);} }
 	
+	$f = @fopen($logFile, 'a');
+	if(!$f){ ToSyslog($LineToSyslog); return; }
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+}
+function pack_error($text,$function,$line){
+	
+	$logFile="/var/log/apache2/proxy.pack.error";
+	$servername=$_SERVER["SERVER_NAME"];
+	$from=$_SERVER["REMOTE_ADDR"];
+	$lineToSave=date('H:i:s')." [$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
+	$LineToSyslog="[$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
+	if (is_file($logFile)) { $size=@filesize($logFile); if($size>900000){@unlink($logFile);} }
+
 	$f = @fopen($logFile, 'a');
 	if(!$f){ ToSyslog($LineToSyslog); return; }
 	@fwrite($f, "$lineToSave\n");

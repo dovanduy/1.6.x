@@ -385,7 +385,7 @@ function EXTERNAL_PAGE(){
 	<tr>
 		<td class=legend style='font-size:18px'>{page_to_check}:</td>
 		<td	style='font-size:18px'>". Field_text("ExternalPageToCheck",$MonitConfig["ExternalPageToCheck"],
-					"font-size:18px;width:190px")."&nbsp;</td>
+					"font-size:18px;width:350px")."&nbsp;</td>
 		<td width=1%></td>
 	</tr>
 	<tr>
@@ -419,6 +419,8 @@ function EXTERNAL_PAGE(){
 function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('SAVEGLOBAL','yes');
+	
+	XHR.appendData('ExternalPageToCheck',document.getElementById('ExternalPageToCheck').value);
 	XHR.appendData('TestExternalWebPage',document.getElementById('TestExternalWebPage').value);
 	XHR.appendData('ExternalPageUsername',document.getElementById('ExternalPageUsername').value);
 	XHR.appendData('ExternalPagePassword',document.getElementById('ExternalPagePassword').value);

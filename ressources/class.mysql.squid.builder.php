@@ -838,7 +838,7 @@ class mysql_squid_builder{
 			$this->tasks_array[52]="{proxy_status}";
 			$this->tasks_array[53]="{build_proxy_statistics}";
 			$this->tasks_array[54]="{perfom_proxy_log_rotation}";
-			
+			$this->tasks_array[55]="{perfom_websites_optimization}";
 			
 			
 			
@@ -897,6 +897,7 @@ class mysql_squid_builder{
 			$this->tasks_explain_array[52]="{proxy_status_explain}";
 			$this->tasks_explain_array[53]="{build_proxy_statistics_explain}";
 			$this->tasks_explain_array[54]="{perfom_proxy_log_rotation_explain}";
+			$this->tasks_explain_array[55]="{perfom_websites_optimization_explain}";
 			
 			
 			
@@ -943,6 +944,7 @@ class mysql_squid_builder{
 			$this->tasks_processes[52]="exec.status.php --all-squid";
 			$this->tasks_processes[53]="exec.squid.stats.central.php";
 			$this->tasks_processes[54]="exec.squid.php --rotate --byschedule";
+			$this->tasks_processes[55]="exec.squid.cache.optimize.php --gencaches --byschedule";
 			
 			
 			$this->tasks_remote_appliance["51"]=true;

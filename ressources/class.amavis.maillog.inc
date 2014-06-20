@@ -32,7 +32,7 @@ class amavis_maillog_buffer{
 			if($this->file_time_min($timefile)>3){
 				$this->syslog_intern("Net::Server: Accept failed !! restart Amavisd-new daemon");
 				$this->email_events("Amavis service fatal error","Amavis claim \n$buffer\nArtica has decided to restart amavis service.","postfix");				
-				shell_exec($GLOBALS["CLASS_UNIX"]->find_program("nohup")." /etc/init.d/artica-postfix restart amavis &");
+				shell_exec($GLOBALS["CLASS_UNIX"]->find_program("nohup")." /etc/init.d/amavis restart &");
 				@file_put_contents($timefile,time());				
 				return true;			
 			}

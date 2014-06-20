@@ -314,7 +314,7 @@ function query_maillog(){
 	}
 	
 
-	
+	$filename="/usr/share/artica-postfix/ressources/logs/web/query.mail.log";
 	
 	$max=500;
 	if(isset($_GET["rp"])){$max=$_GET["rp"];}
@@ -322,19 +322,19 @@ function query_maillog(){
 	if($search<>null){
 			$search=$unix->StringToGrep($search);
 			if($searchEmails<>null){
-				$cmd="$prefix$grep -i -E '$searchEmails' $maillog|$grep -E '$search'|$tail -n $max 2>&1";
+				$cmd="$prefix$grep -i -E '$searchEmails' $maillog|$grep -E '$search'|$tail -n $max >$filename 2>&1";
 			}else{
-				$cmd="$prefix$grep -i -E '$search' $maillogSecond|$tail -n $max 2>&1";
+				$cmd="$prefix$grep -i -E '$search' $maillogSecond|$tail -n $max >$filename 2>&1";
 			}
 		
 	}else{
 		if($prefix<>null){
-			$cmd="$prefix$tail -n $max 2>&1";
+			$cmd="$prefix$tail -n $max >$filename 2>&1";
 		}else{
 			if($searchEmails<>null){
-				$cmd="$grep -i -E '$searchEmails' $maillog|$tail -n $max 2>&1";
+				$cmd="$grep -i -E '$searchEmails' $maillog|$tail -n $max >$filename 2>&1";
 			}else{
-				$cmd="$tail -n $max $maillog 2>&1";
+				$cmd="$tail -n $max $maillog >$filename 2>&1";
 			}
 			
 		}
@@ -342,7 +342,7 @@ function query_maillog(){
 	
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	exec($cmd,$results);
-	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";
+	
 	
 	
 }
@@ -387,11 +387,11 @@ function EnableStopPostfix(){
 	$nohup=$unix->find_program("nohup");
 	$value=$_GET["value"];
 	if($value==1){
-		$cmd=trim("$nohup /etc/init.d/artica-postfix stop postfix >/dev/null &");
+		$cmd=trim("$nohup /etc/init.d/postfix stop >/dev/null &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
 		
-		$cmd=trim("$nohup /etc/init.d/artica-postfix stop amavis >/dev/null &");
+		$cmd=trim("$nohup /etc/init.d/amavis stop >/dev/null &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);	
 
@@ -400,11 +400,11 @@ function EnableStopPostfix(){
 		shell_exec($cmd);		
 		
 	}else{
-		$cmd=trim("$nohup /etc/init.d/artica-postfix start postfix >/dev/null &");
+		$cmd=trim("$nohup /etc/init.d/postfix start >/dev/null &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);	
 
-		$cmd=trim("$nohup /etc/init.d/artica-postfix start amavis >/dev/null &");
+		$cmd=trim("$nohup /etc/init.d/amavis start >/dev/null &");
 		writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 		shell_exec($cmd);
 

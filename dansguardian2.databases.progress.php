@@ -73,10 +73,33 @@ function page(){
 	$TLSE_STAT_SIZE=intval($ARTICA_DBS_STATUS["TLSE_STAT_SIZE"]);
 	$TLSE_COUNT=intval($ARTICA_DBS_STATUS["TLSE_COUNT"]);
 	$TLSE_STAT_ITEMS=numberFormat(intval($ARTICA_DBS_STATUS["TLSE_STAT_ITEMS"]),0,""," ");
+	$TLSE_LAST_SINCE=$ARTICA_DBS_STATUS["TLSE_LAST_SINCE"];
+	$TLSE_LAST_CAT=$ARTICA_DBS_STATUS["TLSE_LAST_CAT"];
+	$TLSE_LAST_SIZE=$ARTICA_DBS_STATUS["TLSE_LAST_SIZE"];
+	
+	if($TLSE_LAST_SINCE==null){$TLSE_LAST_SINCE="-";}
+	if($TLSE_LAST_CAT==null){$TLSE_LAST_CAT="-";}
+	if(!is_numeric($TLSE_LAST_SIZE)){$TLSE_LAST_SIZE=0;}
+	
+	
 	
 	$CAT_ARTICA_PRC=intval($ARTICA_DBS_STATUS["CAT_ARTICA_PRC"]);
 	$CAT_ARTICA_SIZE=intval($ARTICA_DBS_STATUS["CAT_ARTICA_SIZE"]);
 	$CAT_ARTICA_COUNT=intval($ARTICA_DBS_STATUS["CAT_ARTICA_COUNT"]);
+	$CAT_ARTICA_SINCE=$ARTICA_DBS_STATUS["CAT_ARTICA_SINCE"];
+	$CAT_ARTICA_LAST_CAT=$ARTICA_DBS_STATUS["CAT_ARTICA_LAST_CAT"];
+	$CAT_ARTICA_LAST_SIZE=$ARTICA_DBS_STATUS["CAT_ARTICA_LAST_SIZE"];
+	$CAT_ARTICA_LAST_ERROR=$ARTICA_DBS_STATUS["CAT_ARTICA_LAST_ERROR"];
+
+	if($CAT_ARTICA_SINCE==null){$CAT_ARTICA_SINCE="-";}
+	if($CAT_ARTICA_LAST_CAT==null){$CAT_ARTICA_LAST_CAT="-";}
+	if(!is_numeric($CAT_ARTICA_LAST_SIZE)){$CAT_ARTICA_LAST_SIZE=0;}
+	if(!is_numeric($CAT_ARTICA_LAST_ERROR)){$CAT_ARTICA_LAST_ERROR=0;}
+	
+	
+	
+	
+	
 	$html="
 	<div style='margin-top:15px;font-size:26px;margin-bottom:30px'>{categories_databases}</div>
 	
@@ -143,6 +166,19 @@ function page(){
 		<td style='font-size:18px'>$TLSE_STAT_ITEMS</td>
 	</tr>
 	<tr>
+		<td class=legend style='font-size:18px'>{last_download}:</td>
+		<td style='font-size:18px'>$TLSE_LAST_SINCE</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{last_category}:</td>
+		<td style='font-size:18px'>$TLSE_LAST_CAT</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{last_downloaded_size}:</td>
+		<td style='font-size:18px'>". FormatBytes($TLSE_LAST_SIZE)."</td>
+	</tr>	
+	
+	<tr>
 		<td colspan=2 align='right'>". button("{update_now}", "ToulouseDBUpdateNow();",16)."</td>
 	</tr>	
 	
@@ -177,6 +213,22 @@ function page(){
 	<tr>
 		<td class=legend style='font-size:18px'>{websites}:</td>
 		<td style='font-size:18px'>$CountDecategories</td>
+	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{last_download}:</td>
+		<td style='font-size:18px'>$CAT_ARTICA_SINCE</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{last_category}:</td>
+		<td style='font-size:18px'>$CAT_ARTICA_LAST_CAT</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{last_downloaded_size}:</td>
+		<td style='font-size:18px'>". FormatBytes($CAT_ARTICA_LAST_SIZE)."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{errors}:</td>
+		<td style='font-size:18px'>". FormatBytes($CAT_ARTICA_LAST_ERROR)."</td>
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'>". button("{update_now}", "ArticaDBDBUpdateNow()",16)."</td>

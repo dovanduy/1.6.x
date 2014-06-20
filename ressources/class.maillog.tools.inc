@@ -128,7 +128,7 @@ public function AmavisConfigErrorInPostfix($buffer){
 			events("amavisd-new socket error time:$timeFile Mn!!!");
 			email_events("amavisd-new socket error","Postfix claim \"$buffer\", Artica will reload Postfix and compile new Postfix settings",'postfix');
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("{$GLOBALS["PHP5_BIN"]} ".dirname(__FILE__)."/exec.postfix.maincf.php --reconfigure");
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/artica-postfix restart amavis');
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/etc/init.d/amavis restart');
 			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET('/usr/share/artica-postfix/bin/artica-install --postfix-reload');
 		}
 	@unlink($file);

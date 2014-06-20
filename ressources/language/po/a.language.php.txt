@@ -3,7 +3,7 @@
 Your system will be able to serve many Macintosh clients simultaneously as an AppleShare file server (AFP).
 </ABOUT_NETATALK>
 <aboveeq>Est&aacute; acima</aboveeq>
-<abovenot>is not above</abovenot>
+<abovenot>n&atilde;o est&aacute; acima</abovenot>
 <access_events>Eeventos de acesso</access_events>
 <acls_and_quotas>ACLS &amp; Quotas</acls_and_quotas>
 <acls_folders_rebuild_text>v&atilde;o ser regeneradas todas as permiss&otilde;es e ACLs, executar esta opera&ccedil;&atilde;o?</acls_folders_rebuild_text>

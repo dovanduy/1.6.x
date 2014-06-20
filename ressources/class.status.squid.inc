@@ -1255,6 +1255,11 @@ function articadb(){
 		}
 	}
 	
+	$timePid="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["CLASS_UNIX"]->file_time_min($timePid)<10){return;}
+	@unlink($timePid);
+	@file_put_contents($timePid, time());
+	
 	$PRC=0;
 	
 	if(!is_file("/usr/share/artica-postfix/ressources/logs/web/cache/CATZ_ARRAY")){
@@ -1336,7 +1341,15 @@ function ArticaWebFilter($ARRAY){
 	}
 	
 	
+	
+	$STATUS=unserialize(@file_get_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD"));
 	$ARRAY["CAT_ARTICA_SIZE"]=trim(@file_get_contents("/etc/artica-postfix/CAT_ARTICA_DB_SIZE"));
+	$ARRAY["CAT_ARTICA_SINCE"]=$GLOBALS["CLASS_UNIX"]->distanceOfTimeInWords($STATUS["LAST_DOWNLOAD"]["TIME"],time());
+	$ARRAY["CAT_ARTICA_LAST_CAT"]=$STATUS["LAST_DOWNLOAD"]["CATEGORY"];
+	$ARRAY["CAT_ARTICA_LAST_SIZE"]=$STATUS["LAST_DOWNLOAD"]["SIZE"];
+	$ARRAY["CAT_ARTICA_LAST_ERROR"]=$STATUS["LAST_DOWNLOAD"]["FAILED"];
+	
+	
 	return $ARRAY;
 	
 }
@@ -1416,9 +1429,13 @@ function ArticaUfdb($ARRAY){
 	}
 	
 	
+	$STATUS=unserialize(@file_get_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD"));
 	$ARRAY["TLSE_PRC"]=$prc;
 	$ARRAY["TLSE_STAT_SIZE"]=trim(@file_get_contents("/etc/artica-postfix/UNIVTLSE_STAT_DB_SIZE"));
 	$ARRAY["TLSE_STAT_ITEMS"]=trim(@file_get_contents("/etc/artica-postfix/UNIVTLSE_STAT_DB_ITEMS"));
+	$ARRAY["TLSE_LAST_SINCE"]=$GLOBALS["CLASS_UNIX"]->distanceOfTimeInWords($STATUS["LAST_DOWNLOAD"]["TIME"],time());
+	$ARRAY["TLSE_LAST_CAT"]=$STATUS["LAST_DOWNLOAD"]["CATEGORY"];
+	$ARRAY["TLSE_LAST_SIZE"]=$STATUS["LAST_DOWNLOAD"]["SIZE"];
 	return $ARRAY;
 }
 

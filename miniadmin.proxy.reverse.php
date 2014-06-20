@@ -1257,8 +1257,27 @@ function source_save(){
 	unset($_POST["source-id"]);
 	$tpl=new templates();
 	$_POST["ipaddr"]=trim(strtolower($_POST["ipaddr"]));
+	
+	
+	
+	
 	$classip=new IP();
 	if(!$classip->isIPAddress($_POST["ipaddr"])){
+		$array=parse_url($_POST["ipaddr"]);
+		if(isset($array["host"])){
+			if(preg_match("#(.+?):([0-9]+)", $array["host"],$re)){
+				 $array["host"]=$re[1];
+			}
+			$ipaddr=$array["host"];
+		}
+	}else{
+		$ipaddr=$_POST["ipaddr"];
+	}
+		
+		
+		
+		
+	if(!$classip->isIPAddress($ipaddr)){
 		$ip=gethostbyname($_POST["ipaddr"]);
 		if(!$classip->isIPAddress($ip)){
 			echo $tpl->javascript_parse_text("{unable_to_resolve}: {$_POST["ipaddr"]}\n",1);

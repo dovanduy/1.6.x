@@ -2439,7 +2439,7 @@ function rRestartCyrusImapDaemonDebug(){
 function ReconfigureCyrusImapDaemon(){
 	if(isset($_GET["force"])){$force=" --force";}
 	NOHUP_EXEC("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus$force");
-	NOHUP_EXEC("/etc/init.d/artica-postfix restart postfix-single");
+	NOHUP_EXEC("/etc/init.d/postfix restart-single");
 }
 function ReconfigureCyrusImapDaemonDebug(){
 	exec("/usr/share/artica-postfix/bin/artica-install --reconfigure-cyrus --force --verbose",$results);
@@ -2737,13 +2737,13 @@ function postfix_reconfigure(){
 	NOHUP_EXEC(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.postfix.maincf.php --reconfigure");
 }
 function postfix_restart_single(){
-	NOHUP_EXEC("/etc/init.d/artica-postfix restart postfix-single");
+	NOHUP_EXEC("/etc/init.d/postfix restart-single");
 }
 function postfix_restart_single_now(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	if(is_file($nohup)){$nohup="$nohup ";}
-	shell_exec("$nohup /etc/init.d/artica-postfix restart postfix-single >/dev/null 2>&1 &");
+	shell_exec("$nohup /etc/init.d/postfix restart-single >/dev/null 2>&1 &");
 }
 
 function postfix_restricted_users(){
@@ -5046,7 +5046,7 @@ function zarafa_restart(){
 
 
 function RestartAmavis(){
-	NOHUP_EXEC("/usr/share/artica-postfix/bin/artica-install --amavis-reload");
+	NOHUP_EXEC("/etc/init.d/amavis reload");
 }
 
 function zarafa_user_details(){
@@ -5820,7 +5820,11 @@ function opendkim_status(){
 	echo "<articadatascgi>". base64_encode(@implode("\n",$results))."</articadatascgi>";
 }
 function amavis_watchdog(){
-	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.status.php --amavis-watchdog");
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$cmd="$php /usr/share/artica-postfix/exec.status.php --amavis-watchdog --verbose >/tmp/amavis.txt";
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
 }
 
 function amavis_get_template(){

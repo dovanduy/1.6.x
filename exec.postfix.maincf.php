@@ -293,7 +293,7 @@ if($argv[1]=='--write-maincf'){
 	if($argv[2]=='no-restart'){appliSecu();die();}
 	echo "Starting......: ".date("H:i:s")." restarting postfix\n";
 	$unix->send_email_events("Postfix will be restarted","Line: ". __LINE__."\nIn order to apply new configuration file","postfix");
-	shell_exec("/etc/init.d/artica-postfix restart postfix-single");
+	shell_exec("/etc/init.d/postfix restart-single");
 	HashTables();
 	die();
 }
@@ -337,16 +337,17 @@ function SetSALS(){
 		echo "Starting......: ".date("H:i:s")." SASL authentication is enabled\n";
 		$sock=new sockets();
 		$smtpd_sasl_path=$sock->GET_INFO("smtpd_sasl_path");
-		if($smtpd_sasl_path==null){$smtpd_sasl_path="/etc/postfix/sasl/smtpd.conf";}
+		if($smtpd_sasl_path==null){$smtpd_sasl_path="smtpd";}
 		$cmd["smtpd_sasl_auth_enable"]="yes";
 		$cmd["smtpd_use_tls"]="yes";
-		$cmd["smtpd_sasl_path"]="$smtpd_sasl_path";
+		$cmd["smtpd_sasl_path"]="smtpd";
 		$cmd["smtpd_sasl_authenticated_header"]="yes";
 		$cmd["smtpd_tls_session_cache_database"]="btree:\\\$data_directory/smtpd_tls_cache";
 		$cmd["smtpd_tls_key_file"]="/etc/ssl/certs/postfix/ca.key";
 		$cmd["smtpd_tls_cert_file"]="/etc/ssl/certs/postfix/ca.crt";
 		$cmd["smtpd_tls_CAfile"]="/etc/ssl/certs/postfix/ca.csr";
 		$cmd["smtpd_delay_reject"]="yes";
+		$cmd["cyrus_sasl_config_path"]="/etc/postfix/sasl/smtpd.conf";
 		$cmd["smtpd_tls_session_cache_timeout"]=$main->main_array["smtpd_tls_session_cache_timeout"];
 		echo "Starting......: ".date("H:i:s")." SASL authentication running ". count($cmd)." commands\n";
 		while (list ($num, $ligne) = each ($cmd) ){

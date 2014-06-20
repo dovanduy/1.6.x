@@ -568,7 +568,7 @@ function search(){
 	
 	
 	$results = $q->QUERY_SQL($sql,"artica_events");
-	
+	if(mysql_num_rows($results)==0){json_error_show("no schedule",1);}
 	
 	
 	$data = array();$data['page'] = $page;$data['total'] = $total;
@@ -579,6 +579,7 @@ function search(){
 	//TimeText TimeDescription TaskType enabled
 	
 	$CheckRunningTasks=base64_decode(unserialize($sock->getFrameWork("squid.php?CheckRunningTasks=yes")));
+	
 	$q2=new mysql();
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$color="black";

@@ -113,14 +113,28 @@ function Parseline($buffer){
 	if(preg_match("#temporary disabling.*?digest from#", $buffer)){return;}
 	if(preg_match("#kid[0-9]+\| .*?\/[0-9]+ exists#", $buffer)){return;}
 	
-
 	
-	
+//*******************************************************************************************************************
+if(preg_match("#kid([0-9]+).*?Preparing for shutdown after\s+([0-9]+)\s+requests#", $buffer,$re)){
+		squid_admin_mysql(2,"Process CPU.{$re[1]} is stopping [action: None]",null,__FILE__,__LINE__);
+		return;
+}
 //*******************************************************************************************************************	
+if(preg_match("#kid([0-9]+).*?Squid Cache.*?: Exiting normally#", $buffer,$re)){
+		squid_admin_mysql(0,"Process CPU.{$re[1]} was stopped [action: None]",null,__FILE__,__LINE__);
+		return;
+}
+//*******************************************************************************************************************
+if(preg_match("#kid([0-9]+).*?Process Roles:\s+(.+?)#", $buffer,$re)){
+	squid_admin_mysql(2,"Process CPU.{$re[1]} was started in {$re[2]} mode [action: None]",null,__FILE__,__LINE__);
+	return;
+}
+//*******************************************************************************************************************
 if(preg_match("#Detected DEAD Parent: Peer([0-9]+)#", $buffer,$re)){
 	if(TimeStampTTL(__LINE__,2)){
 		squid_admin_mysql(0,"Parent proxy number {$re[1]} is dead [action: None]",null,__FILE__,__LINE__);
 		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --peer-status --force >/dev/null 2>&1 &");
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.watchdog.php --dead-parent \"{$re[1]}\" >/dev/null 2>&1 &");
 	}
 	return;
 }	
@@ -637,26 +651,9 @@ if(preg_match("#abandoning local=(.*?):.*?remote=(.*?):#", $buffer,$re)){
 	}
 // *******************************************************************************************************************	
 	if(preg_match("#kid[0-9]+.*?ERROR:\s+(.+):\s+\(2\)\s+No such file or directory#i", $buffer,$re)){
-		$dir=$re[1];
-		if(strpos(" $dir", "/")==0){return;}
-		$dirname=dirname($dir);
-		$file="/etc/artica-postfix/pids/squid.cache.path.".md5($dirname);
-		$fileMail="/etc/artica-postfix/pids/squid.miss_dir";
-		$timefile=file_time_min($file);
-		events("$dirname No such file or directory... Line:".__LINE__);
-		if($timefile>10){
-			$timefile=file_time_min($fileMail);
-			if($timefile>10){
-				squid_admin_mysql(1,"Missing directory $dirname","squid-cache claim\r\n$buffer\r\nArtica have automatically created this directory....");
-				squid_admin_notifs("Missing directory $dirname\r\nsquid-cache claim\r\n$buffer\r\nArtica have automatically created this directory....", __FUNCTION__, __FILE__, __LINE__, "proxy");
-				@unlink($fileMail);
-				@file_put_contents($fileMail, time());
-			}
-			shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.squid.smp.php --squid-z-fly >/dev/null 2>&1 &");
-			@unlink($file);
-			@file_put_contents($file, time());
+		if(TimeStampTTL(__LINE__,5)){
+			squid_admin_mysql(2,"Missing object $dirname [action: None]","squid-cache claim\r\n$buffer\r\nArtica have automatically created this directory....");
 		}
-		
 		return;
 	}
 // *******************************************************************************************************************	

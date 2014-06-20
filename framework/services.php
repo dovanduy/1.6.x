@@ -700,7 +700,7 @@ function mysql_optimize_cron(){
 function restart_postfix_all(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart postfix-heavy >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/postfix restart-heavy >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 }
@@ -802,7 +802,7 @@ function openvpn(){
 function postfix_single(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim("$nohup /etc/init.d/artica-postfix restart postfix-single >/dev/null 2>&1 &");
+	$cmd=trim("$nohup /etc/init.d/postfix restart-single >/dev/null 2>&1 &");
 	shell_exec($cmd);
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
 	
@@ -1278,7 +1278,7 @@ function restart_framework(){
 function restart_amavis(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	$cmd=trim($nohup." /etc/init.d/artica-postfix restart amavis >/dev/null 2>&1 &");
+	$cmd=trim($nohup." /etc/init.d/amavis restart >/dev/null 2>&1 &");
 	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);	
 	shell_exec($cmd);		
 }

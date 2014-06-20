@@ -1083,7 +1083,7 @@ function CheckPostfixLogs(){
 		events("CheckPostfixLogs():Restarting postfix");
 		$unix->RESTART_SYSLOG();
 		$unix->send_email_events("Postfix will be restarted","Line: ". __LINE__."\nLog path:$log_path, Size=0\nIn order to rebuild the log file","postfix");
-		shell_exec("/etc/init.d/artica-postfix restart postfix-single");
+		shell_exec("/etc/init.d/postfix restart-single");
 	}
 	
 	

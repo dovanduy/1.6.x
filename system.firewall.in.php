@@ -178,9 +178,9 @@ $('#table-$t').flexigrid({
 	colModel : [
 		{display: '&nbsp;', name : 'delete', width :45, sortable : false, align: 'center'},
 		{display: '$server', name : 'servername', width :588, sortable : false, align: 'left'},
-		{display: '$enable', name : 'disable', width :35, sortable : true, align: 'center'},
-		{display: 'Log', name : 'log', width :45, sortable : true, align: 'center'},
-		{display: 'Del', name : 'delete', width :45, sortable : false, align: 'center'},
+		{display: '$enable', name : 'disable', width :75, sortable : true, align: 'center'},
+		{display: 'Log', name : 'log', width :75, sortable : true, align: 'center'},
+		{display: 'Del', name : 'delete', width :75, sortable : false, align: 'center'},
 		
 	],
 	$buttons
@@ -270,7 +270,7 @@ $('#table-$t').flexigrid({
 	}
 
 	function iptables_edit_rules(num){
-		YahooWin5('460','$page?edit_rule=yes&t=$t&rulemd5='+num,'$rule');
+		YahooWin5('800','$page?edit_rule=yes&t=$t&rulemd5='+num,'$rule');
 	
 	}	
 		
@@ -372,9 +372,9 @@ function firewall_rules(){
 		$delete=imgtootltip("delete-32.png","{delete}","IptableDelete('{$ligne["rulemd5"]}')");
 		$tooltip_add=null;
 		if($ligne["events_block"]<>null){$ligne["events_block"]="<div style=font-size:12px> ".nl2br($ligne["events_block"])."</div>";}
-		$icon="datasource-32.png";
+		$icon="32-black-computer.png";
 		if($ligne["community"]==1){
-			$icon="connect-32-grey.png";
+			$icon="32-black-computer-grey.png";
 			$delete="<img src='img/delete-32-grey.png'>";
 			$tooltip_add="<strong style=font-size:12px> $updated_from_community</strong><br>";
 			$link="blur();";
@@ -384,7 +384,7 @@ function firewall_rules(){
 		
 		$css2="style='border:0px;padding:0px;margin:0px;background-color:transparent;border-bottom:0px;vertical-align:middle' $mouse";
 		
-		if($ligne["service"]==null){$icon="connect-32-grey.png";$link=null;}
+		if($ligne["service"]==null){$icon="32-black-computer.png";$link=null;}
 		
 		$subtext=$tpl->_ENGINE_parse_body("<div><i><span style='color:#660002;font-weight:bold'>{$ligne["serverip"]}</span> {added_on} {$ligne["saved_date"]}</i></div>");
 		$port=$ligne["local_port"];
@@ -399,7 +399,7 @@ function firewall_rules(){
 		
 		$textAllow=$tpl->_ENGINE_parse_body("<span style='color:#660002;'>{deny}:</span>");
 		if($ligne["allow"]==1){
-			$icon="compile-database-32.png";
+			$icon="32-white-computer.png";
 			$textAllow=$tpl->_ENGINE_parse_body("<span style='color:#4DA14C'>{allow}:</span>");
 		}
 		
@@ -444,33 +444,23 @@ $tpl=new templates();
 	while (list ($num, $ligne) = each ($array) ){
 		
 		if($num=="edit_rule"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?edit_rule=yes&t=$t&rulemd5={$_GET["rulemd5"]}&tabs=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?edit_rule=yes&t=$t&rulemd5={$_GET["rulemd5"]}&tabs=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
 	
 	if($num=="edit_rules"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?add-multiple-rules=yes&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?add-multiple-rules=yes&t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 	if($num=="range"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?add-range=yes&t=$t\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?add-range=yes&t=$t\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}		
 
 	}
 	
-	echo "
-	<div id=firewall-in-tabs style='width:100%;overflow:auto'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#firewall-in-tabs').tabs();
-			
-			
-			});
-		</script>";		
+	echo build_artica_tabs($html, "firewall-in-tabs");
 	
 }
 
@@ -479,28 +469,28 @@ function firewall_range_form(){
 	$page=CurrentPageName();	
 	$t=$_GET["t"];
 	$html="
-	<div id='div$t'>
-	<table class=form style='width:99%'>
+	<div id='div$t' style='width:98%' class=form >
+	<table style='width:99%'>
 	<tr>
-		<td class=legend>{from}:</td>
-		<td>". field_ipv4("range-from","font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{from}:</td>
+		<td>". field_ipv4("range-from",null,"font-size:22px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{top}:</td>
-		<td>". field_ipv4("range-to","font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{top}:</td>
+		<td>". field_ipv4("range-to",null,"font-size:22px;padding:3px")."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{allow}:</td>
+		<td class=legend style='font-size:22px'>{allow}:</td>
 		<td>". Field_checkbox("allow-1-$t",1,0)."</td>
 	</tr>	
 	<tr>
-		<td class=legend>{multiples_ports}:</td>
-		<td>". Field_text("multiples_ports-$t",$ligne["multiples_ports"],"font-size:14px;padding:3px",null,null,null,false,"SaveIptableRangeRuleCheck(event)")."</td>
+		<td class=legend style='font-size:22px'>{multiples_ports}:</td>
+		<td>". Field_text("multiples_ports-$t",$ligne["multiples_ports"],"font-size:22px;padding:3px",null,null,null,false,"SaveIptableRangeRuleCheck(event)")."</td>
 		<td>". help_icon("{fw_multiples_ports_explain}")."</td>
 	</tr>
 		
 	<tr>
-		<td colspan=3 align='right'>". button("{add}","SaveIptableRangeRule()",16)."</td>
+		<td colspan=3 align='right'><hr>". button("{add}","SaveIptableRangeRule()",26)."</td>
 	</tr>
 	</table>
 	</div>
@@ -562,26 +552,26 @@ function firewall_rule_form(){
 	if(strlen($rulemd5)<5){$button="{add}";}
 	$t=$_GET["t"];
 	$html="
-	<div id='div$t'>
-	<table class=form style='width:99%'>
+	<div id='div$t' style='width:98%' class=form>
+	<table  style='width:100%'>
 	<tr>
-		<td class=legend>{source_address}:</td>
-		<td>". field_ipv4("serverip",$ligne["serverip"],"font-size:14px;padding:3px")."</td>
+		<td class=legend style='font-size:22px'>{source_address}:</td>
+		<td>". field_ipv4("serverip",$ligne["serverip"],"font-size:22px;padding:3px")."</td>
 		<td>". help_icon("{fw_sourceaddr_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{multiples_ports}:</td>
-		<td>". Field_text("multiples_ports",$ligne["multiples_ports"],"font-size:14px;padding:3px",null,null,null,false,"SaveIptableRuleCheck(event)")."</td>
+		<td class=legend style='font-size:22px'>{multiples_ports}:</td>
+		<td>". Field_text("multiples_ports",$ligne["multiples_ports"],"font-size:22px;width:350px;padding:3px",null,null,null,false,"SaveIptableRuleCheck(event)")."</td>
 		<td>". help_icon("{fw_multiples_ports_explain}")."</td>
 	</tr>
 	<tr>
-		<td class=legend>{allow}:</td>
+		<td class=legend style='font-size:22px'>{allow}:</td>
 		<td>". Field_checkbox("allow-2-$t",1,$ligne["allow"])."</td>
 		<td>&nbsp;</td>
 	</tr>
 		
 	<tr>
-		<td colspan=3 align='right'>". button("$button","SaveIptableRule()",16)."</td>
+		<td colspan=3 align='right'><hr>". button("$button","SaveIptableRule()",28)."</td>
 	</tr>
 	</table>
 	<div>

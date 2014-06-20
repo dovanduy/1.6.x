@@ -44,6 +44,7 @@ function search(){
 	$query=base64_encode($_GET["search"]);
 	if(!is_numeric($_POST["rp"])){$_POST["rp"]=500;}
 	$array=unserialize(base64_decode($sock->getFrameWork("postfix.php?query-maillog=yes&filter=$query&maillog=$maillog_path&rp={$_POST["rp"]}&zarafa-filter={$_GET["zarafa-filter"]}&mimedefang-filter={$_GET["mimedefang-filter"]}")));
+	$array=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/query.mail.log"));
 	krsort($array);
 	$zDate=$tpl->_ENGINE_parse_body("{zDate}");
 	$hostTXT=$tpl->_ENGINE_parse_body("{host}");

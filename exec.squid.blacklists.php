@@ -299,17 +299,25 @@ function cicap_artica($aspid=false){
 		$curl=new ccurl("$URIBASE/ufdb/$tablename.artica.db.gz");
 		$curl->WriteProgress=true;
 		$curl->ProgressFile="/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.download";
+		$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
 		
 		if(is_file("$tmpdir/$tablename.artica.db.gz")){@unlink("$tmpdir/$tablename.artica.db.gz");}
 		if(!$curl->GetFile("$tmpdir/$tablename.artica.db.gz")){
 			$ERRORDB++;
 			$GLOBALS["EVENTS"][]="Failed Downloading $tablename with error $curl->error";
 			if($GLOBALS["VERBOSE"]){echo "Failed Downloading $tablename $curl->error !!!!\n";}
+			
 			unset($NEW_CATZ_ARRAY[$tablename]);
 			@unlink("$tmpdir/$tablename.artica.db.gz");
 			continue;
 		}
 		$GLOBALS["DOWNLOADS"]=$GLOBALS["DOWNLOADS"]+@filesize("$tmpdir/$tablename.artica.db.gz");
+		
+		$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$tablename;
+		$STATUS["LAST_DOWNLOAD"]["SIZE"]=($GLOBALS["DOWNLOADS"]/1024);
+		
+		
+		
 		if($GLOBALS["VERBOSE"]){echo "Uncompress $tmpdir/$tablename.artica.db.gz\n";}
 		if(is_file("/home/artica/categories_databases/$tablename.db")){@unlink("/home/artica/categories_databases/$tablename.db");}
 	
@@ -343,6 +351,8 @@ function cicap_artica($aspid=false){
 		if($GLOBALS["VERBOSE"]){echo " **** $WORKDIR/CATZ_ARRAY done *****\n";}
 		dba_close($id);
 		$DBS++;
+		$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+		@file_put_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD", serialize($STATUS));
 	}
 			
 	

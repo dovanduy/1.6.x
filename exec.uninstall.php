@@ -31,7 +31,7 @@ function APP_POSTFIX_REMOVE(){
 	$apt=$unix->find_program("apt-get");
 	
 	if(is_file($apt)){
-		shell_exec("/etc/init.d/artica-postfix stop postfix");
+		shell_exec("/etc/init.d/postfix stop");
 		shell_exec("apt-get remove postfix* --purge -y");
 		shell_exec("apt-get remove spamassassin --purge -y");
 		shell_exec("apt-get remove amavisd-new --purge -y");

@@ -298,13 +298,14 @@ function SaveRelayCountry(){
 				$conf=$conf ."#plugins\n";	
 				$conf=$conf. $this->WrongMX();
 				
-				if($this->main_array["razor_config"]<>null){
+				/*if($this->main_array["razor_config"]<>null){
 				if($this->main_array["use_razor2"]==1){
 					$conf=$conf ."use_razor2 {$this->main_array["use_razor2"]}\n";
 					$conf=$conf ."razor_config {$this->main_array["razor_config"]}\n";
 					}
 				}
 				if($this->main_array["use_pyzor"]==1){$conf=$conf ."use_pyzor {$this->main_array["use_pyzor"]}\n";}
+				*/
 				$conf=$conf ."\n"; 
 				$conf=$conf ."#   Set headers which may provide inappropriate cues to the Bayesian\n";
 				$conf=$conf ."#   classifier\n";
@@ -544,6 +545,7 @@ private function MaxRCPT(){
 			$keyword=str_replace("+","\+",$keyword);
 			$keyword=str_replace("*",".+?",$keyword);
 			$keyword=str_replace(" ","\s+",$keyword);
+			$keyword=str_replace("@","\@",$keyword);
 			
 			$f[]="$prefix KEYWORD_RULE_{$ligne["ID"]}\t$prefix_regex/$keyword/i";
 			$f[]="score KEYWORD_RULE_{$ligne["ID"]}\t{$ligne["score"]}";

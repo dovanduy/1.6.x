@@ -22,7 +22,7 @@ $squid->SaveToServer();
 
 
 
-system('/etc/init.d/artica-postfix restart postfix');
+system('/etc/init.d/postfix restart');
 system('/etc/init.d/artica-postfix restart samba');
 system('/usr/share/artica-postfix/bin/artica-install --cyrus-checkconfig');
 system('/etc/init.d/cyrus-imapd restart');

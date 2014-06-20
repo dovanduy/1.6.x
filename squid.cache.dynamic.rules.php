@@ -39,10 +39,15 @@ function tabs(){
 	
 		$array["parameters"]="{parameters}";
 		$array["items"]="{items}";
-	
+		$array["schedule"]="{schedule}";
 
 
 	while (list ($num, $ligne) = each ($array) ){
+		if($num=="schedule"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.databases.schedules.php?TaskType=55\" style='font-size:16px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\" style='font-size:16px'><span>$ligne</span></a></li>\n");
 	}
 	echo build_artica_tabs($html, "squid_dynamic_caches");
@@ -74,7 +79,7 @@ function parameters(){
 	for($i=1;$i<11;$i++){
 		$ENFORCE[$i]="{level} $i";
 	}
-	
+	$INTERVAL[0]="{schedule}";
 	$INTERVAL[60]="1 {hour}";
 	$INTERVAL[120]="2 {hours}";
 	$INTERVAL[180]="3 {hours}";

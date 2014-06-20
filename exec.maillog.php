@@ -729,7 +729,7 @@ if(preg_match("#(.+?)\/smtpd\[.+?fatal:\s+config variable inet_interfaces#", $bu
 				return;
 			}
 			
-			$cmd=trim("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix start amavis >/dev/null 2>&1 &");
+			$cmd=trim("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/amavis start >/dev/null 2>&1 &");
 			shell_exec_maillog($cmd);
 			return;			
 			
@@ -760,7 +760,7 @@ if(preg_match("#smtp\[.+?:\s+connect to 127\.0\.0\.1\[127\.0\.0\.1\]:([0-9]+):\s
 		if($timefile>5){
 			email_events("Postfix: Connect to amavis port {$re[1]} Connection refused Amavis will be restarted",
 			"postfix claim \n$buffer\nArtica will try to restart amavis daemon.","postfix");
-			shell_exec_maillog(trim("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix restart amavis --by-exec-maillog >/dev/null 2>&1 &"));
+			shell_exec_maillog(trim("{$GLOBALS["NOHUP_PATH"]} /etc/init.d/amavis restart --by-exec-maillog >/dev/null 2>&1 &"));
 			@file_put_contents($file,"#");
 		}else{events("Postfix: Connect to amavis port {$re[1]} Connection refused: {$timefile}Mn/5Mn");}
 		return;			
@@ -1225,7 +1225,7 @@ if(preg_match("#zarafa-server\[.+?Unable to find company id for object\s+(.+?)$#
 
 if(preg_match("#postfix\/master\[.+?fatal: bind 0\.0\.0\.0 port 25: Address already in use#",$buffer,$re)){
 	email_events("Postfix will be restarted","Postfix claims, $buffer","postfix");
-	shell_exec_maillog("/etc/init.d/artica-postfix restart postfix-single &");
+	shell_exec_maillog("/etc/init.d/postfix restart-single &");
 	return;
 }
 
@@ -1793,7 +1793,7 @@ if(preg_match("#amavis\[.+?TROUBLE.+?in child_init_hook: BDB can't connect db en
 	if(file_time_min($file)>5){
 		email_events("AMAVIS BDB Error","amavis claim\n$buffer\nArtica will restart amavis service","postfix");
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis");
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/amavis restart");
 		}
 		@unlink($file);
 		file_put_contents($file,"#");
@@ -1806,7 +1806,7 @@ if(preg_match("#amavis\[.*?\]:.*?DIE.*?BDB\s+can't connect db.*?\/var(.+?): No s
 	if(file_time_min($file)>5){
 		email_events("AMAVIS BDB Error","amavis claim\n$buffer\nArtica will restart amavis service","postfix");
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis");
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/amavis restart");
 		}
 		@unlink($file);
 		file_put_contents($file,"#");
@@ -1821,7 +1821,7 @@ if(preg_match("#amavis\[.+?custom checks error:\s+Insecure dependency in connect
 	events("amavis Compress-Raw-Zlib error -> check Compress-Raw-Zlib version");
 	if(file_time_min($file)>5){
 		email_events("AMAVIS dependency Error","amavis claim\n$buffer\nArtica will try to check depencies, especially \Compress-Raw-Zlib\"","postfix");
-		//THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis");
+		//THREAD_COMMAND_SET("/etc/init.d/amavis restart");
 		@unlink($file);
 		file_put_contents($file,"#");
 	}
@@ -1835,7 +1835,7 @@ if(preg_match("#amavis\[.+?connect_to_ldap: bind failed: LDAP_INVALID_CREDENTIAL
 	if(file_time_min($file)>5){
 		email_events("AMAVIS LDAP connexion Error","amavis claim\n$buffer\nArtica will restart amavis service to reconfigure it","postfix");
 		if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis");
+			$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/amavis restart");
 		}
 		@unlink($file);
 		file_put_contents($file,"#");
@@ -1868,7 +1868,7 @@ if(preg_match("#.+?postfix-.+?\/master\[.+?:\s+fatal:\s+bind\s+[0-9\.]+\s+port\s
 	events("Address already in use -> restart postfix");
 	if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
 		email_events("Postfix will be restarted","Line: ". __LINE__."\nPostfix claims, $buffer","postfix");
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart postfix-single");
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/postfix restart-single");
 	}
 	return null;	
 }
@@ -3604,7 +3604,7 @@ function amavis_socket_error($line){
 	$stat=$unix->find_program("stat");
 	exec("$stat /var/spool/postfix/var/run/amavisd-new/amavisd-new.sock 2>&1",$STATr);
 	if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis-milter");
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/amavis restart-milter");
 		email_events("Warning Amavis socket is not available",$line." (Postfix claim that amavis socket is not available, 
 	Artica will restart amavis \"milter\" service)
 	Here it is the stat results:
@@ -3639,7 +3639,7 @@ function amavis_error_restart($buffer){
 	}	
 	email_events('Warning Amavis error',"Amavis claim that $buffer, Artica will restart amavis",'postfix');
 	if($GLOBALS["ActAsSMTPGatewayStatistics"]==0){
-		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart amavis");
+		$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/amavis restart");
 	}
 	@unlink($file);
 	file_put_contents($file,"#");	
@@ -3742,7 +3742,7 @@ function AmavisConfigErrorInPostfixRestart($buffer){
 	if(file_time_min($file)<15){return null;}	
 	email_events("Amavis network error: $socket","Postfix claim \"$buffer\", Artica will restart postfix",'postfix');
 	
-	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/artica-postfix restart postfix-single");
+	$GLOBALS["CLASS_UNIX"]->THREAD_COMMAND_SET("/etc/init.d/postfix restart-single");
 	@unlink($file);
 	@file_put_contents($file,"#");		
 }

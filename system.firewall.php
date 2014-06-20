@@ -31,6 +31,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1
 	if(isset($_POST["rule-enable"])){rule_enable();exit;}
 	if(isset($_GET["rule-time"])){rule_time();exit;}
 	if(isset($_POST["time-save"])){time_save();exit;}
+	if(isset($_GET["generic"])){generic_tabs();exit;}
 	if(isset($_POST["EnableArticaAsGateway"])){EnableArticaAsGateway_save();exit;}
 	tabs();
 	
@@ -39,11 +40,15 @@ function tabs(){
 	$page=CurrentPageName();
 	$net=new networking();
 	$interfaces=$net->Local_interfaces();
+	$tpl=new templates();
+	$generic=$tpl->_ENGINE_parse_body("{central_rules}");
 	unset($interfaces["lo"]);
 	ksort($interfaces);
-
-	
 	$fontsize="font-size:18px;";
+	
+	$html[]="<li><a href=\"$page?generic=yes\" style='$fontsize' ><span>$generic</span></a></li>\n";
+	
+	
 	while (list ($interface, $ligne) = each ($interfaces) ){
 		if(preg_match("#^dummy#", $interface)){continue;}
 		if(preg_match("#^ip6t#", $interface)){continue;}
@@ -54,11 +59,49 @@ function tabs(){
 	}
 	
 	
-	$html=build_artica_tabs($html,'main_firewall',995)."
+	$html=build_artica_tabs($html,'main_firewall',1100)."
 		<script>LeftDesign('firewall-256-white-opac20.png');</script>";
 	
 	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
 	echo $html;
+}
+
+function generic_tabs(){
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$fontsize="font-size:18px;";
+	$eth=$_GET["eth"];
+	$ID=$_GET["ID"];
+	$table=$_GET["table"];
+	$eth=$_GET["eth"];
+	$t=$_GET["t"];
+	
+
+	$array["firewall"]='{incoming_firewall}';
+	$array["antihack"]='Anti-hack SSH';
+	$array["firewall-white"]='{whitelist}';
+	
+	$fontsize="font-size:16px";
+	while (list ($index, $ligne) = each ($array) ){
+			if($index=="firewall"){
+			$html[]= "<li><a href=\"system.firewall.in.php?no=no$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}	
+		
+		if($index=="antihack"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.iptables.php?tab-iptables-rules=yes&sshd=yes\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
+
+		if($index=="firewall-white"){
+			$html[]= "<li><a href=\"whitelists.admin.php?popup-hosts=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
+			continue;
+		}
+	}
+	
+	
+	echo build_artica_tabs($html,'tabs_central_rules');	
+	
 }
 
 function iptables_tabs(){

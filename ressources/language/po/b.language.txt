@@ -1,12 +1,10 @@
-</enable_http_service_zarafa_explain>
-<enable_phpfpm_service>Activate the PHP-FPM service<//enable_http_service_zarafa_explain>
-</SHOWREWALL_PORT_EXPLAIN>
-<RATELIM>limiting connection rates<//SHOWREWALL_PORT_EXPLAIN>
+</enable_http_service_zarafa_explain>&lt;enable_phpfpm_service&gt;Ativar o servi&ccedil;o PHP-FPM<//enable_http_service_zarafa_explain>
+</SHOWREWALL_PORT_EXPLAIN>&lt;RATELIM&gt;limite das taxas de conex&atilde;o<//SHOWREWALL_PORT_EXPLAIN>
 <abort_remove_task>Abortar a tarefa de remo&ccedil;&atilde;o</abort_remove_task>
 <about2>Acerca de</about2>
 <abouttime>Acerca de</abouttime>
 <about_item>Acerca de</about_item>
-<about_this_section>About this section</about_this_section>
+<about_this_section>Acerca desta se&ccedil;&atilde;o</about_this_section>
 <accepteds>aceite</accepteds>
 <accept_artica_webconsole>Accept Artica Web console</accept_artica_webconsole>
 <accept_dns>Accept DNS service</accept_dns>
@@ -1111,6 +1109,7 @@ It used for statistics purpose.</category_database_explain_text>
 <category_no_license_explain>Not used for webfiltering, license is required</category_no_license_explain>
 <catz_explain>This section lists categories used for statistics tasks in order to generate charts/graphs/tables by category.</catz_explain>
 <central_memory>Central memory</central_memory>
+<central_rules>Central rules</central_rules>
 <certificates_center>Certificates Center</certificates_center>
 <certificate_chain>Certificate Chain</certificate_chain>
 <certificate_chain_explain>A certificate chain is a plaintext file that contains all the certificates
@@ -1447,6 +1446,7 @@ This happens when the server first reports an expected transfer size,[br]and the
 </CURLE_CURLE_PARTIAL_FILE>
 <CURLE_OPERATION_TIMEDOUT>Operation timeout. The specified time-out period was reached according to the conditions.</CURLE_OPERATION_TIMEDOUT>
 <CURLE_WRITE_ERROR>error occurred when writing received data to a local file</CURLE_WRITE_ERROR>
+<currently>Currently</currently>
 <current_domains>Current Domains</current_domains>
 <current_rules>Current rules</current_rules>
 <current_size>Current size</current_size>
@@ -1861,6 +1861,7 @@ It need to include both RSA PRIVATE KEY and CERTIFICATE
 <empty_store>Empty the store</empty_store>
 <empty_template>Empty template</empty_template>
 <enable-ssl-crtd-not-compiled>Dynamic SSL Certificate Generation is not compiled on your Squid-Cache version.The feature will not be applied on your proxy service</enable-ssl-crtd-not-compiled>
+<EnableAmavisDaemon>Enable Amavis Daemon filter</EnableAmavisDaemon>
 <EnableArpDaemon>Enable ARP Daemon</EnableArpDaemon>
 <EnableArpDaemon_disable_explain>ARP Daemon is a service that help the kernel to resolve MAC Addresses.[br]
 It should consume memory and CPU.[br]
@@ -2871,7 +2872,10 @@ In most cases where the computer is not running as a router of some kind, we cou
 <KEY_OK>Key success</KEY_OK>
 <languages>Languages</languages>
 <last>last</last>
+<last_category>Last category</last_category>
 <last_check>Last check</last_check>
+<last_download>Last download</last_download>
+<last_downloaded_size>Last downloaded size</last_downloaded_size>
 <last_status>Last status</last_status>
 <last_transaction_messages>Last messages transactions</last_transaction_messages>
 <last_update>Last update</last_update>
@@ -3869,6 +3873,8 @@ You can give an IP address such as 10.0.0.2 or a network such as 192.168.1.0/24
 <percent>Percentage</percent>
 <perfom_proxy_log_rotation>Proxy logs rotation</perfom_proxy_log_rotation>
 <perfom_proxy_log_rotation_explain>This task is able to perform Proxy service logs rotation operation.</perfom_proxy_log_rotation_explain>
+<perfom_websites_optimization>Perform websites optimizations</perfom_websites_optimization>
+<perfom_websites_optimization_explain>This task will enforce cache rules by analysis non-cached websites in order to force proxy to cache websites</perfom_websites_optimization_explain>
 <performances>performances</performances>
 <performance_issue>Performance issue</performance_issue>
 <performance_issue_cpu_number_text>It seems that your server handle just one CPU ![br]

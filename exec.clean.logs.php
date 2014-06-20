@@ -464,6 +464,12 @@ function LogRotateTimeAndSize($BaseWorkDir){
 	$LogsRotateDeleteSize=intval($sock->GET_INFO("LogsRotateDeleteSize"));
 	if($LogsRotateDeleteSize==0){$LogsRotateDeleteSize=5000;}
 	
+	if($BaseWorkDir=="/var/log/squid"){
+		$SquidLogRotateFreq=intval($sock->GET_INFO("SquidLogRotateFreq"));
+		if($SquidLogRotateFreq<10){$SquidLogRotateFreq=1440;}
+		$LastRotate=$unix->file_time_min("/etc/artica-postfix/pids/squid-rotate-cache.time");
+		if($LastRotate<$SquidLogRotateFreq){return;}
+	}
 	
 	if (!$handle = opendir($BaseWorkDir)) {return;}
 	

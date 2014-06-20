@@ -94,6 +94,9 @@ if($bsini->_params[$key]["running"]==0){
 	if(!isset($bsini->_params[$key]["why"])){$bsini->_params[$key]["why"]=null;}
 	if(!isset($bsini->_params[$key]["other"])){$bsini->_params[$key]["other"]=null;}
 	if(!isset($bsini->_params[$key]["threads_socket"])){$bsini->_params[$key]["threads_socket"]=null;}
+	if(!isset($bsini->_params[$key]["master_memory"])){$bsini->_params[$key]["master_memory"]=null;}
+	if(!isset($bsini->_params[$key]["master_cached_memory"])){$bsini->_params[$key]["master_cached_memory"]=null;}
+	
 	
 	
 if($bsini->_params[$key]["pattern_version"]<>null && $bsini->_params[$key]["pattern_date"]==null){

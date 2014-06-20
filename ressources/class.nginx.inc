@@ -623,7 +623,7 @@ for too long in io path.
 	
 	private function proxy_pass_pattern($pattern){
 		
-		if(!preg_match("#^http(.*?):",$pattern)){
+		if(!preg_match("#^http(.*?):#",$pattern)){
 			$pattern="http://$pattern";
 		}
 		
@@ -2029,6 +2029,7 @@ private function http_location_cache_params($ligne){
 			if($this->proxy_scheme<>null){$http_prefix=$this->proxy_scheme;}
 		}
 		if($this->IsAFreeWeb){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername is a freeweb\n";}
 			$this->proxy_to_host="127.0.0.1";
 			$proxy_to_host=$this->proxy_to_host;
 			if($this->isFreeWebSSL()){
@@ -2039,10 +2040,16 @@ private function http_location_cache_params($ligne){
 			
 		}
 		
+		if(preg_match("#([0-9\.]+):([0-9]+)#",$proxy_to_host,$re)){
+			$proxy_to_host=$re[1];
+			$this->proxy_to_port=$re[2];
+		}
+		
+		
 		if(!$IpClass->isValid($proxy_to_host)){
 			$tcp=gethostbyname($proxy_to_host);
 			if(!$IpClass->isValid($tcp)){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $proxy_to_host -> 127.0.0.1\n";}
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $proxy_to_host -> 127.0.0.1 [".__LINE__."]\n";}
 				$proxy_to_host="127.0.0.1";
 				if($this->proxy_to_port==80){$this->proxy_to_port=82;}
 				if($this->proxy_to_port==443){$this->proxy_to_port=447;}
@@ -2053,7 +2060,7 @@ private function http_location_cache_params($ligne){
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port Proxy to: '$proxy_to_host', suffix '$this->proxy_suffix'\n";} 
 		
-		if($this->proxy_to_port<>null){
+		if(is_numeric($this->proxy_to_port)){
 			$PortTXT=":$this->proxy_to_port";
 		}
 		

@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
+
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	$GLOBALS["ICON_FAMILY"]="ANTISPAM";
 	include_once('ressources/class.templates.inc');
@@ -33,15 +33,14 @@ function amavis_popup(){
 	
 	$enable_amavisdeamon_ask=$tpl->javascript_parse_text("{enable_amavisdeamon_ask}");		
 	$disable_amavisdeamon_ask=$tpl->javascript_parse_text("{disable_amavisdeamon_ask}");	
-	$EnableAmavisDaemon=trim($sock->GET_INFO("EnableAmavisDaemon",true));	
-	if(!is_numeric($EnableAmavisDaemon)){$EnableAmavisDaemon=0;}
+	$EnableAmavisDaemon=intval(trim($sock->GET_INFO("EnableAmavisDaemon",true)));	
+	$EnableAmavisInMasterCF=intval(trim($sock->GET_INFO("EnableAmavisInMasterCF")));
 
 	if($EnableAmavisDaemon==0){
-		$EnableAmavisDaemonP=Paragraphe32("disabled", "amavis_is_currently_disabled_text", "EnablePopupAmavis()", 
-				"warning32.png");
+		$EnableAmavisDaemonP="{amavis_is_currently_disabled_text}"; 
+				
 	}else{
-		$EnableAmavisDaemonP=Paragraphe32("enabled", "amavis_is_currently_enabled_text", "DisablePopupAmavis()", 
-		"ok32.png");
+		$EnableAmavisDaemonP="{amavis_is_currently_enabled_text}";
 	}
 	
 	$prepost=Paragraphe("folder-equerre-64.png",'{postfix_hooking}','{postfix_hooking_text}',"javascript:Loadjs('$page?hooking-js=yes')",'postfix_hooking_text',210,100);
@@ -52,10 +51,16 @@ function amavis_popup(){
 	$tr[]=Paragraphe32("reload_service", "reload_service_text", "AmavisCompileRules()", "service-restart-32.png");
 	
 	
+	$EnableAmavisInMasterCFT="{postfix_afterqueue}";
+	$EnableAmavisInMasterCFE="{postfix_afterqueue_text}";
+	
 	
 	//https://192.168.1.213:9000/amavis.daemon.watchdog.php?_=1345459954124
+	if($EnableAmavisInMasterCF==0){
+		$EnableAmavisInMasterCFT="{postfix_beforequeue}";
+		$EnableAmavisInMasterCFE="{postfix_beforequeue_text}";
+	}
 	
-	$table=CompileTr2($tr,"form");
 		
 	
 	
@@ -66,8 +71,11 @@ function amavis_popup(){
 		</td>
 		<td valign='top' style='padding-left:20px'>
 			<div style='font-size:32px;margin:bottom:10px;text-align:right'>{APP_AMAVIS}</div>
-			<div style='font-size:16px' class=explain>{AMAVIS_DEF}</div>
-			<div id='explain-$t'>$table</div>
+			". Paragraphe_switch_img("{EnableAmavisDaemon}", "{AMAVIS_DEF}<br>$EnableAmavisDaemonP","EnableAmavisDaemon",$EnableAmavisDaemon,null,700)."
+			". Paragraphe_switch_img("{postfix_afterqueue}", "{postfix_afterqueue_text}","EnableAmavisInMasterCF",$EnableAmavisInMasterCF,null,700)."
+			<p class=text-info style='font-size:14px'><strong style='font-size:16px'>{currently}:$EnableAmavisInMasterCFT</strong><br>$EnableAmavisInMasterCFE</p>
+			<hr>
+			<div style='width:100%;text-align:right'>". button("{apply}","SaveEnablePopupAmavis()",26)."</div>
 		</td>
 	</tr>
 	</table>
@@ -88,13 +96,11 @@ function amavis_popup(){
 			}
 		}
 		
-		function DisablePopupAmavis(){
-			if(confirm('$disable_amavisdeamon_ask')){
-				var XHR = new XHRConnection();
-				XHR.appendData('disable-amavis','yes');
-				AnimateDiv('explain-$t');
-				XHR.sendAndLoad('amavis.daemon.status.php', 'POST',x_EnablePopupAmavis);
-			}
+		function SaveEnablePopupAmavis(){
+			var XHR = new XHRConnection();
+			XHR.appendData('EnableAmavisDaemon',document.getElementById('EnableAmavisDaemon').value);
+			XHR.appendData('EnableAmavisInMasterCF',document.getElementById('EnableAmavisInMasterCF').value);
+			XHR.sendAndLoad('amavis.daemon.status.php', 'POST',x_EnablePopupAmavis);
 		}
 	
 	

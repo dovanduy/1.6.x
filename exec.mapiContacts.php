@@ -64,7 +64,7 @@ function start(){
 	if($users->AMAVIS_INSTALLED){
 		if($EnableAmavisDaemon==1){
 			shell_exec("$php5 ". dirname(__FILE__)."/exec.amavis.php >/dev/null 2>&1");
-			shell_exec("/usr/share/artica-postfix/bin/artica-install --amavis-reload");
+			shell_exec("/etc/init.d/amavis reload");
 		}
 	}
 	if($users->MILTERGREYLIST_INSTALLED){

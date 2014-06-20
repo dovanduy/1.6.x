@@ -433,8 +433,7 @@ function zlistnics_tabs(){
 	
 
 	
-	$array["firewall"]='{incoming_firewall}';
-	$array["firewall-white"]='{whitelist}';
+
 	
 	$tabwidth="730px";
 	if(isset($_GET["newinterface"])){$fontsize="font-size:14px;";$linkadd="&newinterface=yes";$tabwidth="100%";}
@@ -458,15 +457,7 @@ function zlistnics_tabs(){
 			continue;
 		}
 		
-		if($num=="firewall"){
-			$html[]= "<li><a href=\"system.firewall.in.php?no=no$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
-			continue;
-		}	
-
-		if($num=="firewall-white"){
-			$html[]= "<li><a href=\"whitelists.admin.php?popup-hosts=yes$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
-			continue;
-		}			
+			
 		
 		$html[]= "<li><a href=\"$page?main=$num$linkadd\"><span style='$fontsize'>". $tpl->_ENGINE_parse_body($ligne)."</span></a></li>\n";
 	}

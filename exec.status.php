@@ -911,6 +911,7 @@ function AmavisWatchdog(){
 	}
 
 	@file_put_contents("/etc/artica-postfix/amavis.watchdog.cache",@serialize($GLOBALS["AMAVIS_WATCHDOG"]));
+	events("Save /usr/share/artica-postfix/ressources/logs/amavis.infos.array",__FUNCTION__,__LINE__);
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/amavis.infos.array",@serialize($array_status));
 	@chmod("/usr/share/artica-postfix/ressources/logs/amavis.infos.array",0777);
 
@@ -1579,7 +1580,7 @@ function amavisdb(){
 			$master_pid=$GLOBALS["CLASS_UNIX"]->get_pid_from_file($pid_path);
 			if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 			$nohup=$GLOBALS["CLASS_UNIX"]->find_program("nohup");
-			shell_exec2("$nohup /etc/init.d/artica-postfix stop amavisdb >/dev/null 2>&1 &");
+			shell_exec2("$nohup /etc/init.d/amavis stopdb >/dev/null 2>&1 &");
 		}
 			$l[]="";
 			return implode("\n",$l);
@@ -3262,7 +3263,7 @@ function amavis(){
 	$l[]="[AMAVISD]";
 	$l[]="service_name=APP_AMAVISD_NEW";
 	$l[]="master_version=".GetVersionOf("amavis");
-	$l[]="service_cmd=amavis";
+	$l[]="service_cmd=/etc/init.d/amavis";
 	$l[]="service_disabled=$enabled";
 	$l[]="pid_path=$pid_path";
 	$l[]="family=postfix";
@@ -6266,7 +6267,7 @@ function postfix(){
 	
 	if($EnableStopPostfix==1){
 		events("watchdog-postfix:$EnableStopPostfix is enabled, stopping postfix",__FUNCTION__,__LINE__);
-		$cmd="{$GLOBALS["nohup"]} /etc/init.d/artica-postfix stop postfix >/dev/null 2>&1 &";
+		$cmd="{$GLOBALS["nohup"]} /etc/init.d/postfix stop >/dev/null 2>&1 &";
 		events("watchdog-postfix:$EnableStopPostfix is enabled, stopping postfix -> $cmd" ,__FUNCTION__,__LINE__);
 		shell_exec2($cmd);
 		}

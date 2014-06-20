@@ -220,6 +220,7 @@ function events_search(){
 	$query=base64_encode($_GET["search-records"]);
 	if(!isset($_GET["rp"])){$_GET["rp"]=500;}
 	$array=unserialize(base64_decode($sock->getFrameWork("postfix.php?query-maillog=yes&filter=$query&maillog=$maillog_path&rp={$_GET["rp"]}&zarafa-filter=yes&mimedefang-filter={$_GET["mimedefang-filter"]}")));
+	$array=explode("\n",@file_get_contents("/usr/share/artica-postfix/ressources/logs/web/query.mail.log"));
 	if($_POST["sortorder"]=="desc"){krsort($array);}else{ksort($array);}
 	$boot=new boostrap_form();
 	while (list ($index, $line) = each ($array) ){

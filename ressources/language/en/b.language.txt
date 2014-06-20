@@ -6428,3 +6428,11 @@ Do you want to carry out this operation ?
 </warn_backup_database>
 <download_progress>Download progress</download_progress>
 <databases_number>Databases number</databases_number>
+<last_downloaded_size>Last downloaded size</last_downloaded_size>
+<last_category>Last category</last_category>
+<last_download>Last download</last_download>
+<perfom_websites_optimization>Perform websites optimizations</perfom_websites_optimization>
+<perfom_websites_optimization_explain>This task will enforce cache rules by analysis non-cached websites in order to force proxy to cache websites</perfom_websites_optimization_explain>
+<central_rules>Central rules</central_rules>
+<currently>Currently</currently>
+<EnableAmavisDaemon>Enable Amavis Daemon filter</EnableAmavisDaemon>

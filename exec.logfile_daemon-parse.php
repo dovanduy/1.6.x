@@ -88,7 +88,7 @@ function parse_tables_primaires(){
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){
 			if($GLOBALS["VERBOSE"]){echo "\n\n ********************************************************************* \n\n$q->mysql_error\n*********************************************************************\n\n";}
-			
+			events("parse_tables_primaires(): Fatal: MySQL error:");
 			if(preg_match("#Table 'squidlogs\.(.+?)' doesn't exist#",$q->mysql_error,$re)){
 				if($GLOBALS["VERBOSE"]){
 					echo "Creating table: {$re[1]}\n";

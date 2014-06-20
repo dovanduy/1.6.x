@@ -184,7 +184,7 @@ class postfix_maillog_buffer{
 			$TimeMin=$this->file_time_min($timefile);
 			if($TimeMin>5){
 				$this->email_events("Amavis is out of service, restart amavis","Postfix claim: $buffer\nAmavis is restarted","postfix");
-				$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/artica-postfix restart amavis >/dev/null 2>&1 &";
+				$cmd="{$GLOBALS["NOHUP_PATH"]} /etc/init.d/amavis restart >/dev/null 2>&1 &";
 				$this->events($cmd);
 				shell_exec($cmd);
 		 		@unlink($timefile);

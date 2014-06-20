@@ -334,10 +334,15 @@ function update_remote_file($BASE_URI,$filename,$md5){
 	$categoryname=str_replace(".tar.gz", "", $filename);
 	$categoryDISK=$categoryname;
 	if(isset($Conversion[$categoryname])){$categoryDISK=$Conversion[$categoryname];}
+	$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+	$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$categoryname;
+	$STATUS["LAST_DOWNLOAD"]["SIZE"]=($GLOBALS["UFDB_SIZE"]/1024);
+	@file_put_contents("/etc/artica-postfix/TLSE_LAST_DOWNLOAD", serialize($STATUS));
+	
 	$categoryDISK=str_replace("/", "_", $categoryDISK);
 	
 	if(is_link("/var/lib/ftpunivtlse1fr/$categoryname")){
-		if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname is link of ". @readlink("/var/lib/ftpunivtlse1fr/$categoryname")."\n";}
+		if($GLOBALS["VERBOSE"]){echo "/var/lib/ftpunivtlse1fr/$categoryname is a link of ". @readlink("/var/lib/ftpunivtlse1fr/$categoryname")."\n";}
 		if($GLOBALS["VERBOSE"]){echo "Removing  /var/lib/ftpunivtlse1fr/$categoryname/\n";}
 		shell_exec("$rm -rf /var/lib/ftpunivtlse1fr/$categoryname");
 	}

@@ -1826,6 +1826,7 @@ function sa_update(){
 		if(preg_match("updates complete, exiting with code [0-9]+", $line)){
 			if($GLOBALS["VERBOSE"]){echo "sa-update:: $line\n";}
 			$unix->send_email_events("Spamassassin success update databases", @implode("\n", $f), "postfix");
+			shell_exec("$sacompile");
 			@unlink($statusFile);
 			return;
 		}

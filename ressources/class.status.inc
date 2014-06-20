@@ -161,7 +161,7 @@ while (list ($num, $val) = each ($vals) ){
 						$this->events("ProcessExistsByCommand return false");
 					}
 				
-				system('/etc/init.d/artica-postfix start postfix-logger &');
+				system('/etc/init.d/postfix start-logger &');
 				if($this->ProcessExistsByCommand("artica-postfix/exec.maillog.php")){
 						$this->events("Scanning {$val["service_name"]} artica-postfix/exec.maillog.php exists, with start it command;"); 
 						continue;
