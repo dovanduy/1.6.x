@@ -102,6 +102,7 @@ if($argv[1]=="--xmail"){XMail();exim4();exit;}
 if($argv[1]=="--bwm-ng"){echo bwm_ng();exit;}
 if($argv[1]=="--ntopng"){echo ntopng()."\n".redis_server();exit;}
 if($argv[1]=="--load-stats"){$GLOBALS["VERBOSE"]=true;load_stats();exit;}
+if($argv[1]=="--vsftpd"){echo vsftpd();exit;}
 
 
 if($argv[1]=="--boa"){echo"\n". boa();exit;}
@@ -9283,6 +9284,57 @@ function snmpd(){
 	return implode("\n",$l);return;
 }
 
+
+function vsftpd_pid(){
+
+	
+	$Masterbin=$GLOBALS["CLASS_UNIX"]->find_program("vsftpd");
+	$pid=$GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN("^vsftpd$");
+	if($GLOBALS["CLASS_UNIX"]->process_exists($pid)){return $pid;}
+	return $GLOBALS["CLASS_UNIX"]->PIDOF_PATTERN($Masterbin);
+
+}
+
+
+
+function vsftpd(){
+	$snmpd=$GLOBALS["CLASS_UNIX"]->find_program("vsftpd");
+	if(!is_file($snmpd)){return;}
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableVSFTPDDaemon");
+	if(!is_numeric($enabled)){$enabled=0;}
+	
+$master_pid=vsftpd_pid();
+	$l[]="[APP_VSFTPD]";
+	$l[]="service_name=APP_VSFTPD";
+	$l[]="master_version=2.3.5";
+	$l[]="service_cmd=/etc/init.d/vsftpd";
+	$l[]="service_disabled=$enabled";
+	$l[]="family=system";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+
+	if($enabled==0){return implode("\n",$l);return;}
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.vsftpd.php --start");
+			shell_exec2($cmd);
+		}
+		$l[]="running=0\ninstalled=1";$l[]="";
+		return implode("\n",$l);
+		return;
+	}else{
+		if($enabled==0){
+			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/vsftpd stop >/dev/null 2>&1 &");
+		}
+	}
+
+
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+	return implode("\n",$l);return;
+}
 
 
 

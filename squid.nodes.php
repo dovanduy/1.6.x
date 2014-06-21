@@ -230,8 +230,11 @@ function link_user_save(){
 		}
 		
 		$sock=new sockets();
-		
+		$macenc=urlencode($_POST["MAC"]);
+		$uidenc=urlencode($_POST["uid"]);
+		$sock->getFrameWork("squid.php?user-retranslation-update=yes&MAC=$macenc&uid=$uidenc");
 		writelogs("squid.php?user-retranslation=yes&update=yes",__FUNCTION__,__FILE__,__LINE__);
+		
 		$sock->getFrameWork("squid.php?user-retranslation=yes&update=yes");
 		return;
 	}

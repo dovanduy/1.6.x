@@ -6436,3 +6436,11 @@ Do you want to carry out this operation ?
 <central_rules>Central rules</central_rules>
 <currently>Currently</currently>
 <EnableAmavisDaemon>Enable Amavis Daemon filter</EnableAmavisDaemon>
+<APP_VSFTPD>vsFTPD Daemon</APP_VSFTPD>
+<enable_ftp_service_vsftpd_explain>If green, Artica will start the FTP service.[br]
+FTP service allows members stored in LDAP database.[br]
+You just have to create a member and define it's home directory.[br]
+This user will be able to browser it's home directory by FTP.
+</enable_ftp_service_vsftpd_explain>
+<enable_ftp_service>Activate the FTP service</enable_ftp_service>
+<error_vsftpd_not_installed>Error, vsfFTPD daemon is missing, this section will not be used as expected</error_vsftpd_not_installed>

@@ -101,7 +101,7 @@ if($argv[1]=="--iredmail"){$GLOBALS["OUTPUT"]=true;iredmail();exit;}
 
 @file_put_contents($PID_FILE, getmypid());
 $GLOBALS["OUTPUT"]=true;
-$functions=array("artica_syslog","irqbalance","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
+$functions=array("artica_syslog","vsftpd","irqbalance","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
 		"haproxy","specialreboot","buildscript","artica_status","mysqlInit","remove_nested_services",
 "conntrackd","process1","monit","dnsmasq_init_debian","nscd_init_debian","wsgate_init_debian","amavis",
 		"buildscriptSpamass_milter","buildscriptLoopDisk","buildscriptFreeRadius","pdns_recursor",
@@ -519,6 +519,77 @@ function stop_ldap($aspid=false){
 	
 	echo "slapd: [INFO] slapd stopped, success...\n";
 	
+}
+function vsftpd(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	$INITD_PATH="/etc/init.d/vsftpd";
+	$php5script="exec.vsftpd.php";
+	$daemonbinLog="Very Secure FTP Dameon";
+
+
+
+	$f[]="#!/bin/sh";
+	$f[]="### BEGIN INIT INFO";
+	$f[]="# Provides:         ".basename($INITD_PATH);
+	$f[]="# Required-Start:    \$local_fs \$syslog";
+	$f[]="# Required-Stop:     \$local_fs \$syslog";
+	$f[]="# Should-Start:";
+	$f[]="# Should-Stop:";
+	$f[]="# Default-Start:     2 3 4 5";
+	$f[]="# Default-Stop:      0 1 6";
+	$f[]="# Short-Description: $daemonbinLog";
+	$f[]="# chkconfig: - 80 75";
+	$f[]="# description: $daemonbinLog";
+	$f[]="### END INIT INFO";
+
+	$f[]="case \"\$1\" in";
+	$f[]=" start)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  stop)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --stop \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" restart)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reconfigure)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	$f[]="    ;;";
+	$f[]="";
+	$f[]=" reload)";
+	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	
+	$f[]="    ;;";
+	$f[]="";
+	$f[]="  *)";
+	$f[]="    echo \"Usage: \$0 {start|stop|restart|reconfigure|reload} (+ '--verbose' for more infos)\"";
+	$f[]="    exit 1";
+	$f[]="    ;;";
+	$f[]="esac";
+	$f[]="exit 0\n";
+
+
+	echo "$daemonbinLog: [INFO] Writing $INITD_PATH with new config\n";
+	@unlink($INITD_PATH);
+	@file_put_contents($INITD_PATH, @implode("\n", $f));
+	@chmod($INITD_PATH,0755);
+
+	if(is_file('/usr/sbin/update-rc.d')){
+		shell_exec("/usr/sbin/update-rc.d -f " .basename($INITD_PATH)." defaults >/dev/null 2>&1");
+	}
+
+	if(is_file('/sbin/chkconfig')){
+		shell_exec("/sbin/chkconfig --add " .basename($INITD_PATH)." >/dev/null 2>&1");
+		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
+	}
+
+
+
 }
 
 function artica_firewall(){

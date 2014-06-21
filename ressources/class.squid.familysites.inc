@@ -247,6 +247,7 @@ class squid_familysite{
 				'za'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),
 				'rs'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),
 				'ro'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),
+				'sa'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),
 				'sh'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),
 				'si'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),
 				'sk'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true),

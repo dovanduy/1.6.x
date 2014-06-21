@@ -162,7 +162,6 @@ function ParseUsersSize(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	if(function_exists("system_is_overloaded")){
 		if(system_is_overloaded()){
-			ufdbguard_admin_events("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
 			return;
 		}	
 	}
@@ -484,11 +483,10 @@ function ParseUserAuth($checkpid=false){
 		$COUNT_FILES=$unix->COUNT_FILES("/var/log/artica-postfix/squid-users");
 		if($COUNT_FILES<1000){
 			if(system_is_overloaded()){
-				writelogs_squid("Fatal:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, die();",__FUNCTION__,__FILE__,__LINE__,"stats");
 				return;
 			}
 		}else{
-			writelogs_squid("Warning:$hostname Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, but too many files stored in queue ($COUNT_FILES), i continue anyway",__FUNCTION__,__FILE__,__LINE__,"stats");
+			
 			$MustContinue=true;
 		}	
 	}
@@ -498,8 +496,6 @@ function ParseUserAuth($checkpid=false){
 		if (!$handle = opendir("/var/log/artica-postfix/squid-users")) {@mkdir("/var/log/artica-postfix/squid-users",0755,true);die();}
 			if(!$MustContinue){
 				if(systemMaxOverloaded()){
-					events("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die(); on Line: ".__LINE__);
-					writelogs_squid("Fatal:$hostname VERY Overloaded system ({$GLOBALS["SYSTEM_INTERNAL_LOAD"]}), die();",__FUNCTION__,__FILE__,__LINE__,"stats");
 					return;
 				}
 			}
@@ -721,7 +717,6 @@ function ParseSquidLogBrut($nopid=false){
 
 	
 	if(systemMaxOverloaded()){
-		events_brut("Overloaded system {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, aborting taks, wait a better time");
 		return;
 	}
 	
@@ -764,7 +759,7 @@ function ParseSquidLogBrut($nopid=false){
 		
 		if(system_is_overloaded()){
 			if(count($GLOBALDIRS)>1){
-				events_brut("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, skip calculate the queue...");
+				
 				break;
 			}
 		}
@@ -798,7 +793,7 @@ function ParseSquidLogBrut($nopid=false){
 	
 	
 	if(system_is_overloaded()){
-		events_brut("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, reduce queue to 3 processes MAX");
+		
 		$MaxForked=3;
 	}
 	
@@ -845,7 +840,7 @@ function ParseSquidLogBrut($nopid=false){
 		sleep(2);
 		$Forked++;
 		if(system_is_overloaded()){
-			events_brut("Overloaded system: {$GLOBALS["SYSTEM_INTERNAL_LOAD"]}, reduce queue to 3 processes MAX");
+			
 			$MaxForked=3;
 		}
 		
@@ -912,7 +907,6 @@ function ParseSquidLogMain(){
 	
 	
 	if(systemMaxOverloaded()){
-		events("ParseSquidLogBrutProcess:: systemMaxOverloaded {$GLOBALS["SYSTEM_INTERNAL_LOAD"]} !!! -> DIE",__LINE__);
 		return;
 	}
 	

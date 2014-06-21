@@ -685,7 +685,7 @@ if($users->OCSI_INSTALLED){
 if($users->APACHE_INSTALLED){
 	if($users->AsAnAdministratorGeneric){
 		if($GLOBALS["VERBOSE"]){echo "FreeWebs\n";}
-		$freewebs=paragrapheWin("freewebs-white-64.png","FreeWebs","QuickLinkSystems('section_freeweb')");
+		$freewebs=paragrapheWin("freewebs-white-64.png","{webservers}","QuickLinkSystems('section_freeweb')");
 	}
 }
 	
@@ -785,10 +785,11 @@ if(!$users->AsSystemAdministrator){$hostname=null;}
 	$tr[]=$dhcp;
 	$tr[]=$PowerDNS;
 	$tr[]=$dnsmasq;
-	$tr[]=$network_services;
+	
 	$tr[]=$logrotate;
 	$tr[]=$vmware;
 	$tr[]=$freewebs;
+	$tr[]=paragrapheWin("FTP-white-64.png", "FTP","AnimateDiv('BodyContent');LoadAjax('BodyContent','vsftpd.php');");
 	$tr[]=$roundcube;
 	$tr[]=$haProxy;
 	

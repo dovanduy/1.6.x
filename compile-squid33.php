@@ -533,7 +533,11 @@ $f[]="/usr/sbin/cossdump27";
 $f[]="/usr/sbin/squid27";
 $f[]="/usr/sbin/streamRunCachecache";
 $f[]="/usr/sbin/streamsquidcache";
-
+$f[]="/usr/local/sbin/vsftpd";
+$f[]="/usr/local/man/man8/vsftpd.8";
+$f[]="/usr/man/man8/vsftpd.8";
+$f[]="/usr/share/man/man5/vsftpd.conf.5";
+$f[]="/usr/share/man/man8/vsftpd.8";
 
 //  mkdir -p /var/spool/squid27/cache && mkdir /var/spool/squid27/logs && chown -R nobody:nobody /var/spool/squid27 && squid27 -z
 // pour démarer squid27 : /usr/sbin/squid27

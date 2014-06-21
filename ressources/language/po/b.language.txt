@@ -585,6 +585,7 @@ Intended use is for displaying "terms of use" pages, ad popups etc</APP_SQUID_SE
 <APP_VMWARE_TOOLS_NOT_INSTALLED>VMWare Tools are not installed on this server</APP_VMWARE_TOOLS_NOT_INSTALLED>
 <APP_VNSTAT_DISABLED_EXPLAIN>Network interface card cannot be displayed.[br]The VnStat service is currently disabled.[br]
 Click on the enable button in order to start the VnStat service in order to build statistics.</APP_VNSTAT_DISABLED_EXPLAIN>
+<APP_VSFTPD>vsFTPD Daemon</APP_VSFTPD>
 <APP_WEBAPP>Zarafa WebAPP WebMail (from sources)</APP_WEBAPP>
 <APP_WEBSTATS_TABLET_TEXT>WebStats Tablet is an Artica Web front-end interface dedicated for Web statistics on tablets limited on 980x509 screen size</APP_WEBSTATS_TABLET_TEXT>
 <APP_WIZARD_STATS_APPLIANCE_DISCONNECTED>Success, your proxy server will send at the specified schedules all collected datas to the remote server.[br]
@@ -2015,6 +2016,12 @@ You can disable the Virtual Switch by turn to red this option</enable_disable_vi
 Specific FTP Proxy service settings are stored in the End-Users Web access.[br]
 After enabling this service, use the End-users WebAccess console to tune your FTP Proxy service.
 </enable_ftp_proxy_service_text>
+<enable_ftp_service>Activate the FTP service</enable_ftp_service>
+<enable_ftp_service_vsftpd_explain>If green, Artica will start the FTP service.[br]
+FTP service allows members stored in LDAP database.[br]
+You just have to create a members and define it's home directory.[br]
+This user will be able to browser it's home directory by FTP.
+</enable_ftp_service_vsftpd_explain>
 <enable_fw_autorules>Activate auto-rules engine</enable_fw_autorules>
 <enable_fw_autorules_text>If turned to green, Artica will auto-block remote addresses according bad access threats when trying to connect to standard protocols such as SSH,IMAP,SMTP</enable_fw_autorules_text>
 <enable_group_checking>Checks Groups</enable_group_checking>
@@ -2187,6 +2194,7 @@ If you need to use it, you need first to remove the FreeWeb entry.
 </error_this_hostname_is_reserved_freeweb>
 <ERROR_UFDBGUARD_NOTINSTALLED>Unable to display the section, the webfilter Engine is not installed</ERROR_UFDBGUARD_NOTINSTALLED>
 <error_virtual_switch_not_installed>Error, the Virtual Switch is not installed</error_virtual_switch_not_installed>
+<error_vsftpd_not_installed>Error, vsfFTPD daemon is missing, this section will not be used as expected</error_vsftpd_not_installed>
 <error_webfiltering_engine_not_installed>Error: The Webfiltering engine is not installed</error_webfiltering_engine_not_installed>
 <error_wrong_credentials>Error, wrong credentials</error_wrong_credentials>
 <ERROR_XAPIAN_NOEXTSION>Error, the xapian extension is not correctly loaded or installed in the PHP configuration of this server</ERROR_XAPIAN_NOEXTSION>

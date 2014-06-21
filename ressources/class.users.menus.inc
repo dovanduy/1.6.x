@@ -160,7 +160,7 @@ class usersMenus {
 	public $CONNTRACK_INSTALLED=false;
 	public $APP_SQUID27_INSTALLED=false;
 	public $APP_SQUIDSTREAM_INSTALLED=false;
-	
+	public $VSFTPD_INSTALLED=false;
 	public $PHPFPM_INSTALLED=false;
 	/* This licence must be used Only with Artica-for postfix */
 	public $ChartLicence="D1XFWGMEW9L.HSK5T4Q79KLYCK07EK";
@@ -764,6 +764,7 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_SQUID27_INSTALLED"])){$this->APP_SQUID27_INSTALLED=$_GLOBAL["APP_SQUID27_INSTALLED"];}
 			if(isset($_GLOBAL["APP_SQUIDSTREAM_INSTALLED"])){$this->APP_SQUIDSTREAM_INSTALLED=$_GLOBAL["APP_SQUIDSTREAM_INSTALLED"];}
 			if(isset($_GLOBAL["APACHE_MODE_BW"])){$this->APACHE_MODE_BW=$_GLOBAL["APACHE_MODE_BW"];}
+			if(isset($_GLOBAL["VSFTPD_INSTALLED"])){$this->VSFTPD_INSTALLED=$_GLOBAL["VSFTPD_INSTALLED"];}
 			
 			
 			

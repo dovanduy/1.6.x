@@ -882,6 +882,7 @@ begin
    if FileExists(SYS.LOCATE_GENERIC_BIN('mount.cifs')) then list.Add('$_GLOBAL["CIFS_INSTALLED"]=True;') else list.Add('$_GLOBAL["CIFS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('mount.davfs')) then list.Add('$_GLOBAL["DAVFS_INSTALLED"]=True;') else list.Add('$_GLOBAL["DAVFS_INSTALLED"]=False;');
    if FileExists(SYS.LOCATE_GENERIC_BIN('shorewall')) then list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=True;') else list.Add('$_GLOBAL["SHOREWALL_INSTALLED"]=False;');
+   if FileExists(SYS.LOCATE_GENERIC_BIN('vsftpd')) then list.Add('$_GLOBAL["VSFTPD_INSTALLED"]=True;') else list.Add('$_GLOBAL["VSFTPD_INSTALLED"]=False;');
 
 
    //auditd

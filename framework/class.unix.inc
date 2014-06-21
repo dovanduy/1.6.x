@@ -6596,6 +6596,7 @@ public function LOCATE_SQUID_PID(){
 	
 	public function PIDOF_PATTERN($pattern){
 		$pattern=str_replace("/","\/",$pattern);
+		$pattern=str_replace("$","\$",$pattern);
 		$pattern=$this->find_program('pgrep')." -l -f \"$pattern\" 2>&1";
 		if($GLOBALS["VERBOSE"]){echo "PIDOF_PATTERN:: $pattern\n";}
 		exec($pattern,$results);

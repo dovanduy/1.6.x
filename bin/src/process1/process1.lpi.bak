@@ -52,7 +52,7 @@
         <Filename Value="principale.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="principale"/>
-        <CursorPos X="47" Y="739"/>
+        <CursorPos X="111" Y="731"/>
         <TopLine Value="702"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="206"/>
@@ -82,7 +82,7 @@
         <Filename Value="zsystem.pas"/>
         <UnitName Value="zsystem"/>
         <CursorPos X="19" Y="6992"/>
-        <TopLine Value="6896"/>
+        <TopLine Value="6939"/>
         <EditorIndex Value="4"/>
         <UsageCount Value="101"/>
         <Loaded Value="True"/>

@@ -228,7 +228,7 @@ function page(){
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:18px'>{errors}:</td>
-		<td style='font-size:18px'>". FormatBytes($CAT_ARTICA_LAST_ERROR)."</td>
+		<td style='font-size:18px'>". $CAT_ARTICA_LAST_ERROR."</td>
 	</tr>	
 	<tr>
 		<td colspan=2 align='right'>". button("{update_now}", "ArticaDBDBUpdateNow()",16)."</td>
