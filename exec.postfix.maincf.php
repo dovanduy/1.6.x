@@ -366,11 +366,20 @@ function SetSALS(){
 
 }
 
+
+
 function BodyChecks(){
+	
+	
+	
 	$main=new maincf_multi("master","master");
 	$datas=$main->body_checks();
 	if($datas<>null){
-		postconf("body_checks","regexp:/etc/postfix/body_checks");
+		if(preg_match("#(.+?)=(.+)#", $datas,$re)){$datas=$re[2];}
+		postconf("body_checks",$datas);
+		
+		
+		
 	}else{
 		postconf("body_checks",null);
 	}
@@ -540,8 +549,9 @@ function remove_virtual_mailbox_base(){
 }
 
 function headers_check($noreload=0){
-	
+	$unix=new unix();
 	$main=new maincf_multi("master","master");
+	echo "Starting......: ".date("H:i:s")." Loading header_checks()\n";
 	$headers=$main->header_checks();
 	$headers=str_replace("header_checks =","",$headers); 
 	
@@ -551,8 +561,14 @@ function headers_check($noreload=0){
 		postconf("header_checks",null);
 	}
 	
-	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.white-black-central.php");
-	if($noreload==0){ReloadPostfix(true);}
+	
+	$nohup=$unix->find_program("nohup");
+	echo "Starting......: ".date("H:i:s")." Running exec.white-black-central.php\n";
+	system("$nohup ".LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.white-black-central.php >/dev/null 2>&1 &" );
+	if($noreload==0){
+		echo "Starting......: ".date("H:i:s")." Reloading Postfix...\n";
+		ReloadPostfix(true);
+	}
 }
 
 function buildtables_background(){
@@ -737,7 +753,7 @@ function mime_header_checks(){
 	@file_put_contents("/etc/postfix/mime_header_checks",implode("\n",$pattern));
 	if($extmime<>null){$extmime=",$extmime";}
 	postconf("mime_header_checks","regexp:/etc/postfix/mime_header_checks$extmime");
-	
+	echo "Starting......: ".date("H:i:s")." mime_header_checks() done\n";
 }
 
 function smtp_sasl_auth_enable(){

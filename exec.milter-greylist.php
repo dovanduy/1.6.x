@@ -327,8 +327,9 @@ function SingleInstance(){
 	if(!is_numeric($MilterGreyListEnabled)){$MilterGreyListEnabled=0;}
 	if($MilterGreyListEnabled==0){echo "{$GLOBALS["deflog_start"]} Milter-greylist is not enabled\n";return;}
 	
+	$nohup=$unix->find_program("nohup");
 	echo "{$GLOBALS["deflog_start"]} single instance execute exec.white-black-central.php\n";
-	shell_exec("$php5 /usr/share/artica-postfix/exec.white-black-central.php");
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.white-black-central.php >/dev/null 2>&1 &");
 	
 	$mg=new milter_greylist(false,"master","master");
 	$datas=$mg->BuildConfig();

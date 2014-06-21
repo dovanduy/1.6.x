@@ -496,6 +496,7 @@ Si le score d&eacute;passe un certain seuil, le courriel est alors consid&eacute
 <APP_VIDEOCACHE_SCHEDULER>Ordonnanceur VideoCache</APP_VIDEOCACHE_SCHEDULER>
 <APP_VMWARE_TOOLS_NOT_INSTALLED>Les outils VMWare ne sont pas install&eacute;s sur ce serveur.</APP_VMWARE_TOOLS_NOT_INSTALLED>
 <APP_VNSTAT_DISABLED_EXPLAIN>Les statistiques de l'interface r&eacute;seau ne peuvent &ecirc;tre affich&eacute;s.[br]Le service VnStat est actuellement d&eacute;sactiv&eacute;.[br]Cliquez sur le bouton &quot;Activer&quot; afin de le d&eacute;marrer et qu'il puisse g&eacute;n&eacute;rer les statistiques de cette carte r&eacute;seau.</APP_VNSTAT_DISABLED_EXPLAIN>
+<APP_VSFTPD>D&eacute;mon vsFTPD</APP_VSFTPD>
 <APP_WEBAPP>WebMail Zarafa WebAPP (depuis les sources)</APP_WEBAPP>
 <APP_WEBSTATS_TABLET_TEXT>WebStats Tablet est une interface Web Artica d&eacute;di&eacute;e pour les statistiques d'acc&egrave;s Internet pour les tablettes limit&eacute;es avec une taille d'&eacute;cran de 980x509 pixels.</APP_WEBSTATS_TABLET_TEXT>
 <APP_WIZARD_STATS_APPLIANCE_DISCONNECTED>Succ&egrave;s, votre serveur Proxy va envoyer les donn&eacute;es collect&eacute;es au serveur distant.[br]
@@ -955,6 +956,7 @@ Ne peut &ecirc;tre ex&eacute;cut&eacute;e que toutes les 12 heures</categorize_t
 <category_no_license_explain>Ne sera pas utilis&eacute;, licence Entreprise seulement</category_no_license_explain>
 <catz_explain>Cette section vous permet de visualiser les cat&eacute;gories utilis&eacute;es pour les t&acirc;ches de g&eacute;n&eacute;ration des statistiques afin de cr&eacute;er des graphiques et tableaux par rapport aux cat&eacute;gories des sites Internet</catz_explain>
 <central_memory>M&eacute;moire centrale</central_memory>
+<central_rules>R&egrave;gles centrales</central_rules>
 <certificates_center>Centre des certificats</certificates_center>
 <certificate_chain>Certificat cha&icirc;ne</certificate_chain>
 <certificate_chain_explain>Un Certificat cha&icirc;ne est un document texte qui contient tous les certificats provenant de l'autorit&eacute; de confiance.</certificate_chain_explain>
@@ -1242,6 +1244,7 @@ Une fois ces op&eacute;rations effectu&eacute;e, programmez la fr&eacute;quence 
 Ceci intervient bien souvent lorsque le serveur [br]distant indique une taille de fichier et qu'il d&eacute;livre une taille diff&eacute;rente apr&egrave;s.</CURLE_CURLE_PARTIAL_FILE>
 <CURLE_OPERATION_TIMEDOUT>Temps imparti. La temps de la requ&ecirc;te &agrave; d&eacute;pass&eacute; le temps d'ex&eacute;cution programm&eacute;</CURLE_OPERATION_TIMEDOUT>
 <CURLE_WRITE_ERROR>Erreur lors de l'&eacute;criture des donn&eacute;es sur le disque</CURLE_WRITE_ERROR>
+<currently>Actuellement</currently>
 <current_domains>Domaines actuels</current_domains>
 <current_rules>R&egrave;gles actuelles</current_rules>
 <current_size>Taille actuelle</current_size>
@@ -1613,6 +1616,7 @@ Address IP: re:192\.168\.[0-5]\.*[br]</dynaacl_howto>
 <empty_store>Vider la banque d'informations</empty_store>
 <empty_template>Mod&egrave;le vide</empty_template>
 <enable-ssl-crtd-not-compiled>Le moteur de g&eacute;n&eacute;ration dynamique des certificats n'est pas install&eacute; dans version Squid-Cache. Cette fonctionnalit&eacute; ne sera pas impl&eacute;ment&eacute;e.</enable-ssl-crtd-not-compiled>
+<EnableAmavisDaemon>Activer le d&eacute;mon Amavis</EnableAmavisDaemon>
 <EnableArpDaemon>Activer le d&eacute;mon ARP</EnableArpDaemon>
 <EnableArpDaemon_disable_explain>Le d&eacute;mon ARP est un service qui aide le syst&egrave;me &agrave; r&eacute;soudre les adresses MAC.[br]
 Il peut consommer des ressources serveur.[br]
@@ -1740,6 +1744,11 @@ Vous pouvez d&eacute;sactiver le Switch virtuel en mettant en rouge le bouton.</
 <enable_ftp_proxy_service>Activer le service Proxy FTP</enable_ftp_proxy_service>
 <enable_ftp_proxy_service_text>Si vert, Artica va d&eacute;marrer le service de proxy FTP et autoriser vos utilisateurs &agrave; se connecter &agrave; Internet avec un client natif FTP.[br]
 Les param&egrave;tres sp&eacute;cifiques au proxy FTP sont disponibles dans l'interface Web Utilisateur finaux .[br]Apr&egrave;s avoir activ&eacute; le service, utilisez cette interface afin de personnaliser les param&egrave;tres du Proxy FTP</enable_ftp_proxy_service_text>
+<enable_ftp_service>Activer le service FTP</enable_ftp_service>
+<enable_ftp_service_vsftpd_explain>SI vert, Artica va d&eacute;marrer le service FTP.[br]
+Le service FTP autorise les membres stock&eacute;s dans la base LDAP.[br]
+Vous avez simplement &agrave; cr&eacute;er un utilisateur dans la base LDAP et indiquer son r&eacute;pertoire personnel.[br]
+Cet utilisateur sera habilit&eacute; &agrave; parcourir son r&eacute;pertoire personnel &agrave; travers le protocole FTP</enable_ftp_service_vsftpd_explain>
 <enable_fw_autorules>Activation des Auto-r&egrave;gles.</enable_fw_autorules>
 <enable_fw_autorules_text>Si mis en vert, Artica sera en mesure de cr&eacute;er automatiquement des r&egrave;gles de Pare-feux en fonction des tentatives de connexion sur les protocoles standards tels que SSH,IMAP,SMTP...</enable_fw_autorules_text>
 <enable_group_checking>V&eacute;rifier les groupes</enable_group_checking>
@@ -1880,6 +1889,7 @@ La premi&egrave;re qui autorise ou interdit de 22h00 &agrave; 23h59 et la second
 Si vous d&eacute;sirez l'utiliser, supprimez d'abord le site FreeWebs.</error_this_hostname_is_reserved_freeweb>
 <ERROR_UFDBGUARD_NOTINSTALLED>Impossible d'afficher la section, le moteur de filtrage web n'est pas install&eacute;.</ERROR_UFDBGUARD_NOTINSTALLED>
 <error_virtual_switch_not_installed>Erreur, le Switch virtuel n'est pas install&eacute;</error_virtual_switch_not_installed>
+<error_vsftpd_not_installed>Erreur, le service vsFTPD est manquant, cette section ne pourra pas s\'ex&eacute;cuter comme souhait&eacute;.</error_vsftpd_not_installed>
 <error_webfiltering_engine_not_installed>Erreur, le service de filtrage Web n'est pas install&eacute;.</error_webfiltering_engine_not_installed>
 <error_wrong_credentials>Erreur, mauvais identifiants</error_wrong_credentials>
 <ERROR_XAPIAN_NOEXTSION>Erreur, l'extension Xapian n'est pas correctement charg&eacute;e ou install&eacute; dans la configuration PHP de ce serveur.</ERROR_XAPIAN_NOEXTSION>
@@ -2463,7 +2473,10 @@ In most cases where the computer is not running as a router of some kind, we cou
 <KEY_OK>Clef succ&egrave;s</KEY_OK>
 <languages>Langues</languages>
 <last>Dernier(s)</last>
+<last_category>Derni&egrave;re cat&eacute;gorie</last_category>
 <last_check>Derni&egrave;re v&eacute;rification</last_check>
+<last_download>Dernier t&eacute;l&eacute;chargement</last_download>
+<last_downloaded_size>Derni&egrave;re taille t&eacute;l&eacute;charg&eacute;e</last_downloaded_size>
 <last_status>Dernier &eacute;tat</last_status>
 <last_transaction_messages>Derni&egrave;res transactions des messages</last_transaction_messages>
 <last_update>Derni&egrave;re mise &agrave; jour</last_update>
@@ -3333,6 +3346,8 @@ Vous pouvez indiquez ici une addresse IP comme 10.0.0.2 ou bien un r&eacute;seau
 <percent>Pourcentage</percent>
 <perfom_proxy_log_rotation>Rotation des logs proxy</perfom_proxy_log_rotation>
 <perfom_proxy_log_rotation_explain>Cette t&acirc;che est en charge d\'effectuer la rotation des fichiers &eacute;v&egrave;nements Proxy.</perfom_proxy_log_rotation_explain>
+<perfom_websites_optimization>Optimisations des sites internet</perfom_websites_optimization>
+<perfom_websites_optimization_explain>Cette t&acirc;che renforce les r&egrave;gles de mise en cache &agrave; travers l\'analyse des sites Internet non mis en cache par le proxy.</perfom_websites_optimization_explain>
 <performances>Performances</performances>
 <performance_issue>Probl&egrave;me de performance</performance_issue>
 <performance_issue_cpu_number_text>Il semble que votre serveur dispose que d'un seul processeur ![br]Un seul processeur risque de surcharger votre serveur.[br]Veuillez ajouter au moins 2 ou 4 processeurs afin de pouvoir utiliser ce serveur en production.</performance_issue_cpu_number_text>

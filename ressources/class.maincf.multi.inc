@@ -735,6 +735,7 @@ private function restrict_relay_domains(){
 		if($pure_headerschecks<>null){$pure_headerschecks=",$pure_headerschecks";}
 		echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" ". count($conf)." checks headers rules\n";
 		return "header_checks = regexp:$target_file$pure_headerschecks";
+		echo "Starting......: ".date("H:i:s")." header_checks() Done...\n";
 		
 	}
 	
@@ -2898,8 +2899,23 @@ private function smtp_sasl_password_map(){
 		}
 		return $port;
 	}
+	function IsPcre(){
+	
+		exec("{$GLOBALS["postconf"]} -m 2>&1",$results);
+		while (list ($to, $line) = each ($results)){
+			$line=trim($line);
+			if(preg_match("#pcre#", $line)){
+				if($GLOBALS["VERBOSE"]){echo "PCRE COMPATIBLE!\n";}
+				return true;
+			}
+		}
+	
+		
+		return false;
+	}
 	
 	private function pure_bodychecks(){
+		if($GLOBALS["VERBOSE"]){echo "Starting pure_bodychecks()\n";}
 		$sql="SELECT * FROM postfix_regex_checks WHERE hostname='$this->myhostname' AND enabled=1 AND headers=0";
 		$q=new mysql();
 		$pcre=array();
@@ -2916,22 +2932,40 @@ private function smtp_sasl_password_map(){
 			if($xNOTIFY==1){$flags=$flags." ARTICA_XNOTIFY";}
 			
 			if($pcr==1){
+				if($GLOBALS["VERBOSE"]){echo "/$pattern/ $action $flags\n";}
 				$pcre[]="/$pattern/ $action $flags";
 			}
 		
 			if($pcr==2){
+				if($GLOBALS["VERBOSE"]){echo "/$pattern/ $action $flags\n";}
 				$regex[]="/$pattern/ $action $flags";
 			}
 			
 		}
 		
-		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/pcre_body_checks";}else{$target="/etc/postfix-$this->myhostname/pcre_body_checks";}		
+		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/pcre_body_checks";}
+		else{$target="/etc/postfix-$this->myhostname/pcre_body_checks";}		
 		@unlink($target);
-		if(count($pcre)>0){@file_put_contents($target, @implode("\n", $pcre));$final[]="pcre:$target";}
-		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/regex_body_checks";}else{$target="/etc/postfix-$this->myhostname/regex_body_checks";}
-		if(count($regex)>0){@file_put_contents($target, @implode("\n", $regex));$final[]="regexp:$target";}
-		if(count($final)>0){return @implode(",", $final);}
 		
+		if(count($pcre)>0){
+			if($this->IsPcre()){
+				if($GLOBALS["VERBOSE"]){echo "Saving into \"$target\"\n";}
+				@file_put_contents($target, @implode("\n", $pcre));
+				$final[]="pcre:$target";
+			}
+		}
+		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/regex_body_checks";}else{$target="/etc/postfix-$this->myhostname/regex_body_checks";}
+		
+		if(count($regex)>0){
+				@file_put_contents($target, @implode("\n", $regex));
+				$final[]="regexp:$target";
+		}
+		if(count($final)>0){
+				$me= @implode(",", $final);
+				if($GLOBALS["VERBOSE"]){echo "Finish pure_bodychecks -> $me\n";}
+				return $me;
+		}
+		if($GLOBALS["VERBOSE"]){echo "Finish pure_bodychecks -> None\n";}
 	}
 	
 	private function pure_headerschecks(){
@@ -2939,6 +2973,7 @@ private function smtp_sasl_password_map(){
 		$q=new mysql();
 		$pcre=array();
 		$regex=array();
+		$final=array();
 		$results=$q->QUERY_SQL($sql,"artica_backup");
 		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 			$pattern=trim($ligne["pattern"]);
@@ -2951,10 +2986,12 @@ private function smtp_sasl_password_map(){
 			
 			
 			if($pcr==1){
+				if($GLOBALS["VERBOSE"]){echo "/$pattern/ $action $flags\n";}
 				$pcre[]="/$pattern/ $action $flags";
 			}
 		
 			if($pcr==2){
+				if($GLOBALS["VERBOSE"]){echo "/$pattern/ $action $flags\n";}
 				$regex[]="/$pattern/ $action $flags";
 			}
 			
@@ -2966,7 +3003,7 @@ private function smtp_sasl_password_map(){
 		if(strtolower($this->myhostname=="master")){$target="/etc/postfix/regex_headers_checks";}else{$target="/etc/postfix-$this->myhostname/regex_headers_checks";}
 		if(count($regex)>0){@file_put_contents($target, @implode("\n", $regex));$final[]="regexp:$target";}
 		if(count($final)>0){return @implode(",", $final);}
-		
+		if($GLOBALS["VERBOSE"]){echo "pure_headerschecks() OK\n";}
 	}	
 	
 	private function pure_mimeheaderschecks(){

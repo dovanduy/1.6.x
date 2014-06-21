@@ -353,6 +353,48 @@ private function check_patternvalues_domain($pattern,$type){
 }
 
 
+private function isaregex($pattern){
+	$pattern=" $pattern";
+	if(strpos($pattern, "*")>0){return true;}
+	if(strpos($pattern, "[")>0){return true;}
+	if(strpos($pattern, "]")>0){return true;}
+	if(strpos($pattern, "(")>0){return true;}
+	if(strpos($pattern, ")")>0){return true;}
+	if(strpos($pattern, "?")>0){return true;}
+	
+	
+}
+
+private function acl_from_emailToPattern($from){
+	$IP=new IP();
+	if(!preg_match("#(.*?)@(.+)#", $from,$re)){ $re[1]=".*?"; $re[2]=$from; }
+	$prefix_email=$re[1];
+	$suffix_email=$re[2];
+	$orginal_suffix=$re[2];
+	if(preg_match("#(.+?),(.+)#", $prefix_email,$rz)){$prefix_email=$rz[2];}
+	$orginal_suffix=str_replace("\\", "", $orginal_suffix);
+	if($IP->isIPAddress($suffix_email)){
+		return "addr $suffix_email";
+		
+	}
+	$suffix_email=str_replace(".", "\.", $suffix_email);
+	if($prefix_email==null){$prefix_email=".*";}
+		
+	if($prefix_email==".*"){
+		return "from /.*@$suffix_email/";
+		
+	}
+		
+	if(!$this->isaregex("$prefix_email@$orginal_suffix")){
+		$pattern=strtolower("$prefix_email@$orginal_suffix");
+		return "from $pattern";
+	}
+		
+	$prefix_email=string_to_regex($prefix_email);
+	return "from /$prefix_email@$suffix_email/";
+}
+
+
 function BuildConfig(){
 			if($this->hostname==null){$this->hostname="master";}
 			if(preg_match('#([0-9]+)#',$this->main_array["greylist"],$re)){$this->main_array["greylist"]=$re[1];}
@@ -454,16 +496,10 @@ function BuildConfig(){
 			$results = $q->QUERY_SQL($sql,"artica_backup");	
 			while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
 				if(trim($ligne["sender"])==null){continue;}
+				$ligne["sender"]=strtolower($ligne["sender"]);
 				if(isset($already[$ligne["sender"]])){continue;}
 				$already[$ligne["sender"]]=true;
-				
-				if(strpos("*", $ligne["sender"])>0){
-					$pattern=string_to_regex($ligne["sender"]);
-					$this->acl[]="acl whitelist from /$pattern/ #From {$ligne["uid"]}";
-					continue;
-				}
-				
-				$this->acl[]="acl whitelist from {$ligne["sender"]}";
+				$this->acl[]="acl whitelist ".$this->acl_from_emailToPattern($ligne["sender"]);
 				
 			}
 
@@ -472,26 +508,16 @@ function BuildConfig(){
 			$hash=$ldap->WhitelistsFromDomain("*");
 				while (list ($ToDestination, $MAIN_HASH) = each ($hash)){
 					while (list ($index, $from) = each ($MAIN_HASH)){
-						if(!preg_match("#(.*?)@(.+)#", $from,$re)){ $re[1]=".*?"; $re[2]=$from; }
-						$prefix_email=$re[1];
-						$suffix_email=$re[2];
-						if($IP->isIPAddress($suffix_email)){
-							$this->acl[]="acl whitelist addr $suffix_email # LDAP WhitelistsFromDomain: $from";
-							continue;
-						}
-						$suffix_email=str_replace(".", "\.", $suffix_email);
-						if($prefix_email==null){$prefix_email=".*";}
-						
-						if($prefix_email==".*"){
-							$this->acl[]="acl whitelist from /.*@$suffix_email/ # LDAP WhitelistsFromDomain: $from";
-							continue;
-						}
-						
-						$prefix_email=string_to_regex($prefix_email);
-						$this->acl[]="acl whitelist from /$prefix_email@$suffix_email/ # LDAP WhitelistsFromDomain: $from";
-					
+						$this->acl[]="acl whitelist ".$this->acl_from_emailToPattern($from);
 					}
 			}
+			
+			$hash=$ldap->BlackListFromDomain("*");
+			while (list ($ToDestination, $MAIN_HASH) = each ($hash)){
+				while (list ($index, $from) = each ($MAIN_HASH)){
+					$this->acl[]="acl blacklist ".$this->acl_from_emailToPattern($from);
+				}
+			}			
 			
 			
 			
@@ -509,14 +535,7 @@ function BuildConfig(){
 					if(trim($ligne["sender"])==null){continue;}
 					if(isset($already[$ligne["sender"]])){continue;}
 					$already[$ligne["sender"]]=true;
-				
-					if(strpos("*", $ligne["sender"])>0){
-						$pattern=string_to_regex($ligne["sender"]);
-						$this->acl[]="acl blacklist from /$pattern/ #From {$ligne["uid"]}";
-						continue;
-					}
-				
-					$this->acl[]="acl blacklist from {$ligne["sender"]}";
+					$this->acl[]="acl blacklist ".$this->acl_from_emailToPattern($ligne["sender"]);
 				
 				}			
 			

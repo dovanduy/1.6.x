@@ -101,20 +101,20 @@ Soyez s&ucirc;r que ce nombre est identique aux processus maximal que postfix pe
 Pour 4.000 utilisateurs, une valeur entre 5 &agrave; 10 peut &ecirc;tre un bon d&eacute;but.[br]
 Si une machine &agrave; faible m&eacute;moire (256Mb) un nombre maximal de 2 &agrave; 3 processus devra &ecirc;tre indiqu&eacute;.</max_servers_text>
 <notification_text>Comportement des notifications des d&eacute;tections d'amavis</notification_text>
-<postfix_afterqueue>Filtre de Contenu d'Apr&egrave;s-queue-file-d'attente de Postfix</postfix_afterqueue>
-<postfix_afterqueue_text>[b]Apr&egrave;s Queue-Postfix[/b][br]
-Normalement, Postfix re&ccedil;oit du courrier, le stocke dans la file d'attente, puis le livre.[br]
-Avec le filtre de contenu externe, [b]le courrier est filtr&eacute; APR&Egrave;S il est en attente.[/b][br]
+<postfix_afterqueue>Filtre de Contenu en mode apr&egrave;s-file-d\'attente</postfix_afterqueue>
+<postfix_afterqueue_text>[b]Apr&egrave;s la file d\'attente[/b][br]
+Normalement, le relais re&ccedil;oit du courrier, le stocke dans la file d\'attente, puis le livre.[br]
+Avec le filtre de contenu externe, [b]le courrier est filtr&eacute; APR&Egrave;S qu\'il soit mis en attente.[/b][br]
 Cette approche d&eacute;couple les processus de r&eacute;ception de courrier &eacute;lectronique des processus de filtrage, et vous donne le contr&ocirc;le maximal sur le nombre de processus de filtrage que vous &ecirc;tes pr&ecirc;t &agrave; faire fonctionner en parall&egrave;le.[br]
-Cette m&eacute;thode va vous donner toutes les fonctionnalit&eacute;s de filtrage, mais utilise plusieurs processus et de la m&eacute;moire et il y a un risque d'inondation de la file d'attente de Postfix si le filtre n'est pas en mesure de scanner les e-mails &agrave; temps.[br]</postfix_afterqueue_text>
-<postfix_beforequeue>Postfix avant-queue Milter</postfix_beforequeue>
-<postfix_beforequeue_text>[b]Postfix Milter[/b] [br]
+Cette m&eacute;thode va vous donner toutes les fonctionnalit&eacute;s de filtrage, mais utilise plusieurs processus et de la m&eacute;moire et il y a un risque d\'inondation de la file d\'attente du relias si le filtre n\'est pas en mesure d\'analyser les messages[br]</postfix_afterqueue_text>
+<postfix_beforequeue>Mode avant la file d\'attente</postfix_beforequeue>
+<postfix_beforequeue_text>[b]Le mode Milter (avant la mise en file d\'attente)[/b] [br]
 Postfix en version 2.3 introduit le support de la version 8 de Sendmail Milter (filtre de mail) de protocole.[br]
-Ce protocole est utilis&eacute; par les applications qui s'ex&eacute;cutent &agrave; l'ext&eacute;rieur de la MTA &agrave; inspecter SMTP &eacute;v&eacute;nements (CONNECT, DISCONNECT), les commandes SMTP (HELO, MAIL FROM, etc)
-mail ainsi que le contenu (en-t&ecirc;tes et corps).[br][b] Tout cela se produit avant que le courrier soit mis en attente.[/b][br]
-Cette m&eacute;thode utilise amavisd-milter processus afin de crochet postfix et utiliser moins de processus et de m&eacute;moire pour effectuer les op&eacute;rations de filtrage de courrier &eacute;lectronique[br]
+Ce protocole est utilis&eacute; par les applications qui s\'ex&eacute;cutent &agrave; l\'ext&eacute;rieur de la MTA afin d\'inspecter les actions SMTP (CONNECT, DISCONNECT,HELO, MAIL FROM, etc)
+ainsi que le contenu (en-t&ecirc;tes et corps).[br][b] Ces diff&eacute;rentes analysent s\'effectuent avant que le courrier soit mis en attente.[/b][br]
+Cette m&eacute;thode utilise amavisd-milter afin de crocheter postfix et d\'utiliser moins de ressources et de m&eacute;moire pour effectuer les op&eacute;rations de filtrage de courrier &eacute;lectronique[br]
 Mais il y a des limitations en fonction des modifications du contenu des messages.[br]
-Par exemple, vous ne serez pas en mesure d'user de votre avis de non-responsabilit&eacute; Altermime pour l'envoi de mails</postfix_beforequeue_text>
+Par exemple, vous ne serez pas en mesure de mettre en place Altermime afin de placer une note de bas de page &agrave; chaque message sortant.</postfix_beforequeue_text>
 <postfix_hooking>Couplage Postfix</postfix_hooking>
 <postfix_hooking_text>D&eacute;finissez comment Amavis va se coupler avec le syst&egrave;me Postfix</postfix_hooking_text>
 <quarantineSuperAdmin>Super Admins</quarantineSuperAdmin>
