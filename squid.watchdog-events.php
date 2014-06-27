@@ -192,12 +192,15 @@ function events_table(){
 		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+		if(!$q->ok){ if(preg_match("#marked as crashed#", $q->mysql_error)){ $q->QUERY_SQL("DROP TABLE `$table`","artica_events"); } }
+		
 		$total = $ligne["TCOUNT"];
 
 	}else{
 		if(strlen($FORCE)>2){
 			$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE";
 			$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));
+			if(!$q->ok){ if(preg_match("#marked as crashed#", $q->mysql_error)){ $q->QUERY_SQL("DROP TABLE `$table`","artica_events"); } }
 			$total = $ligne["TCOUNT"];
 		}else{
 			$total = $q->COUNT_ROWS($table, "artica_events");
@@ -214,6 +217,7 @@ function events_table(){
 	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql,"artica_events");
+	if(!$q->ok){ if(preg_match("#marked as crashed#", $q->mysql_error)){ $q->QUERY_SQL("DROP TABLE `$table`","artica_events"); } }
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
 
 	$data = array();

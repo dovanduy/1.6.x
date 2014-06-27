@@ -879,6 +879,7 @@ function JOIN_ACTIVEDIRECTORY(){
 			break;
 		}
 		if(preg_match("#Unable to find a suitable server for domain#i", $line)){
+			squid_admin_mysql(0,"Active directory Unable to find a suitable server for domain [action: None]",@implode("\n", $A2),__FILE__,__LINE__);
 			progress_logs(33,"{join_activedirectory_domain}"," [$adminname 0]: **** FATAL ****");
 			progress_logs(34,"{join_activedirectory_domain}"," [$adminname 0]: $line");
 			progress_logs(35,"{join_activedirectory_domain}"," [$adminname 0]: ***************");
@@ -904,6 +905,7 @@ function JOIN_ACTIVEDIRECTORY(){
 		exec("$cmd",$results);
 		while (list ($index, $line) = each ($results) ){
 			if(preg_match("#Joined#", $line)){
+				squid_admin_mysql(2,"Active directory Joined [action: None]",@implode("\n", $results),__FILE__,__LINE__);
 				progress_logs(39,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: join for $workgroup in ads mode with $ad_server.$domain_lower success");
 				$cmd="$netbin rpc join -S $ad_server.$domain_lower{$ipcmdline} -U $adminname%$adminpassword 2>&1";
 				$cmdOutput=$cmd;
@@ -953,6 +955,7 @@ if(!$JOINEDRES){
 		exec($cmd,$A1);
 		while (list ($index, $line) = each ($A1) ){
 			if(preg_match("#Joined#", $line)){
+				squid_admin_mysql(2,"Active directory Joined [action: None]",@implode("\n", $A1),__FILE__,__LINE__);
 				progress_logs(46,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success");
 				$JOINEDRES=true;
 				break;
@@ -967,6 +970,7 @@ if(!$JOINEDRES){
 			if($GLOBALS["VERBOSE"]){progress_logs(47,"{join_activedirectory_domain}"," $function, $cmd");}
 			while (list ($index, $line) = each ($A2) ){
 				if(preg_match("#Joined#", $line)){
+					squid_admin_mysql(2,"Active directory Joined [action: None]",@implode("\n", $A2),__FILE__,__LINE__);
 					progress_logs(47,"{join_activedirectory_domain}"," [$function::".__LINE__."], [$adminname]: join for $workgroup (without IP addr) success");
 					$JOINEDRES=true;
 					break;

@@ -32,7 +32,7 @@ function js(){
 	
 	$ad->suffix;
 	if($title==null){$title=$ad->suffix;}
-	echo "YahooWinBrowse(966,'$page?popup=yes&ADID={$_GET["ADID"]}&field-user={$_GET["field-user"]}&field-type={$_GET["field-type"]}&function={$_GET["function"]}&t=$t','Browse::$title');";
+	echo "YahooWinBrowse(966,'$page?popup=yes&ADID={$_GET["ADID"]}&field-user={$_GET["field-user"]}&field-type={$_GET["field-type"]}&function={$_GET["function"]}&t=$t&CallBack2={$_GET["CallBack2"]}','Browse::$title');";
 }
 
 function popup(){
@@ -88,7 +88,7 @@ var mem_path$t='';
 
 function RightPan(){
 	dn=encodeURIComponent(mem_path$t);
-	LoadAjax('content-$t','$page?RightPan=yes&ADID={$_GET["ADID"]}&dn='+dn+'&field-type={$_GET["field-type"]}&field-user={$_GET["field-user"]}&function={$_GET["function"]}&t=$t',true);
+	LoadAjax('content-$t','$page?RightPan=yes&ADID={$_GET["ADID"]}&dn='+dn+'&field-type={$_GET["field-type"]}&field-user={$_GET["field-user"]}&function={$_GET["function"]}&t=$t&CallBack2={$_GET["CallBack2"]}',true);
 }
 
 function DirectPan(dn){
@@ -121,6 +121,7 @@ var xTreeOuExpand$t= function (obj) {
 			XHR.appendData('function','{$_GET["function"]}');
 			XHR.appendData('field-user','{$_GET["field-user"]}');
 			XHR.appendData('t','{$_GET["t"]}');
+			XHR.appendData('CallBack2','{$_GET["CallBack2"]}');
 			XHR.sendAndLoad('$page', 'GET',xTreeOuExpand$t);
 		}else{
 			$('#'+mem_id$t).children('ul').empty();
@@ -230,7 +231,7 @@ function Interface_SearchGroups($DN){
 	$items=$tpl->javascript_parse_text("{items}");
 	$item_add=$tpl->javascript_parse_text("{item_added}");
 	$select_this_group=$tpl->javascript_parse_text("{select_this_group}");
-	
+	if(!isset($_GET["CallBack2"])){$_GET["CallBack2"]=null;}
 	$ad=new external_ad_search();
 	$hash=$ad->DNinfos($DN);
 	$tt=md5(time());
@@ -257,6 +258,10 @@ function Interface_SearchGroups($DN){
 	}
 	}
 	
+	if($_GET["CallBack2"]<>null){
+		$CallBack2="{$_GET["CallBack2"]}(base64,Name);";
+	}
+	
 	
 $buttons="
 	buttons : [
@@ -269,7 +274,7 @@ $html="
 <script>
 function Start$tt(){
 	$('#flexRT$tt').flexigrid({
-	url: '$page?groups-items=yes&tt=$tt&DN=$DN_enc&field-user={$_GET["field-user"]}&field-type={$_GET["field-type"]}',
+	url: '$page?groups-items=yes&tt=$tt&DN=$DN_enc&field-user={$_GET["field-user"]}&field-type={$_GET["field-type"]}&CallBack2={$_GET["CallBack2"]}',
 	dataType: 'json',
 	colModel : [
 	{display: '&nbsp;', name : 'link', width : 31, sortable : false, align: 'center'},
@@ -302,18 +307,21 @@ function EditField$tt(base64,Name){
 	if(document.getElementById('$field_user')){
 		if(fieldtype==2){
 			document.getElementById('$field_user').value='AD:'+ADID+':'+base64;
-			alert('$item_add mode:'+fieldtype);
+			alert('$item_add mode:'+fieldtype+' - '+'`'+Name+'`');
+			$CallBack2
 			return;
 		}
 		if(fieldtype==3){
 			document.getElementById('$field_user').value=Name;
 			alert('$item_add `'+Name+'`');
+			$CallBack2
 			return;
 		}		
 		document.getElementById('$field_user').value=base64;
-		alert('$item_add mode:'+fieldtype);
+		alert('$item_add mode:'+fieldtype+' - '+'`'+Name+'`');
 		
 	}
+	$CallBack2
 }
 
 function Select$tt(){
@@ -509,12 +517,18 @@ function Interface_SearchUsers($DN){
 	$DN_enc=urlencode($DN);
 	$tt=md5($DN);
 	$DN_ENC=urlencode($DN);
+	if(!isset($_GET["CallBack2"])){$_GET["CallBack2"]=null;}
 	$description=$hash[0]["description"][0];
 	$name=$hash[0]["samaccountname"][0];
 	$title="$name<br><span style=font-size:10px;font-style:italic>$description</span>";
 	$field_user=$_GET["field-user"];
 	$fieldtype=$_GET["field-type"];
 	$FicheGroup="Loadjs('domains.edit.group.php?ou=ABC&js=yes&group-id=$DN_enc&field-type={$_GET["field-type"]}',true)";
+	
+
+	if($_GET["CallBack2"]<>null){
+		$CallBack2="{$_GET["CallBack2"]}(base64,Name);";
+	}
 	
 	$OPENBT=false;
 	$DN_enc=urlencode($DN);
@@ -572,18 +586,21 @@ function EditField$tt(base64,Name){
 	if(document.getElementById('$field_user')){
 		if(fieldtype==2){
 			document.getElementById('$field_user').value='AD:'+ADID+':'+base64;
-			alert('$item_add mode:'+fieldtype);
+			alert('$item_add mode:'+fieldtype+' - '+'`'+Name+'`');
+			$CallBack2
 			return;
 		}
 		
 		if(fieldtype==3){
 			document.getElementById('$field_user').value=Name;
-			alert('$item_add `'+Name+'`');
+			alert('$item_add `'+Name+' - '+'`'+Name+'`');
+			$CallBack2
 			return;
 		}		
 		
 		document.getElementById('$field_user').value=base64;
-		alert('$item_add mode:'+fieldtype);
+		alert('$item_add mode:'+fieldtype+' - '+'`'+Name+'`');
+		$CallBack2
 		
 	}
 }

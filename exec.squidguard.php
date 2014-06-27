@@ -181,10 +181,14 @@ function build_ufdbguard_HUP(){
 	
 	$timeFile="/etc/artica-postfix/pids/UfdbGuardReload.time";
 	$TimeReload=$unix->file_time_min($timeFile);
-	if($TimeReload<$ufdbguardReloadTTL){
-		$unix->_syslog("ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn", basename(__FILE__));
-		echo "Starting......: ".date("H:i:s")." ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn\n";
-		return;
+	if(!$GLOBALS["FORCE"]){
+		if($TimeReload<$ufdbguardReloadTTL){
+			$unix->_syslog("ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn", basename(__FILE__));
+			echo "Starting......: ".date("H:i:s")." ufdbGuard Aborting reload, last reload since {$TimeReload}Mn, need at least {$ufdbguardReloadTTL}Mn\n";
+			return;
+		}
+	}else{
+		echo "Starting......: ".date("H:i:s")." --- FORCED --- ufdbGuard last reload was {$TimeReload}mn\n";
 	}
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());

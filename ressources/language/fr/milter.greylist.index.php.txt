@@ -29,7 +29,7 @@ Exemple d'un filtre afin de bloquer les images des spammeurs.
 src[:blank:]*=(3D)?[:blank:]*[&quot;']?[:blank:]*cid:</body_text>
 <class_name>Nom de classe</class_name>
 <config>Fichier de configuration</config>
-<delay>D&eacute;lai de liste grise</delay>
+<delay>D&eacute;lai de retardement</delay>
 <dnsrbl>Liste noire de relai DNS</dnsrbl>
 <dnsrbl_answer>R&eacute;ponse de service</dnsrbl_answer>
 <dnsrbl_service>Service DNSRBL</dnsrbl_service>
@@ -41,7 +41,7 @@ Elles doivent &ecirc;tre d&eacute;finies et nomm&eacute;es avant qu'elles puisse
 <edit_dnsrbl>&Eacute;diter la r&egrave;gle DNSRBL</edit_dnsrbl>
 <enable_milter>Activer Milter-greylist</enable_milter>
 <enable_milter_text>Cette option permettra de crocheter Postfix avec la fonctionnalit&eacute; milter-greylist</enable_milter_text>
-<greylist>Temps de mise en liste grise</greylist>
+<greylist>Retarder</greylist>
 <greylistedtuples>Entr&eacute;e mises en liste grise</greylistedtuples>
 <greylist_text>Combien de temps un client doit attendre avant d'accepter[br]les messages qu'il tente d'envoyer. [br]Ici, x heure(s).</greylist_text>
 <header>En-t&ecirc;te SMTP</header>

@@ -1,5 +1,6 @@
 #!/usr/bin/php
 <?php
+include_once("/usr/share/artica-postfix/ressources/class.external_acl_squid_ldap.inc");
 //error_reporting(0);
 if(preg_match("#--verbose#", @implode(" ", $argv))){
 	ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);error_reporting(1);
@@ -30,7 +31,11 @@ if(preg_match("#--verbose#", @implode(" ", $argv))){
   $GLOBALS["SESSIONS"]=unserialize(@file_get_contents("/etc/squid3/".basename(__FILE__).".cache"));
   WLOG("[START]: Starting New process with KerbAuthInfos:".count($GLOBALS["KerbAuthInfos"])." Parameters debug = {$GLOBALS["DEBUG"]}");
   ConnectToLDAP();
-  if($argv[1]=="--groups"){$GLOBALS["VERBOSE"]=true;$GROUPZ=GetGroupsFromMember($argv[2]);print_r($GROUPZ);die();}
+  $external_acl_squid_ldap=new external_acl_squid_ldap();
+  if($argv[1]=="--groups"){$GLOBALS["VERBOSE"]=true;
+ 
+  $GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($argv[2]);print_r($GROUPZ);die();
+  }
   
   
 while (!feof(STDIN)) {
@@ -48,7 +53,7 @@ while (!feof(STDIN)) {
  	$group=strtolower($group);
  	
 	if($GLOBALS["DEBUG"] == 1){ WLOG("GetGroupsFromMember($member) -> `$member` [1] = \"$group\" count:$count"); }
- 	$GROUPZ=GetGroupsFromMember($member);
+ 	$GROUPZ=$external_acl_squid_ldap->GetGroupsFromMember($member);
  	
  	//WLOG("Checking $group ? {$GROUPZ[$member][$group]}");
  	
@@ -604,6 +609,8 @@ function SAMBA_GetNetAdsInfos(){
 	@file_put_contents("/etc/squid3/NET_ADS_INFOS", serialize($array));
 	return $array;
 }
+
+
 function internal_find_program($strProgram){
 	global $addpaths;
 	$arrPath = array('/bin', '/sbin', '/usr/bin', '/usr/sbin', '/usr/local/bin','/usr/local/sbin','/usr/kerberos/bin');
@@ -748,11 +755,11 @@ function external_ldap_members($dn,$conf){
 	$suffix=$conf["ldap_suffix"];
 	$ldap_filter_users=$conf["ldap_filter_users"];
 	$ldap_filter_group=$conf["ldap_filter_group"];
-	
+
 	if(preg_match("#^ExtLdap:(.+)#", $dn,$re)){$dn=$re[1];}
-	
+
 	if($GLOBALS["output"]){echo "$ldap_host:$ldap_port -> $ldap_filter_group\n";}
-	
+
 	if(!is_numeric($ldap_port)){$ldap_port=389;}
 	if(!function_exists("ldap_connect")){
 		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
@@ -765,7 +772,7 @@ function external_ldap_members($dn,$conf){
 		return array();
 	}
 	
-		
+	
 	ldap_set_option($ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 	ldap_set_option($ldap_connection, LDAP_OPT_REFERRALS, 0);
 	$ldapbind=@ldap_bind($ldap_connection, $ldap_admin, $ldap_password);
@@ -791,33 +798,51 @@ function external_ldap_members($dn,$conf){
 		@ldap_close($ldap_connection);
 		WLOG("Fatal: ldap_search -> $pattern FAILED $error");
 		return array();
-	}	$filter=array("cn","description",'sAMAccountName',"dn","member","memberOf");
-	
+	} 
+	$filter=array("cn","description",'sAMAccountName',"dn","member","memberOf","userPrincipalName");
 	$f=array();
 	$result = @ldap_get_entries($ldap_connection, $sr);
 	for($i=0;$i<$result["count"];$i++){
 		if(isset($result[$i][$MemberAttribute]["count"])){
-			for($z=0;$z<$result[$i][$MemberAttribute]["count"];$z++){
-				$uid=$result[$i][$MemberAttribute][$z];
-				if(strpos($uid, ",")>0){
-					$TRANS=explode(",",$uid);
-					while (list ($ind, $fnd) = each ($TRANS)){
-						if(preg_match("#^(cn|uid|memberUid|sAMAccountName|member|memberOf)=(.+)#i", $fnd,$re)){
-							$uid=trim($re[2]);
-						}
-						
-					}
+		for($z=0;$z<$result[$i][$MemberAttribute]["count"];$z++){
+			$uid=$result[$i][$MemberAttribute][$z];
+			$uids=GetAccountFromDistinguishedName($uid,$ldap_connection,$MemberAttribute,$dn);
+			if(count($uids)>0){ while (list ($ind, $fnd) = each ($uids)){ $f[$ind]=$ind; }  continue;}
+			
+			$TRANS=explode(",",$uid);
+			while (list ($ind, $fnd) = each ($TRANS))
+				if(preg_match("#^(userPrincipalName|cn|uid|memberUid|sAMAccountName|member|memberOf)=(.+)#i", $fnd,$re)){
+					$uid=trim($re[2]);
+					$f[$uid]=$uid;
+					break;
 				}
-				
-				$f[$uid]=$uid;
-				
 			}
 		}
-	
 	}
 
 	return $f;
-	
+}
+
+function GetAccountFromDistinguishedName($distinguised,$ldap_connection,$MemberAttribute,$dn){
+	$dsn=array();
+	$pattern="(&(objectClass=user)(distinguishedName=$distinguised))";
+	$sr =@ldap_search($ldap_connection,$dn,$pattern,array());
+
+	if(!$sr){
+		$error=ldap_err2str(ldap_err2str(ldap_errno($ldap_connection)));
+		@ldap_close($ldap_connection);
+		WLOG("Fatal: ldap_search -> $pattern in $dn FAILED $error");
+		return array();
+	}
+	$result2 = @ldap_get_entries($ldap_connection, $sr);
+	for($i=0;$i<$result2["count"];$i++){
+		if(isset($result2[$i][$memberAttributeFromOPTIONS]["count"])){
+			for($z=0;$z<$result2[$i][$MemberAttribute]["count"];$z++){
+				$dsn[$result2[$i][$MemberAttribute][$z]]=$result2[$i][$MemberAttribute][$z];
+			}
+		}
+	}
+	return $dsn;
 }
 
 

@@ -97,6 +97,11 @@ function reload(){
 	@chgrp($unixsocket, "postfix");
 	@chmod($unixsocket,0777);
 	
+	if(is_file("/etc/sasldb2")){
+		@chown("/etc/sasldb2", "postfix");
+		@chgrp("/etc/sasldb2", "postfix");
+	}
+	
 	shell_exec("$postfix reload");
 
 }
@@ -151,6 +156,12 @@ function start($aspid=false){
 	@mkdir("/var/amavis",0755,true);
 	@chmod("/var/amavis", 0755);
 	if(!is_file("/etc/postfix/relay_domains.db")){@touch("/etc/postfix/relay_domains"); shell_exec("postmap hash:/etc/postfix/relay_domains"); }
+	if(is_file("/etc/sasldb2")){
+		@chown("/etc/sasldb2", "postfix");
+		@chgrp("/etc/sasldb2", "postfix");
+	}
+	
+	
 	
 	$unixsocket=$users->cyrus_lmtp_path;
 	if($unixsocket==null){$unixsocket="/var/spool/postfix/var/run/cyrus/socket/lmtp";}

@@ -353,7 +353,7 @@ class zarafa_maillog_buffer{
 		
 		$fam=new familysite();
 		if($hostname==null){$hostname=$fam->GetComputerName($ip);}
-		$curdate=date("Ymdh");
+		$curdate=date("YmdH");
 		$tablename="{$curdate}_hcnx";
 		$zDate=date("Y-m-d H:i:s");
 		$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();

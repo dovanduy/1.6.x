@@ -57,12 +57,17 @@ function Execute(){
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
 	
 	if($CategoriesDatabasesByCron==1){
+		if($GLOBALS["VERBOSE"]){echo "Execute():: Only bycron, aborting...\n";}
 		if(!$GLOBALS["BYCRON"]){ return; }
 	}
 	
-	if(!$GLOBALS["BYCRON"]){
-		$timeFile=$unix->file_time_min($timeFile);
-		if($timeFile<$StandardTime){return;}
+	if(!$GLOBALS["FORCE"]){
+		if(!$GLOBALS["BYCRON"]){
+			$timeFile=$unix->file_time_min($timeFile);
+			if($timeFile<$StandardTime){
+				if($GLOBALS["VERBOSE"]){echo "Execute():: {$timeFile}mn < {$StandardTime}Mn, aborting...use --force to bypass\n";}
+				return;}
+		}
 	}
 	
 	

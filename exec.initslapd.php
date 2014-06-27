@@ -75,6 +75,7 @@ if($argv[1]=="--squid-stream"){squidstream();squidstream_scheduler();exit;}
 if($argv[1]=="--zipproxy"){zipproxy();exit;}
 if($argv[1]=="--squid-db"){$GLOBALS["OUTPUT"]=true;squid_db();exit;}
 if($argv[1]=="--iredmail"){$GLOBALS["OUTPUT"]=true;iredmail();exit;}
+if($argv[1]=="--sarg"){$GLOBALS["OUTPUT"]=true;sarg();exit;}
 
 
 	if($GLOBALS["VERBOSE"]){echo "Open unix class\n";}
@@ -101,7 +102,7 @@ if($argv[1]=="--iredmail"){$GLOBALS["OUTPUT"]=true;iredmail();exit;}
 
 @file_put_contents($PID_FILE, getmypid());
 $GLOBALS["OUTPUT"]=true;
-$functions=array("artica_syslog","vsftpd","irqbalance","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
+$functions=array("artica_syslog","vsftpd","sarg","irqbalance","artica_firewall","artica_postfix","artica_openssh","artica_web_hotspot","artica_fw_hotspot",
 		"haproxy","specialreboot","buildscript","artica_status","mysqlInit","remove_nested_services",
 "conntrackd","process1","monit","dnsmasq_init_debian","nscd_init_debian","wsgate_init_debian","amavis",
 		"buildscriptSpamass_milter","buildscriptLoopDisk","buildscriptFreeRadius","pdns_recursor",
@@ -591,6 +592,9 @@ function vsftpd(){
 
 
 }
+
+
+
 
 function artica_firewall(){
 	$unix=new unix();
@@ -1741,8 +1745,6 @@ function pdns(){
 function sarg(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
-	$daemonbin=$unix->find_program("cntlm");
-	if(!is_file($daemonbin)){return;}
 	$f[]="#!/bin/sh";
 	$f[]="### BEGIN INIT INFO";
 	$f[]="# Provides:          sarg";
@@ -1783,7 +1785,7 @@ function sarg(){
 	$f[]="esac";
 	$f[]="exit 0\n";
 
-	$INITD_PATH="/etc/init.d/cntlm";
+	$INITD_PATH="/etc/init.d/sarg";
 	echo "CNTLM: [INFO] Writing $INITD_PATH with new config\n";
 	@unlink($INITD_PATH);
 	@file_put_contents($INITD_PATH, @implode("\n", $f));

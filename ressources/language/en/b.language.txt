@@ -6444,3 +6444,16 @@ This user will be able to browser it's home directory by FTP.
 </enable_ftp_service_vsftpd_explain>
 <enable_ftp_service>Activate the FTP service</enable_ftp_service>
 <error_vsftpd_not_installed>Error, vsfFTPD daemon is missing, this section will not be used as expected</error_vsftpd_not_installed>
+<zarafa_must_restarted>The Zarafa server must be restarted.
+Do you want to carry out this operation ?</zarafa_must_restarted>
+<ProxyPacCacheTime_explain>When generating a script file, Artica will put it into cache for x minutes.[br]
+This to reduce the system load while creating scripts</ProxyPacCacheTime_explain>
+<empy_cache>Empty cache</empy_cache>
+<isResolvable>Is resolvable</isResolvable>
+<last_connections>Last connections</last_connections>
+<milter_greylist_from>Sender E-Mail address</milter_greylist_from>
+<milter_greylist_domain>MX domain</milter_greylist_domain>
+<milter_greylist_rcpt>Recipient E-Mail address</milter_greylist_rcpt>
+<WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>[b]Quick start guide video[/b][br]
+Click on the left image if you want to display a video that explains how to configure your new proxy in few minutes.
+</WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>

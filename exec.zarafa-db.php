@@ -610,6 +610,10 @@ function remove_database($allprocedure=false){
 	$mysql=$unix->find_program("mysql");
 	$rm=$unix->find_program("rm");
 	$sock=new sockets();
+	build_progress_status(2,"Stopping monitor");
+	shell_exec("/etc/init.d/monit stop");
+	shell_exec("/etc/init.d/artica-status stop --force");
+	shell_exec("/etc/init.d/postfix-logger stop");
 	
 	build_progress_status(5,"Removing MySQL Zarafa Database");
 	
@@ -630,6 +634,12 @@ function remove_database($allprocedure=false){
 	WriteToSyslogMail("Action: Restarting MySQL service...",__FILE__);
 	WriteToSyslogMail("Action: Stopping MySQL service...",__FILE__);
 	build_progress_status(15,"Stopping MySQL Zarafa Database");
+	
+	build_progress_status(40,"Stopping Zarafa Server service");
+	WriteToSyslogMail("Action: Stopping Zarafa server...",__FILE__);
+	@unlink("/tmp/zarafa-upgrade-lock");
+	system("/etc/init.d/zarafa-server stop --kill");
+	
 	stop(true);
 	WriteToSyslogMail("Action: Starting MySQL service (InnoDB recovery mode)...",__FILE__);
 	build_progress_status(20,"Starting MySQL Zarafa Database (InnoDB recovery mode)");
@@ -667,6 +677,12 @@ function remove_database($allprocedure=false){
 		$kill=$unix->find_program("kill");
 		unix_system_kill_force($pid);
 	}
+	
+	build_progress_status(43,"Starting monitors");
+	shell_exec("/etc/init.d/monit start");
+	shell_exec("/etc/init.d/artica-status start");
+	shell_exec("/etc/init.d/postfix-logger start");
+	
 	build_progress_status(45,"Restarting Zarafa Server service");
 	WriteToSyslogMail("Action: Restarting Zarafa server...",__FILE__);
 	shell_exec("/etc/init.d/zarafa-server restart");
@@ -674,6 +690,7 @@ function remove_database($allprocedure=false){
 	sleep(5);
 	build_progress_status(50,"Restarting Zarafa Server service");
 	WriteToSyslogMail("Action: Restarting Zarafa server...",__FILE__);
+	
 	system("/etc/init.d/zarafa-server restart");
 	build_progress_status(60,"Checking DB size");
 	databasesize(true);

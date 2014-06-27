@@ -2934,8 +2934,30 @@ function videocache_reinstall(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/videocache.install.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/videocache.install.progress.txt";
 	
-	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.squidstream.php --reinstall >/dev/null 2>&1 &";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	
+	$f[]="#! /bin/sh";
+	$f[]="PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
+	$f[]="LD_LIBRARY_PATH=/lib:/usr/local/lib:/usr/lib";
+	$f[]="LDFLAGS=-L/lib -L/usr/local/lib -L/usr/lib";
+	$f[]="CPPFLAGS=-I/usr/include";
+	$f[]="cd /root";
+	$f[]="/usr/bin/env >{$GLOBALS["LOG_FILE"]} 2>&1";
+	$f[]="$php5 /usr/share/artica-postfix/exec.squidstream.php --reinstall >>{$GLOBALS["LOG_FILE"]} 2>&1";
+	$f[]="";
+	
+	$temp=$unix->FILE_TEMP().".sh";
+	@file_put_contents($temp, @implode("\n", $f));
+	@chmod($temp,0755);
+	$cmd="$nohup $temp >/dev/null 2>&1 &";
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 	

@@ -138,6 +138,16 @@ function TestConfigFile($path){
 }
 
 function SingleInstance_restart(){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__."pid";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		echo "{$GLOBALS["deflog_start"]} already Artica Starting process exists $pid\n";
+		return;
+	}
+	@file_put_contents($pidfile,getmypid());
+	
 	SingleInstance_stop(true);
 	SingleInstance();
 	SingleInstance_start(true);
@@ -150,8 +160,10 @@ function SingleInstance_reload(){
 	if($unix->process_exists($pid)){
 		$timepid=$unix->PROCCESS_TIME_MIN($pid);
 		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} reloading executed $pid since {$timepid}Mn...\n";}
-		$kill=$unix->find_program("kill");
 		unix_system_HUP($pid);
+		sleep(2);
+		$pid=SingleInstance_pid();
+		if(!$unix->process_exists($pid)){ SingleInstance_start(true);}
 		return;
 	}
 	
@@ -232,11 +244,21 @@ function SingleInstance_start($nopid=false){
 	if($MilterGreyListUseTCPPort==1){
 		$FullSocketPath="inet:{$MilterGeryListTCPPort}";
 	}
+	
+	$tmpfile=$unix->FILE_TEMP();
 	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} running daemon $miltergreybin\n";}
-	$cmd="$nohup $miltergreybin -u postfix -P $pidpath -p $FullSocketPath -f $confpath -d $dbpath >/dev/null 2>&1 &";
+	$cmd="$nohup $miltergreybin -u postfix -P $pidpath -p $FullSocketPath -f $confpath -d $dbpath >$tmpfile 2>&1 &";
 	if($GLOBALS["VERBOSE"]){echo "**** \n $cmd \n ************\n";}
 	shell_exec($cmd);
+	
+	$f=explode("\n",@file_get_contents("$tmpfile"));
+	while (list ($num, $ligne) = each ($f) ){
+		$ligne=trim($ligne);
+		if($ligne==null){continue;}
+		if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} $ligne\n";}
+	}
+	
 	
 	if($GLOBALS["OUTPUT"]){echo "{$GLOBALS["deflog_start"]} waiting 5s\n";}
 	for($i=1;$i<6;$i++){

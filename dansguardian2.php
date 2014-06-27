@@ -179,10 +179,10 @@ function tabs(){
 	}
 
 
-	$fontsize=16;
-	if(count($array)>7){$fontsize=16;}
+	$fontsize=18;
+	if(count($array)>7){$fontsize=18;}
 
-	if(count($array)>8){$fontsize=14.7;}
+	if(count($array)>8){$fontsize=16;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
 		
@@ -267,20 +267,20 @@ function groups(){
 	while (list ($num, $ligne) = each ($array) ){
 
 		if($num=="groups-macs"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"domains.user.computer.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"domains.user.computer.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 
 
 		if($num=="section_basic_filters-groups"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls.groups.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.acls.groups.php\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 				
 		}
 
 
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=$time\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	}
 
 
@@ -410,13 +410,10 @@ function groups_search(){
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
 
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND ((groupname LIKE '$search') OR (description LIKE '$search'))";
+	$searchstring=string_to_flexquery();
+	
+	if($searchstring<>null){
+		
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];

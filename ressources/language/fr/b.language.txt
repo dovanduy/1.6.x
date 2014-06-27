@@ -561,7 +561,7 @@ Indiquez les param&egrave;tres d'acc&egrave;s au fichier afin de forcer Artica &
 <artica_manager>SuperAdmin Artica</artica_manager>
 <artica_manager_password>Mode de passe du SuperAdmin Artica</artica_manager_password>
 <artica_manual_update_text>Chargez le paquetage Artica sur ce serveur afin de mettre &agrave; jour la version d'Artica.</artica_manual_update_text>
-<artica_patch_explain>Charger un patch (tar.gz) afin de mettre &agrave; jour le firmware Artica</artica_patch_explain>
+<artica_patch_explain>Charger un patch (tar.gz) afin d\'effectuer la mise  &agrave; jour du firmware Artica</artica_patch_explain>
 <artica_protocol_error>Le serveur ne r&eacute;pond pas avec les donn&eacute;es attendues.</artica_protocol_error>
 <artica_software_explain>Charger un paquetage logiciel afin d'ajouter une fonctionnalit&eacute; or de mettre &agrave; jour le logiciel d&eacute;j&agrave; install&eacute;</artica_software_explain>
 <ARTICA_STATISTICS>Statistiques Artica</ARTICA_STATISTICS>
@@ -2034,7 +2034,7 @@ Si vert, seuls les adresses des proxy enfants seront interpr&eacute;t&eacute;es.
 <ForceRedirect>Forcer la redirection</ForceRedirect>
 <ForceRedirectno_explain_table>Les redirections distantes ne sont pas forc&eacute;es</ForceRedirectno_explain_table>
 <ForceRedirectyes_explain_table>Les redirections distantes seront forc&eacute;es vers le service de proxy invers&eacute;</ForceRedirectyes_explain_table>
-<ForceWindowsUpdateCaching>Mettre en cache les mises &agrave; jour Microsoft</ForceWindowsUpdateCaching>
+<ForceWindowsUpdateCaching>Mise en cache des mises &agrave; jour Microsoft</ForceWindowsUpdateCaching>
 <ForceWindowsUpdateCaching_explain>Si vert, Artica va cr&eacute;er des r&egrave;gle afin de renforcer la mise en caches des sites de mise &agrave; jour Microsoft.</ForceWindowsUpdateCaching_explain>
 <force_dns_redirection>Forcer la redirection DNS.</force_dns_redirection>
 <FORWARD>Transfert</FORWARD>
@@ -3523,7 +3523,7 @@ par d&eacute;faut la taille du cache m&eacute;moire est &eacute;gale &agrave; la
 <proxy_logrotate_done>La rotation des logs du proxy a &eacute;t&eacute; effectu&eacute;e</proxy_logrotate_done>
 <proxy_monitor>Surveillance du proxy</proxy_monitor>
 <proxy_monitor_text>&Eacute;tat interne du Proxy</proxy_monitor_text>
-<proxy_objects>objets proxy</proxy_objects>
+<proxy_objects>Objets proxy</proxy_objects>
 <proxy_parameters>Param&egrave;tres du Proxy</proxy_parameters>
 <proxy_parameters_compilation>Compilation des param&egrave;tres Proxy</proxy_parameters_compilation>
 <proxy_parents>Proxys p&egrave;res</proxy_parents>
@@ -4013,7 +4013,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <selector>S&eacute;lecteur</selector>
 <select_all>Tout s&eacute;lectionner</select_all>
 <select_this_group>S&eacute;lection du groupe</select_this_group>
-<select_this_item>S&eacute;lectionner cet &eacute;l&eacute;ment</select_this_item>
+<select_this_item>S&eacute;lectionner l\'&eacute;l&eacute;ment</select_this_item>
 <sended_messages>Message(s) envoy&eacute;(s)</sended_messages>
 <sender>&Eacute;metteur</sender>
 <sendreportto>Envoyer les rapports &agrave; l'adresse email</sendreportto>
@@ -5231,7 +5231,7 @@ Cliquez sur le bouton t&eacute;l&eacute;charger.[br]</windows_command_line_webda
 <wizard_certificate_1>Bienvenue dans la g&eacute;n&eacute;ration d'un certificat.[br]
 Afin de cr&eacute;er le certificat, donnez un nom commun de ce nouveau certificat.[br]Ce pourrait &ecirc;tre le nom d'h&ocirc;te complet de votre serveur (serveur.domaine.fr).[br]
 Apr&egrave;s avoir enregistr&eacute; ce formulaire, Artica va g&eacute;n&eacute;rer une demande de signature de certificat (en anglais CSR pour Certificate Signing Request) ainsi qu'un certificat SSL auto-sign&eacute; par d&eacute;faut.[br]Par la suite, vous serez en mesure de changer les param&egrave;tres par d&eacute;faut.</wizard_certificate_1>
-<wizard_rule>Assistant: cr&eacute;er un r&egrave;gle</wizard_rule>
+<wizard_rule>Assistant: Cr&eacute;er une r&egrave;gle</wizard_rule>
 <wizard_rule_ufdb_1>Bienvenue[br]
 Cet assistant va vous aider &agrave; cr&eacute;er une r&egrave;gle basique de filtrage Web.[br]
 Le filtrage Web s&eacute;lectionne la r&egrave;gle en fonction de la source de vos utilisateurs.[br]
@@ -5241,7 +5241,7 @@ Un utilisateur peut &ecirc;tre une adresse IP/r&eacute;seau ou un groupe Active 
 Vous pourrez bien entendu les modifier/supprimer/ajouter par la suite.</wizard_rule_ufdb_3>
 <wizard_rule_ufdb_4>Si vous &ecirc;tes d'accord, cliquez sur le bouton construire la r&egrave;gle</wizard_rule_ufdb_4>
 <wizard_rule_ufdb_ad>Cliquez sur parcourir afin de s&eacute;lectionner votre groupe Active Directory.</wizard_rule_ufdb_ad>
-<wizard_rule_ufdb_explain>Utilisez cet assista,t afin de vous aider &agrave; cr&eacute;er une r&egrave;gle de filtrage Internet.</wizard_rule_ufdb_explain>
+<wizard_rule_ufdb_explain>Utilisez cet assistant afin de vous aider &agrave; cr&eacute;er une r&egrave;gle de filtrage Internet.</wizard_rule_ufdb_explain>
 <wizard_warn_memory>La m&eacute;moire de votre serveur %M n'est pas dans les sp&eacute;cifications requises afin de faire fonctionner correctement votre serveur Artica ainsi que ses composants.[br]
 Nous vous encourageons fortement d'augmenter sa m&eacute;moire avec un minimum de %F avec 2 Cpus pour utilisation en production.[br]
 Artica n'est pas qu'une Interface d'administration mais un ensemble de services vous assurant l'acc&egrave;s &agrave; des fonctionnalit&eacute;s avanc&eacute;es telles que les surveillances des services, syst&egrave;me d'auto-r&eacute;paration, statistiques...[br]

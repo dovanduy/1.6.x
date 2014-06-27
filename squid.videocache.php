@@ -78,6 +78,7 @@ function reinstall_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=time();
+	echo "Loadjs('squid.video.cache.progress.php')";return;
 	$ask=$tpl->javascript_parse_text("{reinstall_software_ask}");
 	$html="
 	var xSave$t= function (obj) {
@@ -109,7 +110,8 @@ function status(){
 	$t=time();
 	$sock=new sockets();
 	$EnableStreamCache=intval($sock->GET_INFO("EnableStreamCache"));
-	$EnableStreamCacheP=Paragraphe_switch_img("{EnableStreamCache}", "{EnableStreamCache_text}","EnableStreamCache",$EnableStreamCache,null,450);
+	$EnableStreamCacheP=Paragraphe_switch_img("{EnableStreamCache}", 
+			"{EnableStreamCache_text}","EnableStreamCache",$EnableStreamCache,null,600);
 	$users=new usersMenus();
 	
 	if(!$users->CORP_LICENSE){
@@ -160,12 +162,13 @@ function status_videocache(){
 	$page=CurrentPageName();
 	
 	
-	$button_reinstall=$tpl->_ENGINE_parse_body("<center style='margin:10px'>".button("{reinstall_software}","Loadjs('$page?reinstall-js=yes')",16)."</center>");
+	$button_reinstall=$tpl->_ENGINE_parse_body("<center style='margin:10px'>".button("{reinstall_software}",
+			"Loadjs('$page?reinstall-js=yes')",26)."</center>");
 	
 	$ini->loadString(base64_decode($sock->getFrameWork("squid.php?videocache-status=yes")));
-	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE",$ini,null,0);
-	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE_SCHEDULER",$ini,null,0);
-	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE_CLIENT",$ini,null,0);
+	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE",$ini,null,1);
+	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE_SCHEDULER",$ini,null,1);
+	$STATUS[]=DAEMON_STATUS_ROUND("APP_VIDEOCACHE_CLIENT",$ini,null,1);
 	echo $tpl->_ENGINE_parse_body(@implode("<p>&nbsp;</p>", $STATUS).
 	"<div style='text-align:right'>".
 	imgtootltip("refresh-32.png","{refresh}",

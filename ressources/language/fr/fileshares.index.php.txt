@@ -32,7 +32,7 @@ bas&eacute; sur</give_folder_name>
 <samba_audit_text>Voir l'&eacute;tat de vos r&eacute;pertoires partag&eacute;s et effectuer une analyse</samba_audit_text>
 <selected_folder>Dossier s&eacute;lectionn&eacute;</selected_folder>
 <select_disk>S&eacute;lectionnez le Disque Dur</select_disk>
-<select_this_folder>S&eacute;lectionner ce dossier</select_this_folder>
+<select_this_folder>S&eacute;lectionner le dossier</select_this_folder>
 <SHARE_FOLDER>Partager un dossier</SHARE_FOLDER>
 <SHARE_FOLDER_TEXT>Partager un dossier sur ce syst&egrave;me. [br] Parcourez votre disque dur et s&eacute;lectionnez un r&eacute;pertoire &agrave; partager</SHARE_FOLDER_TEXT>
 <share_this>Partager ce dossier</share_this>

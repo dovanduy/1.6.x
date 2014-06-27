@@ -1462,10 +1462,7 @@ function filters_connect_section(){
 		$postscreen=Paragraphe("postscreen-64.png","PostScreen","{POSTSCREEN_MINI_TEXT}","javascript:Loadjs('postscreen.php?hostname=master&ou=master')");	
 		
 	}	
-	
-	$smtpd_client_restrictions=Paragraphe('64-sender-check.png','{smtpd_client_restrictions_icon}','{smtpd_client_restrictions_icon_text}',
-	"javascript:Loadjs('postfix.smtpd_client_restrictions.php')",null,210,null,0,true);
-	
+
 	
 
 	

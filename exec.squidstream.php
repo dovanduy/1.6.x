@@ -806,7 +806,7 @@ function install_module($modulename){
 	$unix=new unix();
 	$packagePath="/usr/share/artica-postfix/bin/install/squid/$modulename.tar.gz";
 	$TMPDIR=$unix->TEMP_DIR()."/".time();
-	
+	build_progress("Installing module $modulename",25);
 	$tar=$unix->find_program("tar");
 	$cd=$unix->find_program("cd");
 	$python=$unix->find_program("python");
@@ -876,6 +876,7 @@ function install_video_cache_python(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} extracting ". basename($packagePath)."\n";}
 	
 		@mkdir($TMPDIR,0755,true);
+		build_progress("Uncompressing videocache package",30);
 		shell_exec("$tar xf $packagePath -C $TMPDIR/");
 		$dirs=$unix->dirdir($TMPDIR);
 		$workingdir=null;
@@ -895,6 +896,7 @@ function install_video_cache_python(){
 		chdir($workingdir);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} using $workingdir\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} installing - $python - \n";}
+		build_progress("Installing videocache package",35);
 		system("$python setup.py -e a@b.me -u squid --cache-host 10.1.1.1 --this-proxy 127.0.0.1:3128 --squid-access-log /var/log/squid3/access.log --apache-conf-dir /etc/httpd/conf.d --db-hostname /var/run/mysqld/squid-db.sock --db-username root --db-database videocache install");	
 		system("$python setup.py -e a@b.me -u squid --cache-host 10.1.1.1 --this-proxy 127.0.0.1:3128 --squid-access-log /var/log/squid3/access.log --apache-conf-dir /etc/httpd/conf.d --db-hostname /var/run/mysqld/squid-db.sock --db-username root --db-database videocache install");
 		recursive_remove_directory("$TMPDIR");
@@ -905,12 +907,15 @@ function install_video_cache_python(){
 }
 
 function reinstall_video_cache($aspid=false){
+	
+	
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if($aspid){
 		$pid=$unix->get_pid_from_file($pidfile);
 		if($unix->process_exists($pid,basename(__FILE__))){
 			$time=$unix->PROCCESS_TIME_MIN($pid);
+			build_progress("Already Artica task running",110);
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Already Artica task running PID $pid since {$time}mn\n";}
 			return;
 		}
@@ -918,17 +923,32 @@ function reinstall_video_cache($aspid=false){
 	@file_put_contents($pidfile, getmypid());
 
 	$chattr=$unix->find_program("chattr");
+	build_progress("Remove old install",5);
 	shell_exec("$chattr -i -R /usr/share/videocache");
 	
 	@unlink("/usr/share/videocache/videocache.py");
-	install_video_cache();
+	if(!install_video_cache()){
+		build_progress("{failed}",110);
+		return;
+	}
+	build_progress("Stopping services",50);
 	stop(true);
+	build_progress("Building configuration",55);
 	build();
+	build_progress("Starting services",60);
 	start(true);
+	build_progress("{done}",100);
 	
 }
 
+function build_progress($text,$pourc){
+	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/videocache.install.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($PROGRESS_FILE, serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
 
+}
 function install_video_cache($aspid=false){
 	
 	$unix=new unix();
@@ -952,10 +972,14 @@ function install_video_cache($aspid=false){
 	$python=$unix->find_program("python");
 	CHECK_DATABASE();
 	
+	build_progress("Checking modules",15);
+	
 	while (list ($modulename, $line) = each ($modules)){
+		build_progress("Checking modules $modulename",20);
 		if(!python_verify_modules($modulename)){
 			if(!install_module($modulename)){
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} [!!] $modulename failed\n";}
+				build_progress("Installing module $modulename failed",110);
 				return false;
 			}else{
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} [OK] $modulename INSTALLED\n";}
@@ -981,7 +1005,9 @@ function install_video_cache($aspid=false){
 	
 	if(!$INSTALLED){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Installing VideoCache\n";}
-		if(!install_video_cache_python()){return false;}
+		if(!install_video_cache_python()){
+			build_progress("Installing videocache package failed",110);
+			return false;}
 		$files=videocache_files();
 		while (list ($modulename, $filepath) = each ($files)){
 			if(!is_file($filepath)){
@@ -1000,7 +1026,7 @@ function install_video_cache($aspid=false){
 	
 	
 	$tablesz=true;
-	
+	build_progress("Installing Tables",40);
 	while (list ($tablename, $line) = each ($tables)){
 		if(!TABLE_EXISTS($tablename,"videocache")){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} missing table $tablename\n";} 
@@ -1023,8 +1049,11 @@ function install_video_cache($aspid=false){
 		}
 	}
 	
-	if(!$tablesz){return false;}
+	if(!$tablesz){
+		build_progress("Installing Tables failed",110);
+		return false;}
 	
+	build_progress("Installing Tables success",45);
 	return true;
 	// /artica-postfix/bin/install/squid/videocache.tar.gz
 	
@@ -1094,6 +1123,7 @@ function videocache_files(){
 }
 
 function CHECK_DATABASE(){
+	build_progress("Chking database",10);
 	$bd=@mysql_connect(":/var/run/mysqld/squid-db.sock","root",null);
 	if(!$bd){
 		$des=@mysql_error(); $errnum=@mysql_errno();

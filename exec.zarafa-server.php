@@ -225,6 +225,7 @@ function reload(){
 
 function stop($aspid=false){
 	$unix=new unix();
+	$suffix=null;
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	if(!$aspid){
 		$pid=$unix->get_pid_from_file($pidfile);
@@ -247,7 +248,9 @@ function stop($aspid=false){
 	
 	if($GLOBALS["KILL"]){
 		$killopt=" -9";
-		@unlink("/tmp/zarafa-upgrade-lock");}
+		@unlink("/tmp/zarafa-upgrade-lock");
+		$suffix=" (forced)";
+	}
 
 	if(is_file("/tmp/zarafa-upgrade-lock")){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server database upgrade is taking place.\n";}
@@ -256,29 +259,53 @@ function stop($aspid=false){
 	}
 
 	$time=$unix->PROCCESS_TIME_MIN($pid);
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server Daemon with a ttl of {$time}mn\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server Daemon with a ttl of {$time}mn$suffix\n";}
 	$kill=$unix->find_program("kill");
 
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server killing smoothly PID $pid...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server killing smoothly PID $pid...$suffix\n";}
 	shell_exec("$kill$killopt $pid");
 	sleep(1);
 
 	for($i=1;$i<60;$i++){
 		$pid=XZARAFA_SERVER_PID();
 		if(!$unix->process_exists($pid)){
-			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server pid $pid successfully stopped ...\n";}
+			if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server pid $pid successfully stopped ...$suffix\n";}
 			break;
 		}
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server wait $i/60\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server wait $i/60$suffix\n";}
 		shell_exec("$kill$killopt $pid");
 		sleep(1);
 	}
-
-
+	
+	
+	if($GLOBALS["KILL"]){
+		$zarafadmin=$unix->find_program("zarafa-admin");
+		$pid=$unix->PIDOF($zarafadmin);
+		if($unix->process_exists($pid)){
+			for($i=1;$i<60;$i++){
+				if(!$unix->process_exists($pid)){break;}
+				if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping zarafa-admin PID $pid$suffix\n";}
+				unix_system_kill_force($pid);
+				$pid=$unix->PIDOF($zarafadmin);
+			}
+		}
+		
+		$createuser_pid=$unix->PIDOF_PATTERN("createuser.d");
+		if($unix->process_exists($createuser_pid)){
+			for($i=1;$i<60;$i++){
+				if(!$unix->process_exists($createuser_pid)){break;}
+				if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: Stopping createuser.d PID $createuser_pid$suffix\n";}
+				unix_system_kill_force($createuser_pid);
+				$createuser_pid=$unix->PIDOF_PATTERN("createuser.d");
+			}
+		}
+	}
+	
+	$pid=XZARAFA_SERVER_PID();
 	if(!$unix->process_exists($pid)){
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server daemon success...\n";}
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server daemon success...$suffix\n";}
 		return;
 	}
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server daemon failed...\n";}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: zarafa-server daemon failed...$suffix\n";}
 }
 ?>

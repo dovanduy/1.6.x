@@ -1,4 +1,5 @@
 <?php
+//ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);
 	if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
 	include_once('ressources/class.templates.inc');
 	include_once('ressources/class.ldap.inc');
@@ -194,7 +195,7 @@ function js(){
 	
 	
 	function LoadMilterGreyListAcl(index){
-		YahooWin4(450,'$page?add_acl=true&num='+index+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$acl::N.'+index);	
+		YahooWin4(750,'$page?add_acl=true&num='+index+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$acl::N.'+index);	
 	}
 
 	function miltergreylist_status(){
@@ -291,9 +292,9 @@ function main_tabs(){
 	$tpl=new templates();
 	$array["index"]='{status}';
 	$array["popup-settings"]="{main_settings}";
-	
-	$array["popup-groups"]='{objects}';
 	$array["popup-acl"]='{acls}';
+	$array["popup-groups"]='{objects}';
+	
 	$array["popup-dumpdb"]='{items}';
 	$array["events"]='{events}';
 	
@@ -705,50 +706,127 @@ function SaveConf(){
 
 function main_acladd(){
 	$mil=new milter_greylist();
+	$mil->__Parse_DNSBL();
 	$page=CurrentPageName();
-	$action=$mil->actionlist;
 	$tpl=new templates();
-	$t=time();
-	unset($action["geoip"]);
-	$sql="SELECT * FROM miltergreylist_acls WHERE ID='{$_GET["num"]}'";
 	$q=new mysql();
+	if(!is_numeric($_GET["num"])){$_GET["num"]=0;}
+	$action=$mil->actionlist;
+	unset($action["geoip"]);
+	$btname="{apply}";
+	if($_GET["num"]<1){$btname="{add}";}
+	
+	
+	$sql="SELECT ID,objectname FROM miltergreylist_objects WHERE enabled=1 AND instance='{$_GET["hostname"]}' ORDER BY objectname";
+	$tt[null]="{select}";
+	$q=new mysql();
+	$results=$q->QUERY_SQL($sql,"artica_backup");
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$Groups[$ligne["ID"]]=$ligne["objectname"];
+	}
+	
+	
+	$ArrayACL=$mil->getAclContent("{$_GET["num"]}");
+	$line=$mil->ParseAcl($ArrayACL["full"]);
+	
+	$t=time();
+	
+	$sql="SELECT * FROM miltergreylist_acls WHERE ID='{$_GET["num"]}'";
+	if($ligne["type"]==null){$ligne["type"]="whitelist";}
+
 	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 	$method=$tpl->javascript_parse_text("{method}");
 	$arrayd=Field_array_Hash(array(""=>"{select}","blacklist"=>"{blacklist}",
-	'whitelist'=>"{whitelist}","greylist"=>"{greylist}"),"$t-mode",$ligne["method"],null,null,0,'width:110px;font-size:14px;padding:5px');
+	'whitelist'=>"{whitelist}","greylist"=>"{greylist}"),"$t-mode",
+			$ligne["method"],"explainThisacl$t();",null,0,'font-size:22px;padding:5px');
+	
+	if($ligne["type"]=="dnsrbl"){
+		if(preg_match('#delay\s+([0-9]+)([a-z])#',$ligne["pattern"],$re)){
+			$grelistdnbltime=$re[1];
+			$grelistdnbltemps=$re[2];
+
+		}
+		
+		$ligne["pattern"]=trim($line[3]);
+	}
+	
+	if($ligne["type"]=="gpid"){
+			if(preg_match('#gpid:([0-9]+)#',$ArrayACL["pattern"],$re)){
+				$gpid=$re[1];
+			}	
+			
+			if(preg_match('#delay\s+([0-9]+)([a-z])#',$ArrayACL["pattern"],$re)){
+				$groupDelay=$re[1]=15;
+				$groupDelayInterval=$re[2]="m";
+			}	
+			
+	}	
+	
+	if(!is_numeric($grelistdnbltime)){$grelistdnbltime=15;}
+	if($grelistdnbltemps==null){$grelistdnbltemps="m";}
+	if(!is_numeric($groupDelay)){$groupDelay=15;}
+	if($groupDelayInterval==null){$groupDelayInterval="m";}
+	
+	$PatternField="<textarea name='pattern-$t' id='pattern-$t' rows=10 
+	style='width:99%;font-size:22px !important;'>{$ligne["pattern"]}</textarea>";
+	if($_GET["num"]>0){
+		$PatternField=Field_text("pattern-$t",$ligne["pattern"],"font-size:22px;font-weight:bold");
+	}
 	
 	
 	$action["gpid"]="{objects_group}";
-	$arrayf=Field_array_Hash($action,"$t-type",$ligne["type"],"explainThisacl$t();",null,0,'width:150px;font-size:14px;padding:5px');
+	$arrayf=Field_array_Hash($action,"$t-type",$ligne["type"],"explainThisacl$t();",null,0,
+			'font-size:22px;padding:5px');
 	$ligne["pattern"]=trim($ligne["pattern"]);
 	$id=time();
 	$html="
-	<div id='$id'>
+	<div id='explainThisAcl-$t'></div>
 	<input type='hidden' name='SaveAclID' id='SaveAclID' value='{$_GET["num"]}'>
 	<input type='hidden' name='hostname-hidden' id='hostname-hidden' value='{$_GET["hostname"]}'>
-		<table style='width:98%' class=form>
+	<div style='width:98%' class=form>
+		<table style='width:100%'>
 		<tbody>
 			<tr>
-				<td align='right' width=1% nowrap style='font-size:13px'><strong>{method}:</strong></td>
+				<td align='right' width=1% nowrap style='font-size:22px' class=legend>{method}:</strong></td>
 				<td><strong>$arrayd</strong></td>
 			</tr>
 			<tr>
-				<td align='right' width=1% nowrap style='font-size:13px'><strong>{type_of_rule}:</strong></td>
+				<td align='right' width=1% nowrap style='font-size:22px' class=legend>{type_of_rule}:</strong></td>
 				<td><strong>$arrayf</strong></td>
 			</tr>
+			<tr><td colspan=2 style='font-size:26px;height:60px'>DNSRBL</td></tr>
 			<tr>
-				<td colspan=2><div id='addform-$t'></div></td>
+				<td width=1% nowrap style='font-size:22px' class=legend >{dnsrbl_service}:</strong></td>
+				<td>" . Field_array_Hash($mil->dnsrbl_class,'dnsrbl_class',null,null,null,0,"font-size:22px") . "</td>
+			</tr>
+			<tr>
+				<td  width=1% nowrap style='font-size:22px' class=legend >{delay}:</strong></td>
+				<td>" . Field_text("delay1","{$grelistdnbltime}{$grelistdnbltemps}",'width:150px;font-size:22px') . "</td>
 			</tr>	
-
-	
-		<tr>
-				<td align='right' width=1% nowrap><strong style='font-size:13px'>{infos}:</strong></td>
-				<td><textarea name='$t-infos' id='$t-infos' rows=1 style='width:100%;font-size:15px;font-weight:bold'>{$ligne["description"]}</textarea>
+			<tr><td colspan=2 style='font-size:26px;height:60px'>{groups2}</td></tr>
+			<tr>
+				<td width=1% nowrap style='font-size:22px' class=legend>{group}:</strong></td>
+				<td>" . Field_array_Hash($Groups,'gpid_class',$gpid,null,null,0,"font-size:22px") . "</td>
+			</tr>
+			<tr>
+				<td swidth=1% nowrap style='font-size:22px' class=legend>{delay}:</strong></td>
+				<td>" . Field_text("delay2","$groupDelay{$groupDelayInterval}",'width:100px;font-size:22px') . "</td>
+			</tr>				
+			<tr>
+				<td swidth=1% nowrap style='font-size:22px;vertical-align:top' class=legend>{value}:</strong></td>
+				<td>$PatternField</td>
+			</tr>		
+			<tr>
+				<td align='right' width=1% nowrap><strong style='font-size:22px'>{infos}:</strong></td>
+				<td>
+					<textarea name='$t-infos' id='$t-infos' rows=1 
+					style='width:100%;font-size:22px !important;'>{$ligne["description"]}</textarea>
+				</td>
 		</tr>	
 	
 <tr>
 <td colspan=2 align='right'>
-<hr>". button("{apply}","SaveMilterGreyListAclID$t()",16)."
+<hr>". button("$btname","SaveMilterGreyListAclID$t()",30)."
 </td>
 </tr>
 </table>
@@ -765,47 +843,65 @@ function main_acladd(){
 
 	function SaveMilterGreyListAclID$t(){
 		var mode=document.getElementById('$t-mode').value;
+		var xType=document.getElementById('$t-type').value;
 		if(mode.length==0){alert('$method = NULL');return;}
 		var XHR = new XHRConnection();
 		XHR.appendData('SaveAclID','{$_GET["num"]}');
-		XHR.appendData('type',document.getElementById('$t-type').value);
-		if(document.getElementById('pattern')){XHR.appendData('pattern',document.getElementById('pattern').value);}
+		XHR.appendData('type',xType);
+		if(document.getElementById('pattern-$t')){XHR.appendData('pattern',document.getElementById('pattern-$t').value);}
 		XHR.appendData('infos',document.getElementById('$t-infos').value);
 		XHR.appendData('mode',document.getElementById('$t-mode').value);
-		if(document.getElementById('dnsrbl_class')){
-			XHR.appendData('dnsrbl_class',document.getElementById('dnsrbl_class').value);
-			XHR.appendData('delay',document.getElementById('delay').value);
+		
+		if(xType=='dnsrbl'){
+			if(document.getElementById('dnsrbl_class')){
+				XHR.appendData('dnsrbl_class',document.getElementById('dnsrbl_class').value);
+				XHR.appendData('delay',document.getElementById('delay1').value);
+			}
 		}
 		
-		if(document.getElementById('gpid_class')){
-			XHR.appendData('gpid_class',document.getElementById('gpid_class').value);
-			XHR.appendData('delay',document.getElementById('delay').value);
-		}		
+		if(xType=='gpid'){
+			if(document.getElementById('gpid_class')){
+				XHR.appendData('gpid_class',document.getElementById('gpid_class').value);
+				XHR.appendData('delay',document.getElementById('delay2').value);
+			}		
+		}
 		XHR.appendData('ou','{$_GET["ou"]}');
 		XHR.appendData('hostname','{$_GET["hostname"]}');
-		AnimateDiv('$id');
      	XHR.sendAndLoad('$page', 'GET',x_SaveMilterGreyListAclID);
 	}
 	
 	function explainThisacl$t(id){
-		  if(!id){id='$t-type';}
-		  var fieldz=document.getElementById(id).value;
-		  if(fieldz.length==0){return;}
+		  var xMode=document.getElementById('$t-mode').value;
+		  var fieldz=document.getElementById('$t-type').value;
 		  if(!document.getElementById('explainc-$t')){alert('explainc-$t No such ID !');}
-	      LoadAjaxTiny('explainc-$t','$page?explainThisacl='+fieldz+'&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')  ;
+	      LoadAjaxTiny('explainThisAcl-$t','$page?explainThisacl='+fieldz+'&xMode='+xMode+'&ou={$_GET["ou"]}&hostname={$_GET["hostname"]}')  ;
 	      ChangeForm$t();
 	}
 
 function ChangeForm$t(){
       xclass='{$_GET["num"]}';
-      xtype=document.getElementById('$t-type').value;
-      var hostname='{$_GET["hostname"]}';
-      LoadAjax('addform-$t','$page?ChangeFormType='+xtype+'&class={$_GET["num"]}&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}')
-   
+      var xMode=document.getElementById('$t-mode').value;
+      var xType=document.getElementById('$t-type').value;
+      document.getElementById('dnsrbl_class').disabled=true;
+      document.getElementById('delay1').disabled=true;
+      document.getElementById('gpid_class').disabled=true;
+      document.getElementById('delay2').disabled=true;
+      
+      if(xType=='dnsrbl'){
+      	 document.getElementById('dnsrbl_class').disabled=false;
+      	 document.getElementById('pattern-$t').disabled=true;
+      	
+      	 if(xMode=='greylist'){document.getElementById('delay1').disabled=false;}
+      }
+      if(xType=='gpid'){
+      	 document.getElementById('gpid_class').disabled=false;
+      	 document.getElementById('pattern-$t').disabled=true;
+      	 if(xMode=='greylist'){document.getElementById('delay2').disabled=false;}
+      }      
       
 }	
-	
 	explainThisacl$t();
+	
 </script>
 
 
@@ -848,6 +944,12 @@ $hostname=$_GET["hostname"];
 $add=$tpl->_ENGINE_parse_body("{add}");
 $rule=$tpl->_ENGINE_parse_body("{rule}");
 $about=$tpl->javascript_parse_text("{about2}");
+$blacklist=$tpl->javascript_parse_text("{blacklist}");
+$whitelist=$tpl->javascript_parse_text("{whitelist}");
+$greylist=$tpl->javascript_parse_text("{greylist}");
+$all=$tpl->javascript_parse_text("{all}");
+$zDate=$tpl->javascript_parse_text("{zDate}");
+
 $t=time();
 if(trim($hostname)==null){$hostname="master";$_GET["hostname"]="master";}
 $TB_WIDTH=750;
@@ -875,15 +977,21 @@ $('#miltergrey-instances-list').flexigrid({
 	url: '$page?acl-table-list=yes&hostname=$hostname&t=$t&ou={$_GET["ou"]}',
 	dataType: 'json',
 	colModel : [
+	
+		{display: '$zDate', name : 'zDate', width :70, sortable : true, align: 'left'},
 		{display: '$method', name : 'method', width :70, sortable : true, align: 'left'},
 		{display: '$type', name : 'type', width : $TB_TYPE, sortable : true, align: 'left'},
 		{display: '$pattern', name : 'pattern', width : $TB_PATTERN, sortable : true, align: 'left'},
 		{display: '$description', name : 'description', width : $ROW_EXPLAIN, sortable : false, align: 'left'},
-		{display: '&nbsp;', name : 'delete', width : 40, sortable : false, align: 'left'},
+		{display: '&nbsp;', name : 'delete', width : 40, sortable : false, align: 'center'},
 	],
 buttons : [
 		{name: '$add', bclass: 'add', onpress : addcallistrule$t},
 		{separator: true},
+		{name: '$blacklist', bclass: 'Search', onpress : blacklist$t},
+		{name: '$whitelist', bclass: 'Search', onpress : whitelist$t},
+		{name: '$greylist', bclass: 'Search', onpress : greylist$t},
+		{name: '$all', bclass: 'Search', onpress : all$t},
 		{name: '$about', bclass: 'help', onpress : about$t},
 		],	
 	searchitems : [
@@ -899,7 +1007,7 @@ buttons : [
 	usepager: true,
 	title: '<span style=font-size:18px>$POSTFIX_MULTI_INSTANCE_INFOS</span>',
 	useRp: true,
-	rp: 15,
+	rp: 20,
 	showTableToggleBtn: true,
 	width: '99%',
 	height: $TB_HEIGHT,
@@ -917,8 +1025,21 @@ function  about$t(){
 	}
 
 	function LoadMilterGreyListAcl$t(index){
-		YahooWin4(450,'$page?add_acl=true&num='+index+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$acl&nbsp;$rule&nbsp;'+index);	
+		YahooWin4(750,'$page?add_acl=true&num='+index+'&hostname={$_GET["hostname"]}&ou={$_GET["ou"]}','$acl&nbsp;$rule&nbsp;'+index);	
 	}
+	
+function blacklist$t(){
+	$('#miltergrey-instances-list').flexOptions({url: '$page?acl-table-list=yes&hostname=$hostname&t=$t&ou={$_GET["ou"]}&filterby=blacklist'}).flexReload(); 
+}
+function whitelist$t(){
+	$('#miltergrey-instances-list').flexOptions({url: '$page?acl-table-list=yes&hostname=$hostname&t=$t&ou={$_GET["ou"]}&filterby=whitelist'}).flexReload();  
+}
+function greylist$t(){
+	$('#miltergrey-instances-list').flexOptions({url: '$page?acl-table-list=yes&hostname=$hostname&t=$t&ou={$_GET["ou"]}&filterby=greylist'}).flexReload(); 
+}
+function all$t(){
+$('#miltergrey-instances-list').flexOptions({url: '$page?acl-table-list=yes&hostname=$hostname&t=$t&ou={$_GET["ou"]}&filterby='}).flexReload();
+}
 
 var X_DeleteAclIDNewFunc= function (obj) {
 	 var results=obj.responseText;
@@ -926,13 +1047,13 @@ var X_DeleteAclIDNewFunc= function (obj) {
 	 $('#row'+idtmp).remove();
 	}	
 	
-	function DeleteAclIDNewFunc(ID){
-			idtmp=ID;
-			var XHR = new XHRConnection();
-			XHR.appendData('DeleteAclID',ID);
-			XHR.appendData('hostname','$hostname');
-			XHR.sendAndLoad('$page', 'POST',X_DeleteAclIDNewFunc);	
-		}
+function DeleteAclIDNewFunc(ID){
+	idtmp=ID;
+	var XHR = new XHRConnection();
+	XHR.appendData('DeleteAclID',ID);
+	XHR.appendData('hostname','$hostname');
+	XHR.sendAndLoad('$page', 'POST',X_DeleteAclIDNewFunc);	
+}
 
 
 </script>
@@ -955,7 +1076,11 @@ function main_acl_table(){
 	$table="miltergreylist_acls";
 	$page=1;
 	if(!$q->TABLE_EXISTS("miltergreylist_acls", "artica_backup")){$q->BuildTables();}
-	
+	$FORCE=null;
+	if(!isset($_GET["filterby"])){$_GET["filterby"]=null;}
+	if($_GET["filterby"]<>null){
+		$FORCE=" AND `method`='{$_GET["filterby"]}'";
+	}
 	
 	if($q->COUNT_ROWS($table,"artica_backup")==0){
 		json_error_show("NO item,1");
@@ -972,21 +1097,15 @@ function main_acl_table(){
 	
 	if (isset($_POST['page'])) {$page = $_POST['page'];}
 	
-
-	if($_POST["query"]<>null){
-		$_POST["query"]="*{$_POST["query"]}*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
-		if($_POST["qtype"]=="servername"){$searchstring="AND (`value` LIKE '$search')";}
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring AND (`instance` = '{$_GET["hostname"]}')";
+	$searchstring=string_to_flexquery();
+	if($searchstring<>null){
+		
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring AND (`instance` = '{$_GET["hostname"]}') $FORCE";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 AND (`instance` = '{$_GET["hostname"]}')";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 AND (`instance` = '{$_GET["hostname"]}') $FORCE";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
 		$total = $ligne["TCOUNT"];
 	}
@@ -997,7 +1116,7 @@ function main_acl_table(){
 	
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring AND (`instance` = '{$_GET["hostname"]}') $ORDER $limitSql";	
+	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring AND (`instance` = '{$_GET["hostname"]}') $FORCE $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 
 	$data = array();
@@ -1006,20 +1125,22 @@ function main_acl_table(){
 	$data['rows'] = array();
 	$results = $q->QUERY_SQL($sql,"artica_backup");
 	if(!$q->ok){json_error_show($q->mysql_error,1);}
-	$divstart="<span style='font-size:14px;font-weight:bold'>";
-	$divstop="</div>";
 	
+	$divstart="<span style='font-size:12px;font-weight:normal'>";
+	$divstop="</div>";
+	if((mysql_num_rows($results)==0)){json_error_show("no data");}
 	
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
-	$delete=$tpl->_ENGINE_parse_body(imgtootltip('delete-32.png','{delete}',"DeleteAclIDNewFunc('{$ligne["ID"]}');"));
+	$delete=$tpl->_ENGINE_parse_body(imgsimple('delete-24.png',null,"DeleteAclIDNewFunc('{$ligne["ID"]}');"));
 	
 	
 	
 	$link="LoadMilterGreyListAcl$t({$ligne["ID"]});";
 	
 	
-	$js="<a href=\"javascript:blur()\" OnClick=\"javascript:$link\" style='text-decoration:underline;font-size:14px'>";
+	$js="<a href=\"javascript:blur()\" OnClick=\"javascript:$link\" 
+		style='text-decoration:underline;font-size:12px'>";
 	if($ligne["type"]=="gpid"){
 		if(preg_match("#gpid:([0-9]+)\s+(.+)#", $ligne["pattern"],$re)){
 			$ligne2=mysql_fetch_array($q->QUERY_SQL("SELECT objectname FROM miltergreylist_objects WHERE ID='{$re[1]}'","artica_backup"));
@@ -1034,8 +1155,9 @@ function main_acl_table(){
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
 		'cell' => array(
-		"<strong  style='font-size:14px'>{$ligne["method"]}</strong>",
-		"<strong  style='font-size:14px'>$type</strong>",
+		"<strong  style='font-size:12px'>{$ligne["zDate"]}</strong>",
+		"<strong  style='font-size:12px'>{$ligne["method"]}</strong>",
+		"<strong  style='font-size:12px'>$type</strong>",
 		"$js<strong>{$ligne["pattern"]}</strong></a>",
 		"$js<strong>{$ligne["description"]}</strong>",
 		 $delete)
@@ -1052,8 +1174,23 @@ echo json_encode($data);
 
 function explainThisacl(){
 	$tpl=new templates();
+	if($_GET["explainThisacl"]==null){return;}
 	
-	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:14px'>{{$_GET["explainThisacl"]}_text}</div>");
+	$mil=new milter_greylist();
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql();
+	
+	
+	$action=$mil->actionlist;
+	$action["gpid"]="{objects_group}";
+	$subtitle=$action[$_GET["explainThisacl"]];
+	
+	
+	echo $tpl->_ENGINE_parse_body("<div class=explain style='font-size:16px'>
+	<strong style='font-size:18px'>{{$_GET["xMode"]}}&nbsp;$subtitle</strong><br>
+	{{$_GET["explainThisacl"]}_text}</div>");
 	
 }
 
@@ -1181,18 +1318,38 @@ function SaveAclID(){
 	
 	
 	$infos=addslashes($infos);
+	
+	
+	
 	$line="$first $mode $type $pattern # $infos";
 	if($first=="acl"){
+		
+		$q=new mysql();
+		if(!$q->FIELD_EXISTS("miltergreylist_acls","zDate","artica_backup")){
+			$sql="ALTER TABLE `miltergreylist_acls` ADD `zDate` DATETIME,ADD INDEX ( `zDate` )";
+			$q->QUERY_SQL($sql,'artica_backup');
+		}		
+		
+		
 		if($id==-1){
-			$sql="INSERT INTO `miltergreylist_acls` (`instance`,`method`,`type`,`pattern`,`description`) VALUES 
-			('$instance','$mode','$type','$pattern','$infos')
-			";
+			$AllLines=explode("\n",$pattern);
+			if(count($AllLines)==0){$AllLines[]=$pattern;}
+			$prefix="INSERT INTO `miltergreylist_acls` (`zDate`,`instance`,`method`,`type`,`pattern`,`description`) VALUES ";
+			while (list ($index, $patterns) = each ($AllLines) ){
+				$zDate=date("Y-m-d H:i:s");
+				$patterns=mysql_escape_string2($patterns);
+				$TR[]="('$zDate','$instance','$mode','$type','$patterns','$infos')";
+			}
+			
+			$sql=$prefix.@implode(",", $TR);
+						
+			
 		}else{
-			$sql="UPDATE  `miltergreylist_acls` SET `method`='$mode',`type`='$type',`pattern`='$pattern',`description`='$infos' WHERE ID=$id;
+			$sql="UPDATE `miltergreylist_acls` SET `method`='$mode',`type`='$type',`pattern`='$pattern',`description`='$infos' WHERE ID=$id;
 			";
 		}
 		
-		$q=new mysql();
+		
 		writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 		$q->QUERY_SQL($sql,"artica_backup");
 		if(!$q->ok){echo $q->mysql_error;return;}

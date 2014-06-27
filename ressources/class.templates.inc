@@ -957,6 +957,7 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	if(preg_match("#font-size:([0-9]+)px#", $style,$re)){
 		$defined_size=intval($re[1]);
 		if($defined_size>16){$width=170;}
+		if($defined_size>24){$width=210;}
 	}
 	
 	
@@ -1367,6 +1368,13 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	$disa=null;
 	$shadow=null;
 	$shadowjs=null;
+	
+	if(preg_match("#explain=(.+?);#", $style,$re)){
+		$help=$re[1];
+		$style=str_replace("explain={$re[1]};", "", $style);
+	}
+	
+	
 	if(preg_match("#^shadow:(.*)#", $value,$re)){
 		$shadow=$re[1];
 		$value=null;
@@ -1386,7 +1394,7 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	if($class<>null){$class="class='$class'";}
 	if($OnChange<>null){$OnChange="\nOnChange=\"javascript:$OnChange\"";}
 	if($jsPressKey<>null){$jsPressKey="\nonkeypress=\"javascript:$jsPressKey;\"";}
-	if($OnClick<>null){$OnClick="OnClick=\"javascript:$OnClick;\"";}
+	if($OnClick<>null){$OnClick="\nOnClick=\"javascript:$OnClick;\"";}
 	
 
 	
@@ -1394,26 +1402,23 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	
 	if($help<>null){
 		$tpl=new templates();
-		$help_source=$help;
-		$help_source=str_replace('{','',$help_source);
-		$help_source=str_replace('}','',$help_source);
-		$help=$tpl->_ENGINE_parse_body($help);
-		$help=str_replace("\n","",$help);
-		$help=str_replace("\r\n","",$help);
-		$help=str_replace("\r","",$help);
-		$help=str_replace('"',"`",$help);	
-	
-		if($helpInside==false){
-		$help=help_icon($help);
-		}
-		else{
-		$OnMouseOver="OnMouseOver=\"javascript:AffBulle('$help');lightup(this, 100);\" ";
-		$OnMouseOut="OnMouseOut=\"javascript:HideBulle();lightup(this, 50);\"";
-		$help=null;
-		}
+		$helptxt=$tpl->_ENGINE_parse_body($help);
+		$helptxt=str_replace("\"", "'", $helptxt);
+		$helptxt=str_replace("\n", "", $helptxt);
+		$OnMouseOver="\nOnMouseOver=\"javascript:$(this).tooltip('show');\"";
+		$OnMouseOut="\nOnMouseOut=\"javascript:$(this).tooltip('hide');\"\n";
+		$OnMouseOut="{$OnMouseOut}data-toggle=\"tooltip\" data-html='true'\n";
+		$OnMouseOut="{$OnMouseOut}data-title=\"<div style=font-size:12px>$helptxt</div>\"\n";
+		
+		
 	}
 	
-	$FocusCss="onfocus=\"this.setAttribute('class','active')\" onblur=\"this.removeAttribute('class');\" style='$style' $class";
+	
+	
+	
+	
+	
+	$FocusCss="\nonfocus=\"this.setAttribute('class','active')\"\nonblur=\"this.removeAttribute('class');\" $class";
 	if($_SESSION["MINIADM"]==true){
 		$FocusCss=null;
 	}
@@ -1426,8 +1431,8 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	
 	
 	
-	return "$help
-	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\" $FocusCss $OnChange $jsPressKey $OnClick  $FocusCss $size $OnMouseOver $OnMouseOut$disa>$shadowjs";
+	return "<!-- help=$helptxt -->
+	<input type='text' id='$name' name='$name' value=\"$value\" style=\"$style\"$FocusCss$OnChange$jsPressKey$OnClick$size$OnMouseOver $OnMouseOut$disa>$shadowjs";
 }
 
 
@@ -1671,37 +1676,17 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 	
 	if(!$GLOBALS["EXECUTED_AS_ROOT"]){$tpl=new templates();$textToolTip=$tpl->_ENGINE_parse_body($textToolTip);}
 	if($textToolTip==null){$textToolTip=".";}	
-	$textToolTip=str_replace("'","`",$textToolTip);
-	if($id==null){$id=$md5;}
-	if(isset($_COOKIE["DisableToolTips"])){$DisableToolTips=$_COOKIE["DisableToolTips"];}
 	
-	$jsTool="<script>
-	function qtyp_{$id}(){
-			$(document).ready(function(){		
-				$('#$id').qtip({
-		  			content: $('#Text_$id').val(),
-		  			show: 'mouseover',
-		   			hide: 'mouseout',
-		   			style: 'cream',
-		   			hide: {event: 'click mouseleave',inactive: 3000},
-		   			tip: true
-					});	
-		});
-	}
-	qtyp_{$id}();
-	</script>";
 	
-	$browser=browser_detection();
-	if($browser=="ie"){
-		return "<div 
-		OnMouseOver=\";this.style.cursor='pointer';\" 
-		OnMouseOut=\";this.style.cursor='default';\" 
-		style='$float'
-		$js>
-		<img src='/$image_path' $align id='$id' $js>
-		</div>";
-		
-	}
+		$tpl=new templates();
+		$helptxt=$tpl->_ENGINE_parse_body($textToolTip);
+		$helptxt=str_replace("\"", "'", $helptxt);
+		$helptxt=str_replace("\n", "", $helptxt);
+		$OnMouseOver="\nOnMouseOver=\"javascript:$(this).tooltip('show');this.style.cursor='pointer'\"";
+		$OnMouseOut="\nOnMouseOut=\"javascript:$(this).tooltip('hide');this.style.cursor='default'\"\n";
+		$OnMouseOut="{$OnMouseOut}data-toggle=\"tooltip\" data-html='true'\n";
+		$OnMouseOut="{$OnMouseOut}data-title=\"<div style=font-size:14px>$helptxt</div>\"\n";
+
 	if($DisableToolTips==1){$jsTool=null;}
 	if(!isset($_SESSION["MINIADM"])){$_SESSION["MINIADM"]=false;}
 	if($_SESSION["MINIADM"]==true){$jsTool=null;}
@@ -1710,19 +1695,17 @@ function imgtootltip($img,$tooltip=null,$js=null,$align=null,$imgid=null){
 	}
 	
 	$IMAGE="
-	<input type='hidden' id='Text_$id' 
-	value='$textToolTip<br><hr><div style=text-align:right><a href=\"javascript:Blurz();\" OnClick=javascript:($(\"$id\").qtip(\"toggle\", false); style=\"font-size:11px\">{close}</a></div>'>
-	<div OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" style='$float'>
+	<div $OnMouseOver $OnMouseOut style='$float'>
 		<img src='/$image_path' $align id='$id' $js>
 	</div>
-	$jsTool
+	
 	\n";
 	if($filecache<>null){@file_put_contents($filecache,$IMAGE);}
 	return $IMAGE;
 	//$(this).fadeIn(500);
 	$IMAGE="
 	<div OnMouseOver=\";this.style.cursor='pointer';\" OnMouseOut=\";this.style.cursor='default';\" style='$float'>
-		<img src='/$image_path' $tooltip $align id='$id' $js>
+		<img src='/$image_path' $align id='$id' $js>
 	</div>
 ";
 	

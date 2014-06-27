@@ -831,6 +831,12 @@ function sarg(){
 
 	if($enabled==0){return implode("\n",$l);return;}
 	$l[]="running=1";
+	
+	if(!is_file("/etc/init.d/sarg")){
+		$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} {$GLOBALS["BASE_ROOT"]}/exec.initslapd.php --sarg");
+		shell_exec($cmd);
+	}
+	
 	$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($Masterbin);
 	if($GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		$l[]=GetMemoriesOf($master_pid);
@@ -1300,6 +1306,13 @@ function articadb(){
 		@unlink("/etc/artica-postfix/ARTICA_STAT_DB_SIZE");
 		@file_put_contents("/etc/artica-postfix/ARTICA_STAT_DB_SIZE", $ARTICA_STAT_DB_SIZE);
 	}
+	
+	$STATUS=unserialize(@file_get_contents("/etc/artica-postfix/ARTICA_STATDB_LAST_DOWNLOAD"));
+	
+	$ARRAY["CAT_STATS_SINCE"]=$GLOBALS["CLASS_UNIX"]->distanceOfTimeInWords($STATUS["LAST_DOWNLOAD"]["TIME"],time());
+	$ARRAY["CAT_STATS_LAST_CAT"]=$STATUS["LAST_DOWNLOAD"]["CATEGORY"];
+	$ARRAY["CAT_STATS_LAST_SIZE"]=$STATUS["LAST_DOWNLOAD"]["SIZE"];
+	$ARRAY["CAT_STATS_LAST_ERROR"]=$STATUS["LAST_DOWNLOAD"]["FAILED"];
 	
 	$ARRAY["CAT_STATS_SIZE"]=trim(@file_get_contents("/etc/artica-postfix/ARTICA_STAT_DB_SIZE"));
 	$ARRAY["CAT_STATS_PERCENT"]=$prc;

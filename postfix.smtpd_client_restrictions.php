@@ -24,54 +24,6 @@ function js_smtpd_client_restrictions_save(){
 	
 	return "
 	
-var x_smtpd_client_restrictions_save_new= function (obj) {
-	var tempvalue=obj.responseText;
-	if(tempvalue.length>3){alert(tempvalue);}
-	YahooWin2Hide();
-	if(document.getElementById('main_config_postfix_security')){
-		RefreshTab('main_config_postfix_security');
-	}
-}
-	
-function smtpd_client_restrictions_save(){
-	var XHR = new XHRConnection();
-		if(document.getElementById('reject_unknown_client_hostname').checked){XHR.appendData('reject_unknown_client_hostname',1);}
-		else{XHR.appendData('reject_unknown_client_hostname',0);}
-	
-		if(document.getElementById('reject_unknown_reverse_client_hostname').checked){XHR.appendData('reject_unknown_reverse_client_hostname',1);}
-		else{XHR.appendData('reject_unknown_reverse_client_hostname',0);}		
-		
-		if(document.getElementById('reject_unknown_sender_domain').checked){XHR.appendData('reject_unknown_sender_domain',1);}
-		else{XHR.appendData('reject_unknown_sender_domain',0);}	
-		
-		
-		if(document.getElementById('reject_invalid_hostname').checked){XHR.appendData('reject_invalid_hostname',1);}
-		else{XHR.appendData('reject_invalid_hostname',0);}	
-				
-		if(document.getElementById('reject_non_fqdn_sender').checked){XHR.appendData('reject_non_fqdn_sender',1);}
-		else{XHR.appendData('reject_non_fqdn_sender',0);}
-
-		if(document.getElementById('EnablePostfixAntispamPack').checked){XHR.appendData('EnablePostfixAntispamPack',1);}
-		else{XHR.appendData('EnablePostfixAntispamPack',0);}		
-			
-		if(document.getElementById('reject_forged_mails').checked){XHR.appendData('reject_forged_mails',1);}
-		else{XHR.appendData('reject_forged_mails',0);}		
-
-		if(document.getElementById('EnableGenericrDNSClients').checked){XHR.appendData('EnableGenericrDNSClients',1);}
-		else{XHR.appendData('EnableGenericrDNSClients',0);}			
-		
-		if(document.getElementById('EnablePostfixInternalDomainsCheck').checked){XHR.appendData('EnablePostfixInternalDomainsCheck',1);}
-		else{XHR.appendData('EnablePostfixInternalDomainsCheck',0);}				
-		
-		if(document.getElementById('RestrictToInternalDomains').checked){XHR.appendData('RestrictToInternalDomains',1);}
-		else{XHR.appendData('RestrictToInternalDomains',0);}		
-		
-		if(document.getElementById('disable_vrfy_command').checked){XHR.appendData('disable_vrfy_command',1);}
-		else{XHR.appendData('disable_vrfy_command',0);}			
-		
-		document.getElementById('smtpd_client_restrictions_div').innerHTML='<center style=\"width:100%\"><img src=img/wait_verybig.gif></center>';
-		XHR.sendAndLoad('$page', 'GET',x_smtpd_client_restrictions_save_new);	
-	}
 
 	";
 	
@@ -118,96 +70,65 @@ function smtpd_client_restrictions_popup(){
 		$EnableGenericrDNSClientsDisabledText="<br><i><span style='color:red;font-size:11px'>{EnableGenericrDNSClientsDisabledText}</span></i>";
 	}
 	
-	
-	
+	$t=time();
+	$page=CurrentPageName();
 $html="
 
 
-<div style='float:right;margin:5px'>$whitelists</div><div class=explain>{smtpd_client_restrictions_text}</div>
-	<input type='hidden' id='EnableGenericrDNSClientsDisabled' value='$EnableGenericrDNSClientsDisabled'>
-	<div id='smtpd_client_restrictions_div' style='height:300px;overflow:auto'>
-	<table class=tableView>
-	<tr>
-	<td valign='middle' width=1%>". Field_checkbox("disable_vrfy_command",1,$disable_vrfy_command)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{disable_vrfy_command}</td>
-	<td valign='middle' width=1%>". help_icon("{disable_vrfy_command_text}")."</td>
-	</tr>	
-	<tr class=oddRow>
-	<td valign='middle' width=1%>". Field_checkbox("reject_unknown_client_hostname",1,$reject_unknown_client_hostname)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{reject_unknown_client_hostname}</td>
-	<td valign='middle' width=1%>". help_icon("{reject_unknown_client_hostname_text}")."</td>
-	</tr>
-	<tr>
-	<td valign='middle' width=1%>". Field_checkbox("reject_unknown_reverse_client_hostname",1,$reject_unknown_reverse_client_hostname)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{reject_unknown_reverse_client_hostname}</td>
-	<td valign='middle' width=1%>". help_icon("{reject_unknown_reverse_client_hostname_text}")."</td>
-	</tr>
-	<tr class=oddRow>
-	<td valign='middle' width=1%>". Field_checkbox("reject_unknown_sender_domain",1,$reject_unknown_sender_domain)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{reject_unknown_sender_domain}</td>
-	<td valign='middle' width=1%>". help_icon("{reject_unknown_sender_domain_text}")."</td>
-	</tr>
-	
-	<tr>
-	<td valign='middle' width=1%>". Field_checkbox("reject_invalid_hostname",1,$reject_invalid_hostname)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{reject_invalid_hostname}</td>
-	<td valign='middle' width=1%>". help_icon("{reject_invalid_hostname_text}")."</td>
-	</tr>
-	
-	<tr  class=oddRow>
-	<td valign='middle' width=1%>". Field_checkbox("reject_non_fqdn_sender",1,$reject_non_fqdn_sender)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{reject_non_fqdn_sender}</td>
-	<td valign='middle' width=1%>". help_icon("{reject_non_fqdn_sender_text}")."</td>
-	</tr>
-	
-	<tr>
-	<td valign='middle' width=1%>". Field_checkbox("reject_forged_mails",1,$reject_forged_mails)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{reject_forged_mails}</td>
-	<td valign='middle' width=1%>". help_icon("{reject_forged_mails_text}")."</td>
-	</tr>	
-	
-	
-	<tr  class=oddRow>
-	<td valign='middle' width=1%>". Field_checkbox("EnablePostfixAntispamPack",1,$EnablePostfixAntispamPack_value)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{EnablePostfixAntispamPack}</td>
-	<td valign='middle' width=1%>". help_icon("{EnablePostfixAntispamPack_text}")."</td>
-	</tr>
-	
-	<tr>
-	<td valign='middle' width=1%>". Field_checkbox("EnableGenericrDNSClients",1,$EnableGenericrDNSClients,null,null)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{EnableGenericrDNSClients}$EnableGenericrDNSClientsDisabledText</td>
-	<td valign='middle' width=1%>". help_icon("{EnableGenericrDNSClients_text}")."</td>
-	</tr>
 
-	<tr  class=oddRow>
-	<td valign='middle' width=1%>". Field_checkbox("EnablePostfixInternalDomainsCheck",1,$EnablePostfixInternalDomainsCheck)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{EnablePostfixInternalDomainsCheck}</td>
-	<td valign='middle' width=1%>". help_icon("{EnablePostfixInternalDomainsCheck_text}")."</td>
-	</tr>	
-	<tr>
-	<td valign='middle' width=1%>". Field_checkbox("RestrictToInternalDomains",1,$RestrictToInternalDomains,null,null)."</td>
-	<td valign='middle' style='font-size:14px;text-transform:capitalize'>{RestrictToInternalDomains}</td>
-	<td valign='middle' width=1%>". help_icon("{RestrictToInternalDomains_text}")."</td>
-	</tr>	
+
+	<div class=explain style='font-size:18px'>{smtpd_client_restrictions_text}</div>
+	<input type='hidden' id='EnableGenericrDNSClientsDisabled' value='$EnableGenericrDNSClientsDisabled'>
+	<div id='smtpd_client_restrictions_div' style='width:98%' class=form>
+	
+	".Paragraphe_switch_img("{disable_vrfy_command}", "{disable_vrfy_command_text}","disable_vrfy_command-$t",$disable_vrfy_command,null,900)."
+	".Paragraphe_switch_img("{reject_unknown_client_hostname}", "{reject_unknown_client_hostname_text}","reject_unknown_client_hostname-$t",$reject_unknown_client_hostname,null,900)."
+	".Paragraphe_switch_img("{reject_unknown_reverse_client_hostname}", "{reject_unknown_reverse_client_hostname_text}","reject_unknown_reverse_client_hostname-$t",$reject_unknown_reverse_client_hostname,null,900)."
+	".Paragraphe_switch_img("{reject_unknown_sender_domain}", "{reject_unknown_sender_domain_text}","reject_unknown_sender_domain-$t",$reject_unknown_sender_domain,null,900)."
+	".Paragraphe_switch_img("{reject_invalid_hostname}", "{reject_invalid_hostname_text}","reject_invalid_hostname-$t",$reject_invalid_hostname,null,900)."
+	".Paragraphe_switch_img("{reject_non_fqdn_sender}", "{reject_non_fqdn_sender_text}","reject_non_fqdn_sender-$t",$reject_non_fqdn_sender,null,900)."
+	".Paragraphe_switch_img("{reject_forged_mails}", "{reject_forged_mails_text}","reject_forged_mails-$t",$reject_forged_mails,null,900)."
+	".Paragraphe_switch_img("{EnablePostfixAntispamPack}", "{EnablePostfixAntispamPack_text}","EnablePostfixAntispamPack-$t",$EnablePostfixAntispamPack_value,null,900)."
+	".Paragraphe_switch_img("{EnableGenericrDNSClients}", "{EnableGenericrDNSClients_text}","EnableGenericrDNSClients-$t",$EnableGenericrDNSClients,null,900)."
+	".Paragraphe_switch_img("{EnablePostfixInternalDomainsCheck}", "{EnablePostfixInternalDomainsCheck_text}","EnablePostfixInternalDomainsCheck-$t",$EnablePostfixInternalDomainsCheck,null,900)."
+	".Paragraphe_switch_img("{RestrictToInternalDomains}", "{RestrictToInternalDomains_text}","RestrictToInternalDomains-$t",$RestrictToInternalDomains,null,900)."
+			
+	
 						
 	</table>
 	</div>
 
-	<div style='width:100%;text-align:right'>
-	". button("{apply}","smtpd_client_restrictions_save()")."
+	<div style='width:100%;text-align:right'><hr>
+	". button("{apply}","Save$t()",26)."
 	
 	</div>
-
-	<script>
-		function EnableGenericrDNSClientsDisabledCheck(){
-			if(document.getElementById('EnableGenericrDNSClientsDisabled').value==1){
-				document.getElementById('EnableGenericrDNSClients').disabled=true;
-			}
-		}
-		
-		EnableGenericrDNSClientsDisabledCheck();
-	</script>
+<script>
+var xSave$t= function (obj) {
+	var tempvalue=obj.responseText;
+	if(tempvalue.length>3){alert(tempvalue);}
+	YahooWin2Hide();
+	if(document.getElementById('main_config_postfix_security')){
+		RefreshTab('main_config_postfix_security');
+	}
+}
 	
+function Save$t(){
+	var XHR = new XHRConnection();
+	
+		XHR.appendData('reject_unknown_client_hostname',document.getElementById('reject_unknown_client_hostname-$t').value);
+		XHR.appendData('reject_unknown_reverse_client_hostname',document.getElementById('reject_unknown_reverse_client_hostname-$t').value);
+		XHR.appendData('reject_unknown_sender_domain',document.getElementById('reject_unknown_sender_domain-$t').value);
+		XHR.appendData('reject_invalid_hostname',document.getElementById('reject_invalid_hostname-$t').value);
+		XHR.appendData('reject_non_fqdn_sender',document.getElementById('reject_non_fqdn_sender-$t').value);
+		XHR.appendData('EnablePostfixAntispamPack',document.getElementById('EnablePostfixAntispamPack-$t').value);
+		XHR.appendData('reject_forged_mails',document.getElementById('reject_forged_mails-$t').value);
+		XHR.appendData('EnableGenericrDNSClients',document.getElementById('EnableGenericrDNSClients-$t').value);
+		XHR.appendData('EnablePostfixInternalDomainsCheck',document.getElementById('EnablePostfixInternalDomainsCheck-$t').value);
+		XHR.appendData('RestrictToInternalDomains',document.getElementById('RestrictToInternalDomains-$t').value);
+		XHR.appendData('disable_vrfy_command',document.getElementById('disable_vrfy_command-$t').value);
+		XHR.sendAndLoad('$page', 'GET',xSave$t);	
+	}
+</script>			
 	";
 
 

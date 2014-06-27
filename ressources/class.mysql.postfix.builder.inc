@@ -304,10 +304,37 @@ class mysql_postfix_builder{
 		if(!$this->QUERY_SQL($sql)){return false;}
 		return true;
 		
-	}	
+	}
+
+public function postfix_buildday_connections($curdate=null){
+	if(!is_numeric($curdate)){
+		$curdate=date("Ymd");
+	}
+	
+	$tablename="{$curdate}_dcnx";
+	$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
+	`zmd5` varchar(90) NOT NULL,
+	`Hour` smallint(2) NOT NULL,
+	`cnx` BIGINT(100) NOT NULL,
+	`hostname` varchar(255) NOT NULL,
+	`domain` varchar(255) NOT NULL,
+	`ipaddr` varchar(90) NOT NULL,
+	PRIMARY KEY (`zmd5`),
+	KEY `Hour` (`Hour`),
+	KEY `cnx` (`cnx`),
+	KEY `hostname` (`hostname`),
+	KEY `domain` (`domain`),
+	KEY `ipaddr` (`ipaddr`)
+	) ENGINE=MYISAM;";
+	if(!$this->QUERY_SQL($sql)){
+		$this->events($q->mysql_error);
+		return false;}
+	return true;
+	
+}
 	
 public function postfix_buildhour_connections(){
-	$curdate=date("Ymdh");
+	$curdate=date("YmdH");
 	if(isset($GLOBALS["postfix_buildhour_connections"][$curdate])){return;}
 	$tablename="{$curdate}_hcnx";
 	$sql="CREATE TABLE IF NOT EXISTS `$tablename` (
@@ -555,6 +582,32 @@ private function events($text){
 		
 		
 	}
+	
+	
+	public function LIST_POSTFIX_CNX_HOUR_TABLES(){
+		if(isset($GLOBALS["LIST_POSTFIX_CNX_HOUR_TABLES"])){return $GLOBALS["LIST_POSTFIX_CNX_HOUR_TABLES"];}
+		$array=array();
+		$sql="SELECT table_name as c FROM information_schema.tables WHERE table_schema = '$this->database' AND table_name LIKE '%_hcnx'";
+		$results=$this->QUERY_SQL($sql);
+		if(!$this->ok){writelogs("Fatal Error: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);return array();}
+		if($GLOBALS["VERBOSE"]){echo $sql." => ". mysql_num_rows($results)."\n";}
+		$thishour=date("YmdH");
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			if(preg_match("#([0-9]+)_hcnx#", $ligne["c"],$re)){
+				if($re[1]==$thishour){continue;}
+				$number=$re[1];
+				$year=substr($number, 0,4);
+				$month=substr($number, 4,2);
+				$day=substr($number, 6,2);
+				$hour=substr($number, 8,2);
+				$GLOBALS["LIST_POSTFIX_CNX_HOUR_TABLES"][$ligne["c"]]="$year-$month-$day $hour:00:00";
+				$array[$ligne["c"]]=$ligne["c"];
+			}
+		}
+		return $GLOBALS["LIST_POSTFIX_CNX_HOUR_TABLES"];
+	
+	
+	}	
 	
 	
 	public function LIST_MILTERGREYLIST_HOUR_TABLES(){

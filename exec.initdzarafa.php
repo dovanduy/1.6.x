@@ -9,7 +9,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 
 
 $GLOBALS["ZARAFA_LOCALE"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ZARAFA_LANG"));
-if($GLOBALS["ZARAFA_LOCALE"]==null){$GLOBALS["ZARAFA_LOCALE"]="C";}
+if($GLOBALS["ZARAFA_LOCALE"]==null){$GLOBALS["ZARAFA_LOCALE"]="en_US";}
 
 if($argv[1]=="--lang"){
 	$GLOBALS["NOLANG"]=true;
@@ -37,6 +37,7 @@ if(!$GLOBALS["NOLANG"]){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$localgen="$php5 /usr/share/artica-postfix/exec.locale.gen.php --force";
 }
+
 
 
 
@@ -1044,16 +1045,82 @@ function zarafa_web(){
 function zarafa_server_all(){
 	$unix=new unix();
 	$php=$unix->LOCATE_PHP5_BIN();
+	$GLOBALS["ZARAFA_LOCALE"]=trim(@file_get_contents("/etc/artica-postfix/settings/Daemons/ZARAFA_LANG"));
+	if($GLOBALS["ZARAFA_LOCALE"]==null){$GLOBALS["ZARAFA_LOCALE"]="en_US";}
+	
 	
 	$zbdb=null;
 	$sock=new sockets();
 	$ZarafaDedicateMySQLServer=$sock->GET_INFO("ZarafaDedicateMySQLServer");
 	if(!is_numeric($ZarafaDedicateMySQLServer)){$ZarafaDedicateMySQLServer=0;}
-	
+	$zarafa_admin=$unix->find_program("zarafa-admin");
 	if($ZarafaDedicateMySQLServer==1){
 		shell_exec("$php /usr/share/artica-postfix/exec.zarafa-db.php --init");
 		$zbdb="$php /usr/share/artica-postfix/exec.zarafa-db.php --start";
-	}	
+	}
+	@unlink("/etc/default/zarafa");
+
+	if($GLOBALS["ZARAFA_LOCALE"]<>null){
+		$DEF[]="ZARAFA_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
+		$DEF[]="ZARAFA_USERSCRIPT_LOCALE=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
+		@file_put_contents("/etc/default/zarafa",@implode("\n", $DEF));
+		$DEF=array();
+		
+		$DEF[]="#! /bin/sh";
+		$DEF[]="# Create a Zarafa Public store for the new company.";
+		$DEF[]="PATH=\$PATH:/sbin:/usr/local/sbin:/usr/sbin";
+		$DEF[]="# The ZARAFA_COMPANY variable from the server will always be in UTF-8";
+		$DEF[]="# format.  The --utf8 option must be set before this value is used,";
+		$DEF[]="# since the current locale isn't necessarily UTF-8.";
+		$DEF[]="$zarafa_admin --utf8 -s -I \"\${ZARAFA_COMPANY}\"";		
+		$DEF[]="";
+		@file_put_contents("/etc/zarafa/userscripts/createcompany.d/00createpublic",@implode("\n", $DEF));
+		@chmod("/etc/zarafa/userscripts/createcompany.d/00createpublic",0755);
+		$DEF=array();
+		
+		$DEF[]="#! /bin/sh";
+		$DEF[]="# Create a Zarafa user for an already existing external user.  Create";
+		$DEF[]="# and initialize the user's stores.";
+		$DEF[]="PATH=\$PATH:/sbin:/usr/local/sbin:/usr/sbin";
+		$DEF[]="# The ZARAFA_USER variable from the server will always be in UTF-8";
+		$DEF[]="# format.  The --utf8 option must be set before this value is used,";
+		$DEF[]="# since the current locale isn't necessarily UTF-8.";
+		$DEF[]="zarafa-admin --utf8 --create-store \"\${ZARAFA_USER}\" --lang \"{$GLOBALS["ZARAFA_LOCALE"]}\"";
+		$DEF[]="";
+		@file_put_contents("/etc/zarafa/userscripts/createuser.d/00createstore",@implode("\n", $DEF));
+		@chmod("/etc/zarafa/userscripts/createuser.d/00createstore",0755);
+		$DEF=array();
+		
+		$DEF[]="# shell include script";
+		$DEF[]="ZARAFA_LANG=\"{$GLOBALS["ZARAFA_LOCALE"]}\"";
+		$DEF[]="PATH=/bin:/usr/local/bin:/usr/bin";
+		$DEF[]="export ZARAFA_LANG PATH";
+		$DEF[]="if [ -z \"\${ZARAFA_USER_SCRIPTS}\" ] ; then";
+		$DEF[]="exec >&2";
+		$DEF[]="echo \"Do not execute this script directly\"";
+		$DEF[]="exit 1";
+		$DEF[]="fi";
+		$DEF[]="if [ ! -d \"\${ZARAFA_USER_SCRIPTS}\" ] ; then";
+		$DEF[]="exec >&2";
+		$DEF[]="echo \"\${ZARAFA_USER_SCRIPTS} does not exist or is not a directory\"";
+		$DEF[]="exit 1";
+		$DEF[]="fi";
+		$DEF[]="if [ -z \"\${ZARAFA_USER}\" -a -z \"\${ZARAFA_STOREGUID}\" ] ; then";
+		$DEF[]="exec >&2";
+		$DEF[]="echo \"ZARAFA_USER and ZARAFA_STOREGUID is not set.\"";
+		$DEF[]="exit 1";
+		$DEF[]="fi";
+		$DEF[]="find \${ZARAFA_USER_SCRIPTS} -maxdepth 1 -type f -perm -u=x -not -name \*~ -not -name \#\* -not -name \*.rpm\* -not -name \*.bak -not -name \*.old -exec {} \;";
+		$DEF[]="";
+		@file_put_contents("/etc/zarafa/userscripts/users_common.sh",@implode("\n", $DEF));
+		@chmod("/etc/zarafa/userscripts/users_common.sh",0755);
+		$DEF=array();
+		
+	}
+
+	
+	
+	
 	
 	$f=array();
 	$f[]="#!/bin/sh";

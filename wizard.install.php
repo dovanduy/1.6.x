@@ -33,6 +33,7 @@ if(isset($_GET["setup-ufdbguard"])){setup_ufdbguard();exit;}
 if(isset($_POST["EnableUfdbGuard"])){EnableUfdbGuard();exit;}
 if(isset($_GET["progressbar-js"])){progressbar_js();exit;}
 if(isset($_GET["ShowProgress-js"])){progressbar_js();exit;}
+if(isset($_GET["video-proxy"])){video_proxy();exit;}
 js();
 
 
@@ -493,6 +494,21 @@ function js(){
 	
 }
 
+function video_proxy(){
+	$videoStarted="
+		
+			<center  >
+			<center style='font-size:18px;;margin-bottom:20px'>Video - Artica Proxy Started Guide</center>
+			<iframe style='margin:5px;background-color:black;
+				border:3px solid #A0A0A0;padding:5px;margin;5px;border-radius:5px 5px 5px 5px;-moz-border-radius:5px;
+				-webkit-border-radius:5px;'width='560' height='315'
+			src='//www.youtube.com/embed/7ZUqX8_5NGk?list=UUYbS4gGDNP62LsEuDWOMN1Q'
+				frameborder='0' allowfullscreen></iframe></center>";
+	echo $videoStarted;
+	
+	
+}
+
 function setup_1(){
 	$users=new usersMenus();
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
@@ -509,41 +525,40 @@ function setup_1(){
 			$WELCOME_WIZARD_2=@file_get_contents("ressources/templates/Squid/welcome-$DetectedLanguage.txt");
 		}
 		
-		$videoStarted="
-			
-			<center  >
-			<center style='font-size:18px;;margin-bottom:20px'>Video - Artica Proxy Started Guide</center>
-			<iframe style='margin:5px;background-color:black;border:3px solid #A0A0A0;padding:5px;margin;5px;border-radius:5px 5px 5px 5px;-moz-border-radius:5px;-webkit-border-radius:5px;'width='560' height='315' 
-			src='//www.youtube.com/embed/7ZUqX8_5NGk?list=UUYbS4gGDNP62LsEuDWOMN1Q' 
-				frameborder='0' allowfullscreen></iframe></center>";
+		$videolink=imgtootltip("youtube-play-64.png","{WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO}",
+				"YahooWin('600','$page?video-proxy=yes','video')");
+		
+
+		
+		
+		$videoStarted="<div style='font-size:14px;padding:15px'>
+		<table style='width:100%'>
+		<tr>
+		<td style='width:64px;vertical-align:top'>
+		$videolink</td>
+		<td style='vertical-align:top'>
+		<div style='font-size:14px;padding:15px'>{WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO}</div>
+		</td>
+		</tr>
+		</table>
+		</div>";
 		
 	}
 	
-	
+
 	
 	$html="
 	<input type='hidden' id='savedsettings' value=''>
 	<div id='setup-content'>
 	<div style='margin:10px;width:95%' class=form>
-	<div style='font-size:28px;font-weight:bolder;padding:15px'>{WELCOME_ON_ARTICA_PROJECT}</div>
-	<div style='font-size:18px;font-weight:
-	margin:5px;
-	margin-top:20px;
-	padding:3px;
-	border:1px solid #E40501;
-	border-radius:5px 5px 5px 5px;
-	 -moz-border-radius:5px;
-	-webkit-border-radius:5px;
-    background-color: #F7E5D9;
- 	font-weight:bold;
-    font-size: 14px;
-    margin-bottom: 20px;
-    padding: 8px 35px 8px 14px;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);color:#C10000'>{WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT}</div>
+	<div style='font-size:37px;font-weight:bolder;padding:15px'>{WELCOME_ON_ARTICA_PROJECT}</div>
+	<div style='font-size:14px;padding:15px'>{WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT}</div>
+
+	
     $videoStarted
-    <div style='text-align:right'><hr>". button("{next}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$WizardSavedSettings')","18px")."</div>
+    <div style='text-align:right'><hr>". button("{next}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$WizardSavedSettings')","36px")."</div>
 	<div style='margin:18px;font-size:14px'>{WELCOME_WIZARD_ARC1}$WELCOME_WIZARD_2</div>
-	<div style='text-align:right'><hr>". button("{next}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$WizardSavedSettings')","18px")."</div>
+	<div style='text-align:right'><hr>". button("{next}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$WizardSavedSettings')","36px")."</div>
 				
 	<center style='margin:10px;width:95%'><img src='img/bg_user.jpg'></center>
 	</div>
@@ -719,58 +734,59 @@ function setup_active_directory(){
 <table style='width:100%'>
 <tr>
 	<td colspan=3 style='padding-top:15px;padding-left:10px;'>
-	<div style='font-size:22px;margin-bottom:10px;'>{join_active_directory}</div>
+	<div style='font-size:50px;margin-bottom:30px;'>{join_active_directory}</div>
 </tr>	
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{EnableWindowsAuthentication}:</td>
+		<td class=legend style='font-size:25px' nowrap>{EnableWindowsAuthentication}:</td>
 		<td>". Field_checkbox("EnableKerbAuth",1,"$EnableKerbAuth","EnableKerbAuthCheck()")."</td>
 		<td>&nbsp;</td>
 	</tr>			
 <tr> 
-		<td class=legend style='font-size:16px'>{WINDOWS_DNS_SUFFIX}:</td>
-		<td>". Field_text("WINDOWS_DNS_SUFFIX",$array["WINDOWS_DNS_SUFFIX"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:25px'>{WINDOWS_DNS_SUFFIX}:</td>
+		<td>". Field_text("WINDOWS_DNS_SUFFIX",$array["WINDOWS_DNS_SUFFIX"],"font-size:25px;padding:3px;width:290px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{WINDOWS_SERVER_NETBIOSNAME}:</td>
-		<td>". Field_text("WINDOWS_SERVER_NETBIOSNAME",$array["WINDOWS_SERVER_NETBIOSNAME"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:25px'>{WINDOWS_SERVER_NETBIOSNAME}:</td>
+		<td>". Field_text("WINDOWS_SERVER_NETBIOSNAME",$array["WINDOWS_SERVER_NETBIOSNAME"],"font-size:25px;padding:3px;width:190px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{ADNETBIOSDOMAIN}:</td>
-		<td>". Field_text("ADNETBIOSDOMAIN",$array["ADNETBIOSDOMAIN"],"font-size:16px;padding:3px;width:165px")."</td>
+		<td class=legend style='font-size:25px'>{ADNETBIOSDOMAIN}:</td>
+		<td>". Field_text("ADNETBIOSDOMAIN",$array["ADNETBIOSDOMAIN"],"font-size:25px;padding:3px;width:290px")."</td>
 		<td>". help_icon("{howto_ADNETBIOSDOMAIN}")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{ADNETIPADDR}:</td>
-		<td>". field_ipv4("ADNETIPADDR",$array["ADNETIPADDR"],"font-size:16px")."</td>
+		<td class=legend style='font-size:25px'>{ADNETIPADDR}:</td>
+		<td>". field_ipv4("ADNETIPADDR",$array["ADNETIPADDR"],"font-size:25px")."</td>
 		<td>". help_icon("{howto_ADNETIPADDR}")."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px'>{WINDOWS_SERVER_TYPE}:</td>
-		<td>". Field_array_Hash($severtype,"WINDOWS_SERVER_TYPE",$array["WINDOWS_SERVER_TYPE"],"style:font-size:16px;padding:3px")."</td>
+		<td class=legend style='font-size:25px'>{WINDOWS_SERVER_TYPE}:</td>
+		<td>". Field_array_Hash($severtype,"WINDOWS_SERVER_TYPE",$array["WINDOWS_SERVER_TYPE"],
+				"style:font-size:25px;padding:3px")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px'>{COMPUTERS_BRANCH}:</td>
-		<td>". Field_text("COMPUTER_BRANCH",$array["COMPUTER_BRANCH"],"font-size:16px;padding:3px;width:165px")."</td>
+		<td class=legend style='font-size:25px'>{COMPUTERS_BRANCH}:</td>
+		<td>". Field_text("COMPUTER_BRANCH",$array["COMPUTER_BRANCH"],"font-size:25px;padding:3px;width:290px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px'>{administrator}:</td>
-		<td>". Field_text("WINDOWS_SERVER_ADMIN",$array["WINDOWS_SERVER_ADMIN"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:25px'>{administrator}:</td>
+		<td>". Field_text("WINDOWS_SERVER_ADMIN",$array["WINDOWS_SERVER_ADMIN"],"font-size:25px;padding:3px;width:290px")."</td>
 		<td>&nbsp;</td>
 	</tr>		
 	<tr>
-		<td class=legend style='font-size:16px'>{password}:</td>
-		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:16px;padding:3px;width:190px")."</td>
+		<td class=legend style='font-size:25px'>{password}:</td>
+		<td>". Field_password("WINDOWS_SERVER_PASS",$array["WINDOWS_SERVER_PASS"],"font-size:25px;padding:3px;width:170px")."</td>
 		<td>&nbsp;</td>
 	</tr>			
 	
 	<tr>
-		<td colspan=3 align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","18px")."</td>
+		<td colspan=3 align='left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings=$savedsettings_encoded')","30px")."</td>
 		<td>&nbsp;</td>
-		<td colspan=3 align='right'>". button("{next}","JoinActiveDirectory()","18px")."</td>
+		<td colspan=3 align='right'>". button("{next}","JoinActiveDirectory()","30px")."</td>
 	</tr>
 	</table>
 	</div>	
@@ -922,22 +938,19 @@ function setup_2(){
 		
 		$proxy="
 		<tr>
-			<td colspan=2 style='padding-top:15px;padding-left:10px;border-right:1px solid #CCCCCC;border-bottom:1px solid #CCCCCC'>
-			<div style='font-size:22px;margin-bottom:10px;border-bottom:1px solid #CCCCCC;margin-right:20px'>{proxy_parameters}</div>
-			<table style='width:55%'>
+			<td colspan=2 style='padding-top:15px;padding-left:10px;'>
+			<div style='font-size:22px;margin-bottom:10px;;margin-right:30px'>{proxy_parameters}</div>
+		</tr>
 		
 		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold' nowrap>{proxy_listen_port}:</td>
-			<td>". Field_array_Hash($arrayPP,"proxy_listen_port",$savedsettings["proxy_listen_port"],null,null,0,"font-size:14px")."</td>
+			<td class=legend style='font-size:25px;' nowrap>{proxy_listen_port}:</td>
+			<td>". Field_array_Hash($arrayPP,"proxy_listen_port",$savedsettings["proxy_listen_port"],null,null,0,"font-size:25px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px;font-weight:bold' nowrap>{activate_webfiltering}:</td>
+			<td class=legend style='font-size:25px;' nowrap>{activate_webfiltering}:</td>
 			<td>". Field_checkbox("EnableWebFiltering", 1,$savedsettings["EnableWebFiltering"])."</td>
 		</tr>
-				
-		</table>
-		</td>
-		</tr>			
+					
 		";	
 						
 
@@ -948,7 +961,7 @@ function setup_2(){
 	
 	if($users->POWER_DNS_INSTALLED){
 		$pdns="	<tr>
-		<td class=legend style='font-size:14px' nowrap>{activate_dns_service}:</td>
+		<td class=legend style='font-size:25px' nowrap>{activate_dns_service}:</td>
 		<td>". Field_checkbox("EnablePDNS", 1,0)."</td>
 		</tr>";		
 		
@@ -956,14 +969,14 @@ function setup_2(){
 	
 	if($users->FREERADIUS_INSTALLED){
 		$freeradius="	<tr>
-		<td class=legend style='font-size:14px'>{activate_radius_service}:</td>
+		<td class=legend style='font-size:25px'>{activate_radius_service}:</td>
 		<td>". Field_checkbox("EnableFreeRadius", 1,0)."</td>
 		</tr>";		
 	}
 	
 	if($users->dhcp_installed){
 		$dhcpd="	<tr>
-		<td class=legend style='font-size:14px'>{activate_dhcp_service}:</td>
+		<td class=legend style='font-size:25px'>{activate_dhcp_service}:</td>
 		<td>". Field_checkbox("EnableDHCPServer", 1,0)."</td>
 		</tr>";
 	}	
@@ -1000,77 +1013,77 @@ function setup_2(){
 	if($timezone_def==null){$timezone_def=getLocalTimezone();}
 	
 	$FORM="
-	
-	<table style='width:99%' class=form>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
 	<tr>
-		<td colspan=2 style='font-size:30px;font-weight:bolder;margin-bottom:15px'>{serveretdom}</td>
+		<td colspan=2 style='font-size:50px;'><div style='margin-bottom:35px'>{serveretdom}</div></td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px;vertical-align:top' nowrap>{timezone}:</td>
-		<td valign='top'>".Field_array_Hash($arrayTime,"timezones",$timezone_def,null,null,"style:font-size:16px;padding:3px")."</td>
+		<td class=legend style='font-size:25px;vertical-align:top' nowrap>{timezone}:</td>
+		<td valign='top'>".Field_array_Hash($arrayTime,"timezones",$timezone_def,null,null,"style:font-size:25px;padding:3px")."</td>
 	</tr>			
 	<tr>
-		<td class=legend style='font-size:16px' nowrap>{netbiosname}:</td>
-		<td>". Field_text("hostname_netbios",$netbiosname,"font-size:16px;width:220px",null,null,null,false,"ChangeQuickHostnameCheck(event)")."</td>
+		<td class=legend style='font-size:25px' nowrap>{netbiosname}:</td>
+		<td>". Field_text("hostname_netbios",$netbiosname,"font-size:25px;width:220px",null,null,null,false,"ChangeQuickHostnameCheck(event)")."</td>
 	</tr>
 	</tr>
-		<td class=legend style='font-size:16px' nowrap>{DomainOfThisserver}:</td>
-		<td>". Field_text("hostname_domain",$domainname,"font-size:16px;width:220px",null,null,null,false,"ChangeQuickHostnameCheck(event)")."</td>
+		<td class=legend style='font-size:25px' nowrap>{DomainOfThisserver}:</td>
+		<td>". Field_text("hostname_domain",$domainname,"font-size:25px;width:220px",null,null,null,false,"ChangeQuickHostnameCheck(event)")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 style='font-size:30px;font-weight:bolder;padding-top:20px'>{network}</td>
+		<td colspan=2 style='font-size:50px;padding-top:50px'>{network}</td>
 	</tr>				
 	<tr>
-		<td colspan=2 style='font-size:12px;font-weight:bolder'>{network_settings_will_be_applied_after_reboot}</td>
+		<td colspan=2 style='font-size:18px;font-weight:bolder'><div style='margin-bottom:35px'>{network_settings_will_be_applied_after_reboot}</div></td>
 	</tr>
 		<tr>
-			<td class=legend style='font-size:14px' nowrap>{keep_current_settings}:</td>
+			<td class=legend style='font-size:25px' nowrap>{keep_current_settings}:</td>
 			<td>" . Field_checkbox("KEEPNET",1,$KEEPNET,'KeepNetCheck()')."</td>
 		</tr>				
 		<tr>
-			<td class=legend style='font-size:14px' nowrap>{tcp_address}:</td>
-			<td>" . field_ipv4("IPADDR",$IPADDR,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:25px' nowrap>{tcp_address}:</td>
+			<td>" . field_ipv4("IPADDR",$IPADDR,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{netmask}:</td>
-			<td>" . field_ipv4("NETMASK",$NETMASK,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:25px'>{netmask}:</td>
+			<td>" . field_ipv4("NETMASK",$NETMASK,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 			
 		<tr>
-			<td class=legend style='font-size:14px'>{gateway}:</td>
-			<td>" . field_ipv4("GATEWAY",$GATEWAY,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:25px'>{gateway}:</td>
+			<td>" . field_ipv4("GATEWAY",$GATEWAY,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:14px'>{metric}:</td>
-			<td>" . field_text("metric-$t",$metric,'padding:3px;font-size:18px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:25px'>{metric}:</td>
+			<td>" . field_text("metric-$t",$metric,'padding:3px;font-size:25px;width:90px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>					
 		<tr>
-			<td class=legend style='font-size:14px'>{broadcast}:</td>
-			<td>" . field_ipv4("BROADCAST",$BROADCAST,'padding:3px;font-size:18px',null,null,null,false,null,$DISABLED)."</td>
+			<td class=legend style='font-size:25px'>{broadcast}:</td>
+			<td>" . field_ipv4("BROADCAST",$BROADCAST,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
 		</tr>		
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{primary_dns}:</td>
-		<td>". field_ipv4("DNS1", $arrayNameServers[0],"padding:3px;font-size:18px")."</td>
+		<td class=legend style='font-size:25px' nowrap>{primary_dns}:</td>
+		<td>". field_ipv4("DNS1", $arrayNameServers[0],"padding:3px;font-size:25px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:14px' nowrap>{secondary_dns}:</td>
-		<td>". field_ipv4("DNS2", $arrayNameServers[1],"padding:3px;font-size:18px")."</td>
+		<td class=legend style='font-size:25px' nowrap>{secondary_dns}:</td>
+		<td>". field_ipv4("DNS2", $arrayNameServers[1],"padding:3px;font-size:25px")."</td>
 	</tr>	
 	<tr>
 		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td colspan=2 style='font-size:30px;font-weight:bolder'>{services}</div></td>
+		<td colspan=2 style='font-size:50px;'><div style='margin-bottom:35px'>{services}</div></td>
 	</tr>	
 	$proxy			
 	$pdns	
 	$freeradius	
 	$dhcpd	
 	<tr>
-		<td colspan=2 style='font-size:16px;font-weight:bolder'><div style='text-align:right'><hr>". button("{next}","ChangeQuickHostname()","18px")."</div></td>
+		<td colspan=2 style='font-size:25px;font-weight:bolder'><div style='text-align:right'><hr>". button("{next}","ChangeQuickHostname()","30px")."</div></td>
 	</tr>
 	</table>
-	
+	</div>
 	
 	<script>
 		var X_ChangeQuickHostname= function (obj) {
@@ -1343,58 +1356,58 @@ function setup_3(){
 	
 	$company_name_txtjs=$tpl->javascript_parse_text("{company_name}");
 	$FORM="
-	
-	<table style='width:99%' class=form id='$t'>
+	<div style='width:98%' class=form>
+	<table style='width:100%' id='$t'>
 	<tr>
-		<td colspan=2 style='font-size:28px;font-weight:bolder'>{YourRealCompany}</td>
+		<td colspan=2 style='font-size:50px;font-weight:bolder'>{YourRealCompany}</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{company_name}:</td>
-		<td>". Field_text("company_name",$company_name,"font-size:18px;width:220px")."</td>
+		<td class=legend style='font-size:25px'>{company_name}:</td>
+		<td>". Field_text("company_name",$company_name,"font-size:25px;width:280px")."</td>
 	</tr>
 				
 	</tr>
-		<td class=legend style='font-size:18px'>{country}:</td>
-		<td>". Field_text("country",$country,"font-size:18px;width:220px")."</td>
+		<td class=legend style='font-size:25px'>{country}:</td>
+		<td>". Field_text("country",$country,"font-size:25px;width:280px")."</td>
 	</tr>
 	</tr>
-		<td class=legend style='font-size:18px'>{city}:</td>
-		<td>". Field_text("city",$city,"font-size:18px;width:220px")."</td>
+		<td class=legend style='font-size:25px'>{city}:</td>
+		<td>". Field_text("city",$city,"font-size:25px;width:280px")."</td>
 	</tr>
 					
 	</tr>
-		<td class=legend style='font-size:18px'>{your_email_address}:</td>
-		<td>". Field_text("mail",$mail,"font-size:18px;width:220px")."</td>
+		<td class=legend style='font-size:25px'>{your_email_address}:</td>
+		<td>". Field_text("mail",$mail,"font-size:25px;width:280px")."</td>
 	</tr>	
 	</tr>
-		<td class=legend style='font-size:18px'>{phone_title}:</td>
-		<td>". Field_text("telephone",$telephone,"font-size:16px;width:220px")."</td>
+		<td class=legend style='font-size:25px'>{phone_title}:</td>
+		<td>". Field_text("telephone",$telephone,"font-size:25px;width:280px")."</td>
 	</tr>
 	</tr>
-		<td class=legend style='font-size:18px'>{nb_employees}:</td>
-		<td>". Field_text("employees",$employees,"font-size:18px;width:80px")."</td>
+		<td class=legend style='font-size:25px'>{nb_employees}:</td>
+		<td>". Field_text("employees",$employees,"font-size:25px;width:80px")."</td>
 	</tr>
 
 	$UseServerFF
 	
 	<tr>
-		<td colspan=2 style='font-size:18px;font-weight:bolder'>&nbsp;</td>
+		<td colspan=2 style='font-size:25px;font-weight:bolder'>&nbsp;</td>
 	</tr>
 	<tr>
-		<td colspan=2 style='font-size:28px;font-weight:bolder'>{virtual_company}</div></td>
+		<td colspan=2 style='font-size:50px;font-weight:bolder'>{virtual_company}</div></td>
 	</tr>	
 	</tr>
-		<td class=legend style='font-size:18px'>{organization}:</td>
-		<td>". Field_text("organization",$organization,"font-size:18px;width:220px")."</td>
+		<td class=legend style='font-size:25px'>{organization}:</td>
+		<td>". Field_text("organization",$organization,"font-size:25px;width:280px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:18px'>{smtp_domain}:</td>
-		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:18px;width:220px",null,null,null,false,"CheckMyForm$t(event)")."</td>
+		<td class=legend style='font-size:25px'>{smtp_domain}:</td>
+		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:25px;width:280px",null,null,null,false,"CheckMyForm$t(event)")."</td>
 	</tr>	
 	
 	<tr>
-		<td style='font-size:16px;font-weight:bolder'><div style='text-align:left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings={$_GET["savedsettings"]}')","18px")."</div></td>
-		<td style='font-size:16px;font-weight:bolder'><div style='text-align:right'>". button("{next}","ChangeCompanySettings()","18px")."</div></td>
+		<td style='font-size:16px;font-weight:bolder'><div style='text-align:left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings={$_GET["savedsettings"]}')","30px")."</div></td>
+		<td style='font-size:16px;font-weight:bolder'><div style='text-align:right'>". button("{next}","ChangeCompanySettings()","30px")."</div></td>
 	</tr>
 	</table>
 	<div style='font-size:11px;text-align:right'>{noticeregisterform}</div>
@@ -1674,41 +1687,42 @@ function setup_4(){
 	$html="
 	$warn_memory
 	<div style='width:98%' class=form>
-	<div style='font-size:18px;font-weight:bolder;margin-bottom:10px'>End-Users WebAccess</div>
-		<p style='font-size:14px'>{miniadm_wizard_explain}</p>
-		<p style='font-size:14px'>{miniadm_wizard_explain2}</p>
+	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>End-Users WebAccess</div>
+		<p style='font-size:18px'>{miniadm_wizard_explain}</p>
+		<p style='font-size:18px'>{miniadm_wizard_explain2}</p>
 		<table style='width:100%'>
 				<tr>
-					<td class=legend style='font-size:14px'>{webserver}</td>
-					<td style='font-size:14px'>http://". Field_text("adminwebserver",$savedsettings["adminwebserver"],"font-size:14px;width:220px")."</td>
+					<td class=legend style='font-size:25px'>{webserver}:</td>
+					<td style='font-size:25px'>http://". Field_text("adminwebserver",$savedsettings["adminwebserver"],"font-size:25px;width:280px")."</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:14px'>{second_webadmin}</td>
-					<td style='font-size:14px'>http://". Field_text("second_webadmin",$savedsettings["second_webadmin"],"font-size:14px;width:220px")."</td>
+					<td class=legend style='font-size:25px'>{second_webadmin}:</td>
+					<td style='font-size:25px'>http://". Field_text("second_webadmin",$savedsettings["second_webadmin"],"font-size:25px;width:280px")."</td>
 				</tr>							
 							
 							
-				<td colspan=2><div style='font-size:22px;font-weight:bolder;margin-bottom:10px'>{administrator}:</div>
+				<td colspan=2><div style='font-size:50px;margin-bottom:30px'>{administrator}:</div>
 				<tr>
-					<td class=legend style='font-size:14px'>{username}:</td>
-					<td style='font-size:14px'>". Field_text("administrator",$savedsettings["administrator"],"font-size:14px;width:150px")."</td>
+					<td class=legend style='font-size:25px'>{username}:</td>
+					<td style='font-size:14px'>". Field_text("administrator",$savedsettings["administrator"],"font-size:25px;width:280px")."</td>
 				</tr>	
 				<tr>
-					<td class=legend style='font-size:14px'>{password}:</td>
-					<td style='font-size:14px'>". Field_password("administratorpass",$savedsettings["administratorpass"],"font-size:14px;width:150px")."</td>
+					<td class=legend style='font-size:25px'>{password}:</td>
+					<td style='font-size:14px'>". Field_password("administratorpass",$savedsettings["administratorpass"],"font-size:25px;width:170px")."</td>
 				</tr>	
-					<td colspan=2><div style='font-size:22px;font-weight:bolder;margin-bottom:10px'>{statistics_administrator}:</div>
+					<td colspan=2><div style='font-size:50px;margin-bottom:30px;margin-top:30px'>{statistics_administrator}:</div>
 				<tr>
-					<td class=legend style='font-size:14px'>{username}:</td>
-					<td style='font-size:14px'>". Field_text("statsadministrator",$savedsettings["statsadministrator"],"font-size:14px;width:150px")."</td>
-				</tr>	
-				<tr>
-					<td class=legend style='font-size:14px'>{password}:</td>
-					<td style='font-size:14px'>". Field_password("statsadministratorpass",$savedsettings["statsadministratorpass"],"font-size:14px;width:150px")."</td>
+					<td class=legend style='font-size:25px'>{username}:</td>
+					<td style='font-size:14px'>". Field_text("statsadministrator",$savedsettings["statsadministrator"],"font-size:25px;width:280px")."</td>
 				</tr>	
 				<tr>
-					<td style='font-size:14px;font-weight:bolder'><div style='text-align:left'>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","18px")."<div></td>
-					<td style='font-size:14px;font-weight:bolder'><div style='text-align:right'>". button("{build_parameters}","ChangeWebAccess()","18px")."</div></td>
+					<td class=legend style='font-size:25px'>{password}:</td>
+					<td style='font-size:14px'>". Field_password("statsadministratorpass",$savedsettings["statsadministratorpass"],"font-size:25px;width:170px")."</td>
+				</tr>	
+				<tr><td colspan=2><p>&nbsp;</p></td></tr>
+				<tr>
+					<td style='font-size:14px;font-weight:bolder'><div style='text-align:left'>". button("{back}","LoadAjax('setup-content','$page?setup-3=yes&savedsettings={$_GET["savedsettings"]}')","30px")."<div></td>
+					<td style='font-size:14px;font-weight:bolder'><div style='text-align:right'>". button("{build_parameters}","ChangeWebAccess()","30px")."</div></td>
 				</tr>							
 		</table>
 	</div>

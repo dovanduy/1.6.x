@@ -246,7 +246,7 @@ function tabs(){
 		unset($array["ufdbguard-status"]);
 	}
 	
-	$fontsize=14;
+	$fontsize=18;
 	if(count($array)>6){$fontsize=11.5;}
 	$t=time();
 	while (list ($num, $ligne) = each ($array) ){
@@ -1026,18 +1026,17 @@ function rules_table(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	
-	$compile_bt="{name: '<strong style=font-size:12px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},";
+	$compile_bt="{name: '<strong style=font-size:14px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},";
 	
 	if($UseRemoteUfdbguardService==1){$compile_bt=null;}
 	
 	$error_ldap=null;
 	$buttons="
 	buttons : [
-	{name: '<strong style=font-size:12px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
-	$compile_bt
-	{name: '<strong style=font-size:12px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
-	{name: '<strong style=font-size:12px;font-weight:bold>$global_parameters</strong>', bclass: 'Settings', onpress : UfdbGuardConfigs},
-	
+	{name: '<strong style=font-size:14px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
+	{name: '<strong style=font-size:14px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
+	{name: '<strong style=font-size:14px;font-weight:bold>$global_parameters</strong>', bclass: 'Settings', onpress : UfdbGuardConfigs},
+	$compile_bt	
 	
 	
 	
@@ -1078,9 +1077,9 @@ function rules_table(){
 	</div>");}
 	}	
 	
-$TBSIZE=157;
-$TBWIDTH=831;
-if($tpl->language=="fr"){$TBSIZE=175;$TBWIDTH=831;}
+$TBSIZE=350;
+$TBWIDTH=823;
+if($tpl->language=="fr"){$TBSIZE=350;$TBWIDTH=823;}
 	//{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'}, 
 	
 $html="
@@ -1228,15 +1227,10 @@ function rules_table_list(){
 	
 	if(isset($_POST["sortname"])){if($_POST["sortname"]<>null){$ORDER="ORDER BY {$_POST["sortname"]} {$_POST["sortorder"]}";}}	
 	if(isset($_POST['page'])) {$page = $_POST['page'];}
-	
+	$searchstring=string_to_flexquery();
 
-	if($_POST["query"]<>null){
-		$_POST["query"]="*".$_POST["query"]."*";
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("**", "*", $_POST["query"]);
-		$_POST["query"]=str_replace("*", "%", $_POST["query"]);
-		$search=$_POST["query"];
-		$searchstring="AND (`{$_POST["qtype"]}` LIKE '$search')";
+	if($searchstring<>null){
+
 		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $FORCE_FILTER $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];

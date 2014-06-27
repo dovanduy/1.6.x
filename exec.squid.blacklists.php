@@ -269,12 +269,26 @@ function cicap_artica($aspid=false){
 	$Remote_version=$NEW_CATZ_ARRAY["TIME"];
 	echo "Current............: $myVersion\n";
 	echo "Available..........: $Remote_version\n";
+	if($myVersion>$Remote_version){
+		echo "My version $myVersion is newest than $Remote_version, aborting\n";
+		return;}
 	if(!is_array($NEW_CATZ_ARRAY)){return;}
 	$CountDeTables=count($NEW_CATZ_ARRAY);
 	$DBS=0;
 	$z=0;
 	$cA=0;
 	$ERRORDB=0;
+	
+	$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+	$STATUS["LAST_DOWNLOAD"]["CATEGORY"]="-";
+	$STATUS["LAST_DOWNLOAD"]["FAILED"]=0;
+	$STATUS["LAST_DOWNLOAD"]["SIZE"]=0;
+	$DOWNLOADED_SIZE=0;
+	@file_put_contents("/etc/artica-postfix/ARTICA_STATDB_LAST_DOWNLOAD", serialize($STATUS));
+	
+	
+	
+	
 	while (list ($tablename, $items) = each ($NEW_CATZ_ARRAY) ){
 		if($tablename=="TIME"){continue;}
 		$z++;
@@ -300,6 +314,9 @@ function cicap_artica($aspid=false){
 		$curl->WriteProgress=true;
 		$curl->ProgressFile="/usr/share/artica-postfix/ressources/logs/web/cache/articatechdb.download";
 		$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+		$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$tablename;
+		$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+		@file_put_contents("/etc/artica-postfix/ARTICA_STATDB_LAST_DOWNLOAD", serialize($STATUS));
 		
 		if(is_file("$tmpdir/$tablename.artica.db.gz")){@unlink("$tmpdir/$tablename.artica.db.gz");}
 		if(!$curl->GetFile("$tmpdir/$tablename.artica.db.gz")){
@@ -309,12 +326,18 @@ function cicap_artica($aspid=false){
 			
 			unset($NEW_CATZ_ARRAY[$tablename]);
 			@unlink("$tmpdir/$tablename.artica.db.gz");
+			$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+			@file_put_contents("/etc/artica-postfix/ARTICA_STATDB_LAST_DOWNLOAD", serialize($STATUS));
 			continue;
 		}
+		
+		
+		$DOWNLOADED_SIZE=$DOWNLOADED_SIZE+@filesize("$tmpdir/$tablename.artica.db.gz");
 		$GLOBALS["DOWNLOADS"]=$GLOBALS["DOWNLOADS"]+@filesize("$tmpdir/$tablename.artica.db.gz");
 		
-		$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$tablename;
-		$STATUS["LAST_DOWNLOAD"]["SIZE"]=($GLOBALS["DOWNLOADS"]/1024);
+		$STATUS["LAST_DOWNLOAD"]["SIZE"]=($DOWNLOADED_SIZE/1024);
+		$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+		
 		
 		
 		
@@ -342,6 +365,8 @@ function cicap_artica($aspid=false){
 			dba_close($id);
 			@unlink("/home/artica/categories_databases/$tablename.db");
 			unset($NEW_CATZ_ARRAY[$tablename]);
+			$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+			@file_put_contents("/etc/artica-postfix/ARTICA_STATDB_LAST_DOWNLOAD", serialize($STATUS));
 			continue;
 		}
 		$GLOBALS["EVENTS"][]="SUCCESS $tablename ( $tablename_size KB )";
@@ -351,8 +376,7 @@ function cicap_artica($aspid=false){
 		if($GLOBALS["VERBOSE"]){echo " **** $WORKDIR/CATZ_ARRAY done *****\n";}
 		dba_close($id);
 		$DBS++;
-		$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
-		@file_put_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD", serialize($STATUS));
+		
 	}
 			
 	
@@ -518,6 +542,10 @@ function ufdbtables($nopid=false){
 	$GLOBALS["EVENTS"][]="$URIBASE/index.txt";
 	$GLOBALS["EVENTS"][]="filetime: $source_filetime ". date("Y-m-d H:i:s",$source_filetime);
 	$UFDBGUARD_LAST_INDEX_TIME="/etc/artica-postfix/UFDBGUARD_LAST_INDEX_TIME";
+	$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+	$STATUS["LAST_DOWNLOAD"]["SIZE"]=0;
+	
+	@file_put_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD", serialize($STATUS));
 	
 	$old_time=intval(@file_get_contents("$UFDBGUARD_LAST_INDEX_TIME"));
 	$GLOBALS["EVENTS"][]="Old filetime: $old_time ". date("Y-m-d H:i:s",$old_time);
@@ -549,15 +577,16 @@ function ufdbtables($nopid=false){
 	
 	$LOCAL_CACHE=unserialize(base64_decode(@file_get_contents($CACHE_FILE)));
 	$REMOTE_CACHE=unserialize(base64_decode(@file_get_contents("/etc/artica-postfix/artica-webfilter-db-index.txt")));
-	
+	$CALCULATED_SIZE=0;
 	
 	$MAx=count($REMOTE_CACHE);
 	$BigSize=0;
 	$c=0;
+	$ERRORDB=0;
 	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){	
 		if($size<>$LOCAL_CACHE[$tablename]){
 			$c++;
-			
+			$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$tablename;
 			$OriginalSize=$size;
 
 			echo "UFDB: downloading $tablename remote size:$size, local size:{$LOCAL_CACHE[$tablename]}\n";
@@ -565,20 +594,31 @@ function ufdbtables($nopid=false){
 			$curl=new ccurl("$URIBASE/$tablename.gz");
 			$curl->Timeout=380;
 			if(!$curl->GetFile("$tmpdir/$tablename.gz")){
+				$ERRORDB++;
 				squid_admin_mysql(1,"Unable to download blacklist $tablename.gz file $curl->error",@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__LINE__);
 				ufdbguard_admin_events("UFDB::Fatal: unable to download blacklist $tablename.gz file $curl->error\n".@implode("\n", $GLOBALS["EVENTS"]),__FUNCTION__,__FILE__,__LINE__,"ufbd-artica");
 				continue;
+				$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+				$STATUS["LAST_DOWNLOAD"]["SIZE"]=($GLOBALS["UFDB_SIZE"]/1024);
+				$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+				@file_put_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD", serialize($STATUS));
 			}
 			$prc=($c/$MAx)*100;
 			updatev2_progress2($prc,"$tablename ok");
-			$GLOBALS["UFDB_SIZE"]=$GLOBALS["UFDB_SIZE"]+@filesize("$tmpdir/$tablename.gz");
+			$CALCULATED_SIZE=$CALCULATED_SIZE + intval(@filesize("$tmpdir/$tablename.gz"));
+			$GLOBALS["UFDB_SIZE"]=$CALCULATED_SIZE;
 			
 			@mkdir("$WORKDIR/$tablename",0755,true);
 			if(!ufdbtables_uncompress("$tmpdir/$tablename.gz","$WORKDIR/$tablename/domains.ufdb")){
+				$ERRORDB++;
 				squid_admin_mysql(0,"Unable to extract blacklist $tablename.gz",null,__FUNCTION__,__LINE__);
 				artica_update_event(0,"Unable to extract blacklist $tablename.gz",null,__FUNCTION__,__LINE__);
 				ufdbguard_admin_memory("UFDB::Fatal: unable to extract blacklist $tablename.gz file",__FUNCTION__,__FILE__,__LINE__,
 				"ufbd-artica");
+				$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+				$STATUS["LAST_DOWNLOAD"]["SIZE"]=($CALCULATED_SIZE/1024);
+				$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+				@file_put_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD", serialize($STATUS));
 				continue;
 			}
 			@chown("$WORKDIR/$tablename/domains.ufdb", "squid");
@@ -590,10 +630,15 @@ function ufdbtables($nopid=false){
 			@chgrp("$WORKDIR/$tablename", "squid");	
 			$LOCAL_CACHE[$tablename]=$OriginalSize;	
 			$GLOBALS["EVENTS"][]="Success updating category `$tablename` with $size Ko";
-						
+			
+			$STATUS["LAST_DOWNLOAD"]["TIME"]=time();
+			$STATUS["LAST_DOWNLOAD"]["SIZE"]=($CALCULATED_SIZE/1024);
+			$STATUS["LAST_DOWNLOAD"]["FAILED"]=$ERRORDB;
+			@file_put_contents("/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD", serialize($STATUS));						
 		}
 		
 	}
+	
 	
 	@file_put_contents($CACHE_FILE, base64_encode(serialize($LOCAL_CACHE)));
 	updatev2_progress2(100,"DONE ok");
@@ -1252,6 +1297,11 @@ if(!$GLOBALS["BYCRON"]){
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());	
 	@file_put_contents($pidfile, getmypid());
+	$tlse_token=null;
+	if($GLOBALS["BYCRON"]){$tlse_token==" --bycron";}
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$nohup $php /usr/share/artica-postfix/exec.update.squid.tlse.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}$tlse_token >/dev/null 2>&1 &");
 	
 	updatev2_checkversion();
 	cicap_artica(true);

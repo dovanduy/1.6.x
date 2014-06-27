@@ -3117,7 +3117,7 @@ The rules for transferring (routing) are set in this section.[br]</transport_tab
 <UPDATE_KAS3>Update Anti-Spam databases</UPDATE_KAS3>
 <UPDATE_KAS3_TEXT>Update databases now in order to increase detection rate</UPDATE_KAS3_TEXT>
 <update_kaspersky_database_title>Update antivirus database</update_kaspersky_database_title>
-<update_now>Update now</update_now>
+<update_now>Update</update_now>
 <update_settings>Update settings</update_settings>
 <upgrade_artica>New artica version</upgrade_artica>
 <upgrade_artica_text>A new Artica version is available, you can perform update if you want...</upgrade_artica_text>

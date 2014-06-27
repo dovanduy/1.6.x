@@ -347,7 +347,7 @@ function SetSALS(){
 		$cmd["smtpd_tls_cert_file"]="/etc/ssl/certs/postfix/ca.crt";
 		$cmd["smtpd_tls_CAfile"]="/etc/ssl/certs/postfix/ca.csr";
 		$cmd["smtpd_delay_reject"]="yes";
-		$cmd["cyrus_sasl_config_path"]="/etc/postfix/sasl/smtpd.conf";
+		$cmd["cyrus_sasl_config_path"]="/etc/postfix/sasl";
 		$cmd["smtpd_tls_session_cache_timeout"]=$main->main_array["smtpd_tls_session_cache_timeout"];
 		echo "Starting......: ".date("H:i:s")." SASL authentication running ". count($cmd)." commands\n";
 		while (list ($num, $ligne) = each ($cmd) ){

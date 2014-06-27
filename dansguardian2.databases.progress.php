@@ -97,10 +97,20 @@ function page(){
 	if(!is_numeric($CAT_ARTICA_LAST_ERROR)){$CAT_ARTICA_LAST_ERROR=0;}
 	
 	
-	
+	$CAT_STATS_SINCE=$ARTICA_DBS_STATUS["CAT_STATS_SINCE"];
+	$CAT_STATS_LAST_CAT=$ARTICA_DBS_STATUS["CAT_STATS_LAST_CAT"];
+	$CAT_STATS_LAST_SIZE=$ARTICA_DBS_STATUS["CAT_STATS_LAST_SIZE"];
+	$CAT_STATS_LAST_ERROR=$ARTICA_DBS_STATUS["CAT_STATS_LAST_ERROR"];
+	if(!is_numeric($CAT_STATS_LAST_SIZE)){$CAT_STATS_LAST_SIZE=0;}
+	if(!is_numeric($CAT_STATS_LAST_ERROR)){$CAT_STATS_LAST_ERROR=0;}
+	if($CAT_STATS_SINCE==null){$CAT_STATS_SINCE="-";}
+	if($CAT_STATS_LAST_CAT==null){$CAT_STATS_LAST_CAT="-";}
 	
 	
 	$html="
+	<div style='margin-top:15px;margin-bottom:15px;text-align:right'>". imgtootltip("refresh-32.png",null,"RefreshTab('main_webfiltering_updates')")."</div>
+	
+	
 	<div style='margin-top:15px;font-size:26px;margin-bottom:30px'>{categories_databases}</div>
 	
 	<table style='width:100%'>
@@ -128,6 +138,22 @@ function page(){
 		<td class=legend style='font-size:18px'>{websites}:</td>
 		<td style='font-size:18px'>$CountDecategories</td>
 	</tr>
+	<tr>
+		<td class=legend style='font-size:18px'>{last_download}:</td>
+		<td style='font-size:18px'>$CAT_STATS_SINCE</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{last_category}:</td>
+		<td style='font-size:18px'>$CAT_STATS_LAST_CAT</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{last_downloaded_size}:</td>
+		<td style='font-size:18px'>". FormatBytes($CAT_STATS_LAST_SIZE)."</td>
+	</tr>	
+	<tr>
+		<td class=legend style='font-size:18px'>{errors}:</td>
+		<td style='font-size:18px'>". $CAT_STATS_LAST_ERROR."</td>
+	</tr>					
 	<tr>
 		<td colspan=2 align='right'>". button("{update_now}", "Loadjs('squid.blacklist.upd.php')",16)."</td>
 	</tr>			

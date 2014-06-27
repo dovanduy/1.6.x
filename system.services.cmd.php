@@ -106,7 +106,7 @@ function popup(){
 			if(document.getElementById('main_backup_fly')){RefreshTab('main_backup_fly');}
 			if(document.getElementById('OPENDKIM_TABS')){RefreshTab('OPENDKIM_TABS');}
 			if(document.getElementById('main_config_fetchmail')){RefreshTab('main_config_fetchmail');}
-			
+			if(document.getElementById('main_config_mgreylist')){RefreshTab('main_config_mgreylist');}
 			
 			
 			
@@ -298,6 +298,18 @@ function ifStopped(){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;
 			}
+			
+			if(preg_match("#already Artica Starting#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			if(preg_match("#Generator.*?success#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
+			
+			
 		
 		}
 		
@@ -312,7 +324,12 @@ function ifStopped(){
 			if(preg_match("#success stopped#i", $ligne)){
 				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
 				return;
-			}			
+			}		
+
+			if(preg_match("#Generator.*?success#i", $ligne)){
+				echo "if(document.getElementById('stopall-$tTime')){document.getElementById('stopall-$tTime').value=1}\n";
+				return;
+			}
 			
 		}
 		

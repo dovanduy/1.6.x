@@ -2186,7 +2186,7 @@ don't forget to opening the administration page with the following URL</howto_jo
 <ISOCanChangeRootPWD>Can modify root password</ISOCanChangeRootPWD>
 <ISOCanChangeLanguage>Can change the system language</ISOCanChangeLanguage>
 <settings_after_reboot>Settings will take effect after reboot the computer</settings_after_reboot>
-<blklist_update_now_text>Launch blacklist databases update now</blklist_update_now_text>
+<blklist_update_now_text>Launch blacklist databases update</blklist_update_now_text>
 <select_this_ou>Select this organization</select_this_ou>
 <enable_mod_pagespeed>Enable optimizes web pages</enable_mod_pagespeed>
 <mod_pagespeed_about>It is a feature that automatically optimizes web pages and resources on them.[br]

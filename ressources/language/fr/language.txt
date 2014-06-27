@@ -43,7 +43,7 @@ mais il c'est assez proche de la s&eacute;mantique de Windows pour la plupart de
 <action_email>Envoyer un mail de notification</action_email>
 <action_halt>Arr&ecirc;ter l'ordinateur</action_halt>
 <action_ignore>Ignorer</action_ignore>
-<action_keepup2date>Mettre &agrave; jour la base maintenant</action_keepup2date>
+<action_keepup2date>Mise &agrave; jour de la base</action_keepup2date>
 <action_mail_acct>Cette option doit contenir une adresse mail valide.Elle requi&egrave;re la disponibilit&eacute; du programme /usr/lib/sendmail</action_mail_acct>
 <action_start_service>D&eacute;marrer le service</action_start_service>
 <action_stop_service>Arr&ecirc;ter le service</action_stop_service>
@@ -73,7 +73,7 @@ Cette op&eacute;ration va activer le service et la sauvegarde &agrave; distance 
 <activedirectory_domain>Domaine Active Directory</activedirectory_domain>
 <activedirectory_server>Nom du serveur AD</activedirectory_server>
 <active_queue>En activit&eacute;</active_queue>
-<add>ajouter</add>
+<add>Ajouter</add>
 <add aliase>Ajouter un alias</add aliase>
 <add domain explain>Ajouter un nouveau domaine Internet SMTP &agrave; votre organisation</add domain explain>
 <add email>Ajouter une adresse de messagerie</add email>
@@ -84,7 +84,7 @@ Cette op&eacute;ration va activer le service et la sauvegarde &agrave; distance 
 <add new rule>Ajouter une r&egrave;gle</add new rule>
 <add user explain>Ajouter un utilisateur dans votre organisation</add user explain>
 <added>Ajout&eacute;</added>
-<addremoveprog>Ajouter/Supprimer/Mettre &agrave; jour les programmes</addremoveprog>
+<addremoveprog>Ajouter/Supprimer/Mise &agrave; jour des programmes</addremoveprog>
 <address>Adresse</address>
 <address_text>D&eacute;finissez l'adresse de membre, le num&eacute;ro de t&eacute;l&eacute;phone, la rue et d'autres informations</address_text>
 <address_user_text>Modification des informations utilisateur (t&eacute;l&eacute;phone, adresse postale...)</address_user_text>
@@ -1232,7 +1232,7 @@ Vous pouvez ajouter des privil&egrave;ges de groupe afin d'autoriser certains ut
 <DecodeShortURLs_explain>Beaucoup de r&eacute;seaux sociaux et m&ecirc;me des programmes de messagerie n'autorisent pas r&eacute;ception de liens web longs.
 Les spammeurs on donc modifi&eacute; leur comportement en utilisant des services qui permettent de raccourcir les liens web dans le contenu de leur spams afin de contourner les interdictions.[br]Ce plugin d&eacute;tecte ce comportement</DecodeShortURLs_explain>
 <dedicated_storage>Stockage d&eacute;di&eacute;</dedicated_storage>
-<default>defaut</default>
+<default>D&eacute;faut</default>
 <Default domain>Domaine par d&eacute;faut</Default domain>
 <default_destination_concurrency_limit>nombre maximal par d&eacute;faut de livraisons parall&egrave;les</default_destination_concurrency_limit>
 <default_destination_concurrency_limit_text>il a par d&eacute;faut le nombre maximal de livraisons parall&egrave;les vers la m&ecirc;me destination. 
@@ -2179,7 +2179,7 @@ Attention : avec une valeur fix&eacute;e &agrave; 1, un seul message incorrect p
 <inputbox add group>Donner le nom du groupe</inputbox add group>
 <inputbox add user>Donnez le nom et pr&eacute;nom ou l'adresse mail de votre nouvel utilisateur</inputbox add user>
 <inputbox delete group>effacer ce groupe?</inputbox delete group>
-<input_select_list>S&eacute;lectionner dans la liste</input_select_list>
+<input_select_list>S&eacute;lectionner</input_select_list>
 <install>install&eacute;</install>
 <installed>install&eacute;</installed>
 <installed applications>applications install&eacute;es</installed applications>
@@ -2754,7 +2754,7 @@ Dans ce cas, Il est possible de l'utiliser va script de connexion ou bien via un
 <NO_POSTFIX_NETWORK_SET_EXPLAIN>Vous devriez ajouter votre r&eacute;seau local afin d'autoriser vos utilisateurs &agrave; &eacute;mettre des messages sur ce serveur.</NO_POSTFIX_NETWORK_SET_EXPLAIN>
 <no_privileges>Vous n'avez pas assez de privil&egrave;ges pour effectuer cette op&eacute;ration</no_privileges>
 <no_rules>Aucune r&egrave;gle sauvegard&eacute;e..</no_rules>
-<NO_RULESNUMBER_DANS_EXPLAIN>Vous devez au moins cr&eacute;er un r&egrave;gle DansGuardian afin d'utiliser cette option</NO_RULESNUMBER_DANS_EXPLAIN>
+<NO_RULESNUMBER_DANS_EXPLAIN>Vous devez au moins cr&eacute;er une r&egrave;gle DansGuardian afin d\'utiliser cette option</NO_RULESNUMBER_DANS_EXPLAIN>
 <no_squid_network>Pas de r&eacute;seau d&eacute;finit</no_squid_network>
 <no_squid_network_text>Pour l'instant, aucun r&eacute;seau n'a &eacute;t&eacute; d&eacute;finit, Squid refusera toutes les connexions</no_squid_network_text>
 <no_usb_devices_connected>Il n'y a pas de p&eacute;riph&eacute;rique USB connect&eacute; &agrave; cet ordinateur</no_usb_devices_connected>
@@ -3482,18 +3482,18 @@ Vous pouvez activer la fonctionnalit&eacute; RBL RHSBL afin d'&eacute;viter les 
 <security_rules_text>Ouvrez la synth&egrave;se [b] des r&egrave;gles SMTP[/b] en une seule page afin de voir l'ordre du flux d'analyse.</security_rules_text>
 <see_conf>Voir la configuration cr&eacute;e</see_conf>
 <see_config>Voir le fichier cr&eacute;e</see_config>
-<select>s&eacute;lectionner</select>
+<select>S&eacute;lectionner</select>
 <select task>S&eacute;lectionner la t&acirc;che</select task>
-<selected>s&eacute;lectionner</selected>
+<selected>S&eacute;lectionn&eacute;</selected>
 <selected_rule>S&eacute;lectionner la r&egrave;gle</selected_rule>
 <selector_name>Nom du s&eacute;lecteur</selector_name>
 <select_a_rule_first>S&eacute;lectionnez une r&egrave;gle d'abord</select_a_rule_first>
-<select_filter>S&eacute;lectionner le filtre appropri&eacute;</select_filter>
-<select_group>Selectionner le groupe</select_group>
-<select_group_text>S'il vous pla&icirc;t s&eacute;lectionner dans la liste le groupe que vous souhaitez g&eacute;rer, afin de voir les r&eacute;glages</select_group_text>
+<select_filter>S&eacute;lectionner le filtre</select_filter>
+<select_group>S&eacute;lectionner le groupe</select_group>
+<select_group_text>S&eacute;lectionner dans la liste le groupe que vous souhaitez administrer, afin de visualiser les r&eacute;glages</select_group_text>
 <select_ip_address>S&eacute;lectionner l'adresse</select_ip_address>
 <select_this_container>S&eacute;lectionnez ce conteneur</select_this_container>
-<select_this_file>S&eacute;lectionner ce fichier</select_this_file>
+<select_this_file>S&eacute;lectionner le fichier</select_this_file>
 <select_user_group_text>Un groupe est utilis&eacute; pour d&eacute;finir les privil&egrave;ges des fonctions et les op&eacute;rations autoris&eacute;es dans le portail.[br] Si vous n'avez pas s&eacute;lectionn&eacute; un groupe, l'utilisateur sera un simple utilisateur avec un acc&egrave;s uniquement &agrave; sa bo&icirc;te aux lettres</select_user_group_text>
 <select_user_group_title>S&eacute;lectionner le groupe d'utilisateur</select_user_group_title>
 <selfmx>Self MX</selfmx>
@@ -3705,8 +3705,8 @@ La valeur par d&eacute;faut est de permettre tout.[br]
 Sp&eacute;cifiez une liste de restrictions, poursuivre les lignes longues en commen&ccedil;ant par la ligne suivante.[br]
 Les restrictions sont appliqu&eacute;es dans l'ordre indiqu&eacute;, la premi&egrave;re restriction qui correspond gagne.</smtpd_sender_restrictions_text>
 <smtpd_soft_error_limit>Limite d'erreur de soft</smtpd_soft_error_limit>
-<smtpd_soft_error_limit_text>Nombre d'erreurs qu'un client SMTP distant est autoris&eacute; &agrave; faire, sans livrer le courrier avant que le serveur SMTP de Postfix ralentisse toutes ses r&eacute;ponses.[br]
-Le serveur SMTP de Postfix retarde toutes les r&eacute;ponses par &quot;erreur de temps de mise en veille&quot; secondes.</smtpd_soft_error_limit_text>
+<smtpd_soft_error_limit_text>Nombre d\'erreurs qu\'un client SMTP distant est autoris&eacute; &agrave; faire, sans livrer le courrier avant que le serveur SMTP de Postfix ralentisse toutes ses r&eacute;ponses.[br]
+Le serveur SMTP de Postfix retarde toutes les r&eacute;ponses par \&quot;retardement\&quot; en secondes.</smtpd_soft_error_limit_text>
 <smtpd_tls_auth_only>n'annonce ou n'accepte pas les authentifications SASL dans une connexion non chiffr&eacute;e</smtpd_tls_auth_only>
 <smtpd_tls_auth_only_text>Lorsque le chiffrement TLS est optionel dans le serveur SMTP de Postfix, n'annonce ou n'accepte pas les authentifications SASL dans une connexion non chiffr&eacute;e</smtpd_tls_auth_only_text>
 <smtpd_tls_CAfile>Fichier de Certificat de l'Autorit&eacute; de Certification</smtpd_tls_CAfile>
@@ -4069,7 +4069,7 @@ Vous allez &ecirc;tre redirig&eacute; vers la nouvelle adresse IP dans 15 second
 <synchronizing_mailbox>Synchronisation de boites aux lettres</synchronizing_mailbox>
 <syncinternaldate>Synchroniser les dates internes</syncinternaldate>
 <syncinternaldate_text>modifie les dates internes sur le serveur de destination par rapport au serveur source.[br]La date interne est la date d'arriv&eacute;e du message sur le serveur source.</syncinternaldate_text>
-<synthesis>synth&egrave;se</synthesis>
+<synthesis>Synth&egrave;se</synthesis>
 <syslog>&Eacute;v&egrave;nements syst&egrave;me</syslog>
 <system>Syst&egrave;me</system>
 <system error>Il y a un soucis syst&egrave;me, peut &ecirc;tre une erreur  preg_match ou la socket ne peut &ecirc;tre ouverte</system error>
@@ -4399,7 +4399,7 @@ Si il est en rouge, vous allez devoir maintenir la base des utilisateurs.[br]Cet
 <UPDATE_KAS3>Mettre &agrave; jour les bases anti-spam</UPDATE_KAS3>
 <UPDATE_KAS3_TEXT>Mettre &agrave; jour les bases antivirus afin d'accro&icirc;tre le niveau de d&eacute;tection.</UPDATE_KAS3_TEXT>
 <update_kaspersky_database_title>Base de donn&eacute;es de mise &agrave; jour antivirale</update_kaspersky_database_title>
-<update_now>faites la mise &agrave; jour maintenant</update_now>
+<update_now>Mise &agrave; jour</update_now>
 <update_servers_sources>Mise &agrave; jour des serveurs.</update_servers_sources>
 <update_settings>Param&egrave;tres de mise &agrave; jour</update_settings>
 <upgrade>Mise &agrave; jour</upgrade>

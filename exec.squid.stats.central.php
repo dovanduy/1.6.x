@@ -147,6 +147,13 @@ shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.squid.stats.php --thumbs
 
 percentage("table_days()",2);
 table_days();
+
+percentage("Repair Members tables",2);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.members.hours.php --repair --byschedule --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+
+percentage("Repair Sum tables",2);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.totals.php --repair --byschedule --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+
 percentage("WeekDaysNums()",2);
 WeekDaysNums();
 stats_admin_events(2,"2%) Fix tables executed took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
@@ -328,6 +335,11 @@ stats_admin_events(2,"32%)  Months tables.... took:" .$unix->distanceOfTimeInWor
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 
+$t=time();
+percentage("Categorize last 7 days...",37);
+
+
+
 
 $t=time();
 percentage("Categorize Month tables (3) ...",32);
@@ -343,6 +355,9 @@ percentage("Months tables by users (4)...",35);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.uid-month.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 stats_admin_events(2,"35%)  Months tables.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+
+
 
 $t=time();
 percentage("Repair categories",40);
@@ -411,6 +426,14 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.php --thumbs-parse --
 stats_admin_events(2,"50%) Parse thumbs.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
+percentage("Repair not categorized",55);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.recategorize.missed.php --repair --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
+percentage("Not categorized - last 7 days",55);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.recategorize.missed.php --last7-days --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"5%) Parse thumbs.... took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 $t=time();
 percentage("Reports",60);

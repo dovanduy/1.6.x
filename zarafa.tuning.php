@@ -100,6 +100,7 @@ function page(){
 	
 	
 	$ZARAFA_LANG=$sock->GET_INFO("ZARAFA_LANG");
+	if($ZARAFA_LANG==null){$ZARAFA_LANG="en_US";}
 	$languages=unserialize(base64_decode($sock->getFrameWork("zarafa.php?locales=yes")));
 	while (list ($index, $data) = each ($languages) ){
 		if(preg_match("#cannot set#i", $data)){continue;}
@@ -151,7 +152,7 @@ for($i=0;$i<10;$i++){
 	
 	$mailbox_language=Field_array_Hash($langbox,"ZARAFA_LANG",$ZARAFA_LANG,"style:font-size:18px;padding:3px");
 	$build_locales_explain=$tpl->javascript_parse_text("{build_locales_explain}");
-	
+	$zarafa_must_restarted=$tpl->javascript_parse_text("{zarafa_must_restarted}");
 	
 	$html="
 	<div id='$t'>
@@ -173,7 +174,7 @@ for($i=0;$i<10;$i++){
 <div style='width:98%' class=form>	
 	<table style='width:99%'>				
 	<tr>
-		<td colspan=3 style='font-size:22px'>{listen_addresses}</td>
+		<td colspan=3 style='font-size:28px'>{listen_addresses}</td>
 	</tr>	
 	<tr>
 		<td class=legend style='font-size:18px'>{outgoing_smtp_server}:</td>
@@ -215,7 +216,7 @@ for($i=0;$i<10;$i++){
 <div style='width:98%' class=form>	
 	<table style='width:99%'>				
 	<tr>
-		<td colspan=3 style='font-size:22px'>{attachments}</td>
+		<td colspan=3 style='font-size:28px'>{attachments}</td>
 	</tr>	
 			<tr>
 				<td class=legend style='font-size:18px'>{ZarafaStoreOutside}:</td>
@@ -243,7 +244,7 @@ for($i=0;$i<10;$i++){
 <div style='width:98%' class=form>	
 	<table style='width:99%'>
 	<tr>
-		<td colspan=3 style='font-size:22px'>{performance}</td>
+		<td colspan=3 style='font-size:28px'>{performance}</td>
 	</tr>	
 	
 	<tr>
@@ -321,7 +322,14 @@ var X_SaveZarafTuning= function (obj) {
 	var results=obj.responseText;
 	if(results.length>0){alert(results);}
 	RefreshTab('main_config_zarafa2');
-	}	
+	}
+var XSaveZarafaAttch= function (obj) {
+	var results=obj.responseText;
+	if(results.length>0){alert(results);return;}
+	RefreshTab('main_config_zarafa2');
+	if(!confirm('$zarafa_must_restarted')){return;}
+	Loadjs('system.services.cmd.php?APPNAME=APP_ZARAFA&action=restart&cmd=%2Fetc%2Finit.d%2Fzarafa-server&appcode=APP_ZARAFA');
+	}		
 	
 function SaveZarafLang(){
 	var XHR = new XHRConnection();
@@ -349,7 +357,7 @@ function SaveZarafaAttch(){
 	if(document.getElementById('ZarafaStoreOutside').checked){XHR.appendData('ZarafaStoreOutside',1);}else{XHR.appendData('ZarafaStoreOutside',0);}
 	XHR.appendData('ZarafaStoreOutsidePath',document.getElementById('ZarafaStoreOutsidePath').value);
 	XHR.appendData('ZarafaStoreCompressionLevel',document.getElementById('ZarafaStoreCompressionLevel').value);
-	XHR.sendAndLoad('$page', 'POST',X_SaveZarafTuning);	
+	XHR.sendAndLoad('$page', 'POST',XSaveZarafaAttch);	
 }
 function DbAttachConverter(){
 	YahooWin('550','zarafa.web.php?DbAttachConverter-popup=yes','$convert_current_attachments_text');

@@ -60,7 +60,7 @@ Mais, tous les dossiers sauvegard&eacute;s dans vos param&egrave;tres seront aut
 <remove_shared_folder_text>Supprimer tous les dossiers partag&eacute;s mont&eacute;s dans le but de nettoyer les dossiers partag&eacute;s fant&ocirc;mes</remove_shared_folder_text>
 <sambaGroupType>Type du groupe</sambaGroupType>
 <sambaSID>Nombre SID Samba</sambaSID>
-<select_org>S&eacute;lectionner une organisation</select_org>
+<select_org>S&eacute;lectionner l\'organisation</select_org>
 <SharedConf>Configuration principale</SharedConf>
 <SharedFolderPrefix>Pr&eacute;fixe ajout&eacute; sur chaque dossier</SharedFolderPrefix>
 <shared_folders>Dossiers partag&eacute;s</shared_folders>

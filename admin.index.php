@@ -471,6 +471,7 @@ function main_admin_tabs(){
 		if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}		
 		if($EnableArticaSMTPStatistics==1){	
 			$array["t:emails_received"]="{emails_received}";
+			$array["t:connections"]="{connections}";
 		}
 		
 		if($EnablePostfixMultiInstance==1){
@@ -547,7 +548,14 @@ $style="style=font-size:16px";
 			if($re[1]=="starting-guide-squid"){
 				$html[]= "<li ><a href=\"admin.index.startingguide.squid.php\"><span $style>$ligne</span></a></li>\n";
 				continue;
-			}			
+			}	
+			if($re[1]=="connections"){
+				if($users->AsPostfixAdministrator){
+					$html[]= "<li ><a href=\"admin.postfix.connections.php\"><span $style>$ligne</span></a></li>\n";
+					continue;
+				}
+			}
+			
 			
 			
 			if($re[1]=="cnx"){

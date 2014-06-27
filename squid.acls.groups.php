@@ -732,7 +732,10 @@ function EditGroup_tabs(){
 	$array["EditGroup-popup"]='{settings}';
 	
 	
-	if($ligne["GroupType"]=="proxy_auth_ads"){unset($array["items"]);}
+	if($ligne["GroupType"]=="proxy_auth_ads"){
+			unset($array["items"]);
+			
+	}
 	if($ligne["GroupType"]=="all"){unset($array["items"]);}
 	if($ligne["GroupType"]=="NudityScan"){
 		unset($array["items"]);
@@ -752,6 +755,11 @@ function EditGroup_tabs(){
 	}
 
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="AdUsers"){
+			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"squid.acls.groups.ActiveDirectoryUsers.php?ID=$ID\"><span>$ligne</span></a></li>\n");
+			continue;
+		}
 		
 		if($num=="NudityParams"){
 			$html[]= $tpl->_ENGINE_parse_body("<li style='font-size:14px'><a href=\"squid.nudityscan.php?popup=yes\"><span>$ligne</span></a></li>\n");

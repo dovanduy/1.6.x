@@ -1911,6 +1911,7 @@ class mysql_squid_builder{
 		$value=str_replace("@", "", $value);
 		$value=str_replace("£", "", $value);
 		$value=str_replace("€", "", $value);
+		$value=str_replace("--", "-", $value);
 		return $value;
 		
 	}
@@ -6690,7 +6691,7 @@ private function GET_CATEGORIES_HEURISTICS($sitename){
 	$this->cloudlogs("HEURISTIC: CategoriesFamily($sitename)");
 	$t=time();
 	$catz=$this->CategoriesFamily($sitename);
-	
+	if(!isset($GLOBALS["CATEGORIZELOGS-COUNT"])){$GLOBALS["CATEGORIZELOGS-COUNT"]=0;}
 	if($GLOBALS["VERBOSE"]){
 		$took=distanceOfTimeInWords($t,time(),true);
 		echo "GET_CATEGORIES_HEURISTICS($sitename) -> $catz $took<br>\n";

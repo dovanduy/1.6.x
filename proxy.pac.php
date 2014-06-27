@@ -1,4 +1,5 @@
 <?php
+session_start();
 if(isset($_GET["verbose"])){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 if($argv[1]=="--verbose"){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
 $GLOBALS["KAV4PROXY_NOSESSION"]=true;
@@ -22,9 +23,21 @@ function LoadIncludes(){
 }
 
 function proxy_pac(){
+	$SessionCache=0;
+	header("content-type: application/x-ns-proxy-autoconfig");
 	
+	if(!isset($_SESSION["PROXY_PAC_CACHE"])){
+		if(!class_exists("sockets")){ LoadIncludes();}
+		$sock=new sockets();
+		$SessionCache=intval($sock->GET_INFO("ProxyPacCacheTime"));
+		if($SessionCache==0){$SessionCache=10;}
+		$_SESSION["PROXY_PAC_CACHE"]=$SessionCache;
+	}
+	else{
+		$SessionCache=intval($_SESSION["PROXY_PAC_CACHE"]);
+	}
 	
-	
+	if(intval($SessionCache==0)){$SessionCache=10;}
 	if(!is_numeric($GLOBALS["PROXY_PAC_DEBUG"])){$GLOBALS["PROXY_PAC_DEBUG"]=0;}
 	if(isset($_SERVER["REMOTE_ADDR"])){$IPADDR=$_SERVER["REMOTE_ADDR"];}
 	if(isset($_SERVER["HTTP_X_REAL_IP"])){$IPADDR=$_SERVER["HTTP_X_REAL_IP"];}
@@ -39,13 +52,15 @@ function proxy_pac(){
 	
 	if(is_file($CACHE_FILE)){
 		$time=pac_file_time_min($CACHE_FILE);
-		if($time<10){echo @file_get_contents($CACHE_FILE);return;}
+		if($time<$SessionCache){echo @file_get_contents($CACHE_FILE);return;}
 		@unlink($CACHE_FILE);
 		
 	}
-	LoadIncludes();
-	$ClassiP=new IP();
+	
+	if(!class_exists("sockets")){ LoadIncludes();}
 	$sock=new sockets();
+	$ClassiP=new IP();
+	
 	$GLOBALS["PROXY_PAC_DEBUG"]=$sock->GET_INFO("ProxyPacDynamicDebug");
 	$q=new mysql_squid_builder();
 	
@@ -66,7 +81,7 @@ function proxy_pac(){
 	$sql="SELECT * FROM wpad_rules ORDER BY zorder";
 	$results = $q->QUERY_SQL($sql);
 	if(mysql_num_rows($results)==0){die();}
-	header("content-type: application/x-ns-proxy-autoconfig");
+	
 	$date=date("Y-m-d H:i:s");
 	$md5=md5("$date$IPADDR$HTTP_USER_AGENT");
 	$HTTP_USER_AGENT=mysql_escape_string2($HTTP_USER_AGENT);

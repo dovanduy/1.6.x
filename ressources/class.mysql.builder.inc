@@ -3764,6 +3764,7 @@ if(!$this->TABLE_EXISTS('smtp_logs_day_users','artica_events')){
 			  `type` varchar(50)  NOT NULL,
 			  `pattern` varchar(128)  NOT NULL,
 			  `description` varchar(255)  NOT NULL,
+			  `zDate` DATETIME,
 			  PRIMARY KEY (`ID`),
 			  KEY `instance` (`instance`),
 			  KEY `method` (`method`),
@@ -3772,6 +3773,11 @@ if(!$this->TABLE_EXISTS('smtp_logs_day_users','artica_events')){
 			)";
 			$this->QUERY_SQL($sql,'artica_backup');
 			if(!$this->ok){writelogs("Fatal: $this->mysql_error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			
+			if(!$this->FIELD_EXISTS("miltergreylist_acls","zDate","artica_backup")){
+				$sql="ALTER TABLE `miltergreylist_acls` ADD `zDate` DATETIME,ADD INDEX ( `zDate` )";
+				$this->QUERY_SQL($sql,'artica_backup');
+			}
 	} 
 
 	

@@ -174,7 +174,12 @@ function check_crashed(){
 			continue;
 			
 		}
-
+		
+		if(preg_match("#Got error 127 when reading table './(.+?)\/(.+?)'#", $line,$re)){
+			$GLOBALS["CRASHED"][$re[1]][]=$re[2];
+			continue;
+		}
+			
 		if(preg_match("#Incorrect key file for table './(.+?)\/(.+?)\.MYI'; try to repair it#", $line,$re)){
 			$GLOBALS["CRASHED"][$re[1]][]=$re[2];
 			continue;

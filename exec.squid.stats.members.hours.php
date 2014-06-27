@@ -25,6 +25,8 @@ $sock=new sockets();
 $sock->SQUID_DISABLE_STATS_DIE();
 
 if($argv[1]=="--bytime"){members_hours_perfom_bytime($argv[2]);die();}
+if($argv[1]=="--repair"){members_repair($argv[2]);die();}
+
 
 members_hours_perfom($argv[1],$argv[2],$nopid=false);
 
@@ -55,6 +57,54 @@ function members_hours_perfom_bytime($xtime){
 
 	events_tail("members_hours_perfom($tabledata,$nexttable...)");
 	members_hours_perfom($tabledata,$nexttable,true,true);
+	
+}
+
+
+function members_repair(){
+	$unix=new unix();
+	$q=new mysql_squid_builder();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=@file_get_contents($pidfile);
+	if(!$GLOBALS["FORCE"]){
+		if($pid<100){$pid=null;}
+		$unix=new unix();
+		if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);
+	}
+	
+	
+	$C=0;
+	$currentDay=date("Ymd");
+	$LIST_TABLES_HOURS=$q->LIST_TABLES_HOURS();
+	while (list ($tablename, $value) = each ($LIST_TABLES_HOURS) ){
+		$xtime=$q->TIME_FROM_HOUR_TABLE($tablename);
+		if(date("Ymd",$xtime)==$currentDay){continue;}
+		$member_table=date("Ymd",$xtime)."_members";
+		$source_table="dansguardian_events_".date("Ymd",$xtime);
+		if(!$q->TABLE_EXISTS($member_table)){
+			if($GLOBALS["VERBOSE"]){echo "$source_table -> $member_table -> BUILD\n";}
+			stats_admin_events(1,"Repair: Members $source_table -> $member_table",null,__FILE__,__LINE__);
+			if(members_hours_perfom($source_table,$member_table)){ $C++; }
+			continue;
+		}
+		
+		if($q->COUNT_ROWS($tablename)>0){
+			if($q->COUNT_ROWS($member_table)==0){
+				stats_admin_events(1,"Repair: Members $source_table -> $member_table",null,__FILE__,__LINE__);
+				if(members_hours_perfom($source_table,$member_table)){ $C++; }
+				continue;
+			}
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo "$source_table -> $member_table OK\n";}
+	
+	}
+	
+	$php=$unix->LOCATE_PHP5_BIN();
+	if($C>0){shell_exec("$php /usr/share/artica-postfix/exec.squid.stats.totals.php --repair-members --byschedule");}
+	
 	
 }
 

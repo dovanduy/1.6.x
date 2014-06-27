@@ -16,7 +16,16 @@ function postfix_increment_func($array){
 	$array[]="mailarchiver";
 	$array[]="postfix_logger";
 	$array[]="opendkim";
+	$array[]="postfix_schedules";
 	return $array;
+}
+
+function postfix_schedules(){
+	$BASEDIR="/usr/share/artica-postfix";
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.postfix-stats.php.STATS_hourly_cnx_to_daily_cnx.time");
+	if($time_file>59){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.postfix-stats.php --hourly-cnx >/dev/null 2>&1 &");
+	}
 }
 
 function iredmail_pid(){

@@ -13,7 +13,7 @@ Vous pouvez d&eacute;finir ici la fr&eacute;quence d'ex&eacute;cution.[br]Plus e
 <ARTICA_PROCESS_SCHEDULE_TEXT>D&eacute;finissez l'ordonnancement d'ex&eacute;cution des processus Artica</ARTICA_PROCESS_SCHEDULE_TEXT>
 <benchmark_result>R&eacute;sultats du test</benchmark_result>
 <cpu_number>Nombre de CPUs</cpu_number>
-<default>d&eacute;faut</default>
+<default>D&eacute;faut</default>
 <DisableFollowServiceHigerThan1G>D&eacute;sactiver le limiteur de m&eacute;moire</DisableFollowServiceHigerThan1G>
 <DisableFollowServiceHigerThan1G_explain>Par d&eacute;faut, Artica d&eacute;sactive les services requis pour tourner sur un ordinateur de plus de 1Gb de m&eacute;moire vive si l'ordintateur ne dispose pas des capacit&eacute;s n&eacute;c&eacute;ssaires.[br]Il bloque le d&eacute;marrage de  SpamAssassin, amavis et Sylog-ng   Mysql si votre ordinateur ne dispose pas de la m&eacute;moire requise.[br]
 Si vous activez cette option, les services seront autoris&eacute;s &agrave; d&eacute;marrer m&ecirc;me si votre ordinateur ne dispose pas des capacit&eacute;s requises.</DisableFollowServiceHigerThan1G_explain>

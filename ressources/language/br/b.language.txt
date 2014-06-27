@@ -1863,6 +1863,7 @@ It need to include both RSA PRIVATE KEY and CERTIFICATE
 <empty_database_explain>Empty all content of this database</empty_database_explain>
 <empty_store>Empty the store</empty_store>
 <empty_template>Empty template</empty_template>
+<empy_cache>Empty cache</empy_cache>
 <enable-ssl-crtd-not-compiled>Dynamic SSL Certificate Generation is not compiled on your Squid-Cache version.The feature will not be applied on your proxy service</enable-ssl-crtd-not-compiled>
 <EnableAmavisDaemon>Enable Amavis Daemon filter</EnableAmavisDaemon>
 <EnableArpDaemon>Enable ARP Daemon</EnableArpDaemon>
@@ -2801,6 +2802,7 @@ example:
 10.33.206.0 - 255.255.255.0[br]
 10.33.206.1 - 255.255.255.0[br]
 </isInNetMyIP_explain>
+<isResolvable>Is resolvable</isResolvable>
 <is_an_articasrv>Is an Artica server</is_an_articasrv>
 <is_connected>Is connected</is_connected>
 <is_not>is not</is_not>
@@ -2884,6 +2886,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <last>last</last>
 <last_category>Last category</last_category>
 <last_check>Last check</last_check>
+<last_connections>Last connections</last_connections>
 <last_download>Last download</last_download>
 <last_downloaded_size>Last downloaded size</last_downloaded_size>
 <last_status>Last status</last_status>
@@ -3241,6 +3244,9 @@ However, pools may actually _save_ memory because of reduced memory thrashing in
 <mgreylist_empty_db_warn>This procedure will purge all current Grey/white database: Proceed ?</mgreylist_empty_db_warn>
 <migrate_local_datas>Migrate local data</migrate_local_datas>
 <milliseconds>milliseconds</milliseconds>
+<milter_greylist_domain>MX domain</milter_greylist_domain>
+<milter_greylist_from>Sender E-Mail address</milter_greylist_from>
+<milter_greylist_rcpt>Recipient E-Mail address</milter_greylist_rcpt>
 <milter_greylist_tables>Building Milter-greylist day and month tables</milter_greylist_tables>
 <milter_greylist_tables_text>This task compile Day/month statistics tables from hours tables</milter_greylist_tables_text>
 <mimedefang_filehosting>Attachments hosting</mimedefang_filehosting>
@@ -4045,6 +4051,8 @@ Allow only a single IP: &quot;192.168.1.5&quot;
 <ProxyDedicateMicrosoftRules_explain>If green, Artica will add rules that allows any computer/user to be connected to Microsoft updates Websites.[br]
 This prevents any non-NTLM/authenticated computer to be banned by the proxy.
 </ProxyDedicateMicrosoftRules_explain>
+<ProxyPacCacheTime_explain>When generating a script file, Artica will put it into cache for x minutes.[br]
+This to reduce the system load while creating scripts</ProxyPacCacheTime_explain>
 <proxy_access_events>Proxy requests</proxy_access_events>
 <proxy_behavior>Proxy behavior</proxy_behavior>
 <proxy_behavior_explain>You can define here the behavior of your proxy service.[br]
@@ -5962,6 +5970,9 @@ These categories will be added in the default rule.[br]
 <weekly_reports_execute>Run the weekly report in background task mode</weekly_reports_execute>
 <weeks>Weeks</weeks>
 <WELCOME_ON_ARTICA_PROJECT>Welcome on the Artica project</WELCOME_ON_ARTICA_PROJECT>
+<WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>[b]Quick start guide video[/b][br]
+Click on the left image if you want to display a video that explains how to configure your new proxy in few minutes.
+</WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>
 <WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT>Note: after this wizard, Artica will processes some task in order to understand your server and finish installation.[br]
 During the next 30/60mn, the system should be unstable ( reboot, overload system, updating databases..).[br]
 Just be patient and wait these 30/60mn...
@@ -6266,6 +6277,8 @@ Do you want to perform this operation ?
 <ZARAFA_ISSUE>Zarafa server issue</ZARAFA_ISSUE>
 <ZARAFA_JUNK_EXPLAIN>Each member must display a "Non-spam" folder for non-spam analysis and a "Junk E-mail" folder on it's mailbox.</ZARAFA_JUNK_EXPLAIN>
 <ZARAFA_MAILBOX_CONVERT>This will convert the current mailbox language to </ZARAFA_MAILBOX_CONVERT>
+<zarafa_must_restarted>The Zarafa server must be restarted.
+Do you want to carry out this operation ?</zarafa_must_restarted>
 <zarafa_mysql_params_text>The Zarafa server use MySQL engine to store mailboxes.[br]
 You can define which database to use for the main Zarafa server instance.
 </zarafa_mysql_params_text>

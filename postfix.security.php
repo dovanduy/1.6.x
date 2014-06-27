@@ -53,7 +53,7 @@ function tabs(){
 		
 	}
 	
-	
+	$array["default"]='{default}';
 	$array["synthesis"]='{synthesis}';
 	$array["postfix"]='{mta_policies}';
 	$array["status"]='{mailplugins}';
@@ -66,51 +66,44 @@ function tabs(){
 	//$array["status-pattern"]="{patterns_versions}";
 	$hostname=$_GET["hostname"];
 	$height="850px";
-	if(isset($_GET["font-size"])){$fontsize="font-size:{$_GET["font-size"]}px;";$height="100%";}
+	$fontsize="font-size:18px;";
 
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="amavis"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.index.php?ajax-pop=yes&in-front-ajax=yes\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"amavis.index.php?ajax-pop=yes&in-front-ajax=yes\"><span style='$fontsize'>$ligne</span></a></li>\n");
+			continue;
+		}
+		if($num=="default"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.smtpd_client_restrictions.php?popup=yes\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
-		
-		
 		if($num=="antispam"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=filters\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=filters\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="filters-connect"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=filters-connect\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=filters-connect\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 
 		if($num=="postfix"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=security_settings&hostname=master\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.index.php?main=security_settings&hostname=master\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}
 		
 		if($num=="synthesis"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.synthesis.php?hostname=$hostname\"><span>$ligne</span></a></li>\n");
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"postfix.synthesis.php?hostname=$hostname\"><span style='$fontsize'>$ligne</span></a></li>\n");
 			continue;
 		}		
 		
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='$fontsize'>$ligne</span></a></li>\n");
 	}
 	
 	
-	echo "
-	<div id=main_config_postfix_security style='width:103%;$fontsize'>
-		<ul>". implode("\n",$html)."</ul>
-	</div>
-		<script>
-		  $(document).ready(function() {
-			$(\"#main_config_postfix_security\").tabs();});
-			
-			QuickLinkShow('quicklinks-security');
-			
-		</script>";		
+	echo build_artica_tabs($html, "main_config_postfix_security");
+	
 }
 
 function status(){

@@ -129,6 +129,16 @@ if(preg_match("#kid([0-9]+).*?Process Roles:\s+(.+?)#", $buffer,$re)){
 	squid_admin_mysql(2,"Process CPU.{$re[1]} was started in {$re[2]} mode [action: None]",null,__FILE__,__LINE__);
 	return;
 }
+
+//*******************************************************************************************************************
+if(preg_match("#ERROR: NTLM Authentication validating user\. Error returned 'BH NT_STATUS_ACCESS_DENIED'#", $buffer,$re)){
+	if(TimeStampTTL(__LINE__,10)){
+		squid_admin_mysql(0,"Active directory link failed NT_STATUS_ACCESS_DENIED [action: Relink]",$buffer,__FILE__,__LINE__);
+		shell_exec("{$GLOBALS["NOHUP"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.kerbauth.php --join --force >/dev/null 2>&1 &");
+	}
+	return;	
+	
+}
 //*******************************************************************************************************************
 if(preg_match("#Detected DEAD Parent: Peer([0-9]+)#", $buffer,$re)){
 	if(TimeStampTTL(__LINE__,2)){

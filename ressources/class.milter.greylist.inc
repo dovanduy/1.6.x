@@ -29,9 +29,9 @@ class milter_greylist{
 							"urlcheck"=>"{urlcheck}",
 							"body"=>"{body}",
 							"header"=>"{header}",
-							"domain"=>"{domain}",
-							"from"=>"{from}",
-							"rcpt"=>"{rcpt}",
+							"domain"=>"{milter_greylist_domain}",
+							"from"=>"{milter_greylist_from}",
+							"rcpt"=>"{milter_greylist_rcpt}",
 							"dnsrbl"=>"{dnsrbl}",
 							"geoip"=>"{geoip}"
 							);
@@ -277,6 +277,12 @@ private function buildObjectsItems($ID,$type){
 	}
 	
 	while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+	
+		if($this->isaregex($ligne["item"])){
+			echo "Starting......: ".date("H:i:s")." milter-greylist {$ligne["item"]} -> REGEX\n";
+			$items[]="/".$this->string_to_regex($ligne["item"])."/";
+			continue;
+		}
 		$items[]="$quotes{$ligne["item"]}$quotes";
 	}
 	
@@ -347,6 +353,11 @@ private function check_patternvalues_domain($pattern,$type){
 		if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist field `pattern` `$pattern` is an ip address, switch to addr\n";}
 		return "addr";
 	}
+	
+	if(preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+$#", $pattern)){
+		if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist field `pattern` `$pattern` is an ip address, switch to addr\n";}
+		return "addr";
+	}	
 						
 	return $type;
 	
@@ -428,7 +439,8 @@ function BuildConfig(){
 								continue;
 							}
 							if(isset($this->AVAILABLE_OBJECTS[$gpid])){
-								$this->acl[]="acl {$ligne["method"]} list \"{$this->AVAILABLE_OBJECTS[$gpid]}\" $pattern #ID:{$ligne["ID"]} {$ligne["description"]}";
+								if($ligne["method"]=="blacklist"){$pattern=null;}
+								$this->acl[]="acl {$ligne["method"]} list \"{$this->AVAILABLE_OBJECTS[$gpid]}\" $pattern #ID:{$ligne["ID"]} {$ligne["pattern"]} {$ligne["description"]}";
 							}
 						}
 						$continue=true;						
@@ -437,7 +449,12 @@ function BuildConfig(){
 					
 				
 				if(!$continue){
-					if($ligne["type"]=="addr"){if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["pattern"])){if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist wrong value for {$ligne["pattern"]} in type:{$ligne["type"]}\n";}continue;}}
+					if($ligne["type"]=="addr"){
+						if(!preg_match("#[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+#", $ligne["pattern"])){
+								if($GLOBALS["ROOT"]){echo "Starting......: ".date("H:i:s")." milter-greylist wrong value for {$ligne["pattern"]} in type:{$ligne["type"]}\n";}
+								continue;
+						}
+					}
 					
 					if(trim($ligne["pattern"])==null){
 						$ligne["description"]=strtolower($ligne["description"]);

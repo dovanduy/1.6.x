@@ -61,7 +61,7 @@ function step1(){
 	}
 	$t=time();
 	$html="
-<div style='font-size:22px'>{wizard_rule}</div>
+<div style='font-size:22px;margin-bottom:20px'>{wizard_rule}</div>
 <div class=explain style='font-size:18px'>{wizard_rule_ufdb_1}</div>	
 <div style='width:98%' class=form>
 <table style='width:100%'>
@@ -76,7 +76,7 @@ function step1(){
 	<tr>
 		<td align='left'>&nbsp;</td>
 		<td>&nbsp;</td>
-		<td align='right'>". button("{next}","Save$t()","18px")."</td>
+		<td align='right'>". button("{next}","Save$t()","24px")."</td>
 	</tr>			
 </table>			
 </div>			
@@ -116,7 +116,7 @@ function step2_IPADDR(){
 	$sock=new sockets();
 	$WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 	$html="
-<div style='font-size:22px'>{ipaddr}</div>
+<div style='font-size:22px;margin-bottom:20px'>{ipaddr}</div>
 <div class=explain style='font-size:18px'>{wizard_rule_ufdb_2}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
@@ -129,9 +129,9 @@ function step2_IPADDR(){
 		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 	</tr>
 	<tr>
-		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","18px")."</td>
+		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","24px")."</td>
 		<td>&nbsp;</td>
-		<td align='right'>". button("{next}","Save$t()","18px")."</td>
+		<td align='right'>". button("{next}","Save$t()","24px")."</td>
 	</tr>
 </table>
 </div>
@@ -152,28 +152,36 @@ function Save$t(){
 	
 }
 function step2_AD(){
-	$t=time();
+	$t=$_GET["t"];
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
 	$WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
+	
+	$TYPE_VALUE=$WizardUFDB["TYPE_VALUE"];
+	if(preg_match("#^AD:([0-9]+):(.+)#", $TYPE_VALUE,$re)){
+		
+		$TYPE_VALUE=base64_decode($re[2]);
+		if(preg_match("#^cn=(.+?),#i", $TYPE_VALUE,$re)){$TYPE_VALUE=$re[1];}
+	}
+		
 	$html="
-<div style='font-size:22px'>{ActiveDirectory}</div>
+<div style='font-size:22px;margin-bottom:20px'>{ActiveDirectory}</div>
 <div class=explain style='font-size:18px'>{wizard_rule_ufdb_ad}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
-	<td class=legend style='font-size:18px'>{group}:</td>
-	<td>".button("{browse}..","Loadjs('browse-ad-groups.php?field-user=AD-$t&field-type=2')",18)."</td>
+	<td class=legend style='font-size:18px'>{group}:<span id='AD-TEXT-$t' style='font-weight:bold'>{$TYPE_VALUE}</span></td>
+	<td>".button("{browse}..","Loadjs('browse-ad-groups.php?field-user=AD-$t&field-type=2&CallBack2=CallBack$t')",18)."</td>
 	<td>". Field_hidden("AD-$t",$WizardUFDB["TYPE_VALUE"])."</td>
 </tr>
 	<tr>
 		<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 	</tr>
 	<tr>
-		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","18px")."</td>
+		<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step1=yes&t={$_GET["t"]}',false);","24px")."</td>
 		<td>&nbsp;</td>
-		<td align='right'>". button("{next}","Save$t()","18px")."</td>
+		<td align='right'>". button("{next}","Save$t()","24px")."</td>
 	</tr>
 </table>
 </div>
@@ -189,6 +197,12 @@ function Save$t(){
 	XHR.appendData('TYPE_VALUE',document.getElementById('AD-$t').value);
 	XHR.sendAndLoad('$page', 'POST',xSave$t);
 }
+
+function CallBack$t(base64,Name){
+	document.getElementById('AD-TEXT-$t').innerHTML=Name+'&nbsp;&nbsp';
+	YahooWinBrowseHide();
+}
+
 </script>	";
 	echo $tpl->_ENGINE_parse_body($html);
 
@@ -197,7 +211,7 @@ function Save$t(){
 
 
 function step3(){
-	$t=time();
+	$t=$_GET["t"];
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
@@ -209,22 +223,22 @@ $WizardUFDB=unserialize(base64_decode($sock->GET_INFO("WizardUFDB")));
 if(!is_numeric($WizardUFDB["CATZ"])){$WizardUFDB["CATZ"]=0;}
 	
 	$html="
-<div style='font-size:22px'>{categories}</div>
+<div style='font-size:22px;margin-bottom:20px'>{categories}</div>
 <div class=explain style='font-size:18px'>{wizard_rule_ufdb_3}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
 	<td class=legend style='font-size:18px'>{categories}:</td>
 	<td>&nbsp;</td>
-	<td>". Field_array_Hash($ARRAY,"CATZ-$t",$WizardUFDB["CATZ"],"style:font-size:18px")."</td>
+	<td>". Field_array_Hash($ARRAY,"CATZ-$t",$WizardUFDB["CATZ"],"style:font-size:26px")."</td>
 </tr>
 <tr>
 	<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 </tr>
 <tr>
-	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step2=yes&t={$_GET["t"]}',false);","18px")."</td>
+	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step2=yes&t={$_GET["t"]}',false);","24px")."</td>
 	<td>&nbsp;</td>
-	<td align='right'>". button("{next}","Save$t()","18px")."</td>
+	<td align='right'>". button("{next}","Save$t()","24px")."</td>
 </tr>
 </table>
 </div>
@@ -245,7 +259,7 @@ function Save$t(){
 }
 
 function step4(){
-	$t=time();
+	$t=$_GET["t"];
 	$page=CurrentPageName();
 	$tpl=new templates();
 	
@@ -281,27 +295,27 @@ function step4(){
 	}	
 	
 	$html="
-<div style='font-size:22px'>{build_the_rule}</div>
+<div style='font-size:22px;margin-bottom:20px'>{build_the_rule}</div>
 <div class=explain style='font-size:18px'>{wizard_rule_ufdb_4}</div>
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
-	<td class=legend style='font-size:18px'>{$ARRAY1[$WizardUFDB["SOURCE_TYPE"]]}:</td>
+	<td class=legend style='font-size:26px'>{$ARRAY1[$WizardUFDB["SOURCE_TYPE"]]}:</td>
 	<td>&nbsp;</td>
-	<td style='font-size:18px'>{$WizardUFDB["TYPE_VALUE"]}</td>
+	<td style='font-size:26px'>{$WizardUFDB["TYPE_VALUE"]}</td>
 </tr>
 <tr>
-	<td class=legend style='font-size:18px'>{categories}:</td>
+	<td class=legend style='font-size:26px'>{categories}:</td>
 	<td>&nbsp;</td>
-	<td style='font-size:18px'>{$ARRAY[$WizardUFDB["CATZ"]]}</td>
+	<td style='font-size:26px'>{$ARRAY[$WizardUFDB["CATZ"]]}</td>
 </tr>
 <tr>
 	<td colspan=3 style='padding-top:15px;padding-left:10px;'><hr></td>
 </tr>
 <tr>
-	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step3=yes&t={$_GET["t"]}',false);","18px")."</td>
+	<td align='left'>". button("{back}","LoadAjax('main-$t','$page?step3=yes&t={$_GET["t"]}',false);","24px")."</td>
 	<td>&nbsp;</td>
-	<td align='right'>". button("{build_the_rule}","Save$t()","18px")."</td>
+	<td align='right'>". button("{build_the_rule}","Save$t()","24px")."</td>
 </tr>
 </table>
 </div>
@@ -341,6 +355,16 @@ function step5(){
 	$ARRAY[1]="{block_susp_websites}";
 	$ARRAY[2]="{block_multi_websites}";
 	
+	
+	$wizard_Name=strtolower('Wizard - rule '.$tpl->javascript_parse_text($ARRAY[$WizardUFDB["CATZ"]]));
+	$wizard_Name_tests=addslashes(utf8_encode($wizard_Name));
+	$q=new mysql_squid_builder();
+	$sql="SELECT ID FROM webfilter_rules WHERE `groupname`='$wizard_Name_tests'";
+	$results=$q->QUERY_SQL($sql);
+	$mysql_num_rows=intval(mysql_num_rows($results));
+	if($mysql_num_rows>0 ){$wizard_Name="$wizard_Name - ".intval($mysql_num_rows+1); }
+	
+	
 	$RULES["AllSystems"]=$allsystems;
 	$RULES["ExternalWebPage"]=null;
 	$RULES["UseExternalWebPage"]=0;
@@ -350,7 +374,7 @@ function step5(){
 	$RULES["endofrule"]='any';
 	$RULES["freeweb"]='';
 	$RULES["groupmode"]=1;
-	$RULES["groupname"]='Wizard - rule '.$tpl->javascript_parse_text($ARRAY[$WizardUFDB["CATZ"]]);
+	$RULES["groupname"]=$wizard_Name;
 	$RULES["zOrder"]=0;
 	
 	$fieldsAddA=array();
@@ -362,7 +386,7 @@ function step5(){
 		$DEFAULTARRAY[$num]=$ligne;
 	}
 	$sql_add="INSERT IGNORE INTO webfilter_rules (".@implode(",", $fieldsAddA).") VALUES (".@implode(",", $fieldsAddB).")";
-	$q=new mysql_squid_builder();
+
 	$q->QUERY_SQL($sql_add);
 	if(!$q->ok){echo $q->mysql_error_html();return;}
 	$ruleid=$q->last_id;
@@ -424,7 +448,7 @@ function step5(){
 	if($allsystems==1){echo $final;return; }
 	
 	
-	$GPS["description"]="Wizard new group";
+	$GPS["description"]="Wizard new group for<br>$wizard_Name";
 	$GPS["enabled"]=1;
 	$GPS["gpid"]=null;
 	$GPS["groupname"]=mysql_escape_string2("Group: {$WizardUFDB["TYPE_VALUE"]}");

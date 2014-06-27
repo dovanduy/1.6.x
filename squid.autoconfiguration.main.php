@@ -14,6 +14,10 @@ if(!$usersmenus->AsSquidAdministrator){
 	die();	
 }
 
+if(isset($_POST["ProxyPacCacheTime"])){settings_save();exit;}
+if(isset($_GET["settings-js"])){settings_js();exit;}
+if(isset($_GET["settings-popup"])){settings_popup();exit;}
+if(isset($_POST["EmptyCache"])){EmptyCache();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["help"])){help();exit;}
 
@@ -143,6 +147,30 @@ echo $html;
 	
 }
 
+function EmptyCache(){
+	$CACHE_DIR=dirname(__FILE__)."/ressources/logs/proxy.pacs";
+	$list = @glob("$CACHE_DIR/*");
+	$size=0;
+	$c=0;
+	$gsize=0;
+	$err=0;
+	while (list ($index, $filename) = each ($list)){
+		$size=@filesize($filename);
+		@unlink($filename);
+		if(!is_file($filename)){
+			$gsize=$gsize+$size;
+			$c++;
+			continue;
+		}
+		
+		$err++;
+	}
+	$gsize=FormatBytes($gsize/1024);
+	$gsize=str_replace("&nbsp;", " ", $gsize);
+	echo "Deleted: $c file(s) ($gsize)\nDelete Error: $err file(s)\n";
+	
+}
+
 function rules_sources_link_order(){
 	$key=$_POST["key"];
 	$direction=$_POST["order"];
@@ -225,6 +253,46 @@ function debug_empty() {
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?proxy-pac-empty-debug=yes");
 	
+}
+
+function settings_popup(){
+	$sock=new sockets();
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$SessionCache=intval($sock->GET_INFO("ProxyPacCacheTime"));
+	if($SessionCache==0){$SessionCache=10;}
+	$t=time();
+	$html="
+	<div style='font-size:26px;margin-bottom:26px'>{settings}</div>		
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td class=legend style='font-size:18px'>{cache_time}:</td>
+		<td style='font-size:18px'>". Field_text("ProxyPacCacheTime",$SessionCache,"font-size:18px;width:120px;explain={ProxyPacCacheTime_explain};")."&nbsp;{minutes}</td>			
+	</tr>	
+	<tr><td colspan=2 align='right'><hr>". button("{apply}","Save$t()",26)."</td></tr>	
+	</table>		
+	</div>
+<script>
+var xSave$t= function (obj) {
+	var res=obj.responseText;
+	if (res.length>3){alert(res);}
+}
+
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('ProxyPacCacheTime', document.getElementById('ProxyPacCacheTime').value);
+	XHR.sendAndLoad('$page', 'POST',xSave$t);
+}
+</script>			
+			
+";
+	
+	echo $tpl->_ENGINE_parse_body($html);
+}
+function settings_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("ProxyPacCacheTime", $_POST["ProxyPacCacheTime"]);
 }
 
 function events_script_js(){
@@ -348,6 +416,14 @@ function events_script_tester_perform(){
 	
 	exec("/usr/bin/pactester -p $filepath -u \"{$_SESSION["TESTER-URL"]}\" -h \"$hostname\" -c \"{$_SESSION["TESTER-IPADDR"]}\" -e 2>&1",$results);
 	echo @implode("\n", $results);
+}
+
+function settings_js(){
+	header("content-type: application/x-javascript");
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$title=$tpl->javascript_parse_text("{settings}");
+	echo "YahooWin2(653,'$page?settings-popup=yes','$title',true)";
 }
 
 function rules_js(){
@@ -670,10 +746,10 @@ function explainArule($ID,$color="black"){
 	
 	$hi=array();
 	if($dntlhstname==1){
-		$hi[]="{dnot_proxy_localnames}";
+		$hi[]=" {dnot_proxy_localnames}";
 	}
 	if($isResolvable==1){
-		$hi[]="{isResolvable}";
+		$hi[]=" {isResolvable}";
 	}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -695,7 +771,7 @@ function explainArule($ID,$color="black"){
 	
 	return "</a><br><span style='color:$color'>{if_a_computer_matches} ".@implode("&nbsp;{and}&nbsp;", $f).
 	"<br>{then_set_proxy_parameters} ".@implode("&nbsp;{or}&nbsp;", $g).
-	"<br>". @implode("{or}", $hi)." {and_do_not_use_proxy_for} ".@implode("&nbsp;{or}&nbsp;", $h)."</span>";
+	"<br>". @implode("&nbsp;{or}&nbsp;", $hi)." {and_do_not_use_proxy_for} ".@implode("&nbsp;{or}&nbsp;", $h)."</span>";
 	
 }
 
@@ -1558,7 +1634,7 @@ function popup(){
 	$t=$_GET["t"];
 	$ID=$_GET["ID"];
 	while (list ($num, $ligne) = each ($array) ){
-		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&ID=$ID\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+		$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes&t=$t&ID=$ID\" style='font-size:18px'><span>$ligne</span></a></li>\n");
 	}
 	
 	
@@ -1650,10 +1726,14 @@ function rules(){
 	$delete=$tpl->javascript_parse_text("{delete} {rule} ?");
 	$rewrite_rules_fdb_explain=$tpl->_ENGINE_parse_body("{rewrite_rules_fdb_explain}");
 	$rebuild_tables=$tpl->javascript_parse_text("{rebuild_tables}");
+	$parameters=$tpl->javascript_parse_text("{parameters}");
+	$empty_cache=$tpl->javascript_parse_text("{empy_cache}");
 	$buttons="
 	buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : NewRule$t},
 	{name: '$rebuild_tables', bclass: 'Delz', onpress : RebuildTables$t},
+	{name: '$parameters', bclass: 'Settings', onpress : Settings$t},
+	{name: '$empty_cache', bclass: 'Delz', onpress : Empty$t},
 	],";		
 		
 	
@@ -1695,6 +1775,10 @@ $('#flexRT$t').flexigrid({
 	});   
 });
 
+function Settings$t(){
+	Loadjs('$page?settings-js=yes');
+}
+
 	var xNewRule$t= function (obj) {
 		var res=obj.responseText;
 		if (res.length>3){alert(res);return;}
@@ -1730,6 +1814,14 @@ $('#flexRT$t').flexigrid({
 		var res=obj.responseText;
 		if (res.length>3){alert(res);return;}
 		$('#flexRT$t').flexReload();
+	}
+	
+	
+	function Empty$t(){
+		var XHR = new XHRConnection();
+		XHR.appendData('EmptyCache', 'yes');
+		XHR.sendAndLoad('$page', 'POST',xNewRule$t); 		
+	
 	}
 	
 	

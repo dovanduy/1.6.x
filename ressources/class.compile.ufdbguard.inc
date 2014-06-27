@@ -34,6 +34,7 @@ class compile_ufdbguard{
 	
 	function compile_ufdbguard(){
 		if(!isset($GLOBALS["OUTPUT"])){$GLOBALS["OUTPUT"]=false;}
+		$this->UnDuplicateRules();
 		$GLOBALS["SRC"]=array();
 		$sock=new sockets();
 		$usrs=new usersMenus();
@@ -105,6 +106,26 @@ class compile_ufdbguard{
 		
 	}
 	
+	private function UnDuplicateRules(){
+		$q=new mysql_squid_builder();
+		$sql="SELECT groupname,COUNT(groupname) as tcount FROM webfilter_rules GROUP BY `groupname` HAVING tcount>1";
+		$results=$q->QUERY_SQL($sql);
+		if(mysql_num_rows($results)==0){return;}
+		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			$groupnamesrc=$ligne["groupname"];
+			$groupname=mysql_escape_string2($groupnamesrc);
+			$sql="SELECT groupname,ID FROM webfilter_rules WHERE `groupname`='$groupname'";
+			$results2=$q->QUERY_SQL($sql);
+			while($ligne2=mysql_fetch_array($results2,MYSQL_ASSOC)){
+				$NewGroupname="$groupnamesrc - {$ligne2["ID"]}";
+				echo "Starting......: ".date("H:i:s")." ufdbGuard, unduplicate rule $groupnamesrc -> $NewGroupname\n";
+				$q->QUERY_SQL("UPDATE `webfilter_rules` SET `groupname`='$NewGroupname' WHERE ID={$ligne2["ID"]}");
+			}
+			
+		}
+		
+	}
+	
 
 	private function Check_SquidGuardIPWeb(){
 		if($this->SquidGuardWebUseExternalUri==1){return;}
@@ -151,6 +172,8 @@ class compile_ufdbguard{
 		if(preg_match("#(.*?):([0-9]+)#", $hostname,$re)){
 			$hostname=$re[1];
 		}
+		
+		echo "Starting......: ".date("H:i:s")." ufdbGuard Main interface = `$MAIN_INTERFACE`\n";
 		echo "Starting......: ".date("H:i:s")." ufdbGuard SquidGuardIPWeb = `$this->SquidGuardIPWeb` hostname=`$hostname`\n";
 		if(!$ipClass->isValid($hostname)){ 
 			echo "Starting......: ".date("H:i:s")." ufdbGuard hostname=`$hostname` INVALID\n"; 
@@ -158,6 +181,7 @@ class compile_ufdbguard{
 			if($MAIN_INTERFACE<>null){
 				$this->SquidGuardIPWeb="http://$MAIN_INTERFACE:9020/exec.squidguard.php";
 				$this->SquidGuardIPWebSSL="https://$MAIN_INTERFACE:9025/exec.squidguard.php";
+				echo "Starting......: ".date("H:i:s")." ufdbGuard Redirect to `http://$MAIN_INTERFACE:9020/exec.squidguard.php`\n";
 				return;
 			}
 			
@@ -169,10 +193,13 @@ class compile_ufdbguard{
 					echo "Starting......: ".date("H:i:s")." ufdbGuard IPADDR `$hostname` Not found !\n";
 					$this->SquidGuardIPWeb="http://$MAIN_INTERFACE:9020/exec.squidguard.php";
 					$this->SquidGuardIPWebSSL="https://$MAIN_INTERFACE:9025/exec.squidguard.php";
+					echo "Starting......: ".date("H:i:s")." ufdbGuard Redirect to `http://$MAIN_INTERFACE:9020/exec.squidguard.php`\n";
 					return;
 				}
 			}
 		}
+		
+		
 		
 		
 	}

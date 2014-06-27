@@ -3540,7 +3540,7 @@ function cyrus_imap_conx($service,$hostname,$ip,$user){
 	events("$service-connection: $hostname - > $ip");
 	$fam=new familysite();
 	if($hostname==null){$hostname=$fam->GetComputerName($ip);}
-	$curdate=date("Ymdh");
+	$curdate=date("YmdH");
 	$tablename="{$curdate}_hcnx";
 	$zDate=date("Y-m-d H:i:s");
 	$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();
@@ -4108,7 +4108,7 @@ function Postfix_Addconnection($hostname=null,$ip=null){
 	events("Addconnection: $hostname - > $ip");
 	$fam=new familysite();
 	if($hostname==null){$hostname=$fam->GetComputerName($ip);}
-	$curdate=date("Ymdh");
+	$curdate=date("YmdH");
 	$tablename="{$curdate}_hcnx";
 	$zDate=date("Y-m-d H:i:s");
 	$GLOBALS["CLASS_POSTFIX_SQL"]->postfix_buildhour_connections();

@@ -382,7 +382,7 @@ Vous pouvez indiquer les valeurs suivantes :[br]
 <blacklist_global_explain>Cette section vous permet de bloquer des domaines ou des adresses que vous listez ici.[br]Cette section est plus restrictive que les autres fonctionnalit&eacute;s qui utilisent plut&ocirc;t les filtres additionnels.[br]
 Les messages dont les &eacute;metteurs correspondent aux r&egrave;gles seront directement rejet&eacute;s sans analyser d'autres contenus.</blacklist_global_explain>
 <black_www_group_text>Domaines Internet bannis</black_www_group_text>
-<blklist_update_now_text>Lancer la mise &agrave; jour des bases de listes noires maintenant</blklist_update_now_text>
+<blklist_update_now_text>Mise mise &agrave; jour des bases de listes noires</blklist_update_now_text>
 <blockdownloads>Interdiction g&eacute;n&eacute;rique des fichiers</blockdownloads>
 <blockdownloads_explain>Si activ&eacute;, tous les fichiers seront bloqu&eacute;s &agrave; moins qu'ils correspondent &agrave; la liste des extensions de fichiers accord&eacute;s ou des types MIME accord&eacute;s.</blockdownloads_explain>
 <blockdownloads_text>Si activ&eacute;, tous les t&eacute;l&eacute;chargements de fichiers seront bloqu&eacute;s sauf ceux qui proviennent des sites webs faisant parti des cat&eacute;gories mises en liste blanche.</blockdownloads_text>
@@ -460,7 +460,7 @@ C'est une mani&egrave;re d'&ecirc;tre inform&eacute; de l'&eacute;tat du Proxy s
 <cannot_delete_items_used_srvwbs>Impossible de supprimer cet &eacute;l&eacute;ment, il actuellement utilis&eacute; par ces serveurs web:</cannot_delete_items_used_srvwbs>
 <cannot_schedule_update_without_schedule>Ne peut activer le commutateur de programmation si elle n'a pas &eacute;t&eacute; programm&eacute;e.</cannot_schedule_update_without_schedule>
 <capsule_readonly>Si en vert, alors le dossier sera en lecture seule et personne ne sera en mesure d'&eacute;crire dans le r&eacute;pertoire.</capsule_readonly>
-<categories>categorie(s)</categories>
+<categories>Categorie(s)</categories>
 <categories_inside_group_XGRPTLE>Cat&eacute;gories visit&eacute;es dans le groupe XGRPTLE</categories_inside_group_XGRPTLE>
 <categories_white_explain>Indiquez les cat&eacute;gories que vous d&eacute;sirez autoriser.[br]Ceci est la liste blanche.</categories_white_explain>
 <categorized_websites>Sites Internet cat&eacute;goris&eacute;s</categorized_websites>
@@ -830,7 +830,7 @@ toutes les liens seront remplac&eacute;es par l'url que vous avez d&eacute;finit
 <EnableRebootAfterUpgrade>Red&eacute;marrer apr&egrave;s une mise &agrave; jour syst&egrave;me</EnableRebootAfterUpgrade>
 <EnableScheduleUpdates>Mise &agrave; jour unique programm&eacute;e</EnableScheduleUpdates>
 <EnableSpamAssassinFreeMail_explain>D&eacute;tecte this des adresses eMail utilisent des services WebMail gratuits</EnableSpamAssassinFreeMail_explain>
-<EnableWindowsAuthentication>Activer l'authentification via MS Windows</EnableWindowsAuthentication>
+<EnableWindowsAuthentication>Activer l\'authentification</EnableWindowsAuthentication>
 <enable_amavis_watchdog>Activer la surveillance</enable_amavis_watchdog>
 <ENABLE_APP_AMACHI>Activer le service Hamachi</ENABLE_APP_AMACHI>
 <ENABLE_ARTICA_SMTP_STATS>Activer le moteur de statistiques SMTP</ENABLE_ARTICA_SMTP_STATS>
@@ -2119,7 +2119,7 @@ Elle doit par contre &ecirc;tre d&eacute;sactiv&eacute; si le moteur de recherch
 <Seek_Time_Performance>Moyenne des op&eacute;rations d%u2019acc&egrave;s</Seek_Time_Performance>
 <Seek_Time_Performance_text>Performance moyenne des op&eacute;rations d%u2019acc&egrave;s des t&ecirc;tes magn&eacute;tiques. Si cet attribut diminue, c%u2019est un signe de probl&egrave;mes avec le sous-syst&egrave;me m&eacute;canique.</Seek_Time_Performance_text>
 <select_messages>S&eacute;lectionner les messages</select_messages>
-<select_this_ou>S&eacute;lectionner cette organisation</select_this_ou>
+<select_this_ou>S&eacute;lectionner l\'organisation</select_this_ou>
 <SELECT_TREE_BROWSE_ERROR>S&eacute;lectionnez le dossier en parcourant l'arbre situ&eacute; &agrave; gauche de cette section.</SELECT_TREE_BROWSE_ERROR>
 <select_your_language>S&eacute;lectionnez votre langue</select_your_language>
 <sender_ns_addrs>Adresse du serveur &eacute;metteur</sender_ns_addrs>
@@ -2264,7 +2264,7 @@ D&eacute;finissez l'&eacute;metteur et les destinataires (s&eacute;par&eacute;s 
 <Spin_Retry_Count>Mises en rotation forc&eacute;es</Spin_Retry_Count>
 <Spin_Retry_Count_text>Nombre de mises en rotation forc&eacute;e du disque</Spin_Retry_Count_text>
 <Spin_Up_Time>Temps de rotation</Spin_Up_Time>
-<Spin_Up_Time_text>Temps de mise en rotation du disque</Spin_Up_Time_text>
+<Spin_Up_Time_text>Temps de rotation du disque</Spin_Up_Time_text>
 <SPREED_ABOUT>Spreed ( http://www.spreed.com) est un logiciel de r&eacute;union Web qui autorise les groupes d'utilisateurs &agrave; rencontrer d'autres personnes en ligne.[br]
 Il autorise plusieurs types de r&eacute;unions, de la pr&eacute;sentation simple &agrave; une discussion compl&egrave;te avec toute personne autoris&eacute;e &agrave; parler.[br]
 Parall&egrave;lement &agrave; la visio-conf&eacute;rence, il autorise les participants &agrave; &eacute;changer des fichiers.[br]Ils peuvent alors partager leur &eacute;crans.[br]Avec ce plugin ces fonctionnalit&eacute;s sont alors int&eacute;gr&eacute;es directement dans l'interface Web de zarafa</SPREED_ABOUT>

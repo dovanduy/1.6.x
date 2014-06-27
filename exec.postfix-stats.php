@@ -22,6 +22,7 @@ events("Executed " .@implode(" ",$argv));
 
 if($argv[1]=="--days"){STATS_BuildDayTables();return;}
 if($argv[1]=="--month"){STATS_BuildMonthTables();return;}
+if($argv[1]=="--hourly-cnx"){STATS_hourly_cnx_to_daily_cnx();return;}
 
 
 
@@ -256,6 +257,75 @@ function _day_tables_inject($sourcetable,$day){
 	
 	return true;
 }
+
+
+function STATS_hourly_cnx_to_daily_cnx(){
+	
+	$unix=new unix();
+	$GLOBALS["DAYSTATS"]=0;
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidTime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	if($GLOBALS["VERBOSE"]){echo "pidTime: $pidTime\n";}
+	
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid)){
+		$timepid=$unix->PROCCESS_TIME_MIN($pid);
+		system_admin_events("Already PID $pid running since {$timepid}mn" , __FUNCTION__, __FILE__, __LINE__, "postfix-stats");
+		return;
+	}
+	$TimeF=$unix->file_time_min($pidTime);
+	if($TimeF<60){return;}
+	@unlink($pidTime);
+	@file_put_contents($pidTime, time());
+	
+	$q=new mysql_postfix_builder();
+	$LIST_POSTFIX_CNX_HOUR_TABLES=$q->LIST_POSTFIX_CNX_HOUR_TABLES();
+	if(count($LIST_POSTFIX_CNX_HOUR_TABLES)==0){return;}
+	$currentHour=date("YmdH")."_hcnx";
+	while (list ($tablename, $timeEx) = each ($LIST_POSTFIX_CNX_HOUR_TABLES) ){
+		if($tablename==$currentHour){continue;}
+		$suffix=date("Ymd",strtotime($timeEx));
+		$HOUR_FIELD=date("H",strtotime($timeEx));
+		if(!$q->postfix_buildday_connections($suffix)){continue;}
+		$desttable="{$suffix}_dcnx";
+		if($GLOBALS["VERBOSE"]){echo "$tablename -> $desttable\n";}
+		if(!_STATS_hourly_cnx_to_daily_cnx($tablename,$desttable,$HOUR_FIELD)){continue;}
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+		
+	}
+}
+
+function _STATS_hourly_cnx_to_daily_cnx($sourcetable,$desttable,$HOUR_FIELD){
+	
+	$q=new mysql_postfix_builder();
+	$sql="SELECT COUNT(zmd5) as tcount,HOUR(zDate) as thour,hostname,domain,ipaddr FROM $sourcetable GROUP BY thour,hostname,domain,ipaddr ";
+	$results=$q->QUERY_SQL($sql);
+	if(!$q->ok){system_admin_events($q->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return;}
+	
+	$prefix="INSERT IGNORE INTO `$desttable` (`zmd5`,`Hour`,`cnx`,`hostname`,`domain`,`ipaddr`) VALUES ";
+
+	if(mysql_num_rows($results)==0){return true;}
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$md5=md5(serialize($ligne));
+		$f[]="('$md5','{$ligne["thour"]}','{$ligne["tcount"]}','{$ligne["hostname"]}','{$ligne["domain"]}','{$ligne["ipaddr"]}')";
+		
+		if(count($f)>500){
+			$q->QUERY_SQL($prefix.@implode(",", $f));
+			if(!$q->ok){system_admin_events($q->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return false;}
+			$f=array();
+		}
+		
+	}
+	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		if(!$q->ok){system_admin_events($q->mysql_error, __FUNCTION__, __FILE__, __LINE__, "postfix-stats");return false;}
+		$f=array();
+	}
+	return true;
+}
+
 
 
 function events($text){

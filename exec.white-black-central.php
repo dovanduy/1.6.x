@@ -29,7 +29,6 @@ function WhiteListed(){
 	$whites=$ldap->WhitelistsFromDomain();
 
 $unix=new unix();
-$unix->miltergreylist_cleanconf();
 $SPAMASSASSIN_LOCAL_CF=$unix->SPAMASSASSIN_LOCAL_CF();
 $spammassDirectory=dirname($SPAMASSASSIN_LOCAL_CF);
 $assp=array();
@@ -61,7 +60,7 @@ if(is_array($whites)){
 			$sender_scores_sitewide[]="$s\t-7.0";
 			$spamassassin[]="whitelist_from\t$first_part@$domain";
 			$domain=str_replace("@", "", $domain);
-			$unix->miltergreylist_addacl($unix->miltergreylist_buildacl("$first_part@$domain"));
+			
 		}
 		
 	}
@@ -111,10 +110,6 @@ if(is_file('/usr/local/sbin/amavisd')){
 
 echo "Starting......: ".date("H:i:s")." writing whitelist/blacklists for spamassassin\n";
 @file_put_contents("$spammassDirectory/wbl.cf",implode("\n",$spamassassin));
-}
-
-function CleanMilterGreyList(){
-	
 }
 
 

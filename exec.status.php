@@ -7605,11 +7605,7 @@ function zarafa_search(){
 	$l[]="remove_cmd=--zarafa-remove";
 	$l[]="watchdog_features=1";
 	
-	if(is_file("/etc/default/zarafa")){
-		@copy("/etc/default/zarafa", "/etc/default/bak.zarafa");
-		@unlink("/etc/default/zarafa");
-		shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initdzarafa.php >/dev/null 2>&1");
-	}
+
 
 	if($enabled==0){return implode("\n",$l);return;}	
 	

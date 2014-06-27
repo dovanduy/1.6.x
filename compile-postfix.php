@@ -55,7 +55,7 @@ $Architecture=Architecture();
 
 if(!$GLOBALS["NO_COMPILE"]){
 	$v=latests();
-	if(preg_match("#postfix-(.+?)#", $v,$re)){$dirsrc=$re[1];}
+	if(preg_match("#postfix-([0-9\.\-]+)#", $v,$re)){$dirsrc=$re[1];}
 	system_admin_events("Downloading lastest file $v, working directory $dirsrc ...",__FUNCTION__,__FILE__,__LINE__);
 }
 

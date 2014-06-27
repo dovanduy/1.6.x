@@ -12,7 +12,7 @@ If yes, the update process will restart Artica and the Interface should not be a
 <perform_update_text>This operation will perform update in background mode,
 please wait few minutes and return back this section in events in order to
 see if there is a successfull udpate operation.
-Perform Update now ??</perform_update_text>
+Perform update ??</perform_update_text>
 <samba_notify>Notify on new Samba updates (email too)</samba_notify>
 <update_list>Update List</update_list>
 <uri>Update server url</uri>

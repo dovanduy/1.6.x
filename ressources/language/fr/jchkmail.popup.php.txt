@@ -18,7 +18,7 @@ Ce type de contr&ocirc;le ne bloque pas beaucoup le spam, mais peut soulager la 
 <eYES>Filtre</eYES>
 <eYESQUICK>Activer l'analyse &amp; arr&ecirc;ter les autres filtres</eYESQUICK>
 <gl_NO>Ne jamais mettre sur liste grise mais v&eacute;rifier exp&eacute;diteur et le destinataire</gl_NO>
-<gl_NO-QUICK>Jamais de liste grise</gl_NO-QUICK>
+<gl_NO-QUICK>Jamais de retardement</gl_NO-QUICK>
 <gl_YES>Le greylisting est appliqu&eacute; &agrave; chaque triplet</gl_YES>
 <gl_YES-QUICK>Liste Grise</gl_YES-QUICK>
 <GreyCheckConnect>Adresse de connexion</GreyCheckConnect>

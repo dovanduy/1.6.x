@@ -42,6 +42,10 @@ $sock=new sockets();
 $DisableLocalStatisticsTasks=$sock->GET_INFO("DisableLocalStatisticsTasks");
 if(!is_numeric($DisableLocalStatisticsTasks)){$DisableLocalStatisticsTasks=0;}
 if($DisableLocalStatisticsTasks==1){die();}
+
+if($argv[1]=="--last7-days"){categorize_last7days();die();}
+if($argv[1]=="--repair"){repair();die();}
+
 categorize($argv[1]);
 
 
@@ -174,6 +178,91 @@ function categorize($day=null){
 	
 	
 }
+
+function categorize_last7days(){
+	
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$pid=@file_get_contents($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+		return;
+	}
+	
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL("SELECT zDate,DATE_FORMAT(zDate,'%Y%m%d') as tprefix,not_categorized,tablename FROM tables_day WHERE not_categorized>0 AND zDate>DATE_SUB(zDate,INTERVAL 8 DAY) ORDER BY zDate");
+	$currentDay=date("Ymd");
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$tablesource="{$ligne["tprefix"]}_hour";
+		if($ligne["tprefix"]==$currentDay){continue;}
+		if($q->TABLE_EXISTS($tablesource)){
+			_categorize_last7days($tablesource);
+			$sql="SELECT COUNT(`sitename`) as tcount FROM $tablesource WHERE LENGTH(`category`)=0";
+			if($GLOBALS["VERBOSE"]){echo $sql."\n";}
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			$sql="UPDATE tables_day SET `not_categorized`='{$ligne2["tcount"]}' WHERE tablename='{$ligne["tablename"]}'";
+			$q->QUERY_SQL($sql);
+		}
+	}
+
+	
+	
+
+	
+	
+}
+
+function repair(){
+	
+	$q=new mysql_squid_builder();
+
+	$C=0;
+	$currentDay=date("Ymd");
+	$LIST_TABLES_HOURS=$q->LIST_TABLES_HOURS();
+	while (list ($tablename, $value) = each ($LIST_TABLES_HOURS) ){
+		$xtime=$q->TIME_FROM_HOUR_TABLE($tablename);
+		if(date("Ymd",$xtime)==$currentDay){continue;}
+		$DayTable=date("Ymd",$xtime)."_hour";
+		if(!$q->TABLE_EXISTS($DayTable)){continue;}
+
+		$tablenameS="dansguardian_events_".date("Ymd",$xtime);
+		$sql="SELECT COUNT(`sitename`) as tcount FROM $DayTable WHERE LENGTH(`category`)=0";
+		$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+		$max=$ligne2["tcount"];
+		if($GLOBALS["VERBOSE"]){echo "$DayTable/$tablenameS = $max no categorized\n";}
+		$sql="UPDATE tables_day SET `not_categorized`=$max WHERE tablename='$tablenameS'";
+		$q->QUERY_SQL($sql);
+		
+	}
+
+	
+
+}
+
+
+
+function _categorize_last7days($tablesource){
+	
+
+	$sql="SELECT SUM(hits) as hits ,sitename,category FROM `$tablesource` GROUP BY sitename,category HAVING LENGTH(category)=0 ORDER BY hits DESC LIMIT 0,500";
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL($sql);
+	$currentDay=date("Ymd");
+	if($GLOBALS["VERBOSE"]){echo "$sql\n$tablesource = ".mysql_num_rows($results)."\n";}
+	
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$cat=$q->GET_FULL_CATEGORIES($ligne["sitename"]);
+		if($cat==null){
+			echo "{$ligne["sitename"]}\n";
+			continue;
+		}
+		$q->QUERY_SQL("UPDATE $tablesource SET `category`='$cat' WHERE `sitename`='{$ligne["sitename"]}'");
+		
+	}
+	
+	
+}
+
 
 
 function events($text){

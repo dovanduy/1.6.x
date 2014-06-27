@@ -19,7 +19,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-
+if(isset($_GET["button"])){apply_button();exit;}
 if(isset($_GET["apply-js"])){apply_js();exit;}
 if(isset($_GET["apply-popup"])){apply_popup();exit;}
 if(isset($_GET["apply-next"])){apply_next();exit;}
@@ -27,6 +27,12 @@ if(isset($_POST["shorewall-progress"])){apply_progress();exit;}
 if(isset($_POST["shorewall-restart"])){apply_restart();exit;}
 
 apply_js();
+
+function apply_button(){
+	
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(button("{close}","YahooWinBrowseHide()",26));
+}
 
 function apply_js(){
 	header("content-type: application/x-javascript");
@@ -55,6 +61,11 @@ $start";
 
 }
 
+function apply_restart(){
+	
+	
+}
+
 function apply_popup(){
 	$sock=new sockets();
 	$sock->getFrameWork("squid.php?ufdbguard-compile-smooth2=yes");
@@ -68,9 +79,9 @@ function apply_popup(){
 	$t=time();
 	
 $html="
+<center style='margin:15px;font-size:22px' id='button-$t'></center>
 <center style='margin:15px;font-size:22px' id='title-$t'>$title</center>
 <div id='progress-status-$t'></div>
-<div id='progress-next-$t'></div>
 <div id='progress-text-$t' style='margin-top:10px'></div>
 
 <script>
@@ -104,6 +115,8 @@ $html="
 		if(document.getElementById('WebFilteringMainTableID') ){
 			$('#'+document.getElementById('WebFilteringMainTableID').value).flexReload();
 		}		
+		LoadAjaxSilent('button-$t','$page?button=yes');
+		
 		return;
 	}
 
@@ -117,6 +130,7 @@ $html="
 		if(document.getElementById('WebFilteringMainTableID') ){
 			$('#'+document.getElementById('WebFilteringMainTableID').value).flexReload();
 		}		
+		LoadAjaxSilent('button-$t','$page?button=yes');
 		return;
 	}
 	if( document.getElementById('done-$t') ){
@@ -133,7 +147,7 @@ $html="
 		}
 		
 		if(step2$t==0){
-			LoadAjax('progress-next-$t','$page?apply-next=yes&t=$t');
+			LoadAjax('button-$t','$page?button=yes&t=$t');
 		}
 	return;
 }
@@ -182,7 +196,7 @@ function apply_progress(){
 	}
 
 	$f=explode("\n",@file_get_contents($pfile));
-
+	krsort($f);
 	$tr[]="
 	<input type='hidden' id='md5-$t' value='$md5'>
 	<table style='width:100%'>";
@@ -192,6 +206,9 @@ function apply_progress(){
 	if($ligne==null){continue;}
 	$color=null;
 	$icon="20-check.png";
+	
+	if(preg_match("#FATAL|WARN|INVALID#i", $ligne)){$icon="20-check-red.png";}
+	
 
 		if(preg_match("#FATAL#", $ligne)){
 		$color=";color:#BE0303";
@@ -225,9 +242,7 @@ function apply_next(){
 	<script>
 
 	function Restart$t(){
-		var XHR = new XHRConnection();
-		XHR.appendData('shorewall-restart',  '$t');
-		XHR.sendAndLoad('$page', 'POST',xSendProgress2$t);
+		LoadAjaxSilent('button-$t','$page?button=yes');
 	}
 	
 </script>";

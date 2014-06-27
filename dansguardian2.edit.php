@@ -1670,6 +1670,8 @@ function rule_edit_save(){
 	$q=new mysql_squid_builder();
 	$q->CheckTables();
 	$sock=new sockets();
+	$_POST["groupname"]=trim(strtolower($_POST["groupname"]));
+	
 	
 	writelogs("Save ruleid `$ID`",__FUNCTION__,__FILE__,__LINE__);
 	
@@ -1680,8 +1682,10 @@ function rule_edit_save(){
 	unset($_POST["ID"]);
 	$build=false;
 	
+	if(strtolower($_POST["groupname"])=="default"){$_POST["groupname"]=null;}
+	
 	if($_POST["groupname"]==null){$_POST["groupname"]=time();}
-	$_POST["groupname"]=replace_accents($_POST["groupname"]);
+	$_POST["groupname"]=strtolower(replace_accents($_POST["groupname"]));
 	$_POST["groupname"]=str_replace("$", "", $_POST["groupname"]);
 	$_POST["groupname"]=str_replace("(", "", $_POST["groupname"]);
 	$_POST["groupname"]=str_replace(")", "", $_POST["groupname"]);
@@ -1706,7 +1710,15 @@ function rule_edit_save(){
 	$_POST["groupname"]=str_replace('}', "", $_POST["groupname"]);
 	$_POST["groupname"]=str_replace('|', "", $_POST["groupname"]);
 	
-	
+	$sql="SELECT ID FROM webfilter_rules WHERE `groupname`='{$_POST["groupname"]}'";
+	$results=$q->QUERY_SQL($sql);
+	$mysql_num_rows=intval(mysql_num_rows($results));
+	echo $sql." -> $mysql_num_rows";
+	if($mysql_num_rows>0){
+		$Groupname=$_POST["groupname"];
+		$_POST["groupname"] = "$Groupname - ".(intval($mysql_num_rows)+1);
+		echo " -> {$_POST["groupname"]}";
+	}
 	
 	while (list ($num, $ligne) = each ($_POST) ){
 		$fieldsAddA[]="`$num`";
@@ -1714,6 +1726,11 @@ function rule_edit_save(){
 		$fieldsEDIT[]="`$num`='".addslashes(utf8_encode($ligne))."'";
 		$DEFAULTARRAY[$num]=$ligne;
 	}
+	
+	
+	
+
+	
 	
 	
 	if($ID==0){

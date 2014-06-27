@@ -184,10 +184,10 @@ function group_edit(){
 	
 	
 	
-	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",16);
-	$bt_bt2=button("{apply}","SaveDansGUardianGroupRuleMinim()",16);
+	$bt_bt=button($button_name,"SaveDansGUardianGroupRule()",26);
+	$bt_bt2=button("{apply}","SaveDansGUardianGroupRuleMinim()",26);
 	$LaunchBTBrowse=1;
-	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
+	$bt_browse=button("{browse}...","MemberBrowsePopup();");
 	if($ID>1){if($ligne["localldap"]==2){$bt_bt=$bt_bt2;$bt_browse=null;$LaunchBTBrowse=0;}}
 	if(!is_numeric($ligne["enabled"])){$ligne["enabled"]=1;}
 	
@@ -195,33 +195,35 @@ function group_edit(){
 	if(!is_numeric($LDAP_EXTERNAL_AUTH)){$LDAP_EXTERNAL_AUTH=0;}
 	
 	$html="
-	<div id='dansguardinMainGroupDiv'>
-	<table style='width:99%' class=form>
+	<div id='dansguardinMainGroupDiv' style='width:98%' class=form>
+	
+	<table style='width:100%' >
 	<tbody>
 	<tr>
-		<td class=legend>$ID)&nbsp;{groupname}:</td>
-		<td>". Field_text("groupname-$t",$ligne["groupname"],"font-size:14px;")."</td>
+		<td class=legend style='font-size:16px'>$ID)&nbsp;{groupname}:</td>
+		<td>". Field_text("groupname-$t",$ligne["groupname"],"font-size:16px;")."</td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
-		<td class=legend>{groupmode}:</td>
-		<td>". Field_array_Hash($localldap,"localldap",$ligne["localldap"],"Checklocalldap()",null,0,"font-size:14px")."</td>
+		<td class=legend style='font-size:16px'{groupmode}:</td>
+		<td>". Field_array_Hash($localldap,"localldap",$ligne["localldap"],"Checklocalldap()",null,0,"font-size:16px")."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend>{groupid}:</td>
-		<td>". Field_text("gpid",$ligne["gpid"],"font-size:14px;width:65px")."</td>
+		<td class=legend style='font-size:16px'>{groupid}:</td>
+		<td>". Field_text("gpid",$ligne["gpid"],"font-size:16px;width:65px")."</td>
 		<td><span id='button-$t'>$bt_browse</span></td>
 	</tr>		
 	
 	<tr>
-		<td class=legend>{enabled}:</td>
+		<td class=legend style='font-size:16px'>{enabled}:</td>
 		<td>". Field_checkbox("enabled",1,$ligne["enabled"])."</td>
 		<td>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td class=legend>{description}:</td>
-		<td><textarea name='description' id='description' style='width:100%;height:50px;overflow:auto;font-size:14px'>". $ligne["description"]."</textarea></td>
+		<td class=legend style='font-size:16px'>{description}:</td>
+		<td><textarea name='description' id='description' 
+					style='width:100%;height:50px;overflow:auto;font-size:16px'>". $ligne["description"]."</textarea></td>
 		<td>&nbsp;</td>
 	</tr>
 	<tr>
@@ -379,9 +381,10 @@ function group_display_button(){
 	$type=$_GET["type"];
 	if($type==1){return;}
 	
-	$bt_browse="<input type='button' value='{browse}...' OnClick=\"javascript:MemberBrowsePopup();\" style='font-size:13px'>";
+	$bt_browse=button("{browse}...","MemberBrowsePopup()");
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($bt_browse);
+	
 }
 
 
