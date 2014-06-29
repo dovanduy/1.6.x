@@ -6457,3 +6457,8 @@ This to reduce the system load while creating scripts</ProxyPacCacheTime_explain
 <WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>[b]Quick start guide video[/b][br]
 Click on the left image if you want to display a video that explains how to configure your new proxy in few minutes.
 </WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>
+<reconfiguring>Reconfiguring</reconfiguring>
+<enable_passive_mode>Enable passive mode</enable_passive_mode>
+<enable_passive_mode_explain>Turn to green if you want to allow the PASV method of obtaining a data connection</enable_passive_mode_explain>
+<pasv_address>Passive addresse</pasv_address>
+<pasv_address_explain>Use this option to override the IP address that FTP service will advertise in response to the PASV command. Provide a numeric IP address</pasv_address_explain>

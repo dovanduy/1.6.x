@@ -28,6 +28,9 @@ $sock->SQUID_DISABLE_STATS_DIE();
 if($argv[1]=="--tables-day"){repair_table_days();die();}
 if($argv[1]=="--tables-dayh"){repair_table_days_hours();die();}
 if($argv[1]=="--tables-visited-sites"){repair_visited_sites();die();}
+if($argv[1]=="--coherences-tables"){repair_from_sources_tables();die();}
+
+
 
 
 if($argv[1]=="--repair-table-hour"){repair_table_hour($argv[2]);die();}
@@ -65,6 +68,169 @@ function repair_table_days_hours(){
 		echo "$tablename -> $date\n";
 		$q->QUERY_SQL("INSERT IGNORE INTO tables_day (tablename,zDate) VALUES ('$tablename','$date')");
 	}	
+	
+}
+
+function repair_from_sources_tables(){
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if($GLOBALS["VERBOSE"]){echo "time: $timefile\n";}
+	$pid=@file_get_contents($pidfile);
+	if(!$GLOBALS["VERBOSE"]){
+		if(!$GLOBALS["FORCE"]){
+			if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
+			if($pid<100){$pid=null;}
+			$mypid=getmypid();
+			@file_put_contents($pidfile,$mypid);
+		}
+	}
+	$Prefix="/usr/share/artica-postfix";
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$EXEC_NICE=$unix->EXEC_NICE();
+	
+	$q=new mysql_squid_builder();
+	$C=0;
+	$array=$q->LIST_TABLES_dansguardian_events();
+	$current="dansguardian_events_".date("Ymd");
+	while (list ($tablename,$none) = each ($array) ){
+		$time=$q->TIME_FROM_DANSGUARDIAN_EVENTS_TABLE($tablename);
+		$xtime=date("Y-m-d",$time);
+		$hour_table=date("Ymd",$time)."_hour";
+		$member_table=date("Ymd",$time)."_members";
+		$SUM_SOURCE=$q->COUNT_ROWS($tablename);
+		if($SUM_SOURCE==0){continue;}
+		$SUM_DEST=$q->COUNT_ROWS($hour_table);
+		$PERC=($SUM_DEST/$SUM_SOURCE)*100;
+		$PERC=intval($PERC);
+		echo "$xtime] $SUM_SOURCE - $SUM_DEST = {$PERC}% - $tablename\n";
+		
+		
+		
+		if($PERC<5){
+			if(!$q->CreateHourTable($hour_table)){
+				echo "$xtime] $tablename unable to create $hour_table\n";
+				continue;
+			}
+			_repair_from_sources_tables($tablename,$hour_table);
+			$q->QUERY_SQL("UPDATE tables_day SET `totalsize`='0',`requests`=0,`MembersCount`=0,`month_flow`=0,weekdone=0,weekbdone=0 WHERE tablename='$tablename'");
+			$C++;
+		}
+		
+		$ligne1=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(hits) as hits FROM $tablename"));
+		if(!$q->ok){echo $q->mysql_error;}
+		$SumDehits_src=$ligne1["hits"];
+		$ligne1=mysql_fetch_array($q->QUERY_SQL("SELECT SUM(hits) as hits FROM $member_table"));
+		$SumDehits_dest=$ligne1["hits"];
+		$PERC=($SumDehits_dest/$SumDehits_src)*100;
+		$PERC=intval($PERC);
+		echo "$xtime] $SumDehits_src - $SumDehits_dest = {$PERC}% - $member_table\n";
+		
+		
+		if($PERC<90){
+			if(!$q->CreateMembersDayTable($hour_table)){
+				echo "$xtime] $tablename unable to create $hour_table\n";
+				continue;
+			}
+			_repair_members_sources_tables($tablename,$member_table);
+			$C++;
+		}
+		
+		
+	}
+	
+	if($C>0){
+		shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.totals.php --repair --byschedule --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+	}
+	
+}
+function _repair_members_sources_tables($sourcetable,$member_table){
+	$f=array();
+	$q=new mysql_squid_builder();
+	$q->QUERY_SQL("TRUNCATE TABLE $member_table");
+	$sql="SELECT SUM( QuerySize ) AS QuerySize, SUM(hits) as hits,cached, HOUR( zDate ) AS `HOUR` ,
+	CLIENT, uid,MAC,hostname,account FROM $sourcetable GROUP BY cached, HOUR( zDate ) , CLIENT, uid,MAC,hostname,account HAVING QuerySize>0";
+	
+	$prefix="INSERT IGNORE INTO $member_table (zMD5,client,hour,size,hits,uid,cached,MAC,hostname,account) VALUES ";
+	$results=$q->QUERY_SQL($sql);
+	$f=array();
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$client=addslashes(trim(strtolower($ligne["CLIENT"])));
+		$uid=addslashes(trim(strtolower($ligne["uid"])));
+	
+		$md5=md5("{$ligne["CLIENT"]}{$ligne["HOUR"]}{$ligne["uid"]}{$ligne["QuerySize"]}{$ligne["hits"]}");
+		$sql_line="('$md5','$client','{$ligne["HOUR"]}','{$ligne["QuerySize"]}','{$ligne["hits"]}','$uid','{$ligne["cached"]}','{$ligne["MAC"]}','{$ligne["hostname"]}','{$ligne["account"]}')";
+		$f[]=$sql_line;
+	
+		
+	
+		if(count($f)>500){
+			$q->QUERY_SQL("$prefix" .@implode(",", $f));
+			$f=array();
+		}
+	
+	}
+	
+	if(count($f)>0){
+		$q->QUERY_SQL("$prefix" .@implode(",", $f));
+	}
+	
+	
+	$sql="SELECT CLIENT, uid,MAC,hostname FROM `$member_table` GROUP BY CLIENT,uid,MAC,hostname";
+	$results1=$q->QUERY_SQL($sql);
+	if(!$q->ok){echo $q-mysql_error;return;}
+	$Sum=mysql_num_rows($results1);
+	if($GLOBALS["VERBOSE"]){echo "{$ligne["tablename"]} -> $member_table = $Sum\n";}
+	$q->QUERY_SQL("UPDATE tables_day SET `MembersCount`='$Sum' WHERE tablename='$sourcetable'");	
+
+	
+}
+	
+	
+
+
+function _repair_from_sources_tables($sourcetable,$daytable){
+	percentage("Repair $daytable FROM $sourcetable",2);
+	//zMD5                             | sitename                   | familysite        | client        | hostname | account | hour | remote_ip     | MAC | country | size  | hits | uid           | category                      | cached
+	$f=array();
+	$sql="SELECT HOUR(zDate) as `hour`,SUM(QuerySize) as size, SUM(hits) as hits, 
+	sitename,uid,CLIENT,hostname,MAC,account,cached FROM $sourcetable  
+	GROUP BY `hour`,sitename,uid,CLIENT,hostname,MAC,account,cached";
+	
+	$prefix="INSERT IGNORE INTO $daytable 
+	(`zMD5`,`sitename`,`familysite`,`client`,`hostname`,`uid`,`account`,`hour`,`MAC`,`size`,`hits`) VALUES";
+	
+	$q=new mysql_squid_builder();
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		$zMD5=md5(serialize($ligne));
+		$familysite=$q->GetFamilySites($ligne["sitename"]);
+		while (list ($key,$val) = each ($ligne) ){$ligne[$key]=mysql_escape_string($val); }
+		
+		$f[]="('$zMD5','{$ligne["sitename"]}','$familysite','{$ligne["CLIENT"]}','{$ligne["hostname"]}','{$ligne["uid"]}','{$ligne["account"]}','{$ligne["hour"]}','{$ligne["MAC"]}','{$ligne["size"]}','{$ligne["hits"]}')";
+		
+		if(count($f)>0){
+			$q->QUERY_SQL($prefix.@implode(",", $f));
+			$f=array();
+		}
+	}
+	
+	
+	if(count($f)>0){
+		$q->QUERY_SQL($prefix.@implode(",", $f));
+		$f=array();
+	}
+	
+	$sql="SELECT COUNT(`sitename`) as tcount FROM $daytable WHERE LENGTH(`category`)=0";
+	if($GLOBALS["VERBOSE"]){echo $sql."\n";}
+	$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+	$max=$ligne2["tcount"];
+	$sql="UPDATE tables_day SET `not_categorized`=$max WHERE tablename='$sourcetable'";
+	$q->QUERY_SQL($sql);
+	
+	
+	
 	
 }
 
@@ -118,5 +284,20 @@ function writelogs_repair($xtime,$progress,$text){
 	@chmod($filelogs, 0775);
 	
 	
+}
+function percentage($text,$purc){
+
+
+	$array["TITLE"]=$text." ".date("d H:i:s");
+	$array["POURC"]=$purc;
+	@file_put_contents("/usr/share/artica-postfix/ressources/squid.stats.progress.inc", serialize($array));
+	@chmod("/usr/share/artica-postfix/ressources/squid.stats.progress.inc",0755);
+	$pid=getmypid();
+	$lineToSave=date('H:i:s')." [$pid] [$purc] $text";
+	if($GLOBALS["VERBOSE"]){echo "$lineToSave\n";}
+	$f = @fopen("/var/log/artica-squid-statistics.log", 'a');
+	@fwrite($f, "$lineToSave\n");
+	@fclose($f);
+
 }
 ?>

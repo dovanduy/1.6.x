@@ -153,6 +153,7 @@ shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.members.hours.php --r
 
 percentage("Repair Sum tables",2);
 shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.totals.php --repair --byschedule --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.repair.php --coherences-tables --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
 
 percentage("WeekDaysNums()",2);
 WeekDaysNums();

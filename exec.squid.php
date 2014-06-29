@@ -1225,15 +1225,17 @@ function BuildCaches($NOTSTART=false){
 			}
 			echo "Starting......: ".date("H:i:s")." Squid Check cache \"$CacheDirectory\" owned by $squid_user (".__LINE__.")\n";
 			
-			$unix->chown_func($squid_user,$squid_user,$CacheDirectory);
-			$unix->chmod_alldirs(0755, $CacheDirectory);
+			shell_exec("$nohup $chown -R $squid_user:$squid_user $CacheDirectory");
 			@chmod($CacheDirectory, 0755);
-			$unix->chown_func($squid_user,$squid_user,"$CacheDirectory/*");
+			
 			
 					
 		}
 	}
-	if($unix->file_time_min($TimeFileChown)>120){@unlink($TimeFileChown);@file_put_contents($TimeFileChown, time());}
+	if($unix->file_time_min($TimeFileChown)>120){
+		@unlink($TimeFileChown);
+		@file_put_contents($TimeFileChown, time());
+	}
 	
 	
 	if(!$GLOBALS["NOCACHES"]){$MustBuild=false;return;}

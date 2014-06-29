@@ -3242,8 +3242,7 @@ function stop_squid($aspid=false){
 	
 	if(!$unix->process_exists($pid)){
 		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service Already stopped...\n";}
-		system_admin_events("Squid is not running, start it...", __FUNCTION__, __FILE__, __LINE__, "proxy");
-		start_squid();
+		KillGhosts();
 		return;
 	}
 	
@@ -3327,51 +3326,7 @@ function stop_squid($aspid=false){
 		
 	}
 	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search ntlm_auth processes...\n";}
-	exec("$pgrep -l -f \"ntlm_auth.*?--helper-proto\" 2>&1",$results);
-	while (list ($num, $ligne) = each ($results) ){
-		if(preg_match("#pgrep#", $ligne)){continue;}
-		if(!preg_match("#^([0-9]+)\s+\(ntlm_auth#", $ligne,$re)){SendLogs("Skipping $ligne");continue;}
-		$pid=$re[1];
-		unix_system_kill_force($pid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service ntlm_auth process PID $pid\n";}
-	
-	}	
-	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search external_acl_squid processes..\n";}
-	exec("$pgrep -l -f \"external_acl_squid.php\" 2>&1",$results);
-	while (list ($num, $ligne) = each ($results) ){
-		if(preg_match("#pgrep#", $ligne)){continue;}
-		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
-		$pid=$re[1];
-		unix_system_kill_force($pid);
-		SendLogs("Stopping external_acl_squid process PID $pid");
-	
-	}	
-	
-	
-	$squidbin=$unix->LOCATE_SQUID_BIN();
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search $squidbin processes...\n";}
-	exec("$pgrep -l -f \"$squidbin\" 2>&1",$results);
-	while (list ($num, $ligne) = each ($results) ){
-		if(preg_match("#pgrep#", $ligne)){continue;}
-		if(preg_match("#squid27#", $ligne)){continue;}
-		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
-		$pid=$re[1];
-		unix_system_kill_force($pid);
-		SendLogs("Stopping squid process PID $pid");
-	
-	}	
-	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search $squidbin (sub-daemons) processes...\n";}
-	exec("$pgrep -l -f \"\(squid-[0-9]+\)\" 2>&1",$results);
-	while (list ($num, $ligne) = each ($results) ){
-		if(preg_match("#pgrep#", $ligne)){continue;}
-		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
-		$pid=$re[1];
-		unix_system_kill_force($pid);
-		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service squid process PID $pid\n";}
-	
-	}	
+	KillGhosts();
 	
 
 	if(is_file("/dev/shm/squid-cache_mem.shm")){
@@ -3385,6 +3340,68 @@ function stop_squid($aspid=false){
 	if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$sourcefunction=$trace[1]["function"];$sourceline=$trace[1]["line"];$executed="Executed by $sourcefunction() line $sourceline\nusing argv:{$GLOBALS["ARGVS"]}\n";}}
 	system_admin_events("Squid success to stop\n".@implode("\n", $GLOBALS["LOGS"]), __FUNCTION__, __FILE__, __LINE__, "proxy");
 	
+}
+
+function KillGhosts(){
+	$unix=new unix();
+	$pgrep=$unix->find_program("pgrep");
+	exec("$pgrep -l -f \"squid.*?-[0-9]+\)\" 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(!preg_match("#^([0-9]+)\s+\(.+)#", $ligne,$re)){SendLogs("Skipping $ligne");continue;}
+		$pid=$re[1];
+		$cmdline=$re[2];
+		unix_system_kill_force($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache process \"$cmdline\" process PID $pid\n";}
+	
+	}
+	
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search ntlm_auth processes...\n";}
+	exec("$pgrep -l -f \"ntlm_auth.*?--helper-proto\" 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(!preg_match("#^([0-9]+)\s+\(ntlm_auth#", $ligne,$re)){SendLogs("Skipping $ligne");continue;}
+		$pid=$re[1];
+		unix_system_kill_force($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service ntlm_auth process PID $pid\n";}
+	
+	}
+	
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search external_acl_squid processes..\n";}
+	exec("$pgrep -l -f \"external_acl_squid.php\" 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
+		$pid=$re[1];
+		unix_system_kill_force($pid);
+		SendLogs("Stopping external_acl_squid process PID $pid");
+	
+	}
+	
+	
+	$squidbin=$unix->LOCATE_SQUID_BIN();
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search $squidbin processes...\n";}
+	exec("$pgrep -l -f \"$squidbin\" 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(preg_match("#squid27#", $ligne)){continue;}
+		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
+		$pid=$re[1];
+		unix_system_kill_force($pid);
+		SendLogs("Stopping squid process PID $pid");
+	
+	}
+	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service seems stopped search $squidbin (sub-daemons) processes...\n";}
+	exec("$pgrep -l -f \"\(squid-[0-9]+\)\" 2>&1",$results);
+	while (list ($num, $ligne) = each ($results) ){
+		if(preg_match("#pgrep#", $ligne)){continue;}
+		if(!preg_match("#^([0-9]+)\s+.*#", $ligne,$re)){continue;}
+		$pid=$re[1];
+		unix_system_kill_force($pid);
+		if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." Squid-Cache service squid process PID $pid\n";}
+	
+	}	
 }
 
 

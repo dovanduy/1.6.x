@@ -132,9 +132,10 @@ function start($xtime=0){
 			$max=$ligne2["tcount"];
 			$sql="UPDATE tables_day SET `not_categorized`=$max WHERE tablename='$tablename'";
 			$q->QUERY_SQL($sql);	
-
+	
+		}
 			
-			if(!$q->TABLE_EXISTS($members_table)){continue;}
+		if($q->TABLE_EXISTS($members_table)){
 			$MembersField=which_filter($members_table,true);
 			if($GLOBALS["VERBOSE"]){echo "Table members Calculate Members by $MembersField\n";}
 			if($MembersField<>null){
@@ -142,11 +143,13 @@ function start($xtime=0){
 				$sql="UPDATE tables_day SET `MembersCount`=$MembersCount WHERE tablename='$tablename'";
 				if($GLOBALS["VERBOSE"]){echo $sql."\n";}
 				$q->QUERY_SQL($sql);
-			}				
+			}	
+
+		}
 				
 		
 
-		}
+
 		
 		if($q->TABLE_EXISTS($youtube_table)){
 			$sql="SELECT youtubeid FROM $youtube_table GROUP BY youtubeid";
@@ -307,7 +310,7 @@ function events($text){
 
 
 function TOTALS_REPAIR($aspid=false){
-	
+	$unix=new unix();
 	if(!$aspid){
 		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 		$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
@@ -316,7 +319,7 @@ function TOTALS_REPAIR($aspid=false){
 		if(!$GLOBALS["VERBOSE"]){
 			if(!$GLOBALS["FORCE"]){
 				if($pid<100){$pid=null;}
-				$unix=new unix();
+				
 				if($unix->process_exists($pid,basename(__FILE__))){if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}return;}
 				if(!$GLOBALS["BY_SCHEDULE"]){
 					$timeexec=$unix->file_time_min($timefile);
@@ -344,17 +347,27 @@ function TOTALS_REPAIR($aspid=false){
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		if($ligne["tprefix"]==$currentDay){continue;}
 		$quota_day="quotaday_{$ligne["tprefix"]}";
+		$dansguardian_events="dansguardian_events_{$ligne["tprefix"]}";
 		
 		if($q->TABLE_EXISTS($quota_day)){
 			$sql="SELECT SUM(size) as tsize FROM `$quota_day`";
 			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
 			$SumSize=$ligne2["tsize"];
+			
+			$sql="SELECT SUM(hits) as tsize FROM `$dansguardian_events`";
+			$ligne2=mysql_fetch_array($q->QUERY_SQL($sql));
+			$SumHits=$ligne2["tsize"];
+			
+			
 			stats_admin_events(1,"Repair: {$ligne["tablename"]} = {$ligne["totalsize"]} $quota_day = $SumSize",null,__FILE__,__LINE__);
 			if($GLOBALS["VERBOSE"]){echo "{$ligne["tablename"]} = {$ligne["totalsize"]} $quota_day = $SumSize\n";}
-			$q->QUERY_SQL("UPDATE tables_day SET `totalsize`='$SumSize' WHERE tablename='{$ligne["tablename"]}'");
+			if($GLOBALS["VERBOSE"]){echo "$dansguardian_events = $SumHits\n";}
+			$q->QUERY_SQL("UPDATE tables_day SET `totalsize`='$SumSize',`requests`=$SumHits WHERE tablename='{$ligne["tablename"]}'");
 			
 		}
 	}
+	
+	
 	
 
 	$q=new mysql_squid_builder();
@@ -396,13 +409,15 @@ function TOTALS_REPAIR($aspid=false){
 		$tablesource="{$ligne["tprefix"]}_members";
 		if($ligne["tprefix"]==$currentDay){continue;}
 		if($q->TABLE_EXISTS($tablesource)){
-			$sql="SELECT CLIENT, uid,MAC,hostname FROM `$tablesource` GROUP BY CLIENT,uid,MAC,hostname";
-			$results1=$q->QUERY_SQL($sql);
-			if(!$q->ok){echo $q-mysql_error;return;}
-			$Sum=mysql_num_rows($results1);
-			stats_admin_events(1,"Repair: {$ligne["tablename"]} MembersCount: $SourceTable = $SumSize",null,__FILE__,__LINE__);
-			if($GLOBALS["VERBOSE"]){echo "{$ligne["tablename"]} -> $tablesource = $Sum\n";}
-			$q->QUERY_SQL("UPDATE tables_day SET `MembersCount`='$Sum' WHERE tablename='{$ligne["tablename"]}'");
+			if($q->COUNT_ROWS($tablesource)>0){
+				$sql="SELECT CLIENT, uid,MAC,hostname FROM `$tablesource` GROUP BY CLIENT,uid,MAC,hostname";
+				$results1=$q->QUERY_SQL($sql);
+				if(!$q->ok){echo $q-mysql_error;return;}
+				$Sum=mysql_num_rows($results1);
+				stats_admin_events(1,"Repair: {$ligne["tablename"]} MembersCount: $SourceTable = $SumSize",null,__FILE__,__LINE__);
+				if($GLOBALS["VERBOSE"]){echo "{$ligne["tablename"]} -> $tablesource = $Sum\n";}
+				$q->QUERY_SQL("UPDATE tables_day SET `MembersCount`='$Sum' WHERE tablename='{$ligne["tablename"]}'");
+			}
 	
 		}
 	}	

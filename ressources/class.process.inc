@@ -134,6 +134,8 @@ function MemoryInstances(){
 		$arrayK["exec.squid.hourly.tables.php"]=50;
 		$arrayK["exec.zarafa.build.stores.php"]=30;
 		$arrayK["exec.zarafa.adbookldap.php"]=30;
+		$arrayK["exec.squid.cloud.compile.php"]=1440;
+		$arrayK["exec.cleancloudcatz.php"]=1440;
 		$arrayK["exec.kerbauth.php"]=15;
 		$arrayK["exec.admin.smtp.flow.status.php"]=10;
 		$arrayK["exec.squid.stats.central.php"]=$ArticaProxyStatisticsMaxTime;

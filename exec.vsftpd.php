@@ -28,9 +28,7 @@ if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;restart();die();}
-
-
-
+if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;pamd_conf();vsftpd_conf();}
 
 function restart() {
 	$unix=new unix();
@@ -117,7 +115,7 @@ function start($aspid=false){
 	pamd_conf();
 	vsftpd_conf();
 	$cmd="$nohup $Masterbin -olisten=YES /etc/vsftpd.conf >/dev/null 2>&1 &";
-	if(is_file("/var/log/vsftpd.log")){@touch("/var/log/vsftpd.log");}
+
 	
 	
 	
@@ -209,29 +207,15 @@ function stop($aspid=false){
 
 function pamd_conf(){
 	
-	$f[]="# Standard behaviour for ftpd(8).";
-	$f[]="auth required       pam_listfile.so item=user sense=deny file=/etc/ftpusers onerr=succeed";
-	$f[]="";
 	$f[]="# Note: vsftpd handles anonymous logins on its own. Do not enable";
 	$f[]="# pam_ftp.so.";
 	$f[]="";
-	$f[]="# Standard blurb.";
-	$f[]="#@include common-account";
-	$f[]="#@include common-session";
-	$f[]="#@include common-auth";
+
+	$f[]="auth 		required 		pam_ldap.so";
+	$f[]="account 	required 		pam_ldap.so";
+	$f[]="password 	required 		pam_ldap.so";
+	
 	$f[]="";
-	$f[]="account required   pam_unix.so";
-	$f[]="account sufficient pam_ldap.so";
-	$f[]="";
-	$f[]="session required   pam_limits.so";
-	$f[]="session required   pam_unix.so";
-	$f[]="session optional   pam_ldap.so";
-	$f[]="";
-	$f[]="auth required      pam_env.so";
-	$f[]="auth sufficient    pam_unix.so nullok_secure";
-	$f[]="auth sufficient    pam_ldap.so use_first_pass";
-	$f[]="";
-	$f[]="auth required       pam_shells.so";
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/pam.d/vsftpd done\n";}
 	@file_put_contents("/etc/pam.d/vsftpd", @implode("\n", $f));
 	
@@ -239,12 +223,18 @@ function pamd_conf(){
 }
 
 function vsftpd_conf(){
-	
+	@unlink("/var/log/exim4/paniclog");
 	$unix=new unix();
 	$hostname=$unix->hostname_g();
 	$sock=new sockets();
 	$VSFTPDPort=intval($sock->GET_INFO("VSFTPDPort"));
+	$VsFTPDPassive=$sock->GET_INFO("VsFTPDPassive");
+	$VsFTPDPassiveAddr=$sock->GET_INFO("VsFTPDPassiveAddr");
 	if($VSFTPDPort==0){$VSFTPDPort=21;}
+	if(!is_numeric($VsFTPDPassive)){$VsFTPDPassive=1;}
+	@mkdir("/var/empty");
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Listen on $VSFTPDPort\n";}
+	
 	$f[]="#";
 	$f[]="# The default compiled in settings are fairly paranoid. This sample file";
 	$f[]="# loosens things up a bit, to make the ftp daemon more usable.";
@@ -261,10 +251,10 @@ function vsftpd_conf(){
 	$f[]="#listen_address=123.45.67.6";
 	$f[]="";
 	$f[]="# Port d'écoute.";
-	$f[]="listen_port=21";
+	$f[]="listen_port=$VSFTPDPort";
 	$f[]="";
-	$f[]="# Pour emprisonner le démon vsftpd.";
-	$f[]="secure_chroot_dir=/var/run/vsftpd";
+
+	
 	$f[]="";
 	$f[]="# Utilisateur pour les opérations sans privilèges.";
 	$f[]="nopriv_user=nobody";
@@ -280,12 +270,16 @@ function vsftpd_conf(){
 	$f[]="#ascii_download_enable=YES";
 	$f[]="";
 	$f[]="# Active le mode FTP passif.";
+	if($VsFTPDPassive==1){
 	$f[]="pasv_enable=YES";
-	$f[]="";
-	$f[]="# Définition de la plage de ports à utiliser pour les connexions FTP";
-	$f[]="# passives.";
 	$f[]="pasv_min_port=40000";
 	$f[]="pasv_max_port=40200";
+	if($VsFTPDPassiveAddr<>null){
+		$f[]="pasv_address=$VsFTPDPassiveAddr";
+	}
+	}else{
+		$f[]="pasv_enable=NO";
+	}
 	$f[]="";
 	$f[]="# Combien de clients peuvent être connectés au maximum.";
 	$f[]="max_clients=200";
@@ -358,8 +352,7 @@ function vsftpd_conf(){
 	$f[]="";
 	$f[]="# Autorise les utilisateurs 'locaux' à se connecter (authentifiés via PAM)";
 	$f[]="local_enable=YES";
-	$f[]="";
-	$f[]="# Nom du service PAM à utiliser pour l'authentification.";
+	$f[]="session_support=YES";
 	$f[]="pam_service_name=vsftpd";
 	$f[]="";
 	$f[]="# Active le module SSL.";
@@ -388,6 +381,12 @@ function vsftpd_conf(){
 	$f[]="";
 	$f[]="# Pour restreindre les utilisateurs locaux dans leur home directories.";
 	$f[]="chroot_local_user=YES";
+	$f[]="secure_chroot_dir=/var/empty";
+	$f[]="allow_writeable_chroot=YES";
+	$f[]="passwd_chroot_enable=YES";
+	$f[]="hide_ids=NO";
+	$f[]="ftp_username=".$unix->APACHE_SRC_ACCOUNT();
+	$f[]="nopriv_user=".$unix->APACHE_SRC_ACCOUNT();
 	$f[]="";
 	$f[]="# Vous pouvez spécifier une liste d'utilisateurs à chrooter si vous";
 	$f[]="# n'activez pas le paramètre 'chroot_local_user'.";
@@ -410,8 +409,7 @@ function vsftpd_conf(){
 	$f[]="# Désactive la commande FTP 'chmod'.";
 	$f[]="chmod_enable=NO";
 	$f[]="";
-	$f[]="# Pour afficher 'ftp' comme propriétaire et groupe.";
-	$f[]="hide_ids=YES";
+	
 	$f[]="";
 	$f[]="# Pour limiter le taux de transfert (montant/descendant) des utilisateurs";
 	$f[]="# locaux en Octets par seconde.";
@@ -419,18 +417,20 @@ function vsftpd_conf(){
 	$f[]="";
 	$f[]="# Active les logs pour les transferts montant/descendant.";
 	$f[]="xferlog_enable=YES";
-	$f[]="";
-	$f[]="# Pour obtenir les logs FTP au format standard xferlog.";
-	$f[]="xferlog_std_format=YES";
-	$f[]="";
-	$f[]="# Fichier de log par défaut.";
+	$f[]="log_ftp_protocol=YES";
+	$f[]="#xferlog_std_format=YES";
 	$f[]="xferlog_file=/var/log/vsftpd.log";
+	$f[]="syslog_enable=YES";
+	$f[]="use_localtime=YES";
 	$f[]="";
 	$f[]="# Timeout d'une session.";
 	$f[]="idle_session_timeout=600";
-	$f[]="";
-	$f[]="# Timeout pour l'échange de données.";
 	$f[]="data_connection_timeout=120";
+	$f[]="";
+	$nohup=$unix->find_program("nohup");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} /etc/vsftpd.conf done\n";}
 	@file_put_contents("/etc/vsftpd.conf", @implode("\n", $f));
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} set nsswitch..\n";}
+	shell_exec("$nohup /usr/share/artica-postfix/bin/artica-install --nsswitch >/dev/null 2>&1");
+	
 }

@@ -50,11 +50,17 @@
 	$sql="SELECT sitename FROM webtests WHERE checked=0 ORDER BY sitename LIMIT 0,5000";
 	$results=$q->QUERY_SQL("$sql");
 	if($GLOBALS["OUTPUT"]){echo mysql_num_rows($results)." items\n";}
-	writelogs(mysql_num_rows($results)." items for $sql",__FUNCTION__,__FILE__,__LINE__);
+	$count=mysql_num_rows($results);
+	
+	
+	writelogs("$count items for $sql",__FUNCTION__,__FILE__,__LINE__);
 	$IpClass=new IP();
+	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$forcedelete=false;
+		$c++;
 		$www=$ligne["sitename"];
+		$percent=($c/$count)*100;
 		if(strpos($www, ",")>0){$forcedelete=true;}
 		if(strpos($www, " ")>0){$forcedelete=true;}
 		if(strpos($www, ":")>0){$forcedelete=true;}
@@ -95,8 +101,10 @@
 		if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} -> \"$articacats\"\n";}
 		
 		
+		
 		if($articacats<>null){
 			$q->categorize($ligne["sitename"], $articacats);
+			$unix->_syslog("$percent) {$ligne["sitename"]} = $articacats",__FILE__ );
 			continue;
 		}	
 		
@@ -105,6 +113,7 @@
 			if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} $familysite -> $articacats\n";}
 			if($articacats<>null){
 				$q->categorize($ligne["sitename"], $articacats);
+				$unix->_syslog("$percent) {$ligne["sitename"]} = $articacats",__FILE__ );
 				continue;
 			}
 		}
@@ -114,6 +123,7 @@
 		
 		$ipaddr=gethostbyname($ligne["sitename"]);
 		if(!$IpClass->isIPAddress($ipaddr)){
+			$unix->_syslog("$percent) {$ligne["sitename"]} = reaffected",__FILE__ );
 			$q->categorize_reaffected($ligne["sitename"]);
 			if($GLOBALS["OUTPUT"]){echo "{$ligne["sitename"]} -> Reaffected\n";}
 			$q->QUERY_SQL("DELETE FROM webtests WHERE sitename='{$ligne["sitename"]}'");
@@ -124,7 +134,8 @@
 		$already[$ligne["sitename"]]=true;
 		
 		$familysite=$q->GetFamilySites($ligne["sitename"]);
-		$GetPageInfos=addslashes(GetPageInfos($ligne["sitename"]));
+		//$GetPageInfos=addslashes(GetPageInfos($ligne["sitename"]));
+		$unix->_syslog("$percent) {$ligne["sitename"]} = UNKNOWN",__FILE__ );
 		$sql="UPDATE webtests SET ipaddr='$ipaddr',family='$familysite' WHERE sitename='{$ligne["sitename"]}'";
 		$q->QUERY_SQL($sql);
 		

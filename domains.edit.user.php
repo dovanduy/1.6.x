@@ -2755,12 +2755,12 @@ function USER_CHANGE_PASSWORD() {
 		if($ct->AsAnSambaAccount){
 			$smbasswd="
 				<tr>
-					<td class=legend style='font-size:16px;'>sambaLMPassword:</td>
-					<td><strong style='font-size:16px;color:#717171'>$ct->sambaLMPassword</td>
+					<td class=legend style='font-size:18px;'>sambaLMPassword:</td>
+					<td><strong style='font-size:18px;color:#717171'>$ct->sambaLMPassword</td>
 				</tr>
 				<tr>
-					<td class=legend style='font-size:16px;'>sambaNTPassword:</td>
-					<td><strong style='font-size:16px;color:#717171'>$ct->sambaNTPassword</td>
+					<td class=legend style='font-size:18px;'>sambaNTPassword:</td>
+					<td><strong style='font-size:18px;color:#717171'>$ct->sambaNTPassword</td>
 				</tr>				
 			";
 			
@@ -2770,14 +2770,14 @@ function USER_CHANGE_PASSWORD() {
 	
 	$form = Field_hidden ( 'UserPasswordID', $ct->uid ) . "
 	<div id='ChangeUserPasswordID' style='width:98%' class=form>
-	<table>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:16px;'>{password}:</td>
-		<td>" . Field_password ("UserPassword", $ct->password, "font-size:16px;padding:5px;width:90%" ) . "</td>
+		<td class=legend style='font-size:18px;'>{password}:</td>
+		<td>" . Field_password ("UserPassword", $ct->password, "font-size:18px;padding:5px;width:90%" ) . "</td>
 	</tr>$smbasswd
 	<tr>
 		<td colspan=2 align='right'>
-		<hr>". button("{apply}","ChangeUserPasswordSave()",16)."
+		<hr>". button("{apply}","ChangeUserPasswordSave()",26)."
 	</tr>
 	</table>
 	</div>
@@ -3044,7 +3044,7 @@ function USER_ACCOUNT_POPUP($userid) {
 	$SystemInfoUser = "
 	<td width=1%><img src='img/system-32.png'></td>
 	<td style='padding:5px' $cellRol>" . texttooltip ( '{UserSystemInfos}', '{UserSystemInfos_text}', "UserSystemInfos('$userid')", null, 0, 'font-size:12px;font-weight:bold' ) . "</td>";
-	$SystemInfoUser = Paragraphe ( "system-64.org.png", '{UserSystemInfos}', '{UserSystemInfos_text}', "javascript:Loadjs('domains.edit.user.system.php?uid=$userid')" );
+	$SystemInfoUser = Paragraphe ( "processor-64.png", '{UserSystemInfos}', '{UserSystemInfos_text}', "javascript:Loadjs('domains.edit.user.system.php?uid=$userid')" );
 	$SystemInfoUser_disabled=Paragraphe ( "system-64.org-grey.png", '{UserSystemInfos}', '{UserSystemInfos_text}');
 	
 	
@@ -3057,8 +3057,8 @@ function USER_ACCOUNT_POPUP($userid) {
 	
 	$ChangeGuid = "
 	<td width=1%><img src='img/change-identifiant-32.png'></td>
-	<td style='padding:5px' $cellRol>" . texttooltip ( '{change_uid}', '{change_uid_text}', "YahooWin3(450,'domains.edit.user.php?changeuid=yes&userid=$userid','$userid:{change_uid}');", null, 0, 'font-size:12px;font-weight:bold' ) . "</td>";
-	$ChangeGuid = Paragraphe ( "logon-profiles-64.png", '{change_uid}', '{change_uid_text}', "javascript:YahooWin3(450,'domains.edit.user.php?changeuid=yes&userid=$userid','$userid:{change_uid}');" );
+	<td style='padding:5px' $cellRol>" . texttooltip ( '{change_uid}', '{change_uid_text}', "YahooWin3(650,'domains.edit.user.php?changeuid=yes&userid=$userid','$userid:{change_uid}');", null, 0, 'font-size:12px;font-weight:bold' ) . "</td>";
+	$ChangeGuid = Paragraphe ( "logon-profiles-64.png", '{change_uid}', '{change_uid_text}', "javascript:YahooWin3(650,'domains.edit.user.php?changeuid=yes&userid=$userid','$userid:{change_uid}');" );
 	$ChangeGuid_disabled = Paragraphe ( "logon-profiles-64-grey.png", '{change_uid}', '{change_uid_text}');
 	
 	
@@ -3134,7 +3134,8 @@ function USER_ACCOUNT_POPUP($userid) {
 	
 	
 
-	$changeuid = Paragraphe ( "mysql-user-settings.png", '{change_uid}', '{change_uid_text}', "javascript:YahooWin3(450,'domains.edit.user.php?changeuid=yes&userid=$userid','$userid:{change_uid}');", null, 210, 'font-size:12px;font-weight:bold' );
+	$changeuid = Paragraphe ( "64-folder-user.png", '{change_uid}', '{change_uid_text}', 
+			"javascript:YahooWin3(650,'domains.edit.user.php?changeuid=yes&userid=$userid','$userid:{change_uid}');", null, 210, 'font-size:12px;font-weight:bold' );
 	$changeuid_disabled = Paragraphe ( "mysql-user-settings-grey.png", '{change_uid}', '{change_uid_text}');
 	
 	
@@ -3492,18 +3493,21 @@ function ZARAFA_MAILBOX($uid) {
 			<div style='font-size:26px;font-weight:bold'>{$u->DisplayName}&nbsp;&raquo;&nbsp;{mailbox}</div>
 			<div style='text-align:right;width:100%'>$Convert&nbsp;&nbsp;$mailboxinfos</td>
 		</td>
+		<tr>
+		<td colspan=2 valign='top' style='vertical-align:top'><p>&nbsp;</p></td></tr>
 		</tr>
+		
 					<tr>
 						<td class=legend style='font-size:18px'>{mailbox_size}:</td>
-						<td style='font-size:13px'><strong>$mailboxsize</strong></td>
+						<td style='font-size:18px'><strong>$mailboxsize</strong></td>
 					</tr>
 					<tr>
 						<td class=legend style='font-size:18px'>{last_logon}:</td>
-						<td style='font-size:13px'><strong>{$status["Last logon"]}</strong></td>
+						<td style='font-size:18px'><strong>{$status["Last logon"]}</strong></td>
 					</tr>		
 					<tr>
 						<td class=legend style='font-size:18px'>{last_logoff}:</td>
-						<td style='font-size:13px'><strong>{$status["Last logoff"]}</strong></td>
+						<td style='font-size:18px'><strong>{$status["Last logoff"]}</strong></td>
 					</tr>
 					<tr>
 						<td class=legend style='font-size:18px'>{zarafaAdmin}:</td>
@@ -3511,11 +3515,11 @@ function ZARAFA_MAILBOX($uid) {
 					</tr>
 					<tr>
 						<td class=legend style='font-size:18px'>{zarafaSharedStoreOnly}:</td>
-						<td style='font-size:13px'>" . Field_checkbox ( "zarafaSharedStoreOnly", 1, $u->zarafaSharedStoreOnly,"zarafaSharedStoreOnlyCheck()" ) . "</td>
+						<td style='font-size:18px'>" . Field_checkbox ( "zarafaSharedStoreOnly", 1, $u->zarafaSharedStoreOnly,"zarafaSharedStoreOnlyCheck()" ) . "</td>
 					</tr>					
 					<tr>
 						<td class=legend style='font-size:18px'>{zarafaHidden}:</td>
-						<td style='font-size:13px'>" . Field_checkbox ( "zarafaHidden", 1, $u->zarafaHidden,"zarafaHiddenOnlyCheck()" ) . "</td>
+						<td style='font-size:18px'>" . Field_checkbox ( "zarafaHidden", 1, $u->zarafaHidden,"zarafaHiddenOnlyCheck()" ) . "</td>
 					</tr>					
 					
 					
@@ -4847,24 +4851,25 @@ function USER_TRANSPORT_DELTE() {
 function USER_CHANGE_UID() {
 	$uid = $_GET["userid"];
 	$html = "
-	<div class=explain>{change_uid_explain}</div>
-	<div id='chuiseriddiv'>
-	<div style='width:98%' class=form>
-	<table>
+	<div class=explain style='font-size:16px'>{change_uid_explain}</div>
+	<div id='chuiseriddiv' style='width:98%' class=form>
+	<div style='width:100%'>
+	<table style='width:100%'>
 	<tr>
-		<td class=legend style='font-size:13px'>{original}:</td>
-		<td><strong style='font-size:13px;font-weight:normal'>$uid</td>
+		<td class=legend style='font-size:22px'>{uid}:</td>
+		<td><strong style='font-size:22px;font-weight:normal'>$uid</td>
 	</tr>	
 	<tr>
-		<td class=legend nowrap style='font-size:13px'>{change_uid}:</td>
-		<td>" . Field_text ( 'uid_to' ,null,'font-size:13px;padding:5px') . "</td>
+		<td class=legend nowrap style='font-size:22px'>{change_uid}:</td>
+		<td>" . Field_text ( 'uid_to' ,null,'font-size:22px;padding:5px') . "</td>
 	</tr>
 	<tr>
 		<td colspan=2 align='right'>
-		<hr>". button("{apply}","ChangeUniqueIdentifier('$uid')")."
+		<hr>". button("{apply}","ChangeUniqueIdentifier('$uid')",30)."
 		</td>
 	</tr>
-	</table></div>
+	</table>
+	</div>
 	
 	";
 	$priv = new usersMenus ( );
@@ -5656,7 +5661,7 @@ function ZARAFA_MAILBOX_INFOS_POPUP(){
 	$datas=unserialize(base64_decode($sock->getFrameWork("zarafa.php?mbx-infos={$_GET["uid"]}&instance-id=$instance_id")));
 	
 		$html[]="
-		<div style='height:450px;width:100%;overflow:auto'>
+		<div style='width:100%;'>
 		<table cellspacing='0' cellpadding='0' border='0' class='tableView' style='width:100%'>
 <thead class='thead'>
 	<tr>
@@ -5671,8 +5676,8 @@ function ZARAFA_MAILBOX_INFOS_POPUP(){
 	
 	if(preg_match("#(.+?):(.+)#",$ligne,$re)){
 		$html[]="<tr class=$classtr>
-		<td class=legend>{$re[1]}:</td>
-		<td style='font-size:14px;font-weight:bold'>{$re[2]}</td>
+		<td class=legend style='font-size:16px'>{$re[1]}:</td>
+		<td style='font-size:16px;font-weight:bold'>{$re[2]}</td>
 		</tr>";
 		continue;
 	}		
@@ -5682,7 +5687,7 @@ function ZARAFA_MAILBOX_INFOS_POPUP(){
 	
 	if(trim($ligne==null)){continue;}
 	$html[]="<tr class=$classtr>
-		<td style='font-size:14px;font-weight:bold' colspan=2>$ligne</td>
+		<td style='font-size:16px;font-weight:bold' colspan=2>$ligne</td>
 		</tr>";
 
 

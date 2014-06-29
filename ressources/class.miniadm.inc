@@ -1859,7 +1859,7 @@ function ONLY_CORP_HTML(){
 	if(!$_SESSION["CORP"]){
 		$tpl=new templates();
 		$onlycorpavailable=$tpl->_ENGINE_parse_body("{onlycorpavailable}");
-		$content="<p class=text-error>$content</p>";
+		$content="<p class=text-error>$onlycorpavailable</p>";
 		echo $content;
 		die();
 	}	

@@ -15,7 +15,7 @@ include_once(dirname(__FILE__)."/framework/frame.class.inc");
 if($GLOBALS["VERBOSE"]){echo "Starting analyze command lines\n";$GLOBALS["OUTPUT"]=true;}
 
 if($argv[1]=="syslog-deb"){die();}
-if($argv[1]=="--ldapd-conf"){ldap_conf();exit;}
+if($argv[1]=="--ldapd-conf"){ldap_conf();}
 if($argv[1]=="--dnsmasq"){dnsmasq_init_debian();die();}
 if($argv[1]=="--nscd"){nscd_init_debian();die();}
 if($argv[1]=="--rsyslogd-init"){rsyslogd_init();exit;}
@@ -276,7 +276,7 @@ function start_ldap($aspid=false){
 	echo "slapd: [INFO] start looback address...\n";
 	shell_exec("$ifconfig lo 127.0.0.1 netmask 255.255.255.0 up >/dev/null 2>&1");
 		
-
+	$ldap[]="ldapi://". urlencode("/var/run/slapd/slapd.sock");
 	$ldap[]="ldap://127.0.0.1:389/";
 	if(is_file("/etc/artica-postfix/settings/Daemons/LdapListenIPAddr")){
 		$LdapListenIPAddr=explode("\n",@file_get_contents("/etc/artica-postfix/settings/Daemons/LdapListenIPAddr"));
@@ -385,7 +385,7 @@ function start_ldap($aspid=false){
 	
 	echo "slapd: [INFO] please wait, building the start script...\n";
 	buildscript();
-	ldap_conf(true);
+	
 	echo "slapd: [INFO] please wait, Launching the daemon...\n";
 	
 	if(!$unix->NETWORK_INTERFACE_OK("lo")){
@@ -733,102 +733,7 @@ function artica_postfix(){
 
 
 
-function ldap_conf($aspid=false){
-	$unix=new unix();
-	$kill=$unix->find_program("kill");
-	$MYPID_FILE="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	if(!$aspid){
-		$pid=$unix->get_pid_from_file($MYPID_FILE);
-		if($unix->process_exists($pid,basename(__FILE__))){
-			$pidtime=$unix->PROCCESS_TIME_MIN($pid);
-			echo "slapd: [INFO] Artica task already running pid $pid since {$pidtime}mn\n";
-			if($pidtime>10){
-			echo "slapd: [INFO] Killing this Artica task...\n";
-			unix_system_kill_force($pid);
-			}
-			else{
-				die();
-			}
-		}
-	
 
-	}
-	@unlink($MYPID_FILE);
-	@file_put_contents($MYPID_FILE, getmypid());
-	
-	
-	$admin=@file_get_contents("/etc/artica-postfix/ldap_settings/admin");
-	$password=@file_get_contents("/etc/artica-postfix/ldap_settings/password");
-	$port=@file_get_contents("/etc/artica-postfix/ldap_settings/port");
-	$server=@file_get_contents("/etc/artica-postfix/ldap_settings/server");
-	$suffix=@file_get_contents("/etc/artica-postfix/ldap_settings/suffix");
-	$chmod=$unix->find_program("chmod");
-	if($server==null){$server="127.0.0.1";}
-	if($server=="localhost"){$server="127.0.0.1";}
-	if(!is_numeric($port)){$port=389;}
-	echo "slapd: [INFO] slapd set system to $server:$port/$suffix\n";
-	echo "slapd: [INFO] slapd set root DN $binddn\n";
-	$binddn="cn=$admin,$suffix";
-	$ARRAY=$unix->ldap_GET_CONFS();
-	@file_put_contents("/usr/share/artica-postfix/ressources/local_ldap.php", "<?php \$GLOBALS[\"MAIN_LOCAL_LDAP_SETTINGS\"]=\"".base64_encode(serialize($ARRAY))."\";?>");
-	@chmod("/usr/share/artica-postfix/ressources/local_ldap.php",0755);
-	
-	
-	if($server<>"127.0.0.1"){
-		$fp = @fsockopen($server, $port, $errno, $errstr, 2);
-		if(!$fp){
-			xsyslog("$errno $errstr Return to local ldap server");
-			echo "slapd: [INFO] Error: $errno $errstr\n";
-			echo "slapd: [INFO] Return to local ldap server\n";
-			$server="127.0.0.1";
-			$port=389;
-			$binddn=$ARRAY["DN"];
-			$password=$ARRAY["PWD"];
-			$suffix=$ARRAY["SUFFIX"];
-			echo "slapd: [INFO] slapd set system to $server:$port/$suffix\n";
-			echo "slapd: [INFO] slapd set root DN $binddn\n";
-	}
-}
-	
-	$f[]="host $server";
-	$f[]="port $port";
-	$f[]="uri ldap://$server:$port";
-	$f[]="ldap_version 3";
-	$f[]="binddn $binddn";
-	$f[]="rootbinddn $binddn";
-	$f[]="bindpw $password";
-	$f[]="bind_policy soft";
-	$f[]="scope sub";
-	$f[]="base $suffix";
-	$f[]="pam_password clear";
-	$f[]="pam_lookup_policy yes";
-	$f[]="pam_filter objectclass=posixAccount";
-	$f[]="pam_login_attribute uid";
-	$f[]="nss_reconnect_maxconntries 5";
-	$f[]="idle_timelimit 3600";
-	$f[]="nss_base_group $suffix?sub";
-	$f[]="nss_base_passwd $suffix?sub";
-	$f[]="nss_base_shadow $suffix?sub";
-		
-	@file_put_contents("/etc/ldap.secret", "$password");
-	shell_exec("$chmod 0600 /etc/ldap.secret >/dev/null 2>&1");
-	echo "slapd: [INFO] slapd /etc/ldap.secret, success...\n";
-	@file_put_contents("/etc/pam_ldap.conf", @implode("\n", $f));
-	@file_put_contents("/etc/nss_ldap.conf", @implode("\n", $f));
-	
-	echo "slapd: [INFO] slapd /etc/pam_ldap.conf, success...\n";
-	echo "slapd: [INFO] slapd /etc/nss_ldap.conf, success...\n";
-	
-	if(is_dir('/usr/share/libnss-ldap')){
-		@file_put_contents("/usr/share/libnss-ldap/ldap.conf", @implode("\n", $f));
-		echo "slapd: [INFO] slapd /usr/share/libnss-ldap/ldap.conf, success...\n";
-	}
-	if(is_dir('/etc/openldap')){
-		@file_put_contents("/etc/openldap/ldap.conf", @implode("\n", $f));
-		echo "slapd: [INFO] /etc/openldap/ldap.conf, success...\n";
-	}
-
-}
 
 
 
@@ -1862,6 +1767,13 @@ function cntlm(){
 		shell_exec("/sbin/chkconfig --level 345 " .basename($INITD_PATH)." on >/dev/null 2>&1");
 	}
 
+}
+
+function ldap_conf(){
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php /usr/share/artica-postfix/exec.pam.php --ldap");
+	
 }
 
 function artica_syslog(){

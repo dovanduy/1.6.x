@@ -4562,12 +4562,14 @@ private function access_logs(){
 	$conf[]="# --------- SquidAsMasterLogChilds	 = $SquidAsMasterLogChilds [".__LINE__."]";
 	$conf[]="# --------- EnableMacAddressFilter	 = $this->EnableMacAddressFilter [".__LINE__."]";
 	$conf[]="# --------- SquidAsMasterCacheChilds= $SquidAsMasterLogChilds [".__LINE__."]";
-	
+	$conf[]="# --------- Is a 3.4 version		 = $this->IS_34 [".__LINE__."]";
 	if($this->EnableMacAddressFilter==1){$conf[]="eui_lookup on";}
 	if($this->EnableMacAddressFilter==0){$conf[]="eui_lookup off";}
 	
 	
-	
+	if($this->IS_34){
+		$options34=" on-error=drop buffer-size=64KB ";
+	}
 	
 	
 	if($ExternalSyslog<>null){$conf[]=$ExternalSyslog;}
@@ -4631,8 +4633,8 @@ private function access_logs(){
 	$conf[]="logfile_daemon /usr/share/artica-postfix/exec.logfile_daemon.php";
 	$conf[]="logformat common $MACFILER:::%>a:::%[ui:::%[un:::%tl:::%rm:::%ru:::HTTP/%rv:::%>Hs:::%<st:::%Ss:%Sh:::%{User-Agent}>h:::%{X-Forwarded-For}>h:::%<A:::%>A:::%tr";
 	if($SquidStoreLogLogging==1){$conf[]="cache_store_log	stdio:/var/log/squid/store.log\n";}
-	$conf[]="access_log $stdio/var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT";
-	$conf[]="access_log daemon: common !MgRPort $ChildProxysIPs$denylogsTXT";
+	$conf[]="access_log $stdio/var/log/squid/access.log squid $ChildProxysIPs$denylogsTXT$options34";
+	$conf[]="access_log daemon: common $options34!MgRPort $ChildProxysIPs$denylogsTXT$options34";
 	return @implode("\n", $conf)."\n";
 		
 }
@@ -6031,6 +6033,10 @@ function BuildSquidConf(){
 		if($SquidAsMasterLogChilds==1){return null;}
 		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
 		
+		if($this->IS_34){
+			$options34=" on-error=drop buffer-size=64KB ";
+		}
+		
 		if($SquidAsMasterFollowxForward==1){
 			$acls="ChildProxyPorts";
 		}else{
@@ -6047,7 +6053,7 @@ function BuildSquidConf(){
 		}
 		
 		if($this->IS_34){
-			$access_log="access_log stdio:/var/log/squid/childs-access.log on-error=drop logformat=childs buffer-size=64KB $acls";
+			$access_log="access_log stdio:/var/log/squid/childs-access.log on-error=drop logformat=childs $options34 $acls";
 		}		
 		
 		$conf[]=$access_log;

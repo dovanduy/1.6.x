@@ -949,11 +949,18 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	$OnMouseOver=null;
 	$OnMouseOut=null;
 	$size=null;
+	$help=null;
 	$disa=null;
 	$jsAddInside=null;
 	$jsCheck=null;
 	$watermark="{$_SERVER["REMOTE_ADDR"]}";
 	$width=160;
+	if(preg_match("#explain=(.+?);#", $style,$re)){
+		$help=$re[1];
+		$style=str_replace("explain={$re[1]};", "", $style);
+	}
+	
+	
 	if(preg_match("#font-size:([0-9]+)px#", $style,$re)){
 		$defined_size=intval($re[1]);
 		if($defined_size>16){$width=170;}
@@ -994,6 +1001,19 @@ function field_ipv4($field_name,$defaultvalue,$style=null,$netwrok=false,$jsAdd=
 	
 	if($jsCheck<>null){
 		$jsCheck="OnKeyPress=\"$jsCheck\"";
+	}
+	
+	if($help<>null){
+		$tpl=new templates();
+		$helptxt=$tpl->_ENGINE_parse_body($help);
+		$helptxt=str_replace("\"", "'", $helptxt);
+		$helptxt=str_replace("\n", "", $helptxt);
+		$OnMouseOver="\nOnMouseOver=\"javascript:$(this).tooltip('show');\"";
+		$OnMouseOut="\nOnMouseOut=\"javascript:$(this).tooltip('hide');\"\n";
+		$OnMouseOut="{$OnMouseOut}data-toggle=\"tooltip\" data-html='true'\n";
+		$OnMouseOut="{$OnMouseOut}data-title=\"<div style=font-size:12px>$helptxt</div>\"\n";
+	
+	
 	}
 	
 	return "

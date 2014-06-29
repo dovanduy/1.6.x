@@ -1523,12 +1523,16 @@ class mysql_squid_builder{
 		$ARRAY=array();
 		if($GLOBALS["VERBOSE"]){echo "mysql_query -> ". mysql_num_rows($results)." items\n";}
 		while($ligne=mysql_fetch_array($results,MYSQL_ASSOC)){
+			
+			
 			$Name=$ligne["Name"];
 			$Comment=$ligne["Comment"];
 			if(trim($Comment)==null){continue;}
 			$ARRAY[$Name]=$Comment;
 	
 		}
+		if($GLOBALS["VERBOSE"]){print_r($ARRAY);}
+		
 		return $ARRAY;
 	}	
 	
@@ -6477,11 +6481,12 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 		return "reaffected";
 	}
 		
-	
-	if(!$nocache){
-		$t1=time();
-		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_TEMP ( $sitename ) *********\n";}
-		$cat=$this->GET_CATEGORIES_TEMP($sitename);
+	if(!$noArticaDB){	
+		if(!$nocache){
+			$t1=time();
+			if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_TEMP ( $sitename ) *********\n";}
+			$cat=$this->GET_CATEGORIES_TEMP($sitename);
+		}
 	}
 	
 	if($cat<>null){	 if($cat=="unknown"){return null;} return $cat; }
@@ -6491,7 +6496,7 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 	if($familysite<>$sitename){
 		$t1=time();
 		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_TEMP ( $sitename ) *********\n";}
-		$cat=$this->GET_CATEGORIES_TEMP($sitename);
+		if(!$nocache){$cat=$this->GET_CATEGORIES_TEMP($sitename);}
 		if($cat<>null){ 
 			if(isset($_REQUEST["WEBTESTS"])){echo "Cache: ";}
 			if($cat=="unknown"){return null;} return $cat; }
@@ -6499,14 +6504,16 @@ function GET_CATEGORIES($sitename,$nocache=false,$nok9=false,$noheuristic=false,
 	
 	if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_PERSO ( $sitename ) *********\n";}
 	$t1=time();
-	$cat=$this->GET_CATEGORIES_PERSO($sitename);
-	if($cat<>null){
-		if(isset($_REQUEST["WEBTESTS"])){echo "Perso: ";}
-		$this->categorize_temp($sitename,$cat);
-		return $cat;
-	}
-	if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_PERSO ( $sitename ) ". distanceOfTimeInWords($t1,time(),true)."\n";}
-	
+	if(!$noArticaDB){
+		$cat=$this->GET_CATEGORIES_PERSO($sitename);
+		if($cat<>null){
+			if(isset($_REQUEST["WEBTESTS"])){echo "Perso: ";}
+			$this->categorize_temp($sitename,$cat);
+			return $cat;
+		}
+		
+		if($GLOBALS["VERBOSE"]){echo " ********* GET_CATEGORIES_PERSO ( $sitename ) ". distanceOfTimeInWords($t1,time(),true)."\n";}
+		}
 	
 	
 	if(!$noArticaDB){

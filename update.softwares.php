@@ -170,7 +170,7 @@ function items(){
 	$PACKAGES["sambac"]="APP_SAMBA";
 	$PACKAGES["ntopng"]="APP_NTOPNG";
 	$PACKAGES["pythondev"]="APP_PYTHON_DEV";
-	
+	$PACKAGES["vsftpd"]="APP_VSFTPD";
 
 	$ARRAY=unserialize(base64_decode($sock->getFrameWork("system.php?mylinux=yes")));
 	$LINUX_CODE_NAME=$ARRAY["LINUX_CODE_NAME"];

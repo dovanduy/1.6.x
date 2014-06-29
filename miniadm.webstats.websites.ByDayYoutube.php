@@ -115,6 +115,7 @@ function webstats_middle(){
 	$t=$_GET["t"];
 	$ff=time();
 	$boot=new boostrap_form();
+	
 	call_user_func(BECALL);
 	$title=null;
 	$suffix=suffix();

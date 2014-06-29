@@ -9,6 +9,8 @@ include_once(dirname(__FILE__)."/framework/class.unix.inc");
 include_once(dirname(__FILE__)."/framework/frame.class.inc");
 include_once(dirname(__FILE__) . '/framework/class.settings.inc');
 include_once(dirname(__FILE__) . '/ressources/class.tcpip.inc');
+$GLOBALS["SERVICE_NAME"]="FetchMail Daemon";
+
 $GLOBALS["SINGLE_DEBUG"]=false;
 $GLOBALS["NOT_FORCE_PROXY"]=false;
 $GLOBALS["FORCE"]=false;
@@ -29,12 +31,12 @@ if(preg_match("#--verbose#",implode(" ",$argv))){
 config();
 
 function config(){
-	
+	$unix=new unix();
 	$q=new mysql();
 	$sock=new sockets();
 	$DB_HOST="localhost:$q->SocketPath";
 	
-	
+	$Salt=$unix->GetUniqueID();
 	$WordPressDBPass=$sock->GET_INFO("WordPressDBPass");
 	$wordpressDB=$sock->GET_INFO("WordPressDB");
 	$DB_USER=$sock->GET_INFO("WordPressDBUser");
@@ -42,7 +44,19 @@ function config(){
 	if($WordPressDBPass==null){$WordPressDBPass=md5(time());}
 	$sock->SET_INFO("WordPressDBPass", $WordPressDBPass);
 	$DB_PASSWORD=$WordPressDBPass;
+	$Salts=$sock->GET_INFO("WordPressSalts");
+	if($Salts==null){
+		$TMP=$unix->FILE_TEMP();
+		$curl=new ccurl("https://api.wordpress.org/secret-key/1.1/salt/");
+		if(!$curl->GetFile("$TMP")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Unable to download salts !!\n";}
+			return;
+		}
+		
+	}
 
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL user...........: $DB_USER\n";}
+	
 $f[]="<?php";
 $f[]="/**";
 $f[]=" * The base configurations of the WordPress.";
@@ -87,14 +101,7 @@ $f[]=" * You can change these at any point in time to invalidate all existing co
 $f[]=" *";
 $f[]=" * @since 2.6.0";
 $f[]=" */";
-$f[]="define('AUTH_KEY',         'put your unique phrase here');";
-$f[]="define('SECURE_AUTH_KEY',  'put your unique phrase here');";
-$f[]="define('LOGGED_IN_KEY',    'put your unique phrase here');";
-$f[]="define('NONCE_KEY',        'put your unique phrase here');";
-$f[]="define('AUTH_SALT',        'put your unique phrase here');";
-$f[]="define('SECURE_AUTH_SALT', 'put your unique phrase here');";
-$f[]="define('LOGGED_IN_SALT',   'put your unique phrase here');";
-$f[]="define('NONCE_SALT',       'put your unique phrase here');";
+$f[]=$Salts;
 $f[]="";
 $f[]="/**#@-*/";
 $f[]="";
@@ -135,7 +142,6 @@ $f[]="/** Sets up WordPress vars and included files. */";
 $f[]="require_once(ABSPATH . 'wp-settings.php');";
 $f[]="?>";
 }
-
 
 function build_progress($text,$pourc){
 	$array["POURC"]=$pourc;

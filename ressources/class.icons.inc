@@ -671,7 +671,7 @@ function system(){
 			);
 			
 		$array["DEF_ICO_MYSQL_USER"]=array(
-			"IMG"=>"mysql-user-settings.png",
+			"IMG"=>"64-folder-user.png",
 			 "JS"=>"Loadjs('mysql.index.php?mysql-settings-popup=yes')",
 			 "TITLE"=>"MYSQL_USER_NET",
 			 "TEXT"=>"MYSQL_USER_NET_TEXT",

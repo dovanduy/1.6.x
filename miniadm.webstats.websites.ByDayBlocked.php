@@ -164,14 +164,14 @@ function suffix(){
 
 function section_table(){
 	$boot=new boostrap_form();
-	call_user_func(BECALL);
+	
 	echo $boot->SearchFormGen("website,category","www-search",suffix());	
 	
 }
 
 function section_members(){
 	$boot=new boostrap_form();
-	call_user_func(BECALL);
+	
 	echo $boot->SearchFormGen("client,uid,MAC,hostname","members-search",suffix());
 		
 }
@@ -316,7 +316,7 @@ function graph0(){
 	$ff=time();
 	
 	$tablename=date("Ymd",$_GET["xtime"])."_blocked";
-	$sql="SELECT COUNT(ID) as thits,HOUR(zDate) as `thour` FROM $tablename GROUP BY `hour` ORDER BY `hour`";
+	$sql="SELECT COUNT(ID) as thits,HOUR(zDate) as `thour` FROM $tablename GROUP BY `thour` ORDER BY `thour`";
 	
 	
 	$c=0;

@@ -2064,6 +2064,8 @@ It is the main engine in Artica to provide the reverse proxy feature</enable_ngi
 It is designed to be a high-performance, low-resource network traffic analyzer.[br]
 It is able to display real-time flow analysis for connected hosts.
 </enable_ntopng_text>
+<enable_passive_mode>Enable passive mode</enable_passive_mode>
+<enable_passive_mode_explain>Turn to green if you want to allow the PASV method of obtaining a data connection</enable_passive_mode_explain>
 <enable_phpfpm_service>Activate the PHP-FPM service</enable_phpfpm_service>
 <enable_phpfpm_service_explain>The FastCGI Process Manager (FPM) is designed to pre-load all PHP libraries and should be more faster than standard PHP framework design.
 </enable_phpfpm_service_explain>
@@ -3871,6 +3873,8 @@ We suggest to not define a schedule more than 10 minutes to prevent too many fil
 <pass_trough_antivirus_engine>Pass trough antivirus engine</pass_trough_antivirus_engine>
 <pass_trough_proxy>Pass trough the proxy</pass_trough_proxy>
 <pass_trough_thewebfilter_engine>Pass trough the web filter engine</pass_trough_thewebfilter_engine>
+<pasv_address>Passive addresse</pasv_address>
+<pasv_address_explain>Use this option to override the IP address that FTP service will advertise in response to the PASV command. Provide a numeric IP address</pasv_address_explain>
 <paths>paths</paths>
 <pconn_timeout>Persistent connections timeout</pconn_timeout>
 <pconn_timeout_text>Defines the timeout value for persistent connections</pconn_timeout_text>
@@ -4243,6 +4247,7 @@ connections are not stopped.[br]All deamons will be reloaded on-the-fly.
 </reconfigure_squid_explain>
 <reconfigure_transparent_rules>Reconfigure transparent rules</reconfigure_transparent_rules>
 <reconfigure_webfilter_service>Reconfigure WebFilter engine</reconfigure_webfilter_service>
+<reconfiguring>Reconfiguring</reconfiguring>
 <reconfiguring_proxy_service>Reconfiguring proxy service</reconfiguring_proxy_service>
 <reconstruct_caches_ask>This operation will remove all caches content and rebuild caches structures.
 Do you want to carry out this operation ?</reconstruct_caches_ask>

@@ -4,15 +4,400 @@ class generic_categorize{
 	// http://winhelp2002.mvps.org/hosts.txt
 	//http://www.oxymium.net/policyrss.php?type=sender-domain
 	
+	private $ville1=null;
+	private $ville2=null;
+	private $ville3=null;
+	private $ville4=null;
+	private $ville5=null;
+	private $ville6=null;
+	private $ville7=null;
+
+	function generic_categorize(){
+		$GLOBALS["VILLES"][]="paris";
+		$GLOBALS["VILLES"][]="amsterdam";
+		$GLOBALS["VILLES"][]="kiev";
+		$GLOBALS["VILLES"][]="kayak";
+		$GLOBALS["VILLES"][]="afghanistan";
+		$GLOBALS["VILLES"][]="afrique-du-sud";
+		$GLOBALS["VILLES"][]="albanie";
+		$GLOBALS["VILLES"][]="algerie";
+		$GLOBALS["VILLES"][]="allemagne";
+		$GLOBALS["VILLES"][]="andorre";
+		$GLOBALS["VILLES"][]="arabie-saoudite";
+		$GLOBALS["VILLES"][]="argentine";
+		$GLOBALS["VILLES"][]="armenie";
+		$GLOBALS["VILLES"][]="australie";
+		$GLOBALS["VILLES"][]="autriche";
+		$GLOBALS["VILLES"][]="azerbaidjan";
+		$GLOBALS["VILLES"][]="bahamas";
+		$GLOBALS["VILLES"][]="bahrein";
+		$GLOBALS["VILLES"][]="bangladesh";
+		$GLOBALS["VILLES"][]="barbade";
+		$GLOBALS["VILLES"][]="belgique";
+		$GLOBALS["VILLES"][]="belize";
+		$GLOBALS["VILLES"][]="benin";
+		$GLOBALS["VILLES"][]="bielorussie";
+		$GLOBALS["VILLES"][]="birmanie";
+		$GLOBALS["VILLES"][]="bolivie";
+		$GLOBALS["VILLES"][]="bosnie-herzegovine";
+		$GLOBALS["VILLES"][]="botswana";
+		$GLOBALS["VILLES"][]="bresil";
+		$GLOBALS["VILLES"][]="bulgarie";
+		$GLOBALS["VILLES"][]="burkina-faso";
+		$GLOBALS["VILLES"][]="burundi";
+		$GLOBALS["VILLES"][]="cambodge";
+		$GLOBALS["VILLES"][]="cameroun";
+		$GLOBALS["VILLES"][]="canada";
+		$GLOBALS["VILLES"][]="centrafrique";
+		$GLOBALS["VILLES"][]="chili";
+		$GLOBALS["VILLES"][]="chine";
+		$GLOBALS["VILLES"][]="chypre";
+		$GLOBALS["VILLES"][]="colombie";
+		$GLOBALS["VILLES"][]="comores";
+		$GLOBALS["VILLES"][]="coree-du-nord";
+		$GLOBALS["VILLES"][]="coree-du-sud";
+		$GLOBALS["VILLES"][]="costa-rica";
+		$GLOBALS["VILLES"][]="cote-d-ivoire";
+		$GLOBALS["VILLES"][]="croatie";
+		$GLOBALS["VILLES"][]="cuba";
+		$GLOBALS["VILLES"][]="danemark";
+		$GLOBALS["VILLES"][]="djibouti";
+		$GLOBALS["VILLES"][]="egypte";
+		$GLOBALS["VILLES"][]="emirats-arabes-unis";
+		$GLOBALS["VILLES"][]="equateur";
+		$GLOBALS["VILLES"][]="erythree";
+		$GLOBALS["VILLES"][]="espagne";
+		$GLOBALS["VILLES"][]="estonie";
+		$GLOBALS["VILLES"][]="etats-unis";
+		$GLOBALS["VILLES"][]="ethiopie";
+		$GLOBALS["VILLES"][]="fidji";
+		$GLOBALS["VILLES"][]="finlande";
+		$this->ville1="(".@implode("|", $GLOBALS["VILLES"]).")";unset($GLOBALS["VILLES"]);
+		
+		$GLOBALS["VILLES"][]="france";
+		$GLOBALS["VILLES"][]="gabon";
+		$GLOBALS["VILLES"][]="gambie";
+		$GLOBALS["VILLES"][]="georgie";
+		$GLOBALS["VILLES"][]="ghana";
+		$GLOBALS["VILLES"][]="grece";
+		$GLOBALS["VILLES"][]="guatemala";
+		$GLOBALS["VILLES"][]="guinee";
+		$GLOBALS["VILLES"][]="guinee-equatoriale";
+		$GLOBALS["VILLES"][]="guinee-bissau";
+		$GLOBALS["VILLES"][]="guyana";
+		$GLOBALS["VILLES"][]="haiti";
+		$GLOBALS["VILLES"][]="honduras";
+		$GLOBALS["VILLES"][]="hongrie";
+		$GLOBALS["VILLES"][]="inde";
+		$GLOBALS["VILLES"][]="indonesie";
+		$GLOBALS["VILLES"][]="irak";
+		$GLOBALS["VILLES"][]="iran";
+		$GLOBALS["VILLES"][]="irlande";
+		$GLOBALS["VILLES"][]="islande";
+		$GLOBALS["VILLES"][]="italie";
+		$GLOBALS["VILLES"][]="jamaique";
+		$GLOBALS["VILLES"][]="japon";
+		$GLOBALS["VILLES"][]="jordanie";
+		$GLOBALS["VILLES"][]="kazakhstan";
+		$GLOBALS["VILLES"][]="kenya";
+		$GLOBALS["VILLES"][]="kirghizistan";
+		$GLOBALS["VILLES"][]="koweit";
+		$GLOBALS["VILLES"][]="Laos";
+		$GLOBALS["VILLES"][]="Lettonie";
+		$GLOBALS["VILLES"][]="Liban";
+		$GLOBALS["VILLES"][]="Liberia";
+		$GLOBALS["VILLES"][]="Libye";
+		$GLOBALS["VILLES"][]="Liechtenstein";
+		$this->ville2="(".@implode("|", $GLOBALS["VILLES"]).")";unset($GLOBALS["VILLES"]);
+		$GLOBALS["VILLES"][]="Lituanie";
+		$GLOBALS["VILLES"][]="Luxembourg";
+		$GLOBALS["VILLES"][]="macedoine";
+		$GLOBALS["VILLES"][]="madagascar";
+		$GLOBALS["VILLES"][]="malaisie";
+		$GLOBALS["VILLES"][]="malawi";
+		$GLOBALS["VILLES"][]="maldives";
+		$GLOBALS["VILLES"][]="mali";
+		$GLOBALS["VILLES"][]="malte";
+		$GLOBALS["VILLES"][]="maroc";
+		$GLOBALS["VILLES"][]="mauritanie";
+		$GLOBALS["VILLES"][]="mexique";
+		$GLOBALS["VILLES"][]="moldavie";
+		$GLOBALS["VILLES"][]="monaco";
+		$GLOBALS["VILLES"][]="mongolie";
+		$GLOBALS["VILLES"][]="montenegro";
+		$GLOBALS["VILLES"][]="mozambique";
+		$GLOBALS["VILLES"][]="nepal";
+		$GLOBALS["VILLES"][]="nicaragua";
+		$GLOBALS["VILLES"][]="niger";
+		$GLOBALS["VILLES"][]="nigeria";
+		$GLOBALS["VILLES"][]="norvege";
+		$GLOBALS["VILLES"][]="nouvelle-zelande";
+		$GLOBALS["VILLES"][]="oman";
+		$GLOBALS["VILLES"][]="ouganda";
+		$GLOBALS["VILLES"][]="ouzbekistan";
+		$GLOBALS["VILLES"][]="pakistan";
+		$GLOBALS["VILLES"][]="panama";
+		$GLOBALS["VILLES"][]="papouasie-nouvelle-guinee";
+		$GLOBALS["VILLES"][]="paraguay";
+		$GLOBALS["VILLES"][]="pays-bas";
+		$GLOBALS["VILLES"][]="perou";
+		$GLOBALS["VILLES"][]="philippines";
+		$GLOBALS["VILLES"][]="pologne";
+		$GLOBALS["VILLES"][]="portugal";
+		$GLOBALS["VILLES"][]="qatar";
+		$GLOBALS["VILLES"][]="republique-democratique-du-congo";
+		$GLOBALS["VILLES"][]="congo";
+		$GLOBALS["VILLES"][]="republique-dominicaine";
+		$GLOBALS["VILLES"][]="republique-tcheque";
+		$GLOBALS["VILLES"][]="roumanie";
+		$GLOBALS["VILLES"][]="royaume-uni";
+		$GLOBALS["VILLES"][]="russie";
+		$GLOBALS["VILLES"][]="rwanda";
+		$GLOBALS["VILLES"][]="salvador";
+		$GLOBALS["VILLES"][]="samoa";
+		$GLOBALS["VILLES"][]="sao-tome-et-principe";
+		$GLOBALS["VILLES"][]="senegal";
+		$GLOBALS["VILLES"][]="serbie";
+		$GLOBALS["VILLES"][]="seychelles";
+		$this->ville3="(".@implode("|", $GLOBALS["VILLES"]).")";unset($GLOBALS["VILLES"]);
+		$GLOBALS["VILLES"][]="sierra-leone";
+		$GLOBALS["VILLES"][]="singapour";
+		$GLOBALS["VILLES"][]="slovaquie";
+		$GLOBALS["VILLES"][]="slovenie";
+		$GLOBALS["VILLES"][]="somalie";
+		$GLOBALS["VILLES"][]="soudan";
+		$GLOBALS["VILLES"][]="sri-lanka";
+		$GLOBALS["VILLES"][]="suede";
+		$GLOBALS["VILLES"][]="suisse";
+		$GLOBALS["VILLES"][]="suriname";
+		$GLOBALS["VILLES"][]="swaziland";
+		$GLOBALS["VILLES"][]="syrie";
+		$GLOBALS["VILLES"][]="tadjikistan";
+		$GLOBALS["VILLES"][]="tanzanie";
+		$GLOBALS["VILLES"][]="tchad";
+		$GLOBALS["VILLES"][]="thailande";
+		$GLOBALS["VILLES"][]="tibet";
+		$GLOBALS["VILLES"][]="togo";
+		$GLOBALS["VILLES"][]="tonga";
+		$GLOBALS["VILLES"][]="trinite-et-tobago";
+		$GLOBALS["VILLES"][]="tunisie";
+		$GLOBALS["VILLES"][]="turkmenistan";
+		$GLOBALS["VILLES"][]="turquie";
+		$GLOBALS["VILLES"][]="tuvalu";
+		$GLOBALS["VILLES"][]="ukraine";
+		$GLOBALS["VILLES"][]="uruguay";
+		$GLOBALS["VILLES"][]="Vanuatu";
+		$GLOBALS["VILLES"][]="Venezuela";
+		$GLOBALS["VILLES"][]="Viet-nam";
+		$GLOBALS["VILLES"][]="Yemen";
+		$GLOBALS["VILLES"][]="zambie";
+		$GLOBALS["VILLES"][]="zimbabwe";
+		$GLOBALS["VILLES"][]="lisbon";
+		$GLOBALS["VILLES"][]="prague";
+		$GLOBALS["VILLES"][]="plaza";
+		$GLOBALS["VILLES"][]="galapagos";
+		$GLOBALS["VILLES"][]="rochelle";
+		$GLOBALS["VILLES"][]="dusseldorf";
+		$GLOBALS["VILLES"][]="madrid";
+		$GLOBALS["VILLES"][]="london";
+		$GLOBALS["VILLES"][]="londres";
+		$GLOBALS["VILLES"][]="dublin";
+		$GLOBALS["VILLES"][]="pluma";
+		$GLOBALS["VILLES"][]="cacun";
+		$GLOBALS["VILLES"][]="castle";
+		$GLOBALS["VILLES"][]="excelsior";
+		$GLOBALS["VILLES"][]="napoli";
+		$GLOBALS["VILLES"][]="roma";
+		$GLOBALS["VILLES"][]="rome";
+		$GLOBALS["VILLES"][]="miami";
+		$GLOBALS["VILLES"][]="kaboul";
+		$GLOBALS["VILLES"][]="pretoria";
+		$GLOBALS["VILLES"][]="tirana";
+		$GLOBALS["VILLES"][]="alger";
+		$GLOBALS["VILLES"][]="berlin";
+		$GLOBALS["VILLES"][]="andorre-la-vieille";
+		$GLOBALS["VILLES"][]="riyad";
+		$GLOBALS["VILLES"][]="buenos-aires";
+		$GLOBALS["VILLES"][]="Erevan";
+		$GLOBALS["VILLES"][]="camberra";
+		$GLOBALS["VILLES"][]="vienne";
+		$GLOBALS["VILLES"][]="bakou";
+		$GLOBALS["VILLES"][]="nassau";
+		$GLOBALS["VILLES"][]="manama";
+		$GLOBALS["VILLES"][]="daccan";
+		$GLOBALS["VILLES"][]="bridgetown";
+		$this->ville4="(".@implode("|", $GLOBALS["VILLES"]).")";unset($GLOBALS["VILLES"]);
+		$GLOBALS["VILLES"][]="bruxelles";
+		$GLOBALS["VILLES"][]="belmopa";
+		$GLOBALS["VILLES"][]="cotonou";
+		$GLOBALS["VILLES"][]="minsk";
+		$GLOBALS["VILLES"][]="rangoun";
+		$GLOBALS["VILLES"][]="la-paz";
+		$GLOBALS["VILLES"][]="sarajevo";
+		$GLOBALS["VILLES"][]="gaborone";
+		$GLOBALS["VILLES"][]="brasilia";
+		$GLOBALS["VILLES"][]="sofia";
+		$GLOBALS["VILLES"][]="ouagadougou";
+		$GLOBALS["VILLES"][]="bujumbura";
+		$GLOBALS["VILLES"][]="phnom-penh";
+		$GLOBALS["VILLES"][]="yaounde";
+		$GLOBALS["VILLES"][]="ottawa";
+		$GLOBALS["VILLES"][]="bangui";
+		$GLOBALS["VILLES"][]="santiago";
+		$GLOBALS["VILLES"][]="pekin";
+		$GLOBALS["VILLES"][]="nicosie";
+		$GLOBALS["VILLES"][]="bogota";
+		$GLOBALS["VILLES"][]="moroni";
+		$GLOBALS["VILLES"][]="pyongyang";
+		$GLOBALS["VILLES"][]="seoul";
+		$GLOBALS["VILLES"][]="san-jose";
+		$GLOBALS["VILLES"][]="yamoussoukro";
+		$GLOBALS["VILLES"][]="zagreb";
+		$GLOBALS["VILLES"][]="la-havane";
+		$GLOBALS["VILLES"][]="copenhague";
+		$GLOBALS["VILLES"][]="djibouti";
+		$GLOBALS["VILLES"][]="le-caire";
+		$GLOBALS["VILLES"][]="abou-dhabi";
+		$GLOBALS["VILLES"][]="quito";
+		$GLOBALS["VILLES"][]="asmara";
+		$GLOBALS["VILLES"][]="madrid";
+		$GLOBALS["VILLES"][]="tallinn";
+		$GLOBALS["VILLES"][]="Washington";
+		$GLOBALS["VILLES"][]="addis-abeba";
+		$GLOBALS["VILLES"][]="suva";
+		$GLOBALS["VILLES"][]="helsinki";
+		$GLOBALS["VILLES"][]="paris";
+		$GLOBALS["VILLES"][]="tbilissi";
+		$GLOBALS["VILLES"][]="accra";
+		$GLOBALS["VILLES"][]="athenes";
+		$GLOBALS["VILLES"][]="guatemala";
+		$GLOBALS["VILLES"][]="conakry";
+		$GLOBALS["VILLES"][]="malabo";
+		$GLOBALS["VILLES"][]="bissau";
+		$GLOBALS["VILLES"][]="georgetown";
+		$GLOBALS["VILLES"][]="port-au-prince";
+		$GLOBALS["VILLES"][]="tegucigalpa";
+		$GLOBALS["VILLES"][]="budapest";
+		$GLOBALS["VILLES"][]="new-delhi";
+		$GLOBALS["VILLES"][]="jakarta";
+		$GLOBALS["VILLES"][]="bagdad";
+		$GLOBALS["VILLES"][]="teheran";
+		$GLOBALS["VILLES"][]="dublin";
+		$GLOBALS["VILLES"][]="reykjavik";
+		$GLOBALS["VILLES"][]="rome";
+		$GLOBALS["VILLES"][]="kingston";
+		$GLOBALS["VILLES"][]="tokyo";
+		$this->ville5="(".@implode("|", $GLOBALS["VILLES"]).")";unset($GLOBALS["VILLES"]);
+		$GLOBALS["VILLES"][]="amman";
+		$GLOBALS["VILLES"][]="astana-almaty";
+		$GLOBALS["VILLES"][]="nairobi";
+		$GLOBALS["VILLES"][]="bichkek";
+		$GLOBALS["VILLES"][]="koweit";
+		$GLOBALS["VILLES"][]="vientiane";
+		$GLOBALS["VILLES"][]="riga";
+		$GLOBALS["VILLES"][]="beyrouth";
+		$GLOBALS["VILLES"][]="monrovia";
+		$GLOBALS["VILLES"][]="tripoli";
+		$GLOBALS["VILLES"][]="vaduz";
+		$GLOBALS["VILLES"][]="vilnius";
+		$GLOBALS["VILLES"][]="luxembourg";
+		$GLOBALS["VILLES"][]="skopje";
+		$GLOBALS["VILLES"][]="antananarivo";
+		$GLOBALS["VILLES"][]="kuala-lumpur";
+		$GLOBALS["VILLES"][]="lilongwe";
+		$GLOBALS["VILLES"][]="male";
+		$GLOBALS["VILLES"][]="bamako";
+		$GLOBALS["VILLES"][]="la-valette";
+		$GLOBALS["VILLES"][]="rabat";
+		$GLOBALS["VILLES"][]="nouakchott";
+		$GLOBALS["VILLES"][]="mexico";
+		$GLOBALS["VILLES"][]="chisinau";
+		$GLOBALS["VILLES"][]="monaco";
+		$GLOBALS["VILLES"][]="oulan-bator";
+		$GLOBALS["VILLES"][]="podgorica";
+		$GLOBALS["VILLES"][]="maputo";
+		$GLOBALS["VILLES"][]="katmandou";
+		$GLOBALS["VILLES"][]="managua";
+		$GLOBALS["VILLES"][]="niamey";
+		$GLOBALS["VILLES"][]="abuja";
+		$GLOBALS["VILLES"][]="oslo";
+		$GLOBALS["VILLES"][]="Wellington";
+		$GLOBALS["VILLES"][]="mascate";
+		$GLOBALS["VILLES"][]="kampala";
+		$GLOBALS["VILLES"][]="islamabad";
+		$GLOBALS["VILLES"][]="panama";
+		$GLOBALS["VILLES"][]="port-moresby";
+		$GLOBALS["VILLES"][]="asuncion";
+		$GLOBALS["VILLES"][]="amsterdam";
+		$GLOBALS["VILLES"][]="lima";
+		$GLOBALS["VILLES"][]="manille";
+		$GLOBALS["VILLES"][]="varsovie";
+		$GLOBALS["VILLES"][]="lisbonne";
+		$GLOBALS["VILLES"][]="doha";
+		$GLOBALS["VILLES"][]="kinshasa";
+		$GLOBALS["VILLES"][]="saint-domingue";
+		$GLOBALS["VILLES"][]="prague";
+		$GLOBALS["VILLES"][]="bucarest";
+		$GLOBALS["VILLES"][]="londres";
+		$GLOBALS["VILLES"][]="moscou";
+		$GLOBALS["VILLES"][]="kigali";
+		$GLOBALS["VILLES"][]="san-salvador";
+		$GLOBALS["VILLES"][]="apia";
+		$GLOBALS["VILLES"][]="sao-tome";
+		$this->ville6="(".@implode("|", $GLOBALS["VILLES"]).")";unset($GLOBALS["VILLES"]);
+		$GLOBALS["VILLES"][]="dakar";
+		$GLOBALS["VILLES"][]="belgrade";
+		$GLOBALS["VILLES"][]="victoria";
+		$GLOBALS["VILLES"][]="freetown";
+		$GLOBALS["VILLES"][]="singapour";
+		$GLOBALS["VILLES"][]="bratislava";
+		$GLOBALS["VILLES"][]="ljubljana";
+		$GLOBALS["VILLES"][]="mogadiscio";
+		$GLOBALS["VILLES"][]="khartoum";
+		$GLOBALS["VILLES"][]="colombo";
+		$GLOBALS["VILLES"][]="stockholm";
+		$GLOBALS["VILLES"][]="berne";
+		$GLOBALS["VILLES"][]="paramaribo";
+		$GLOBALS["VILLES"][]="mbabane";
+		$GLOBALS["VILLES"][]="damas";
+		$GLOBALS["VILLES"][]="douchanbe";
+		$GLOBALS["VILLES"][]="dar-es-salam";
+		$GLOBALS["VILLES"][]="ndjamena";
+		$GLOBALS["VILLES"][]="bangkok";
+		$GLOBALS["VILLES"][]="lome";
+		$GLOBALS["VILLES"][]="nuku-alofa";
+		$GLOBALS["VILLES"][]="port-of-spain";
+		$GLOBALS["VILLES"][]="tunis";
+		$GLOBALS["VILLES"][]="achgabat";
+		$GLOBALS["VILLES"][]="ankara";
+		$GLOBALS["VILLES"][]="funafuti";
+		$GLOBALS["VILLES"][]="kiev";
+		$GLOBALS["VILLES"][]="montevideo";
+		$GLOBALS["VILLES"][]="port-vila";
+		$GLOBALS["VILLES"][]="caracas";
+		$GLOBALS["VILLES"][]="hanoi";
+		$GLOBALS["VILLES"][]="sanaa";
+		$GLOBALS["VILLES"][]="lusaka";
+		$GLOBALS["VILLES"][]="harare";
+		$GLOBALS["VILLES"][]="beverlyhills";
+		$GLOBALS["VILLES"][]="makelaardij";
+		$GLOBALS["VILLES"][]="jersey";
+		
+		$this->ville7=strtolower("(".@implode("|", $GLOBALS["VILLES"]).")");unset($GLOBALS["VILLES"]);
+}	
+	
+	
+	
+	
 	private function Blog($www){
 		
 		
-		$array=array("jimdo","canalblog","blogia","*.kiev.ua","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
+		$array=array("jimdo","canalblog","blogia","*.kiev.ua","beepworld.de","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
 		"e-monsite","yuku","tumblr","over-blog","ucoz","punt","grygorczuk","skyblog","blogspirit","jellybaby.net",
 		"freedomblogging","bloguez","pagesperso-orange","areavoices","blogspot","typepad","xanga.com",
 		"monsite-orange","blogspirit","blogspace","livejournal","blog.mongenie","diaryclub","blogcu.com","funpic",
 		"blogs-r","at.webry.info","hautetfort.com","dreamwidth.org","bbs.mythem.es","diary","free","cafe24.com","xooit",
-		"freeblog","myblog","egloos","coueb.fr","convex.ru","cekuj.net","blogdetik.com","securesites.net","blogcentral","easy-hebergement.net","chez.com","123.st","nextmp.net","bloblo.pl","bligoo","homespot","blogzoom.fr","blog4ever","orgfree.com","narod2.ru","perso.infonie.fr","webnode.com.co","blogfree.net","midiblogs.com","blogparty","viabloga","blogspot","monbook.net","kazeo.com","blog.sfr.fr","publicoton.fr","perso.neuf.fr","networkedblogs.com"
+		"freeblog","myblog","egloos","coueb.fr","convex.ru","tripod.com","tripod.com.pe","inet.ezbase.net","bulks.jp","cekuj.net","blogdetik.com","securesites.net","blogcentral","easy-hebergement.net","chez.com","123.st","nextmp.net","bloblo.pl","bligoo","homespot","blogzoom.fr","blog4ever","orgfree.com","narod2.ru","perso.infonie.fr","webnode.com.co","blogfree.net","midiblogs.com","blogparty","viabloga","blogspot","monbook.net","kazeo.com","blog.sfr.fr","publicoton.fr","perso.neuf.fr","networkedblogs.com"
 		);
 		
 		if($this->ParseArray($array, $www)){return "blog";}
@@ -420,7 +805,7 @@ class generic_categorize{
 		$array=array("fietszekerplan.nl","grupposchiano.it","roadbikereview.com");
 		if($this->ParseArray($array, $www)){return "bicycle";}
 		if(preg_match("#(^|\.)grupposchiano\.it#", $www)){return "bicycle";}
-		if(preg_match("#(mountainbike|biciclette|cycling|cyclist)#", $www)){return "bicycle";}
+		if(preg_match("#(mountainbike|biciclette|cycling|cyclist|ciclismo)#", $www)){return "bicycle";}
 		if(preg_match("#^velo-#", $www)){return "bicycle";}
 	
 	}
@@ -469,7 +854,7 @@ class generic_categorize{
 		if(preg_match("#(^|\.)samsungapps\.com$#",$www)){return "mobile-phone";} 
 		if(preg_match("#(^|\.)ssuggest\.com$#",$www)){return "mobile-phone";} 
 		if(preg_match("#(\-|\.])nokia\.[a-z]+$#",$www)){return "mobile-phone";} 
-		if(preg_match("#(mobilephone|blackberry|iphone|yourphone|cellphone|smartphone|galaxys4|samsung|celulares|galaxynote|nokia|android|windowsphon|bestphone|mobileapps)#",$www)){return "mobile-phone";} 
+		if(preg_match("#(mobilephone|blackberry|iphone|yourphone|jailbreak|cellphone|smartphone|galaxys4|samsung|celulares|galaxynote|nokia|android|windowsphon|bestphone|mobileapps)#",$www)){return "mobile-phone";} 
 		if(preg_match("#(^|\.)blackberry\.[a-z]+$#",$www)){return "mobile-phone";}
 		if(preg_match("#(^|\.)android\.[a-z]+$#",$www)){return "mobile-phone";} 
 		if(preg_match("#^gsm[0-9]+\.[a-z]+$#",$www)){return "mobile-phone";}
@@ -506,6 +891,7 @@ class generic_categorize{
 		if(strpos($www, ".croix-rouge.fr")>0){return "humanitarian";}
 		if(preg_match("#(^|\.)donnerenligne\.fr$#", $www)){return "humanitarian";}
 		if(preg_match("#(^|\.)oxfam\.[a-z\.]+$#", $www)){return "humanitarian";}
+		if(preg_match("#(humanitaire|humanitarian)#", $www)){return "humanitarian";}
 	}
 	
 	private function schools($www){
@@ -641,7 +1027,7 @@ class generic_categorize{
 		if(preg_match("#(^|\.)rdc\.fr$#",$www)){return "shopping";}
 		if(preg_match("#(^|\.)shoptondeal\.[a-z]+$#",$www)){return "shopping";}
 		if(preg_match("#ventes-privees#",$www)){return "shopping";}
-		if(preg_match("#(beauteprivee|bonplan|hypermarch|fleuriste|carrefourdrive|centre-carrefour|centrocomercial|centrocommerciale|achats|consommateur|bestpromo|nicerdicer|pascher|epicerie|couponcode|centrecommercial|achetez|shoocare|laredoute|3suisses|priceminister|boutique|casashops|bigcommerce|reductionweb|shopping)#",$www)){return "shopping";}
+		if(preg_match("#(beauteprivee|bonplan|hypermarch|fleuriste|destockage|carrefourdrive|centre-carrefour|centrocomercial|centrocommerciale|achats|consommateur|bestpromo|nicerdicer|pascher|epicerie|couponcode|centrecommercial|achetez|shoocare|laredoute|3suisses|priceminister|boutique|casashops|bigcommerce|reductionweb|shopping)#",$www)){return "shopping";}
 		if(preg_match("#alibaba\.com#",$www)){return "shopping";}
 		if(preg_match("#(^|\.)dx\.com#",$www)){return "shopping";}
 		if(preg_match("#(^|\.)ilamparas\.com#",$www)){return "shopping";}
@@ -1192,13 +1578,14 @@ private function socialnet($www){
 				"orchestra","scarosso","xxfanli.com","misscoquines","costumemagic","marksandspencer",".network.com.tr"
 		);
 		
-		if(preg_match("#(chaussure|shirtinator|rayban|dresses|timberland|clothes|clothing|marquepaschere|hugoboss|vetement|burberry|basketnike|hollister|abercrombie|marroquineri|costume|workwear)#", $www)){return "clothing";}
+		if(preg_match("#(chaussure|shirtinator|maroquinerie|rayban|dresses|timberland|clothes|clothing|marquepaschere|hugoboss|vetement|burberry|basketnike|hollister|abercrombie|marroquineri|costume|workwear)#", $www)){return "clothing";}
 		
 		if(preg_match("#^maillots-#", $www)){return "clothing";}
 		if(preg_match("#^polo.*?pascher#", $www)){return "clothing";}
 		if(preg_match("#christian.*?louboutin#", $www)){return "clothing";}
 		if($this->ParseArray($array, $www)){return "clothing";}
 		if(preg_match("#^tshirt#", $www)){return "clothing";}
+		if(preg_match("#-t-shirt\.#", $www)){return "clothing";}
 	}
 	
 	private function proxy($www){
@@ -1229,8 +1616,8 @@ private function socialnet($www){
 		);
 		
 		if($this->ParseArray($array, $www)){return "industry";}
-		if(preg_match("#(telemarketing|industries|thyssenkrupp|peteroli|eon-energia|patisserie|frigorifique|automation|automatism|automatisierung|entreprises|artisans|echafaudage|polypro|vitrier|miroiterie|fonderie|-expertise\.|electric|radyator|industrial|charcuterie|architekten|assainissement|electricite|europages|manutention|industrie)#", $www)){return "industry";}
-		if(preg_match("#(beton|mortier|hydraulik|hydraulic|hydrauliq|tuyauterie|plasturgie|fournituresbtp|fertilizantes|letourbigmat|scierie|konstruktion|importazion|poliplast|grossiste|elektrik|textiles|metallerie|restauration|materiaux|marquage-textile|marbrier|motoroil|industriade|consultora|consultores|entreprendre|petroleum|menuiserie|agricole|ingenierie|hydraulic|traiteur|metaux|depannage|artisan|soudeuse|plombier|chauffagiste|soudeur|hydraulique|electro|elektro|schneider|metaal|electrique|materiel-de|imprimerie|bobinage|agroalimentaire|prefabricados|agroplastic|agroequipement|xtrmexport|expert-comptable|boulangerie|boucherie|cartonnerie|ferronnerie)#",$www)){return "industry";}
+		if(preg_match("#(telemarketing|industries|thyssenkrupp|ascenseurs|peteroli|eon-energia|patisserie|frigorifique|automation|automatism|automatisierung|entreprises|artisans|echafaudage|polypro|vitrier|miroiterie|fonderie|-expertise\.|electric|radyator|industrial|charcuterie|architekten|assainissement|electricite|europages|manutention|industrie)#", $www)){return "industry";}
+		if(preg_match("#(beton|mortier|hydraulik|hydraulic|hydrauliq|kakemono|tuyauterie|plasturgie|fournituresbtp|fertilizantes|letourbigmat|scierie|konstruktion|importazion|poliplast|grossiste|elektrik|textiles|metallerie|restauration|materiaux|marquage-textile|marbrier|motoroil|industriade|consultora|consultores|entreprendre|petroleum|menuiserie|agricole|ingenierie|hydraulic|traiteur|metaux|depannage|artisan|soudeuse|plombier|chauffagiste|soudeur|hydraulique|electro|elektro|schneider|metaal|electrique|materiel-de|imprimerie|bobinage|agroalimentaire|prefabricados|agroplastic|agroequipement|xtrmexport|expert-comptable|boulangerie|boucherie|cartonnerie|ferronnerie)#",$www)){return "industry";}
 		if(preg_match("#(agricol|agriculteur|agricultur|agri.*?machine)#",$www)){return "industry";}
 		
 		if(preg_match("#(^|\.)pro$#", $www)){return "industry";}
@@ -1257,6 +1644,7 @@ private function socialnet($www){
 		if(preg_match("#-industries\.[a-z\.]+$#", $www)){return "industry";}
 		if(preg_match("#^industr#", $www)){return "industry";}
 		if(preg_match("#consulting\.[a-z\.]+$#", $www)){return "industry";}
+		if(preg_match("#expert.*?comptable#", $www)){return "industry";}
 	}
 	
 	private function wellness($www){
@@ -2002,7 +2390,7 @@ private function socialnet($www){
 		if($this->ParseArray($array, $www)){return "automobile/cars";}
 		
 		$prefixrenault="(dacia|zoe|trafic|clio|sport|car|cancun|campaigns|sud|oyak|contact)";
-		if(preg_match("#(automotos|-auto-|pneumatik|autoservice|coches|carburant|auto.*?ecole|mustang|autohaus|autoteile|nissan|daihatsu|remorques|controle-technique|rentacar|automotiva|peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
+		if(preg_match("#(automotos|-auto-|pneumatik|autoservice|auto-service|coches|carburant|auto.*?ecole|mustang|autohaus|autoteile|nissan|daihatsu|remorques|controle-technique|rentacar|automotiva|peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
 		if(preg_match("#auto\.sanook\.com$#",$www)){return "automobile/cars";}
 		
 		if(preg_match("#$prefixrenault.*?renault#",$www)){return "automobile/cars";}
@@ -2010,6 +2398,7 @@ private function socialnet($www){
 		if(preg_match("#renault-#",$www)){return "automobile/cars";}
 		if(preg_match("#autov\.[a-z\.]+$#", $www)){return "automobile/cars";}
 		if(preg_match("#auto\.fr+$#", $www)){return "automobile/cars";}
+		if(preg_match("#racing.*?car#", $www)){return "automobile/cars";}
 		
 		if(preg_match("#(^|\.)securitest\.fr$#", $www)){return "automobile/cars";}
 		if(preg_match("#(^|\.)autosecurite\.com$#", $www)){return "automobile/cars";}
@@ -2195,7 +2584,7 @@ private function socialnet($www){
 		
 		$array=array("fileice","rapidshare","soft32.fr","malavida.com","fileparade.com","rapidgator","updatestar.com","softonic","sftcdn","torrentino",
 				"yourfiledownloader","rutracker","alphacoders","altools","utorrent","bittorrent","vip-file","softsalad"
-				,"software\.informer","brothersoft","uptodown.net","soft32.com","mvmfd.net","trulydownload.com","download-server.net","zbigz","otherdownload","uptodown","malavida","soft112","winds10","telecharsoft"
+				,"software\.informer","brothersoft","hdttp.com","uptodown.net","soft32.com","mvmfd.net","trulydownload.com","download-server.net","zbigz","otherdownload","uptodown","malavida","soft112","winds10","telecharsoft"
 				);
 		
 		if($this->ParseArray($array, $www)){return "downloads";}
@@ -2224,7 +2613,7 @@ private function socialnet($www){
 	}
 	
 	private function dynamic($www){
-		
+		if(preg_match("#^[0-9]+\.[a-z\.]+#", $www)){return;}
 
 		$array=array("filewatcher","cloudfront","edgesuite","amazonaws","staztic.com","smcloud","mediafire","dnsmex",
 				"akamai","dropbox","dropboxusercontent","yousendit","scene7","vo\.msecnd","depositfiles",
@@ -2234,7 +2623,7 @@ private function socialnet($www){
 		if($this->ParseArray($array, $www)){return "filehosting";}
 		
 		
-		$array=array("adsl.proxad.net","netcampus.ca","priv.bahnhof.se","btcentralplus.com","tvalmansa.es","sdtnet.de","dtdns.net","negeriau.net","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
+		$array=array("adsl.proxad.net","pskov.dslavangard.ru","vps-10.com","hkhost.me","rncdn3.com","hns.net.in","flatrate.dk","netsolhost.com","netcampus.ca","priv.bahnhof.se","telfortglasvezel.nl","btcentralplus.com","tvalmansa.es","sdtnet.de","dtdns.net","negeriau.net","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
 		"barrel-of-knowledge.info","barrell-of-knowledge.info","better-than.tv","blogdns.com","izhnt.ru","qala.com.sg","online.dn.ua","infra.lync.com","sodetel.net.lb","internet-x.hu","keysurf.net","1scom.net","ondsl.gr","navoi.net.gs.uz","dsl*fidnet.com",
 		"blogdns.net","blogdns.org","blogsite.org","boldlygoingnowhere.org","broke-it.net","optonline.net","qwerty.ru","nationalcablenetworks.ru","chitaonline.ru",
 		"buyshouses.net","cechire.com","dnsalias.com","dnsalias.net","dnsalias.org","dnsdojo.com","kthopen.kth.se","mc.videotron.ca","flynet.by","unitymediagroup.de",
@@ -2538,6 +2927,52 @@ private function socialnet($www){
 	
 	private function travel($www){
 		
+		
+
+
+		
+		$words[]="gite";
+		$words[]="camping";
+		$words[]="turismo";
+		$words[]="booking";
+		$words[]="croisiere";
+		$words[]="tourisme";
+		$words[]="clubmed";
+		$words[]="travel";
+		$words[]="voyage";
+		$words[]="globetrotter";
+		$words[]="hostel";
+		$words[]="holiday";
+		$words[]="fasthotel";
+		$words[]="turistick";
+		$words[]="station-ski";
+		$words[]="turizm";
+		$words[]="auberge";
+		$words[]="tourism";
+		$words[]="hostal";
+		$words[]="hostellerie";
+		$words[]="hosteleria";
+		$words[]="excursia";
+		$words[]="ferries";
+		$words[]="excursion";
+		$words[]="campingdela";
+		$words[]="selectour";
+		$words[]="camping";
+		$words[]="covoyage";
+		$words[]="vacances";
+		$words[]="mercanotel";
+		$words[]="vacanze";
+		$words[]="transpole";
+		$words[]="aeropuerto";
+		$words[]="vacances";
+		$words[]="airlines";
+		$words[]="hoteliere";
+		$words[]="travel";
+		$words[]="fastbooking";
+		$words[]="touristik";
+		
+	
+		$words_line="(".@implode("|", $words).")";
 		$array=array("secure-reservation","expedia","chatel","trivago","stationverte.com","isango","aeroport","hotels","ihg",
 		"makemytrip","opodo","cityway","airfrance","gho","hoteles","ihacom","tourinsoft","geo-web-mail","geo"
 		,"service-voyages.com","partirpascher","aeromexico.com","ruskompas","cote.azur.fr","absoluthongkong.com","reztripmobile.com","top-hotely.cz","japanrailpassmap.com","faire-savoir.com","theworldrace.org","clemetparks.com","clevelandmetroparks.com","hostelsystem","croisitour.com","novotel.com","jedecouvrelafrance.com","resawin","hotels-de-charme","campings","michelin.fr","trivago","audierne.oscim.org","viesumajas.lv","zafirotours");
@@ -2548,9 +2983,24 @@ private function socialnet($www){
 		if(preg_match("#camping.*?car#", $www)){return "automobile/cars";}
 		if(preg_match("#\.travel$#", $www)){return "jobsearch";}
 		if(preg_match("#cruise.*?tour#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville1.*?$words_line#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville2.*?$words_line#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville3.*?$words_line#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville4.*?$words_line#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville5.*?$words_line#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville6.*?$words_line#", $www)){return "recreation/travel";}
+		if(preg_match("#$this->ville7.*?$words_line#", $www)){return "recreation/travel";}
+		
+		if(preg_match("#$words_line.*?$this->ville1#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line.*?$this->ville2#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line.*?$this->ville3#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line.*?$this->ville4#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line.*?$this->ville5#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line.*?$this->ville6#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line.*?$this->ville7#", $www)){return "recreation/travel";}
+		
 		
 		if(preg_match("#^travel\..*?$#", $www)){return "recreation/travel";}
-		if(preg_match("#^(turismo|travel|voyage|globetrotter|croisiere)#", $www)){return "recreation/travel";}
 		if(preg_match("#-travel\.#", $www)){return "recreation/travel";}
 		if(preg_match("#travel-.*?\.#", $www)){return "recreation/travel";}
 		if(preg_match("#(^|\.)voyage\.#", $www)){return "recreation/travel";}
@@ -2606,11 +3056,9 @@ private function socialnet($www){
 		if(preg_match("#(eau|park|pool|tour).*?thermal#", $www)){return "recreation/travel";}
 		if(preg_match("#thermal.*?(eau|park|pool|tour)#", $www)){return "recreation/travel";}
 		
-		$second="(paris|lisbon|prague|plaza|galapagos|rochelle|dusseldorf|booking|croisiere|madrid|london|londres|dublin|pluma|cacun|castle|excelsior|napoli|roma|rome|miami)";
-		if(preg_match("#hotel.*?$second#", $www)){return "recreation/travel";}
-		if(preg_match("#$second.*?hotel#", $www)){return "recreation/travel";}
+
 		
-		if(preg_match("#(holiday|fasthotel|turistick|station-ski|turizm|auberge|tourism|hostal|hostellerie|hosteleria|excursia|ferries|excursion|campingdela|selectour|camping|covoyage|vacances|mercanotel|vacanze|transpole|aeropuerto|vacances|airlines|tourisme|hostel|voyage|hoteliere|travel|fastbooking|touristik)#", $www)){return "recreation/travel";}
+		if(preg_match("#$words_line#", $www)){return "recreation/travel";}
 	}
 	
 	function literature($www){
@@ -2724,8 +3172,31 @@ private function socialnet($www){
 		$array=array("nndv.ru","soufunimg","soufun","fnaim","immonot.com","louerouacheter.com","meilleursagents","kyero.com","nightplusday.com","immojojo","immospy");
 		if($this->ParseArray($array, $www)){return "finance/realestate";}
 		
+		$this->generic_categorize();
 		
-		$patternG="(maison|villa|pavillon|location-villa|appartement|apparteo|demeures|logement|habitat|immobilier|luxury)";
+		$patternG="(maison|estate|villa|pavillon|location-villa|appartement|apparteo|demeures|logement|habitat|immobilier|luxury)";
+		
+		if(preg_match("#(^|\.|\-)estate\.[a-z]+#", $www)){return "finance/realestate";}
+		
+		if(preg_match("#$patternG.*?$this->ville1#i",$www)){return "finance/realestate";}
+		if(preg_match("#$patternG.*?$this->ville2#i",$www)){return "finance/realestate";}
+		if(preg_match("#$patternG.*?$this->ville3#i",$www)){return "finance/realestate";}
+		if(preg_match("#$patternG.*?$this->ville4#i",$www)){return "finance/realestate";}
+		if(preg_match("#$patternG.*?$this->ville5#i",$www)){return "finance/realestate";}
+		if(preg_match("#$patternG.*?$this->ville7#i",$www)){return "finance/realestate";}
+		
+		
+		if(preg_match("#$this->ville1.*?$patternG#i",$www)){return "finance/realestate";}
+		if(preg_match("#$this->ville2.*?$patternG#i",$www)){return "finance/realestate";}
+		if(preg_match("#$this->ville3.*?$patternG#i",$www)){return "finance/realestate";}
+		if(preg_match("#$this->ville4.*?$patternG#i",$www)){return "finance/realestate";}
+		if(preg_match("#$this->ville5.*?$patternG#i",$www)){return "finance/realestate";}
+		if(preg_match("#$this->ville6.*?$patternG#i",$www)){return "finance/realestate";}
+		if(preg_match("#$this->ville7.*?$patternG#i",$www)){return "finance/realestate";}
+		
+		
+		
+		
 		if(preg_match("#(^|\.)sjaap\.nl$#", $www)){return "finance/realestate";}
 		if(preg_match("#(^|\.)century21\.fr$#", $www)){return "finance/realestate";}
 		if(preg_match("#(^|\.)poliris\.com$#", $www)){return "finance/realestate";}
@@ -2943,7 +3414,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)notaires\.fr$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)jus\.br$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)roi\.ru$#", $www)){return "justice";}
-		if(preg_match("#(juridic|juridische|jurisprudenc|advokat|jurist|justicia|jurissite|avocat|notaire|judiciar|advocacia|notaria|juridique|jurisprudence|lawyer|advokat|judiciaire|justica|huissier|harcelement|justice|tribunal|prudhommes)#", $www)){return "justice";}
+		if(preg_match("#(juridic|juridische|jurisprudenc|advocacy|juridisch|advokat|jurist|justicia|jurissite|avocat|notaire|judiciar|advocacia|notaria|juridique|jurisprudence|lawyer|advokat|judiciaire|justica|huissier|harcelement|justice|tribunal|prudhommes)#", $www)){return "justice";}
 		
 		if(preg_match("#(geologie|sciences|archaeology|entomolog)#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)researchgate\.net$#", $www)){return "sciences";}
@@ -3118,7 +3589,7 @@ private function socialnet($www){
 		if(preg_match("#^(meuble|matela)-.*#", $www)){return "housing/accessories";}
 		if(preg_match("#^(meubles|matelas)-.*#", $www)){return "housing/accessories";}
 		if(preg_match("#mebel.*?\.ru#", $www)){return "housing/accessories";}
-		if(preg_match("#(literie|meubles|ameublement|encimera|mobilier|jardiland|climatisation|decoraction)(\-|\.)#", $www)){return "housing/accessories";}
+		if(preg_match("#(literie|meubles|ameublement|encimera|serrurerie|serrurier|mobilier|jardiland|climatisation|decoraction)(\-|\.)#", $www)){return "housing/accessories";}
 		if(preg_match("#(^|\.)fly\.fr$#", $www)){return "housing/accessories";}
 		if(preg_match("#(mobilier-et-decoration|-culligan|verandas|jardinage|pergola|pepiniere|domotique|domotic|meubels|videoprotection|agencement|pepinierist|depuratori|moustiquaires|cheminee|kitchen|grillage|cloture|bathroom|jardiland|decoration|mobilier|abatjour|muebles|luminaire)#", $www)){return "housing/accessories";}
 		if(preg_match("#(^|\.)cuisines-schmidt\.com$#", $www)){return "housing/accessories";}
@@ -3143,7 +3614,7 @@ private function socialnet($www){
 		if(preg_match("#(leroymerlin|ideesmaison)\.[a-z]+#", $www)){return "housing/accessories";}
 
 		if(preg_match("#(^|\.)lpo\.fr$#", $www)){return "animals";}
-		if(preg_match("#-(animaux|animals)\.#", $www)){return "animals";}
+		if(preg_match("#-(animaux|animals|animale)\.#", $www)){return "animals";}
 		if(preg_match("#(^|\.)ref-union\.org$#", $www)){return "hobby/other";}
 		if(preg_match("#^tango-.*?\.[a-z]+$#", $www)){return "hobby/other";}
 		if(preg_match("#(kalligraphie|philateli)#", $www)){return "hobby/other";}
@@ -3318,7 +3789,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)chateauversailles\.fr$#", $www)){return "culture";}
 		if(preg_match("#(^|\.)culture\.fr$#", $www)){return "culture";}
 		if(preg_match("#^musees-(.*?)\.[a-z]+$#", $www)){return "culture";}
-		if(preg_match("#museum#", $www)){return "culture";}
+		if(preg_match("#(museum|memorial)#", $www)){return "culture";}
 		
 		
 
@@ -3557,7 +4028,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)ovi\.com$#", $www)){return "maps";}
 		if(preg_match("#(^|\.)nearmap\.[a-z]+$#", $www)){return "maps";}
 		if(preg_match("#(^|\.)mappy\.[a-z]+#", $www)){return "maps";}
-
+		if(preg_match("#(^|\.)sous-surveillance\.net#", $www)){return "maps";}
 		
 		if(preg_match("#(^|\.)modlife\.com$#", $www)){return "celebrity";}
 		if(preg_match("#(^|\.)closermag\.[a-z]+$#", $www)){return "celebrity";}
@@ -3667,7 +4138,7 @@ private function socialnet($www){
 		if(preg_match("#(fishtank|aquarium)#", $www)){return "hobby/fishing";}
 		
 		if(preg_match("#^bateau-#", $www)){return "automobile/boats";}
-		if(preg_match("#(catamaran|sailing|yacht|boating)#", $www)){return "automobile/boats";}
+		if(preg_match("#(catamaran|sailing|yacht|boating|sailer)#", $www)){return "automobile/boats";}
 		if(preg_match("#location.*?bateau#", $www)){return "automobile/boats";}
 		if(preg_match("#nautique#", $www)){return "automobile/boats";}
 		if(preg_match("#-nautic\.#", $www)){return "automobile/boats";}

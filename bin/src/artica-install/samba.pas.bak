@@ -86,7 +86,7 @@ public
     procedure SAMBA_SMBD_START();
 
     procedure SAMBA_WINBINDD_START();
-    function  WINBIND_VERSION():string;
+
 
     procedure SCANNED_ONLY_START();
     procedure SCANNED_ONLY_STOP();
@@ -1126,6 +1126,7 @@ end;
 //##############################################################################
 function Tsamba.lib_pam_ldap_path():string;
 begin
+if FileExists('/lib/x86_64-linux-gnu/security/pam_ldap.so') then exit ('/lib/x86_64-linux-gnu/security/pam_ldap.so');
 if FileExists('/lib/security/pam_ldap.so') then exit('/lib/security/pam_ldap.so');
 end;
 //##############################################################################
@@ -1134,6 +1135,7 @@ begin
   if FIleExists('/etc/init.d/libnss-ldap') then exit('/etc/init.d/libnss-ldap');
   if FileExists('/usr/lib/libnss_ldap.so') then exit('/usr/lib/libnss_ldap.so');
   if FileExists('/lib/libnss_ldap.so.2') then exit('/lib/libnss_ldap.so.2');
+  if FileExists('/usr/lib/x86_64-linux-gnu/libnss_ldap.so') then exit('/usr/lib/x86_64-linux-gnu/libnss_ldap.so');
 end;
 //##############################################################################
 function Tsamba.auth_client_config_path():string;

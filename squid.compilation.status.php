@@ -301,10 +301,11 @@ function upload_artica_final(){
 	$page=CurrentPageName();
 	$t=time();
 	$fileNameEnc=urlencode($fileName);
-	$text=$tpl->_ENGINE_parse_body("<div style='font-size:16px'>{uncompressing} $fileName</div>");
+	$text=$tpl->_ENGINE_parse_body("<div style='font-size:16px'>{installing} $fileName</div>");
 	echo "$text<div id='$t'></div>
 	<script>
-	LoadAjaxTiny('$t','$page?uncompress=$fileNameEnc');
+	Loadjs('squid.update.progress.php?filename=$fileName');
+	RefreshTab('squid_compilation_status');
 	</script>
 
 	";

@@ -23,7 +23,9 @@
 	if(isset($_GET["status"])){status();exit;}
 	if(isset($_GET["vsftpd-status"])){vsftpd_status();exit;}
 	if(isset($_GET["vsftpd-config"])){vsftpd_config();exit;}
+	if(isset($_GET["vsftpd-settings"])){vsftpd_settings();exit;}
 	if(isset($_POST["EnableVSFTPDDaemon"])){EnableVSFTPDDaemon();exit;}
+	if(isset($_POST["VsFTPDPassive"])){vsftpd_settings_save();exit;}
 tabs();
 
 
@@ -31,15 +33,16 @@ function tabs(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$array["status"]="{status}";
+	$array["vsftpd-settings"]="{settings}";
 	$array["events"]="{events}";
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="events"){
-			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"sarg.events.php?popup=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+			$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"sarg.events.php?popup=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 			continue;
 		}
 	
-		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:14px'>$ligne</span></a></li>\n");
+		$html[]=$tpl->_ENGINE_parse_body("<li><a href=\"$page?$num=yes\"><span style='font-size:18px'>$ligne</span></a></li>\n");
 	
 	}
 	
@@ -80,6 +83,54 @@ function vsftpd_status(){
 	$ini=new Bs_IniHandler();
 	$ini->loadString(base64_decode($sock->getFrameWork('vsftpd.php?status=yes')));
 	echo $tpl->_ENGINE_parse_body(DAEMON_STATUS_ROUND("APP_VSFTPD",$ini,null,0));
+}
+
+function vsftpd_settings(){
+	$tpl=new templates();
+	$page=CurrentPageName();
+	$sock=new sockets();
+	$t=time();	
+	$VsFTPDPassive=$sock->GET_INFO("VsFTPDPassive");
+	if(!is_numeric($VsFTPDPassive)){$VsFTPDPassive=1;}
+	$VsFTPDPassiveAddr=$sock->GET_INFO("VsFTPDPassiveAddr");
+	
+	$html="
+<div style='width:98%' class=form>
+		". Paragraphe_switch_img("{enable_passive_mode}", "{enable_passive_mode_explain}","VsFTPDPassive",$VsFTPDPassive,null,650)."
+	<table style='width:100%'>
+		<tr>
+			<td class=legend style='font-size:18px'>{pasv_address}:</td>
+			<td>". field_ipv4("VsFTPDPassiveAddr",$VsFTPDPassiveAddr,"explain={pasv_address_explain};font-size:18px")."</td>
+		</tr>
+	</table>
+	<div style='text-align:right'><hr>". button("{apply}","Save$t();",26)."</div>
+</div>
+<script>
+var x_Save$t= function (obj) {
+	
+	var results=obj.responseText;
+	if(results.length>3){alert(results);return;}
+	if(document.getElementById('vsftpd_tabs')){RefreshTab('vsftpd_tabs');}
+}	
+	
+function Save$t(){
+	var XHR = new XHRConnection();
+	XHR.appendData('VsFTPDPassive',document.getElementById('VsFTPDPassive').value);
+	XHR.appendData('VsFTPDPassiveAddr',document.getElementById('VsFTPDPassiveAddr').value);
+	XHR.sendAndLoad('$page', 'POST',x_Save$t);	
+}
+</script>			
+			
+";
+	
+}
+
+function vsftpd_settings_save(){
+	$sock=new sockets();
+	$sock->SET_INFO("VsFTPDPassive", $_POST["VsFTPDPassive"]);
+	$sock->SET_INFO("VsFTPDPassiveAddr", $_POST["VsFTPDPassiveAddr"]);
+	$sock->getFrameWork("vsftpd.php?restart=yes");
+	
 }
 
 function vsftpd_config(){
