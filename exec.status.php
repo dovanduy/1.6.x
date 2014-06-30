@@ -3055,7 +3055,7 @@ function openldap(){
 	$l[]="[LDAP]";
 	$l[]="service_name=APP_LDAP";
 	$l[]="master_version=".GetVersionOf("openldap");
-	$l[]="service_cmd=ldap";
+	$l[]="service_cmd=/etc/init.d/slapd";
 	$l[]="service_disabled=1";
 	$l[]="pid_path=$pid_path";
 	$l[]="watchdog_features=1";
@@ -3068,14 +3068,26 @@ function openldap(){
 			@file_put_contents($pid_path,$master_pid);
 		}
 	}
+	
+	
+	
 	$ARRAY=$GLOBALS["CLASS_UNIX"]->ldap_GET_CONFS();
 	@file_put_contents("/usr/share/artica-postfix/ressources/local_ldap.php", "<?php \$GLOBALS[\"MAIN_LOCAL_LDAP_SETTINGS\"]=\"".base64_encode(serialize($ARRAY))."\";?>");
 	@chmod("/usr/share/artica-postfix/ressources/local_ldap.php",0755);
 	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
-		WATCHDOG("APP_LDAP","ldap");
+		system_admin_events("Fatal: Local LDAP service is not running [action=restart]",__FUNCTION__,__FILE__,__LINE__,"system");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
 		$l[]="";return implode("\n",$l);return;
 	}
+	
+	
+	if(!$GLOBALS["CLASS_UNIX"]->is_socket("/var/run/slapd/slapd.sock")){
+		system_admin_events("Fatal: No such  Unix socket /var/run/slapd/slapd.sock for LDAP service [action=restart]",__FUNCTION__,__FILE__,__LINE__,"system");
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} /etc/init.d/slapd restart >/dev/null 2>&1 &");
+	}
+	
+	
 	$l[]="running=1";
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";

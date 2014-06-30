@@ -69,6 +69,7 @@ class nginx_sources{
 			  `enabled` smallint(1)  NOT NULL DEFAULT '1',
 			  `ForceRedirect` smallint(1)  NOT NULL DEFAULT '1',
 			  `IsCas` smallint(1)  NOT NULL DEFAULT '0',
+			  `Imported` smallint(1)  NOT NULL DEFAULT '0',
 			  `ssl_commname` CHAR(128) NULL,
 			  `forceddomain` CHAR(255) NULL,
 			  PRIMARY KEY (`ID`),
@@ -99,7 +100,7 @@ class nginx_sources{
 		if(!$q->FIELD_EXISTS("reverse_sources", "isSuccessTime")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `isSuccessTime` datetime");}
 		if(!$q->FIELD_EXISTS("reverse_sources", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `proxy_read_timeout` SMALLINT(5) NOT NULL DEFAULT '300'");}
 		if(!$q->FIELD_EXISTS("reverse_sources", "OnlyTCP")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `OnlyTCP` smallint(1) NOT NULL DEFAULT '0'");}
-		
+		if(!$q->FIELD_EXISTS("reverse_sources", "Imported")){$q->QUERY_SQL("ALTER TABLE `reverse_sources` ADD `Imported` smallint(1) NOT NULL DEFAULT '0',ADD INDEX ( `Imported`)");}
 		$GLOBALS[__CLASS__.__FUNCTION__]=true;
 	}
 	
@@ -123,5 +124,18 @@ class nginx_sources{
 		return $unix->NGINX_COMPILE_PARAMS();
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
 	}
+	
+	public function DeleteSource($sourceid){
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL("UPDATE `reverse_www` SET cache_peer_id=0 WHERE cache_peer_id='$sourceid'");
+		$q->QUERY_SQL("DELETE FROM reverse_sources WHERE ID='$sourceid'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$q->QUERY_SQL("DELETE FROM reverse_privs WHERE sourceid='$sourceid'");
+	
+	
+	}
+	
+	
+	
 	
 }

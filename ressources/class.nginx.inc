@@ -129,6 +129,26 @@ class nginx{
 		}
 	}
 	
+	public function Delete_website($servername,$noaction=false){
+		$q=new mysql_squid_builder();
+		$q->QUERY_SQL("DELETE FROM reverse_www WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$q->QUERY_SQL("DELETE FROM reverse_privs WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$q->QUERY_SQL("DELETE FROM nginx_replace_www WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+		$q->QUERY_SQL("DELETE FROM nginx_replace_folder WHERE servername='$servername'");
+		if(!$q->ok){echo $q->mysql_error;return;}
+		
+		if(!$noaction){
+			$sock=new sockets();
+			$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
+		}	
+		
+	}
+	
 	private function LoadParams(){
 		$key="$this->servername:$this->host_port";
 		if(isset($GLOBALS[__CLASS__][__FUNCTION__][$key])){return;}

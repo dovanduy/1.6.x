@@ -76,6 +76,7 @@ class squid_reverse{
 			  `port` smallint(3)  NOT NULL,
 			  `sslport` smallint(3)  NOT NULL,
 			  `ssl` smallint(1)  NOT NULL,
+			  `Imported` smallint(1)  NOT NULL DEFAULT '0',
 			  `enabled` smallint(1)  NOT NULL DEFAULT '1',
 			  `owa` smallint(1)  NOT NULL DEFAULT '0',
 			  `aclname` INT NOT NULL AUTO_INCREMENT,
@@ -88,6 +89,7 @@ class squid_reverse{
 			  KEY `port` (`port`),
 			  KEY `ssl` (`ssl`),
 			  KEY `default_server` (`default_server`),
+			  KEY `Imported` (`Imported`),		
 			  KEY `sslport` (`sslport`),
 			  KEY `cache_peer_id` (`cache_peer_id`),
 			  KEY `replaceid` (`replaceid`),
@@ -521,6 +523,12 @@ class squid_reverse{
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `enabled` TINYINT( 1 ) NOT NULL DEFAULT '1', ADD INDEX ( `enabled`)");
 			if(!$q->ok){echo $q->mysql_error_html();}
 		}
+		
+		if(!$q->FIELD_EXISTS("reverse_www", "Imported")){
+			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `Imported` smallint( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `Imported`)");
+			if(!$q->ok){echo $q->mysql_error_html();}
+		}		
+		
 		if(!$q->FIELD_EXISTS("reverse_www", "poolid")){
 			$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `poolid` INT( 10 ) NOT NULL DEFAULT '0', ADD INDEX ( `poolid`)");
 			if(!$q->ok){echo $q->mysql_error_html();}

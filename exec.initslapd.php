@@ -271,7 +271,6 @@ function start_ldap($aspid=false){
 	if(!is_numeric($OpenLDAPLogLevel)){$OpenLDAPLogLevel=0;}
 	if($OpenLDAPLogLevel<>0){$OpenLDAPLogLevelCmdline=" -d $OpenLDAPLogLevel";}
 	
-	
 	$ifconfig=$unix->find_program("ifconfig");
 	echo "slapd: [INFO] start looback address...\n";
 	shell_exec("$ifconfig lo 127.0.0.1 netmask 255.255.255.0 up >/dev/null 2>&1");

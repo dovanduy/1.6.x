@@ -50,6 +50,7 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--purge-cache"){$GLOBALS["OUTPUT"]=true;purge_cache($argv[2]);exit;}
 	if($argv[1]=="--purge-all-caches"){$GLOBALS["OUTPUT"]=true;purge_all_caches();exit;}
 	if($argv[1]=="--import-file"){$GLOBALS["OUTPUT"]=true;import_file();exit;}
+	if($argv[1]=="--import-bulk"){$GLOBALS["OUTPUT"]=true;import_bulk();exit;}
 	
 	
 	
@@ -2157,4 +2158,176 @@ function import_file(){
 	
 	
 }
+
+function import_bulk(){
+	$q=new mysql_squid_builder();
+	$nginxSources=new nginx_sources();
+	$nginx=new nginx();
+	$filename="/usr/share/artica-postfix/ressources/logs/web/nginx.importbulk";
+	if(!is_file($filename)){echo "$filename no such file\n";return;}	
+	$CONF=unserialize(@file_get_contents($filename));
+	
+	
+	
+	if($CONF["RemoveOldImports"]==1){
+		// on supprime les anciennes entrées:
+		$results=$q->QUERY_SQL("SELECT ID FROM reverse_sources WHERE `Imported`=1");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$nginxSources->DeleteSource($ligne["ID"]);
+		}
+		
+		$results=$q->QUERY_SQL("SELECT servername FROM reverse_www WHERE `Imported`=1");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$nginx->Delete_website($ligne["servername"],true);
+		}		
+		
+		
+	}
+	
+	$randomArray[1]="a";
+	$randomArray[2]="b";
+	$randomArray[3]="c";
+	$randomArray[4]="d";
+	$randomArray[5]="e";
+	$randomArray[6]="f";
+	$randomArray[7]="g";
+	$randomArray[8]="h";
+	$randomArray[9]="i";
+	$randomArray[10]="j";
+	$randomArray[11]="k";
+	$randomArray[12]="l";
+	$randomArray[13]="m";
+	$randomArray[14]="n";
+	$randomArray[15]="o";
+	$randomArray[16]="p";
+	$randomArray[17]="q";
+	$randomArray[18]="r";
+	$randomArray[19]="s";
+	$randomArray[20]="t";
+	$randomArray[21]="u";
+	$randomArray[22]="v";
+	$randomArray[23]="x";
+	$randomArray[24]="y";
+	$randomArray[25]="z";
+	$RandomText=$CONF["RandomText"];
+	$digitAdd=0;
+	$webauth=null;
+	$authentication_id=$CONF["authentication"];
+	if(!is_numeric($authentication_id)){$authentication_id=0;}
+	
+	
+	if($authentication_id>0){
+		$AUTHENTICATOR["USE_AUTHENTICATOR"]=1;
+		$AUTHENTICATOR["AUTHENTICATOR_RULEID"]=$authentication_id;
+		$webauth=mysql_escape_string(base64_encode(serialize($AUTHENTICATOR)));
+	}
+	
+	
+	
+	if(preg_match("#\%sx([0-9]+)#", $RandomText,$re)){
+		$digitAdd=intval($re[1]);
+		$RandomText=str_replace("%sx{$re[1]}", "%s", $RandomText);
+		
+	}
+	
+	echo "Random: $RandomText\n";
+	
+
+	
+	// on parse le fichier en première passe pour le cleaner
+	
+	$f=explode("\n",$CONF["import"]);
+	while (list ($index, $line) = each ($f)){
+		$line=trim(strtolower($line));
+		if($line==null){continue;}
+		if(preg_match("#^http.*?:\/#", $line)){
+			// c'est une URI, on la décompose
+			$URZ=parse_url($line);
+			if(!isset($URZ["host"])){echo "$line -> Unable to determine HOST, skipping\n";}
+			$MAIN[$URZ["host"]]=$URZ["scheme"];
+			continue;
+			
+		}
+		$MAIN[$line]="http";
+		
+		
+	}
+	
+	ksort($MAIN);
+	$i=1;
+	$Letter=1;
+	$IpClass=new IP();
+	$SUCCESS=0;
+	$FAILED=0;
+	while (list ($servername, $proto) = each ($MAIN)){
+		$LetterText=$randomArray[$Letter];
+		$iText=$i;
+		$ssl=0;
+		if($digitAdd>0){$iText = sprintf("%1$0{$digitAdd}d", $i); }
+		$SourceWeb=$RandomText;
+		if($SourceWeb<>null){
+			$SourceWeb=str_replace("%a", $LetterText, $SourceWeb);
+			$SourceWeb=str_replace("%s", $iText, $SourceWeb);
+			
+		}else{
+			$SourceWeb=$servername;
+		}
+		$sourceserver="$proto://$servername";
+		echo "$proto://$servername\n";
+		if($proto=="http"){$sourceserver_port=80;}
+		if($proto=="https"){$sourceserver_port=443;$ssl=1;}
+		if(preg_match("#(.+?):([0-9]+)#", $servername,$re)){$sourceserver_port=$re[1];}
+		
+		//existe-t-il ? 
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM reverse_sources WHERE ipaddr='$sourceserver' AND `port`='$sourceserver_port'"));
+		$IDS=intval($ligne["ID"]);
+		
+		if($IDS==0){
+			//non -> Ajout de l'entrée...
+			$sql="INSERT IGNORE INTO `reverse_sources` 
+			(`servername`,`ipaddr`,`port`,`ssl`,`enabled`,`forceddomain`,`Imported`)
+			VALUES ('$servername','$sourceserver','$sourceserver_port','$ssl',1,'$servername',1)";
+			$q->QUERY_SQL($sql);
+			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT ID FROM reverse_sources WHERE ipaddr='$sourceserver' AND `port`='$sourceserver_port'"));
+			$IDS=intval($ligne["ID"]);
+				
+		}
+		
+		if($IDS==0){
+			echo "Failed to add $sourceserver/$sourceserver_port/$servername\n";
+			$FAILED++;
+			continue;
+		}
+		
+		
+		// On attaque  le site web:
+		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT servername,cache_peer_id FROM reverse_www WHERE servername='$SourceWeb'"));
+		if(trim($ligne["servername"]<>null)){
+			echo "$SourceWeb already exists on cache ID : {$ligne["cache_peer_id"]}/$IDS\n";
+			if($ligne["cache_peer_id"]<>$IDS){
+			$q->QUERY_SQL("UPDATE reverse_www SET `cache_peer_id`=$IDS WHERE  servername='$SourceWeb'");
+			}
+			$SUCCESS++;
+			continue;
+		}
+		
+		$sql="INSERT IGNORE INTO `reverse_www` (`servername`,`cache_peer_id`,`port`,`ssl`,`Imported`,`webauth`) VALUES
+		('$SourceWeb','$IDS','$sourceserver_port','$ssl',1,'$webauth')";
+		
+		$q->QUERY_SQL($sql);
+		if(!$q->ok){echo $q->mysql_error;$FAILED++;continue;}	
+		$SUCCESS++;	
+		
+		
+		$i++;
+		$Letter++;
+		if($Letter>25){$Letter=1;}
+	}
+	
+	
+	echo "$SUCCESS Imported sites, $FAILED failed\n";
+	
+}
+
+
 ?>

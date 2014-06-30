@@ -6462,3 +6462,24 @@ Click on the left image if you want to display a video that explains how to conf
 <enable_passive_mode_explain>Turn to green if you want to allow the PASV method of obtaining a data connection</enable_passive_mode_explain>
 <pasv_address>Passive addresse</pasv_address>
 <pasv_address_explain>Use this option to override the IP address that FTP service will advertise in response to the PASV command. Provide a numeric IP address</pasv_address_explain>
+<bulk_import>Mass importation</bulk_import>
+<remove_old_imports>Remove old imports</remove_old_imports>
+<random_generation>Random generation</random_generation>
+<nginx_import_random_explain>If you set a value here the importation will create Websites with a random pattern.[br]
+possible values are : %a for alpha text or %s for numeric text.[br]
+For example, %a%s.domain.tld will generate a1.domain.tld,b2.domain.tld,c3.domain.tld[br]
+If you want to add 3 digits numbers on %s attribute, set %sx3 ( %a%sx3.domain.tld )
+</nginx_import_random_explain>
+<destinations>Destinations</destinations>
+<nginx_dns_export_explain>Here it is the export list of your domains in CSV format in order to update your public DNS server</nginx_dns_export_explain>
+<import_export>Import/Export</import_export>
+<nginx_websites_export_explain>Here it is the list of websites and sources in CVS format</nginx_websites_export_explain>
+<nginx_bulk_import_replace_explain>Add here replace rules you want to add in CSV format separated by a carriage return.[br]
+replace pattern;Search pattern[br]
+Example: [br]
+newdomain.tld;mydomain.tld[br]
+That will replace string mydomain.tld by newdomain.tld string.
+</nginx_bulk_import_replace_explain>
+<remove_before_import>Remove before importation task</remove_before_import>
+<patterns>Patterns</patterns>
+<replaceby>Replace by</replaceby>

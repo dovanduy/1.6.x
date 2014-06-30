@@ -511,7 +511,7 @@ function websites_popup_webserver_auth_form(){
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT `webauth` FROM reverse_www WHERE servername='$servername'"));
 	$array=unserialize(base64_decode($ligne["webauth"]));
 	
-	
+
 	
 
 	if(!is_numeric($array["USE_AUTHENTICATOR"])){$array["USE_AUTHENTICATOR"]=0;}
@@ -1132,20 +1132,10 @@ function source_popup_main(){
 
 function websites_delete(){
 	$servername=$_POST["website-delete"];
-	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DELETE FROM reverse_www WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$q->QUERY_SQL("DELETE FROM reverse_privs WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$q->QUERY_SQL("DELETE FROM nginx_replace_www WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}
-	$q->QUERY_SQL("DELETE FROM nginx_aliases WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}	
-	$q->QUERY_SQL("DELETE FROM nginx_replace_folder WHERE servername='$servername'");
-	if(!$q->ok){echo $q->mysql_error;return;}	
 	
-	$sock=new sockets();
-	$sock->getFrameWork("squid.php?reverse-proxy-apply=yes");	
+	$nginx=new nginx();
+	$nginx->Delete_website($_POST["website-delete"]);
+	
 }
 
 
@@ -1310,9 +1300,9 @@ function source_save(){
 
 function source_delete(){
 	$q=new mysql_squid_builder();
-	$q->QUERY_SQL("DELETE FROM reverse_sources WHERE ID='{$_POST["source-delete"]}'");
-	if(!$q->ok){echo $q->mysql_error;return;}	
-	$q->QUERY_SQL("DELETE FROM reverse_privs WHERE sourceid='{$_POST["source-delete"]}'");
+	$reverse=new nginx_sources();
+	$reverse->DeleteSource($_POST["source-delete"]);
+
 	
 }
 
@@ -1395,6 +1385,7 @@ function sources_tabs(){
 	$array["{hosts}"]="$page?sources-section=yes";
 	if(AdminPrivs()){
 		$array["{pools}"]="miniadmin.proxy.reverse.nginx-pools.php?section=yes";
+		
 	}
 	echo $boot->build_tab($array);	
 	
@@ -1512,7 +1503,7 @@ function websites_section(){
 	if(AdminPrivs()){
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply_parameters}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=restart&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{purge_caches}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=purge&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
-		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{import}", "Loadjs('miniadmin.proxy.reverse.import.php');"));
+		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{import_export}", "Loadjs('miniadmin.proxy.reverse.import.php');"));
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_server}", "Loadjs('$page?website-js=yes&servername=')"));
 	}
 	
@@ -2408,9 +2399,12 @@ function websites_popup_webserver_replace_section(){
 	}	
 	
 	
-	
+	$servername=urlencode($servername);
 	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_rule}",
 			"Loadjs('$page?popup-webserver-replace-js=yes&servername=$servername&replaceid=0')"));
+	
+	$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{import}",
+			"Loadjs('miniadmin.proxy.reverse.replace.import.php?servername=$servername')"));	
 			echo $error.$boot->SearchFormGen("rulename","popup-webserver-replace-search","&servername=$servername",$EXPLAIN);	
 	
 }

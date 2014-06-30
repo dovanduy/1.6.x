@@ -499,9 +499,13 @@ function build_hosts($aspid=false){
 	$conf->ldap_addesses();
 	$conf->ParseAddress();
 	$IpClass=new IP();
-	while (list ($host, $ip) = each ($conf->array_address) ){
-		$MAIN[$host]=$ip;
-		
+	if(!is_array($conf->array_address)){
+		if(count($conf->array_address)>0){
+			while (list ($host, $ip) = each ($conf->array_address) ){
+				$MAIN[$host]=$ip;
+				
+			}
+		}
 	}
 	
 	$q=new mysql();
@@ -739,7 +743,7 @@ function build($aspid=false){
 	cache_dns_hosts();
 	build_hosts(true);
 	ldap_domains();
-	cachednshosts_records();
+	cachednshosts_records(array());
 	if($DHCPDEnableCacheDNS==1){ echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} only as caching DNS\n"; return;}
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");

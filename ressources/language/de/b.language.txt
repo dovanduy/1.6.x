@@ -974,6 +974,7 @@ Basically it helps our support team to resolve an issue.
 <build_the_network>Build the network</build_the_network>
 <build_the_rule>Build the rule</build_the_rule>
 <build_web_filtering_rules>Build web filtering rules</build_web_filtering_rules>
+<bulk_import>Mass importation</bulk_import>
 <burst>burst</burst>
 <buy_a_license>Buy a license</buy_a_license>
 <by>by</by>
@@ -1591,6 +1592,7 @@ Artica can reload/start/stop service but will not change settings.
 <designs_and_tweaks_text>Interface design and interface tweaks</designs_and_tweaks_text>
 <design_and_tweaks>Design and tweaks</design_and_tweaks>
 <design_and_tweaks_text>Personnalize the Web interface design and behavior</design_and_tweaks_text>
+<destinations>Destinations</destinations>
 <destination_interface>Destination interface</destination_interface>
 <destination_port>Destination port</destination_port>
 <dest_ports>Destination ports</dest_ports>
@@ -2665,6 +2667,7 @@ Click on the link example.csv in order to get the CSV template/example.[br]
 [b]Note, importation will failed if the csv file is UTF-16 or UTF-32 encoded[/b] 
 </import_contacts_csv_explain>
 <import_contacts_csv_text>Import contacts into your personal AddressBook from a CSV file.</import_contacts_csv_text>
+<import_export>Import/Export</import_export>
 <import_rules>Import rules</import_rules>
 <import_squid_logs>Import old Squid-Cache logs</import_squid_logs>
 <import_squid_logs_explain>Import the old access.log files created by your old Squid server or by an other Artica server.</import_squid_logs_explain>
@@ -3594,6 +3597,12 @@ If you set here a listen port, remote Artica servers are able to use this port i
 Please, check the authenticator area in order to create authentication rules.
 </nginx_authenticator_explain>
 <nginx_benefits>This feature allows to set this server as reverse proxy mode, in this case you will be able to add features for your internal Web server and add more security options</nginx_benefits>
+<nginx_bulk_import_replace_explain>Add here replace rules you want to add in CSV format separated by a carriage return.[br]
+replace pattern;Search pattern[br]
+Example: [br]
+newdomain.tld;mydomain.tld[br]
+That will replace string mydomain.tld by newdomain.tld string.
+</nginx_bulk_import_replace_explain>
 <NGINX_DEFAULT_SERVER>If checked, this configuration will be defined as "default/catch-all", if request can be handle by other configuration, 
 then this website will used as default</NGINX_DEFAULT_SERVER>
 <nginx_destination>Where requests must be forwarded ?.[br]
@@ -3601,6 +3610,7 @@ You can define an IP Address (172.16.2.3);[br]
 Or an hostname: www.mydomain.com[br]
 Or an uri: http://www.mydomain.com
 </nginx_destination>
+<nginx_dns_export_explain>Here it is the export list of your domains in CSV format in order to update your public DNS server</nginx_dns_export_explain>
 <nginx_forceddomain>If the remote web server store virtual hosts (multiple webservers) you can force here which virtual hostname you want to connect</nginx_forceddomain>
 <nginx_ForceRedirect>If the remote Web server sends redirects then all redirects will be forced to pass trough the reverse-proxy service</nginx_ForceRedirect>
 <NGINX_FW_EXPLAIN>This feature allows you to log and/or block IP addresses sources from the FireWall when the reverse proxy sends a 403 error.[br]
@@ -3615,6 +3625,11 @@ Example:[br]
 www.domain3.tld,www.domaindest.tld,0,www.domaindest.tld[br]
 [br]
 </nginx_import_explain>
+<nginx_import_random_explain>If you set a value here the importation will create Websites with a random pattern.[br]
+possible values are : %a for alpha text or %s for numeric text.[br]
+For example, %a%s.domain.tld will generate a1.domain.tld,b2.domain.tld,c3.domain.tld
+If you want to add 3 digits numbers on %s attribute, set %sx3 ( %a%sx3.domain.tld )
+</nginx_import_random_explain>
 <nginx_inactive_explain>[b]Cache Invalidation[/b]provides the amount of time a cached request should remain 'valid'</nginx_inactive_explain>
 <nginx_manual_update_text>Upload the NgInx pre-compiled package here in order to update your reverse-proxy version.[br]
 Package must be a tar.gz file format.
@@ -3645,6 +3660,7 @@ flags can be:[br]
 There is a tips in order to define this Web server on HTTP and HTTPS port.[br]
 If you enable this option and you set 80 as port, then this web server will listen in both 80/443 ports in order to provide HTTPS/HTTP service
 </NGINX_USE_SSL_EXPLAIN>
+<nginx_websites_export_explain>Here it is the list of websites and sources in CVS format</nginx_websites_export_explain>
 <nginx_website_dir_explain>If set then when clients will request this path, the reverse proxy will display content of the remote server</nginx_website_dir_explain>
 <nic_from>Source network card</nic_from>
 <nic_to>Destination network card</nic_to>
@@ -3876,6 +3892,7 @@ We suggest to not define a schedule more than 10 minutes to prevent too many fil
 <pasv_address>Passive addresse</pasv_address>
 <pasv_address_explain>Use this option to override the IP address that FTP service will advertise in response to the PASV command. Provide a numeric IP address</pasv_address_explain>
 <paths>paths</paths>
+<patterns>Patterns</patterns>
 <pconn_timeout>Persistent connections timeout</pconn_timeout>
 <pconn_timeout_text>Defines the timeout value for persistent connections</pconn_timeout_text>
 <PDNSHotSpot_explain>This feature allows the local PDNS service to resolve all DNS request to the HotSpot page if members are not authenticated.[br]
@@ -4189,6 +4206,7 @@ In this case, use a member with the "hotspot" privileges and connect to the End-
 You will be able to manage accounts on this database</radius_local_mysqldb_explain>
 <radius_members>RADIUS Members</radius_members>
 <radius_server>RADIUS server</radius_server>
+<random_generation>Random generation</random_generation>
 <RATELIM>limiting connection rates</RATELIM>
 <reading>reading</reading>
 <read_ahead_gap>Read AHEAD Gap</read_ahead_gap>
@@ -4371,11 +4389,13 @@ Connect to %s in order to modify parameters</remote_appliance_error_text>
 <remote_ssh_service>Remote SSH service</remote_ssh_service>
 <remote_statistics_server>Remote statistics server</remote_statistics_server>
 <remote_statistics_server_text>Send realtime events to a second Artica server</remote_statistics_server_text>
+<remove_before_import>Remove before importation task</remove_before_import>
 <remove_connection_ask>Remove this connection ?</remove_connection_ask>
 <remove_disabled_items>Remove disabled items</remove_disabled_items>
 <remove_disabled_items_warn>This will remove disabled items from the database. Perform this operation ?</remove_disabled_items_warn>
 <remove_numeric_members>Remove numeric members</remove_numeric_members>
 <remove_numeric_members_text>This procedure remove numeric members in statistics databases</remove_numeric_members_text>
+<remove_old_imports>Remove old imports</remove_old_imports>
 <remove_postfix_section>Remove Messaging section</remove_postfix_section>
 <remove_postfix_section_explain>If turn to green, Artica will hide any messaging section and understand there is no messaging software such as Postfix installed on your system.[br]
 Messaging softwares will be not removed but stay in the last status.[br]
@@ -4393,6 +4413,7 @@ You will be enable to reconnect Artica in the future if it is a mistake...</remo
 <repair_categories>Repair categories</repair_categories>
 <repair_categories_explain>This task will parse all categories in MySQL database and ensure that there is no saved bad characters or bad domains</repair_categories_explain>
 <REPLACE>Replace</REPLACE>
+<replaceby>Replace by</replaceby>
 <replacewith>Replace with</replacewith>
 <replace_regex_explain>By default, Artica will transform your search pattern to a regular expression pattern.[br]
 Enable this option will not transform your search pattern.[br]

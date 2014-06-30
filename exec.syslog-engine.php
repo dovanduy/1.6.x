@@ -1425,7 +1425,7 @@ function cyrus_admin_mysql_check($nopid=false){
 	$users=new usersMenus();
 	$hostname=$unix->hostname_g();
 	$BaseWorkDir="{$GLOBALS["ARTICALOGDIR"]}/cyrus_admin_mysql";
-	
+	if(!is_file($BaseWorkDir)){return;}
 	if (!$handle = opendir($BaseWorkDir)) {echo "Failed open $BaseWorkDir\n";return;}
 	
 	

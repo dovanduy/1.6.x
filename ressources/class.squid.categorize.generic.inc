@@ -392,7 +392,7 @@ class generic_categorize{
 	private function Blog($www){
 		
 		
-		$array=array("jimdo","canalblog","blogia","*.kiev.ua","beepworld.de","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
+		$array=array("jimdo","canalblog","greenshift.eu","simply-webspace.fr","blogia","*.kiev.ua","beepworld.de","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
 		"e-monsite","yuku","tumblr","over-blog","ucoz","punt","grygorczuk","skyblog","blogspirit","jellybaby.net",
 		"freedomblogging","bloguez","pagesperso-orange","areavoices","blogspot","typepad","xanga.com",
 		"monsite-orange","blogspirit","blogspace","livejournal","blog.mongenie","diaryclub","blogcu.com","funpic",
@@ -898,7 +898,7 @@ class generic_categorize{
 		include_once(dirname(__FILE__)."/class.squid.catz.schools.inc");
 		$pub=new squid_catz_schools();$cat=$pub->parse($www);if($cat<>null){return "recreation/schools";}
 		$array=array("universidad-finis-terrae","finisterrae.cl","tu-harburg","mathletics","grenet","powerschool",
-		"schoology","edublogs","sumdog","tableau-noir","avcr.cz","uni-tuebingen.de","reseauecoleetnature.org","educationamerica","stv-chaville.com","hbxxedu.com","uam.es","edu.au","u-cergy","ac.id","espace-eleves.com");
+		"schoology","edublogs","sumdog","tableau-noir","avcr.cz","revues.org","uni-tuebingen.de","reseauecoleetnature.org","educationamerica","stv-chaville.com","hbxxedu.com","uam.es","edu.au","u-cergy","ac.id","espace-eleves.com");
 		
 		if($this->ParseArray($array, $www)){return "recreation/schools";}
 		$def="(college|lycee|ecole|student|etudiant|cybercollege)";
@@ -1099,7 +1099,7 @@ class generic_categorize{
 	
 	private function governments($www){
 		
-		$array=array("st-christo","cnam.fr","msh-vdl.fr","gov.uk","gov.yk.ca","rhonealpes.fr","com6-interactive.com","ineris.fr");
+		$array=array("st-christo","cnam.fr","msh-vdl.fr","gov.uk","gov.yk.ca","oecdilibrary.org","oecd.org","rhonealpes.fr","com6-interactive.com","ineris.fr");
 		if($this->ParseArray($array, $www)){return "governments";}
 		if(preg_match("#^gov\.uk$#", $www)){return "governments";}
 		if(preg_match("#(^|\.)justice\.gouv\.fr$#", $www)){return "justice";}
@@ -1158,7 +1158,7 @@ class generic_categorize{
 		
 
 		
-		$array=array("vulka.es","atver","yandex","webmarchand","yahoodns.net","dastelefonbuch.de","annuairefrancais.fr",
+		$array=array("vulka.es","atver","yandex","contacteo.com","webmarchand","yahoodns.net","dastelefonbuch.de","annuairefrancais.fr",
 				"googleusercontent","repertoire-web","towar.ru","cylex-france.fr","bdstatic.com");
 		if($this->ParseArray($array, $www)){return "searchengines";}
 		
@@ -1241,7 +1241,7 @@ class generic_categorize{
 	
 	private function dictionaries($www){
 		
-		$array=array("thefreedictionary","jusbrasil.com.br","yourdictionary","turnikpedia","hudong.com","dbpedia.org","oxfordjournals","about","abes.fr","theses.fr","wikipedia","wikia","docstoc","wikidot","wikispaces","wikimedia","wikiquote","wikisource");
+		$array=array("thefreedictionary","jusbrasil.com.br","tandfonline.com","ebscohost.com","metapress.com","yourdictionary","turnikpedia","hudong.com","dbpedia.org","oxfordjournals","about","abes.fr","theses.fr","wikipedia","wikia","docstoc","wikidot","wikispaces","wikimedia","wikiquote","wikisource");
 		if($this->ParseArray($array, $www)){return "dictionaries";}
 		
 		
@@ -2333,6 +2333,7 @@ private function socialnet($www){
 		if(preg_match("#-asoc\.cz$#", $www)){return "associations";}
 		if(preg_match("#(^|\.)asso-#", $www)){return "associations";}
 		if(preg_match("#-asso-#", $www)){return "associations";}
+		if(preg_match("#\.asso\.[a-z]+$#", $www)){return "associations";}
 	}
 	
 	private function electricalapps($www){
@@ -3414,6 +3415,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)notaires\.fr$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)jus\.br$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)roi\.ru$#", $www)){return "justice";}
+		if(preg_match("#(^|\.)(lamyline|toutsurlamyline)\.fr$#", $www)){return "justice";}
 		if(preg_match("#(juridic|juridische|jurisprudenc|advocacy|juridisch|advokat|jurist|justicia|jurissite|avocat|notaire|judiciar|advocacia|notaria|juridique|jurisprudence|lawyer|advokat|judiciaire|justica|huissier|harcelement|justice|tribunal|prudhommes)#", $www)){return "justice";}
 		
 		if(preg_match("#(geologie|sciences|archaeology|entomolog)#", $www)){return "sciences";}
@@ -3422,9 +3424,14 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)cnrs\.fr$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)cnrs-.*?\.fr$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)ki\.se$#", $www)){return "sciences";}
-		
-
-
+		if(preg_match("#(^|\.)aps\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)amstat\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)afnor\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)bentham\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)cairn\.info$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)doaj\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)nber\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)persee\.fr$#", $www)){return "sciences";}
 		
 		if(preg_match("#(^|\.)swagbucks\.com$#", $www)){return "paytosurf";}
 		if(preg_match("#(^|\.)mow\.fm$#", $www)){return "paytosurf";}
@@ -3754,7 +3761,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)(intranet|locale|local)$#", $www)){return "internal";}
 		//if(preg_match("#^130\.117\.[0-9]+\.[0-9]+$#", $www)){return "internal";}
 		
-
+		if(preg_match("#(^|\.)doctrinal\.fr$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)justice\.fr$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)lemondedudroit\.fr$#", $www)){return "justice";}
 		if(preg_match("#(^|\.)lgdj\.fr$#", $www)){return "justice";}
@@ -3801,6 +3808,8 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)ird\.fr$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)cnrs\.fr$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)inrialpes\.fr$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)imfstatistics\.org$#", $www)){return "sciences";}
+		if(preg_match("#(^|\.)wiley\.com$#", $www)){return "sciences";}
 		
 		if(preg_match("#(wedding|mariage|marriage|getmarried|desrobes\.|marions-les|married|noces|cremaillere|mariees|abcsalles)#", $www)){return "getmarried";}
 		if(preg_match("#(^|\.)edressbridal\.com#", $www)){return "getmarried";}

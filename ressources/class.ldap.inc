@@ -388,6 +388,39 @@ function ldap_escape($str){
     return ($str);
 }	
 
+private function ldap_connect_action(){
+	
+	if(!$this->ldap_connection){
+		if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> cn=$this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			
+		if($this->ldap_host=="127.0.0.1"){
+			$LDAP_API="/var/run/slapd/slapd.sock";
+			$LDAP_API=urlencode($LDAP_API);
+			@ldap_close();
+			$this->ldap_connection=@ldap_connect("ldapi://$LDAP_API",0) ;
+			if(!$this->ldap_connection){
+				$error=ldap_err2str( ldap_errno($this->ldap_connection) );
+				writelogs("Fatal: ldap_connect -> ldapi://$LDAP_API FAILED $error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				@ldap_close();
+			}else{
+				if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> ldapi://$LDAP_API SUCCESS!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+			}
+		}
+			
+		if(!$this->ldap_connection){
+			$this->ldap_connection=@ldap_connect($this->ldap_host, $this->ldap_port ) ;
+			if(!$this->ldap_connection){
+				if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldap_connect -> cn=$this->ldap_host:$this->ldap_port FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+				@ldap_close();
+				return false;
+			}
+		}
+	
+	}
+	
+	return true;
+}
+
 public function ldap_perform_connection($ldapport=null){
 	if(isset($GLOBALS["LDAP_CONNECT_ID"])){
 		$this->ldap_connection=$GLOBALS["LDAP_CONNECT_ID"];
@@ -401,14 +434,12 @@ public function ldap_perform_connection($ldapport=null){
 			return false;
 		}
 		
+		
+		
 		if(!$this->ldap_connection){
-			if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> cn=$this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			$this->ldap_connection=@ldap_connect($this->ldap_host, $this->ldap_port ) ;
-			if(!$this->ldap_connection){
-				if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldap_connect -> cn=$this->ldap_host:$this->ldap_port FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-				@ldap_close();return false;
+			if(!$this->ldap_connect_action()){
+				return false;
 			}
-				
 		}
 		
 		
@@ -438,7 +469,10 @@ public function ldap_perform_connection($ldapport=null){
 		if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
 		return false;
 	}	
-	$this->ldap_connection=ldap_connect($this->ldap_host, $this->ldap_port ) ;
+	
+	if(!$this->ldap_connect_action()){ return false; }
+	
+	
 	$GLOBALS["LDAP_CONNECT_ID"]=$this->ldap_connection;
 	 if(!$this->ldap_connection){
 	 	
@@ -470,6 +504,7 @@ public function ldap_perform_connection($ldapport=null){
 		$ldap_host=$ldapClass->ldap_host;
 		$ldap_port=$ldapClass->ldap_port;
 		if($ldap_port==null){$ldap_port=389;}
+		$LDAPAPI=false;
 		$dn="cn=$admin,$suffix";
 		writelogs("testing connection dn $dn",__FUNCTION__,__FILE__);
 	
@@ -478,8 +513,20 @@ public function ldap_perform_connection($ldapport=null){
 		}
 		@fclose($fp);
 	
-	
-		$ldap_connection=ldap_connect($ldap_host, $ldap_port );
+		
+		if($ldap_host=="127.0.0.1"){
+			$LDAP_API="/var/run/slapd/slapd.sock";
+			$LDAP_API=urlencode($LDAP_API);
+			$ldap_connection=@ldap_connect("ldapi://$LDAP_API") ;
+			if(!$ldap_connection){
+				writelogs("Fatal: ldap_connect -> ldapi://$LDAP_API FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				@ldap_close();
+			}else{
+				$LDAPAPI=true;
+			}
+		}
+		
+		if(!$LDAPAPI){ $ldap_connection=@ldap_connect($ldap_host, $ldap_port ); }
 		if(!$ldap_connection){ 
 		$error="Please check LDAP connection, it seems that Artica is not allowed to connect to &laquo;$ldap_host:$port&raquo;<br>";}
 		writelogs("Error after connecting:$error '$ldap_connection'",__FUNCTION__,__FILE__);	

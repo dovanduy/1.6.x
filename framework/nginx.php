@@ -15,6 +15,9 @@ if(isset($_GET["replic-conf"])){conf_save();exit;}
 if(isset($_GET["uncompress-nginx"])){uncompress_nginx();exit;}
 if(isset($_GET["reconfigure-single"])){reconfigure_single();exit;}
 if(isset($_GET["purge-cache"])){purge_cache();exit;}
+if(isset($_GET["import-bulk"])){import_bulk();exit;}
+
+
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
 writelogs_framework("unable to understand query !!!!!!!!!!!..." .@implode(",",$f),"main()",__FILE__,__LINE__);
 die();
@@ -237,5 +240,12 @@ function import(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$php5 /usr/share/artica-postfix/exec.nginx.php --import-file >/usr/share/artica-postfix/ressources/logs/web/nginx.import.results 2>&1");	
+}
+
+function import_bulk(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	shell_exec("$php5 /usr/share/artica-postfix/exec.nginx.php --import-bulk >/usr/share/artica-postfix/ressources/logs/web/nginx.import-bulk.results 2>&1");
 }
 

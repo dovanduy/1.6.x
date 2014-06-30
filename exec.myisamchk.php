@@ -35,7 +35,7 @@ function start($database,$table){
 	
 	$myisamchk=$unix->find_program("myisamchk");
 	$pgrep=$unix->find_program("pgrep");
-	exec("$pgrep -l -f \"$myisamchk\"",$results);
+	exec("$pgrep -l -f \"$myisamchk.*?$table\"",$results);
 	while (list ($index, $line) = each ($results) ){
 		if(preg_match("#pgrep#", $line)){continue;}
 		if(preg_match("#^[0-9]+\s+#", $line)){

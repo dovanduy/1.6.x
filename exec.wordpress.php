@@ -34,7 +34,10 @@ function config(){
 	$unix=new unix();
 	$q=new mysql();
 	$sock=new sockets();
-	$DB_HOST="localhost:$q->SocketPath";
+	
+	if($q->mysql_server=="127.0.0.1"){
+		$DB_HOST="localhost:$q->SocketPath";
+	}
 	
 	$Salt=$unix->GetUniqueID();
 	$WordPressDBPass=$sock->GET_INFO("WordPressDBPass");
@@ -55,7 +58,7 @@ function config(){
 		
 	}
 
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL user...........: $DB_USER\n";}
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: MySQL user...........: $DB_USER\n";}
 	
 $f[]="<?php";
 $f[]="/**";

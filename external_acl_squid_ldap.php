@@ -444,9 +444,20 @@ function ConnectToPureLDAP(){
 	if(trim($admin)==null){$admin="Manager";}
 	$GLOBALS["SUFFIX"]=$suffix;
 	
-	$GLOBALS["CONNECTION"]=ldap_connect($server,$port);
-	WLOG("[LDAP]: Connecting to LDAP server `$server:$port`");
+	if($server=="127.0.0.1"){
+		$LDAP_API="/var/run/slapd/slapd.sock";
+		$LDAP_API=urlencode($LDAP_API);
+		@ldap_close();
+		$GLOBALS["CONNECTION"]=@ldap_connect("ldapi://$LDAP_API",0) ;
+		if(!$GLOBALS["CONNECTION"]){ WLOG("[LDAP]: Connecting to LDAP server `ldapi://$LDAP_API` failed");}
+	}
+	
 	if(!$GLOBALS["CONNECTION"]){
+		$GLOBALS["CONNECTION"]=ldap_connect($server,$port);
+	}
+	
+	if(!$GLOBALS["CONNECTION"]){
+		WLOG("[LDAP]: Connecting to LDAP server `$server:$port` failed");
 		WLOG("[LDAP]: <strong style='color:red'>Fatal: ldap_connect()");
 		@ldap_close();
 		return false;
