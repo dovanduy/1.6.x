@@ -479,6 +479,11 @@ function WizardExecute(){
 			$q->QUERY_SQL("INSERT IGNORE INTO `squid_caches_center` (cachename,cpu,cache_dir,cache_type,cache_size,cache_dir_level1,cache_dir_level2,enabled,percentcache,usedcache,remove)
 			VALUES('$cachename',1,'$squid->CACHE_PATH','$squid->CACHE_TYPE','2000','128','256',1,0,0,0)","artica_backup");
 		}
+		$zipfile="/usr/share/artica-postfix/ressources/conf/upload/squid-zip-import.zip";
+		if(is_file($zipfile)){
+			writeprogress(63,"Analyze old squid.conf");
+			system("$php5 /usr/share/artica-postfix/exec.squid.import.conf.php --zip");
+		}
 		
 		$squid->SaveToLdap();
 		writeprogress(65,"Reconfiguring Proxy");

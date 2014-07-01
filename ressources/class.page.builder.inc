@@ -72,11 +72,14 @@ class pagebuilder{
 			
 		
 			$html=$html . $backspace.$mouse_position_js;
-			$html=$html . "$backspace<!--  css files  -->\n";
-			$html=$html .  $GLOBALS["ADD_HTML_HEADER"]."\n".$this->headcss();
+			
+
 			$html=$html . "$backspace<!-- Artica javascript  -->";
 			$html=$html . $this->jsArtica();
 			$html=$html . "$backspace<!-- js Artica  -->";
+			$html=$html . "$backspace<!--  css files  -->\n";
+			$html=$html .  $GLOBALS["ADD_HTML_HEADER"]."\n".$this->headcss();
+			
 			$html=$html . $js_addon;
 			$html=$html . $js_addon_2;
 			$html=$html . $js_addon3;
@@ -201,46 +204,55 @@ class pagebuilder{
 			}			
 			
 			if($GLOBALS["VERBOSE"]){echo  "Memory: ".round(memory_get_usage(true)/1024)." Ko\n<br>";}
-			$jsTable[]="/mouse.js";
-			$jsTable[]="/js/md5.js";
-			$jsTable[]="/XHRConnection.js";
-			$jsTable[]="/js/float-barr.js";
-			$jsTable[]="/TimersLogs.js";
-			$jsTable[]="/js/artica_confapply.js";
-			$jsTable[]="/js/edit.user.js";
-			$jsTable[]="/js/cookies.js";
-			$jsTable[]="/default.js";
+			
 			$jsTable[]="/js/$jqueryok";
 			$jsTable[]="/js/$jquery_custom";
-			$jsTable[]="/js/jqueryFileTree.js";
-			$jsTable[]="/js/jquery.easing.1.3.js";
-			$jsTable[]="/js/thickbox-compressed.js";
-			$jsTable[]="/js/jquery.simplemodal-1.3.3.min.js";
-			$jsTable[]="/js/jquery.jgrowl_minimized.js";
-			$jsTable[]="/js/jquery.cluetip.js";
-			$jsTable[]="/js/jquery.blockUI.js";
-			$jsTable[]="/js/jquery.treeview.min.js";
-			$jsTable[]="/js/jquery.treeview.async.js";
-			$jsTable[]="/js/jquery.tools.min.js";
-			$jsTable[]="/js/jquery.qtip.js";
-			$jsTable[]="/js/jquery.kwicks-1.5.1.pack.js";
-			$jsTable[]="/js/flexigrid.pack.js";
-			$jsTable[]="/js/jquery-ui-timepicker-addon.js";
-			$jsTable[]="/js/ui.selectmenu.js";
-			//$jsTable[]="/js/jquery.collapse.js";
-			$jsTable[]="/js/jquery.cookie.js";
-			$jsTable[]="/js/fileuploader.js";
-			$jsTable[]="/js/highcharts.js";
-			$jsTable[]="/js/modules/exporting.js";
-			$jsTable[]="/js/mobiscroll-2.1.custom.min.js";
-			$jsTable[]="/js/tiny_mce/tinymce.min.js";
-			$jsTable[]="/js/colorpicker.js";
-			$jsTable[]="/js/jquery.watermark.min.js";
-			$jsTable[]="/js/jquery.uilock.min.js";
-			$jsTable[]="/js/jquery.blockUI.js";
-			$jsTable[]="/bootstrap/js/bootstrap-tab.js";
-			$jsTable[]="/bootstrap/js/bootstrap-tooltip.js";
-			$jsTable[]="/bootstrap/js/bootstrap-button.js";
+			$jsTable[]="/default.js";
+			$jsTable[]="/js/rloader1.5.4_min.js";
+			
+			
+			$jsTablesrc[]="/mouse.js";
+			$jsTablesrc[]="/js/md5.js";
+			$jsTablesrc[]="/XHRConnection.js";
+			$jsTablesrc[]="/js/float-barr.js";
+			$jsTablesrc[]="/TimersLogs.js";
+			$jsTablesrc[]="/js/artica_confapply.js";
+			$jsTablesrc[]="/js/edit.user.js";
+			$jsTablesrc[]="/js/cookies.js";
+			
+			$jsTablesrc[]="/js/jqueryFileTree.js";
+			$jsTablesrc[]="/js/jquery.easing.1.3.js";
+			$jsTablesrc[]="/js/thickbox-compressed.js";
+			$jsTablesrc[]="/js/jquery.simplemodal-1.3.3.min.js";
+			$jsTablesrc[]="/js/jquery.jgrowl_minimized.js";
+			$jsTablesrc[]="/js/jquery.cluetip.js";
+			$jsTablesrc[]="/js/jquery.blockUI.js";
+			$jsTablesrc[]="/js/jquery.treeview.min.js";
+			$jsTablesrc[]="/js/jquery.treeview.async.js";
+			$jsTablesrc[]="/js/jquery.tools.min.js";
+			$jsTablesrc[]="/js/jquery.qtip.js";
+			$jsTablesrc[]="/js/jquery.kwicks-1.5.1.pack.js";
+			$jsTablesrc[]="/js/flexigrid.pack.js";
+			$jsTablesrc[]="/js/jquery-ui-timepicker-addon.js";
+			$jsTablesrc[]="/js/ui.selectmenu.js";
+			//$jsTablesrc[]="/js/jquery.collapse.js";
+			$jsTablesrc[]="/js/jquery.cookie.js";
+			$jsTablesrc[]="/js/fileuploader.js";
+			$jsTablesrc[]="/js/highcharts.js";
+			$jsTablesrc[]="/js/modules/exporting.js";
+			$jsTablesrc[]="/js/mobiscroll-2.1.custom.min.js";
+			$jsTablesrc[]="/js/tiny_mce/tinymce.min.js";
+			$jsTablesrc[]="/js/colorpicker.js";
+			$jsTablesrc[]="/js/jquery.watermark.min.js";
+			$jsTablesrc[]="/js/jquery.uilock.min.js";
+			$jsTablesrc[]="/js/jquery.blockUI.js";
+			$jsTablesrc[]="/bootstrap/js/bootstrap-tab.js";
+			$jsTablesrc[]="/bootstrap/js/bootstrap-tooltip.js";
+			$jsTablesrc[]="/bootstrap/js/bootstrap-button.js";
+			
+			
+			
+			
 
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){
@@ -260,6 +272,11 @@ class pagebuilder{
 				
 			}
 			
+			while (list ($num, $func) = each ($jsTablesrc) ){
+				$srcs[]="{src:'$func'}";
+				
+			}
+			$chrome[]="<script type=\"text/javascript\" language=\"javascript\">{$backspace}$.rloader([ ".@implode(",\n\t", $srcs)." ]);</script>";
 			$f[]="{$backspace}if(head.browser.ie){head.js('/mouse_ie.js');}";
 			$f[]="{$backspace}</script>\n";
 			
@@ -345,20 +362,26 @@ class pagebuilder{
 				reset($GLOBALS["CSS_FILES"]);
 				while (list ($num, $val) = each ($GLOBALS["CSS_FILES"]) ){
 					if(file_exists(dirname(__FILE__)."/templates/{$GLOBALS["artica-template"]}/$val")){
-						$css_array[]="$backspace<link rel=\"stylesheet\" type=\"text/css\" rel=\"styleSheet\"  href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/{$GLOBALS["artica-template"]}/$val\" />";
+						$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/{$GLOBALS["artica-template"]}/$val'}";
+						$css_arrayOLD[]="$backspace<link rel=\"stylesheet\" type=\"text/css\" rel=\"styleSheet\"  href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/ressources/templates/{$GLOBALS["artica-template"]}/$val\" />";
 					}else{
 						$csserror[]="$backspace<!-- missing ".dirname(__FILE__)."/templates/{$GLOBALS["artica-template"]}/$val -->";
 						if(is_file("ressources/templates/default/$val")){
-							$css_array[]="$backspace<link rel=\"stylesheet\" type=\"text/css\" rel=\"styleSheet\"  href=\"ressources/templates/default/$val\" />";
+							$css_arrayOLD[]="$backspace<link rel=\"stylesheet\" type=\"text/css\" rel=\"styleSheet\"  href=\"ressources/templates/default/$val\" />";
+							$css_array[]="{src:'ressources/templates/default/$val'}";
 						}
 					}
 				}
 				
 			if(is_array($csserror)){$html=$html . "$backspace".implode("",$csserror);}
-			if(is_array($css_array)){$html=$html . "$backspace".implode("",$css_array);}
-			$html=$html . "$backspace<link href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/calendar.css\" rel=\"stylesheet\" type=\"text/css\">";
-			$html=$html . "$backspace<link href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/jqueryFileTree.css\" rel=\"stylesheet\" type=\"text/css\">";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/uploadify.css\" />";	
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/calendar.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/jqueryFileTree.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/uploadify.css'}";
+			
+			
+			//$html=$html . "$backspace<link href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/calendar.css\" rel=\"stylesheet\" type=\"text/css\">";
+			//$html=$html . "$backspace<link href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/js/jqueryFileTree.css\" rel=\"stylesheet\" type=\"text/css\">";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/uploadify.css\" />";	
 		
 			
 			$jqueryUi="artica-theme";
@@ -367,19 +390,40 @@ class pagebuilder{
 			$GLOBALS["CSS_FILES"][basename($uicss)]=basename($uicss);
 
 			
+			
+			
 			$html=$html . "$backspace<!-- jqueryUi:$jqueryUi -->";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"$uicss\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.jgrowl.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.cluetip.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.treeview.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/thickbox.css\" media=\"screen\"/>";		
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.qtip.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/flexigrid.pack.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/ui.selectmenu.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/fileuploader.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/mobiscroll-2.1.custom.min.css\" />";
-			$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/colorpicker.css\" />";
+			$css_array[]="{src:'$uicss'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.jgrowl.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.cluetip.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.treeview.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/thickbox.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.qtip.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/flexigrid.pack.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/ui.selectmenu.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/fileuploader.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/mobiscroll-2.1.custom.min.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/colorpicker.css'}";
+			
+			
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"$uicss\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.jgrowl.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.cluetip.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.treeview.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/thickbox.css\" media=\"screen\"/>";		
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/jquery.qtip.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/flexigrid.pack.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/ui.selectmenu.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"{$GLOBALS["JS_HEAD_PREPREND"]}/css/fileuploader.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/mobiscroll-2.1.custom.min.css\" />";
+			//$html=$html . "$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/colorpicker.css\" />";
+			
+			
+			return "
+			$backspace<link rel=\"stylesheet\" type=\"text/css\" href=\"/fonts.css.php\" />		
+			<script type=\"text/javascript\" language=\"javascript\">{$backspace}$.rloader([ ".@implode(",\n\t", $css_array)." ]);</script>";
+			
 			return $html;
 		}
 		
@@ -391,10 +435,11 @@ class pagebuilder{
 			if($template=="default"){return;}
 			foreach (glob("ressources/templates/$template/css/*.css") as $filename) {
 				if(isset($GLOBALS["CSS_FILES"][basename($filename)])){unset($GLOBALS["CSS_FILES"][basename($filename)]);}
+				$css_array[]="{src:'$filename'}";
 				$css[]="$backspace<link href=\"/$filename\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" >";;
 			}
 
-			return $css;
+			return "<script type=\"text/javascript\" language=\"javascript\">{$backspace}$.rloader([ ".@implode(",\n\t", $css_array)." ]);</script>";
 			
 		}
 		

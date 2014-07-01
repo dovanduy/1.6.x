@@ -275,10 +275,17 @@ function license(){
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	
 	if($EnableKerbAuth==1){
-		
+		$Days=86400*30;
+		$DayToLeft=30;
+		if(is_file("/usr/share/artica-postfix/ressources/class.pinglic.inc")){
+			include_once("/usr/share/artica-postfix/ressources/class.pinglic.inc");
+			$EndTime=$GLOBALS['ADLINK_TIME']+$Days;
+			$seconds_diff = $EndTime - time();
+			$DayToLeft=floor($seconds_diff/3600/24);
+		}
 		$html="<div style='margin-top:15px'>".
-				Paragraphe("warning-panneau-64.png", "Active Directory","{warn_no_license_activedirectory_30days}",
-						"javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+				Paragraphe("warning-panneau-64.png", "Active Directory","{warn_no_license_activedirectory_30days}","javascript:Loadjs('artica.license.php')","go_to_section",665,132,1);
+				$html=str_replace("%s", $DayToLeft, $html);
 		echo $tpl->_ENGINE_parse_body($html)."</div>";
 		
 	}

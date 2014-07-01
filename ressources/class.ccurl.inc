@@ -371,6 +371,7 @@ class ccurl{
 	
 	
 	private function TestProxy(){
+		if($this->NoCheckSquid){$GLOBALS["CCURL_TEST_PROXY"]=false;return false;}
 		if(isset($GLOBALS["CCURL_TEST_PROXY"])){return $GLOBALS["CCURL_TEST_PROXY"];}
 		$f=@fsockopen ($this->ArticaProxyServerName, $this->ArticaProxyServerPort, $errno, $errstr, 2);
 

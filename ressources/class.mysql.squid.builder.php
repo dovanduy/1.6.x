@@ -93,7 +93,6 @@ class mysql_squid_builder{
 		$this->acl_GroupType["dst"]="{dst_addr}";
 		$this->acl_GroupType["proxy_auth"]="{members}";
 		$this->acl_GroupType["proxy_auth_ads"]="{dynamic_activedirectory_group}";
-		$this->acl_GroupType["port"]="{remote_ports}";
 		$this->acl_GroupType["browser"]="{browser}";
 		$this->acl_GroupType["NudityScan"]="{nudityScan}";
 		$this->acl_GroupType["time"]="{DateTime}";

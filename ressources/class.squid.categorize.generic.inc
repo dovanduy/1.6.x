@@ -3432,7 +3432,7 @@ private function socialnet($www){
 		if(preg_match("#(^|\.)doaj\.org$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)nber\.org$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)persee\.fr$#", $www)){return "sciences";}
-		
+		if(preg_match("#(^|\.)techniques-ingenieur\.fr$#", $www)){return "sciences";}
 		if(preg_match("#(^|\.)swagbucks\.com$#", $www)){return "paytosurf";}
 		if(preg_match("#(^|\.)mow\.fm$#", $www)){return "paytosurf";}
 		if(preg_match("#(^|\.)bitterstrawberry\.com$#", $www)){return "paytosurf";}

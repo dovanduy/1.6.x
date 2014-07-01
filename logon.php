@@ -1277,8 +1277,8 @@ function buildPage(){
 		
 		$ARTICAVER=@file_get_contents("VERSION").$WEBSEVERV.$PHPVERSION.$FPM;
 		
-		$tpl=str_replace("{COPYRIGHT}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.net\" style='color:white'>Artica Tech</a>",$tpl);
-		$tpl=str_replace("{copy-right}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.net\" style='color:white'>Artica Tech</a>",$tpl);
+		$tpl=str_replace("{COPYRIGHT}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.com\" style='color:white'>Artica Tech</a>",$tpl);
+		$tpl=str_replace("{copy-right}","$lang2Link$miniadm$userslogs$sslcert<br>{$company_name}Copyright 2003 - ". date('Y')."&nbsp;<a href=\"http://www.articatech.com\" style='color:white'>Artica Tech</a>",$tpl);
 		$tpl=str_replace("{TEMPLATE_HEAD}","<!-- HEAD TITLE: $TITLE_RESSOURCE -->\n$favicon\n$jquery\n$jsArtica\n". @implode("\n", $js)."\n$jslogon\n".@implode("\n", $css)."\n".@implode("\n", $log), $tpl);
 		$tpl=str_replace("{ARTICA_VERSION}",$ARTICAVER,$tpl);
 		

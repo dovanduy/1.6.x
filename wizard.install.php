@@ -66,8 +66,14 @@ function automation_popup(){
 	$tpl=new templates();
 	$users=new usersMenus();
 	$sock=new sockets();
+	$importsquid=null;
 $html="";
 $apply=$tpl->_ENGINE_parse_body("{apply}");
+
+if($users->SQUID_INSTALLED){
+	$importsquid=button("{import_squid_conf}","Loadjs('import.squid.zip.php')",22)."&nbsp;&nbsp;";
+	
+}
 
 $nic=new system_nic("eth0");
 $IPADDR=$nic->IPADDR;
@@ -420,9 +426,9 @@ $html="
 <div style='font-size:22px;margin:15px' class=explain>{automation_script_explain}</div>
 <center id='$t' style='margin:10px'></center>
 <center>
-<div style='text-align:center;width:100%;background-color:white;margin-bottom:10px;padding:5px;'>$button<br></div>
+<div style='text-align:center;width:100%;background-color:white;margin-bottom:10px;padding:5px;'>$importsquid$button<br></div>
 <textarea
-style='width:95%;height:550px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
+style='width:95%;height:400px;overflow:auto;border:5px solid #CCCCCC;font-size:14px;font-weight:bold;padding:3px'
 id='content-$t'>$text</textarea>
 <div style='text-align:center;width:100%;background-color:white;margin-top:10px'>$button</div>
 </center>
@@ -939,7 +945,7 @@ function setup_2(){
 		$proxy="
 		<tr>
 			<td colspan=2 style='padding-top:15px;padding-left:10px;'>
-			<div style='font-size:22px;margin-bottom:10px;;margin-right:30px'>{proxy_parameters}</div>
+			<div style='font-size:22px;margin-bottom:10px;;margin-right:37px'>{proxy_parameters}</div>
 		</tr>
 		
 		<tr>
@@ -1404,7 +1410,9 @@ function setup_3(){
 		<td class=legend style='font-size:25px'>{smtp_domain}:</td>
 		<td>". Field_text("smtp_domainname",$smtp_domainname,"font-size:25px;width:280px",null,null,null,false,"CheckMyForm$t(event)")."</td>
 	</tr>	
-	
+		<tr>
+		<td colspan=2 style='font-size:25px;font-weight:bolder'>&nbsp;</td>
+	</tr>
 	<tr>
 		<td style='font-size:16px;font-weight:bolder'><div style='text-align:left'>". button("{back}","LoadAjax('setup-content','$page?setup-2=yes&savedsettings={$_GET["savedsettings"]}')","30px")."</div></td>
 		<td style='font-size:16px;font-weight:bolder'><div style='text-align:right'>". button("{next}","ChangeCompanySettings()","30px")."</div></td>
@@ -1688,8 +1696,8 @@ function setup_4(){
 	$warn_memory
 	<div style='width:98%' class=form>
 	<div style='font-size:50px;font-weight:bolder;margin-bottom:10px'>End-Users WebAccess</div>
-		<p style='font-size:18px'>{miniadm_wizard_explain}</p>
-		<p style='font-size:18px'>{miniadm_wizard_explain2}</p>
+		<div style='font-size:18px' class=explain>{miniadm_wizard_explain}<p>
+		{miniadm_wizard_explain2}</p></div>
 		<table style='width:100%'>
 				<tr>
 					<td class=legend style='font-size:25px'>{webserver}:</td>

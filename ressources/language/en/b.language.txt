@@ -6341,7 +6341,7 @@ in this case the deny cache from backends proxy and Log backend proxys connectio
 <activedirectory_connection>Active Directory connection</activedirectory_connection>
 <EnableWindowsAuthentication_text>If green then you allow this server to be a client of your Windows Active Directory server in order to enable the NTLM protocol that able to silent authenticate your users according their Windows sessions</EnableWindowsAuthentication_text>
 <warn_no_license_activedirectory_30days>Warning, corporate license missing !.[br]
-The Active Directory connection will be active during next 30 days.[br]After these 30 days, the proxy will unlink the connection.
+Active Directory connection is available for %s day(s).[br]
 </warn_no_license_activedirectory_30days>
 <reloading>Reloading</reloading>
 <website_analysis>Website analysis</website_analysis>
@@ -6483,3 +6483,7 @@ That will replace string mydomain.tld by newdomain.tld string.
 <remove_before_import>Remove before importation task</remove_before_import>
 <patterns>Patterns</patterns>
 <replaceby>Replace by</replaceby>
+<import_squid_zip_explain>Import your squid configuration file from a ZIP compressed file, with external objects stored in files</import_squid_zip_explain>
+<compressed_file>Compressed file</compressed_file>
+<success_import_squid_zip>Your file as been uploaded to the server.
+Artica will analyze when building the global configuration file.</success_import_squid_zip>

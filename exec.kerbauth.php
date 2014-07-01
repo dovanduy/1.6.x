@@ -51,6 +51,7 @@ if($argv[1]=='--ntpdate'){sync_time(true);exit;}
 if($argv[1]=='--resolv'){PatchResolvConf($argv[2]);exit;}
 if($argv[1]=='--build-progress'){$GLOBALS["WRITEPROGRESS"]=true;build_progress();exit;}
 if($argv[1]=='--users'){GetUsersNumber();exit;}
+if($argv[1]=='--pinglic'){pinglic();exit;}
 
 
 
@@ -637,7 +638,7 @@ function build($nopid=false){
 		}
 	
 	}
-	
+	pinglic(true);
 	$mypid=getmypid();
 	@file_put_contents($pidfile, $mypid);
 	progress_logs(20,"{join_activedirectory_domain}","Running PID $mypid",__LINE__);
@@ -1623,6 +1624,58 @@ function winbindfix(){
 	
 }
 
+function pinglic($aspid=false){
+	$sock=new sockets();
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	if(!$aspid){
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$timeExec=intval($unix->PROCCESS_TIME_MIN($pid));
+			writelogs("Process $pid already exists since {$timeExec}Mn",__FUNCTION__,__FILE__,__LINE__);
+			if($timeExec>5){$kill=$unix->find_program("kill");unix_system_kill_force($pid);}else{return;}
+		}
+	}
+	
+	@file_put_contents($pidfile, getmypid());
+	
+	$EnableKerbAuth=intval($sock->GET_INFO("EnableKerbAuth"));
+	if($EnableKerbAuth==0){return;}
+	$Days=86400*30;
+	$WORKDIR=base64_decode("L3Vzci9sb2NhbC9zaGFyZS9hcnRpY2E=");
+	$WORKFILE=base64_decode('LmxpYw==');
+	$WORKPATH="$WORKDIR/$WORKFILE";
+	if(trim(@file_get_contents($WORKPATH))=="TRUE"){return;}
+	
+	if(!is_file("/usr/share/artica-postfix/ressources/class.pinglic.inc")){
+		$f[]="<?php";
+		$f[]="\$GLOBALS['ADLINK_TIME']=\"".time()."\";";
+		$f[]="?>";
+		@file_put_contents("/usr/share/artica-postfix/ressources/class.pinglic.inc", @implode("\n", $f));
+		@chmod("/usr/share/artica-postfix/ressources/class.pinglic.inc",0755);
+	}
+	include_once("/usr/share/artica-postfix/ressources/class.pinglic.inc");
+	$EndTime=$GLOBALS['ADLINK_TIME']+$Days;
+	$seconds_diff = $EndTime - time();
+	$DayToLeft=floor($seconds_diff/3600/24);
+	echo "TRIAL PERIOD - $DayToLeft days left -\n";
+	if($DayToLeft<10){
+		$xtime=$unix->file_time_min($pidtime);
+		if($xtime>120){
+			squid_admin_mysql(0, "Active Directory Trial period $DayToLeft day(s) left", "Active directory connection will be unlinked after this period");
+			@unlink($pidtime);
+			@file_put_contents($pidtime, time());
+		}
+	}
+	
+	if($DayToLeft>0){return;}
+	
+	$sock->SET_INFO("EnableKerbAuth", 0);
+	disconnect();
+	
+}
+
 function winbindd_set_acls_is_xattr(){
 	$f=file("/proc/mounts");
 	while (list ($num, $ligne) = each ($f) ){
@@ -1824,6 +1877,8 @@ function disconnect(){
 	exec("$netbin ads leave -U $adminname%$adminpassword 2>&1",$results);
 	exec("$kdestroy 2>&1",$results);
 	
+	
+	squid_admin_mysql(0, "Active directory disconnected", "An order as been sent to disconnect Active Directory",__FILE__,__LINE__);
 	$unix->send_email_events("Active directory disconnected", "An order as been sent to disconnect Active Directory", "activedirectory");
 	$sock->SET_INFO("EnableKerbAuth", 0);
 	exec("/usr/share/artica-postfix/bin/artica-install --nsswitch 2>&1",$results);

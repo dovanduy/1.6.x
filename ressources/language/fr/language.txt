@@ -1942,7 +1942,7 @@ La charge g&eacute;r&eacute;e par la construction de ce rapport va d&eacute;pend
 <group name>Nom du groupe</group name>
 <group policy>Politique du groupe</group policy>
 <group user policy>Politique de groupe d'utilisateurs</group user policy>
-<groups>groupes</groups>
+<groups>Groupes</groups>
 <groups_allow>Droits sur le groupe</groups_allow>
 <groupwares>Groupwares</groupwares>
 <group_behavior>Groupes de comportement</group_behavior>
@@ -2044,7 +2044,7 @@ Il envoie des notifications aux b&eacute;n&eacute;ficiaires afin de leur permett
 <imap_connection_broken>La connexion Imap est actuellement rompu et les informations ne peuvent pas &ecirc;tre lus</imap_connection_broken>
 <imap_connection_locked>La connexion imap est actuellement verrouill&eacute; car le serveur imap n'a pas r&eacute;pondu &agrave; temps</imap_connection_locked>
 <imap_server_name>adresse du serveur</imap_server_name>
-<import>importer</import>
+<import>Importer</import>
 <import users>importez des utilisateurs dans cette organisation</import users>
 <import users explain>Ce formulaire vous permet d'indiquer un fichier csv afin d'importer des utilisateurs dans cette organisation.[br]
 [ul]
@@ -3453,7 +3453,7 @@ Lorsqu'un message arrive, Postfix enregistre le nom d'utilisateur fournit, la m&
 <score>score</score>
 <scores_behavior>Scores et comportement</scores_behavior>
 <scores_behavior_text>Scores de d&eacute;tection et comportement du filtre</scores_behavior_text>
-<search>recherche</search>
+<search>Recherche</search>
 <searchengines>Collection de moteurs de recherche ou de bases de donn&eacute;es.</searchengines>
 <search_break>Les r&eacute;sultats de votre requ&ecirc;te d&eacute;passe le maximum de lignes que le syst&egrave;me accepte, sp&eacute;cifiez s'il vous pla&icirc;t une requ&ecirc;te qui correspondent mieux &agrave; votre recherche</search_break>
 <search_by>recherche par</search_by>
@@ -4449,7 +4449,7 @@ Si il est en rouge, vous allez devoir maintenir la base des utilisateurs.[br]Cet
 <user_interface_text>Personnalisez l'interface Artica de cet utilisateur</user_interface_text>
 <user_not_found>Utilisateur non trouv&eacute;.</user_not_found>
 <user_quarantine_emails_query_text>Les spams et les messages infect&eacute;s sont stock&eacute;s dans votre espace de quarantaine.</user_quarantine_emails_query_text>
-<user_tab_groups>groupes</user_tab_groups>
+<user_tab_groups>Groupes</user_tab_groups>
 <user_to_mailing_list>Transformez cet utilisateur en liste de distribution</user_to_mailing_list>
 <USER_WEBDAV>R&eacute;pertoire personnel Internet</USER_WEBDAV>
 <USER_WEBDAV_TEXT>Partagez le r&eacute;pertoire personnel de cet utilisateur sur Internet en WebDav.[br]WebDav est protocole r&eacute;cent permettant de se connecter &agrave; un serveur de fichier comme un navigateur. Plus facile et plus s&eacute;curis&eacute; que le FTP.</USER_WEBDAV_TEXT>

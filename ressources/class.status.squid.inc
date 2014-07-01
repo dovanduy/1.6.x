@@ -24,6 +24,31 @@ function squid_increment_func($array){
 	return $array;
 }
 
+function squid_running_schedules(){
+	
+	$unix=new unix();
+	
+	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.logfile_daemon-parse.php --tables-primaires >/dev/null 2>&1 &");
+	
+	$filetime='/etc/artica-postfix/pids/Winbindd_privileged_SQUID.time';
+	if($unix->file_time_min($filetime)>5){
+		$GLOBALS["CLASS_UNIX"]->Winbindd_privileged_SQUID();
+		@unlink($filetime);
+		@file_put_contents($filetime, time());
+	}
+	
+	$filetime='/etc/artica-postfix/pids/EnableKerbAuth.time';
+	$EnableKerbAuth=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableKerbAuth"));
+	if($EnableKerbAuth==1){
+		if($unix->file_time_min($filetime)>5){
+			@unlink($filetime);
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.kerbauth.php --pinglic >/dev/null 2>&1 &");
+			@file_put_contents($filetime, time());
+		}
+	}
+	
+}
+
 function zipproxy_pid(){
 	
 	$masterbin=$GLOBALS["CLASS_UNIX"]->find_program("ziproxy");
@@ -1054,9 +1079,8 @@ function squid_master_status($buildcache=false){
 	$l[]=GetMemoriesOf($pid);
 
 	$l[]="";
-	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.logfile_daemon-parse.php --tables-primaires >/dev/null 2>&1 &");
-	$GLOBALS["CLASS_UNIX"]->Winbindd_privileged_SQUID();
 	
+	squid_running_schedules();
 	
 	return implode("\n",$l);return;
 }

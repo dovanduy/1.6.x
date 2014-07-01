@@ -235,6 +235,12 @@ stats_admin_events(2,"33%)  Months tables.... took:" .$unix->distanceOfTimeInWor
 if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
 
 
+$t=time();
+percentage("Repair Youtube Ids",11);
+shell_exec(trim("$EXEC_NICE $php5 $Prefix/exec.squid.stats.repair.php --youtube --schedule-id={$GLOBALS["SCHEDULE_ID"]}"));
+stats_admin_events(2,"12%) Repair Youtube Ids took:" .$unix->distanceOfTimeInWords($t,time()) ,null,__FILE__,__LINE__);
+if(SquidStatisticsTasksOverTime()){ stats_admin_events(1,"Statistics overtime... Aborting",null,__FILE__,__LINE__); return; }
+
 
 
 $t=time();

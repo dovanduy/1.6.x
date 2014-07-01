@@ -59,18 +59,32 @@ function popup(){
 	
 	<div id='text-$t' style='font-size:16px;margin-top:20px' class=explain>{import_aclsquid_rules_explain}</div>
 	<div style='font-size:16px' id='$t-wait'></div>
-	<div style='width:98%' class=form>
-	<table>
-	<tr>
-		<td class=legend style='font-size:16px'>squid.conf:</td>
-		<td class=legend style='font-size:16px'>". Field_text("squidconf-$t",null,"font-size:16px;width:95%")."</td>
-		<td width=1%>". button("{browse}...","Loadjs('tree.php?target-form=squidconf-$t&select-file=conf')","12px")."</td>
-	</tr>
-	<tr>
-		<td colspan=3 align='right'><hr>". button("{import}...","SaveSquidConf$t()","18px")."</td>
-	</tr>
-	</table>
-	</div>	
+		<div style='width:98%' class=form>
+			<table>
+			<tr>
+				<td class=legend style='font-size:16px'>squid.conf:</td>
+				<td class=legend style='font-size:16px'>". Field_text("squidconf-$t",null,"font-size:16px;width:95%")."</td>
+				<td width=1%>". button("{browse}...","Loadjs('tree.php?target-form=squidconf-$t&select-file=conf')","12px")."</td>
+			</tr>
+			<tr>
+				<td colspan=3 align='right'><hr>". button("{import}...","SaveSquidConf$t()","18px")."</td>
+			</tr>
+			</table>
+		</div>	
+		
+		<div style='width:98%' class=form>
+			<table style='width:100%'>
+			<tr>
+				
+				<td class=legend colspan=3><div class=explain style='font-size:16px'>{import_squid_zip_explain}</td>
+			</tr>
+			<tr>
+				<td colspan=3 align='center'><hr>". button("{compressed_file}...","Loadjs('import.squid.zip.php')","18px")."</td>
+			</tr>
+			</table>
+		</div>			
+		
+		
 	</div>
 	
 <script>	

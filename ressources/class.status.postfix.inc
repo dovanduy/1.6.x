@@ -16,16 +16,32 @@ function postfix_increment_func($array){
 	$array[]="mailarchiver";
 	$array[]="postfix_logger";
 	$array[]="opendkim";
+	$array[]="milter_greylist";
 	$array[]="postfix_schedules";
 	return $array;
 }
 
 function postfix_schedules(){
+	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
+	$EnableStopPostfix=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableStopPostfix"));
+	if($DisableMessaging==1){return;}
+	if($EnableStopPostfix==1){return;}
+	
 	$BASEDIR="/usr/share/artica-postfix";
 	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.postfix-stats.php.STATS_hourly_cnx_to_daily_cnx.time");
 	if($time_file>59){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.postfix-stats.php --hourly-cnx >/dev/null 2>&1 &");
 	}
+	
+	if(_milter_greylist_enabled()==1){
+		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.postfix.miltergrey.stats.php.MiltergreyList_days.time");
+		if($time_file>59){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} $BASEDIR/exec.postfix.miltergrey.stats.php >/dev/null 2>&1 &");
+		}
+	}
+			
+	
+	
 }
 
 function iredmail_pid(){
@@ -34,7 +50,73 @@ function iredmail_pid(){
 	return $GLOBALS["CLASS_UNIX"]->PIDOF("python.*?/opt/iRedAPD/iredapd");
 }
 
+function _milter_greylist_enabled(){
+	if(!$GLOBALS["CLASS_USERS"]->MILTERGREYLIST_INSTALLED){return 0;}
+	$EnablePostfixMultiInstance=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePostfixMultiInstance");
+	$enabled=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("MilterGreyListEnabled");
+	$EnableASSP=$GLOBALS["CLASS_SOCKETS"]->GET_INFO('EnableASSP');
+	if($enabled==null){$enabled=0;}
+	if($EnablePostfixMultiInstance==1){$enabled=0;}
+	if($EnableASSP==1){$enabled=0;}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: EnablePostfixMultiInstance: $EnablePostfixMultiInstance\n";}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: EnableASSP: $EnableASSP\n";}
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: enabled: $enabled\n";}
+	
+	return $enabled;
+}
 
+function milter_greylist(){
+	$EnableStopPostfix=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableStopPostfix");
+	$DisableMessaging=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableMessaging"));
+	$EnablePostfixMultiInstance=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnablePostfixMultiInstance"));
+	if(!is_numeric($EnableStopPostfix)){$EnableStopPostfix=0;}
+	if($DisableMessaging==1){return;}
+	if($EnableStopPostfix==1){return;}
+	$enabled=_milter_greylist_enabled();
+	$pid_path="/var/run/milter-greylist/milter-greylist.pid";
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: pid path: $pid_path\n";}
+
+	if($pid_path==null){
+		$pid_path=$GLOBALS["CLASS_UNIX"]->LOCATE_MILTER_GREYLIST_PID();
+		if($GLOBALS["VERBOSE"]){echo "DEBUG: ->LOCATE_MILTER_GREYLIST_PID()= pid path: $pid_path\n";}
+	}
+	$master_pid=trim(@file_get_contents($pid_path));
+	if($GLOBALS["VERBOSE"]){echo "DEBUG: ->LOCATE_MILTER_GREYLIST_PID()= master pid: $master_pid\n";}
+	$l[]="[MILTER_GREYLIST]";
+	$l[]="service_name=APP_MILTERGREYLIST";
+	$l[]="master_version=".GetVersionOf("milter-greylist");
+	$l[]="service_cmd=/etc/init.d/milter-greylist";
+	$l[]="service_disabled=$enabled";
+	$l[]="pid_path=$pid_path";
+	$l[]="watchdog_features=1";
+	$l[]="remove_cmd=--milter-grelist-remove";
+	$l[]="family=postfix";
+
+
+	$dirname=dirname(__FILE__);
+	if($EnablePostfixMultiInstance==1){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} $dirname/exec.milter-greylist.php --startall >/dev/null 2>&1 &");
+		return;
+	}
+
+	if($enabled==0){return implode("\n",$l);return;}
+
+	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} $dirname/exec.milter-greylist.php --start-single >/dev/null 2>&1 &");
+		}
+		$l[]="running=0";
+		$l[]="installed=1\n";
+		return implode("\n",$l);
+
+	}
+	$l[]="running=1";
+	$l[]=GetMemoriesOf($master_pid);
+	$l[]="";
+
+	return implode("\n",$l);return;
+
+}
 
 function iredmail(){
 	$binpath=$GLOBALS["CLASS_UNIX"]->find_program('postconf');

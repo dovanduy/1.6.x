@@ -11,6 +11,7 @@ include_once(dirname(__FILE__)."/class.unix.inc");
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 if(isset($_GET["IS_APP_SQUIDDB_INSTALLED"])){IS_APP_SQUIDDB_INSTALLED();exit;}
 if(isset($_GET["install-squid-tgz"])){install_squid_tgz();exit;}
+if(isset($_GET["import-squid-zip"])){import_squid_zip();exit;}
 
 if(isset($_GET["support-package-full"])){support_package_full();exit;}
 if(isset($_GET["request-package-full"])){request_package_full();exit;}
@@ -2088,6 +2089,28 @@ function import_squid_conf(){
 	echo "<articadatascgi>". base64_encode(serialize($results))."</articadatascgi>";	
 	
 }
+function import_squid_zip(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/squid.import.progress";
+	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/web/squid.import.progress.txt";
+	@unlink($PROGRESS_FILE);
+	@unlink($LOG_FILE);
+	@touch($LOG_FILE);
+	@touch($PROGRESS_FILE);
+	@chmod($PROGRESS_FILE, 0777);
+	@chmod($LOG_FILE, 0777);
+	
+	$cmd=trim("$nohup $php5 /usr/share/artica-postfix/exec.squid.import.conf.php --zip >$LOG_FILE 2>&1 &");
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	
+
+}
+
+
+
 function import_acls(){
 	$unix=new unix();
 	$php5=$unix->LOCATE_PHP5_BIN();
@@ -3187,7 +3210,7 @@ function user_retranslation_update(){
 }
 
 function install_squid_tgz(){
-	$filename=$_GET["filename"];
+	$filename=$_GET["install-squid-tgz"];
 	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/squid.install.progress";
 	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/web/squid.install.progress.txt";
 	@unlink($PROGRESS_FILE);

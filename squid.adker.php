@@ -732,7 +732,16 @@ function settings(){
 	
 	if($EnableKerbAuth==1){
 		if(!$users->CORP_LICENSE){
+			$Days=86400*30;
+			$DayToLeft=30;
+			if(is_file("/usr/share/artica-postfix/ressources/class.pinglic.inc")){
+				include_once("/usr/share/artica-postfix/ressources/class.pinglic.inc");
+				$EndTime=$GLOBALS['ADLINK_TIME']+$Days;
+				$seconds_diff = $EndTime - time();
+				$DayToLeft=floor($seconds_diff/3600/24);
+			}
 			$MAIN_ERROR=$tpl->_ENGINE_parse_body("<p class=text-error style='font-size:18px'>{warn_no_license_activedirectory_30days}</p>");
+			$MAIN_ERROR=str_replace("%s", $DayToLeft, $MAIN_ERROR);
 		}
 	}
 	

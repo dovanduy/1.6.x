@@ -844,6 +844,7 @@ Classiquement, il va aider notre &eacute;quipe de support &agrave; r&eacute;soud
 <build_the_network>Construire le r&eacute;seau</build_the_network>
 <build_the_rule>Construire la r&egrave;gle</build_the_rule>
 <build_web_filtering_rules>Construire les r&egrave;gles du filtrage web</build_web_filtering_rules>
+<bulk_import>Importation en masse</bulk_import>
 <burst>d&eacute;bordement</burst>
 <buy_a_license>Acheter une licence</buy_a_license>
 <by>par</by>
@@ -1377,6 +1378,7 @@ Il sera toutefois en mesure d\'arr&ecirc;ter le service, le recharger ou le red&
 <designs_and_tweaks_text>Design de l'interface et personnalisations</designs_and_tweaks_text>
 <design_and_tweaks>Design &amp; personnalisation</design_and_tweaks>
 <design_and_tweaks_text>Personnalisation de l'interface et comportement</design_and_tweaks_text>
+<destinations>Destinations</destinations>
 <destination_interface>Interface de destination</destination_interface>
 <destination_port>Port de destination</destination_port>
 <dest_ports>Ports de destination</dest_ports>
@@ -1615,6 +1617,7 @@ Address IP: re:192\.168\.[0-5]\.*[br]</dynaacl_howto>
 <empty_database_explain>Vider tout le contenu de la base de donn&eacute;es</empty_database_explain>
 <empty_store>Vider la banque d'informations</empty_store>
 <empty_template>Mod&egrave;le vide</empty_template>
+<empy_cache>Vider le cache</empy_cache>
 <enable-ssl-crtd-not-compiled>Le moteur de g&eacute;n&eacute;ration dynamique des certificats n'est pas install&eacute; dans version Squid-Cache. Cette fonctionnalit&eacute; ne sera pas impl&eacute;ment&eacute;e.</enable-ssl-crtd-not-compiled>
 <EnableAmavisDaemon>Activer le d&eacute;mon Amavis</EnableAmavisDaemon>
 <EnableArpDaemon>Activer le d&eacute;mon ARP</EnableArpDaemon>
@@ -1777,6 +1780,8 @@ Il est le moteur principal d'Artica afin de produire la fonctionnalit&eacute; de
 <enable_ntlm_authentication>Activer l'authentification NTLM</enable_ntlm_authentication>
 <enable_ntopng>Activer l'analyse du trafique</enable_ntopng>
 <enable_ntopng_text>Le d&eacute;mon d'analyse du trafique est un moniteur r&eacute;seau vous permettant de visualiser les connections en temps r&eacute;els et les d&eacute;buts de chaque ordinateurs qui traversent Artica.</enable_ntopng_text>
+<enable_passive_mode>Active le mode PASSIF</enable_passive_mode>
+<enable_passive_mode_explain>Si vert, alors le mode PASV sera autoris&eacute; afin d\'obtenir une connexion de donn&eacute;es</enable_passive_mode_explain>
 <enable_phpfpm_service>Activer le service PHP-FPM</enable_phpfpm_service>
 <enable_phpfpm_service_explain>Le gestionnaire de processus FastCGI (FPM)  est con&ccedil;u pour pr&eacute;charger les libraires PHP et doit &ecirc;tre plus rapide que le syst&egrave;me PHP standard</enable_phpfpm_service_explain>
 <ENABLE_PING_GATEWAY>Ping sur une adresse</ENABLE_PING_GATEWAY>
@@ -2290,6 +2295,7 @@ Si actif, le proxy ignorera cette directive.</ignore-private>
 Charger votre fichier CSV avec le boutton ci-dessous.[br]Utilisez le lien example.csv afin de r&eacute;cup&eacute;rer le mod&egrave;le CSV.
 [br]Note, l'importation sera en &eacute;chec si le fichier est encod&eacute; au format UTF-16 ou  UTF-32[/b]</import_contacts_csv_explain>
 <import_contacts_csv_text>Importer des contacts dans votre carnet d'adresses personnel depuis un fichier CSV</import_contacts_csv_text>
+<import_export>Import/Export</import_export>
 <import_rules>Importer des r&egrave;gles</import_rules>
 <import_squid_logs>Importer les anciens fichier de logs Squid-Cache.</import_squid_logs>
 <import_squid_logs_explain>Importer les fichiers de requ&ecirc;tes d'acc&egrave;s de votre ancien serveur Squid-Cache ou d'un autre serveur Artica.</import_squid_logs_explain>
@@ -2397,6 +2403,7 @@ Indiquez l'adresse et son masque de r&eacute;seau s&eacute;par&eacute;s avec un 
 Si vous avez plusieurs adresses, s&eacute;parez-les avec un retour &agrave; la ligne.[br]Exemple:[br]
 10.33.206.0 - 255.255.255.0[br]
 10.33.206.1 - 255.255.255.0[br]</isInNetMyIP_explain>
+<isResolvable>Est r&eacute;solvable</isResolvable>
 <is_an_articasrv>Est un serveur Artica</is_an_articasrv>
 <is_connected>Est connect&eacute;</is_connected>
 <is_not>n'est pas</is_not>
@@ -2475,6 +2482,7 @@ In most cases where the computer is not running as a router of some kind, we cou
 <last>Dernier(s)</last>
 <last_category>Derni&egrave;re cat&eacute;gorie</last_category>
 <last_check>Derni&egrave;re v&eacute;rification</last_check>
+<last_connections>Derni&egrave;res connexions</last_connections>
 <last_download>Dernier t&eacute;l&eacute;chargement</last_download>
 <last_downloaded_size>Derni&egrave;re taille t&eacute;l&eacute;charg&eacute;e</last_downloaded_size>
 <last_status>Dernier &eacute;tat</last_status>
@@ -2799,6 +2807,9 @@ Il n'y aura pas de limite &agrave; la quantit&eacute; totale de m&eacute;moire u
 <mgreylist_empty_db_warn>Cette proc&eacute;dure va purger tout le contenu de la base Grise/Blanche, proc&eacute;der ?</mgreylist_empty_db_warn>
 <migrate_local_datas>Migrer les donn&eacute;es locales</migrate_local_datas>
 <milliseconds>millisecondes</milliseconds>
+<milter_greylist_domain>Domaine du MX</milter_greylist_domain>
+<milter_greylist_from>Adresse de l\'&eacute;metteur</milter_greylist_from>
+<milter_greylist_rcpt>Adresse du destinataire</milter_greylist_rcpt>
 <milter_greylist_tables>Statistiques jours et mois pour Milter-greylist</milter_greylist_tables>
 <milter_greylist_tables_text>Cette t&acirc;che compile les statistiques journaliers et mensuels depuis les table horaires.</milter_greylist_tables_text>
 <mimedefang_filehosting>H&eacute;bergement de pi&egrave;ces jointes</mimedefang_filehosting>
@@ -3085,10 +3096,16 @@ Si vous indiquez un port, d'autres serveurs Artica seraient en mesure de contact
 <nginx_authenticator_explain>Le FrameWork Authenticator vous permet de cr&eacute;er des sources d'authentification multiples en fonction des requ&ecirc;tes sur le serveur ou en fonction des dossiers virtuels.[br]
 Veuillez vous r&eacute;f&eacute;rer &agrave; la section Authenticator afin de d&eacute;finir les r&egrave;gles d'identification.</nginx_authenticator_explain>
 <nginx_benefits>Cette fonctionnalit&eacute; permet &agrave; ce serveur de se faire passer pour vos sites Internet (mode Proxy invers&eacute;).[br]Ceci afin de les prot&eacute;ger et aussi d'offrir plus de fonctionnalit&eacute;s Internet que vos serveurs Web ne peuvent offrir.</nginx_benefits>
+<nginx_bulk_import_replace_explain>Indiquez ici les r&egrave;gles de remplacement au format CSV s&eacute;par&eacute;s par un retour chariot.[br]
+valeur de remplacement;valeur de recherche[br]
+Exemple:[br]
+newdomain.tld;mydomain.tld[br]
+Va remplacer mydomain.tld par newdomain.tld</nginx_bulk_import_replace_explain>
 <NGINX_DEFAULT_SERVER>Si activ&eacute;, cette configuration sera indiqu&eacute;e comme une site par d&eacute;faut ou &quot;attrape tout&quot;, si les requ&ecirc;tes ne peuvent &ecirc;tre servies par d'autres sites Web alors ce site web sera pris en charge.</NGINX_DEFAULT_SERVER>
 <nginx_destination>O&ugrave; les requ&ecirc;tes doivent &ecirc;tre transf&eacute;r&eacute;es ?.[br]Vous pouvez d&eacute;finir une adresse IP (172.16.2.3);[br]
 ou un nom d'h&ocirc;te: www.mydomain.com[br]
 ou une url: http://www.mydomain.com</nginx_destination>
+<nginx_dns_export_explain>Ici, l\'exportation des vos domaines au format CSV afin de mettre &agrave; jour vos DNS publiques.</nginx_dns_export_explain>
 <nginx_forceddomain>Si le serveur distant h&eacute;berge des serveurs virtuels (multiple serveurs web), vous pouvez forcer le nom d'un serveur en particulier sur lequel vous voulez vous connecter.</nginx_forceddomain>
 <nginx_ForceRedirect>Si le serveur distant effectue des renvois alors tous les renvois seront forc&eacute;s &agrave; passer &agrave; travers le proxy invers&eacute;.</nginx_ForceRedirect>
 <NGINX_FW_EXPLAIN>Cette fonctionnalit&eacute; vous permet de loger et/ou de bloquer les adresses sources &agrave; partir du pare-feu local lorsque le reverse proxy &eacute;met une erreur de type 403.[br]
@@ -3102,6 +3119,10 @@ Exemple:[br]
 www.domain3.tld,www.domaindest.tld,0,www.domaindest.tld[br]
 [br]
 La premi&egrave;re ligne indique:[br] pour une connexion sur le proxy invers&eacute; &agrave; l\'adresse ,www.domain-front.tld, rediriger vers le site web 172.16.32.2:80 en forcant la requ&ecirc;te pour aller sur ,www.domain-front.tld.</nginx_import_explain>
+<nginx_import_random_explain>Si vous indiquez une valeur ici, la t&acirc;che d\'importation va cr&eacute;er les sites Web avec un motif sp&eacute;cifique.[br]
+Les valeurs possibles sont: %a pour une lettre ou %s pour un chiffre.[br]
+Par exemple, %a%s.domaine.tld va g&eacute;n&eacute;rer des noms sous cette forme:[br] a1.domaine.tld,b2.domaine.tld,c3.domaine.tld[br]
+Si vous d&eacute;sirez ajouter 3 chiffres avec la clef %s, indiquez %sx3 ( ex: %a%sx3.domain.tld  )</nginx_import_random_explain>
 <nginx_inactive_explain>[b]Validation du cache[/b][br]Dur&eacute;e maximale une requ&ecirc;te mise en cache est maintenue.</nginx_inactive_explain>
 <nginx_manual_update_text>Chargez ici le paquetage pr&eacute;-compil&eacute; NGInx afin de mettre &agrave; jour votre version actuelle.[br] le paquetage doit &ecirc;tre sous la forme tar.gz.</nginx_manual_update_text>
 <NGINX_MAXACCESS_FW_EXPLAIN>Si la valeur est sup&eacute;rieure &agrave; 0, alors vous enclenchez le pare-feu pour un nombre d'acc&egrave;s indiqu&eacute; ici.[br]Ce nombre d'acc&egrave;s est calcul&eacute; par [b]heure.[/b]</NGINX_MAXACCESS_FW_EXPLAIN>
@@ -3125,6 +3146,7 @@ Les drapeaux peuvent &ecirc;tre:[br]
 <NGINX_USE_SSL_EXPLAIN>Si d&eacute;fini le protocole SSL sera g&eacute;n&eacute;r&eacute; sur le port sp&eacute;cifi&eacute;.[br]
 Il y a une astuce afin de forcer ce site &agrave; faire &agrave; la fois du HTTP et HTTPS.[br]
 Si vous activez cette option et que vous indiquez le port 80 comme port d'&eacute;coute, alors Artica va g&eacute;n&eacute;rer un site web renvers&eacute; sur le 80 et 443 afin de fournir du HTTP et du HTTPS</NGINX_USE_SSL_EXPLAIN>
+<nginx_websites_export_explain>Ici, l\'exportation de vos sites Web et de leur destination au format CSV</nginx_websites_export_explain>
 <nginx_website_dir_explain>Si indiqu&eacute;, lorsque les clients vont effectuer la requ&ecirc;tes sur ce chemin, le proxy invers&eacute; va afficher le contenu du serveur distant.</nginx_website_dir_explain>
 <nic_from>Carte r&eacute;seau source</nic_from>
 <nic_to>Carte r&eacute;seau de destination</nic_to>
@@ -3330,7 +3352,10 @@ Nous conseillons de ne pas trop agrandir la fr&eacute;quence d'analyse car cela 
 <pass_trough_antivirus_engine>Passe &agrave; travers le filtrage antivirus</pass_trough_antivirus_engine>
 <pass_trough_proxy>Passe &agrave; travers le proxy</pass_trough_proxy>
 <pass_trough_thewebfilter_engine>Passe &agrave; travers le filtrage web</pass_trough_thewebfilter_engine>
+<pasv_address>Adresse du mode passif</pasv_address>
+<pasv_address_explain>Utilisez cette option afin de surcharger l\'adresse IP que le service FTP va indiquer en r&eacute;ponse &agrave; la commande PASV</pasv_address_explain>
 <paths>Chemins</paths>
+<patterns>Motifs</patterns>
 <pconn_timeout>Temps MAX des connexions persistantes</pconn_timeout>
 <pconn_timeout_text>Indiqu&eacute; le d&eacute;lai maximal pour les connexions persistantes</pconn_timeout_text>
 <PDNSHotSpot_explain>Cette fonctionnalit&eacute; autorise le service DNS Local &agrave; r&eacute;soudre toute requ&ecirc;te DNS vers la page Web d'authentification si les utilisateurs ne sont pas connect&eacute;s auparavant.[br]
@@ -3486,6 +3511,8 @@ Autoriser une seule adresse: &quot;192.168.1.5&quot;</protect_phpmyadmin_item_te
 <providers>Fournisseurs</providers>
 <ProxyDedicateMicrosoftRules>Service Windows Updates non restreint</ProxyDedicateMicrosoftRules>
 <ProxyDedicateMicrosoftRules_explain>Si vert, Artica va obliger le proxy &agrave; ne pas identifier les acc&egrave;s vers les sites de mise &agrave; jour Microsoft.[br]Ceci afin d\'autoriser toutes les mises &agrave; jour quelque soit le type de n%u0153ud dans votre r&eacute;seau</ProxyDedicateMicrosoftRules_explain>
+<ProxyPacCacheTime_explain>Lorsque Artica construit un script, il va le placer en cache pendant x minutes.[br]
+Ceci afin de r&eacute;duire la charge utilis&eacute; lors de la cr&eacute;ation des scripts.</ProxyPacCacheTime_explain>
 <proxy_access_events>Requ&ecirc;tes Proxy</proxy_access_events>
 <proxy_behavior>Comportement du proxy</proxy_behavior>
 <proxy_behavior_explain>Vous pouvez d&eacute;finir le comportement du service Proxy.[br]
@@ -3596,6 +3623,7 @@ Dans ce cas, utilisez un membre avec les privil&egrave;ges HotSpot afin qu'il pu
 Il sera alors en charge d'ajouter ou de modifier les comptes de cette base de donn&eacute;es.</radius_local_mysqldb_explain>
 <radius_members>Membres RADIUS</radius_members>
 <radius_server>Serveur RADIUS</radius_server>
+<random_generation>G&eacute;n&eacute;rations al&eacute;atoires</random_generation>
 <RATELIM>Limitation des taux de connexion</RATELIM>
 <reading>Lues</reading>
 <read_ahead_gap>&Eacute;cart de lecture</read_ahead_gap>
@@ -3645,6 +3673,7 @@ Dans ce cas, utilisez ce syst&egrave;me de programmation afin de s'assurer que l
 Les connexions active ne sont pas stopp&eacute;es.[br]Tous les services seront recharg&eacute;s en m&eacute;moire.</reconfigure_squid_explain>
 <reconfigure_transparent_rules>Reconfigurer les r&egrave;gles de transparence</reconfigure_transparent_rules>
 <reconfigure_webfilter_service>Reconfigurer le service de filtrage</reconfigure_webfilter_service>
+<reconfiguring>Re-param&egrave;tre</reconfiguring>
 <reconfiguring_proxy_service>Configuration du service proxy</reconfiguring_proxy_service>
 <reconstruct_caches_ask>Cette op&eacute;ration va d&eacute;truire le contenu des caches et reconstruire leur structure.
 Voulez-vous effectuer cette op&eacute;ration ?</reconstruct_caches_ask>
@@ -3749,12 +3778,14 @@ Connectez-vous sur  %s afin de modifier les param&egrave;tres</remote_appliance_
 <remote_ssh_service>Service SSH distant</remote_ssh_service>
 <remote_statistics_server>Serveur de statistiques distant</remote_statistics_server>
 <remote_statistics_server_text>&Eacute;mettre les &eacute;v&egrave;nements temps r&eacute;els &agrave; un serveur Artica secondaire.</remote_statistics_server_text>
+<remove_before_import>Supprimer avant importation</remove_before_import>
 <remove_connection_ask>Supprimer cette connexion ?</remove_connection_ask>
 <remove_disabled_items>Supprimer les &eacute;l&eacute;ments d&eacute;sactiv&eacute;s</remove_disabled_items>
 <remove_disabled_items_warn>Cette op&eacute;ration va supprimer les &eacute;l&eacute;ments d&eacute;sactiv&eacute;s dans la base de donn&eacute;es.
 Voulez-vous effectuer l'op&eacute;ration ?</remove_disabled_items_warn>
 <remove_numeric_members>Supprimer les membres num&eacute;riques</remove_numeric_members>
 <remove_numeric_members_text>Cette proc&eacute;dure supprime les membres dont la valeur est uniquement num&eacute;rique.</remove_numeric_members_text>
+<remove_old_imports>Supprimer les anciens &eacute;l&eacute;ments</remove_old_imports>
 <remove_postfix_section>Retirer la section messagerie</remove_postfix_section>
 <remove_postfix_section_explain>Si vert, Artica va cacher tout forme de section li&eacute;e &agrave; la messagerie et comprendre que ce serveur ne propose pas de services de messagerie ( comme la pr&eacute;sence de Postfix).[br]
 Les logiciels de messagerie ne seront pas d&eacute;sinstall&eacute;s et resteront avec le dernier &eacute;tat actuel.[br]Vous serez capable de revenir en arri&egrave;re en cas de contre-ordre.</remove_postfix_section_explain>
@@ -3771,6 +3802,7 @@ Les logiciels de messagerie ne seront pas d&eacute;sinstall&eacute;s et resteron
 <repair_categories>R&eacute;pare les cat&eacute;gories</repair_categories>
 <repair_categories_explain>Cette t&acirc;che traverse toutes les cat&eacute;gories sauvegard&eacute;es dans la base MySQL et s'assure qu'aucune mauvaise donn&eacute;e et mauvais caract&egrave;res ne soient stock&eacute;s</repair_categories_explain>
 <REPLACE>remplacer</REPLACE>
+<replaceby>Remplac&eacute; par</replaceby>
 <replacewith>Remplacer par</replacewith>
 <replace_regex_explain>Par d&eacute;faut, Artica va transformer votre recherche vers une expression r&eacute;guli&egrave;re.[br]
 L'activation de cette option interdira &agrave; transformer votre recherche.[br]
@@ -4105,7 +4137,7 @@ Si vous d&eacute;sirez que le trafique sortant soit assign&eacute; &agrave; une 
 <shorwallnic_upnp>R&eacute; encapsule via UPNP</shorwallnic_upnp>
 <should_be_forwarded_to>Doivent &ecirc;tre renvoy&eacute;s vers</should_be_forwarded_to>
 <should_categorized_to>Doit &ecirc;tre cat&eacute;goris&eacute; comme</should_categorized_to>
-<should_change_ad_dns>Vous devriez changer vos serveurs DNS ou utiliser l'Acitve Directory comme serveur DNS.</should_change_ad_dns>
+<should_change_ad_dns>Vous devriez changer vos serveurs DNS ou utiliser l\'Active Directory comme serveur DNS.</should_change_ad_dns>
 <SHOWREWALL_NET_EXPLAIN>Vous pouvez indiquer les adresses dans le format suivant:
 h&ocirc;te 192.168.2.2
 h&ocirc;te avec port, 192.168.2.2:8080
@@ -4998,7 +5030,7 @@ Voulez-vous effectuer cette op&eacute;ration ?
 Notez qu'apr&egrave;s cette op&eacute;ration, vous devrez red&eacute;marrer les services li&eacute;s &agrave; ce certificat.</warn_gen_x509>
 <warn_nginx_disabled>Attention, le service de proxy inverse est actuellement d&eacute;sactiv&eacute;, vous devez l'activer afin de b&eacute;n&eacute;ficier de cette fonctionnalit&eacute;</warn_nginx_disabled>
 <warn_no_license_activedirectory_30days>Attention, Licence Entreprise manquante !.[br]
-La connection Active Directory sera uniquement pendant ces 30 jours prochains jours.</warn_no_license_activedirectory_30days>
+La connexion Active Directory sera disponible pendant %s jour(s).</warn_no_license_activedirectory_30days>
 <warn_no_performance_minimal>[b]Probl&egrave;me de performance serveur[/b][br]
 La performance de votre serveur est en dessous des recommandations.[br]Il n&eacute;cessaire de disposer au moins d'un serveur disposant de 2 CPUs et de 2GB de m&eacute;moire vive..</warn_no_performance_minimal>
 <WARN_OPE_RESTART_SQUID_ASK>Cette op&eacute;ration va faire red&eacute;marrer le service proxy et stopper toutes les connexions actuelles.
@@ -5141,6 +5173,8 @@ Cliquez sur le bouton ci-dessous afin d'activer le service.</web_engine_not_acti
 <weekly_reports_execute>Ex&eacute;cutez en arri&egrave;re plan la t&acirc;che de g&eacute;n&eacute;ration du rapport hebdomadaire.</weekly_reports_execute>
 <weeks>Semaines</weeks>
 <WELCOME_ON_ARTICA_PROJECT>Bienvenue dans le projet Artica</WELCOME_ON_ARTICA_PROJECT>
+<WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>[b]Vid&eacute;o du guide de d&eacute;marrage[/b][br]
+Cliquez sur l\'ic&ocirc;ne ci-contre afin de visualiser la vid&eacute;o vous permettant de vous aider en quelques minutes &agrave; configurer votre nouveau proxy.</WELCOME_ON_ARTICA_PROJECT_PROXY_VIDEO>
 <WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT>Note: A l'issue de cet assistant, Artica va lancer des t&acirc;ches afin de comprendre son environnement et de finir son installation.[br]
 Pendant cette p&eacute;riode (30/60mn) , il se peut que le syst&egrave;me soit instable ( red&eacute;marrage, forte charge, mise &agrave; jour de bases...)
 .[br]Soyez patient et attendez la fin de cette p&eacute;riode.</WELCOME_ON_ARTICA_PROJECT_WARNIN_REBOOT>
@@ -5391,6 +5425,8 @@ Voulez-vous effectuer cette op&eacute;ration ?</zarafa_database_recovery_warn>
 <ZARAFA_ISSUE>Probl&egrave;me sur le service Zarafa</ZARAFA_ISSUE>
 <ZARAFA_JUNK_EXPLAIN>Chaque membre doit avoir un dossier &quot;Non-spam&quot; et &quot;Junk E-mail&quot; afin d'autoriser le moteur &agrave; analyser les messages</ZARAFA_JUNK_EXPLAIN>
 <ZARAFA_MAILBOX_CONVERT>Cette op&eacute;ration va convertir la langue de la boite aux lettres vers</ZARAFA_MAILBOX_CONVERT>
+<zarafa_must_restarted>Le serveur Zarafa doit &ecirc;tre red&eacute;marr&eacute;...
+Voulez-vous effectuer cette op&eacute;ration ?</zarafa_must_restarted>
 <zarafa_mysql_params_text>Le serveur  Zarafa utilise un moteur MySQL afin de stocker les banques d'informations.[br]
 Vous pouvez indiquer ici quel service de base de donn&eacute;es il doit utiliser.</zarafa_mysql_params_text>
 <zarafa_search_explain>Le service Zarafa Search, introduit en version 7.10, offre des capacit&eacute;s d'indexation.[br]

@@ -432,7 +432,18 @@ error_log(basename(__FILE__)." ".__FUNCTION__.'() line '. __LINE__);
 	
 }
 
-
+function _milter_greylist_enabled(){
+	$users=new usersMenus();
+	$sock=new sockets();
+	if(!$users->MILTERGREYLIST_INSTALLED){return 0;}
+	$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+	$enabled=$sock->GET_INFO("MilterGreyListEnabled");
+	$EnableASSP=$sock->GET_INFO('EnableASSP');
+	if($enabled==null){$enabled=0;}
+	if($EnablePostfixMultiInstance==1){$enabled=0;}
+	if($EnableASSP==1){$enabled=0;}
+	return $enabled;
+}
 
 function main_admin_tabs(){
 	if(!$GLOBALS["AS_ROOT"]){if(GET_CACHED(__FILE__,__FUNCTION__,__FUNCTION__)){return null;}}
@@ -465,19 +476,23 @@ function main_admin_tabs(){
 	
 	
 	if($users->POSTFIX_INSTALLED){
-		$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
-		if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
-		$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
-		if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}		
-		if($EnableArticaSMTPStatistics==1){	
-			$array["t:emails_received"]="{emails_received}";
-			$array["t:connections"]="{connections}";
+		if($users->AsPostfixAdministrator){
+			$EnableArticaSMTPStatistics=$sock->GET_INFO("EnableArticaSMTPStatistics");
+			if(!is_numeric($EnableArticaSMTPStatistics)){$EnableArticaSMTPStatistics=1;}
+			$EnablePostfixMultiInstance=$sock->GET_INFO("EnablePostfixMultiInstance");
+			if(!is_numeric($EnablePostfixMultiInstance)){$EnablePostfixMultiInstance=0;}		
+			if($EnableArticaSMTPStatistics==1){	
+				$array["t:emails_received"]="{emails_received}";
+				$array["t:connections"]="{connections}";
+				if(_milter_greylist_enabled()==1){
+					$array["t:miltergreylist"]="{greylisting}";
+				}
+			}
+			
+			if($EnablePostfixMultiInstance==1){
+				$array["t:multiple_instances"]="{multiple_instances}";
+			}
 		}
-		
-		if($EnablePostfixMultiInstance==1){
-			$array["t:multiple_instances"]="{multiple_instances}";
-		}
-		
 		
 	}
 
@@ -555,6 +570,13 @@ $style="style=font-size:16px";
 					continue;
 				}
 			}
+			if($re[1]=="miltergreylist"){
+				if($users->AsPostfixAdministrator){
+					$html[]= "<li ><a href=\"admin.miltergreylist.connections.php\"><span $style>$ligne</span></a></li>\n";
+					continue;
+				}
+			}			
+			
 			
 			
 			

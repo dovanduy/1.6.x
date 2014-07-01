@@ -28,34 +28,106 @@ if(preg_match("#--output#",implode(" ",$argv))){$GLOBALS["OUTPUT"]=true;}
 if(preg_match("#--withoutloading#",implode(" ",$argv))){$GLOBALS["NO_USE_BIN"]=true;$GLOBALS["NORELOAD"]=true;}
 if(preg_match("#--nocaches#",implode(" ",$argv))){$GLOBALS["NOCACHES"]=true;}
 if(preg_match("#--noapply#",implode(" ",$argv))){$GLOBALS["NOCACHES"]=true;$GLOBALS["NOAPPLY"]=true;$GLOBALS["FORCE"]=true;}
-if($GLOBALS["VERBOSE"]){ini_set('display_-ERR-s', 1);	ini_set('html_-ERR-s',0);ini_set('display_-ERR-s', 1);ini_set('-ERR-_reporting', E_ALL);}
+if($GLOBALS["VERBOSE"]){ini_set('display_errors', 1);	ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);}
+
+
 
 
 
 if($argv[1]=="--import"){import($argv[2]);die();}
+if($argv[1]=="--zip"){import_zip();exit;}
+
+
+
+function build_progress($text,$pourc){
+	$PROGRESS_FILE="/usr/share/artica-postfix/ressources/logs/squid.import.progress";
+	$LOG_FILE="/usr/share/artica-postfix/ressources/logs/web/squid.import.progress.txt";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($PROGRESS_FILE, serialize($array));
+	@chmod($PROGRESS_FILE,0755);
+
+}
+
+function import_zip(){
+	$zipfile="/usr/share/artica-postfix/ressources/conf/upload/squid-zip-import.zip";
+	if(!is_file($zipfile)){
+		echo "squid-zip-import.zip no such file\n";
+		build_progress("squid-zip-import.zip no such file",110);
+		die();
+	}
+	$unix=new unix();
+	$unzip=$unix->find_program("unzip");
+	$rm=$unix->find_program("rm");
+	if(!is_file($unzip)){
+		echo "unzip no such binary\n";
+		build_progress("unzip no such binary",110);
+		@unlink($zipfile);
+		die();
+	}
+	
+	echo "Uncompress\n";
+	build_progress("{uncompress}",10);
+	$TMP_DIR=$unix->TEMP_DIR()."/".time();
+	@mkdir($TMP_DIR,0755,true);
+	system("$unzip -o $zipfile -d $TMP_DIR");
+	@unlink($zipfile);
+	if(!is_file("$TMP_DIR/squid.conf")){
+		build_progress("squid.conf no such file",110);
+		shell_exec("$rm -rf $TMP_DIR");
+		
+	}
+	
+	build_progress("Importing...",20);
+	import("$TMP_DIR/squid.conf");
+	shell_exec("$rm -rf $TMP_DIR");
+	
+}
 
 
 function import($filepath){
+	$squid=new squidbee();
+	$sock=new sockets();
 	if(!is_file($filepath)){echo "$filepath no such file\n";}
 	$GLOBALS["FILEPATH"]=$filepath;
 	clean($filepath);
 	echo "$filepath cleaned...\n";
 	$f=explode("\n",@file_get_contents($filepath));
 	while (list ($index, $line) = each ($f)){
+		build_progress("$line",40);
 		if(!preg_match("#^acl\s+#", $line)){continue;}
-		import_acl($line);
+		import_acl($line,$filepath);
 	}
 	
 	reset($f);
 	$c=0;
+	$FIRST_PORT=false;
 	while (list ($index, $line) = each ($f)){
 		$line=trim($line);
 		if(trim($line)=="http_access deny all"){continue;}
+		if(preg_match("#http_port\s+([0-9]+)$#", $line,$re)){
+			if(!$FIRST_PORT){ $squid->listen_port=$re[1]; $FIRST_PORT=true; }
+			if($FIRST_PORT){ $squid->second_listen_port=$re[1]; }
+			continue;
+			
+		}
+		
+		if(preg_match("#http_port\s+([0-9]+)\s+(transparent|intercept)#")){
+			$squid->second_listen_port=$squid->listen_port;
+			$squid->listen_port=$re[1];
+			$sock->SET_INFO("hasProxyTransparent", 1);
+			continue;
+		}
+		
+		
+		
 		if(!preg_match("#^(http_access|http_reply_access)\s+#", $line)){continue;}
 		$c++;
+		build_progress("$line",50);
 		import_http_access($line,$c);
 	}	
 	
+	$squid->SaveToLdap(true);
 	
 }
 
@@ -85,12 +157,57 @@ function external_acl_find($aclname){
 	
 }
 
-function import_acl($line){
+function import_acl_file($path){
+	$path=str_replace('"', '', $path);
+	$t=array();
+	$size=@filesize($path);
+	echo "Analyze line: `$path` = $size bytes [".__LINE__."]\n";
+	
+	$f=explode("\n",@file_get_contents($path));
+	while (list ($index, $line) = each ($f)){
+		$line=trim($line);
+		if(trim($line)==null){continue;}
+		if(preg_match("#^\##", $line)){continue;}
+		if(substr($line, 0,1)=="."){$line=substr($line, 1,strlen($line));}
+		$t[$line]=$line;
+	
+	
+	}
+	return $t;
+	
+}
+
+function import_acl($line,$filepath=null){
 	if(!preg_match("#^acl\s+(.+?)\s+(.+?)\s(.+)#", $line,$re)){echo "FAILED: `$line`\n";return;}
 	$items=array();
 	$objectname=trim($re[1]);
 	$objectType=trim(strtolower($re[2]));
 	$objectvalues=trim($re[3]);
+	if(preg_match("#proxy_auth REQUIRED#is", $line)){
+		echo "Skipping line $line\n";
+		return;
+	}
+	
+	echo "Analyze line: Object name: $objectname\n";
+	echo "Analyze line: Object Type: $objectType\n";
+	echo "Analyze line: Object values: $objectvalues\n";
+	
+	if($filepath<>null){
+		if(!preg_match("#[0-9\.]+\/[0-9\.]+#", $objectvalues)){
+			if(strpos(" $objectvalues", "/")>0){
+				$DIR=dirname($filepath);
+				$basename=basename($objectvalues);
+				echo "Analyze line: read content in $DIR/$basename [".__LINE__."]\n";
+				$items=import_acl_file("$DIR/$basename");
+				if(count($items)>0){
+					echo "Analyze line: ".count($items)." in $DIR/$basename [".__LINE__."]\n";
+					$objectvalues=null;
+				}else{
+					echo "Analyze line: -ERR- $DIR/$basename no such data [".__LINE__."]\n";
+				}
+			}
+		}
+	}
 	
 	if(strtolower($objectname)=="all"){return;}
 	
@@ -110,6 +227,8 @@ function import_acl($line){
 		while (list ($index, $val) = each ($arrayVals)){
 			$val=trim($val);
 			if($val==null){continue;}
+			if(trim($val)=="-i"){continue;}
+			if(preg_match('#"(.+?)\/#', $val)){continue;}
 			if(substr($val, 0,1)=="."){$val=substr($val, 1,strlen($val));}
 			$items[$val]=$val;
 			
@@ -129,7 +248,7 @@ function import_acl($line){
 		}
 		
 	}
-	
+	if(!isset($items)){$items=array();}
 	echo "Checking Proxy object name \"$objectname\" with \"$objectType\" type and ". count($items) ." item(s)$LogSupp ";
 	import_acl_sql($objectname,$objectType,$items,$asAD);
 	

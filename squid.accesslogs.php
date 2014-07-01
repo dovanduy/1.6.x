@@ -199,7 +199,7 @@ function page(){
 	//$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
 
 	
-	$buttons[]="{name: '<strong>$change_date</stong>', bclass: 'Reload', onpress : ChangeDate$t},";
+	//$buttons[]="{name: '<strong>$change_date</stong>', bclass: 'Reload', onpress : ChangeDate$t},";
 	//$buttons[]="{name: '<strong>$reload_proxy_service</stong>', bclass: 'Reload', onpress : ReloadProxy$t},";
 	
 	$buttons=@implode("", $buttons);

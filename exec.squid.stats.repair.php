@@ -29,6 +29,7 @@ if($argv[1]=="--tables-day"){repair_table_days();die();}
 if($argv[1]=="--tables-dayh"){repair_table_days_hours();die();}
 if($argv[1]=="--tables-visited-sites"){repair_visited_sites();die();}
 if($argv[1]=="--coherences-tables"){repair_from_sources_tables();die();}
+if($argv[1]=="--youtube"){Repair_youtube_objects();die();}
 
 
 
@@ -186,6 +187,22 @@ function _repair_members_sources_tables($sourcetable,$member_table){
 
 	
 }
+
+
+function Repair_youtube_objects(){
+	include_once(dirname(__FILE__)."/ressources/class.squid.youtube.inc");
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT youtubeid FROM youtube_objects WHERE LENGTH(title)<5 LIMIT 0,100";
+	$results=$q->QUERY_SQL($sql);
+	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+		echo "{$ligne["youtubeid"]}\n";
+		$ytbe=new YoutubeStats();
+		$ytbe->youtube_infos($ligne["youtubeid"],true);
+		
+	}
+}
+
 	
 	
 

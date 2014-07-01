@@ -30,19 +30,40 @@ class YoutubeStats{
 		if(trim($ligne["title"])==null){$ligne["title"]="";}
 		$GLOBALS["youtube_title($youtubeid)"]=$ligne["title"];
 		return $GLOBALS["youtube_title($youtubeid)"];
-	}	
+	}
+
 	
 	
-	public function youtube_infos($VIDEOID){
+	
+	public function youtube_infos($VIDEOID,$forceupdate=false){
+			if(!isset($GLOBALS["YTUBE_NO_PROXY"])){$GLOBALS["YTUBE_NO_PROXY"]=false;}
+			if(!isset($GLOBALS["RESTARTED_HTTP"])){$GLOBALS["RESTARTED_HTTP"]=false;}
 			$this->VIDEOID=$VIDEOID;
 			if(isset($GLOBALS["youtubeid"][$VIDEOID])){return true;}
 			$uri="https://gdata.youtube.com/feeds/api/videos/$VIDEOID?v=2&alt=jsonc";
 			if($GLOBALS["VERBOSE"]){echo "$VIDEOID:: $uri -> \n";}
 			$curl=new ccurl($uri);
+			if($GLOBALS["YTUBE_NO_PROXY"]){$curl->NoLocalProxy(); }
+			$curl->Timeout=10;
 			$error=null;
-			if(!$curl->GetFile("/tmp/jsonc.inc")){$this->youtube_events("gdata.youtube.com = Failed = > $curl->error",__LINE__);return false;}
+			if($GLOBALS["VERBOSE"]){echo "%% $uri\n";}
+			
+			if(!$curl->GetFile("/tmp/jsonc.inc")){
+				if(!$GLOBALS["RESTARTED_HTTP"]){
+					$this->youtube_events("gdata.youtube.com = Failed = > $curl->error Try without no proxy",__LINE__);
+					$GLOBALS["RESTARTED_HTTP"]=true;
+					$GLOBALS["YTUBE_NO_PROXY"]=true;
+					return $this->youtube_infos($VIDEOID,$forceupdate);
+				}
+				$this->youtube_events("gdata.youtube.com = Failed = > $curl->error",__LINE__);
+				return false;
+			}
+			
 			$infox=@file_get_contents("/tmp/jsonc.inc");
 			$infos=json_decode($infox);
+			
+			
+			
 			$uploaded=$infos->data->uploaded;
 			$title=$infos->data->title;
 			if($title==null){
@@ -59,6 +80,8 @@ class YoutubeStats{
 			if($category==null){
 				if($error<>null){
 					$category=$error;
+				}else{
+					$category="unknown";
 				}
 			}
 	
@@ -81,9 +104,12 @@ class YoutubeStats{
 				}
 			}
 			
+			
 			$GLOBALS["youtubeid"][$VIDEOID]=true;
-			if($GLOBALS["VERBOSE"]){echo "$VIDEOID already exists in table\n";}
-			return true;
+			if(!$forceupdate){
+				if($GLOBALS["VERBOSE"]){echo "$VIDEOID already exists in table\n";}
+				return true;
+			}
 		}
 	
 		$tumbnail=$infos->data->thumbnail->sqDefault;
@@ -111,9 +137,33 @@ class YoutubeStats{
 		$title=mysql_escape_string2($title);
 		$category=mysql_escape_string2($category);
 		$duration=$infos->data->duration;
+		
+		
 	
 	
 		$thumbnail=mysql_escape_string2(@file_get_contents("/tmp/thumbnail"));
+		
+		
+			if($ligne["youtubeid"]<>null){
+				$sql="UPDATE youtube_objects SET 
+				category='$category',
+				title='$title',
+				content='$infox_enc',
+				uploaded='$zDate',
+				duration='$duration',
+				thumbnail='$thumbnail'
+				WHERE youtubeid='{$ligne["youtubeid"]}'
+				";
+				$q->QUERY_SQL($sql);
+				if(!$q->ok){
+					$this->youtube_events("$q->mysql_error",__LINE__);
+					if($GLOBALS["VERBOSE"]){echo "$q->mysql_error\n";}
+					return false;
+				}
+				return true;
+			}
+		
+		
 		$sql="INSERT IGNORE INTO youtube_objects (youtubeid,category,title,content,uploaded,duration,thumbnail)
 		VALUES('$VIDEOID','$category','$title','$infox_enc','$zDate','$duration','$thumbnail')";
 		$q->QUERY_SQL($sql);

@@ -30,6 +30,8 @@ function MiltergreyList_days(){
 	
 	
 	$unix=new unix();
+	///etc/artica-postfix/pids/exec.postfix.miltergrey.stats.php.MiltergreyList_days.time
+	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=$unix->get_pid_from_file($pidfile);
 	
@@ -40,7 +42,7 @@ function MiltergreyList_days(){
 		return;
 	}
 	
-	$timeFile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
 	if(!$GLOBALS["VERBOSE"]){
 		if($unix->file_time_min($timeFile)<60){die();}
 	}
@@ -60,7 +62,7 @@ function MiltergreyList_days(){
 		echo "Scanning tables...\n";
 	}
 	$tables=$q->LIST_MILTERGREYLIST_HOUR_TABLES();
-	$currentHour=date("Y-m-d h");
+	$currentHour=date("Y-m-d H");
 	$tt=0;
 	if(is_array($tables)){
 		while (list ($tablesource, $time) = each ($tables) ){

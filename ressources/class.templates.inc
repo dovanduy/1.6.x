@@ -4382,6 +4382,7 @@ function CheckSessions(){
 		$noback["hotspot.php"]=true;
 		$noback["squid.access.log.php"]=true;
 		$noback["wizard.automationscript.progress.php"]=true;
+		$noback["import.squid.zip.php"]=true;
 		
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
 		if(preg_match('#listener\.php$#',$page)){$noback[$page]= true;}		

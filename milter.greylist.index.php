@@ -962,7 +962,7 @@ $TB_TYPE=96;
 		$ROW_EXPLAIN=346;
 		$TB_PATTERN=219;
 		$TB_HEIGHT=600;
-		$TB_TYPE=125;
+		$TB_TYPE=138;
 	}
 $about_text=$tpl->javascript_parse_text("{acl_text}");
 $POSTFIX_MULTI_INSTANCE_INFOS=$tpl->javascript_parse_text("{acls}");
@@ -978,7 +978,7 @@ $('#miltergrey-instances-list').flexigrid({
 	dataType: 'json',
 	colModel : [
 	
-		{display: '$zDate', name : 'zDate', width :70, sortable : true, align: 'left'},
+		{display: '$zDate', name : 'zDate', width :128, sortable : true, align: 'left'},
 		{display: '$method', name : 'method', width :70, sortable : true, align: 'left'},
 		{display: '$type', name : 'type', width : $TB_TYPE, sortable : true, align: 'left'},
 		{display: '$pattern', name : 'pattern', width : $TB_PATTERN, sortable : true, align: 'left'},
@@ -1068,6 +1068,8 @@ echo $html;
 function main_acl_table(){
 	$tpl=new templates();
 	$MyPage=CurrentPageName();
+	$mit=new milter_greylist();
+	$action=$mit->actionlist;
 	$q=new mysql();
 	if($_GET["hostname"]==null){$_GET["hostname"]="master";}
 	$pure=new milter_greylist(false,$_GET["hostname"]);	
@@ -1150,7 +1152,7 @@ function main_acl_table(){
 		}
 		
 	}
-	$type=$tpl->_ENGINE_parse_body("{{$ligne["type"]}}");
+	$type=$tpl->_ENGINE_parse_body("{$action[$ligne["type"]]}");
 	
 	$data['rows'][] = array(
 		'id' => $ligne['ID'],
