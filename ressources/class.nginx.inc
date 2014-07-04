@@ -739,10 +739,10 @@ for too long in io path.
 			if($directory<>null){
 				if(strpos(" $directory", "~")==0){
 					
-					$f[]="\t\tsubs_filter ". str_replace(".", "\.", $ipaddr)." $directory gi;";
+					$f[]="\t\tsubs_filter ". str_replace(".", "\.", $ipaddr)." $directory gir;";
 				}
 			}else{
-				$f[]="\t\tsubs_filter ". str_replace(".", "\.", $ipaddr)." $this->servername;";
+				$f[]="\t\tsubs_filter ". str_replace(".", "\.", $ipaddr)." $this->servername gir;";
 			}
 		}
 		
@@ -1964,7 +1964,7 @@ private function http_location_cache_params($ligne){
 			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
 			$ligne["replaceby"]=str_replace("\"", '\"', $ligne["replaceby"]);
 			if($GLOBALS["VERBOSE"]){echo "\"{$ligne["stringtosearch"]}\"\n";}
-			$t[]="\t\tsubs_filter \"{$ligne["stringtosearch"]}\" \"{$ligne["replaceby"]}\" gi;";
+			$t[]="\t\tsubs_filter \"{$ligne["stringtosearch"]}\" \"{$ligne["replaceby"]}\" gir;";
 		}
 		
 		if(count($t)==0){
@@ -1990,7 +1990,8 @@ private function http_location_cache_params($ligne){
 			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
 			$ligne["replaceby"]=str_replace("\"", '\"', $ligne["replaceby"]);
 			if($GLOBALS["VERBOSE"]){echo "\"{$ligne["stringtosearch"]}\"\n";}
-			$f[]="\t\tsubs_filter {$ligne["stringtosearch"]}  {$ligne["replaceby"]} {$ligne["tokens"]};";
+			$ligne["tokens"]=str_replace("r", "", $ligne["tokens"]);
+			$f[]="\t\tsubs_filter {$ligne["stringtosearch"]}  {$ligne["replaceby"]} {$ligne["tokens"]}r;";
 		}
 		
 		
@@ -2183,9 +2184,9 @@ private function http_location_cache_params($ligne){
 				$f[]="\t\tproxy_set_header Accept-Encoding \"\";";
 				
 				$subs_filter_types=true;
-				$f[]="\t\tsubs_filter ".$this->PatternToRegex($proxy_to_host)." $ToReplacewww gi;";
+				$f[]="\t\tsubs_filter ".$this->PatternToRegex($proxy_to_host)." $ToReplacewww gir;";
 				if(preg_match("#^www\.(.+)#", $this->proxy_to_host,$re)){
-					$f[]="\t\tsubs_filter ".$this->PatternToRegex($re[1])." $ToReplacewww;";
+					$f[]="\t\tsubs_filter ".$this->PatternToRegex($re[1])." $ToReplacewww gir;";
 				}
 			}
 			

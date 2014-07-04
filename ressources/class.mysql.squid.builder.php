@@ -1745,6 +1745,9 @@ class mysql_squid_builder{
 			$this->mysql_errornum=$errnum;
 			$this->mysql_error="QUERY_SQL:".__LINE__.": $mysql_unbuffered_query_log:: $called Error $errnum ($des) config:$this->mysql_server:$this->mysql_port@$this->mysql_admin line:".__LINE__;
 			$this->ToSyslog($this->mysql_error);
+			$sql=str_replace("\n", " ", $sql);
+			$sql=str_replace("\t", " ", $sql);
+			$sql=str_replace("  ", " ", $sql);
 			$this->ToSyslog($sql);
 			if($GLOBALS["VERBOSE"]){echo "$LOGPRF $mysql_unbuffered_query_log/".__LINE__." [FAILED] N.$errnum DESC:$des $called\n";}
 			if($GLOBALS["VERBOSE"]){echo "$LOGPRF $mysql_unbuffered_query_log".__LINE__." [FAILED] $sql\n";}

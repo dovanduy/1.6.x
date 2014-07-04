@@ -16,6 +16,9 @@ if(isset($_GET["uncompress-nginx"])){uncompress_nginx();exit;}
 if(isset($_GET["reconfigure-single"])){reconfigure_single();exit;}
 if(isset($_GET["purge-cache"])){purge_cache();exit;}
 if(isset($_GET["import-bulk"])){import_bulk();exit;}
+if(isset($_GET["reconfigure-progress"])){reconfigure_progress();exit;}
+
+
 
 
 while (list ($num, $line) = each ($_GET)){$f[]="$num=$line";}
@@ -227,6 +230,23 @@ function nginx_version(){
 		if(preg_match("#TLS SNI support enabled#", $value,$re)){$ARRAY["DEF"]["TLS"]=true;continue;}
 	}
 }
+
+function reconfigure_progress(){
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/nginx.reconfigure.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/nginx.reconfigure.progress.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.nginx.php --reconfigure-all-reboot >{$GLOBALS["LOG_FILE"]} 2>&1 &");
+	
+}
+
 function purge_cache(){
 	$unix=new unix();
 	$ID=$_GET["purge-cache"];

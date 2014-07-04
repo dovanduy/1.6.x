@@ -1501,7 +1501,7 @@ function websites_section(){
 	}
 	
 	if(AdminPrivs()){
-		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply_parameters}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=restart&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
+		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{apply_parameters}", "Loadjs('nginx.reconfigure.progress.php');"));
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{purge_caches}", "Loadjs('system.services.cmd.php?APPNAME=APP_NGINX&action=purge&cmd=%2Fetc%2Finit.d%2Fnginx&appcode=APP_NGINX');"));
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{import_export}", "Loadjs('miniadmin.proxy.reverse.import.php');"));
 		$EXPLAIN["BUTTONS"][]=$tpl->_ENGINE_parse_body(button("{new_server}", "Loadjs('$page?website-js=yes&servername=')"));

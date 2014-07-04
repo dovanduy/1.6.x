@@ -328,7 +328,7 @@ function master_index(){
 	
 	$curl=new ccurl("$uri?time=".time());
 	if(!$curl->GetFile($GLOBALS["MasterIndexFile"])){
-	_artica_update_event(2,"Error $curl->error",null,__FILE__,__LINE__);
+	_artica_update_event(0,"Error $curl->error",null,__FILE__,__LINE__);
 	echo "Starting......: ".date("H:i:s")." Error $curl->error_num;$curl->error, Try direct\n";
 	
 	if(!$GLOBALS["NOT_FORCE_PROXY"]){

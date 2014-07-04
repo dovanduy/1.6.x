@@ -11,17 +11,9 @@
 	
 	$user=new usersMenus();
 
-	if($user->SQUID_INSTALLED==false){
-		if(!$user->WEBSTATS_APPLIANCE){
-			$tpl=new templates();
-			echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
-			die();exit();
-		}
-	}
-	
 	if($user->AsSquidAdministrator==false){
 		$tpl=new templates();
-		echo "alert('". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."');";
+		echo "<p class=text-error>". $tpl->javascript_parse_text("{ERROR_NO_PRIVS}")."</p>";
 		die();exit();
 	}	
 	
@@ -59,6 +51,7 @@ function table(){
 	$tpl=new templates();
 	$page=CurrentPageName();
 	$sock=new sockets();
+	$users=new usersMenus();
 	$t=$_GET["t"];
 	if(!is_numeric($t)){$t=time();}
 	$dns_nameservers=$tpl->javascript_parse_text("{dns_nameservers}");
@@ -66,10 +59,10 @@ function table(){
 	$restart_service=$tpl->javascript_parse_text("{restart_service}");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
-
+	$SQUID_INSTALLED=1;
 	$newdns="{name: '$new_dns', bclass: 'add', onpress : dnsadd},";
 	if($EnableRemoteStatisticsAppliance==1){$newdns=null;}
-
+	if(!$users->SQUID_INSTALLED){$SQUID_INSTALLED=0;}
 	$buttons="
 	buttons : [
 		$newdns
@@ -109,6 +102,12 @@ $('#table-$t').flexigrid({
 });
 
 function RestartService$t(){
+	var SQUID_INSTALLED=$SQUID_INSTALLED;
+	if(SQUID_INSTALLED==0){
+		Loadjs('system.services.cmd.php?APPNAME=APP_DNSMASQ&action=restart&cmd=%2Fetc%2Finit.d%2Fdnsmasq&appcode=DNSMASQ');
+		return;
+	}
+
 	Loadjs('squid.restart.php?onlySquid=yes');
 
 }

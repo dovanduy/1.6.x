@@ -1320,6 +1320,7 @@ You should take care about enabling this task because there is no tests made bef
 <completed>Completed</completed>
 <compressed>Compressed</compressed>
 <compressed_data>Compressed data</compressed_data>
+<compressed_file>Compressed file</compressed_file>
 <compressed_size>Compressed size</compressed_size>
 <compressing_package>Compressing package</compressing_package>
 <compressor_requests>Compressor RT requests</compressor_requests>
@@ -2669,8 +2670,10 @@ Click on the link example.csv in order to get the CSV template/example.[br]
 <import_contacts_csv_text>Import contacts into your personal AddressBook from a CSV file.</import_contacts_csv_text>
 <import_export>Import/Export</import_export>
 <import_rules>Import rules</import_rules>
+<import_squid_conf>Import your Squid.conf</import_squid_conf>
 <import_squid_logs>Import old Squid-Cache logs</import_squid_logs>
 <import_squid_logs_explain>Import the old access.log files created by your old Squid server or by an other Artica server.</import_squid_logs_explain>
+<import_squid_zip_explain>Import your squid configuration file from a ZIP compressed file, with external objects stored in files</import_squid_zip_explain>
 <in>in</in>
 <inactive>inactive</inactive>
 <inbound>Inbound</inbound>
@@ -5247,6 +5250,8 @@ reused.[br]Note that such responses will be stale by default
 <subsites>sub-sites</subsites>
 <SUBSYSTEM>Subsystem</SUBSYSTEM>
 <subtitle>subtitle</subtitle>
+<success_import_squid_zip>Your file as been uploaded to the server.
+Artica will analyze when building the global configuration file.</success_import_squid_zip>
 <success_number>Success number</success_number>
 <success_restarting_service>Restarting service success</success_restarting_service>
 <success_restart_query_in_few_seconds>Success you can now restart your query in few seconds</success_restart_query_in_few_seconds>

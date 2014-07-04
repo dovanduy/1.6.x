@@ -30,6 +30,7 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 
 
 	$GLOBALS["ARGVS"]=implode(" ",$argv);
+	if($argv[1]=="--reconfigure-all-reboot"){$GLOBALS["OUTPUT"]=true;reconfigure_all();exit;}
 	if($argv[1]=="--reconfigure"){$GLOBALS["OUTPUT"]=true;configure_single_website($argv[2]);die();}
 	if($argv[1]=="--stop"){$GLOBALS["OUTPUT"]=true;stop();die();}
 	if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
@@ -54,6 +55,8 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	
 	
 	
+	
+	
 	if($argv[1]=="--build-default"){$GLOBALS["OUTPUT"]=true;$GLOBALS["RELOAD"]=true;build_default();exit;}
 	
 	echo "Unable to understand this command\n";
@@ -69,6 +72,8 @@ function build($OnlySingle=false){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	
 	shell_exec("/etc/init.d/mysql start");
+	
+	build_progress("Building configuration",10);
 	
 	if($unix->SQUID_GET_LISTEN_PORT()==80){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Squid listen 80, ports conflicts, change it\n";}
@@ -124,7 +129,7 @@ function build($OnlySingle=false){
 	$workers=$unix->CPU_NUMBER();
 
 	
-	
+	build_progress("Building configuration",15);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Running $APACHE_USER:$APACHE_SRC_GROUP..\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Running $workers worker(s)..\n";}
 	
@@ -138,7 +143,7 @@ function build($OnlySingle=false){
 	
 	$limit=4096*$workers;
 	if($limit>65535){$limit=65535;}
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Running limit of $limit open files\n";}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Running limit of $limit open files\n";}
 	
 	$L=explode("\n",@file_get_contents("/etc/security/limits.conf"));
 	$FOUNDL=false;
@@ -269,7 +274,7 @@ function build($OnlySingle=false){
 	if($dns->MainArray["DNS2"]<>null){$resolver[]=$dns->MainArray["DNS2"];}
 	if($dns->MainArray["DNS3"]<>null){$resolver[]=$dns->MainArray["DNS3"];}
 ;
-	
+	build_progress("Building configuration",20);
 	$f[]="\tresolver ". @implode(" ", $resolver).";";
 	$f[]="\tignore_invalid_headers on;";
 	$f[]="\tindex index.html;";
@@ -332,8 +337,16 @@ function build($OnlySingle=false){
 	@copy("/etc/nginx/nginx.conf","/etc/nginx/nginx.bak");
 	@file_put_contents("/etc/nginx/nginx.conf", @implode("\n", $f));
 	if(!$OnlySingle){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+		build_progress("Building default configuration",25);
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
 		build_default(true);
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+		build_progress("Building localhosts",30);
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
 		build_localhosts();
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+		build_progress("Building localhosts done",75);
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Only single defined\n";}
 	}
@@ -348,6 +361,8 @@ function build($OnlySingle=false){
 			start(true);
 		}
 	}
+	
+	build_progress("Building configuration done",75);
 	
 }
 
@@ -585,6 +600,7 @@ function build_localhosts(){
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, scanning /etc/nginx/sites-enabled\n";}
 	
+	build_progress("Backup old config",30);
 	foreach (glob("/etc/nginx/sites-enabled/*") as $filename) {
 		
 		$file=basename($filename);
@@ -625,10 +641,19 @@ function build_localhosts(){
 	
 	
 	$CountDeserver=mysql_num_rows($results);
+	$prc_org=30;
+	
+	
+	
 	$c=0;
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
+		
 		$c++;
+		$prc=($c/$CountDeserver)*100;
+		$prc=$prc/3;
+		$prc=intval($prc_org+$prc);
+		build_progress("Building {$ligne["servername"]}",$prc);
 		if($EnableFreeWeb==0){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ************* {$ligne["servername"]} FreeWeb is disabled ************* \n";}
 			continue;
@@ -759,6 +784,14 @@ function build_localhosts(){
 	
 	$c=0;
 	while ($ligne = mysql_fetch_assoc($results)) {
+		$prc=($c/$CountDeserver)*100;
+		$prc=$prc/3;
+		$prc=intval($prc_org+$prc);
+		if($prc>75){$prc=75;}
+		build_progress("Building {$ligne["servername"]}",$prc);
+		
+		
+			
 			if($ligne["servername"]=="_default_"){continue;}
 			$c++;
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx ****************************************************\n";}
@@ -819,11 +852,14 @@ function build_localhosts(){
 		}
 	}
 
-
+	$prc++;if($prc>75){$prc=75;}
+	build_progress("Building authenticator",$prc);
 	authenticator();
 	
 	
 	$host=new nginx();
+	$prc++;if($prc>75){$prc=75;}
+	build_progress("Testing settings",$prc);
 	if(!$host->TestTheWholeConfig()){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, testing configuration failed, return to old config...\n";}
 		@copy("/etc/nginx/nginx.bak","/etc/nginx/nginx.conf");
@@ -840,9 +876,10 @@ function build_localhosts(){
 		}
 		
 	}
-	
-	
-	if($GLOBALS["VERBOSE"]){echo "\n##################### - - END - - ##############################\n\n".__FUNCTION__.".".__LINE__.":Start...\n";}	
+	$prc++;if($prc>75){$prc=75;}
+	build_progress("Building settings done",$prc);
+	if($GLOBALS["VERBOSE"]){echo "\n##################### - - END - - ##############################\n".__FUNCTION__.".".__LINE__.":Start...\n";}	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK, DONE...\n";}
 }
 
 function BuildReverse($ligne,$backupBefore=false){
@@ -1280,6 +1317,30 @@ function force_restart(){
 	
 }
 
+
+function reconfigure_all(){
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$time=$unix->PROCCESS_TIME_MIN($pid);
+		build_progress("Already executed",110);
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
+		return;
+	}
+	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+	build(false);
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+	build_progress("{stopping_service}",80);
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
+	stop(true);
+	build_progress("{starting_service}",90);
+	start(true);
+	build_progress("{done}",100);
+}
+
 function restart(){
 	$unix=new unix();
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
@@ -1334,6 +1395,9 @@ function start($aspid=false){
 	
 	$EnableNginx=$sock->GET_INFO("EnableNginx");
 	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service \"EnableNginx\" = $EnableNginx\n";}
+	
+	
 	if($EnableNginx==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service disabled\n";}
 		return;
@@ -2328,6 +2392,14 @@ function import_bulk(){
 	echo "$SUCCESS Imported sites, $FAILED failed\n";
 	
 }
+function build_progress($text,$pourc){
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[{$pourc}%] $text\n";}
+	$cachefile="/usr/share/artica-postfix/ressources/logs/nginx.reconfigure.progress";
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents($cachefile, serialize($array));
+	@chmod($cachefile,0755);
 
+}
 
 ?>

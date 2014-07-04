@@ -527,32 +527,32 @@ function wpad(){
 	
 	$html="
 	<div id='div-$t' class=explain style='font-size:16px'>{dnsmasq_wpad_explain}</div>
-	 div style='width:98%' class=form>
+	 <div style='width:98%' class=form>
 	<table style='width:100%'>
 	<tbody>
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{enable}:</td>
+		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{enable}:</td>
 		<td>". Field_checkbox("ENABLE-$t", 1,$Params["ENABLE"],"CheckWpadEnable()")."</td>
 	</tr>	
 	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{listen_port}:</td>
-		<td>". Field_text("PORT-$t",$Params["PORT"],"font-size:16px;width:90px")."</td>
+		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{listen_port}:</td>
+		<td>". Field_text("PORT-$t",$Params["PORT"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{ipaddr}:</td>
-		<td>". field_ipv4("IP_ADDR-$t",$Params["IP_ADDR"],"font-size:16px;")."</td>
+		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{ipaddr}:</td>
+		<td>". field_ipv4("IP_ADDR-$t",$Params["IP_ADDR"],"font-size:22px;")."</td>
 	</tr>	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend valign='middle'>{hostname}:</td>
-		<td style='font-size:16px;vertical-align:top'>wpad.". Field_text("HOST-$t",$Params["HOST"],"font-size:16px;width:190px")."</td>
+		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{hostname}:</td>
+		<td style='font-size:22px;vertical-align:top'>wpad.". Field_text("HOST-$t",$Params["HOST"],"font-size:22px;width:290px")."</td>
 	</tr>	
 	<tr>
-		<td style='font-size:16px;vertical-align:top' class=legend>{url}:</td>
-		<td style='font-size:16px;vertical-align:top'>http://wpad.{$Params["HOST"]}:{$Params["PORT"]}/". Field_text("URI-$t",$Params["URI"],"font-size:16px;width:120px")."</td>
+		<td style='font-size:22px;vertical-align:middle' class=legend>{url}:</td>
+		<td style='font-size:22px;vertical-align:top'>http://wpad.{$Params["HOST"]}:{$Params["PORT"]}/". Field_text("URI-$t",$Params["URI"],"font-size:22px;width:220px")."</td>
 	</tr>
 	<tr>
-		<td colspan=2 align='right'>". button("{apply}", "SaveForm$t()",18)."</td>
+		<td colspan=2 align='right'>". button("{apply}", "SaveForm$t()",30)."</td>
 	</tr>
 	</table>
 	</div>

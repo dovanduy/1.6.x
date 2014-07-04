@@ -6487,3 +6487,4 @@ That will replace string mydomain.tld by newdomain.tld string.
 <compressed_file>Compressed file</compressed_file>
 <success_import_squid_zip>Your file as been uploaded to the server.
 Artica will analyze when building the global configuration file.</success_import_squid_zip>
+<import_squid_conf>Import your Squid.conf</import_squid_conf>

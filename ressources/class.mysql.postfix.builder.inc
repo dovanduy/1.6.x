@@ -36,6 +36,12 @@ class mysql_postfix_builder{
 		
 	}
 	
+	public function HIER(){
+		$sql="SELECT DATE_FORMAT(DATE_SUB(NOW(),INTERVAL 1 DAY),'%Y-%m-%d') as tdate";
+		$ligne=mysql_fetch_array($this->QUERY_SQL($sql));
+		return $ligne["tdate"];
+	}
+	
 	
 	public function DUMP_TABLE($tablename){
 		$sock=new sockets();

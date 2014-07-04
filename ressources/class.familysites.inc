@@ -1,5 +1,5 @@
 <?php
-
+include_once(dirname(__FILE__)."/class.squid.familysites.inc");
 class familysite{
 	
 	function familysite(){
@@ -36,61 +36,8 @@ class familysite{
 	}	
 	
 	public function GetFamilySites($sitename){
-		if(!isset($GLOBALS["DEBUG_FAMILIY"])){$GLOBALS["DEBUG_FAMILIY"]=false;}
-		if(strpos($sitename, "@")>0){
-			$tr=explode("@",$sitename);
-			$sitename=$tr[1];
-		}
-		if(isset($GLOBALS["GetFamilySites"][$sitename])){return $GLOBALS["GetFamilySites"][$sitename];}
-		if(strpos(" $sitename", ".")==0){return $sitename;}
-	
-		if($GLOBALS["TCP_CLASS"]->isIPAddress($sitename)){return $sitename;}
-		
-		$tmp=trim($this->getRegisteredDomain($sitename));
-		if($GLOBALS["DEBUG_FAMILIY"]){echo "getRegisteredDomain($sitename) -> $tmp\n";}
-	
-		$tt=$this->GetFamilySitestt(null,true);
-		if($tmp<>null){
-			if(isset($tt[$tmp])){
-				if($GLOBALS["DEBUG_FAMILIY"]){echo "{$tt[$tmp]} tt[$tmp] -> $sitename\n";}
-				$GLOBALS["GetFamilySites"][$sitename]=$sitename;
-				return $sitename;
-			}
-				
-			$exp=explode(".",$tmp);
-			if(count($exp)>1){
-				$tmp=null;
-			}else{
-				$GLOBALS["GetFamilySites"][$sitename]=$tmp;
-				return $tmp;
-			}
-	
-				
-				
-		}
-	
-	
-		$tmp=$this->GetFamilySitestt($sitename);
-		if(strpos($tmp, ".")>0){
-			$GLOBALS["GetFamilySites"][$sitename]=$tmp;
-			return $tmp;
-		}
-	
-	
-	
-		$bits = explode('.', $sitename);
-		$idz=count($bits);
-		$idz-=3;
-		if (strlen($bits[($idz+2)])==2) {
-			$url=$bits[$idz].'.'.$bits[($idz+1)].'.'.$bits[($idz+2)];
-		} else if (strlen($bits[($idz+2)])==0) {
-			$url=$bits[($idz)].'.'.$bits[($idz+1)];
-		} else {
-			$url=$bits[($idz+1)].'.'.$bits[($idz+2)];
-		}
-		if(substr($url, 0,1)=="."){$url=substr($url, 1,strlen($url));}
-		$GLOBALS["GetFamilySites"][$sitename]=$url;
-		return $url;
+		$fam=new squid_familysite();
+		return $fam->GetFamilySites($sitename);
 	}
 	
 	private function getRegisteredDomain($signingDomain) {

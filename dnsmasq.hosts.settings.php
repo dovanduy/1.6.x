@@ -284,7 +284,6 @@ function Loadaddresses(){
 		$c=0;
 		while (list ($index, $line) = each ($conf->array_address) ){
 			if($regexHost<>null){if(!preg_match("#$regexHost#", $index)){continue;}}
-			
 			if($regexIP<>null){if(!preg_match("#$regexIP#", $line)){continue;}}			
 			
 			$md5=md5("$index$line");

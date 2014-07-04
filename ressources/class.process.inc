@@ -140,7 +140,9 @@ function MemoryInstances(){
 		$arrayK["exec.admin.smtp.flow.status.php"]=10;
 		$arrayK["exec.squid.stats.central.php"]=$ArticaProxyStatisticsMaxTime;
 		$arrayK["exec.squid.stats.hours.php"]=59;
-		
+		$arrayK["exec.initslapd.php"]=10;
+		$arrayK["exec.c-icap.php"]=10;
+		$arrayK["exec.containers.php"]=5;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";
@@ -172,8 +174,8 @@ function MemoryInstances(){
 					if($filename=="exec.squid.stats.central.php"){
 						stats_admin_events(1,"Statistics overtime {$time}Mn/{$arrayK[$filename]}Mn, killing process",null,__FILE__,__LINE__);
 					}
-					$this->ToSyslog("MemoryInstances(): killing $filename it freeze {$time}Mn/{$arrayK[$filename]}Mn");
-					$this->ToSyslog("killing $filename it freeze...",__FUNCTION__,__LINE__);
+					$this->ToSyslog("MemoryInstances(): killing $filename it freeze {$time}Mn/{$arrayK[$filename]}Mn",__FUNCTION__,__LINE__);
+					
 					unix_system_kill_force($re[1]);
 					
 					continue;						
@@ -181,7 +183,7 @@ function MemoryInstances(){
 				}
 				
 			 $GLOBALS["INSTANCES_EXECUTED"][]="\"$filename\" {$time}Mn";	
-			 if($time>0){$this->ToSyslog("PROCESS IN MEMORY: \"$filename\"[PID:{$re[1]}] `$ligne` {$time}Mn");}
+			 if($time>0){$this->ToSyslog("MemoryInstances(): PROCESS IN MEMORY: \"$filename\"[PID:{$re[1]}] `$ligne` {$time}Mn ",__FUNCTION__,__LINE__);}
 			 $array[]="[{$re[1]}] $filename ({$time}Mn)";
 			}
 		}

@@ -451,7 +451,9 @@ private function cache_dns_hosts(){
 
 		
 		
-		if($this->EnableDNSMASQLDAPDB==0){return;}
+		if($this->EnableDNSMASQLDAPDB==0){
+			if($GLOBALS["VERBOSE"]){echo "EnableDNSMASQLDAPDB -> SKIP\n";}
+			return;}
 		
 		if(count($this->array_interface)==0){
 			include_once(dirname(__FILE__)."/class.system.network.inc");

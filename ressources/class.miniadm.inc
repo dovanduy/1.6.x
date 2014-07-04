@@ -343,7 +343,11 @@ class miniadm{
 		
 		if(!$ASRAD){
 			if($users->POSTFIX_INSTALLED){
-				$StandardUSR["{messaging_options}"]="miniadm.messaging.php";
+				$StandardUSR["{mymessaging}"]="miniadm.messaging.php";
+				if($MAIL_ARCHIVE){
+					$StandardUSR["{mybackups}"]="miniadm.messaging.backup.php";
+				}
+
 				if($users->AMAVIS_INSTALLED){
 					if($EnableAmavisDaemon==1){
 						if($AmavisPerUser==1){

@@ -325,6 +325,9 @@ function start($aspid=false){
 		$TR[]=$Interface;
 	}
 	
+	$cf=new dnsmasq();
+	
+	
 	if($DHCPDEnableCacheDNS==0){
 		build(true);
 		cache_dns_hosts();
@@ -343,11 +346,13 @@ function start($aspid=false){
 		if($getdomains<>null){ $G[]=$getdomains; }
 		$G[]="--cache-size=10240";
 		$G[]="--log-facility=DAEMON";
-		//$G[]="--log-queries";
+		if($cf->main_array["log-queries"]=="yes"){
+			$G[]="--log-queries";
+		}
 		
 		$cmdline="$Masterbin --conf-file=/etc/dnsmasq.conf --pid-file=/var/run/dnsmasq.pid{$DNsServers}";
 		$cmdline=@implode(" ", $G);
-		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} CONFIGURATOR LINE:".__LINE__."\n";}
 	}
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} DHCPDEnableCacheDNS = $DHCPDEnableCacheDNS\n";}
@@ -382,10 +387,12 @@ function start($aspid=false){
 			$G[]="--addn-hosts=/etc/dnsmasq.hosts.cache";
 		}
 		$G[]="--cache-size=10240";
+		$G[]="--filterwin2k";
 		$G[]="--log-facility=DAEMON";
+		if($cf->main_array["log-queries"]=="yes"){ $G[]="--log-queries"; }
 		$domain=getdomains();
 		if($domain<>null){$G[]="$domain";}
-		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} CONFIGURATOR LINE:".__LINE__."\n";}
 		
 		
 	}
@@ -410,7 +417,7 @@ function start($aspid=false){
 		$G[]="--cache-size=$LocalDNSMASQItems";
 		$G[]="--log-facility=DAEMON";
 		$G[]="--filterwin2k";
-		
+		if($cf->main_array["log-queries"]=="yes"){ $G[]="--log-queries"; }
 		
 		
 		//$G[]="--log-queries";
@@ -432,7 +439,7 @@ function start($aspid=false){
 		
 		$domain=getdomains();
 		if($domain<>null){$G[]="$domain";}
-		
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} CONFIGURATOR LINE:".__LINE__."\n";}
 		
 		
 		
@@ -498,14 +505,27 @@ function build_hosts($aspid=false){
 	$conf=new dnsmasq(true);
 	$conf->ldap_addesses();
 	$conf->ParseAddress();
+	
 	$IpClass=new IP();
 	if(!is_array($conf->array_address)){
 		if(count($conf->array_address)>0){
 			while (list ($host, $ip) = each ($conf->array_address) ){
+				if($GLOBALS["VERBOSE"]){echo "ADDING HOST: $host - $ip\n";}
 				$MAIN[$host]=$ip;
 				
 			}
 		}
+	}
+	
+	
+	$q=new mysql_squid_builder();
+	$sql="SELECT * FROM dnsmasq_records";
+	$results=$q->QUERY_SQL($sql);
+	while ($ligne = mysql_fetch_assoc($results)) {
+		$ipaddr=trim($ligne["ipaddr"]);
+		$hostname=trim($ligne["hostname"]);
+		if($GLOBALS["VERBOSE"]){echo "ADDING HOST: $hostname - $ipaddr\n";}
+		$MAIN[$hostname]=$ipaddr;
 	}
 	
 	$q=new mysql();
@@ -519,6 +539,7 @@ function build_hosts($aspid=false){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $c DHCP hosts entries\n";}
 	while (list ($host, $ip) = each ($MAIN) ){
 		$host=trim(strtolower($host));
+		if($GLOBALS["VERBOSE"]){echo "ADDING HOST: $host - $ip\n";}
 		if($IpClass->isValid($host)){continue;}
 		if($host==null){continue;}
 		$alias=null;
@@ -596,13 +617,15 @@ function ldap_domains(){
 }
 
 function isDomainValid($domain){
-	
+	$ipClass=new IP();
 	if(!isset($GLOBALS["BLACKS_DOMAINS"])){$GLOBALS["BLACKS_DOMAINS"]=unserialize(@file_get_contents("/etc/dnsmasq.hash.domains-blacklist"));}
 	
 	$domain=trim(strtolower($domain));
 	if($domain=="artica.fr"){return null;}
 	$domain=str_replace("$", "", $domain);
 	if(isset($GLOBALS["BLACKS_DOMAINS"][$domain])){return null;}
+	if($ipClass->isIPAddress($domain)){return null;}
+	if(preg_match("#^[0-9]+\.[0-9]+\.[0-9]+$#", $domain)){return null;}
 	return $domain;
 }
 
@@ -640,6 +663,8 @@ function getdomains(){
 	$unix=new unix();
 	$resolv=new resolv_conf();
 	$myhostname=$unix->hostname_g();
+	
+	
 	$tt=explode(".",$myhostname);
 	unset($tt[0]);
 	$domain=@implode(".", $tt);	

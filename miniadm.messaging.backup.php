@@ -19,7 +19,7 @@ if(isset($_GET["choose-day"])){choose_day();exit;}
 if(isset($_GET["title-day"])){title_day();exit;}
 if(isset($_GET["MessageID-resend-js"])){MessageID_resend_js();exit;}
 if(isset($_GET["MessageID-resend-popup"])){MessageID_resend_popup();exit;}
-if(isset($_POST["MessageID-send"])){MessageID_resend_perform();exit;}
+if(isset($_POST["MessageID-s170end"])){MessageID_resend_perform();exit;}
 main_page();
 
 function main_page(){
@@ -105,7 +105,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$array["byday"]='{byday}';
-	$array["byMonth"]='{byMonth}';
+	//$array["byMonth"]='{byMonth}';
 	$fontsize=18;
 	while (list ($num, $ligne) = each ($array) ){
 			
@@ -114,25 +114,8 @@ function tabs(){
 		}
 	
 	
-	
-
-	$html="
-		<div id='main_backupedmsgs' style='background-color:white;margin-top:10px'>
-		<ul>
-		". implode("\n",$tab). "
-		</ul>
-	</div>
-		<script>
-				$(document).ready(function(){
-					$('#main_backupedmsgs').tabs();
+	echo build_artica_tabs($tab, "main_backupedmsgs",1150);
 			
-
-			});
-		</script>
-	
-	";	
-	
-	echo $tpl->_ENGINE_parse_body($html);			
 }
 
 function table_bydays(){
@@ -182,11 +165,11 @@ $('#flexRT$t').flexigrid({
 	dataType: 'json',
 	colModel : [
 		{display: '$date', name : 'zDate', width :106, sortable : true, align: 'left'},	
-		{display: '$from', name : 'mailfrom', width :152, sortable : true, align: 'left'},
-		{display: '$recipient', name : 'mailto', width :152, sortable : true, align: 'left'},
-		{display: '$subject', name : 'subject', width :300, sortable : true, align: 'left'},
+		{display: '$from', name : 'mailfrom', width :180, sortable : true, align: 'left'},
+		{display: '$recipient', name : 'mailto', width :180, sortable : true, align: 'left'},
+		{display: '$subject', name : 'subject', width :400, sortable : true, align: 'left'},
 		{display: '$size', name : 'message_size', width :103, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'none', width :21, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'none', width :50, sortable : true, align: 'center'},
 	],
 	$buttons
 
@@ -199,12 +182,12 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zDate',
 	sortorder: 'desc',
 	usepager: true,
-	title: '<span id=\"title-$t\">$title</span>',
+	title: '<span id=\"title-$t\" style=font-size:18px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 940,
-	height: $TB_HEIGHT,
+	width: '99%',
+	height: '99%',
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200,500]
 	
@@ -402,21 +385,22 @@ function table_bydays_items(){
 		$subject=mime_decode($ligne["subject"]);
 		$message_size=FormatBytes($ligne["message_size"]/1024);
 		
-		$urljs="<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$myPage?MessageID-js=$MessageID&table=$table_query')\"
-		style='font-size:11px;text-decoration:underline'>";
-		$resend=imgsimple("arrow-blue-left-24.png",null,"javascript:Loadjs('$myPage?MessageID-resend-js=$MessageID&table=$table_query')");
+		$urljs="<a href=\"javascript:blur();\" 
+		OnClick=\"javascript:Loadjs('$myPage?MessageID-js=$MessageID&table=$table_query')\"
+		style='font-size:14px;text-decoration:underline'>";
+		$resend=imgsimple("arrow-blue-left-32.png",null,"javascript:Loadjs('$myPage?MessageID-resend-js=$MessageID&table=$table_query')");
 		
 		
 		//$subject=mime_decode($subject);
 		$data['rows'][] = array(
 				'id' => $MessageID,
 				'cell' => array(
-					"<span style='font-size:11px;color:$color'>$zDate</a></span>",
-					"<span style='font-size:11px;color:$color'>$urljs{$mailfrom}</a></span>",
-					"<span style='font-size:11px;color:$color'>$urljs{$mailto}</a></span>",
-					"<span style='font-size:11px;color:$color'>$urljs{$subject}</a></span>",
-					"<span style='font-size:11px;color:$color'>$urljs{$message_size}</a></span>",
-					"<span style='font-size:11px;color:$color'>$resend</a></span>",
+					"<span style='font-size:14px;color:$color'>$zDate</a></span>",
+					"<span style='font-size:14px;color:$color'>$urljs{$mailfrom}</a></span>",
+					"<span style='font-size:14px;color:$color'>$urljs{$mailto}</a></span>",
+					"<span style='font-size:14px;color:$color'>$urljs{$subject}</a></span>",
+					"<span style='font-size:14px;color:$color'>$urljs{$message_size}</a></span>",
+					"<span style='font-size:14px;color:$color'>$resend</a></span>",
 					
 					)
 				);

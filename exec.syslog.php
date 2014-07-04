@@ -56,6 +56,7 @@ $GLOBALS["sysctl"]=$unix->find_program("sysctl");
 $GLOBALS["CHMOD_BIN"]=$unix->find_program("chmod");
 $GLOBALS["CHOWN_BIN"]=$unix->find_program("chown");
 $GLOBALS["REBOOT_BIN"]=$unix->find_program("reboot");
+$GLOBALS["SYNC_BIN"]=$unix->find_program("sync");
 $GLOBALS["DF_BIN"]=$unix->find_program("df");
 $GLOBALS["COUNT-LINES"]=0;
 $GLOBALS["COUNT-LINES-TIME"]=0;
@@ -398,6 +399,12 @@ function Parseline($buffer){
 	
 //Crash kernel
 
+if(preg_match("#glibc detected.*?\/(.+?):\s+(.+?):#",$buffer,$re)){
+	system_admin_events("Fatal! Crash {$re[1]} {$re[2]} [action=Run Sync]\n$buffer", __FUNCTION__, __FILE__, __LINE__, "system");
+	shell_exec("{$GLOBALS["nohup"]} {$GLOBALS["SYNC_BIN"]} >/dev/null 2>&1 &");
+	return;
+}
+	
 	
 if(preg_match("#kernel:.*?squid\[.*?segfault at.*?error.*?in squid#",$buffer)){
 	squid_admin_mysql(0, "Fatal, proxy service was crashed !!!","Here it is the report\n$buffer\nService is automatically started\n",__FILE__,__LINE__);

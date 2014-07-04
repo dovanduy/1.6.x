@@ -626,12 +626,24 @@ while (false !== ($filename = readdir($handle))) {
 		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){ 
-				echo $q->mysql_error."\n"; 
-		}else{
-			if($GLOBALS["VERBOSE"]){echo $filepath." ($contentSize KB) done with 1 element...\n";}
-			@unlink($filepath);
+			if(preg_match("Table\s+'.+?\.youtubehours_(.+?)'\s+doesn't exist#", $q->mysql_error)){
+				ToSyslog("Building youtubehours_{$re[1]} table");
+				$q->check_youtube_hour($re[1]);
+				$q->QUERY_SQL($sql);
+				}
 		}
-		continue;
+		
+		if(!$q->ok){
+			ToSyslog("Failed ->$filename");
+			continue;
+		}
+		
+		 
+		if($GLOBALS["VERBOSE"]){echo $filepath." ($contentSize KB) done with 1 element...\n";}
+		@unlink($filepath);
+				
+		
+		
 	}
 	
 	if(preg_match("#^sizehour_([0-9]+)\.#", $filename,$re)){

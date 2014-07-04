@@ -1086,7 +1086,15 @@ function reload_squid($aspid=false){
 	$PidFile="/etc/artica-postfix/pids/reloadsquid.pid";
 	
 	
-	if(!is_file($squidbin)){if($GLOBALS["OUTPUT"]){echo "Reloading.......: Squid-cache, not installed\n";}return;}
+	if(!is_file($squidbin)){if($GLOBALS["OUTPUT"]){
+			
+			shell_exec("/etc/init.d/dnsmasq restart");
+			echo "Reloading.......: Squid-cache, not installed\n";
+			return;
+		}
+			
+			
+	
 	
 	
 	if(!$aspid){
