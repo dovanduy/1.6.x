@@ -1752,6 +1752,7 @@ Do you want to perform this operation ?
 during this time, some service will be not available...</convert_background_warn>
 <already_converted>Already converted</already_converted>
 <zarafa_backup_parameters>Zarafa MySQL database backup parameters</zarafa_backup_parameters>
+<wordpress_backup_parameters>Wordpress websites backup parameters</wordpress_backup_parameters>
 <backup_directory>Backup directory</backup_directory>
 <DELETE_OLD_BACKUPS>Delete old backups</DELETE_OLD_BACKUPS>
 <maxDays>Max days</maxDays>
@@ -6367,6 +6368,7 @@ It parse the Sent Items too in order to put all recipients to the user's whiteli
 <blackandwhite_list_members>Manage your black and white list items</blackandwhite_list_members>
 <enable_FTP_backup>Store backup via FTP</enable_FTP_backup>
 <FTP_backup_zarafa_explain>If green then after backup completed, the server will backup containers trough a remote FTP service</FTP_backup_zarafa_explain>
+
 <ftp_server>FTP server</ftp_server>
 <ftp_username>FTP username</ftp_username>
 <ftp_password>FTP password</ftp_password>
@@ -6488,3 +6490,40 @@ That will replace string mydomain.tld by newdomain.tld string.
 <success_import_squid_zip>Your file as been uploaded to the server.
 Artica will analyze when building the global configuration file.</success_import_squid_zip>
 <import_squid_conf>Import your Squid.conf</import_squid_conf>
+<new_wordpress_site>New Wordpress website</new_wordpress_site>
+<internet_domains>Internet domains</internet_domains>
+<new_internet_domain>New Internet domain</new_internet_domain>
+<requested>Requested</requested>
+<new_wordpress_site>New Wordpress website</new_wordpress_site>
+<webservername>Webserver name</webservername>
+<domainname>Domain name</domainname>
+<install_wordpress>Install Wordpress</install_wordpress>
+<testing_configuration>Testing configuration</testing_configuration>
+<apply_permissions>Apply permissions</apply_permissions>
+<checking_reverse_proxy>Checking reverse proxy settings</checking_reverse_proxy>
+<enforce_security>Enforce security</enforce_security>
+<APP_WORDPRESS_ARTICA_TEXT>Artica For WordPress allows you to deploy Wordpress websites trough it's interface.[br]
+Artica is able to manage Wordpress as a service.[br]
+It able to backup/restore your websites, enforce security and maintain updates.[br]
+The tab Wordpress websites allows you to display status of all your Wordpress sites.
+</APP_WORDPRESS_ARTICA_TEXT>
+<wordpress_websites>Wordpress websites</wordpress_websites>
+<pasv_minmax_port_explain>PASSIVE min port and PASSIVE max port are the
+The minimum and maximum port to allocate for PASV style data connections.[br]
+Can be used to specify a narrow port range to assist firewalling
+</pasv_minmax_port_explain>
+<pasv_min_port>PASSIVE minimal port</pasv_min_port>
+<pasv_max_port>PASSIVE maximal port</pasv_max_port>
+<VsFTPDFileOpenMode>The permissions with which uploaded files are created.[br]
+Umasks are applied on top of this value.[br]
+You may wish to change to 0777 if you want uploaded files to be executable.
+</VsFTPDFileOpenMode>
+<files_permissions>Files permissions</files_permissions>
+<directories_permissions>Directories permissions</directories_permissions>
+<max_rate>Data transfer rate permitted</max_rate>
+<VsFTPDLocalMaxRate>Set 0 to disable max rate or define a value in Ko/s</VsFTPDLocalMaxRate>
+<moderate>Moderate</moderate>
+<permissive>Permissive</permissive>
+<severe>Severe</severe>
+<backup_wordpress_websites>Backup Wordpress websites</backup_wordpress_websites>
+<backup_wordpress_websites_explain>This task backup all Wordpress websites to the defined destination</backup_wordpress_websites>

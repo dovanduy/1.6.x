@@ -686,6 +686,7 @@ if($users->APACHE_INSTALLED){
 	if($users->AsAnAdministratorGeneric){
 		if($GLOBALS["VERBOSE"]){echo "FreeWebs\n";}
 		$freewebs=paragrapheWin("freewebs-white-64.png","{webservers}","QuickLinkSystems('section_freeweb')");
+		$wp=paragrapheWin("wp-64-white.png","Wordpress","LoadAjax('BodyContent','wordpress.php');");
 	}
 }
 	
@@ -789,6 +790,7 @@ if(!$users->AsSystemAdministrator){$hostname=null;}
 	$tr[]=$logrotate;
 	$tr[]=$vmware;
 	$tr[]=$freewebs;
+	$tr[]=$wp;
 	$tr[]=paragrapheWin("FTP-white-64.png", "FTP","AnimateDiv('BodyContent');LoadAjax('BodyContent','vsftpd.php');");
 	$tr[]=$roundcube;
 	$tr[]=$haProxy;

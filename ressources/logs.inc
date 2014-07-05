@@ -27,6 +27,10 @@ function writeToFile($text,$filepath){
 	@fclose($f);
 }
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
+	if(!isset($GLOBALS["ARTICA"]["EVENTS"])){$GLOBALS["ARTICA"]["EVENTS"]=array();}
+	$GLOBALS["ARTICA"]["EVENTS"][]=date('H:i:s')." $text $function ". basename($file_source)." in line $line\n";
+	if(count($GLOBALS["ARTICA"]["EVENTS"])>100){$GLOBALS["ARTICA"]["EVENTS"]=array();}
+	
 	if(isset($_SESSION["EnableWebPageDebugging"])){$GLOBALS["EnableWebPageDebugging"]=$_SESSION["EnableWebPageDebugging"];}
 	
 	if(!isset($GLOBALS["EnableWebPageDebugging"])){

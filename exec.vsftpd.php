@@ -232,6 +232,12 @@ function vsftpd_conf(){
 	$VsFTPDPassiveAddr=$sock->GET_INFO("VsFTPDPassiveAddr");
 	if($VSFTPDPort==0){$VSFTPDPort=21;}
 	if(!is_numeric($VsFTPDPassive)){$VsFTPDPassive=1;}
+	$VsFTPDFileOpenMode=$sock->GET_INFO("VsFTPDFileOpenMode");
+	$VsFTPDLocalUmask=$sock->GET_INFO("VsFTPDLocalUmask");
+	if($VsFTPDFileOpenMode==null){$VsFTPDFileOpenMode="0666";}
+	if($VsFTPDLocalUmask==null){$VsFTPDLocalUmask="077";}
+	$VsFTPDLocalMaxRate=intval($sock->GET_INFO("VsFTPDLocalMaxRate"));
+	
 	@mkdir("/var/empty");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Listen on $VSFTPDPort\n";}
 	
@@ -271,12 +277,14 @@ function vsftpd_conf(){
 	$f[]="";
 	$f[]="# Active le mode FTP passif.";
 	if($VsFTPDPassive==1){
-	$f[]="pasv_enable=YES";
-	$f[]="pasv_min_port=40000";
-	$f[]="pasv_max_port=40200";
-	if($VsFTPDPassiveAddr<>null){
-		$f[]="pasv_address=$VsFTPDPassiveAddr";
-	}
+		$pasv_min_port=intval($sock->GET_INFO("VsFTPDPassiveMinPort"));
+		$pasv_max_port=intval($sock->GET_INFO("VsFTPDPassiveMaxPort"));
+		if($pasv_min_port==0){$pasv_min_port=40000;}
+		if($pasv_max_port==0){$pasv_max_port=40200;}
+		$f[]="pasv_enable=YES";
+		$f[]="pasv_min_port=$pasv_min_port";
+		$f[]="pasv_max_port=$pasv_max_port";
+		if($VsFTPDPassiveAddr<>null){$f[]="pasv_address=$VsFTPDPassiveAddr"; }
 	}else{
 		$f[]="pasv_enable=NO";
 	}
@@ -384,7 +392,9 @@ function vsftpd_conf(){
 	$f[]="secure_chroot_dir=/var/empty";
 	$f[]="allow_writeable_chroot=YES";
 	$f[]="passwd_chroot_enable=YES";
+	$f[]="chown_uploads=YES";
 	$f[]="hide_ids=NO";
+	$f[]="local_umask=$VsFTPDLocalUmask";
 	$f[]="ftp_username=".$unix->APACHE_SRC_ACCOUNT();
 	$f[]="nopriv_user=".$unix->APACHE_SRC_ACCOUNT();
 	$f[]="";
@@ -394,26 +404,16 @@ function vsftpd_conf(){
 	$f[]="# à ne pas chrooter.";
 	$f[]="#chroot_list_enable=YES";
 	$f[]="#chroot_list_file=/etc/vsftpd.chroot_list";
-	$f[]="";
-	$f[]="# Autorise les opérations d'écriture.";
 	$f[]="write_enable=YES";
-	$f[]="";
-	$f[]="# Je considère que les utilisateurs locaux ont un accès FTP pour gérer";
-	$f[]="# les données de leur site Web. De ce fait, j'applique un masque sur les";
-	$f[]="# données pour que Apache puisse les lire et écrire. Je refuse";
-	$f[]="# l'utilisation de la commande FTP 'chmod'.";
-	$f[]="#";
-	$f[]="local_umask=007";
-	$f[]="#";
-	$f[]="";
-	$f[]="# Désactive la commande FTP 'chmod'.";
 	$f[]="chmod_enable=NO";
-	$f[]="";
-	
 	$f[]="";
 	$f[]="# Pour limiter le taux de transfert (montant/descendant) des utilisateurs";
 	$f[]="# locaux en Octets par seconde.";
-	$f[]="local_max_rate=1100";
+	if($VsFTPDLocalMaxRate>0){
+		$f[]="local_max_rate=".$VsFTPDLocalMaxRate*1000;
+	}else{
+		$f[]="local_max_rate=0";
+	}
 	$f[]="";
 	$f[]="# Active les logs pour les transferts montant/descendant.";
 	$f[]="xferlog_enable=YES";

@@ -179,11 +179,60 @@ public function SET_BIGDATA($key,$value){
 	
 	
 	public function check_client_access(){
-		
+		$unix=new unix();
+		if(!class_exists("IP")){include_once(dirname(__FILE__)."/class.tcpip.inc");}
+		$postmap=$unix->find_program("postmap");
+		$ipClass=new IP();
+		$cdir=array();
+		$conf=array();
+		$miltergreylist_acls=array();
+		$check_client_acces_final=array();
 		$target_file="/etc/postfix-$this->myhostname/check_client_access";
+		$target_cdir_file="/etc/postfix-$this->myhostname/check_client_access.cidr";
 		if($this->myhostname=="master"){
 			$target_file="/etc/postfix/check_client_access";
+			$target_cdir_file="/etc/postfix/check_client_access.cidr";
 		}
+		
+		$q=new mysql();
+		$sql="SELECT ID,pattern FROM miltergreylist_acls WHERE `method`='blacklist' AND `type`='addr'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$ipaddr=$ligne["pattern"];
+			if(!$ipClass->isIPAddressOrRange($ipaddr)){
+				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: bad pattern `$ipaddr` in line:".__LINE__."\n";
+				continue;
+			}
+			$cdir[]="$ipaddr\tREJECT Go Away! rule id {$ligne["ID"]}";
+			
+		}
+		
+		if(count($cdir)>0){
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: cidr ". count($cdir)." entries\n";
+			print_r($cdir);
+			@file_put_contents($target_cdir_file,@implode("\n",$cdir));
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: $target_cdir_file done\n";
+			$check_client_acces_final[]="cidr:$target_cdir_file";
+		}
+		
+		
+		
+		
+		$q=new mysql();
+		$sql="SELECT ID,pattern FROM miltergreylist_acls WHERE `method`='blacklist' AND `type`='domain'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		while ($ligne = mysql_fetch_assoc($results)) {
+			$domain=$ligne["pattern"];
+			$miltergreylist_acls[trim(strtolower($domain))]=true;
+		}
+		
+		if(count($miltergreylist_acls)>0){
+			while (list ($domain, $ligne) = each ($miltergreylist_acls) ){
+				$conf[]="$domain\tREJECT Go Away! rule id {$ligne["ID"]}";
+			}
+		}
+		
+		
 		
 		$check_client_access=unserialize(base64_decode($this->GET_BIGDATA("check_client_access")));
 		if(is_array($check_client_access)){
@@ -197,14 +246,18 @@ public function SET_BIGDATA($key,$value){
 			if(is_array($conf)){
 				echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: ". count($conf)." entries\n";
 				@file_put_contents($target_file,@implode("\n",$conf));
-				$unix=new unix();
-				$postmap=$unix->find_program("postmap");
-				
 				shell_exec("$postmap hash:$target_file");
+				$check_client_acces_final[]="hash:$target_file";
 				
-				return "check_client_access hash:$target_file";
 			}
 		}
+		
+		if(count($check_client_acces_final)>0){
+			$final=@implode(",", $check_client_acces_final);
+			echo "Starting......: ".date("H:i:s")." Postfix \"$this->myhostname\" check_client_access: $final\n";
+			return $final;
+		}
+		
 	}
 	
 	public function postfix_global_whitelist_to_mx(){

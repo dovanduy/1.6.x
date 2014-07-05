@@ -143,6 +143,7 @@ function MemoryInstances(){
 		$arrayK["exec.initslapd.php"]=10;
 		$arrayK["exec.c-icap.php"]=10;
 		$arrayK["exec.containers.php"]=5;
+		$arrayK["exec.openvpn.php"]=10;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";

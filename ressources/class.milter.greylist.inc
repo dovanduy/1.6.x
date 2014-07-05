@@ -116,7 +116,8 @@ function SaveToLdap(){
 	$sock->SaveConfigFile(base64_encode($this->BuildConfig()),"GreyListConf");	
 	$sock=new sockets();
 	$sock->getFrameWork("cmd.php?milter-greylist-reconfigure=yes&hostname=$this->hostname&ou=".base64_encode($this->ou));
-	
+	$sock->getFrameWork("postfix.php?smtpd-client-restrictions=yes");
+	// --smtpd-client-restrictions
 	
 }
 

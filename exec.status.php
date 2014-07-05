@@ -5312,6 +5312,7 @@ function apachesrc(){
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			apache_admin_mysql(0, "Apache Web service is not running [action=start]", null,__FILE__,__LINE__);
 			shell_exec2("{$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.initslapd.php --apache >/dev/null 2>&1");
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/apache2 start >/dev/null 2>&1 &");
 		}
@@ -5328,13 +5329,20 @@ function apachesrc(){
 			if($MonitConfig["watchdogTTL"]>5){
 				$TTL=$GLOBALS["CLASS_UNIX"]->PROCCESS_TIME_MIN($master_pid);
 				if($TTL>$MonitConfig["watchdogTTL"]){
+					apache_admin_mysql(1, "Apache Web service TTL {$TTL}Mn exceed {$MonitConfig["watchdogTTL"]}Mn [action=restart]", null,__FILE__,__LINE__);
 					shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.freeweb.php --restart-maintenance >/dev/null 2>&1 &");
 					shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.nginx.php --reload >/dev/null 2>&1 &");
 				}
 			}
 		}
 	}
-	
+	if(!$GLOBALS["DISABLE_WATCHDOG"]){
+		$timefile="/etc/artica-postfix/pids/tests.ScanSize.time";
+		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min($timefile);
+		if($time_file>15){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} /usr/share/artica-postfix/exec.freeweb.php --ScanSize >/dev/null 2>&1 &");
+		}
+	}
 	
 	return implode("\n",$l);return;
 
@@ -8163,6 +8171,7 @@ function nginx(){
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			apache_admin_mysql(1, "Nginx Web service was stopped [action=start]", null,__FILE__,__LINE__);
 			$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.nginx.php --start >/dev/null 2>&1 &");
 			shell_exec2($cmd);
 		}

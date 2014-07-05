@@ -1,7 +1,9 @@
 <?php
 	include_once(dirname(__FILE__).'/class.squid.inc');
 	include_once(dirname(__FILE__).'/class.nginx-sources.inc');
+	include_once(dirname(__FILE__).'/class.nginx-wordpress.inc');
 	include_once(dirname(__FILE__).'/class.tcpip.inc');
+	
 class nginx{
 	private $servername=null;
 	private $ssl=0;
@@ -51,6 +53,7 @@ class nginx{
 	public $proxy_buffers="16 32k";
 	public $file_settings_path;
 	public $BackupBefore=false;
+	public $WORDPRESS=false;
 	
 	function nginx($servername=null){
 		$this->unix=new unix();
@@ -1879,6 +1882,8 @@ private function http_location_cache_params($ligne){
 				
 			$ligne["replaceby"]=stripslashes($ligne["replaceby"]);
 			$ligne["replaceby"]=$this->QuoteStringSpaces($ligne["replaceby"]);
+			if(strpos(" {$ligne["tokens"]}", "r")==0){$ligne["tokens"]=$ligne["tokens"]."r";}
+				
 
 			$f[]="\t\tsubs_filter {$ligne["stringtosearch"]}  {$ligne["replaceby"]} {$ligne["tokens"]};";
 			
@@ -2165,6 +2170,23 @@ private function http_location_cache_params($ligne){
 		}
 		
 		
+		if($this->WORDPRESS){
+			$nginx_wordpress=new nginx_wordpress($this->servername);
+			$nginx_wordpress->ReverseProxyPattern=$ReverseProxyPattern;
+			$f[]=$nginx_wordpress->Getconfig();
+		}
+		
+		$f[]="\tproxy_pass_header Set-Cookie;";
+		
+		$f[]="# Catch the wordpress cookies.";
+		$f[]="# Must be set to blank first for when they don't exist.";
+		$f[]="\tset \$wordpress_auth \"\";";
+		$f[]="\tif (\$http_cookie ~* \"wordpress_logged_in_*\") {";
+		$f[]="\t\tset \$wordpress_auth wordpress_logged_in_$1;";
+		$f[]="\t}";
+		$f[]="";
+		
+		
 		$subs_filter_types=false;
 		$f[]=$this->http_locations($this->servername);
 		$f[]="\tlocation / {";
@@ -2201,6 +2223,11 @@ private function http_location_cache_params($ligne){
 		
 		
 		$f[]=$this->proxy_cache_bypass();
+		if($this->WORDPRESS){
+			$f[]="\t\tproxy_cache_bypass \$wordpress_auth; # Do not cache the response.";
+			$f[]="\t\tproxy_no_cache \$wordpress_auth; # Do not serve response from cache.";
+		}
+		
 		$f[]="\t\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
 		$f[]="\t\tproxy_set_header Host $this->forceddomain;";
 		$f[]="\t\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";

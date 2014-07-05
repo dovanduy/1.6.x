@@ -4,7 +4,7 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 
 
-
+if(isset($_GET["smtpd-client-restrictions"])){smtpd_client_restrictions();exit;}
 if(isset($_GET["mastercf"])){master_cf();exit;}
 if(isset($_GET["RunSaUpd"])){RunSaUpd();exit;}
 if(isset($_GET["postfix-instances-list"])){postfix_instances_list();exit;}
@@ -556,6 +556,16 @@ function CertificateConfigFile(){
 		return;
 	}
 
+}
+function smtpd_client_restrictions(){
+	$hostname=$_GET["hostname"];
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.postfix.maincf.php --smtpd-client-restrictions >/dev/null 2>&1 &";
+	shell_exec($cmd);
+	writelogs_framework("$cmd",__FUNCTION__,__FILE__,__LINE__);
+	
 }
 
 function test_smtp_watchdog(){

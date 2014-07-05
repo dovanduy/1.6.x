@@ -390,70 +390,44 @@ function ldap_escape($str){
 
 private function ldap_connect_action(){
 	
-	if(!$this->ldap_connection){
-		if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> cn=$this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+	if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> cn=$this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			
 		if($this->ldap_host=="127.0.0.1"){
 			$LDAP_API="/var/run/slapd/slapd.sock";
 			$LDAP_API=urlencode($LDAP_API);
 			@ldap_close();
 			$this->ldap_connection=@ldap_connect("ldapi://$LDAP_API",0) ;
-			if(!$this->ldap_connection){
-				$error=ldap_err2str( ldap_errno($this->ldap_connection) );
-				writelogs("Fatal: ldap_connect -> ldapi://$LDAP_API FAILED $error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				@ldap_close();
-			}else{
-				if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> ldapi://$LDAP_API SUCCESS!",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			}
+			if($this->ldap_connection){return true;}
+			$error=ldap_err2str( ldap_errno($this->ldap_connection) );
+			writelogs("Fatal: ldap_connect -> ldapi://$LDAP_API FAILED $error",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+			@ldap_close();
+			
 		}
 			
-		if(!$this->ldap_connection){
-			$this->ldap_connection=@ldap_connect($this->ldap_host, $this->ldap_port ) ;
-			if(!$this->ldap_connection){
-				if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldap_connect -> cn=$this->ldap_host:$this->ldap_port FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-				@ldap_close();
-				return false;
-			}
-		}
-	
-	}
-	
-	return true;
+		$this->ldap_connection=@ldap_connect($this->ldap_host, $this->ldap_port ) ;
+		if($this->ldap_connection){return true;}
+		if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldap_connect -> cn=$this->ldap_host:$this->ldap_port FAILED",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+		@ldap_close();
+		return false;
 }
 
 public function ldap_perform_connection($ldapport=null){
-	if(isset($GLOBALS["LDAP_CONNECT_ID"])){
-		$this->ldap_connection=$GLOBALS["LDAP_CONNECT_ID"];
-		if(isset($GLOBALS["LDAP_BIN_ID"])){
-			$this->ldapbind=$GLOBALS["LDAP_BIN_ID"];
-			return true;
-		}
+	
 		
 		if(!function_exists("ldap_connect")){
 			if(function_exists("debug_backtrace")){$trace=debug_backtrace();if(isset($trace[1])){$called=" called by ". basename($trace[1]["file"])." {$trace[1]["function"]}() line {$trace[1]["line"]}";writeLogs("-> Call to undefined function ldap_connect() $called".__LINE__,__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}}
 			return false;
 		}
 		
-		
-		
-		if(!$this->ldap_connection){
-			if(!$this->ldap_connect_action()){
-				return false;
-			}
-		}
-		
-		
+		if(!$this->ldap_connect_action()){ return false; }
 		ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
 		ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 
-		
 		$this->ldapbind=@ldap_bind($this->ldap_connection, "cn=$this->ldap_admin,$this->suffix", $this->ldap_password);
-		if($this->ldapbind){
-			$GLOBALS["LDAP_BIN_ID"]=$this->ldapbind;
-			return true;
-		}else{
-			if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
-		}
-	}
+		if($this->ldapbind){return true;}
+		
+		if($GLOBALS["VERBOSE"]){writelogs("Fatal: ldapbind -> cn=$this->ldap_admin,$this->suffix",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}		
+		
+	
 	
 	if(!is_numeric($this->ldap_port)){$this->ldap_port=389;}
 		
@@ -484,7 +458,11 @@ public function ldap_perform_connection($ldapport=null){
 	 	}
 	 	return $this->ldap_perform_connection($this->ldap_port);
 	 }
-	 ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+	 if(!ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3)){
+	 	$this->ldap_connection=false;
+	 	if(!$this->ldap_connect_action()){ return false; }
+	 	ldap_set_option($this->ldap_connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+	 }
 	 ldap_set_option($this->ldap_connection, LDAP_OPT_REFERRALS, 0); 	
 	
 	 $this->ldapbind=@ldap_bind($this->ldap_connection, "cn=$this->ldap_admin,$this->suffix", $this->ldap_password);

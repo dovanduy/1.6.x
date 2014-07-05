@@ -74,7 +74,7 @@ if($argv[1]=='--loadbalance'){haproxy_compliance();ReloadPostfix(true);die();}
 if($argv[1]=='--ScanLibexec'){ScanLibexec();die();}
 
 
-
+if($argv[1]=='--smtpd-client-restrictions'){smtpd_client_restrictions();;ReloadPostfix(true);die();}
 if($argv[1]=='--networks'){mynetworks();MailBoxTransport();ReloadPostfix(true);HashTables();die();}
 if($argv[1]=='--headers-check'){headers_check();die();}
 if($argv[1]=='--headers-checks'){headers_check();die();}
@@ -814,6 +814,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	$EnableAmavisInMasterCF=$sock->GET_INFO('EnableAmavisInMasterCF');
 	$EnableAmavisDaemon=$sock->GET_INFO('EnableAmavisDaemon');		
 	$amavis_internal=null;
+	$newHash=array();
 	if(is_array($tbl)){
 		while (list ($num, $ligne) = each ($tbl) ){
 		$ligne=trim($ligne);
@@ -842,6 +843,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	$hashToDelete[]="reject_rbl_client=zen.spamhaus.org";
 	$hashToDelete[]="reject_rbl_client=sbl.spamhaus.org";
 	$hashToDelete[]="reject_rbl_client=sbl.spamhaus.org";
+	$hashToDelete[]="permit_sasl_authenticated";
 	$hashToDelete[]="check_client_access hash:/etc/postfix/amavis_internal";	
 	
 	while (list ($num, $ligne) = each ($hashToDelete) ){
@@ -856,19 +858,33 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	
 	$main=new maincf_multi("master","master");
 	$check_client_access=$main->check_client_access();
+	
+	if(strpos($check_client_access, ",")>0){
+		$check_client_accessEX=explode(",",$check_client_access);
+		$check_client_access=null;
+		while (list ($num, $ligne) = each ($check_client_accessEX) ){
+			$ligne=trim($ligne);
+			if($ligne==null){continue;}
+			$newHash[$ligne]=$ligne;
+		}
+	}
+	
 	if($check_client_access<>null){
 		$newHash[$check_client_access]=$check_client_access;
 	}
 	$smtpd_client_restrictions=array();
-	if(isset($newHash)){
-		if(is_array($newHash)){	
+	
+		if(count($newHash)>0){	
 			while (list ($num, $ligne) = each ($newHash) ){
-				if(preg_match("#hash:(.+)$#",$ligne,$re)){
-					$path=trim($re[1]);
+				echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: Checks \"$ligne\"\n";
+				if(preg_match("#(hash|cidr):(.+)$#",$ligne,$re)){
+					$path=trim($re[2]);
 					if(!is_file($path)){
 						echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: bungled \"$ligne\"\n"; 
 						continue;
 					}
+					$smtpd_client_restrictions[]=$ligne;
+					continue;
 				}
 				
 				if(preg_match("#reject_rbl_client=(.+?)$#",$ligne,$re)){
@@ -877,10 +893,13 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 						$num="reject_rbl_client $rbl";
 						continue;
 					}
-				}			
-				$smtpd_client_restrictions[]=$num;
-			}
+					
+			$smtpd_client_restrictions[]=$ligne;
+			
+			}			
+			
 	}
+	
 	
 if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$sock=$GLOBALS["CLASS_SOCKET"];}else{$sock=$GLOBALS["CLASS_SOCKET"];}
 	$reject_unknown_client_hostname=$sock->GET_INFO('reject_unknown_client_hostname');
@@ -890,6 +909,12 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	if($reject_unknown_client_hostname==1){$smtpd_client_restrictions[]="reject_unknown_client_hostname";}
 	if($reject_unknown_reverse_client_hostname==1){$smtpd_client_restrictions[]="reject_unknown_reverse_client_hostname";}
 	if($reject_invalid_hostname==1){$smtpd_client_restrictions[]="reject_invalid_hostname";}
+	
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: reject_invalid_hostname...............: $reject_invalid_hostname\n";
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: reject_unknown_reverse_client_hostname: $reject_unknown_reverse_client_hostname\n";
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: reject_unknown_client_hostname........: $reject_unknown_client_hostname\n";
+	
+
 	
 	if($EnablePostfixAntispamPack==1){
 		echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions:Anti-spam Pack is enabled\n";
@@ -926,6 +951,9 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		
 		//CLEAN engine ---------------------------------------------------------------------------------------
 		while (list ($num, $ligne) = each ($smtpd_client_restrictions) ){
+			$ligne=trim($ligne);
+			if($ligne==null){continue;}
+			echo "Starting......: ".date("H:i:s")." Clean \"$ligne\"\n";
 			$array_cleaned[trim($ligne)]=trim($ligne);
 		}
 		
@@ -939,8 +967,8 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		$smtpd_client_restrictions=array();
 		
 		
-		if(is_array($smtpd_client_restrictions)){
-			while (list ($num, $ligne) = each ($smtpd_client_restrictions) ){
+		if(is_array($array_cleaned)){
+			while (list ($num, $ligne) = each ($array_cleaned) ){
 				echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions : $ligne\n";
 				$smtpd_client_restrictions[]=trim($ligne);}
 		}
@@ -952,7 +980,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 	$newval=null;
 	
 	
-
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: arrayof (".count($smtpd_client_restrictions).")\n";
 	if(count($smtpd_client_restrictions)>1){
 			$newval=implode(",",$smtpd_client_restrictions);
 			$newval="{$amavis_internal}permit_mynetworks,permit_sasl_authenticated,reject_unauth_pipelining,$newval";
@@ -964,7 +992,7 @@ if(!isset($GLOBALS["CLASS_SOCKET"])){$GLOBALS["CLASS_SOCKET"]=new sockets();$soc
 		}
 	}
 	
-			
+	echo "Starting......: ".date("H:i:s")." smtpd_client_restrictions: $newval\n";
 	postconf("smtpd_client_restrictions",$newval);
 	
 	

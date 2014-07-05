@@ -65,6 +65,8 @@
 		public $PERL_AUTHNTLM=false;
 		public $enabled=1;
 		public $bandlimit=0;
+		public $groupware_admin=null;
+		public $groupware_password=null;
 		private $PrefixOutput;
 		
 		function freeweb($servername=null){
@@ -118,18 +120,40 @@
 			
 		}
 		
+		public function CreateDatabaseName(){
+			$db=$this->servername;
+			$db=str_replace(".", "_", $db);
+			if(strlen($db)>64){$db=substr($db, 0,64);}
+			$this->mysql_database=$db;
+			$this->CreateSite(true);
+			return $db;
+			
+		}
+		
+		private function patchTable(){
+			$q=new mysql();
+			if(!$q->FIELD_EXISTS("freeweb","groupware_password","artica_backup")){
+				$q->QUERY_SQL("ALTER TABLE `freeweb` ADD `groupware_password` VARCHAR(256) NULL","artica_backup");
+			}
+			
+		}
+		
+		
 		private function load(){
 			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] Load DB..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			$sql="SELECT * from freeweb WHERE servername='$this->servername'";
+			
 			$q=new mysql();
 			$q->TestingConnection();
-			$ligne=@mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+			$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$this->servername'","artica_backup"));
 			if(!$q->ok){
 				$this->loading_error=true;
 				$this->loading_error_text=$q->mysql_error;
 				writelogs("Fatal $q->mysql_error SELECT * from freeweb WHERE servername='$this->servername'",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				return;
 			}
+			
+			
+			
 			$this->groupware=$ligne["groupware"];
 			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] Groupware `$this->groupware`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			$this->servername=$ligne["servername"];
@@ -141,6 +165,8 @@
 			$this->useMysql=$ligne["useMysql"];
 			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] groupware:$this->groupware",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
 			if($ligne["useSSL"]==1){$this->SSL_enabled=true;}
+			
+			if(!isset($ligne["groupware_password"])){$ligne["groupware_password"]=null;}
 			
 			
 
@@ -172,6 +198,10 @@
 			if(!isset($ligne["WebCopyID"])){$ligne["WebCopyID"]=0;}
 			$this->WebCopyID=$ligne["WebCopyID"];
 			$this->bandlimit=intval($ligne["bandlimit"]);
+			$this->groupware_admin=trim($ligne["groupware_admin"]);
+			$this->groupware_password=trim($ligne["groupware_password"]);
+			
+
 			
 			if(isset($ligne["sslcertificate"])){$this->sslcertificate=$ligne["sslcertificate"];}
 			if(isset($ligne["enabled"])){$this->enabled=$ligne["enabled"];}
@@ -424,23 +454,41 @@
 		}
 		
 		
-		public function CreateSite(){
+		public function CreateSite($noFrame=false){
 			include_once(dirname(__FILE__)."/class.user.inc");
 			if(trim($this->servername)==null){
 				echo "Fatal! no servername\n";return;
 			}
+			$q=new mysql();
 			$this->mysql_password=mysql_escape_string2($this->mysql_password);
 			$this->mysql_username=mysql_escape_string2($this->mysql_username);
 			$this->ftpuser=mysql_escape_string2($this->ftpuser);
 			$this->ftppassword=mysql_escape_string2($this->ftppassword);
-			$this->uid=mysql_escape_string2($this->uid);			
+			$this->groupware_password=mysql_escape_string2($this->groupware_password);
+			$this->groupware_admin=mysql_escape_string2($this->groupware_admin);
+			$this->uid=mysql_escape_string2($this->uid);
+			
+
+
+			if(!$q->FIELD_EXISTS("freeweb","groupware_admin","artica_backup")){
+				$sql="ALTER TABLE `freeweb` ADD `groupware_admin` VARCHAR(255) NULL";
+				$q->QUERY_SQL($sql,'artica_backup');
+			}
+			
+			if(!$q->FIELD_EXISTS("freeweb","groupware_password","artica_backup")){
+				$sql="ALTER TABLE `freeweb` ADD `groupware_password` VARCHAR(255) NULL";
+				$q->QUERY_SQL($sql,'artica_backup');
+			}
+			
 			
 			$sqladd="INSERT INTO freeweb (mysql_password,mysql_username,ftpuser,ftppassword,useSSL,
 			servername,mysql_database,uid,useMysql,
-			useFTP,lvm_vg,lvm_size,UseLoopDisk,LoopMounts,ou,groupware,www_dir)
+			useFTP,lvm_vg,lvm_size,UseLoopDisk,LoopMounts,ou,groupware,www_dir,groupware_admin,groupware_password)
 			VALUES('$this->mysql_password','$this->mysql_username','$this->ftpuser','$this->ftppassword','$this->useSSL',
 			'$this->servername','$this->mysql_database','$this->uid','$this->useMysql',
-			'$this->useFTP','$this->lvm_vg','$this->lvm_size','$this->UseLoopDisk','$this->LoopMounts','$this->ou','$this->groupware','$this->www_dir')";
+			'$this->useFTP','$this->lvm_vg','$this->lvm_size','$this->UseLoopDisk','$this->LoopMounts','$this->ou',
+			'$this->groupware','$this->www_dir',
+			'$this->groupware_admin','$this->groupware_password')";
 			
 
 		$sqlzedit[]="UPDATE freeweb SET";
@@ -458,6 +506,8 @@
 		$sqlzedit[]="useSSL='$this->useSSL',";
 		$sqlzedit[]="ou='$this->ou',";
 		$sqlzedit[]="groupware='$this->groupware',";
+		$sqlzedit[]="groupware_admin='$this->groupware_admin',";
+		$sqlzedit[]="groupware_password='$this->groupware_password',";
 		$sqlzedit[]="www_dir='$this->www_dir'";
 		
 		$sqlzedit[]="WHERE servername='$this->servername'";	
@@ -466,7 +516,7 @@
 		if($GLOBALS["VERBOSE"]){echo "\n*******\n$sqledit\n*******\n";}
 			
 			$sql="SELECT servername FROM freeweb WHERE servername='$this->servername'";
-			$q=new mysql();
+			
 			
 			if(!$q->FIELD_EXISTS("freeweb","content_plus","artica_backup")){
 				$q->QUERY_SQL("ALTER TABLE `freeweb` ADD `content_plus` longtext NULL",'artica_backup');
@@ -479,9 +529,12 @@
 				$this->error=$q->mysql_error;
 				return false;
 			}
-			if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
-			$sock->getFrameWork("cmd.php?freeweb-website=$this->servername&servername=$this->servername");
-			$sock->getFrameWork("cmd.php?freeweb-groupware=$this->servername&servername=$this->servername");
+			
+			if(!$noFrame){
+				if(!isset($GLOBALS["CLASS_SOCKETS"])){$GLOBALS["CLASS_SOCKETS"]=new sockets();$sock=$GLOBALS["CLASS_SOCKETS"];}else{$sock=$GLOBALS["CLASS_SOCKETS"];}
+				$sock->getFrameWork("cmd.php?freeweb-website=$this->servername&servername=$this->servername");
+				$sock->getFrameWork("cmd.php?freeweb-groupware=$this->servername&servername=$this->servername");
+			}
 			return true;
 			
 		}
@@ -1020,7 +1073,18 @@
 			if($this->groupware=="WORDPRESS"){
 				$f[]="\t<IfModule mod_rewrite.c>";
 				$f[]="\t\tRewriteEngine On";
-				$f[]="\t\tRewriteCond %{REQUEST_URI} !". md5($this->servername);				
+				$f[]="\t\tRewriteBase /";
+				$f[]="\t\tRewriteRule ^index\.php$ - [L]";
+				$f[]="\t\tRewriteRule ^wp-admin/includes/ - [F,L]";
+				$f[]="\t\tRewriteRule !^wp-includes/ - [S=3]";
+				$f[]="\t\tRewriteRule ^wp-includes/[^/]+\.php$ - [F,L]";
+				$f[]="\t\tRewriteRule ^wp-includes/js/tinymce/langs/.+\.php - [F,L]";
+				$f[]="\t\tRewriteRule ^wp-includes/theme-compat/ - [F,L]";
+				$f[]="\t\tRewriteCond %{REQUEST_URI} !". md5($this->servername);	
+				$f[]="\t\tRewriteCond %{REQUEST_FILENAME} !-f";
+				
+				$f[]="\t\tRewriteCond %{REQUEST_FILENAME} !-d";
+				$f[]="\t\tRewriteRule . /index.php [L]";
 				$f[]="\t</IfModule>";
 				return @implode("\n", $f);
 			}
@@ -1039,6 +1103,35 @@
 			}
 			
 			
+		}
+		
+		public function ApplyPermissions(){
+			$WORKING_DIRECTORY=$this->WORKING_DIRECTORY;
+			if(is_link($WORKING_DIRECTORY)){$WORKING_DIRECTORY=@readlink($WORKING_DIRECTORY);}
+			if(!is_dir($WORKING_DIRECTORY)){return;}
+			
+			$unix=new unix();
+			$TEMP_FILE=$unix->FILE_TEMP().".sh";
+			$apache_usr=$unix->APACHE_SRC_ACCOUNT();
+			$apache_group=$unix->APACHE_SRC_GROUP();
+			@chown($WORKING_DIRECTORY, $apache_usr);
+			@chgrp($WORKING_DIRECTORY, $apache_group);
+			
+			$find=$unix->find_program("find");
+			$chmod=$unix->find_program("chmod");
+			$chown=$unix->find_program("chown");
+			$rm=$unix->find_program("rm");
+			$nohup=$unix->find_program("nohup");
+			$NICE=$unix->EXEC_NICE();
+			$f[]="# !/bin/sh";
+			$f[]="$find \"$WORKING_DIRECTORY/\" -type d -exec $chmod 755 {} \;";
+			$f[]="$find \"$WORKING_DIRECTORY/\" -type f -exec $chmod 644 {} \;";
+			$f[]="$chown -R $apache_usr:$apache_group \"$WORKING_DIRECTORY\"";
+			$f[]="$rm $TEMP_FILE";
+			$f[]="";
+			@file_put_contents($TEMP_FILE, @implode("\n", $f));
+			@chmod($TEMP_FILE, 0755);
+			shell_exec("$nohup $TEMP_FILE >/dev/null 2>&1 &");
 		}
 		
 		
@@ -1364,14 +1457,7 @@
 				return;
 			}	
 
-			if($this->groupware=="WORDPRESS"){
-				if($this->AS_ROOT){
-					$unix=new unix();
-					shell_exec($unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.freeweb.php --install-groupware $this->servername >/dev/null 2>&1 &");
-					$this->CheckDirectoryRights();
-				}
-				return;
-			}				
+				
 			if($this->groupware=="POWERADMIN"){
 				$this->WORKING_DIRECTORY="/usr/share/poweradmin";
 				return;
@@ -1391,6 +1477,15 @@
 				}
 				return;
 			}
+			
+			if($this->groupware=="WORDPRESS"){
+				if(trim($this->www_dir)<>null){
+					echo "$this->PrefixOutput [CLASS/".__LINE__."] Directory: $this->www_dir\n";
+					$this->WORKING_DIRECTORY= $this->www_dir;
+					return;
+				}
+				
+			}			
 			
 			
 			if($this->servername=="_default_"){
@@ -1501,7 +1596,7 @@
 			if(!$this->AS_ROOT){return;}
 			$unix=new unix();
 			$this->WORKING_DIRECTORY=str_replace("//","/",$this->WORKING_DIRECTORY);
-			echo "$this->PrefixOutput [CLASS/".__LINE__."] working directory on $this->WORKING_DIRECTORY\n";
+			echo "$this->PrefixOutput [CLASS/".__LINE__."] Working directory on $this->WORKING_DIRECTORY\n";
 			if(!is_dir($this->WORKING_DIRECTORY)){@mkdir($this->WORKING_DIRECTORY,0666,true);}
 			if(!is_dir($this->WORKING_DIRECTORY)){
 				echo "$this->PrefixOutput [CLASS/".__LINE__."] working directory failed !!!\n";
@@ -2282,6 +2377,7 @@
 		
 		public function DirectoryIndex(){
 			if($this->WebCopyID>0){return "index.html";}
+			if($this->groupware=="WORDPRESS"){return "index.php";}
 			if($this->groupware=="ARTICA_USR"){return "logon.php";}
 			if($this->groupware=="ARTICA_ADM"){return "logon.php";}
 			if($this->groupware=="XAPIAN"){return "xapian.index.php";}

@@ -41,7 +41,9 @@ class mount{
 			$server="$server/$path";
 			$server=str_replace("//", "/", $server);
 		}
-		exec("$curlftpfs $username:$password@$server $mountpoint 2>&1",$results);
+		$cmd="$curlftpfs $username:$password@$server $mountpoint 2>&1";
+		if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+		exec($cmd,$results);
 		while (list ($index, $line) = each ($results) ){
 			if(function_exists("writelogs")){writelogs("$line",__CLASS__."/".__FUNCTION__,__FILE__,__LINE__);}
 			$this->events("LOG:\"$line\"");

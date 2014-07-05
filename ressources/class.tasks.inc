@@ -161,6 +161,7 @@ class system_tasks{
 			$this->tasks_array[74]="{mysql_repair}";
 			$this->tasks_array[75]="{backup_artica_settings}";
 			$this->tasks_array[76]="{blackwhite_automation}";
+			$this->tasks_array[77]="{backup_wordpress_websites}";
 			
 			
 			
@@ -242,6 +243,7 @@ class system_tasks{
 			$this->tasks_explain_array[74]="{mysql_repair_task_explain}";
 			$this->tasks_explain_array[75]="{backup_artica_settings_explain}";
 			$this->tasks_explain_array[76]="{postfix_automation_about}";
+			$this->tasks_explain_array[77]="{backup_wordpress_websites}";
 			
 			
 
@@ -325,6 +327,7 @@ class system_tasks{
 			$this->tasks_processes[74]="exec.mysql.optimize.php --repair";
 			$this->tasks_processes[75]="exec.backup.artica.php";
 			$this->tasks_processes[76]="exec.imap.blacklists.php";
+			$this->tasks_processes[77]="exec.wordpress-backup.php --exec";
 			
 			
 			$this->DisableTasks();

@@ -1,6 +1,5 @@
 <?php
 if(posix_getuid()<>0){die("Cannot be used in web server mode\n\n");}
-$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/wordpress.index.progress";
 include_once(dirname(__FILE__).'/ressources/class.templates.inc');
 include_once(dirname(__FILE__).'/ressources/class.ini.inc');
 include_once(dirname(__FILE__).'/ressources/class.mysql.inc');
@@ -27,6 +26,14 @@ if(preg_match("#--verbose#",implode(" ",$argv))){
 }
 
 download();
+
+function build_progress($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	@file_put_contents("/usr/share/artica-postfix/ressources/logs/wordpress.reconfigure.progress", serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+
+}
 
 function download(){
 
@@ -81,11 +88,5 @@ shell_exec("$nohup /usr/share/artica-postfix/bin/process1 --verbose 654646 >/dev
 }
 
 
-function build_progress($text,$pourc){
-	$array["POURC"]=$pourc;
-	$array["TEXT"]=$text;
-	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
-	@chmod($GLOBALS["PROGRESS_FILE"],0755);
 
-}
 

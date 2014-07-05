@@ -393,6 +393,7 @@ function configure_single_freeweb($servername){
 		$host->set_proxy_destination("127.0.0.1");
 	}
 	if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
+	if($free->groupware=="WORDPRESS"){$host->WORDPRESS=true;}
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername FreeWeb SSL:{$ligne["useSSL"]}\n";}
 	if($ligne["useSSL"]==0){
@@ -485,6 +486,7 @@ function configure_single_website_reload(){
 		$nginx=$unix->find_program("nginx");
 		shell_exec("$nginx -c /etc/nginx/nginx.conf -s reload >/dev/null 2>&1");
 		if($unix->process_exists($pid)){
+			apache_admin_mysql(1, "Nginx Web service reload done [action=start]", null,__FILE__,__LINE__);
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Success service reloaded pid:$pid...\n";}
 		}
 	
@@ -1282,6 +1284,7 @@ function reload($aspid=false){
 		shell_exec("$nginx -c /etc/nginx/nginx.conf -s reload");
 		$pid=PID_NUM();
 		if($unix->process_exists($pid,basename(__FILE__))){
+			apache_admin_mysql(2, "Nginx Web service success to reload [action=info]", null,__FILE__,__LINE__);
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Success reloading PID $pid\n";}
 		}
 		
@@ -1297,6 +1300,7 @@ function reload($aspid=false){
 	}
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx starting daemon\n";}
+	apache_admin_mysql(0, "Nginx Web service not running after a reload [action=start]", null,__FILE__,__LINE__);
 	start(true);
 	
 }
@@ -1339,6 +1343,7 @@ function reconfigure_all(){
 	build_progress("{starting_service}",90);
 	start(true);
 	build_progress("{done}",100);
+	apache_admin_mysql(1, "Nginx Web service reconfigure all sites done [action=start]", null,__FILE__,__LINE__);
 }
 
 function restart(){
@@ -1354,6 +1359,7 @@ function restart(){
 	stop(true);
 	build(false);
 	start(true);
+	apache_admin_mysql(1, "Nginx Web service was restarted [action=info]", null,__FILE__,__LINE__);
 	
 }
 
@@ -1482,11 +1488,13 @@ function start($aspid=false){
 
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
+		apache_admin_mysql(2, "Nginx Web service success to start [action=info]", null,__FILE__,__LINE__);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service Success service started pid:$pid...\n";}
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.php-fpm.php --start >/dev/null 2>&1 &");
 		return;
 	}
+	apache_admin_mysql(0, "Nginx Web service failed to start [action=info]", null,__FILE__,__LINE__);
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service failed...\n";}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $cmd\n";}
 	

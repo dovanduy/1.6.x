@@ -458,11 +458,6 @@ var FreeWebIDMEM$t='';
 		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_FreeWebsRebuildvHostsTable);
 	}
 
-	function FreeWebsEnableSite(servername){
-		var XHR = new XHRConnection();
-		XHR.appendData('FreeWebsEnableSite',servername);
-		XHR.sendAndLoad('freeweb.servers.php', 'POST',x_FreeWebRefresh);	
-	}
 </script>			 					 				 		
 ";	
 	

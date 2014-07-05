@@ -1104,7 +1104,9 @@ class dansguardian_rules{
 	
 	function LoadBlackListes($nocache=false){
 		$data=$this->get_cachedItems(__FUNCTION__);
-		if($data<>null){return unserialize($data);}
+		if($data<>null){$data=unserialize($data);
+			if(count($data)>20){return $data;}
+		}
 		
 		include_once(dirname(__FILE__)."/class.mysql.squid.builder.php");
 		$q=new mysql_squid_builder();

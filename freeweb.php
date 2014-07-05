@@ -1319,19 +1319,7 @@ function apache_src_status(){
 	$size=FormatBytes(($ligne["tsum"]/1024));
 	$ini->loadString(base64_decode($datas));
 	
-$table="
-<center style='margin-top:-10px'>
-<table style='width:50%' class=form>
-<tbody>
-<tr>
-	<td width=1%>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?apache-cmds=stop')")."</td>
-	<td width=1%>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?apache-cmds=restart')")."</td>
-	<td width=1%>". imgtootltip("32-run.png","{start}","Loadjs('$page?apache-cmds=start')")."</td>
-</tr>
-</tbody>
-</table>
-</center>
-";	
+
 	
 	$serv[]="<center style='font-size:16px'>
 		<a href=\"javascript:blur();\" OnClick=\"javascript:FreeWebsScanSize();\" style='font-size:16px;text-decoration:underline'>{disk_usage}: $size</a></center>";

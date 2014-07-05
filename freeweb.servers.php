@@ -17,12 +17,39 @@
 		die();exit();
 	}
 	
-	
+	if(isset($_GET["enable-site-js"])){enable_site_js();exit;}
 	if(isset($_GET["servers-list"])){servers_list();exit;}
 	if(isset($_GET["freeweb-zarafa-choose"])){FreeWebsPopupZarafa();exit;}
 	if(isset($_POST["FreeWebsEnableSite"])){FreeWebsEnableSite();exit;}
 	
 page();
+
+function enable_site_js(){
+	$servername=$_GET["servername"];
+	$enabled=$_GET["enabled"];
+	$t=$_GET["t"];
+	$page=CurrentPageName();
+	header("content-type: application/x-javascript");
+	$time=time();
+	echo "
+	var xFreeWebs$time=function (obj) {
+			var results=obj.responseText;
+			if(results.length>10){alert(results);return;}	
+			$('#freewebs-table-$t').flexReload();
+		}	
+	
+	function FreeWebs$time(){
+		var XHR = new XHRConnection();
+		XHR.appendData('FreeWebsEnableSite','$servername');
+		XHR.sendAndLoad('$page', 'POST',xFreeWebs$time);	
+	}		
+			
+	FreeWebs$time();		
+	";
+	
+	
+}
+
 
 
 function page(){
@@ -128,7 +155,7 @@ function page(){
 FreeWebIDMEM='';
 
 $('#freewebs-table-$t').flexigrid({
-	url: '$page?servers-list=yes&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t=$t&tabzarafa={$_GET["tabzarafa"]}',
+	url: '$page?servers-list=yes&t=$t&force-groupware={$_GET["force-groupware"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t=$t&tabzarafa={$_GET["tabzarafa"]}',
 	dataType: 'json',
 	colModel : [
 		{display: '&nbsp;', name : 'icon', width : 31, sortable : false, align: 'center'},
@@ -281,11 +308,7 @@ $('#freewebs-table-$t').flexigrid({
 		XHR.sendAndLoad('freeweb.edit.php', 'POST',x_FreeWebsRebuildvHostsTable);
 	}
 
-	function FreeWebsEnableSite(servername){
-		var XHR = new XHRConnection();
-		XHR.appendData('FreeWebsEnableSite',servername);
-		XHR.sendAndLoad('$page', 'POST',x_FreeWebRefresh);	
-	}
+
 		
 	
 </script>";
@@ -585,7 +608,10 @@ function servers_list(){
 		$color_span="#5F5656";
 		if($ligne["enabled"]==0){$color_span="#8C8C8C";}
 		$compile=imgsimple("apply-config-32.png",null,"Loadjs('freeweb.rebuild.progress.php?servername=$servername_enc')");
-		$enable=Field_checkbox("enable_$md5S", 1,$ligne["enabled"],"FreeWebsEnableSite('{$ligne["servername"]}')");
+		
+		
+		
+		$enable=Field_checkbox("enable_$md5S", 1,$ligne["enabled"],"Loadjs('freeweb.servers.php?enable-site-js=yes&t={$_GET["t"]}&servername=$servername_enc&enabled={$ligne["enabled"]}');");
 		
 		if($ligne["enabled"]==0){
 			$requests_second="-";

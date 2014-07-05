@@ -4762,6 +4762,8 @@ public function CheckTableTaskEvents($tablename){
 				  `useSSL` smallint(1) NOT NULL DEFAULT '0',
 				  `useFTP` smallint(1) NOT NULL DEFAULT '1',
 				  `useMysql` smallint(1) NOT NULL DEFAULT '1',
+				  `groupware_admin` varchar(255) NOT NULL,
+				  `groupware_password` varchar(255) NOT NULL,
 				  `mysql_database` varchar(255) NOT NULL,
 				  `uid` varchar(255) NOT NULL,
 				  `gpid` varchar(255) NOT NULL,

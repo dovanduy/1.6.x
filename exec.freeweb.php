@@ -74,14 +74,14 @@ if($argv[1]=="--sitename"){
 		build_progress("{reconfigure} ".$argv[2], 5);
 		if(buildHost(null,$argv[2])){
 			if(!$GLOBALS["NO_HTTPD_CONF"]){
-				build_progress("CheckHttpdConf() ".$argv[2], 50);
+				build_progress("CheckHttpdConf() ".$argv[2], 80);
 				CheckHttpdConf();
 			}
 			if(!$GLOBALS["NO_HTTPD_RELOAD"]){
-				build_progress("Reloading apache for ".$argv[2], 70);
+				build_progress("Reloading apache for ".$argv[2], 90);
 				reload_apache();
 			}
-			build_progress("sync_squid() ".$argv[2], 80);
+			build_progress("sync_squid() ".$argv[2], 95);
 			sync_squid();
 			build_progress("{success} ".$argv[2], 100);
 		}
@@ -481,7 +481,11 @@ function reload_apache(){
 		while (list ($num, $ligne) = each ($results) ){
 			if(apachectl_line_skip($ligne)){continue;}
 			echo "Stopping......: ".date("H:i:s")." [INIT]: Apache $ligne\n";}
+		
+			
+		apache_admin_mysql(1, "Apache Web service was reloaded [action=info]", @implode("\n", $results),__FILE__,__LINE__);
 		$results=array();
+		
 		KillApacheProcesses();
 		startApache(false,true);
 
@@ -503,7 +507,10 @@ function StopApache(){
 	exec($cmd,$results);
 	while (list ($num, $ligne) = each ($results) ){
 		if(apachectl_line_skip($ligne)){continue;}
-		echo "Stopping......: ".date("H:i:s")." [INIT]: Apache $ligne\n";}
+		echo "Stopping......: ".date("H:i:s")." [INIT]: Apache $ligne\n";
+	
+	}
+	apache_admin_mysql(1, "Apache Web service was stopped [action=info]", @implode("\n", $results),__FILE__,__LINE__);
 	KillApacheProcesses();	
 }
 
@@ -811,9 +818,11 @@ function startApache($withoutkill=false,$aspid=false){
 	
 	$pid=$unix->get_pid_from_file($APACHE_PID_PATH);
 	if(!$unix->process_exists($pid)){
+		apache_admin_mysql(0, "Apache Web failed to be started [action=info]", @implode("\n", $results),__FILE__,__LINE__);
 		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Failed [$APACHE_PID_PATH]\n";
 		return;
 	}	
+	apache_admin_mysql(1, "Apache Web success to be started [action=info]", @implode("\n", $results),__FILE__,__LINE__);
 	echo "Starting......: ".date("H:i:s")." [INIT]: Apache Success pid $pid\n";
 	$nginx=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
 	if(is_file($nginx)){shell_exec("/etc/init.d/nginx start");}
@@ -2040,6 +2049,7 @@ if($FreeWebsEnableModEvasive==1){
 
 function mod_security(){
 	$sock=new sockets();
+	$users=new usersMenus();
 	$httpdconf=$GLOBALS["CLASS_UNIX"]->LOCATE_APACHE_CONF_PATH();
 	$d_path=$GLOBALS["CLASS_UNIX"]->APACHE_DIR_SITES_ENABLED();
 	$DAEMON_PATH=$GLOBALS["CLASS_UNIX"]->getmodpathfromconf($httpdconf);
@@ -2717,9 +2727,9 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		@touch("/etc/apache2/sites-enabled/000-default");
 	}
 	
-	build_progress("Building $hostname Testing configuration", 33);
+	build_progress("Building $hostname {testing_configuration}", 33);
 	if(!TestingApacheConfigurationFile()){
-		build_progress("Building $hostname Testing configuration failed", 110);
+		build_progress("Building $hostname {testing_configuration} {failed}", 110);
 		$freeweb->SetError(1);
 		@unlink($FileConfigurationPath);
 		if(is_file($FileConfigurationBackupPath)){
@@ -2731,47 +2741,49 @@ function buildHost($uid=null,$hostname,$ssl=null,$d_path=null,$Params=array()){
 		$freeweb->SetError(0);
 	}
 	
-	build_progress("Building $hostname Testing configuration", 34);
-	@chmod("$freeweb->WORKING_DIRECTORY",0755);
-	if($apache_usr<>null){@chown("$freeweb->WORKING_DIRECTORY", $apache_usr);}
-	if($apache_group<>null){@chgrp("$freeweb->WORKING_DIRECTORY", $apache_group);}
+	
+
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
 	$chown=$unix->find_program("chown");
+	$php=$unix->LOCATE_PHP5_BIN();
+	
 	if(is_file("/etc/php5/apache2/php.ini")){
 		$timephpini=$unix->file_time_min("/etc/php5/apache2/php.ini");
 		if($timephpini>60){shell_exec("/usr/share/artica-postfix/bin/artica-install --php-ini >/dev/null 2>&1");}
 	}
 	
-	build_progress("Building $hostname Testing configuration", 35);
+	build_progress("Building $hostname {apply_permissions} - $freeweb->groupware -", 34);
 	if($freeweb->groupware=="EYEOS"){install_EYEOS($hostname);}
 	if($freeweb->groupware=="GROUPOFFICE"){group_office_install($hostname,true);}
 	if($freeweb->groupware=="PIWIK"){install_PIWIK($hostname,true);}
-	if($freeweb->groupware=="DRUPAL"){
-		$unix=new unix();
-		$nohup=$unix->find_program("nohup");
-		shell_exec("$nohup ". $unix->LOCATE_PHP5_BIN()." /usr/share/artica-postfix/exec.freeweb.php --drupal-infos \"$hostname\" >/dev/null 2>&1 &");
+	if($freeweb->groupware=="DRUPAL"){shell_exec("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --drupal-infos \"$hostname\" >/dev/null 2>&1 &"); }
+	if($freeweb->groupware=="WORDPRESS"){
+		build_progress("Building $hostname verify wordpress website..", 35);
+		system("$php /usr/share/artica-postfix/exec.wordpress.php \"$hostname\"");
+		if(!is_file("$freeweb->WORKING_DIRECTORY/wp-config.php")){return false;}
+	
 	}
 	
-	build_progress("Building $hostname Testing configuration", 36);
-	if(is_dir($freeweb->WORKING_DIRECTORY)){
-		$nice=EXEC_NICE();
-		shell_exec("$nohup $nice $chown -R $apache_usr:$apache_group $freeweb->WORKING_DIRECTORY >/dev/null 2>&1 &");
-	}
 	
-	build_progress("Building $hostname Testing configuration", 37);
+	
+	
+	build_progress("Building $hostname {apply_permissions}", 60);
+	$freeweb->ApplyPermissions();
+	
+	build_progress("Building $hostname {checking_reverse_proxy}", 65);
 	$freeweb->update_groupware_version();
 	if($GLOBALS["NGINX_CONFIGURE"]){
 		$EnableNginx=$sock->GET_INFO("EnableNginx");
 		if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 		if($EnableNginx==1){
 			$php=$unix->LOCATE_PHP5_BIN();
-			build_progress("Building $hostname -> NGINX", 38);
-			shell_exec("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure \"$hostname\"");
-			build_progress("Building $hostname NGINX OK", 39);
+			build_progress("Building $hostname {checking_reverse_proxy} - NGINX", 70);
+			system("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure \"$hostname\"");
+			build_progress("Building $hostname {checking_reverse_proxy} OK", 75);
 		}
 	}
-	build_progress("Building $hostname -> DONE", 40);
+	build_progress("Building $hostname -> DONE", 80);
 	return true;
 }
 
@@ -3603,9 +3615,9 @@ function install_JOOMLA17($servername){
 	
 }
 function install_wordpress($servername){
-	include_once(dirname(__FILE__)."/ressources/class.wordpress.inc");
-	$word=new wordpress($servername);
-	$word->CheckInstall();
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php /usr/share/artica-postfix/exec.wordpress.php \"$servername\"");
 }
 function install_concrete5($servername){
 	include_once(dirname(__FILE__)."/ressources/class.concrete5.inc");

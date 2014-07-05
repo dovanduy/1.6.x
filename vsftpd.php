@@ -93,15 +93,52 @@ function vsftpd_settings(){
 	$VsFTPDPassive=$sock->GET_INFO("VsFTPDPassive");
 	if(!is_numeric($VsFTPDPassive)){$VsFTPDPassive=1;}
 	$VsFTPDPassiveAddr=$sock->GET_INFO("VsFTPDPassiveAddr");
+	$pasv_min_port=intval($sock->GET_INFO("VsFTPDPassiveMinPort"));
+	$pasv_max_port=intval($sock->GET_INFO("VsFTPDPassiveMaxPort"));
+	$VsFTPDFileOpenMode=$sock->GET_INFO("VsFTPDFileOpenMode");
+	$VsFTPDLocalUmask=$sock->GET_INFO("VsFTPDLocalUmask");
+	if($VsFTPDFileOpenMode==null){$VsFTPDFileOpenMode="0666";}
+	if($VsFTPDLocalUmask==null){$VsFTPDLocalUmask="077";}
+	
+	$VsFTPDLocalMaxRate=intval($sock->GET_INFO("VsFTPDLocalMaxRate"));
+	
+	$umask["022"]="{permissive} 755";
+	$umask["026"]="{moderate} 751";
+	$umask["027"]="{moderate} 750";
+	$umask["077"]="{severe}	700";
+	
+	if($pasv_min_port==0){$pasv_min_port=40000;}
+	if($pasv_max_port==0){$pasv_max_port=40200;}
 	
 	$html="
 <div style='width:98%' class=form>
 		". Paragraphe_switch_img("{enable_passive_mode}", "{enable_passive_mode_explain}","VsFTPDPassive",$VsFTPDPassive,null,650)."
 	<table style='width:100%'>
 		<tr>
+			<td class=legend style='font-size:18px'>{pasv_min_port}:</td>
+			<td>". field_text("VsFTPDPassiveMinPort",$pasv_min_port,"explain={pasv_minmax_port_explain};font-size:18px;width:110px")."</td>
+		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{pasv_max_port}:</td>
+			<td>". field_text("VsFTPDPassiveMaxPort",$pasv_max_port,"explain={pasv_minmax_port_explain};font-size:18px;width:110px")."</td>
+		</tr>
+		<tr>
 			<td class=legend style='font-size:18px'>{pasv_address}:</td>
 			<td>". field_ipv4("VsFTPDPassiveAddr",$VsFTPDPassiveAddr,"explain={pasv_address_explain};font-size:18px")."</td>
+		</tr>					
+		<tr>
+			<td class=legend style='font-size:18px'>{files_permissions}:</td>
+			<td>". field_text("VsFTPDFileOpenMode",$VsFTPDFileOpenMode,"explain={VsFTPDFileOpenMode};font-size:18px;width:110px")."</td>
 		</tr>
+		<tr>
+			<td class=legend style='font-size:18px'>{directories_permissions}:</td>
+			<td>". Field_array_Hash($umask,"VsFTPDLocalUmask",$VsFTPDLocalUmask,"style:font-size:18px")."</td>
+		</tr>		
+		<tr>
+			<td class=legend style='font-size:18px'>{max_rate}:</td>
+			<td style='font-size:18px'>". field_text("VsFTPDLocalMaxRate","$VsFTPDLocalMaxRate","font-size:18px;width:110px")."&nbsp;Ko/s</td>
+		</tr>					
+					
 	</table>
 	<div style='text-align:right'><hr>". button("{apply}","Save$t();",26)."</div>
 </div>
@@ -117,11 +154,21 @@ function Save$t(){
 	var XHR = new XHRConnection();
 	XHR.appendData('VsFTPDPassive',document.getElementById('VsFTPDPassive').value);
 	XHR.appendData('VsFTPDPassiveAddr',document.getElementById('VsFTPDPassiveAddr').value);
+	
+	XHR.appendData('VsFTPDPassiveMinPort',document.getElementById('VsFTPDPassiveMinPort').value);
+	XHR.appendData('VsFTPDPassiveMaxPort',document.getElementById('VsFTPDPassiveMaxPort').value);
+	XHR.appendData('VsFTPDFileOpenMode',document.getElementById('VsFTPDFileOpenMode').value);
+	XHR.appendData('VsFTPDLocalUmask',document.getElementById('VsFTPDLocalUmask').value);
+	XHR.appendData('VsFTPDLocalMaxRate',document.getElementById('VsFTPDLocalMaxRate').value);
+	
+	
 	XHR.sendAndLoad('$page', 'POST',x_Save$t);	
 }
 </script>			
 			
 ";
+	
+	echo $tpl->_ENGINE_parse_body($html);
 	
 }
 
@@ -129,6 +176,13 @@ function vsftpd_settings_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("VsFTPDPassive", $_POST["VsFTPDPassive"]);
 	$sock->SET_INFO("VsFTPDPassiveAddr", $_POST["VsFTPDPassiveAddr"]);
+	
+	$sock->SET_INFO("VsFTPDPassiveMinPort", $_POST["VsFTPDPassiveMinPort"]);
+	$sock->SET_INFO("VsFTPDPassiveMaxPort", $_POST["VsFTPDPassiveMaxPort"]);
+	$sock->SET_INFO("VsFTPDFileOpenMode", $_POST["VsFTPDFileOpenMode"]);
+	$sock->SET_INFO("VsFTPDLocalUmask", $_POST["VsFTPDLocalUmask"]);
+	$sock->SET_INFO("VsFTPDLocalMaxRate", $_POST["VsFTPDLocalMaxRate"]);
+	
 	$sock->getFrameWork("vsftpd.php?restart=yes");
 	
 }

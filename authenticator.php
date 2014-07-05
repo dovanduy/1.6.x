@@ -556,13 +556,14 @@ function send_error_page(){
 	$REQUESTED_URI=$_GET["uri"];
 	$uid=$_SERVER['PHP_AUTH_USER'];
 	$error_id=$_GET["error-ID"];
+	$MyError=intval($_GET["error-page"]);
 	//ini_set('html_errors',0);ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
 	
 	if($GLOBALS["DEBUG"]){
 		Debuglogs("$SERVER_NAME $REQUESTED_URI - $uid Error ID:$error_id",__FUNCTION__,__LINE__);
 	}
 	
-	if($_GET["error-page"]==403){nginx_attack();}
+	
 	
 	$GLOBALS["Q"]=new mysql_squid_builder();
 	
@@ -695,6 +696,20 @@ function send_error_page(){
 			$title=$ligne["title"];
 		}
 	}
+	
+	
+	if($MyError==403){
+		if(!isset($_SESSION["ARTICA_RP_403_REFRESHED"])){
+			$header=str_replace("<head>", "<head><META HTTP-EQUIV=\"Refresh\" CONTENT=\"1\">", $header);
+			$_SESSION["ARTICA_RP_403_REFRESHED"]=true;
+		}else{
+			nginx_attack();
+		}
+		
+	}
+	
+	
+	
 	
 	$newheader=str_replace("{TITLE}", $title, $header);
 	$newheader=str_replace("{ARTICA_VERSION}", $ARTICAV, $newheader);

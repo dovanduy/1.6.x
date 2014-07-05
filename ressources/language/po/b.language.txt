@@ -401,6 +401,7 @@ Do you want to carry out this operation ?</apply_firewall_configuration_warn>
 <apply_klms_config_text>Apply all settings and restart Kaspersky Mail security main service.</apply_klms_config_text>
 <apply_parameters>Apply parameters</apply_parameters>
 <apply_parameters_to_the_system>Apply parameters to the system</apply_parameters_to_the_system>
+<apply_permissions>Apply permissions</apply_permissions>
 <apply_privileges>Apply privileges</apply_privileges>
 <APPLY_SETTINGS_FETCHMAIL>Saving fetchmail rules and restart service</APPLY_SETTINGS_FETCHMAIL>
 <APPLY_SETTINGS_SQUID>Please wait....[br]The proxy settings and all filters will be rebuilded...</APPLY_SETTINGS_SQUID>
@@ -593,6 +594,11 @@ The remote server will be designed to import collected data and build statistics
 You should ensure that this server export data before the statistics generation of the statistics server.[br]
 For example, schedule the exportation at 00h10 and schedule the statistics server to build statistics at 01h00 
 </APP_WIZARD_STATS_APPLIANCE_DISCONNECTED>
+<APP_WORDPRESS_ARTICA_TEXT>Artica For WordPress allows you to deploy Wordpress websites trough it's interface.[br]
+Artica is able to manage Wordpress as a service.[br]
+It able to backup/restore your websites, enforce security and maintain updates.[br]
+The tab Wordpress websites allows you to display status of all your Wordpress sites.
+</APP_WORDPRESS_ARTICA_TEXT>
 <APP_WPAD>Web Proxy Auto-Discovery</APP_WPAD>
 <APP_WPADDYN>Dynamic Proxy PAC</APP_WPADDYN>
 <APP_WPADDYN_TEXT>This Web service is designed to generate dynamically on-access PAC/WPAD script according rules defines in the proxy section</APP_WPADDYN_TEXT>
@@ -822,6 +828,8 @@ You can limit the maximal size of a container created by a member</BACKUP_STORAG
 <backup_tasks>Backup tasks</backup_tasks>
 <BACKUP_TASK_CONFIRM_DELETE_SOURCE>This task will remove this source. Do you want to carry out this operation ?</BACKUP_TASK_CONFIRM_DELETE_SOURCE>
 <backup_to_nas>Backup to N.A.S system</backup_to_nas>
+<backup_wordpress_websites>Backup Wordpress websites</backup_wordpress_websites>
+<backup_wordpress_websites_explain>This task backup all Wordpress websites to the defined destination</backup_wordpress_websites_explain>
 <backup_zarafa_db>Backup Zarafa MySQL database</backup_zarafa_db>
 <backup_zarafa_db_explain>This task will create a MySQL Zarafa database backup container.[br]
 There is no sense to perform this task without a Zarafa server installed and less than 24H</backup_zarafa_db_explain>
@@ -1138,6 +1146,7 @@ If you using this application with Artica, you should enable this feature in ord
 <char_alert_error>Value has special characters, These are not allowed:</char_alert_error>
 <checking_compatibilities>Checking compatbilities</checking_compatibilities>
 <checking_configuration>Checking configuration</checking_configuration>
+<checking_reverse_proxy>Checking reverse proxy settings</checking_reverse_proxy>
 <check_acls>Check ACLs rules</check_acls>
 <check_acls_explain>Re-apply all saved acls rules in order to prevent administrators changing ACLs on the system or using shared folders</check_acls_explain>
 <check_all_services_status>Check all services status</check_all_services_status>
@@ -1622,6 +1631,7 @@ You can set multiple values by separate them with the ";" character.</dhcp_host_
 <DiplayFullPath>Display full path</DiplayFullPath>
 <direction>Direction</direction>
 <directories>directories</directories>
+<directories_permissions>Directories permissions</directories_permissions>
 <directory_size>Directory size</directory_size>
 <direct_connection>direct connection</direct_connection>
 <direct_to_internet>Direct to Internet</direct_to_internet>
@@ -1788,6 +1798,7 @@ It only listen loopback address and can be used only for local services such as 
 <dns_service>DNS service</dns_service>
 <doesnnot_exists_in_database>doesn't exists in database</doesnnot_exists_in_database>
 <domain-name-servers>DNS servers</domain-name-servers>
+<domainname>Domain name</domainname>
 <DomainOfThisserver>Server domain name</DomainOfThisserver>
 <domains_and_dns>Domains and DNS</domains_and_dns>
 <domains_and_dns_text>Manage your domains and DNS database</domains_and_dns_text>
@@ -2143,6 +2154,7 @@ By enabling this option, Artica will add in the hosts file the nosslsearch.googl
 You can click on the link in order to see added items.
 </enforce_google_to_non_ssl_text>
 <enforce_level>Enforce level</enforce_level>
+<enforce_security>Enforce security</enforce_security>
 <errors_pages>Errors pages</errors_pages>
 <error_acl_no_object>This rule will be not available because no object is linked to this rule.</error_acl_no_object>
 <error_category_nomore5>Error category name cannot be less than 5 characters</error_category_nomore5>
@@ -2323,6 +2335,7 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 <fetchmail_parameters_compilation>Fetchmail compilation parameters</fetchmail_parameters_compilation>
 <fetch_folders_explain>Retreive messages stored on specific folders</fetch_folders_explain>
 <filepath>File path</filepath>
+<files_permissions>Files permissions</files_permissions>
 <file_descriptors>filedescriptors</file_descriptors>
 <file_descriptors_squid_explain>Generally, a file descriptor is an index for an entry in a kernel-resident data structure containing the details of all open file.[br]
 This value limit the proxy to not open file more than the specified value.</file_descriptors_squid_explain>
@@ -2740,6 +2753,7 @@ read the link below in order to display how to make this procedure later and cli
 <install_now>Install now</install_now>
 <install_this_version>Install this version</install_this_version>
 <install_virtual_switch>Install the virtual Switch</install_virtual_switch>
+<install_wordpress>Install Wordpress</install_wordpress>
 <InstantMessagingDomain>Instant Messaging domain</InstantMessagingDomain>
 <INSTANT_MESSAGING>Instant Messaging</INSTANT_MESSAGING>
 <INSTANT_MESSAGING_EJABBERD>ejabberd is an XMPP application server.[br]
@@ -2765,6 +2779,7 @@ Please take care about this feature and do not join interfaces from the same cab
 <internal_users>Internal members</internal_users>
 <internet_access_per_day>Internet access per day</internet_access_per_day>
 <internet_browsing>Internet Browsing</internet_browsing>
+<internet_domains>Internet domains</internet_domains>
 <internet_network>Internet network</internet_network>
 <introduction_text>Introduction text</introduction_text>
 <invalid>invalid</invalid>
@@ -3190,6 +3205,7 @@ A server restart also sets the maximum size of existing MEMORY tables to the glo
 <MAX_PING_GATEWAY_EXPLAIN>Watchdog is executed by default each 3 minutes.[br]How many round the ping is stamp to be failed and perform operations.</MAX_PING_GATEWAY_EXPLAIN>
 <max_plugins>Max. plugins</max_plugins>
 <max_processes>MAX Processes</max_processes>
+<max_rate>Data transfer rate permitted</max_rate>
 <max_storage_days>MAX storage days</max_storage_days>
 <max_storage_days_accesses>MAX storage days (accesses)</max_storage_days_accesses>
 <max_system_load>Max system load</max_system_load>
@@ -3299,6 +3315,7 @@ For example start at 02h00 and maximal execute time for 240mn = 4 hours.[br]
 0 means unlimited time</MirrorDebianMaxExecTime_explain>
 <MirrorEnableDebianSchedule_explain>Is enabled, only scheduled task will be able to execute retreival.[br]See the schedule section</MirrorEnableDebianSchedule_explain>
 <mixed_mode>Mixed mode</mixed_mode>
+<moderate>Moderate</moderate>
 <module_in_squid_not_installed>The required module is not installed on your server.[br]
 You should upgrade your Proxy package trough the Web interface in order to make this feature available.
 </module_in_squid_not_installed>
@@ -3533,6 +3550,7 @@ If you want to access to it trough HTTP (WebDav), enable the option HTTP sharing
 <new_forward_zone>New forward zone</new_forward_zone>
 <new_host>New host</new_host>
 <new_interface>New interface</new_interface>
+<new_internet_domain>New Internet domain</new_internet_domain>
 <new_itchart>New IT Charter</new_itchart>
 <new_items>New items</new_items>
 <new_keyword>New keyword</new_keyword>
@@ -3589,6 +3607,7 @@ Click here in order to update it.
 <new_webserver>New website</new_webserver>
 <new_website>New website</new_website>
 <new_word>New word</new_word>
+<new_wordpress_site>New Wordpress website</new_wordpress_site>
 <next_check>Next check</next_check>
 <next_check_in>Next check in</next_check_in>
 <NginxAuthPort_explain>By default the authenticator listen to a unix socket ( set unix:path/to/socket).[br]
@@ -3892,6 +3911,12 @@ We suggest to not define a schedule more than 10 minutes to prevent too many fil
 <pass_trough_thewebfilter_engine>Pass trough the web filter engine</pass_trough_thewebfilter_engine>
 <pasv_address>Passive addresse</pasv_address>
 <pasv_address_explain>Use this option to override the IP address that FTP service will advertise in response to the PASV command. Provide a numeric IP address</pasv_address_explain>
+<pasv_max_port>PASSIVE maximal port</pasv_max_port>
+<pasv_minmax_port_explain>PASSIVE min port and PASSIVE max port are the
+The minimum and maximum port to allocate for PASV style data connections.[br]
+Can be used to specify a narrow port range to assist firewalling
+</pasv_minmax_port_explain>
+<pasv_min_port>PASSIVE minimal port</pasv_min_port>
 <paths>paths</paths>
 <patterns>Patterns</patterns>
 <pconn_timeout>Persistent connections timeout</pconn_timeout>
@@ -3922,6 +3947,7 @@ Please add 2 or 4 CPUs in order to make this server in production mode</performa
 The object will not be deleted but all datas will be erased</perform_empty_ask>
 <perform_operation>Perform operation</perform_operation>
 <PerMembersYoutubeDetails>Display Youtube details per member</PerMembersYoutubeDetails>
+<permissive>Permissive</permissive>
 <persistent_request_timeout>Persistent request timeout</persistent_request_timeout>
 <persistent_request_timeout_text>This defines the time period to wait for the next HTTP request on a persistent connection after the previous request
 completes</persistent_request_timeout_text>
@@ -4447,6 +4473,7 @@ video/mp4v-es[br]
 pattern matching against the mime type of the reply received by the proxy.[br]
 Can be used to detect file download or some types HTTP tunneling requests.
 </rep_mime_type_explain>
+<requested>Requested</requested>
 <requests_by_day>Requests number by day</requests_by_day>
 <requests_during_this_week>Requests during this week</requests_during_this_week>
 <requests_number>Requests number</requests_number>
@@ -4739,6 +4766,7 @@ Enjoy !!!
 <setup_center_install_explain>This task parse created orders by the Web interface for install or upgrade softwares</setup_center_install_explain>
 <set_specific_dcsp>set specific DSCP</set_specific_dcsp>
 <set_the_new_value_for_this_header>Set the new value for this header</set_the_new_value_for_this_header>
+<severe>Severe</severe>
 <shared_directory>Shared directory</shared_directory>
 <shared_public_stores>Shared public stores</shared_public_stores>
 <share_level_security>Share-Level Security</share_level_security>
@@ -5342,6 +5370,7 @@ Check events in order to see if it was successfully executed.
 <temp_serial>Temporary serial</temp_serial>
 <terms_groups>Expressions groups</terms_groups>
 <TestExternalWebPage>Test external Web page</TestExternalWebPage>
+<testing_configuration>Testing configuration</testing_configuration>
 <testing_connections>Testing connections</testing_connections>
 <tests_speed>Internet bandwidth calculation</tests_speed>
 <tests_speed_explain>This task checks your Internet bandwith status and insert results into the MySQL database</tests_speed_explain>
@@ -5792,6 +5821,11 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 <vps_server_watchdog_explain>This task must be scheduled only if your Artica server is able to provide Virtual machines with LXC.[br]
 It designed to ensure that Virtual machines are UP and running and correcly set.
 </vps_server_watchdog_explain>
+<VsFTPDFileOpenMode>The permissions with which uploaded files are created.[br]
+Umasks are applied on top of this value.[br]
+You may wish to change to 0777 if you want uploaded files to be executable.
+</VsFTPDFileOpenMode>
+<VsFTPDLocalMaxRate>Set 0 to disable max rate or define a value in Ko/s</VsFTPDLocalMaxRate>
 <waiting_approval>Waiting For Approval</waiting_approval>
 <waiting_network_reload>Waiting reload network task</waiting_network_reload>
 <waiting_order>Waiting order</waiting_order>
@@ -5955,6 +5989,7 @@ By using this WebFilter SaaS feature:[br]
 <webmail_type>WebMail type</webmail_type>
 <webpages>Web Pages</webpages>
 <webserver>Web server</webserver>
+<webservername>Webserver name</webservername>
 <webserver_override_cache>Webserver override cache</webserver_override_cache>
 <webservice>Web service</webservice>
 <websites_families>Websites families</websites_families>
@@ -6136,6 +6171,8 @@ Of course you can continue to play with this server.[br]
 [b]But do not be offended if this server is overloaded or if administration Web pages are slowly loaded.
 </wizard_warn_memory>
 <word>word</word>
+<wordpress_backup_parameters>Wordpress websites backup parameters</wordpress_backup_parameters>
+<wordpress_websites>Wordpress websites</wordpress_websites>
 <workingdir_in_memory>Direcory in memory</workingdir_in_memory>
 <workingdir_in_memory_text>If set up to 5, the working directory will be set in memory instead hard disk.[br]
 This will speed-up processing but will handle your physical memory</workingdir_in_memory_text>

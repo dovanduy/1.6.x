@@ -30,6 +30,8 @@ class pagebuilder{
 		$mouse_position_js="";
 		
 		$backspace="\n\t\t";
+		
+
 
 		if(substr($this->language,strlen($this->language),1)=='/'){
 			$this->language=substr($this->language,0,strlen($this->language)-1);
@@ -213,7 +215,7 @@ class pagebuilder{
 			
 			$jsTablesrc[]="/mouse.js";
 			$jsTablesrc[]="/js/md5.js";
-			$jsTablesrc[]="/XHRConnection.js";
+			
 			$jsTablesrc[]="/js/float-barr.js";
 			$jsTablesrc[]="/TimersLogs.js";
 			$jsTablesrc[]="/js/artica_confapply.js";
@@ -253,6 +255,9 @@ class pagebuilder{
 			
 			
 			
+			$chrome[]="$backspace<link rel=\"icon\" type=\"image/x-icon\" href=\"ressources/templates/default/favicon.ico\" />";
+			$chrome[]="$backspace<!--[if IE]><link rel=\"shortcut icon\" type=\"image/x-icon\" href=\"ressources/templates/default/favicon.ico\" /><![endif]-->";
+			
 
 
 			if(($this->CurrentPageName()=="logon.php") OR ($this->CurrentPageName()=="logoff.php") OR ($this->CurrentPageName()=="404.php")){
@@ -276,7 +281,9 @@ class pagebuilder{
 				$srcs[]="{src:'$func'}";
 				
 			}
-			$chrome[]="<script type=\"text/javascript\" language=\"javascript\">{$backspace}$.rloader([ ".@implode(",\n\t", $srcs)." ]);</script>";
+			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\">{$backspace}$.rloader([ ".@implode(",\n\t", $srcs)." ]);</script>";
+			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"/js/jquery.blockUI.js\"></script>";
+			$chrome[]="$backspace<script type=\"text/javascript\" language=\"javascript\" src=\"XHRConnection.js\"></script>";
 			$f[]="{$backspace}if(head.browser.ie){head.js('/mouse_ie.js');}";
 			$f[]="{$backspace}</script>\n";
 			
@@ -375,7 +382,7 @@ class pagebuilder{
 				
 			if(is_array($csserror)){$html=$html . "$backspace".implode("",$csserror);}
 			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/calendar.css'}";
-			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/jqueryFileTree.css'}";
+			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/js/jqueryFileTree.css'}";
 			$css_array[]="{src:'{$GLOBALS["JS_HEAD_PREPREND"]}/css/uploadify.css'}";
 			
 			

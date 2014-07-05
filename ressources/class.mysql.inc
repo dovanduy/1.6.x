@@ -355,8 +355,8 @@ function writelogs($text=null,$function=null,$line=0){
 				$time=date('h:i:s');
 				$errnum=@mysql_errno($this->mysql_connection);
 				$des=@mysql_error($this->mysql_connection);
-				$this->mysql_error="Error query to $MysqlServerLog with username $this->mysql_admin Number ($errnum) ($des)";
-				writelogs("Error query to $MysqlServerLog with username $this->mysql_admin Number `$errnum`, $this->mysql_error pass:".strlen($this->mysql_password)." length",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				$this->mysql_error="Error query to with username $this->mysql_admin Number ($errnum) ($des)";
+				writelogs("Error query to with username $this->mysql_admin Number `$errnum`, $this->mysql_error pass:".strlen($this->mysql_password)." length",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
 				@mysql_close($this->mysql_connection);
 				return false;				
 		}
@@ -1286,6 +1286,7 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 		$OrginalPassword=$this->mysql_password;
 		$server_database=$database;
 		$mysql_password=$password;
+		$mysql_password_length=strlen($mysql_password);
 		$sql="SELECT User FROM user WHERE User='$user'";
 		
 		$ligne=@mysql_fetch_array($this->QUERY_SQL($sql,'mysql'));	
@@ -1297,10 +1298,13 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 			return false;	
 		}
 	
+		if($GLOBALS["VERBOSE"]){echo "PRIVILEGES:: $user FOUND = $userfound\n";}
+		
 		if($userfound==null){
 			$sql="CREATE USER '$user'@'$this->mysql_server' IDENTIFIED BY '$mysql_password';";
 			$this->EXECUTE_SQL($sql);
 			if(!$this->ok){
+					echo "CREATE USER $user Failed with '$user'@'localhost' and password length $mysql_password_length: `$this->mysql_error`\n";
 					$this->mysql_admin="root";
 					$this->mysql_password=null;
 					$this->EXECUTE_SQL($sql);
@@ -1317,13 +1321,16 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 			}
 		}
 	
+	if($userfound==null){
 		$sql="CREATE USER '$user'@'localhost' IDENTIFIED BY '$mysql_password';";
 		$this->EXECUTE_SQL($sql);	
 		if(!$this->ok){
+			echo "CREATE USER $user Failed with '$user'@'localhost' and password length $mysql_password_length: `$this->mysql_error`\n";
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1337,15 +1344,29 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 			}
 			
 		}
+		
+	}
+	
+	if($userfound<>null){
+		$sql="SET PASSWORD FOR '$user'@'localhost' = PASSWORD('$mysql_password');";
+		if(!$this->EXECUTE_SQL($sql)){
+			echo "UPDATE USER $user Failed with '$user'@'localhost' and password length $mysql_password_length `$this->mysql_error`\n";
+			
+		}
+		
+	}
+	
+	
 	
 	$server_database2=str_replace("_","\_",$server_database);
 	$sql="GRANT USAGE ON `$server_database`. *  TO '$user'@'$this->mysql_server' IDENTIFIED BY '$mysql_password' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;";
 	$this->EXECUTE_SQL($sql);
 	if(!$this->ok){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1360,10 +1381,11 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	$sql="GRANT USAGE ON `$server_database`. *  TO '$user'@'localhost' IDENTIFIED BY '$mysql_password' WITH MAX_QUERIES_PER_HOUR 0 MAX_CONNECTIONS_PER_HOUR 0 MAX_UPDATES_PER_HOUR 0 MAX_USER_CONNECTIONS 0 ;";
 	$this->EXECUTE_SQL($sql);
 	if(!$this->ok){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1379,10 +1401,11 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	
 	$this->EXECUTE_SQL($sql);
 	if(!$this->ok){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1398,10 +1421,11 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	$sql="GRANT ALL PRIVILEGES ON `$server_database` . * TO '$user'@'localhost' WITH GRANT OPTION ;";
 	$this->EXECUTE_SQL($sql);
 	if(!$this->ok){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1416,10 +1440,11 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	$sql="GRANT ALL PRIVILEGES ON `$server_database2` . * TO '$user'@'$this->mysql_server' WITH GRANT OPTION ;";
 	$this->EXECUTE_SQL($sql);
 	if(!$this->ok){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1433,10 +1458,11 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	$sql="GRANT ALL PRIVILEGES ON `$server_database2` . * TO '$user'@'localhost' WITH GRANT OPTION ;";
 	$this->EXECUTE_SQL($sql);
 	if(!$this->ok){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=null;
 			$this->EXECUTE_SQL($sql);
-			$this->ok=true;
+			
 			if(!$this->ok){
 				echo "CREATE USER $user Failed with root\n `$this->mysql_error`\n";
 				$this->mysql_admin="root";
@@ -1453,9 +1479,10 @@ function BackupTable($tablename,$database,$addons=array(),$zmd5=false,$endquery=
 	$sql="FLUSH PRIVILEGES";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 		if(!$this->EXECUTE_SQL($sql,"mysql")){
+			$this->ok=true;
 			$this->mysql_admin="root";
 			$this->mysql_password=$OrginalPassword;
-			$this->ok=true;
+			
 			if(!$this->EXECUTE_SQL($sql,"mysql")){
 				$this->mysql_admin="root";
 				$this->mysql_password=null;
@@ -1723,6 +1750,7 @@ function mysql_real_escape_string2($query){
 		$this->mysql_password=trim($this->mysql_password);
 		if(!$nocache){
 		if(!$this->BD_CONNECT()){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: CREATE_DATABASE Connection failed\n";}
 			writelogs("CREATE_DATABASE Connection failed",__FUNCTION__."/".__CLASS__,__FILE__,__LINE__);
 			return false;
 		}
