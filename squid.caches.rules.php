@@ -518,6 +518,8 @@ function main_tabs(){
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];
 	
+	
+	$array["caches-level"]='{cache_level}';
 	$array["caches-status"]='{caches_status}';
 	
 	if($CacheManagement2==1){
@@ -544,8 +546,14 @@ function main_tabs(){
 		}
 	}	
 	
-	$fontsize=14;
+	$fontsize=15;
 	while (list ($num, $ligne) = each ($array) ){
+		
+		if($num=="caches-level"){
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.level.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+		
 		
 		if($num=="caches-status"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.caches.status.php\" style='font-size:14px'><span>$ligne</span></a></li>\n");

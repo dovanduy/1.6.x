@@ -56,6 +56,7 @@ function table(){
 	if(!is_numeric($t)){$t=time();}
 	$dns_nameservers=$tpl->javascript_parse_text("{dns_nameservers}");
 	$new_dns=$tpl->_ENGINE_parse_body("{new_dns_server}");
+	$blacklist=$tpl->_ENGINE_parse_body("{blacklist}");
 	$restart_service=$tpl->javascript_parse_text("{restart_service}");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}
@@ -66,6 +67,7 @@ function table(){
 	$buttons="
 	buttons : [
 		$newdns
+		{name: '$blacklist', bclass: 'Copy', onpress : BlackList$t},
 		{name: '$restart_service', bclass: 'ReConf', onpress : RestartService$t},
 	],";
 
@@ -110,6 +112,10 @@ function RestartService$t(){
 
 	Loadjs('squid.restart.php?onlySquid=yes');
 
+}
+
+function BlackList$t(){
+	Loadjs('squid.dns.items.black.php');
 }
 var x_dnsadd= function (obj) {
 	var results=obj.responseText;

@@ -35,13 +35,20 @@ function scan_stats(){
 	$sock=new sockets();
 	
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
+	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	
+	
+	if(!is_numeric($ARRAY["ENABLED"])){if($SquidCacheLevel>2){$ARRAY["ENABLED"]=1; }}
+	if($SquidCacheLevel<3){$ARRAY["ENABLED"]=0;}
 	if(!is_numeric($ARRAY["MAX_WWW"])){$ARRAY["MAX_WWW"]=100;}
 	if(!is_numeric($ARRAY["LEVEL"])){$ARRAY["LEVEL"]=5;}
 	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=420;}
 	if(!is_numeric($ARRAY["MAX_TTL"])){$ARRAY["MAX_TTL"]=15;}
+	if(!is_numeric($ARRAY["ENABLED"])){$ARRAY["ENABLED"]=0;}
 	
 	
-	
+	if($ARRAY["ENABLED"]==0){return;}
 	$OnlyImages=intval($ARRAY["OnlyImages"]);
 	$OnlyeDoc=intval($ARRAY["OnlyeDoc"]);
 	$OnlyMultimedia=intval($ARRAY["OnlyMultimedia"]);

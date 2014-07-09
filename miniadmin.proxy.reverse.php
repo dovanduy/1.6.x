@@ -607,69 +607,14 @@ function websites_popup_webserver_auth_save(){
 	if(!$q->ok){echo $q->mysql_error;}
 }
 
-function ssl_certificates_list(){
-	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
-	$q=new mysql();
-	$sslcertificates[null]="{default}";
-	$results=$q->QUERY_SQL($sql,'artica_backup');
-	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
-	}
-	return $sslcertificates;
-}
 
-function sources_list(){
-	$q=new mysql_squid_builder();
-	$sql="SELECT ID,ipaddr,servername FROM reverse_sources ORDER BY servername";
-	$results=$q->QUERY_SQL($sql);
-	if(!$q->ok){senderror($q->mysql_error."<br>$sql");}
-	
-	
-	$CountDeSources=mysql_num_rows($results);
-	
-	$array[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$array[$ligne2["ID"]]=$ligne2["servername"];
-		$array2[$ligne2["ID"]]=$ligne2["ipaddr"];
-	}
-	return array($array,$array2,$CountDeSources);
-}
 
-function caches_list(){
-	$q2=new mysql_squid_builder();
-	$results=$q2->QUERY_SQL("SELECT ID,keys_zone FROM nginx_caches ORDER BY keys_zone");
-	$nginx_caches[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$nginx_caches[$ligne2["ID"]]=$ligne2["keys_zone"];
-	
-	}
-	
-	return $nginx_caches;
-}
 
-function pool_list(){
-	$q2=new mysql_squid_builder();
-	$results=$q2->QUERY_SQL($sql="SELECT * FROM nginx_pools ORDER BY poolname");
-	$nginx_pools[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$nginx_pools[$ligne2["ID"]]=$ligne2["poolname"];
-	
-	}
-	return $nginx_pools;
-}
-function replace_list(){
-	$nginx_replaces[0]="{none}";
-	$q2=new mysql_squid_builder();
-	$results=$q2->QUERY_SQL("SELECT ID,groupname FROM nginx_replace_group ORDER BY groupname");
-	if(!$q2->ok){
-		echo "<p class=text-error>$q2->mysql_error</p>";
-	}
-	$nginx_caches[0]="{none}";
-	while($ligne2=mysql_fetch_array($results,MYSQL_ASSOC)){
-		$nginx_replaces[$ligne2["ID"]]=$ligne2["rulename"];
-	}
-	return $nginx_replaces;
-}
+
+
+
+
+
 
 function websites_popup(){
 	$tpl=new templates();
@@ -685,31 +630,16 @@ function websites_popup(){
 	$q=new mysql_squid_builder();
 	$squid_reverse=new squid_reverse();
 	$tpl=new templates();
-	$sslcertificates=ssl_certificates_list();
-	$sources_list=sources_list();
+	$sslcertificates=$squid_reverse->ssl_certificates_list();
+	$sources_list=$squid_reverse->sources_list();
 	$array=$sources_list[0];
 	$array2=$sources_list[1];
 	$CountDeSources=$sources_list[2];
-	$nginx_caches=caches_list();
-	$nginx_pools=pool_list();
-	$nginx_replaces=replace_list();
+	$nginx_caches=$squid_reverse->caches_list();
+	$nginx_pools=$squid_reverse->pool_list();
+	$nginx_replaces=$squid_reverse->replace_list();
 	$AsFReeWeb=false;
-	
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
-	
-	
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "debug")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `debug` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
-	if(!$q->FIELD_EXISTS("reverse_www", "start_directory")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `start_directory` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
-	if(!$q->FIELD_EXISTS("reverse_www", "DenyConf")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `DenyConf` smallint(1) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
-	if(!$q->FIELD_EXISTS("reverse_www", "ArticaErrors")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `ArticaErrors` smallint(1) NOT NULL DEFAULT 1");if(!$q->ok){echo $q->mysql_error_html();}}
-	if(!$q->FIELD_EXISTS("reverse_www", "RedirectQueries")){$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `RedirectQueries` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
-	if(!$q->FIELD_EXISTS("reverse_www", "default_server")){
-		$q->QUERY_SQL("ALTER TABLE `reverse_www` ADD `default_server` smallint( 1 ) NOT NULL DEFAULT '0', ADD INDEX ( `default_server` )");
-		if(!$q->ok){echo $q->mysql_error_html();}
-	}
-	
-	
 	
 	if($servername<>null){
 		$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
@@ -863,66 +793,32 @@ function websites_popup_webserver_options_section(){
 	
 	
 	
-	if(!$q->FIELD_EXISTS("reverse_www", "limit_rate_after")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `limit_rate_after` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}
 
-	if(!$q->FIELD_EXISTS("reverse_www", "limit_rate")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `limit_rate` smallint(10) NOT NULL DEFAULT 0");if(!$q->ok){echo $q->mysql_error_html();}}	
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "proxy_read_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `proxy_read_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "proxy_send_timeout")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `proxy_send_timeout` smallint(3) NOT NULL DEFAULT 300");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffers")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `proxy_buffers` VARCHAR(20) NOT NULL DEFAULT '8 8k'");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffer_size")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `proxy_buffer_size` smallint(10) NOT NULL DEFAULT '8'");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "proxy_cache_min_uses")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `proxy_cache_min_uses` smallint(3) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}
-
-	if(!$q->FIELD_EXISTS("reverse_www", "proxy_buffering")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `proxy_buffering` smallint(1) NOT NULL DEFAULT '1'");if(!$q->ok){echo $q->mysql_error_html();}}	
-	
-	
-//
-	if(!$q->FIELD_EXISTS("reverse_www", "EnableHSTS")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `EnableHSTS` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "RestrictIFrames")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `RestrictIFrames` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "XSSBrowser")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `XSSBrowser` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "EnableCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `EnableCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "EnableSSLOCSP")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `EnableSSLOCSP` smallint(1) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
-		
-	if(!$q->FIELD_EXISTS("reverse_www", "ssl_protocols")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `ssl_protocols` VARCHAR(255)");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "ssl_ciphers")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `ssl_ciphers` TEXT");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	
-	//
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "LimitCnx")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `LimitCnx` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}
-	
-	if(!$q->FIELD_EXISTS("reverse_www", "LimitReqs")){$q->QUERY_SQL("ALTER TABLE `reverse_www`
-		ADD `LimitReqs` smallint(5) NOT NULL DEFAULT '0'");if(!$q->ok){echo $q->mysql_error_html();}}	
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
+	if(!is_numeric( $ligne["x_forwarded_for"])){ $ligne["x_forwarded_for"]=1;}
+	if(!is_numeric( $ligne["proxy_pass_request_headers"])){ $ligne["proxy_pass_request_headers"]=1;}
+	
+	
 	
 	
 	$boot->set_formtitle("{options}");
+	$boot->set_spacertitle("{client_source}");
+	
+	$boot->set_checkbox("proxy_pass_request_headers", "{proxy_pass_request_headers}", $ligne["proxy_pass_request_headers"],
+			array("TOOLTIP"=>"{proxy_pass_request_headers_text}",));
+	
+	$boot->set_checkbox("x_forwarded_for", "{client_ip_source}", $ligne["x_forwarded_for"],
+			array("TOOLTIP"=>"{proxy_client_ip_source_text}",));
+	
+	$boot->set_field("x_forwarded_for_string", "{client_ip_source_fake}", $ligne["x_forwarded_for_string"],
+			array("TOOLTIP"=>"{client_ip_source_fake_text}"));	
+	
+	$boot->set_field("proxy_pass_request_headers", "{proxy_pass_request_headers}", $ligne["proxy_pass_request_headers"],
+			array("TOOLTIP"=>"{proxy_pass_request_headers_text}"));	
+	
+	
+	
 	
 	$boot->set_spacertitle("{bandwith_limitation_full}");
 	
@@ -1036,7 +932,7 @@ function websites_popup_webserver_errors_save(){
 	
 	$sql="UPDATE reverse_www SET ".@implode(",", $edit)." WHERE servername='$servername'";
 	$q->QUERY_SQL($sql);
-	if(!$q->ok){echo $q->mysql_error;return;}	
+	if(!$q->ok){echo $q->mysql_error."\n$sql\n";return;}	
 }
 
 function source_popup(){
@@ -2914,6 +2810,7 @@ FUNCTION  EXPLAIN_REVERSE($servername){
 	
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$servername'"));
 	$ssl="{proto} (HTTP) ";
+	$proxy_buffering=$ligne["proxy_buffering"];
 	
 	if($ligne["ssl"]==1){
 		$ssl="{proto} (HTTP<b>S</b>) ";
@@ -2972,7 +2869,12 @@ FUNCTION  EXPLAIN_REVERSE($servername){
 	}
 	if($ligne["sendlogs"]==1){$exp[]=",&nbsp;{write_logs_for} {$jsban}403 {errors}</a>";}
 	
+	$proxy_buffering_text="<br><span style='color:#00B726'>{remote_webpages_are_cached}</span>";
 	
+
+
+	if($proxy_buffering==0){$proxy_buffering_text="<br><span style='color:#878787'>{caching_webpages_is_disabled}</span>";}	
+	$exp[]=$proxy_buffering_text;
 	$exp[]="</div>";
 	$tpl=new templates();
 	return $tpl->_ENGINE_parse_body(@implode(" ", $exp));

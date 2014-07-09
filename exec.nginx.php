@@ -303,8 +303,6 @@ function build($OnlySingle=false){
 	$f[]="\tproxy_set_header Host \$http_host;";
 	$f[]="\tproxy_set_header Server Apache;";
 	$f[]="\tproxy_set_header Connection Close;";
-	$f[]="\tproxy_set_header X-Real-IP \$remote_addr;";
-	$f[]="\tproxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;";
 	$f[]="\tproxy_pass_header Set-Cookie;";
 	$f[]="\tproxy_pass_header User-Agent;";
 	$f[]="\tproxy_set_header X-Accel-Buffering on;";
@@ -394,27 +392,6 @@ function configure_single_freeweb($servername){
 	}
 	if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
 	if($free->groupware=="WORDPRESS"){$host->WORDPRESS=true;}
-	
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername FreeWeb SSL:{$ligne["useSSL"]}\n";}
-	if($ligne["useSSL"]==0){
-		if(!isset($NOPROXY[$groupware])){
-			$host->set_proxy_port(82);
-		}
-	}
-
-	
-	
-	if($ligne["useSSL"]==1){
-		$host->set_ssl();
-		$host->set_ssl_certificate($ligne["sslcertificate"]);
-		
-		if(!isset($NOPROXY[$groupware])){
-			$host->set_proxy_port(447);
-			
-		}
-	}
-	
-
 	$host->set_servers_aliases($free->Params["ServerAlias"]);
 	
 	if($groupware=="ZARAFA"){
@@ -656,18 +633,12 @@ function build_localhosts(){
 		$prc=$prc/3;
 		$prc=intval($prc_org+$prc);
 		build_progress("Building {$ligne["servername"]}",$prc);
-		if($EnableFreeWeb==0){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ************* {$ligne["servername"]} FreeWeb is disabled ************* \n";}
-			continue;
-		}
+		if($EnableFreeWeb==0){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ************* {$ligne["servername"]} FreeWeb is disabled ************* \n";}continue; }
 		$DenyConf=$ligne["DenyConf"];
 		$groupware=$ligne["groupware"];
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] $c/$CountDeserver\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ************* {$ligne["servername"]} / $DenyConf / $groupware /{$ligne["UseSSL"]} ************* \n";}
-		
-		
 		$ligne["servername"]=trim($ligne["servername"]);
-		
 		if($ligne["servername"]=="_default_"){continue;}
 		
 		if($GLOBALS["REMOVE_LOCAL_ADDR"]){
@@ -676,9 +647,6 @@ function build_localhosts(){
 				continue;
 			}
 		}
-		
-		
-		
 		
 		if($DenyConf==1){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}`, DenyConf = 1,skipped\n";}
@@ -689,86 +657,41 @@ function build_localhosts(){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}`, continue\n";}
 		$ALREADYSET[$ligne["servername"]]=true;
 		$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT cacheid FROM reverse_www WHERE servername='{$ligne["servername"]}'"));
-		
-		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}` Groupware:[$groupware]; SSL:{$ligne["UseSSL"]}\n";}
 		
 		$free=new freeweb($ligne["servername"]);
 		$NginxFrontEnd=$free->NginxFrontEnd;
-		
-		
-		
-		if($ligne["useSSL"]==0){
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Start...\n";}
-			$host=new nginx($ligne["servername"]);
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Start...\n";}
+		$host=new nginx($ligne["servername"]);
 			
-			if($groupware=="ZARAFA"){
-				if($free->NginxFrontEnd==1){
-					$host->groupware_zarafa_Frontend();
-					continue;
+		if($groupware=="ZARAFA"){
+			if($free->NginxFrontEnd==1){
+				$host->groupware_zarafa_Frontend();
+				continue;
 				}
 			}
 			
 			
-			if(isset($NOPROXY[$groupware])){
-				$free->CheckWorkingDirectory();
-				$host->set_proxy_disabled();
-				$host->set_DocumentRoot($free->WORKING_DIRECTORY);
-				if($groupware=="SARG"){$host->SargDir();}
-			}else{
-				$host->set_freeweb();
-				$host->set_storeid($ligne2["cacheid"]);
-				$host->set_proxy_destination("127.0.0.1");
-				$host->set_proxy_port(82);				
-				if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
-				
-			}
+		if(isset($NOPROXY[$groupware])){
+			$free->CheckWorkingDirectory();
+			$host->set_proxy_disabled();
+			$host->set_DocumentRoot($free->WORKING_DIRECTORY);
+			if($groupware=="SARG"){$host->SargDir();}
+		}else{
+			$host->set_freeweb();
+			$host->set_storeid($ligne2["cacheid"]);
+			$host->set_proxy_destination("127.0.0.1");
+			$host->set_proxy_port(82);				
+			if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
+		}
 			
 
 			
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
-			
-			
-			$host->set_servers_aliases($free->Params["ServerAlias"]);
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Start...\n";}
-			$host->build_proxy();
-			if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
-		}
-		
-	if($ligne["useSSL"]==1){
-			$host=new nginx($ligne["servername"]);
-			$host->set_ssl();
-			$host->set_ssl_certificate($ligne["sslcertificate"]);
-			$host->set_servers_aliases($free->Params["ServerAlias"]);
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Local web site `{$ligne["servername"]}` SSL / $groupware / NginxFrontEnd:$free->NginxFrontEnd\n";}
-			if($groupware=="ZARAFA"){
-				if($free->NginxFrontEnd==1){
-			
-					$host->groupware_zarafa_Frontend();
-					continue;
-				}
-			}
-			
-			
-			if(isset($NOPROXY[$groupware])){
-				$free->CheckWorkingDirectory();
-				$host->set_proxy_disabled();
-				$host->set_DocumentRoot($free->WORKING_DIRECTORY);
-				if($groupware=="SARG"){$host->SargDir();}	
-				
-			}else{
-				$host->set_freeweb();
-				$host->set_storeid($ligne2["storeid"]);
-				$host->set_proxy_destination("127.0.0.1");
-				$host->set_proxy_port(447);
-				if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
-			}
-			
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."]  protect local SSL web site `{$ligne["servername"]}`\n";}
-			$host->build_proxy();
-			
-		}
-		
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
+		$host->set_servers_aliases($free->Params["ServerAlias"]);
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Start...\n";}
+		$host->build_proxy();
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ******************************************\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] \n";}
 		

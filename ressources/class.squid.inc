@@ -1415,7 +1415,7 @@ class squidbee{
 		
 		$acl[]="# Do not cache domains: ". mysql_num_rows($results)." items in ".__CLASS__."/".__FUNCTION__." Line:".__LINE__;
 		$acl[]="acl DoNotCache dstdomain s497977761.onlinehome.fr";
-		$acl[]="acl DoNotCache dstdomain update.articatech.com";
+		$acl[]="acl DoNotCache dstdomain .articatech.com";
 		$acl[]="acl DoNotCache dstdomain .unveiltech.com";
 		$acl[]="acl DoNotCache dstdomain .artica.fr";
 		$acl[]="acl DoNotCache dstdomain .articatech.net";
@@ -5811,10 +5811,17 @@ function BuildSquidConf(){
 		$conf=$conf.$this->ftp_parameters();
 		$conf=$conf."debug_options ".$this->debug_options()."\n";
 		
-		$conf=$conf."# --------- CACHES RULES [".__LINE__."]\n";
-		$conf=$conf."include /etc/squid3/refresh_patterns.conf\n";
-		if(!is_file("/etc/squid3/refresh_patterns.conf")){@touch("/etc/squid3/refresh_patterns.conf");}
-		@chown("/etc/squid3/refresh_patterns.conf","squid");
+		$conf=$conf."# --------- CACHES RULES SquidCacheLevel:$SquidCacheLevel [".__LINE__."]\n";
+		
+		$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+		if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+		
+		if($SquidCacheLevel>2){
+			$conf=$conf."include /etc/squid3/refresh_patterns.conf\n";
+			if(!is_file("/etc/squid3/refresh_patterns.conf")){@touch("/etc/squid3/refresh_patterns.conf");}
+			@chown("/etc/squid3/refresh_patterns.conf","squid");
+		}
+		
 		$refresh_pattern_list=$this->refresh_pattern_list();
 		$conf=$conf.$refresh_pattern_list;
 		
@@ -7804,11 +7811,10 @@ public function refresh_pattern_list(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+
 	if(!is_numeric($this->DisableAnyCache)){$this->DisableAnyCache=0;}
-	
-	
-	
-	
 	if($this->DisableAnyCache==1){return;}
 	
 	$reload_into_ims=$sock->GET_INFO("SquidReloadIntoIMS");
@@ -7822,12 +7828,14 @@ public function refresh_pattern_list(){
 	if(!is_numeric($refresh_pattern_def_max)){$refresh_pattern_def_max=43200;}
 	if(!is_numeric($refresh_pattern_def_perc)){$refresh_pattern_def_perc=40;}
 	
-	$compilation_params=$this->compilation_params();
-	if(isset($compilation_params["enable-http-violations"])){
-		if($reload_into_ims==1){
-			$conf[]="reload_into_ims on";
-		}else{
-			$conf[]="reload_into_ims off";
+	if($SquidCacheLevel>2){
+		$compilation_params=$this->compilation_params();
+		if(isset($compilation_params["enable-http-violations"])){
+			if($reload_into_ims==1){
+				$conf[]="reload_into_ims on";
+			}else{
+				$conf[]="reload_into_ims off";
+			}
 		}
 	}
 	
@@ -7846,12 +7854,28 @@ public function refresh_pattern_list(){
 		$conf[]="refresh_pattern -i windows.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 	
 	}
+	
+	if($SquidCacheLevel<3){
+		$conf[]="reload_into_ims off";
+	}
+	
+	if($SquidCacheLevel==1){
+		$conf[]="# --------- SquidCacheLevel:$SquidCacheLevel, Cache level is set to minimalist";
+		
+		$conf[]=$this->refresh_pattern_defaults();
+		return implode("\n",$conf)."\n";
+	
+	}
+	
+	
 	$q=new mysql_squid_builder();
 	$count=$q->COUNT_ROWS("main_cache_rules");
 	
 	$CountOfUsersRules=0;
 	
-	if($q->COUNT_ROWS("main_cache_rules")>0){
+	
+	
+	if($count>0){
 		$rules=new squid_caches_rules();
 		$rules->build();
 		$CountOfUsersRules=count($rules->final_array);
@@ -7923,27 +7947,46 @@ public function refresh_pattern_list(){
 	}
 	
 	
+
+	
 	$conf[]="# --------- License OK but no rules defined, add minimalistics patterns";
 	$conf[]=$this->refresh_pattern_defaults();
 	return implode("\n",$conf)."\n";
 }
 
 private function refresh_pattern_defaults(){
+	$sock=new sockets();
+	$final="refresh_pattern -i . 0 90% 5760 reload-into-ims ignore-reload";
+	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	
+	if($SquidCacheLevel<4){
+		$final="refresh_pattern -i . 0 20% 4320";
+	}
 	
 	$ignore_no_cache="ignore-no-cache ";
 	if($this->IS_33){$ignore_no_cache=null;}
-	$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico|bmp|tiff|webp|bif|ver|pict) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-private ignore-no-store";
-	$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private";
-	$f[]="refresh_pattern -i \.(html|htm|crl) 9440 90% 100000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
-	$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";
-	$f[]="refresh_pattern -i \.(json|json\?) 1440 90% 5760 reload-into-ims";
-	$f[]="refresh_pattern -i (/cgi-bin/|\?) 0 0% 0";
-	$f[]="refresh_pattern -i ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 0 0% 0";
-	$f[]="refresh_pattern -i \.(bin|deb|rpm|drpm|exe|zip|tar|tgz|bz2|ipa|bz|ram|rar|bin|uxx|gz|crl|msi|dll|hz|cab|psf|vidt|apk|wtex|hz) 220000 90% 500000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
-	$f[]="refresh_pattern -i \.(ppt|ppt\?|pptx|doc|docx|pdf|xls|xlsx|csv|txt) 220000 90% 200000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
-	$f[]="refresh_pattern -i ^ftp: 66000 90% 200000";
-	$f[]="refresh_pattern -i ^gopher: 1440 0% 1440";
-	$f[]="refresh_pattern -i . 0 90% 5760 reload-into-ims ignore-reload";
+	if($SquidCacheLevel>2){
+		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico|bmp|tiff|webp|bif|ver|pict) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-private ignore-no-store";
+		$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private";
+		$f[]="refresh_pattern -i \.(html|htm|crl) 9440 90% 100000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
+		$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";
+		$f[]="refresh_pattern -i \.(json|json\?) 1440 90% 5760 reload-into-ims";
+		$f[]="refresh_pattern -i (/cgi-bin/|\?) 0 0% 0";
+		$f[]="refresh_pattern -i ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 0 0% 0";
+		$f[]="refresh_pattern -i \.(bin|deb|rpm|drpm|exe|zip|tar|tgz|bz2|ipa|bz|ram|rar|bin|uxx|gz|crl|msi|dll|hz|cab|psf|vidt|apk|wtex|hz) 220000 90% 500000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
+		$f[]="refresh_pattern -i \.(ppt|ppt\?|pptx|doc|docx|pdf|xls|xlsx|csv|txt) 220000 90% 200000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
+		$f[]="refresh_pattern -i ^ftp: 66000 90% 200000";
+		$f[]="refresh_pattern -i ^gopher: 1440 0% 1440";
+	}
+	
+	if($SquidCacheLevel<3){
+		$f[]="refresh_pattern -i ^ftp: 1440 20% 10080";
+		$f[]="refresh_pattern -i ^gopher: 1440 0% 1440";
+		$f[]="refresh_pattern -i (/cgi-bin/|\?) 0 0% 0";
+	}	
+	
+	$f[]=$final;
 	return @implode("\n", $f);
 }
 

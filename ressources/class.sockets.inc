@@ -141,10 +141,11 @@ class sockets{
 		if(!isset($GLOBALS["CLASS_USERS"])){$GLOBALS["CLASS_USERS"]=new usersMenus();}
 		$EnableDNSMASQ=$this->GET_INFO("EnableDNSMASQ");
 		$EnableLocalDNSMASQ=$this->GET_INFO("EnableLocalDNSMASQ");
+		$DHCPDEnableCacheDNS=intval($this->GET_INFO("DHCPDEnableCacheDNS"));
+		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
 		if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
 	
-		$DHCPDEnableCacheDNS=$this->GET_INFO("DHCPDEnableCacheDNS");
-		if(!is_numeric($DHCPDEnableCacheDNS)){$DHCPDEnableCacheDNS=0;}
+		
 		if($DHCPDEnableCacheDNS==1){$EnableDNSMASQ=1;}
 		if($GLOBALS["CLASS_USERS"]->POWER_DNS_INSTALLED){
 			$EnablePDNS=$this->GET_INFO("EnablePDNS");

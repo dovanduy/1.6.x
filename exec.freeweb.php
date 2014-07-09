@@ -4323,6 +4323,12 @@ function ScanSize(){
 			continue;
 		}
 		$free->CheckWorkingDirectory();
+		if(is_link($free->WORKING_DIRECTORY)){$free->WORKING_DIRECTORY=@readlink($free->WORKING_DIRECTORY);}
+		if(!is_dir($free->WORKING_DIRECTORY)){
+			$q->QUERY_SQL("UPDATE freeweb SET DirectorySize=0 WHERE servername='{$ligne["servername"]}'","artica_backup");
+			if(!$q->ok){system_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"freewebs");}
+			continue;
+		}
 		$size=$unix->DIRSIZE_BYTES($free->WORKING_DIRECTORY);
 		$GLobalSize=$GLobalSize+$size;
 		if($GLOBALS["VERBOSE"]){echo "{$ligne["servername"]} $size Bytes\n";}

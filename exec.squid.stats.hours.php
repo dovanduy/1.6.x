@@ -23,7 +23,7 @@ include_once(dirname(__FILE__).'/ressources/class.computers.inc');
 
 
 
-
+if($argv[1]=="--clean-empty"){clean_empty_tables();exit;}
 if($argv[1]=="--macscan"){macscan();exit;}
 
 $q=new mysql_squid_builder();
@@ -474,5 +474,65 @@ function restore_from_backup_statistics(){
 	$squid_stats_tools->not_categorized_day_scan();
 	///home/artica/squid/backup-statistics
 }
+
+function clean_empty_tables(){
+	
+	$unix=new unix();
+	///etc/artica-postfix/pids/exec.squid.stats.hours.php.clean_empty_tables.time
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	
+	
+	if($GLOBALS["VERBOSE"]){echo "Time File: $timefile\n";}
+	$pid=@file_get_contents($pidfile);
+	if($GLOBALS["FORCE"]){ToSyslog("macscan(): Executed in --force mode");}
+	
+	if(!$GLOBALS["FORCE"]){
+		if($pid<100){$pid=null;}
+		$unix=new unix();
+		if($unix->process_exists($pid,basename(__FILE__))){
+			if($GLOBALS["VERBOSE"]){echo "Already executed pid $pid\n";}
+			ToSyslog("clean_empty_tables(): already executed pid $pid");
+			return;
+		}
+		$timeexec=$unix->file_time_min($timefile);
+		if($timeexec<30){return;}
+		$mypid=getmypid();
+		@file_put_contents($pidfile,$mypid);
+	}
+	
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
+	
+	$q=new mysql_squid_builder();
+	$TABLES=$q->LIST_TABLES_HOURS_TEMP();
+	$current="squidhour_".date("YmdH");
+	while (list ($tablename, $none) = each ($TABLES) ){
+		if($tablename==$current){continue;}
+		if($q->COUNT_ROWS($tablename)>0){continue;}
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+		
+	}
+	
+	$TABLES=$q->LIST_TABLES_SIZEHOURS();
+	$current="sizehour_".date("YmdH");
+	while (list ($tablename, $none) = each ($TABLES) ){
+		if($tablename==$current){continue;}
+		if($q->COUNT_ROWS($tablename)>0){continue;}
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+	
+	}	
+	$TABLES=$q->LIST_TABLES_dansguardian_events();
+	$current=" dansguardian_events_".date("Ymd");
+	while (list ($tablename, $none) = each ($TABLES) ){
+		if($tablename==$current){continue;}
+		if($q->COUNT_ROWS($tablename)>0){continue;}
+		$q->QUERY_SQL("DROP TABLE `$tablename`");
+	
+	}	
+	
+	
+}
+
 
 ?>

@@ -34,6 +34,8 @@ if(preg_match("#--verbose#",implode(" ",$argv))){
 }
 $GLOBALS["OUTPUT"]=true;
 if($argv[1]=="--scan"){scan();exit;}
+if($argv[1]=="--remove-info"){removeBlogInfo($argv[2]);exit;}
+
 config($argv[1]);
 
 function build_progress($text,$pourc){
@@ -46,8 +48,21 @@ function build_progress($text,$pourc){
 }
 
 function config($servername){
+	
+	
+	
 	$GLOBALS["SERVICE_NAME"]="Wordpress $servername";
 	$unix=new unix();
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".$servername.pid";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+		build_progress("$servername Already executed",110);
+		die();
+	}
+	
+	@file_put_contents($pidfile, getmypid());
+	
 	$q=new mysql();
 	$cp=$unix->find_program("cp");
 	$sock=new sockets();
@@ -60,32 +75,46 @@ function config($servername){
 		$DB_HOST="localhost:$q->SocketPath";
 	}
 	
-	
+	if(!is_file("/usr/share/artica-postfix/bin/wp-cli.phar")){build_progress("wp-cli.phar: no such binary",110);return;}
+	@chmod("/usr/share/artica-postfix/bin/wp-cli.phar",0755);
 	build_progress("$servername: {testing_configuration}",40);
 	
 	$free=new freeweb($servername);
 	$WORKING_DIRECTORY=$free->www_dir;
 	@unlink("$WORKING_DIRECTORY/wp-config.php");
-	
-	
-	if(!scan($WORKING_DIRECTORY)){
-		build_progress("$servername: {installing}...",42);
-		@mkdir($WORKING_DIRECTORY);
-		shell_exec("$cp -rf /usr/share/wordpress-src/* $WORKING_DIRECTORY/");
-		if(!scan($WORKING_DIRECTORY)){
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: Duplicate: $free->groupware_duplicate\n";}
+	if($free->groupware_duplicate<>null){
+		build_progress("$servername: {duplicate} {from} $free->groupware_duplicate",40);
+		if(!duplicate_wordpress($servername)){
 			build_progress("$servername: {installing} {failed}...",110);
+			apache_admin_mysql(0, "Failed to duplicate $servername from $free->groupware_duplicate", null,__FILE__,__LINE__);
 			return;
 		}
+		apache_admin_mysql(2, "Success duplicate $servername from $free->groupware_duplicate", null,__FILE__,__LINE__);
+		$free=new freeweb($servername);
 		
+	}else{
+		if(!scan($WORKING_DIRECTORY)){
+			build_progress("$servername: {installing}...",42);
+			@mkdir($WORKING_DIRECTORY);
+			shell_exec("$cp -rf /usr/share/wordpress-src/* $WORKING_DIRECTORY/");
+			if(!scan($WORKING_DIRECTORY)){
+				apache_admin_mysql(0, "Failed to install $servername from /usr/share/wordpress-src", null,__FILE__,__LINE__);
+				build_progress("$servername: {installing} {failed}...",110);
+				return;
+			}
+			apache_admin_mysql(2, "Success to install $servername from /usr/share/wordpress-src", null,__FILE__,__LINE__);
+			
+		}
 	}
-	
 	
 	$wordpressDB=$free->mysql_database;
 	if($wordpressDB==null){$wordpressDB=$free->CreateDatabaseName();}
 	$WordPressDBPass=$free->mysql_password;
 	$DB_USER=$free->mysql_username;
+	if($DB_USER=="wordpress"){$DB_USER=null;}
 	if($DB_USER==null){
-			$DB_USER="wordpress";
+			$DB_USER="WP".time();
 			$free->mysql_username=$DB_USER;
 			$free->CreateSite(true);
 	}
@@ -253,6 +282,7 @@ $cmd[]="--path=$WORKING_DIRECTORY_CMDLINE";
 $cmd[]="--allow-root --debug --no-color 2>&1";
 $cmdline=@implode(" ", $cmd);
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $cmdline\n";}
+build_progress("$servername: {install_wordpress} {please_wait} !...",51);
 exec($cmdline,$results1);
 while (list ($num, $ligne) = each ($results1) ){
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $ligne\n";}
@@ -260,6 +290,13 @@ while (list ($num, $ligne) = each ($results1) ){
 
 build_progress("$servername: {enforce_security}",52);
 secure_wp($WORKING_DIRECTORY);
+
+build_progress("$servername: {directory_size}",53);
+$size=$unix->DIRSIZE_BYTES($free->WORKING_DIRECTORY);
+if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $free->WORKING_DIRECTORY {$size}Bytes\n";}
+$q->QUERY_SQL("UPDATE freeweb SET DirectorySize=$size WHERE servername='$servername'","artica_backup");
+if(!$q->ok){system_admin_events("$q->mysql_error",__FUNCTION__,__FILE__,__LINE__,"freewebs");}
+
 }
 
 function secure_wp($maindir){
@@ -278,6 +315,8 @@ function secure_wp($maindir){
 		@unlink("$maindir/$filename");
 	
 	}
+	
+	removeBlogInfo($maindir);
 	
 }
 
@@ -765,5 +804,167 @@ $f['wp-blog-header.php'] = True;
 	return true;
 	
 }
+
+function removeBlogInfo($maindir){
+	
+	$files["wp-includes/general-template.php"]=true;
+	
+	while (list ($filename,$none) = each ($files) ){
+		if(!is_file("$maindir/$filename")){continue;}
+		
+		
+		$REP=false;
+		$f=array();
+		$f=explode("\n",@file_get_contents("$maindir/$filename"));
+		
+		while (list ($num,$line) = each ($f) ){
+			if(preg_match("#generator.*?get_bloginfo\((.*?)\)#", $line,$re)){
+				$token=$re[1];
+				$token=str_replace("'", "", $token);
+				$token=str_replace('"', "", $token);
+				if(trim(strtolower($token))<>"version"){continue;}
+				$line=str_replace("get_bloginfo({$re[1]})", '"0.0.0"', $line);
+				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $maindir/$filename, remove blog_info line $num\n";}
+				$f[$num]=$line;$REP=true;
+					
+				
+			}
+		}
+		
+		if($REP){@file_put_contents("$maindir/$filename", @implode("\n", $f)); }
+		
+		
+	
+	}
+	
+}
+
+function duplicate_wordpress($servername){
+	$unix=new unix();
+	$q=new mysql();
+	$free=new freeweb($servername);
+	$WORKING_DIRECTORY=$free->www_dir;
+	if($free->groupware_duplicate==null){
+		build_progress("$servername: {duplicate} $servername no duplicate set...",42);
+		sleep(2);
+		return false;
+	}
+	
+	$free2=new freeweb($free->groupware_duplicate);
+	if($free2->mysql_database==null){
+		echo "Fatal: $free->groupware_duplicate did not have any such DB set, try to find it..\n";
+		$free2->mysql_database=$free2->CreateDatabaseName();
+		echo "Fatal: $free->groupware_duplicate = $free2->mysql_database\n";
+	}
+	
+	if(!$q->DATABASE_EXISTS($free2->mysql_database,true)){
+		build_progress("$servername: {duplicate} $free->groupware_duplicate did not have any database...",42);
+		sleep(2);
+		return false;
+		
+	}
+	
+	
+	$srcdir=$free2->www_dir;
+	$Mysqlpassword=null;
+	$cp=$unix->find_program("cp");
+	$rm=$unix->find_program("rm");
+	
+	if(@is_link($WORKING_DIRECTORY)){$WORKING_DIRECTORY=@readlink($WORKING_DIRECTORY);}
+	if(is_dir($WORKING_DIRECTORY)){
+		build_progress("$servername: {removing} $WORKING_DIRECTORY...",42);
+		sleep(2);
+		shell_exec("$rm -rf $WORKING_DIRECTORY/*");
+		
+	}
+	
+	
+	@mkdir($WORKING_DIRECTORY,0755,true);
+	build_progress("$servername: {installing} {from} $srcdir...",42);
+	shell_exec("$cp -rf $srcdir/* $WORKING_DIRECTORY/");
+	$wordpressDB=$free->mysql_database;
+	if($wordpressDB==null){$wordpressDB=$free->CreateDatabaseName();}
+	
+	
+	if($q->DATABASE_EXISTS($wordpressDB)){
+		build_progress("$servername: {remove_database} $wordpressDB...",42);
+		sleep(2);
+		if(!$q->DELETE_DATABASE($wordpressDB)){
+			build_progress("$servername: {remove_database} $wordpressDB {failed}...",42);
+			return false;
+		}
+		if(!$q->CREATE_DATABASE($wordpressDB,true)){
+			build_progress("$servername: {create_database} $wordpressDB {failed}...",42);
+			return false;
+		}
+	}
+	
+	if(!$q->DATABASE_EXISTS($wordpressDB)){
+		if(!$q->CREATE_DATABASE($wordpressDB,true)){
+		build_progress("$servername: {create_database} $wordpressDB {failed}...",42);
+		return false;
+		}
+	}
+	build_progress("$servername: {backup_database} {from} $free2->mysql_database...",42);
+	$mysqldump=$unix->find_program("mysqldump");
+	$q=new mysql();
+	if($q->mysql_password<>null){$Mysqlpassword=" -p".$unix->shellEscapeChars($q->mysql_password);}
+	
+	$t=time();
+	$TMP_FILE=$unix->FILE_TEMP();
+	$cmdline=trim("$mysqldump --add-drop-table --single-transaction --force --insert-ignore -S /var/run/mysqld/mysqld.sock -u {$q->mysql_admin}$Mysqlpassword $free2->mysql_database >$TMP_FILE 2>&1");
+	if($GLOBALS["VERBOSE"]){echo "$cmdline\n";}
+	$results=array();
+	exec($cmdline,$results);
+	while (list ($num, $ligne) = each ($results)){
+		echo "$ligne\n";
+		if(preg_match("#ERROR\s+([0-9]+)#", $ligne)){
+		build_progress("$servername: {restore_database} {to} $wordpressDB {failed}..",42);
+		sleep(3);
+		return false;
+		}
+	}
+	
+	
+	build_progress("$servername: {restore_database} {to} $wordpressDB..",42);
+	$mysqlbin=$unix->find_program("mysql");
+	$cmd="$mysqlbin --batch --force -S /var/run/mysqld/mysqld.sock -u {$q->mysql_admin}$Mysqlpassword --database=$wordpressDB <$TMP_FILE 2>&1";
+	if($GLOBALS["VERBOSE"]){echo "$cmd\n";}
+	exec($cmd,$results);
+	
+	while (list ($num, $ligne) = each ($results)){
+		echo "$ligne\n";
+		if(preg_match("#ERROR\s+([0-9]+)#", $ligne)){
+			build_progress("$servername: {restore_database} {to} $wordpressDB {failed}..",42);
+			sleep(3);
+			return false;
+		}
+	}
+	
+	
+	build_progress("$servername: {restore_database} {to} $wordpressDB..{done}",42);
+	@unlink($TMP_FILE);
+	if(!scan($WORKING_DIRECTORY)){
+		build_progress("$servername: {install} {failed}",42);
+		sleep(3);
+		return false;
+	}
+	
+	$proto="http";
+	if($free->useSSL==1){$proto="https";}
+	$sql="UPDATE `wp_options` SET `option_value`='$proto://$servername' WHERE `option_name`='siteurl'";
+	$q->QUERY_SQL($sql,$wordpressDB);
+	if(!$q->ok){echo $q->mysql_error;build_progress("$servername: {install} {failed}",42);sleep(3);return false;}
+	
+	$sql="UPDATE `wp_options` SET `option_value`='$proto://$servername' WHERE `option_name`='home'";
+	$q->QUERY_SQL($sql,$wordpressDB);
+	if(!$q->ok){echo $q->mysql_error;build_progress("$servername: {install} {failed}",42);sleep(3);return false;}
+	
+	$free->groupware_duplicate=null;
+	$free->CreateSite(true);
+	
+	return true;
+}
+
 
 ?>

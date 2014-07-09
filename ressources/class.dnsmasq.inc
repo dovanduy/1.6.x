@@ -1,6 +1,7 @@
 <?php
 if(!isset($GLOBALS["AS_ROOT"])){if(posix_getuid()==0){$GLOBALS["AS_ROOT"]=true;}else{$GLOBALS["AS_ROOT"]=false;}}
 include_once(dirname(__FILE__)."/class.squid.inc");
+include_once(dirname(__FILE__)."/class.resolv.conf.inc");
 
 class dnsmasq{
 	var $configuration_file_datas;
@@ -79,6 +80,14 @@ class dnsmasq{
 		if($this->main_array["resolv-file"]=="/etc/resolv.conf"){$this->main_array["resolv-file"]="/etc/dnsmasq.resolv.conf";}
 		if($this->main_array["cache-size"]==null){$this->main_array["cache-size"]="1500";}
 		
+		if($this->main_array["domain"]==null){
+			$resolv=new resolv_conf();
+			if($resolv->MainArray["DOMAINS1"]<>null){$this->main_array["domain"]=$resolv->MainArray["DOMAINS1"];}
+			
+		}
+		
+		
+		
 
 	}
 	function Mainunset(){
@@ -93,6 +102,7 @@ class dnsmasq{
 	}
 	
 	public function ParseAddress(){
+		return;
 		$tpl=explode("\n",$this->configuration_file_datas);
 		if(!is_array($tpl)){return null;}
 		$filter='#^address=/(.+)?/(.+)?#';

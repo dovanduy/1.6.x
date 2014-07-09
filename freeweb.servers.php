@@ -150,6 +150,7 @@ function page(){
 		],";
 	$html="
 	$explainSquidActHasReverse
+	<input type='hidden' id='freewebs-table-id' value='freewebs-table-$t'>
 	<table class='freewebs-table-$t' style='display: none' id='freewebs-table-$t' style='width:100%;margin:-10px'></table>
 <script>
 FreeWebIDMEM='';
@@ -460,6 +461,7 @@ function servers_list(){
 		if($FreeWebDisableSSL==1){$ssl="20-check-grey.png";}
 		$DirectorySize=FormatBytes($ligne["DirectorySize"]/1024);
 		$WebCopyID=$ligne["WebCopyID"];
+		$groupware_duplicate=null;
 		$statistics="&nbsp;";
 		$exec_statistics="&nbsp;";
 		$Members=null;
@@ -613,6 +615,10 @@ function servers_list(){
 		
 		$enable=Field_checkbox("enable_$md5S", 1,$ligne["enabled"],"Loadjs('freeweb.servers.php?enable-site-js=yes&t={$_GET["t"]}&servername=$servername_enc&enabled={$ligne["enabled"]}');");
 		
+		if($ligne["groupware_duplicate"]<>null){
+			$groupware_duplicate="<br><span style='color:red'>{duplicate} :{$ligne["groupware_duplicate"]}</span>";
+		}
+		
 		if($ligne["enabled"]==0){
 			$requests_second="-";
 			$traffic_second="-";
@@ -625,7 +631,7 @@ function servers_list(){
 				'id' => $md5S,
 				'cell' => array(
 					"<img src='img/$icon'>", 
-					"<strong style='font-size:13px;style='color:$color'>$href$servername_text</a>$iconPlus$groupware$forward_text
+					"<strong style='font-size:13px;style='color:$color'>$href$servername_text</a>$groupware_duplicate$iconPlus$groupware$forward_text
 					$added_port$Members$sizevg</strong></span>$ServerAlias$uptime",
 					$compile,$enable,	
 					"$spanStyle1$DirectorySize</span>",

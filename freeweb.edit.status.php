@@ -51,6 +51,8 @@ function tabs(){
 	$page=CurrentPageName();
 	
 	
+	$array["tasks"]="{tasks}";
+	
 	if($_GET["servername"]<>null){
 		$q=new mysql();
 		$table_name=$q->APACHE_TABLE_NAME($_GET["servername"]);
@@ -58,11 +60,13 @@ function tabs(){
 		$table_name="apache_stats_".date('Ym');
 		$sql="SELECT COUNT(servername) as tcount FROM $table_name WHERE servername='{$_GET["servername"]}'";
 		if($q->mysql_error){if(!preg_match("#doesn.+?t exist#", $q->mysql_error)){echo "<H2>$q->mysql_error</H2>";}}else{$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_events"));}
-		if($ligne["tcount"]>0){	$array["status"]=$_GET["servername"];
-	$array["today"]="{last_24h}";}
+		if($ligne["tcount"]>0){	
+			$array["status"]=$_GET["servername"];
+			$array["today"]="{last_24h}";
+		}
 	}
 
-	$array["tasks"]="{tasks}";
+	
 	$array["errors"]="{errors}";
 	$array["requests"]="{requests}";
 	$font=18;
@@ -92,6 +96,23 @@ function tasks(){
 	$servername=$_GET["servername"];
 	$servernameenc=urlencode($_GET["servername"]);
 	$tpl=new templates();
+	
+	$free=new freeweb($servername);
+	if($free->groupware=="WORDPRESS"){
+		
+		$duplicate="<div style='margin:30px'>". button("{duplicate}", 
+				"Loadjs('wordpress.php?duplicate-js=$servernameenc')",30)."
+				<p style='font-size:20px'>{wordpress_duplicate_explain}</p>
+			</div><div style='margin:30px'>". button("{restore_from_website}", 
+				"Loadjs('wordpress.php?restore-js=$servernameenc')",30)."
+				<p style='font-size:20px'>{restore_from_website_explain}</p>
+			</div>	";
+		
+		
+		
+		
+	}
+	
 	$check_configuration=$tpl->_ENGINE_parse_body("{check_configuration}");
 	$reconfigure=ParagrapheTEXT("48-settings-refresh.png", "{rebuild}", "{rebuild_apache_text}","javascript:FreeWebsRebuildvHosts()");
 	
@@ -118,7 +139,8 @@ function tasks(){
 			<div style='margin:30px'>". button("{check_configuration}", 
 						"Loadjs('freeweb.edit.php?display-config-js=$servernameenc')",30)."
 				<p style='font-size:20px'>{check_configuration_text}</p>
-			</div>									
+			</div>	
+			$duplicate								
 		</center>
 								
 		<script>

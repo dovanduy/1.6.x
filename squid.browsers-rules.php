@@ -336,6 +336,7 @@ function popup(){
 	$new_rule=$tpl->javascript_parse_text("{new_rule}");
 	$enabled=$tpl->javascript_parse_text("{enabled}");
 	$about=$tpl->javascript_parse_text("{about2}");
+	$all=$tpl->javascript_parse_text("{all}");
 	$browsers_ntlm_explain=$tpl->javascript_parse_text("{browsers_ntlm_explain}",0);
 	$t=time();		
 	
@@ -344,7 +345,10 @@ function popup(){
 	$buttons="buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : Add$t},
 	{name: '$about', bclass: 'help', onpress : About$t},
-	$apply_paramsbt
+	$apply_paramsbt,
+	{name: '$whitelist', bclass: 'Statok', onpress :  Whitelist$t},
+	{name: '$deny', bclass: 'Err', onpress :  Deny$t},
+	{name: '$all', bclass: 'Statok', onpress :  All$t},
 		],	";
 
 	
@@ -398,6 +402,15 @@ function Add$t(){
 Loadjs('$page?ruleid-js=0&t=$t');
 }
 
+function Whitelist$t(){
+	$('#table-$t').flexOptions({url: '$page?list=yes&t=$t&whitelist=yes'}).flexReload();
+}
+function All$t(){
+	$('#table-$t').flexOptions({url: '$page?list=yes&t=$t'}).flexReload();
+}
+function Deny$t(){
+	$('#table-$t').flexOptions({url: '$page?list=yes&t=$t&deny=yes'}).flexReload();
+}
 function SquidBuildNow$t(){
 	Loadjs('squid.compile.php');
 }
@@ -419,6 +432,15 @@ function items(){
 	$search='%';
 	$table="UsersAgentsDB";
 	$page=1;
+	$FORCE=1;
+	
+	if(isset($_GET["whitelist"])){
+		$FORCE="bypass=1";
+	}
+	if(isset($_GET["deny"])){
+		$FORCE="deny=1";
+	}	
+	
 
 	if($q->COUNT_ROWS($table)==0){json_error_show("No data");}
 	
@@ -433,13 +455,13 @@ function items(){
 	$searchstring=string_to_flexquery();
 
 	if($searchstring<>null){
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE 1 $searchstring";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE $searchstring";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		if(!$q->ok){json_error_show("$q->mysql_error");}
 		
 	}else{
-		$sql="SELECT COUNT(*) as TCOUNT FROM `$table`";
+		$sql="SELECT COUNT(*) as TCOUNT FROM `$table` WHERE $FORCE";
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
 		$total = $ligne["TCOUNT"];
 		if(!$q->ok){json_error_show("$q->mysql_error");}
@@ -452,7 +474,7 @@ function items(){
 	$pageStart = ($page-1)*$rp;
 	$limitSql = "LIMIT $pageStart, $rp";
 	
-	$sql="SELECT *  FROM `$table` WHERE 1 $searchstring $ORDER $limitSql";	
+	$sql="SELECT *  FROM `$table` WHERE $FORCE $searchstring $ORDER $limitSql";	
 	writelogs($sql,__FUNCTION__,__FILE__,__LINE__);
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){json_error_show("$q->mysql_error");}

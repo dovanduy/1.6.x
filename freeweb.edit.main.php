@@ -77,7 +77,7 @@ function tabs(){
 	}
 	
 	
-	if(count($array)<10){$fontsize="style='font-size:14px'";}
+	if(count($array)<10){$fontsize="style='font-size:18px'";}
 	
 	
 	while (list ($num, $ligne) = each ($array) ){

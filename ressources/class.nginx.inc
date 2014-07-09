@@ -44,6 +44,11 @@ class nginx{
 	private $ssl_ciphers=null;
 	private $LimitCnx=0;
 	private $LimitReqs=0;
+	private $x_forwarded_for=1;
+	private $x_forwarded_for_string=null;
+	private $proxy_pass_request_headers=null;
+	private $ngx_headers_more_module=false;
+	
 	public $NoErrorPages=false;
 	public $proxy_read_timeout=300;
 	public $proxy_send_timeout=300;
@@ -153,15 +158,17 @@ class nginx{
 	}
 	
 	private function LoadParams(){
-		$key="$this->servername:$this->host_port";
+		$key="$this->servername";
 		if(isset($GLOBALS[__CLASS__][__FUNCTION__][$key])){return;}
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Loading\n";}
 		$unix=new unix();
 		$this->CompileParams=$unix->NGINX_COMPILE_PARAMS();
+		
+		if(isset($this->CompileParams["ngx_headers_more"])){$this->ngx_headers_more_module=true;}
+		
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
 		$this->build_file_path();
 		if($this->servername<>null){
-			
 			$q=new mysql_squid_builder();
 			$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * FROM reverse_www WHERE servername='$this->servername'"));
 			$this->proxy_read_timeout=$ligne["proxy_read_timeout"];
@@ -181,9 +188,26 @@ class nginx{
 			$this->ssl_ciphers=$ligne["ssl_ciphers"];
 			$this->LimitCnx=$ligne["LimitCnx"];
 			$this->LimitReqs=$ligne["LimitReqs"];
+			$this->proxy_pass_request_headers=$ligne["proxy_pass_request_headers"];
+			
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $key [OPT] proxy_buffering...........: \"{$ligne["proxy_buffering"]}\"\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $key [OPT] x_forwarded_for...........: \"{$ligne["x_forwarded_for"]}\"\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $key [OPT] x_forwarded_for_string....: \"{$ligne["x_forwarded_for_string"]}\"\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $key [OPT] proxy_pass_request_headers: \"{$ligne["proxy_pass_request_headers"]}\"\n";}
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $key [MOD] ngx_headers_more_module...: \"$this->ngx_headers_more_module\"\n";}
+			
+			
+			
+			$this->x_forwarded_for=$ligne["x_forwarded_for"];
+			$this->x_forwarded_for_string=trim($ligne["x_forwarded_for_string"]);
 			if($this->ssl_protocols==null){$this->ssl_protocols="TLSv1 TLSv1.1 TLSv1.2";}
 			if($this->ssl_ciphers==null){$this->ssl_ciphers="ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:RC4-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!3DES:!MD5:!PSK";}
 			if(!is_numeric($this->proxy_cache_valid)){$this->proxy_cache_valid=4320;}
+			if(!is_numeric($this->x_forwarded_for)){$this->x_forwarded_for=1;}
+			if(!is_numeric($this->proxy_pass_request_headers)){$this->proxy_pass_request_headers=1;}
+			
+
+			
 			
 		$GLOBALS[__CLASS__][__FUNCTION__][$key]=true;
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." default_server = {$ligne["default_server"]}\n";}
@@ -438,6 +462,15 @@ class nginx{
 		
 		
 	}
+	
+	
+	private function FreeWebIsSSL(){
+		$free=new freeweb($this->servername);
+		if($free->useSSL==1){
+			$this->set_ssl_certificate($free->sslcertificate);
+			return true;
+		}
+	}
 
 	
 	public function build_proxy(){
@@ -460,13 +493,7 @@ class nginx{
 		$suffix=str_replace("unix:", "unix-", $suffix);
 		$suffix=str_replace("/", "", $suffix);
 		
-		if($this->ssl==1){
-			$data=$this->ssl_proxy();
-			
-		}else{
-			$data=$this->http_proxy();
-			
-		}
+		$data=$this->http_proxy();
 		
 
 		if($GLOBALS["VERBOSE"]){echo "\n$data\n";}
@@ -868,6 +895,8 @@ for too long in io path.
 		$groupes=$this->AUTHENTICATOR_GROUPS($array["AUTHENTICATOR_RULEID"]);
 
 		$f[]="\tlocation = /ARTICAAUTHENTICATOR {";
+		$f[]=$this->headers_x_forwarded_for(true);
+		$f[]="\t\tproxy_pass_request_headers on;\n";
 		$f[]="\t\tproxy_pass {$array["REMOTE_FRAMEWORK"]}?uri=\$request_uri$groupes&servername=\$server_name&banner={$array["LDAP_BANNER"]};";
 		$f[]="\t}";
 		return @implode("\n", $f);
@@ -1130,6 +1159,10 @@ for too long in io path.
 		if($ligne["ArticaErrors"]==0){return null;}
 		
 		$f[]="\tlocation /nginx.error.php {";
+		$f[]=$this->headers_x_forwarded_for(true);
+		$f[]="\t\tproxy_pass_request_headers on;\n";
+		$f[]="\t\tproxy_no_cache 1;";
+		$f[]="\t\tproxy_cache_bypass 1;";
 		$f[]="\tproxy_pass http://unix:/var/run/nginx-authenticator.sock:/authenticator.php;";
 		//$f[]=$this->php5_params("/usr/share/artica-postfix");
 		$f[]="\t}\n";
@@ -1398,8 +1431,13 @@ private function http_location_cache_params($ligne){
 			$f[]="\t\tproxy_set_header Accept-Encoding \"\";";
 			$f[]=$replace_rules;
 		}
-		if($HostHeader<>null){$f[]="\t\tproxy_set_header Host $HostHeader;";}
-		$f[]="\t\tproxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;";
+		
+		
+		if($HostHeader<>null){
+			$f[]="\t\tproxy_set_header Referer http://$HostHeader;";
+			$f[]="\t\tproxy_set_header Host $HostHeader;";
+		}
+		$f[]=$this->headers_x_forwarded_for();
 		$f[]="\t\tproxy_hide_header \"Vary\";";
 		$f[]="\t\tadd_header \"Vary\" \"Accept-Encoding\";";
 		$f[]="\t\tproxy_set_header X-Forwarded-Ssl on;";
@@ -1522,12 +1560,21 @@ private function http_location_cache_params($ligne){
 	}
 	
 	
+
+	
+	
 	private function http_proxy(){
 		$unix=new unix();
 		$ServersAliases=null;
 		$server_name=null;
 		$ErrorLogLevel="warn";
 		if(trim($this->servername)==null){$this->FillHostnameAsIP();}
+		$IsSSL=false;
+		if($this->IsAFreeWeb){
+			$IsSSL=$this->isFreeWebSSL();
+			if(!$IsSSL){$this->set_proxy_port(82);}else{$this->set_proxy_port(447);}
+		}
+		
 		if($this->default_server==1){
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." IS A DEFAULT SERVER..\n";}
 			$default_server=" default_server";
@@ -1552,6 +1599,16 @@ private function http_location_cache_params($ligne){
 		
 		$f[]="server {";
 		$f[]="\tlisten {$HostIPADDR}$this->host_port{$default_server};";
+		if($IsSSL){
+			$f[]="\tlisten {$HostIPADDR}443 ssl;";
+			$f[]=$this->squidR->SaveCertificate($this->sslcertificate,false,true);
+			$f[]="\tssl_session_cache shared:SSL:50m;";
+			$f[]="\tssl_session_timeout  5m;";
+			$f[]="\tssl_protocols  $this->ssl_protocols;";
+			$f[]="\tssl_ciphers '$this->ssl_ciphers';";
+			$f[]="\tssl_prefer_server_ciphers   on;";
+		}
+		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." listen {$HostIPADDR}$this->host_port{$default_server}\n";}
 		$server_name_text=$this->CheckServerName($this->servername);
 		$ServersAliases=$this->http_servername_aliases();
@@ -1725,103 +1782,7 @@ private function http_location_cache_params($ligne){
 	}
 	
 	
-	private function ssl_proxy(){
-		$unix=new unix();
-		$HostHeader="\$host";
-		$ServersAliases=null;
-		$server_name=null;
-		$ErrorLogLevel="warn";
-		if($this->servername==null){$this->FillHostnameAsIP();}
-		if($this->host_port==0){$this->host_port=443;}
-		$HostIPADDR=$this->MyHostnameListen();
-		if($this->default_server==1){$default_server=" default_server";}
-		if($this->isDebug()){$ErrorLogLevel="debug";}
-		$AsProxy=true;
-		
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: default_server='$this->default_server'\n";}
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: proxy_disabled='$this->proxy_disabled'\n";}
-		
-		if($this->proxy_disabled==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: It not a reverse Proxy\n";}
-			$AsProxy=false;
-		}
-		
-		$ServersAliases=$this->http_servername_aliases();
-		
-		@mkdir("/var/log/apache2/$this->servername",0755,true);
-		$unix->chown_func($this->APACHE_USER,$this->APACHE_SRC_GROUP,"/var/log/apache2/$this->servername");
-		
-		
-		
-		$server_name_text=$this->CheckServerName($this->servername);
-		$f[]="server {";
-		$f[]="\tlisten {$HostIPADDR}$this->host_port{$default_server};";
-		$f[]="\tset \$cache_uri \$request_uri;";
-		$f[]="\tif (\$request_method = POST) {";
-		$f[]="\t\tset \$cache_uri 'null cache';";
-		$f[]="\t}";
-		
-		$server_name=trim("$server_name_text{$ServersAliases}");
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: $this->servername:$this->host_port server_name='$server_name'\n";}
-		if($GLOBALS["VERBOSE"]){echo "[DEBUG]: $this->servername:$this->host_port OWA='$this->OWA'\n";}
-		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: server_name=\"$server_name\"\n";}
-		if($server_name<>null){$f[]="\tserver_name $server_name_text{$ServersAliases};";}
-		
-		if($this->OWA){$f[]="\trewrite ^/$ https://$this->servername$this->HostPortLNK/owa/auth/logon.aspx?replaceCurrent=1&url=https%3a%2f%2f$this->servername%2fowa%2f permanent;";}
-		
-		$f[]="\taccess_log  /var/log/apache2/$this->servername/nginx.access.log aws_log;";
-		$f[]="\terror_log  /var/log/apache2/$this->servername/nginx.error.log $ErrorLogLevel;";
-		if($this->RedirectQueries<>null){
-			$f[]="return 301 $this->RedirectQueries\$request_uri;";
-			$f[]="}";
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: ".count($f)." parameters\n";}
-			return @implode("\n", $f);
-			
-		}
-		$f[]=$this->general_security();
-		$f[]=$this->error_pages_default();
-		$f[]=$this->AntiExploits();
-		
-		
-		$LDAP_server_auth=$this->LDAP_server_auth();
-		if($LDAP_server_auth<>null){$f[]=$LDAP_server_auth;}
-		
-		if(!$AsProxy){
-			$f[]=$this->ROOT_WEBSERVER();
-		}else{
-			$f[]=$this->ROOT_PROXY();
-		}		
-		
-		
-		if($this->DocumentRoot<>null){
-			$f[]="\troot   $this->DocumentRoot;";
-			if($this->IndexFile<>null){ $f[]="\tindex $this->IndexFile;";}
-			$f[]="\tlocation ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {";
-			$f[]="\t\taccess_log        off;";
-			$f[]="\t\texpires           max;";
-			$f[]="\t}";
-		}
-		
-		$f[]="\tssl on;";
-		$f[]=$this->squidR->SaveCertificate($this->sslcertificate,false,true);
-		$f[]="\tssl_session_cache shared:SSL:50m;";
-		$f[]="\tssl_session_timeout  5m;";
-		$f[]="\tssl_protocols  $this->ssl_protocols;";
-		$f[]="\tssl_ciphers '$this->ssl_ciphers';";
-		$f[]="\tssl_prefer_server_ciphers   on;";
-		
-		
 
-
-		$f[]=$this->error_pages();
-		$f[]=$this->error_pages_perso_framework();
-		$f[]="}";
-		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port: ".count($f)." parameters\n";}
-		return @implode("\n", $f);
-		
-	}
 	
 	
 	private function ROOT_WEBSERVER(){
@@ -2021,6 +1982,15 @@ private function http_location_cache_params($ligne){
 	}
 	
 	private function proxy_cache_bypass(){
+		if($this->proxy_buffering==0){
+			$f[]="# Proxy buffering = 0; Force no caching [".__LINE__."]";
+			$f[]="\t\tproxy_no_cache 1;";
+			$f[]="\t\tproxy_cache_bypass 1;";
+			return @implode("\n",$f);
+		}
+		$f[]="\t\tproxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;";
+		$f[]="\t\tproxy_cache_valid {$this->proxy_cache_valid}m;";
+		$f[]="\t\texpires {$this->proxy_cache_valid}m;";
 		$f[]="\t\tproxy_no_cache \$cookie_nocache \$arg_nocache \$arg_comment;";
 		$f[]="\t\tproxy_no_cache \$http_pragma \$http_authorization;";
 		$f[]="\t\tproxy_cache_bypass \$cookie_nocache \$arg_nocache \$arg_comment;";
@@ -2028,12 +1998,36 @@ private function http_location_cache_params($ligne){
 		return @implode("\n",$f);
 	}
 	
+	private function headers_x_forwarded_for($force=false){
+		$this->LoadParams();
+		if($force){
+			$f[]="\t\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
+			$f[]="\t\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+			return @implode("\n", $f);
+		}
+		if($this->x_forwarded_for==0){
+			return "#\t\tx_forwarded_for set to 0 [".__LINE__."]";
+			
+		}
+		if(trim($this->x_forwarded_for_string)==null){
+			$f[]="\t\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
+			$f[]="\t\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+			return @implode("\n", $f);
+		}
+		$f[]="#\t\tFake x_forwarded_for [".__LINE__."]";
+		$f[]="\t\tproxy_set_header\tX-Forwarded-For\t$this->x_forwarded_for_string;";
+		$f[]="\t\tproxy_set_header\tX-Real-IP\t$this->x_forwarded_for_string;";
+		return @implode("\n", $f);
+	}	
+	
 	
 	
 	private function ROOT_PROXY(){
 		$IpClass=new IP();
 		$HostHeader="\$host";
 		$this->forceddomain=trim($this->forceddomain);
+		if(!intval($this->proxy_to_port)==0){$this->proxy_to_port=80;}
+		
 		$PortTXT=null;
 		if($this->forceddomain<>null){$HostHeader="$this->forceddomain";}
 		if($this->default_server==1){
@@ -2063,12 +2057,11 @@ private function http_location_cache_params($ligne){
 				$this->proxy_to_port=82;
 				$proxy_ssl_session_reuse="off";
 			}
-			
 		}
 		
 		if(preg_match("#([0-9\.]+):([0-9]+)#",$proxy_to_host,$re)){
 			$proxy_to_host=$re[1];
-			$this->proxy_to_port=$re[2];
+			if(!$this->IsAFreeWeb){$this->proxy_to_port=$re[2]; }
 		}
 		
 		
@@ -2077,6 +2070,7 @@ private function http_location_cache_params($ligne){
 			if(!$IpClass->isValid($tcp)){
 				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $proxy_to_host -> 127.0.0.1 [".__LINE__."]\n";}
 				$proxy_to_host="127.0.0.1";
+				if($this->proxy_to_port==0){$this->proxy_to_port=82;}
 				if($this->proxy_to_port==80){$this->proxy_to_port=82;}
 				if($this->proxy_to_port==443){$this->proxy_to_port=447;}
 			}
@@ -2084,7 +2078,7 @@ private function http_location_cache_params($ligne){
 		
 		
 		
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port Proxy to: '$proxy_to_host', suffix '$this->proxy_suffix'\n";} 
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername:$this->host_port Proxy to: '$proxy_to_host' port:$this->proxy_to_port, suffix '$this->proxy_suffix'\n";} 
 		
 		if(is_numeric($this->proxy_to_port)){
 			$PortTXT=":$this->proxy_to_port";
@@ -2123,10 +2117,16 @@ private function http_location_cache_params($ligne){
 		if($this->OWA){	$f[]="\tproxy_set_header X-Forwarded-Proto off;";}
 		if($this->OWA){	$f[]="\tadd_header Front-End-Https on;";}
 		if($this->OWA){	$f[]="\tproxy_http_version 1.1;";}
-
+		
+		$f[]="\t\tproxy_set_header Referer \$http_referer;";
 		$f[]="\tproxy_set_header Host $HostHeader;";
-		$f[]="\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
-		$f[]="\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+		if($this->ngx_headers_more_module){
+			$f[]="\tmore_set_headers    \"Server: $HostHeader\";";
+		}else{
+			$f[]="#\tmore_set_headers Not installed";
+		}
+		$f[]=$this->headers_x_forwarded_for();
+
 		if(!$this->OWA){
 			$f[]=$this->proxy_cache_bypass();
 			
@@ -2228,13 +2228,16 @@ private function http_location_cache_params($ligne){
 			$f[]="\t\tproxy_no_cache \$wordpress_auth; # Do not serve response from cache.";
 		}
 		
-		$f[]="\t\tproxy_set_header\tX-Real-IP\t\$remote_addr;";
+		$f[]="\t\tproxy_set_header Referer http://$this->forceddomain;";
 		$f[]="\t\tproxy_set_header Host $this->forceddomain;";
-		$f[]="\t\tproxy_set_header\tX-Forwarded-For\t\$proxy_add_x_forwarded_for;";
+		if($this->ngx_headers_more_module){
+			$f[]="\t\tmore_set_headers    \"Server: $this->forceddomain\";";
+		}else{
+			$f[]="#\t\tmore_set_headers Not installed [".__LINE__."]";
+		}
+		$f[]=$this->headers_x_forwarded_for();
 		//$f[]="\t\tproxy_cache_revalidate  on; 1.5.7";
-		$f[]="\t\tproxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;";
-		$f[]="\t\tproxy_cache_valid {$this->proxy_cache_valid}m;";
-		$f[]="\t\texpires {$this->proxy_cache_valid}m;";
+
 		
 		$replace_rules=$this->replace_rules_single_domain();
 		
@@ -2247,7 +2250,11 @@ private function http_location_cache_params($ligne){
 		if($proxy_cache<>null){$f[]=$proxy_cache;}
 		$f[]=$this->proxy_parameters($this->cache_peer_id);
 		
-
+		if($this->proxy_pass_request_headers==1){
+			$f[]="\t\tproxy_pass_request_headers on;\n";
+		}else{
+			$f[]="\t\tproxy_pass_request_headers off;\n";
+		}
 		$f[]="\t\tproxy_pass $ReverseProxyPattern;";
 		
 		if($proxy_redirect<>null){$f[]="\t\t$proxy_redirect";}

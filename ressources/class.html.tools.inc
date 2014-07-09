@@ -411,6 +411,7 @@ function Field_ColorPicker($name,$value=null,$style=null,$class=null,$OnChange=n
 
 function Field_array_Hash($Hash,$FieldName,$default=null,$java=null,$class='',$maxlength=0,$style_of_field=null,$disabled=false){
 	$tpl=new templates();
+	$GLOBALS["AUTO_FORM"][$FieldName]="text";
 	if(!is_array($Hash)){return "<input type='hidden' name='$FieldName' value='0' id='$FieldName'>";}
 	if(preg_match("#style:(.+)#",$java,$re)){
 		$java=null;

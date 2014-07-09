@@ -282,9 +282,7 @@ class useragents{
 		$array[]="regex:^Mozilla/.*Artica,Artica Updater,Articatech,Unix,1,0";
 		$array[]="regex:^Mozilla\/.*MSIE 8.*Win64,Internet Explorer 8.0,Microsoft,Browsers,0,0";
 		$array[]="regex:^Mozilla\/.*MSIE [0-9]+\..*; Windows NT 6.1; WOW64;,Generic Internet Explorer Windows 7 64bits,Microsoft,Browsers,0,0";
-		
-		
-		
+		$array[]="regex:^iTunes\/[0-9\.]+,Apple iTunes,Apple,SmartPhones,1,0";
 		$prefix="INSERT IGNORE INTO `UsersAgentsDB` (`pattern`,`explain`,`editor`,`category`,`bypass`,`deny`,`bypassWebF`,`bypassWebC`)";
 				
 				

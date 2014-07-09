@@ -332,7 +332,7 @@ function selection_list(){
 	$attrs=array("uid","ComputerIP","ComputerOS","ComputerMachineType","ComputerMacAddress");
 	$dn="$ldap->suffix";
 	$hash=$ldap->Ldap_search($dn,$filter_search,$attrs,$_POST['rp']);
-	$data = array();$data['page'] = $page;$data['total'] = $hash["count"];$data['rows'] = array();	
+	$data = array();$data['page'] = 1;$data['total'] = $hash["count"];$data['rows'] = array();	
 
 
 for($i=0;$i<$hash["count"];$i++){

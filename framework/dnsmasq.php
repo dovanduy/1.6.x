@@ -21,9 +21,8 @@ writelogs_framework("unable to understand query...",__FUNCTION__,__FILE__,__LINE
 function restart(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	DNWriteToSyslog("Artica Framework: Order framework to restart service","dnsmasq");
-	
-	shell_exec(LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.initslapd.php --dnsmasq");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$unix->ToSyslog("Artica Framework: Order framework to restart service");
 	$cmd=trim($nohup." /etc/init.d/dnsmasq restart >/dev/null 2>&1 &");
 	shell_exec($cmd);	
 }
@@ -31,8 +30,9 @@ function restart(){
 function reload_hosts(){
 	$unix=new unix();
 	$nohup=$unix->find_program("nohup");
-	DNWriteToSyslog("Artica Framework: Order framework to reload service","dnsmasq");
-	shell_exec($nohup." ".LOCATE_PHP5_BIN2()." /usr/share/artica-postfix/exec.dnsmasq.php --build-hosts");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$unix->ToSyslog("Artica Framework: Order framework to reload service");
+	shell_exec("$nohup $php /usr/share/artica-postfix/exec.dnsmasq.php --restart");
 	
 }
 
@@ -51,18 +51,4 @@ function remove_dhcp_role(){
 	$php=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$php /usr/share/artica-postfix/exec.dnsmasq.php --remove-service $eth");
 
-}
-
-function DNWriteToSyslog($text,$file,$error=false){
-	$file=basename($file);
-	if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
-	if(function_exists("openlog")){openlog($file, LOG_PID , LOG_SYSLOG);}
-	if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
-	if(function_exists("closelog")){closelog();}
-}
-
-function LOCATE_PHP5_BIN2(){
-	if(!isset($GLOBALS["CLASS_UNIX"])){ include_once(dirname(__FILE__)."/class.unix.inc");$GLOBALS["CLASS_UNIX"]=new unix();}
-	if(!is_object($GLOBALS["CLASS_UNIX"])){include_once(dirname(__FILE__)."/class.unix.inc");$GLOBALS["CLASS_UNIX"]=new unix();}
-	return $GLOBALS["CLASS_UNIX"]->LOCATE_PHP5_BIN();
 }

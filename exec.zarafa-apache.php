@@ -83,6 +83,8 @@ function start($aspid=false){
 	if(!is_numeric($ZarafaApacheEnable)){$ZarafaApacheEnable=1;}
 	$ZarafaApachePort=$sock->GET_INFO("ZarafaApachePort");
 	if(!is_numeric($ZarafaApachePort)){$ZarafaApachePort=9010;}
+	
+	
 		
 	if($ZarafaApacheEnable==0){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-web Engine is disabled ( see ZarafaApacheEnable )...\n";}
@@ -100,7 +102,19 @@ function start($aspid=false){
 	}
 
 
-
+	$username=$unix->APACHE_SRC_ACCOUNT();
+	$group=$unix->APACHE_SRC_GROUP();
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: zarafa-web Engine run as $username\n";}
+	
+	@mkdir('/var/run/zarafa-web',0755,true);
+	@mkdir('/var/log/apache-zarafa',0755,true);
+	@mkdir('/var/lib/zarafa-webaccess/tmp',0755,true);
+	
+	$unix->chown_func($username, $group,"/var/run/zarafa-web");
+	$unix->chown_func($username, $group,"/var/log/apache-zarafa");
+	$unix->chown_func($username, $group,"/var/lib/zarafa-webaccess");
+	$unix->chmod_func(0777, "/var/lib/zarafa-webaccess/tmp");
+	$unix->chown_func($username, $group,"/usr/share/zarafa-webaccess/plugins/*");
 
 	$f[]=$serverbin;
 	$f[]="-f /etc/zarafa/httpd.conf";
@@ -236,6 +250,9 @@ function stop($aspid=false){
 function build(){
 	$unix=new unix();
 	$sock=new sockets();
+	$users=new usersMenus();
+	$APACHE_MODULES_PATH=$users->APACHE_MODULES_PATH;
+	if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} Apache modules in \"$APACHE_MODULES_PATH\"\n";}
 	$ZarafaApachePort=$sock->GET_INFO("ZarafaApachePort");
 	$ZarafaApacheSSL=$sock->GET_INFO("ZarafaApacheSSL");
 	$LighttpdArticaDisableSSLv2=$sock->GET_INFO("LighttpdArticaDisableSSLv2");
@@ -268,12 +285,25 @@ function build(){
 	
 	$username=$unix->APACHE_SRC_ACCOUNT();
 	$group=$unix->APACHE_SRC_GROUP();
+
+	if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} logs access: /var/log/apache-zarafa/access.log\n";}
+	if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} logs error : /var/log/apache-zarafa/error.log\n";}
 	
+	@unlink("/var/log/apache-zarafa/access.log");
+	@unlink("/var/log/apache-zarafa/error.log");
+	@touch("/var/log/apache-zarafa/access.log");
+	@touch("/var/log/apache-zarafa/access.log");
 	
+	@mkdir("/var/run/apache2",0755,true);
+	@mkdir("/var/run/artica-apache",0755,true);
 	@mkdir('/var/run/zarafa-web',0755,true);
 	@mkdir('/var/log/apache-zarafa',0755,true);
 	@mkdir('/var/lib/zarafa-webaccess/tmp',0755,true);
 	
+	$unix->chown_func($username, $group,"/var/log/apache-zarafa/access.log");
+	$unix->chown_func($username, $group,"/var/log/apache-zarafa/error.log");
+	$unix->chown_func($username, $group,"/var/run/apache2");
+	$unix->chown_func($username, $group,"/var/run/artica-apache");
 	$unix->chown_func($username, $group,"/var/run/zarafa-web");
 	$unix->chown_func($username, $group,"/var/log/apache-zarafa");
 	$unix->chown_func($username, $group,"/var/lib/zarafa-webaccess");
@@ -284,26 +314,34 @@ function build(){
 
 
 if($ZarafaApacheSSL==1){
-	if(!is_file("/etc/ssl/certs/zarafa/apache.crt.nopass.cert")){shell_exec("/usr/share/artica-postfix/bin/artica-install --zarafa-apache-certificates");}
-	$f[]="SSLEngine on";
 	
-	$f[]="SSLCertificateFile /etc/ssl/certs/zarafa/apache.crt.nopass.cert";
-	$f[]="SSLCertificateKeyFile /etc/ssl/certs/zarafa/apache-ca.key.nopass.key";
-	if($LighttpdArticaDisableSSLv2==1){
-		$f[]="SSLProtocol -ALL +SSLv3 +TLSv1";
-		$f[]="SSLCipherSuite ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM";
+	if(is_file("$APACHE_MODULES_PATH/mod_ssl.so")){
+		if(!is_file("/etc/ssl/certs/zarafa/apache.crt.nopass.cert")){shell_exec("/usr/share/artica-postfix/bin/artica-install --zarafa-apache-certificates");}
+		$f[]="LoadModule ssl_module /usr/lib/apache2/modules/mod_ssl.so";
+		$f[]="SSLEngine on";
+		
+		
+		
+		
+		
+		$f[]="SSLCertificateFile /etc/ssl/certs/zarafa/apache.crt.nopass.cert";
+		$f[]="SSLCertificateKeyFile /etc/ssl/certs/zarafa/apache-ca.key.nopass.key";
+		if($LighttpdArticaDisableSSLv2==1){
+			$f[]="SSLProtocol -ALL +SSLv3 +TLSv1";
+			$f[]="SSLCipherSuite ALL:!aNULL:!ADH:!eNULL:!LOW:!EXP:RC4+RSA:+HIGH:+MEDIUM";
+		}
+	
+		$f[]="SSLRandomSeed connect builtin";
+		$f[]="SSLRandomSeed startup file:/dev/urandom  256";
+		$f[]="SSLRandomSeed connect file:/dev/urandom 256";
+		$f[]="AddType application/x-x509-ca-cert .crt";
+		$f[]="AddType application/x-pkcs7-crl    .crl";
+		$f[]="SSLPassPhraseDialog  builtin";
+		$f[]="SSLSessionCache        shmcb:/var/run/apache2/ssl_scache-zarafa(512000)";
+		$f[]="SSLSessionCacheTimeout  300";
+		$f[]="SSLVerifyClient none";
+		$f[]="ServerSignature Off";
 	}
-
-	$f[]="SSLRandomSeed connect builtin";
-	$f[]="SSLRandomSeed startup file:/dev/urandom  256";
-	$f[]="SSLRandomSeed connect file:/dev/urandom 256";
-	$f[]="AddType application/x-x509-ca-cert .crt";
-	$f[]="AddType application/x-pkcs7-crl    .crl";
-	$f[]="SSLPassPhraseDialog  builtin";
-	$f[]="SSLSessionCache        shmcb:/var/run/apache2/ssl_scache-zarafa(512000)";
-	$f[]="SSLSessionCacheTimeout  300";
-	$f[]="SSLVerifyClient none";
-	$f[]="ServerSignature Off";
 	
 	
 }	
@@ -363,7 +401,7 @@ if($ZarafaApacheWebMailType=="APP_ZARAFA_WEBAPP"){
 }
 
 
-if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} WebMail \"$ZarafaApacheWebMailType\"\n";}
+if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} WebMail \"$ZarafaApacheWebMailType\"\n";}
 
 $f[]="ServerRoot \"$DocumentRoot\"";
 $f[]="Listen $ZarafaApachePort";
@@ -428,7 +466,7 @@ if($ZarafaApachePHPFPMEnable==1){
 	$f[]="\t\t</Files>";
 	$f[]="\t</Directory>";
 }else{
-	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP5-FPM is disabled\n";}
+	if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} PHP5-FPM is disabled\n";}
 }
 
 $f[]="<IfModule dir_module>";
@@ -471,8 +509,7 @@ $f[]="      LogFormat \"%h %l %u %t \\\"%r\\\" %>s %b \\\"%{Referer}i\\\" \\\"%{
 $f[]="    </IfModule>";
 $f[]="";
 
-if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} logs access: /var/log/apache-zarafa/access.log\n";}
-if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} logs error : /var/log/apache-zarafa/error.log\n";}
+
 
 $f[]="    CustomLog \"/var/log/apache-zarafa/access.log\" combinedv";
 $f[]="</IfModule>";
@@ -512,9 +549,9 @@ $f[]="    #AddOutputFilter INCLUDES .shtml";
 $f[]="</IfModule>";
 
 @file_put_contents('/etc/zarafa/httpd.conf',@implode("\n", $f)."\n");
+if($GLOBALS["OUTPUT"]){echo "Configuring...: ".date("H:i:s")." /etc/zarafa/httpd.conf done\n";}
 
-@mkdir("/var/run/apache2",0755,true);
-@mkdir("/var/run/artica-apache",0755,true);
+
 
 
 }

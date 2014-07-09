@@ -2540,6 +2540,7 @@ function LayersTabsAllAfter(){
 	if( document.getElementById('main-config-sslbump-id') ){ RefreshTab(document.getElementById('main-config-sslbump-id').value); }
 	if( document.getElementById('container-users-tabs') ){ RefreshTab(document.getElementById('container-users-tabs').value); }
 	if( document.getElementById('main_artica_wordpress') ){ RefreshTab(document.getElementById('main_artica_wordpress').value); }
+	if(document.getElementById('freewebs-table-id')){  $('#'+document.getElementById('freewebs-table-id').value).flexReload();}
 
 
 

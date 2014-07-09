@@ -1086,13 +1086,11 @@ function reload_squid($aspid=false){
 	$PidFile="/etc/artica-postfix/pids/reloadsquid.pid";
 	
 	
-	if(!is_file($squidbin)){if($GLOBALS["OUTPUT"]){
-			
-			shell_exec("/etc/init.d/dnsmasq restart");
-			echo "Reloading.......: Squid-cache, not installed\n";
-			return;
-		}
-			
+	if(!is_file($squidbin)){
+		if($GLOBALS["OUTPUT"]){echo "Reloading.......: Squid-cache, not installed\n";}
+		shell_exec("/etc/init.d/dnsmasq restart");
+		return;
+	}			
 			
 	
 	
@@ -1117,10 +1115,7 @@ function reload_squid($aspid=false){
 	if(!$unix->process_exists($pid)){start_squid(true);return;}
 	$TimeMin=$unix->PROCCESS_TIME_MIN($pid);
 	
-	if($GLOBALS["FORCE"]){
-		echo "Reloading.....: ".date("H:i:s")." Squid-cache, Force enabled...\n";
-	
-	}
+	if($GLOBALS["FORCE"]){echo "Reloading.....: ".date("H:i:s")." Squid-cache, Force enabled...\n";}
 	
 	if(!$GLOBALS["FORCE"]){
 		if($TimeMin<$SquidCacheReloadTTL){
@@ -1172,12 +1167,6 @@ function reload_squid($aspid=false){
 			$unix->chown_func("squid", "squid","/var/lib/squid/session/ssl/ssl_db/*");
 		}
 	}
-	
-
-	
-
-	
-	
 	
 	$GLOBALS["SQUIDBIN"]=$unix->LOCATE_SQUID_BIN();
 	echo "Reloading.....: ".date("H:i:s")." Squid-cache, Checking transparent mode..\n";
@@ -4789,7 +4778,6 @@ function streamsquidcache_pid(){
 	return $unix->PIDOF_PATTERN($masterbin." -f /etc/streamsquidcache/squid.conf");
 }
 
-
 function LOGFILE_DAEMON_WAKEUP(){
 
 	$unix=new unix();
@@ -4944,8 +4932,4 @@ function C_ICAP_CLIENTS($aspid=false){
 	
 	
 }
-
-
-
-
 ?>

@@ -67,6 +67,7 @@
 		public $bandlimit=0;
 		public $groupware_admin=null;
 		public $groupware_password=null;
+		public $groupware_duplicate=null;
 		private $PrefixOutput;
 		
 		function freeweb($servername=null){
@@ -200,6 +201,7 @@
 			$this->bandlimit=intval($ligne["bandlimit"]);
 			$this->groupware_admin=trim($ligne["groupware_admin"]);
 			$this->groupware_password=trim($ligne["groupware_password"]);
+			$this->groupware_duplicate=trim($ligne["groupware_duplicate"]);
 			
 
 			
@@ -480,20 +482,31 @@
 				$q->QUERY_SQL($sql,'artica_backup');
 			}
 			
+			if(!$q->FIELD_EXISTS("freeweb","groupware_duplicate","artica_backup")){
+				$sql="ALTER TABLE `freeweb` ADD `groupware_duplicate` VARCHAR(255) NULL";
+				$q->QUERY_SQL($sql,'artica_backup');
+			}			
+			
+			
+			
 			
 			$sqladd="INSERT INTO freeweb (mysql_password,mysql_username,ftpuser,ftppassword,useSSL,
 			servername,mysql_database,uid,useMysql,
-			useFTP,lvm_vg,lvm_size,UseLoopDisk,LoopMounts,ou,groupware,www_dir,groupware_admin,groupware_password)
+			useFTP,lvm_vg,lvm_size,UseLoopDisk,LoopMounts,ou,groupware,www_dir,groupware_admin,groupware_password,
+			groupware_duplicate)
 			VALUES('$this->mysql_password','$this->mysql_username','$this->ftpuser','$this->ftppassword','$this->useSSL',
 			'$this->servername','$this->mysql_database','$this->uid','$this->useMysql',
 			'$this->useFTP','$this->lvm_vg','$this->lvm_size','$this->UseLoopDisk','$this->LoopMounts','$this->ou',
 			'$this->groupware','$this->www_dir',
-			'$this->groupware_admin','$this->groupware_password')";
+			'$this->groupware_admin','$this->groupware_password','$this->groupware_duplicate')";
 			
 
 		$sqlzedit[]="UPDATE freeweb SET";
 		$sqlzedit[]="mysql_password='$this->mysql_password',"; 
 		$sqlzedit[]="mysql_username='$this->mysql_username',"; 
+		if($this->mysql_database<>null){
+			$sqlzedit[]="mysql_database='$this->mysql_database',";
+		}
 		$sqlzedit[]="ftpuser='$this->ftpuser',";
 		$sqlzedit[]="ftppassword='$this->ftppassword',";
 		$sqlzedit[]="uid='".$this->uid."',";
@@ -508,6 +521,8 @@
 		$sqlzedit[]="groupware='$this->groupware',";
 		$sqlzedit[]="groupware_admin='$this->groupware_admin',";
 		$sqlzedit[]="groupware_password='$this->groupware_password',";
+		$sqlzedit[]="groupware_duplicate='$this->groupware_duplicate',";
+		
 		$sqlzedit[]="www_dir='$this->www_dir'";
 		
 		$sqlzedit[]="WHERE servername='$this->servername'";	

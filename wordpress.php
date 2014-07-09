@@ -22,6 +22,11 @@ if(isset($_GET["status"])){status();exit;}
 if(isset($_GET["tabs"])){tabs();exit;}
 if(isset($_GET["table"])){table();exit;}
 if(isset($_GET["add-js"])){add_js();exit;}
+
+if(isset($_GET["duplicate-js"])){duplicate_js();exit;}
+if(isset($_GET["restore-js"])){restore_js();exit;}
+
+
 if(isset($_GET["add-popup"])){add_popup();exit;}
 if(isset($_POST["servername"])){add_wordpress();exit;}
 if(isset($_GET["wordpress-status"])){wordpress_status();exit;}
@@ -46,10 +51,36 @@ function add_js(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$title=$tpl->javascript_parse_text("{new_wordpress_site}");
-	$html="YahooWin(650,'$page?add-popup=yes&t={$_GET["t"]}','$title')";
+	$html="YahooWin(900,'$page?add-popup=yes&t={$_GET["t"]}','$title')";
 	echo $html;
 	
 }
+function duplicate_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sitename=$_GET["duplicate-js"];
+	$sitenameenc=urlencode($sitename);
+	$title=$tpl->javascript_parse_text("{duplicate}:: $sitename");
+	$html="YahooWin(900,'$page?add-popup=yes&t={$_GET["t"]}&duplicate=$sitenameenc','$title')";
+	echo $html;	
+	
+}
+
+function restore_js(){
+	header("content-type: application/x-javascript");
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$sitename=$_GET["restore-js"];
+	$sitenameenc=urlencode($sitename);
+	$title=$tpl->javascript_parse_text("{restore_from_website}:: $sitename");
+	$html="YahooWin(900,'$page?add-popup=yes&t={$_GET["t"]}&restore=$sitenameenc','$title')";
+	echo $html;	
+	
+	
+}
+
+
 function add_popup(){
 	$t=time();
 	$page=CurrentPageName();
@@ -57,48 +88,87 @@ function add_popup(){
 	$parcourir_domaines=button("{browse}...","Loadjs('browse.domains.php?field=domainname-$t')",12);
 	$administrator=$_SESSION["uid"];
 	$password=null;
+	$directory_src=null;
+	$DUP=0;
+	$RESTORE=0;
 	if($administrator==-100){
 		$ldap=new clladp();
 		$administrator=$ldap->ldap_admin;
 		$password=$ldap->ldap_password;
 	}
 	
+	$bt_title="{add}";
 	if($password==null){$password=PasswordGenerator();}
 	
-	$html="
+	if(isset($_GET["duplicate"])){
+		$title="<div style='font-size:22px'>{duplicate}:{$_GET["duplicate"]}</div>
+		<div style='font-size:18px' class=explain>{wordpress_duplicate_explain}</div>";
+		$bt_title="{duplicate}";
+		$DUP=1;
+	}
+	
+	if(isset($_GET["restore"])){
+		$title="<div style='font-size:22px'>{restore_from_website}:{$_GET["duplicate"]}</div>
+		<div style='font-size:18px' class=explain>{restore_from_website_explain}</div>";
+		$bt_title="{restore}";
+		$RESTORE=1;
+		$free=new freeweb($_GET["restore"]);
+		$directory_src=$free->WORKING_DIRECTORY;
+		$q=new mysql();
+		$sql="SELECT servername FROM freeweb WHERE `groupware`='WORDPRESS'";
+		$results=$q->QUERY_SQL($sql,"artica_backup");
+		$ARRAY_REST[null]="{select}";
+		while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
+			$ARRAY_REST[$ligne["servername"]]=$ligne["servername"];
+		}
+		
+		unset($ARRAY_REST[$_GET["duplicate"]]);
+		
+		$restore_tr="
+		<r>
+			<td class=legend style='font-size:22px;vertical-align:middle'>{website_source}:</td>
+			<td colspan=2>".Field_array_Hash($ARRAY_REST,"restore-$t",null,"style:font-size:22px",null,null,null,false,null)."</td>
+			
+		</tr>";
+		
+	}
+	
+	
+	$html="$title
 <div style='width:98%' class=form>
 	<table style='width:100%'>
 		<tr>
-			<td class=legend style='font-size:18px;vertical-align:middle'>{webservername}:</td>
-			<td colspan=2>".Field_text("servername-$t",null,"font-size:18px;padding:3px;font-weight:bold;width:190px")."</td>
+			<td class=legend style='font-size:22px;vertical-align:middle'>{webservername}:</td>
+			<td colspan=2>".Field_text("servername-$t",null,"font-size:22px;padding:3px;font-weight:bold;width:300px")."</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px;vertical-align:middle'>{domainname}:</td>
-			<td>".Field_text("domainname-$t",null,"font-size:18px;padding:3px;width:220px;font-weight:bold"
+			<td class=legend style='font-size:22px;vertical-align:middle'>{domainname}:</td>
+			<td>".Field_text("domainname-$t",null,"font-size:22px;padding:3px;width:400px;"
 					,null,null,null,false,"SaveCheck$t(event)")."</td>
 			<td>$parcourir_domaines</td>
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px;vertical-align:middle'>{website_directory}:</td>
-			<td>".Field_text("dirname-$t",null,"font-size:18px;padding:3px;width:220px;font-weight:bold"
+			<td class=legend style='font-size:22px;vertical-align:middle'>{website_directory}:</td>
+			<td>".Field_text("dirname-$t",$directory_src,"font-size:22px;padding:3px;width:400px;"
 					,null,null,null,false,"SaveCheck$t(event)")."</td>
 			<td>". button_browse("dirname-$t")."</td>
 		</tr>
-		<tr><td colspan=2><div style='margin:20px;font-size:20px'>{wordpress_administrator}</div></td></tr>		
+		$restore_tr
+		<tr><td colspan=2><div style='margin:20px;font-size:26px'>{wordpress_administrator}</div></td></tr>		
 		<tr>
-			<td class=legend style='font-size:18px;vertical-align:middle'>{administrator}:</td>	
-			<td colspan=2>".Field_text("administrator-$t",$administrator,"font-size:18px;padding:3px;width:220px;font-weight:bold"
+			<td class=legend style='font-size:22px;vertical-align:middle'>{administrator}:</td>	
+			<td colspan=2>".Field_text("administrator-$t",$administrator,"font-size:22px;padding:3px;width:320px;"
 					,null,null,null,false,"SaveCheck$t(event)")."</td>
 			
 		</tr>
 		<tr>
-			<td class=legend style='font-size:18px;vertical-align:middle'>{password}:</td>	
-			<td colspan=2>".Field_password("password-$t",$password,"font-size:18px;padding:3px;width:220px;font-weight:bold"
+			<td class=legend style='font-size:22px;vertical-align:middle'>{password}:</td>	
+			<td colspan=2>".Field_password("password-$t",$password,"font-size:22px;padding:3px;width:320px;font-weight:bold"
 					,null,null,null,false,"SaveCheck$t(event)")."</td>
 			
 		</tr>							
 		<tr>
-			<td colspan=3 align='right'><hr>". button("{add}", "Save$t()","26")."</td>
+			<td colspan=3 align='right'><hr>". button($bt_title, "Save$t()","32")."</td>
 		</tr>
 	</table>
 </div>	
@@ -107,8 +177,17 @@ function add_popup(){
 		var results=obj.responseText;
 		if(results.length>3){alert(results);return;}
 		YahooWinHide();
+		if(document.getElementById('freewebs-table-id')){
+			var id=document.getElementById('freewebs-table-id').value;
+			$('#'+id).flexReload();
+			UnlockPage();
+			return;
+		}
+		
+		
 		$('#freewebs-table-{$_GET["t"]}').flexReload();
 		UnlockPage();
+		
 		
 	}
 	
@@ -119,7 +198,13 @@ function SaveCheck$t(e){
 }
 function Save$t(){
 		LockPage();
+		var RESTORE=$RESTORE;
 		var XHR = new XHRConnection();
+		if(RESTORE==0){
+			XHR.appendData('duplicate-from','{$_GET["duplicate"]}');
+		}else{
+			XHR.appendData('duplicate-from',document.getElementById('restore-$t').value);
+		}
 		XHR.appendData('servername',document.getElementById('servername-$t').value);
 		XHR.appendData('domainname',document.getElementById('domainname-$t').value);
 		XHR.appendData('directory',encodeURIComponent(document.getElementById('dirname-$t').value));
@@ -127,7 +212,27 @@ function Save$t(){
 		XHR.appendData('password',encodeURIComponent(document.getElementById('password-$t').value));
 		XHR.sendAndLoad('$page', 'POST',xSave$t);
 		}
+		
+function CheckRestore$t(){
+	var rest=$RESTORE;
+	if(rest==0){return;}
+	document.getElementById('administrator-$t').disabled=true;
+	document.getElementById('password-$t').disabled=true;
+	document.getElementById('servername-$t').value='{$_GET["restore"]}';
+	document.getElementById('servername-$t').disabled=true;
+	document.getElementById('domainname-$t').disabled=true;
+	document.getElementById('dirname-$t').disabled=true;
+}
+		
+function CheckDup$t(){
+	var DUP=$DUP;
+	if(DUP==0){return;}
+	document.getElementById('administrator-$t').disabled=true;
+	document.getElementById('password-$t').disabled=true;
 
+}
+CheckDup$t();
+ CheckRestore$t();
 </script>";
 	echo $tpl->_ENGINE_parse_body($html);
 	
@@ -138,8 +243,19 @@ function add_wordpress(){
 	$servername=trim(strtolower($_POST["servername"]));
 	$domainname=trim(strtolower($_POST["domainname"]));
 	
+	if($servername==null){
+		if($domainname<>null){
+			$domainname=$servername;
+			$domainname=null;
+		}
+	}
+	
 	if($domainname<>null){
-		$servername="$servername.$domainname";
+		if($servername<>null){
+			$servername="$servername.$domainname";
+		}else{
+			$servername=$domainname;
+		}
 	}
 	
 	$servername=str_replace('..', '.', $servername);
@@ -163,6 +279,7 @@ function add_wordpress(){
 	$free->groupware="WORDPRESS";
 	$free->groupware_admin=$_POST["administrator"];
 	$free->groupware_password=$_POST["password"];
+	$free->groupware_duplicate=$_POST["duplicate-from"];
 	$free->www_dir=$_POST["directory"];
 	if(!$free->CreateSite(true)){echo $free->error; }
 	
@@ -213,7 +330,7 @@ function status(){
 	$INSTALLED=trim($sock->getFrameWork("wordpress.php?is_installed=yes"));
 	
 	if($INSTALLED<>"TRUE"){
-		$button_install="<center style='margin:80px'>".button("{install_Wordpress}","Loadjs('wordpress.install.php')",32).
+		$button_install=$tpl->_ENGINE_parse_body("<center style='margin:80px'>".button("{install_Wordpress}","Loadjs('wordpress.install.php')",32));
 		"</center>";
 		$version="- - -";
 		
@@ -313,6 +430,7 @@ function table(){
 
 	],";
 	$html="
+	<input type='hidden' id='freewebs-table-id' value='freewebs-table-$t'>
 	<table class='freewebs-table-$t' style='display: none' id='freewebs-table-$t' style='width:100%;margin:-10px'></table>
 	<script>
 	FreeWebIDMEM='';

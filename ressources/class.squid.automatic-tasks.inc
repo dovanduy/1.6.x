@@ -67,6 +67,18 @@ class squid_auto_tasks{
 		
 		
 		
+		$SquidCacheLevel=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidCacheLevel"));
+		if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+		
+		if(!is_numeric($CACHE_DYN_PARAMS["ENABLED"])){if($SquidCacheLevel>2){$CACHE_DYN_PARAMS["ENABLED"]=1; }}
+		if(!is_numeric($CACHE_DYN_PARAMS["MAX_WWW"])){$CACHE_DYN_PARAMS["MAX_WWW"]=100;}
+		if(!is_numeric($CACHE_DYN_PARAMS["LEVEL"])){$CACHE_DYN_PARAMS["LEVEL"]=5;}
+		if(!is_numeric($CACHE_DYN_PARAMS["INTERVAL"])){$CACHE_DYN_PARAMS["INTERVAL"]=420;}
+		if(!is_numeric($CACHE_DYN_PARAMS["MAX_TTL"])){$CACHE_DYN_PARAMS["MAX_TTL"]=15;}
+		if(!is_numeric($CACHE_DYN_PARAMS["ENABLED"])){$CACHE_DYN_PARAMS["ENABLED"]=0;}
+		if($SquidCacheLevel<3){$CACHE_DYN_PARAMS["ENABLED"]=0;}
+		
+		
 		
 		$EnableArticaHotSpot=intval(@file_get_contents("/etc/artica-postfix/settings/Daemons/EnableArticaHotSpot"));
 		if(!is_numeric($EnableArticaHotSpot)){$EnableArticaHotSpot=0;}
@@ -116,13 +128,15 @@ if($EnableProxyCompressor==1){
 		}		
 //**********************************************************************************************************************
 //Analyse les statistiques de caches pour le refresh_pattern
+	if($CACHE_DYN_PARAMS["ENABLED"]==1){
 		$TimeFile="/etc/artica-postfix/pids/exec.squid.cache.optimize.php.scan_stats.time";
 		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_sec($TimeFile);
 		if($CacheSchedules>$CACHE_DYN_PARAMS["INTERVAL"]){
 			$cmd=trim($prefixcmd."$BASEPATH/exec.squid.cache.optimize.php >/dev/null 2>&1 &");
 			$this->squid_rtt_events("Running $cmd");
 			shell_exec($cmd);
-		}				
+		}		
+	}		
 		
 //**********************************************************************************************************************		
 //D'importe quel cas, vider le dossier /var/log/squid/mysql-queue

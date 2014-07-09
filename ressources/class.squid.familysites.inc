@@ -122,6 +122,7 @@ class squid_familysite{
 		$tlds = array(
 				'com'=>array('ya'=>true,"com"=>true,"gr"=>true,"org"=>true),
 				'ac'=>array('gob' => true,'edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true,"co"=>true),
+				'al'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'ar' => array('gob' => true,"com"=>true,"org"=>true,"gov"=>true,"uc"=>true,"ua"=>true,"co"=>true,"org"=>true),
 				'as'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
 				'at'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
@@ -142,6 +143,7 @@ class squid_familysite{
 				'dk'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
 				'edu'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
 				'arpa'=>array("in-addr"=>true),
+				'fo'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'fr' => array('gouv' => true,'net'=>true),
 				'ec' => array('com' => true,"gov"=>true,"uc"=>true,"ua"=>true,"gov"=>true,"co"=>true,"org"=>true),
 				'es'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true),
@@ -179,6 +181,7 @@ class squid_familysite{
 				'la'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'ca'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'ch'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'cl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'cn'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'cz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'cu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
@@ -231,6 +234,7 @@ class squid_familysite{
 				'team'=>true,
 				'travel'=>true,
 				'aero'=>array('edu'=>true,"com"=>true,"gov"=>true,"org"=>true,"ac"=>true),
+				'ma'=>array('co'=>true,'cu'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'ms'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'me'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'mobi'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
@@ -260,7 +264,9 @@ class squid_familysite{
 				'tl'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'tc'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'uz'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'uy'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				'vc'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
+				'vu'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 				've'=>array('co'=>true,'com'=>true,"gov"=>true,"org"=>true,"net"=>true,"edu"=>true,"ac"=>true),
 					
 	

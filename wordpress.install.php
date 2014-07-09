@@ -86,6 +86,7 @@ if($prc>100){
 		document.getElementById('title-$t').style.border='1px solid #C60000';
 		document.getElementById('title-$t').style.color='#C60000';
 		$('#progress-$t').progressbar({ value: 100 });
+		
 	}
 	setTimeout(\"Start$time()\",1000);
 	";
@@ -100,6 +101,7 @@ if($prc==100){
 		document.getElementById('title-$t').innerHTML='$title';
 		$('#progress-$t').progressbar({ value: $prc });
 		LayersTabsAllAfter();
+		RefreshTab('main_artica_wordpress');
 		RTMMailHide();
 		CacheOff();
 		}

@@ -65,12 +65,18 @@ function rule_js(){
 function parameters(){
 	$tpl=new templates();
 	$page=CurrentPageName();
-	
+	$DISABLED=false;
 	$sock=new sockets();
 	
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
+	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	if(!is_numeric($ARRAY["ENABLED"])){if($SquidCacheLevel>2){$ARRAY["ENABLED"]=1; }}
+	if($SquidCacheLevel<3){$ARRAY["ENABLED"]=0;$DISABLED=TRUE;}
+	
+	
 	if(!is_numeric($ARRAY["MAX_WWW"])){$ARRAY["MAX_WWW"]=100;}
-	if(!is_numeric($ARRAY["ENABLED"])){$ARRAY["ENABLED"]=1;}
+	if(!is_numeric($ARRAY["ENABLED"])){$ARRAY["ENABLED"]=0;}
 	if(!is_numeric($ARRAY["LEVEL"])){$ARRAY["LEVEL"]=5;}
 	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=420;}
 	if(!is_numeric($ARRAY["MAX_TTL"])){$ARRAY["MAX_TTL"]=15;}
@@ -96,7 +102,13 @@ function parameters(){
 	$MAX_TTLZ[30]="1 {month}";
 	$MAX_TTLZ[60]="2 {months}";
 	
+	$button=button("{apply}","Save$t()",26);
 	$p=Paragraphe_switch_img("{dynamic_enforce_rules}", "{squid_dynamic_cache_rules_explain}","ENABLE-$t",$ARRAY["ENABLED"],null,600);
+	
+	if($DISABLED){
+		$p=Paragraphe_switch_disable("{dynamic_enforce_rules}", "{squid_dynamic_cache_rules_explain}","ENABLE-$t",$ARRAY["ENABLED"],null,600);
+		$button=null;
+	}
 	
 	$html="<div style='font-size:26px;margin-bottom:16px'>{dynamic_enforce_rules}</div>
 			
@@ -141,7 +153,7 @@ function parameters(){
 			<td>". Field_checkbox("OnlyFiles-$t",$ARRAY["OnlyFiles"],1)."</td>
 		</tr>																			
 		<tr>
-			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",26)."</td>
+			<td colspan=2 align='right'><hr>$button</td>
 		</tr>
 	</table>
 	</div>	
@@ -187,8 +199,12 @@ function rule_popup(){
 	$ID=$_GET["ID"];
 	$sock=new sockets();
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
+	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
 	if(!is_numeric($ARRAY["MAX_WWW"])){$ARRAY["MAX_WWW"]=100;}
-	if(!is_numeric($ARRAY["ENABLED"])){$ARRAY["ENABLED"]=1;}
+	if(!is_numeric($ARRAY["ENABLED"])){
+		if($SquidCacheLevel>2){$ARRAY["ENABLED"]=1;}
+	}
 	if(!is_numeric($ARRAY["LEVEL"])){$ARRAY["LEVEL"]=5;}
 	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=420;}
 	if(!is_numeric($ARRAY["MAX_TTL"])){$ARRAY["MAX_TTL"]=15;}

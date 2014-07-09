@@ -697,6 +697,7 @@ function dyn_caches($aspid=false){
 	$unix=new unix();
 	$FINALARRAY=array();
 	$f=array();
+	$sock=new sockets();
 	$PidFile="/etc/artica-postfix/pids/squid_build_dyn_caches.pid";
 	
 	if($aspid){
@@ -728,6 +729,24 @@ function dyn_caches($aspid=false){
 	@touch("/etc/squid3/refresh_patterns.conf");
 	@chown("/etc/squid3/refresh_patterns.conf","squid");
 	@chmod(0755,"/etc/squid3/refresh_patterns.conf");
+	
+	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
+	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	
+	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
+	if(!is_numeric($ARRAY["ENABLED"])){if($SquidCacheLevel>3){$ARRAY["ENABLED"]=1; }}
+	
+	if($SquidCacheLevel<3){$ARRAY["ENABLED"]=0;}
+	if(!is_numeric($ARRAY["MAX_WWW"])){$ARRAY["MAX_WWW"]=100;}
+	if(!is_numeric($ARRAY["ENABLED"])){$ARRAY["ENABLED"]=0;}
+	if(!is_numeric($ARRAY["LEVEL"])){$ARRAY["LEVEL"]=5;}
+	if(!is_numeric($ARRAY["INTERVAL"])){$ARRAY["INTERVAL"]=420;}
+	if(!is_numeric($ARRAY["MAX_TTL"])){$ARRAY["MAX_TTL"]=15;}
+	
+	
+	if($ARRAY["ENABLED"]==0){return;}
+	
+	
 	
 	$sql="SELECT * FROM main_cache_dyn WHERE enabled=1";
 	$results=$q->QUERY_SQL($sql);

@@ -21,9 +21,7 @@ if(isset($_POST["SaveConf1"])){SaveConf1();exit;}
 if(isset($_POST["restart-dnsmasq"])){restart_service();exit;}
 if(isset($_GET["interfaces"])){interfaces();exit;}
 if(isset($_GET["ffm1"])){main_form();exit;}
-if(isset($_GET["InterfacesReload"])){echo LoadInterfaces();exit;}
 if(isset($_GET["addressesReload"])){echo Loadaddresses();exit;}
-if(isset($_GET["ListentAddressesReload"])){echo LoadListenAddress();exit;}
 if(isset($_GET["DnsmasqDeleteInterface"])){DnsmasqDeleteInterface();exit;}
 
 if(isset($_GET["listen_addresses"])){SaveListenAddress();exit;}
@@ -133,7 +131,8 @@ echo $tpl->_ENGINE_parse_body($html);
 function EnableDNSMASQ_save(){
 	$sock=new sockets();
 	$sock->SET_INFO("EnableDNSMASQ", $_POST["EnableDNSMASQ"]);
-	$sock->SET_INFO("EnableDNSMASQLDAPDB",$_GET["EnableDNSMASQLDAPDB"]);
+	$sock->SET_INFO("EnableDNSMASQLDAPDB",$_POST["EnableDNSMASQLDAPDB"]);
+	
 }
 
 
@@ -179,57 +178,57 @@ $html="
 
 
 <tr>
-	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{domain-needed}:</td>
-	<td align='left' valign='top'>" . Field_checkbox('domain-needed',1,$cf->main_array["domain-needed"])."</td>
-	<td align='left' valign='top'  width=1%>". help_icon("{domain-needed_text}")."</td>
+	<td align='right' style='font-size:18px;vertical-align:middle;' style='font-size:18px;vertical-align:middle' class=legend>{domain-needed}:</td>
+	<td align='left' style='font-size:18px;vertical-align:middle;'>" . Field_checkbox('domain-needed',1,$cf->main_array["domain-needed"])."</td>
+	<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{domain-needed_text}")."</td>
 </tr>
 <tr>
-<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{expand-hosts}:</td>
-<td align='left' valign='top'   >" . Field_checkbox('expand-hosts',1,$cf->main_array["expand-hosts"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{expand-hosts_text}")."</td>
-</tr>
-
-
-<tr>
-<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{bogus-priv}:</td>
-<td align='left' valign='top' >" . Field_checkbox('bogus-priv',1,$cf->main_array["bogus-priv"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{bogus-priv_text}")."</td>
-</tr>
-<tr>
-<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{filterwin2k}:</td>
-<td align='left' valign='top' >" . Field_checkbox('filterwin2k',1,$cf->main_array["filterwin2k"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{filterwin2k_text}")."</td>
-</tr>
-<tr>
-<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{strict-order}:</td>
-<td align='left' valign='top' >" . Field_checkbox('strict-order',1,$cf->main_array["strict-order"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{strict-order_text}")."</td>
-</tr>
-
-<tr>
-<td align='right' valign='top'  valign='top' style='font-size:16px;vertical-align:top' class=legend>{no-resolv}:</td>
-<td align='left' valign='top' >" . Field_checkbox('no-resolv',1,$cf->main_array["no-resolv"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{no-resolv_text}")."</td>
-</tr>
-
-<tr>
-<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{no-negcache}:</td>
-<td align='left' valign='top' >" . Field_checkbox('no-negcache',1,$cf->main_array["no-negcache"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{no-negcache_text}")."</td>
+<td align='right' style='font-size:18px;vertical-align:middle;' style='font-size:18px;vertical-align:middle' class=legend>{expand-hosts}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle;'   >" . Field_checkbox('expand-hosts',1,$cf->main_array["expand-hosts"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{expand-hosts_text}")."</td>
 </tr>
 
 
-
 <tr>
-<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{no-poll}:</td>
-<td align='left' valign='top' >" . Field_checkbox('no-poll',1,$cf->main_array["no-poll"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{no-poll_text}")."</td>
+<td align='right' style='font-size:18px;vertical-align:middle;' style='font-size:18px;vertical-align:middle' class=legend>{bogus-priv}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle;' >" . Field_checkbox('bogus-priv',1,$cf->main_array["bogus-priv"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{bogus-priv_text}")."</td>
+</tr>
+<tr>
+<td align='right' style='font-size:18px;vertical-align:middle;'   style='font-size:18px;vertical-align:middle' class=legend>{filterwin2k}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle;' >" . Field_checkbox('filterwin2k',1,$cf->main_array["filterwin2k"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{filterwin2k_text}")."</td>
+</tr>
+<tr>
+<td align='right' style='font-size:18px;vertical-align:middle;'   style='font-size:18px;vertical-align:middle' class=legend>{strict-order}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle;' >" . Field_checkbox('strict-order',1,$cf->main_array["strict-order"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{strict-order_text}")."</td>
 </tr>
 
 <tr>
-<td align='right' valign='top'  valign='top'  style='font-size:16px;vertical-align:top' class=legend>{log-queries}:</td>
-<td align='left' valign='top' >" . Field_checkbox('log-queries',1,$cf->main_array["log-queries"])."</td>
-<td align='left' valign='top'  width=1%>". help_icon("{log-queries_text}")."</td>
+<td align='right' style='font-size:18px;vertical-align:middle;'  style='font-size:18px;vertical-align:middle' class=legend>{no-resolv}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle;' >" . Field_checkbox('no-resolv',1,$cf->main_array["no-resolv"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{no-resolv_text}")."</td>
+</tr>
+
+<tr>
+<td align='right' style='font-size:18px;vertical-align:middle' class=legend>{no-negcache}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle' >" . Field_checkbox('no-negcache',1,$cf->main_array["no-negcache"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle' width=1%>". help_icon("{no-negcache_text}")."</td>
+</tr>
+
+
+
+<tr>
+<td align='right' style='font-size:18px;vertical-align:middle' class=legend>{no-poll}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle;' >" . Field_checkbox('no-poll',1,$cf->main_array["no-poll"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{no-poll_text}")."</td>
+</tr>
+
+<tr>
+<td align='right' style='font-size:18px;vertical-align:middle' class=legend>{log-queries}:</td>
+<td align='left' style='font-size:18px;vertical-align:middle' >" . Field_checkbox('log-queries',1,$cf->main_array["log-queries"])."</td>
+<td align='left' style='font-size:18px;vertical-align:middle' width=1%>". help_icon("{log-queries_text}")."</td>
 </tr>
 
 
@@ -241,19 +240,19 @@ $html="
 <table style='width:100%'>
 	<tbody>
 		<tr>
-			<td align='right' valign='top'  valign='top'   nowrap style='font-size:16px;vertical-align:top' class=legend>{cache-size}:</td>
-			<td align='left' valign='top' >" . Field_text('cache-size',$cf->main_array["cache-size"],"font-size:16px;padding:3px;width:70px")."</td>
-			<td align='left' valign='top'  >". help_icon("{cache-size_text}")."</td>
+			<td align='right' style='font-size:18px;vertical-align:middle;'    nowrap style='font-size:18px;vertical-align:middle' class=legend>{cache-size}:</td>
+			<td align='left' style='font-size:18px;vertical-align:middle;' style='font-size:18px;vertical-align:middle'>" . Field_text('cache-size',$cf->main_array["cache-size"],"font-size:18px;padding:3px;width:70px")."</td>
+			<td align='left' style='font-size:18px;vertical-align:middle;'  style='font-size:18px;vertical-align:middle'>". help_icon("{cache-size_text}")."</td>
 		</tr>
 	
 		<tr>
-			<td align='right' valign='top'  valign='top'   nowrap style='font-size:16px;vertical-align:top' class=legend>{domain}:</td>
-			<td align='left' valign='top' >" . Field_text('dnsmasq-domain',$cf->main_array["domain"],"font-size:16px;padding:3px;")."</td>
-			<td align='left' valign='top'  >". help_icon("{dnsmasq_domain_explain}")."</td>
+			<td align='right' style='font-size:18px;vertical-align:middle;'    nowrap style='font-size:18px;vertical-align:middle' class=legend>{local_domain}:</td>
+			<td align='left' style='font-size:18px;vertical-align:middle;' style='font-size:18px;vertical-align:middle'>" . Field_text('dnsmasq-domain',$cf->main_array["domain"],"font-size:18px;padding:3px;")."</td>
+			<td align='left' style='font-size:18px;vertical-align:middle;'  style='font-size:18px;vertical-align:middle'>". help_icon("{dnsmasq_domain_explain}")."</td>
 		</tr>
 	
 		<tr>
-		<td colspan=3 align='right'><hr>". button("{apply}","SaveDNSMASQMainConf();",16)."</td>
+		<td colspan=3 align='right'><hr>". button("{apply}","SaveDNSMASQMainConf();",28)."</td>
 		</tr>
 	</tbody>
 </table></div>";	
@@ -322,8 +321,8 @@ function page_status(){
 	$html="
 	<table style='width:100%'>
 	<tr>
-		<td width=1% valign='top'><div id='get-status'></div></td>
-		<td width=99% valign='top'>
+		<td width=1% style='font-size:18px;vertical-align:top;'><div id='get-status'></div></td>
+		<td width=99% style='font-size:18px;vertical-align:top;'>
 			<div class=explain id='dnsmaskrool' style='font-size:16px'>{dnsmasq_intro_settings}</div>
 			<div id='enable-$t'></div>
 			
@@ -352,8 +351,8 @@ function page_settings(){
 	$sys=new systeminfos();
 	$sys->array_interfaces[null]='{select}';
 	$sys->array_tcp_addr[null]='{select}';
-	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:16px;padding:3px;");
-	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:16px;padding:3px;");
+	$interfaces=Field_array_Hash($sys->array_interfaces,'interfaces',null,"style:font-size:18px;padding:3px;");
+	$tcpaddr=Field_array_Hash($sys->array_tcp_addr,'listen_addresses',null,"style:font-size:18px;padding:3px;");
 	$sock=new sockets();
 	$EnableDNSMASQ=$sock->GET_INFO("EnableDNSMASQ");
 	if(!is_numeric($EnableDNSMASQ)){$EnableDNSMASQ=0;}
@@ -396,20 +395,14 @@ $html="
 <div style='width:98%' class=form>
 <table style='width:100%'>
 <tr>
-	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{EnableDNSMASQ}:</td>
-	<td align='left' valign='top'>". Field_checkbox("EnableDNSMASQ",1,$EnableDNSMASQ,"EnableDNSMASQSave()")."</td>
-	<td align='left' valign='top'  width=1%>". help_icon("{EnableDNSMASQ_explain}")."</td>
-</tr>
-
-<tr>
-	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{EnableDNSMASQOCSDB}:</td>
-	<td align='left' valign='top'>". Field_checkbox("EnableDNSMASQOCSDB",1,$EnableDNSMASQOCSDB,"EnableDNSMASQSave()")."</td>
-	<td align='left' valign='top'  width=1%>". help_icon("{EnableDNSMASQOCSDB_explain}")."</td>
+	<td align='right' style='font-size:18px;vertical-align:middle;' class=legend>{EnableDNSMASQOCSDB}:</td>
+	<td align='left' style='font-size:18px;vertical-align:middle;'>". Field_checkbox("EnableDNSMASQOCSDB",1,$EnableDNSMASQOCSDB,"EnableDNSMASQSave()")."</td>
+	<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{EnableDNSMASQOCSDB_explain}")."</td>
 </tr>
 <tr>
-	<td align='right' valign='top' style='font-size:16px;vertical-align:top' class=legend>{DNSMasqUseStatsAppliance}:</td>
-	<td align='left' valign='top'>". Field_checkbox("DNSMasqUseStatsAppliance",1,$DNSMasqUseStatsAppliance,"EnableDNSMASQSave()")."</td>
-	<td align='left' valign='top'  width=1%>". help_icon("{DNSMasqUseStatsAppliance_explain}")."</td>
+	<td align='right' style='font-size:18px;vertical-align:middle;' class=legend>{DNSMasqUseStatsAppliance}:</td>
+	<td align='left' style='font-size:18px;vertical-align:middle;'>". Field_checkbox("DNSMasqUseStatsAppliance",1,$DNSMasqUseStatsAppliance,"EnableDNSMASQSave()")."</td>
+	<td align='left' style='font-size:18px;vertical-align:middle;width:1%'>". help_icon("{DNSMasqUseStatsAppliance_explain}")."</td>
 </tr>
 </table>
 </div>
@@ -456,7 +449,6 @@ $html="
 	function EnableDNSMASQSave(key){
 	
 		var XHR = new XHRConnection();
-		if(document.getElementById('EnableDNSMASQ').checked){XHR.appendData('EnableDNSMASQ',1);	}else{XHR.appendData('EnableDNSMASQ',0);}
 		if(document.getElementById('EnableDNSMASQOCSDB').checked){XHR.appendData('EnableDNSMASQOCSDB',1);	}else{XHR.appendData('EnableDNSMASQOCSDB',0);}
 		if(document.getElementById('DNSMasqUseStatsAppliance').checked){XHR.appendData('DNSMasqUseStatsAppliance',1);	}else{XHR.appendData('DNSMasqUseStatsAppliance',0);}
 		CheckStatsAppliance();
@@ -532,24 +524,24 @@ function wpad(){
 	<tbody>
 	<tr>
 		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{enable}:</td>
-		<td>". Field_checkbox("ENABLE-$t", 1,$Params["ENABLE"],"CheckWpadEnable()")."</td>
+		<td style='font-size:22px;vertical-align:middle'>". Field_checkbox("ENABLE-$t", 1,$Params["ENABLE"],"CheckWpadEnable()")."</td>
 	</tr>	
 	
 	<tr>
 		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{listen_port}:</td>
-		<td>". Field_text("PORT-$t",$Params["PORT"],"font-size:22px;width:90px")."</td>
+		<td style='font-size:22px;vertical-align:middle'>". Field_text("PORT-$t",$Params["PORT"],"font-size:22px;width:90px")."</td>
 	</tr>
 	<tr>
 		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{ipaddr}:</td>
-		<td>". field_ipv4("IP_ADDR-$t",$Params["IP_ADDR"],"font-size:22px;")."</td>
+		<td style='font-size:22px;vertical-align:middle'>". field_ipv4("IP_ADDR-$t",$Params["IP_ADDR"],"font-size:22px;")."</td>
 	</tr>	
 	<tr>
 		<td style='font-size:22px;vertical-align:middle' class=legend valign='middle'>{hostname}:</td>
-		<td style='font-size:22px;vertical-align:top'>wpad.". Field_text("HOST-$t",$Params["HOST"],"font-size:22px;width:290px")."</td>
+		<td style='font-size:22px;vertical-align:middle'>wpad.". Field_text("HOST-$t",$Params["HOST"],"font-size:22px;width:290px")."</td>
 	</tr>	
 	<tr>
 		<td style='font-size:22px;vertical-align:middle' class=legend>{url}:</td>
-		<td style='font-size:22px;vertical-align:top'>http://wpad.{$Params["HOST"]}:{$Params["PORT"]}/". Field_text("URI-$t",$Params["URI"],"font-size:22px;width:220px")."</td>
+		<td style='font-size:22px;vertical-align:middle'>http://wpad.{$Params["HOST"]}:{$Params["PORT"]}/". Field_text("URI-$t",$Params["URI"],"font-size:22px;width:220px")."</td>
 	</tr>
 	<tr>
 		<td colspan=2 align='right'>". button("{apply}", "SaveForm$t()",30)."</td>

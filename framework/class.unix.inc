@@ -463,7 +463,7 @@ public function LOCATE_VBoxHeadless(){
 		
 					if(preg_match("#add-module=(.+)#",$b,$re)){
 						$module=basename($re[1]);
-						
+						if(preg_match("#headers-more-nginx-module#", $module)){$ARRAY["ngx_headers_more"]=true;}
 						$ARRAY["MODULES"][$module]=$module;continue;
 					}
 		
@@ -481,6 +481,7 @@ public function LOCATE_VBoxHeadless(){
 			}
 		}
 		$GLOBALS[__CLASS__.".".__FUNCTION__]=$ARRAY;
+	
 		return $ARRAY;
 	}
 	
@@ -3297,10 +3298,23 @@ private function NETWORK_REDHAT_NETWORKMANAGER_DISABLE(){
 		
 		
 	}
-	private function ToSyslog($text,$error=false){
-	
+	public function ToSyslog($text,$error=false){
+		
+		$file="framework";
+		$function=__FUNCTION__;
+		$line=__LINE__;
+		if(function_exists("debug_backtrace")){
+			$trace=@debug_backtrace();
+			if(isset($trace[1])){
+				$file=basename($trace[1]["file"]);
+				$function="{$trace[1]["function"]}()";
+				$ligne=intval($trace[1]["line"]);
+				
+			}
+		}
+		$text="$function{".$line."} $text";
 		if(!$error){$LOG_SEV=LOG_INFO;}else{$LOG_SEV=LOG_ERR;}
-		if(function_exists("openlog")){openlog("framework", LOG_PID , LOG_SYSLOG);}
+		if(function_exists("openlog")){openlog($file, LOG_PID , LOG_SYSLOG);}
 		if(function_exists("syslog")){ syslog($LOG_SEV, $text);}
 		if(function_exists("closelog")){closelog();}
 	}	

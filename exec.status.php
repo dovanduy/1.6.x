@@ -717,6 +717,17 @@ function Scheduler(){
 	}
 	
 	
+	
+	$squid=$GLOBALS["CLASS_UNIX"]->LOCATE_SQUID_BIN();
+	if(is_file($squid)){
+		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.squid.stats.hours.php.clean_empty_tables.time");
+		if($time_file>240){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.squid.stats.hours.php --clean-empty 2>&1 &");
+		}
+		
+	}
+	
+	
 // *******************************************************************************************************************************************************	
 	$lshw=$GLOBALS["CLASS_UNIX"]->find_program("lshw");
 	if(is_file($lshw)){
@@ -8171,7 +8182,7 @@ function nginx(){
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
-			apache_admin_mysql(1, "Nginx Web service was stopped [action=start]", null,__FILE__,__LINE__);
+			apache_admin_mysql(0, "Nginx Web service was stopped [action=start]", null,__FILE__,__LINE__);
 			$cmd=trim("{$GLOBALS["NICE"]} {$GLOBALS["nohup"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.nginx.php --start >/dev/null 2>&1 &");
 			shell_exec2($cmd);
 		}

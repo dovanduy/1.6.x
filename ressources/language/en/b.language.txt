@@ -6527,3 +6527,57 @@ You may wish to change to 0777 if you want uploaded files to be executable.
 <severe>Severe</severe>
 <backup_wordpress_websites>Backup Wordpress websites</backup_wordpress_websites>
 <backup_wordpress_websites_explain>This task backup all Wordpress websites to the defined destination</backup_wordpress_websites>
+<local_domain>Local domain</local_domain>
+<website_directory>Website directory</website_directory>
+<wordpress_administrator>Wordpress administrator</wordpress_administrator>
+<wordpress_duplicate_explain>Duplicate this Wordpress Website to a new Wordpress website</wordpress_duplicate_explain>
+<duplicate>Duplicate</duplicate>
+<restore_from_website>Restore from other website</restore_from_website>
+<restore_from_website_explain>Restore content from other website</restore_from_website_explain>
+<website_source>Website source</website_source>
+<nginx_enable_www_text>If turned to green, then this Website will be a part of your reverse proxy websites and the destination will be protected by this server</nginx_enable_www_text>
+<NGINX_USE_SSL_EXPLAIN2>Turn SSL will only turn SSL on the reverse proxy.[br]By default, the reverse proxy is able to communicate with the backend Web server in HTTP mode.[br]
+If the backend server is SSL too, turn to green this feature.
+</NGINX_USE_SSL_EXPLAIN2>
+<destination_use_ssl>Destination use SSL</destination_use_ssl>
+<destination_servers_list>Destinations servers list</destination_servers_list>
+<remove_database>Remove database</remove_database>
+<cache_level>Cache level</cache_level>
+<cache_level_explain>You can change the cache storage behavior with the slider.[br]
+An highest level will enfore the proxy store objects into it's cache but should have effects on remote dynamics websites</cache_level_explain>
+
+<SquidCacheLevel4>[br]Strong cache[/b][br]
+Proxy will ignore browsers refresh operation.[br]
+Images, css, javascript, multimedia files are stored for a long period.[br]
+Your specific caches rules are enabled.[br]
+Proxy query remote websites for freshed pages slowly and try to store object for 4 days maximal.
+Artica dynamic enforce rule is enabled by default.
+</SquidCacheLevel4>
+
+<SquidCacheLevel3>[br]Medium cache[/b][br]
+Images, css, javascript, multimedia files are stored for a long period.[br]
+Your specific caches rules are enabled.[br]
+Proxy query remote websites for freshed pages in standard mode and try to store object for 3 days maximal.
+Artica dynamic enforce rule is disabled by default.
+</SquidCacheLevel3>
+
+<SquidCacheLevel2>[br]Smooth cache[/b][br]
+Your specific caches rules are enabled.[br]
+Proxy query remote websites for freshed pages in standard mode and try to store object for 3 days maximal.
+Artica dynamic enforce rule are disabled.
+</SquidCacheLevel2>
+
+<SquidCacheLevel1>[br]Minimal cache[/b][br]
+This is the default Proxy cache used in most cases.[br]
+Your specific caches rules are disabled.[br]
+Proxy query remote websites for freshed pages in standard mode and try to store object for 3 days maximal.
+Artica dynamic enforce rule are disabled.
+</SquidCacheLevel1>
+<client_ip_source>Client IP source</client_ip_source>
+<proxy_client_ip_source_text>Enable or disable the Proxy to send client IP source to the destination server using the X-Forwarded-For and the X-Real-IP header in HTTP protocol</proxy_client_ip_source_text>
+<client_ip_source_fake>Faked client IP source</client_ip_source_fake> 
+<client_ip_source_fake_text>If using the X-Forwarded-For and the X-Real-IP header, you can force the proxy to send different information
+</client_ip_source_fake_text>
+<proxy_pass_request_headers>Send orginal headers</proxy_pass_request_headers>
+<proxy_pass_request_headers_text>Indicates whether the header fields of the original request are passed to the proxied server.</proxy_pass_request_headers_text>
+<client_source>Client source</client_source> 

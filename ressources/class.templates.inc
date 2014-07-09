@@ -749,12 +749,15 @@ function writelogsSocketsLogs($text=null,$function=null,$file_source=null){
 		
 	}	
 	
-function Field_hidden($name,$value){return "<input type='hidden' name='$name' id='$name' value=\"$value\">";}
+function Field_hidden($name,$value){
+	$GLOBALS["AUTO_FORM"][$name]="text";
+	return "<input type='hidden' name='$name' id='$name' value=\"$value\">";}
 	
 function Field_checkbox($name,$enabledatas,$value=null,$js=null,$help=null,$DISABLED=false){
 	$def=$value;
 	$checked=false;
 	$CheckBoxDesignHidden=null; 
+	$GLOBALS["AUTO_FORM"][$name]="check";
 	if($value<>null){if($value==$enabledatas){$value="checked";$checked=true;}else{$value="";}}else{$value=null;}
 	if($js<>null){
 		$js="$js;";
@@ -1380,8 +1383,40 @@ function field_time($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 }
 
 
+function Field_button_table($name,$size=22){
+	if($GLOBALS["AUTO_FORM_LOCK"]==true){return null;}
+	$t=time();
+	$GLOBALS["AUTO_FORM_FUNC"]="Save$t";
+	return "<tr><td colspan=2 style='text-align:right'><hr>".button($name,"Save$t()",$size)."</td></tr>";
+}
+
+function Field_text_table($name,$caption,$value=null,$fontsize=18,$explain=null,$fieldsize=200){
+	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
+	if($explain<>null){$explain="explain=$explain;";}
+	$html[]="<td style='font-size:18px'>".Field_text($name,$value,"{$explain}width:{$fieldsize}px;font-size:{$fontsize}px")."</td></tr>";
+	return @implode("\n", $html);
+}
+
+function Field_checkbox_table($name,$caption,$value=null,$fontsize=18,$explain=null,$fieldsize=200){
+	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
+	
+	$html[]="<td style='font-size:18px'>".Field_checkbox($name,1,$value,null,$explain)."</td></tr>";
+	return @implode("\n", $html);	
+	
+}
+
+function Field_list_table($name,$caption,$value=null,$fontsize=18,$ARRAY){
+	$html[]="<tr><td class=legend style='font-size:{$fontsize}px'>{$caption}:</td>";
+	
+	$html[]="<td style='font-size:18px'>".Field_array_Hash($ARRAY, $name,$value,"style:font-size:{$fontsize}px")."</td></tr>";
+	return @implode("\n", $html);	
+}
+
+
+
 function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$help=null,$helpInside=false,$jsPressKey=null,$DISABLED=false,$OnClick=null){
 	$value=trim($value);
+	$GLOBALS["AUTO_FORM"][$name]="text";
 	$OnMouseOver=null;
 	$OnMouseOut=null;
 	$size=null;
@@ -3006,6 +3041,7 @@ function Paragraphe_switch_img_32($title,$text,$field_name=null,$value=null,$tip
 	
 function Paragraphe_switch_img($title,$text,$field_name=null,$value=null,$tips=null,$width="220",$callback=null){
 	$MINIADM=false;
+	$GLOBALS["AUTO_FORM"][$field_name]="text";
 	if($_SESSION["MINIADM"]==true){$MINIADM=true;}
 	if(isset($_COOKIE["MINIADM"])){$MINIADM=true;}
 	$id=md5('Paragraphe_switch_img'.$field_name.$text.$title);
@@ -5006,6 +5042,131 @@ return $tpl->_ENGINE_parse_body(Paragraphe('folder-64-fetchmail.png',
 '{APP_FETCHMAIL_TINY}','{APP_FETCHMAIL_TEXT}',"javascript:Loadjs('fetchmail.index.php?ajax=yes');",null,210,100,0,true));
 	
 }
+
+function FORM_START(){
+	$GLOBALS["AUTO_FORM_CONTENT"]=array();
+	$GLOBALS["AUTO_FORM"]=array();
+	$GLOBALS["AUTO_FORM_LOCK"]=false;
+	$GLOBALS["AUTO_FORM_FUNC"]=null;
+	$GLOBALS["AUTO_FORM_CLOSE"]=null;
+	$GLOBALS["AUTO_FORM_HIDDEN"]=array();
+	$GLOBALS["FORM_TIME"]=time();
+}
+function FORM_START_TABLE(){
+	$GLOBALS["AUTO_FORM_CONTENT"][]="<div style='width:98%' class=form>\n\t<table style='width:100%'>";
+}
+function FORM_ADD_ARRAY_HASH($hash=array(),$fieldname,$value,$caption){
+	$fieldname=$fieldname."-".$GLOBALS["FORM_TIME"];
+	$GLOBALS["AUTO_FORM_CONTENT"][]= Field_list_table($fieldname,$caption,$value,18,$hash);
+}
+function FORM_ADD_HIDDEN($fieldname,$value){
+	$GLOBALS["AUTO_FORM_HIDDEN"][$fieldname]=$value;
+}
+function FORM_ADD_FIELD($fieldname,$value,$caption,$explain=null,$size){
+	$fieldname=$fieldname."-".$GLOBALS["FORM_TIME"];
+	$GLOBALS["AUTO_FORM_CONTENT"][]=Field_text_table($fieldname,$caption,$value,18,$explain,$size);
+}
+function FORM_ADD_PARAGRAPH($fieldname,$value=0,$title,$text,$size=600){
+	$fieldname=$fieldname."-".$GLOBALS["FORM_TIME"];
+	$GLOBALS["AUTO_FORM_CONTENT"][]="\t\t<tr>";
+	$GLOBALS["AUTO_FORM_CONTENT"][]="\t\t\t<td colspan=2>";
+	$GLOBALS["AUTO_FORM_CONTENT"][]="\t\t\t".Paragraphe_switch_img($title, $text,$fieldname,$value,null,$size);
+	$GLOBALS["AUTO_FORM_CONTENT"][]="\t\t\t</td>";
+	$GLOBALS["AUTO_FORM_CONTENT"][]="\t\t</tr>";
+}
+function FORM_COMPILE($pagename,$btname){
+	$GLOBALS["AUTO_FORM_CONTENT"][]=Field_button_table($btname);
+	$GLOBALS["AUTO_FORM_CONTENT"][]="\t</table>\n</div>";
+	$html=@implode("\n", $GLOBALS["AUTO_FORM_CONTENT"]);
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body(FORM_END($pagename,$GLOBALS["AUTO_FORM_CONTENT"]));
+}
+function FORM_ADD_TITLE($text,$size=22){
+	$tpl=new templates();
+	$GLOBALS["AUTO_FORM_CONTENT"][]=$tpl->_ENGINE_parse_body("<div style='font-size:{$size}px;margin-bottom:20px'>$text</div>");;
+}
+function FORM_CONSTRUCT_SQL_FROM_POST($table,$MasterKey){
+	while (list ($key, $value) = each ($_POST) ){
+		$fields[]="`$key`";
+		$values[]="'".mysql_escape_string2($value)."'";
+		$edit[]="`$key`='".mysql_escape_string2($value)."'";
+
+	}
+
+	$sqlEdit="UPDATE `$table` SET ".@implode(",", $edit)." WHERE `$MasterKey`='{$_POST[$MasterKey]}'";
+	$sqlAdd="INSERT IGNORE INTO `$table` (".@implode(",", $fields).") VALUES (".@implode(",", $values).")";
+	return array($sqlAdd,$sqlEdit);
+}
+
+function FORM_END($pagename,$arrayHTML=array()){
+	$html=null;
+	if(count($arrayHTML)>0){$html=@implode("\n", $arrayHTML);}
+
+	if($GLOBALS["AUTO_FORM_LOCK"]){return $html;}
+
+
+	$f[]=$html;
+	$f[]="<script>";
+	$f[]="\tvar x{$GLOBALS["AUTO_FORM_FUNC"]}= function (obj) {";
+	$f[]="\t\tvar tempvalue=obj.responseText;";
+	$f[]="\t\tUnlockPage();";
+	$f[]="\t\tif(tempvalue.length>3){";
+	$f[]="\t\t\talert(tempvalue);";
+	$f[]="\t\t\treturn;";
+	$f[]="\t\t}";
+	if($GLOBALS["AUTO_FORM_CLOSE"]<>null){$f[]="\t{$GLOBALS["AUTO_FORM_CLOSE"]}Hide();";}
+	$f[]="\t}";
+	$f[]="\tfunction {$GLOBALS["AUTO_FORM_FUNC"]}(){";
+	$f[]="\t\tvar XHR = new XHRConnection();";
+	while (list ($fieldname, $type) = each ($GLOBALS["AUTO_FORM"]) ){
+		$fieldpost=$fieldname;
+		if(preg_match("#^(.+?)-([0-9]+)$#", $fieldname,$re)){$fieldpost=$re[1];}
+		
+		if($type=="text"){
+			$f[]="\t\tif(document.getElementById('$fieldname')){";
+			$f[]="\t\t\tXHR.appendData('$fieldpost',encodeURIComponent(document.getElementById('$fieldname').value));";
+			$f[]="}else{ alert('$fieldname no such id');}";
+			continue;
+		}
+		if($type=="pass"){
+			$f[]="\t\tif(document.getElementById('$fieldname')){";
+			$f[]="\t\t\tXHR.appendData('$fieldpost',encodeURIComponent(document.getElementById('$fieldname').value));";
+			$f[]="}";
+			continue;
+		}
+		if($type=="checkbox"){
+			$f[]="\t\tif(document.getElementById('$fieldname')){";
+			$f[]="\t\t\tif(document.getElementById('$fieldname').checked){XHR.appendData('$fieldpost',1);}else{XHR.appendData('$fieldpost',0);}";
+			$f[]="}";
+			continue;
+		}
+	}
+	
+	while (list ($fieldname, $value) = each ($GLOBALS["AUTO_FORM_HIDDEN"]) ){
+		$f[]="\t\tXHR.appendData('$fieldname','$value');";
+	}
+	
+
+	$f[]="\t\tXHR.sendAndLoad('$pagename', 'POST',x{$GLOBALS["AUTO_FORM_FUNC"]});";
+	$f[]="\t}";
+
+	$html=@implode("\n", $f);
+	$GLOBALS["AUTO_FORM"]=array();
+	$GLOBALS["AUTO_FORM_LOCK"]=false;
+	$GLOBALS["AUTO_FORM_FUNC"]=null;
+	return $html;
+
+}
+
+
+function FORM_CLOSE($Yahoowin){
+	$GLOBALS["AUTO_FORM_CLOSE"]=$Yahoowin;
+}
+
+function FORM_LOCK(){
+	$GLOBALS["AUTO_FORM_LOCK"]=true;
+}
+
 
 function URL_COMPUTER($uid,$win){
 	$uid=urlencode($uid);

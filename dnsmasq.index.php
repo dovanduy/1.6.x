@@ -114,7 +114,7 @@ $height="650px";
 		}				
 		
 		if($num=="hosts"){
-			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dnsmasq.hosts.settings.php\"><span $style>$ligne</span></a></li>\n");
+			//$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"dnsmasq.hosts.settings.php\"><span $style>$ligne</span></a></li>\n");
 			continue;
 		}			
 		

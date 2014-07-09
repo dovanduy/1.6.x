@@ -1801,11 +1801,39 @@ function icon_adduser(){
 			
 }
 
+function quicklinks_only_reverse($Noreturn=false){
+	$users=new usersMenus();
+	$tpl=new templates();
+	
+	
+	
+	if($users->NGINX_INSTALLED){
+	
+		$tr[]=paragrapheWin("reverse-proxy-64-white.png","Reverse-Proxy",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','nginx.main.php')");
+	
+	}
+	
+	
+	if($users->RDPPROXY_INSTALLED){
+		$tr[]=paragrapheWin("remote-desktop-64-white.png","{APP_RDPPROXY}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.rdpproxy.php?tabs=yes')");
+	}
+	
+	$html= $tpl->_ENGINE_parse_body(CompileTr6_win($tr,true));
+	SET_CACHED(__FILE__, __FUNCTION__, __FUNCTION__, $html);
+	echo $html;
+}
+
 function quicklinks_proxy(){
 	if(GET_CACHED(__FILE__, __FUNCTION__,__FUNCTION__)){return;}
 	$users=new usersMenus();
 	$tpl=new templates();
 	$sock=new sockets();
+	$SQUIDEnable=$sock->GET_INFO("SQUIDEnable");
+	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
+	if($SQUIDEnable==0){quicklinks_only_reverse(true);return;}
+	
 	$tr[]=paragrapheWin("parameters-64-white.png","{main_parameters}",
 	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.main.quicklinks.php?function=section_status')");
 	
@@ -1818,48 +1846,29 @@ function quicklinks_proxy(){
 	$CacheManagement2=$sock->GET_INFO("CacheManagement2");
 	if(!is_numeric($CacheManagement2)){$CacheManagement2=0;}
 	
-	
-		$tr[]=paragrapheWin("caches-center-white-64.png","{caches_center}",
-				"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.caches.rules.php?main-tabs=yes')");
+	$tr[]=paragrapheWin("caches-center-white-64.png","{caches_center}",
+	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.caches.rules.php?main-tabs=yes')");
 		
-	
-	
-	
-		//$templates_error=Paragraphe('squid-templates-64.png','{squid_templates_error}',
-		//'{squid_templates_error_text}',"javascript:Loadjs('squid.templates.php')");
-	
 	$tr[]=paragrapheWin("squid-templates-64-white.png","{squid_templates_error}",
 	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.templates.php?tabs=yes')");
 	
 	$tr[]=paragrapheWin("autoconf-64-white.png","{autoconfiguration}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");
+	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");
 
 	if($users->C_ICAP_INSTALLED){
-	$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-webfilter.php')");
+		$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-webfilter.php')");
 	}
 	
-	
 	$tr[]=paragrapheWin("webfiltering-white-64.png","{web_filtering}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");
+	"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");
 	
 //******************** ICAP CENTER **************************************************
 $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-center.php')");	
+$tr[]=paragrapheWin("transparent-64-white.png","{transparent}","AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.transparent.php')");
+$tr[]=paragrapheWin("wifi-white-64.png","HotSpot","AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.webauth.php?tabs=yes')");
+	
 
-//root@router:~/AX88179_178A_LINUX_DRIVER_v1.9.0_SOURCE# modprobe usbnet
-//root@router:~/AX88179_178A_LINUX_DRIVER_v1.9.0_SOURCE# insmod ax88179_178a.ko
-
-	
-	$tr[]=paragrapheWin("transparent-64-white.png","{transparent}",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.transparent.php')");
-		
-	
-	
-	
-	
-	$tr[]=paragrapheWin("wifi-white-64.png","HotSpot",
-			"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.webauth.php?tabs=yes')");
-	
 	
 		if($users->SAMBA_INSTALLED){
 			if($users->AsSystemAdministrator){
@@ -1890,7 +1899,12 @@ $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyConte
 		"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.rdpproxy.php?tabs=yes')");
 	}
 	
+	if($users->NGINX_INSTALLED){
 	
+		$tr[]=paragrapheWin("reverse-proxy-64-white.png","Reverse-Proxy",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','nginx.main.php')");
+	
+	}	
 	
 	
 	$tr[]=paragrapheWin("statistics-white-64.png","Artica - {statistics}",
