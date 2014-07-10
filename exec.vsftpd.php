@@ -258,15 +258,13 @@ function vsftpd_conf(){
 	$f[]="";
 	$f[]="# Port d'écoute.";
 	$f[]="listen_port=$VSFTPDPort";
-	$f[]="";
+	$f[]="tcp_wrappers=NO";
+	$f[]="connect_from_port_20=NO";
 
 	
 	$f[]="";
 	$f[]="# Utilisateur pour les opérations sans privilèges.";
 	$f[]="nopriv_user=nobody";
-	$f[]="";
-	$f[]="# Pour s'assurer que les données FTP (ftp-data) partent du port 20.";
-	$f[]="connect_from_port_20=YES";
 	$f[]="";
 	$f[]="# Ne pas activer cette option pour des raisons de sécurité.";
 	$f[]="#async_abor_enable=YES";
@@ -282,6 +280,8 @@ function vsftpd_conf(){
 		if($pasv_min_port==0){$pasv_min_port=40000;}
 		if($pasv_max_port==0){$pasv_max_port=40200;}
 		$f[]="pasv_enable=YES";
+		//$f[]="port_enable=YES";
+		//$f[]="ftp_data_port=$pasv_min_port";
 		$f[]="pasv_min_port=$pasv_min_port";
 		$f[]="pasv_max_port=$pasv_max_port";
 		if($VsFTPDPassiveAddr<>null){$f[]="pasv_address=$VsFTPDPassiveAddr"; }

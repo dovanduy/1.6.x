@@ -35,6 +35,7 @@ function tabs(){
 	$array["websites"]="{websites}";
 	$array["destinations"]='{destinations}';
 	$array["caches"]='{caches}';
+	$array["events"]='{events}';
 
 
 	$fontsize=18;
@@ -44,6 +45,12 @@ function tabs(){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.www.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="events"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.events.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}		
+		
 		if($num=="destinations"){
 			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"nginx.destinations.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
 			continue;
@@ -59,6 +66,6 @@ function tabs(){
 	$t=time();
 	//
 
-	echo build_artica_tabs($tab, "main_artica_wordpress",1100)."<script>LeftDesign('reverse-proxy-256-white.png');</script>";
+	echo build_artica_tabs($tab, "main_artica_nginx",1100)."<script>LeftDesign('reverse-proxy-256-white.png');</script>";
 
 }

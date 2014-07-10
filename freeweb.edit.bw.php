@@ -75,6 +75,7 @@ function page(){
 	}
 	
 function Save$t(){
+	var XHR = new XHRConnection();
 	XHR.appendData('bandlimit',document.getElementById('bandlimit').value);
 	if(document.getElementById('ForceBandWidthModule').checked){
 		XHR.appendData('ForceBandWidthModule',1);

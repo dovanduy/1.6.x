@@ -17,6 +17,7 @@ if(isset($_GET["reconfigure-single"])){reconfigure_single();exit;}
 if(isset($_GET["purge-cache"])){purge_cache();exit;}
 if(isset($_GET["import-bulk"])){import_bulk();exit;}
 if(isset($_GET["reconfigure-progress"])){reconfigure_progress();exit;}
+if(isset($_GET["access-query"])){events_all();exit;}
 
 
 
@@ -38,6 +39,43 @@ function status_info(){
 	
 	echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
 
+}
+
+function events_all(){
+	$pattern=trim(base64_decode($_GET["access-query"]));
+	if($pattern=="yes"){$pattern=null;}
+	$pattern=str_replace("  "," ",$pattern);
+	$pattern=str_replace(" ","\s+",$pattern);
+	$pattern=str_replace(".","\.",$pattern);
+	$pattern=str_replace("*",".+?",$pattern);
+	$pattern=str_replace("/","\/",$pattern);
+	$syslogpath=$_GET["syslog-path"];
+	$maxrows=0;
+	$syslogpath="/var/log/apache2/access-common.log";
+	$output="/usr/share/artica-postfix/ressources/logs/web/nginx.query";
+	$unix=new unix();
+	$grepbin=$unix->find_program("grep");
+	$tail = $unix->find_program("tail");
+	if($tail==null){return;}
+	
+	writelogs_framework("Pattern \"$pattern\"" ,__FUNCTION__,__FILE__,__LINE__);
+	if(isset($_GET["rp"])){$maxrows=$_GET["rp"];}
+	if($maxrows==0){$maxrows=500;}
+
+
+	if(strlen($pattern)>1){
+		$grep="$grepbin -i -E '$pattern' $syslogpath";
+	}
+			
+	if($grep<>null){
+		$cmd="$grep|$tail -n $maxrows >$output 2>&1";
+	}else{
+		$cmd="$tail -n $maxrows $syslogpath >$output 2>&1";
+	}
+
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	@chmod($output, 0755);
 }
 
 function conf_save(){

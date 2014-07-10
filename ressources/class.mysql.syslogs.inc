@@ -81,7 +81,9 @@ class mysql_storelogs{
 		$this->LogRotatePath=$sock->GET_INFO("LogRotatePath");
 		if($this->LogRotatePath==null){$this->LogRotatePath="/home/logrotate";}
 		$TuningParameters=unserialize(base64_decode($sock->GET_INFO("MySQLSyslogParams")));
-		$this->MYSQLTypeText=$this->MySQLLogsTypeTextAR[$this->MySQLSyslogType];
+		if(isset($this->MySQLLogsTypeTextAR[$this->MySQLSyslogType])){
+			$this->MYSQLTypeText=$this->MySQLLogsTypeTextAR[$this->MySQLSyslogType];
+		}
 		
 		$this->OutputDebugVerbose("MySQLSyslogType=$this->MySQLSyslogType");
 	
@@ -1005,6 +1007,12 @@ class mysql_storelogs{
 		$BackupSquidLogsNASPassword=$sock->GET_INFO("BackupSquidLogsNASPassword");
 		$BackupSquidLogsNASRetry=$sock->GET_INFO("BackupSquidLogsNASRetry");
 		if(!is_numeric($BackupSquidLogsNASRetry)){$BackupSquidLogsNASRetry=0;}
+		
+		if($BackupSquidLogsNASIpaddr==null){
+			$this->events("Backup via NAS is disabled, skip",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			return false;
+		}
+		
 		$mountPoint="/mnt/BackupSquidLogsUseNas";
 		if(!$mount->smb_mount($mountPoint,$BackupSquidLogsNASIpaddr,$BackupSquidLogsNASUser,$BackupSquidLogsNASPassword,$BackupSquidLogsNASFolder)){
 			rotate_events("Unable to connect to NAS storage system (1): $BackupSquidLogsNASUser@$BackupSquidLogsNASIpaddr",__FUNCTION__,__FILE__,__LINE__,"logrotate");
@@ -1059,7 +1067,7 @@ class mysql_storelogs{
 			return false;
 		}
 		
-		
+		$this->events("Removing source logs $BackupMaxDaysDir/$t",__FUNCTION__,__FILE__,__LINE__);
 		@unlink("$BackupMaxDaysDir/$t");
 		
 		$targetFile="$BackupMaxDaysDir/".basename($filepath);
@@ -1115,7 +1123,20 @@ class mysql_storelogs{
 				@unlink($filepath);
 				return;
 			}
-			rotate_events("Success to backup $SourceFile to $filepath",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			
+			
+			if(!is_file($filepath)){
+				$this->events("Failed to backup $SourceFile to $filepath ( no such target file)",__FUNCTION__,__FILE__,__LINE__);
+				return;
+			}
+			$SourceFileMD5=md5_file($SourceFile);
+			$DESTFILEMD5=md5_file($filepath);
+			if($SourceFileMD5<>$DESTFILEMD5){
+				$this->events("Failed to backup $SourceFile to $filepath (md5 mismatch)",__FUNCTION__,__FILE__,__LINE__);
+				@unlink($filepath);
+				return;
+			}
+			$this->events("Success to backup $SourceFile to $filepath",__FUNCTION__,__FILE__,__LINE__);
 			@unlink($SourceFile);
 		}
 		
@@ -1264,7 +1285,6 @@ class mysql_storelogs{
 		
 			if(!@copy($filepath, $DestinationFile)){
 				@unlink($DestinationFile);
-				rotate_admin_events("Failed to copy $filepath => $DestinationFile",__FUNCTION__,__FILE__,__LINE__,$this->category,$GLOBALS["SCHEDULE_ID"]);
 				$this->events("Failed to copy $filepath => $DestinationFile");
 				return false;
 			}
@@ -1279,8 +1299,8 @@ class mysql_storelogs{
 		$basenameFF=$basenameFF.".".time().".$ext";
 		$filesize=$unix->file_size($filepath);
 		$fcontent=null;
-		rotate_admin_events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)",__FUNCTION__,__FILE__,__LINE__,$this->category,$GLOBALS["SCHEDULE_ID"]);
-		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)");
+		$this->events("Injecting $basenameFF Task:$taskid ($filesize bytes) $sourceDate (MySQLSyslogType:$this->MySQLSyslogType)",__FUNCTION__,__FILE__,__LINE__,$this->category,$GLOBALS["SCHEDULE_ID"]);
+		
 	
 		if($this->MySQLSyslogType==1){
 			
@@ -1331,6 +1351,8 @@ class mysql_storelogs{
 	public function events($text,$function=null,$line=0){
 		$pid=@getmypid();
 		
+
+		
 		if(function_exists("debug_backtrace")){
 			$trace=@debug_backtrace();
 			if(isset($trace[1])){
@@ -1338,7 +1360,20 @@ class mysql_storelogs{
 				if($function==null){$function=$trace[1]["function"];}
 				if($line==0){$line=$trace[1]["line"];}
 			}
-		}		
+		}
+		
+		if(!isset($GLOBALS["CLASS_UNIX"])){
+			if(class_exists("unix")){
+				$GLOBALS["CLASS_UNIX"]=new unix();
+			}
+		}
+
+		if(isset($GLOBALS["CLASS_UNIX"])){
+			if(class_exists("unix")){
+				$GLOBALS["CLASS_UNIX"]->events($text,"/var/log/artica-postfix/logrotate.debug",false,
+						__CLASS__."/$function",$line,$file);
+			}
+		}
 		
 		
 		rotate_events($text,$function,$file,$line);

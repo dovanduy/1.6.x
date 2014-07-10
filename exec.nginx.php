@@ -6,6 +6,7 @@ $GLOBALS["SWAPSTATE"]=false;
 $GLOBALS["NOSQUIDOUTPUT"]=true;
 $GLOBALS["VERBOSE"]=false;
 $GLOBALS["RELOAD"]=false;
+$GLOBALS["pidStampReload"]="/etc/artica-postfix/pids/".basename(__FILE__).".Stamp.reload.time";
 if(preg_match("#--verbose#",implode(" ",$argv))){$GLOBALS["VERBOSE"]=true;$GLOBALS["OUTPUT"]=true;
 $GLOBALS["debug"]=true;
 ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',null);ini_set('error_append_string',null);}
@@ -52,6 +53,8 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--purge-all-caches"){$GLOBALS["OUTPUT"]=true;purge_all_caches();exit;}
 	if($argv[1]=="--import-file"){$GLOBALS["OUTPUT"]=true;import_file();exit;}
 	if($argv[1]=="--import-bulk"){$GLOBALS["OUTPUT"]=true;import_bulk();exit;}
+	if($argv[1]=="--mem"){$GLOBALS["OUTPUT"]=true;parse_memory();exit;}
+	if($argv[1]=="--mymem"){$GLOBALS["OUTPUT"]=true;max_memory();exit;}
 	
 	
 	
@@ -165,10 +168,10 @@ function build($OnlySingle=false){
 	$L=array();
 	$T=array();
 	
-	
+	$f[]="# Builded on ".date("Y-m-d H:i:s");
 	$f[]="user   $APACHE_USER;";
 	$f[]="worker_processes  $workers;";
-	$f[]="worker_rlimit_nofile 2048;";
+	$f[]="worker_rlimit_nofile 16384;";
 	$f[]="timer_resolution 1ms;";
 	$f[]="";
 	$f[]="error_log  /var/log/nginx/error.log warn;";
@@ -176,7 +179,7 @@ function build($OnlySingle=false){
 	$f[]="";
 	$f[]="";
 	$f[]="events {";
-	$f[]="    worker_connections  4096;";
+	$f[]="    worker_connections  8192;";
 	$f[]="    multi_accept  on;";
 	$f[]="    use epoll;";
 	$f[]="	  accept_mutex_delay 1ms;";
@@ -328,12 +331,22 @@ function build($OnlySingle=false){
 	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\"';";
 	$f[]="";	
 	
+	$f[]="\tlog_format  awc_log";
+	$f[]="\t\t'[\$server_name] \$remote_addr - \$remote_user [\$time_local] \$request '";
+	$f[]="\t\t'\"\$status\" \$body_bytes_sent \"\$http_referer\" '";
+	$f[]="\t\t'\"\$http_user_agent\" \"\$http_x_forwarded_for\"';";
+	$f[]="";	
+	
 	$f[]="\tinclude /etc/nginx/conf.d/*.conf;";
 	$f[]="\tinclude /etc/nginx/sites-enabled/*.conf;";
 	$f[]="\t}";
 	$f[]="";	
 	@copy("/etc/nginx/nginx.conf","/etc/nginx/nginx.bak");
 	@file_put_contents("/etc/nginx/nginx.conf", @implode("\n", $f));
+	
+	
+	
+	
 	if(!$OnlySingle){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK...\n";}
 		build_progress("Building default configuration",25);
@@ -1412,6 +1425,7 @@ function start($aspid=false){
 	$pid=PID_NUM();
 	if($unix->process_exists($pid)){
 		apache_admin_mysql(2, "Nginx Web service success to start [action=info]", null,__FILE__,__LINE__);
+		@unlink($GLOBALS["pidStampReload"]);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service Success service started pid:$pid...\n";}
 		$php5=$unix->LOCATE_PHP5_BIN();
 		shell_exec("$nohup $php5 /usr/share/artica-postfix/exec.php-fpm.php --start >/dev/null 2>&1 &");
@@ -2332,5 +2346,137 @@ function build_progress($text,$pourc){
 	@chmod($cachefile,0755);
 
 }
+
+function max_memory(){
+	$unix=new unix();
+	$MyMEM=$unix->MEM_TOTAL_INSTALLEE()/1000;
+	$MyMEM=$MyMEM-1600;
+	$sock=new sockets();
+	$NginxMaxMemToUse=intval($sock->GET_INFO("NginxMaxMemToUse"));
+	if($NginxMaxMemToUse==0){$NginxMaxMemToUse=75;}
+	$NginxMaxMemToUse=$NginxMaxMemToUse/100;
+	$MyMEM=round($MyMEM*$NginxMaxMemToUse);
+	return $MyMEM;
+	
+	
+}
+
+function parse_memory(){
+	$unix=new unix();
+	
+	$nginx=$unix->find_program("nginx");
+	$sock=new sockets();
+	$nginx=$unix->find_program("nginx");
+	if(!is_file($nginx)){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, not installed\n";}
+		return;
+	}
+	
+	
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+	$pidtime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
+	$pidStampReload=$GLOBALS["pidStampReload"];
+	
+	if(!$GLOBALS["VERBOSE"]){
+	echo "$pidtime\n";
+	$pid=$unix->get_pid_from_file($pidfile);
+	if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
+			return;
+	}
+	
+	$TimExec=$unix->file_time_min($pidtime);
+	if($TimExec<5){return;}
+	}
+	@file_put_contents($pidfile, getmypid());
+	@unlink($pidtime);
+	@file_put_contents($pidtime, time());
+	
+	
+	$python=$unix->find_program("python");
+	exec("$python /usr/share/artica-postfix/bin/ps_mem.py 2>&1",$results);
+	$FOUND=false;
+	while (list ($index, $line) = each ($results)){
+		$line=trim($line);
+		if($line==null){continue;}
+		if(!preg_match("#^[0-9\.]+.*?=\s+([0-9\.]+)\s+(.+?)\s+nginx#", $line,$re)){
+			if($GLOBALS["VERBOSE"]){echo "Not found \"$line\"\n";}
+			continue;}
+			$memoryValue=$re[1];
+			$unit=trim(strtolower($re[2]));
+			echo "Found $memoryValue $unit\n";
+			if($unit=="kib"){$memoryValue=$memoryValue/1048.576;}
+			if($unit=="mib"){$memoryValue=$memoryValue*1.048576;}
+			if($unit=="gib"){$memoryValue=$memoryValue*1048.576;}
+			$FOUND=true;
+			break;
+		
+		
+	}
+	
+	if(!$FOUND){
+		if($GLOBALS["VERBOSE"]){echo "Not found...\n";}
+		return;
+	}
+	$memoryValue=round($memoryValue,2);
+	
+	$MaxMemory=max_memory();
+	$MaxMemoryReload=$MaxMemory/2;
+	$memoryValueInt=intval($memoryValue);
+	echo "Nginx = $memoryValue MB  INT($memoryValueInt) Reload on:{$MaxMemoryReload}MB; Restart on:{$MaxMemory}MB\n";
+	
+	$ACTION_DONE=false;
+	
+	if($MaxMemory>0){
+		if($memoryValueInt>0){
+			
+			if($memoryValueInt>$MaxMemoryReload){
+				$StampTime=$unix->file_time_min($pidStampReload);
+				if($StampTime>20){
+					squid_admin_mysql(1, "Reverse proxy reach medium memory {$memoryValueInt}MB Reload:{$MaxMemoryReload}MB [action=reload]", "The service will be restarted");
+					reload(true);
+					@unlink($pidStampReload);
+					@file_put_contents($pidStampReload, time());
+					$ACTION_DONE=true;
+				}
+			}
+			
+			
+			if(!$ACTION_DONE){
+				if($memoryValueInt>$MaxMemory){
+					squid_admin_mysql(0, "Reverse proxy reach max memory allowed {$memoryValueInt}MB MAX:{$MaxMemory}MB [action=restart]", "The service will be restarted");
+					stop(true);
+					start(true);
+					@unlink($pidStampReload);
+				}
+			}
+		}
+	}
+	
+	
+	add_memory_value($memoryValue);
+	
+}
+
+function add_memory_value($memory){
+	$q=new mysql();
+	if(!$q->TABLE_EXISTS("nginx_mem", "artica_events")){
+		
+		$sql="CREATE TABLE `nginx_mem`  (
+			  `zDate` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			  `xmemory` DEC(10,2) NOT NULL ,
+			  UNIQUE KEY `zDate` (`zDate`),
+				KEY `memory` (`xmemory`)
+				) ENGINE=MYISAM;";
+			 
+		$q->QUERY_SQL($sql,"artica_events");
+		
+	}
+	
+	$q->QUERY_SQL("INSERT IGNORE INTO nginx_mem (`xmemory`) VALUES ('$memory')","artica_events");
+	
+}
+
 
 ?>

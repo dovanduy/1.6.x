@@ -54,6 +54,7 @@ function popup(){
 	$all=$tpl->_ENGINE_parse_body("{all}");
 	$t=time();
 	$sock=new sockets();
+	$manual_update=$tpl->javascript_parse_text("{manual_update}");
 	$ARRAY=unserialize(base64_decode($sock->getFrameWork("system.php?mylinux=yes")));
 	$title="{$ARRAY["LINUX_CODE_NAME"]}: {$ARRAY["LINUX_DISTRIBUTION"]} v.{$ARRAY["LINUX_VERS"][0]} {$ARRAY["LINUX_ARCHITECTURE"]}Bits";
 	
@@ -61,6 +62,7 @@ function popup(){
 	$buttons="
 	buttons : [
 	{name: '$refresh_index', bclass: 'Reload', onpress : RefreshIndex$t},
+	{name: '$manual_update', bclass: 'import', onpress : ManuUpdate$t},
 	
 	],	";
 	$html="
@@ -100,6 +102,10 @@ function BuildTable$t(){
 
 function articaShowEvent(ID){
 	YahooWin6('750','$page?ShowID='+ID,'$title::'+ID);
+}
+
+function ManuUpdate$t(){
+	Loadjs('update.upload.php');
 }
 
 

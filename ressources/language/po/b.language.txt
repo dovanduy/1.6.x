@@ -1037,6 +1037,9 @@ If red, requests from proxy children will be deny from cache</cache_childs_reque
 <cache_indexedobject_size_explain>This cache contains unique id's of objects. (about 512kb per user)</cache_indexedobject_size_explain>
 <cache_items>Cache items</cache_items>
 <cache_items_tasks_explain>Build stored items in caches directories statistics</cache_items_tasks_explain>
+<cache_level>Cache level</cache_level>
+<cache_level_explain>By modify the slider, you will change the cache storage behavior.[br]
+An highest level will enfore the proxy store objects into it's cache but should have effects on remote dynamics websites</cache_level_explain>
 <cache_lru>Original list based LRU policy</cache_lru>
 <cache_memory>cache memory</cache_memory>
 <cache_objects_during>Cache objects during</cache_objects_during>
@@ -1248,11 +1251,16 @@ Perform this operation ?</clean_memory_ask>
 <click_to_download>Click to download</click_to_download>
 <click_to_install>Click to install</click_to_install>
 <client_fqdn>Client FQDN</client_fqdn>
+<client_ip_source>Client IP source</client_ip_source>
+<client_ip_source_fake>Faked client IP source</client_ip_source_fake>
+<client_ip_source_fake_text>If using the X-Forwarded-For and the X-Real-IP header, you can force the proxy to send different information
+</client_ip_source_fake_text>
 <client_lifetime>Client life time</client_lifetime>
 <client_lifetime_text>This defines the maximum amount of time that a client (browser) is allowed to remain connected 
 to the cache process. This is merely a safeguard against clients that disappear without properly shutting down.[br]
 It is designed to prevent a large number of sockets from being tied up in a CLOSE_WAIT state</client_lifetime_text>
 <client_parameters>Client parameters</client_parameters>
+<client_source>Client source</client_source>
 <client_source_ip_address>Client source IP address</client_source_ip_address>
 <client_use_spnego_explain>
 This variable controls whether Samba clients will try to use Simple and Protected NEGOciation (as specified by rfc2478)
@@ -1603,6 +1611,8 @@ Artica can reload/start/stop service but will not change settings.
 <destinations>Destinations</destinations>
 <destination_interface>Destination interface</destination_interface>
 <destination_port>Destination port</destination_port>
+<destination_servers_list>Destinations servers list</destination_servers_list>
+<destination_use_ssl>Destination use SSL</destination_use_ssl>
 <dest_ports>Destination ports</dest_ports>
 <DetectAdware>Detect adware</DetectAdware>
 <DetectMalware>Detect malicious tools</DetectMalware>
@@ -1845,6 +1855,7 @@ example: regex:^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)[br]
 <dst_addr>Destination IP address</dst_addr>
 <dump_group>Dump group</dump_group>
 <dump_table>Dump table</dump_table>
+<duplicate>Duplicate</duplicate>
 <duplicate_the_ruleid_give_name>Give the new rule name in order to duplicate the rule:</duplicate_the_ruleid_give_name>
 <duplicate_uidNumber>Duplicate uidNumber</duplicate_uidNumber>
 <dynaacl_howto>This form edit a rule for the main proxy rule, you have to choose the type of element you want to match.[br]
@@ -3014,6 +3025,7 @@ of times he connected to the video files.</limit_rate_after_text>
 <localdomain>Local domain</localdomain>
 <localdomains_to_remote_server>Local domains to remote server</localdomains_to_remote_server>
 <localpath>Local path</localpath>
+<local_domain>Local domain</local_domain>
 <local_domains>Local domains</local_domains>
 <local_ldap>use local LDAP database</local_ldap>
 <local_ldap_service>Local LDAP service</local_ldap_service>
@@ -3631,6 +3643,7 @@ Or an hostname: www.mydomain.com[br]
 Or an uri: http://www.mydomain.com
 </nginx_destination>
 <nginx_dns_export_explain>Here it is the export list of your domains in CSV format in order to update your public DNS server</nginx_dns_export_explain>
+<nginx_enable_www_text>If turned to green, then this Website will be a part of your reverse proxy websites and the destination will be protected by this server</nginx_enable_www_text>
 <nginx_forceddomain>If the remote web server store virtual hosts (multiple webservers) you can force here which virtual hostname you want to connect</nginx_forceddomain>
 <nginx_ForceRedirect>If the remote Web server sends redirects then all redirects will be forced to pass trough the reverse-proxy service</nginx_ForceRedirect>
 <NGINX_FW_EXPLAIN>This feature allows you to log and/or block IP addresses sources from the FireWall when the reverse proxy sends a 403 error.[br]
@@ -3680,6 +3693,9 @@ flags can be:[br]
 There is a tips in order to define this Web server on HTTP and HTTPS port.[br]
 If you enable this option and you set 80 as port, then this web server will listen in both 80/443 ports in order to provide HTTPS/HTTP service
 </NGINX_USE_SSL_EXPLAIN>
+<NGINX_USE_SSL_EXPLAIN2>Turn SSL will only turn SSL on the reverse proxy.[br]By default, the reverse proxy is able to communicate with the backend Web server in HTTP mode.[br]
+If the backend server is SSL too, turn to green this feature.
+</NGINX_USE_SSL_EXPLAIN2>
 <nginx_websites_export_explain>Here it is the list of websites and sources in CVS format</nginx_websites_export_explain>
 <nginx_website_dir_explain>If set then when clients will request this path, the reverse proxy will display content of the remote server</nginx_website_dir_explain>
 <nic_from>Source network card</nic_from>
@@ -4142,6 +4158,7 @@ however, it is possible to set it to less.
 <proxy_cache_valid_text>Define how long (in minutes) the request will be cached</proxy_cache_valid_text>
 <proxy_child>Child Proxy</proxy_child>
 <proxy_clients_was_notified>Proxy clients has been notified to restart services</proxy_clients_was_notified>
+<proxy_client_ip_source_text>Enable or disable the Proxy to send client IP source to the destination server using the X-Forwarded-For and the X-Real-IP header in HTTP protocol</proxy_client_ip_source_text>
 <PROXY_EVENTS>Proxy events</PROXY_EVENTS>
 <proxy_events_text>Display internal proxy service events</proxy_events_text>
 <proxy_ftp_main_settings>FTP Proxy settings</proxy_ftp_main_settings>
@@ -4156,6 +4173,8 @@ however, it is possible to set it to less.
 <proxy_parameters_compilation>Proxy Parameters compilation</proxy_parameters_compilation>
 <proxy_parents>Parents proxys</proxy_parents>
 <proxy_parent_options>Proxy parent options</proxy_parent_options>
+<proxy_pass_request_headers>Send orginal headers</proxy_pass_request_headers>
+<proxy_pass_request_headers_text>Indicates whether the header fields of the original request are passed to the proxied server.</proxy_pass_request_headers_text>
 <proxy_plugins>Proxy plugins</proxy_plugins>
 <proxy_public_address>Proxy Public address</proxy_public_address>
 <proxy_read_timeout>Proxy read timeout</proxy_read_timeout>
@@ -4418,6 +4437,7 @@ Connect to %s in order to modify parameters</remote_appliance_error_text>
 <remote_statistics_server_text>Send realtime events to a second Artica server</remote_statistics_server_text>
 <remove_before_import>Remove before importation task</remove_before_import>
 <remove_connection_ask>Remove this connection ?</remove_connection_ask>
+<remove_database>Remove database</remove_database>
 <remove_disabled_items>Remove disabled items</remove_disabled_items>
 <remove_disabled_items_warn>This will remove disabled items from the database. Perform this operation ?</remove_disabled_items_warn>
 <remove_numeric_members>Remove numeric members</remove_numeric_members>
@@ -4568,6 +4588,8 @@ Set in this form credentials to access to your system NAS and put the Artica bac
 <restore_fetchmail_container>This section allows you to restore rules exported from an other Artica server</restore_fetchmail_container>
 <restore_folder>Restore folder</restore_folder>
 <restore_from_container_ask>Restore from this backup container</restore_from_container_ask>
+<restore_from_website>Restore from other website</restore_from_website>
+<restore_from_website_explain>Restore content from other website</restore_from_website_explain>
 <restore_network_settings>Restore networks settings</restore_network_settings>
 <restore_network_settings_explain>If green, the restore task will restore from the backup container all network interfaces settings such as TCP/IP settings, TCP routes...</restore_network_settings_explain>
 <restore_purged_statistics>Restore backuped statistics</restore_purged_statistics>
@@ -4937,6 +4959,30 @@ New caches will be not linked to the proxy.
 If you want to link all caches to your proxy service, you need to restart the proxy service...
 Do you want to carry out this operation ?
 </squidcach32_applyexplain>
+<SquidCacheLevel1>[br]Minimal cache[/b][br]
+This is the default Proxy cache used in most cases.[br]
+Your specific caches rules are disabled.[br]
+Proxy query remote websites for freshed pages in standard mode and try to store object for 3 days maximal.
+Artica dynamic enforce rule are disabled.
+</SquidCacheLevel1>
+<SquidCacheLevel2>[br]Smooth cache[/b][br]
+Your specific caches rules are enabled.[br]
+Proxy query remote websites for freshed pages in standard mode and try to store object for 3 days maximal.
+Artica dynamic enforce rule are disabled.
+</SquidCacheLevel2>
+<SquidCacheLevel3>[br]Medium cache[/b][br]
+Images, css, javascript, multimedia files are stored for a long period.[br]
+Your specific caches rules are enabled.[br]
+Proxy query remote websites for freshed pages in standard mode and try to store object for 3 days maximal.
+Artica dynamic enforce rule is disabled by default.
+</SquidCacheLevel3>
+<SquidCacheLevel4>[br]Strong cache[/b][br]
+Proxy will ignore browsers refresh operation.[br]
+Images, css, javascript, multimedia files are stored for a long period.[br]
+Your specific caches rules are enabled.[br]
+Proxy query remote websites for freshed pages slowly and try to store object for 4 days maximal.
+Artica dynamic enforce rule is enabled by default.
+</SquidCacheLevel4>
 <SquidCacheReloadTTL_explain>Ban Artica to rebuild/restart proxy service in x minutes interval</SquidCacheReloadTTL_explain>
 <SquidClientParams_text>This section allows you to tune the number of plugins loaded by the proxy service.[br]
 Plugins should be the number of authentication processes, web filtering processes...[br]
@@ -6005,6 +6051,8 @@ These accesses should be only done outside the company</websites_human_suspects_
 <websites_noprod>Non-productive websites</websites_noprod>
 <websites_noprod_explain>These websites are considered as non-productive websites such as socials websites, dating,games...</websites_noprod_explain>
 <website_analysis>Website analysis</website_analysis>
+<website_directory>Website directory</website_directory>
+<website_source>Website source</website_source>
 <website_tool_explain>This section allows you to check if the requested website is correctly fetched without the proxy service.</website_tool_explain>
 <website_tool_explain_proxy>If the Artica server must use a proxy parent to be connected trough Internet.[br]
 Give the proxy and port is this way: 172.16.32.1:3128</website_tool_explain_proxy>
@@ -6171,7 +6219,9 @@ Of course you can continue to play with this server.[br]
 [b]But do not be offended if this server is overloaded or if administration Web pages are slowly loaded.
 </wizard_warn_memory>
 <word>word</word>
+<wordpress_administrator>Wordpress administrator</wordpress_administrator>
 <wordpress_backup_parameters>Wordpress websites backup parameters</wordpress_backup_parameters>
+<wordpress_duplicate_explain>Duplicate this Wordpress Website to a new Wordpress website</wordpress_duplicate_explain>
 <wordpress_websites>Wordpress websites</wordpress_websites>
 <workingdir_in_memory>Direcory in memory</workingdir_in_memory>
 <workingdir_in_memory_text>If set up to 5, the working directory will be set in memory instead hard disk.[br]

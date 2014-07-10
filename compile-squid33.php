@@ -1032,7 +1032,7 @@ function nginx_compile(){
 function package_nginx(){
 	/*
 	 * 
-	 * 
+	 * apt-get install libxslt1-dev
 	 * http://openresty.org/#Download
 cd /root
 wget http://openresty.org/download/ngx_openresty-1.2.8.6.tar.gz

@@ -344,6 +344,7 @@ Voulez-vous effectuer cette op&eacute;ration ?</apply_firewall_configuration_war
 <apply_klms_config_text>Appliquer les param&egrave;tres et red&eacute;marrer le service principal de Kaspersky Mail Security</apply_klms_config_text>
 <apply_parameters>Appliquer les param&egrave;tres</apply_parameters>
 <apply_parameters_to_the_system>Application des param&egrave;tres syst&egrave;mes</apply_parameters_to_the_system>
+<apply_permissions>Application des permissions</apply_permissions>
 <apply_privileges>Appliquer les droits</apply_privileges>
 <APPLY_SETTINGS_FETCHMAIL>Sauvegarde des r&egrave;gles fetchmail et rechargement du service.</APPLY_SETTINGS_FETCHMAIL>
 <APPLY_SETTINGS_SQUID>Patientez...[br]Les param&egrave;tres du proxy et ceux des filtres associ&eacute;es vont &ecirc;tre reconstruits.</APPLY_SETTINGS_SQUID>
@@ -503,6 +504,9 @@ Si le score d&eacute;passe un certain seuil, le courriel est alors consid&eacute
 Le serveur distant sera alors en charge d'importer les donn&eacute;es collect&eacute;es et de les transformer en statistiques.[br]
 Il est conseill&eacute; de s'assurer que l'envoi des donn&eacute;es au second serveur s'effectue avant que celui-ci soit programm&eacute; pour compiler les statistiques.[br]
 V&eacute;rifiez la programmation des statistiques des deux serveurs.</APP_WIZARD_STATS_APPLIANCE_DISCONNECTED>
+<APP_WORDPRESS_ARTICA_TEXT>Artica pour Wordpress vous permet de d&eacute;ployer des sites Wordpress tr&egrave;s facilement &agrave; travers son interface.[br]
+Artica est en charge de g&eacute;rer Wordpress de fa&ccedil;on syst&egrave;me.[br]Il permet la sauvegarde/restauration des sites, le renforcement de la s&eacute;curit&eacute; et la mise &agrave; jour.[br]
+L\'onglet Sites Wordpress vous permet de visualiser l\'&eacute;tat de tous les sites Wordpress construits.</APP_WORDPRESS_ARTICA_TEXT>
 <APP_WPAD>Auto-configuration Proxy</APP_WPAD>
 <APP_WPADDYN>Proxy PAC dynamique</APP_WPADDYN>
 <APP_WPADDYN_TEXT>Ce service Web permet de g&eacute;n&eacute;rer des script d'auto-configuration Proxy en fonction des r&egrave;gles indiqu&eacute;s dans la section Proxy d'Artica</APP_WPADDYN_TEXT>
@@ -706,6 +710,8 @@ Vous pouvez limiter la taille maximale des conteneurs que chaque membre peut cr&
 <backup_tasks>T&acirc;ches de sauvegarde</backup_tasks>
 <BACKUP_TASK_CONFIRM_DELETE_SOURCE>Cette op&eacute;ration va supprimer cette source. Voulez-vous effectuer cette op&eacute;ration ?</BACKUP_TASK_CONFIRM_DELETE_SOURCE>
 <backup_to_nas>Sauvegarde vers un N.A.S</backup_to_nas>
+<backup_wordpress_websites>Sauvegarde des sites Wordpress</backup_wordpress_websites>
+<backup_wordpress_websites_explain>Cette t&acirc;che est en charge de sauvegarder tous les sites Wordpress vers la destination indiqu&eacute;e dans les param&egrave;tres.</backup_wordpress_websites_explain>
 <backup_zarafa_db>Sauvegarde MySQL de Zarafa</backup_zarafa_db>
 <backup_zarafa_db_explain>Cette t&acirc;che va lancer la sauvegarde de la base de donn&eacute;es MySQL du serveur Zarafa.[br]Il n'y pas de sens de la programmer sans disposer d'un serveur Zarafa ou bien de la programmer avec une fr&eacute;quence inf&eacute;rieure &agrave; 24h</backup_zarafa_db_explain>
 <back_to_31xbranch>Revenir &agrave; la 3.1x</back_to_31xbranch>
@@ -893,6 +899,9 @@ Vous pouvez utiliser une valeur plus &eacute;lev&eacute;e si vous &ecirc;tes abs
 <cache_indexedobject_size_explain>Ce cache contient les indexes des identifiants des objets (a peu pr&egrave;s 512Kb par utilisateur).</cache_indexedobject_size_explain>
 <cache_items>&Eacute;l&eacute;ment(s) du cache</cache_items>
 <cache_items_tasks_explain>Construit les statistiques des &eacute;l&eacute;ments stock&eacute;s dans le cache.</cache_items_tasks_explain>
+<cache_level>Niveau de Cache</cache_level>
+<cache_level_explain>Vous pouvez modifier le comportement de mise en cache des sites Internet en augmentant ou baissant la barre ci-contre.[br]
+Un niveau &eacute;lev&eacute; va renforcer la mise en cache et le stockage des objets dans les caches du proxy mais risque d\'alt&eacute;rer le fonctionnement des sites Internet dynamiques.</cache_level_explain>
 <cache_lru>LRU: M&eacute;thode originelle de cache</cache_lru>
 <cache_memory>Cache m&eacute;moire</cache_memory>
 <cache_objects_during>Mettre en caches les objets pendant</cache_objects_during>
@@ -981,6 +990,7 @@ Si vous utilisez cette application avec Artica, il est conseill&eacute; d'active
 <char_alert_error>La valeur dispose de caract&egrave;res sp&eacute;ciaux qui ne sont pas autoris&eacute;s:</char_alert_error>
 <checking_compatibilities>V&eacute;rification des compatibilit&eacute;s</checking_compatibilities>
 <checking_configuration>V&eacute;rification de la configuration</checking_configuration>
+<checking_reverse_proxy>V&eacute;rifie les param&egrave;tres reverse-proxy</checking_reverse_proxy>
 <check_acls>V&eacute;rifie les ACLS sur les dossiers.</check_acls>
 <check_acls_explain>R&eacute;-applique les ACLs sauvegard&eacute;s afin de s'assurer qu'ils n'ont pas &eacute;t&eacute;s modifi&eacute;s par des administrateurs sur le syst&egrave;me ou via les dossiers partag&eacute;s.</check_acls_explain>
 <check_all_services_status>V&eacute;rifie tous les services</check_all_services_status>
@@ -1068,10 +1078,15 @@ Lancer cette op&eacute;ration ?</clean_memory_ask>
 <click_to_download>Cliquer pour t&eacute;l&eacute;charger</click_to_download>
 <click_to_install>Cliquer pour installer</click_to_install>
 <client_fqdn>Nom d'h&ocirc;te du client</client_fqdn>
+<client_ip_source>IP source du client</client_ip_source>
+<client_ip_source_fake>Falsifier l\'adresse IP source</client_ip_source_fake>
+<client_ip_source_fake_text>If using the X-Forwarded-For and the X-Real-IP header, you can force the proxy to send different information
+</client_ip_source_fake_text>
 <client_lifetime>Temps de vie du client</client_lifetime>
 <client_lifetime_text>Ceci indique le temps maximum qu'un navigateur est autoris&eacute; &agrave; tenir la connexion sur le proxy.[br]
 C'est une option qui assure que les connexions soient ferm&eacute;es lorsqu'un navigateur &agrave; termin&eacute; son processus sans avoir &eacute;t&eacute; correctement ferm&eacute; et pr&eacute;vient d'un nombre de socket ouvertes en &eacute;tat CLOSE_WAIT</client_lifetime_text>
 <client_parameters>Param&egrave;tres du client</client_parameters>
+<client_source>Client source</client_source>
 <client_source_ip_address>Adresse IP du client</client_source_ip_address>
 <client_use_spnego_explain>Cette variable contr&ocirc;le si les clients Samba vont essayer d'utiliser SPNEGO (tel que sp&eacute;cifi&eacute; par rfc2478) avec les serveurs suppot&eacute;s (y compris Windows XP, Windows 2000 et Samba 3.0)  afin d'utiliser un m&eacute;canisme d'authentification. [br] Cela assure l'authentification Kerberos.</client_use_spnego_explain>
 <client_use_spnego_principal_explain>Ce param&egrave;tre d&eacute;termine si oui ou non les composants de samba qui agissent en tant que client tenteront d'utiliser le serveur principal fourni qui est parfois indiqu&eacute; dans l'&eacute;change SPNEGO.[br]
@@ -1136,6 +1151,7 @@ Elle permet de compiler les cat&eacute;gories en mode [b].ufdb[/b] et de les sau
 <completed>Effectu&eacute;.</completed>
 <compressed>Compress&eacute;</compressed>
 <compressed_data>Compress&eacute;</compressed_data>
+<compressed_file>Fichier compress&eacute;</compressed_file>
 <compressed_size>Taille compress&eacute;e</compressed_size>
 <compressing_package>Compresse le paquetage</compressing_package>
 <compressor_requests>Requ&ecirc;tes TR du compresseur</compressor_requests>
@@ -1381,6 +1397,8 @@ Il sera toutefois en mesure d\'arr&ecirc;ter le service, le recharger ou le red&
 <destinations>Destinations</destinations>
 <destination_interface>Interface de destination</destination_interface>
 <destination_port>Port de destination</destination_port>
+<destination_servers_list>Serveurs de destination</destination_servers_list>
+<destination_use_ssl>La destination utilise du SSL</destination_use_ssl>
 <dest_ports>Ports de destination</dest_ports>
 <DetectAdware>D&eacute;tecter les Adwares</DetectAdware>
 <DetectMalware>D&eacute;tecter les outils malicieux</DetectMalware>
@@ -1409,6 +1427,7 @@ Vous pouvez indiquer plusieurs entr&eacute;es avec le point-virgule comme s&eacu
 <DiplayFullPath>Afficher le chemin complet</DiplayFullPath>
 <direction>Direction</direction>
 <directories>R&eacute;pertoires</directories>
+<directories_permissions>Permissions des r&eacute;pertoires</directories_permissions>
 <directory_size>Taille du r&eacute;pertoire</directory_size>
 <direct_connection>connexion directe</direct_connection>
 <direct_to_internet>Direct vers Internet</direct_to_internet>
@@ -1546,6 +1565,7 @@ L'&eacute;tat suivant vous indique le taux de r&eacute;ponse de chaque serveur D
 <dns_service>Service DNS</dns_service>
 <doesnnot_exists_in_database>n'existe pas dans la base de donn&eacute;es</doesnnot_exists_in_database>
 <domain-name-servers>Serveurs DNS</domain-name-servers>
+<domainname>Nom du domaine</domainname>
 <DomainOfThisserver>Domaine du serveur</DomainOfThisserver>
 <domains_and_dns>Domaines et DNS</domains_and_dns>
 <domains_and_dns_text>Administrer vos domaines et entr&eacute;es DNS</domains_and_dns_text>
@@ -1590,6 +1610,7 @@ exemple: regex:^([0-9] \.[0-9] \.[0-9] \.[0-9] )[br]</dstdomain_regex_explain>
 <dst_addr>Adresse IP de destination</dst_addr>
 <dump_group>Analyser le groupe</dump_group>
 <dump_table>Visualiser la table source</dump_table>
+<duplicate>Dupliquer</duplicate>
 <duplicate_the_ruleid_give_name>Indiquez le nom de la nouvelle r&egrave;gle afin de dupliquer la r&egrave;gle source:</duplicate_the_ruleid_give_name>
 <duplicate_uidNumber>uidNumber en doublons</duplicate_uidNumber>
 <dynaacl_howto>Ce formulaire &eacute;dite/ajoute une sous-r&egrave;gle dans la r&egrave;gle principale du proxy.[br]Vous devez choisir quel type d'&eacute;l&eacute;ment vous d&eacute;sirez v&eacute;rifier puis indiquer la valeur &agrave; comparer.[br]
@@ -1840,6 +1861,7 @@ Google n'assure pas de flux SSL lors de l'utilisation de cette adresse virtuelle
 Le certificat est de toute fa&ccedil;on identique et le site  nosslsearch sera en mesure de rediriger les requpetes vers les sites non-SSL de Google.
 Si vous activez cette option, Artica va renseigner le fichier d'h&ocirc;tes avec les principaux sites de recherche de Google vers  nosslsearch.[br]Vous pouvez cliquer sur le lien ci-dessous afin de visualiser les adresses ajout&eacute;es.</enforce_google_to_non_ssl_text>
 <enforce_level>Niveau de renforcement</enforce_level>
+<enforce_security>Renforce la s&eacute;curit&eacute;</enforce_security>
 <errors_pages>Pages d'erreurs</errors_pages>
 <error_acl_no_object>Cette r&egrave;gle sera indisponible car aucun objet n'est li&eacute; &agrave; cette r&egrave;gle.</error_acl_no_object>
 <error_category_nomore5>Erreur, le nom de la cat&eacute;gorie ne peut &ecirc;tre en dessous &agrave; 5 caract&egrave;res.</error_category_nomore5>
@@ -2001,6 +2023,7 @@ imap.company2.tld;POP3;sabrina;SaBr1n@;sabrina.giuras;ssl23;1[br]
 <fetchmail_parameters_compilation>Param&egrave;tres de compilation de fetchmail</fetchmail_parameters_compilation>
 <fetch_folders_explain>R&eacute;cup&eacute;rer les messages stock&eacute;s dans des dossiers sp&eacute;cifiques.</fetch_folders_explain>
 <filepath>Chemin du fichier</filepath>
+<files_permissions>Permissions des fichiers</files_permissions>
 <file_descriptors>Descripteurs de fichiers</file_descriptors>
 <file_descriptors_squid_explain>G&eacute;n&eacute;ralement, un descripteur de fichier est un index d'une entr&eacute;e dans le noyau-r&eacute;sident.[br]
 Dans un syst&egrave;me Unix, les descripteurs de fichier peuvent d&eacute;signer des fichiers, des r&eacute;pertoires, des devices bloc ou caract&egrave;re (souvent appel&eacute;s fichiers sp&eacute;ciaux), des pipes nomm&eacute;s ou des pipes anonymes.
@@ -2297,8 +2320,10 @@ Charger votre fichier CSV avec le boutton ci-dessous.[br]Utilisez le lien exampl
 <import_contacts_csv_text>Importer des contacts dans votre carnet d'adresses personnel depuis un fichier CSV</import_contacts_csv_text>
 <import_export>Import/Export</import_export>
 <import_rules>Importer des r&egrave;gles</import_rules>
+<import_squid_conf>Importer votre squid.conf</import_squid_conf>
 <import_squid_logs>Importer les anciens fichier de logs Squid-Cache.</import_squid_logs>
 <import_squid_logs_explain>Importer les fichiers de requ&ecirc;tes d'acc&egrave;s de votre ancien serveur Squid-Cache ou d'un autre serveur Artica.</import_squid_logs_explain>
+<import_squid_zip_explain>Importer votre ancien fichier Squid.conf depuis un fichier compress&eacute; ZIP, avec les objets proxy stock&eacute;s dans des fichiers externes.</import_squid_zip_explain>
 <in>dans</in>
 <inactive>Inactif</inactive>
 <inbound>Entrant</inbound>
@@ -2346,6 +2371,7 @@ Si votre serveur est actuellement en cours d'utilisation, nous vous conseillons 
 <install_now>Installer maintenant</install_now>
 <install_this_version>Installer cette version</install_this_version>
 <install_virtual_switch>Installer le Switch virtuel</install_virtual_switch>
+<install_wordpress>Installation de Wordpress</install_wordpress>
 <InstantMessagingDomain>Domaine de messagerie instantan&eacute;e</InstantMessagingDomain>
 <INSTANT_MESSAGING>Messagerie instantan&eacute;e</INSTANT_MESSAGING>
 <INSTANT_MESSAGING_EJABBERD>ejabberd est un serveur de chat XMPP permettant de fournir un serveur de messagerie instantan&eacute;e robuste et fiable.[br]
@@ -2369,6 +2395,7 @@ Faites tr&egrave;s attention &agrave; cette fonctionnalit&eacute; afin de ne par
 <internal_users>Membres internes</internal_users>
 <internet_access_per_day>Acc&egrave;s internet par jour</internet_access_per_day>
 <internet_browsing>Surf Internet</internet_browsing>
+<internet_domains>Domaines Internet</internet_domains>
 <internet_network>R&eacute;seau Internet</internet_network>
 <introduction_text>Texte d'introduction</introduction_text>
 <invalid>Non valide</invalid>
@@ -2582,6 +2609,7 @@ Cette section vous permet de visualiser le nombre de d&eacute;mons utilis&eacute
 <localdomain>Domaine local</localdomain>
 <localdomains_to_remote_server>Domaines locaux vers un serveur</localdomains_to_remote_server>
 <localpath>Chemin local</localpath>
+<local_domain>Domaine local</local_domain>
 <local_domains>Domaines locaux</local_domains>
 <local_ldap>Utiliser la base LDAP locale</local_ldap>
 <local_ldap_service>Service LDAP local</local_ldap_service>
@@ -2753,6 +2781,7 @@ param&egrave;tre peut &ecirc;tre [b] coch&eacute; [/b] pour renverser le comport
 <MAX_PING_GATEWAY_EXPLAIN>Le processus de surveillance est ex&eacute;cut&eacute; par d&eacute;faut toutes les 3 minutes.[br]Combien de cycles un ping en &eacute;chec va le forcer &agrave; mener les op&eacute;rations d&eacute;finies</MAX_PING_GATEWAY_EXPLAIN>
 <max_plugins>Nb Extensions MAX</max_plugins>
 <max_processes>NB de processus MAX</max_processes>
+<max_rate>Taux de transfert permis</max_rate>
 <max_storage_days>NB MAX de jours de r&eacute;tention</max_storage_days>
 <max_storage_days_accesses>NB Max de jours de r&eacute;tention ( fichiers d'acc&egrave;s)</max_storage_days_accesses>
 <max_system_load>Charge Syst&egrave;me maximale</max_system_load>
@@ -2850,6 +2879,7 @@ Pour exemple, vous pouvez programmer l'ex&eacute;cution &agrave; 02h00 avec une 
 0 veut dire qu'il n'y a pas de limite.</MirrorDebianMaxExecTime_explain>
 <MirrorEnableDebianSchedule_explain>Si activ&eacute;, seulement les t&acirc;ches programm&eacute;es seront en charge d'ex&eacute;cuter le rapatriement.[br]Voir la section programmation</MirrorEnableDebianSchedule_explain>
 <mixed_mode>Mode mixte</mixed_mode>
+<moderate>Mod&eacute;r&eacute;</moderate>
 <module_in_squid_not_installed>Le module requis n'est pas install&eacute; sur votre serveur[br]
 Nous vous sugg&eacute;rons de mettre &agrave; jour le paquetage proxy &agrave; travers l'interface Web afin de b&eacute;n&eacute;ficier de cette fonctionnalit&eacute;.</module_in_squid_not_installed>
 <MOD_TEMPLATE_ERROR_LICENSE>La modification des pages d'erreurs est soumise &agrave; la licence Entreprise.</MOD_TEMPLATE_ERROR_LICENSE>
@@ -3033,6 +3063,7 @@ Si vous d&eacute;sirez acc&eacute;der &agrave; ce conteneur &agrave; travers le 
 <new_forward_zone>Nouvelle zone de transfert</new_forward_zone>
 <new_host>Nouvel h&ocirc;te</new_host>
 <new_interface>Nouvelle interface</new_interface>
+<new_internet_domain>Nouveau domaine Internet</new_internet_domain>
 <new_itchart>Nouvelle charte informatique</new_itchart>
 <new_items>Nouveaux &eacute;l&eacute;ments</new_items>
 <new_keyword>Nouveau mot clef</new_keyword>
@@ -3088,6 +3119,7 @@ Cliquez ici pour mettre &agrave; jour.</NEW_RELEASE_TEXT>
 <new_webserver>Nouveau site Web</new_webserver>
 <new_website>Nouveau site web</new_website>
 <new_word>Nouveau mot</new_word>
+<new_wordpress_site>Nouveau site Wordpress</new_wordpress_site>
 <next_check>Prochaine v&eacute;rification</next_check>
 <next_check_in>Prochaine v&eacute;rification dans</next_check_in>
 <NginxAuthPort_explain>Par d&eacute;faut, Authenticator &eacute;coute une addresse unix ( indiqu&eacute; par unix:path/to/socket).[br]
@@ -3106,6 +3138,7 @@ Va remplacer mydomain.tld par newdomain.tld</nginx_bulk_import_replace_explain>
 ou un nom d'h&ocirc;te: www.mydomain.com[br]
 ou une url: http://www.mydomain.com</nginx_destination>
 <nginx_dns_export_explain>Ici, l\'exportation des vos domaines au format CSV afin de mettre &agrave; jour vos DNS publiques.</nginx_dns_export_explain>
+<nginx_enable_www_text>Si vert, alors ce site Internet sera compris par votre reverse proxy et la destination sera prot&eacute;g&eacute;e par ce serveur.</nginx_enable_www_text>
 <nginx_forceddomain>Si le serveur distant h&eacute;berge des serveurs virtuels (multiple serveurs web), vous pouvez forcer le nom d'un serveur en particulier sur lequel vous voulez vous connecter.</nginx_forceddomain>
 <nginx_ForceRedirect>Si le serveur distant effectue des renvois alors tous les renvois seront forc&eacute;s &agrave; passer &agrave; travers le proxy invers&eacute;.</nginx_ForceRedirect>
 <NGINX_FW_EXPLAIN>Cette fonctionnalit&eacute; vous permet de loger et/ou de bloquer les adresses sources &agrave; partir du pare-feu local lorsque le reverse proxy &eacute;met une erreur de type 403.[br]
@@ -3146,6 +3179,8 @@ Les drapeaux peuvent &ecirc;tre:[br]
 <NGINX_USE_SSL_EXPLAIN>Si d&eacute;fini le protocole SSL sera g&eacute;n&eacute;r&eacute; sur le port sp&eacute;cifi&eacute;.[br]
 Il y a une astuce afin de forcer ce site &agrave; faire &agrave; la fois du HTTP et HTTPS.[br]
 Si vous activez cette option et que vous indiquez le port 80 comme port d'&eacute;coute, alors Artica va g&eacute;n&eacute;rer un site web renvers&eacute; sur le 80 et 443 afin de fournir du HTTP et du HTTPS</NGINX_USE_SSL_EXPLAIN>
+<NGINX_USE_SSL_EXPLAIN2>L\'activation SSL activera seulement le SSL sur le reverse Proxy.[br]Par d&eacute;faut, le reverse proxy communique avec le serveur de destination en non-ssl ( HTTP ).[br]
+Si le serveur de destination communique uniquement en SSL, mettez en vert cette option.</NGINX_USE_SSL_EXPLAIN2>
 <nginx_websites_export_explain>Ici, l\'exportation de vos sites Web et de leur destination au format CSV</nginx_websites_export_explain>
 <nginx_website_dir_explain>Si indiqu&eacute;, lorsque les clients vont effectuer la requ&ecirc;tes sur ce chemin, le proxy invers&eacute; va afficher le contenu du serveur distant.</nginx_website_dir_explain>
 <nic_from>Carte r&eacute;seau source</nic_from>
@@ -3354,6 +3389,10 @@ Nous conseillons de ne pas trop agrandir la fr&eacute;quence d'analyse car cela 
 <pass_trough_thewebfilter_engine>Passe &agrave; travers le filtrage web</pass_trough_thewebfilter_engine>
 <pasv_address>Adresse du mode passif</pasv_address>
 <pasv_address_explain>Utilisez cette option afin de surcharger l\'adresse IP que le service FTP va indiquer en r&eacute;ponse &agrave; la commande PASV</pasv_address_explain>
+<pasv_max_port>Port PASSIF max</pasv_max_port>
+<pasv_minmax_port_explain>Les ports PASSIF Max et Min permettent d\'indiquer l\'allocation des ports pour les connexions PASV.[br]
+Peut &ecirc;tre utilis&eacute; afin de sp&eacute;cifier une tranche fix&eacute;e pour les r&egrave;gles de pare-feu.</pasv_minmax_port_explain>
+<pasv_min_port>Port PASSIF Min</pasv_min_port>
 <paths>Chemins</paths>
 <patterns>Motifs</patterns>
 <pconn_timeout>Temps MAX des connexions persistantes</pconn_timeout>
@@ -3380,10 +3419,11 @@ Vous pouvez indiquez ici une addresse IP comme 10.0.0.2 ou bien un r&eacute;seau
 Toutes les donn&eacute;es sauvegard&eacute;es dans cet objet seront alors d&eacute;truites.</perform_empty_ask>
 <perform_operation>Lancer l'op&eacute;ration</perform_operation>
 <PerMembersYoutubeDetails>Afficher les d&eacute;tails Youtube par membre</PerMembersYoutubeDetails>
+<permissive>Permissif</permissive>
 <persistent_request_timeout>Connexions persistantes (timeout)</persistent_request_timeout>
 <persistent_request_timeout_text>Indique la p&eacute;riode d'attente pour la prochaine requ&ecirc;te HTTP sur une connexion persistante apr&egrave;s qu'une requ&ecirc;te persistante ait &eacute;t&eacute; servie.</persistent_request_timeout_text>
 <per_category>Par cat&eacute;gorie</per_category>
-<per_day>par jour</per_day>
+<per_day>Par jour</per_day>
 <per_hour>par heure</per_hour>
 <PHPFPM>Framework PHP-FPM</PHPFPM>
 <php_values>Valeurs PHP</php_values>
@@ -3541,6 +3581,7 @@ par d&eacute;faut la taille du cache m&eacute;moire est &eacute;gale &agrave; la
 <proxy_cache_valid_text>Indique combien de temps ( en minutes) la requ&ecirc;te va &ecirc;tre mise en cache</proxy_cache_valid_text>
 <proxy_child>Proxy enfant</proxy_child>
 <proxy_clients_was_notified>Les clients proxy ont &eacute;t&eacute;s notifi&eacute;s afin de red&eacute;marrer leurs services.</proxy_clients_was_notified>
+<proxy_client_ip_source_text>Active ou d&eacute;sactive l\'&eacute;mission de l\'adresse IP source du client au serveur de destination avec les ent&ecirc;tes HTTP X-Forwarded-For et X-Real-IP</proxy_client_ip_source_text>
 <PROXY_EVENTS>&Eacute;v&egrave;nements Proxy</PROXY_EVENTS>
 <proxy_events_text>Affichage des &eacute;v&egrave;nements internes du proxy</proxy_events_text>
 <proxy_ftp_main_settings>Param&egrave;tres du Proxy FTP</proxy_ftp_main_settings>
@@ -3555,6 +3596,8 @@ par d&eacute;faut la taille du cache m&eacute;moire est &eacute;gale &agrave; la
 <proxy_parameters_compilation>Compilation des param&egrave;tres Proxy</proxy_parameters_compilation>
 <proxy_parents>Proxys p&egrave;res</proxy_parents>
 <proxy_parent_options>Options du proxy p&egrave;re</proxy_parent_options>
+<proxy_pass_request_headers>&Eacute;mettre les ent&ecirc;tes originales</proxy_pass_request_headers>
+<proxy_pass_request_headers_text>Indique si les ent&ecirc;tes produites par la requ&ecirc;te originale sont transmises au serveur de destination</proxy_pass_request_headers_text>
 <proxy_plugins>Plugins de Proxy</proxy_plugins>
 <proxy_public_address>Adresse publique du proxy</proxy_public_address>
 <proxy_read_timeout>Temps limite en lecture</proxy_read_timeout>
@@ -3780,6 +3823,7 @@ Connectez-vous sur  %s afin de modifier les param&egrave;tres</remote_appliance_
 <remote_statistics_server_text>&Eacute;mettre les &eacute;v&egrave;nements temps r&eacute;els &agrave; un serveur Artica secondaire.</remote_statistics_server_text>
 <remove_before_import>Supprimer avant importation</remove_before_import>
 <remove_connection_ask>Supprimer cette connexion ?</remove_connection_ask>
+<remove_database>Supprime la base de donn&eacute;es</remove_database>
 <remove_disabled_items>Supprimer les &eacute;l&eacute;ments d&eacute;sactiv&eacute;s</remove_disabled_items>
 <remove_disabled_items_warn>Cette op&eacute;ration va supprimer les &eacute;l&eacute;ments d&eacute;sactiv&eacute;s dans la base de donn&eacute;es.
 Voulez-vous effectuer l'op&eacute;ration ?</remove_disabled_items_warn>
@@ -3832,6 +3876,7 @@ video/quicktime[br]
 video/x-msvideo[br]
 video/mpeg[br]
 video/mp4v-es[br]</rep_mime_type_explain>
+<requested>Requis</requested>
 <requests_by_day>Nombre de requ&ecirc;tes par jour</requests_by_day>
 <requests_during_this_week>Requ&ecirc;tes effectu&eacute;es cette semaine</requests_during_this_week>
 <requests_number>Nombre de requ&ecirc;tes</requests_number>
@@ -3918,6 +3963,8 @@ Indiquez dans ce formulaire les acc&egrave;s &agrave; votre syst&egrave;me de pa
 <restore_fetchmail_container>Cette section vous permet de restaurer les r&egrave;gles depuis un jeu de sauvegarde export&eacute; d'un autre serveur Artica</restore_fetchmail_container>
 <restore_folder>Dossier de restauration</restore_folder>
 <restore_from_container_ask>Restaurer depuis ce paquetage de sauvegarde</restore_from_container_ask>
+<restore_from_website>Restaure depuis un autre site</restore_from_website>
+<restore_from_website_explain>Restaure le contenu depuis un autre site Web</restore_from_website_explain>
 <restore_network_settings>Restaure les param&egrave;tres r&eacute;seaux</restore_network_settings>
 <restore_network_settings_explain>Si vert, la t&acirc;che de restauration va r&eacute;cup&eacute;rer les param&egrave;tres r&eacute;seaux dans le jeu de sauvegarde afin de r&eacute;cup&eacute;rer les adressages IP, les routes r&eacute;seaux...</restore_network_settings_explain>
 <restore_purged_statistics>Restaurer les statistiques sauvegard&eacute;es</restore_purged_statistics>
@@ -4093,6 +4140,7 @@ Faites-vous plaisir !!</settings_final_show>
 <setup_center_install_explain>Cette t&acirc;che va v&eacute;rifier les ordres cr&eacute;&eacute;s dans le centre d'installation et les ex&eacute;cuter afin d'installer ou de mettre &agrave; jour les logiciels demand&eacute;s.</setup_center_install_explain>
 <set_specific_dcsp>D&eacute;finir un DSCP sp&eacute;cifique</set_specific_dcsp>
 <set_the_new_value_for_this_header>Indiquez la nouvelle valeur pour cette ent&ecirc;te</set_the_new_value_for_this_header>
+<severe>S&eacute;v&egrave;re</severe>
 <shared_directory>R&eacute;pertoire partag&eacute;</shared_directory>
 <shared_public_stores>Banque d'informations publiques</shared_public_stores>
 <share_level_security>S&eacute;curit&eacute; au niveau du partage</share_level_security>
@@ -4233,6 +4281,26 @@ Ceci peut aider les organisations &agrave; d&eacute;ployer de nouveaux m&eacute;
 <squidcach32_applyexplain>Cette op&eacute;ration va appliquer les modifications apport&eacute;es aux caches sur le disque.
 Les nouveaux caches seront li&eacute;s au Proxy et celui-ci va red&eacute;marrer.
 Voulez-vous effectuer cette op&eacute;ration ?</squidcach32_applyexplain>
+<SquidCacheLevel1>[b]Mise en cache minimale[/b][br]
+Il s\'agit de la configuration d\'un proxy standard.[br]
+Vos r&egrave;gles de mise en cache sp&eacute;cifiques sont d&eacute;sactiv&eacute;es.[br]
+Le proxy requ&ecirc;te les nouvelles pages internet normalement et stocke les objets pendant une dur&eacute;e minimale de 3 jours.[br]
+Les r&egrave;gles dynamiques de renforcement de cache sont d&eacute;sactiv&eacute;es.</SquidCacheLevel1>
+<SquidCacheLevel2>[b]Mise en cache douce[/b][br]
+Vos r&egrave;gles de mise en cache sp&eacute;cifiques sont ajout&eacute;es.[br]
+Le proxy requ&ecirc;te les nouvelles pages internet normalement et stocke les objets pendant une dur&eacute;e minimale de 3 jours.[br]
+Les r&egrave;gles dynamiques de renforcement de cache sont d&eacute;sactiv&eacute;e activ&eacute;es.</SquidCacheLevel2>
+<SquidCacheLevel3>[b]Mise en cache moyenne[/b][br]
+Les images, css, javascript, fichiers multim&eacute;dias sont conserv&eacute;s pendant une longue p&eacute;riode.[br]
+Vos r&egrave;gles de mise en cache sp&eacute;cifiques sont ajout&eacute;es.[br]
+Le proxy requ&ecirc;te les nouvelles pages internet de fa&ccedil;on standard et stocke les objets pendant une dur&eacute;e minimale de 3 jours.[br]
+Les r&egrave;gles dynamiques de renforcement de cache sont activ&eacute;es par d&eacute;faut.</SquidCacheLevel3>
+<SquidCacheLevel4>[b]Mise en cache tr&egrave;s forte[/b][br]
+Le proxy ignore les demandes de rafra&icirc;chissement des navigateurs.[br]
+Les images, css, javascript, fichiers multim&eacute;dias sont conserv&eacute;s pendant une longue p&eacute;riode.[br]
+Vos r&egrave;gles de mise en cache sp&eacute;cifiques sont ajout&eacute;es.[br]
+Le proxy requ&ecirc;te les nouvelles pages internet rarement et stocke les objets pendant une dur&eacute;e minimale de 4 jours.[br]
+Les r&egrave;gles dynamiques de renforcement de cache sont activ&eacute;es par d&eacute;faut.</SquidCacheLevel4>
 <SquidCacheReloadTTL_explain>Interdit Artica de reconstruire ou red&eacute;marrer le service proxy pendant une dur&eacute;e minimale de x minutes.</SquidCacheReloadTTL_explain>
 <SquidClientParams_text>Cette section vous permet de personnaliser le nombre d'extensions charg&eacute;es par le service Proxy.[br]
 Les extensions peuvent &ecirc;tre le nombre de processus d'authentification, les processus de filtrage Web...[br]
@@ -4500,6 +4568,8 @@ Par d&eacute;faut, le proxy n'effectue pas de mise ne cache lorsque que telles r
 <subsites>Sous-sites</subsites>
 <SUBSYSTEM>Sous-syst&egrave;me</SUBSYSTEM>
 <subtitle>Sous-titre</subtitle>
+<success_import_squid_zip>Votre fichier &agrave; &eacute;t&eacute; plac&eacute; sur le serveur.
+Artica va analyser ce fichier lors de la construction des param&egrave;tres locaux.</success_import_squid_zip>
 <success_number>Nombre de r&eacute;ussites</success_number>
 <success_restarting_service>Red&eacute;marrage du service effectu&eacute;</success_restarting_service>
 <success_restart_query_in_few_seconds>Succ&egrave;s, vous pouvez d&eacute;sormais recommence votre requ&ecirc;te dans quelques secondes.</success_restart_query_in_few_seconds>
@@ -4588,6 +4658,7 @@ V&eacute;rifiez les &eacute;v&egrave;nements afin de savoir si elle &agrave; &ea
 <temp_serial>Licence temporaire</temp_serial>
 <terms_groups>Groupes d'expressions</terms_groups>
 <TestExternalWebPage>Test d'un lien externe</TestExternalWebPage>
+<testing_configuration>Tests de la configuration</testing_configuration>
 <testing_connections>Tests des connexions</testing_connections>
 <tests_speed>Calcul de la bande passante</tests_speed>
 <tests_speed_explain>Cette t&acirc;che v&eacute;rifie la bande passante Internet et enregistre les r&eacute;sultats dans la base de donn&eacute;es MySQL.</tests_speed_explain>
@@ -4996,6 +5067,10 @@ Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pre
 <vps_server_watchdog>Surveillance des serveurs virtuels</vps_server_watchdog>
 <vps_server_watchdog_explain>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e seulement si vous avez transform&eacute; votre serveur Artica en un virtualisateur de machines via LXC.[br]
 Elle est con&ccedil;ue pour s'assurer que les machines virtuelles sont en activit&eacute; et correctement configur&eacute;es.</vps_server_watchdog_explain>
+<VsFTPDFileOpenMode>Les permissions lors du chargement de nouveaux fichiers.[br]
+Les masques de r&eacute;pertoires sont appliqu&eacute;s en amont de cette valeur.[br]
+Vous pourriez changer vers 0777 si vous d&eacute;sirez charger des fichiers qui deviendront ex&eacute;cutables.</VsFTPDFileOpenMode>
+<VsFTPDLocalMaxRate>Indiquez 0 afin de retirer la limitation des transferts ou indiquez la valeur en ko/s</VsFTPDLocalMaxRate>
 <waiting_approval>En attente de confirmation</waiting_approval>
 <waiting_network_reload>En attente du rechargement r&eacute;seau</waiting_network_reload>
 <waiting_order>En attente de commande</waiting_order>
@@ -5135,6 +5210,7 @@ Le cas &eacute;ch&eacute;ant, exemple erreur 500, elle essaiera de red&eacute;ma
 <webmail_type>Type de WebMail</webmail_type>
 <webpages>Pages Web</webpages>
 <webserver>Serveur Web</webserver>
+<webservername>Nom du site</webservername>
 <webserver_override_cache>Le site web surcharge le cache</webserver_override_cache>
 <webservice>Service Web</webservice>
 <websites_families>familles des sites</websites_families>
@@ -5147,6 +5223,8 @@ Le cas &eacute;ch&eacute;ant, exemple erreur 500, elle essaiera de red&eacute;ma
 <websites_noprod>Sites improductifs</websites_noprod>
 <websites_noprod_explain>Ces sites Web sont consid&eacute;r&eacute;s comme non productifs comme les sites sociaux, de rencontre ou jeux vid&eacute;os...</websites_noprod_explain>
 <website_analysis>Analyse de site</website_analysis>
+<website_directory>Dossier du site web</website_directory>
+<website_source>Site Web source</website_source>
 <website_tool_explain>Cette section vous permet de v&eacute;rifier si une requ&ecirc;te est correctement r&eacute;cup&eacute;r&eacute;e sans utiliser le service proxy ( en mode direct )</website_tool_explain>
 <website_tool_explain_proxy>Si le serveur Artica doit utiliser un proxy parent pour se connecter sur Internet, donnez les coordonn&eacute;es du proxy sous cette forme:[br]
 172.16.32.1:3128</website_tool_explain_proxy>
@@ -5282,6 +5360,10 @@ Artica n'est pas qu'une Interface d'administration mais un ensemble de services 
 Bien s&ucirc;r vous pouvez continuer &agrave; utiliser le serveur tel quel.[br]
 Mais ne soyez pas m&eacute;content si le serveur devient surcharg&eacute; ou bien que l'interface d'administration soit longue &agrave; s'afficher.[br]</wizard_warn_memory>
 <word>word</word>
+<wordpress_administrator>Administrateur Wordpress</wordpress_administrator>
+<wordpress_backup_parameters>Param&egrave;tres de sauvegarde des sites Wordpress</wordpress_backup_parameters>
+<wordpress_duplicate_explain>Duplique ce site Wordpress vers un nouveau site Wordpress</wordpress_duplicate_explain>
+<wordpress_websites>Sites Wordpress</wordpress_websites>
 <workingdir_in_memory>R&eacute;pertoire en m&eacute;moire</workingdir_in_memory>
 <workingdir_in_memory_text>Si sup&eacute;rieur &agrave; 5, le r&eacute;pertoire de travail sera directement mont&eacute; en m&eacute;moire vive.[br]Ceci permettra d'acc&eacute;l&eacute;rer le traitement mais consommera votre m&eacute;moire vive.</workingdir_in_memory_text>
 <wpad_destination_rules_proxy_explain>Indiquez l'adresse ou les adresses des proxys sous la forme IP:PORT.[br]

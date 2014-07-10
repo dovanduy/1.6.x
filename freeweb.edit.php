@@ -33,7 +33,7 @@
 	if(isset($_POST["FreeWebsRebuildvHosts"])){FreeWebsRebuildvHosts();exit;}
 	if(isset($_POST["FreeWebsRebuildGroupware"])){FreeWebsRebuildGroupware();exit;}
 	
-	if(isset($_GET["webserver-aliases"])){webserver_aliases_list();exit;}
+	
 	
 	if(isset($_GET["freeweb-mysql-instances-field"])){mysql_instances_field();exit;}
 	
@@ -514,7 +514,7 @@ function popup_tabs(){
 	
 	
 	
-	$fontsize="style='font-size:16px'";
+	$fontsize="style='font-size:18px'";
 	
 	
 	while (list ($num, $ligne) = each ($array) ){
@@ -1358,10 +1358,6 @@ function popup(){
 				<td colspan=2>$domain</td>
 			</tr>
 			<tr> 
-				<td class=legend nowrap>{aliases}:</td>
-				<td colspan=2><span id='webserver-aliases'></span></td>
-			</tr>
-			<tr> 
 				<td class=legend nowrap>{listen_address}:</td>
 				<td colspan=2>$ServerIP</td>
 			</tr>					
@@ -1785,10 +1781,7 @@ function popup(){
 	function CheckUId(){
 		LoadAjaxTiny('status-uid-www','$page?uid-check=$uid_uri');
 	}
-	
-	function WebServerAliasesRefresh(){
-		LoadAjaxTiny('webserver-aliases','$page?webserver-aliases=yes&servername={$ligne["servername"]}');
-	}
+
 	
 	function freeweb_mysql_instances(){
 		LoadAjaxTiny('freeweb-mysql-instances','$page?freeweb-mysql-instances-field=yes&servername={$ligne["servername"]}');
@@ -1817,7 +1810,7 @@ function popup(){
 	CheckUId();
 	$js_removesql;
 	$js_OnlyWebSite;
-	WebServerAliasesRefresh();
+	
 	freeweb_mysql_instances();
 	
 	</script>		
@@ -2106,27 +2099,6 @@ function uid_check(){
 	
 }
 
-function webserver_aliases_list(){
-	$servername=$_GET["servername"];
-	$page=CurrentPageName();
-	$tpl=new templates();
-	$free=new freeweb($servername);
-	if($servername==null){return;}
-	while (list ($host,$num) = each ($free->Params["ServerAlias"]) ){
-		$f[]=$host;
-	}
-	
-	if(count($f)==0){
-		$none=$tpl->_ENGINE_parse_body("{none}");
-		echo $tpl->_ENGINE_parse_body("<a href=\"javascript:Loadjs('freeweb.edit.ServerAlias.php?servername=$servername')\" style='font-size:14px;text-decoration:underline'>$none<i></a>");
-		return;
-	}
-	
-	$aliases=@implode(", ",$f);
-	
-	$html="<a href=\"javascript:Loadjs('freeweb.edit.ServerAlias.php?servername=$servername')\" style='font-size:14px;text-decoration:underline'><i>$aliases</i></a>";
-	echo $tpl->_ENGINE_parse_body($html);
-}
 
 function mysql_instances_field(){
 	$servername=$_GET["servername"];

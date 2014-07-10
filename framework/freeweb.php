@@ -111,7 +111,7 @@ function rebuild_vhost(){
 	@touch("/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress");
 	@chmod("/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress",0777);
 	
-	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername >/usr/share/artica-postfix/ressources/logs/web/freeweb.rebuild.progress.txt 2>&1 &");
+	$cmd=trim("$nohup $php /usr/share/artica-postfix/exec.freeweb.php --sitename $servername --restart --no-httpd-conf >/usr/share/artica-postfix/ressources/logs/web/freeweb.rebuild.progress.txt 2>&1 &");
 	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);
 	

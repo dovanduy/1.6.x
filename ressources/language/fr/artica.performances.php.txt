@@ -34,7 +34,7 @@ Vous pouvez alors d&eacute;cider si vous devez augmenter la valeur globalement o
 Ce traitement consomme des acc&egrave;s disques (I/O) et diminue les performances du serveur lors des calculs.
 Vous pouvez augmenter ou diminuer l'intervalle en fonction de la taille moyenne de ces zones.
 La valeur par d&eacute;faut a &eacute;t&eacute; calcul&eacute; pour une zone de quarantaine/sauvegarde de 10G d'espace disque.</MaxtimeBackupMailSizeCalculate_explain>
-<medium>moyen</medium>
+<medium>Moyen</medium>
 <mimedefang_consumption>Consommation du serveur MimeDefang</mimedefang_consumption>
 <mimedefang_consumption_text>MimeDefang s'accroche &agrave; postfix et autorise l'ajout de multiples fonctionnalit&eacute;s avec Artica (anti-spam, sauvegardes, note de bas de page et bien d'autres...)[br]Ce logiciel est &eacute;crit en PERL et peut utiliser beaucoup de m&eacute;moire, ici, vous g&eacute;rez le comportement de MimeDefang en fonction des performances de votre machine</mimedefang_consumption_text>
 <mimedefang_macro>Comportement de MimeDefang</mimedefang_macro>

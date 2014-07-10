@@ -2390,7 +2390,7 @@ private function socialnet($www){
 		
 		if($this->ParseArray($array, $www)){return "automobile/cars";}
 		
-		$prefixrenault="(dacia|zoe|trafic|clio|sport|car|cancun|campaigns|sud|oyak|contact)";
+		$prefixrenault="(dacia|zoe|trafic|clio|sport|car|cancun|campaigns|sud|oyak|contact|occasion)";
 		if(preg_match("#(automotos|-auto-|pneumatik|autoservice|auto-service|coches|carburant|auto.*?ecole|mustang|autohaus|autoteile|nissan|daihatsu|remorques|controle-technique|rentacar|automotiva|peugeot|auto-ecole|hyundai|autobilan|volkswagen|camions|autodrive|autocarros|motorsports|otomobil|motorcar|citroen|automobile|voiture|rentalcars|toyota|europcar)#",$www)){return "automobile/cars";}
 		if(preg_match("#auto\.sanook\.com$#",$www)){return "automobile/cars";}
 		

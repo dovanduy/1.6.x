@@ -621,7 +621,7 @@ function popup(){
 	
 
 	
-	if(isset($_GET["newinterface"])){$fontsize="style='font-size:14px'";}
+	$fontsize="style='font-size:18px'";
 	
 	if(isset($_GET["force-groupware"])){
 		unset($array["index"]);

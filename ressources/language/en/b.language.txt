@@ -6580,4 +6580,7 @@ Artica dynamic enforce rule are disabled.
 </client_ip_source_fake_text>
 <proxy_pass_request_headers>Send orginal headers</proxy_pass_request_headers>
 <proxy_pass_request_headers_text>Indicates whether the header fields of the original request are passed to the proxied server.</proxy_pass_request_headers_text>
-<client_source>Client source</client_source> 
+<client_source>Client source</client_source>
+<software_manual_update_text>Upload here a software package compatible with Artica.</software_manual_update_text>
+<not_compatible>Not compatible</not_compatible>
+<extraction_failed>Extraction failed</extraction_failed>

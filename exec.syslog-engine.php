@@ -35,7 +35,7 @@ if(is_file("/etc/artica-postfix/FROM_ISO")){
 }
 
 
-
+if($argv[1]=='--purge'){$GLOBALS["VERBOSE"]=true;clean_mysql_events();die();}
 if($argv[1]=='--imap-bw'){blackwhite_admin_mysql_check(true);die();}
 if($argv[1]=='--rotate'){squid_notifications();die();}
 if($argv[1]=='--updtev'){udfbguard_update_events();die();}
@@ -2297,10 +2297,15 @@ $q=new mysql();
 function clean_mysql_events(){
 	$sock=new sockets();
 	$unix=new unix();
+	
+	
 	$file_time="/etc/artica-postfix/pids/". basename(__FILE__).".".__FUNCTION__.".time";
-	if($unix->file_time_min($file_time)<300){return;}
-	@unlink($file_time);
-	@file_put_contents($file_time,time());
+	if(!$GLOBALS["VERBOSE"]){
+		if($unix->file_time_min($file_time)<300){return;}
+		@unlink($file_time);
+		@file_put_contents($file_time,time());
+	
+	}
 	$settings=unserialize(base64_decode($sock->GET_INFO("FcronSchedulesParams")));
 	if(!is_numeric($settings["max_events"])){$settings["max_events"]="10000";}
 	$q=new mysql();
@@ -2320,14 +2325,37 @@ function clean_mysql_events(){
 	$array["blackwhite_admin_mysql"]=true;
 	$array["auth_events"]=true;
 	
-	
+	$max=count($array);$c=0;
+	if($GLOBALS["VERBOSE"]){echo "Checking $c tables\n";}
 	while (list ($table, $lib) = each ($array) ){
+		$c++;
 	
+		
+		if(!$q->TABLE_EXISTS($table, "artica_events")){
+			if($GLOBALS["VERBOSE"]){echo "$table: No such table\n";}
+			continue;
+		}
+		$FileData="/var/lib/mysql/artica_events/$table.MYD";
 		$NumRows=$q->COUNT_ROWS($table, "artica_events");
+		$size=@filesize($FileData);
+		$size=$size/1024;
+		$size=$size/1024;
+		$size=round($size,2);
+		if($GLOBALS["VERBOSE"]){echo "$table:[$c/$max] $NumRows rows, {$size}MB Max rows:{$settings["max_events"]}\n";}
+		
+		if($size>500){
+			if($GLOBALS["VERBOSE"]){echo "$table is more than 500MB > purge it\n";}
+			$q->QUERY_SQL("TRUNCATE TABLE `$table` ","artica_events");
+			continue;
+		}
+		
+	
+		
 		if($NumRows>$settings["max_events"]){
 			$toDelete=$NumRows-$settings["max_events"];
+			if($GLOBALS["VERBOSE"]){echo "$table DELETING $toDelete rows\n";}
 			$q->QUERY_SQL("DELETE FROM `$table` ORDER BY zDate LIMIT $toDelete","artica_events");
-			
+			continue;
 		}
 		$q->QUERY_SQL("DELETE FROM `$table` WHERE zDate<DATE_SUB(NOW(),INTERVAL 60 DAY)","artica_events");
 	}

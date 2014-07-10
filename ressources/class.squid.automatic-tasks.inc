@@ -398,15 +398,18 @@ if($EnableProxyCompressor==1){
 			$cmd=trim($prefixcmd."/usr/share/artica-postfix"."/exec.squid.php --build-schedules >/dev/null 2>&1 &");
 			@unlink("/etc/artica-postfix/CACHES_SQUID_SCHEDULE");
 			@file_put_contents("/etc/artica-postfix/CACHES_SQUID_SCHEDULE", time());
+			$this->shell_exec2($cmd);
 		}
 		
 		if(system_is_overloaded()){return;}
 		$CacheSchedules=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/CACHES_SQUID_ROTATE");
 		if($CacheSchedules>300){
 			squid_watchdog_events("Running log rotation");
+			$GLOBALS["CLASS_UNIX"]->events("Running log rotation for squid","/var/log/artica-postfix/logrotate.debug",false,__CLASS__."/".__FUNCTION__,__LINE__,__FILE__);
 			$cmd=trim($prefixcmd."/usr/share/artica-postfix"."/exec.logrotate.php --squid >/dev/null 2>&1 &");
 			@unlink("/etc/artica-postfix/CACHES_SQUID_ROTATE");
 			@file_put_contents("/etc/artica-postfix/CACHES_SQUID_ROTATE", time());
+			$this->shell_exec2($cmd);
 		}
 		
 		

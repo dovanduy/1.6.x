@@ -4,6 +4,7 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 
+if(isset($_GET["remove-logs-file"])){remove_file();exit;}
 if(isset($_GET["install-artica-tgz"])){install_artica_tgz();exit;}
 if(isset($_GET["mii-tool-save"])){MII_TOOLS_SAVE();exit;}
 if(isset($_GET["mii-tools"])){MII_TOOLS();exit;}
@@ -82,6 +83,8 @@ if(isset($_GET["ntopng-installed"])){ntopng_installed();exit;}
 if(isset($_GET["ntopng-restart"])){ntopng_restart();exit;}
 if(isset($_GET["ntopng-status"])){ntopng_status();exit;}
 if(isset($_GET["set-apache-perms"])){set_apache_perms();exit;}
+if(isset($_GET["copytocache"])){copytocache();exit;}
+if(isset($_GET["refresh-logs-storefiles"])){refresh_logs_storefiles();exit;}
 
 
 
@@ -1260,3 +1263,34 @@ function set_apache_perms(){
 	$unix->chmod_func(0755, "/usr/share/artica-postfix/ressources/logs/*");
 }
 
+function copytocache(){
+	$unix=new unix();
+	$path=$_GET["copytocache"];
+	if(!is_file($path)){echo "<articadatascgi>No such file</articadatascgi>";return;}
+	$basename=basename($path);
+	if(is_file("/usr/share/artica-postfix/ressources/logs/$basename")){@unlink("/usr/share/artica-postfix/ressources/logs/$basename");}
+	if(!copy($path, "/usr/share/artica-postfix/ressources/logs/$basename")){
+		echo "<articadatascgi>Copy failed</articadatascgi>";return;}
+	$APACHE=$unix->APACHE_SRC_ACCOUNT();
+	$APACHE_GROUP=$unix->APACHE_SRC_GROUP();
+	$unix->chown_func($APACHE,$APACHE_GROUP,"/usr/share/artica-postfix/ressources/logs/$basename");
+	$unix->chmod_func(0755, "/usr/share/artica-postfix/ressources/logs/$basename");
+	
+		
+}
+
+function  remove_file(){
+	$filename=$_GET["remove-logs-file"];
+	if(!is_file($filename)){return;}
+	if(is_dir($filename)){return;}
+	@unlink($filename);
+	
+}
+
+function refresh_logs_storefiles(){
+	$unix=new unix();
+	$nohup=$unix->find_program("nohup");
+	$php5=$unix->LOCATE_PHP5_BIN();
+	shell_exec("$php5 /usr/share/artica-postfix/exec.scan.storage-logs.php --force");	
+	
+}

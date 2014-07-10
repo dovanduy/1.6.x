@@ -7,6 +7,7 @@ $GLOBALS["FORCE"]=false;$GLOBALS["REINSTALL"]=false;
 $GLOBALS["NO_HTTPD_CONF"]=false;
 $GLOBALS["NO_HTTPD_RELOAD"]=false;
 $GLOBALS["NO_HTTPD_RESTART"]=false;
+$GLOBALS["FORCE_RESTART"]=false;
 $GLOBALS["NGINX_CONFIGURE"]=false;
 if(is_array($argv)){
 	if(preg_match("#schedule-id=([0-9]+)#",implode(" ",$argv),$re)){$GLOBALS["SCHEDULE_ID"]=$re[1];}
@@ -15,6 +16,7 @@ if(is_array($argv)){
 	if(preg_match("#--reinstall#",implode(" ",$argv))){$GLOBALS["REINSTALL"]=true;}
 	if(preg_match("#--no-httpd-conf#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_CONF"]=true;}
 	if(preg_match("#--noreload#",implode(" ",$argv))){$GLOBALS["NO_HTTPD_RELOAD"]=true;}
+	if(preg_match("#--restart#",implode(" ",$argv))){$GLOBALS["FORCE_RESTART"]=true;$GLOBALS["NO_HTTPD_RELOAD"]=true;}
 	
 }
 if($GLOBALS["VERBOSE"]){
@@ -79,8 +81,14 @@ if($argv[1]=="--sitename"){
 			}
 			if(!$GLOBALS["NO_HTTPD_RELOAD"]){
 				build_progress("Reloading apache for ".$argv[2], 90);
-				reload_apache();
+				reload_apache(true);
 			}
+			
+			if($GLOBALS["FORCE_RESTART"]){
+				build_progress("Restarting apache for ".$argv[2], 90);
+				reload_apache(true);
+			}
+			
 			build_progress("sync_squid() ".$argv[2], 95);
 			sync_squid();
 			build_progress("{success} ".$argv[2], 100);
@@ -608,11 +616,22 @@ function ReloadApache($nocheck=false){
 	if(!is_file($apache2ctl)){return;}	
 	$cmd="$apache2ctl -f $LOCATE_APACHE_CONF_PATH -k restart 2>&1";
 	echo "Starting......: ".date("H:i:s")." [INIT]: Apache \"$cmd\"\n";		
-	exec($cmd,$results);	
+	exec($cmd,$results);
+	ReloadNginx();
+}
+
+function ReloadNginx(){
+	$sock=new sockets();
+	
+	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
+	if($EnableNginx==0){return;}
 	$nginx=$GLOBALS["CLASS_UNIX"]->find_program("nginx");
-	if(is_file($nginx)){
-		shell_exec("/etc/init.d/nginx restart");
-	}
+	if(!is_file($nginx)){return;}
+	echo "Starting......: ".date("H:i:s")." [INIT]: Apache Reload NGINX\n";
+	shell_exec("/etc/init.d/nginx reload");
+	
+	
 }
 
 function apachectl_line_skip($ligne){
@@ -1040,15 +1059,13 @@ function SSL_DEFAULT_VIRTUAL_HOST(){
 	if(!is_numeric($FreeWebListenPort)){$FreeWebListenPort=80;}
 	
 	if($unix->isNGnx()){
+		echo "Starting......: ".date("H:i:s")." [INIT]: Apache Nginx is Enabled set port to 447/82\n";
 		$FreeWebListenSSLPort=447;
 		$FreeWebListenPort=82;
 	
 	}
 	
-	if($unix->IsSquidReverse()){
-		$FreeWebListenSSLPort=447;
-		$FreeWebListenPort=82;
-	}
+	
 	
 	
 	

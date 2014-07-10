@@ -1169,7 +1169,7 @@ function download_file(){
 	$file=basename($path);
 	$sock=new sockets();
 	
-	$content_type=base64_decode($sock->getFrameWork("cmd.php?mime-type=".base64_encode($path)));
+	$content_type=base64_decode($sock->getFrameWork("cmd.php?mime-type=".urlencode(base64_encode($path))));
 	header('Content-type: '.$content_type);
 	
 	header('Content-Transfer-Encoding: binary');

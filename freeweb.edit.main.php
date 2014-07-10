@@ -54,6 +54,7 @@ function tabs(){
 	$array["webservice"]='{webservice}';
 	if($_GET["servername"]<>null){
 		if(!$remove_sql){$array["mysql"]='MySQL/FTP';}
+		$array["aliases"]='{aliases}';
 	}
 	
 	if($_GET["servername"]==null){unset($array["mysql"]);}
@@ -77,6 +78,8 @@ function tabs(){
 	}
 	
 	
+	
+	
 	if(count($array)<10){$fontsize="style='font-size:18px'";}
 	
 	
@@ -86,6 +89,12 @@ function tabs(){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.zarafa.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
 			continue;
 		}
+		
+		if($num=="aliases"){
+			
+			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.edit.ServerAlias.php?freeweb-aliases-list=yes&servername={$_GET["servername"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
+			continue;
+		}		
 		
 		if($num=="php_values"){
 			$html[]= $tpl->_ENGINE_parse_body("<li><a href=\"freeweb.php-values.php?servername={$_GET["servername"]}&freewebs=1&group_id={$_REQUEST["group_id"]}&ForceInstanceZarafaID={$_GET["ForceInstanceZarafaID"]}&t={$_GET["t"]}\"><span $fontsize>$ligne</span></a></li>\n");
@@ -184,7 +193,7 @@ function webservice(){
 		}
 		
 		$WebCopyTR="<tr>
-				<td class=legend nowrap style='font-size:18px'>WebCopy:</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>WebCopy:</td>
 				<td>". Field_array_Hash($WebCopyHash, "WebCopyID",$freeweb->WebCopyID,"style:font-size:18px")."</td>
 				<td>". help_icon("freeweb_WebCopy_explain")."</td>
 			</tr>";			
@@ -202,7 +211,7 @@ function webservice(){
 		if($ligne["lvm_vg"]==null){$ligne["lvm_vg"]=$vgservices["freewebs"];}
 		$sizelimit="
 		<tr>
-		<td class=legend style='font-size:18px'>{size}:</td>
+		<td class=legend style='font-size:18px;vertical-align:middle'>{size}:</td>
 		<td style='font-size:14px;'>". Field_text("vg_size",$ligne["lvm_size"],"font-size:18px;padding:3px;width:60px")."&nbsp;MB</td>
 		<td>&nbsp;</td>
 		</tr>";
@@ -225,7 +234,7 @@ function webservice(){
 	if($_GET["force-groupware"]<>null){
 		$vhosts=new vhosts();
 		$img=$vhosts->IMG_ARRAY_64[$_GET["force-groupware"]];
-		$imgtitle="<div style='font-size:14px;font-weight:bold'>{".$vhosts->TEXT_ARRAY[$_GET["force-groupware"]]["TITLE"]."}</div>";
+		$imgtitle="<div style='font-size:18px;font-weight:bold'>{".$vhosts->TEXT_ARRAY[$_GET["force-groupware"]]["TITLE"]."}</div>";
 		if($_GET["force-groupware"]=="ZARAFA"){$remove_sql=true;$OnlyWebSite=true;}
 		if($_GET["force-groupware"]=="Z-PUSH"){$remove_sql=true;$OnlyWebSite=true;}
 		if($_GET["force-groupware"]=="ZARAFA_MOBILE"){$remove_sql=true;$OnlyWebSite=true;}
@@ -235,7 +244,10 @@ function webservice(){
 	
 	}
 	
-	if($_GET["servername"]==null){$ButtonName="{add}";}
+	$servernameenc=urlencode($_GET["servername"]);
+	$configure="&nbsp;|&nbsp;".button("{reconfigure}","SaveFreeWebMain();Loadjs('freeweb.rebuild.progress.php?servername=$servernameenc')",26);
+	
+	if($_GET["servername"]==null){$ButtonName="{add}";$configure=null;}
 	
 	
 	
@@ -267,7 +279,7 @@ function webservice(){
 			$ips=$ip->ALL_IPS_GET_ARRAY();
 			$ips[null]="{none}";
 			$dns_field="<tr>
-				<td class=legend nowrap style='font-size:18px'>{dns_entry}:</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{dns_entry}:</td>
 				<td>". Field_array_Hash($ips, "ADD_DNS_ENTRY",null,"style:font-size:18px")."</td>
 				<td>". help_icon("freeweb_add_dns_entry_explain")."</td>
 			</tr>";
@@ -276,8 +288,8 @@ function webservice(){
 		$hostip=$pdns->GetIp($ligne["servername"]);
 		if($hostip<>null){
 		$dns_field="<tr>
-				<td class=legend nowrap style='font-size:18px'>{dns_entry}:</td>
-				<td style='font-size:14px'>$hostip</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{dns_entry}:</td>
+				<td style='font-size:18px;vertical-align:middle'>$hostip</td>
 				<td>&nbsp;</td>
 			</tr>";	
 			
@@ -286,7 +298,7 @@ function webservice(){
 			$ips=$ip->ALL_IPS_GET_ARRAY();
 			$ips[null]="{none}";
 			$dns_field="<tr>
-				<td class=legend nowrap style='font-size:18px'>{dns_entry}:</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{dns_entry}:</td>
 				<td>". Field_array_Hash($ips, "ADD_DNS_ENTRY",null,"style:font-size:18px")."</td>
 				<td>". help_icon("freeweb_add_dns_entry_explain")."</td>
 			</tr>";			
@@ -372,7 +384,7 @@ function webservice(){
 	while (list($num,$ip)=each($nets)){$znets[$num]=$num;}
 	
 	
-	$ServerIP=Field_array_Hash($znets,'ServerIP',$ServerIPVAL,null,null,0,'font-size:14px;');	
+	$ServerIP=Field_array_Hash($znets,'ServerIP',$ServerIPVAL,null,null,0,'font-size:18px;');	
 	
 	
 	$sql="SELECT CommonName FROM sslcertificates ORDER BY CommonName";
@@ -382,7 +394,7 @@ function webservice(){
 	while($ligneZ=mysql_fetch_array($results,MYSQL_ASSOC)){
 		$sslcertificates[$ligneZ["CommonName"]]=$ligneZ["CommonName"];
 	}	
-	$sslcertificateF=Field_array_Hash($sslcertificates,"sslcertificate", $sslcertificate,"style:font-size:14px");
+	$sslcertificateF=Field_array_Hash($sslcertificates,"sslcertificate", $sslcertificate,"style:font-size:18px");
 	$t=time();
 	$html="
 	<div id='freewebdiv-$t'></div>
@@ -404,15 +416,11 @@ function webservice(){
 			<div style='width:98%' class=form>
 			<table>
 			<tr> 
-				<td class=legend nowrap style='font-size:18px'>$acl_dstdomain_label:</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>$acl_dstdomain_label:</td>
 				<td colspan=2>$domain</td>
 			</tr>
 			<tr> 
-				<td class=legend nowrap style='font-size:18px'>{aliases}:</td>
-				<td colspan=2><span id='webserver-aliases'></span></td>
-			</tr>
-			<tr> 
-				<td class=legend nowrap style='font-size:18px'>{listen_address}:</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{listen_address}:</td>
 				<td colspan=2>$ServerIP</td>
 			</tr>					
 			$dns_field
@@ -420,56 +428,56 @@ function webservice(){
 			
 			
 			<tr> 
-				<td class=legend nowrap style='font-size:18px'>{directory}:</td>
-				<td>". Field_text("www_dir",$ligne["www_dir"],"font-size:18px;padding:3px;")."</td>
-				<td>". button_browse("www_dir")."</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{directory}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("www_dir",$ligne["www_dir"],"font-size:18px;padding:3px;")."</td>
+				<td style='font-size:18px;vertical-align:middle'>". button_browse("www_dir")."</td>
 			</tr>			
 			<tr> 
-				<td class=legend nowrap style='font-size:18px'>{reverse_proxy}:</td>
-				<td width=1%>". Field_checkbox("UseReverseProxy", 1,$ligne["UseReverseProxy"],"CheckUseReverseProxy()")."</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{reverse_proxy}:</td>
+				<td width=1% style='font-size:18px;vertical-align:middle'>". Field_checkbox("UseReverseProxy", 1,$ligne["UseReverseProxy"],"CheckUseReverseProxy()")."</td>
 			</tr>		
 			
 			$sizelimit
 			<tr>
-				<td class=legend nowrap style='font-size:18px'>{UseLoopDisk}:</td>
-				<td>". Field_checkbox("UseLoopDisk",1,$ligne["UseLoopDisk"],"CheckLoops()")."</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{UseLoopDisk}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("UseLoopDisk",1,$ligne["UseLoopDisk"],"CheckLoops()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr style='height:auto'>
-				<td>&nbsp;</td>
+				<td style='font-size:18px;vertical-align:middle'>&nbsp;</td>
 				<td colspan=2 style='height:auto'><span id='loops-list'></span></td></tr>		
 			<tr>
-				<td class=legend style='font-size:18px'>{member}:</td>
-				<td>". Field_text("www_uid",$ligne["uid"],"font-size:18px;padding:3px;")."</td>
-				<td><span id='bb_button'>". button("{browse}...","Loadjs('user.browse.php?field=www_uid&YahooWin=6')",12)."</span>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{member}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("www_uid",$ligne["uid"],"font-size:18px;padding:3px;")."</td>
+				<td style='font-size:18px;vertical-align:middle'><span id='bb_button'>". button("{browse}...","Loadjs('user.browse.php?field=www_uid&YahooWin=6')",12)."</span>
 				<span id='status-uid-www' style='float:right'></span></td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:18px'>{group}:</td>
-				<td>". Field_text("www_group",$ligne["gpid"],"font-size:18px;padding:3px;")."</td>
-				<td><span id='bb_button1'>". button("{browse}...","Loadjs('MembersBrowse.php?field-user=www_group&OnlyGroups=1&OnlyGUID=1')",12)."</span>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{group}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("www_group",$ligne["gpid"],"font-size:18px;padding:3px;")."</td>
+				<td style='font-size:18px;vertical-align:middle'><span id='bb_button1'>". button("{browse}...","Loadjs('MembersBrowse.php?field-user=www_group&OnlyGroups=1&OnlyGUID=1')",12)."</span>
 					<span id='status-gpid-www' style='float:right'></span>
 				</td>
 			</tr>		
 			<tr>
-				<td class=legend style='font-size:18px'>{ssl}:</td>
-				<td>". Field_checkbox("useSSL",1,$ligne["useSSL"],"useSSLCheckCOnf()")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{ssl}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("useSSL",1,$ligne["useSSL"],"useSSLCheckCOnf()")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:18px'>{certificate}:</td>
-				<td>$sslcertificateF</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{certificate}:</td>
+				<td style='font-size:18px;vertical-align:middle'>$sslcertificateF</td>
 				<td>&nbsp;</td>
 			</tr>			
 			
 			<tr> 
-				<td class=legend nowrap style='font-size:18px'>{www_forward}:</td>
-				<td width=1%>". Field_checkbox("Forwarder", 1,$ligne["Forwarder"],"CheckForwarder()")."</td>
+				<td class=legend nowrap style='font-size:18px;vertical-align:middle'>{www_forward}:</td>
+				<td width=1% style='font-size:18px;vertical-align:middle'>". Field_checkbox("Forwarder", 1,$ligne["Forwarder"],"CheckForwarder()")."</td>
 				<td>&nbsp;</td>
 			</tr>			
 			<tr>
-				<td class=legend style='font-size:18px'>{www_ForwardTo}:</td>
-				<td>". Field_text("ForwardTo",$ligne["ForwardTo"],"width:270px;font-size:18px;padding:3px")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{www_ForwardTo}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("ForwardTo",$ligne["ForwardTo"],"width:270px;font-size:18px;padding:3px")."</td>
 				<td>&nbsp;</td>
 			</tr>
 		</table>
@@ -478,7 +486,7 @@ function webservice(){
 	</div>	
 	</div>
 	
-	<div style='width:100%;text-align:right'><hr>". button("$ButtonName","SaveFreeWebMain()",26)."</div>
+	<div style='width:100%;text-align:right;font-size:26px'><hr>". button("$ButtonName","SaveFreeWebMain()",26)."$configure</div>
 
 
 
@@ -711,9 +719,7 @@ function webservice(){
 		LoadAjaxTiny('status-uid-www','freeweb.edit.php?uid-check=$uid_uri');
 	}
 	
-	function WebServerAliasesRefresh(){
-		LoadAjaxTiny('webserver-aliases','freeweb.edit.php?webserver-aliases=yes&servername={$ligne["servername"]}');
-	}
+
 	
 	function useSSLCheckCOnf(){
 		document.getElementById('sslcertificate').disabled=true;
@@ -728,7 +734,6 @@ function webservice(){
 	CheckUId();
 	$js_removesql;
 	$js_OnlyWebSite;
-	WebServerAliasesRefresh();
 	useSSLCheckCOnf();
 	
 	</script>		
@@ -794,54 +799,54 @@ $html="
 	<td valign='top' width=99%>
 			<table style='width:99%' class=form>
 			<tr>
-				<td class=legend style='font-size:14px'>{useMySQL}:</td>
-				<td>". Field_checkbox("useMysql",1,$ligne["useMysql"],"useMysqlCheck()")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{useMySQL}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("useMysql",1,$ligne["useMysql"],"useMysqlCheck()")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:14px'>{mysql_instance}:</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{mysql_instance}:</td>
 				<td><div id='freeweb-mysql-instances'></div></td>
 				<td align='left'>". imgtootltip("plus-24.png","{add}:{mysql_instance}","Loadjs('mysql.multi.php?mysql-server-js=yes&ID=');")."</td>
 			</tr>	
 			
 			<tr>
-				<td class=legend style='font-size:14px'>{mysql_database_name}:</td>
-				<td>". Field_text("mysql_database",$ligne["mysql_database"],"width:150px;font-size:14px;padding:3px")."&nbsp;<span style='font-size:11px'>$DatabaseText</span></td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{mysql_database_name}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("mysql_database",$ligne["mysql_database"],"width:300px;font-size:18px;padding:3px")."&nbsp;<span style='font-size:11px'>$DatabaseText</span></td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:14px'>{mysql_username}:</td>
-				<td>". Field_text("mysql_username",$ligne["mysql_username"],"width:120px;font-size:14px;padding:3px")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{mysql_username}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("mysql_username",$ligne["mysql_username"],"width:220px;font-size:18px;padding:3px")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td class=legend style='font-size:14px'>{password}:</td>
-				<td>". Field_password("mysql_password",$ligne["mysql_password"],"width:90px;font-size:14px;padding:3px")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{password}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_password("mysql_password",$ligne["mysql_password"],"width:120px;font-size:14px;padding:3px")."</td>
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td colspan=3><span style='font-size:16px'>{ftp_access}<hr style='border-color:005447'></td>
+				<td colspan=3><span style='font-size:18px;vertical-align:middle'>{ftp_access}<hr style='border-color:005447'></td>
 			</tr>	
 			
 			
 			<tr>
-				<td class=legend style='font-size:14px'>{allowftp_access}:</td>
-				<td>". Field_checkbox("useFTP",1,$ligne["useFTP"],"useMysqlCheck()")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{allowftp_access}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("useFTP",1,$ligne["useFTP"],"useMysqlCheck()")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			
 			<tr>
-				<td class=legend style='font-size:14px'>{ftp_user}:</td>
-				<td>". Field_text("ftpuser",$ligne["ftpuser"],"width:120px;font-size:14px;padding:3px")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{ftp_user}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_text("ftpuser",$ligne["ftpuser"],"width:120px;font-size:18px;padding:3px")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
-				<td class=legend style='font-size:14px'>{password}:</td>
-				<td>". Field_password("ftppassword",$ligne["ftppassword"],"width:90px;font-size:14px;padding:3px")."</td>
+				<td class=legend style='font-size:18px;vertical-align:middle'>{password}:</td>
+				<td style='font-size:18px;vertical-align:middle'>". Field_password("ftppassword",$ligne["ftppassword"],"width:90px;font-size:18px;padding:3px")."</td>
 				<td>&nbsp;</td>
 			</tr>	
 			<tr>
-				<td colspan=3 align='right'><hr>". button("{apply}","SaveFreeWebMySQL()",16)."</td>
+				<td colspan=3 align='right'><hr>". button("{apply}","SaveFreeWebMySQL()",26)."</td>
 			</tr>
 			
 			

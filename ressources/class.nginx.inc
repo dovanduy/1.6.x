@@ -709,10 +709,12 @@ for too long in io path.
 			if($hostweb<>null){
 				if($GLOBALS["OUTPUT"]){echo "hostweb = `$hostweb`\n";}
 				if($ligne["local"]==0){
-					if(substr($hostweb, 0,1)=="/"){$suffix=$hostweb;}
-					$hostweb=$this->proxy_pass_pattern($hostweb);
-					$f[]="\t\tproxy_pass $hostweb;";	
-					if($ligne["ForceRedirect"]==1){$f[]="\t\tproxy_redirect  $hostweb/   /;";}
+					if(substr($hostweb, 0,1)=="/"){$suffix=$hostweb;$hostweb=null;}
+					if($hostweb<>null){
+						$hostweb=$this->proxy_pass_pattern($hostweb);
+						$f[]="\t\tproxy_pass $hostweb;";	
+						if($ligne["ForceRedirect"]==1){$f[]="\t\tproxy_redirect  $hostweb/   /;";}
+					}
 					
 				}
 				
@@ -1238,6 +1240,7 @@ for too long in io path.
 		$f[]="        listen $port;";
 		$f[]="        server_name $this->servername;";
 		$f[]="        access_log  /var/log/apache2/$this->servername/access.log;";
+		$f[]="        access_log  /var/log/apache2/access-common.log;";
 		$f[]="        error_log   /var/log/apache2/$this->servername/error.log;";
 		$f[]="        index index.php;";
 		$f[]="        root $rootdir/;";
@@ -1627,6 +1630,7 @@ private function http_location_cache_params($ligne){
 		$f[]="# Access logs Line ".__LINE__;
 		$access_log="/var/log/apache2/$Logsuffix/nginx.access.log";
 		
+		
 		@mkdir("/var/log/apache2/$Logsuffix",0755,true);
 		$unix->chown_func($this->APACHE_USER,$this->APACHE_SRC_GROUP,"/var/log/apache2/$Logsuffix");
 		if(preg_match("#^unix:#", $this->servername)){
@@ -1634,7 +1638,7 @@ private function http_location_cache_params($ligne){
 			$ErrorLogLevel="crit";
 		}
 			
-		
+		$f[]="\taccess_log  /var/log/apache2/access-common.log awc_log;";
 		$f[]="\taccess_log  $access_log aws_log;";
 		$f[]="\terror_log  /var/log/apache2/$Logsuffix/nginx.error.log $ErrorLogLevel;";
 		

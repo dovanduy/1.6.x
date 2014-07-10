@@ -446,7 +446,7 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 		
 	}
 	
-	if(!$mount->ismounted($this->mount_point)){return false;}
+	if(!$this->ismounted($this->mount_point)){return false;}
 	$t=time();
 	$tests_path="$this->mount_point/tmp/$t";
 	
@@ -454,7 +454,7 @@ public function MountComputerRemote($computername,$ip,$username,$password){
 	if(!is_dir($tests_path)){@mkdir($tests_path,null,true);	}
 	if(!is_dir($tests_path)){
 		$this->events[]="[$username/$ip]:: c:\tmp\{$t}, permission denied";
-		exec("umount -l $mountpoint");
+		exec("umount -l $this->mount_point");
 		return false;
 	}
 	@rmdir($tests_path);

@@ -22,6 +22,7 @@ function js(){
 	$tarballs_file="/usr/share/artica-postfix/ressources/logs/web/tarballs.cache";
 	$Content=@file_get_contents($tarballs_file);
 	$strlen=strlen($Content);
+	$package=null;
 	if(preg_match("#<PACKAGES>(.*?)</PACKAGES>#", $Content,$re)){$MAIN=unserialize(base64_decode($re[1])); }
 	$t=time();
 	$ligne=$MAIN[$_GET["filename"]];
@@ -32,7 +33,9 @@ function js(){
 	$PACKAGES["sambac"]="APP_SAMBA";
 	$PACKAGES["ntopng"]="APP_NTOPNG";
 	
-	$package=$tpl->javascript_parse_text("{{$PACKAGES[$ligne["package"]]}}");
+	if(isset($PACKAGES[$ligne["package"]])){
+		$package=$tpl->javascript_parse_text("{{$PACKAGES[$ligne["package"]]}}");
+	}
 	
 	header("content-type: application/x-javascript");
 	$install=$tpl->javascript_parse_text("{install}");
@@ -42,10 +45,13 @@ function js(){
 	
 	echo "
 	function Launch$t(){	
-		if(!confirm('$install $package {$_GET["filename"]}')){return;}
-		RTMMail('800','$page?popup=yes&filename=$filename','$title');
+		var package='$package';
+		if(package.length>1){
+			if(!confirm('$install $package {$_GET["filename"]}')){return;}
+		}
+		RTMMail('800','$page?popup=yes&filename=$filename','$title:{$_GET["filename"]}');
 	}
-	
+	YahooWinBrowseHide();
 	Launch$t();";
 	
 	

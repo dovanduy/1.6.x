@@ -416,7 +416,7 @@ Sp&eacute;cifiez le serveur distant ainsi que sont port d'&eacute;coute IMAP.[br
 SI le serveur distant est un serveur Artica, vous pouvez activer l'option &quot;Le serveur distant est un Artica&quot;.Ceci exportera aussi les donn&eacute;es des utilisateurs afin de cr&eacute;er les bo&icirc;tes aux lettres.[br]Indiquez donc le port de la console Web SSL et le compte SuperAdmin.</bulk_imap_export_explain>
 <bulk_imap_export_text>Exporter le contenu de toutes les bo&icirc;tes aux lettres vers un serveur distant.</bulk_imap_export_text>
 <button_i_confirm_nic>Je confirme les param&egrave;tres de cette carte r&eacute;seau</button_i_confirm_nic>
-<byday>par jour</byday>
+<byday>Par jour</byday>
 <bypassFor>Contourner pour</bypassFor>
 <BypassSecretKey>Clef de contournement</BypassSecretKey>
 <BypassSecretKeyExplain>Indiquez une clef afin de permettre aux utilisateurs &agrave; contourner l'outil de filtrage.[br]
@@ -1941,7 +1941,7 @@ Ce serveur est en charge de recevoir les messages provenant de ce domaine et de 
 <remote_clients>Clients distants</remote_clients>
 <remote_directory>R&eacute;pertoire distant</remote_directory>
 <Remote_server_is_an_Artica_server>Le serveur distant est un Artica</Remote_server_is_an_Artica_server>
-<REMOVE_DATABASE>Supprimer la base de donn&eacute;es</REMOVE_DATABASE>
+<REMOVE_DATABASE>Supprime la base de donn&eacute;es</REMOVE_DATABASE>
 <REMOVE_DATABASE_ZARAFA_TEXT>Supprimer la base de donn&eacute;es actuelle, incluant toutes les donn&eacute;es et en reconstruire une autre</REMOVE_DATABASE_ZARAFA_TEXT>
 <remove_installation_files>Supprimer les fichiers d'installation</remove_installation_files>
 <remove_server_route>Supprimer la route du serveur</remove_server_route>

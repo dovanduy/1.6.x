@@ -15,11 +15,38 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	die();	
 }
 
+if(isset($_GET["parameters"])){page();exit;}
 if(isset($_POST["LogRotateCompress"])){settings_save();exit;}
 if(isset($_POST["BackupSquidLogsUseNas"])){remote_nas_save();exit;}
-page();
+tabs();
 
+function tabs(){
+	
+	$page=CurrentPageName();
+	$tpl=new templates();
+	$q=new mysql();
+	
+	
+	$array["parameters"]="{parameters}";
+	$array["storage"]='{storage}';
 
+	$fontsize=18;
+	while (list ($num, $ligne) = each ($array) ){
+
+		if($num=="storage"){
+			$tab[]= $tpl->_ENGINE_parse_body("<li><a href=\"squid.accesslogs.storage.php\" style='font-size:{$fontsize}px'><span>$ligne</span></a></li>\n");
+			continue;
+		}
+	
+	
+		$tab[]="<li style='font-size:{$fontsize}px'><a href=\"$page?$num=yes\"><span >$ligne</span></a></li>\n";
+			
+	}
+	$t=time();
+	echo build_artica_tabs($tab, "main_artica_squidaccesslogs",1100);
+		
+	
+}
 
 function page(){
 	$page=CurrentPageName();

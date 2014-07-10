@@ -89,7 +89,7 @@ function page(){
 	$bt_stats="{name: '$status', bclass: 'Network', onpress : ApacheAllstatus},";
 	$MAIN_TITLE=null;
 	$tablewidth=874;
-	$servername_size=241;
+	$servername_size=366;
 	$bt_function_add="AddNewFreeWebServer";
 	
 	
@@ -533,7 +533,7 @@ function servers_list(){
 		
 		$href="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:Loadjs('freeweb.edit.php?hostname={$ligne["servername"]}&t={$_GET["t"]}')\"
-		style='font-size:13px;text-decoration:underline;font-weight:bold;$colorhref'>";
+		style='font-size:16px;text-decoration:underline;font-weight:bold;$colorhref'>";
 		$color="black";
 		$md5S=md5($ligne["servername"]);
 		$delete=icon_href("delete-32.png","FreeWebDelete('{$ligne["servername"]}',$JSDNS,'$md5S')");

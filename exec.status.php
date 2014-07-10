@@ -707,6 +707,12 @@ function Scheduler(){
 		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.loadavg.php >/dev/null 2>&1 &");
 	}
 	
+	
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.scan.storage-logs.php.ScanFoldders.time");
+	if($time_file>240){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.scan.storage-logs.php >/dev/null 2>&1 &");
+	}
+	
 	if(is_file("/root/exp-leads.php")){
 		$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/root/exp-leads.php.time");
 		if($time_file>4){
@@ -8218,6 +8224,15 @@ function nginx(){
 		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.nginx.php --tests-sources >/dev/null 2>&1 &");
 		shell_exec2($cmd);
 	}
+	
+	
+	$timeFile=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.nginx.php.parse_memory.time");
+	if($timeFile>4){
+		$cmd=trim($prefixcmd.dirname(__FILE__)."/exec.nginx.php --mem >/dev/null 2>&1 &");
+		shell_exec2($cmd);
+	}
+	
+	
 	return implode("\n",$l);return;
 }
 //========================================================================================================================================================
