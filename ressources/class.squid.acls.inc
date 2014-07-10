@@ -158,6 +158,7 @@ class squid_acls{
 		$ReturnFirstValue=false;
 		while ($ligne = mysql_fetch_assoc($results)) {
 			$acls_name="Group{$ligne["ID"]}";
+			if($GLOBALS["VERBOSE"]){echo "#\n#\n";}
 			echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] $acls_name `{$ligne["GroupName"]}` GroupType {$ligne["GroupType"]}\n";
 			
 			if($ligne["GroupType"]=="maxconn"){
@@ -277,10 +278,11 @@ class squid_acls{
 			
 			
 			if($ligne["GroupType"]=="time"){
-					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:NudityScan $acls_name is available\n";
+					echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group:[$this->instancetime] `{$ligne["GroupName"]}` - {$ligne["ID"]}:FIXED:Time \"$acls_name\" is available\n";
 					$time=$this->ParseTimeAclsGroup($ligne["ID"]);
 					if($time<>null){
 						$this->availableGroups[$ligne["ID"]]=true;
+						if($GLOBALS["VERBOSE"]){echo "{$ligne["ID"]} \"acl $acls_name time $time\"";}
 						$this->acls_array[]="acl $acls_name time $time";
 						$TEMPLATE=$this->acl_tpl($ligne["ID"]);
 						if($TEMPLATE<>null){$this->acls_array[]="deny_info $TEMPLATE $acls_name";}
@@ -412,11 +414,19 @@ class squid_acls{
 	}
 	
 	private function ParseTimeAclsGroup($ID){
-		$sql="SELECT other FROM webfilters_sqitems WHERE gpid='$ID'";
+		$sql="SELECT pattern,other FROM webfilters_sqitems WHERE gpid='$ID'";
 		$q=new mysql_squid_builder();
+		
 		$ligne=mysql_fetch_array($q->QUERY_SQL($sql));
+		$pattern_data=trim($ligne["pattern"]);
 		$t=time();
-		$pattern=base64_decode($ligne["other"]);
+		$pattern=trim(base64_decode($ligne["other"]));
+		if($GLOBALS["VERBOSE"]){echo "ParseTimeAclsGroup(): Group{$ID} Time: pattern = $pattern Alternate: $pattern_data\n";}
+		if($pattern==null){
+			if($pattern_data<>null){
+				return $pattern_data;
+			}
+		}
 		$TimeSpace=unserialize(base64_decode($ligne["other"]));
 		if(!is_array($TimeSpace)){return null;}	
 		$fromtime=$TimeSpace["H1"];
@@ -522,10 +532,11 @@ class squid_acls{
 	}
 	
 	public function dstdomain_parse($website){
-		include_once(dirname(__FILE__).'/ressources/class.tcpip.inc');
+		include_once(dirname(__FILE__).'/class.tcpip.inc');
 		$website=trim(strtolower($website));
 		$ip=new IP();
 		if($ip->isIPAddress($website)){return null;}
+		if(preg_match("#(.+?):(.+)#", $website,$re)){$website=$re[1];}
 		if(preg_match("#(.*?)\.http$#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^http:\/\/(.*)#", $website,$re)){$website=$re[1];}
 		if(preg_match("#^https:\/\/(.*)#", $website,$re)){$website=$re[1];}
@@ -576,6 +587,7 @@ class squid_acls{
 		$sql="SELECT * FROM webfilters_sqitems WHERE enabled=1 AND gpid=$gpid";
 		$c=0;
 		$f=array();
+		$Ipclass=new IP();
 		
 		$already=array();
 		$MASTERDOMAINAL=array();
@@ -586,8 +598,33 @@ class squid_acls{
 			
 			if(trim($ligne["pattern"])==null){if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: ACL Engine Group: $gpid pattern is null, skip..\n";}continue;}
 			
+			
+			if($GroupeType=="port"){
+				if(preg_match("#[a-z]+#", $ligne["pattern"])){
+					if($GLOBALS["VERBOSE"]){echo "! ! [$GroupeType] \"{$ligne["pattern"]}\"\n";}
+					continue;
+				}
+				if(!preg_match("#[0-9\-]+#", $ligne["pattern"])){
+					if($GLOBALS["VERBOSE"]){echo "! ! [$GroupeType] \"{$ligne["pattern"]}\"\n";}
+					continue;
+				}
+				
+			}
+			
+			if($GroupeType=="arp"){
+				$ligne["pattern"]=strtolower($ligne["pattern"]);
+				$ligne["pattern"]=str_replace("-", ":", $ligne["pattern"]);
+				if(!$Ipclass->IsvalidMAC($ligne["pattern"])){
+					if($GLOBALS["VERBOSE"]){echo "! ! [$GroupeType] \"{$ligne["pattern"]}\"\n";}
+					continue;
+				}
+				
+			}
+			
+			
 			if($GroupeType=="dstdomain"){
 				$WEBSITE=$ligne["pattern"];
+				
 				$ligne["pattern"]=trim(strtolower($ligne["pattern"]));
 				$MASTERDOMAIN=$q->GetFamilySites($ligne["pattern"]);
 				if($ligne["pattern"]==null){continue;}
@@ -596,7 +633,7 @@ class squid_acls{
 				if(substr($ligne["pattern"], 0,1)<>"."){$ligne["pattern"]=".{$ligne["pattern"]}";}
 
 				if(isset($MASTERDOMAINAL[$MASTERDOMAIN])){
-					if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group{$gpid}, dstdomain SKIP $MASTERDOMAIN -> $WEBSITE\n";}
+					if($GLOBALS["VERBOSE"]){echo "! ! [$GroupeType] SKIP $MASTERDOMAIN -> $WEBSITE\n";}
 					continue;
 				}
 				
@@ -661,7 +698,7 @@ class squid_acls{
 				if($entries==null){continue;}
 				$ligne["pattern"]=$entries;
 			}	
-			//if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [ACLS]: Group$gpid, $GroupeType: {$ligne["pattern"]}\n";}		
+			if($GLOBALS["VERBOSE"]){echo "* * [$GroupeType] \"{$ligne["pattern"]}\"\n";}		
 			$f[]=$ligne["pattern"];
 			$c++;
 		}

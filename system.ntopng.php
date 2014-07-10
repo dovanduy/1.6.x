@@ -55,10 +55,21 @@ function params(){
 	$tpl=new templates();
 	$t=time();
 	$arrayConf=unserialize(base64_decode($sock->GET_INFO("ntopng")));
+	
 	$Enablentopng=$sock->GET_INFO("Enablentopng");
 	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
 	if(!is_numeric($arrayConf["HTTP_PORT"])){$arrayConf["HTTP_PORT"]=3000;}
 	if(!is_numeric($arrayConf["ENABLE_LOGIN"])){$arrayConf["ENABLE_LOGIN"]=0;}
+	if(!is_numeric($arrayConf["MAX_DAYS"])){$arrayConf["MAX_DAYS"]=30;}
+	
+	$days[1]="1 {day}";
+	$days[2]="2 {days}";
+	$days[5]="5 {days}";
+	$days[10]="10 {days}";
+	$days[15]="15 {days}";
+	$days[30]="1 {month}";
+	
+	
 	$html=Paragraphe_switch_img("{enable_ntopng}", "{enable_ntopng_text}","Enablentopng",$Enablentopng,null,490).
 	"<br>".
 	Paragraphe_switch_img("{enable_login}", "{enable_login_ntopng_explain}","ENABLE_LOGIN",$arrayConf["ENABLE_LOGIN"],null,490).
@@ -72,7 +83,8 @@ function params(){
 			<td><a href=\"http://{$_SERVER["SERVER_ADDR"]}:{$arrayConf["HTTP_PORT"]}/\" 
 			style='font-size:22px;text-decoration:underline'
 			target=_new>http://{$_SERVER["SERVER_ADDR"]}:{$arrayConf["HTTP_PORT"]}</a></td>
-		</tr>					
+		</tr>
+		".Field_list_table("MAX_DAYS", "{retention_days}", $arrayConf["MAX_DAYS"],22,$days)."				
 		<tr>
 			<td colspan=2 align='right'><hr>". button("{apply}","Save$t()",28)."</td>
 		</tr>
@@ -88,6 +100,7 @@ var xSave$t= function (obj) {
 		var XHR = new XHRConnection();
 		XHR.appendData('Enablentopng',document.getElementById('Enablentopng').value);
 		XHR.appendData('ENABLE_LOGIN',document.getElementById('ENABLE_LOGIN').value);
+		XHR.appendData('MAX_DAYS',document.getElementById('MAX_DAYS').value);
 		XHR.appendData('HTTP_PORT',document.getElementById('HTTP_PORT').value);
 		XHR.sendAndLoad('$page', 'POST',xSave$t);	
 	
@@ -105,7 +118,8 @@ LoadAjax('APP_NTOPNG_STATUS','$page?status=yes',false);
 function save(){
 	$sock=new sockets();
 	$sock->SET_INFO("Enablentopng", $_POST["Enablentopng"]);
-	$sock->SaveConfigFile(base64_decode(serialize($_POST)), "ntopng");
+	
+	$sock->SaveConfigFile(base64_encode(serialize($_POST)), "ntopng");
 	$sock->getFrameWork("system.php?ntopng-restart=yes");
 }
 function status(){

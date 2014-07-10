@@ -730,8 +730,8 @@ function dyn_caches($aspid=false){
 	@chown("/etc/squid3/refresh_patterns.conf","squid");
 	@chmod(0755,"/etc/squid3/refresh_patterns.conf");
 	
-	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
 	if(!is_numeric($ARRAY["ENABLED"])){if($SquidCacheLevel>3){$ARRAY["ENABLED"]=1; }}

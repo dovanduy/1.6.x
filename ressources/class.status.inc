@@ -959,8 +959,11 @@ function kav4proxy_status(){
 	$master_pid=$ini->_params["KAV4PROXY"]["master_pid"];	
 	$img="status_kas_bg_ok.png";
 	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
 	
 	$table="Kav4Proxy_".date("Ym");
 	if($ini->_params["KAV4PROXY"]["running"]==0){
@@ -1220,6 +1223,7 @@ if($IsIcapClient<>'TRUE'){
 	$KavICAPRemoteAddr=$sock->GET_INFO("KavICAPRemoteAddr");
 	$KavICAPRemotePort=$sock->GET_INFO("KavICAPRemotePort");	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -1228,13 +1232,14 @@ if($IsIcapClient<>'TRUE'){
 	if(!is_numeric($EnableRemoteSyslogStatsAppliance)){$EnableRemoteSyslogStatsAppliance=0;}
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
 	if($users->PROXYTINY_APPLIANCE){$DisableArticaProxyStatistics=1;}	
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
 	if(!is_numeric($EnableKavICAPRemote)){$EnableKavICAPRemote=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
-	
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
 	
 	if($EnableKavICAPRemote==1){
 		$fp=@fsockopen($KavICAPRemoteAddr, $KavICAPRemotePort, $errno, $errstr, 1);

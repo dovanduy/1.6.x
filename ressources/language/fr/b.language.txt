@@ -1982,6 +1982,7 @@ Ceci, afin de pr&eacute;venir d'une mise en cache de la page.</ExternalPageToChe
 <external_webpage>Lien de la page portail (externe)</external_webpage>
 <extract>Extraire</extract>
 <extracting_package>Extraction du paquetage</extracting_package>
+<extraction_failed>&Eacute;chec de d&eacute;compression</extraction_failed>
 <ext_user>Utilisateur externe</ext_user>
 <failed_login>&Eacute;chec de la connexion</failed_login>
 <failed_number>Nombre d'&eacute;checs</failed_number>
@@ -3213,6 +3214,7 @@ Nous vous sugg&eacute;rons de r&eacute;guli&egrave;rement analyser les tables av
 <not_categorized_explain_why>Les sites non class&eacute;s sont importants.[br]
 Cela veut dire que Artica n'est pas en mesure de d&eacute;terminer la v&eacute;racit&eacute; du site Internet dans les statistiques et aussi au niveau du filtrage Internet.[br]
 Afficher la section et essayez de les classer vous-m&ecirc;me afin d'enrichir vos bases locales et de les filtrer correctement.</not_categorized_explain_why>
+<not_compatible>Non compatible</not_compatible>
 <not_connected_to_active_directory>N'est pas connect&eacute; &agrave; un Active Directory</not_connected_to_active_directory>
 <not_for_current_branch>Le paquetage n\'est pas compatible pour la branche actuelle</not_for_current_branch>
 <NOT_INSTALLED>Non install&eacute;</NOT_INSTALLED>
@@ -3980,6 +3982,7 @@ Indiquez dans ce formulaire les acc&egrave;s &agrave; votre syst&egrave;me de pa
 <RestrictIFrames>Restreindre les iFrames</RestrictIFrames>
 <RestrictIFrames_text>N'autorise pas les navigateurs &agrave; ex&eacute;cuter une iFrame dont le contenu est ext&eacute;rieur au site web</RestrictIFrames_text>
 <retention>R&eacute;tention</retention>
+<retention_days>NB jours de r&eacute;tention</retention_days>
 <retention_time>Dur&eacute;e de r&eacute;tention</retention_time>
 <retreival_mailrules_text>Cr&eacute;ation et &eacute;dition des r&egrave;gles permettant de r&eacute;cup&eacute;rer des messages stock&eacute;es dans des boites aux lettres non g&eacute;r&eacute;es par votre compte local.</retreival_mailrules_text>
 <retreive_informations>R&eacute;cup&eacute;ration des informations.</retreive_informations>
@@ -4237,6 +4240,7 @@ Cet exemple la valeur de 30 veut dire que les &eacute;l&eacute;ments supprim&eac
 <softdelete_option_explain>Param&egrave;tres de la fonctionnalit&eacute; de suppression douce et op&eacute;ration manuelle de purge dans la base.</softdelete_option_explain>
 <softwares_clients>Logiciels clients</softwares_clients>
 <software_is_not_installed>Logiciel non install&eacute;</software_is_not_installed>
+<software_manual_update_text>Chargez ici un paquetage logiciel compatible Artica</software_manual_update_text>
 <software_version>Version logiciel</software_version>
 <soft_delete_explain>Si un utilisateur supprime des messages, des entr&eacute;es dans le calendrier ou un dossier complet, les &eacute;l&eacute;ments sont d&eacute;plac&eacute;s dans le dossier &quot;&eacute;l&eacute;ments supprim&eacute;s&quot;.[br]
 Lorsqu'ils sont supprim&eacute;s de ce dossier sp&eacute;cifique, les &eacute;l&eacute;ments ne sont pas compl&egrave;tement supprim&eacute;s de la base de donn&eacute;es du serveur.[br]
@@ -4281,6 +4285,9 @@ Ceci peut aider les organisations &agrave; d&eacute;ployer de nouveaux m&eacute;
 <squidcach32_applyexplain>Cette op&eacute;ration va appliquer les modifications apport&eacute;es aux caches sur le disque.
 Les nouveaux caches seront li&eacute;s au Proxy et celui-ci va red&eacute;marrer.
 Voulez-vous effectuer cette op&eacute;ration ?</squidcach32_applyexplain>
+<SquidCacheLevel0>[b]Pas de cache[/b]
+Tous les caches sont d&eacute;sactiv&eacute;s, ce niveau interdit le proxy d\'enregistrer les objets dans son cache.[br]Le cache en m&eacute;moire des objets est d&eacute;sactiv&eacute;.[br]
+Dans ce mode, le proxy n\'est plus qu\'un simple routeur de connexions web.</SquidCacheLevel0>
 <SquidCacheLevel1>[b]Mise en cache minimale[/b][br]
 Il s\'agit de la configuration d\'un proxy standard.[br]
 Vos r&egrave;gles de mise en cache sp&eacute;cifiques sont d&eacute;sactiv&eacute;es.[br]

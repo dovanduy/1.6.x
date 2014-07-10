@@ -30,8 +30,8 @@ function page(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$sock=new sockets();
-	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	$button_reconfigure=button("{reconfigure}","Loadjs('squid.compile.progress.php');",32);
 $html="
 <div style='width:98%' class=form>
@@ -51,7 +51,7 @@ $html="
 		$( \"#slider-vertical\" ).slider({
 			orientation: \"vertical\",
 			range: \"min\",
-			min: 1,
+			min: 0,
 			max: 4,
 			width:50,
 			value: $SquidCacheLevel,

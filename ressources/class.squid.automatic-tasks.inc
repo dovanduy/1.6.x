@@ -68,7 +68,7 @@ class squid_auto_tasks{
 		
 		
 		$SquidCacheLevel=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("SquidCacheLevel"));
-		if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 		
 		if(!is_numeric($CACHE_DYN_PARAMS["ENABLED"])){if($SquidCacheLevel>2){$CACHE_DYN_PARAMS["ENABLED"]=1; }}
 		if(!is_numeric($CACHE_DYN_PARAMS["MAX_WWW"])){$CACHE_DYN_PARAMS["MAX_WWW"]=100;}

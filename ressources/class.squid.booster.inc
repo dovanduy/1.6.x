@@ -37,7 +37,8 @@ class squidbooster{
 		$this->SquidBoosterMemK=$sock->GET_INFO("SquidBoosterMemK");
 		$this->SquidBoosterOnly=$this->zcheck_squidbooster_value();
 		$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-		
+		$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 		
 		$q=new mysql_squid_builder();
 		$sql="SELECT workers FROM cacheconfig WHERE `uuid`='$this->uuid'";
@@ -61,9 +62,9 @@ class squidbooster{
 		}
 	
 		if(!is_numeric($this->DisableAnyCache)){$this->DisableAnyCache=0;}
-		
 		if(!is_numeric($this->SquidBoosterMem)){$this->SquidBoosterMem=0;}
 		if(!is_numeric($this->SquidBoosterMemK)){$this->SquidBoosterMemK=50;}
+		if($SquidCacheLevel==0){$this->DisableAnyCache=1;}
 		
 	}	
 	

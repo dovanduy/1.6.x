@@ -1402,6 +1402,14 @@ class squidbee{
 	
 	
 	public function cache_deny_array(){
+		$sock=new sockets();
+		$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+		if($SquidCacheLevel==0){
+			return "# Do not cache ALL domains: SquidCacheLevel:$SquidCacheLevel\n";
+		}
+		
+		
 		if($this->SquidUrgency==1){
 			$acl[]="# Emergency enabled, deny ACL `DoNotCache`";
 			return null;
@@ -4950,6 +4958,9 @@ function BuildSquidConf(){
 		$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
 		$SquidBoosterMemK=$sock->GET_INFO("SquidBoosterMemK");
 		$SquidBoosterOnly=$ws->zcheck_squidbooster_value();
+		$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+		
 		$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 		$this->EnableCNTLM=$sock->GET_INFO("EnableCNTLM");
 		$this->CnTLMPORT=$sock->GET_INFO("CnTLMPORT");
@@ -4973,6 +4984,11 @@ function BuildSquidConf(){
 		$SquidAsMasterPeerPortSSL=intval($sock->GET_INFO("SquidAsMasterPeerPortSSL"));
 		if(!is_numeric($SquidAsMasterCacheChilds)){$SquidAsMasterCacheChilds=1;}
 		$SquidAsMasterFollowxForward=intval($sock->GET_INFO("SquidAsMasterFollowxForward"));
+		if($SquidCacheLevel==0){$this->DisableAnyCache=1;}
+		if($this->SquidUrgency==1){
+			$SquidCacheLevel=0;
+			$this->DisableAnyCache=1;
+		}
 
 		
 		$this->listen_port=intval(trim($this->listen_port));
@@ -5647,6 +5663,14 @@ function BuildSquidConf(){
 		if(!is_numeric($minimum_object_size)){$minimum_object_size=0;}
 		
 		
+		if($SquidCacheLevel==0){
+			$maximum_object_size=0;
+			$maximum_object_size_unit="KB";
+			$maximum_object_size_in_memory=0;
+			$maximum_object_size_in_memory_unit="KB";
+		}
+		
+		
 		$conf=$conf."maximum_object_size $maximum_object_size $maximum_object_size_unit\n";
 		$conf=$conf."minimum_object_size $minimum_object_size $minimum_object_size_unit\n";
 		
@@ -5689,10 +5713,17 @@ function BuildSquidConf(){
 			$conf=$conf ."{$GLOBALS["HAARP_CACHE_DENY"]}\n";
 		}
 		
+		$conf=$conf ."# --------- SquidCacheLevel	=  $SquidCacheLevel [". __LINE__."]\n";
 		$conf=$conf ."# --------- DisableAnyCache 	=  $this->DisableAnyCache [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterPeer =  $SquidAsMasterPeer [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterCacheChilds =  $SquidAsMasterCacheChilds [". __LINE__."]\n";
 		$conf=$conf ."# --------- SquidAsMasterFollowxForward =  $SquidAsMasterFollowxForward [". __LINE__."]\n";
+		
+		
+		if($SquidCacheLevel==0){
+			$conf=$conf ."# --------- Do not cache ALL SITES [". __LINE__."]\n";
+			$conf=$conf ."cache deny all\n";
+		}
 		
 		if($this->DisableAnyCache==0){
 			if($SquidAsMasterPeer==1){
@@ -5707,8 +5738,13 @@ function BuildSquidConf(){
 				}
 			}
 			
+		
+
+		
+		
 		$conf=$conf ."# --------- Do not cache from Browsers [". __LINE__."]\n";
 		$conf=$conf ."cache deny BrowsersNoCache\n";
+		
 			
 			
 			$cache_deny_array=$this->cache_deny_array();
@@ -5737,11 +5773,8 @@ function BuildSquidConf(){
 					}					
 				}
 			}
-			
-			
-			
-
 		}
+	
 		
 		if(!preg_match("#^[0-9]+\s+[A-Z]+#", $this->global_conf_array["read_ahead_gap"])){
 			$this->global_conf_array["read_ahead_gap"]="1 MB";
@@ -5760,13 +5793,18 @@ function BuildSquidConf(){
 			}
 			
 			
-			$conf=$conf . "cache_mem {$this->global_conf_array["cache_mem"]}\n";
-			$conf=$conf . "read_ahead_gap {$this->global_conf_array["read_ahead_gap"]}\n";
-			$conf=$conf . "cache_swap_high {$this->global_conf_array["cache_swap_high"]}\n";
-			$conf=$conf . "cache_swap_low {$this->global_conf_array["cache_swap_low"]}\n";
-			$conf=$conf . "store_avg_object_size 32 KB\n";
-			$conf=$conf . "store_objects_per_bucket 50\n";
-			$conf=$conf . "memory_replacement_policy lru\n";
+			
+			if($SquidCacheLevel==0){ $conf=$conf . "cache_mem 8 MB\n";}
+			
+			if($SquidCacheLevel>0){
+				$conf=$conf . "cache_mem {$this->global_conf_array["cache_mem"]}\n";
+				$conf=$conf . "read_ahead_gap {$this->global_conf_array["read_ahead_gap"]}\n";
+				$conf=$conf . "cache_swap_high {$this->global_conf_array["cache_swap_high"]}\n";
+				$conf=$conf . "cache_swap_low {$this->global_conf_array["cache_swap_low"]}\n";
+				$conf=$conf . "store_avg_object_size 32 KB\n";
+				$conf=$conf . "store_objects_per_bucket 50\n";
+				$conf=$conf . "memory_replacement_policy lru\n";
+			}
 		
 			if($this->DisableAnyCache==0){
 				$CacheReplacementPolicyZ["lru"]="lru";
@@ -5784,8 +5822,6 @@ function BuildSquidConf(){
 			}
 	
 
-		}else{
-			$this->DisableAnyCache=1;
 		}
 		
 		$conf=$conf."# --------- DNS AND IP CACHES [".__LINE__."]\n";
@@ -5813,8 +5849,8 @@ function BuildSquidConf(){
 		
 		$conf=$conf."# --------- CACHES RULES SquidCacheLevel:$SquidCacheLevel [".__LINE__."]\n";
 		
-		$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-		if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+		$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+		if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 		
 		if($SquidCacheLevel>2){
 			$conf=$conf."include /etc/squid3/refresh_patterns.conf\n";
@@ -7811,8 +7847,14 @@ public function refresh_pattern_list(){
 	$sock=new sockets();
 	$users=new usersMenus();
 	$this->DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){
+		$this->DisableAnyCache=1;
+		$conf[]="reload_into_ims off";
+		$conf[]="refresh_pattern -i . 0 100% 0";
+		return @implode("\n", $conf);
+	}
 
 	if(!is_numeric($this->DisableAnyCache)){$this->DisableAnyCache=0;}
 	if($this->DisableAnyCache==1){return;}
@@ -7861,7 +7903,6 @@ public function refresh_pattern_list(){
 	
 	if($SquidCacheLevel==1){
 		$conf[]="# --------- SquidCacheLevel:$SquidCacheLevel, Cache level is set to minimalist";
-		
 		$conf[]=$this->refresh_pattern_defaults();
 		return implode("\n",$conf)."\n";
 	
@@ -7956,18 +7997,49 @@ public function refresh_pattern_list(){
 
 private function refresh_pattern_defaults(){
 	$sock=new sockets();
-	$final="refresh_pattern -i . 0 90% 5760 reload-into-ims ignore-reload";
-	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	$final="refresh_pattern -i . 0 10% 5760 reload-into-ims ignore-reload";
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	
 	if($SquidCacheLevel<4){
-		$final="refresh_pattern -i . 0 20% 4320";
+		$final="refresh_pattern -i . 0 50% 4320";
 	}
 	
 	$ignore_no_cache="ignore-no-cache ";
 	if($this->IS_33){$ignore_no_cache=null;}
 	if($SquidCacheLevel>2){
+		
+		$f[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="refresh_pattern -i my.windowsupdate.website.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$f[]="";
+		$f[]="##images facebook";
+		$f[]="refresh_pattern ((facebook.com)|(173.252.110.27)).*\.(jpg|png|gif) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern -i \.fbcdn.net.*\.(jpg|gif|png|swf|mp3) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern  static\.ak\.fbcdn\.net*\.(jpg|gif|png) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
+		$f[]="refresh_pattern ^http:\/\/profile\.ak\.fbcdn.net*\.(jpg|gif|png) 10800 80% 10800 ignore-reload  override-expire ignore-no-store";
+		$f[]="";
+		$f[]="## ANTI VIRUS";
+		$f[]="refresh_pattern guru.avg.com/.*\.(bin)                      10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern (avgate|avira).*(idx|gz)$ 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern kaspersky.*\.avc$ 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern kaspersky 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern update.nai.com/.*\.(gem|zip|mcs) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="refresh_pattern ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
+		$f[]="";
+		$f[]="##Musics";
+		$f[]="refresh_pattern -i";
+		$f[]="\.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 10080   90%   43200 override-expire ignore-reload reload-into-ims ignore-private ";
+		$f[]="## Videos";
+		$f[]="refresh_pattern -i";
+		$f[]="\.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 10080 90%   43200 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="## Pictures";
+		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico)(\?.*|$) 3600 90% 43200 override-expire ignore-no-store ignore-private";
 		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico|bmp|tiff|webp|bif|ver|pict) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-private ignore-no-store";
+		$f[]="## Musics";
+		$f[]="refresh_pattern -i \.(mp[34g]|swf|wav)$ 43200 90% 432000";		
+		
+		
 		$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private";
 		$f[]="refresh_pattern -i \.(html|htm|crl) 9440 90% 100000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
 		$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";

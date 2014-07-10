@@ -917,16 +917,21 @@ function services_status(){
 	$ini2->loadString(base64_decode($sock->getFrameWork('cmd.php?cicap-ini-status=yes')));
 	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	
 	$SquidActHasReverse=$sock->GET_INFO("SquidActHasReverse");
 	$AsSquidLoadBalancer=$sock->GET_INFO("AsSquidLoadBalancer");
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
-	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
 	
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
-	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}

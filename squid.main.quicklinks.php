@@ -1003,6 +1003,11 @@ function status_squid_left($asroot=false){
 	if($CacheManagement2==1){$smptr=null;}
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	
+	
 	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
 	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
 	
@@ -1434,7 +1439,13 @@ function section_status($asroot=false){
 	$language=$tpl->language;
 	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}		
+	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}	
+
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	
+	
 	$SQUIDEnable=trim($sock->GET_INFO("SQUIDEnable"));
 	if(!is_numeric($SQUIDEnable)){$SQUIDEnable=1;}
 	$CacheManagement2=$sock->GET_INFO("CacheManagement2");
@@ -2145,6 +2156,12 @@ function ptx_status($asroot=false){
 	$sock=new sockets();
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
+	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	
+	
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
 	if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
 		

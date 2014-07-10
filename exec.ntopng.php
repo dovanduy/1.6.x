@@ -24,6 +24,8 @@ if($argv[1]=="--start"){$GLOBALS["OUTPUT"]=true;start();die();}
 if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 if($argv[1]=="--reload"){$GLOBALS["OUTPUT"]=true;reload();die();}
 if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;build();die();}
+if($argv[1]=="--clean"){$GLOBALS["OUTPUT"]=true;cleanstorage();die();}
+
 
 function restart($nopid=false){
 	$unix=new unix();
@@ -343,3 +345,99 @@ function redis_pid(){
 	if($unix->process_exists($pid)){return $pid;}
 	return $unix->PIDOF_PATTERN($masterbin." -f /etc/redis/redis.conf");
 }
+
+function cleanstorage(){
+	
+	$sock=new sockets();
+	$unix=new unix();
+	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".pid";
+	$timefile="/etc/artica-postfix/pids/".basename(__FILE__).".". __FUNCTION__.".time";
+	$pid=file_get_contents("$pidfile");
+	if($GLOBALS["VERBOSE"]){echo "$timefile\n";}
+	
+	if(system_is_overloaded(basename(__FILE__))){die();}
+	
+	
+	if($unix->process_exists($pid,basename(__FILE__))){
+		$timeMin=$unix->PROCCESS_TIME_MIN($pid);
+		if($timeMin>240){
+			system_admin_events("Too many TTL, $pid will be killed",__FUNCTION__,__FILE__,__LINE__,"logrotate");
+			$kill=$unix->find_program("kill");
+			unix_system_kill_force($pid);
+		}else{
+			die();
+		}
+	}
+	
+	if(!$GLOBALS["FORCE"]){
+		$TimeExec=$unix->file_time_min($timefile);
+		if($TimeExec<1880){return;}
+	}
+	@unlink($timefile);
+	@file_put_contents($timefile, time());	
+	
+	$sock=new sockets();
+	$arrayConf=unserialize(base64_decode($sock->GET_INFO("ntopng")));
+	
+	$Enablentopng=$sock->GET_INFO("Enablentopng");
+	if(!is_numeric($Enablentopng)){$Enablentopng=1;}
+	if(!is_numeric($arrayConf["HTTP_PORT"])){$arrayConf["HTTP_PORT"]=3000;}
+	if(!is_numeric($arrayConf["ENABLE_LOGIN"])){$arrayConf["ENABLE_LOGIN"]=0;}
+	if(!is_numeric($arrayConf["MAX_DAYS"])){$arrayConf["MAX_DAYS"]=30;}
+	$ThisYear=date("y");
+	$directory="/home/ntopng/db";
+	$unix=new unix();
+	$rm=$unix->find_program("rm");
+	echo "Scanning /home/ntopng/db/{$ThisYear}\n";
+	$directory="/home/ntopng/db/{$ThisYear}";
+	$thisMonth=date("m");
+	if(strlen($thisMonth)==1){$thisMonth="0{$thisMonth}";}
+	if(!is_dir($directory)){return;}
+	
+	echo "Skip /home/ntopng/db/{$ThisYear}/{$thisMonth}\n";
+	$dirs=$unix->dirdir($directory);
+	
+	
+	while (list ($scanneddir, $line) = each ($dirs)){
+		
+		$month=basename($scanneddir);
+		if($month==$thisMonth){
+			echo "Skip $thisMonth\n";
+			continue;
+		}
+		
+		echo "Remove $scanneddir\n";
+		shell_exec("$rm -rf $scanneddir");
+	}
+		
+	if($arrayConf["MAX_DAYS"]==30){return;}
+
+	echo "/home/ntopng/db/{$ThisYear}/{$thisMonth}";
+	$dirs=$unix->dirdir("/home/ntopng/db/{$ThisYear}/{$thisMonth}");
+	if($dirs<$arrayConf["MAX_DAYS"]){return;}
+	while (list ($scanneddir, $line) = each ($dirs)){
+		$basename=basename($scanneddir);
+		$T[$basename]=$scanneddir;
+		
+	}
+	
+	ksort($T);
+	print_r($T);
+		
+	$CurrentDays=count($T);
+	$Tokeep=$CurrentDays-$arrayConf["MAX_DAYS"];
+	if($Tokeep<1){return;}
+	
+	echo "Keeping $Tokeep days\n";
+	$c=0;
+	while (list ($dir, $path) = each ($T)){
+		echo "Remove $path\n";
+		shell_exec("$rm -rf $path");
+		$c++;
+		if($c>=$Tokeep){break;}
+		
+		
+	}
+	
+}
+

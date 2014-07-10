@@ -7889,7 +7889,12 @@ function ntopng(){
 	$l[]="running=1";
 	$l[]=GetMemoriesOf($master_pid);
 	$l[]="";
-
+	
+	
+	$time_file=$GLOBALS["CLASS_UNIX"]->file_time_min("/etc/artica-postfix/pids/exec.ntopng.php.cleanstorage.time");
+	if($time_file>1880){
+		shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.ntopng.php --clean  >/dev/null 2>&1 &");
+	}
 	return implode("\n",$l);return;
 }
 function redis_server(){

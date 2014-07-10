@@ -542,17 +542,20 @@ function all_services_status_build(){
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$SquidBoosterMem=$sock->GET_INFO("SquidBoosterMem");
-	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	
 	if(!is_numeric($EnableKerbAuth)){$EnableKerbAuth=0;}
 	if(!is_numeric($SquidBoosterMem)){$SquidBoosterMem=0;}
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	if(!is_numeric($SquidActHasReverse)){$SquidActHasReverse=0;}	
 	if(!is_numeric($AsSquidLoadBalancer)){$AsSquidLoadBalancer=0;}
+	
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}		
 	$UnlockWebStats=$sock->GET_INFO("UnlockWebStats");
 	if(!is_numeric($UnlockWebStats)){$UnlockWebStats=0;}
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
 	
 	$squid_status=DAEMON_STATUS_ROUND("SQUID",$ini,null,1);
 	$dansguardian_status=DAEMON_STATUS_ROUND("DANSGUARDIAN",$ini,null,1);
@@ -731,6 +734,9 @@ function features(){
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$hasProxyTransparent=$sock->GET_INFO("hasProxyTransparent");
 	if(!is_numeric($hasProxyTransparent)){$hasProxyTransparent=0;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
 	
 	$EnableRemoteStatisticsAppliance=$sock->GET_INFO("EnableRemoteStatisticsAppliance");
 	if(!is_numeric($EnableRemoteStatisticsAppliance)){$EnableRemoteStatisticsAppliance=0;}

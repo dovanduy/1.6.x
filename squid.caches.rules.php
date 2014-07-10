@@ -209,6 +209,10 @@ function global_parameters(){
 	$ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
 	$ProxyDedicateMicrosoftRules=$sock->GET_INFO("ProxyDedicateMicrosoftRules");
 	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	
+	
 	$compilefile="ressources/logs/squid.compilation.params";
 	if(!is_file($compilefile)){$sock->getFrameWork("squid.php?compil-params=yes");}
 	$COMPILATION_PARAMS=unserialize(base64_decode(file_get_contents($compilefile)));
@@ -265,6 +269,11 @@ function global_parameters(){
 	
 	$level=Paragraphe_switch_img('{DisableAnyCache}',"{DisableAnyCache_explain2}","DisableAnyCache-$t",
 			$DisableAnyCache,null,850);
+	
+	if($SquidCacheLevel==0){
+		$level=Paragraphe_switch_disable('{DisableAnyCache}',"{DisableAnyCache_explain2}","DisableAnyCache-$t",
+		$DisableAnyCache,null,850);
+	}
 	
 	if(!$users->CORP_LICENSE){
 		$license_error="<p class=text-error style='font-size:18px'>".$tpl->_ENGINE_parse_body("{license_error}")."</p>";}
@@ -514,6 +523,9 @@ function main_tabs(){
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	$CacheManagement2=$sock->GET_INFO("CacheManagement2");
 	if(!is_numeric($CacheManagement2)){$CacheManagement2=0;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
 	
 	$ID=$_GET["ID"];
 	$t=$_GET["t"];

@@ -464,6 +464,11 @@ function WEBSITES_SEARCH(){
 	if($UnlockWebStats==1){$EnableRemoteStatisticsAppliance=0;}	
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	
+	
 	$search='%';
 	$table="squid_speed";
 	$page=1;

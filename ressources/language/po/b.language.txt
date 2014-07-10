@@ -2298,6 +2298,7 @@ If failed, then watchdog operations will be executed</ExternalPageUsername_EXPLA
 <external_webpage>External Web Page</external_webpage>
 <extract>Extract</extract>
 <extracting_package>Extracting package</extracting_package>
+<extraction_failed>Extraction failed</extraction_failed>
 <ext_user>External user</ext_user>
 <failed_login>Login failed</failed_login>
 <failed_number>Failed number</failed_number>
@@ -3730,6 +3731,7 @@ We suggest to regulary analyze tables With the "Categorize Internet sites" optio
 <not_categorized_explain_why>Not categorized websites are important.[br]It means that Artica is not able to determine these websites in statistics and with Web filtering rules.[br]
 Display this section and try to categorize yourself websites in order to add them into your local databases and filter them correctly.
 </not_categorized_explain_why>
+<not_compatible>Not compatible</not_compatible>
 <not_connected_to_active_directory>Not connected to any Active Directory</not_connected_to_active_directory>
 <not_for_current_branch>Package is not compatible for the current branch</not_for_current_branch>
 <NOT_INSTALLED>Not installed</NOT_INSTALLED>
@@ -4608,6 +4610,7 @@ You can select a single backup or schedule an automatic restore task.
 <RestrictIFrames>Restrict iFrames</RestrictIFrames>
 <RestrictIFrames_text>Don't allow the browser to render the page inside an frame or iframe</RestrictIFrames_text>
 <retention>Retention</retention>
+<retention_days>Retention days</retention_days>
 <retention_time>Retention time</retention_time>
 <retreival_mailrules_text>Create/edit rules that will fetch your messages from other mailboxes that are stored outside your local account</retreival_mailrules_text>
 <retreive_informations>Retreive informations</retreive_informations>
@@ -4900,6 +4903,7 @@ removed from the database</softdelete_lifetime_explain>
 <softdelete_option_explain>Define settings for the SoftDelete feature or perform a softdelete operation manually</softdelete_option_explain>
 <softwares_clients>Clients softwares</softwares_clients>
 <software_is_not_installed>Software is not installed</software_is_not_installed>
+<software_manual_update_text>Upload here a software package compatible with Artica.</software_manual_update_text>
 <software_version>Software version</software_version>
 <soft_delete_explain>
 If a user deletes emails, calendar items or complete folders, there are by default moved to the Deleted Items folder.[br]
@@ -4959,6 +4963,11 @@ New caches will be not linked to the proxy.
 If you want to link all caches to your proxy service, you need to restart the proxy service...
 Do you want to carry out this operation ?
 </squidcach32_applyexplain>
+<SquidCacheLevel0>[br]No cache[/b][br]
+All caches are disabled, this level deny the proxy to not cache any object.
+[br]Cache objects in memory will be disabled.
+In this mode, Proxy just act as a  web filtering router
+</SquidCacheLevel0>
 <SquidCacheLevel1>[br]Minimal cache[/b][br]
 This is the default Proxy cache used in most cases.[br]
 Your specific caches rules are disabled.[br]

@@ -37,13 +37,12 @@ function popup(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$CacheReplacementPolicy=$sock->GET_INFO("CacheReplacementPolicy");
-	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
+	
 	if($CacheReplacementPolicy==null){$CacheReplacementPolicy="heap_LFUDA";}
 	$SquidDebugCacheProc=$sock->GET_INFO("SquidDebugCacheProc");
 	$ForceWindowsUpdateCaching=$sock->GET_INFO("ForceWindowsUpdateCaching");
 	$ProxyDedicateMicrosoftRules=$sock->GET_INFO("ProxyDedicateMicrosoftRules");
 	if(!is_numeric($SquidDebugCacheProc)){$SquidDebugCacheProc=0;}
-	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	if(!is_numeric($ForceWindowsUpdateCaching)){$ForceWindowsUpdateCaching=0;}
 	if(!is_numeric($ProxyDedicateMicrosoftRules)){$ProxyDedicateMicrosoftRules=0;}
 	
@@ -84,10 +83,6 @@ function popup(){
 	$html="
 	<div id='$t'></div>
 	<table style='width:99%' class=form>
-		<tr>
-			<td class=legend style='font-size:14px'>{DisableAnyCache}:</td>
-			<td>". Field_checkbox("DisableAnyCache-$t",1,$DisableAnyCache,"CheckDisableAnyCache$t()")."</td>
-		</tr>	
 		<tr>
 			<td class=legend style='font-size:14px'>{ForceWindowsUpdateCaching}:</td>
 			<td>". Field_checkbox("ForceWindowsUpdateCaching-$t",1,$ForceWindowsUpdateCaching)."</td>
@@ -132,11 +127,10 @@ function popup(){
 
 		function Save$t(){
 			var SquidDebugCacheProc=0;
-			var DisableAnyCache=0;
+			
 			var ForceWindowsUpdateCaching=0;
 			var ProxyDedicateMicrosoftRules=0;
 			var XHR = new XHRConnection();
-			if(document.getElementById('DisableAnyCache-$t').checked){DisableAnyCache=1;}
 			if(document.getElementById('SquidDebugCacheProc-$t').checked){SquidDebugCacheProc=1;}
 			if(document.getElementById('ForceWindowsUpdateCaching-$t').checked){ForceWindowsUpdateCaching=1;}
 			if(document.getElementById('ProxyDedicateMicrosoftRules-$t').checked){ProxyDedicateMicrosoftRules=1;}
@@ -146,25 +140,13 @@ function popup(){
 			XHR.appendData('maximum_object_size',document.getElementById('maximum_object_size-$t').value);
 			XHR.appendData('maximum_object_size_in_memory',document.getElementById('maximum_object_size_in_memory-$t').value);
 			XHR.appendData('SquidDebugCacheProc',SquidDebugCacheProc);
-			XHR.appendData('DisableAnyCache',DisableAnyCache);
 			XHR.appendData('ForceWindowsUpdateCaching',ForceWindowsUpdateCaching);
 			XHR.appendData('ProxyDedicateMicrosoftRules',ProxyDedicateMicrosoftRules);
 			AnimateDiv('$t');
 			XHR.sendAndLoad('$page', 'POST',x_Save$t);
 		}
 		
-		function CheckDisableAnyCache$t(){
-			document.getElementById('SquidDebugCacheProc-$t').disabled=true;
-			document.getElementById('CacheReplacementPolicy-$t').disabled=true;
-			document.getElementById('maximum_object_size-$t').disabled=true;
-			if(!document.getElementById('DisableAnyCache-$t').checked){
-				document.getElementById('SquidDebugCacheProc-$t').disabled=false;
-				document.getElementById('CacheReplacementPolicy-$t').disabled=false;
-				document.getElementById('maximum_object_size-$t').disabled=false;			
-			}
-		}
 		
-		CheckDisableAnyCache$t();
 		
 </script>				
 	";
@@ -178,7 +160,7 @@ function save(){
 	$sock=new sockets();
 	$sock->SET_INFO("CacheReplacementPolicy", $_POST["CacheReplacementPolicy"]);
 	$sock->SET_INFO("SquidDebugCacheProc", $_POST["SquidDebugCacheProc"]);
-	$sock->SET_INFO("DisableAnyCache", $_POST["DisableAnyCache"]);
+	
 	$sock->SET_INFO("ForceWindowsUpdateCaching", $_POST["ForceWindowsUpdateCaching"]);
 	$sock->SET_INFO("ProxyDedicateMicrosoftRules", $_POST["ProxyDedicateMicrosoftRules"]);
 	$squid=new squidbee();

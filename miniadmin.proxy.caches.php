@@ -34,10 +34,7 @@ function tabs(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$squid=new squidbee();
-	
-	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
-	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
-	
+
 	$users=new usersMenus();
 	$mini=new boostrap_form();
 	

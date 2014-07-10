@@ -474,6 +474,7 @@ class templates{
 		
 		$content=str_replace("<input type='button'","<input type='button' class='button'",$content);
 		$content=str_replace("web sites","websites",$content);
+		$content=str_replace("\`","`",$content);
 		
 		//$content=str_replace("Loadjs(",'$.getScript(',$content);
 		if(strlen($content)<400){

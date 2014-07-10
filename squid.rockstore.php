@@ -43,6 +43,10 @@ function popup(){
 	$DisableAnyCache=$sock->GET_INFO("DisableAnyCache");
 	if(!is_numeric($DisableAnyCache)){$DisableAnyCache=0;}
 	
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
+	if($SquidCacheLevel==0){$DisableAnyCache=1;}
+	
 	if($DisableAnyCache==1){
 		$html=FATAL_ERROR_SHOW_128("{all_cache_method_are_globally_disabled}");
 		$html=$html."

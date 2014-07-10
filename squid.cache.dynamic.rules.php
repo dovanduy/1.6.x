@@ -69,8 +69,8 @@ function parameters(){
 	$sock=new sockets();
 	
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
-	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	if(!is_numeric($ARRAY["ENABLED"])){if($SquidCacheLevel>2){$ARRAY["ENABLED"]=1; }}
 	if($SquidCacheLevel<3){$ARRAY["ENABLED"]=0;$DISABLED=TRUE;}
 	
@@ -199,8 +199,8 @@ function rule_popup(){
 	$ID=$_GET["ID"];
 	$sock=new sockets();
 	$ARRAY=unserialize(base64_decode($sock->GET_INFO("SquidDynamicCaches")));
-	$SquidCacheLevel=intval($sock->GET_INFO("SquidCacheLevel"));
-	if($SquidCacheLevel==0){$SquidCacheLevel=4;}
+	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
+	if(!is_numeric($SquidCacheLevel)){$SquidCacheLevel=4;}
 	if(!is_numeric($ARRAY["MAX_WWW"])){$ARRAY["MAX_WWW"]=100;}
 	if(!is_numeric($ARRAY["ENABLED"])){
 		if($SquidCacheLevel>2){$ARRAY["ENABLED"]=1;}

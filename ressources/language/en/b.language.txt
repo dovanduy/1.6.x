@@ -6581,6 +6581,12 @@ Artica dynamic enforce rule are disabled.
 <proxy_pass_request_headers>Send orginal headers</proxy_pass_request_headers>
 <proxy_pass_request_headers_text>Indicates whether the header fields of the original request are passed to the proxied server.</proxy_pass_request_headers_text>
 <client_source>Client source</client_source>
-<software_manual_update_text>Upload here a software package compatible with Artica.</software_manual_update_text>
+<software_manual_update_text>Upload here a software Artica compatible package .</software_manual_update_text>
 <not_compatible>Not compatible</not_compatible>
 <extraction_failed>Extraction failed</extraction_failed>
+<retention_days>Retention days</retention_days>
+<SquidCacheLevel0>[br]No cache[/b][br]
+All caches are disabled, this level deny the proxy to not cache any object.
+[br]Cache objects in memory will be disabled.
+In this mode, Proxy just act as a  web filtering router
+</SquidCacheLevel0>
