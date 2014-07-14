@@ -2068,7 +2068,7 @@ function routes_source_add($eth,$ipsrc,$gateway,$network,$calledByLine){
 	}
 	
 	if($network<>null){
-		$GLOBALS["SCRIPTS_ROUTES"][]="$ip ip route add $network dev $eth src $ipsrc";
+		$GLOBALS["SCRIPTS_ROUTES"][]="$ip route add $network dev $eth src $ipsrc";
 	}
 	
 }

@@ -1313,6 +1313,7 @@ Please take care about what command-line you send...</commandline_explain>
 <CommonName>Common Name</CommonName>
 <company_name>Company name</company_name>
 <company_name_as_title>This company name will be displayed in all welcome Artica Web consoles.</company_name_as_title>
+<company_website>Company website</company_website>
 <compatible>Compatible</compatible>
 <compilation_done>Compilation done</compilation_done>
 <compilation_failed>Compilation failed</compilation_failed>
@@ -4778,6 +4779,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <separate_comma>You can separate multiple values with a comma ","</separate_comma>
 <serveretdom>Server and domain</serveretdom>
 <servername2>Server name</servername2>
+<server_aliases_title>Website aliases</server_aliases_title>
 <server_all_kbytes_in>Amount of traffic receive by the proxy</server_all_kbytes_in>
 <server_all_kbytes_out>Amount of traffic sended by the proxy</server_all_kbytes_out>
 <server_buffers>Server buffers</server_buffers>
@@ -5893,6 +5895,7 @@ If these are consuming a large amount of memory in relation to pagecache, it may
 Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pressure>
 <volumes>Volumes</volumes>
 <volumes_client_mode>Volumes (client mode)</volumes_client_mode>
+<VPS_COMPATIBLE>VPS compatible</VPS_COMPATIBLE>
 <vps_server_watchdog>Virtual servers watchdog</vps_server_watchdog>
 <vps_server_watchdog_explain>This task must be scheduled only if your Artica server is able to provide Virtual machines with LXC.[br]
 It designed to ensure that Virtual machines are UP and running and correcly set.

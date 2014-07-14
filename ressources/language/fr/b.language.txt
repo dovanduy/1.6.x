@@ -1128,6 +1128,7 @@ Faites tr&egrave;s attention &agrave; ce que vous faites &agrave; travers ce for
 <CommonName>nom commun</CommonName>
 <company_name>Nom de soci&eacute;t&eacute;</company_name>
 <company_name_as_title>Ce nom de soci&eacute;t&eacute; sera visible dans toutes les page d'accueil des consoles Web Artica</company_name_as_title>
+<company_website>Site Web entreprise</company_website>
 <compatible>Compatible</compatible>
 <compilation_done>Compilation effectu&eacute;e</compilation_done>
 <compilation_failed>&Eacute;chec de compilation</compilation_failed>
@@ -4123,6 +4124,7 @@ Elle est en charge d'enregistrer les pi&egrave;ces jointes originales dans la ba
 <separate_comma>Vous pouvez s&eacute;parer les valeurs multiples avec une virgule &quot;,&quot;</separate_comma>
 <serveretdom>Serveur et domaine</serveretdom>
 <servername2>Nom de serveur</servername2>
+<server_aliases_title>Domaines alias du site</server_aliases_title>
 <server_all_kbytes_in>Montant du trafic r&eacute;ceptionn&eacute; par le proxy</server_all_kbytes_in>
 <server_all_kbytes_out>Amount of traffic sended by the proxy</server_all_kbytes_out>
 <server_buffers>Tampons du serveur</server_buffers>
@@ -5082,6 +5084,7 @@ If these are consuming a large amount of memory in relation to pagecache, it may
 Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pressure>
 <volumes>Volumes</volumes>
 <volumes_client_mode>Volumes (mode client)</volumes_client_mode>
+<VPS_COMPATIBLE>Compatibilit&eacute; VPS</VPS_COMPATIBLE>
 <vps_server_watchdog>Surveillance des serveurs virtuels</vps_server_watchdog>
 <vps_server_watchdog_explain>Cette t&acirc;che doit &ecirc;tre utilis&eacute;e seulement si vous avez transform&eacute; votre serveur Artica en un virtualisateur de machines via LXC.[br]
 Elle est con&ccedil;ue pour s'assurer que les machines virtuelles sont en activit&eacute; et correctement configur&eacute;es.</vps_server_watchdog_explain>
