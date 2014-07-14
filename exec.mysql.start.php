@@ -501,19 +501,24 @@ if($EnableMysqlFeatures==0){
 	if($MEMORY<624288){
 		$GetStartedValues=GetStartedValues();
 		echo "Starting......: ".date("H:i:s")." MySQL Warning memory did not respond to pre-requesites, tuning to lower memory\n";
-		if($GetStartedValues["--key-buffer-size"]){ $cmd2[]="--key-buffer-size=12k";}
-		if($GetStartedValues["--max-allowed-packet"]){ $cmd2[]="--max-allowed-packet=1M";}
+		if($GetStartedValues["--key-buffer-size"]){ $cmd2[]="--key-buffer-size=8M";}
+		if($GetStartedValues["--max-allowed-packet"]){ $cmd2[]="--max-allowed-packet=4M";}
 		if($GetStartedValues["--table-cache"]){ $cmd2[]="--table-cache=4";}
 		if($GetStartedValues["--sort-buffer-size"]){ $cmd2[]="--sort-buffer-size=64k";}
 		if($GetStartedValues["--read-buffer-size"]){ $cmd2[]="--read-buffer-size=256k";}
 		if($GetStartedValues["--read-rnd-buffer-size"]){ $cmd2[]="--read-rnd-buffer-size=128k";}
 		if($GetStartedValues["--net-buffer-length"]){ $cmd2[]="--net-buffer-length=2k";}
-		if($GetStartedValues["--thread-stack"]){ $cmd2[]="--thread-stack=64k";}
+		if($GetStartedValues["--thread-stack"]){ $cmd2[]="--thread-stack=192k";}
+		if($GetStartedValues["--thread-cache-size"]){ $cmd2[]="--thread-cache-size=128";}
+		if($GetStartedValues["--thread-concurrency"]){ $cmd2[]="--thread-concurrency=10";}
 		if($GetStartedValues["--default-storage-engine"]){ $cmd2[]="--default-storage-engine=MyISAM";}
 		if($GetStartedValues["--default-tmp-storage-engine"]){ $cmd2[]="--default-tmp-storage-engine=MyISAM";}
-		if($GetStartedValues["--query-cache-limit"]){ $cmd2[]="--query-cache-limit=254k";}
-		if($GetStartedValues["--query-cache-size"]){ $cmd2[]="--query-cache-size=4M";}
-		if($GetStartedValues["--max-connections"]){ $cmd2[]="--max-connections=15";}
+		if($GetStartedValues["--tmp-table-size"]){ $cmd2[]="--tmp-table-size=16M";}
+		if($GetStartedValues["--table-cache"]){ $cmd2[]="--table-cache=64";}
+		if($GetStartedValues["--query-cache-limit"]){ $cmd2[]="--query-cache-limit=4M";}
+		if($GetStartedValues["--query-cache-size"]){ $cmd2[]="--query-cache-size=32M";}
+		if($GetStartedValues["--max-connections"]){ $cmd2[]="--max-connections=50";}
+		if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$cmd2[]="--innodb=OFF";}
 		
 		echo "Starting......: ".date("H:i:s")." MySQL ". count($cmd2)." forced option(s)\n";
 	}

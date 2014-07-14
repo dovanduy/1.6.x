@@ -5813,8 +5813,6 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 			$this->QUERY_SQL($sql,'artica_backup');
 			}		
 
-		
-		if(!$this->TABLE_EXISTS('nics_virtuals','artica_backup')){	
 			$sql="CREATE TABLE IF NOT EXISTS `nics_virtuals` (
 				  `nic` varchar(20) NOT NULL,
 				  `ID` int(11) NOT NULL AUTO_INCREMENT,
@@ -5825,15 +5823,21 @@ if(!$this->TABLE_EXISTS('emailing_campain_queues','artica_backup')){
 				  `gateway` varchar(30) NOT NULL,
 				  `openvpn_nic` INT( 1 ) NOT NULL,
 				  `metric` INT( 5 ) NOT NULL,
-				  `ForceGateway` TINYINT( 1 ) NOT NULL,
+				  `ForceGateway` SMALLINT( 1 ) NOT NULL DEFAULT 0,
+				  `failover`  SMALLINT( 1 ) NOT NULL DEFAULT 0,
 				  PRIMARY KEY (`ID`),
 				  KEY `nic` (`nic`),
 				  KEY `metric` (`metric`),
+				  KEY `failover` (`failover`),
 				  KEY `org` (`org`,`ipaddr`,`netmask`),
 				  KEY `cdir` (`cdir`)
 				) ENGINE=MYISAM;";
 			$this->QUERY_SQL($sql,'artica_backup');
-			}
+			
+			
+			if(!$this->FIELD_EXISTS("nics_virtuals","ForceGateway","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `ForceGateway` TINYINT( 1 ) NOT NULL";$this->QUERY_SQL($sql,'artica_backup');if(!$q->ok){echo $this->mysql_error."\n$sql\n";return;}}
+			if(!$this->FIELD_EXISTS("nics_virtuals","failover","artica_backup")){$sql="ALTER TABLE `nics_virtuals` ADD `failover` TINYINT( 1 ) NOT NULL,ADD INDEX ( `failover` )";$this->QUERY_SQL($sql,'artica_backup');if(!$this->ok){echo $this->mysql_error."\n$sql\n\n";return;}}
+			
 			
 			
 			$sql="CREATE TABLE IF NOT EXISTS `nics_vde` (

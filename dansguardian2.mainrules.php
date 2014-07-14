@@ -222,12 +222,13 @@ function tabs(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	
+	$array["ufdbguard-status"]="{service_status}";
 	$array["main-rules"]='{rules}';
 	$array["section_ufdbguard_advanced_options"]='{advanced_options}';
 	$array["your_categories"]='{your_categories}';
 	$array["databases"]='{webfilter_databases}';
 	$array["ufdbguard"]='{service_parameters}';
-	$array["ufdbguard-status"]="{service_status}";
+	
 	
 	
 	if(!$users->APP_UFDBGUARD_INSTALLED){
@@ -365,12 +366,7 @@ function rules(){
 	
 	if(!$users->APP_UFDBGUARD_INSTALLED){rules_ufdb_not_installed();return;}
 	
-	$html="<table style='width:100%' class='TableRemove TableMarged'>
-	<tr>
-	<td valign='top' width=5%><div id='rules-toolbox-left'></div></td>
-	<td valign='top' width=99% style='padding-left:8px'><div id='rules-table'></div></td>
-	</tr>
-	</table>
+	$html="<div id='rules-table'></div>
 	<script>
 		LoadAjax('rules-table','$page?rules-table=yes');
 	</script>
@@ -671,18 +667,7 @@ $html=$html."
 ";
 }
 $html=$html."
-	<tr>
-		<td valign='middle' width=1%><img src='img/delete-32.png'></td>
-		<td valign='middle' width=99%>
-			<table style='width:100%'>
-			<tr>
-				<td valign='middle' width=1%><img src='img/arrow-right-16.png'></td>
-				<td valign='top' $mouse style='font-size:13px;text-decoration:underline' 
-				OnClick=\"javascript:Loadjs('ufdbguard.hide.php');\" nowrap><span style='font-size:13px;text-decoration:underline'>{hide}</td>
-			</tr>
-			</table>
-		</td>
-	</tr>	
+
 	</table> 
 	
 	
@@ -825,10 +810,7 @@ $html=$html."
 		}else{
 			
 			
-			echo $tpl->_ENGINE_parse_body(Paragraphe32("{wizard_rule}", "noacco:
-					<p style='font-size:11px'>{wizard_rule_ufdb_explain}</p>",
-					"Loadjs('dansguardian2.wizard.rule.php')",
-					"wizard-42.png"));			
+				
 			
 			
 		}
@@ -1021,21 +1003,22 @@ function rules_table(){
 	$ldap_parameters=$tpl->_ENGINE_parse_body("{ldap_parameters2}");
 	$config_file=$tpl->_ENGINE_parse_body("{config_file}");
 	$categories_group=$tpl->_ENGINE_parse_body("{categories_groups}");
+	$main_title="<span style=font-size:18px>".$tpl->javascript_parse_text("{main_webfiltering_rules}")."</span>";
 	
 	$UseRemoteUfdbguardService=$sock->GET_INFO("UseRemoteUfdbguardService");
 	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
 	if(!is_numeric($UseRemoteUfdbguardService)){$UseRemoteUfdbguardService=0;}
 	
-	$compile_bt="{name: '<strong style=font-size:14px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},";
+	$compile_bt="{name: '<strong style=font-size:16px;font-weight:bold>$compile_rules</strong>', bclass: 'Reconf', onpress : CompileUfdbGuardRules},";
 	
 	if($UseRemoteUfdbguardService==1){$compile_bt=null;}
 	
 	$error_ldap=null;
 	$buttons="
 	buttons : [
-	{name: '<strong style=font-size:14px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
-	{name: '<strong style=font-size:14px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
-	{name: '<strong style=font-size:14px;font-weight:bold>$global_parameters</strong>', bclass: 'Settings', onpress : UfdbGuardConfigs},
+	{name: '<strong style=font-size:16px;>$add_rule</strong>', bclass: 'add', onpress : DansGuardianNewRule},
+	{name: '<strong style=font-size:16px;font-weight:bold>$categories_group</strong>', bclass: 'group', onpress : CategoriesGroups},
+	{name: '<strong style=font-size:16px;font-weight:bold>$global_parameters</strong>', bclass: 'Settings', onpress : UfdbGuardConfigs},
 	$compile_bt	
 	
 	
@@ -1095,13 +1078,13 @@ $('#flexRT$t').flexigrid({
 	url: '$page?rules-table-list=yes&t=$t',
 	dataType: 'json',
 	colModel : [
-		{display: '$rule_text', name : 'groupname', width : $TBSIZE, sortable : true, align: 'left'},	
-		{display: '$groups', name : 'topattern', width :57, sortable : false, align: 'center'},
-		{display: '$blacklists', name : 'enabled', width : 101, sortable : false, align: 'center'},
-		{display: '$whitelists', name : 'delete', width : 91, sortable : false, align: 'center'},
-		{display: '&nbsp;', name : 'zOrder', width :42, sortable : true, align: 'center'},
-		{display: '&nbsp;', name : 'dup', width :31, sortable : false, align: 'center'},
-		{display: '$delete', name : 'delete', width : 31, sortable : false, align: 'center'},
+		{display: '$rule_text', name : 'groupname', width : 411, sortable : true, align: 'left'},	
+		{display: '$groups', name : 'topattern', width :123, sortable : false, align: 'center'},
+		{display: '$blacklists', name : 'enabled', width : 123, sortable : false, align: 'center'},
+		{display: '$whitelists', name : 'delete', width : 123, sortable : false, align: 'center'},
+		{display: '&nbsp;', name : 'zOrder', width :90, sortable : true, align: 'center'},
+		{display: '&nbsp;', name : 'dup', width :65, sortable : false, align: 'center'},
+		{display: '$delete', name : 'delete', width : 90, sortable : false, align: 'center'},
 		],
 	$buttons
 	searchitems : [
@@ -1110,30 +1093,19 @@ $('#flexRT$t').flexigrid({
 	sortname: 'zOrder',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '$main_title',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: $TBWIDTH,
+	width: '99%',
 	height: 600,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
 	
 	});   
-	setTimeout('ToolBox$t()',800);	
+	
 	
 }
-
-function LeftToolBox$t(){
-	LoadAjaxTiny('rules-toolbox-left','$page?rules-toolbox-left=yes');
-}
-function ToolBox$t(){
-	RulesToolBox();
-	setTimeout('LeftToolBox$t()',800);
-}
-	
-
-
 	function DansGuardianNewRule(){
 		DansGuardianEditRule(-1)
 	}
@@ -1188,9 +1160,7 @@ function ToolBox$t(){
 			}
 		}
 		
-		function RulesToolBox(){
-			LoadAjaxTiny('rules-toolbox','$page?rules-toolbox=yes');
-		}
+
 	
 
 	setTimeout('flexRTStart$t()',800);	
@@ -1277,7 +1247,7 @@ while ($ligne = mysql_fetch_assoc($results)) {
 		$ID=$ligne["ID"];
 		$md5=md5($ligne["ID"]);
 		$ligne["groupname"]=utf8_encode($ligne["groupname"]);
-		$delete=imgtootltip("delete-24.png","{delete}","DansGuardianDeleteMainRule('{$ligne["ID"]}')");
+		$delete=imgtootltip("delete-32.png","{delete}","DansGuardianDeleteMainRule('{$ligne["ID"]}')");
 		
 		$js="DansGuardianEditRule('{$ligne["ID"]}','{$ligne["groupname"]}');";
 		if($GLOBALS["VERBOSE"]){echo "<HR>webfilter->rule_time_list_from_ruleid({$ligne["ID"]})<HR><br>\n";}
@@ -1292,7 +1262,7 @@ while ($ligne = mysql_fetch_assoc($results)) {
 			$color="#E91212";
 			$warn="<div style='float:right'><img src='img/stop-24.png'></div>";
 		}		
-		$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?from={$ligne['ID']}&t=$t')");
+		$duplicate=imgsimple("duplicate-32.png",null,"Loadjs('dansguardian2.duplicate.php?from={$ligne['ID']}&t=$t')");
 		$jsGroups="<a href=\"javascript:blur();\" 
 		OnClick=\"javascript:document.getElementById('anim-img-{$ligne["ID"]}').innerHTML='<img src=img/wait.gif>';Loadjs('dansguardian2.edit.php?js-groups={$ligne["ID"]}&ID={$ligne["ID"]}&t=$t');\"
 		style='text-decoration:underline;font-weight:bold'>";
@@ -1311,8 +1281,8 @@ while ($ligne = mysql_fetch_assoc($results)) {
     	$TimeSpace=str_replace('\n\n', "<br>", $TimeSpace);
 		
 		$styleupd="style='border:0px;margin:0px;padding:0px;background-color:transparent'";
-		$up=imgsimple("arrow-up-16.png","","RuleDansUpDown('{$ligne['ID']}',1)");
-		$down=imgsimple("arrow-down-18.png","","RuleDansUpDown('{$ligne['ID']}',0)");
+		$up=imgsimple("arrow-up-32.png","","RuleDansUpDown('{$ligne['ID']}',1)");
+		$down=imgsimple("arrow-down-32.png","","RuleDansUpDown('{$ligne['ID']}',0)");
 		$zorder="<table $styleupd><tr><td $styleupd>$down</td $styleupd><td $styleupd>$up</td></tr></table>";		
 		
 		
@@ -1333,14 +1303,14 @@ while ($ligne = mysql_fetch_assoc($results)) {
 		'cell' => array(
 			"<span id='anim-img-{$ligne["ID"]}'></span>
 				<a href=\"javascript:blur();\" OnClick=\"javascript:$js\" 
-				style='font-size:14px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
+				style='font-size:18px;color:$color;text-decoration:underline'>{$ligne["groupname"]}</a>
 			$TimeSpace$jtemplate",
-			"<span style='font-size:14px;color:$color;'>$CountDeGroups</span>",
-			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
-			"<span style='font-size:14px;color:$color;'>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
-			$zorder,
-			$duplicate,
-			$delete )
+			"<span style='font-size:18px;color:$color;'>$CountDeGroups</span>",
+			"<span style='font-size:18px;color:$color;'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			"<span style='font-size:18px;color:$color;'>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS($ligne["ID"])."</a>&nbsp;&raquo;</span>",
+			"<center>$zorder</center>",
+			"<center>$duplicate</center>",
+			"<center>$delete</center>", )
 		);
 	}
 	
@@ -1380,7 +1350,7 @@ function DefaultRule(){
 	style='text-decoration:underline;font-weight:bold;color:$color'>";
 	
 	$delete="&nbsp;";
-	$duplicate=imgsimple("duplicate-24.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
+	$duplicate=imgsimple("duplicate-32.png",null,"Loadjs('dansguardian2.duplicate.php?default-rule=yes&t=$t')");
 	$ligne=unserialize(base64_decode($sock->GET_INFO("DansGuardianDefaultMainRule")));
 	if($GLOBALS["VERBOSE"]){echo "<HR>webfilter->rule_time_list_from_ruleid(0)<HR><br>\n";}
 	$TimeSpace=$webfilter->rule_time_list_explain($ligne["TimeSpace"],0,$t);
@@ -1395,13 +1365,13 @@ function DefaultRule(){
 		'id' => 0,
 		'cell' => array(
 						"<span id='anim-img-0'></span><a href=\"javascript:blur();\" OnClick=\"javascript:$js\"
-						style='font-size:14px;text-decoration:underline;color:$color'>Default</a>
+						style='font-size:18px;text-decoration:underline;color:$color'>Default</a>
 						$TimeSpace$jtemplate
 	
 						",
-						"<span style='font-size:14px;color:$color'>*</span>",
-						"<span style='font-size:14px;color:$color'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
-						"<span style='font-size:14px';color:$color>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
+						"<span style='font-size:18px;color:$color'>*</span>",
+						"<span style='font-size:18px;color:$color'>&laquo;&nbsp;$jsblack". $webfilter->COUNTDEGBLKS(0)."</a>&nbsp;&raquo;</span>",
+						"<span style='font-size:18px';color:$color>&laquo;&nbsp;$jswhite". $webfilter->COUNTDEGBWLS(0)."</a>&nbsp;&raquo;</span>",
 								"",
 								"$duplicate",
 								$delete )

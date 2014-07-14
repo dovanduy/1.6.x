@@ -1809,7 +1809,7 @@ function virtuals_add(){
 		gateway='{$_GET["gateway"]}',
 		ForceGateway='{$_GET["ForceGateway"]}',
 		failover='{$_GET["failover"]}',
-		metric='{$_GET["metric"]}',
+		metric='{$_GET["metric"]}'
 		WHERE ID={$_GET["ID"]}";
 	}
 	writelogs("$sql",__FUNCTION__,__FILE__,__LINE__);

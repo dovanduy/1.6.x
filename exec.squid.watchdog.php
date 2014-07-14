@@ -906,6 +906,10 @@ function CHECK_DNS_SYSTEMS(){
 
 	$sql="SELECT *  FROM dns_servers ORDER BY zOrder";
 	$results = $q->QUERY_SQL($sql);
+	if(!$q->ok){
+		ToSyslog("$q->mysql_error");
+		return;}
+	
 	while ($ligne = mysql_fetch_assoc($results)) { $DNS[]=$ligne["dnsserver"]; }
 	$sock=new sockets();
 	

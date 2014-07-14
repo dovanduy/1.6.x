@@ -20,6 +20,8 @@ if($argv[1]=="--exec"){start();die();}
 if($argv[1]=="--dirs"){ScanDirs();die();}
 if($argv[1]=="--remove-dirs"){RemoveDirs();die();}
 if($argv[1]=="--ftp"){ftp_backup();die();}
+if($argv[1]=="--export"){ExportSingleWebsite($argv[2]);die();}
+if($argv[1]=="--import"){ImportSingleWebsite($argv[2]);die();}
 
 
 
@@ -67,6 +69,243 @@ function ScanFreeWebs($WordpressBackupParams){
 	
 }
 
+function build_progress($text,$pourc){
+	$array["POURC"]=$pourc;
+	$array["TEXT"]=$text;
+	echo "[$pourc]: $text\n";
+	@file_put_contents($GLOBALS["PROGRESS_FILE"], serialize($array));
+	@chmod($GLOBALS["PROGRESS_FILE"],0755);
+
+}
+
+function ImportSingleWebsite($filename){
+	$unix=new unix();
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/wordpress.import.$filename.progress";
+	$password=null;
+	$gzip=$unix->find_program("gzip");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$gunzip=$unix->find_program("gunzip");
+	$mysql=$unix->find_program("mysql");
+	$php=$unix->LOCATE_PHP5_BIN();
+	build_progress("$filename: Checking",20);
+	$content_file=dirname(__FILE__)."/ressources/conf/upload/$filename";
+	echo "Checking $content_file\n";
+	if(!is_file($content_file)){
+		build_progress("$filename: $content_file no such file",110);
+		return;
+	}
+	$TMP_PATH=$unix->TEMP_DIR()."/".time();
+	@mkdir($TMP_PATH,0755,true);
+	@copy($content_file, "$TMP_PATH/$filename");
+	
+	$serialize="$TMP_PATH/config.serialize";
+	
+	//@unlink($content_file);
+	build_progress("$filename: {extracting}",30);
+	echo "Extracting $TMP_PATH/$filename to $TMP_PATH\n";
+	
+	system("tar xvf $TMP_PATH/$filename -C $TMP_PATH/");
+	if(!is_file("$TMP_PATH/wordpress.tar.gz")){
+		build_progress("$filename: wordpress.tar.gz no such file",110);
+		return;
+	}
+	if(!is_file("$TMP_PATH/database.gz")){
+		build_progress("$filename: database.gz no such file",110);
+		return;
+	}	
+	
+	$size=@filesize($serialize);
+	echo "Checking $serialize {$size}Bytes\n";
+	if(!is_file("$serialize")){
+		build_progress("$filename: config.seralize no such file",110);
+		return;
+	}	
+	
+	build_progress("$filename: Extracting parameters..",30);
+	$content=@file_get_contents($serialize);
+	
+	$content=unserialize(base64_decode($content));
+	print_r($content);
+	
+	if(!isset($content["servername"])){
+		build_progress("$filename: config.seralize no such servername key",110);
+		return;
+	}
+	$ADD=false;
+	$q=new mysql();
+	$servername=$content["servername"];
+	
+	while (list ($index, $data) = each ($content) ){
+		$fieldAdds[]="`$index`";
+		$fieldAddsVals[]="'".mysql_escape_string2($data)."'";
+		$FieldsEdit[]="`$index` = '".mysql_escape_string2($data)."'";
+		
+		
+	}
+	
+	$sqlADD="INSERT IGNORE INTO freeweb (".@implode(",", $fieldAdds).") VALUES (".@implode(",", $fieldAddsVals).")";
+	$sqlEdit="UPDATE freeweb SET ".@implode(",", $FieldsEdit)." WHERE servername='$servername'";
+	
+	$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$servername'","artica_backup"));
+	if(!$q->ok){
+		build_progress("$filename: {failed}",110);
+		echo "Fatal $q->mysql_error SELECT * from freeweb WHERE servername='$servername'\n";
+		return;
+	}
+	
+	$sql=$sqlEdit;
+	if(trim($ligne["servername"])==null){$ADD=true;}
+	if($ADD){$sql=$sqlADD;}
+	build_progress("$filename: importing parameters..",35);
+	
+	$free=new freeweb($servername);
+	if(!$free->patchTable()){
+		build_progress("$filename: Patching tables {failed}",110);
+		echo "Fatal $q->mysql_error\n";
+		return;
+	}
+	
+	
+	$q->QUERY_SQL($sql,"artica_backup");
+	if(!$q->ok){
+		build_progress("$filename: importing parameters {failed}",110);
+		echo "Fatal $q->mysql_error\n";
+		return;
+	}
+	
+
+	$WORKDIR=$free->www_dir;
+	build_progress("$filename: Restoring $WORKDIR..",40);
+	@mkdir($WORKDIR,0755,true);
+	system("tar xf $TMP_PATH/wordpress.tar.gz -C $WORKDIR/");
+	build_progress("$filename: Restoring $WORKDIR OK..",45);
+	
+	$database=$free->mysql_database;
+	build_progress("$filename: Restoring DATABASE $database..",50);
+	
+	shell_exec("$gunzip -c $TMP_PATH/database.gz >$TMP_PATH/database.sql");
+	if($q->mysql_password<>null){$password=" -p".$unix->shellEscapeChars($q->mysql_password);}
+	$t=time();
+	
+	exec("$mysql --force -u root{$password} -S /var/run/mysqld/mysqld.sock $database < $TMP_PATH/database.sql 2>&1",$results);
+	
+	while (list ($index, $line) = each ($results) ){
+		$line=trim($line);
+		if($line==null){continue;}
+		echo "$line\n";
+		if(preg_match("^ERROR\s+[0-9]+#",$line)){
+			build_progress("$filename: Restoring DATABASE $database {failed}",110);
+			return;
+		}
+	
+	}
+	
+	
+	
+	build_progress("$filename: Removing temporary directory",55);
+	shell_exec("$rm -rf $TMP_PATH");
+	build_progress("$filename: Reconfiguring $servername",55);
+	system("$php /usr/share/artica-postfix/exec.wordpress.php \"$servername\"");
+	build_progress("$filename: Adding $servername to web service",60);
+	system("$php /usr/share/artica-postfix/exec.freeweb.php --sitename \"$servername\"");
+	build_progress("$filename: $servername {done}",100);
+	@unlink($content_file);
+	
+}
+
+
+function ExportSingleWebsite($servername){
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/wordpress.export.$servername.progress";
+	$unix=new unix();
+	$DBADD=false;
+	$mysqldump=$unix->find_program("mysqldump");
+	$q=new mysql();
+	$free=new freeweb($servername);
+	$gzip=$unix->find_program("gzip");
+	$tar=$unix->find_program("tar");
+	$rm=$unix->find_program("rm");
+	$database=$free->mysql_database;
+	if($database==null){$database=$free->CreateDatabaseName();$DBADD=true;}
+	build_progress("$servername: Backup database $database",20);
+	if(!$q->DATABASE_EXISTS($database)){
+		build_progress("Backup $servername: database $database Failed ( No such database )",110);
+		return false;
+	}
+	
+	if($DBADD){
+		$free->mysql_database=$database;
+		$free->CreateSite(true);
+		$free=new freeweb($servername);
+	}
+	
+	$TMP_PATH=$unix->TEMP_DIR();
+	$BaseWorkDir="$TMP_PATH/$servername";
+	@mkdir("$BaseWorkDir",0755,true);
+	
+	$q=new mysql();
+	$ligneDump=@mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$servername'","artica_backup"));
+	while (list ($index, $data) = each ($ligneDump) ){
+		if(is_numeric($index)){continue;}
+		echo "Dumping $index = $data\n";
+		$TODUMP[$index]=$data;
+		
+	}
+	
+	if(count($TODUMP)==0){
+		build_progress("Dumping parameters failed",110);
+		return;
+	}
+	
+	@file_put_contents("$BaseWorkDir/config.serialize", base64_encode(serialize($TODUMP)));
+	
+	$TODUMP=unserialize(base64_decode(@file_get_contents("$BaseWorkDir/config.serialize")));
+	if(count($TODUMP)==0){
+		build_progress("Dumping parameters failed",110);
+		return;
+	}
+	build_progress("Dumping parameters $BaseWorkDir/config.serialize success",22);
+	$nice=$unix->EXEC_NICE();
+	$q=new mysql();
+	if($q->mysql_password<>null){$password=" -p".$unix->shellEscapeChars($q->mysql_password);}
+	
+	$t=time();
+	$prefix=trim("$nice $mysqldump --add-drop-table --single-transaction --force --insert-ignore -S /var/run/mysqld/mysqld.sock -u {$q->mysql_admin}$password $database");
+	$cmdline="$prefix | $gzip > $BaseWorkDir/database.gz";
+	shell_exec($cmdline);
+	
+	$took=$unix->distanceOfTimeInWords($t,time());
+	$size=FormatBytes(@filesize("$BaseWorkDir/database.gz")/1024);
+	build_progress("Backup database $database $size",25);
+	$WORKDIR=$free->www_dir;
+	build_progress("Backup directory $WORKDIR",25);
+	echo "Backup directory $WORKDIR";
+	if(!is_dir($WORKDIR)){
+		build_progress("Backup directory $WORKDIR Failed ( No such directory )",110);
+		return false;
+	}
+	chdir($WORKDIR);
+	system("$nice $tar cfz $BaseWorkDir/wordpress.tar.gz *");
+	$took=$unix->distanceOfTimeInWords($t,time());
+	$size=FormatBytes(@filesize("$BaseWorkDir/wordpress.tar.gz")/1024);	
+	build_progress("Backup directory $WORKDIR $size",50);
+	sleep(4);
+	build_progress("Creating container...",50);
+	chdir($BaseWorkDir);
+	@mkdir("/home/artica/wordress-exported",0755,true);
+	if(is_file("/home/artica/wordress-exported/$servername.tar.gz")){@unlink("/home/artica/wordress-exported/$servername.tar.gz");}
+	system("$nice $tar cvfz /home/artica/wordress-exported/$servername.tar.gz *");
+	sleep(4);
+	build_progress("Cleaning...",95);
+	chdir("/root");
+	shell_exec("$rm -rf $BaseWorkDir");
+	build_progress("Creating container done...",100);
+	
+	
+	
+}
+
+
 function mysql_backup($WordpressBackupParams,$servername){
 	$unix=new unix();
 	$mysqldump=$unix->find_program("mysqldump");
@@ -94,6 +333,9 @@ function mysql_backup($WordpressBackupParams,$servername){
 	$took=$unix->distanceOfTimeInWords($t,time());
 	$size=FormatBytes(@filesize("$BaseWorkDir/database.gz")/1024);
 	apache_admin_mysql(2, "$servername database $database backuped $size (took $took)", null,__FILE__,__LINE__);
+	
+	
+	
 	
 	
 }

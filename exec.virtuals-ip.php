@@ -1692,6 +1692,12 @@ for ($i = 0; $i < $lengt+1; $i++) {
 	return @implode("", $tt);
 }
 
+function isGatewayGood($ipaddr){
+	if(trim($ipaddr)==null){return false;}
+	if(trim($ipaddr)=="0.0.0.0"){return false;}
+	
+}
+
 
 function routes_main(){
 	$MetricCount=0;
@@ -1776,8 +1782,10 @@ function routes_main(){
 			//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." down";
 			//$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["ifconfig"]} ".$NetBuilder->NicToOther($eth)." up";
 			if($SourceBasedRouting==0){
-				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
-				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) ." metric 1";
+				if(isGatewayGood($ligne["GATEWAY"])){
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) ." metric 1";
+				}
 			}
 			
 			if($SourceBasedRouting==1){
@@ -1807,8 +1815,10 @@ function routes_main(){
 			}
 
 			if($SourceBasedRouting==0){
-				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$nic->GATEWAY} dev ".$NetBuilder->NicToOther($eth);
-				$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$nic->GATEWAY} dev ".$NetBuilder->NicToOther($eth).$metric_text;
+				if(isGatewayGood($nic->GATEWAY)){
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$nic->GATEWAY} dev ".$NetBuilder->NicToOther($eth);
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$nic->GATEWAY} dev ".$NetBuilder->NicToOther($eth).$metric_text;
+				}
 			}
 			
 			if($SourceBasedRouting==1){
@@ -1896,8 +1906,10 @@ function routes_main(){
 						$NETMASK=$ip_array["NETMASK"];
 						$GATEWAY=$ip_array["GATEWAY"];
 						$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] $ip/$NETMASK -> $GATEWAY Table {$GLOBALS["RT_TABLES"][$eth]}/$eth";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host $GATEWAY dev $eth";
-						$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $ip netmask $NETMASK gw $GATEWAY dev $eth";
+						if(isGatewayGood($GATEWAY)){
+							$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host $GATEWAY dev $eth";
+							$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net $ip netmask $NETMASK gw $GATEWAY dev $eth";
+						}
 					}
 				}
 			}
@@ -2007,8 +2019,10 @@ function routes_default_add($eth,$ipsrc,$gateway,$network,$metric_text,$calledBy
 	}
 	
 	if($gateway==null){return;}
-	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host $gateway dev $eth $metric_text";
-	$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw $gateway dev $eth $metric_text";
+	if(isGatewayGood($gateway)){
+		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host $gateway dev $eth $metric_text";
+		$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw $gateway dev $eth $metric_text";
+	}
 	
 	
 	
@@ -2145,6 +2159,7 @@ function routes_main_host($ligne){
 		if($metric>0){ $f[]="metric $metric"; }
 		return @implode(" ", $f);
 	}
+	
 	
 	$f[]="{$GLOBALS["routebin"]} add -host $pattern";
 	if($gateway<>null){ $f[]="gw $gateway"; }

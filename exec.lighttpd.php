@@ -366,6 +366,8 @@ function start($aspid=false){
 	@mkdir("/etc/artica-postfix/settings/Daemons",0755,true);
 	shell_exec("$chmod -R 0755 /etc/artica-postfix/settings >/dev/null 2>&1");
 	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} EnableArticaFrontEndToNGninx:$EnableArticaFrontEndToNGninx\n";}
+	
 	$pid=LIGHTTPD_PID();
 	if($EnableArticaFrontEndToNGninx==1){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["SERVICE_NAME"]} transfered to Nginx..\n";}
@@ -652,6 +654,7 @@ function apache_config(){
 	$EnablePHPFPM=0;
 	@mkdir("/var/run/apache2",0755,true);
 	@mkdir("/var/run/artica-apache",0755,true);
+	@mkdir("/var/log/lighttpd",0755,true);
 	$APACHE_SRC_ACCOUNT=$unix->APACHE_SRC_ACCOUNT();
 	$APACHE_SRC_GROUP=$unix->APACHE_SRC_GROUP();
 	$APACHE_MODULES_PATH=$unix->APACHE_MODULES_PATH();
@@ -962,6 +965,7 @@ function apache_config(){
 	if(is_file($squid)){
 		$f[]="Alias /proxy /usr/share/artica-postfix/squid.access.log.php";
 		$f[]="Alias /parent /usr/share/artica-postfix/squid.access.log.php";
+		$f[]="Alias /webfilter /usr/share/artica-postfix/squid.access.webfilter.log.php";
 		
 	}
 	

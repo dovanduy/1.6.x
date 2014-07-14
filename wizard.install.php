@@ -1,5 +1,7 @@
 <?php
-if(isset($_GET["verbose"])){ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;}
+if(isset($_GET["verbose"])){
+		ini_set('display_errors', 1);ini_set('error_reporting', E_ALL);
+		ini_set('error_prepend_string',"");ini_set('error_append_string',"<br>\n");$GLOBALS["VERBOSE"]=true;$GLOBALS["DEBUG_PROCESS"]=true;$GLOBALS["VERBOSE_SYSLOG"]=true;}
 include_once('ressources/class.templates.inc');
 include_once('ressources/class.ldap.inc');
 include_once('ressources/class.user.inc');
@@ -18,6 +20,7 @@ if(isset($_GET["setup-2"])){setup_2();exit;}
 if(isset($_GET["setup-3"])){setup_3();exit;}
 if(isset($_GET["setup-4"])){setup_4();exit;}
 if(isset($_GET["setup-5"])){setup_5();exit;}
+if(isset($_GET["setup-nic"])){setup_nic();exit;}
 if(isset($_POST["savedsettings"])){save();exit;}
 if(isset($_GET["settings-dns"])){dns_save();exit;}
 if(isset($_GET["settings-ou"])){ou_save();exit;}
@@ -116,6 +119,8 @@ $f[]="";
 $f[]="# First main Network interface";
 $f[]="# \"KEEPNET\" should modify current network [0] or keep the current network settings [1]";
 $f[]="KEEPNET=0";
+$f[]="VPS_COMPATIBLE=0";
+$f[]="NIC=eth0";
 $f[]="IPADDR=$IPADDR";
 $f[]="NETMASK=$NETMASK";
 $f[]="GATEWAY=$GATEWAY";
@@ -515,6 +520,44 @@ function video_proxy(){
 	
 }
 
+function setup_nic(){
+	$DISABLED=false;
+	$t=$_GET["t"];
+	$nic=new system_nic($_GET["NIC"]);
+	$IPADDR=$nic->IPADDR;
+	$NETMASK=$nic->NETMASK;
+	$GATEWAY=$nic->GATEWAY;
+	$BROADCAST=$nic->BROADCAST;
+	$metric=$nic->metric;
+	if(!is_numeric($metric)){$metric=1;}
+	
+	$tpl=new templates();
+	echo $tpl->_ENGINE_parse_body("<table style='width:100%'>
+	<tr>
+	<td class=legend style='font-size:25px' nowrap>{tcp_address}:</td>
+	<td>" . field_ipv4("IPADDR",$IPADDR,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
+	</tr>
+	<tr>
+	<td class=legend style='font-size:25px'>{netmask}:</td>
+	<td>" . field_ipv4("NETMASK",$NETMASK,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
+	</tr>
+		
+	<tr>
+	<td class=legend style='font-size:25px'>{gateway}:</td>
+	<td>" . field_ipv4("GATEWAY",$GATEWAY,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
+	</tr>
+	<tr>
+	<td class=legend style='font-size:25px'>{metric}:</td>
+	<td>" . field_text("metric-$t",$metric,'padding:3px;font-size:25px;width:90px',null,null,null,false,null,$DISABLED)."</td>
+	</tr>
+	<tr>
+	<td class=legend style='font-size:25px'>{broadcast}:</td>
+	<td>" . field_ipv4("BROADCAST",$BROADCAST,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
+	</tr>
+	</TABLE>");
+	
+}
+
 function setup_1(){
 	$users=new usersMenus();
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
@@ -873,8 +916,10 @@ function setup_active_directory_save(){
 }
 
 function setup_2(){
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] setup_2()</span><br>\n";}
 	$GLOBALS["DEBUG_TEMPLATE"]=true;
 	include_once(dirname(__FILE__)."/ressources/class.langages.inc");
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] articaLang()</span><br>\n";}
 	$langAutodetect=new articaLang();
 	$DetectedLanguage=$langAutodetect->get_languages();
 	$GLOBALS["FIXED_LANGUAGE"]=$DetectedLanguage;		
@@ -884,11 +929,13 @@ function setup_2(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$users=new usersMenus();
+	if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] OK</span><br>\n";}
 	
 	$netbiosname_field=$tpl->javascript_parse_text("{netbiosname}");
 	$domain_field=$tpl->javascript_parse_text("{domain}");
 	
 	if(count($savedsettings)<3){
+			if($GLOBALS["VERBOSE"]){echo "<span style='color:red'>[".__LINE__."] network.php?fqdn=yes</span><br>\n";}
 			$hostname=base64_decode($sock->getFrameWork("network.php?fqdn=yes"));	
 			if($hostname==null){$users=new usersMenus();$hostname=$users->fqdn;}	
 			$arrayNameServers=GetNamesServers();
@@ -980,12 +1027,18 @@ function setup_2(){
 		</tr>";		
 	}
 	
+	
+	
 	if($users->dhcp_installed){
 		$dhcpd="	<tr>
 		<td class=legend style='font-size:25px'>{activate_dhcp_service}:</td>
 		<td>". Field_checkbox("EnableDHCPServer", 1,0)."</td>
 		</tr>";
 	}	
+	
+	$SERVICES_TITLE="<div style='margin-bottom:35px'>{services}</div>";
+	
+	if($users->WORDPRESS_APPLIANCE){$dhcpd=null;$SERVICES_TITLE=null;}
 	
 	//FIRST_WIZARD_NIC2 -> fini -> demande de reboot
 	$t=time();
@@ -996,6 +1049,8 @@ function setup_2(){
 	$metric=$savedsettings["metric"];
 	$BROADCAST=$savedsettings["BROADCAST"];
 	$KEEPNET=$savedsettings["KEEPNET"];
+	$NIC=$savedsettings["NIC"];
+	$VPS_COMPATIBLE=$savedsettings["VPS_COMPATIBLE"];
 	$nic=new system_nic("eth0");
 	if($IPADDR==null){$IPADDR=$nic->IPADDR;}
 	if($NETMASK==null){$NETMASK=$nic->NETMASK;}
@@ -1008,7 +1063,10 @@ function setup_2(){
 	if(trim($arrayNameServers[1])==null){$arrayNameServers[1]="8.8.8.8";}
 	if(!is_numeric($KEEPNET)){$KEEPNET=0;}
 	
-
+	$NICS=new networking();
+	$Local_interfaces=$NICS->Local_interfaces(true);
+	
+	
 	
 	$timezone=timezonearray();
 	for($i=0;$i<count($timezone);$i++){
@@ -1045,7 +1103,21 @@ function setup_2(){
 		<tr>
 			<td class=legend style='font-size:25px' nowrap>{keep_current_settings}:</td>
 			<td>" . Field_checkbox("KEEPNET",1,$KEEPNET,'KeepNetCheck()')."</td>
-		</tr>				
+		</tr>
+		<tr>
+			<td class=legend style='font-size:25px' nowrap>{VPS_COMPATIBLE}:</td>
+			<td>" . Field_checkbox("VPS_COMPATIBLE",1,$VPS_COMPATIBLE,'')."</td>
+		</tr>
+					
+		<tr>
+			<td class=legend style='font-size:25px' nowrap>{network_interface}:</td>
+			<td>" . Field_array_Hash($Local_interfaces,"NIC","$NIC",
+					"ChangeWizardNetInterfaces()",null,0,"padding:3px;font-size:25px")."</td>
+		</tr>
+	</table>
+	<br>
+	<span id='INTERFACES_OBJECTS'>	
+	<table style='width:100%'>							
 		<tr>
 			<td class=legend style='font-size:25px' nowrap>{tcp_address}:</td>
 			<td>" . field_ipv4("IPADDR",$IPADDR,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
@@ -1066,7 +1138,14 @@ function setup_2(){
 		<tr>
 			<td class=legend style='font-size:25px'>{broadcast}:</td>
 			<td>" . field_ipv4("BROADCAST",$BROADCAST,'padding:3px;font-size:25px',null,null,null,false,null,$DISABLED)."</td>
-		</tr>		
+		</tr>
+		</TABLE>
+	</SPAN>
+	<br>
+	<table style='width:100%'>	
+	<tr>
+		<td colspan=2 style='font-size:50px;'><div style='margin-bottom:35px'>DNS</div></td>
+	</tr>					
 	<tr>
 		<td class=legend style='font-size:25px' nowrap>{primary_dns}:</td>
 		<td>". field_ipv4("DNS1", $arrayNameServers[0],"padding:3px;font-size:25px")."</td>
@@ -1079,7 +1158,7 @@ function setup_2(){
 		<td colspan=2 style='font-size:16px;font-weight:bolder'>&nbsp;</td>
 	</tr>	
 	<tr>
-		<td colspan=2 style='font-size:50px;'><div style='margin-bottom:35px'>{services}</div></td>
+		<td colspan=2 style='font-size:50px;'>$SERVICES_TITLE</td>
 	</tr>	
 	$proxy			
 	$pdns	
@@ -1107,8 +1186,14 @@ function setup_2(){
 			if(checkEnter(e)){ChangeQuickHostname();}
 		}
 		
+		function ChangeWizardNetInterfaces(){
+			var nic=document.getElementById('NIC').value;
+			LoadAjax('INTERFACES_OBJECTS','$page?setup-nic=yes&t=$t&NIC='+nic)
+		
+		}
+		
 		function KeepNetCheck(){
-			
+			document.getElementById('NIC').disabled=false;
 			document.getElementById('hostname_netbios').disabled=false;
 			document.getElementById('hostname_domain').disabled=false;
 			document.getElementById('IPADDR').disabled=false;
@@ -1118,9 +1203,12 @@ function setup_2(){
 			document.getElementById('metric-$t').disabled=false;	
 			document.getElementById('DNS1').disabled=false;
 			document.getElementById('DNS2').disabled=false;
+			document.getElementById('VPS_COMPATIBLE').disabled=false;
 			
 			
 			if(document.getElementById('KEEPNET').checked){
+				document.getElementById('NIC').disabled=true;
+				document.getElementById('VPS_COMPATIBLE').disabled=true;
 				document.getElementById('IPADDR').disabled=true;
 				document.getElementById('NETMASK').disabled=true;
 				document.getElementById('GATEWAY').disabled=true;
@@ -1138,7 +1226,9 @@ function setup_2(){
 		
 		function ChangeQuickHostname(){
 			KEEPNET=0;
+			VPS_COMPATIBLE=0;
 			if(document.getElementById('KEEPNET').checked){KEEPNET=1;}
+			if(document.getElementById('VPS_COMPATIBLE').checked){VPS_COMPATIBLE=1;}
 			var XHR = new XHRConnection();
 			var netbios=document.getElementById('hostname_netbios').value;
 			var dom=document.getElementById('hostname_domain').value;
@@ -1147,6 +1237,8 @@ function setup_2(){
 				if(dom.length==0){alert('$domain_field (Null!)');return;}
 				if(dom=='localhost.localdomain'){alert('localhost.localdomain wrong domain...');return;}
 			}
+			
+			
 			
 			if(document.getElementById('proxy_listen_port')){
 				XHR.appendData('proxy_listen_port',document.getElementById('proxy_listen_port').value);
@@ -1184,7 +1276,11 @@ function setup_2(){
 			
 			 
 			XHR.appendData('KEEPNET',KEEPNET);
+			
 			if(KEEPNET==0){ 
+				XHR.appendData('VPS_COMPATIBLE',VPS_COMPATIBLE);
+				XHR.appendData('NIC',document.getElementById('NIC').value);
+				
 				XHR.appendData('IPADDR',document.getElementById('IPADDR').value);
 				XHR.appendData('NETMASK',document.getElementById('NETMASK').value);  
 				XHR.appendData('GATEWAY',document.getElementById('GATEWAY').value);
@@ -1243,6 +1339,7 @@ function setup_3(){
 	$telephone=$savedsettings["telephone"];
 	$UseServerV=$savedsettings["UseServer"];
 	$smtp_domainname=$savedsettings["smtp_domainname"];
+	$company_www=$savedsettings["company_www"];
 	$KEEPNET=$savedsettings["KEEPNET"];
 	if(!is_numeric($KEEPNET)){$KEEPNET=0;}
 	$t=time();
@@ -1253,6 +1350,7 @@ function setup_3(){
 	$UseServer["ASPROXY"]="{proxy_server}";
 	$UseServer["ASREVERSEPROXY"]="{reverse_proxy_server}";
 	$UseServer["AS_FIREWALL"]="{gateway}";
+	$UseServer["AS_WORDPRESS"]="Wordpress appliance";
 	
 	
 	
@@ -1289,12 +1387,16 @@ function setup_3(){
 	
 	
 	
-	$UseServerF=Field_array_Hash($UseServer, "UseServer",$UseServerV,"style:font-size:14px");
+	$UseServerF=Field_array_Hash($UseServer, "UseServer",$UseServerV,"style:font-size:25px");
 	$UseServerFF="	
 	</tr>
-		<td class=legend style='font-size:16px'>{you_using_this_server_for}:</td>
+		<td class=legend style='font-size:25px'>{you_using_this_server_for}:</td>
 		<td>$UseServerF</td>
 	</tr>";
+	
+	if($users->WORDPRESS_APPLIANCE){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Wordpress Appliance'>";
+	}	
 	
 	if($users->SMTP_APPLIANCE){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='SMTP Relay Appliance'>";
@@ -1350,7 +1452,9 @@ function setup_3(){
 		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Gateway Appliance' >";
 	}	
 	
-	
+	if($users->WORDPRESS_APPLIANCE){
+		$UseServerFF="<input type='hidden' id='UseServer' name='UseServer' value='Wordpress Appliance' >";
+	}	
 	
 	
 	//toujours à la fin...
@@ -1371,7 +1475,10 @@ function setup_3(){
 		<td class=legend style='font-size:25px'>{company_name}:</td>
 		<td>". Field_text("company_name",$company_name,"font-size:25px;width:280px")."</td>
 	</tr>
-				
+	<tr>
+		<td class=legend style='font-size:25px'>{company_website}:</td>
+		<td>". Field_text("company_www",$company_www,"font-size:25px;width:280px")."</td>
+	</tr>				
 	</tr>
 		<td class=legend style='font-size:25px'>{country}:</td>
 		<td>". Field_text("country",$country,"font-size:25px;width:280px")."</td>
@@ -1463,6 +1570,7 @@ function setup_3(){
 			XHR.appendData('mail',document.getElementById('mail').value);
 			XHR.appendData('telephone',document.getElementById('telephone').value);
 			XHR.appendData('employees',document.getElementById('employees').value);
+			XHR.appendData('company_www',document.getElementById('company_www').value);
 			XHR.appendData('EnableWebFiltering','{$savedsettings["EnableWebFiltering"]}');
 			
 			
@@ -1679,13 +1787,27 @@ function setup_4(){
 
 	
 	}
+	
+	if($savedsettings["company_www"]<>null){
+		if(preg_match("#^http#", $savedsettings["company_www"])){
+			$parse_url=parse_url( $savedsettings["company_www"]);
+			$domainname=$parse_url["host"];
+		}else{
+			$domainname=$savedsettings["company_www"];
+		}
+		
+	}
+	
+	if(preg_match("#^www\.(.+)#", $domainname,$re)){$domainname=$re[1];}
+	
+	
 	if($savedsettings["adminwebserver"]==null){
 		$domainname=$savedsettings["domain"];
 		$savedsettings["adminwebserver"]="admin.$domainname";
 	}
 	
 	if($savedsettings["second_webadmin"]==null){
-		$savedsettings["second_webadmin"]=$savedsettings["IPADDR"];
+		$savedsettings["second_webadmin"]="manager.$domainname";
 	}
 	
 	if($users->SQUID_INSTALLED){
@@ -1701,11 +1823,11 @@ function setup_4(){
 		<table style='width:100%'>
 				<tr>
 					<td class=legend style='font-size:25px'>{webserver}:</td>
-					<td style='font-size:25px'>http://". Field_text("adminwebserver",$savedsettings["adminwebserver"],"font-size:25px;width:280px")."</td>
+					<td style='font-size:25px'>http://". Field_text("adminwebserver",$savedsettings["adminwebserver"],"font-size:25px;width:477px")."</td>
 				</tr>
 				<tr>
 					<td class=legend style='font-size:25px'>{second_webadmin}:</td>
-					<td style='font-size:25px'>http://". Field_text("second_webadmin",$savedsettings["second_webadmin"],"font-size:25px;width:280px")."</td>
+					<td style='font-size:25px'>http://". Field_text("second_webadmin",$savedsettings["second_webadmin"],"font-size:25px;width:477px")."</td>
 				</tr>							
 							
 							

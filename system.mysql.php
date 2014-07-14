@@ -26,7 +26,7 @@ if(isset($_GET["verbose"])){$GLOBALS["VERBOSE"]=true;ini_set('html_errors',1);in
 	if(isset($_GET["members-list"])){members_list();exit;}
 	if(isset($_GET["members-delete"])){members_delete();exit;}
 	if(isset($_GET["members-add"])){members_add_popup();exit;}
-	if(isset($_GET["members-save"])){members_add_save();exit;}
+	if(isset($_POST["members-save"])){members_add_save();exit;}
 	if(isset($_GET["mysql-dir"])){mysql_dir_popup();exit;}
 	if(isset($_POST["ChangeMysqlDir"])){mysql_dir_save();exit;}
 	if(isset($_GET["mysql-status"])){mysql_status();exit;}
@@ -275,8 +275,8 @@ function tabs(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$users=new usersMenus();
-	$array["popup"]='MySQL';
-	$array["parameters"]='{mysql_settings}';
+	$array["popup"]='{status}';
+	$array["parameters"]='{parameters}';
 	
 	$array["members"]='{mysql_users}';
 	$array["ssl"]='{ssl}';
@@ -294,8 +294,8 @@ function tabs(){
 		$array["greensql"]='GreenSQL';
 	}
 	
-	if(count($array)>6){$tabsize="style='font-size:14px'";}
-	if(count($array)>7){$tabsize="style='font-size:14px'";}
+	if(count($array)>6){$tabsize="style='font-size:18px'";}
+	if(count($array)>7){$tabsize="style='font-size:16px'";}
 	
 	while (list ($num, $ligne) = each ($array) ){
 		if($num=="greensql"){
@@ -385,31 +385,17 @@ function popup(){
 		$tr[]=$mysql_audit;
 		$tr[]=$mysql_appliance;
 
-	$tables[]="<table style='width:470px'><tr>";
-	$t=0;
-	while (list ($key, $line) = each ($tr) ){
-			$line=trim($line);
-			if($line==null){continue;}
-			$t=$t+1;
-			$tables[]="<td valign='top'>$line</td>";
-			if($t==2){$t=0;$tables[]="</tr><tr>";}
-			}
-	
-	if($t<2){
-		for($i=0;$i<=$t;$i++){
-			$tables[]="<td valign='top'>&nbsp;</td>";				
-		}
-	}	
+		$table=CompileTr3($tr);
 	
 $t=time();	
 $html="
 <center>
-<div style='width:720px'>
+<div style='width:100%'>
 <table style='width:99%' class=form>
 <tr>
-<td valign='top' width=1%><div id='mysql-status' style='width:250px'></div></td>
-<td valign='top' width=99%><div id='$t'></div>
-	". implode("\n",$tables)."
+<td valign='top' width=1%><div id='mysql-status' style='width:300px'></div></td>
+<td valign='top' width=99%><div id='$t' style='font-size:26px;margin-bottom:20px'></div>
+	$table
 	</td>
 	</tr>
 </table>
@@ -478,13 +464,13 @@ function members(){
 		$q=new mysql_multi($_GET["instance-id"]);
 		$mmultiTitle="$q->MyServer&raquo;";		
 	}
-	$title=$tpl->javascript_parse_text("{hostname} ($q->mysql_server:$q->mysql_port)/{username}");	
+	$title=$tpl->javascript_parse_text("{hostname} ($q->mysql_server:$q->mysql_port)/{mysql_users}");	
 	if(!is_numeric($_GET["instance-id"])){$_GET["instance-id"]=0;}
 
 
 	$buttons="
 	buttons : [
-		{name: '<b>$add_user</b>', bclass: 'add', onpress : AddMysqlUser$t},
+		{name: '<strong style=font-size:18px>$add_user</strong>', bclass: 'add', onpress : AddMysqlUser$t},
 	],";
 
 	$html="
@@ -498,8 +484,8 @@ $('#mysql-users-$t').flexigrid({
 
 	colModel : [
 		{display: '$member', name : 'User', width : 417, sortable : true, align: 'left'},
-		{display: '$databases', name : 'database', width :336, sortable : true, align: 'left'},
-		{display: '&nbsp;', name : 'del', width :31, sortable : true, align: 'left'},
+		{display: '$databases', name : 'database', width :626, sortable : true, align: 'left'},
+		{display: '&nbsp;', name : 'del', width :50, sortable : true, align: 'left'},
 	],	
 	
 	$buttons
@@ -511,11 +497,11 @@ $('#mysql-users-$t').flexigrid({
 	sortname: 'User',
 	sortorder: 'desc',
 	usepager: true,
-	title: '$title',
+	title: '<span style=font-size:22px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 845,
+	width: '99%',
 	height: 400,
 	singleSelect: true
 	
@@ -523,7 +509,7 @@ $('#mysql-users-$t').flexigrid({
 });
 
 	function AddMysqlUser$t(){
-		YahooWin('443','$page?members-add=yes&instance-id={$_GET["instance-id"]}&t=$t','$add_user');
+		YahooWin('650','$page?members-add=yes&instance-id={$_GET["instance-id"]}&t=$t','$add_user');
 	}
 
 	var x_DeleteMysqlUser= function (obj) {
@@ -652,11 +638,11 @@ function members_list(){
 	$data['rows'][] = array(
 		'id' => $md5S,
 		'cell' => array(
-					"<code style='font-size:14px;color:$color'>{$ligne["User"]}@{$ligne["Host"]}</code>",
+					"<code style='font-size:16px;color:$color'>{$ligne["User"]}@{$ligne["Host"]}</code>",
 					"<a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('$MyPage?selectDB-js=yes&host={$ligne["Host"]}&user={$ligne["User"]}&instance-id={$_GET["instance-id"]}&t=$t')\"
-			style='font-size:12px;font-weight:bold;text-decoration:underline;color:$color'
+			style='font-size:16px;font-weight:bold;text-decoration:underline;color:$color'
 			>$databaseText</a>",
-			$delete
+			"<center>$delete</center>"
 			)
 		);		
 		
@@ -706,12 +692,12 @@ function members_add_popup(){
 	$page=CurrentPageName();
 	$tpl=new templates();
 	$t=$_GET["t"];
-
-	$fieldserver= Field_text("servername",$servername,"font-size:16px;padding:3px");
+	$time=time();
+	$fieldserver= Field_text("servername-$time",$servername,"font-size:22px;padding:3px");
 	$mysqlD=new mysqlserver();
 	
 	if($mysqlD->main_array["skip_name_resolve"]=="yes"){
-		$fieldserver=field_ipv4("servername", $servername,"font-size:16px;");
+		$fieldserver=field_ipv4("servername-$time", $servername,"font-size:22px;");
 	}
 	
 	
@@ -719,26 +705,26 @@ function members_add_popup(){
 	<div id='memberdiv$t'></div>
 	<table style='width:99%' class=form>
 	<tr>
-		<td class=legend style='font-size:16px;'>{server}:</td>
+		<td class=legend style='font-size:22px;'>{server}:</td>
 		<td>$fieldserver</td>
 	</tr>	
 	<tr>
-		<td class=legend style='font-size:16px;'>{username}:</td>
-		<td>". Field_text("username",$username,"font-size:16px;padding:3px")."</td>
+		<td class=legend style='font-size:22px;'>{username}:</td>
+		<td>". Field_text("username-$time",$username,"font-size:22px;padding:3px")."</td>
 	</tr>
 	<tr>
-		<td class=legend style='font-size:16px;'>{password}:</td>
-		<td>". Field_password("password",$password,"font-size:16px;padding:3px")."</td>
+		<td class=legend style='font-size:22px;'>{password}:</td>
+		<td>". Field_password("password-$time",$password,"font-size:22px;padding:3px")."</td>
 	</tr>	
 	<tr>
-		<td colspan=2 align='right'><hr>". button("{add}","EditMysqlUser()",16)."</td>
+		<td colspan=2 align='right'><hr>". button("{add}","EditMysqlUser()",30)."</td>
 	</tr>
 	</table>
 	
 	<script>
 	var x_EditMysqlUser= function (obj) {
 		var results=obj.responseText;
-		document.getElementById('memberdiv$t').innerHTML='';
+		
 		if(results.length>0){alert(results);return;}
 		$('#mysql-users-$t').flexReload();
 		if(document.getElementById('mysqlS-member-$t')){
@@ -753,11 +739,11 @@ function members_add_popup(){
 		var XHR = new XHRConnection();
 		XHR.appendData('instance-id','{$_GET["instance-id"]}');
 		XHR.appendData('members-save','yes');
-		XHR.appendData('servername',document.getElementById('servername').value);
-		XHR.appendData('username',document.getElementById('username').value);
-		XHR.appendData('password',base64_encode(document.getElementById('password').value));
-		AnimateDiv('memberdiv$t');
-		XHR.sendAndLoad('$page', 'GET',x_EditMysqlUser);
+		XHR.appendData('servername',document.getElementById('servername-$time').value);
+		XHR.appendData('username',document.getElementById('username-$time').value);
+		XHR.appendData('password',encodeURIComponent(document.getElementById('password-$time').value));
+		
+		XHR.sendAndLoad('$page', 'POST',x_EditMysqlUser);
 	}		
 	</script>
 	";
@@ -768,13 +754,13 @@ function members_add_popup(){
 
 function members_add_save(){
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."<br>";}
-	$server=trim($_GET["servername"]);
-	$username=trim($_GET["username"]);
-	$password=trim(base64_decode($_GET["password"]));
+	$server=trim($_POST["servername"]);
+	$username=trim($_POST["username"]);
+	$password=url_decode_special_tool($_POST["password"]);
 	if($server=="*"){$server="%";}
 	if($GLOBALS["VERBOSE"]){echo __LINE__." ->mysql()<br>";}
 	$q=new mysql();
-	if((is_numeric($_GET["instance-id"]) && $_GET["instance-id"]>0)){$q=new mysql_multi($_GET["instance-id"]);}	
+	if((is_numeric($_POST["instance-id"]) && $_POST["instance-id"]>0)){$q=new mysql_multi($_GET["instance-id"]);}	
 	
 	$OrginalPassword=$q->mysql_password;
 	$sql="SELECT User FROM user WHERE Host='$server' AND User='$username'";
@@ -874,7 +860,7 @@ function text_status(){
 	$size=FormatBytes($ligne["tsize"]/1024);
 	
 	$mysql=new mysqlserver();
-	$html="<div style='font-size:16px'>v. $mysql->mysql_version_string ($mysql->mysqlvbin) {size}:$size</div>";
+	$html="<div style='font-size:26px'>v. $mysql->mysql_version_string ($mysql->mysqlvbin) {size}:$size</div>";
 	$tpl=new templates();
 	echo $tpl->_ENGINE_parse_body($html);
 }

@@ -78,7 +78,7 @@ function table_list(){
 		
 while (list ($index, $RuleArray) = each ($CONF) ){
 	if($classtr=="oddRow"){$classtr=null;}else{$classtr="oddRow";}
-	$speed=$RuleArray["BW_MAX"]/100;
+	$speed=$RuleArray["BW_MAX"]/1000;
 	$speed="$speed kb/s";
 	
 	if($RuleArray["BW_ENGINE"]=="MaxConnection"){$speed="{$RuleArray["BW_MAX"]} {connections}";}
@@ -207,9 +207,9 @@ function rule_popup_save(){
 	$tpl=new templates();	
 	$free=new freeweb($_POST["servername"]);
 	
-	if($_POST["BW_ENGINE"]=="BandWidth"){$_POST["BW_MAX"]=$_POST["BW_MAX"]*100;}
-	if($_POST["BW_ENGINE"]=="MinBandWidth"){$_POST["BW_MAX"]=$_POST["BW_MAX"]*100;}
-	if($_POST["BW_ENGINE"]=="LargeFileLimit"){$_POST["BW_MAX"]=$_POST["BW_MAX"]*100;}
+	if($_POST["BW_ENGINE"]=="BandWidth"){$_POST["BW_MAX"]=$_POST["BW_MAX"]*1000;}
+	if($_POST["BW_ENGINE"]=="MinBandWidth"){$_POST["BW_MAX"]=$_POST["BW_MAX"]*1000;}
+	if($_POST["BW_ENGINE"]=="LargeFileLimit"){$_POST["BW_MAX"]=$_POST["BW_MAX"]*1000;}
 	
 	if($_POST["index"]>0){
 		while (list ($key, $val) = each ($_POST) ){
@@ -248,7 +248,7 @@ function rule_popup_type(){
 		</tr>
 		<tr>
 			<td class=legend style='font-size:14px'>{speed}:</td>
-			<td style='font-size:14px'>". Field_text( "BW_MAX",$CONF["BW_MAX"]/100,"font-size:14px;width:60px")."&nbsp;k/sec</td>
+			<td style='font-size:14px'>". Field_text( "BW_MAX",$CONF["BW_MAX"]/1000,"font-size:14px;width:60px")."&nbsp;k/sec</td>
 		</tr>	
 		</tbody>
 		</table>";	
@@ -267,7 +267,7 @@ function rule_popup_type(){
 		</tr>
 		<tr>
 			<td class=legend style='font-size:14px'>{speed}:</td>
-			<td style='font-size:14px'>". Field_text( "BW_MAX",$CONF["BW_MAX"]/100,"font-size:14px;width:60px")."&nbsp;k/sec</td>
+			<td style='font-size:14px'>". Field_text( "BW_MAX",$CONF["BW_MAX"]/1000,"font-size:14px;width:60px")."&nbsp;k/sec</td>
 		</tr>	
 		</tbody>
 		</table>";	
@@ -290,7 +290,7 @@ function rule_popup_type(){
 		</tr>		
 		<tr>
 			<td class=legend style='font-size:14px'>{speed}:</td>
-			<td style='font-size:14px'>". Field_text( "BW_MAX",$CONF["BW_MAX"]/100,"font-size:14px;width:60px")."&nbsp;k/sec</td>
+			<td style='font-size:14px'>". Field_text( "BW_MAX",$CONF["BW_MAX"]/1000,"font-size:14px;width:60px")."&nbsp;k/sec</td>
 		</tr>	
 		</tbody>
 		</table>";	

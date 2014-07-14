@@ -214,7 +214,7 @@ function authenticate() {
 	$_POST["artica_password"]=$_SERVER['PHP_AUTH_PW'];
 	include("ressources/settings.inc");
 	
-	if($_POST["artica_username"]==$_GLOBAL["ldap_admin"]){
+	if(trim(strtolower($_POST["artica_username"]))==trim(strtolower($_GLOBAL["ldap_admin"]))){
 		if($_POST["artica_password"]<>$_GLOBAL["ldap_password"]){
 			artica_mysql_events("Failed to logon on the Artica Web console from {$_SERVER["REMOTE_HOST"]}",@implode("\n",$notice),"security","security");
 			return false;

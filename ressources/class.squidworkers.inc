@@ -268,6 +268,7 @@ class squidworkers{
 		$unix=new unix();
 		$squidbin=$unix->find_program("squid");
 		if($squidbin==null){$squidbin=$unix->find_program("squid3");}
+		if(!is_file($squidbin)){return;}
 		exec("$squidbin -v 2>&1",$results);
 		while (list ($num, $val) = each ($results)){
 			if(preg_match("#Squid Cache: Version.*?([0-9\.]+)#", $val,$re)){
@@ -283,7 +284,8 @@ class squidworkers{
 	
 		$version=$unix->CACHE_VERSIONS("APP_SQUID");
 		if($version<>null){$GLOBALS[__FUNCTION__]=$version;return $version;}
-		echo "Warning !!!!!! cannot find version in $squidbin ! !!\n";
+		
+		
 	}
 	
 	private function CountDeCaches($cpuindex,$uuid){

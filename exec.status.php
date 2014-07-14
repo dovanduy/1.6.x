@@ -4848,6 +4848,7 @@ function php_fpm(){
 	if($ZarafaApachePHPFPMEnable==1){$EnablePHPFPM=1;}
 	if($EnableArticaApachePHPFPM==1){$EnablePHPFPM=1;}
 	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$EnablePHPFPM=1;$EnablePHPFPMFreeWeb=1;}
 	
 
 	$l[]="[APP_PHPFPM]";
@@ -4858,15 +4859,18 @@ function php_fpm(){
 	$l[]="service_cmd=/etc/init.d/php5-fpm";
 	$l[]="watchdog_features=1";
 	$l[]="family=network";
+	
+	if(is_file("/etc/monit/conf.d/phpfpm.monitrc")){
+		@unlink("/etc/monit/conf.d/phpfpm.monitrc");
+		$GLOBALS["CLASS_UNIX"]->MONIT_RELOAD();
+	}
 
 	if($EnablePHPFPM==0){
-		if(is_file("/etc/monit/conf.d/phpfpm.monitrc")){
-			@unlink("/etc/monit/conf.d/phpfpm.monitrc");
-			$GLOBALS["CLASS_UNIX"]->MONIT_RELOAD();
-		}
 		$l[]="";return implode("\n",$l);
 		return;
 	}
+	
+	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){$master_pid=$GLOBALS["CLASS_UNIX"]->PIDOF($bin);}
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
@@ -6791,15 +6795,28 @@ function winbind_pid(){
 
 function winbindd(){
 
-	if(!$GLOBALS["CLASS_USERS"]->SAMBA_INSTALLED){
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}
-		return null;
-	}
-
 	if(!$GLOBALS["CLASS_USERS"]->WINBINDD_INSTALLED){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}
 		return null;
 	}
+	
+	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){
+		$master_pid=winbind_pid();
+		if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec("/etc/init.d/winbind stop");
+		}
+	}
+	
+	if(!$GLOBALS["CLASS_USERS"]->SAMBA_INSTALLED){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." not installed\n";}
+		$master_pid=winbind_pid();
+		if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
+			shell_exec("/etc/init.d/winbind stop");
+		}
+		return null;
+	}
+
+
 	
 	
 
@@ -9298,6 +9315,7 @@ $master_pid=vsftpd_pid();
 
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($master_pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){
+			vsftpd_admin_mysql(0,"Starting VSFTPD service [not running]",null,__FILE__,__LINE__);
 			$cmd=trim("{$GLOBALS["NICE"]}{$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.vsftpd.php --start");
 			shell_exec2($cmd);
 		}
@@ -9306,6 +9324,7 @@ $master_pid=vsftpd_pid();
 		return;
 	}else{
 		if($enabled==0){
+			vsftpd_admin_mysql(0,"Stopping VSFTPD service EnableVSFTPDDaemon = 0",null,__FILE__,__LINE__);
 			shell_exec2("{$GLOBALS["nohup"]} /etc/init.d/vsftpd stop >/dev/null 2>&1 &");
 		}
 	}

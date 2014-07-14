@@ -4,6 +4,8 @@ include_once(dirname(__FILE__)."/frame.class.inc");
 include_once(dirname(__FILE__)."/class.unix.inc");
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 
+
+if(isset($_GET["account-progress"])){account_progress();exit;}
 if(isset($_GET["remove-logs-file"])){remove_file();exit;}
 if(isset($_GET["install-artica-tgz"])){install_artica_tgz();exit;}
 if(isset($_GET["mii-tool-save"])){MII_TOOLS_SAVE();exit;}
@@ -1266,8 +1268,13 @@ function set_apache_perms(){
 function copytocache(){
 	$unix=new unix();
 	$path=$_GET["copytocache"];
-	if(!is_file($path)){echo "<articadatascgi>No such file</articadatascgi>";return;}
+	if(!is_file($path)){echo "<articadatascgi>No such file</articadatascgi>";
+	writelogs("$path -> No such file");
+	return;}
 	$basename=basename($path);
+	
+	writelogs("COPY $path -> /usr/share/artica-postfix/ressources/logs/$basename");
+	
 	if(is_file("/usr/share/artica-postfix/ressources/logs/$basename")){@unlink("/usr/share/artica-postfix/ressources/logs/$basename");}
 	if(!copy($path, "/usr/share/artica-postfix/ressources/logs/$basename")){
 		echo "<articadatascgi>Copy failed</articadatascgi>";return;}
@@ -1293,4 +1300,24 @@ function refresh_logs_storefiles(){
 	$php5=$unix->LOCATE_PHP5_BIN();
 	shell_exec("$php5 /usr/share/artica-postfix/exec.scan.storage-logs.php --force");	
 	
+}
+
+function account_progress(){
+
+	$unix=new unix();
+	$php5=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/account.progress";
+	$GLOBALS["LOG_FILE"]="/usr/share/artica-postfix/ressources/logs/web/account.progress.txt";
+	@unlink($GLOBALS["PROGRESS_FILE"]);
+	@unlink($GLOBALS["LOG_FILE"]);
+	@touch($GLOBALS["PROGRESS_FILE"]);
+	@touch($GLOBALS["LOG_FILE"]);
+	@chmod($GLOBALS["PROGRESS_FILE"], 0755);
+	@chmod($GLOBALS["LOG_FILE"], 0755);
+	$cmd="$nohup $php5 /usr/share/artica-postfix/exec.artica.account.progress.php >{$GLOBALS["LOG_FILE"]} 2>&1 &";
+	writelogs_framework($cmd,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+
+
 }

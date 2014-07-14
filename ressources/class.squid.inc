@@ -663,8 +663,8 @@ class squidbee{
 		if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}
 		$unix=new unix();
 		$squidbin=$unix->LOCATE_SQUID_BIN();
-		if($squidbin==null){$squidbin=$unix->find_program("squid3");}
-		if($squidbin==null){return;}
+		if($squidbin==null){$squidbin=trim($unix->find_program("squid3"));}
+		if(!is_file($squidbin)){return;}
 		exec("$squidbin -v 2>&1",$results);
 		while (list ($num, $val) = each ($results)){
 			if(preg_match("#Squid Cache: Version.*?([0-9\.]+)#", $val,$re)){
@@ -685,11 +685,9 @@ class squidbee{
 		
 		if($version<>null){
 			$GLOBALS[__FUNCTION__]=$version;
-			return $version;}
-		
-		if($GLOBALS["NOSQUIDOUTPUT"]){
-			echo "Warning !!!!!! cannot find version in $squidbin ! !!\n";
+			return $version;
 		}
+		
 	}
 	
 	public function visible_hostnameF(){
@@ -1235,7 +1233,15 @@ class squidbee{
 		if($this->global_conf_array["ipcache_high"]==null){$this->global_conf_array["ipcache_high"]=95;}
 		if($this->global_conf_array["fqdncache_size"]==null){$this->global_conf_array["fqdncache_size"]=1024;}
 		if($this->global_conf_array["positive_dns_ttl"]==null){$this->global_conf_array["positive_dns_ttl"]="6 hours";}
-		if($this->global_conf_array["negative_dns_ttl"]==null){$this->global_conf_array["negative_dns_ttl"]="300 seconds";}		
+		if($this->global_conf_array["negative_dns_ttl"]==null){$this->global_conf_array["negative_dns_ttl"]="300 seconds";}	
+		if($this->global_conf_array["maximum_object_size_in_memory"]==null){$this->global_conf_array["maximum_object_size_in_memory"]="100 M";}
+		if($this->global_conf_array["cache_mem"]==null){$this->global_conf_array["cache_mem"]="8 M";}
+		if($this->global_conf_array["cache_swap_high"]==null){$this->global_conf_array["cache_swap_high"]="97";}
+		if($this->global_conf_array["cache_swap_low"]==null){$this->global_conf_array["cache_swap_low"]="95";}
+
+		
+		
+		
 		
 		if(!is_numeric($this->global_conf_array["persistent_request_timeout"])){$this->global_conf_array["persistent_request_timeout"]=60;}
 		
@@ -1336,27 +1342,32 @@ class squidbee{
 		
 		if(!$q->TABLE_EXISTS("dns_servers")){
 			$filldef=true;
-			$q->QUERY_SQL("CREATE TABLE `squidlogs`.`dns_servers` ( `ID` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY , `dnsserver` VARCHAR( 90 ) NOT NULL , `zOrder` SMALLINT( 2 ) NOT NULL, INDEX (`zOrder`), UNIQUE KEY `dnsserver` (`dnsserver`) )" );
+			$q->QUERY_SQL("CREATE TABLE `squidlogs`.`dns_servers` ( `ID` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY , `dnsserver` VARCHAR( 90 ) NOT NULL , `zOrder` SMALLINT( 2 ) NOT NULL, 
+						INDEX (`zOrder`), UNIQUE KEY `dnsserver` (`dnsserver`) ) ENGINE=MyISAM;" );
 			
 		}
 		
 		if($q->COUNT_ROWS("dns_servers")==0){$filldef=true;}
 		
 		if($filldef){
-			$dns=explode(';',$GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"]["NETWORK"]["dns_servers"]);
-			if(is_array($dns)){
-				while (list ($num, $serv) = each ($dns)){
-					if(trim($serv)==null){continue;}
-					$dns_array[]=$serv;
-					$q->QUERY_SQL("INSERT INTO `dns_servers` (`dnsserver`,`zOrder`) VALUES ('$serv','$num')");
+			if(isset($GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"])){
+				$dns=explode(';',$GLOBALS["SQUID_MEMORYCONF"]["INI_ARRAY"]["NETWORK"]["dns_servers"]);
+				if(is_array($dns)){
+					while (list ($num, $serv) = each ($dns)){
+						if(trim($serv)==null){continue;}
+						$dns_array[]=$serv;
+						$q->QUERY_SQL("INSERT INTO `dns_servers` (`dnsserver`,`zOrder`) VALUES ('$serv','$num')");
+					}
 				}
 			}
 		}
 		
 		$sql="SELECT dnsserver FROM `dns_servers` ORDER BY `zOrder`";
 		$results=$q->QUERY_SQL($sql);
-		while ($ligne = mysql_fetch_assoc($results)) {
-			$dns_array[]=$ligne["dnsserver"];
+		if($q->ok){
+			while ($ligne = mysql_fetch_assoc($results)) {
+				$dns_array[]=$ligne["dnsserver"];
+			}
 		}
 		$nameserver=array();
 		while (list ($num, $ip) = each ($dns_array) ){$nameserver[$ip]=true;}

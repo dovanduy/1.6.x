@@ -84,11 +84,14 @@ function alias_list(){
 	$aliases=$tpl->javascript_parse_text("{aliases}");
 	$about2=$tpl->_ENGINE_parse_body("{about2}");
 	$about_text=$tpl->javascript_parse_text("{freeweb_aliasserver_explain}");
+	$apply=$tpl->javascript_parse_text("{apply}");
+	$title=$tpl->javascript_parse_text("{$_GET["servername"]}: {server_aliases_title}");
 	$servernameenc=urlencode($_GET["servername"]);
 	$buttons="
 	buttons : [
-	{name: '$new_alias', bclass: 'add', onpress : FreeWebAddServerAlias$t},
-	{name: '$about2', bclass: 'help', onpress : About$t},
+	{name: '<strong style=font-size:16px >$new_alias</strong>', bclass: 'add', onpress : FreeWebAddServerAlias$t},
+	{name: '<strong style=font-size:16px >$apply</strong>', bclass: 'apply', onpress : Apply$t},
+	{name: '<strong style=font-size:16px >$about2</strong>', bclass: 'help', onpress : About$t},
 	],";
 
 	$explain=$tpl->_ENGINE_parse_body("{postfix_transport_senders_explain}");
@@ -110,7 +113,7 @@ $(document).ready(function(){
 	sortname: 'domain',
 	sortorder: 'asc',
 	usepager: true,
-	title: '',
+	title: '<span style=font-size:18px>$title</span>',
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
@@ -124,6 +127,11 @@ $(document).ready(function(){
 
 function About$t(){
 	alert('$about_text');
+}
+
+function Apply$t(){
+	Loadjs('freeweb.rebuild.progress.php?servername=$servernameenc');
+
 }
 
 var x_FreeWebAddServerAlias$t=function (obj) {

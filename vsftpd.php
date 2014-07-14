@@ -81,8 +81,13 @@ function vsftpd_status(){
 	$tpl=new templates();
 	$sock=new sockets();
 	$ini=new Bs_IniHandler();
+	$page=CurrentPageName();
 	$ini->loadString(base64_decode($sock->getFrameWork('vsftpd.php?status=yes')));
-	echo $tpl->_ENGINE_parse_body(DAEMON_STATUS_ROUND("APP_VSFTPD",$ini,null,0));
+	
+	$html=DAEMON_STATUS_ROUND("APP_VSFTPD",$ini,null,0)."
+	<div style='margin-top:15px;text-align:right'>".imgtootltip("refresh-32.png","{refresh}","LoadAjax('vsftpd-status','$page?vsftpd-status=yes');")."</div>";
+	
+	echo $tpl->_ENGINE_parse_body($html);
 }
 
 function vsftpd_settings(){

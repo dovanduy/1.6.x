@@ -392,7 +392,7 @@ class generic_categorize{
 	private function Blog($www){
 		
 		
-		$array=array("jimdo","canalblog","greenshift.eu","simply-webspace.fr","blogia","*.kiev.ua","beepworld.de","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
+		$array=array("jimdo","azurewebsites.net","canalblog","home.pl","greenshift.eu","simply-webspace.fr","blogia","*.kiev.ua","beepworld.de","shost.ca","invitemedia.com","mylivepage.com","mylivepage.net","freeblogit.com","skynetblogs.be","wordpress","freewebspace","hubpages","wordpress.com",
 		"e-monsite","yuku","tumblr","over-blog","ucoz","punt","grygorczuk","skyblog","blogspirit","jellybaby.net",
 		"freedomblogging","bloguez","pagesperso-orange","areavoices","blogspot","typepad","xanga.com",
 		"monsite-orange","blogspirit","blogspace","livejournal","blog.mongenie","diaryclub","blogcu.com","funpic",
@@ -1158,7 +1158,7 @@ class generic_categorize{
 		
 
 		
-		$array=array("vulka.es","atver","yandex","contacteo.com","webmarchand","yahoodns.net","dastelefonbuch.de","annuairefrancais.fr",
+		$array=array("vulka.es","atver","yandex","contacteo.com","gexperiments2.com","gexperiments1.com","webmarchand","yahoodns.net","dastelefonbuch.de","annuairefrancais.fr",
 				"googleusercontent","repertoire-web","towar.ru","cylex-france.fr","bdstatic.com");
 		if($this->ParseArray($array, $www)){return "searchengines";}
 		
@@ -1413,7 +1413,7 @@ private function socialnet($www){
 	}	
 	
 	private function malware($www){
-		$array=array("kko-appli.com","ourtoolbar","serving-sys","incredibar","iminent.com","6rm7.com");
+		$array=array("kko-appli.com","ourtoolbar","reimageplus.com","serving-sys","incredibar","iminent.com","6rm7.com");
 		if($this->ParseArray($array, $www)){return "malware";}
 		
 		if(preg_match("#(^|\.)serving-sys\.com$#", $www)){return "malware";}
@@ -1617,8 +1617,9 @@ private function socialnet($www){
 		
 		if($this->ParseArray($array, $www)){return "industry";}
 		if(preg_match("#(telemarketing|industries|thyssenkrupp|ascenseurs|peteroli|eon-energia|patisserie|frigorifique|automation|automatism|automatisierung|entreprises|artisans|echafaudage|polypro|vitrier|miroiterie|fonderie|-expertise\.|electric|radyator|industrial|charcuterie|architekten|assainissement|electricite|europages|manutention|industrie)#", $www)){return "industry";}
-		if(preg_match("#(beton|mortier|hydraulik|hydraulic|hydrauliq|kakemono|tuyauterie|plasturgie|fournituresbtp|fertilizantes|letourbigmat|scierie|konstruktion|importazion|poliplast|grossiste|elektrik|textiles|metallerie|restauration|materiaux|marquage-textile|marbrier|motoroil|industriade|consultora|consultores|entreprendre|petroleum|menuiserie|agricole|ingenierie|hydraulic|traiteur|metaux|depannage|artisan|soudeuse|plombier|chauffagiste|soudeur|hydraulique|electro|elektro|schneider|metaal|electrique|materiel-de|imprimerie|bobinage|agroalimentaire|prefabricados|agroplastic|agroequipement|xtrmexport|expert-comptable|boulangerie|boucherie|cartonnerie|ferronnerie)#",$www)){return "industry";}
+		if(preg_match("#(hydraulik|hydraulic|hydrauliq|fournituresbtp|fertilizantes|letourbigmat|scierie|konstruktion|importazion|poliplast|grossiste|elektrik|textiles|metallerie|restauration|materiaux|marquage-textile|marbrier|motoroil|industriade|consultora|consultores|entreprendre|petroleum|menuiserie|agricole|ingenierie|hydraulic|traiteur|metaux|depannage|artisan|soudeuse|plombier|chauffagiste|soudeur|hydraulique|electro|elektro|schneider|metaal|electrique|materiel-de|imprimerie|bobinage|agroalimentaire|prefabricados|agroplastic|agroequipement|xtrmexport|expert-comptable|boulangerie|boucherie|cartonnerie|ferronnerie)#",$www)){return "industry";}
 		if(preg_match("#(agricol|agriculteur|agricultur|agri.*?machine)#",$www)){return "industry";}
+		if(preg_match("#(kakemono|tuyauterie|plasturgie|beton|mortier|elevateur|secretariat)#",$www)){return "industry";}
 		
 		if(preg_match("#(^|\.)pro$#", $www)){return "industry";}
 		if(preg_match("#^(plastik|grossiste)#", $www)){return "industry";}
@@ -2624,7 +2625,7 @@ private function socialnet($www){
 		if($this->ParseArray($array, $www)){return "filehosting";}
 		
 		
-		$array=array("dynip.rothen.com","adsl.proxad.net","pskov.dslavangard.ru","vps-10.com","hkhost.me","rncdn3.com","hns.net.in","flatrate.dk","netsolhost.com","netcampus.ca","priv.bahnhof.se","telfortglasvezel.nl","btcentralplus.com","tvalmansa.es","sdtnet.de","dtdns.net","negeriau.net","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
+		$array=array("ifiber.telenet-ops.be","dynip.rothen.com","static.gorillaservers.com","rdns.ubiquity.io","ornage26.com","adsl.internode.on.net","static.ttnet.com.tr","rdns.ubiquityservers.com","rdns.scalabledns.com","static.reverse.lstn.net","dsl.dodo.com.au","adsl.proxad.net","no-ip.biz","no-ip.info","pskov.dslavangard.ru","vps-10.com","hkhost.me","rncdn3.com","hns.net.in","flatrate.dk","netsolhost.com","netcampus.ca","priv.bahnhof.se","telfortglasvezel.nl","btcentralplus.com","tvalmansa.es","sdtnet.de","dtdns.net","negeriau.net","modulonet.fr","neasonline.no","nastech.bg","strelatelecom.ru","variant.tv","dsl.dyn.forthnet.gr","static.tpgi.com.au","i-revonet.jp","getinternet.no","zeop.re","123-vps.co.uk","bentcom.net","csicable.net","ruhr-uni-bochum.de","kbc.umu.se","telepac","vgscom.ru","dynamic.intelnet.net.gt","elcom.ru","direct-adsl.nl","dynamic.caiway.nl","rev.numericable.fr","megaline.telecom.kz","superkabel.de","adsl.eastport.ru","acanac.net","mirohost.net","tts.magadan.su","zeelandnet.nl","pptp.customers.inmart.net.ua","cpe.citywest.ca","cpe.westmancom.com","idx.pool.ew.hu","cpe.net.cable.rogers.com","ip-pool.rftonline.net","dyndns-remote.com","pool.korosmenti.hu","tokyo-ip.dti.ne.jp","kbleu.net","pool.bitel.net","wayinternet.com.br","ayu.ne.jp","daktel.net","swtbg.net","aaanet.ru","liwest.at","psci.net","derytele.com","unet.cz","kimsufi.com","doesntexist","scnet.cz","ellijay.com","dhcp.fiberflex.dk","tdm.co.mz","synapse.ne.jp","primarydns.com","user.vivozap.com.br","ipstatic.net","ym.edu.tw","serdi.ru","digitelone.com","northnovacable.ca","pools.arcor-ip.net","wbt.ru","la.net.ua","beld.net","ziggozakelijk.nl","starlink.ru","golden.net","dynamic.peoplenet.ua","dynamic.mts-nn.ru","vesvrabote.ru","komservice.net","vidin.net","io-global.com","brutele.be","kabel-badenwuerttemberg.de","prudok.ru","dynamic.pppoe.mgts.by","user.veloxzone.com.br","megared.net.mx","eastlink.ca","dsl.sura.ru","orangearmenia","moldtelecom","cable.virginmedia.com","charter.com","com2com.ru","icnhost.net","telnet.bg","kiber.net.ua","telnetcommunications","hawaiiantel","homedns","dyndns","at-band-camp.net",
 		"barrel-of-knowledge.info","barrell-of-knowledge.info","better-than.tv","blogdns.com","izhnt.ru","qala.com.sg","online.dn.ua","infra.lync.com","sodetel.net.lb","internet-x.hu","keysurf.net","1scom.net","ondsl.gr","navoi.net.gs.uz","dsl*fidnet.com",
 		"blogdns.net","blogdns.org","blogsite.org","boldlygoingnowhere.org","broke-it.net","optonline.net","qwerty.ru","nationalcablenetworks.ru","chitaonline.ru",
 		"buyshouses.net","cechire.com","dnsalias.com","dnsalias.net","dnsalias.org","dnsdojo.com","kthopen.kth.se","mc.videotron.ca","flynet.by","unitymediagroup.de",

@@ -15,6 +15,7 @@ if(isset($_GET["used-db"])){used_databases();exit;}
 if(isset($_GET["saveconf"])){ufdbguard_save_content();exit;}
 if(isset($_GET["debug-groups"])){debug_groups();exit;}
 if(isset($_GET["databases-percent"])){databases_percent();exit;}
+if(isset($_GET["articawebfilter-database-version"])){artica_webfilter_database_version();exit;}
 
 
 
@@ -160,6 +161,14 @@ function debug_groups(){
 	
 }
 
+function artica_webfilter_database_version(){
+	$file="/etc/artica-postfix/ARTICAUFDB_LAST_DOWNLOAD";
+	$STATUS=unserialize(@file_get_contents($file));
+	$myVersion=intval($STATUS["LAST_DOWNLOAD"]["TIME"]);
+	echo "<articadatascgi>$myVersion</articadatascgi>";
+	
+}
+
 function databases_percent(){
 	$unix=new unix();
 	
@@ -236,6 +245,7 @@ function databases_percent(){
 	$c=0;
 	while (list ($filename, $line) = each ($files)){
 		$filepath="/home/artica/categories_databases/$filename";
+		if($filename=="CATZ_ARRAY"){continue;}
 		if(is_link("$filepath")){continue;}
 	
 		$cat=basename($filepath);

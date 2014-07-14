@@ -3710,6 +3710,7 @@ function TCP_LIST_NICS(){
 function TCP_NICS_STATUS_ARRAY(){
 	$unix=new unix();
 	$ALLARRAY=$unix->NETWORK_ALL_INTERFACES();	
+	writelogs_framework(" TCP_NICS_STATUS_ARRAY: ".count($ALLARRAY)." elements ",__FUNCTION__,__FILE__,__LINE__);
 	$sortie=base64_encode(serialize($ALLARRAY));
 	echo "<articadatascgi>$sortie</articadatascgi>";
 }
@@ -3741,6 +3742,8 @@ function TCP_NIC_STATUS(){
 }
 
 function TCP_NIC_INFOS(){
+	
+	writelogs_framework("usr/share/artica-postfix/bin/artica-install --nicinfos {$_GET["nic-infos"]}",__FUNCTION__,__FILE__,__LINE__);
 	exec("/usr/share/artica-postfix/bin/artica-install --nicinfos {$_GET["nic-infos"]}",$results);
 	$datas=trim(@implode("\n",$results));
 	writelogs_framework($datas,__FUNCTION__,__FILE__,__LINE__);

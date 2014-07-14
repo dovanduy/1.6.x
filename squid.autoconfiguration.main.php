@@ -817,10 +817,14 @@ function rules_options(){
 	<td class=legend style='font-size:18px'>{dnot_proxy_localnames}:</td>
 	<td>". Field_checkbox("dntlhstname-$ttt", 1,$ligne["dntlhstname"])."</td>
 	</tr>
+	<tr><td colspan=2><p class=text-info>{dnot_proxy_localnames_explain}</p></td></tr>	
+			
+			
 	<tr>
 	<td class=legend style='font-size:18px'>{dnot_proxy_lisResolvable}:</td>
 	<td>". Field_checkbox("isResolvable-$ttt", 1,$ligne["isResolvable"])."</td>
 	</tr>			
+	<tr><td colspan=2><p class=text-info>{dnot_proxy_lisResolvable_explain}</p></td></tr>	
 	<tr>
 		<td colspan=2 align='right'><hr>". button($button,"SaveR$ttt()",22)."</td>
 	</tr>

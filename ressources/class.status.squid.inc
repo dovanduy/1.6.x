@@ -1098,7 +1098,7 @@ function squid_master_status_version(){
 			return $GLOBALS["squid_master_status_version"];
 		}
 	}
-	if($GLOBALS["VERBOSE"]){echo "Warning !!!!!! cannot find version in $squidbin ! !!\n";}
+	
 }
 //========================================================================================================================================================
 function cntlm_version(){

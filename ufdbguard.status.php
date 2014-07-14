@@ -14,10 +14,7 @@ if(!$usersmenus->AsDansGuardianAdministrator){
 	echo "alert('$alert');";
 	die();	
 }
-if(isset($_GET["service-status"])){service_status();exit;}
-	if(isset($_GET["service-cmds"])){service_cmds_js();exit;}
-	if(isset($_GET["service-cmds-popup"])){service_cmds_popup();exit;}
-	if(isset($_GET["service-cmds-perform"])){service_cmds_perform();exit;}
+	if(isset($_GET["service-status"])){service_status();exit;}
 	if(isset($_GET["main"])){main();exit;}
 
 page();
@@ -70,8 +67,18 @@ function page(){
 	$t=time();
 	
 	$html="
-	<div id='service-status-$t'></div>
-	<div id='main-status-$t'>
+	<div style='font-size:30px;margin-bottom:20px'>{web_filtering}</div>
+	<div style='width:98%' class=form>
+	<table style='width:100%'>
+	<tr>
+		<td style='vertical-align:top;width:390px'><div id='service-status-$t'></div></td>
+		<td style='vertical-align:top;width:99%;padding-left:20px'>
+				<center id='rules-toolbox' style='margin:bottom:15px'></center>
+				<div id='main-status-$t'></div>
+		</td>
+	</tr>
+	</table>
+	</div>
 	
 	<script>
 		LoadAjax('service-status-$t','$page?service-status=yes&t=$t');
@@ -86,27 +93,78 @@ function page(){
 
 function main(){
 	$page=CurrentPageName();
-	$tpl=new templates();		
+	$tpl=new templates();
+	$users=new usersMenus();	
+	$sock=new sockets();
+	$SquidGuardIPWeb=$sock->GET_INFO("SquidGuardIPWeb");
+	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
+	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
+	
+	$UseRemoteUfdbguardService=intval($sock->GET_INFO("UseRemoteUfdbguardService"));
+	$UFDB=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
+	$EnableKerbAuth=$sock->GET_INFO("EnableKerbAuth");
+	
+	if($UseRemoteUfdbguardService==0){
+		if($UFDB["UseRemoteUfdbguardService"]==1){
+			$sock->SET_INFO("UseRemoteUfdbguardService", 1);
+			$UseRemoteUfdbguardService=1;
+		}
+	}
+	
+	
+	if($SquidGuardIPWeb==null){
+		$SquidGuardIPWeb="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";
+		$fulluri="http://".$_SERVER['SERVER_ADDR'].':'.$SquidGuardApachePort."/exec.squidguard.php";
+		$sock->SET_INFO("SquidGuardIPWeb", $fulluri);
+	}else{
+		$fulluri=$SquidGuardIPWeb;
+	}
+	
+	if(!$users->CORP_LICENSE){
+		$MyVersion="{license_error}";
+	}else{
+		$q=new mysql_squid_builder();
+		$MyVersion=trim($sock->getFrameWork("ufdbguard.php?articawebfilter-database-version=yes"));
+		$MyVersion=$q->time_to_date($MyVersion,true);
+	}
+	
+	
+	if($UseRemoteUfdbguardService==0){
+	
+		$wizard="<tr><td colspan=2>&nbsp;</td></tr>
+		<tr>
+			<td colspan=2 align='center'>". button("{wizard_rule}", "Loadjs('dansguardian2.wizard.rule.php')",26)."
+					<div style='font-size:14px;margin-top:15px'>{wizard_rule_ufdb_explain}</div>
+					
+					</td>
+			
+		</tr>";		
+		
+
+	
+	}
+	
+	
 	$t=time();
 	$html="
 		
-		<table style='width:99%' style='margin:10px'>
+		<table style='width:100%;margin-top:30px'>
 		<tr>
-		<td valign='top'>
-			<div id='artica-status-databases-$t'></div>
-		</td>
+			<td style='vertical-align:middle;font-size:18px' class=legend>{webpage_deny_url}:</td>
+			<td style='vertical-align:middle;font-size:18px'><a href=\"javascript:blur();\" OnClick=\"javascript:Loadjs('squidguardweb.php');\" style='text-decoration:underline'>$fulluri</a></td>
 		</tr>
+		<tr><td colspan=2>&nbsp;</td></tr>
 		<tr>
-		
-		<td valign='top'>
-			<div id='tlse-status-databases-$t'></div>
-		</td>
+			<td style='vertical-align:middle;font-size:18px' class=legend>{artica_databases}:</td>
+			<td style='vertical-align:middle;font-size:18px'>$MyVersion</td>
 		</tr>
+
+		$wizard
 		</table>
 
 		
 		<script>
-			LoadAjaxTiny('artica-status-databases-$t','dansguardian2.databases.php?global-artica-status-databases=yes&t=$t',false);
+			
 		</script>
 		
 		";
@@ -128,26 +186,14 @@ function service_status(){
 	$tr[]=DAEMON_STATUS_ROUND("APP_SQUIDGUARD_HTTP",$ini,null,1);
 
 	
-	$status=CompileTr3($tr);
+	$status=@implode("\n", $tr);
 	
 	$html="
-		<center style='margin-top:10px;margin-bottom:10px;width:100%'>
-		<table style='width:10%'  class=form>
-		<tbody>
-		<tr>
-			<td width=10% align='center;'>". imgtootltip("32-stop.png","{stop}","Loadjs('$page?service-cmds=stop')")."</td>
-			<td width=10% align='center'>". imgtootltip("restart-32.png","{stop} & {start}","Loadjs('$page?service-cmds=restart')")."</td>
-			<td width=10% align='center'>". imgtootltip("reload-32.png","{reload}","Loadjs('$page?service-cmds=reconfig')")."</td>
-			<td width=10% align='center'>". imgtootltip("reconfigure-32.png","{reconfigure}","Loadjs('$page?service-cmds=reconfigure')")."</td>
-			<td width=10% align='center'>". imgtootltip("32-run.png","{start}","Loadjs('$page?service-cmds=start')")."</td>
-		</tr>
-		</tbody>
-		</table>
-		</center>	
+	<div id='rules-toolbox-left' style='margin-bottom:15px'></div>
 	$status
-	<br>
-	<div id='main-status-$t'></div>
 	<script>
+		LoadAjax('rules-toolbox-left','dansguardian2.mainrules.php?rules-toolbox-left=yes');
+		LoadAjaxTiny('rules-toolbox','dansguardian2.mainrules.php?rules-toolbox=yes');
 		LoadAjax('main-status-$t','$page?main=yes&t=$t');
 	</script>	
 	";

@@ -1530,7 +1530,12 @@ La conversion en sortie est requise lorsque le serveur destinataire n'indique pa
 <display_visited_websites>Afficher les sites visit&eacute;s</display_visited_websites>
 <display_youtube_for_this_day>Visualisation des vid&eacute;os t&eacute;l&eacute;charg&eacute;es ce jour</display_youtube_for_this_day>
 <dnot_proxy_lisResolvable>Pas de proxy pour les h&ocirc;tes r&eacute;solus</dnot_proxy_lisResolvable>
+<dnot_proxy_lisResolvable_explain>Si le DNS interne ne reconnait que les h&ocirc;tes internes, vous pouvez utiliser cette option qui permet de tester si le nom d\'h&ocirc;te dans la requ&ecirc;te peut &ecirc;tre r&eacute;solu.[br]
+Avec cette option et &agrave; l\'aide du DNS, le navigateur peut savoir si le serveur Web de destination est en Interne ou non.[br]
+[b]Toutefois, si votre serveur DNS permet de r&eacute;soudre les sites Internet, n\'utilisez pas cette option auquel cas, les navigateurs n\'utiliseront jamais le proxy.[/b]</dnot_proxy_lisResolvable_explain>
 <dnot_proxy_localnames>Pas de proxy pour les postes locaux</dnot_proxy_localnames>
+<dnot_proxy_localnames_explain>D&eacute;tecte si le nom de la machine dans la requ&ecirc;te Internet est un nom netbios ou un nom avec un domaine (fqdn).[br]
+Si activ&eacute;, le navigateur qui se connecte sur une machine sans son domaine n\'utilisera pas le proxy.</dnot_proxy_localnames_explain>
 <dnsbl_service>Service DNSBL</dnsbl_service>
 <DNSIssuesMAX>NB MAX de probl&egrave;mes DNS</DNSIssuesMAX>
 <dnsmasq_blk_domain>Ajoutez ici le domaine interdit &agrave; la r&eacute;solution locale du Cache DNS.
@@ -1968,6 +1973,8 @@ Si ces param&egrave;tres ne vous conviennent pas, vous pouvez programmer vous-m&
 <export_acl_rules_explain>Exportation/importation de vos r&egrave;gles ACLs dans un fichier compress&eacute;.</export_acl_rules_explain>
 <export_rule>Exporter la r&egrave;gle</export_rule>
 <export_rules>Exporter les r&egrave;gles</export_rules>
+<export_this_website>Exporter ce site Web</export_this_website>
+<export_this_website_explain>Cr&eacute;er et t&eacute;l&eacute;charger une sauvegarde pour ce site</export_this_website_explain>
 <expression>expression</expression>
 <ExternalPageListen_explain>Si l'authentification est activ&eacute; pour acc&eacute;der &agrave; la page de tests, l'outil de surveillance &agrave; besoin d'utiliser une carte r&eacute;seau diff&eacute;rente de la 127.0.0.1.[br]Si aucune TCP/IP n'est choisie, alors l'outil va chercher de fa&ccedil;on al&eacute;atoire une adresse de connexion.</ExternalPageListen_explain>
 <ExternalPageToCheck_explain>C'est la page web charg&eacute;e par l'outil de surveillance.[br]Vous pouvez utiliser %T afin de sp&eacute;cifier dans le chemin Web in chiffre al&eacute;atoire.[br]
@@ -2325,6 +2332,8 @@ Charger votre fichier CSV avec le boutton ci-dessous.[br]Utilisez le lien exampl
 <import_squid_logs>Importer les anciens fichier de logs Squid-Cache.</import_squid_logs>
 <import_squid_logs_explain>Importer les fichiers de requ&ecirc;tes d'acc&egrave;s de votre ancien serveur Squid-Cache ou d'un autre serveur Artica.</import_squid_logs_explain>
 <import_squid_zip_explain>Importer votre ancien fichier Squid.conf depuis un fichier compress&eacute; ZIP, avec les objets proxy stock&eacute;s dans des fichiers externes.</import_squid_zip_explain>
+<import_wordpress_backup>Importer la sauvegarde Wordpress</import_wordpress_backup>
+<import_wordpress_backup_text>Importer une sauvegarde Artica d\'un site Wordpress</import_wordpress_backup_text>
 <in>dans</in>
 <inactive>Inactif</inactive>
 <inbound>Entrant</inbound>
@@ -2706,6 +2715,7 @@ En utilisant cette m&eacute;thode, les nouvelles listes seront prises en compte 
 <main_port>Port principal</main_port>
 <main_routes>Routes principales</main_routes>
 <main_ssl_port>Port SSL principal</main_ssl_port>
+<main_webfiltering_rules>R&egrave;gles de filtrage Web par cat&eacute;gorie</main_webfiltering_rules>
 <MAJOR>Majeure</MAJOR>
 <malware_uri>Mise &agrave; jour des urls infect&eacute;es</malware_uri>
 <malware_uri_explain>Cette t&acirc;che r&eacute;cup&egrave;re les nouveaux liens web qui pointent sur des virus</malware_uri_explain>
@@ -3019,6 +3029,7 @@ Voulez-vous red&eacute;marrer la machine apr&egrave;s l'ex&eacute;cution de la t
 <network_bridges>Ponts</network_bridges>
 <network_disk>Disque r&eacute;seau</network_disk>
 <network_inbound_size>Flux entrant - cartes r&eacute;seaux</network_inbound_size>
+<network_interface>Interface r&eacute;seau</network_interface>
 <network_interfaces>Interfaces r&eacute;seau</network_interfaces>
 <network_outbound_size>Flux sortant - cartes r&eacute;seaux</network_outbound_size>
 <network_parameters>Param&egrave;tres r&eacute;seaux</network_parameters>
@@ -5216,6 +5227,7 @@ Le cas &eacute;ch&eacute;ant, exemple erreur 500, elle essaiera de red&eacute;ma
 <webmail2>Webmail</webmail2>
 <webmail_type>Type de WebMail</webmail_type>
 <webpages>Pages Web</webpages>
+<webpage_deny_url>URL de la page de bloquage</webpage_deny_url>
 <webserver>Serveur Web</webserver>
 <webservername>Nom du site</webservername>
 <webserver_override_cache>Le site web surcharge le cache</webserver_override_cache>

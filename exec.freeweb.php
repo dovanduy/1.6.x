@@ -70,33 +70,7 @@ if($argv[1]=="--httpd"){CheckHttpdConf();reload_apache();die();}
 if($argv[1]=="--build"){$GLOBALS["NO_HTTPD_RESTART"]=true;build();reload_apache();sync_squid();die();}
 if($argv[1]=="--apache-user"){apache_user();die();}
 
-if($argv[1]=="--sitename"){
-		$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress";
-		$GLOBALS["NGINX_CONFIGURE"]=true;
-		build_progress("{reconfigure} ".$argv[2], 5);
-		if(buildHost(null,$argv[2])){
-			if(!$GLOBALS["NO_HTTPD_CONF"]){
-				build_progress("CheckHttpdConf() ".$argv[2], 80);
-				CheckHttpdConf();
-			}
-			if(!$GLOBALS["NO_HTTPD_RELOAD"]){
-				build_progress("Reloading apache for ".$argv[2], 90);
-				reload_apache(true);
-			}
-			
-			if($GLOBALS["FORCE_RESTART"]){
-				build_progress("Restarting apache for ".$argv[2], 90);
-				reload_apache(true);
-			}
-			
-			build_progress("sync_squid() ".$argv[2], 95);
-			sync_squid();
-			build_progress("{success} ".$argv[2], 100);
-		}
-		die();
-}
-
-
+if($argv[1]=="--sitename"){build_single_site($argv[2]);die();}
 if($argv[1]=="--remove-host"){remove_host($argv[2]);reload_apache();sync_squid();die();}
 if($argv[1]=="--perms"){FDpermissions($argv[2]);die();}
 if($argv[1]=="--failed-start"){CheckFailedStart();die();exit;}
@@ -146,6 +120,61 @@ help();
 //mod_deflate.so
 
 //http://www.tux-planet.fr/installation-et-configuration-de-modsecurity/
+
+function build_single_site($sitename){
+	$unix=new unix();
+	$sock=new sockets();
+	$EnableNginx=intval($sock->GET_INFO("EnableNginx"));
+	$EnableFreeWeb=intval($sock->GET_INFO("EnableFreeWeb"));
+	$php=$unix->LOCATE_PHP5_BIN();
+	
+	$GLOBALS["PROGRESS_FILE"]="/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress";
+	$GLOBALS["NGINX_CONFIGURE"]=true;
+	build_progress("{reconfigure} $sitename", 5);
+	
+	if($EnableFreeWeb==0){
+		if($EnableNginx==1){
+			build_progress("Reconfigure Nginx for $sitename", 80);
+			if($GLOBALS["VERBOSE"]){echo "$php /usr/share/artica-postfix/exec.nginx.php --reconfigure $sitename\n";}
+			system("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure $sitename");
+			build_progress("{success} $sitename", 100);
+			return;
+		}
+		
+	}
+	
+	if(!buildHost(null,$sitename)){
+		build_progress("{failed} $sitename", 110);
+		return;
+		
+	}
+		
+	if(!$GLOBALS["NO_HTTPD_CONF"]){
+		build_progress("CheckHttpdConf() $sitename", 80);
+		CheckHttpdConf();
+	}
+	if(!$GLOBALS["NO_HTTPD_RELOAD"]){
+		build_progress("Reloading apache for $sitename", 90);
+		reload_apache(true);
+	}
+			
+	if($GLOBALS["FORCE_RESTART"]){
+		build_progress("Restarting apache for $sitename", 90);
+		reload_apache(true);
+	}
+			
+	build_progress("sync_squid() $sitename ", 95);
+	sync_squid();
+		
+	if($EnableNginx==1){
+		build_progress("Reconfigure Nginx for $sitename", 96);
+		shell_exec("$php /usr/share/artica-postfix/exec.nginx.php --reconfigure $sitename");
+	}
+		
+	build_progress("{success} $sitename", 100);
+	return;
+}
+
 
 function build_progress($text,$pourc){
 	$array["POURC"]=$pourc;
@@ -709,8 +738,8 @@ function startApache($withoutkill=false,$aspid=false){
 	
 	if(!isset($GLOBALS["startApacheCount"])){$GLOBALS["startApacheCount"]=0;}
 	$GLOBALS["startApacheCount"]=$GLOBALS["startApacheCount"]+1;
-	$EnableFreeWeb=$GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFreeWeb");
-	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
+	$EnableFreeWeb=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableFreeWeb"));
+	
 	
 	if(is_file("/etc/httpd/conf.d/ssl.conf")){@unlink("/etc/httpd/conf.d/ssl.conf");}
 	

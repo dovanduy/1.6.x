@@ -191,10 +191,18 @@ class useragents{
 		$q=new mysql_squid_builder();
 		if($q->COUNT_ROWS("UsersAgentsDB")>0){return;}
 		$array[]="iPhone,Apple iPhones,Apple,SmartPhones,1,0";
+		
+	
+		
+		
 		$array[]="iPhoto,Apple iPhoto,Apple,Apple,1,0";
 		$array[]="MacBookAir,Apple MacBook Air (generic),Apple,Apple,1,0";
 		$array[]="regex:^ocspd,Apple OCSP and CRL Daemon,Apple,Apple,1,0";
+		$array[]="Apple-iPhone3C,Apple iPhone 3,Apple,SmartPhones,1,0";
+		$array[]="Apple-iPhone4C,Apple iPhone 4,Apple,SmartPhones,1,0";
 		$array[]="Apple-iPhone5C,Apple iPhone 5C,Apple,SmartPhones,1,0";
+		$array[]="AppleCoreMedia,Apple Core Media,Apple,SmartPhones,1,0";
+		$array[]="AppStore,Apple Store,Apple,SmartPhones,1,0";
 		$array[]="iPad,Apple iPad (generic),Apple,SmartPhones,1,0";
 		$array[]="MobileAsset,Mobile Asset,Apple,SmartPhones,1,0";
 		$array[]="iOS,Apple iOS,Apple,SmartPhones,1,0";
@@ -283,6 +291,8 @@ class useragents{
 		$array[]="regex:^Mozilla\/.*MSIE 8.*Win64,Internet Explorer 8.0,Microsoft,Browsers,0,0";
 		$array[]="regex:^Mozilla\/.*MSIE [0-9]+\..*; Windows NT 6.1; WOW64;,Generic Internet Explorer Windows 7 64bits,Microsoft,Browsers,0,0";
 		$array[]="regex:^iTunes\/[0-9\.]+,Apple iTunes,Apple,SmartPhones,1,0";
+		$array[]="regex:^com\.apple\.Maps,Apple maps,Apple,SmartPhones,1,0";
+		
 		$prefix="INSERT IGNORE INTO `UsersAgentsDB` (`pattern`,`explain`,`editor`,`category`,`bypass`,`deny`,`bypassWebF`,`bypassWebC`)";
 				
 				

@@ -410,6 +410,9 @@ function nightly(){
 	if(!isset($ini->_params["AUTOUPDATE"]["enabled"])){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
 	if($ini->_params["AUTOUPDATE"]["enabled"]==null){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
 	if(trim($ini->_params["AUTOUPDATE"]["uri"])==null){$ini->_params["AUTOUPDATE"]["uri"]="http://www.articatech.net/auto.update.php";}
+	
+	
+	
 	if(trim($ini->_params["AUTOUPDATE"]["enabled"])==null){$ini->_params["AUTOUPDATE"]["enabled"]="yes";}
 	if(!is_numeric(trim($ini->_params["AUTOUPDATE"]["CheckEveryMinutes"]))){$ini->_params["AUTOUPDATE"]["CheckEveryMinutes"]=60;}
 	if($ini->_params["AUTOUPDATE"]["enabled"]<>'yes'){echo "Starting......: ".date("H:i:s")." Update feature is disabled\n";return;}
@@ -418,6 +421,7 @@ function nightly(){
 	$uri=$ini->_params["AUTOUPDATE"]["uri"];
 	$arrayURI=parse_url($uri);
 	$MAIN_URI="{$arrayURI["scheme"]}://{$arrayURI["host"]}";
+	$MAIN_URI=str_replace("www.artica.fr", "www.articatech.net",$MAIN_URI);
 	
 	
 	if(!$GLOBALS["FORCE"]){

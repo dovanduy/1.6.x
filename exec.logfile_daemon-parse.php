@@ -626,7 +626,7 @@ while (false !== ($filename = readdir($handle))) {
 		
 		$q->QUERY_SQL($sql);
 		if(!$q->ok){ 
-			if(preg_match("Table\s+'.+?\.youtubehours_(.+?)'\s+doesn't exist#", $q->mysql_error)){
+			if(preg_match("#Table\s+'.+?\.youtubehours_(.+?)'\s+doesn't exist#", $q->mysql_error)){
 				ToSyslog("Building youtubehours_{$re[1]} table");
 				$q->check_youtube_hour($re[1]);
 				$q->QUERY_SQL($sql);

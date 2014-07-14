@@ -23,7 +23,7 @@ include_once(dirname(__FILE__).'/framework/class.settings.inc');
 	if($argv[1]=="--restart"){$GLOBALS["OUTPUT"]=true;restart();die();}
 	if($argv[1]=="--status"){$GLOBALS["OUTPUT"]=true;status();die();}
 	if($argv[1]=="--pars"){print_r(ParseParams());die();}
-	if($argv[1]=="--build"){buildConfig(true);reload();die();}
+	if($argv[1]=="--build"){$GLOBALS["OUTPUT"]=true;buildConfig(true);reload();die();}
 		
 	
 		
@@ -57,7 +57,6 @@ function restart(){
 
 	
 	buildConfig(true);
-	FPM_MONIT();
 	start(true);	
 	
 	
@@ -326,6 +325,7 @@ function start($aspid=false){
 	if($ZarafaApachePHPFPMEnable==1){$EnablePHPFPM=1;}
 	if($EnablePHPFPMFreeWeb==1){$EnablePHPFPM=1;}
 	if($EnablePHPFPMFrameWork==1){$EnablePHPFPM=1;}
+	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$EnablePHPFPMFreeWeb=1;$EnablePHPFPM=1;}
 	
 	if($unix->process_exists($pid)){
 		if($EnablePHPFPM==0){stop(true);}
@@ -402,38 +402,7 @@ function start($aspid=false){
 	
 }
 
-function FPM_MONIT(){
-	$sock=new sockets();
-	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
-	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
-	$ZarafaApachePHPFPMEnable=$sock->GET_INFO("ZarafaApachePHPFPMEnable");
-	if(!is_numeric($ZarafaApachePHPFPMEnable)){$ZarafaApachePHPFPMEnable=0;}
-	
-	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
-	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
-	
-	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
-	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
-	
-	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
-	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
-	
-$unix=new unix();	
-$f[]="check process PHPFPM with pidfile /var/run/php5-fpm.pid";
-$f[]="start program = \"/etc/init.d/php5-fpm start\"";
-$f[]="stop  program = \"/etc/init.d/php5-fpm stop\"";
-if($EnableArticaApachePHPFPM==1){
-	$f[]="if failed unixsocket /var/run/php-fpm.sock then restart";
-}
 
-if(is_file($unix->find_program("zarafa-server"))){
-	$f[]="if failed unixsocket /var/run/php-fpm-zarafa.sock then restart";
-}
-	$f[]="if 5 restarts within 5 cycles then timeout";
-	@file_put_contents("/etc/monit/conf.d/phpfpm.monitrc",@implode("\n", $f));
-//$unix->MONIT_RELOAD();
-	
-}
 
 
 
@@ -482,10 +451,11 @@ function buildConfig($aspid=false){
 			}
 		}
 	}
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Parse Parameters\n";}
 	$ParseParams=ParseParams();
 	$AsRoot=true;
 	if(isset($ParseParams["allow-to-run-as-root"])){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Allow run as root TRUE\n";}
 		$AsRoot=true;
 	}else{
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: Allow run as root is disabled\n";}
@@ -511,8 +481,8 @@ function buildConfig($aspid=false){
 	if($ProcessNice>19){$ProcessNice=19;}
 	if($ProcessNice<1){$ProcessNice=19;}
 	
-	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
-	$EnablePHPFPMFreeWeb=$sock->GET_INFO("EnablePHPFPMFreeWeb");
+	$EnableArticaApachePHPFPM=intval($sock->GET_INFO("EnableArticaApachePHPFPM"));
+	$EnablePHPFPMFreeWeb=intval($sock->GET_INFO("EnablePHPFPMFreeWeb"));
 	$EnablePHPFPMFrameWork=$sock->GET_INFO("EnablePHPFPMFrameWork");
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	if(!is_numeric($EnablePHPFPMFrameWork)){$EnablePHPFPMFrameWork=0;}
@@ -520,6 +490,8 @@ function buildConfig($aspid=false){
 	if(!is_numeric($EnablePHPFPMFreeWeb)){$EnablePHPFPMFreeWeb=0;}
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}
 	if($EnableFreeWeb==0){$EnablePHPFPMFreeWeb=0;}
+	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$EnablePHPFPMFreeWeb=1;}
+	
 	
 	
 	
@@ -662,6 +634,8 @@ function buildConfig($aspid=false){
 			$f[]="";
 			@file_put_contents("/etc/php5/fpm/pool.d/framework.conf", @implode("\n", $f));
 			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: /etc/php5/fpm/pool.d/framework.conf done\n";}
+		}else{
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: PHP-FPM: As root is FALSE for framework..\n";}
 		}
 	}
 		

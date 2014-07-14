@@ -23,6 +23,7 @@ if(isset($_GET["videocache-query"])){videocache_query();exit;}
 if(isset($_GET["videocache-reinstall"])){videocache_reinstall();exit;}
 if(isset($_GET["loggers-status"])){loggers_status();exit;}
 if(isset($_GET["access-real"])){access_real();exit;}
+if(isset($_GET["ufdb-real"])){ufdb_real();exit;}
 if(isset($_GET["dynamic-cache-apply"])){dynamic_caches_apply();exit;}
 if(isset($_GET["WebSiteAnalysis"])){website_analysis();exit;}
 
@@ -3031,6 +3032,37 @@ function icap_clients(){
 	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
 	shell_exec($cmd);	
 }
+
+function ufdb_real(){
+	$unix=new unix();
+	$tail=$unix->find_program("tail");
+	$targetfile="/usr/share/artica-postfix/ressources/logs/ufdb.log.tmp";
+	$sourceLog="/var/log/squid/ufdbguardd.log";
+	
+	
+	$rp=$_GET["rp"];
+	$query=$_GET["query"];
+	$cmd="$tail -n $rp $sourceLog  >$targetfile 2>&1";
+	
+	if($query<>null){
+		if(preg_match("#regex:(.*)#", $query,$re)){$pattern=$re[1];}else{
+			$pattern=str_replace(".", "\.", $query);
+			$pattern=str_replace("*", ".*?", $pattern);
+			$pattern=str_replace("/", "\/", $pattern);
+		}
+	}
+	if($pattern<>null){
+		$grep=$unix->find_program("grep");
+		$cmd="$grep -E \"$pattern\" $sourceLog | $tail -n $rp  >$targetfile 2>&1";
+	}
+	writelogs_framework($cmd ,__FUNCTION__,__FILE__,__LINE__);
+	shell_exec($cmd);
+	@chmod(0755,"$targetfile");
+}	
+	
+	
+
+
 function access_real(){
 	$unix=new unix();
 	$tail=$unix->find_program("tail");

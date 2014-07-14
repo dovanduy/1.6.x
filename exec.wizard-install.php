@@ -335,11 +335,31 @@ function WizardExecute(){
 	if($unix->process_exists($pid,basename(__FILE__))){die();}
 	$pid=$unix->PIDOF_PATTERN(basename(__FILE__));
 	if($pid<>getmypid()){return;}
+	$unix->CREATE_NEW_UUID();
 	$uuid=$unix->GetUniqueID();
-	writeprogress(20,"Server ID: $uuid");
+	
+	writeprogress(10,"Server ID: $uuid");
 	sleep(2);
+	
+	
+	writeprogress(15,"Reconfigure LDAP server");
+	@unlink("/etc/artica-postfix/no-ldap-change");
+	@chmod("/usr/share/artica-postfix/bin/artica-install", 0755);
+	@chmod("/usr/share/artica-postfix/bin/process1", 0755);
+	system("/usr/share/artica-postfix/bin/artica-install --slapdconf");
+	writeprogress(16,"Refresh global settings");
+	system('/usr/share/artica-postfix/bin/process1 --checkout --force --verbose '. time());
+	writeprogress(18,"Restarting LDAP server");
+	shell_exec("/etc/init.d/slapd restart");
+	
+	
 	writeprogress(20,"Scanning hardware/software");
 	shell_exec("/etc/init.d/artica-process1 start");
+	$SUBNIC=null;
+	
+	
+	
+	
 
 	$php5=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");	
@@ -371,20 +391,6 @@ function WizardExecute(){
 		writeprogress(40,"Starting services");
 		shell_exec("$nohup /etc/init.d/squid-db start >/dev/null 2>&1 &");
 	}
-	$KEEPNET=$savedsettings["KEEPNET"];
-	if($KEEPNET==1){
-		writeprogress(100,"Done");
-		@file_put_contents("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED", time());
-		shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
-		shell_exec("$nohup /etc/init.d/monit restart >/dev/null 2>&1 &");
-		FINAL___();
-		return;
-	}
-	
-
-	
-	$Encoded=base64_encode(serialize($savedsettings));
-	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", $Encoded);
 	
 	if(isset($savedsettings["GoldKey"])){
 		if($sock->IsGoldKey($savedsettings["GoldKey"])){
@@ -400,23 +406,90 @@ function WizardExecute(){
 	}
 	
 	
+	$KEEPNET=$savedsettings["KEEPNET"];
+	if($KEEPNET==1){
+		writeprogress(100,"Done");
+		@file_put_contents("/etc/artica-postfix/WIZARD_INSTALL_EXECUTED", time());
+		shell_exec("$nohup /etc/init.d/artica-status reload >/dev/null 2>&1 &");
+		shell_exec("$nohup /etc/init.d/monit restart >/dev/null 2>&1 &");
+		FINAL___();
+		return;
+	}
+	
+
+	
+	$Encoded=base64_encode(serialize($savedsettings));
+	@file_put_contents("/etc/artica-postfix/settings/Daemons/WizardSavedSettings", $Encoded);
+	
+
+	
+	if(!isset($savedsettings["NIC"])){$savedsettings["NIC"]="eth0";}
+	
+	$NIC=$savedsettings["NIC"];
+	
+	if(preg_match("#(.+?):([0-9]+)#", $savedsettings["NIC"],$re)){
+		$NIC=trim($re[1]);
+		$SUBNIC=$re[2];
+		
+	}
+	
 	writeprogress(60,"Building networks");
-	$nics=new system_nic("eth0");
+	$nics=new system_nic($NIC);
 	$nics->CheckMySQLFields();
 	
-	$nics->eth="eth0";
-	$nics->IPADDR=$savedsettings["IPADDR"];
-	$nics->NETMASK=$savedsettings["NETMASK"];;
-	$nics->GATEWAY=$savedsettings["GATEWAY"];;
-	$nics->BROADCAST=$savedsettings["BROADCAST"];;
-	$nics->DNS1=$savedsettings["DNS1"];;
-	$nics->DNS2=$savedsettings["DNS2"];;
-	$nics->dhcp=0;
-	$nics->metric=$savedsettings["metric"];
-	$nics->enabled=1;
-	$nics->defaultroute=1;
+	$nics->eth=$NIC;
+	if($SUBNIC<>null){
+		$nics->IPADDR="127.0.0.2";
+		$nics->NETMASK="255.255.255.255";
+		$nics->GATEWAY="0.0.0.0";
+		$nics->BROADCAST="0.0.0.0";
+		$nics->DNS1=$savedsettings["DNS1"];;
+		$nics->DNS2=$savedsettings["DNS2"];;
+		$nics->dhcp=0;
+		$nics->metric=$savedsettings["metric"];
+		$nics->enabled=1;
+		$nics->defaultroute=1;
+	}else{
+		$nics->IPADDR=$savedsettings["IPADDR"];
+		$nics->NETMASK=$savedsettings["NETMASK"];;
+		$nics->GATEWAY=$savedsettings["GATEWAY"];;
+		$nics->BROADCAST=$savedsettings["BROADCAST"];;
+		$nics->DNS1=$savedsettings["DNS1"];;
+		$nics->DNS2=$savedsettings["DNS2"];;
+		$nics->dhcp=0;
+		$nics->metric=$savedsettings["metric"];
+		$nics->enabled=1;
+		$nics->defaultroute=1;
+	}
 	writeprogress(60,"Saving networks");
 	$nics->SaveNic();
+	
+	
+	if($SUBNIC<>null){
+		$q=new mysql();
+		
+		$sql="INSERT INTO nics_virtuals (ID,nic,org,ipaddr,netmask,cdir,gateway,ForceGateway,failover,metric)
+		VALUES('$SUBNIC','$NIC','','{$savedsettings["IPADDR"]}','{$savedsettings["NETMASK"]}',
+		'','{$savedsettings["GATEWAY"]}',0,0,1);";
+		$q->QUERY_SQL($sql,"artica_backup");
+		
+		
+		$sql="UPDATE nics_virtuals SET nic='$NIC',
+				org='',
+				ipaddr='{$savedsettings["IPADDR"]}',
+				netmask='{$savedsettings["NETMASK"]}',
+				cdir='',
+				gateway='{$savedsettings["GATEWAY"]}',
+				ForceGateway='0',
+				failover='0',
+				metric='1'
+				WHERE ID=$SUBNIC";
+		$q->QUERY_SQL($sql,"artica_backup");		
+		
+	}
+	
+	
+	
 
 	writeprogress(60,"Loading resolv library");
 	$resolv=new resolv_conf();
@@ -438,11 +511,13 @@ function WizardExecute(){
 	$nic=new system_nic();
 	writeprogress(60,"Setting hostname");
 	$nic->set_hostname("$netbiosname.$domainname");
+	$php=$unix->LOCATE_PHP5_BIN();
+	$nohup=$unix->find_program("nohup");
 	
 	writeprogress(60,"Building resolv configuration");
-	$sock->getFrameWork("services.php?resolvConf=yes");
+	shell_exec(trim("$nohup ".$unix->LOCATE_PHP5_BIN(). " /usr/share/artica-postfix/exec.virtuals-ip.php --resolvconf >/dev/null 2>&1"));
 	writeprogress(60,"Settings permissions");
-	$sock->getFrameWork("services.php?folders-security=yes");
+	shell_exec("$php /usr/share/artica-postfix/exec.checkfolder-permissions.php --force");
 	writeprogress(60,"Building caches pages...");
 	$sock->getFrameWork("services.php?cache-pages=yes");
 	sleep(1);

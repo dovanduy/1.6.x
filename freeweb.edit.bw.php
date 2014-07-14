@@ -97,7 +97,7 @@ function Save$t(){
 function Save(){
 	$free=new freeweb($_POST["servername"]);
 	
-	$_POST["BandwidthAll"]=$_POST["BandwidthAll"]*1024;
+	$_POST["BandwidthAll"]=intval($_POST["BandwidthAll"])*1024;
 	
 	while (list ($num, $ligne) = each ($_POST) ){
 		$free->Params["ModeBw"][$num]=$ligne;

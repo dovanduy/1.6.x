@@ -160,7 +160,7 @@ $html="
 	}
 	
 	function AccountsInterface(){
-		YahooWin2(550,'$page?js-account-interface=yes','$global_admin_account');
+		YahooWin2(750,'$page?js-account-interface=yes','$global_admin_account');
 	}
 	
 	function LogsInterface(){
@@ -2553,13 +2553,13 @@ function GlobalAdmin(){
 	$adv_options="<a href='#' OnClick=\"javascript:Loadjs('artica.settings.php?js-ldap-interface=yes');\" style='font-size:13px'>{advanced_options}</a>";
 	if(!$users->openldap_installed){$openldap=0;$adv_options=null;}
 	if($ArticaMetaDisableMasterAccount==1){$ldap->ldap_password=null;$adv_options=null;}
-	if($userpassword<>null){$im='ok24.png';}else{$im='danger24.png';}
+	
 $html="
 <div id='ChangePasswordDivNOtifiy' style='width:98%' class=form>
 		<table style='width:100%'>
 		<tr>
 			<td colspan=2 style='border-bottom:1px solid #CCCCCC;padding-top:4px;margin-bottom:20px'>
-					<strong style='font-size:22px;'>{administrator}</strong>
+					<strong style='font-size:32px;'>{administrator}</strong>
 			</td>
 		</tr>
 		<tr>
@@ -2567,41 +2567,41 @@ $html="
 			</td>
 		</tr>		
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:16px'>{username}:</strong></td>
-		<td align='left'>" . Field_text("change_admin",$ldap->ldap_admin,'width:99%;font-size:16px;padding:3px',
+		<td align='right' class=legend nowrap style='font-size:22px'>{username}:</strong></td>
+		<td align='left'>" . Field_text("change_admin",$ldap->ldap_admin,'width:99%;font-size:22px;padding:3px',
 		"script:ChangeGlobalAdminPasswordCheck(event)")."</td>
 		</tr>
 		<tr>
-		<td align='right' class=legend nowrap class=legend style='font-size:16px'>{password}:</strong></td>
-		<td align='left'>" . Field_password("change_password",$ldap->ldap_password,"width:90%;font-size:16px;padding:3px",
+		<td align='right' class=legend nowrap class=legend style='font-size:22px'>{password}:</strong></td>
+		<td align='left'>" . Field_password("change_password",$ldap->ldap_password,"width:90%;font-size:22px;padding:3px",
 		"script:ChangeGlobalAdminPasswordCheck(event)")."</td>
 		</tr>
 	
-		
+			<tr><td colspan=2 >&nbsp;</td></tr>	
 		
 		<tr>
 			<td colspan=2 style='border-bottom:1px solid #CCCCCC;padding-top:4px'>
-					<strong style='font-size:22px;'>{ldap_parameters}</strong></td>
+					<strong style='font-size:32px;'>{ldap_parameters}</strong></td>
 		</tr>
 		<tr>
 			<td colspan=2>&nbsp;</td>
 		</tr>
 		<tr>
-		<td align='right' class=legend nowrap style='font-size:14px'>{ldap_suffix}:</strong></td>
-		<td align='left'>" . Field_text("ldap_suffix",$ldap->suffix,"font-size:14px;padding:3px",
+		<td align='right' class=legend nowrap style='font-size:22px'>{ldap_suffix}:</strong></td>
+		<td align='left'>" . Field_text("ldap_suffix",$ldap->suffix,"font-size:22px;padding:3px",
 		"script:ChangeGlobalAdminPasswordCheck(event)")."</td>
 		</tr>	
 		<tr>	
-		<td align='right' class=legend nowrap style='font-size:14px'>{ldap_server}:</strong></td>
-		<td align='left'>" . Field_text("ldap_server",$ldap->ldap_host,"font-size:14px;padding:3px",
+		<td align='right' class=legend nowrap style='font-size:22px'>{ldap_server}:</strong></td>
+		<td align='left'>" . Field_text("ldap_server",$ldap->ldap_host,"font-size:22px;padding:3px",
 		null,null,null,false,"DisableLDAP()")."</td>
 		</tr>	
 		<tr>	
-		<td align='right' class=legend nowrap style='font-size:14px'>{ldap_port}:</strong></td>
-		<td align='left'>" . Field_text("ldap_port",$ldap->ldap_port,"font-size:14px;padding:3px")."</td>
+		<td align='right' class=legend nowrap style='font-size:22px'>{ldap_port}:</strong></td>
+		<td align='left'>" . Field_text("ldap_port",$ldap->ldap_port,"font-size:22px;padding:3px")."</td>
 		</tr>
 		<tr>	
-		<td align='right' class=legend nowrap style='font-size:14px'>{change_ldap_server_settings}:</strong></td>
+		<td align='right' class=legend nowrap style='font-size:22px'>{change_ldap_server_settings}:</strong></td>
 		<td align='left'>" . Field_checkbox('change_ldap_server_settings',1,0,null,'{change_ldap_server_settings_text}')."</td>
 		<tr>
 			<td colspan=2 align='right'>		
@@ -2610,7 +2610,7 @@ $html="
 		</tr>								
 		<tr>
 			<td colspan=2 align='right'>
-				<hr>". button("{apply}","ChangeGlobalAdminPassword()",16)."
+				<hr>". button("{apply}","ChangeGlobalAdminPassword()",26)."
 			</td>
 		</tr>
 		</table>
@@ -2637,8 +2637,8 @@ function DisableLDAP(){
 var X_ChangeGlobalAdminPassword= function (obj) {
 	var tempvalue=obj.responseText;
 	if(tempvalue.length>3){alert(tempvalue);}
-	MyHref(\"logoff.php\");
-	}
+	Loadjs('artica.settings.account.progress.php');
+}
 	
 function ChangeGlobalAdminPasswordCheck(e){
 	if(checkEnter(e)){ChangeGlobalAdminPassword();}
@@ -2666,7 +2666,6 @@ function ChangeGlobalAdminPassword(){
 		}
 		
 		XHR.appendData('ChangeSuperSuser','yes');
-		AnimateDiv('ChangePasswordDivNOtifiy');
 		XHR.sendAndLoad('$page', 'POST',X_ChangeGlobalAdminPassword);
 		
 		
@@ -2796,33 +2795,13 @@ function ChangeUserPassword(){
 	
 	$users=new usersMenus();
 	$username=trim($_POST["change_admin"]);
-	$password=url_decode_special_tool($_POST["change_password"]);
+	$_POST["change_password"]=url_decode_special_tool($_POST["change_password"]);
+	
+	@file_put_contents("/usr/share/artica-postfix/ressources/conf/upload/ChangeLDPSSET", base64_encode(serialize($_POST)));
+	return;
+	
 
 	
-	$md5=md5($username.$password);
-	$ldap=new clladp();
-	$md52=md5(trim($ldap->ldap_admin).trim($ldap->ldap_password));
-	$tpl=new templates();
-	
-	$ldap_server=$_POST["ldap_server"];
-	$ldap_port=$_POST["ldap_port"];
-	$suffix=$_POST["suffix"];
-	$change_ldap_server_settings=$_POST["change_ldap_server_settings"];
-	if($change_ldap_server_settings<>'yes'){$change_ldap_server_settings="no";}
-	
-	writelogs("change_password $password",__FUNCTION__,__FILE__,__LINE__ );
-	$password=base64_encode($password);
-	writelogs("change_password $password",__FUNCTION__,__FILE__,__LINE__ );
-	
-	if($ldap_server==null){$ldap_server="127.0.0.1";}
-	if($ldap_port==null){$ldap_port="389";}
-	if($suffix==null){$suffix="dc=nodomain";}
-	$username=urlencode($username);
-	$password=urlencode($password);
-	$cmd="cmd.php?ChangeLDPSSET=yes&ldap_server=$ldap_server&ldap_port=$ldap_port&suffix=$suffix";
-	$cmd=$cmd."&change_ldap_server_settings=$change_ldap_server_settings&username=$username&password=$password";
-	$datas=$sock->getFrameWork("$cmd");
-	echo replace_accents(html_entity_decode($tpl->_ENGINE_parse_body("{success}:$ldap_server:$ldap_port ($suffix)\n$username\n-------\"\"------")));
 
 	
 }

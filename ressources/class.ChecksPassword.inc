@@ -29,14 +29,15 @@ function AskPasswordAuth($title){
 
 function CheckPassword($username,$password){
 
-	include(dirname(__FILE__)."/ressources/settings.inc");
-	include_once(dirname(__FILE__)."/ressources/class.user.inc");
+	include(dirname(__FILE__)."/settings.inc");
+	include_once(dirname(__FILE__)."/class.user.inc");
 	$FixedLanguage=null;
 	$users=new usersMenus();
 	if($password==null){ return false; }
 
-
-	if(trim($username)==trim($_GLOBAL["ldap_admin"])){
+	writelogs("$username<>{$_GLOBAL["ldap_admin"]} $password<>{$_GLOBAL["ldap_password"]}",__FUNCTION__,__FILE__,__LINE__);
+	
+	if(trim(strtolower($username))==trim(strtolower($_GLOBAL["ldap_admin"]))){
 		if(trim($password)<>trim($_GLOBAL["ldap_password"])){return false;}
 		$users=new usersMenus();
 		$_SESSION["uid"]='-100';

@@ -127,7 +127,7 @@ function tabs(){
 	if($EnableWebProxyStatsAppliance==1){$users->APP_UFDBGUARD_INSTALLED=true;$squid->enable_UfdbGuard=1;}
 
 	if($EnableRemoteStatisticsAppliance==0){
-		$array["rules"]='{webfilter}';
+	
 		$array["acls"]='{acls}';
 	
 	}
@@ -165,18 +165,12 @@ function tabs(){
 	
 	if(isset($_GET["without-acl"])){unset($array["acls"]);}
 	
-	if(!$users->APP_UFDBGUARD_INSTALLED){
-		unset($array["ufdbguard"]);
-		unset($array["databases"]);
-	}
 	
 	
 	
 	
-	if($UfdbGuardHide==1){
-
-		unset($array["rules"]);
-	}
+	
+	
 
 
 	$fontsize=18;

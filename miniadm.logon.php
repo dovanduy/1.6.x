@@ -108,7 +108,7 @@ function checklogonCreds($Aspost=false){
 	$username=$array["USERNAME"];
 	$password=$array["PASSWORD"];
 	
-	if(trim($_POST["artica_username"])==trim($_GLOBAL["ldap_admin"])){
+	if(trim(strtolower($_POST["artica_username"]))==trim(strtolower($_GLOBAL["ldap_admin"]))){
 		if($password==md5(trim($_GLOBAL["ldap_password"]))){
 			$_SESSION["uid"]='-100';
 			$_SESSION["groupid"]='-100';
@@ -246,7 +246,7 @@ function checklogon($Aspost=false){
 		return;
 	}
 	
-	if(trim($username)==trim($_GLOBAL["ldap_admin"])){
+	if(trim(strtolower($username))==trim(strtolower($_GLOBAL["ldap_admin"]))){
 		$passwordMD=md5(trim($_GLOBAL["ldap_password"]));
 		if($password==$passwordMD){
 			$_SESSION["uid"]='-100';

@@ -586,6 +586,7 @@ class usersMenus {
 	public $SHOREWALL_INSTALLED=false;
 	public $APP_EBTABLES_INSTALLED=false;
 	public $APACHE_MODE_BW=false;
+	public $WORDPRESS_APPLIANCE=false;
 	private function CheckIndexDefaults($_GLOBAL){
 		return $_GLOBAL;
 		foreach($this as $key => $value) {
@@ -765,7 +766,7 @@ class usersMenus {
 			if(isset($_GLOBAL["APP_SQUIDSTREAM_INSTALLED"])){$this->APP_SQUIDSTREAM_INSTALLED=$_GLOBAL["APP_SQUIDSTREAM_INSTALLED"];}
 			if(isset($_GLOBAL["APACHE_MODE_BW"])){$this->APACHE_MODE_BW=$_GLOBAL["APACHE_MODE_BW"];}
 			if(isset($_GLOBAL["VSFTPD_INSTALLED"])){$this->VSFTPD_INSTALLED=$_GLOBAL["VSFTPD_INSTALLED"];}
-			
+			if(isset($_GLOBAL["WORDPRESS_APPLIANCE"])){$this->WORDPRESS_APPLIANCE=$_GLOBAL["WORDPRESS_APPLIANCE"];}
 			
 			
 			

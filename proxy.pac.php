@@ -26,6 +26,9 @@ function proxy_pac(){
 	$SessionCache=0;
 	header("content-type: application/x-ns-proxy-autoconfig");
 	
+	
+	
+	
 	if(!isset($_SESSION["PROXY_PAC_CACHE"])){
 		if(!class_exists("sockets")){ LoadIncludes();}
 		$sock=new sockets();
@@ -37,6 +40,9 @@ function proxy_pac(){
 		$SessionCache=intval($_SESSION["PROXY_PAC_CACHE"]);
 	}
 	
+	
+	
+	
 	if(intval($SessionCache==0)){$SessionCache=10;}
 	if(!is_numeric($GLOBALS["PROXY_PAC_DEBUG"])){$GLOBALS["PROXY_PAC_DEBUG"]=0;}
 	if(isset($_SERVER["REMOTE_ADDR"])){$IPADDR=$_SERVER["REMOTE_ADDR"];}
@@ -46,11 +52,14 @@ function proxy_pac(){
 	$HTTP_USER_AGENT=trim($_SERVER["HTTP_USER_AGENT"]);
 	if(strpos($IPADDR, ",")>0){$FR=explode(",",$IPADDR);$IPADDR=trim($FR[0]);}
 	
+	
+	
 	$KEYMd5=md5($HTTP_USER_AGENT.$IPADDR);
 	$CACHE_FILE=dirname(__FILE__)."/ressources/logs/proxy.pacs/$KEYMd5";
 	
 	
 	if(is_file($CACHE_FILE)){
+		packsyslog("connection FROM $IPADDR [$HTTP_USER_AGENT] (cached)");
 		$time=pac_file_time_min($CACHE_FILE);
 		if($time<$SessionCache){echo @file_get_contents($CACHE_FILE);return;}
 		@unlink($CACHE_FILE);
@@ -114,15 +123,18 @@ function proxy_pac(){
 		$f[]=build_subrules($ID);
 		pack_debug("$rulename/$ID building build_proxies($ID)",__FUNCTION__,__LINE__);
 		$f[]=build_proxies($ID);
-		$f[]="}\r\n";
+		$f[]="}\r\n\r\n";
 		
 		$script=@implode("\r\n", $f);
+		
 		pack_debug("SUCCESS $rulename sends script ". strlen($script)." bytes to client",__FUNCTION__,__LINE__);
 		echo $script;
+		packsyslog("Connection FROM: $IPADDR [ $HTTP_USER_AGENT ] sends script ". strlen($script),__FUNCTION__,__LINE__);
 
 		mkdir(dirname($CACHE_FILE),0755,true);
 		file_put_contents($CACHE_FILE, $script);
 		if(!is_file($CACHE_FILE)){
+			packsyslog("FAILED $CACHE_FILE, permission denied");
 			pack_error("FAILED $CACHE_FILE, permission denied",__FUNCTION__,__LINE__);
 		}
 		$script=mysql_escape_string2(base64_encode($script));
@@ -161,6 +173,10 @@ function build_subrules($ID){
 	$sql="SELECT * FROM wpad_destination_rules WHERE aclid=$ID ORDER BY zorder";
 	$results = $q->QUERY_SQL($sql);
 	if(!$q->ok){return;}
+	$f[]="";
+	$f[]="// build_subrules($ID)";
+	
+	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$destinations=array();
 		$values=array();
@@ -168,15 +184,37 @@ function build_subrules($ID){
 		if($value==null){continue;}
 		$xtype=$ligne["xtype"];
 		
-		if(strpos($value, "\n")==0){$values[]=$value;}
-		$explode=explode("\n", $value);
-		while (list ($num, $ligne) = each ($explode) ){$ligne=trim($ligne);if($ligne==null){continue;}$values[]=$ligne;}
+		$CarriageReturn=strpos($value, "\n");
+		$f[]="// Carriage return = $CarriageReturn [".__LINE__."]";
+		
+		if($CarriageReturn==0){
+			$f[]="// Carriage source = $value [".__LINE__."]";
+			$values[]=$value;
+		}else{
+			$explode=explode("\n", $value);
+			while (list ($num, $Linz) = each ($explode) ){
+				$Linz=trim($Linz);
+				if($Linz==null){continue;}
+				$values[]=$Linz;
+			}
+			$f[]="// Carriage sources = ".count($values)." items [".__LINE__."]";
+		}
 		
 		$value=trim($ligne["destinations"]);
 		if($value<>null){
-			if(strpos($value, "\n")==0){$destinations[]=$value;}
-			$explode=explode("\n", $value);
-			while (list ($num, $ligne) = each ($explode) ){$ligne=trim($ligne);if($ligne==null){continue;}$destinations[]=$ligne;}
+			$CarriageReturn=strpos($value, "\n");
+			if($CarriageReturn==0){
+				$destinations[]=$value;
+				$f[]="// Carriage return Proxy = $value [".__LINE__."]";
+			}else{
+			
+				$explode=explode("\n", $value);
+				while (list ($num, $destline) = each ($explode) ){
+					$destline=trim($destline);
+					if($destline==null){continue;}
+					$destinations[]=$destline;
+				}
+			}
 		}
 	
 		if(count($destinations)==0){$destinations_final="DIRECT";}
@@ -221,7 +259,7 @@ function build_subrules($ID){
 	
 	}
 	
-	return @implode("\r\n", $f);
+	return @implode("\r\n\r\n", $f);
 	
 }
 
@@ -801,17 +839,31 @@ function build_proxies($ID){
 	if(count($g)==0){return "\n\treturn 'DIRECT';";}
 	return "\n\treturn \"".@implode(" ", $g)."\";";
 }
-function pack_debug($text,$function,$line){
-	if($GLOBALS["PROXY_PAC_DEBUG"]==0){return;}
-	$logFile="/var/log/apache2/proxy.pack.debug";
+
+function packsyslog($text,$function,$line){
 	$servername=$_SERVER["SERVER_NAME"];
+	$LineToSyslog="[$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
+	ToSyslog($LineToSyslog);
+	
+}
+
+function pack_debug($text,$function,$line){
+
+	
+	if($GLOBALS["PROXY_PAC_DEBUG"]==0){return;}
+	
+	$servername=$_SERVER["SERVER_NAME"];
+	$LineToSyslog="[$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
+	ToSyslog($LineToSyslog);
+	
+	$logFile="/var/log/apache2/proxy.pack.debug";
+	
 	$from=$_SERVER["REMOTE_ADDR"];
 	$lineToSave=date('H:i:s')." [$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
-	$LineToSyslog="[$servername] {$GLOBALS["IPADDR"]}: $text function $function line $line";
+	
 	if (is_file($logFile)) { $size=@filesize($logFile); if($size>900000){@unlink($logFile);} }
 	
 	$f = @fopen($logFile, 'a');
-	if(!$f){ ToSyslog($LineToSyslog); return; }
 	@fwrite($f, "$lineToSave\n");
 	@fclose($f);
 }

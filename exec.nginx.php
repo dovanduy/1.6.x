@@ -45,7 +45,7 @@ include_once(dirname(__FILE__).'/ressources/class.resolv.conf.inc');
 	if($argv[1]=="--rotate"){rotate();exit;}
 	if($argv[1]=="--awstats"){awstats();exit;}
 	if($argv[1]=="--caches-status"){caches_status();exit;}
-	if($argv[1]=="--framework"){framework();exit;}
+	if($argv[1]=="--framework"){$GLOBALS["OUTPUT"]=true;framework();exit;}
 	if($argv[1]=="--tests-sources"){test_sources();exit;}
 	if($argv[1]=="--reconfigure-all"){$GLOBALS["OUTPUT"]=true;build_localhosts();exit;}
 	if($argv[1]=="--authenticator"){$GLOBALS["OUTPUT"]=true;authenticator(true);exit;}
@@ -168,6 +168,19 @@ function build($OnlySingle=false){
 	$L=array();
 	$T=array();
 	
+	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
+	$server_names_hash_bucket_size=128;
+	$worker_connections=8192;
+	
+	
+	if($MEMORY<624288){
+		$server_names_hash_bucket_size=64;
+		$worker_connections=1024;
+		$workers=4;
+	}
+	
+	
+	
 	$f[]="# Builded on ".date("Y-m-d H:i:s");
 	$f[]="user   $APACHE_USER;";
 	$f[]="worker_processes  $workers;";
@@ -179,7 +192,7 @@ function build($OnlySingle=false){
 	$f[]="";
 	$f[]="";
 	$f[]="events {";
-	$f[]="    worker_connections  8192;";
+	$f[]="    worker_connections  $worker_connections;";
 	$f[]="    multi_accept  on;";
 	$f[]="    use epoll;";
 	$f[]="	  accept_mutex_delay 1ms;";
@@ -212,6 +225,8 @@ function build($OnlySingle=false){
 	if($nginxClass->IsSubstitutions()){
 		$f[]="\tsubs_filter_types text/html text/css text/xml;";
 	}
+	
+
 	
 	
 	@mkdir($Tempdir,0775,true);
@@ -379,12 +394,19 @@ function build($OnlySingle=false){
 
 function configure_single_freeweb($servername){
 	$q=new mysql();
+	$unix=new unix();
+	$php=$unix->LOCATE_PHP5_BIN();
 	$ligne=mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$servername'","artica_backup"));
 	$free=new freeweb($servername);
 	$NginxFrontEnd=$free->NginxFrontEnd;	
 	$groupware=$free->groupware;
+	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername [$groupware]\n";}
+	
 	$NOPROXY["SARG"]=true;
 	$NOPROXY["ARTICA_MINIADM"]=true;
+	$NOPROXY["WORDPRESS"]=true;
+	$NOPROXY[null]=true;
 	
 	$q2=new mysql_squid_builder();
 	$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT cacheid FROM reverse_www WHERE servername='{$ligne["servername"]}'"));
@@ -394,10 +416,18 @@ function configure_single_freeweb($servername){
 
 	
 	if(isset($NOPROXY[$groupware])){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername compile as FRONT-END\n";}
 		$free->CheckWorkingDirectory();
 		$host->set_proxy_disabled();
 		$host->set_DocumentRoot($free->WORKING_DIRECTORY);
 		if($groupware=="SARG"){$host->SargDir();}
+		if($groupware=="WORDPRESS"){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,$php /usr/share/artica-postfix/exec.wordpress.php \"$servername\"\n";}
+			system("$php /usr/share/artica-postfix/exec.wordpress.php \"$servername\"");
+			$host->WORDPRESS=true;
+			$host->set_index_file("index.php");
+			
+		}
 	}else{
 		$host->set_freeweb();
 		$host->set_storeid($ligne2["cacheid"]);
@@ -416,6 +446,7 @@ function configure_single_freeweb($servername){
 		}
 	}
 	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername building configuration...\n";}
 	$host->build_proxy();
 	configure_single_website_rebuild();
 	configure_single_website_reload();
@@ -429,31 +460,33 @@ function configure_single_website_rebuild(){
 }
 
 
-function configure_single_website($servername){
+function configure_single_website($servername,$noreload=false,$nopid=false){
 	$unix=new unix();
 	$sock=new sockets();
-	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
-	$pid=$unix->get_pid_from_file($pidfile);
-	if($unix->process_exists($pid,basename(__FILE__))){
-		$time=$unix->PROCCESS_TIME_MIN($pid);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
-		return;
+	if(!$nopid){
+		$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
+		$pid=$unix->get_pid_from_file($pidfile);
+		if($unix->process_exists($pid,basename(__FILE__))){
+			$time=$unix->PROCCESS_TIME_MIN($pid);
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx Already Artica task running PID $pid since {$time}mn\n";}
+			return;
+		}
+		@file_put_contents($pidfile, getmypid());
 	}
-	@file_put_contents($pidfile, getmypid());
 	
 	$EnableFreeWeb=$sock->GET_INFO("EnableFreeWeb");
 	if(!is_numeric($EnableFreeWeb)){$EnableFreeWeb=0;}	
-	if($EnableFreeWeb==1){
-		$q=new mysql();
-		$sql="SELECT servername from freeweb WHERE servername='$servername'";
-		$q=new mysql();
-		$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
-		if($ligne["servername"]<>null){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername is a freeweb\n";}
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, *** NOTICE *** $servername is a freeweb\n";}
-			configure_single_freeweb($servername);
-			return;
-		}
+	$q=new mysql();
+	$sql="SELECT servername from freeweb WHERE servername='$servername'";
+	$q=new mysql();
+	$ligne=mysql_fetch_array($q->QUERY_SQL($sql,"artica_backup"));
+	if($ligne["servername"]<>null){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $servername is a freeweb\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, *** NOTICE *** $servername is a freeweb\n";}
+		configure_single_freeweb($servername);
+		if(!$noreload){configure_single_website_reload(); }
+		return;
+	
 	}
 	
 	
@@ -464,7 +497,7 @@ function configure_single_website($servername){
 	if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] $servername $q->mysql_error\n";}return;}
 	configure_single_website_rebuild();
 	BuildReverse($ligne,true);
-	configure_single_website_reload();
+	if(!$noreload){configure_single_website_reload(); }
 	
 	
 }
@@ -577,15 +610,10 @@ function build_localhosts(){
 	$sql="SELECT * FROM freeweb WHERE `enabled`=1";
 	$results=$q->QUERY_SQL($sql,"artica_backup");
 	$q2=new mysql_squid_builder();
-	if(!$q->ok){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Fatal $q->mysql_error\n";}
-		return;
-	}
+	if(!$q->ok){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Fatal $q->mysql_error\n";} return; }
 	
 	if($GLOBALS["VERBOSE"]){echo "Starting......: ".date("H:i:s")." [DEBUG]: $sql -> ".mysql_num_rows($results)." items\n";}
-	
 	foreach (glob("/etc/nginx/sites-enabled-backuped/*") as $filename) {@unlink($filename);}
-	
 	@mkdir("/etc/nginx/sites-enabled-backuped",0755,true);
 	
 	$q=new mysql_squid_builder();
@@ -631,12 +659,8 @@ function build_localhosts(){
 	$NOPROXY["ARTICA_MINIADM"]=true;
 	
 	
-	
 	$CountDeserver=mysql_num_rows($results);
 	$prc_org=30;
-	
-	
-	
 	$c=0;
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
@@ -646,7 +670,7 @@ function build_localhosts(){
 		$prc=$prc/3;
 		$prc=intval($prc_org+$prc);
 		build_progress("Building {$ligne["servername"]}",$prc);
-		if($EnableFreeWeb==0){if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ************* {$ligne["servername"]} FreeWeb is disabled ************* \n";}continue; }
+		
 		$DenyConf=$ligne["DenyConf"];
 		$groupware=$ligne["groupware"];
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] $c/$CountDeserver\n";}
@@ -671,42 +695,8 @@ function build_localhosts(){
 		$ALREADYSET[$ligne["servername"]]=true;
 		$ligne2=mysql_fetch_array($q2->QUERY_SQL("SELECT cacheid FROM reverse_www WHERE servername='{$ligne["servername"]}'"));
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] Local web site `{$ligne["servername"]}` Groupware:[$groupware]; SSL:{$ligne["UseSSL"]}\n";}
+		configure_single_website($ligne["servername"],true,true);
 		
-		$free=new freeweb($ligne["servername"]);
-		$NginxFrontEnd=$free->NginxFrontEnd;
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Start...\n";}
-		$host=new nginx($ligne["servername"]);
-			
-		if($groupware=="ZARAFA"){
-			if($free->NginxFrontEnd==1){
-				$host->groupware_zarafa_Frontend();
-				continue;
-				}
-			}
-			
-			
-		if(isset($NOPROXY[$groupware])){
-			$free->CheckWorkingDirectory();
-			$host->set_proxy_disabled();
-			$host->set_DocumentRoot($free->WORKING_DIRECTORY);
-			if($groupware=="SARG"){$host->SargDir();}
-		}else{
-			$host->set_freeweb();
-			$host->set_storeid($ligne2["cacheid"]);
-			$host->set_proxy_destination("127.0.0.1");
-			$host->set_proxy_port(82);				
-			if($free->groupware=="Z-PUSH"){$host->NoErrorPages=true;}
-		}
-			
-
-			
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
-		$host->set_servers_aliases($free->Params["ServerAlias"]);
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Start...\n";}
-		$host->build_proxy();
-		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.":Done...\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] ******************************************\n";}
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,[".__LINE__."] \n";}
 		
 	}
 	
@@ -739,56 +729,7 @@ function build_localhosts(){
 	}
 			
 			
-	if($EnableArticaFrontEndToNGninx==1){
-		$sock=new sockets();
-		$SargOutputDir=$sock->GET_INFO("SargOutputDir");
-		if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
-		
-		if(!is_dir($SargOutputDir)){@mkdir($SargOutputDir,0755,true);}
-		if(!is_file("$SargOutputDir/logo.gif")){@copy("/usr/share/artica-postfix/css/images/logo.gif", "$SargOutputDir/logo.gif");}
-		if(!is_file("$SargOutputDir/pattern.png")){@copy("/usr/share/artica-postfix/css/images/pattern.png", "$SargOutputDir/pattern.png");}
-		$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
-		$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
-		$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
-		if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
-		if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
-		
-		
-		$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
-		if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=1;}
-		if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
-		if(!is_file($phpfpm)){$EnablePHPFPM=0;}
-		if($EnablePHPFPM==1){
-			ToSyslog("Restarting PHP5-FPM");
-			shell_exec("/etc/init.d/php5-fpm restart >/dev/null 2>&1");
-		}
-		
-		$host=new nginx(9000);
-		$host->set_ssl();
-		$host->set_proxy_disabled();
-		$host->set_DocumentRoot("/usr/share/artica-postfix");
-		
-		
-		$host->set_index_file("admin.index.php");
-		if($EnableSargGenerator==1){
-			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, SARG is enabled...\n";}
-			$host->SargDir();}
-		$host->build_proxy();
-		
-		$lighttpdbin=$unix->find_program("lighttpd");
-		if(!is_file($lighttpdbin)){
-			if(is_file("/etc/php5/fpm/pool.d/framework.conf")){
-				if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, building framework...\n";}
-				$host=new nginx(47980);
-				$host->set_proxy_disabled();
-				$host->set_DocumentRoot("/usr/share/artica-postfix/framework");
-				$host->set_framework();
-				$host->set_listen_ip("127.0.0.1");
-				$host->set_servers_aliases(array("127.0.0.1"));
-				$host->build_proxy();
-			}
-		}
-	}
+BuildArticaInNginx();
 
 	$prc++;if($prc>75){$prc=75;}
 	build_progress("Building authenticator",$prc);
@@ -819,6 +760,73 @@ function build_localhosts(){
 	if($GLOBALS["VERBOSE"]){echo "\n##################### - - END - - ##############################\n".__FUNCTION__.".".__LINE__.":Start...\n";}	
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__.".".__LINE__.": OK, DONE...\n";}
 }
+
+function BuildArticaInNginx(){
+	$sock=new sockets();
+	$unix=new unix();
+	$BuildFrameWorkInNginx=false;
+	$EnableArticaFrontEndToNGninx=intval($sock->GET_INFO("EnableArticaFrontEndToNGninx"));
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, EnableArticaFrontEndToNGninx = $EnableArticaFrontEndToNGninx\n";} 
+	if($EnableArticaFrontEndToNGninx==0){return;}
+	$SargOutputDir=$sock->GET_INFO("SargOutputDir");
+	if($SargOutputDir==null){$SargOutputDir="/var/www/html/squid-reports";}
+	
+	if(!is_dir($SargOutputDir)){@mkdir($SargOutputDir,0755,true);}
+	if(!is_file("$SargOutputDir/logo.gif")){@copy("/usr/share/artica-postfix/css/images/logo.gif", "$SargOutputDir/logo.gif");}
+	if(!is_file("$SargOutputDir/pattern.png")){@copy("/usr/share/artica-postfix/css/images/pattern.png", "$SargOutputDir/pattern.png");}
+	$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
+	$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
+	$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
+	if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+	if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
+	
+	
+	$EnableSargGenerator=$sock->GET_INFO("EnableSargGenerator");
+	if(!is_numeric($EnableSargGenerator)){$EnableSargGenerator=1;}
+	if(!is_numeric($EnablePHPFPM)){$EnablePHPFPM=0;}
+	if(!is_file($phpfpm)){$EnablePHPFPM=0;}
+	if($EnablePHPFPM==1){
+		ToSyslog("Restarting PHP5-FPM");
+		shell_exec("/etc/init.d/php5-fpm reload >/dev/null 2>&1");
+	}
+	
+	$host=new nginx("0.0.0.0:9000");
+	$host->set_ssl();
+	$host->set_proxy_disabled();
+	$host->set_DocumentRoot("/usr/share/artica-postfix");
+	$host->set_index_file("admin.index.php");
+	$host->build_proxy();
+	
+	
+	$lighttpdbin=$unix->find_program("lighttpd");
+	if(!is_file($lighttpdbin)){$BuildFrameWorkInNginx=true;}
+	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$BuildFrameWorkInNginx=true;}
+	
+	
+	
+	if($EnableSargGenerator==1){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, SARG is enabled...\n";}
+		$host->SargDir();
+		$host->build_proxy();
+	}
+		
+	if($BuildFrameWorkInNginx){
+		if(is_file("/etc/php5/fpm/pool.d/framework.conf")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, building framework...\n";}
+			$host=new nginx(47980);
+			$host->set_proxy_disabled();
+			$host->set_DocumentRoot("/usr/share/artica-postfix/framework");
+			$host->set_framework();
+			$host->set_listen_ip("127.0.0.1");
+			$host->set_servers_aliases(array("127.0.0.1"));
+			$host->build_proxy();
+		}
+	}
+	
+	
+	
+}
+
 
 function BuildReverse($ligne,$backupBefore=false){
 	$q=new mysql_squid_builder();
@@ -1322,11 +1330,8 @@ function start($aspid=false){
 	
 	
 	$MEMORY=$unix->MEM_TOTAL_INSTALLEE();
-	if($MEMORY<624288){
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx {$MEMORY}K is not enough, aborting...\n";}
-		return;
-	}
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx {$MEMORY}K\n";}
+		
 	$pid=PID_NUM();
 	
 	if($unix->process_exists($pid)){
@@ -1335,7 +1340,20 @@ function start($aspid=false){
 		return;
 	}
 	
+	$php=$unix->LOCATE_PHP5_BIN();
 	$EnableNginx=$sock->GET_INFO("EnableNginx");
+	if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, is Wordpress Appliance\n";}
+		$sock->SET_INFO("EnableNginx",1);
+		if(!is_dir("/usr/share/wordpress-src")){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Installing Wordpress\n";}
+			shell_exec("$php /usr/share/artica-postfix/exec.wordpress.download.php");
+		}
+		
+		$EnableNginx=1;
+	}
+	
+	
 	if(!is_numeric($EnableNginx)){$EnableNginx=1;}
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx service \"EnableNginx\" = $EnableNginx\n";}
 	
@@ -1897,7 +1915,7 @@ function awstats_import_sql($servername){
 
 function framework(){
 	$unix=new unix();
-	
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, Framework...\n";}
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$pid=$unix->get_pid_from_file($pidfile);
 	if($unix->process_exists($pid,basename(__FILE__))){
@@ -1907,9 +1925,14 @@ function framework(){
 	}
 	@file_put_contents($pidfile, getmypid());	
 	
-	
+	if(!is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){
 	$lighttpdbin=$unix->find_program("lighttpd");
-	if(is_file($lighttpdbin)){return;}
+		if(is_file($lighttpdbin)){
+			if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $lighttpdbin OK turn, to lighttpd...\n";}
+			return;
+		}
+
+	}
 	
 	if(!is_file("/etc/php5/fpm/pool.d/framework.conf")){
 		$php=$unix->LOCATE_PHP5_BIN();
@@ -1923,11 +1946,10 @@ function framework(){
 	
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, building framework...\n";}
 	$host=new nginx(47980);
+	
 	$host->set_proxy_disabled();
 	$host->set_DocumentRoot("/usr/share/artica-postfix/framework");
 	$host->set_framework();
-	$host->set_listen_ip("127.0.0.1");
-	$host->set_servers_aliases(array("127.0.0.1"));
 	$host->build_proxy();
 
 	$PID=PID_NUM();

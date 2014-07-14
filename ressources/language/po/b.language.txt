@@ -1311,6 +1311,7 @@ Please take care about what command-line you send...</commandline_explain>
 <CommonName>Common Name</CommonName>
 <company_name>Company name</company_name>
 <company_name_as_title>This company name will be displayed in all welcome Artica Web consoles.</company_name_as_title>
+<company_website>Company website</company_website>
 <compatible>Compatible</compatible>
 <compilation_done>Compilation done</compilation_done>
 <compilation_failed>Compilation failed</compilation_failed>
@@ -1761,7 +1762,20 @@ Mime output conversion is needed when the destination does not advertise 8BITMIM
 <display_visited_websites>Display visited sites</display_visited_websites>
 <display_youtube_for_this_day>Display downloaded videos downloaded on this day</display_youtube_for_this_day>
 <dnot_proxy_lisResolvable>Don't proxy resolvable hostnames</dnot_proxy_lisResolvable>
+<dnot_proxy_lisResolvable_explain>
+If the DNS inside the network recognizes only internal hosts, 
+you can use this option to test whether a host name is internal or external to the network.[br]
+Using this option, you can configure the browser to use direct connections to internal servers and 
+to use the proxy only for external servers.[br]
+This option is useful at sites where the internal hosts inside the firewall are able to resolve the 
+DNS domain name of other internal hosts, but all external hosts are unresolvable.[br] Browsers consults DNS, attempting to resolve the host name into an IP address.[br]
+[b]Note: if browsers are able to resolve webservers inside the network, ! Do not enable this option ![/b]
+</dnot_proxy_lisResolvable_explain>
 <dnot_proxy_localnames>Don't proxy local hostnames</dnot_proxy_localnames>
+<dnot_proxy_localnames_explain>
+Detects whether the host name in the requested URL is a plain host name or a fully qualified domain name.[br]
+If checked, if the browser request an hostname without any domain, it will connect to it without the proxy.
+</dnot_proxy_localnames_explain>
 <dnsbl_service>DNSBL service</dnsbl_service>
 <DNSIssuesMAX>MAX DNS issues per minute</DNSIssuesMAX>
 <dnsmasq_blk_domain>Add here the domain you did not want the DNS service serves 
@@ -2283,6 +2297,8 @@ If these default settings did not reflect your needs, you can add tasks yourself
 <export_acl_rules_explain>Export/backup your ACLs rules to a compressed file</export_acl_rules_explain>
 <export_rule>Export rule</export_rule>
 <export_rules>Export rules</export_rules>
+<export_this_website>Export this Website</export_this_website>
+<export_this_website_explain>Create and download a backup container for this website</export_this_website_explain>
 <expression>expression</expression>
 <ExternalPageListen_explain>If authentication is enabled, the watchdog must use a specific interface to connect trough the proxy in order to be authenticated.[br]
 If no IP address is selected, then the watchdog will use a random IP address in the list.</ExternalPageListen_explain>
@@ -2697,6 +2713,8 @@ Click on the link example.csv in order to get the CSV template/example.[br]
 <import_squid_logs>Import old Squid-Cache logs</import_squid_logs>
 <import_squid_logs_explain>Import the old access.log files created by your old Squid server or by an other Artica server.</import_squid_logs_explain>
 <import_squid_zip_explain>Import your squid configuration file from a ZIP compressed file, with external objects stored in files</import_squid_zip_explain>
+<import_wordpress_backup>Import Wordpress backup</import_wordpress_backup>
+<import_wordpress_backup_text>Import an Artica container of an exported Wordpress Website</import_wordpress_backup_text>
 <in>in</in>
 <inactive>inactive</inactive>
 <inbound>Inbound</inbound>
@@ -3133,6 +3151,7 @@ This parameters affect multiple instances too.
 <main_port>Main port</main_port>
 <main_routes>Main routes</main_routes>
 <main_ssl_port>Main SSL port</main_ssl_port>
+<main_webfiltering_rules>Webfiltering categories rules</main_webfiltering_rules>
 <MAJOR>Major</MAJOR>
 <malware_uri>Update malwares URI blacklist</malware_uri>
 <malware_uri_explain>This task will get new uris that point to viruses or malwares in order to block internet users</malware_uri_explain>
@@ -3517,6 +3536,7 @@ Do you wan to reboot it after executing the task ?</need_to_reboot_ask>
 <network_bridges>Bridges</network_bridges>
 <network_disk>Network Disk</network_disk>
 <network_inbound_size>Inboud bandwidth size</network_inbound_size>
+<network_interface>Network interface</network_interface>
 <network_interfaces>Network interfaces</network_interfaces>
 <network_outbound_size>Outbound bandwidth size</network_outbound_size>
 <network_parameters>Network settings</network_parameters>
@@ -4757,6 +4777,7 @@ It is in charge to upload extracted attachments to the MySQL database and clean 
 <separate_comma>You can separate multiple values with a comma ","</separate_comma>
 <serveretdom>Server and domain</serveretdom>
 <servername2>Server name</servername2>
+<server_aliases_title>Website aliases</server_aliases_title>
 <server_all_kbytes_in>Amount of traffic receive by the proxy</server_all_kbytes_in>
 <server_all_kbytes_out>Amount of traffic sended by the proxy</server_all_kbytes_out>
 <server_buffers>Server buffers</server_buffers>
@@ -5872,6 +5893,7 @@ If these are consuming a large amount of memory in relation to pagecache, it may
 Could also help to reduce swapping. The default value is 100. </vm.vfs_cache_pressure>
 <volumes>Volumes</volumes>
 <volumes_client_mode>Volumes (client mode)</volumes_client_mode>
+<VPS_COMPATIBLE>VPS compatible</VPS_COMPATIBLE>
 <vps_server_watchdog>Virtual servers watchdog</vps_server_watchdog>
 <vps_server_watchdog_explain>This task must be scheduled only if your Artica server is able to provide Virtual machines with LXC.[br]
 It designed to ensure that Virtual machines are UP and running and correcly set.
@@ -6043,6 +6065,7 @@ By using this WebFilter SaaS feature:[br]
 <webmail2>Webmail</webmail2>
 <webmail_type>WebMail type</webmail_type>
 <webpages>Web Pages</webpages>
+<webpage_deny_url>Webpage deny URL</webpage_deny_url>
 <webserver>Web server</webserver>
 <webservername>Webserver name</webservername>
 <webserver_override_cache>Webserver override cache</webserver_override_cache>

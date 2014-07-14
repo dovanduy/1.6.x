@@ -390,7 +390,7 @@ function ldap_escape($str){
 
 private function ldap_connect_action(){
 	
-	if($GLOBALS["VERBOSE"]){writelogs("INFO: ldap_connect -> cn=$this->ldap_host:$this->ldap_port",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
+	
 			
 		if($this->ldap_host=="127.0.0.1"){
 			$LDAP_API="/var/run/slapd/slapd.sock";

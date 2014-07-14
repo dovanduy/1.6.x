@@ -616,7 +616,8 @@ function wordpress_info(){
 	$tpl=new templates();
 	
 	$html="<div style='font-size:18px;margin-bottom:30px' class=explain>{APP_WORDPRESS_TEXT}<p>&nbsp;</p>{APP_WORDPRESS_ARTICA_TEXT}</div>
-		<center style='margin:30px'>". button("{new_wordpress_site}","Loadjs('$page?add-js=yes&t=')",35)."</center>	
+		<center style='margin:30px'>". button("{new_wordpress_site}","Loadjs('$page?add-js=yes&t=')",35)."</center>
+		<center style='margin:30px'>". button("{import_wordpress_backup}","Loadjs('wordpress.import.php')",35)."</center>		
 			
 		";
 	echo $tpl->_ENGINE_parse_body($html);

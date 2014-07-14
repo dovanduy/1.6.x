@@ -106,10 +106,10 @@ function popup(){
 	$empty=$tpl->_ENGINE_parse_body("{empty}");
 	$askdelete=$tpl->javascript_parse_text("{empty_store} ?");
 	$duration=$tpl->_ENGINE_parse_body("{duration}");
-	$ext=$tpl->_ENGINE_parse_body("{extension}");
+	$hostname=$tpl->_ENGINE_parse_body("{hostname}");
 	$back_to_events=$tpl->_ENGINE_parse_body("{back_to_events}");
 	$Compressedsize=$tpl->_ENGINE_parse_body("{compressed_size}");
-	$realsize=$tpl->_ENGINE_parse_body("{realsize}");
+	$rulename=$tpl->_ENGINE_parse_body("{rulename}");
 	$delete_file=$tpl->javascript_parse_text("{delete_file}");
 	$proto=$tpl->javascript_parse_text("{proto}");
 	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
@@ -147,7 +147,7 @@ function popup(){
 	}
 	
 	
-	$ipaddr=$tpl->javascript_parse_text("{ipaddr}");
+	$ipaddr=$tpl->javascript_parse_text("{client}");
 	$error=$tpl->javascript_parse_text("{error}");
 	$sitename=$tpl->javascript_parse_text("{sitename}");
 	$button3="{name: '<strong id=container-log-$t>$rotate_logs</stong>', bclass: 'Reload', onpress : SquidRotate$t},";
@@ -171,11 +171,12 @@ function popup(){
 			
 			{display: '$zdate', name : 'zDate', width :139, sortable : true, align: 'left'},
 			{display: '$ipaddr', name : 'events', width : 233, sortable : false, align: 'left'},
-			{display: '&nbsp;', name : 'code', width : 233, sortable : false, align: 'left'},
+			{display: '$rulename', name : 'events', width : 212, sortable : false, align: 'left'},
+			{display: '&nbsp;', name : 'code', width : 90, sortable : false, align: 'left'},
 			{display: '$proto', name : 'proto', width : 75, sortable : false, align: 'left'},
-			{display: '$uri', name : 'events', width : 650, sortable : false, align: 'left'},
-			{display: '$size', name : 'size', width : 106, sortable : false, align: 'left'},
-			{display: '$duration', name : 'duration', width : 106, sortable : false, align: 'left'},
+			{display: '$hostname', name : 'hostname', width : 242, sortable : false, align: 'left'},
+			{display: '$uri', name : 'events', width : 600, sortable : false, align: 'left'},
+
 			],
 				
 			buttons : [
@@ -216,8 +217,9 @@ echo $html;
 
 function events_list(){
 	$sock=new sockets();
-	$sock->getFrameWork("squid.php?access-real=yes&rp={$_POST["rp"]}&query=".urlencode($_POST["query"]));
-	$filename="/usr/share/artica-postfix/ressources/logs/access.log.tmp";
+	include_once('ressources/class.ufdbguard-tools.inc');
+	$sock->getFrameWork("squid.php?ufdb-real=yes&rp={$_POST["rp"]}&query=".urlencode($_POST["query"]));
+	$filename="/usr/share/artica-postfix/ressources/logs/ufdb.log.tmp";
 	$dataZ=explode("\n",@file_get_contents($filename));
 	$tpl=new templates();
 	$data = array();
@@ -227,7 +229,7 @@ function events_list(){
 	$today=date("Y-m-d");
 	$tcp=new IP();
 	
-	$cachedT=$tpl->_ENGINE_parse_body("{cached}");
+	
 	$c=0;
 	
 	if(count($dataZ)==0){json_error_show("no data");}
@@ -236,39 +238,47 @@ function events_list(){
 	
 	while (list ($num, $line) = each ($dataZ)){
 		$TR=preg_split("/[\s]+/", $line);
+		
 		if(count($TR)<5){continue;}
+
 		$c++;
 		$color="black";
-		$date=date("Y-m-d H:i:s",$TR[0]);
-		$durationunit="s";
-		$duration=$TR[1]/1000;
-		if($duration<60){$duration=round($duration,2);}
-		if($duration>60){$duration=round($duration/60,2);$durationunit="mn";}
-		$ip=$TR[2];
-		$zCode=explode("/",$TR[3]);
-		$size=$TR[4];
-		$PROTO=$TR[5];
-		if($logfileD->CACHEDORNOT($zCode[0])){$color="#009223";}
-		$codeToString=$logfileD->codeToString($zCode[1]);
+		$date=$TR[0];
+		$TIME=$TR[1];
+		$PID=$TR[2];
+		$ALLOW=$TR[3];
+		$CLIENT=$TR[4];
+		$CLIENT_IP=$TR[5];
+		$RULE=$TR[6];
+		$CATEGORY=CategoryCodeToCatName($TR[7]);
+		$URI=$TR[8];
+		$PROTO=$TR[9];
+
+		$parse=parse_url($URI);
+		$hostname=$parse["host"];
+		if(!isset($parse["host"])){continue;}
+		if($CLIENT==null){$CLIENT="-";}
+
 		
-		if($PROTO=="CONNECT"){$color="#BAB700";}
-		if($zCode[1]>399){$color="#D0080A";}
+		if($ALLOW=="BLOCK"){$color="#D0080A";}
+		if($ALLOW=="REDIR"){$color="#BAB700";}
 		
 		
+		if($CLIENT==$CLIENT_IP){$CLIENT_IP=null;}else{$CLIENT_IP="/$CLIENT_IP";}
 		
-		if($size>1024){$size=FormatBytes($size/1024);}else{$size="$size Bytes";}
-		$date=str_replace($today." ", "", $date);
+		if($date==$today){$date=null;}
 		$data['rows'][] = array(
 				'id' => md5($line),
 				'cell' => array(
-						"<span style='font-size:14px;color:$color'>$date</span>",
-						"<span style='font-size:14px;color:$color'>$ip/{$TR[7]}</span>",
-						"<span style='font-size:14px;color:$color'>{$zCode[0]} - $codeToString</span>",
+						"<span style='font-size:14px;color:$color'>$date $TIME</span>",
+						"<span style='font-size:14px;color:$color'>$CLIENT$CLIENT_IP</span>",
+						"<span style='font-size:14px;color:$color'>$RULE/$CATEGORY</span>",
+						"<span style='font-size:14px;color:$color'>$ALLOW</span>",
 						"<span style='font-size:14px;color:$color'>{$PROTO}</span>",
-						"<span style='font-size:14px;color:$color'>{$TR[6]}</span>",
-						"<span style='font-size:14px;color:$color'>$size</span>",
-						"<span style='font-size:14px;color:$color'>{$duration}$durationunit</span>",
-						"$ip"
+						"<span style='font-size:14px;color:$color'>$hostname</span>",
+						"<span style='font-size:14px;color:$color'>$URI</span>",
+						
+						
 				)
 		);
 		

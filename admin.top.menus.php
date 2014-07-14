@@ -72,6 +72,8 @@ if($users->AsSystemAdministrator){
 	//$tr[]=BuildIcons("32-cd-scan-white-tr.png","32-cd-scan-white.png","{install_upgrade_new_softwares}","Loadjs('setup.index.php?js=yes')");
 	//$tr[]=BuildIcons("services-32-white-tr.png","services-32-white.png","{display_running_services}","Loadjs('admin.index.services.status.php?js=yes')");
 }
+
+
 				
 
 
@@ -89,9 +91,20 @@ if(!$AsSquid){
 		}
 	}
 	
+	
+	
+	
 }
 
-
+if($users->AsWebMaster){
+	if($users->WORDPRESS_APPLIANCE){
+		$tr[]=BuildIcons("wp-32.png","wp-32.png","Wordpress","LoadAjax('BodyContent','wordpress.php');");
+	}else{
+		if($users->WORDPRESS_INSTALLED){
+			$tr[]=BuildIcons("wp-32.png","wp-32.png","Wordpress","LoadAjax('BodyContent','wordpress.php');");
+		}
+	}
+}
 
 				
 

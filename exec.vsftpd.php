@@ -40,6 +40,7 @@ function restart() {
 		return;
 	}
 	@file_put_contents($pidfile, getmypid());
+	vsftpd_admin_mysql(1,"Restarting VSFTPD service...",null,__FILE__,__LINE__);
 	stop(true);
 	sleep(1);
 	start(true);
@@ -138,6 +139,7 @@ function start($aspid=false){
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Success PID $pid\n";}
 
 	}else{
+		vsftpd_admin_mysql(0,"Starting VSFTPD service failed",null,__FILE__,__LINE__);
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} Failed\n";}
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} $cmd\n";}
 	}
@@ -171,7 +173,7 @@ function stop($aspid=false){
 
 
 
-
+	vsftpd_admin_mysql(1,"Shutdown VSFTPD service...",null,__FILE__,__LINE__);
 	if($GLOBALS["OUTPUT"]){echo "Stopping......: ".date("H:i:s")." [INIT]: {$GLOBALS["TITLENAME"]} service Shutdown pid $pid...\n";}
 	unix_system_kill($pid);
 	for($i=0;$i<5;$i++){
@@ -420,7 +422,7 @@ function vsftpd_conf(){
 	$f[]="log_ftp_protocol=YES";
 	$f[]="#xferlog_std_format=YES";
 	$f[]="xferlog_file=/var/log/vsftpd.log";
-	$f[]="syslog_enable=YES";
+	$f[]="syslog_enable=NO";
 	$f[]="use_localtime=YES";
 	$f[]="";
 	$f[]="# Timeout d'une session.";

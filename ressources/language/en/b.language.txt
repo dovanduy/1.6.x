@@ -6590,3 +6590,27 @@ All caches are disabled, this level deny the proxy to not cache any object.
 [br]Cache objects in memory will be disabled.
 In this mode, Proxy just act as a  web filtering router
 </SquidCacheLevel0>
+<realtime_requests>Realtime requests</realtime_requests>
+<network_interface>Network interface</network_interface>
+<export_this_website>Export this Website</export_this_website>
+<export_this_website_explain>Create and download a backup container for this website</export_this_website_explain>
+<import_wordpress_backup>Import Wordpress backup</import_wordpress_backup>
+<import_wordpress_backup_text>Import an Artica container of an exported Wordpress Website</import_wordpress_backup_text>
+<dnot_proxy_localnames_explain>
+Detects whether the host name in the requested URL is a plain host name or a fully qualified domain name.[br]
+If checked, if the browser request an hostname without any domain, it will connect to it without the proxy.
+</dnot_proxy_localnames_explain>
+<dnot_proxy_lisResolvable_explain>
+If the DNS inside the network recognizes only internal hosts, 
+you can use this option to test whether a host name is internal or external to the network.[br]
+Using this option, you can configure the browser to use direct connections to internal servers and 
+to use the proxy only for external servers.[br]
+This option is useful at sites where the internal hosts inside the firewall are able to resolve the 
+DNS domain name of other internal hosts, but all external hosts are unresolvable.[br] Browsers consults DNS, attempting to resolve the host name into an IP address.[br]
+[b]Note: if browsers are able to resolve webservers inside the network, ! Do not enable this option ![/b]
+</dnot_proxy_lisResolvable_explain>
+<main_webfiltering_rules>Webfiltering categories rules</main_webfiltering_rules>
+<webpage_deny_url>Webpage deny URL</webpage_deny_url>
+<VPS_COMPATIBLE>VPS compatible</VPS_COMPATIBLE>
+<company_website>Company website</company_website>
+<server_aliases_title>Website aliases</server_aliases_title>

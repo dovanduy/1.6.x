@@ -41,7 +41,7 @@ config($argv[1]);
 function build_progress($text,$pourc){
 	$array["POURC"]=$pourc;
 	$array["TEXT"]=$text;
-	if($GLOBALS["VERBOSE"]){echo "[$pourc]: $text\n";}
+	echo "[$pourc]: $text\n";
 	@file_put_contents("/usr/share/artica-postfix/ressources/logs/freeweb.rebuild.progress", serialize($array));
 	@chmod($GLOBALS["PROGRESS_FILE"],0755);
 
@@ -81,6 +81,7 @@ function config($servername){
 	
 	$free=new freeweb($servername);
 	$WORKING_DIRECTORY=$free->www_dir;
+	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: Directory: $WORKING_DIRECTORY\n";}
 	@unlink("$WORKING_DIRECTORY/wp-config.php");
 	if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: Duplicate: $free->groupware_duplicate\n";}
 	if($free->groupware_duplicate<>null){
@@ -109,7 +110,11 @@ function config($servername){
 	}
 	
 	$wordpressDB=$free->mysql_database;
-	if($wordpressDB==null){$wordpressDB=$free->CreateDatabaseName();}
+	if($wordpressDB==null){
+			$wordpressDB=$free->CreateDatabaseName();
+			$free->mysql_database=$wordpressDB;
+			$free->CreateSite(true);
+	}
 	$WordPressDBPass=$free->mysql_password;
 	$DB_USER=$free->mysql_username;
 	if($DB_USER=="wordpress"){$DB_USER=null;}
@@ -267,6 +272,11 @@ build_progress("$servername: wp-config.php {done}...",50);
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: $WORKING_DIRECTORY/wp-config.php done...\n";}
 if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: $servername: Testing configuration...\n";}
 
+if($free->groupware_admin==null){
+	$ldap=new clladp();
+	$free->groupware_admin=$ldap->ldap_admin;
+	$free->groupware_password=$ldap->ldap_password;
+}
 
 $admin=$unix->shellEscapeChars($free->groupware_admin);
 $password=$unix->shellEscapeChars($free->groupware_password);

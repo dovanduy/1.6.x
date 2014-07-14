@@ -770,6 +770,7 @@ begin
    end;
 
    if FIleExists('/etc/artica-postfix/OPENVPN_APPLIANCE') then  list.Add('$_GLOBAL["OPENVPN_APPLIANCE"]=True;') else  list.Add('$_GLOBAL["OPENVPN_APPLIANCE"]=False;');
+   if FIleExists('/etc/artica-postfix/WORDPRESS_APPLIANCE') then  list.Add('$_GLOBAL["WORDPRESS_APPLIANCE"]=True;') else  list.Add('$_GLOBAL["WORDPRESS_APPLIANCE"]=False;');
 
    
    // collectd
@@ -997,7 +998,7 @@ begin
    if FIleExists('/usr/local/share/artica/lmb_src/__install_lmb_files/bdd/bdd_liste_files.txt') then list.Add('$_GLOBAL["LMB_LUNDIMATIN_INSTALLED"]=True;') else list.Add('$_GLOBAL["LMB_LUNDIMATIN_INSTALLED"]=False;');
    if FIleExists('/usr/local/share/artica/group-office/classes/base/config.class.inc.php') then  list.Add('$_GLOBAL["GROUPOFFICE_INSTALLED"]=True;') else list.Add('$_GLOBAL["GROUPOFFICE_INSTALLED"]=False;');
    if FIleExists('/usr/local/share/artica/piwigo_src/include/constants.php') then  list.Add('$_GLOBAL["PIWIGO_INSTALLED"]=True;') else list.Add('$_GLOBAL["PIWIGO_INSTALLED"]=False;');
-   if FIleExists('/usr/local/share/artica/wordpress_src/wp-includes/version.php') then  list.Add('$_GLOBAL["WORDPRESS_INSTALLED"]=True;') else list.Add('$_GLOBAL["WORDPRESS_INSTALLED"]=False;');
+   if FIleExists('/usr/share/wordpress-src/wp-includes/version.php') then  list.Add('$_GLOBAL["WORDPRESS_INSTALLED"]=True;') else list.Add('$_GLOBAL["WORDPRESS_INSTALLED"]=False;');
    if FIleExists('/opt/yaffas/webmin/miniserv.pl') then  list.Add('$_GLOBAL["YAFFAS_INSTALLED"]=True;') else list.Add('$_GLOBAL["YAFFAS_INSTALLED"]=False;');
    if FIleExists('/opt/kaspersky/khse/libexec/libms-icap.so') then list.Add('$_GLOBAL["APP_KHSE_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_KHSE_INSTALLED"]=False;');
    if FIleExists(SYS.LOCATE_GENERIC_BIN('sabnzbdplus')) then  list.Add('$_GLOBAL["APP_SABNZBDPLUS_INSTALLED"]=True;') else list.Add('$_GLOBAL["APP_SABNZBDPLUS_INSTALLED"]=False;');

@@ -1855,13 +1855,23 @@ function quicklinks_proxy(){
 	$tr[]=paragrapheWin("autoconf-64-white.png","{autoconfiguration}",
 	"AnimateDiv('BodyContent');LoadAjax('BodyContent','squid.autoconfiguration.main.php?tabs=yes')");
 
-	if($users->C_ICAP_INSTALLED){
-		$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
-		"AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-webfilter.php')");
+
+	
+	if($users->APP_UFDBGUARD_INSTALLED){
+		$tr[]=paragrapheWin("webfiltering-white-64.png","{web_filtering}",
+		"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.mainrules.php')");
 	}
 	
-	$tr[]=paragrapheWin("webfiltering-white-64.png","{web_filtering}",
-	"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");
+	
+	
+	$tr[]=paragrapheWin("firewall-64-white.png","{ACLS}",
+	"AnimateDiv('BodyContent');LoadAjax('BodyContent','dansguardian2.php')");	
+	
+	if($users->C_ICAP_INSTALLED){
+		$tr[]=paragrapheWin("webfiltering-white-64.png","ICAP {web_filtering}",
+				"AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-webfilter.php')");
+	}
+	
 	
 //******************** ICAP CENTER **************************************************
 $tr[]=paragrapheWin("icap-center-64.png","{icap_center}", "AnimateDiv('BodyContent');LoadAjax('BodyContent','icap-center.php')");	

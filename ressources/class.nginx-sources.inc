@@ -15,6 +15,7 @@ class nginx_sources{
 	public $proxy_read_timeout=300;
 	public $proxy_send_timeout=300;
 	public $proxy_buffering=1;
+	public $database=null;
 	public $proxy_cache_min_uses=1;
 	public $proxy_buffer_size=8;
 	public $proxy_buffers="8 8k";

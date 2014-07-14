@@ -106,6 +106,9 @@ function tasks(){
 			</div><div style='margin:30px'>". button("{restore_from_website}", 
 				"Loadjs('wordpress.php?restore-js=$servernameenc')",30)."
 				<p style='font-size:20px'>{restore_from_website_explain}</p>
+			</div><div style='margin:30px'>". button("{export_this_website}", 
+				"Loadjs('wordpress.export.php?servername=$servernameenc')",30)."
+				<p style='font-size:20px'>{export_this_website_explain}</p>
 			</div>	";
 		
 		

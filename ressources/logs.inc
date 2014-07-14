@@ -1,4 +1,5 @@
 <?php
+
 if(function_exists("date_default_timezone_set") and function_exists("date_default_timezone_get")){@date_default_timezone_set(@date_default_timezone_get());}
 if(!isset($GLOBALS["ARTICALOGDIR"])){$GLOBALS["ARTICALOGDIR"]=@file_get_contents("/etc/artica-postfix/settings/Daemons/ArticaLogDir"); if($GLOBALS["ARTICALOGDIR"]==null){ $GLOBALS["ARTICALOGDIR"]="/var/log/artica-postfix"; } }
 ini_set("log_errors", 1);
@@ -27,22 +28,13 @@ function writeToFile($text,$filepath){
 	@fclose($f);
 }
 function writelogs($text=null,$function=null,$file_source=null,$line=null){
+	$EnableWebPageDebugging=0;
 	if(!isset($GLOBALS["ARTICA"]["EVENTS"])){$GLOBALS["ARTICA"]["EVENTS"]=array();}
 	$GLOBALS["ARTICA"]["EVENTS"][]=date('H:i:s')." $text $function ". basename($file_source)." in line $line\n";
 	if(count($GLOBALS["ARTICA"]["EVENTS"])>100){$GLOBALS["ARTICA"]["EVENTS"]=array();}
 	
 	if(isset($_SESSION["EnableWebPageDebugging"])){$GLOBALS["EnableWebPageDebugging"]=$_SESSION["EnableWebPageDebugging"];}
-	
-	if(!isset($GLOBALS["EnableWebPageDebugging"])){
-		if(class_exists("sockets")){
-			$sock=new sockets();
-			$EnableWebPageDebugging=$sock->GET_INFO("EnableWebPageDebugging");
-			if(!is_numeric($EnableWebPageDebugging)){$EnableWebPageDebugging=0;}
-			$GLOBALS["EnableWebPageDebugging"]=$EnableWebPageDebugging;
-			$_SESSION["EnableWebPageDebugging"]=$EnableWebPageDebugging;
-		}
-	}
-	$EnableWebPageDebugging=$GLOBALS["EnableWebPageDebugging"];
+	if(isset($GLOBALS["EnableWebPageDebugging"])){$EnableWebPageDebugging=$GLOBALS["EnableWebPageDebugging"];}
 	
 	$name=null;
 	$ARRAY_NET["listener.php"]=true;
@@ -98,7 +90,13 @@ function writelogs($text=null,$function=null,$file_source=null,$line=null){
 	if(!isset($_SERVER["REMOTE_ADDR"])){$_SERVER["REMOTE_ADDR"]="LOCAL";}
 	$IP=$_SERVER["REMOTE_ADDR"];
 	$SCRIPT_FILENAME=basename($_SERVER["SCRIPT_FILENAME"]);
-	if(function_exists("posix_getuid")){if(posix_getuid()>0){if($_SESSION["uid"]==-100){$name="[SuperAdmin]";}}}
+	if(function_exists("posix_getuid")){
+		if(posix_getuid()>0){
+			if(isset($_SESSION["uid"])){
+				if($_SESSION["uid"]==-100){$name="[SuperAdmin]";}
+			}
+		}
+	}
 	
 	if(!isset($name)){$name=null;}
 	$text2=date('H:i:s')." $file_source [$IP]::$name $function:: $text line: $line source file:$SCRIPT_FILENAME";

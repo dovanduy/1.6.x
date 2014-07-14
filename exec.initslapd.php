@@ -2246,6 +2246,7 @@ function apache(){
 	$f[]="case \"\$1\" in";
 	$f[]=" start)";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/exec.mounts.bind.php \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";
 	$f[]="  stop)";
@@ -2253,11 +2254,13 @@ function apache(){
 	$f[]="    ;;";
 	$f[]=" reload)";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --reload \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/exec.mounts.bind.php \$2 \$3";
 	$f[]="    ;;";	
 	$f[]="";
 	$f[]=" restart)";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --stop \$2 \$3";
-	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";		
+	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/exec.mounts.bind.php \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";
 	$f[]=" force-reload)";
@@ -2853,6 +2856,7 @@ function nginx(){
 	$f[]=" start)";
 	$f[]="    ulimit -n 65536";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --start \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/exec.mounts.bind.php \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";
 	$f[]="  stop)";
@@ -2862,6 +2866,7 @@ function nginx(){
 	$f[]=" restart)";
 	$f[]="    ulimit -n 65536";
 	$f[]="    $php /usr/share/artica-postfix/$php5script --restart \$2 \$3";
+	$f[]="    $php /usr/share/artica-postfix/exec.mounts.bind.php \$2 \$3";
 	$f[]="    ;;";
 	$f[]="";
 	$f[]=" reconfigure)";

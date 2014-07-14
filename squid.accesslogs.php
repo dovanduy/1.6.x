@@ -158,8 +158,8 @@ function page(){
 	$MAC=$tpl->_ENGINE_parse_body("{MAC}");
 	$reload_proxy_service=$tpl->_ENGINE_parse_body("{reload_proxy_service}");
 	$table_size=855;
-	$url_row=505;
-	$member_row=276;
+	$url_row=650;
+	$member_row=330;
 	$table_height=420;
 	$distance_width=230;
 	$tableprc="100%";
@@ -171,7 +171,7 @@ function page(){
 		
 	if(isset($_GET["bypopup"])){
 		$table_size=1019;
-		$url_row=576;
+		$url_row=650;
 		$member_row=333;
 		$distance_width=352;
 		$margin=0;

@@ -669,7 +669,7 @@ function logon(){
 	$md5Manager=md5(trim($_GLOBAL["ldap_password"]));
 	if(trim($GLOBALS["FixedLanguage"])<>null){$_POST["lang"]=$GLOBALS["FixedLanguage"];}
 
-	if(trim($_POST["artica_username"])==trim($_GLOBAL["ldap_admin"])){
+	if(trim(strtolower($_POST["artica_username"]))==trim(strtolower($_GLOBAL["ldap_admin"]))){
 		if($md5Manager<>$md5submitted){
 			$tpl=new templates();
 			//writelogs("Testing logon.... password:{$_POST["artica_password"]}!==\"{$_GLOBAL["ldap_password"]}\"",__FUNCTION__,__FILE__,__LINE__);	
@@ -1091,6 +1091,7 @@ function buildPage(){
 	if($users->HAPRROXY_APPLIANCE){$template="LoadBalance";}
 	if($users->WEBSTATS_APPLIANCE){$template="WebStats";}
 	if($users->GATEWAY_APPLIANCE){$template="Gateway";$TEMPLATE_INDEX="logon.html";}
+	if($users->WORDPRESS_APPLIANCE){$template="Wordpress";}
 	
 	
 	
@@ -1130,6 +1131,7 @@ function buildPage(){
 	}
 	
 	if($users->SAMBA_APPLIANCE){$template="Samba";}
+	if($users->WORDPRESS_INSTALLED){$template="Wordpress";}
 	if(trim($template)==null){if($users->SQUID_INSTALLED){$template="Squid";}}
 	if(trim($template)==null){if($users->SAMBA_INSTALLED){$template="Samba";}}
 	if(trim($template)==null){if($users->APACHE_INSTALLED){$template="Apache";}}

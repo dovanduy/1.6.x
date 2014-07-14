@@ -93,29 +93,33 @@ class unix {
 		if($ini->_params["AUTOUPDATE"]["autoinstall"]<>"yes"){$autoinstall=false;}
 		$uri=$ini->_params["AUTOUPDATE"]["uri"];
 		if($uri==null){$uri="http://www.articatech.net/auto.update.php";}
+		$uri=str_replace("artica.fr", "articatech.net",$uri);
 		$arrayURI=parse_url($uri);
+		
+		
+		
+		
 		
 		if($this->IsProxy()){
 			
 			if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] Proxy is enabled, return {$arrayURI["scheme"]}://{$arrayURI["host"]}\n";}
 			return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";}
+			$hostname=$arrayURI["host"];
+			if($this->isIPAddress($hostname)){
+				if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] $hostname = IP ADDRESS, return {$arrayURI["scheme"]}://{$arrayURI["host"]}\n";}
+				return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";
+			}
+			$ipaddress=gethostbyname($hostname);
+			if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] $hostname = $ipaddress\n";}
 		
-		$hostname=$arrayURI["host"];
-		if($this->isIPAddress($hostname)){
-			if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] $hostname = IP ADDRESS, return {$arrayURI["scheme"]}://{$arrayURI["host"]}\n";}
-			return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";
-		}
-		$ipaddress=gethostbyname($hostname);
-		if($GLOBALS["VERBOSE"]){echo __CLASS__."::".__FUNCTION__."[".__LINE__."] $hostname = $ipaddress\n";}
-		
-		if(!$this->isIPAddress($ipaddress)){
-			if($hostname<>"www.artica.fr"){return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";}
-			$ipaddress=gethostbyname("www.articatech.net");
-			if(!$this->isIPAddress($ipaddress)){return "{$arrayURI["scheme"]}://93.88.245.88";}
-			$ini->_params["AUTOUPDATE"]["uri"]="http://www.articatech.net/auto.update.php";
-			$ini->saveFile('/etc/artica-postfix/artica-update.conf');
-			return "{$arrayURI["scheme"]}://www.articatech.net";
-		}
+			if(!$this->isIPAddress($ipaddress)){
+				if($hostname<>"www.artica.fr"){return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";}
+				$ipaddress=gethostbyname("www.articatech.net");
+				if(!$this->isIPAddress($ipaddress)){return null;}
+				$ini->_params["AUTOUPDATE"]["uri"]="http://www.articatech.net/auto.update.php";
+				$ini->saveFile('/etc/artica-postfix/artica-update.conf');
+				return "{$arrayURI["scheme"]}://www.articatech.net";
+			}
 		
 		return "{$arrayURI["scheme"]}://{$arrayURI["host"]}";
 	}
@@ -2638,7 +2642,10 @@ function GET_PERFS($value){
 	}else{
 		$ini=new Bs_IniHandler("/etc/artica-postfix/performances.conf");
 	}
-	return $ini->_params["PERFORMANCES"][$key];
+	
+	if(isset($ini->_params["PERFORMANCES"][$value])){
+		return $ini->_params["PERFORMANCES"][$value];
+	}
 	
 }
 	
@@ -7930,6 +7937,64 @@ function blackwhite_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 
 
 }
+function vsftpd_admin_mysql($severity,$subject,$text,$file=null,$line=0){
+	if(!is_numeric($line)){$line=0;}
+	// 0 -> RED, 1 -> WARN, 2 -> INFO
+
+	if(function_exists("debug_backtrace")){
+		$trace=debug_backtrace();
+		if(isset($trace[1])){
+			if($file==null){
+				$file=basename($trace[1]["file"]);
+			}
+			$function=$trace[1]["function"];
+			if($line==0){
+				$line=$trace[1]["line"];
+			}
+		}
+			
+	}
+
+
+
+
+	if(function_exists("syslog")){
+		$file=basename($file);
+		$LOG_SEV=LOG_INFO;
+		openlog($file, LOG_PID , LOG_SYSLOG);
+		syslog($LOG_SEV, $subject ." [$line]");
+		closelog();
+	}
+
+	$unix=new unix();
+	$unix->events($subject,"/var/log/squid/artica.apache.log",false,$function,$line,$file);
+
+	$array_mem=getSystemMemInfo();
+	$array_load=sys_getloadavg();
+	$MemFree=$array_mem["MemFree"];
+	$internal_load=$array_load[0];
+	$content="$text\In $file line $line\nServer Load $internal_load, Memory free: $MemFree";
+
+	if(!is_numeric($GLOBALS["SCHEDULE_ID"])){$GLOBALS["SCHEDULE_ID"]=0;}
+
+
+	$array["zdate"]=date("Y-m-d H:i:s");
+	$array["subject"]=$subject;
+	$array["text"]=$text;
+	$array["severity"]=$severity;
+	$array["function"]=$function;
+	$array["file"]=basename($file);
+	$array["line"]=$line;
+	$array["pid"]=getmypid();
+	$array["TASKID"]=$GLOBALS["SCHEDULE_ID"];
+	$serialize=serialize($array);
+	$md5=md5($serialize);
+	if(!is_dir("{$GLOBALS["ARTICALOGDIR"]}/vsftpd_admin_mysql")){@mkdir("{$GLOBALS["ARTICALOGDIR"]}/vsftpd_admin_mysql",0755,true);}
+	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/vsftpd_admin_mysql/$md5.log", $serialize);
+
+
+
+}
 
 function apache_admin_mysql($severity,$subject,$text,$file=null,$line=0){
 	if(!is_numeric($line)){$line=0;}
@@ -8336,6 +8401,7 @@ function system_user_events($uid,$text,$function,$file,$line,$category,$taskid=0
 	@file_put_contents("{$GLOBALS["ARTICALOGDIR"]}/system_users_events/$md5.log", $serialize);	
 	
 }
+
 
 function sarg_admin_events($text,$function,$file=null,$line=0,$category=null,$taskid=0){
 	$date=date("Y-m-d H:i:s");

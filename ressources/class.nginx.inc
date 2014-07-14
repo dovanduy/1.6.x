@@ -509,9 +509,10 @@ class nginx{
 			}
 		}
 
+		if(trim($this->file_settings_path)==null){$this->build_file_path();}
 		@file_put_contents($this->file_settings_path,$data);
 		$size=filesize($this->file_settings_path);
-		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,$this->file_settings_path done.($size bytes)\n";}
+		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx,\"$this->file_settings_path\" done.($size bytes)\n";}
 		
 		if($this->BackupBefore){
 			if(!$this->TestTheWholeConfig()){
@@ -1569,10 +1570,13 @@ private function http_location_cache_params($ligne){
 	private function http_proxy(){
 		$unix=new unix();
 		$ServersAliases=null;
+		$host_port_ssl=null;
+		$default_server=null;
 		$server_name=null;
 		$ErrorLogLevel="warn";
 		if(trim($this->servername)==null){$this->FillHostnameAsIP();}
 		$IsSSL=false;
+		if($this->ssl==1){$IsSSL=true;}
 		if($this->IsAFreeWeb){
 			$IsSSL=$this->isFreeWebSSL();
 			if(!$IsSSL){$this->set_proxy_port(82);}else{$this->set_proxy_port(447);}
@@ -1598,12 +1602,20 @@ private function http_location_cache_params($ligne){
 			$AsProxy=false;
 		}		
 		
+		if($IsSSL){if($this->host_port<>80){$host_port_ssl=" ssl";}}
 		
+		$LISTEN_FINAL="{$HostIPADDR}$this->host_port{$host_port_ssl}{$default_server}";
+		if($this->BuildFramework){
+			$LISTEN_FINAL="unix:/usr/share/artica-postfix/ressources/web/framework.sock";
+			$IsSSL=false;
+		}
 		
 		$f[]="server {";
-		$f[]="\tlisten {$HostIPADDR}$this->host_port{$default_server};";
+		$f[]="\tlisten $LISTEN_FINAL;";
 		if($IsSSL){
-			$f[]="\tlisten {$HostIPADDR}443 ssl;";
+			if($this->host_port==80){
+				$f[]="\tlisten {$HostIPADDR}443 ssl;";
+			}
 			$f[]=$this->squidR->SaveCertificate($this->sslcertificate,false,true);
 			$f[]="\tssl_session_cache shared:SSL:50m;";
 			$f[]="\tssl_session_timeout  5m;";
@@ -1614,6 +1626,8 @@ private function http_location_cache_params($ligne){
 		
 		if($GLOBALS["OUTPUT"]){echo "Starting......: ".date("H:i:s")." [INIT]: Nginx, $this->servername/".__LINE__." listen {$HostIPADDR}$this->host_port{$default_server}\n";}
 		$server_name_text=$this->CheckServerName($this->servername);
+		if($this->BuildFramework){$server_name_text=null; }
+		
 		$ServersAliases=$this->http_servername_aliases();
 		
 		$server_name=trim("$server_name_text{$ServersAliases}");
@@ -1661,11 +1675,15 @@ private function http_location_cache_params($ligne){
 		if($this->DocumentRoot<>null){
 			$f[]="\troot   $this->DocumentRoot;";
 			if($this->IndexFile<>null){ $f[]="\tindex $this->IndexFile;";}
+
 			$f[]="\tlocation ~* ^.+.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt)$ {";
 			//$f[]="\t\taccess_log        off;";
 			$f[]="\t\texpires           max;";
 			$f[]="\t}";
-		}		
+		}
+
+		
+		
 		
 		if(!$AsProxy){
 			$f[]=$this->ROOT_WEBSERVER();
@@ -1786,10 +1804,84 @@ private function http_location_cache_params($ligne){
 	}
 	
 	
+	private function WORDPRESS_CONFIG(){
+		
+		
+		$f[]="\tset \$cache_uri \$request_uri;";
+		
+		$f[]="# POST requests and urls with a query string should always go to PHP ( http://codex.wordpress.org/Nginx )";
+		$f[]="\tif (\$request_method = POST) {";
+		$f[]="\tset \$cache_uri 'null cache';";
+		$f[]="\t}";
+		
+		 
+		$f[]="\tif (\$query_string != \"\") {";
+		$f[]="\tset \$cache_uri 'null cache';";
+		$f[]="\t}";
+		
+		
+		
+		
+		
+		$f[]="\tlocation / {";
+		$f[]="\t\ttry_files \$uri \$uri/ /index.php?q=\$uri&\$args;";
+		$f[]="\t}";
+		
+		$f[]="# Deny all attempts to access hidden files such as .htaccess, .htpasswd, .DS_Store (Mac).";
+		$f[]="# Keep logging the requests to parse later (or to pass to firewall utilities such as fail2ban)";
+		$f[]="\tlocation ~ /\. {";
+		$f[]="\t\tdeny all;";
+		$f[]="\t}";
+		
+		$f[]="";
+		$f[]="\trewrite /wp-admin$ \$scheme://\$host\$uri/ permanent;";
+		
+		$f[]="";
+		$f[]="# Directives to send expires headers and turn off 404 error logging.";
+		$f[]="\tlocation ~* ^.+\.(ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|rss|atom|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)$ {";
+		$f[]="\t\taccess_log off; log_not_found off; expires max;";
+		$f[]="}";
+		
+		$f[]="# Don't cache uris containing the following segments";
+		$f[]="\tif (\$request_uri ~* \"(/wp-admin/|/xmlrpc.php|/wp-(app|cron|login|register|mail).php|wp-.*.php|/feed/|index.php|wp-comments-popup.php|wp-links-opml.php|wp-locations.php|sitemap(_index)?.xml|[a-z0-9_-]+-sitemap([0-9]+)?.xml)\") {";
+		$f[]="\t\tset \$cache_uri 'null cache';";
+		$f[]="\t}   ";
+		$f[]="";
+		$f[]="# Don't use the cache for logged in users or recent commenters";
+		$f[]="\tif (\$http_cookie ~* \"comment_author|wordpress_[a-f0-9]+|wp-postpass|wordpress_logged_in\") {";
+		$f[]="\t\tset \$cache_uri 'null cache';";
+		$f[]="\t}";	
 
+		
+		$f[]="\tlocation = /favicon.ico {";
+		$f[]="\t\tlog_not_found off;";
+		$f[]="\t\taccess_log off;";
+		$f[]="\t}";
+		
+		$f[]="\tlocation = /robots.txt {";
+		$f[]="\t\tallow all;";
+		$f[]="\t\tlog_not_found off;";
+		$f[]="\t\taccess_log off;";
+		$f[]="\t}";
+		
+		$f[]="\tlocation ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {";
+		$f[]="\t\texpires max;";
+		$f[]="\t\tlog_not_found off;";
+		$f[]="\t}";
+		return @implode("\n", $f);	
+		
+	}
 	
 	
 	private function ROOT_WEBSERVER(){
+		if($this->ssl==1){
+			$f[]=$this->ROOT_WEBSERVER_SSL();
+		}
+		
+		if($this->WORDPRESS){
+			$f[]=$this->WORDPRESS_CONFIG();
+		}
+		
 		$f[]=$this->php_fpm();
 		$f[]=$this->http_locations($this->servername);
 		return @implode("\n", $f);
@@ -1896,7 +1988,6 @@ private function http_location_cache_params($ligne){
 		$pattern=str_replace("?", "\?", $pattern);
 		$pattern=str_replace("|", "\|", $pattern);
 		$pattern=str_replace("$", "\$", $pattern);
-	
 		$pattern=str_replace("^", "\^", $pattern);
 		
 		$pattern=str_replace("\n", "\s+", $pattern);
@@ -2024,6 +2115,17 @@ private function http_location_cache_params($ligne){
 		return @implode("\n", $f);
 	}	
 	
+	private function ROOT_WEBSERVER_SSL(){
+		if($this->ssl==0){return "# SSL disabled";}
+		$f[]="\tproxy_set_header X-Forwarded-Ssl on;";
+		$f[]="\tssl on;";
+		$f[]=$this->squidR->SaveCertificate($this->sslcertificate,false,true);
+		$f[]="\tssl_session_timeout  5m;";
+		$f[]="\tssl_protocols  $this->ssl_protocols;";
+		$f[]="\tssl_ciphers '$this->ssl_ciphers';";
+		$f[]="\tssl_prefer_server_ciphers   on;";
+	}
+	
 	
 	
 	private function ROOT_PROXY(){
@@ -2131,14 +2233,12 @@ private function http_location_cache_params($ligne){
 		}
 		$f[]=$this->headers_x_forwarded_for();
 
-		if(!$this->OWA){
-			$f[]=$this->proxy_cache_bypass();
-			
-			if($this->ssl==1){$f[]="\tproxy_set_header X-Forwarded-Ssl on;";}
-		}	
+		if(!$this->OWA){$f[]=$this->proxy_cache_bypass();}	
 		if($proxy_ssl_session_reuse<>null){
 			$f[]="\tproxy_ssl_session_reuse\t$proxy_ssl_session_reuse;";
 		}
+
+		
 
 		
 		
@@ -2373,13 +2473,23 @@ private function http_location_cache_params($ligne){
 		$phpfpm=$unix->APACHE_LOCATE_PHP_FPM();
 		$EnablePHPFPM=$sock->GET_INFO("EnablePHPFPM");
 		if(!is_file($phpfpm)){$EnablePHPFPM=0;}
-		$EnableArticaApachePHPFPM=$sock->GET_INFO("EnableArticaApachePHPFPM");
-		if(!is_numeric($EnableArticaApachePHPFPM)){$EnableArticaApachePHPFPM=0;}
+		$EnableArticaApachePHPFPM=intval($sock->GET_INFO("EnableArticaApachePHPFPM"));
+		$EnablePHPFPMFreeWeb=intval($sock->GET_INFO("EnablePHPFPMFreeWeb"));
 		if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
+		if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$EnablePHPFPMFreeWeb=1;}
+		
+		
+		if($EnableArticaApachePHPFPM==1){
+				$socket="/var/run/php-fpm.sock";
+		}
+		
+		if($EnablePHPFPMFreeWeb==1){
+			$socket="/var/run/php-fpm-apache2.sock";
+		}
 		
 		
 		if($EnablePHPFPM==1){
-			return "\t\troot $root;\n\t\tfastcgi_pass unix:/var/run/php-fpm.sock;\n\t\tinclude fastcgi_params;\n";
+			return "\t\troot $root;\n\t\tfastcgi_pass unix:$socket;\n\t\tinclude fastcgi_params;\n";
 		}
 		
 		return "\t\troot $root;\n\t\tfastcgi_pass unix:/var/run/php-fcgi.sock;\n\t\tinclude fastcgi_params;\n";
@@ -2406,8 +2516,15 @@ private function http_location_cache_params($ligne){
 		
 		if($EnablePHPFPM==0){return $this->spawn_fcgi_config();}
 		$this->fastcgi_params();
+		$EnableArticaApachePHPFPM=intval($sock->GET_INFO("EnableArticaApachePHPFPM"));
+		$EnablePHPFPMFreeWeb=intval($sock->GET_INFO("EnablePHPFPMFreeWeb"));
+		if($EnableArticaApachePHPFPM==0){$EnablePHPFPM=0;}
+		if(is_file("/etc/artica-postfix/WORDPRESS_APPLIANCE")){$EnablePHPFPMFreeWeb=1;}
 		
 		
+		if($EnableArticaApachePHPFPM==1){$socket="/var/run/php-fpm.sock"; }
+		if($EnablePHPFPMFreeWeb==1){$socket="/var/run/php-fpm-apache2.sock"; }
+		if($this->BuildFramework){$socket="/var/run/php-fpm-framework.sock";}
 		
 		if(strpos($index, " ")>0){
 			$indexR=explode(" ", $index);
@@ -2427,12 +2544,7 @@ private function http_location_cache_params($ligne){
 			$f[]="\t\tfastcgi_read_timeout 300;";
 			$f[]="\t\tfastcgi_connect_timeout 300;";
 			$f[]="\t\tfastcgi_send_timeout 300;";
-			if($this->BuildFramework){
-				
-				$f[]="\t\tfastcgi_pass unix:/var/run/php-fpm-framework.sock;";
-			}else{
-				$f[]="\t\tfastcgi_pass unix:/var/run/php-fpm.sock;";
-			}
+			$f[]="\t\tfastcgi_pass unix:$socket;";
 			$f[]="\t\tfastcgi_index $index;";
 			$f[]="\t\tinclude fastcgi_params;";
 			$f[]="\t}";	

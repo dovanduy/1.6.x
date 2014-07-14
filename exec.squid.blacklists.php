@@ -255,6 +255,8 @@ function cicap_artica($aspid=false){
 		if($GLOBALS["VERBOSE"]){echo "Failed Downloading $URIBASE/ufdb/CATZ_ARRAY\n";}
 		return false;
 	}
+	
+	
 	$NEW_CATZ_ARRAY=unserialize(base64_decode(@file_get_contents("$tmpdir/CATZ_ARRAY")));
 	
 	$curl=new ccurl("$URIBASE/ufdb/CATZ_COUNT");
@@ -583,7 +585,10 @@ function ufdbtables($nopid=false){
 	$BigSize=0;
 	$c=0;
 	$ERRORDB=0;
-	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){	
+	while (list ($tablename, $size) = each ($REMOTE_CACHE) ){
+
+		if(blacklisted_tables($tablename)){continue;}
+		
 		if($size<>$LOCAL_CACHE[$tablename]){
 			$c++;
 			$STATUS["LAST_DOWNLOAD"]["CATEGORY"]=$tablename;
@@ -773,13 +778,18 @@ function updatev2_checkversion(){
 	$ArticaDbReplicate=$sock->GET_INFO("ArticaDbReplicate");
 	if(!is_numeric($ArticaDbReplicate)){$ArticaDbReplicate=0;}
 	
+	
+	$MirrorsA[]="http://mirror.articatech.net/ufdb";
+	//$MirrorsA[]="$URIBASE/ufdb";
 	$MirrorsA[]="http://s497977761.onlinehome.fr";
-	$MirrorsA[]="http://artica.fr";
-	$MirrorsA[]="http://93.88.245.88";
-	$MirrorsA[]="$URIBASE/ufdb";
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."] ArticaDbReplicate = $ArticaDbReplicate\n";}
+	
+	
 	
 	if($ArticaDbReplicate==0){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."] shuffle()\n";}
 		shuffle($MirrorsA);
+		
 		while (list ($num, $uri) = each ($MirrorsA) ){
 			$Mirrors[]=$uri;
 		}
@@ -803,6 +813,7 @@ function updatev2_checkversion(){
 		$curl->Timeout=10;
 		if(!$curl->GetFile($tmpfile)){
 			$GLOBALS["EVENTS"][]="$uri: Failed with error $curl->error";
+			
 			continue;
 		}
 		if(!is_file($tmpfile)){
@@ -812,10 +823,12 @@ function updatev2_checkversion(){
 		$array=unserialize(base64_decode(@file_get_contents($tmpfile)));
 		if(!is_array($array)){
 			$GLOBALS["EVENTS"][]="$uri: Failed with error No Array";
+			@unlink($tmpfile);
 			continue;
 		}
 		if(!isset($array["TIME"])){
 			$GLOBALS["EVENTS"][]="$uri: Failed with error No TIME CODE";
+			@unlink($tmpfile);
 			continue;
 		}
 		$xdate=date("l d F Y H:i:s",$array["TIME"]);
@@ -1171,7 +1184,7 @@ function updatev2(){
 	
 	$datas=unserialize(base64_decode($sock->GET_INFO("ufdbguardConfig")));
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	if(!is_numeric($ManualArticaDBPathNAS)){$ManualArticaDBPathNAS=0;}
 	if(!is_numeric($CategoriesDatabasesByCron)){$CategoriesDatabasesByCron=0;}
 	if(!is_numeric($DisableArticaProxyStatistics)){$DisableArticaProxyStatistics=0;}
@@ -1188,7 +1201,7 @@ function updatev2(){
 		return;
 	}
 	
-
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	
 	
 	if($CategoriesDatabasesByCron==1){
@@ -1198,7 +1211,7 @@ function updatev2(){
 		}
 	}
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	$arrayinfos=$unix->DIR_STATUS($ArticaDBPath);
 	$REQUIRE=round(1753076/1024);
 	
@@ -1213,7 +1226,7 @@ function updatev2(){
 		}
 	}
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	if(!$GLOBALS["BYCRON"]){
 		$StandardTime=2880;
 		$LOCAL_VERSION=@file_get_contents("$ArticaDBPath/VERSION");
@@ -1236,7 +1249,7 @@ function updatev2(){
 	}
 	
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	$t=time();
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."[".__LINE__."] Starting...\n";}
 	$DisableArticaProxyStatistics=$sock->GET_INFO("DisableArticaProxyStatistics");
@@ -1250,6 +1263,7 @@ function updatev2(){
 		}
 	}
 	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	if($GLOBALS["FORCE"]){events("Force enabled");}
 	if(!$GLOBALS["CHECKTIME"]){events("CHECKTIME disabled");}
 	
@@ -1260,9 +1274,10 @@ function updatev2(){
 	if($GLOBALS["VERBOSE"]){ echo __FUNCTION__."[".__LINE__."] LOCAL_VERSION=$LOCAL_VERSION {$CHECKTIME}Mn for $timeFile\n";}
 	events("LOCAL_VERSION=$LOCAL_VERSION {$CHECKTIME}Mn for $timeFile");
 	
-	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}	
 if(!$GLOBALS["BYCRON"]){	
 	if(!$GLOBALS["FORCE"]){
+		if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."] LOCAL VERSION: $LOCAL_VERSION; CHECKTIME=$CHECKTIME\n";}
 			if($LOCAL_VERSION>10){
 				if($CHECKTIME<2880){
 					if($GLOBALS["VERBOSE"]){{echo __FUNCTION__."[".__LINE__."] Error: last update since {$CHECKTIME}Mn, require minimal 2880Mn use --force to bypass\n";}
@@ -1274,7 +1289,7 @@ if(!$GLOBALS["BYCRON"]){
 		}
 	}
 }	
-	
+if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}	
 	
 	$pid=@file_get_contents($pidfile);
 	
@@ -1294,6 +1309,7 @@ if(!$GLOBALS["BYCRON"]){
 		}
 	}
 	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	@unlink($timeFile);
 	@file_put_contents($timeFile, time());	
 	@file_put_contents($pidfile, getmypid());
@@ -1303,6 +1319,7 @@ if(!$GLOBALS["BYCRON"]){
 	$nohup=$unix->find_program("nohup");
 	shell_exec("$nohup $php /usr/share/artica-postfix/exec.update.squid.tlse.php --schedule-id={$GLOBALS["SCHEDULE_ID"]}$tlse_token >/dev/null 2>&1 &");
 	
+	if($GLOBALS["VERBOSE"]){echo __FUNCTION__." Line [".__LINE__."]\n";}
 	updatev2_checkversion();
 	cicap_artica(true);
 	ufdbtables(true);
@@ -1391,15 +1408,30 @@ function schedulemaintenance(){
 	$badDomains["net"]=true;
 	$badDomains["us"]=true;
 	$badDomains["name"]=true;
+	$badDomains["il"]=true;
 		
 	$tables=$q->LIST_TABLES_CATEGORIES();
 	while (list ($table,$none0) = each ($tables) ){
 		if($table==null){continue;}
+		if(strpos($table, ",")>0){$q->QUERY_SQL("DROP table `$table`"); continue;}
+		if(blacklisted_tables($table)){continue;}
+		if(!$q->TABLE_EXISTS($table)){continue;}
+		
 		reset($badDomains);
 		while (list ($extensions,$none) = each ($badDomains) ){
 		$q->QUERY_SQL("DELETE FROM $table WHERE pattern='$extensions'");	
 		}
 	}	
+}
+
+
+function blacklisted_tables($tablename){
+	$array["category_stockexchnage"]=true;
+	$array["category_association"]=true;
+	$array["category_smalladds"]=true;
+	if(strpos($tablename, ",")>0){return true;}
+	if(isset($array[$tablename])){return true;}
+	
 }
 
 function EXECUTE_BLACK_INSTANCE(){

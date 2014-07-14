@@ -255,7 +255,7 @@ function popup(){
 	$SquidGuardWebExternalUri=$sock->GET_INFO("SquidGuardWebExternalUri");
 	$SquidGuardWebExternalUriSSL=$sock->GET_INFO("SquidGuardWebExternalUriSSL");
 	$SquidGuardApacheSSLPort=$sock->GET_INFO("SquidGuardApacheSSLPort");
-	$SquidGuardApachePort=$sock->GET_INFO("SquidGuardApachePort");
+	$SquidGuardApachePort=intval($sock->GET_INFO("SquidGuardApachePort"));
 	$SquidGuardWebBlankReferer=intval($sock->GET_INFO("SquidGuardWebBlankReferer"));
 	
 	$SquidGuardApacheShowGroupName=$sock->GET_INFO("SquidGuardApacheShowGroupName");
@@ -263,7 +263,7 @@ function popup(){
 	
 	if(!is_numeric($SquidGuardApacheShowGroupName)){$SquidGuardApacheShowGroupName=0;}
 	if(!is_numeric($SquidGuardApacheSSLPort)){$SquidGuardApacheSSLPort=9025;}
-	if($SquidGuardApachePort==null){$SquidGuardApachePort=9020;}
+	if($SquidGuardApachePort==0){$SquidGuardApachePort=9020;}
 	
 	$SquidGuardIPWeb=$sock->GET_INFO("SquidGuardIPWeb");
 	$fulluri=$sock->GET_INFO("SquidGuardIPWeb");

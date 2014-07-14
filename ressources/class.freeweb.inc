@@ -68,9 +68,10 @@
 		public $groupware_admin=null;
 		public $groupware_password=null;
 		public $groupware_duplicate=null;
+		public $MYSQLDUMP=array();
 		private $PrefixOutput;
 		
-		function freeweb($servername=null){
+		function freeweb($servername=null,$groupware=null){
 			$users=new usersMenus();
 			if($GLOBALS["posix_getuid"]==0){$this->AS_ROOT=true;}
 			$this->APACHE_DIR_SITES_ENABLED=$users->APACHE_DIR_SITES_ENABLED;
@@ -87,7 +88,7 @@
 				$this->WORKING_DIRECTORY="/var/www/$servername";
 				$this->servername=$servername;
 				$this->PrefixOutput="Starting......: ".date("H:i:s")." [INIT]: Apache \"$this->servername\"";
-				$this->load();
+				$this->load($groupware);
 			}
 		}
 		
@@ -131,29 +132,52 @@
 			
 		}
 		
-		private function patchTable(){
+		public function patchTable(){
 			$q=new mysql();
 			if(!$q->FIELD_EXISTS("freeweb","groupware_password","artica_backup")){
 				$q->QUERY_SQL("ALTER TABLE `freeweb` ADD `groupware_password` VARCHAR(256) NULL","artica_backup");
+				if(!$q->ok){return false;}
 			}
+			
+			if(!$q->FIELD_EXISTS("freeweb","groupware_admin","artica_backup")){
+				$sql="ALTER TABLE `freeweb` ADD `groupware_admin` VARCHAR(255) NULL";
+				$q->QUERY_SQL($sql,'artica_backup');
+				if(!$q->ok){return false;}
+			}
+			
+
+			
+			if(!$q->FIELD_EXISTS("freeweb","groupware_duplicate","artica_backup")){
+				$sql="ALTER TABLE `freeweb` ADD `groupware_duplicate` VARCHAR(255) NULL";
+				$q->QUERY_SQL($sql,'artica_backup');
+				if(!$q->ok){return false;}
+			}
+			
+			return true;
 			
 		}
 		
 		
-		private function load(){
+		private function load($groupware=null){
 			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] Load DB..",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
-			
+			$groupware_sql=null;
 			$q=new mysql();
 			$q->TestingConnection();
-			$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$this->servername'","artica_backup"));
-			if(!$q->ok){
-				$this->loading_error=true;
-				$this->loading_error_text=$q->mysql_error;
-				writelogs("Fatal $q->mysql_error SELECT * from freeweb WHERE servername='$this->servername'",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
-				return;
+			if($groupware<>null){
+				$groupware_sql=" AND groupware='$groupware'";
+				
 			}
 			
 			
+			$ligne=@mysql_fetch_array($q->QUERY_SQL("SELECT * from freeweb WHERE servername='$this->servername'$groupware_sql","artica_backup"));
+			if(!$q->ok){
+				$this->loading_error=true;
+				$this->loading_error_text=$q->mysql_error;
+				writelogs("Fatal $q->mysql_error SELECT * from freeweb WHERE servername='$this->servername'$groupware_sql",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);
+				return;
+			}
+			
+			$this->MYSQLDUMP=$ligne;
 			
 			$this->groupware=$ligne["groupware"];
 			if($this->AS_ROOT){writelogs("$this->PrefixOutput [CLASS/".__LINE__."] Groupware `$this->groupware`",__CLASS__.'/'.__FUNCTION__,__FILE__,__LINE__);}
@@ -185,7 +209,13 @@
 			$this->gpid=$ligne["gpid"];
 			$this->useFTP=$ligne["useFTP"];
 			$this->ou=$ligne["ou"];
-			$this->www_dir=$ligne["www_dir"];
+			$this->www_dir=trim($ligne["www_dir"]);
+			if($this->www_dir<>null){
+				if($this->www_dir<>$this->WORKING_DIRECTORY){
+					$this->WORKING_DIRECTORY=$this->www_dir;
+				}
+			}
+			
 			$this->ServerPort=$ligne["ServerPort"];
 			$this->UseReverseProxy=$ligne["UseReverseProxy"];
 			$this->ProxyPass=$ligne["ProxyPass"];
@@ -202,6 +232,7 @@
 			$this->groupware_admin=trim($ligne["groupware_admin"]);
 			$this->groupware_password=trim($ligne["groupware_password"]);
 			$this->groupware_duplicate=trim($ligne["groupware_duplicate"]);
+			
 			
 
 			
@@ -456,6 +487,8 @@
 		}
 		
 		
+		
+		
 		public function CreateSite($noFrame=false){
 			include_once(dirname(__FILE__)."/class.user.inc");
 			if(trim($this->servername)==null){
@@ -471,21 +504,8 @@
 			$this->uid=mysql_escape_string2($this->uid);
 			
 
-
-			if(!$q->FIELD_EXISTS("freeweb","groupware_admin","artica_backup")){
-				$sql="ALTER TABLE `freeweb` ADD `groupware_admin` VARCHAR(255) NULL";
-				$q->QUERY_SQL($sql,'artica_backup');
-			}
+			$this->patchTable();
 			
-			if(!$q->FIELD_EXISTS("freeweb","groupware_password","artica_backup")){
-				$sql="ALTER TABLE `freeweb` ADD `groupware_password` VARCHAR(255) NULL";
-				$q->QUERY_SQL($sql,'artica_backup');
-			}
-			
-			if(!$q->FIELD_EXISTS("freeweb","groupware_duplicate","artica_backup")){
-				$sql="ALTER TABLE `freeweb` ADD `groupware_duplicate` VARCHAR(255) NULL";
-				$q->QUERY_SQL($sql,'artica_backup');
-			}			
 			
 			
 			
@@ -695,10 +715,12 @@
 			if(!$users->APACHE_MOD_BW){return "# Mod Bandwith is not detected L.".__LINE__."\n";}
 			
 			$Params=$this->Params;
-			
-			$ForceBandWidthModule=intval($Params["ModeBw"]["ForceBandWidthModule"]);
 			$BandwidthAll=intval($Params["ModeBw"]["BandwidthAll"]);
 			if($BandwidthAll==0){$BandwidthAll=1536000;}
+			
+			echo "Starting......: ".date("H:i:s")." Apache \"$this->servername\" BandwidthAll = $BandwidthAll\n";
+			$ForceBandWidthModule=intval($Params["ModeBw"]["ForceBandWidthModule"]);
+
 			
 			$results[]="\t<IfModule mod_bw.c>";
 			$results[]="\t\tBandwidthModule On";
@@ -748,6 +770,9 @@
 			if(count($f)>0){
 				$results[]=@implode("\n", $f);
 			}
+			
+			$results[]="\t\tMinBandwidth all -1";
+			$results[]="\t\tMaxConnection all 500";
 			$results[]="\t\tBandwidth all $BandwidthAll";
 			$results[]="\t</IfModule>";
 			return @implode("\n", $results);
@@ -1127,8 +1152,29 @@
 			
 			$unix=new unix();
 			$TEMP_FILE=$unix->FILE_TEMP().".sh";
+			$php=$unix->LOCATE_PHP5_BIN();
 			$apache_usr=$unix->APACHE_SRC_ACCOUNT();
 			$apache_group=$unix->APACHE_SRC_GROUP();
+			@mkdir("/etc/artica-postfix/MOUNT_BINDS",0755,true);
+			
+			$DATAS=unserialize(@file_get_contents("/etc/artica-postfix/MOUNT_BINDS/BINDS.db"));
+			
+			if(trim($this->uid)<>null){
+				include_once(dirname(__FILE__)."/class.user.inc");
+				$apache_usr=$this->uid;
+				$ct=new user($this->uid);
+				$homeDirectory=$ct->homeDirectory;
+				if(!is_dir($homeDirectory)){@mkdir($homeDirectory,0755,true);}
+				if(is_link($homeDirectory)){$homeDirectory=@readlink($homeDirectory);}
+				@chown($WORKING_DIRECTORY, $apache_usr);
+				$DATAS[$WORKING_DIRECTORY][$homeDirectory]=$this->uid;
+				@file_put_contents("/etc/artica-postfix/MOUNT_BINDS/BINDS.db", serialize($DATAS));
+			
+			}
+			if($this->gpid<>null){$apache_group=$this->gpid;}
+			
+			
+			if($this->AS_ROOT){echo "$this->PrefixOutput [CLASS/".__LINE__."] owned by $apache_usr/$apache_group\n";}
 			@chown($WORKING_DIRECTORY, $apache_usr);
 			@chgrp($WORKING_DIRECTORY, $apache_group);
 			
@@ -1142,6 +1188,7 @@
 			$f[]="$find \"$WORKING_DIRECTORY/\" -type d -exec $chmod 755 {} \;";
 			$f[]="$find \"$WORKING_DIRECTORY/\" -type f -exec $chmod 644 {} \;";
 			$f[]="$chown -R $apache_usr:$apache_group \"$WORKING_DIRECTORY\"";
+			$f[]="$php /usr/share/artica-postfix/exec.mounts.bind.php";
 			$f[]="$rm $TEMP_FILE";
 			$f[]="";
 			@file_put_contents($TEMP_FILE, @implode("\n", $f));
@@ -1640,7 +1687,7 @@
 			
 			if(!is_dir("/var/log/apache2")){@mkdir("/var/log/apache2",0666,true);}
 			$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"/var/log/apache2/*");
-			$unix->chown_func($this->APACHE_RUN_USER, $this->APACHE_RUN_GROUP,"$this->WORKING_DIRECTORY/*");
+			
 			
 			
 			

@@ -1424,6 +1424,8 @@ function Field_text($name,$value=null,$style=null,$class=null,$OnChange=null,$he
 	$disa=null;
 	$shadow=null;
 	$shadowjs=null;
+	$helptxt=null;
+	
 	
 	if(preg_match("#explain=(.+?);#", $style,$re)){
 		$help=$re[1];
@@ -4420,6 +4422,7 @@ function CheckSessions(){
 		$noback["squid.access.log.php"]=true;
 		$noback["wizard.automationscript.progress.php"]=true;
 		$noback["import.squid.zip.php"]=true;
+		$noback["squid.access.webfilter.log.php"]=true;
 		
 		if(preg_match('#^exec\..+\.php$#',$page)){$noback[$page]=true;}
 		if(preg_match('#listener\.php$#',$page)){$noback[$page]= true;}		

@@ -144,6 +144,7 @@ function MemoryInstances(){
 		$arrayK["exec.c-icap.php"]=10;
 		$arrayK["exec.containers.php"]=5;
 		$arrayK["exec.openvpn.php"]=10;
+		$arrayK["exec.squid.stats.not-categorized.php"]=45;
 			
 		$array=array();
 		$cmd="$pgrep -l -f \"artica-postfix/exec\..*?\.php\" 2>&1";
