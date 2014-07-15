@@ -53,7 +53,7 @@ function tabs(){
 	
 	$array["webservice"]='{webservice}';
 	if($_GET["servername"]<>null){
-		if(!$remove_sql){$array["mysql"]='MySQL/FTP';}
+		if(!$remove_sql){$array["mysql"]='MySQL';}
 		$array["aliases"]='{aliases}';
 	}
 	
@@ -825,27 +825,6 @@ $html="
 				<td>&nbsp;</td>
 			</tr>
 			<tr>
-				<td colspan=3><span style='font-size:18px;vertical-align:middle'>{ftp_access}<hr style='border-color:005447'></td>
-			</tr>	
-			
-			
-			<tr>
-				<td class=legend style='font-size:18px;vertical-align:middle'>{allowftp_access}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_checkbox("useFTP",1,$ligne["useFTP"],"useMysqlCheck()")."</td>
-				<td>&nbsp;</td>
-			</tr>	
-			
-			<tr>
-				<td class=legend style='font-size:18px;vertical-align:middle'>{ftp_user}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_text("ftpuser",$ligne["ftpuser"],"width:120px;font-size:18px;padding:3px")."</td>
-				<td>&nbsp;</td>
-			</tr>	
-			<tr>
-				<td class=legend style='font-size:18px;vertical-align:middle'>{password}:</td>
-				<td style='font-size:18px;vertical-align:middle'>". Field_password("ftppassword",$ligne["ftppassword"],"width:90px;font-size:18px;padding:3px")."</td>
-				<td>&nbsp;</td>
-			</tr>	
-			<tr>
 				<td colspan=3 align='right'><hr>". button("{apply}","SaveFreeWebMySQL()",26)."</td>
 			</tr>
 			
@@ -867,7 +846,7 @@ $html="
 	function SaveFreeWebMySQL(){
 		var uid='$uid';
 		var XHR = new XHRConnection();
-		var ftpuser=trim(document.getElementById('ftpuser').value);
+		
 		
 		if(document.getElementById('useMysql').checked){XHR.appendData('useMysql',1);}else{XHR.appendData('useMysql',0);}
 		if(document.getElementById('useMysql').checked){
@@ -896,16 +875,7 @@ $html="
 		
 			
 		
-			if(document.getElementById('useFTP').checked){
-				if(ftpuser.length==0){document.getElementById('useFTP').checked=false;}
-			}
-		
-			if(document.getElementById('useFTP').checked){	
-				if(uid==ftpuser){
-					alert('$no_usersameftpuser');
-					return;
-				}
-			}
+			
 			XHR.appendData('SAVE_FREEWEB_MYSQL','yes');
 			XHR.appendData('servername','{$_GET["servername"]}');
     		XHR.appendData('mysql_instance_id',document.getElementById('mysql_instance_id').value);
@@ -913,10 +883,6 @@ $html="
     		XHR.appendData('mysql_password',document.getElementById('mysql_password').value);
     		XHR.appendData('mysql_username',document.getElementById('mysql_username').value);
     		XHR.appendData('mysql_instance_id',document.getElementById('mysql_instance_id').value);
-    		if(document.getElementById('useFTP').checked){XHR.appendData('useFTP',1);}else{XHR.appendData('useFTP',0);}
-    		XHR.appendData('ftpuser',ftpuser);
-    		XHR.appendData('ftppassword',document.getElementById('ftppassword').value);		
-			AnimateDiv('$t');
     		XHR.sendAndLoad('$page', 'POST',x_SaveFreeWebMain$t);		
 		
 		
@@ -930,26 +896,16 @@ $html="
 		var checkboxes=$checkboxes;
 		var PUREFTP_INSTALLED=$PUREFTP_INSTALLED;
 		if(document.getElementById('mysql_instance_id')){mysql_instance_id=document.getElementById('mysql_instance_id').value;}
-		document.getElementById('useFTP').disabled=true;
-		document.getElementById('ftpuser').disabled=true;
-		document.getElementById('ftppassword').disabled=true;		
+			
 		
 		if(checkboxes==1){
-			if(PUREFTP_INSTALLED==1){document.getElementById('useFTP').disabled=false;}
+			
 			if(mysql_instance_id==0){document.getElementById('useMysql').disabled=false;}	
-		}
-		if(PUREFTP_INSTALLED==1){
-			document.getElementById('useFTP').disabled=false;
-		}else{
-			document.getElementById('useFTP').disabled=true;
-			document.getElementById('useFTP').checked=false;
 		}
 		
 		document.getElementById('mysql_database').disabled=true;
 		document.getElementById('mysql_username').disabled=true;
 		document.getElementById('mysql_password').disabled=true;
-		document.getElementById('ftpuser').disabled=true;
-		document.getElementById('ftppassword').disabled=true;
 		if(mysql_instance_id==0){
 			if(document.getElementById('useMysql').checked){
 				var mysql_database=document.getElementById('mysql_database').value;
@@ -963,11 +919,7 @@ $html="
 			document.getElementById('mysql_database').disabled=false;
 		}
 		
-		if(!document.getElementById('useFTP').checked){return;}
-		document.getElementById('ftpuser').disabled=false;
-		document.getElementById('ftppassword').disabled=false;		
-		
-		
+				
 	}
 	
 	function mysql_instance_id_check(){

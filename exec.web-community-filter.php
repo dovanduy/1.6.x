@@ -131,7 +131,7 @@ function category_tickets($asPid=false){
 	
 	
 	$q=new mysql_squid_builder();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	if(!$q->TABLE_EXISTS("catztickets")){return;}
 	$sql="SELECT *  FROM catztickets WHERE `status`=0 LIMIT 0,25";
 	$results = $q->QUERY_SQL($sql);
@@ -187,7 +187,7 @@ function register(){
 	if($GLOBALS["VERBOSE"]){echo __FUNCTION__."() in line ". __LINE__."\n";}
 	$sock=new sockets();
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$pidfile="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".pid";
 	$cachetime="/etc/artica-postfix/pids/".basename(__FILE__).".".__FUNCTION__.".time";
 	$pid=@file_get_contents($pidfile);
@@ -298,7 +298,7 @@ function CheckLic($array1=array(),$array2=array()){
 	$WORKFILE=base64_decode('LmxpYw==');
 	$WORKPATH="$WORKDIR/$WORKFILE";
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$sock=new sockets();	
 	build_progress("{license_active}: Verify validation...",90);
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
@@ -482,7 +482,7 @@ function register_lic_kaspersky(){
 	}
 	$WizardSavedSettings["UUID"]=$uuid;
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$verbosed=null;
 	$php=$unix->LOCATE_PHP5_BIN();
 	$nohup=$unix->find_program("nohup");
@@ -647,11 +647,12 @@ function register_lic(){
 		}
 	}	
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
-	$verbosed=null;
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
+	
+	$verbosed="?VERBOSE=yes&time=".time();
 	build_progress("Checking license on the cloud server...",40);
 	echo "Contacting $URIBASE\n";
-	$curl=new ccurl("$URIBASE/shalla-orders.php$verbosed",false,null,true);
+	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->NoLocalProxy();
 	if($GLOBALS["VERBOSE"]){$curl->parms["VERBOSE"]=yes;}
 	$curl->parms["REGISTER-LIC"]=base64_encode(serialize($LicenseInfos));
@@ -770,7 +771,7 @@ function ExportPersonalCategories($asPid=false){
 	WriteMyLogs("Exporting ". count($PERSONALSCATS)." personal category",__FUNCTION__,__FILE__,__LINE__);
 	$f=base64_encode(serialize($PERSONALSCATS));
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["PERSO_CAT_POST"]=$f;
 
@@ -833,7 +834,7 @@ function export_deleted_categories($asPid=false){
 	}
 
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	
 	$f=base64_encode(serialize($array));
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
@@ -909,7 +910,7 @@ function ExportNoCategorized($asPid=false){
 		
 	}
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$f=base64_encode(serialize($array));
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	
@@ -963,7 +964,7 @@ function Export_Weighted(){
 			
 		}
 		$unix=new unix();
-		$URIBASE=$unix->MAIN_URI();
+		$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 		if(!is_array($array)){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}
 		if(count($array)==0){WriteMyLogs("Nothing to export",__FUNCTION__,__FILE__,__LINE__);return;}	
 		$f=base64_encode(serialize($array));
@@ -1102,7 +1103,7 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 	WriteMyLogs("Exporting ". count($array)." websites",__FUNCTION__,__FILE__,__LINE__);
 	$f=base64_encode(serialize($array));
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	if($GLOBALS["VERBOSE"]){echo "Sending ". strlen($f)." bytes to repository server\n";}
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["COMMUNITY_POST"]=$f;
@@ -1153,7 +1154,7 @@ $WHITELISTED["8cdd119c-2dc1-452d-b9d0-451c6046464f"]=true;
 
 function pushit(){
 	$unix=new unix();
-	$URIBASE=$unix->MAIN_URI();
+	$URIBASE=$unix->MAIN_URI();$URIBASE=str_replace("articatech.net", "artica.fr", $URIBASE);
 	$curl=new ccurl("$URIBASE/shalla-orders.php",false,null,true);
 	$curl->parms["ORDER_EXPORT"]="yes";
 	$curl->get();

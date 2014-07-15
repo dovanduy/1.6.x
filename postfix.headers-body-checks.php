@@ -208,7 +208,7 @@ $('#flexRT$t').flexigrid({
 	useRp: true,
 	rp: 50,
 	showTableToggleBtn: false,
-	width: 852,
+	width: '99%',
 	height: 300,
 	singleSelect: true,
 	rpOptions: [10, 20, 30, 50,100,200]
@@ -380,12 +380,9 @@ $tpl=new templates();
 	$data['total'] = $total;
 	$data['rows'] = array();
 	
-	if(!$q->ok){
-		$data['rows'][] = array('id' => $ligne[time()+1],'cell' => array($q->mysql_error,"", "",""));
-		$data['rows'][] = array('id' => $ligne[time()],'cell' => array($sql,"", "",""));
-		echo json_encode($data);
-		return;
-	}	
+	if(!$q->ok){json_error_show($q->mysql_error);}	
+	
+	if(mysql_num_rows($results)==0){json_error_show("No data");}
 	
 	while ($ligne = mysql_fetch_assoc($results)) {
 		$md5=md5($ligne["ID"]);

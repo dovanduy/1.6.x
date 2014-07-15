@@ -827,6 +827,7 @@ function logs_urgency(){
 	$logf["mail.log"]=true;
 	$logf["mail.warn"]=true;
 	$logf["messages"]=true;
+	
 	$logf["syslog"]=true;
 	$logf["user.log"]=true;
 	$logf["lighttpd/access.log"]=true;
@@ -836,6 +837,11 @@ function logs_urgency(){
 	$logf["artica-postfix/framework.log"]=true;
 	$logf["samba/log.winbindd"]=true;
 	$logf["samba/log.winbindd.old"]=true;
+	$logf["clamav/clamav.log"]=true;
+	$logf["clamav/clamd.log"]=true;
+	$logf["clamav/freshclam.log"]=true;
+
+	
 	
 	while (list ($filname, $line) = each ($logf) ){
 		$path="/var/log/$filname";
@@ -864,6 +870,7 @@ function Clean_attachments(){
 	
 	CleanAllindDir("/opt/artica/share/www/attachments");
 	CleanAllindDir("/var/virusmail");
+	
 }
 
 function Clean_apache_logs(){
@@ -1162,6 +1169,7 @@ function Clean_tmp_path($aspid=false){
 	CleanAllindDir("/etc-artica-postfix/artica-postfix/cron.1",2880);
 	CleanAllindDir("/tmp",2880);
 	CleanAllindDir("/var/lib/c_icap/temporary",2880);
+	CleanAllindDir("/var/log/clamav",2880);
 	CleanAllindDir("/etc/artica-postfix/artica-postfix/cron.2",2880);
 	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.1",2880);
 	CleanAllindDir("/etc/artica-postfix/artica-postfix/croned.2",2880);
@@ -1177,6 +1185,9 @@ function Clean_tmp_path($aspid=false){
 	CleanAllindDir("/usr/share/artica-postfix/ressources/logs/web",180);
 	CleanAllindDir("/usr/share/artica-postfix/ressources/conf/upload",30);
 	CleanAllindDir("/usr/share/artica-postfix/ressources/support",30);
+	
+	
+	
 	
 	ZarafaLocks();
 	CleanSquidStoreLogs();

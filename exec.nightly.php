@@ -201,7 +201,10 @@ function update_release(){
 	
 	if($ini->_params["AUTOUPDATE"]["autoinstall"]<>"yes"){$autoinstall=false;}
 	$uri=$ini->_params["AUTOUPDATE"]["uri"];
+	if($uri==null){$uri="http://www.articatech.net/auto.update.php";}
 	$arrayURI=parse_url($uri);
+	if(!isset($arrayURI["host"])){$arrayURI["host"]="www.articatech.net";}
+	
 	$MAIN_URI="{$arrayURI["scheme"]}://{$arrayURI["host"]}";
 	echo "Starting......: ".date("H:i:s")." Source:$uri\n";
 	

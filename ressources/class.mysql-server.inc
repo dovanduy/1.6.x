@@ -260,6 +260,7 @@ class mysqlserver{
 		$conf=$conf ."port=3306\n";	
 		$conf=$conf .$this->ssl_server_mode();
 		if($this->main_array["bind-address"]<>null){
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL Bind Address {$this->main_array["bind-address"]} [".__LINE__."]\n";}
 			if($this->main_array["bind-address"]=="all"){$this->main_array["bind-address"]="0.0.0.0";}
 			$conf=$conf ."bind-address={$this->main_array["bind-address"]}\n";
 		}	
@@ -268,7 +269,7 @@ class mysqlserver{
 			$conf=$conf ."skip-name-resolve\n";
 		}				
 		
-		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." Mysql Major:$this->VERSION_MAJOR; Minor:$this->VERSION_MAJOR; rev: $this->VERSION_REV\n";}
+		if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL Major:$this->VERSION_MAJOR; Minor:$this->VERSION_MAJOR; rev: $this->VERSION_REV\n";}
 		
 		if($this->main_array["default-character-set"]<>null){$conf=$conf.$this->default_character_set()."=".$this->main_array["default-character-set"];}
 		
@@ -359,6 +360,7 @@ class mysqlserver{
 		$conf=$conf .$this->ssl_server_mode();
 		if($this->main_array["bind-address"]<>null){
 			if($this->main_array["bind-address"]=="all"){$this->main_array["bind-address"]="0.0.0.0";}
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL Bind Address {$this->main_array["bind-address"]} [".__LINE__."]\n";}
 			$conf=$conf ."bind-address={$this->main_array["bind-address"]}\n";
 		}	
 		if($this->main_array["default-character-set"]<>null){$conf=$conf.$this->default_character_set()."=".$this->main_array["default-character-set"];}
@@ -626,6 +628,7 @@ class mysqlserver{
 		
 		if($this->main_array["bind-address"]<>null){
 			if($this->main_array["bind-address"]=="all"){$this->main_array["bind-address"]="0.0.0.0";}
+			if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL Bind Address {$this->main_array["bind-address"]} [".__LINE__."]\n";}
 			$mysqld["bind-address"]=$this->main_array["bind-address"];
 		}
 		
@@ -856,7 +859,11 @@ class mysqlserver{
 			}
 			$f[]="socket=/var/run/mysqld/mysqld$ID.sock";
 			if($lc_messages_dir){$f[]="lc-messages-dir = /usr/share/mysql/";}
-			if($ligne["usesocket"]==1){$f[]="bind-address={$ligne["listen_addr"]}";}
+			if($ligne["usesocket"]==1){
+				if($GLOBALS["AS_ROOT"]){echo "Starting......: ".date("H:i:s")." MySQL Bind Address {$ligne["listen_addr"]} [".__LINE__."]\n";}
+				$f[]="bind-address={$ligne["listen_addr"]}";
+			
+			}
 			if($ligne["usesocket"]==1){$f[]="port={$ligne["listen_port"]}";}
 			$f[]="pid-file=/var/run/mysqld/mysqld$ID.pid";
 			$f[]="tmpdir= /tmp";

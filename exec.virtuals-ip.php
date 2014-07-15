@@ -869,7 +869,7 @@ function event($text,$function=null,$line=null){events($text,$function,$line);}
 
 function LoadProcNetDev(){
 	
-	$f=explode("\n",@file_get_contents("/proc/net/dev"));
+	$datas=explode("\n",@file_get_contents("/proc/net/dev"));
 	while (list ($num, $line) = each ($datas) ){
 		if(preg_match("#^(.+?):#",$line,$re)){
 			$re[1]=trim($re[1]);
@@ -1695,13 +1695,14 @@ for ($i = 0; $i < $lengt+1; $i++) {
 function isGatewayGood($ipaddr){
 	if(trim($ipaddr)==null){return false;}
 	if(trim($ipaddr)=="0.0.0.0"){return false;}
-	
+	return true;
 }
 
 
 function routes_main(){
 	$MetricCount=0;
 	$unix=new unix();
+	LoadProcNetDev();
 	$GLOBALS["ifconfig"]=$unix->find_program("ifconfig");
 	$GLOBALS["routebin"]=$unix->find_program("route");
 	$GLOBALS["echobin"]=$unix->find_program("echo");
@@ -1785,6 +1786,9 @@ function routes_main(){
 				if(isGatewayGood($ligne["GATEWAY"])){
 					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -host {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth);
 					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add -net 0.0.0.0 gw {$ligne["GATEWAY"]} dev ".$NetBuilder->NicToOther($eth) ." metric 1";
+				}else{
+					$GLOBALS["SCRIPTS_ROUTES"][]="#[$eth/".__FUNCTION__."/".__LINE__." {$ligne["GATEWAY"]} is a bad gateway but enabled as default";
+					$GLOBALS["SCRIPTS_ROUTES"][]="{$GLOBALS["routebin"]} add default dev ".$NetBuilder->NicToOther($eth);
 				}
 			}
 			
@@ -1846,7 +1850,7 @@ function routes_main(){
 		$GLOBALS["SCRIPTS_ROUTES"][]="#";
 		
 		if(!isset($GLOBALS["PROC_NET_DEV"][$eth])){
-			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Not found Hardware error";
+			$GLOBALS["SCRIPTS_ROUTES"][]="# [$eth/".__LINE__."] Not found in PROC_NET_DEV Hardware error";
 			continue;
 			
 		}

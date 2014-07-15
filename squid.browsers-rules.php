@@ -319,11 +319,11 @@ function popup(){
 	$tpl=new templates();
 	$q=new mysql_squid_builder();	
 	$q->CheckTables();
-	$category=$tpl->_ENGINE_parse_body("{category}");
-	$vendor=$tpl->_ENGINE_parse_body("{vendor}");
-	$browsers=$tpl->_ENGINE_parse_body("{browsers}");
-	$pattern=$tpl->_ENGINE_parse_body("{pattern}");
-	$items=$tpl->_ENGINE_parse_body("{items}");
+	$category=$tpl->javascript_parse_text("{category}");
+	$vendor=$tpl->javascript_parse_text("{vendor}");
+	$browsers=$tpl->javascript_parse_text("{browsers}");
+	$pattern=$tpl->javascript_parse_text("{pattern}");
+	$items=$tpl->javascript_parse_text("{items}");
 	$delete_group_ask=$tpl->javascript_parse_text("{inputbox delete group}");
 	$explain=$tpl->javascript_parse_text("{explain}");
 	$title=$tpl->javascript_parse_text("{browsers_rules}");
@@ -341,11 +341,12 @@ function popup(){
 	$t=time();		
 	
 
-	$apply_paramsbt="{separator: true},{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},";
+	
 	$buttons="buttons : [
 	{name: '$new_rule', bclass: 'add', onpress : Add$t},
 	{name: '$about', bclass: 'help', onpress : About$t},
-	$apply_paramsbt,
+	{separator: true},
+	{name: '$apply_params', bclass: 'apply', onpress : SquidBuildNow$t},
 	{name: '$whitelist', bclass: 'Statok', onpress :  Whitelist$t},
 	{name: '$deny', bclass: 'Err', onpress :  Deny$t},
 	{name: '$all', bclass: 'Statok', onpress :  All$t},

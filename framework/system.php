@@ -1129,10 +1129,10 @@ function ntopng_status(){
 
 function mylinux(){
 	$unix=new unix();
-	$ARRAY["LINUX_CODE_NAME"]=$unix->LINUX_CODE_NAME();
-	$ARRAY["LINUX_DISTRIBUTION"]=$unix->LINUX_DISTRIBUTION();
-	$ARRAY["LINUX_VERS"]=$unix->LINUX_VERS();
-	$ARRAY["LINUX_ARCHITECTURE"]=$unix->LINUX_ARCHITECTURE();
+	$ARRAY["LINUX_CODE_NAME"]=trim($unix->LINUX_CODE_NAME());
+	$ARRAY["LINUX_DISTRIBUTION"]=trim($unix->LINUX_DISTRIBUTION());
+	$ARRAY["LINUX_VERS"]=trim($unix->LINUX_VERS());
+	$ARRAY["LINUX_ARCHITECTURE"]=trim($unix->LINUX_ARCHITECTURE());
 	echo "<articadatascgi>".base64_encode(serialize($ARRAY))."</articadatascgi>";
 }
 function installv2(){

@@ -8039,11 +8039,9 @@ private function refresh_pattern_defaults(){
 		$f[]="refresh_pattern ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
 		$f[]="";
 		$f[]="##Musics";
-		$f[]="refresh_pattern -i";
-		$f[]="\.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 10080   90%   43200 override-expire ignore-reload reload-into-ims ignore-private ";
+		$f[]="refresh_pattern -i \.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 10080   90%   43200 override-expire ignore-reload reload-into-ims ignore-private ";
 		$f[]="## Videos";
-		$f[]="refresh_pattern -i";
-		$f[]="\.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 10080 90%   43200 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 10080 90%   43200 override-expire ignore-reload reload-into-ims ignore-private";
 		$f[]="## Pictures";
 		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico)(\?.*|$) 3600 90% 43200 override-expire ignore-no-store ignore-private";
 		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico|bmp|tiff|webp|bif|ver|pict) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-private ignore-no-store";

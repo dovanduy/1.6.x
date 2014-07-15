@@ -346,6 +346,7 @@ function popup_tabs(){
 	$page=CurrentPageName();
 	$sock=new sockets();
 	$q=new mysql();
+	$EnableFreeWeb=intval($sock->GET_INFO("EnableFreeWeb"));
 	$ApacheDisableModDavFS=$sock->GET_INFO("ApacheDisableModDavFS");
 	$FreeWebEnableModFcgid=$sock->GET_INFO("FreeWebEnableModFcgid");
 	if(!is_numeric($FreeWebEnableModFcgid)){$FreeWebEnableModFcgid=0;}
@@ -403,8 +404,7 @@ function popup_tabs(){
 		$array["params2"]='{parameters}';
 		
 		
-		
-		
+
 		
 		if($users->APACHE_MODE_WEBDAV){
 			if($ApacheDisableModDavFS==0){
@@ -425,6 +425,9 @@ function popup_tabs(){
 		
 		$array["aliases"]='{aliases}';
 		
+		
+		
+		
 		if($apache->groupware=="GROUPOFFICE"){
 			unset($array["groupwares"]);
 			$array["groupoffice"]='{APP_GROUPOFFICE}';
@@ -439,6 +442,8 @@ function popup_tabs(){
 		if($apache->groupware=="Z-PUSH"){unset($array["groupwares"]);unset($array["webdav"]);}
 		if($apache->groupware=="ZARAFA_MOBILE"){unset($array["groupwares"]);unset($array["webdav"]);}
 		if($apache->groupware=="DRUPAL"){unset($array["groupwares"]);}
+		if($apache->groupware=="WORDPRESS"){unset($array["groupwares"]);}
+		
 		if($apache->groupware=="KLMS"){
 			unset($array["webdav"]);
 			unset($array["reverse"]);
@@ -511,6 +516,15 @@ function popup_tabs(){
 	}
 	
 	$array["openbasedir"]="BaseDir";
+	
+	if($EnableFreeWeb==0){
+		unset($array["params"]);
+		unset($array["params2"]);
+		unset($array["webdav"]);
+		unset($array["qos"]);
+		unset($array["mod_cache"]);
+		unset($array["openbasedir"]);
+	}
 	
 	
 	

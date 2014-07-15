@@ -69,6 +69,7 @@
 		public $groupware_password=null;
 		public $groupware_duplicate=null;
 		public $MYSQLDUMP=array();
+		public $groupware_language=null;
 		private $PrefixOutput;
 		
 		function freeweb($servername=null,$groupware=null){
@@ -153,6 +154,12 @@
 				if(!$q->ok){return false;}
 			}
 			
+			if(!$q->FIELD_EXISTS("freeweb","groupware_language","artica_backup")){
+				$sql="ALTER TABLE `freeweb` ADD `groupware_language` VARCHAR(50) NULL";
+				$q->QUERY_SQL($sql,'artica_backup');
+				if(!$q->ok){return false;}
+			}			
+			
 			return true;
 			
 		}
@@ -232,7 +239,7 @@
 			$this->groupware_admin=trim($ligne["groupware_admin"]);
 			$this->groupware_password=trim($ligne["groupware_password"]);
 			$this->groupware_duplicate=trim($ligne["groupware_duplicate"]);
-			
+			$this->groupware_language=trim($ligne["groupware_language"]);
 			
 
 			
@@ -513,12 +520,12 @@
 			$sqladd="INSERT INTO freeweb (mysql_password,mysql_username,ftpuser,ftppassword,useSSL,
 			servername,mysql_database,uid,useMysql,
 			useFTP,lvm_vg,lvm_size,UseLoopDisk,LoopMounts,ou,groupware,www_dir,groupware_admin,groupware_password,
-			groupware_duplicate)
+			groupware_duplicate,groupware_language)
 			VALUES('$this->mysql_password','$this->mysql_username','$this->ftpuser','$this->ftppassword','$this->useSSL',
 			'$this->servername','$this->mysql_database','$this->uid','$this->useMysql',
 			'$this->useFTP','$this->lvm_vg','$this->lvm_size','$this->UseLoopDisk','$this->LoopMounts','$this->ou',
 			'$this->groupware','$this->www_dir',
-			'$this->groupware_admin','$this->groupware_password','$this->groupware_duplicate')";
+			'$this->groupware_admin','$this->groupware_password','$this->groupware_duplicate','$this->groupware_language')";
 			
 
 		$sqlzedit[]="UPDATE freeweb SET";
@@ -542,7 +549,7 @@
 		$sqlzedit[]="groupware_admin='$this->groupware_admin',";
 		$sqlzedit[]="groupware_password='$this->groupware_password',";
 		$sqlzedit[]="groupware_duplicate='$this->groupware_duplicate',";
-		
+		$sqlzedit[]="groupware_language='$this->groupware_language',";
 		$sqlzedit[]="www_dir='$this->www_dir'";
 		
 		$sqlzedit[]="WHERE servername='$this->servername'";	

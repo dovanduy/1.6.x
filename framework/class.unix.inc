@@ -5441,8 +5441,8 @@ public	function BLKID_ARRAY(){
 		
 		if(is_file("/etc/SuSE-release")){
 			$content=@file_get_contents("/etc/SuSE-release");
-			if(preg_match("#([0-9]+)\.([0-9]+)#is", $content)){
-				return "openSUSE {$re[1]}.{$re[2]}";
+			if(preg_match("#([0-9]+)\.([0-9]+)#is", $content,$re)){
+				return "openSUSE ".trim($re[1]).".".trim($re[2]);;
 			}
 		}
 	
@@ -5450,9 +5450,9 @@ public	function BLKID_ARRAY(){
 			if(!is_file("/etc/redhat-release")){
 				$content=explode("\n",@file_get_contents("/etc/lsb-release"));
 				while (list ($num, $val) = each ($content) ){
-					if(preg_match("#DISTRIB_ID=(.+)#", $val,$re)){$distri_provider=$re[1];}
-					if(preg_match("#DISTRIB_RELEASE=([0-9\.]+)#", $val,$re)){$distri_ver=$re[1];}
-					if(preg_match("#DISTRIB_CODENAME=(.+)#", $val,$re)){$distri_name=$re[1];}
+					if(preg_match("#DISTRIB_ID=(.+)#", $val,$re)){$distri_provider=trim($re[1]);}
+					if(preg_match("#DISTRIB_RELEASE=([0-9\.]+)#", $val,$re)){$distri_ver=trim($re[1]);}
+					if(preg_match("#DISTRIB_CODENAME=(.+)#", $val,$re)){$distri_name=trim($re[1]);}
 					
 				}
 				return "$distri_provider $distri_ver $distri_name";
@@ -5464,7 +5464,7 @@ public	function BLKID_ARRAY(){
 		if(is_file("/etc/debian_version")){
 			$content=explode("\n",@file_get_contents("/etc/debian_version"));
 			while (list ($num, $val) = each ($content) ){
-				if(preg_match("#([0-9\.]+)#", $val,$re)){return "Debian {$re[1]} Gnu-linux";}
+				if(preg_match("#([0-9\.]+)#", $val,$re)){return "Debian ".trim($re[1])." Gnu-linux";}
 				if(preg_match("#squeeze\/sid#", $val)){return "Debian 6.0 Gnu-linux";}
 			}
 		}
@@ -5472,11 +5472,11 @@ public	function BLKID_ARRAY(){
 		if(is_file("/etc/redhat-release")){
 			$content=explode("\n",@file_get_contents("/etc/redhat-release"));
 			while (list ($num, $val) = each ($content) ){
-				if(preg_match("#Fedora Core release\s+([0-9]+)#",$val,$re)){return "Fedora Core release {$re[1]}";}
-				if(preg_match("#Fedora release\s+([0-9]+)#",$val,$re)){return "Fedora release {$re[1]}";}
-				if(preg_match("#Scientific Linux release\s+([0-9\.]+)#",$val,$re)){return "Scientific Linux release {$re[1]}";}
-				if(preg_match("#Mandriva Linux release\s+([0-9\.]+)#",$val,$re)){return "Mandriva Linux release {$re[1]}";}
-				if(preg_match("#CentOS\s+.*?release\s+([0-9\.]+)#",$val,$re)){return "CentOS release {$re[1]}";}
+				if(preg_match("#Fedora Core release\s+([0-9]+)#",$val,$re)){return "Fedora Core release ".trim($re[1])."";}
+				if(preg_match("#Fedora release\s+([0-9]+)#",$val,$re)){return "Fedora release ".trim($re[1])."";}
+				if(preg_match("#Scientific Linux release\s+([0-9\.]+)#",$val,$re)){return "Scientific Linux release ".trim($re[1])."";}
+				if(preg_match("#Mandriva Linux release\s+([0-9\.]+)#",$val,$re)){return "Mandriva Linux release ".trim($re[1])."";}
+				if(preg_match("#CentOS\s+.*?release\s+([0-9\.]+)#",$val,$re)){return "CentOS release ".trim($re[1])."";}
 				
 			}
 			
