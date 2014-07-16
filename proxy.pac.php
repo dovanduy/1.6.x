@@ -114,7 +114,7 @@ function proxy_pac(){
 		$f[]="\tvar PROTO='';";
 		$f[]="\tif (url.substring(0, 5) == 'http:' ){ PROTO='HTTP'; }";
 		$f[]="\tif (url.substring(0, 6) == 'https:' ){ PROTO='HTTPS'; }";
-		$f[]="\tif (url.substring(0, 5) == 'ftp:' ){ PROTO='FTP'; }";
+		$f[]="\tif (url.substring(0, 4) == 'ftp:' ){ PROTO='FTP'; }";
 		$f[]="\tif ( isInNet(hostIP, \"127.0.0.1\", \"255.255.255.255\") ) { return 'DIRECT';}";
 		$f[]="\tif( host  == \"localhost\") { return 'DIRECT';}";
 		pack_debug("$rulename/$ID building build_whitelist($ID)",__FUNCTION__,__LINE__);

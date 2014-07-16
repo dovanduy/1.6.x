@@ -31,7 +31,7 @@ function squid_running_schedules(){
 	shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.logfile_daemon-parse.php --tables-primaires >/dev/null 2>&1 &");
 	
 	$filetime='/etc/artica-postfix/pids/Winbindd_privileged_SQUID.time';
-	if($unix->file_time_min($filetime)>5){
+	if($GLOBALS["CLASS_UNIX"]->file_time_min($filetime)>5){
 		$GLOBALS["CLASS_UNIX"]->Winbindd_privileged_SQUID();
 		@unlink($filetime);
 		@file_put_contents($filetime, time());
@@ -40,9 +40,18 @@ function squid_running_schedules(){
 	$filetime='/etc/artica-postfix/pids/EnableKerbAuth.time';
 	$EnableKerbAuth=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("EnableKerbAuth"));
 	if($EnableKerbAuth==1){
-		if($unix->file_time_min($filetime)>5){
+		if($GLOBALS["CLASS_UNIX"]->file_time_min($filetime)>5){
 			@unlink($filetime);
 			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.kerbauth.php --pinglic >/dev/null 2>&1 &");
+			@file_put_contents($filetime, time());
+		}
+	}
+	$filetime='/etc/artica-postfix/pids/DisableGoogleSSL.time';
+	$DisableGoogleSSL=intval($GLOBALS["CLASS_SOCKETS"]->GET_INFO("DisableGoogleSSL"));
+	if($DisableGoogleSSL==1){
+		if($GLOBALS["CLASS_UNIX"]->file_time_min($filetime)>4320){
+			shell_exec2("{$GLOBALS["nohup"]} {$GLOBALS["NICE"]} {$GLOBALS["PHP5"]} ".dirname(__FILE__)."/exec.nosslsearch.google.com.php --run >/dev/null 2>&1 &");
+			@unlink($filetime);
 			@file_put_contents($filetime, time());
 		}
 	}
@@ -1047,8 +1056,12 @@ function squid_master_status($buildcache=false){
 		if($GLOBALS["VERBOSE"]){echo __FUNCTION__.":pid: $pid (after pidof $sqdbin)\n";}
 		
 	}
+	
+	$GLOBALS["CLASS_UNIX"]->chmod_func(0755,"/usr/share/artica-postfix/exec.logfile_daemon.php");
+	$GLOBALS["CLASS_UNIX"]->chown_func("squid","squid","/usr/share/artica-postfix/exec.logfile_daemon.php");
 	squid_tasks($DisableStats);
 	$notiftime="/etc/artica-postfix/squid-failed-notiftime";
+	
 	
 	if(!$GLOBALS["CLASS_UNIX"]->process_exists($pid)){
 		if(!$GLOBALS["DISABLE_WATCHDOG"]){

@@ -2812,7 +2812,8 @@ function start_prepare(){
 	
 	
 	}	
-
+	$unix->chmod_func(0755,"/usr/share/artica-postfix/exec.logfile_daemon.php");
+	$unix->chown_func("squid","squid","/usr/share/artica-postfix/exec.logfile_daemon.php");
 	$squid_locate_pinger=$unix->squid_locate_pinger();
 	$setcap=$unix->find_program("setcap");
 	if(is_file($squid_locate_pinger)){

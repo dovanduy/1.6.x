@@ -24,8 +24,8 @@ if($argv[1]=="--syslog"){checksyslog();exit;}
 
 function run(){
 	$sock=new sockets();
-	$DisableGoogleSSL=$sock->GET_INFO("DisableGoogleSSL");
-	if(!is_numeric($DisableGoogleSSL)){$DisableGoogleSSL=0;}
+	$DisableGoogleSSL=intval($sock->GET_INFO("DisableGoogleSSL"));
+	
 	if($DisableGoogleSSL==0){
 		echo "Starting......: ".date("H:i:s")." Squid : nosslsearch.google.com (disabled)\n";
 		remove();

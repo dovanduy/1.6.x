@@ -1579,6 +1579,7 @@ function CheckConfig($path){
 				$line=$re[1];
 				$myLine=$line-1;
 				echo "Starting......: ".date("H:i:s")." [SYS]: Squid error on `refresh_pattern` on line $myLine remove it\n";
+				echo "Starting......: ".date("H:i:s")." [SYS]: $ligne\n";
 				$GLOBALS["SQUID_PATTERN_ERROR"][]=$f[$myLine];
 				$Save=true;
 				unset($f[$myLine]);
@@ -1592,6 +1593,7 @@ function CheckConfig($path){
 			$line=$re[1];
 			$myLine=$line-1;
 			echo "Starting......: ".date("H:i:s")." [SYS]: Squid error on `refresh_pattern` on line $myLine remove it\n";
+			echo "Starting......: ".date("H:i:s")." [SYS]: $ligne\n";
 			$GLOBALS["SQUID_PATTERN_ERROR"][]=$f[$myLine];
 			$Save=true;
 			unset($f[$myLine]);

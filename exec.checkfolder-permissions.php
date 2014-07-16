@@ -99,7 +99,8 @@ $sock=new sockets();
   }
   
   $unix->chmod_func(0755, "$artica_path/*");
-  $unix->chmod_func(0777, "$artica_path/ressources/conf/upload");
+  $unix->chmod_func(0777,"/usr/share/artica-postfix/exec.logfile_daemon.php");
+  $unix->chmod_func(0777, "$artica_path/ressources");
   $unix->chmod_func(0777, "$artica_path/ressources/conf/upload/*");
   
   if($username==null){$username="www-data";}

@@ -114,6 +114,12 @@ function Parseline($buffer){
 	if(preg_match("#kid[0-9]+\| .*?\/[0-9]+ exists#", $buffer)){return;}
 	
 	
+if(preg_match("#FATAL: Unable to open HTTP Socket#", $buffer,$re)){
+		squid_admin_mysql(0,"Port conflicts ! [action: None]",null,__FILE__,__LINE__);
+		return;
+}
+	
+	
 //*******************************************************************************************************************
 if(preg_match("#kid([0-9]+).*?Preparing for shutdown after\s+([0-9]+)\s+requests#", $buffer,$re)){
 		squid_admin_mysql(2,"Process CPU.{$re[1]} is stopping [action: None]",null,__FILE__,__LINE__);

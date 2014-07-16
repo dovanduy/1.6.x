@@ -5030,14 +5030,6 @@ function BuildSquidConf(){
 		if($this->DisableAnyCache==1){$SquidBoosterMem=0;}
 
 		
-		
-		if($this->ASROOT){
-			echo "Starting......: ".date("H:i:s")." Squid checking google non-ssl...\n";
-			if(!class_exists("unix")){include_once("/usr/share/artica-postfix/framework/class.unix.inc");}$unix=new unix();
-			$php5=$unix->LOCATE_PHP5_BIN();
-			shell_exec("$php5 /usr/share/artica-postfix/exec.nosslsearch.google.com.php --run");
-		}
-		
 		if($SquidBoosterMem>0){
 			
 			$SquidBoosterMemK=$SquidBoosterMemK*1024;
@@ -7902,8 +7894,8 @@ public function refresh_pattern_list(){
 
 	if($this->ForceWindowsUpdateCaching==1){
 		$conf[]="# --------- Make Windows Updates cache";
-		$conff[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
-		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$conf[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
+		$conf[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 		$conf[]="refresh_pattern -i windows.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 	
 	}
@@ -7925,14 +7917,13 @@ public function refresh_pattern_list(){
 	
 	$CountOfUsersRules=0;
 	
-	
-	
 	if($count>0){
 		$rules=new squid_caches_rules();
 		$rules->build();
 		$CountOfUsersRules=count($rules->final_array);
 		$conf[]="# --------- $count Cache rules: ".count($rules->final_array)." Lines";
 		$conf[]=@implode("\n", $rules->final_array);
+		$conf[]=$this->refresh_pattern_domains();
 		$conf[]="refresh_pattern .	$refresh_pattern_def_min\t{$refresh_pattern_def_perc}%\t$refresh_pattern_def_max";
 		return implode("\n",$conf)."\n";
 	}
@@ -7941,7 +7932,7 @@ public function refresh_pattern_list(){
 	
 	$results=$q->QUERY_SQL($sql);
 	
-	$ignore_no_cache="ignore-no-cache ";
+	
 	if($this->IS_33){$ignore_no_cache=null;}
 	
 	$notpoint=true;
@@ -7963,50 +7954,49 @@ public function refresh_pattern_list(){
 		
 		$conf[]="refresh_pattern .$pattern\t{$ligne["MIN_AGE"]}\t{$ligne["PERCENT"]}%\t{$ligne["MAX_AGE"]} {$options[$ligne["options"]]}";
 	}
-	
+	$conf[]=$this->refresh_pattern_domains();
+	$conf[]=$this->refresh_pattern_defaults();
+	return implode("\n",$conf)."\n";
+}
+
+private function refresh_pattern_domains(){
+	$q=new mysql();
 	$sql="SELECT * FROM `squid_speed` WHERE `domain` IS NOT NULL";
 	$q=new mysql();
 	$results=$q->QUERY_SQL($sql,"artica_backup");
-	$CountOfUsersRules=$CountOfUsersRules+mysql_num_rows($results);
+	
 	
 	
 	while($ligne=@mysql_fetch_array($results,MYSQL_ASSOC)){
 		$pattern=trim($ligne["domain"]);
-		if(strpos("  $pattern  ", " -i ")==0){$pattern="-i $pattern";} 
+		if(strpos("  $pattern  ", " -i ")==0){$pattern="-i $pattern";}
 		if(isset($already[".$pattern"])){continue;}
-		
+	
 		if($this->IS_33){
 			if($ligne["refresh_pattern_perc"]>100){$ligne["refresh_pattern_perc"]=100;}
-			$ligne["refresh_pattern_options"]=trim(str_replace("ignore-no-cache", "", $ligne["refresh_pattern_options"]));
+			$ligne["refresh_pattern_options"]=trim(str_replace("", "", $ligne["refresh_pattern_options"]));
 		}
-		
+	
 		if($pattern=='.'){
 			$notpoint=false;
 			continue;
 			$conf[]="refresh_pattern $pattern  {$ligne["refresh_pattern_min"]}    {$ligne["refresh_pattern_perc"]}%     {$ligne["refresh_pattern_max"]} {$ligne["refresh_pattern_options"]}";
 		}
-		
-		
-		$c++;
+	
+	
+	
 		$pattern=str_replace(".","\.",$pattern);
 		$pattern=str_replace("*",".*",$pattern);
 		$conf[]="refresh_pattern $pattern  {$ligne["refresh_pattern_min"]}    {$ligne["refresh_pattern_perc"]}%     {$ligne["refresh_pattern_max"]}  {$ligne["refresh_pattern_options"]}";
-		
-	}
-	if($CountOfUsersRules>0){
-		$conf[]="refresh_pattern .	$refresh_pattern_def_min\t{$refresh_pattern_def_perc}%\t$refresh_pattern_def_max reload-into-ims ignore-reload";
-		return implode("\n",$conf)."\n";
+	
 	}
 	
-	
-
-	
-	$conf[]="# --------- License OK but no rules defined, add minimalistics patterns";
-	$conf[]=$this->refresh_pattern_defaults();
 	return implode("\n",$conf)."\n";
+	
+	
 }
 
-private function refresh_pattern_defaults(){
+private function refresh_pattern_defaults($OnlyDefaults=false){
 	$sock=new sockets();
 	$final="refresh_pattern -i . 0 10% 5760 reload-into-ims ignore-reload";
 	$SquidCacheLevel=$sock->GET_INFO("SquidCacheLevel");
@@ -8016,10 +8006,53 @@ private function refresh_pattern_defaults(){
 		$final="refresh_pattern -i . 0 50% 4320";
 	}
 	
-	$ignore_no_cache="ignore-no-cache ";
+	$ignore_no_cache=" ";
 	if($this->IS_33){$ignore_no_cache=null;}
 	if($SquidCacheLevel>2){
-		
+		$f[]="refresh_pattern (get_video\?|videoplayback\?|videodownload\?|\.flv\?|\.fid\?) 43200 99% 43200 override-expire ignore-reload ignore-must-revalidate ignore-private";
+		$f[]="refresh_pattern -i (get_video\?|videoplayback\?|videodownload\?) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="# -- refresh pattern for specific sites -- #";
+		$f[]="refresh_pattern ^http://*.jobstreet.com.*/.* 720 100% 10080 override-expire override-lastmod ";
+		$f[]="refresh_pattern ^http://*.indowebster.com.*/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-reload ignore-auth";
+		$f[]="refresh_pattern ^http://*.21cineplex.*/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-reload ignore-auth";
+		$f[]="refresh_pattern ^http://*.atmajaya.*/.* 720 100% 10080 override-expire ignore-auth";
+		$f[]="refresh_pattern ^http://*.kompas.*/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.theinquirer.*/.* 720 100% 10080 override-expire ignore-auth";
+		$f[]="refresh_pattern ^http://*.blogspot.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.wordpress.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ";
+		$f[]="refresh_pattern ^http://*.photobucket.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.tinypic.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.imageshack.us/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.kaskus.*/.* 720 100% 28800 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://www.kaskus.com/.* 720 100% 28800 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.detik.*/.* 720 50% 2880 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.detiknews.*/*.* 720 50% 2880 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://video.liputan6.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://static.liputan6.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.friendster.com/.* 720 100% 10080 override-expire override-lastmod ignore-auth";
+		$f[]="refresh_pattern ^http://*.facebook.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://apps.facebook.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.fbcdn.net/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://profile.ak.fbcdn.net/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://static.playspoon.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://cooking.game.playspoon.com/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern -i http://[^a-z\.]*onemanga\.com/? 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://media?.onemanga.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.yahoo.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.google.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.forummikrotik.com/.* 720 80% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="refresh_pattern ^http://*.linux.or.id/.* 720 100% 10080 override-expire override-lastmod reload-into-ims ignore-auth";
+		$f[]="# -- refresh pattern for extension -- #";
+		$f[]="refresh_pattern -i \.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(jpeg|jpg|jpe|jp2|gif|tiff?|pcx|png|bmp|pic|ico|bif|ver|pict)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(chm|dll|doc|docx|xls|xlsx|ppt|pptx|pps|ppsx|mdb|mdbx)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(txt|conf|cfm|psd|wmf|emf|vsd|pdf|rtf|odt)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(class|jar|exe|gz|bz|bz2|tar|tgz|zip|gzip|arj|ace|bin|cab|msi|rar)(\?.*|$) 5259487 100% 5259487 override-expire ignore-reload reload-into-ims ignore-private";
+		$f[]="refresh_pattern -i \.(htm|html|mhtml|css|js|crl)(\?.*|$) 1440 90% 86400 override-expire ignore-reload reload-into-ims";
+		$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload ignore-no-store ignore-private";
+		$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";
+		$f[]="refresh_pattern -i \.(json|json\?) 1440 90% 5760 reload-into-ims";
 		$f[]="refresh_pattern -i microsoft.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 		$f[]="refresh_pattern -i windowsupdate.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
 		$f[]="refresh_pattern -i my.windowsupdate.website.com/.*\.(cab|exe|ms[i|u|f]|asf|wm[v|a]|dat|zip) 4320 80% 43200 reload-into-ims";
@@ -8038,28 +8071,12 @@ private function refresh_pattern_defaults(){
 		$f[]="refresh_pattern update.nai.com/.*\.(gem|zip|mcs) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
 		$f[]="refresh_pattern ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 10800 80% 10800 ignore-no-store  ignore-reload  reload-into-ims";
 		$f[]="";
-		$f[]="##Musics";
-		$f[]="refresh_pattern -i \.(mp2|mp3|mid|midi|mp[234]|wav|ram|ra|rm|au|3gp|m4r|m4a)(\?.*|$) 10080   90%   43200 override-expire ignore-reload reload-into-ims ignore-private ";
-		$f[]="## Videos";
-		$f[]="refresh_pattern -i \.(mpg|mpeg|mp4|m4v|mov|avi|asf|wmv|wma|dat|flv|swf)(\?.*|$) 10080 90%   43200 override-expire ignore-reload reload-into-ims ignore-private";
-		$f[]="## Pictures";
-		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico)(\?.*|$) 3600 90% 43200 override-expire ignore-no-store ignore-private";
-		$f[]="refresh_pattern -i \.(gif|png|jpg|jpeg|ico|bmp|tiff|webp|bif|ver|pict) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-private ignore-no-store";
-		$f[]="## Musics";
-		$f[]="refresh_pattern -i \.(mp[34g]|swf|wav)$ 43200 90% 432000";		
 		
-		
-		$f[]="refresh_pattern -i \.(swf|js|wav|css|class|dat|zsci|do|ver|advcs|woff|eps|ttf|svg|svgz|ps|acsm) 220000 90% 300000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private";
-		$f[]="refresh_pattern -i \.(html|htm|crl) 9440 90% 100000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
-		$f[]="refresh_pattern -i \.(xml|flow) 0 90% 100000 reload-into-ims";
-		$f[]="refresh_pattern -i \.(json|json\?) 1440 90% 5760 reload-into-ims";
-		$f[]="refresh_pattern -i (/cgi-bin/|\?) 0 0% 0";
-		$f[]="refresh_pattern -i ^http:\/\/liveupdate.symantecliveupdate.com.*\(zip) 0 0% 0";
-		$f[]="refresh_pattern -i \.(bin|deb|rpm|drpm|exe|zip|tar|tgz|bz2|ipa|bz|ram|rar|bin|uxx|gz|crl|msi|dll|hz|cab|psf|vidt|apk|wtex|hz) 220000 90% 500000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
-		$f[]="refresh_pattern -i \.(ppt|ppt\?|pptx|doc|docx|pdf|xls|xlsx|csv|txt) 220000 90% 200000 override-expire reload-into-ims ignore-reload {$ignore_no_cache} ignore-no-store ignore-private ignore-must-revalidate";
 		$f[]="refresh_pattern -i ^ftp: 66000 90% 200000";
 		$f[]="refresh_pattern -i ^gopher: 1440 0% 1440";
 	}
+	
+	if($OnlyDefaults){return @implode("\n", $f);}
 	
 	if($SquidCacheLevel<3){
 		$f[]="refresh_pattern -i ^ftp: 1440 20% 10080";
